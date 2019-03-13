@@ -441,7 +441,7 @@ public class AppInfo implements DexDefinitionSupplier {
    * #resolveFieldOn}.
    */
   public DexEncodedField resolveField(DexField field) {
-    return resolveFieldOn(field.clazz, field);
+    return resolveFieldOn(field.holder, field);
   }
 
   /**

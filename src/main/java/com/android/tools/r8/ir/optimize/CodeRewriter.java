@@ -1078,7 +1078,7 @@ public class CodeRewriter {
           }
         }
         DexField field = insn.asFieldInstruction().getField();
-        if (field.clazz == clazz.type && clazz.lookupInstanceField(field) != null) {
+        if (field.holder == clazz.type && clazz.lookupInstanceField(field) != null) {
           // Require only accessing instance fields of the *current* class.
           continue;
         }

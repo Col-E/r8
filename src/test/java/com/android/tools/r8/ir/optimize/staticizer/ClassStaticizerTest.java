@@ -279,11 +279,11 @@ public class ClassStaticizerTest extends TestBase {
     return Streams.concat(
         filterInstructionKind(code, SgetObject.class)
             .map(Instruction::getField)
-            .filter(fld -> isTypeOfInterest(fld.clazz))
+            .filter(fld -> isTypeOfInterest(fld.holder))
             .map(DexField::toSourceString),
         filterInstructionKind(code, SputObject.class)
             .map(Instruction::getField)
-            .filter(fld -> isTypeOfInterest(fld.clazz))
+            .filter(fld -> isTypeOfInterest(fld.holder))
             .map(DexField::toSourceString),
         filterInstructionKind(code, InvokeStatic.class)
             .map(insn -> (InvokeStatic) insn)

@@ -575,9 +575,9 @@ public class RootSetBuilder {
         }
       } else if (seed.isDexField()) {
         DexField field = seed.asDexField();
-        if (include.test(field.clazz)) {
+        if (include.test(field.holder)) {
           out.println(
-              field.clazz.toSourceString()
+              field.holder.toSourceString()
                   + ": "
                   + field.type.toSourceString()
                   + " "
@@ -1198,7 +1198,7 @@ public class RootSetBuilder {
           DexField field = reference.asDexField();
           DexEncodedField encodedField = appInfo.definitionFor(field);
           if (encodedField != null
-              && (encodedField.isStatic() || isKeptDirectlyOrIndirectly(field.clazz, appInfo))) {
+              && (encodedField.isStatic() || isKeptDirectlyOrIndirectly(field.holder, appInfo))) {
             // TODO(b/121354886): Enable asserts for reads and writes.
             /*assert appInfo.fieldsRead.contains(field)
                 : "Expected kept field `" + field.toSourceString() + "` to be read";

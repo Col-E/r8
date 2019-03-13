@@ -85,7 +85,7 @@ public final class ClassStaticizer {
     }
 
     DexType hostType() {
-      return singletonField.field.clazz;
+      return singletonField.field.holder;
     }
 
     DexClass hostClass() {
@@ -312,7 +312,7 @@ public final class ClassStaticizer {
 
       if (instruction.isInstanceGet() || instruction.isInstancePut()) {
         DexField fieldReferenced = instruction.asFieldInstruction().getField();
-        CandidateInfo candidateInfo = candidates.get(fieldReferenced.clazz);
+        CandidateInfo candidateInfo = candidates.get(fieldReferenced.holder);
         if (candidateInfo != null) {
           // Reads/writes to instance field of the candidate class are not supported.
           candidateInfo.invalidate();
@@ -324,7 +324,7 @@ public final class ClassStaticizer {
 
   private boolean isAllowedInHostClassInitializer(
       DexType host, Instruction insn, IRCode code) {
-    return (insn.isStaticPut() && insn.asStaticPut().getField().clazz == host) ||
+    return (insn.isStaticPut() && insn.asStaticPut().getField().holder == host) ||
         insn.isConstNumber() ||
         insn.isConstString() ||
         (insn.isGoto() && insn.asGoto().isTrivialGotoToTheNextBlock(code)) ||
@@ -455,7 +455,7 @@ public final class ClassStaticizer {
     // Allow single assignment to a singleton field.
     StaticPut staticPut = instruction.asStaticPut();
     DexEncodedField fieldAccessed =
-        appView.appInfo().lookupStaticTarget(staticPut.getField().clazz, staticPut.getField());
+        appView.appInfo().lookupStaticTarget(staticPut.getField().holder, staticPut.getField());
     return fieldAccessed == info.singletonField;
   }
 
@@ -470,7 +470,7 @@ public final class ClassStaticizer {
       return null;
     }
 
-    assert candidateInfo.singletonField == appView.appInfo().lookupStaticTarget(field.clazz, field)
+    assert candidateInfo.singletonField == appView.appInfo().lookupStaticTarget(field.holder, field)
         : "Added reference after collectCandidates(...)?";
 
     Value singletonValue = staticGet.dest();
@@ -574,7 +574,7 @@ public final class ClassStaticizer {
     }
 
     private boolean registerField(DexField field) {
-      registerTypeReference(field.clazz);
+      registerTypeReference(field.holder);
       registerTypeReference(field.type);
       return true;
     }

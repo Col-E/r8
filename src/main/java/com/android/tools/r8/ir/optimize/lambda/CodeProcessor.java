@@ -281,9 +281,9 @@ public abstract class CodeProcessor {
 
   private void handle(InstanceGet instanceGet) {
     DexField field = instanceGet.getField();
-    Strategy strategy = strategyProvider.apply(field.clazz);
+    Strategy strategy = strategyProvider.apply(field.holder);
     if (strategy.isValidInstanceFieldRead(this, field)) {
-      if (field.clazz != this.method.method.holder) {
+      if (field.holder != this.method.method.holder) {
         // Only rewrite references to lambda classes if we are outside the class.
         process(strategy, instanceGet);
       }
@@ -298,9 +298,9 @@ public abstract class CodeProcessor {
 
   private void handle(InstancePut instancePut) {
     DexField field = instancePut.getField();
-    Strategy strategy = strategyProvider.apply(field.clazz);
+    Strategy strategy = strategyProvider.apply(field.holder);
     if (strategy.isValidInstanceFieldWrite(this, field)) {
-      if (field.clazz != this.method.method.holder) {
+      if (field.holder != this.method.method.holder) {
         // Only rewrite references to lambda classes if we are outside the class.
         process(strategy, instancePut);
       }
@@ -315,29 +315,29 @@ public abstract class CodeProcessor {
 
   private void handle(StaticGet staticGet) {
     DexField field = staticGet.getField();
-    Strategy strategy = strategyProvider.apply(field.clazz);
+    Strategy strategy = strategyProvider.apply(field.holder);
     if (strategy.isValidStaticFieldRead(this, field)) {
-      if (field.clazz != this.method.method.holder) {
+      if (field.holder != this.method.method.holder) {
         // Only rewrite references to lambda classes if we are outside the class.
         process(strategy, staticGet);
       }
     } else {
       lambdaChecker.accept(field.type);
-      lambdaChecker.accept(field.clazz);
+      lambdaChecker.accept(field.holder);
     }
   }
 
   private void handle(StaticPut staticPut) {
     DexField field = staticPut.getField();
-    Strategy strategy = strategyProvider.apply(field.clazz);
+    Strategy strategy = strategyProvider.apply(field.holder);
     if (strategy.isValidStaticFieldWrite(this, field)) {
-      if (field.clazz != this.method.method.holder) {
+      if (field.holder != this.method.method.holder) {
         // Only rewrite references to lambda classes if we are outside the class.
         process(strategy, staticPut);
       }
     } else {
       lambdaChecker.accept(field.type);
-      lambdaChecker.accept(field.clazz);
+      lambdaChecker.accept(field.holder);
     }
   }
 

@@ -112,12 +112,12 @@ public class StaticGet extends FieldInstruction {
     if (!isMemberVisibleFromOriginalContext(
         appInfo,
         code.method.method.getHolder(),
-        resolvedField.field.clazz,
+        resolvedField.field.holder,
         resolvedField.accessFlags)) {
       return false;
     }
     DexType context = code.method.method.holder;
-    return !getField().clazz.classInitializationMayHaveSideEffects(
+    return !getField().holder.classInitializationMayHaveSideEffects(
         appInfo,
         // Types that are a super type of `context` are guaranteed to be initialized already.
         type -> context.isSubtypeOf(type, appInfo));

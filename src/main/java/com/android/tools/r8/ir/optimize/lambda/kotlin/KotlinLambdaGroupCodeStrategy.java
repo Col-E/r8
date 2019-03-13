@@ -48,7 +48,7 @@ final class KotlinLambdaGroupCodeStrategy implements Strategy {
 
   @Override
   public boolean isValidStaticFieldWrite(CodeProcessor context, DexField field) {
-    DexType lambda = field.clazz;
+    DexType lambda = field.holder;
     assert group.containsLambda(lambda);
     // Only support writes to singleton static field named 'INSTANCE' from lambda
     // static class initializer.
@@ -60,7 +60,7 @@ final class KotlinLambdaGroupCodeStrategy implements Strategy {
 
   @Override
   public boolean isValidStaticFieldRead(CodeProcessor context, DexField field) {
-    DexType lambda = field.clazz;
+    DexType lambda = field.holder;
     assert group.containsLambda(lambda);
     // Support all reads of singleton static field named 'INSTANCE'.
     return field.name == context.kotlin.functional.kotlinStyleLambdaInstanceName &&
@@ -69,7 +69,7 @@ final class KotlinLambdaGroupCodeStrategy implements Strategy {
 
   @Override
   public boolean isValidInstanceFieldWrite(CodeProcessor context, DexField field) {
-    DexType lambda = field.clazz;
+    DexType lambda = field.holder;
     DexMethod method = context.method.method;
     assert group.containsLambda(lambda);
     // Support writes to capture instance fields inside lambda constructor only.
@@ -78,7 +78,7 @@ final class KotlinLambdaGroupCodeStrategy implements Strategy {
 
   @Override
   public boolean isValidInstanceFieldRead(CodeProcessor context, DexField field) {
-    assert group.containsLambda(field.clazz);
+    assert group.containsLambda(field.holder);
     // Support all reads from capture instance fields.
     return true;
   }
@@ -157,7 +157,7 @@ final class KotlinLambdaGroupCodeStrategy implements Strategy {
         new InstanceGet(
             createValueForType(context, fieldType),
             instanceGet.object(),
-            mapCaptureField(context.factory, field.clazz, field));
+            mapCaptureField(context.factory, field.holder, field));
     context.instructions().replaceCurrentInstruction(newInstanceGet);
 
     if (fieldType.isPrimitiveType() || fieldType == context.factory.objectType) {
@@ -270,6 +270,6 @@ final class KotlinLambdaGroupCodeStrategy implements Strategy {
 
   // Map lambda class initializer into lambda group class initializer.
   private DexField mapSingletonInstanceField(DexItemFactory factory, DexField field) {
-    return group.getSingletonInstanceField(factory, group.lambdaId(field.clazz));
+    return group.getSingletonInstanceField(factory, group.lambdaId(field.holder));
   }
 }

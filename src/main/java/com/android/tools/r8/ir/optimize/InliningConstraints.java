@@ -109,7 +109,7 @@ public class InliningConstraints {
   public ConstraintWithTarget forInstanceGet(DexField field, DexType invocationContext) {
     DexField lookup = graphLense.lookupField(field);
     return forFieldInstruction(
-        lookup, appView.appInfo().lookupInstanceTarget(lookup.clazz, lookup), invocationContext);
+        lookup, appView.appInfo().lookupInstanceTarget(lookup.holder, lookup), invocationContext);
   }
 
   public ConstraintWithTarget forInstanceOf(DexType type, DexType invocationContext) {
@@ -119,7 +119,7 @@ public class InliningConstraints {
   public ConstraintWithTarget forInstancePut(DexField field, DexType invocationContext) {
     DexField lookup = graphLense.lookupField(field);
     return forFieldInstruction(
-        lookup, appView.appInfo().lookupInstanceTarget(lookup.clazz, lookup), invocationContext);
+        lookup, appView.appInfo().lookupInstanceTarget(lookup.holder, lookup), invocationContext);
   }
 
   public ConstraintWithTarget forInvoke(DexMethod method, Type type, DexType invocationContext) {
@@ -236,13 +236,13 @@ public class InliningConstraints {
   public ConstraintWithTarget forStaticGet(DexField field, DexType invocationContext) {
     DexField lookup = graphLense.lookupField(field);
     return forFieldInstruction(
-        lookup, appView.appInfo().lookupStaticTarget(lookup.clazz, lookup), invocationContext);
+        lookup, appView.appInfo().lookupStaticTarget(lookup.holder, lookup), invocationContext);
   }
 
   public ConstraintWithTarget forStaticPut(DexField field, DexType invocationContext) {
     DexField lookup = graphLense.lookupField(field);
     return forFieldInstruction(
-        lookup, appView.appInfo().lookupStaticTarget(lookup.clazz, lookup), invocationContext);
+        lookup, appView.appInfo().lookupStaticTarget(lookup.holder, lookup), invocationContext);
   }
 
   public ConstraintWithTarget forStore() {
@@ -268,7 +268,7 @@ public class InliningConstraints {
   private ConstraintWithTarget forFieldInstruction(
       DexField field, DexEncodedField target, DexType invocationContext) {
     // Resolve the field if possible and decide whether the instruction can inlined.
-    DexType fieldHolder = graphLense.lookupType(field.clazz);
+    DexType fieldHolder = graphLense.lookupType(field.holder);
     DexClass fieldClass = appView.definitionFor(fieldHolder);
     if (target != null && fieldClass != null) {
       ConstraintWithTarget fieldConstraintWithTarget =

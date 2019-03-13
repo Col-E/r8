@@ -87,8 +87,8 @@ final class LambdaTypeVisitor {
 
   void accept(DexField field, DexType holderToIgnore) {
     accept(field.type);
-    if (holderToIgnore != field.clazz) {
-      accept(field.clazz);
+    if (holderToIgnore != field.holder) {
+      accept(field.holder);
     }
   }
 

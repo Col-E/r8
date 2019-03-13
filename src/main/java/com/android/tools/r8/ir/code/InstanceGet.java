@@ -119,7 +119,7 @@ public class InstanceGet extends FieldInstruction {
     if (!isMemberVisibleFromOriginalContext(
         appInfo,
         code.method.method.getHolder(),
-        resolvedField.field.clazz,
+        resolvedField.field.holder,
         resolvedField.accessFlags)) {
       return false;
     }

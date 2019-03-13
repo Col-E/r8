@@ -76,7 +76,7 @@ public class PrintClassList {
       // Detour via Signature to get the same formatting.
       FieldSignature signature = new FieldSignature(field.name.toSourceString(),
           field.type.toSourceString());
-      System.out.println(field.clazz.toSourceString() + " " + signature);
+      System.out.println(field.holder.toSourceString() + " " + signature);
     }
   }
 

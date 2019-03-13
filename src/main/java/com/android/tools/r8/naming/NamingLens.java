@@ -79,7 +79,7 @@ public abstract class NamingLens {
 
   public final DexField lookupField(DexField field, DexItemFactory dexItemFactory) {
     return dexItemFactory.createField(
-        lookupType(field.clazz, dexItemFactory),
+        lookupType(field.holder, dexItemFactory),
         lookupType(field.type, dexItemFactory),
         lookupName(field));
   }

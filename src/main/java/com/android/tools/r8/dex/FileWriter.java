@@ -405,7 +405,7 @@ public class FileWriter {
   }
 
   private void writeFieldItem(DexField field) {
-    int classIdx = mapping.getOffsetFor(field.clazz);
+    int classIdx = mapping.getOffsetFor(field.holder);
     assert (classIdx & 0xFFFF) == classIdx;
     dest.putShort((short) classIdx);
     int typeIdx = mapping.getOffsetFor(field.type);

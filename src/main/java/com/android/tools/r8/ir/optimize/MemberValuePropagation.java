@@ -95,7 +95,7 @@ public class MemberValuePropagation {
       DexField field = rule.getReturnValue().getField();
       assert typeLattice
           == TypeLatticeElement.fromDexType(field.type, Nullability.maybeNull(), appView.appInfo());
-      DexEncodedField staticField = appView.appInfo().lookupStaticTarget(field.clazz, field);
+      DexEncodedField staticField = appView.appInfo().lookupStaticTarget(field.holder, field);
       if (staticField != null) {
         Value value = code.createValue(typeLattice, instruction.getLocalInfo());
         replacement =
@@ -104,7 +104,7 @@ public class MemberValuePropagation {
           code.method.getMutableOptimizationInfo().markUseIdentifierNameString();
         }
       } else {
-        throw new CompilationError(field.clazz.toSourceString() + "." + field.name.toString()
+        throw new CompilationError(field.holder.toSourceString() + "." + field.name.toString()
             + " used in assumevalues rule does not exist.");
       }
     }

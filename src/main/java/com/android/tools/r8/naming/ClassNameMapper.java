@@ -217,7 +217,7 @@ public class ClassNameMapper implements ProguardMap {
 
   public String originalNameOf(IndexedDexItem item) {
     if (item instanceof DexField) {
-      return lookupName(getRenamedFieldSignature((DexField) item), ((DexField) item).clazz);
+      return lookupName(getRenamedFieldSignature((DexField) item), ((DexField) item).holder);
     } else if (item instanceof DexMethod) {
       return lookupName(getRenamedMethodSignature((DexMethod) item), ((DexMethod) item).holder);
     } else if (item instanceof DexType) {
@@ -255,7 +255,7 @@ public class ClassNameMapper implements ProguardMap {
   }
 
   public FieldSignature originalSignatureOf(DexField field) {
-    String decoded = descriptorToJavaType(field.clazz.descriptor.toString());
+    String decoded = descriptorToJavaType(field.holder.descriptor.toString());
     FieldSignature memberSignature = getRenamedFieldSignature(field);
     ClassNaming classNaming = getClassNaming(decoded);
     if (classNaming == null) {

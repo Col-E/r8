@@ -301,7 +301,7 @@ public class MemberRebindingAnalysis {
                       isMemberVisibleFromOriginalContext(
                           appInfo,
                           context.method.getHolder(),
-                          target.field.clazz,
+                          target.field.holder,
                           target.accessFlags))) {
         builder.map(field,
             lense.lookupField(validTargetFor(target.field, field, lookupTargetOnClass)));

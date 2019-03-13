@@ -132,7 +132,7 @@ class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
       return;
     }
     // Now, `field` is reference. Find its definition and check if it's renamed.
-    DexClass holder = appInfo.definitionFor(field.clazz);
+    DexClass holder = appInfo.definitionFor(field.holder);
     // We don't care pruned types or library classes.
     if (holder == null || holder.isLibraryClass()) {
       return;
@@ -144,7 +144,7 @@ class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
       return;
     }
     assert definition.field != field;
-    assert definition.field.clazz != field.clazz;
+    assert definition.field.holder != field.holder;
     // If the definition is renamed,
     if (renaming.containsKey(definition.field)) {
       // Assign the same, renamed name as the definition to the reference.

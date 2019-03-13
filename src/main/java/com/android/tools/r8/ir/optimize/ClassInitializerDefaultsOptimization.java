@@ -330,7 +330,7 @@ public class ClassInitializerDefaultsOptimization {
           if (instruction.isStaticGet()) {
             StaticGet get = instruction.asStaticGet();
             DexEncodedField field = appView.appInfo().resolveField(get.getField());
-            if (field != null && field.field.clazz == clazz.type) {
+            if (field != null && field.field.holder == clazz.type) {
               isReadBefore.add(field.field);
             } else if (instruction.instructionMayHaveSideEffects(appView, clazz.type)) {
               // Reading another field is only OK if the read does not have side-effects.
@@ -338,7 +338,7 @@ public class ClassInitializerDefaultsOptimization {
             }
           } else if (instruction.isStaticPut()) {
             StaticPut put = instruction.asStaticPut();
-            if (put.getField().clazz != clazz.type) {
+            if (put.getField().holder != clazz.type) {
               // Can cause clinit on another class which can read uninitialized static fields
               // of this class.
               return finalFieldPut.values();

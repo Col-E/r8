@@ -122,7 +122,7 @@ public class ProguardMemberRuleReturnValue {
       }
     } else {
       assert isField();
-      result.append(field.clazz.toSourceString() + '.' + field.name);
+      result.append(field.holder.toSourceString() + '.' + field.name);
     }
     return result.toString();
   }
