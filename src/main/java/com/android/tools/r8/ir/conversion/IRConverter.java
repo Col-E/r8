@@ -188,6 +188,11 @@ public class IRConverter {
             ? new CovariantReturnTypeAnnotationTransformer(this, appView.dexItemFactory())
             : null;
     this.stringOptimizer = new StringOptimizer(appView);
+    this.nonNullTracker =
+        options.enableNonNullTracking
+            ? new NonNullTracker(
+                appView, libraryMethodsReturningNonNull(appView.dexItemFactory()))
+            : null;
     if (appView.enableWholeProgramOptimizations()) {
       assert appView.appInfo().hasLiveness();
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
@@ -199,9 +204,6 @@ public class IRConverter {
               : null;
       this.classStaticizer =
           options.enableClassStaticizer ? new ClassStaticizer(appViewWithLiveness, this) : null;
-      this.nonNullTracker =
-          new NonNullTracker(
-              appViewWithLiveness, libraryMethodsReturningNonNull(appView.dexItemFactory()));
       this.inliner = new Inliner(appViewWithLiveness, mainDexClasses);
       this.outliner = new Outliner(appViewWithLiveness, this);
       this.memberValuePropagation =
@@ -222,7 +224,6 @@ public class IRConverter {
     } else {
       this.classInliner = null;
       this.classStaticizer = null;
-      this.nonNullTracker = null;
       this.inliner = null;
       this.outliner = null;
       this.memberValuePropagation = null;

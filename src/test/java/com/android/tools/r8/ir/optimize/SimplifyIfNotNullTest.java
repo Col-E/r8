@@ -6,40 +6,48 @@ package com.android.tools.r8.ir.optimize;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.code.Format21t;
-import com.android.tools.r8.code.Format22t;
-import com.android.tools.r8.code.Instruction;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.optimize.nonnull.FieldAccessTest;
 import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterArrayAccess;
 import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterFieldAccess;
 import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterInvoke;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
-import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
-import java.util.Arrays;
+import com.google.common.collect.Streams;
 import java.util.List;
 import org.junit.Test;
 
 public class SimplifyIfNotNullTest extends TestBase {
-  private static boolean isIf(Instruction instruction) {
-    return instruction instanceof Format21t || instruction instanceof Format22t;
-  }
 
-  private void buildAndTest(Class<?> testClass, List<MethodSignature> signatures) throws Exception {
-    AndroidApp app = buildAndroidApp(ToolHelper.getClassAsBytes(testClass));
-    AndroidApp r8Result = compileWithR8(app,
-        "-keep class " + testClass.getCanonicalName() + " { *; }");
-    CodeInspector codeInspector = new CodeInspector(r8Result);
+  private void verifyAbsenceOfIf(
+      CodeInspector codeInspector, Class<?> testClass, List<MethodSignature> signatures) {
     for (MethodSignature signature : signatures) {
-      DexEncodedMethod method =
-          codeInspector.clazz(testClass.getName()).method(signature).getMethod();
-      long count = Arrays.stream(method.getCode().asDexCode().instructions)
-          .filter(SimplifyIfNotNullTest::isIf).count();
+      MethodSubject method =
+          codeInspector.clazz(testClass).method(signature);
+      long count = Streams.stream(method.iterateInstructions(InstructionSubject::isIf)).count();
       assertEquals(0, count);
     }
+  }
+
+  private void testD8(Class<?> testClass, List<MethodSignature> signatures) throws Exception {
+    CodeInspector codeInspector =
+        testForD8()
+            .addProgramClasses(testClass)
+            .compile()
+            .inspector();
+    verifyAbsenceOfIf(codeInspector, testClass, signatures);
+  }
+
+  private void testR8(Class<?> testClass, List<MethodSignature> signatures) throws Exception {
+    CodeInspector codeInspector =
+        testForR8(Backend.DEX)
+            .addProgramClasses(testClass)
+            .addKeepRules("-keep class " + testClass.getCanonicalName() + " { *; }")
+            .compile()
+            .inspector();
+    verifyAbsenceOfIf(codeInspector, testClass, signatures);
   }
 
   @Test
@@ -48,7 +56,8 @@ public class SimplifyIfNotNullTest extends TestBase {
         new MethodSignature("foo", "int", new String[]{"java.lang.String"});
     MethodSignature bar =
         new MethodSignature("bar", "int", new String[]{"java.lang.String"});
-    buildAndTest(NonNullAfterInvoke.class, ImmutableList.of(foo, bar));
+    testD8(NonNullAfterInvoke.class, ImmutableList.of(foo, bar));
+    testR8(NonNullAfterInvoke.class, ImmutableList.of(foo, bar));
   }
 
   @Test
@@ -57,7 +66,8 @@ public class SimplifyIfNotNullTest extends TestBase {
         new MethodSignature("foo", "int", new String[]{"java.lang.String[]"});
     MethodSignature bar =
         new MethodSignature("bar", "int", new String[]{"java.lang.String[]"});
-    buildAndTest(NonNullAfterArrayAccess.class, ImmutableList.of(foo, bar));
+    testD8(NonNullAfterArrayAccess.class, ImmutableList.of(foo, bar));
+    testR8(NonNullAfterArrayAccess.class, ImmutableList.of(foo, bar));
   }
 
   @Test
@@ -68,6 +78,7 @@ public class SimplifyIfNotNullTest extends TestBase {
         new String[]{FieldAccessTest.class.getCanonicalName()});
     MethodSignature foo2 = new MethodSignature("foo2", "int",
         new String[]{FieldAccessTest.class.getCanonicalName()});
-    buildAndTest(NonNullAfterFieldAccess.class, ImmutableList.of(foo, bar, foo2));
+    testD8(NonNullAfterFieldAccess.class, ImmutableList.of(foo, bar, foo2));
+    testR8(NonNullAfterFieldAccess.class, ImmutableList.of(foo, bar, foo2));
   }
 }

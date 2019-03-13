@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize;
 import static com.android.tools.r8.ir.code.DominatorTree.Assumption.MAY_HAVE_UNREACHABLE_BLOCKS;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
@@ -23,7 +24,6 @@ import com.android.tools.r8.ir.code.NonNull;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.OptimizationFeedback;
-import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -41,11 +41,12 @@ import java.util.function.Predicate;
 
 public class NonNullTracker {
 
-  private final AppView<AppInfoWithLiveness> appView;
+  private final AppView<? extends AppInfo> appView;
   private final Set<DexMethod> libraryMethodsReturningNonNull;
 
   public NonNullTracker(
-      AppView<AppInfoWithLiveness> appView, Set<DexMethod> libraryMethodsReturningNonNull) {
+      AppView<? extends AppInfo> appView,
+      Set<DexMethod> libraryMethodsReturningNonNull) {
     this.appView = appView;
     this.libraryMethodsReturningNonNull = libraryMethodsReturningNonNull;
   }
@@ -119,11 +120,14 @@ public class NonNullTracker {
             knownToBeNonNullValues.add(knownToBeNonNullValue);
           }
         }
-        if (current.isInvokeMethod() && !current.isInvokePolymorphic()) {
+        if (current.isInvokeMethod()
+            && !current.isInvokePolymorphic()
+            && appView.appInfo().hasLiveness()) {
           DexEncodedMethod singleTarget =
               current
                   .asInvokeMethod()
-                  .lookupSingleTarget(appView.appInfo(), code.method.method.getHolder());
+                  .lookupSingleTarget(
+                      appView.appInfo().withLiveness(), code.method.method.getHolder());
           if (singleTarget != null
               && singleTarget.getOptimizationInfo().getNonNullParamOnNormalExits() != null) {
             BitSet facts = singleTarget.getOptimizationInfo().getNonNullParamOnNormalExits();

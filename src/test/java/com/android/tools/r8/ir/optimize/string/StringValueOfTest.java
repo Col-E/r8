@@ -211,7 +211,7 @@ public class StringValueOfTest extends TestBase {
         .addProgramClasses(CLASSES)
         .run(MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 6, 1, 1);
+    test(result, 5, 1, 1);
   }
 
   @Test
