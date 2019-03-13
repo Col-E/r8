@@ -374,10 +374,10 @@ public class DexMethodHandle extends IndexedDexItem implements
     } else {
       assert isFieldHandle();
       DexField field = asField();
-      owner = lens.lookupInternalName(field.clazz);
+      owner = lens.lookupInternalName(field.holder);
       name = lens.lookupName(field).toString();
       desc = lens.lookupDescriptor(field.type).toString();
-      itf = field.clazz.isInterface();
+      itf = field.holder.isInterface();
     }
     return new Handle(getAsmTag(), owner, name, desc, itf);
   }

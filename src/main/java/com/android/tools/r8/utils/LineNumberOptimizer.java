@@ -356,9 +356,9 @@ public class LineNumberOptimizer {
           DexField dexField = dexEncodedField.field;
           DexField originalField = graphLense.getOriginalFieldSignature(dexField);
           DexString renamedName = namingLens.lookupName(dexField);
-          if (renamedName != originalField.name || originalField.clazz != clazz.type) {
+          if (renamedName != originalField.name || originalField.holder != clazz.type) {
             FieldSignature originalSignature =
-                FieldSignature.fromDexField(originalField, originalField.clazz != clazz.type);
+                FieldSignature.fromDexField(originalField, originalField.holder != clazz.type);
             MemberNaming memberNaming = new MemberNaming(originalSignature, renamedName.toString());
             onDemandClassNamingBuilder.get().addMemberEntry(memberNaming);
           }

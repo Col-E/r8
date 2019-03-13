@@ -313,7 +313,7 @@ public class VerticalClassMerger {
       } else if (item.isDexField()) {
         // Pin the holder and the type of the field.
         DexField field = item.asDexField();
-        markTypeAsPinned(field.clazz, reason);
+        markTypeAsPinned(field.holder, reason);
         markTypeAsPinned(field.type, reason);
       } else {
         assert item.isDexMethod();
@@ -1362,7 +1362,7 @@ public class VerticalClassMerger {
     private DexEncodedField renameFieldIfNeeded(
         DexEncodedField field, Predicate<DexField> availableFieldSignatures) {
       DexString oldName = field.field.name;
-      DexType oldHolder = field.field.clazz;
+      DexType oldHolder = field.field.holder;
 
       DexField newSignature =
           application.dexItemFactory.createField(target.type, field.field.type, oldName);
@@ -1455,7 +1455,7 @@ public class VerticalClassMerger {
         DexEncodedField encodedField = fields.get(i);
         DexField field = encodedField.field;
         DexType newType = fixupType(field.type);
-        DexType newHolder = fixupType(field.clazz);
+        DexType newHolder = fixupType(field.holder);
         DexField newField = application.dexItemFactory.createField(newHolder, newType, field.name);
         if (newField != encodedField.field) {
           lense.move(encodedField.field, newField);
@@ -1741,9 +1741,9 @@ public class VerticalClassMerger {
     private boolean checkFieldReference(DexField field) {
       if (!foundIllegalAccess) {
         DexType baseType =
-            appView.graphLense().lookupType(field.clazz.toBaseType(appView.dexItemFactory()));
+            appView.graphLense().lookupType(field.holder.toBaseType(appView.dexItemFactory()));
         if (baseType.isClassType() && baseType.isSamePackage(source.type)) {
-          checkTypeReference(field.clazz);
+          checkTypeReference(field.holder);
           checkTypeReference(field.type);
 
           DexEncodedField definition = appView.definitionFor(field);

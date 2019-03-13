@@ -453,7 +453,7 @@ public class ProguardConfigurationParserTest extends TestBase {
         assertFalse(rule.getReturnValue().isValueRange());
         assertTrue(rule.getReturnValue().isField());
         assertFalse(rule.getReturnValue().isNull());
-        assertEquals("com.google.C", rule.getReturnValue().getField().clazz.toString());
+        assertEquals("com.google.C", rule.getReturnValue().getField().holder.toString());
         assertEquals("int", rule.getReturnValue().getField().type.toString());
         assertEquals("X", rule.getReturnValue().getField().name.toString());
         matches |= 1 << 4;
@@ -522,7 +522,7 @@ public class ProguardConfigurationParserTest extends TestBase {
         assertFalse(rule.getReturnValue().isValueRange());
         assertTrue(rule.getReturnValue().isField());
         assertFalse(rule.getReturnValue().isNull());
-        assertEquals("com.google.C", rule.getReturnValue().getField().clazz.toString());
+        assertEquals("com.google.C", rule.getReturnValue().getField().holder.toString());
         assertEquals("int", rule.getReturnValue().getField().type.toString());
         assertEquals("X", rule.getReturnValue().getField().name.toString());
         matches |= 1 << 4;

@@ -175,13 +175,13 @@ public class PrintUses {
       addType(field.type);
       DexEncodedField baseField =
           isStatic
-              ? appInfo.lookupStaticTarget(field.clazz, field)
-              : appInfo.lookupInstanceTarget(field.clazz, field);
-      if (baseField != null && baseField.field.clazz != field.clazz) {
+              ? appInfo.lookupStaticTarget(field.holder, field)
+              : appInfo.lookupInstanceTarget(field.holder, field);
+      if (baseField != null && baseField.field.holder != field.holder) {
         field = baseField.field;
       }
-      addType(field.clazz);
-      Set<DexField> typeFields = fields.get(field.clazz);
+      addType(field.holder);
+      Set<DexField> typeFields = fields.get(field.holder);
       if (typeFields != null) {
         typeFields.add(field);
       }

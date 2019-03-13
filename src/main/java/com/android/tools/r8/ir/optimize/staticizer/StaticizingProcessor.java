@@ -455,13 +455,13 @@ final class StaticizingProcessor {
   }
 
   private DexField mapFieldIfMoved(DexField field) {
-    DexType hostType = candidateToHostMapping.get(field.clazz);
+    DexType hostType = candidateToHostMapping.get(field.holder);
     if (hostType != null) {
       field = factory().createField(hostType, field.type, field.name);
     }
     hostType = candidateToHostMapping.get(field.type);
     if (hostType != null) {
-      field = factory().createField(field.clazz, hostType, field.name);
+      field = factory().createField(field.holder, hostType, field.name);
     }
     return field;
   }
@@ -577,9 +577,9 @@ final class StaticizingProcessor {
   }
 
   private DexField mapCandidateField(DexField field, DexType candidateType, DexType hostType) {
-    return field.clazz != candidateType && field.type != candidateType ? field
+    return field.holder != candidateType && field.type != candidateType ? field
         : factory().createField(
-            field.clazz == candidateType ? hostType : field.clazz,
+            field.holder == candidateType ? hostType : field.holder,
             field.type == candidateType ? hostType : field.type,
             field.name);
   }

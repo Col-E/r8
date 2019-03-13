@@ -253,7 +253,7 @@ final class InlineCandidateProcessor {
         if (user.isInstanceGet()
             || (user.isInstancePut() && user.asInstancePut().value() != eligibleInstance)) {
           DexField field = user.asFieldInstruction().getField();
-          if (field.clazz == eligibleClass
+          if (field.holder == eligibleClass
               && eligibleClassDefinition.lookupInstanceField(field) != null) {
             // Since class inliner currently only supports classes directly extending
             // java.lang.Object, we don't need to worry about fields defined in superclasses.
@@ -511,7 +511,7 @@ final class InlineCandidateProcessor {
                 + "` after field reads removed: "
                 + user);
       }
-      if (user.asInstancePut().getField().clazz != eligibleClass) {
+      if (user.asInstancePut().getField().holder != eligibleClass) {
         throw new Unreachable(
             "Unexpected field write left in method `"
                 + method.method.toSourceString()

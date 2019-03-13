@@ -411,7 +411,7 @@ final public class ResourceShrinker {
         throw new AssertionError("Not a get static instruction");
       }
 
-      callback.referencedStaticField(field.clazz.getInternalName(), field.name.toString());
+      callback.referencedStaticField(field.holder.getInternalName(), field.name.toString());
     }
 
     private boolean isInvokeInstruction(Instruction instruction) {

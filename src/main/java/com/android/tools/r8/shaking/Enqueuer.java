@@ -616,7 +616,7 @@ public class Enqueuer {
       DexEncodedField encodedField = appInfo.resolveField(field);
       if (encodedField != null && encodedField.isProgramField(appInfo)) {
         boolean isWrittenOutsideEnclosingStaticInitializer =
-            currentMethod.method.holder != encodedField.field.clazz
+            currentMethod.method.holder != encodedField.field.holder
                 || !currentMethod.isClassInitializer();
         if (isWrittenOutsideEnclosingStaticInitializer) {
           staticFieldsWrittenOutsideEnclosingStaticInitializer.add(encodedField.field);
@@ -1157,7 +1157,7 @@ public class Enqueuer {
       DexField field, KeepReason reason, DexEncodedField encodedField) {
     // Mark the type live here, so that the class exists at runtime. Note that this also marks all
     // supertypes as live, so even if the field is actually on a supertype, its class will be live.
-    markTypeAsLive(field.clazz);
+    markTypeAsLive(field.holder);
     markTypeAsLive(field.type);
 
     // Find the actual field.
@@ -1188,7 +1188,7 @@ public class Enqueuer {
 
   private void markInstanceFieldAsLive(DexEncodedField field, KeepReason reason) {
     assert field != null;
-    markTypeAsLive(field.field.clazz);
+    markTypeAsLive(field.field.holder);
     markTypeAsLive(field.field.type);
     if (Log.ENABLED) {
       Log.verbose(getClass(), "Adding instance field `%s` to live set.", field.field);
@@ -1292,13 +1292,13 @@ public class Enqueuer {
     if (encodedField.accessFlags.isStatic()) {
       markStaticFieldAsLive(encodedField.field, reason);
     } else {
-      if (isInstantiatedOrHasInstantiatedSubtype(encodedField.field.clazz)) {
+      if (isInstantiatedOrHasInstantiatedSubtype(encodedField.field.holder)) {
         // We have at least one live subtype, so mark it as live.
         markInstanceFieldAsLive(encodedField, reason);
       } else {
         // Add the field to the reachable set if the type later becomes instantiated.
         reachableInstanceFields
-            .computeIfAbsent(encodedField.field.clazz, ignore -> newSetWithoutReasonReporter())
+            .computeIfAbsent(encodedField.field.holder, ignore -> newSetWithoutReasonReporter())
             .add(encodedField, reason);
       }
     }
@@ -1623,7 +1623,7 @@ public class Enqueuer {
 
   private void markFieldAsKept(DexEncodedField target, KeepReason reason) {
     // If this field no longer has a corresponding class, then we have shaken it away before.
-    if (appInfo.definitionFor(target.field.clazz) == null) {
+    if (appInfo.definitionFor(target.field.holder) == null) {
       return;
     }
     if (target.accessFlags.isStatic()) {
@@ -1714,12 +1714,12 @@ public class Enqueuer {
   }
 
   private DexField tryLookupInstanceField(DexField field) {
-    DexEncodedField target = appInfo.lookupInstanceTarget(field.clazz, field);
+    DexEncodedField target = appInfo.lookupInstanceTarget(field.holder, field);
     return target == null ? null : target.field;
   }
 
   private DexField tryLookupStaticField(DexField field) {
-    DexEncodedField target = appInfo.lookupStaticTarget(field.clazz, field);
+    DexEncodedField target = appInfo.lookupStaticTarget(field.holder, field);
     return target == null ? null : target.field;
   }
 
@@ -2497,7 +2497,7 @@ public class Enqueuer {
           // TODO(b/121354886): Pinned fields should be in `fieldsWritten`.
           || isPinned(field)
           // Fields in the class that is synthesized by D8/R8 would be used soon.
-          || field.clazz.isD8R8SynthesizedClassType()
+          || field.holder.isD8R8SynthesizedClassType()
           // For library classes we don't know whether a field is rewritten.
           || isLibraryField(field);
     }
@@ -2508,7 +2508,7 @@ public class Enqueuer {
     }
 
     private boolean isLibraryField(DexField field) {
-      DexClass holder = definitionFor(field.clazz);
+      DexClass holder = definitionFor(field.holder);
       return holder == null || holder.isLibraryClass();
     }
 
@@ -2934,7 +2934,7 @@ public class Enqueuer {
 
     @Override
     public boolean addField(DexField field) {
-      DexClass holder = appInfo.definitionFor(field.clazz);
+      DexClass holder = appInfo.definitionFor(field.holder);
       if (holder == null) {
         return false;
       }

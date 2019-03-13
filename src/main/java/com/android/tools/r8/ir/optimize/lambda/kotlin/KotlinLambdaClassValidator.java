@@ -149,60 +149,60 @@ abstract class KotlinLambdaClassValidator
     for (DexEncodedField field : captures) {
       switch (field.field.type.toShorty()) {
         case 'Z':
-          if (!(instructions[index] instanceof IputBoolean) ||
-              (instructions[index].getField() != field.field) ||
-              (((Format22c) instructions[index]).A != (index + 1 + wideFieldsSeen))) {
+          if (!(instructions[index] instanceof IputBoolean)
+              || (instructions[index].getField() != field.field)
+              || (((Format22c) instructions[index]).A != (index + 1 + wideFieldsSeen))) {
             throw structureError(LAMBDA_INIT_CODE_VERIFICATION_FAILED);
           }
           break;
 
         case 'B':
-          if (!(instructions[index] instanceof IputByte) ||
-              (instructions[index].getField() != field.field) ||
-              (((Format22c) instructions[index]).A != (index + 1 + wideFieldsSeen))) {
+          if (!(instructions[index] instanceof IputByte)
+              || (instructions[index].getField() != field.field)
+              || (((Format22c) instructions[index]).A != (index + 1 + wideFieldsSeen))) {
             throw structureError(LAMBDA_INIT_CODE_VERIFICATION_FAILED);
           }
           break;
 
         case 'S':
-          if (!(instructions[index] instanceof IputShort) ||
-              (instructions[index].getField() != field.field) ||
-              (((Format22c) instructions[index]).A != (index + 1 + wideFieldsSeen))) {
+          if (!(instructions[index] instanceof IputShort)
+              || (instructions[index].getField() != field.field)
+              || (((Format22c) instructions[index]).A != (index + 1 + wideFieldsSeen))) {
             throw structureError(LAMBDA_INIT_CODE_VERIFICATION_FAILED);
           }
           break;
 
         case 'C':
-          if (!(instructions[index] instanceof IputChar) ||
-              (instructions[index].getField() != field.field) ||
-              (((Format22c) instructions[index]).A != (index + 1 + wideFieldsSeen))) {
+          if (!(instructions[index] instanceof IputChar)
+              || (instructions[index].getField() != field.field)
+              || (((Format22c) instructions[index]).A != (index + 1 + wideFieldsSeen))) {
             throw structureError(LAMBDA_INIT_CODE_VERIFICATION_FAILED);
           }
           break;
 
         case 'I':
         case 'F':
-          if (!(instructions[index] instanceof Iput) ||
-              (instructions[index].getField() != field.field) ||
-              (((Format22c) instructions[index]).A != (index + 1 + wideFieldsSeen))) {
+          if (!(instructions[index] instanceof Iput)
+              || (instructions[index].getField() != field.field)
+              || (((Format22c) instructions[index]).A != (index + 1 + wideFieldsSeen))) {
             throw structureError(LAMBDA_INIT_CODE_VERIFICATION_FAILED);
           }
           break;
 
         case 'J':
         case 'D':
-          if (!(instructions[index] instanceof IputWide) ||
-              (instructions[index].getField() != field.field) ||
-              (((Format22c) instructions[index]).A != (index + 1 + wideFieldsSeen))) {
+          if (!(instructions[index] instanceof IputWide)
+              || (instructions[index].getField() != field.field)
+              || (((Format22c) instructions[index]).A != (index + 1 + wideFieldsSeen))) {
             throw structureError(LAMBDA_INIT_CODE_VERIFICATION_FAILED);
           }
           wideFieldsSeen++;
           break;
 
         case 'L':
-          if (!(instructions[index] instanceof IputObject) ||
-              (instructions[index].getField() != field.field) ||
-              (((Format22c) instructions[index]).A != (index + 1 + wideFieldsSeen))) {
+          if (!(instructions[index] instanceof IputObject)
+              || (instructions[index].getField() != field.field)
+              || (((Format22c) instructions[index]).A != (index + 1 + wideFieldsSeen))) {
             throw structureError(LAMBDA_INIT_CODE_VERIFICATION_FAILED);
           }
           break;
@@ -222,8 +222,8 @@ abstract class KotlinLambdaClassValidator
     if (instructions.length != 4) {
       throw structureError(LAMBDA_CLINIT_CODE_VERIFICATION_FAILED);
     }
-    if (!(instructions[0] instanceof com.android.tools.r8.code.NewInstance) ||
-        ((com.android.tools.r8.code.NewInstance) instructions[0]).getType() != lambda.type) {
+    if (!(instructions[0] instanceof com.android.tools.r8.code.NewInstance)
+        || ((com.android.tools.r8.code.NewInstance) instructions[0]).getType() != lambda.type) {
       throw structureError(LAMBDA_CLINIT_CODE_VERIFICATION_FAILED);
     }
     if (!(instructions[1] instanceof com.android.tools.r8.code.InvokeDirect
@@ -231,8 +231,8 @@ abstract class KotlinLambdaClassValidator
         || !isLambdaInitializerMethod(lambda, instructions[1].getMethod())) {
       throw structureError(LAMBDA_CLINIT_CODE_VERIFICATION_FAILED);
     }
-    if (!(instructions[2] instanceof SputObject) ||
-        !isLambdaSingletonField(lambda, instructions[2].getField())) {
+    if (!(instructions[2] instanceof SputObject)
+        || !isLambdaSingletonField(lambda, instructions[2].getField())) {
       throw structureError(LAMBDA_CLINIT_CODE_VERIFICATION_FAILED);
     }
     if (!(instructions[3] instanceof ReturnVoid)) {
@@ -241,12 +241,15 @@ abstract class KotlinLambdaClassValidator
   }
 
   private boolean isLambdaSingletonField(DexClass lambda, DexField field) {
-    return field.type == lambda.type && field.clazz == lambda.type &&
-        field.name == kotlin.functional.kotlinStyleLambdaInstanceName;
+    return field.type == lambda.type
+        && field.holder == lambda.type
+        && field.name == kotlin.functional.kotlinStyleLambdaInstanceName;
   }
 
   private boolean isLambdaInitializerMethod(DexClass holder, DexMethod method) {
-    return method.holder == holder.type && method.name == kotlin.factory.constructorMethodName &&
-        method.proto.parameters.isEmpty() && method.proto.returnType == kotlin.factory.voidType;
+    return method.holder == holder.type
+        && method.name == kotlin.factory.constructorMethodName
+        && method.proto.parameters.isEmpty()
+        && method.proto.returnType == kotlin.factory.voidType;
   }
 }

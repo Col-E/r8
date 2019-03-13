@@ -31,8 +31,8 @@ public class DexEncodedField extends KeyedDexItem<DexField> {
   }
 
   public boolean isProgramField(AppInfo appInfo) {
-    if (field.clazz.isClassType()) {
-      DexClass clazz = appInfo.definitionFor(field.clazz);
+    if (field.holder.isClassType()) {
+      DexClass clazz = appInfo.definitionFor(field.holder);
       return clazz != null && clazz.isProgramClass();
     }
     return false;
@@ -130,7 +130,7 @@ public class DexEncodedField extends KeyedDexItem<DexField> {
       return null;
     }
     if (accessFlags.isStatic()) {
-      DexClass clazz = appInfo.definitionFor(field.clazz);
+      DexClass clazz = appInfo.definitionFor(field.holder);
       assert clazz != null : "Class for the field must be present";
       return getStaticValue().asConstInstruction(clazz.hasClassInitializer(), dest, options);
     }

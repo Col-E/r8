@@ -276,7 +276,7 @@ public class ClassInitializationAnalysis {
           return false;
         }
       }
-      return isTypeInitializedBy(type, instruction.getField().clazz, appView, mode);
+      return isTypeInitializedBy(type, instruction.getField().holder, appView, mode);
     }
 
     public static boolean forInvokeDirect(
@@ -407,7 +407,7 @@ public class ClassInitializationAnalysis {
         // Class initialization may fail with ExceptionInInitializerError.
         return false;
       }
-      return isTypeInitializedBy(type, instruction.getField().clazz, appView, mode);
+      return isTypeInitializedBy(type, instruction.getField().holder, appView, mode);
     }
 
     private static boolean isTypeInitializedBy(

@@ -187,7 +187,7 @@ public class RedundantFieldLoadElimination {
       FieldAndObject fieldAndObject = new FieldAndObject(field, object);
       activeInstanceFields.remove(fieldAndObject);
     } else if (instruction.isStaticPut()) {
-      if (field.clazz != code.method.method.holder) {
+      if (field.holder != code.method.method.holder) {
         // Accessing a static field on a different object could cause <clinit> to run which
         // could modify any static field on any other object.
         activeStaticFields.clear();
@@ -195,7 +195,7 @@ public class RedundantFieldLoadElimination {
         activeStaticFields.remove(field);
       }
     } else if (instruction.isStaticGet()) {
-      if (field.clazz != code.method.method.holder) {
+      if (field.holder != code.method.method.holder) {
         // Accessing a static field on a different object could cause <clinit> to run which
         // could modify any static field on any other object.
         activeStaticFields.clear();

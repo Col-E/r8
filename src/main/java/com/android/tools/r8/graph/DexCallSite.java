@@ -205,7 +205,7 @@ public final class DexCallSite extends IndexedDexItem implements Comparable<DexC
     }
 
     private void write(DexField field) throws IOException {
-      write(field.clazz);
+      write(field.holder);
       write(field.type);
       write(field.name);
     }

@@ -459,7 +459,7 @@ public class UninstantiatedTypeOptimization {
 
       // We also need to be sure that this field instruction cannot trigger static class
       // initialization.
-      if (field.field.clazz != code.method.method.holder) {
+      if (field.field.holder != code.method.method.holder) {
         DexClass enclosingClass = appView.definitionFor(code.method.method.holder);
         if (enclosingClass == null
             || enclosingClass.classInitializationMayHaveSideEffects(appView.appInfo())) {

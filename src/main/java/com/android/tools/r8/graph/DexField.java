@@ -10,12 +10,12 @@ import com.android.tools.r8.naming.NamingLens;
 public class DexField extends Descriptor<DexEncodedField, DexField> implements
     PresortedComparable<DexField> {
 
-  public final DexType clazz;
+  public final DexType holder;
   public final DexType type;
   public final DexString name;
 
-  DexField(DexType clazz, DexType type, DexString name, boolean skipNameValidationForTesting) {
-    this.clazz = clazz;
+  DexField(DexType holder, DexType type, DexString name, boolean skipNameValidationForTesting) {
+    this.holder = holder;
     this.type = type;
     this.name = name;
     if (!skipNameValidationForTesting && !name.isValidFieldName()) {
@@ -26,7 +26,7 @@ public class DexField extends Descriptor<DexEncodedField, DexField> implements
 
   @Override
   public int computeHashCode() {
-    return clazz.hashCode()
+    return holder.hashCode()
         + type.hashCode() * 7
         + name.hashCode() * 31;
   }
@@ -35,7 +35,7 @@ public class DexField extends Descriptor<DexEncodedField, DexField> implements
   public boolean computeEquals(Object other) {
     if (other instanceof DexField) {
       DexField o = (DexField) other;
-      return clazz.equals(o.clazz)
+      return holder.equals(o.holder)
           && type.equals(o.type)
           && name.equals(o.name);
     }
@@ -44,14 +44,14 @@ public class DexField extends Descriptor<DexEncodedField, DexField> implements
 
   @Override
   public String toString() {
-    return "Field " + type + " " + clazz + "." + name;
+    return "Field " + type + " " + holder + "." + name;
   }
 
   @Override
   public void collectIndexedItems(IndexedItemCollection indexedItems,
       DexMethod method, int instructionOffset) {
     if (indexedItems.addField(this)) {
-      clazz.collectIndexedItems(indexedItems, method, instructionOffset);
+      holder.collectIndexedItems(indexedItems, method, instructionOffset);
       type.collectIndexedItems(indexedItems, method, instructionOffset);
       indexedItems.getRenamedName(this).collectIndexedItems(
           indexedItems, method, instructionOffset);
@@ -80,7 +80,7 @@ public class DexField extends Descriptor<DexEncodedField, DexField> implements
 
   @Override
   public int slowCompareTo(DexField other) {
-    int result = clazz.slowCompareTo(other.clazz);
+    int result = holder.slowCompareTo(other.holder);
     if (result != 0) {
       return result;
     }
@@ -93,7 +93,7 @@ public class DexField extends Descriptor<DexEncodedField, DexField> implements
 
   @Override
   public int slowCompareTo(DexField other, NamingLens namingLens) {
-    int result = clazz.slowCompareTo(other.clazz, namingLens);
+    int result = holder.slowCompareTo(other.holder, namingLens);
     if (result != 0) {
       return result;
     }
@@ -106,7 +106,7 @@ public class DexField extends Descriptor<DexEncodedField, DexField> implements
 
   @Override
   public int layeredCompareTo(DexField other, NamingLens namingLens) {
-    int result = clazz.compareTo(other.clazz);
+    int result = holder.compareTo(other.holder);
     if (result != 0) {
       return result;
     }
@@ -124,20 +124,20 @@ public class DexField extends Descriptor<DexEncodedField, DexField> implements
 
   @Override
   public DexType getHolder() {
-    return clazz;
+    return holder;
   }
 
   public String qualifiedName() {
-    return clazz + "." + name;
+    return holder + "." + name;
   }
 
   @Override
   public String toSmaliString() {
-    return clazz.toSmaliString() + "->" + name + ":" + type.toSmaliString();
+    return holder.toSmaliString() + "->" + name + ":" + type.toSmaliString();
   }
 
   @Override
   public String toSourceString() {
-    return type.toSourceString() + " " + clazz.toSourceString() + "." + name.toSourceString();
+    return type.toSourceString() + " " + holder.toSourceString() + "." + name.toSourceString();
   }
 }

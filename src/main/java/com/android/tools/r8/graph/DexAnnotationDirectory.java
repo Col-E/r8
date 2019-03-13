@@ -67,8 +67,8 @@ public class DexAnnotationDirectory extends DexItem {
   }
 
   /**
-   * DexAnnotationDirectory of a class can be canonicalized only if a clazz has annotations and
-   * does not contains annotations for his fields, methods or parameters. Indeed, if a field, method
+   * DexAnnotationDirectory of a class can be canonicalized only if a class has annotations and
+   * does not contains annotations for its fields, methods or parameters. Indeed, if a field, method
    * or parameter has annotations in this case, the DexAnnotationDirectory can not be shared since
    * it will contains information about field, method and parameters that are only related to only
    * one class.
