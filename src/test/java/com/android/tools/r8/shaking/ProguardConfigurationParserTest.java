@@ -2464,4 +2464,32 @@ public class ProguardConfigurationParserTest extends TestBase {
       assertEquals("*", rule.getClassNames().toString());
     }
   }
+
+  @Test
+  public void arobaseAfterRepackagingRuleTest() throws IOException {
+    Path includeFile = writeTextToTempFile("-keep class *");
+    List<PackageObfuscationMode> packageObfuscationModes =
+        ImmutableList.of(PackageObfuscationMode.FLATTEN, PackageObfuscationMode.REPACKAGE);
+    for (PackageObfuscationMode packageObfuscationMode : packageObfuscationModes) {
+      String directive =
+          packageObfuscationMode == PackageObfuscationMode.FLATTEN
+              ? "-flattenpackagehierarchy"
+              : "-repackageclasses";
+      ProguardConfigurationParser parser =
+          new ProguardConfigurationParser(new DexItemFactory(), reporter);
+      parser.parse(
+          createConfigurationForTesting(
+              ImmutableList.of(directive + " @" + includeFile.toAbsolutePath())));
+      ProguardConfiguration configuration = parser.getConfig();
+      assertEquals(packageObfuscationMode, configuration.getPackageObfuscationMode());
+      assertEquals("", configuration.getPackagePrefix());
+
+      List<ProguardConfigurationRule> rules = configuration.getRules();
+      assertEquals(1, rules.size());
+
+      ProguardConfigurationRule rule = rules.get(0);
+      assertEquals(ProguardKeepRuleType.KEEP.toString(), rule.typeString());
+      assertEquals("*", rule.getClassNames().toString());
+    }
+  }
 }
