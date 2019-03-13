@@ -601,7 +601,8 @@ def BuildAppWithShrinker(
   if options.gradle_flags:
     args.extend(options.gradle_flags.split(' '))
 
-  stdout = utils.RunGradlew(args, env_vars=env_vars, quiet=options.quiet)
+  stdout = utils.RunGradlew(args, env_vars=env_vars, quiet=options.quiet,
+                            logging=not options.golem)
 
   apk_base_name = (archives_base_name
       + (('-' + app.flavor) if app.flavor else '') + '-release')
@@ -653,7 +654,8 @@ def ComputeInstrumentationTestResults(
          '-Pandroid.enableR8.fullMode=' + str(isR8FullMode(shrinker)).lower()]
   env_vars = { 'ANDROID_SERIAL': options.emulator_id }
   stdout = \
-      utils.RunGradlew(args, env_vars=env_vars, quiet=options.quiet, fail=False)
+      utils.RunGradlew(args, env_vars=env_vars, quiet=options.quiet,
+                       fail=False, logging=not options.golem)
 
   xml_test_result_dest = os.path.join(out_dir, 'test_result')
   as_utils.MoveXMLTestResultFileTo(

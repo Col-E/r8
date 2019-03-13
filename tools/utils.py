@@ -129,7 +129,7 @@ class ProgressLogger(object):
       print('')
       sys.stdout.write(ProgressLogger.UP)
 
-def RunCmd(cmd, env_vars=None, quiet=False, fail=True):
+def RunCmd(cmd, env_vars=None, quiet=False, fail=True, logging=True):
   PrintCmd(cmd, env=env_vars, quiet=quiet)
   env = os.environ.copy()
   if env_vars:
@@ -137,14 +137,15 @@ def RunCmd(cmd, env_vars=None, quiet=False, fail=True):
   process = subprocess.Popen(
       cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
   stdout = []
-  logger = ProgressLogger(quiet=quiet)
+  logger = ProgressLogger(quiet=quiet) if logging else None
   failed = False
   while True:
     line = process.stdout.readline()
     if line != b'':
       stripped = line.rstrip()
       stdout.append(stripped)
-      logger.log(stripped)
+      if logger:
+        logger.log(stripped)
 
       # TODO(christofferqa): r8 should fail with non-zero exit code.
       if ('AssertionError:' in stripped
@@ -153,7 +154,8 @@ def RunCmd(cmd, env_vars=None, quiet=False, fail=True):
           or 'Compilation failed' in stripped):
         failed = True
     else:
-      logger.done()
+      if logger:
+        logger.done()
       exit_code = process.poll()
       if exit_code or failed:
         for line in stdout:
@@ -165,7 +167,7 @@ def RunCmd(cmd, env_vars=None, quiet=False, fail=True):
 
 def RunGradlew(
     args, clean=True, stacktrace=True, use_daemon=False, env_vars=None,
-    quiet=False, fail=True):
+    quiet=False, fail=True, logging=True):
   cmd = ['./gradlew']
   if clean:
     assert 'clean' not in args
@@ -177,7 +179,7 @@ def RunGradlew(
     assert '--no-daemon' not in args
     cmd.append('--no-daemon')
   cmd.extend(args)
-  return RunCmd(cmd, env_vars=env_vars, quiet=quiet, fail=fail)
+  return RunCmd(cmd, env_vars=env_vars, quiet=quiet, fail=fail, logging=logging)
 
 def IsWindows():
   return defines.IsWindows()
