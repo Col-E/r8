@@ -6,6 +6,8 @@ package com.android.tools.r8.shaking;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.OutputMode;
+import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.shaking.PrintUsageTest.PrintUsageInspector.ClassSubject;
@@ -19,16 +21,20 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
@@ -43,6 +49,9 @@ public class PrintUsageTest extends TestBase {
   private final String programFile;
   private final List<String> keepRulesFiles;
   private final Consumer<PrintUsageInspector> inspection;
+
+  @Rule
+  public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
   public PrintUsageTest(
       Backend backend,
@@ -59,19 +68,33 @@ public class PrintUsageTest extends TestBase {
   @Before
   public void runR8andGetPrintUsage() throws Exception {
     Path out = temp.getRoot().toPath();
-    testForR8(backend)
-        .addProgramFiles(Paths.get(programFile))
-        .addKeepRuleFiles(ListUtils.map(keepRulesFiles, Paths::get))
-        .addKeepRules(
-            "-printusage " + out.resolve(test + PRINT_USAGE_FILE_SUFFIX)
-        )
-        // Disable inlining to make this test not depend on inlining decisions.
-        .addOptionsModification(o -> o.enableInlining = false)
-        .compile();
+    R8Command.Builder builder =
+        ToolHelper.addProguardConfigurationConsumer(
+                R8Command.builder(),
+                pgConfig -> {
+                  pgConfig.setPrintUsage(true);
+                  pgConfig.setPrintUsageFile(out.resolve(test + PRINT_USAGE_FILE_SUFFIX));
+                })
+            .addProgramFiles(Paths.get(programFile))
+            .addProguardConfigurationFiles(ListUtils.map(keepRulesFiles, Paths::get));
+
+    if (backend == Backend.DEX) {
+      builder
+          .setOutput(out, OutputMode.DexIndexed)
+          .addLibraryFiles(ToolHelper.getDefaultAndroidJar());
+    } else {
+      builder.setOutput(out, OutputMode.ClassFile).addLibraryFiles(ToolHelper.getJava8RuntimeJar());
+    }
+    ToolHelper.runR8(
+        builder.build(),
+        options -> {
+          // Disable inlining to make this test not depend on inlining decisions.
+          options.enableInlining = false;
+        });
   }
 
   @Test
-  public void printUsageTest() throws IOException {
+  public void printUsageTest() throws IOException, ExecutionException {
     Path out = temp.getRoot().toPath();
     Path printUsageFile = out.resolve(test + PRINT_USAGE_FILE_SUFFIX);
     if (inspection != null) {
@@ -95,20 +118,20 @@ public class PrintUsageTest extends TestBase {
 
     List<Object[]> testCases = new ArrayList<>();
     for (Backend backend : Backend.values()) {
-      Set<String> usedInspections = new HashSet<>();
-      for (String test : tests) {
-        File[] keepFiles = new File(ToolHelper.EXAMPLES_DIR + test)
-            .listFiles(file -> file.isFile() && file.getName().endsWith(".txt"));
-        for (File keepFile : keepFiles) {
-          String keepName = keepFile.getName();
-          Consumer<PrintUsageInspector> inspection =
-              getTestOptionalParameter(inspections, usedInspections, test, keepName);
-          if (inspection != null) {
-              testCases.add(
-                  new Object[] {backend, test, ImmutableList.of(keepFile.getPath()), inspection});
-          }
+    Set<String> usedInspections = new HashSet<>();
+    for (String test : tests) {
+      File[] keepFiles = new File(ToolHelper.EXAMPLES_DIR + test)
+          .listFiles(file -> file.isFile() && file.getName().endsWith(".txt"));
+      for (File keepFile : keepFiles) {
+        String keepName = keepFile.getName();
+        Consumer<PrintUsageInspector> inspection =
+            getTestOptionalParameter(inspections, usedInspections, test, keepName);
+        if (inspection != null) {
+            testCases.add(
+                new Object[] {backend, test, ImmutableList.of(keepFile.getPath()), inspection});
         }
       }
+    }
       assert usedInspections.size() == inspections.size();
     }
     return testCases;
@@ -129,9 +152,6 @@ public class PrintUsageTest extends TestBase {
   }
 
   private static void inspectShaking1(PrintUsageInspector inspector) {
-    Optional<ClassSubject> shaking1 = inspector.clazz("shaking1.Shaking");
-    assertTrue(shaking1.isPresent());
-    assertTrue(shaking1.get().method("void", "<init>", ImmutableList.of()));
     assertTrue(inspector.clazz("shaking1.Unused").isPresent());
     assertTrue(inspector.clazz("shaking1.Used").isPresent());
     ClassSubject used = inspector.clazz("shaking1.Used").get();
@@ -145,10 +165,10 @@ public class PrintUsageTest extends TestBase {
     assertTrue(staticFields.get().field("int", "unused"));
     Optional<ClassSubject> subClass1 = inspector.clazz("shaking2.SubClass1");
     assertTrue(subClass1.isPresent());
-    assertTrue(subClass1.get().method("void", "unusedVirtualMethod", ImmutableList.of()));
+    assertTrue(subClass1.get().method("void", "unusedVirtualMethod", Collections.emptyList()));
     Optional<ClassSubject> superClass = inspector.clazz("shaking2.SuperClass");
     assertTrue(superClass.isPresent());
-    assertTrue(superClass.get().method("void", "unusedStaticMethod", ImmutableList.of()));
+    assertTrue(superClass.get().method("void", "unusedStaticMethod", Collections.emptyList()));
   }
 
   private static void inspectShaking4(PrintUsageInspector inspector) {
@@ -168,15 +188,15 @@ public class PrintUsageTest extends TestBase {
     assertFalse(superClass.isPresent());
     Optional<ClassSubject> subClass = inspector.clazz("shaking9.Subclass");
     assertTrue(subClass.isPresent());
-    assertTrue(subClass.get().method("void", "aMethod", ImmutableList.of()));
-    assertFalse(subClass.get().method("void", "<init>", ImmutableList.of()));
+    assertTrue(subClass.get().method("void", "aMethod", Collections.emptyList()));
+    assertFalse(subClass.get().method("void", "<init>", Collections.emptyList()));
   }
 
   private static void inspectShaking12(PrintUsageInspector inspector) {
     assertFalse(inspector.clazz("shaking12.PeopleClass").isPresent());
     Optional<ClassSubject> animal = inspector.clazz("shaking12.AnimalClass");
     assertTrue(animal.isPresent());
-    assertTrue(animal.get().method("java.lang.String", "getName", ImmutableList.of()));
+    assertTrue(animal.get().method("java.lang.String", "getName", Collections.emptyList()));
   }
 
   static class PrintUsageInspector {
