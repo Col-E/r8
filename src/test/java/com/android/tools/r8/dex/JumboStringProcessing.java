@@ -159,7 +159,6 @@ public class JumboStringProcessing extends TestBase {
         null);
     MethodAccessFlags flags = MethodAccessFlags.fromSharedAccessFlags(Constants.ACC_PUBLIC, false);
     DexEncodedMethod method = new DexEncodedMethod(null, flags, null, null, code);
-    new JumboStringRewriter(method, string, factory).rewrite();
-    return method.getCode().asDexCode();
+    return new JumboStringRewriter(method, string, factory).rewrite();
   }
 }

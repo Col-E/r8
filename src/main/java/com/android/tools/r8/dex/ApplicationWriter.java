@@ -26,6 +26,7 @@ import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexDebugInfo;
 import com.android.tools.r8.graph.DexEncodedArray;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
@@ -49,7 +50,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -227,77 +228,58 @@ public class ApplicationWriter {
       SortAnnotations sortAnnotations = new SortAnnotations();
       application.classes().forEach((clazz) -> clazz.addDependencies(sortAnnotations));
 
-      // Collect the indexed items sets for all files and perform JumboString processing.
-      // This is required to ensure that shared code blocks have a single and consistent code
-      // item that is valid for all dex files.
-      // Use a linked hash map as the order matters when addDexProgramData is called below.
-      Map<VirtualFile, Future<ObjectToOffsetMapping>> offsetMappingFutures = new LinkedHashMap<>();
-      for (VirtualFile newFile : distribute(executorService)) {
-        if (!newFile.isEmpty()) {
-          offsetMappingFutures
-              .put(newFile, executorService.submit(() -> {
-                ObjectToOffsetMapping mapping = newFile.computeMapping(application);
-                rewriteCodeWithJumboStrings(mapping, newFile.classes(), application);
-                return mapping;
-              }));
-        }
-      }
-
-      // Wait for all spawned futures to terminate to ensure jumbo string writing is complete.
-      ThreadUtils.awaitFutures(offsetMappingFutures.values());
-
       // Generate the dex file contents.
       List<Future<Boolean>> dexDataFutures = new ArrayList<>();
-      try {
-        for (VirtualFile virtualFile : offsetMappingFutures.keySet()) {
-          assert !virtualFile.isEmpty();
-          final ObjectToOffsetMapping mapping = offsetMappingFutures.get(virtualFile).get();
-          dexDataFutures.add(
-              executorService.submit(
-                  () -> {
-                    ProgramConsumer consumer;
-                    ByteBufferProvider byteBufferProvider;
-                    if (programConsumer != null) {
-                      consumer = programConsumer;
-                      byteBufferProvider = programConsumer;
-                    } else if (virtualFile.getPrimaryClassDescriptor() != null) {
-                      consumer = options.getDexFilePerClassFileConsumer();
-                      byteBufferProvider = options.getDexFilePerClassFileConsumer();
-                    } else {
-                      consumer = options.getDexIndexedConsumer();
-                      byteBufferProvider = options.getDexIndexedConsumer();
-                    }
-                    ByteBufferResult result = writeDexFile(mapping, byteBufferProvider);
-                    ByteDataView data =
-                        new ByteDataView(
-                            result.buffer.array(), result.buffer.arrayOffset(), result.length);
-                    if (consumer instanceof DexFilePerClassFileConsumer) {
-                      ((DexFilePerClassFileConsumer) consumer)
-                          .accept(
-                              virtualFile.getPrimaryClassDescriptor(),
-                              data,
-                              virtualFile.getClassDescriptors(),
-                              options.reporter);
-                    } else {
-                      ((DexIndexedConsumer) consumer)
-                          .accept(
-                              virtualFile.getId(),
-                              data,
-                              virtualFile.getClassDescriptors(),
-                              options.reporter);
-                    }
-                    // Release use of the backing buffer now that accept has returned.
-                    data.invalidate();
-                    byteBufferProvider.releaseByteBuffer(result.buffer.asByteBuffer());
-                    return true;
-                  }));
+      Iterable<VirtualFile> virtualFiles = distribute(executorService);
+      for (VirtualFile virtualFile : virtualFiles) {
+        if (virtualFile.isEmpty()) {
+          continue;
         }
-      } catch (InterruptedException e) {
-        throw new RuntimeException("Interrupted while waiting for future.", e);
+        dexDataFutures.add(
+            executorService.submit(
+                () -> {
+                  ProgramConsumer consumer;
+                  ByteBufferProvider byteBufferProvider;
+                  if (programConsumer != null) {
+                    consumer = programConsumer;
+                    byteBufferProvider = programConsumer;
+                  } else if (virtualFile.getPrimaryClassDescriptor() != null) {
+                    consumer = options.getDexFilePerClassFileConsumer();
+                    byteBufferProvider = options.getDexFilePerClassFileConsumer();
+                  } else {
+                    consumer = options.getDexIndexedConsumer();
+                    byteBufferProvider = options.getDexIndexedConsumer();
+                  }
+                  ObjectToOffsetMapping objectMapping = virtualFile.computeMapping(application);
+                  MethodToCodeObjectMapping codeMapping =
+                      rewriteCodeWithJumboStrings(
+                          objectMapping, virtualFile.classes(), application);
+                  ByteBufferResult result =
+                      writeDexFile(objectMapping, codeMapping, byteBufferProvider);
+                  ByteDataView data =
+                      new ByteDataView(
+                          result.buffer.array(), result.buffer.arrayOffset(), result.length);
+                  if (consumer instanceof DexFilePerClassFileConsumer) {
+                    ((DexFilePerClassFileConsumer) consumer)
+                        .accept(
+                            virtualFile.getPrimaryClassDescriptor(),
+                            data,
+                            virtualFile.getClassDescriptors(),
+                            options.reporter);
+                  } else {
+                    ((DexIndexedConsumer) consumer)
+                        .accept(
+                            virtualFile.getId(),
+                            data,
+                            virtualFile.getClassDescriptors(),
+                            options.reporter);
+                  }
+                  // Release use of the backing buffer now that accept has returned.
+                  data.invalidate();
+                  byteBufferProvider.releaseByteBuffer(result.buffer.asByteBuffer());
+                  return true;
+                }));
       }
-
-      // Clear out the map, as it is no longer needed.
-      offsetMappingFutures.clear();
       // Wait for all files to be processed before moving on.
       ThreadUtils.awaitFutures(dexDataFutures);
       // Fail if there are pending errors, e.g., the program consumers may have reported errors.
@@ -482,36 +464,58 @@ public class ApplicationWriter {
   }
 
   /**
-   * Rewrites the code for all methods in the given file so that they use JumboString for at
-   * least the strings that require it in mapping.
-   * <p>
-   * If run multiple times on a class, the lowest index that is required to be a JumboString will
+   * Rewrites the code for all methods in the given file so that they use JumboString for at least
+   * the strings that require it in mapping.
+   *
+   * <p>If run multiple times on a class, the lowest index that is required to be a JumboString will
    * be used.
    */
-  private void rewriteCodeWithJumboStrings(ObjectToOffsetMapping mapping,
-      Collection<DexProgramClass> classes, DexApplication application) {
+  private MethodToCodeObjectMapping rewriteCodeWithJumboStrings(
+      ObjectToOffsetMapping mapping,
+      Collection<DexProgramClass> classes,
+      DexApplication application) {
     // Do not bail out early if forcing jumbo string processing.
     if (!options.testing.forceJumboStringProcessing) {
       // If there are no strings with jumbo indices at all this is a no-op.
       if (!mapping.hasJumboStrings()) {
-        return;
+        return MethodToCodeObjectMapping.fromMethodBacking();
       }
       // If the globally highest sorting string is not a jumbo string this is also a no-op.
       if (application.highestSortingString != null &&
           application.highestSortingString.slowCompareTo(mapping.getFirstJumboString()) < 0) {
-        return;
+        return MethodToCodeObjectMapping.fromMethodBacking();
       }
     }
-    // At least one method needs a jumbo string.
+    // At least one method needs a jumbo string in which case we construct a thread local mapping
+    // for all code objects and write the processed results into that map.
+    Map<DexEncodedMethod, DexCode> codeMapping = new IdentityHashMap<>();
     for (DexProgramClass clazz : classes) {
-      clazz.forEachMethod(method -> method.rewriteCodeWithJumboStrings(
-          mapping, application, options.testing.forceJumboStringProcessing));
+      boolean isSharedSynthetic = clazz.getSynthesizedFrom().size() > 1;
+      clazz.forEachMethod(
+          method -> {
+            DexCode code =
+                method.rewriteCodeWithJumboStrings(
+                    mapping,
+                    application.dexItemFactory,
+                    options.testing.forceJumboStringProcessing);
+            codeMapping.put(method, code);
+            if (!isSharedSynthetic) {
+              // If the class is not a shared class the mapping now has ownership of the methods
+              // code object. This ensures freeing of code resources once the map entry is cleared
+              // and also ensures that we don't end up using the incorrect code pointer again later!
+              method.removeCode();
+            }
+          });
     }
+    return MethodToCodeObjectMapping.fromMapBacking(codeMapping);
   }
 
   private ByteBufferResult writeDexFile(
-      ObjectToOffsetMapping mapping, ByteBufferProvider provider) {
-    FileWriter fileWriter = new FileWriter(provider, mapping, application, options, namingLens);
+      ObjectToOffsetMapping objectMapping,
+      MethodToCodeObjectMapping codeMapping,
+      ByteBufferProvider provider) {
+    FileWriter fileWriter =
+        new FileWriter(provider, objectMapping, codeMapping, application, options, namingLens);
     // Collect the non-fixed sections.
     fileWriter.collect();
     // Generate and write the bytes.

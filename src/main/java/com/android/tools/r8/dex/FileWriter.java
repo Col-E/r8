@@ -58,7 +58,7 @@ import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import java.security.MessageDigest;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -86,6 +86,7 @@ public class FileWriter {
   }
 
   private final ObjectToOffsetMapping mapping;
+  private final MethodToCodeObjectMapping codeMapping;
   private final DexApplication application;
   private final InternalOptions options;
   private final NamingLens namingLens;
@@ -95,19 +96,21 @@ public class FileWriter {
   public FileWriter(
       ByteBufferProvider provider,
       ObjectToOffsetMapping mapping,
+      MethodToCodeObjectMapping codeMapping,
       DexApplication application,
       InternalOptions options,
       NamingLens namingLens) {
     this.mapping = mapping;
+    this.codeMapping = codeMapping;
     this.application = application;
     this.options = options;
     this.namingLens = namingLens;
     this.dest = new DexOutputBuffer(provider);
-    this.mixedSectionOffsets = new MixedSectionOffsets(options);
+    this.mixedSectionOffsets = new MixedSectionOffsets(options, codeMapping);
   }
 
-  public static void writeEncodedAnnotation(DexEncodedAnnotation annotation, DexOutputBuffer dest,
-      ObjectToOffsetMapping mapping) {
+  public static void writeEncodedAnnotation(
+      DexEncodedAnnotation annotation, DexOutputBuffer dest, ObjectToOffsetMapping mapping) {
     if (Log.ENABLED) {
       Log.verbose(FileWriter.class, "Writing encoded annotation @ %08x", dest.position());
     }
@@ -154,8 +157,11 @@ public class FileWriter {
     Layout layout = Layout.from(mapping);
     layout.setCodesOffset(layout.dataSectionOffset);
 
+    // Check code objects in the code-mapping are consistent with the collected code objects.
+    assert codeMapping.verifyCodeObjects(mixedSectionOffsets.getCodes());
+
     // Sort the codes first, as their order might impact size due to alignment constraints.
-    List<DexCode> codes = sortDexCodesByClassName(mixedSectionOffsets.getCodes(), application);
+    List<DexCode> codes = sortDexCodesByClassName();
 
     // Output the debug_info_items first, as they have no dependencies.
     dest.moveTo(layout.getCodesOffset() + sizeOfCodeItems(codes));
@@ -276,35 +282,40 @@ public class FileWriter {
     }
   }
 
-  private List<DexCode> sortDexCodesByClassName(Collection<DexCode> codes,
-      DexApplication application) {
+  private List<DexCode> sortDexCodesByClassName() {
     Map<DexCode, String> codeToSignatureMap = new IdentityHashMap<>();
+    List<DexCode> codesSorted = new ArrayList<>();
     for (DexProgramClass clazz : mapping.getClasses()) {
-      clazz.forEachMethod(method ->
-          addSignaturesFromMethod(method, codeToSignatureMap, application.getProguardMap()));
+      clazz.forEachMethod(
+          method -> {
+            DexCode code = codeMapping.getCode(method);
+            assert code != null || method.shouldNotHaveCode();
+            if (code != null) {
+              codesSorted.add(code);
+              addSignaturesFromMethod(
+                  method, code, codeToSignatureMap, application.getProguardMap());
+            }
+          });
     }
-    DexCode[] codesArray = codes.toArray(new DexCode[codes.size()]);
-    Arrays.sort(codesArray, Comparator.comparing(codeToSignatureMap::get));
-    return Arrays.asList(codesArray);
+    codesSorted.sort(Comparator.comparing(codeToSignatureMap::get));
+    return codesSorted;
   }
 
-  private static void addSignaturesFromMethod(DexEncodedMethod method,
+  private static void addSignaturesFromMethod(
+      DexEncodedMethod method,
+      DexCode code,
       Map<DexCode, String> codeToSignatureMap,
       ClassNameMapper proguardMap) {
-    if (!method.hasCode()) {
-      assert method.shouldNotHaveCode();
+    Signature signature;
+    String originalClassName;
+    if (proguardMap != null) {
+      signature = proguardMap.originalSignatureOf(method.method);
+      originalClassName = proguardMap.originalNameOf(method.method.holder);
     } else {
-      Signature signature;
-      String originalClassName;
-      if (proguardMap != null) {
-        signature = proguardMap.originalSignatureOf(method.method);
-        originalClassName = proguardMap.originalNameOf(method.method.holder);
-      } else {
-        signature = MethodSignature.fromDexMethod(method.method);
-        originalClassName = method.method.holder.toSourceString();
-      }
-      codeToSignatureMap.put(method.getCode().asDexCode(), originalClassName + signature);
+      signature = MethodSignature.fromDexMethod(method.method);
+      originalClassName = method.method.holder.toSourceString();
     }
+    codeToSignatureMap.put(code, originalClassName + signature);
   }
 
   private <T extends IndexedDexItem> void writeFixedSectionItems(
@@ -573,7 +584,7 @@ public class FileWriter {
     }
   }
 
-  private void writeEncodedMethods(List<DexEncodedMethod> methods, boolean clearBodies) {
+  private void writeEncodedMethods(List<DexEncodedMethod> methods, boolean isSharedSynthetic) {
     assert PresortedComparable.isSorted(methods);
     int currentOffset = 0;
     for (DexEncodedMethod method : methods) {
@@ -582,16 +593,15 @@ public class FileWriter {
       dest.putUleb128(nextOffset - currentOffset);
       currentOffset = nextOffset;
       dest.putUleb128(method.accessFlags.getAsDexAccessFlags());
-      if (!method.hasCode()) {
+      DexCode code = codeMapping.getCode(method);
+      if (code == null) {
         assert method.shouldNotHaveCode();
         dest.putUleb128(0);
       } else {
-        dest.putUleb128(mixedSectionOffsets.getOffsetFor(method.getCode().asDexCode()));
+        dest.putUleb128(mixedSectionOffsets.getOffsetFor(code));
         // Writing the methods starts to take up memory so we are going to flush the
         // code objects since they are no longer necessary after this.
-        if (clearBodies) {
-          method.removeCode();
-        }
+        codeMapping.clearCode(method, isSharedSynthetic);
       }
     }
   }
@@ -605,10 +615,9 @@ public class FileWriter {
     dest.putUleb128(clazz.virtualMethods().size());
     writeEncodedFields(clazz.staticFields());
     writeEncodedFields(clazz.instanceFields());
-
     boolean isSharedSynthetic = clazz.getSynthesizedFrom().size() > 1;
-    writeEncodedMethods(clazz.directMethods(), !isSharedSynthetic);
-    writeEncodedMethods(clazz.virtualMethods(), !isSharedSynthetic);
+    writeEncodedMethods(clazz.directMethods(), isSharedSynthetic);
+    writeEncodedMethods(clazz.virtualMethods(), isSharedSynthetic);
   }
 
   private void addStaticFieldValues(DexProgramClass clazz) {
@@ -1001,6 +1010,8 @@ public class FileWriter {
     private static final int NOT_SET = -1;
     private static final int NOT_KNOWN = -2;
 
+    private final MethodToCodeObjectMapping codeMapping;
+
     private final Reference2IntMap<DexCode> codes = createReference2IntMap();
     private final Object2IntMap<DexDebugInfo> debugInfos = createObject2IntMap();
     private final Object2IntMap<DexTypeList> typeLists = createObject2IntMap();
@@ -1030,8 +1041,9 @@ public class FileWriter {
       return result;
     }
 
-    private MixedSectionOffsets(InternalOptions options) {
+    private MixedSectionOffsets(InternalOptions options, MethodToCodeObjectMapping codeMapping) {
       this.minApiLevel = options.minApiLevel;
+      this.codeMapping = codeMapping;
     }
 
     private <T> boolean add(Object2IntMap<T> map, T item) {
@@ -1068,6 +1080,11 @@ public class FileWriter {
         return false;
       }
       return add(annotationSets, annotationSet);
+    }
+
+    @Override
+    public void visit(DexEncodedMethod method) {
+      method.collectMixedSectionItemsWithCodeMapping(this, codeMapping);
     }
 
     @Override

@@ -107,7 +107,7 @@ public class JumboStringRewriter {
     this.factory = factory;
   }
 
-  public void rewrite() {
+  public DexCode rewrite() {
     // Build maps from everything in the code that uses offsets or direct addresses to reference
     // instructions to the actual instruction referenced.
     recordTargets();
@@ -133,7 +133,7 @@ public class JumboStringRewriter {
     // As we have rewritten the code, we now know that its highest string index that is not
     // a jumbo-string is firstJumboString (actually the previous string, but we do not have that).
     newCode.highestSortingString = firstJumboString;
-    method.setCode(newCode);
+    return newCode;
   }
 
   private void rewriteInstructionOffsets(List<Instruction> instructions) {

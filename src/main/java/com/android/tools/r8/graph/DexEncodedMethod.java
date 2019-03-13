@@ -23,6 +23,7 @@ import com.android.tools.r8.code.Throw;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.JumboStringRewriter;
+import com.android.tools.r8.dex.MethodToCodeObjectMapping;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
@@ -366,6 +367,12 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
   @Override
   void collectMixedSectionItems(MixedSectionCollection mixedItems) {
+    mixedItems.visit(this);
+  }
+
+  public void collectMixedSectionItemsWithCodeMapping(
+      MixedSectionCollection mixedItems, MethodToCodeObjectMapping mapping) {
+    DexCode code = mapping.getCode(this);
     if (code != null) {
       code.collectMixedSectionItems(mixedItems);
     }
@@ -678,19 +685,13 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     return method;
   }
 
-  /**
-   * Rewrites the code in this method to have JumboString bytecode if required by mapping.
-   * <p>
-   * Synchronized such that it can be called concurrently for different mappings. As a side-effect,
-   * this will also update the highestSortingString to the index of the strings up to which the code
-   * was rewritten to avoid rewriting again unless needed.
-   */
-  public synchronized void rewriteCodeWithJumboStrings(
-      ObjectToOffsetMapping mapping, DexApplication application, boolean force) {
+  /** Rewrites the code in this method to have JumboString bytecode if required by mapping. */
+  public DexCode rewriteCodeWithJumboStrings(
+      ObjectToOffsetMapping mapping, DexItemFactory factory, boolean force) {
     checkIfObsolete();
     assert code == null || code.isDexCode();
     if (code == null) {
-      return;
+      return null;
     }
     DexCode code = this.code.asDexCode();
     DexString firstJumboString = null;
@@ -706,10 +707,10 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       }
     }
     if (firstJumboString != null) {
-      JumboStringRewriter rewriter =
-          new JumboStringRewriter(this, firstJumboString, application.dexItemFactory);
-      rewriter.rewrite();
+      JumboStringRewriter rewriter = new JumboStringRewriter(this, firstJumboString, factory);
+      return rewriter.rewrite();
     }
+    return code;
   }
 
   public String codeToString() {

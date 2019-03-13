@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexDebugInfo;
 import com.android.tools.r8.graph.DexEncodedArray;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexTypeList;
@@ -51,6 +52,16 @@ public abstract class MixedSectionCollection {
    * @return true if the item was not added before
    */
   public abstract boolean add(DexAnnotationSet dexAnnotationSet);
+
+  /**
+   * Recurse on the given encoded method to add items to the collection.
+   *
+   * <p>Allows overriding the behavior when dex-file writing.
+   */
+  public void visit(DexEncodedMethod dexEncodedMethod) {
+    dexEncodedMethod.collectMixedSectionItemsWithCodeMapping(
+        this, MethodToCodeObjectMapping.fromMethodBacking());
+  }
 
   /**
    * Adds the given code item to the collection.
