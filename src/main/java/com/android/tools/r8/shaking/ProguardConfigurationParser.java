@@ -288,9 +288,15 @@ public class ProguardConfigurationParser {
         }
         skipWhitespace();
         char quote = acceptQuoteIfPresent();
-        configurationBuilder.setPackagePrefix(parsePackageNameOrEmptyString());
         if (isQuote(quote)) {
+          configurationBuilder.setPackagePrefix(parsePackageNameOrEmptyString());
           expectClosingQuote(quote);
+        } else {
+          if (hasNextChar('-')) {
+            configurationBuilder.setPackagePrefix("");
+          } else {
+            configurationBuilder.setPackagePrefix(parsePackageNameOrEmptyString());
+          }
         }
       } else if (acceptString("flattenpackagehierarchy")) {
         if (configurationBuilder.getPackageObfuscationMode() == PackageObfuscationMode.REPACKAGE) {
@@ -302,9 +308,15 @@ public class ProguardConfigurationParser {
         } else {
           skipWhitespace();
           char quote = acceptQuoteIfPresent();
-          configurationBuilder.setFlattenPackagePrefix(parsePackageNameOrEmptyString());
           if (isQuote(quote)) {
+            configurationBuilder.setFlattenPackagePrefix(parsePackageNameOrEmptyString());
             expectClosingQuote(quote);
+          } else {
+            if (hasNextChar('-')) {
+              configurationBuilder.setFlattenPackagePrefix("");
+            } else {
+              configurationBuilder.setFlattenPackagePrefix(parsePackageNameOrEmptyString());
+            }
           }
         }
       } else if (acceptString("overloadaggressively")) {
