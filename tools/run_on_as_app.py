@@ -126,7 +126,7 @@ APP_REPOSITORIES = [
   Repo({
     'name': 'applymapping',
     'url': 'https://github.com/mkj-gram/applymapping',
-    'revision': 'f94a6726859b2a832752bb349a56ce405441e31f',
+    'revision': 'e3ae14b8c16fa4718e5dea8f7ad00937701b3c48',
     'apps': [
       App({
         'id': 'com.example.applymapping',
