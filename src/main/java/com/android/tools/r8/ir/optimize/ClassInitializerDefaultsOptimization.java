@@ -204,7 +204,7 @@ public class ClassInitializerDefaultsOptimization {
     // that the field is no longer written.
     if (appView.enableWholeProgramOptimizations() && converter.isInWave()) {
       if (appView.appInfo().hasLiveness()) {
-        AppView<? extends AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+        AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
         AppInfoWithLiveness appInfoWithLiveness = appViewWithLiveness.appInfo();
 
         // First collect all the candidate fields that are *potentially* no longer being written to.

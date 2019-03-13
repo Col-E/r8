@@ -108,70 +108,8 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
   }
 
   public AppView<AppInfoWithLiveness> withLiveness() {
-    return new AppViewWithLiveness();
-  }
-
-  private class AppViewWithLiveness extends AppView<AppInfoWithLiveness> {
-
-    private AppViewWithLiveness() {
-      super(null, null, null);
-    }
-
-    @Override
-    public AppInfoWithLiveness appInfo() {
-      return AppView.this.appInfo().withLiveness();
-    }
-
-    @Override
-    public void setAppInfo(AppInfoWithLiveness appInfoWithLiveness) {
-      @SuppressWarnings("unchecked")
-      T appInfo = (T) appInfoWithLiveness;
-      AppView.this.setAppInfo(appInfo);
-    }
-
-    @Override
-    public AppServices appServices() {
-      return AppView.this.appServices();
-    }
-
-    @Override
-    public void setAppServices(AppServices appServices) {
-      AppView.this.setAppServices(appServices);
-    }
-
-    @Override
-    public DexItemFactory dexItemFactory() {
-      return AppView.this.dexItemFactory();
-    }
-
-    @Override
-    public boolean enableWholeProgramOptimizations() {
-      return AppView.this.enableWholeProgramOptimizations();
-    }
-
-    @Override
-    public GraphLense graphLense() {
-      return AppView.this.graphLense();
-    }
-
-    @Override
-    public void setGraphLense(GraphLense graphLense) {
-      AppView.this.setGraphLense(graphLense);
-    }
-
-    @Override
-    public InternalOptions options() {
-      return AppView.this.options();
-    }
-
-    @Override
-    public VerticallyMergedClasses verticallyMergedClasses() {
-      return AppView.this.verticallyMergedClasses();
-    }
-
-    @Override
-    public AppView<AppInfoWithLiveness> withLiveness() {
-      return this;
-    }
+    @SuppressWarnings("unchecked")
+    AppView<AppInfoWithLiveness> appViewWithLiveness = (AppView<AppInfoWithLiveness>) this;
+    return appViewWithLiveness;
   }
 }

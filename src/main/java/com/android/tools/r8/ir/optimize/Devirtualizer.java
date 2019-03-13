@@ -35,9 +35,9 @@ import java.util.Set;
  */
 public class Devirtualizer {
 
-  private final AppView<? extends AppInfoWithLiveness> appView;
+  private final AppView<AppInfoWithLiveness> appView;
 
-  public Devirtualizer(AppView<? extends AppInfoWithLiveness> appView) {
+  public Devirtualizer(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
   }
 

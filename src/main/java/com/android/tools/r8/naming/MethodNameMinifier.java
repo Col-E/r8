@@ -94,9 +94,7 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
   private final MemberNamingStrategy strategy;
 
   MethodNameMinifier(
-      AppView<? extends AppInfoWithLiveness> appView,
-      RootSet rootSet,
-      MemberNamingStrategy strategy) {
+      AppView<AppInfoWithLiveness> appView, RootSet rootSet, MemberNamingStrategy strategy) {
     super(appView, rootSet, strategy);
     this.strategy = strategy;
     equivalence =

@@ -46,7 +46,7 @@ import java.util.function.BiConsumer;
 
 public final class ClassStaticizer {
 
-  final AppView<? extends AppInfoWithLiveness> appView;
+  final AppView<AppInfoWithLiveness> appView;
   final DexItemFactory factory;
   final IRConverter converter;
 
@@ -103,7 +103,7 @@ public final class ClassStaticizer {
   // The map storing all the potential candidates for staticizing.
   final ConcurrentHashMap<DexType, CandidateInfo> candidates = new ConcurrentHashMap<>();
 
-  public ClassStaticizer(AppView<? extends AppInfoWithLiveness> appView, IRConverter converter) {
+  public ClassStaticizer(AppView<AppInfoWithLiveness> appView, IRConverter converter) {
     this.appView = appView;
     this.factory = appView.dexItemFactory();
     this.converter = converter;

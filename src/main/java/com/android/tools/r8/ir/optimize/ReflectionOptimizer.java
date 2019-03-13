@@ -76,7 +76,7 @@ public class ReflectionOptimizer {
   }
 
   // Rewrite getClass() call to const-class if the type of the given instance is effectively final.
-  public static void rewriteGetClass(AppView<? extends AppInfoWithLiveness> appView, IRCode code) {
+  public static void rewriteGetClass(AppView<AppInfoWithLiveness> appView, IRCode code) {
     InstructionIterator it = code.instructionIterator();
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     while (it.hasNext()) {

@@ -41,12 +41,11 @@ import java.util.function.Predicate;
 
 public class NonNullTracker {
 
-  private final AppView<? extends AppInfoWithLiveness> appView;
+  private final AppView<AppInfoWithLiveness> appView;
   private final Set<DexMethod> libraryMethodsReturningNonNull;
 
   public NonNullTracker(
-      AppView<? extends AppInfoWithLiveness> appView,
-      Set<DexMethod> libraryMethodsReturningNonNull) {
+      AppView<AppInfoWithLiveness> appView, Set<DexMethod> libraryMethodsReturningNonNull) {
     this.appView = appView;
     this.libraryMethodsReturningNonNull = libraryMethodsReturningNonNull;
   }

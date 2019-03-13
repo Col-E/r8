@@ -199,7 +199,7 @@ public class VerticalClassMerger {
 
   private final DexApplication application;
   private final AppInfoWithLiveness appInfo;
-  private final AppView<? extends AppInfoWithLiveness> appView;
+  private final AppView<AppInfoWithLiveness> appView;
   private final ExecutorService executorService;
   private final GraphLense graphLense;
   private final MethodPoolCollection methodPoolCollection;
@@ -228,7 +228,7 @@ public class VerticalClassMerger {
 
   public VerticalClassMerger(
       DexApplication application,
-      AppView<? extends AppInfoWithLiveness> appView,
+      AppView<AppInfoWithLiveness> appView,
       ExecutorService executorService,
       Timing timing,
       MainDexClasses mainDexClasses) {

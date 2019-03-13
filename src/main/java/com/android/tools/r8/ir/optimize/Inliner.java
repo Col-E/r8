@@ -49,7 +49,7 @@ import java.util.function.Predicate;
 
 public class Inliner {
 
-  protected final AppView<? extends AppInfoWithLiveness> appView;
+  protected final AppView<AppInfoWithLiveness> appView;
   final MainDexClasses mainDexClasses;
 
   // State for inlining methods which are known to be called twice.
@@ -60,9 +60,7 @@ public class Inliner {
 
   private final Set<DexMethod> blackList = Sets.newIdentityHashSet();
 
-  public Inliner(
-      AppView<? extends AppInfoWithLiveness> appView,
-      MainDexClasses mainDexClasses) {
+  public Inliner(AppView<AppInfoWithLiveness> appView, MainDexClasses mainDexClasses) {
     this.appView = appView;
     this.mainDexClasses = mainDexClasses;
     fillInBlackList(appView.appInfo());

@@ -23,7 +23,7 @@ import java.util.Collection;
 // Computes the inlining constraint for a given instruction.
 public class InliningConstraints {
 
-  private AppView<? extends AppInfoWithLiveness> appView;
+  private AppView<AppInfoWithLiveness> appView;
 
   private boolean allowStaticInterfaceMethodCalls = true;
 
@@ -39,8 +39,7 @@ public class InliningConstraints {
   // type A to B, to create a temporary view of what the world would look like after class merging.
   private GraphLense graphLense;
 
-  public InliningConstraints(
-      AppView<? extends AppInfoWithLiveness> appView, GraphLense graphLense) {
+  public InliningConstraints(AppView<AppInfoWithLiveness> appView, GraphLense graphLense) {
     assert graphLense.isContextFreeForMethods();
     assert appView.graphLense() != graphLense || graphLense.isIdentityLense();
     this.appView = appView;

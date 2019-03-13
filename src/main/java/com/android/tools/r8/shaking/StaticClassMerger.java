@@ -191,7 +191,7 @@ public class StaticClassMerger {
     }
   }
 
-  private final AppView<? extends AppInfoWithLiveness> appView;
+  private final AppView<AppInfoWithLiveness> appView;
   private final MainDexClasses mainDexClasses;
 
   /** The equivalence that should be used for the member buckets in {@link Representative}. */
@@ -206,7 +206,7 @@ public class StaticClassMerger {
   private int numberOfMergedClasses = 0;
 
   public StaticClassMerger(
-      AppView<? extends AppInfoWithLiveness> appView,
+      AppView<AppInfoWithLiveness> appView,
       InternalOptions options,
       MainDexClasses mainDexClasses) {
     this.appView = appView;

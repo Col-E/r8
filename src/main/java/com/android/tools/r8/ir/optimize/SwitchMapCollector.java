@@ -59,13 +59,13 @@ import java.util.stream.Collectors;
  */
 public class SwitchMapCollector {
 
-  private final AppView<? extends AppInfoWithLiveness> appView;
+  private final AppView<AppInfoWithLiveness> appView;
   private final DexString switchMapPrefix;
   private final DexType intArrayType;
 
   private final Map<DexField, Int2ReferenceMap<DexField>> switchMaps = new IdentityHashMap<>();
 
-  public SwitchMapCollector(AppView<? extends AppInfoWithLiveness> appView) {
+  public SwitchMapCollector(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
     switchMapPrefix = appView.dexItemFactory().createString("$SwitchMap$");
     intArrayType = appView.dexItemFactory().createType("[I");

@@ -105,7 +105,7 @@ public class UninstantiatedTypeOptimization {
     }
   }
 
-  private final AppView<? extends AppInfoWithLiveness> appView;
+  private final AppView<AppInfoWithLiveness> appView;
   private final DexItemFactory dexItemFactory;
   private final InternalOptions options;
 
@@ -114,7 +114,7 @@ public class UninstantiatedTypeOptimization {
   private int numberOfInvokesWithNullReceiver = 0;
 
   public UninstantiatedTypeOptimization(
-      AppView<? extends AppInfoWithLiveness> appView, InternalOptions options) {
+      AppView<AppInfoWithLiveness> appView, InternalOptions options) {
     this.appView = appView;
     this.dexItemFactory = appView.dexItemFactory();
     this.options = options;

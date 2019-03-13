@@ -114,7 +114,7 @@ public class Outliner {
 
   static final int MAX_IN_SIZE = 5;  // Avoid using ranged calls for outlined code.
 
-  private final AppView<? extends AppInfoWithLiveness> appView;
+  private final AppView<AppInfoWithLiveness> appView;
   private final InliningConstraints inliningConstraints;
 
   private abstract static class OutlineInstruction {
@@ -1199,7 +1199,7 @@ public class Outliner {
     }
   }
 
-  public Outliner(AppView<? extends AppInfoWithLiveness> appView, IRConverter converter) {
+  public Outliner(AppView<AppInfoWithLiveness> appView, IRConverter converter) {
     this.appView = appView;
     this.inliningConstraints = new InliningConstraints(appView, GraphLense.getIdentityLense());
   }

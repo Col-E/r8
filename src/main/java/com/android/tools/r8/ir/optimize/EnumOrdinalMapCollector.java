@@ -29,11 +29,11 @@ import java.util.Map;
  */
 public class EnumOrdinalMapCollector {
 
-  private final AppView<? extends AppInfoWithLiveness> appView;
+  private final AppView<AppInfoWithLiveness> appView;
 
   private final Map<DexType, Reference2IntMap<DexField>> ordinalsMaps = new IdentityHashMap<>();
 
-  public EnumOrdinalMapCollector(AppView<? extends AppInfoWithLiveness> appView) {
+  public EnumOrdinalMapCollector(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
   }
 

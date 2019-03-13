@@ -25,7 +25,7 @@ import java.util.concurrent.ExecutorService;
 
 public abstract class NonNullTrackerTestBase extends TestBase {
 
-  protected AppView<? extends AppInfoWithLiveness> build(Class<?> mainClass) throws Exception {
+  protected AppView<AppInfoWithLiveness> build(Class<?> mainClass) throws Exception {
     Timing timing = new Timing(getClass().getSimpleName());
     AndroidApp app = buildAndroidApp(ToolHelper.getClassAsBytes(mainClass));
     InternalOptions options = new InternalOptions();

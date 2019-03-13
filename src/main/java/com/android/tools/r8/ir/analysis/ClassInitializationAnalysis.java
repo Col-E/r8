@@ -59,7 +59,7 @@ public class ClassInitializationAnalysis {
         }
       };
 
-  private final AppView<? extends AppInfoWithLiveness> appView;
+  private final AppView<AppInfoWithLiveness> appView;
   private final IRCode code;
   private final DexItemFactory dexItemFactory;
 
@@ -72,7 +72,7 @@ public class ClassInitializationAnalysis {
     this.dexItemFactory = null;
   }
 
-  public ClassInitializationAnalysis(AppView<? extends AppInfoWithLiveness> appView, IRCode code) {
+  public ClassInitializationAnalysis(AppView<AppInfoWithLiveness> appView, IRCode code) {
     this.appView = appView;
     this.code = code;
     this.dexItemFactory = appView.dexItemFactory();

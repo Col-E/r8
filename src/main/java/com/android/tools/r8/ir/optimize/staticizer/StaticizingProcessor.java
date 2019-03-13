@@ -53,7 +53,7 @@ import java.util.stream.Collectors;
 
 final class StaticizingProcessor {
 
-  private final AppView<? extends AppInfoWithLiveness> appView;
+  private final AppView<AppInfoWithLiveness> appView;
   private final ClassStaticizer classStaticizer;
   private final ExecutorService executorService;
 
@@ -64,7 +64,7 @@ final class StaticizingProcessor {
   private final Map<DexType, DexType> candidateToHostMapping = new IdentityHashMap<>();
 
   StaticizingProcessor(
-      AppView<? extends AppInfoWithLiveness> appView,
+      AppView<AppInfoWithLiveness> appView,
       ClassStaticizer classStaticizer,
       ExecutorService executorService) {
     this.appView = appView;

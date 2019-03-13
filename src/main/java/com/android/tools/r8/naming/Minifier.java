@@ -28,16 +28,14 @@ import java.util.Set;
 
 public class Minifier {
 
-  private final AppView<? extends AppInfoWithLiveness> appView;
+  private final AppView<AppInfoWithLiveness> appView;
   private final AppInfoWithLiveness appInfo;
   private final RootSet rootSet;
   private final Set<DexCallSite> desugaredCallSites;
   private final InternalOptions options;
 
   public Minifier(
-      AppView<? extends AppInfoWithLiveness> appView,
-      RootSet rootSet,
-      Set<DexCallSite> desugaredCallSites) {
+      AppView<AppInfoWithLiveness> appView, RootSet rootSet, Set<DexCallSite> desugaredCallSites) {
     this.appView = appView;
     this.appInfo = appView.appInfo();
     this.rootSet = rootSet;

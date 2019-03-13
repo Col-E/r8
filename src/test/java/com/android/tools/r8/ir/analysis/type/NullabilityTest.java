@@ -49,7 +49,7 @@ public class NullabilityTest extends NonNullTrackerTestBase {
       boolean npeCaught,
       BiConsumer<AppInfoWithLiveness, IRCode> inspector)
       throws Exception {
-    AppView<? extends AppInfoWithLiveness> appView = build(mainClass);
+    AppView<AppInfoWithLiveness> appView = build(mainClass);
     CodeInspector codeInspector = new CodeInspector(appView.appInfo().app);
     MethodSubject fooSubject = codeInspector.clazz(mainClass.getName()).method(signature);
     DexEncodedMethod foo = codeInspector.clazz(mainClass.getName()).method(signature).getMethod();

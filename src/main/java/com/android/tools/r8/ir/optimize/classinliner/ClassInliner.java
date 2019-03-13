@@ -27,12 +27,11 @@ import java.util.stream.Collectors;
 
 public final class ClassInliner {
 
-  private final AppView<? extends AppInfoWithLiveness> appView;
+  private final AppView<AppInfoWithLiveness> appView;
   private final LambdaRewriter lambdaRewriter;
   private final ConcurrentHashMap<DexClass, Boolean> knownClasses = new ConcurrentHashMap<>();
 
-  public ClassInliner(
-      AppView<? extends AppInfoWithLiveness> appView, LambdaRewriter lambdaRewriter) {
+  public ClassInliner(AppView<AppInfoWithLiveness> appView, LambdaRewriter lambdaRewriter) {
     this.appView = appView;
     this.lambdaRewriter = lambdaRewriter;
   }
@@ -115,7 +114,7 @@ public final class ClassInliner {
   //   }
   //
   public final void processMethodCode(
-      AppView<? extends AppInfoWithLiveness> appView,
+      AppView<AppInfoWithLiveness> appView,
       CodeRewriter codeRewriter,
       StringOptimizer stringOptimizer,
       DexEncodedMethod method,
@@ -201,7 +200,7 @@ public final class ClassInliner {
     }
   }
 
-  private boolean isClassEligible(AppView<? extends AppInfoWithLiveness> appView, DexClass clazz) {
+  private boolean isClassEligible(AppView<AppInfoWithLiveness> appView, DexClass clazz) {
     Boolean eligible = knownClasses.get(clazz);
     if (eligible == null) {
       Boolean computed = computeClassEligible(appView, clazz);
@@ -216,8 +215,7 @@ public final class ClassInliner {
   //   - is not an abstract class or interface
   //   - does not declare finalizer
   //   - does not trigger any static initializers except for its own
-  private boolean computeClassEligible(
-      AppView<? extends AppInfoWithLiveness> appView, DexClass clazz) {
+  private boolean computeClassEligible(AppView<AppInfoWithLiveness> appView, DexClass clazz) {
     if (clazz == null
         || clazz.isLibraryClass()
         || clazz.accessFlags.isAbstract()

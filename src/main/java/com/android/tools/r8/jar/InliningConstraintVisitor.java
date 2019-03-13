@@ -37,7 +37,7 @@ import org.objectweb.asm.tree.TryCatchBlockNode;
 public class InliningConstraintVisitor extends MethodVisitor {
 
   private final JarApplicationReader application;
-  private final AppView<? extends AppInfoWithLiveness> appView;
+  private final AppView<AppInfoWithLiveness> appView;
   private final GraphLense graphLense;
   private final InliningConstraints inliningConstraints;
   private final DexEncodedMethod method;
@@ -47,7 +47,7 @@ public class InliningConstraintVisitor extends MethodVisitor {
 
   public InliningConstraintVisitor(
       JarApplicationReader application,
-      AppView<? extends AppInfoWithLiveness> appView,
+      AppView<AppInfoWithLiveness> appView,
       GraphLense graphLense,
       DexEncodedMethod method,
       DexType invocationContext) {

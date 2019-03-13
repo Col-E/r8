@@ -23,16 +23,14 @@ import java.util.concurrent.ExecutorService;
 public final class ClassAndMemberPublicizer {
 
   private final DexApplication application;
-  private final AppView<? extends AppInfoWithLiveness> appView;
+  private final AppView<AppInfoWithLiveness> appView;
   private final RootSet rootSet;
   private final MethodPoolCollection methodPoolCollection;
 
   private final PublicizedLenseBuilder lenseBuilder = PublicizerLense.createBuilder();
 
   private ClassAndMemberPublicizer(
-      DexApplication application,
-      AppView<? extends AppInfoWithLiveness> appView,
-      RootSet rootSet) {
+      DexApplication application, AppView<AppInfoWithLiveness> appView, RootSet rootSet) {
     this.application = application;
     this.appView = appView;
     this.methodPoolCollection = new MethodPoolCollection(application);
@@ -49,7 +47,7 @@ public final class ClassAndMemberPublicizer {
       ExecutorService executorService,
       Timing timing,
       DexApplication application,
-      AppView<? extends AppInfoWithLiveness> appView,
+      AppView<AppInfoWithLiveness> appView,
       RootSet rootSet)
       throws ExecutionException {
     return new ClassAndMemberPublicizer(application, appView, rootSet).run(executorService, timing);

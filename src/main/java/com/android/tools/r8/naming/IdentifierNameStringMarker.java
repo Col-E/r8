@@ -46,10 +46,10 @@ import java.util.stream.Collectors;
 
 public class IdentifierNameStringMarker {
 
-  private final AppView<? extends AppInfoWithLiveness> appView;
+  private final AppView<AppInfoWithLiveness> appView;
   private final Object2BooleanMap<DexReference> identifierNameStrings;
 
-  public IdentifierNameStringMarker(AppView<? extends AppInfoWithLiveness> appView) {
+  public IdentifierNameStringMarker(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
     // Note that this info is only available at AppInfoWithLiveness.
     this.identifierNameStrings = appView.appInfo().identifierNameStrings;

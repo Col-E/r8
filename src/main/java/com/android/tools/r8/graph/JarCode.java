@@ -223,7 +223,7 @@ public class JarCode extends Code {
 
   public ConstraintWithTarget computeInliningConstraint(
       DexEncodedMethod encodedMethod,
-      AppView<? extends AppInfoWithLiveness> appView,
+      AppView<AppInfoWithLiveness> appView,
       GraphLense graphLense,
       DexType invocationContext) {
     InliningConstraintVisitor visitor =

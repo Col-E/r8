@@ -58,7 +58,7 @@ public class SwitchUtils {
    * and {@link SwitchMapCollector} for details.
    */
   public static EnumSwitchInfo analyzeSwitchOverEnum(
-      Instruction switchInsn, AppView<? extends AppInfoWithLiveness> appView) {
+      Instruction switchInsn, AppView<AppInfoWithLiveness> appView) {
     AppInfoWithLiveness appInfo = appView.appInfo();
     Instruction input = switchInsn.inValues().get(0).definition;
     if (input == null || !input.isArrayGet()) {

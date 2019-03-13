@@ -190,7 +190,7 @@ public class IRConverter {
     this.stringOptimizer = new StringOptimizer(appView);
     if (appView.enableWholeProgramOptimizations()) {
       assert appView.appInfo().hasLiveness();
-      AppView<? extends AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+      AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
       AppInfoWithLiveness appInfoWithLiveness = appViewWithLiveness.appInfo();
       assert rootSet != null;
       this.classInliner =

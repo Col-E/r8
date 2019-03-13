@@ -17,9 +17,9 @@ import java.util.Set;
 
 public class VisibilityBridgeRemover {
 
-  private final AppView<? extends AppInfoWithLiveness> appView;
+  private final AppView<AppInfoWithLiveness> appView;
 
-  public VisibilityBridgeRemover(AppView<? extends AppInfoWithLiveness> appView) {
+  public VisibilityBridgeRemover(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
   }
 

@@ -58,7 +58,7 @@ final class InlineCandidateProcessor {
   private static final ImmutableSet<If.Type> ALLOWED_ZERO_TEST_TYPES =
       ImmutableSet.of(If.Type.EQ, If.Type.NE);
 
-  private final AppView<? extends AppInfoWithLiveness> appView;
+  private final AppView<AppInfoWithLiveness> appView;
   private final LambdaRewriter lambdaRewriter;
   private final Inliner inliner;
   private final Predicate<DexClass> isClassEligible;
@@ -81,7 +81,7 @@ final class InlineCandidateProcessor {
   private int estimatedCombinedSizeForInlining = 0;
 
   InlineCandidateProcessor(
-      AppView<? extends AppInfoWithLiveness> appView,
+      AppView<AppInfoWithLiveness> appView,
       LambdaRewriter lambdaRewriter,
       Inliner inliner,
       Predicate<DexClass> isClassEligible,

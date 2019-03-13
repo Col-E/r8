@@ -33,7 +33,7 @@ import java.util.function.Predicate;
 
 public final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
 
-  private final AppView<? extends AppInfoWithLiveness> appView;
+  private final AppView<AppInfoWithLiveness> appView;
   private final Inliner inliner;
   private final DexEncodedMethod method;
   private final IRCode code;
@@ -44,7 +44,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
   private int instructionAllowance;
 
   DefaultInliningOracle(
-      AppView<? extends AppInfoWithLiveness> appView,
+      AppView<AppInfoWithLiveness> appView,
       Inliner inliner,
       DexEncodedMethod method,
       IRCode code,

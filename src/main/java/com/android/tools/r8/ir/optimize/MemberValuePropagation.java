@@ -42,7 +42,7 @@ import java.util.function.Predicate;
 
 public class MemberValuePropagation {
 
-  private final AppView<? extends AppInfoWithLiveness> appView;
+  private final AppView<AppInfoWithLiveness> appView;
 
   private enum RuleType {
     NONE,
@@ -61,7 +61,7 @@ public class MemberValuePropagation {
     }
   }
 
-  public MemberValuePropagation(AppView<? extends AppInfoWithLiveness> appView) {
+  public MemberValuePropagation(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
   }
 

@@ -146,7 +146,7 @@ public final class LambdaMerger {
   // We do this before methods are being processed to guarantee stable order of
   // lambdas inside each group.
   public final void collectGroupCandidates(
-      DexApplication app, AppView<? extends AppInfoWithLiveness> appView) {
+      DexApplication app, AppView<AppInfoWithLiveness> appView) {
     // Collect lambda groups.
     app.classes().stream()
         .filter(cls -> !appView.appInfo().isPinned(cls.type))
