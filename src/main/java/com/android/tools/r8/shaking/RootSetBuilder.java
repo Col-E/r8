@@ -906,7 +906,8 @@ public class RootSetBuilder {
     if (context instanceof ProguardKeepRule) {
       if (item.isDexEncodedMethod()) {
         DexEncodedMethod encodedMethod = item.asDexEncodedMethod();
-        if (encodedMethod.method.isLambdaDeserializeMethod(appView.dexItemFactory())) {
+        if (options.isGeneratingDex()
+            && encodedMethod.method.isLambdaDeserializeMethod(appView.dexItemFactory())) {
           // Don't keep lambda deserialization methods.
           return;
         }

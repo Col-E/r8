@@ -83,6 +83,12 @@ public abstract class TestRunResult<RR extends TestRunResult<?>> {
     return self();
   }
 
+  public RR assertSuccessWithOutputThatMatches(Matcher<String> matcher) {
+    assertSuccess();
+    assertThat(errorMessage("Run stdout incorrect.", matcher.toString()), result.stdout, matcher);
+    return self();
+  }
+
   public CodeInspector inspector() throws IOException, ExecutionException {
     // Inspection post run implies success. If inspection of an invalid program is needed it should
     // be done on the compilation result or on the input.
