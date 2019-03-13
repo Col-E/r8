@@ -1314,7 +1314,8 @@ public class ProguardConfigurationParserTest extends TestBase {
       parser.parse(createConfigurationForTesting(ImmutableList.of("-keepattributes xxx,")));
       fail();
     } catch (AbortException e) {
-      assertTrue(handler.errors.get(0).getDiagnosticMessage().contains("Expected list element at "));
+      assertTrue(
+          handler.errors.get(0).getDiagnosticMessage().contains("Expected list element at "));
     }
   }
 
@@ -2437,5 +2438,30 @@ public class ProguardConfigurationParserTest extends TestBase {
     ProguardConfigurationRule rule = rules.get(0);
     assertEquals(ProguardKeepRuleType.KEEP_CLASS_MEMBERS.toString(), rule.typeString());
     assertEquals("a.b.c.**,!**d,!**e,!**f,g,h,i", rule.getClassNames().toString());
+  }
+
+  @Test
+  public void directiveAfterRepackagingRuleTest() {
+    List<PackageObfuscationMode> packageObfuscationModes =
+        ImmutableList.of(PackageObfuscationMode.FLATTEN, PackageObfuscationMode.REPACKAGE);
+    for (PackageObfuscationMode packageObfuscationMode : packageObfuscationModes) {
+      String directive =
+          packageObfuscationMode == PackageObfuscationMode.FLATTEN
+              ? "-flattenpackagehierarchy"
+              : "-repackageclasses";
+      ProguardConfigurationParser parser =
+          new ProguardConfigurationParser(new DexItemFactory(), reporter);
+      parser.parse(createConfigurationForTesting(ImmutableList.of(directive + " -keep class *")));
+      ProguardConfiguration configuration = parser.getConfig();
+      assertEquals(packageObfuscationMode, configuration.getPackageObfuscationMode());
+      assertEquals("", configuration.getPackagePrefix());
+
+      List<ProguardConfigurationRule> rules = configuration.getRules();
+      assertEquals(1, rules.size());
+
+      ProguardConfigurationRule rule = rules.get(0);
+      assertEquals(ProguardKeepRuleType.KEEP.toString(), rule.typeString());
+      assertEquals("*", rule.getClassNames().toString());
+    }
   }
 }
