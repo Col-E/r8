@@ -135,14 +135,18 @@ def SetPrintConfigurationDirective(app, checkout_dir, destination):
     f.write('-printconfiguration {}\n'.format(destination))
 
 def FindProguardConfigurationFile(app, checkout_dir):
-  candidates = ['proguard-rules.pro', 'proguard-rules.txt', 'proguard.cfg']
+  candidates = [
+      'proguard.cfg',
+      'proguard-rules.pro',
+      'proguard-rules.txt',
+      'proguard-project.txt']
   for candidate in candidates:
     proguard_config_file = os.path.join(checkout_dir, app.module, candidate)
     if os.path.isfile(proguard_config_file):
       return proguard_config_file
   # Currently assuming that the Proguard configuration file can be found at
   # one of the predefined locations.
-  assert False
+  assert False, 'Unable to find Proguard configuration file'
 
 def Move(src, dst, quiet=False):
   if not quiet:
