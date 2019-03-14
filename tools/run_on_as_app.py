@@ -207,6 +207,19 @@ APP_REPOSITORIES = [
       ]
   }),
   Repo({
+      'name': 'muzei',
+      'url': 'https://github.com/sgjesse/muzei.git',
+      'revision': 'e7e4ab1039bb18009254b94831b17676bc3b8bc1',
+      'apps': [
+          App({
+              'id': 'net.nurik.roman.muzei',
+              'module': 'main',
+              'archives_base_name': 'muzei',
+              'compile_sdk': 28
+          })
+      ]
+  }),
+  Repo({
       'name': 'NewPipe',
       'url': 'https://github.com/christofferqa/NewPipe',
       'revision': 'ed543099c7823be00f15d9340f94bdb7cb37d1e6',
@@ -310,19 +323,6 @@ APP_REPOSITORIES = [
       'apps': [
           App({
               'id': 'com.publisher.vungle.sample'
-          })
-      ]
-  }),
-  # This does not build yet.
-  Repo({
-      'name': 'muzei',
-      'url': 'https://github.com/sgjesse/muzei.git',
-      'revision': 'bed2a5f79c6e08b0a21e3e3f9242232d0848ef74',
-      'apps': [
-          App({
-              'module': 'main',
-              'archives_base_name': 'muzei',
-              'skip': True
           })
       ]
   })
@@ -525,7 +525,7 @@ def BuildAppWithSelectedShrinkers(
             task_name:duration for task_name, duration in profile.iteritems()
             if as_utils.IsGradleCompilerTask(task_name, shrinker)}
       except Exception as e:
-        warn('Failed to build {} with {}'.format(app, shrinker))
+        warn('Failed to build {} with {}'.format(app.name, shrinker))
         if e:
           print('Error: ' + str(e))
         result['build_status'] = 'failed'
