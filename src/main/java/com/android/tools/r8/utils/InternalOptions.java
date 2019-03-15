@@ -227,6 +227,7 @@ public class InternalOptions {
   }
 
   public Set<String> extensiveLoggingFilter = getExtensiveLoggingFilter();
+  public Set<String> extensiveFieldMinifierLoggingFilter = getExtensiveFieldMinifierLoggingFilter();
   public Set<String> extensiveInterfaceMethodMinifierLoggingFilter =
       getExtensiveInterfaceMethodMinifierLoggingFilter();
 
@@ -294,6 +295,19 @@ public class InternalOptions {
 
   private static Set<String> getExtensiveLoggingFilter() {
     String property = System.getProperty("com.android.tools.r8.extensiveLoggingFilter");
+    if (property != null) {
+      ImmutableSet.Builder<String> builder = ImmutableSet.builder();
+      for (String method : property.split(";")) {
+        builder.add(method);
+      }
+      return builder.build();
+    }
+    return ImmutableSet.of();
+  }
+
+  private static Set<String> getExtensiveFieldMinifierLoggingFilter() {
+    String property =
+        System.getProperty("com.android.tools.r8.extensiveFieldMinifierLoggingFilter");
     if (property != null) {
       ImmutableSet.Builder<String> builder = ImmutableSet.builder();
       for (String method : property.split(";")) {

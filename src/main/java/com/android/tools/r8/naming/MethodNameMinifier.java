@@ -327,7 +327,7 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
       out.print(".");
       out.print(name.toSourceString());
       out.println(proto.toSmaliString());
-      parent.printState(proto, indentation + "  ", out);
+      parent.printState(proto, stateKeyGetter, indentation + "  ", out);
     }
   }
 
