@@ -50,8 +50,8 @@ class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
     timing.end();
     // Rename the definitions.
     timing.begin("rename-definitions");
-    renameFieldsInSubtypes(appInfo.dexItemFactory.objectType);
-    DexType.forAllInterfaces(appInfo.dexItemFactory, this::renameFieldsInSubtypes);
+    renameFieldsInClasses();
+    renameFieldsInInterfaces();
     timing.end();
     // Rename the references that are not rebound to definitions for some reasons.
     timing.begin("rename-references");
@@ -94,15 +94,46 @@ class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
     }
   }
 
-  private void renameFieldsInSubtypes(DexType type) {
+  private void renameFieldsInClasses() {
+    renameFieldsInSubclasses(appInfo.dexItemFactory.objectType, null);
+  }
+
+  private void renameFieldsInSubclasses(DexType type, DexType parent) {
     DexClass clazz = appInfo.definitionFor(type);
     if (clazz == null) {
       return;
     }
+    assert !clazz.isInterface();
+    assert clazz.superType == parent;
+
     NamingState<DexType, ?> state = minifierState.getState(clazz.type);
     assert state != null;
-    clazz.forEachField(field -> renameField(field, state));
-    type.forAllExtendsSubtypes(this::renameFieldsInSubtypes);
+    for (DexEncodedField field : clazz.fields()) {
+      renameField(field, state);
+    }
+    for (DexType subclass : type.allExtendsSubtypes()) {
+      renameFieldsInSubclasses(subclass, type);
+    }
+  }
+
+  private void renameFieldsInInterfaces() {
+    for (DexType interfaceType : DexType.allInterfaces(appInfo.dexItemFactory)) {
+      renameFieldsInInterface(interfaceType);
+    }
+  }
+
+  private void renameFieldsInInterface(DexType type) {
+    DexClass clazz = appInfo.definitionFor(type);
+    if (clazz == null) {
+      return;
+    }
+    assert clazz.isInterface();
+
+    NamingState<DexType, ?> state = minifierState.getState(clazz.type);
+    assert state != null;
+    for (DexEncodedField field : clazz.fields()) {
+      renameField(field, state);
+    }
   }
 
   private void renameField(DexEncodedField encodedField, NamingState<DexType, ?> state) {
