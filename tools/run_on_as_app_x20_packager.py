@@ -45,6 +45,10 @@ def main():
     shutil.move(sha1_file,
                 os.path.join(utils.THIRD_PARTY, 'opensource_apps.tar.gz.sha1'))
 
+  print 'To have apps benchmarked on Golem, the updated apps have to be ' \
+        'downloaded to the runners by ssh\'ing into each runner and do:\n' \
+        'cd ../golem\n' \
+        'update_dependencies.sh\n'
 
 if __name__ == '__main__':
   sys.exit(main())
