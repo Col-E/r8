@@ -141,9 +141,13 @@ def archive_failures():
 def Main():
   (options, args) = ParseOptions()
   if utils.is_bot():
-    gradle.RunGradle(['clean'])
+    gradle.RunGradle(['--no-daemon', 'clean'])
 
   gradle_args = ['--stacktrace']
+  if utils.is_bot():
+    # Bots don't like dangling processes
+    gradle_args.append('--no-daemon')
+
   # Set all necessary Gradle properties and options first.
   if options.shard_count:
     assert options.shard_number
