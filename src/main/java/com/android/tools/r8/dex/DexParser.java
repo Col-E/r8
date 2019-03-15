@@ -872,10 +872,72 @@ public class DexParser {
 
   private void populateFields() {
     DexSection dexSection = lookupSection(Constants.TYPE_FIELD_ID_ITEM);
+    assert verifyOrderOfFieldIds(dexSection);
     indexedItems.initializeFields(dexSection.length);
     for (int i = 0; i < dexSection.length; i++) {
       indexedItems.setField(i, fieldAt(i));
     }
+  }
+
+  /**
+   * From https://source.android.com/devices/tech/dalvik/dex-format#file-layout:
+   *
+   * <p>This list must be sorted, where the defining type (by type_id index) is the major order,
+   * field name (by string_id index) is the intermediate order, and type (by type_id index) is the
+   * minor order. The list must not contain any duplicate entries.
+   */
+  private boolean verifyOrderOfFieldIds(DexSection dexSection) {
+    if (dexSection.length >= 2) {
+      int initialOffset = dexSection.offset;
+      dexReader.position(initialOffset);
+
+      int prevClassIndex = dexReader.getUshort();
+      int prevTypeIndex = dexReader.getUshort();
+      int prevNameIndex = dexReader.getUint();
+
+      for (int index = 1; index < dexSection.length; index++) {
+        int offset = initialOffset + Constants.TYPE_FIELD_ID_ITEM_SIZE * index;
+        dexReader.position(offset);
+
+        int classIndex = dexReader.getUshort();
+        int typeIndex = dexReader.getUshort();
+        int nameIndex = dexReader.getUint();
+
+        boolean isValidOrder;
+        if (classIndex == prevClassIndex) {
+          if (nameIndex == prevNameIndex) {
+            isValidOrder = typeIndex > prevTypeIndex;
+          } else {
+            isValidOrder = nameIndex > prevNameIndex;
+          }
+        } else {
+          isValidOrder = classIndex > prevClassIndex;
+        }
+
+        assert isValidOrder
+            : String.format(
+                "Out-of-order field ids (field #%s: `%s`, field #%s: `%s`)",
+                index - 1,
+                dexItemFactory
+                    .createField(
+                        indexedItems.getType(prevClassIndex),
+                        indexedItems.getType(prevTypeIndex),
+                        indexedItems.getString(prevNameIndex))
+                    .toSourceString(),
+                index,
+                dexItemFactory
+                    .createField(
+                        indexedItems.getType(classIndex),
+                        indexedItems.getType(typeIndex),
+                        indexedItems.getString(nameIndex))
+                    .toSourceString());
+
+        prevClassIndex = classIndex;
+        prevTypeIndex = typeIndex;
+        prevNameIndex = nameIndex;
+      }
+    }
+    return true;
   }
 
   private void populateProtos() {
