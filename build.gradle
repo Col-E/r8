@@ -1597,18 +1597,17 @@ test {
     if (project.hasProperty('tool')) {
         if (project.property('tool') == 'r8') {
             exclude "com/android/tools/r8/art/*/d8/**"
-            exclude "com/android/tools/r8/jctf/d8/**"
-            exclude "com/android/tools/r8/jctf/r8cf/**"
+            exclude "com/android/tools/r8/jctf/**"
         } else if (project.property('tool') == 'd8') {
-            exclude "com/android/tools/r8/art/*/r8/**"
-            exclude "com/android/tools/r8/jctf/r8/**"
-            exclude "com/android/tools/r8/jctf/r8cf/**"
+            if (project.hasProperty('only_jctf')) {
+                include "com/android/tools/r8/jctf/d8/**"
+            } else {
+                include "com/android/tools/r8/art/*/d8/**"
+            }
         } else {
             assert(project.property('tool') == 'r8cf')
-            exclude "com/android/tools/r8/art/*/d8/**"
-            exclude "com/android/tools/r8/art/*/r8/**"
-            exclude "com/android/tools/r8/jctf/d8/**"
-            exclude "com/android/tools/r8/jctf/r8/**"
+            assert(project.hasProperty('only_jctf'))
+            include "com/android/tools/r8/jctf/r8cf/**"
         }
     }
     if (!project.hasProperty('all_tests')) {
@@ -1616,9 +1615,6 @@ test {
     }
     if (!project.hasProperty('jctf') && !project.hasProperty('only_jctf')) {
         exclude "com/android/tools/r8/jctf/**"
-    }
-    if (project.hasProperty('only_jctf')) {
-        include "com/android/tools/r8/jctf/**"
     }
     if (project.hasProperty('shard_count') ) {
       assert project.hasProperty('shard_number')
