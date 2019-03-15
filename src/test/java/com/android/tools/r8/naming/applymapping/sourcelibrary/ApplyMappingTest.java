@@ -70,6 +70,7 @@ public class ApplyMappingTest extends TestBase {
     out = temp.newFolder("out").toPath();
   }
 
+  @Ignore("b/128516926")
   @Test
   public void test044_apply() throws Exception {
     Path flag =
