@@ -136,7 +136,7 @@ public class Minifier {
 
   static class MinifierMemberNamingStrategy implements MemberNamingStrategy {
 
-    char[] EMPTY_CHAR_ARRAY = new char[0];
+    public static char[] EMPTY_CHAR_ARRAY = new char[0];
 
     private final DexItemFactory factory;
 

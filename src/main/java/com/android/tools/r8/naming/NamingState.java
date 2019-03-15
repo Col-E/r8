@@ -3,11 +3,15 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
+import static com.android.tools.r8.naming.Minifier.MinifierMemberNamingStrategy.EMPTY_CHAR_ARRAY;
+
 import com.android.tools.r8.graph.CachedHashValueDexItem;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.MemberNameMinifier.MemberNamingStrategy;
+import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -73,12 +77,8 @@ class NamingState<ProtoType extends CachedHashValueDexItem, KeyType> {
     // TODO(herhut): Maybe allocate these sparsely and search via state chain.
     InternalState result = usedNames.get(key);
     if (result == null) {
-      if (parent != null) {
-        InternalState parentState = parent.getOrCreateInternalStateFor(key);
-        result = parentState.createChild();
-      } else {
-        result = new InternalState(itemFactory, null, dictionary);
-      }
+      InternalState parentState = parent != null ? parent.getOrCreateInternalStateFor(key) : null;
+      result = new InternalState(itemFactory, parentState, dictionary);
       usedNames.put(key, result);
     }
     return result;
@@ -139,12 +139,23 @@ class NamingState<ProtoType extends CachedHashValueDexItem, KeyType> {
     state.addRenaming(original, key, newName);
   }
 
-  void printState(ProtoType proto, String indentation, PrintStream out) {
+  void printState(
+      ProtoType proto,
+      Function<NamingState<ProtoType, ?>, DexType> stateKeyGetter,
+      String indentation,
+      PrintStream out) {
     KeyType key = keyTransform.apply(proto);
-    InternalState state = findInternalStateFor(key);
+    InternalState state = getOrCreateInternalStateFor(key);
+    out.print(indentation);
+    out.print("NamingState(node=`");
+    out.print(stateKeyGetter.apply(this).toSourceString());
+    out.print("`, proto=`");
+    out.print(proto.toSourceString());
+    out.print("`, key=`");
+    out.print(key.toString());
+    out.println("`)");
     if (state != null) {
-      state.printReservedNames(indentation, out);
-      state.printRenamings(indentation, out);
+      state.printInternalState(this, stateKeyGetter, indentation + "  ", out);
     } else {
       out.print(indentation);
       out.println("<NO STATE>");
@@ -187,10 +198,6 @@ class NamingState<ProtoType extends CachedHashValueDexItem, KeyType> {
       return !(renamings != null && renamings.containsValue(name))
           && !(reservedNames != null && reservedNames.contains(name))
           && (parentInternalState == null || parentInternalState.isAvailable(name));
-    }
-
-    InternalState createChild() {
-      return new InternalState(itemFactory, this, dictionaryIterator);
     }
 
     void reserveName(DexString name) {
@@ -256,6 +263,43 @@ class NamingState<ProtoType extends CachedHashValueDexItem, KeyType> {
       }
     }
 
+    void printInternalState(
+        NamingState<ProtoType, ?> expectedNamingState,
+        Function<NamingState<ProtoType, ?>, DexType> stateKeyGetter,
+        String indentation,
+        PrintStream out) {
+      assert expectedNamingState == NamingState.this;
+
+      DexType stateKey = stateKeyGetter.apply(expectedNamingState);
+      out.print(indentation);
+      out.print("InternalState(node=`");
+      out.print(stateKey != null ? stateKey.toSourceString() : "<GLOBAL>");
+      out.println("`)");
+
+      printLastName(indentation + "  ", out);
+      printReservedNames(indentation + "  ", out);
+      printRenamings(indentation + "  ", out);
+
+      if (parentInternalState != null) {
+        parentInternalState.printInternalState(
+            expectedNamingState.parent, stateKeyGetter, indentation + "  ", out);
+      }
+    }
+
+    void printLastName(String indentation, PrintStream out) {
+      out.print(indentation);
+      out.print("Last name: ");
+      if (nameCount > 1) {
+        out.print(StringUtils.numberToIdentifier(EMPTY_CHAR_ARRAY, nameCount - 1, false));
+        out.print(" (name count: ");
+        out.print(nameCount);
+        out.print(")");
+      } else {
+        out.print("<NONE>");
+      }
+      out.println();
+    }
+
     void printReservedNames(String indentation, PrintStream out) {
       out.print(indentation);
       out.print("Reserved names:");
@@ -270,9 +314,6 @@ class NamingState<ProtoType extends CachedHashValueDexItem, KeyType> {
         }
       }
       out.println();
-      if (parentInternalState != null) {
-        parentInternalState.printReservedNames(indentation + "  ", out);
-      }
     }
 
     void printRenamings(String indentation, PrintStream out) {
@@ -295,9 +336,6 @@ class NamingState<ProtoType extends CachedHashValueDexItem, KeyType> {
         }
       }
       out.println();
-      if (parentInternalState != null) {
-        parentInternalState.printRenamings(indentation + "  ", out);
-      }
     }
   }
 }

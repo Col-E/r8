@@ -14,7 +14,9 @@ import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
+import java.io.PrintStream;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
 class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
@@ -128,7 +130,6 @@ class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
       return;
     }
     assert clazz.isInterface();
-
     NamingState<DexType, ?> state = minifierState.getState(clazz.type);
     assert state != null;
     for (DexEncodedField field : clazz.fields()) {
@@ -138,6 +139,14 @@ class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
 
   private void renameField(DexEncodedField encodedField, NamingState<DexType, ?> state) {
     DexField field = encodedField.field;
+
+    Set<String> loggingFilter = options.extensiveFieldMinifierLoggingFilter;
+    if (!loggingFilter.isEmpty()) {
+      if (loggingFilter.contains(field.toSourceString())) {
+        print(field, state, System.out);
+      }
+    }
+
     if (!state.isReserved(field.name, field.type)) {
       renaming.put(
           field, state.assignNewNameFor(field, field.name, field.type, useUniqueMemberNames));
@@ -181,5 +190,13 @@ class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
       // Assign the same, renamed name as the definition to the reference.
       renaming.put(field, renaming.get(definition.field));
     }
+  }
+
+  private void print(DexField field, NamingState<DexType, ?> state, PrintStream out) {
+    out.println("--------------------------------------------------------------------------------");
+    out.println("FieldNameMinifier(`" + field.toSourceString() + "`)");
+    out.println("--------------------------------------------------------------------------------");
+    state.printState(field.type, minifierState::getStateKey, "", out);
+    out.println();
   }
 }
