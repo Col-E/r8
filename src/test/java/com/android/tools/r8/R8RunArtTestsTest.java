@@ -9,13 +9,15 @@ import static org.junit.Assert.fail;
 import com.android.tools.r8.JctfTestSpecifications.Outcome;
 import com.android.tools.r8.TestCondition.Runtime;
 import com.android.tools.r8.TestCondition.RuntimeSet;
+import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.TestRuntime.DexRuntime;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Kind;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.shaking.ProguardRuleParserException;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.ArtErrorParser;
 import com.android.tools.r8.utils.ArtErrorParser.ArtErrorInfo;
@@ -46,6 +48,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.function.BiFunction;
@@ -1526,19 +1529,53 @@ public abstract class R8RunArtTestsTest {
     runArtTest(ToolHelper.getDexVm(), compilerUnderTest);
   }
 
+  private static class CompilationOptions {
+    private final boolean disableInlining;
+    private final boolean disableClassInlining;
+    private final boolean disableUninstantiatedTypeOptimization;
+    private final boolean hasMissingClasses;
+
+    private CompilationOptions(TestSpecification spec) {
+      this.disableInlining = spec.disableInlining;
+      this.disableClassInlining = spec.disableClassInlining;
+      this.disableUninstantiatedTypeOptimization = spec.disableUninstantiatedTypeOptimization;
+      this.hasMissingClasses = spec.hasMissingClasses;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      CompilationOptions options = (CompilationOptions) o;
+      return disableInlining == options.disableInlining
+          && disableClassInlining == options.disableClassInlining
+          && disableUninstantiatedTypeOptimization == options.disableUninstantiatedTypeOptimization
+          && hasMissingClasses == options.hasMissingClasses;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(
+          disableInlining,
+          disableClassInlining,
+          disableUninstantiatedTypeOptimization,
+          hasMissingClasses);
+    }
+  }
+
   private void executeCompilerUnderTest(
       CompilerUnderTest compilerUnderTest,
       Collection<String> fileNames,
       String resultPath,
       CompilationMode compilationMode,
-      boolean disableInlining,
-      boolean disableClassInlining,
-      boolean disableUninstantiatedTypeOptimization,
-      boolean hasMissingClasses)
+      CompilationOptions compilationOptions)
       throws CompilationFailedException {
-    executeCompilerUnderTest(compilerUnderTest, fileNames, resultPath, compilationMode, null,
-        disableInlining, disableClassInlining, disableUninstantiatedTypeOptimization,
-        hasMissingClasses);
+    executeCompilerUnderTest(
+        compilerUnderTest, fileNames, resultPath, compilationMode, null, compilationOptions);
   }
 
   private void executeCompilerUnderTest(
@@ -1547,10 +1584,7 @@ public abstract class R8RunArtTestsTest {
       String resultPath,
       CompilationMode mode,
       String keepRulesFile,
-      boolean disableInlining,
-      boolean disableClassInlining,
-      boolean disableUninstantiatedTypeOptimization,
-      boolean hasMissingClasses)
+      CompilationOptions compilationOptions)
       throws CompilationFailedException {
     assert mode != null;
     switch (compilerUnderTest) {
@@ -1698,20 +1732,20 @@ public abstract class R8RunArtTestsTest {
           ToolHelper.runR8(
               builder.build(),
               options -> {
-                if (disableInlining) {
+                if (compilationOptions.disableInlining) {
                   options.enableInlining = false;
                 }
-                if (disableClassInlining) {
+                if (compilationOptions.disableClassInlining) {
                   options.enableClassInlining = false;
                 }
-                if (disableUninstantiatedTypeOptimization) {
+                if (compilationOptions.disableUninstantiatedTypeOptimization) {
                   options.enableUninstantiatedTypeOptimization = false;
                 }
                 // Make sure we don't depend on this settings.
                 options.classInliningInstructionLimit = 10000;
                 options.lineNumberOptimization = LineNumberOptimization.OFF;
                 // Some tests actually rely on missing classes for what they test.
-                options.ignoreMissingClasses = hasMissingClasses;
+                options.ignoreMissingClasses = compilationOptions.hasMissingClasses;
               });
           break;
         }
@@ -1794,15 +1828,38 @@ public abstract class R8RunArtTestsTest {
             noInlining);
   }
 
-  protected void runJctfTest(CompilerUnderTest compilerUnderTest, String classFilePath,
-      String fullClassName)
-      throws IOException, ProguardRuleParserException, ExecutionException,
-      CompilationFailedException {
-    Runtime runtime;
-    if (compilerUnderTest == CompilerUnderTest.R8CF) {
-      runtime = Runtime.JAVA;
+  private static Runtime getRuntime(TestRuntime vm) {
+    if (vm.isCf()) {
+      return Runtime.JAVA;
+    } else if (vm.isDex()) {
+      return Runtime.fromDexVmVersion(vm.asDex().getVm().getVersion());
     } else {
-      runtime = Runtime.fromDexVmVersion(ToolHelper.getDexVm().getVersion());
+      throw new Unreachable();
+    }
+  }
+
+  private static class VmSpec {
+    final TestRuntime vm;
+    final TestSpecification spec;
+
+    private VmSpec(TestRuntime vm, TestSpecification testSpecification) {
+      this.vm = vm;
+      this.spec = testSpecification;
+    }
+  }
+
+  protected void runJctfTest(
+      CompilerUnderTest compilerUnderTest, String classFilePath, String fullClassName)
+      throws IOException, CompilationFailedException {
+    List<TestRuntime> vms = new ArrayList<>();
+    if (compilerUnderTest == CompilerUnderTest.R8CF) {
+      for (CfVm vm : TestParametersBuilder.getAvailableCfVms()) {
+        vms.add(new TestRuntime.CfRuntime(vm));
+      }
+    } else {
+      for (DexVm vm : TestParametersBuilder.getAvailableDexVms()) {
+        vms.add(new DexRuntime(vm));
+      }
     }
 
     CompilerUnderTest firstCompilerUnderTest =
@@ -1811,19 +1868,28 @@ public abstract class R8RunArtTestsTest {
             : compilerUnderTest;
     CompilationMode compilationMode = defaultCompilationMode(compilerUnderTest);
 
-    File resultDir = temp.newFolder(firstCompilerUnderTest.toString().toLowerCase() + "-output");
+    List<VmSpec> vmSpecs = new ArrayList<>();
+    for (TestRuntime vm : vms) {
+      File resultDir =
+          temp.newFolder(
+              firstCompilerUnderTest.toString().toLowerCase() + "-output-" + vm.toString());
 
-    TestSpecification specification =
-        JctfTestSpecifications.getExpectedOutcome(
-            name,
-            firstCompilerUnderTest,
-            runtime,
-            compilationMode,
-            compilerUnderTest == CompilerUnderTest.R8CF
-                ? jctfOutcomeToSpecificationJava(name, resultDir)
-                : jctfOutcomeToSpecification(name, DexTool.NONE, resultDir, ToolHelper.getDexVm()));
+      TestSpecification specification =
+          JctfTestSpecifications.getExpectedOutcome(
+              name,
+              firstCompilerUnderTest,
+              getRuntime(vm),
+              compilationMode,
+              compilerUnderTest == CompilerUnderTest.R8CF
+                  ? jctfOutcomeToSpecificationJava(name, resultDir)
+                  : jctfOutcomeToSpecification(name, DexTool.NONE, resultDir, vm.asDex().getVm()));
 
-    if (specification.skipTest) {
+      if (!specification.skipTest) {
+        vmSpecs.add(new VmSpec(vm, specification));
+      }
+    }
+
+    if (vmSpecs.isEmpty()) {
       return;
     }
 
@@ -1887,62 +1953,82 @@ public abstract class R8RunArtTestsTest {
     }
 
     if (compilerUnderTest == CompilerUnderTest.R8CF) {
-      runJctfTestDoRunOnJava(fileNames, specification, fullClassName, compilationMode, resultDir);
-    } else {
-
-      runJctfTestDoRunOnArt(
-          fileNames,
-          specification,
-          firstCompilerUnderTest,
-          fullClassName,
-          compilationMode,
-          ToolHelper.getDexVm(),
-          resultDir);
+      assert vmSpecs.size() == 1
+          : "Running the same test on multiple JVMs should share the same build.";
+      for (VmSpec vmSpec : vmSpecs) {
+        runJctfTestDoRunOnJava(
+            fileNames, vmSpec.spec, fullClassName, compilationMode, vmSpec.vm.asCf().getVm());
+      }
+      return;
     }
 
-    // second pass if D8_R8Debug
-    if (compilerUnderTest == CompilerUnderTest.R8_AFTER_D8) {
-      List<String> d8OutputFileNames =
-          Files.list(resultDir.toPath())
-              .filter(FileUtils::isDexFile)
-              .map(Path::toString)
-              .collect(Collectors.toList());
-      File r8ResultDir = temp.newFolder("r8-output");
-      compilationMode = CompilationMode.DEBUG;
-      specification =
+    CompilationOptions compilationOptions = null;
+    File compiledDir = temp.newFolder();
+    for (VmSpec vmSpec : vmSpecs) {
+      CompilationOptions thisOptions = new CompilationOptions(vmSpec.spec);
+      if (compilationOptions == null) {
+        compilationOptions = thisOptions;
+        executeCompilerUnderTest(
+            firstCompilerUnderTest,
+            fileNames,
+            compiledDir.getAbsolutePath(),
+            compilationMode,
+            compilationOptions);
+      } else {
+        // For now compile options don't change across vms.
+        assert compilationOptions.equals(thisOptions);
+      }
+      Files.copy(
+          compiledDir.toPath().resolve("classes.dex"),
+          vmSpec.spec.directory.toPath().resolve("classes.dex"));
+      runJctfTestDoRunOnArt(fileNames, vmSpec.spec, fullClassName, vmSpec.vm.asDex().getVm());
+    }
+
+    if (compilerUnderTest != CompilerUnderTest.R8_AFTER_D8) {
+      return;
+    }
+
+    // Second pass (R8), if R8_AFTER_D8.
+    CompilationOptions r8CompilationOptions = null;
+    File r8CompiledDir = temp.newFolder();
+    for (VmSpec vmSpec : vmSpecs) {
+      File r8ResultDir = temp.newFolder("r8-output-" + vmSpec.vm.toString());
+      TestSpecification specification =
           JctfTestSpecifications.getExpectedOutcome(
               name,
               CompilerUnderTest.R8_AFTER_D8,
-              runtime,
-              compilationMode,
-              jctfOutcomeToSpecification(name, DexTool.DX, r8ResultDir, ToolHelper.getDexVm()));
+              getRuntime(vmSpec.vm),
+              CompilationMode.RELEASE,
+              jctfOutcomeToSpecification(name, DexTool.DX, r8ResultDir, vmSpec.vm.asDex().getVm()));
       if (specification.skipTest) {
-        return;
+        continue;
       }
-      runJctfTestDoRunOnArt(
-          d8OutputFileNames,
-          specification,
-          CompilerUnderTest.R8,
-          fullClassName,
-          compilationMode,
-          ToolHelper.getDexVm(),
-          r8ResultDir);
+      CompilationOptions thisOptions = new CompilationOptions(vmSpec.spec);
+      if (r8CompilationOptions == null) {
+        r8CompilationOptions = thisOptions;
+        executeCompilerUnderTest(
+            CompilerUnderTest.R8,
+            Collections.singletonList(compiledDir.toPath().resolve("classes.dex").toString()),
+            r8CompiledDir.getAbsolutePath(),
+            CompilationMode.RELEASE,
+            r8CompilationOptions);
+      } else {
+        // For now compile options don't change across vms.
+        assert r8CompilationOptions.equals(thisOptions);
+      }
+      Files.copy(
+          r8CompiledDir.toPath().resolve("classes.dex"),
+          specification.directory.toPath().resolve("classes.dex"));
+      runJctfTestDoRunOnArt(fileNames, specification, fullClassName, vmSpec.vm.asDex().getVm());
     }
   }
 
   private void runJctfTestDoRunOnArt(
       Collection<String> fileNames,
       TestSpecification specification,
-      CompilerUnderTest compilerUnderTest,
       String fullClassName,
-      CompilationMode mode,
-      DexVm dexVm,
-      File resultDir)
-      throws IOException, CompilationFailedException {
-    executeCompilerUnderTest(compilerUnderTest, fileNames, resultDir.getAbsolutePath(), mode,
-        specification.disableInlining, specification.disableClassInlining,
-        specification.disableUninstantiatedTypeOptimization, specification.hasMissingClasses);
-
+      DexVm dexVm)
+      throws IOException {
     if (!ToolHelper.artSupported() && !ToolHelper.dealsWithGoldenFiles()) {
       return;
     }
@@ -1951,16 +2037,9 @@ public abstract class R8RunArtTestsTest {
 
     // Collect the generated dex files.
     File[] outputFiles =
-        resultDir.listFiles((File file) -> file.getName().endsWith(".dex"));
-    if (outputFiles.length == 1) {
-      // Just run Art on classes.dex.
-      processedFile = outputFiles[0];
-    } else {
-      // Run Art on JAR file with multiple dex files.
-      processedFile
-          = temp.getRoot().toPath().resolve(specification.name + ".jar").toFile();
-      buildJar(outputFiles, processedFile);
-    }
+        specification.directory.listFiles((File file) -> file.getName().endsWith(".dex"));
+    assert outputFiles.length == 1;
+    processedFile = outputFiles[0];
 
     boolean compileOnly = System.getProperty("jctf_compile_only", "0").equals("1");
     if (compileOnly || specification.skipRun) {
@@ -1976,7 +2055,7 @@ public abstract class R8RunArtTestsTest {
     if (dexVm.isNewerThan(DexVm.ART_4_4_4_HOST)) {
       builder.appendArtOption("-Ximage:/system/non/existent/image.art");
     }
-    for (String s : ToolHelper.getBootLibs()) {
+    for (String s : ToolHelper.getBootLibs(dexVm)) {
       builder.appendBootClassPath(new File(s).getCanonicalPath());
     }
     builder.setMainClass(JUNIT_TEST_RUNNER);
@@ -2003,20 +2082,18 @@ public abstract class R8RunArtTestsTest {
       TestSpecification specification,
       String fullClassName,
       CompilationMode mode,
-      File resultDir)
+      CfVm vm)
       throws IOException, CompilationFailedException {
+    assert TestParametersBuilder.isSystemJdk(vm);
     if (JctfTestSpecifications.compilationFailsWithAsmMethodTooLarge.contains(specification.name)) {
       expectException(org.objectweb.asm.MethodTooLargeException.class);
     }
     executeCompilerUnderTest(
         CompilerUnderTest.R8CF,
         fileNames,
-        resultDir.getAbsolutePath(),
+        specification.directory.getAbsolutePath(),
         mode,
-        specification.disableInlining,
-        specification.disableClassInlining,
-        specification.disableUninstantiatedTypeOptimization,
-        specification.hasMissingClasses);
+        new CompilationOptions(specification));
 
     boolean compileOnly = System.getProperty("jctf_compile_only", "0").equals("1");
 
@@ -2033,7 +2110,7 @@ public abstract class R8RunArtTestsTest {
     // running the test.
     ProcessResult result =
         ToolHelper.runJava(
-            resultDir.toPath(),
+            specification.directory.toPath(),
             "-Xmx" + ToolHelper.BOT_MAX_HEAP_SIZE,
             JUNIT_TEST_RUNNER,
             fullClassName);
@@ -2168,9 +2245,11 @@ public abstract class R8RunArtTestsTest {
       expectException(CompilationError.class);
       try {
         executeCompilerUnderTest(
-            compilerUnderTest, fileNames, resultDir.getCanonicalPath(), compilationMode,
-            specification.disableInlining, specification.disableClassInlining,
-            specification.disableUninstantiatedTypeOptimization, specification.hasMissingClasses);
+            compilerUnderTest,
+            fileNames,
+            resultDir.getCanonicalPath(),
+            compilationMode,
+            new CompilationOptions(specification));
       } catch (CompilationFailedException e) {
         throw new CompilationError(e.getMessage(), e);
       }
@@ -2179,16 +2258,20 @@ public abstract class R8RunArtTestsTest {
     } else if (specification.failsWithX8) {
       expectException(Throwable.class);
       executeCompilerUnderTest(
-          compilerUnderTest, fileNames, resultDir.getCanonicalPath(), compilationMode,
-          specification.disableInlining, specification.disableClassInlining,
-          specification.disableUninstantiatedTypeOptimization, specification.hasMissingClasses);
+          compilerUnderTest,
+          fileNames,
+          resultDir.getCanonicalPath(),
+          compilationMode,
+          new CompilationOptions(specification));
       System.err.println("Should have failed R8/D8 compilation with an exception.");
       return;
     } else {
       executeCompilerUnderTest(
-          compilerUnderTest, fileNames, resultDir.getCanonicalPath(), compilationMode,
-          specification.disableInlining, specification.disableClassInlining,
-          specification.disableUninstantiatedTypeOptimization, specification.hasMissingClasses);
+          compilerUnderTest,
+          fileNames,
+          resultDir.getCanonicalPath(),
+          compilationMode,
+          new CompilationOptions(specification));
     }
 
     if (!specification.skipRun

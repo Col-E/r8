@@ -704,10 +704,10 @@ public class ToolHelper {
     }
   }
 
-  public static List<String> getBootLibs() {
-    String prefix = getArtDir(getDexVm()) + "/";
+  public static List<String> getBootLibs(DexVm dexVm) {
+    String prefix = getArtDir(dexVm) + "/";
     List<String> result = new ArrayList<>();
-    BOOT_LIBS.get(getDexVm()).stream().forEach(x -> result.add(prefix + "framework/" + x));
+    BOOT_LIBS.get(dexVm).stream().forEach(x -> result.add(prefix + "framework/" + x));
     return result;
   }
 

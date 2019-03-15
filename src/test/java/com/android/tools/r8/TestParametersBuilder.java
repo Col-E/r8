@@ -158,7 +158,7 @@ public class TestParametersBuilder {
     return isSystemJdk(vm);
   }
 
-  private static List<CfVm> getAvailableCfVms() {
+  public static List<CfVm> getAvailableCfVms() {
     String cfVmsProperty = System.getProperty("cf_vms");
     if (cfVmsProperty != null) {
       return Arrays.stream(cfVmsProperty.split(":"))
@@ -174,7 +174,7 @@ public class TestParametersBuilder {
     }
   }
 
-  private static List<DexVm> getAvailableDexVms() {
+  public static List<DexVm> getAvailableDexVms() {
     String dexVmsProperty = System.getProperty("dex_vms");
     if (dexVmsProperty != null) {
       return Arrays.stream(dexVmsProperty.split(":"))

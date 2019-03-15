@@ -257,12 +257,13 @@ def Main():
 
   # Now run tests on selected runtime(s).
   vms_to_test = [options.dex_vm] if options.dex_vm != "all" else ALL_ART_VMS
-  # TODO(126683699): remove once we have single run
-  if options.dex_vm == 'all' and options.only_jctf:
-    vms_to_test = ["default",  "5.1.1"]
 
   # The full set of VMs is configured in the first run, then set to empty below.
   dex_vms_property = ':'.join(vms_to_test)
+
+  if options.only_jctf:
+    vms_to_test = ['default']
+
   for art_vm in vms_to_test:
     vm_suffix = "_" + options.dex_vm_kind if art_vm != "default" else ""
     return_code = gradle.RunGradle(
