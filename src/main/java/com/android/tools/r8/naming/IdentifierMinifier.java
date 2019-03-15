@@ -12,6 +12,7 @@ import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.code.ConstString;
 import com.android.tools.r8.code.DexItemBasedConstString;
 import com.android.tools.r8.code.Instruction;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -33,14 +34,13 @@ import java.util.Map;
  */
 class IdentifierMinifier {
 
-  private final AppInfoWithLiveness appInfo;
+  private final AppView<AppInfoWithLiveness> appView;
   private final ProguardClassFilter adaptClassStrings;
   private final NamingLens lens;
 
-  IdentifierMinifier(
-      AppInfoWithLiveness appInfo, ProguardClassFilter adaptClassStrings, NamingLens lens) {
-    this.appInfo = appInfo;
-    this.adaptClassStrings = adaptClassStrings;
+  IdentifierMinifier(AppView<AppInfoWithLiveness> appView, NamingLens lens) {
+    this.appView = appView;
+    this.adaptClassStrings = appView.options().getProguardConfiguration().getAdaptClassStrings();
     this.lens = lens;
   }
 
@@ -52,7 +52,7 @@ class IdentifierMinifier {
   }
 
   private void adaptClassStrings() {
-    for (DexProgramClass clazz : appInfo.classes()) {
+    for (DexProgramClass clazz : appView.appInfo().classes()) {
       if (adaptClassStrings.matches(clazz.type)) {
         for (DexEncodedField field : clazz.staticFields()) {
           adaptClassStringsInStaticField(field);
@@ -110,14 +110,14 @@ class IdentifierMinifier {
       DexString renamed = lens.lookupDescriptor(type);
       // Create a new DexString only when the corresponding string literal will be replaced.
       if (renamed != originalLiteral) {
-        return appInfo.dexItemFactory.createString(descriptorToJavaType(renamed.toString()));
+        return appView.dexItemFactory().createString(descriptorToJavaType(renamed.toString()));
       }
     }
     return originalLiteral;
   }
 
   private void replaceDexItemBasedConstString() {
-    for (DexProgramClass clazz : appInfo.classes()) {
+    for (DexProgramClass clazz : appView.appInfo().classes()) {
       // Some const strings could be moved to field's static value (from <clinit>).
       for (DexEncodedField field : clazz.staticFields()) {
         replaceDexItemBasedConstStringInStaticField(field);
@@ -136,10 +136,10 @@ class IdentifierMinifier {
           dexItemBasedValueString.getClassNameComputationInfo().needsToComputeClassName()
               ? computeClassName(
                   lens.lookupDescriptor(original.asDexType()),
-                  appInfo.definitionFor(original.asDexType()),
+                  appView.definitionFor(original.asDexType()),
                   dexItemBasedValueString.getClassNameComputationInfo(),
-                  appInfo.dexItemFactory)
-              : lens.lookupName(original, appInfo.dexItemFactory);
+                  appView.dexItemFactory())
+              : lens.lookupName(original, appView.dexItemFactory());
       encodedField.setStaticValue(new DexValueString(replacement));
     }
   }
@@ -166,10 +166,10 @@ class IdentifierMinifier {
               cnst.getClassNameComputationInfo().needsToComputeClassName()
                   ? computeClassName(
                       lens.lookupDescriptor(cnst.getItem().asDexType()),
-                      appInfo.definitionFor(cnst.getItem().asDexType()),
+                      appView.definitionFor(cnst.getItem().asDexType()),
                       cnst.getClassNameComputationInfo(),
-                      appInfo.dexItemFactory)
-                  : lens.lookupName(cnst.getItem(), appInfo.dexItemFactory);
+                      appView.dexItemFactory())
+                  : lens.lookupName(cnst.getItem(), appView.dexItemFactory());
           ConstString constString = new ConstString(cnst.AA, replacement);
           constString.setOffset(instruction.getOffset());
           instructions[i] = constString;
@@ -186,10 +186,10 @@ class IdentifierMinifier {
               cnst.getClassNameComputationInfo().needsToComputeClassName()
                   ? computeClassName(
                       lens.lookupDescriptor(cnst.getItem().asDexType()),
-                      appInfo.definitionFor(cnst.getItem().asDexType()),
+                      appView.definitionFor(cnst.getItem().asDexType()),
                       cnst.getClassNameComputationInfo(),
-                      appInfo.dexItemFactory)
-                  : lens.lookupName(cnst.getItem(), appInfo.dexItemFactory);
+                      appView.dexItemFactory())
+                  : lens.lookupName(cnst.getItem(), appView.dexItemFactory());
           instructions.set(i, new CfConstString(replacement));
         }
       }

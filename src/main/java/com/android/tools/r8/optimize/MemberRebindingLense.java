@@ -5,6 +5,7 @@
 package com.android.tools.r8.optimize;
 
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.GraphLense;
@@ -14,11 +15,13 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 
 public class MemberRebindingLense extends NestedGraphLense {
-  public static class Builder extends NestedGraphLense.Builder {
-    private final AppInfo appInfo;
 
-    protected Builder(AppInfo appInfo) {
-      this.appInfo = appInfo;
+  public static class Builder extends NestedGraphLense.Builder {
+
+    private final AppView<? extends AppInfo> appView;
+
+    protected Builder(AppView<? extends AppInfo> appView) {
+      this.appView = appView;
     }
 
     public GraphLense build(GraphLense previousLense) {
@@ -26,28 +29,34 @@ public class MemberRebindingLense extends NestedGraphLense {
       if (methodMap.isEmpty() && fieldMap.isEmpty()) {
         return previousLense;
       }
-      return new MemberRebindingLense(appInfo, methodMap, fieldMap, previousLense);
+      return new MemberRebindingLense(appView, methodMap, fieldMap, previousLense);
     }
   }
 
-  private final AppInfo appInfo;
+  private final AppView<? extends AppInfo> appView;
 
   public MemberRebindingLense(
-      AppInfo appInfo,
+      AppView<? extends AppInfo> appView,
       Map<DexMethod, DexMethod> methodMap,
       Map<DexField, DexField> fieldMap,
       GraphLense previousLense) {
     super(
-        ImmutableMap.of(), methodMap, fieldMap, null, null, previousLense, appInfo.dexItemFactory);
-    this.appInfo = appInfo;
+        ImmutableMap.of(),
+        methodMap,
+        fieldMap,
+        null,
+        null,
+        previousLense,
+        appView.dexItemFactory());
+    this.appView = appView;
   }
 
-  public static Builder builder(AppInfo appInfo) {
-    return new Builder(appInfo);
+  public static Builder builder(AppView<? extends AppInfo> appView) {
+    return new Builder(appView);
   }
 
   @Override
   protected Type mapInvocationType(DexMethod newMethod, DexMethod originalMethod, Type type) {
-    return super.mapVirtualInterfaceInvocationTypes(appInfo, newMethod, originalMethod, type);
+    return super.mapVirtualInterfaceInvocationTypes(appView, newMethod, originalMethod, type);
   }
 }

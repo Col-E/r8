@@ -339,8 +339,7 @@ public class R8 {
           proguardSeedsData = bytes.toString();
         }
         if (options.enableTreeShaking) {
-          TreePruner pruner =
-              new TreePruner(application, appView.appInfo().withLiveness(), options);
+          TreePruner pruner = new TreePruner(application, appView.withLiveness());
           application = pruner.run();
 
           // Recompute the subtyping information.
@@ -355,11 +354,7 @@ public class R8 {
         classesToRetainInnerClassAttributeFor =
             AnnotationRemover.computeClassesToRetainInnerClassAttributeFor(
                 appView.appInfo().withLiveness(), options);
-        new AnnotationRemover(
-                appView.appInfo().withLiveness(),
-                appView.graphLense(),
-                options,
-                classesToRetainInnerClassAttributeFor)
+        new AnnotationRemover(appView.withLiveness(), classesToRetainInnerClassAttributeFor)
             .ensureValid(compatibility)
             .run();
 
@@ -579,7 +574,7 @@ public class R8 {
 
           AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
           if (options.enableTreeShaking) {
-            TreePruner pruner = new TreePruner(application, appViewWithLiveness.appInfo(), options);
+            TreePruner pruner = new TreePruner(application, appViewWithLiveness);
             application = pruner.run();
             appViewWithLiveness.setAppInfo(
                 appViewWithLiveness
@@ -597,11 +592,7 @@ public class R8 {
             }
             // Remove annotations that refer to types that no longer exist.
             assert classesToRetainInnerClassAttributeFor != null;
-            new AnnotationRemover(
-                    appView.appInfo().withLiveness(),
-                    appView.graphLense(),
-                    options,
-                    classesToRetainInnerClassAttributeFor)
+            new AnnotationRemover(appView.withLiveness(), classesToRetainInnerClassAttributeFor)
                 .run();
             if (!mainDexClasses.isEmpty()) {
               // Remove types that no longer exists from the computed main dex list.

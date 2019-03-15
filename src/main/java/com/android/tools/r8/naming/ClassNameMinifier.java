@@ -40,7 +40,6 @@ import java.util.stream.Collectors;
 class ClassNameMinifier {
 
   private final AppView<AppInfoWithLiveness> appView;
-  private final AppInfoWithLiveness appInfo;
   private final ClassNamingStrategy classNamingStrategy;
   private final PackageNamingStrategy packageNamingStrategy;
   private final Iterable<? extends DexClass> classes;
@@ -68,7 +67,6 @@ class ClassNameMinifier {
       PackageNamingStrategy packageNamingStrategy,
       Iterable<? extends DexClass> classes) {
     this.appView = appView;
-    this.appInfo = appView.appInfo();
     this.classNamingStrategy = classNamingStrategy;
     this.packageNamingStrategy = packageNamingStrategy;
     this.classes = classes;
@@ -136,7 +134,7 @@ class ClassNameMinifier {
     timing.end();
 
     timing.begin("rename-arrays");
-    appInfo.dexItemFactory.forAllTypes(this::renameArrayTypeIfNeeded);
+    appView.dexItemFactory().forAllTypes(this::renameArrayTypeIfNeeded);
     timing.end();
 
     return new ClassRenaming(Collections.unmodifiableMap(renaming), getPackageRenaming());
@@ -172,13 +170,13 @@ class ClassNameMinifier {
   }
 
   private void renameDanglingType(DexType type) {
-    if (appInfo.wasPruned(type)
+    if (appView.appInfo().wasPruned(type)
         && !renaming.containsKey(type)
         && !noObfuscationTypes.contains(type)) {
       // We have a type that is defined in the program source but is only used in a proto or
       // return type. As we don't need the class, we can rename it to anything as long as it is
       // unique.
-      assert appInfo.definitionFor(type) == null;
+      assert appView.definitionFor(type) == null;
       renaming.put(type, topLevelState.nextTypeName(type));
     }
   }
@@ -217,7 +215,7 @@ class ClassNameMinifier {
   }
 
   private DexType getOutClassForType(DexType type) {
-    DexClass clazz = appInfo.definitionFor(type);
+    DexClass clazz = appView.definitionFor(type);
     if (clazz == null) {
       return null;
     }
@@ -333,7 +331,7 @@ class ClassNameMinifier {
 
   private void renameArrayTypeIfNeeded(DexType type) {
     if (type.isArrayType()) {
-      DexType base = type.toBaseType(appInfo.dexItemFactory);
+      DexType base = type.toBaseType(appView.dexItemFactory());
       DexString value = renaming.get(base);
       if (value != null) {
         int dimensions = type.descriptor.numberOfLeadingSquareBrackets();
@@ -342,7 +340,7 @@ class ClassNameMinifier {
           builder.append('[');
         }
         builder.append(value.toString());
-        DexString descriptor = appInfo.dexItemFactory.createString(builder.toString());
+        DexString descriptor = appView.dexItemFactory().createString(builder.toString());
         renaming.put(type, descriptor);
       }
     }
@@ -371,7 +369,7 @@ class ClassNameMinifier {
       // R.class in Android, which contains constant IDs to assets, can be bundled at any time.
       // Insert `R` immediately so that the class name minifier can skip that name by default.
       StringBuilder rBuilder = new StringBuilder().append(packagePrefix).append("R;");
-      usedTypeNames.add(appInfo.dexItemFactory.createString(rBuilder.toString()));
+      usedTypeNames.add(appView.dexItemFactory().createString(rBuilder.toString()));
     }
 
     public String getPackageName() {
@@ -382,7 +380,7 @@ class ClassNameMinifier {
       StringBuilder nextName = new StringBuilder();
       if (!classNamingStrategy.bypassDictionary() && classDictionaryIterator.hasNext()) {
         nextName.append(packagePrefix).append(classDictionaryIterator.next()).append(';');
-        return appInfo.dexItemFactory.createString(nextName.toString());
+        return appView.dexItemFactory().createString(nextName.toString());
       } else {
         return classNamingStrategy.next(this, type, packagePrefix);
       }
@@ -450,6 +448,7 @@ class ClassNameMinifier {
   }
 
   private boolean isNotKotlinMetadata(DexAnnotation annotation) {
-    return annotation.annotation.type != appInfo.dexItemFactory.kotlin.metadata.kotlinMetadataType;
+    return annotation.annotation.type
+        != appView.dexItemFactory().kotlin.metadata.kotlinMetadataType;
   }
 }

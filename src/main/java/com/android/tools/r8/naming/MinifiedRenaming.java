@@ -5,6 +5,7 @@
 package com.android.tools.r8.naming;
 
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -30,16 +31,16 @@ import java.util.function.Predicate;
 
 class MinifiedRenaming extends NamingLens {
 
-  private final AppInfo appInfo;
+  private final AppView<? extends AppInfo> appView;
   private final Map<String, String> packageRenaming;
   private final Map<DexItem, DexString> renaming = new IdentityHashMap<>();
 
   MinifiedRenaming(
+      AppView<? extends AppInfo> appView,
       ClassRenaming classRenaming,
       MethodRenaming methodRenaming,
-      FieldRenaming fieldRenaming,
-      AppInfo appInfo) {
-    this.appInfo = appInfo;
+      FieldRenaming fieldRenaming) {
+    this.appView = appView;
     this.packageRenaming = classRenaming.packageRenaming;
     renaming.putAll(classRenaming.classRenaming);
     renaming.putAll(methodRenaming.renaming);
@@ -140,21 +141,21 @@ class MinifiedRenaming extends NamingLens {
       // Array methods are never renamed, so do not bother to check.
       return true;
     }
-    DexClass holder = appInfo.definitionFor(item.holder);
+    DexClass holder = appView.definitionFor(item.holder);
     if (holder == null || holder.isLibraryClass()) {
       return true;
     }
     // We don't know which invoke type this method is used for, so checks that it has been
     // rebound either way.
-    DexEncodedMethod staticTarget = appInfo.lookupStaticTarget(item);
-    DexEncodedMethod directTarget = appInfo.lookupDirectTarget(item);
-    DexEncodedMethod virtualTarget = appInfo.lookupVirtualTarget(item.holder, item);
+    DexEncodedMethod staticTarget = appView.appInfo().lookupStaticTarget(item);
+    DexEncodedMethod directTarget = appView.appInfo().lookupDirectTarget(item);
+    DexEncodedMethod virtualTarget = appView.appInfo().lookupVirtualTarget(item.holder, item);
     DexClass staticTargetHolder =
-        staticTarget != null ? appInfo.definitionFor(staticTarget.method.holder) : null;
+        staticTarget != null ? appView.definitionFor(staticTarget.method.holder) : null;
     DexClass directTargetHolder =
-        directTarget != null ? appInfo.definitionFor(directTarget.method.holder) : null;
+        directTarget != null ? appView.definitionFor(directTarget.method.holder) : null;
     DexClass virtualTargetHolder =
-        virtualTarget != null ? appInfo.definitionFor(virtualTarget.method.holder) : null;
+        virtualTarget != null ? appView.definitionFor(virtualTarget.method.holder) : null;
     return (directTarget == null && staticTarget == null && virtualTarget == null)
         || (virtualTarget != null && virtualTarget.method == item)
         || (directTarget != null && directTarget.method == item)

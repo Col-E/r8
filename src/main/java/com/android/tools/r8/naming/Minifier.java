@@ -19,7 +19,6 @@ import com.android.tools.r8.naming.MethodNameMinifier.MethodRenaming;
 import com.android.tools.r8.naming.NamingState.InternalState;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.Timing;
 import it.unimi.dsi.fastutil.objects.Object2IntLinkedOpenHashMap;
@@ -29,37 +28,33 @@ import java.util.Set;
 public class Minifier {
 
   private final AppView<AppInfoWithLiveness> appView;
-  private final AppInfoWithLiveness appInfo;
   private final RootSet rootSet;
   private final Set<DexCallSite> desugaredCallSites;
-  private final InternalOptions options;
 
   public Minifier(
       AppView<AppInfoWithLiveness> appView, RootSet rootSet, Set<DexCallSite> desugaredCallSites) {
     this.appView = appView;
-    this.appInfo = appView.appInfo();
     this.rootSet = rootSet;
     this.desugaredCallSites = desugaredCallSites;
-    this.options = appView.options();
   }
 
   public NamingLens run(Timing timing) {
-    assert options.enableMinification;
+    assert appView.options().enableMinification;
     timing.begin("MinifyClasses");
     ClassNameMinifier classNameMinifier =
         new ClassNameMinifier(
             appView,
             rootSet,
-            new MinificationClassNamingStrategy(appInfo.dexItemFactory),
+            new MinificationClassNamingStrategy(appView.dexItemFactory()),
             new MinificationPackageNamingStrategy(),
             // Use deterministic class order to make sure renaming is deterministic.
-            appInfo.classesWithDeterministicOrder());
+            appView.appInfo().classesWithDeterministicOrder());
     ClassRenaming classRenaming = classNameMinifier.computeRenaming(timing);
     timing.end();
 
     assert new MinifiedRenaming(
-            classRenaming, MethodRenaming.empty(), FieldRenaming.empty(), appInfo)
-        .verifyNoCollisions(appInfo.classes(), appInfo.dexItemFactory);
+            appView, classRenaming, MethodRenaming.empty(), FieldRenaming.empty())
+        .verifyNoCollisions(appView.appInfo().classes(), appView.dexItemFactory());
 
     MemberNamingStrategy minifyMembers = new MinifierMemberNamingStrategy(appView.dexItemFactory());
     timing.begin("MinifyMethods");
@@ -68,20 +63,19 @@ public class Minifier {
             .computeRenaming(desugaredCallSites, timing);
     timing.end();
 
-    assert new MinifiedRenaming(classRenaming, methodRenaming, FieldRenaming.empty(), appInfo)
-        .verifyNoCollisions(appInfo.classes(), appInfo.dexItemFactory);
+    assert new MinifiedRenaming(appView, classRenaming, methodRenaming, FieldRenaming.empty())
+        .verifyNoCollisions(appView.appInfo().classes(), appView.dexItemFactory());
 
     timing.begin("MinifyFields");
     FieldRenaming fieldRenaming =
         new FieldNameMinifier(appView, rootSet, minifyMembers).computeRenaming(timing);
     timing.end();
 
-    NamingLens lens = new MinifiedRenaming(classRenaming, methodRenaming, fieldRenaming, appInfo);
-    assert lens.verifyNoCollisions(appInfo.classes(), appInfo.dexItemFactory);
+    NamingLens lens = new MinifiedRenaming(appView, classRenaming, methodRenaming, fieldRenaming);
+    assert lens.verifyNoCollisions(appView.appInfo().classes(), appView.dexItemFactory());
 
     timing.begin("MinifyIdentifiers");
-    new IdentifierMinifier(
-        appInfo, options.getProguardConfiguration().getAdaptClassStrings(), lens).run();
+    new IdentifierMinifier(appView, lens).run();
     timing.end();
     return lens;
   }
