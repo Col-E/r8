@@ -1043,6 +1043,11 @@ def main(argv):
     os.environ[utils.ANDROID_HOME_ENVIROMENT_NAME] = os.path.join(
         utils.ANDROID_SDK)
     os.environ[utils.ANDROID_TOOLS_VERSION_ENVIRONMENT_NAME] = '28.0.3'
+    options.disable_assertions = True
+    options.ignore_versions = True
+    options.no_build = True
+    options.r8_compilation_steps = 1
+    options.quiet = True
 
   if not os.path.exists(WORKING_DIR):
     os.makedirs(WORKING_DIR)
