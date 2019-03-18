@@ -5,6 +5,7 @@ package com.android.tools.r8.naming;
 
 import static com.android.tools.r8.naming.MethodNameMinifier.shuffleMethods;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -15,7 +16,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.MethodNameMinifier.FrontierState;
 import com.android.tools.r8.naming.MethodNameMinifier.MethodNamingState;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
@@ -36,12 +36,11 @@ import java.util.stream.Collectors;
 
 public class InterfaceMethodNameMinifier {
 
-  private final AppInfoWithLiveness appInfo;
+  private final AppView<AppInfoWithLiveness> appView;
   private final Set<DexCallSite> desugaredCallSites;
   private final Equivalence<DexMethod> equivalence;
   private final FrontierState frontierState;
   private final MemberNameMinifier<DexMethod, DexProto>.State minifierState;
-  private final InternalOptions options;
 
   private final Map<DexCallSite, DexString> callSiteRenamings = new IdentityHashMap<>();
 
@@ -58,18 +57,16 @@ public class InterfaceMethodNameMinifier {
   private final Map<Wrapper<DexMethod>, Set<DexMethod>> sourceMethodsMap = new HashMap<>();
 
   InterfaceMethodNameMinifier(
-      AppInfoWithLiveness appInfo,
+      AppView<AppInfoWithLiveness> appView,
       Set<DexCallSite> desugaredCallSites,
       Equivalence<DexMethod> equivalence,
       FrontierState frontierState,
-      MemberNameMinifier<DexMethod, DexProto>.State minifierState,
-      InternalOptions options) {
-    this.appInfo = appInfo;
+      MemberNameMinifier<DexMethod, DexProto>.State minifierState) {
+    this.appView = appView;
     this.desugaredCallSites = desugaredCallSites;
     this.equivalence = equivalence;
     this.frontierState = frontierState;
     this.minifierState = minifierState;
-    this.options = options;
   }
 
   public Comparator<Wrapper<DexMethod>> createDefaultInterfaceMethodOrdering() {
@@ -81,7 +78,7 @@ public class InterfaceMethodNameMinifier {
   }
 
   private void reserveNamesInInterfaces() {
-    for (DexType type : DexType.allInterfaces(appInfo.dexItemFactory)) {
+    for (DexType type : DexType.allInterfaces(appView.dexItemFactory())) {
       assert type.isInterface();
       frontierState.allocateNamingStateAndReserve(type, type, null);
     }
@@ -95,13 +92,13 @@ public class InterfaceMethodNameMinifier {
     // frontier states of classes that implement them. We add the frontier states so that we can
     // reserve the names for later method naming.
     timing.begin("Compute map");
-    for (DexType type : DexType.allInterfaces(appInfo.dexItemFactory)) {
+    for (DexType type : DexType.allInterfaces(appView.dexItemFactory())) {
       assert type.isInterface();
-      DexClass clazz = appInfo.definitionFor(type);
+      DexClass clazz = appView.definitionFor(type);
       if (clazz != null) {
         assert clazz.isInterface();
         Set<NamingState<DexProto, ?>> collectedStates = getReachableStates(type);
-        for (DexEncodedMethod method : shuffleMethods(clazz.methods(), options)) {
+        for (DexEncodedMethod method : shuffleMethods(clazz.methods(), appView.options())) {
           addStatesToGlobalMapForMethod(method.method, collectedStates, type);
         }
       }
@@ -111,7 +108,7 @@ public class InterfaceMethodNameMinifier {
     // desugared lambdas this is a conservative estimate, as we don't track if the generated
     // lambda classes survive into the output. As multi-interface lambda expressions are rare
     // this is not a big deal.
-    Set<DexCallSite> liveCallSites = Sets.union(desugaredCallSites, appInfo.callSites);
+    Set<DexCallSite> liveCallSites = Sets.union(desugaredCallSites, appView.appInfo().callSites);
     // If the input program contains a multi-interface lambda expression that implements
     // interface methods with different protos, we need to make sure that
     // the implemented lambda methods are renamed to the same name.
@@ -128,7 +125,7 @@ public class InterfaceMethodNameMinifier {
           // Don't report errors, as the set of call sites is a conservative estimate, and can
           // refer to interfaces which has been removed.
           Set<DexEncodedMethod> implementedMethods =
-              appInfo.lookupLambdaImplementedMethods(callSite);
+              appView.appInfo().lookupLambdaImplementedMethods(callSite);
           if (implementedMethods.isEmpty()) {
             return;
           }
@@ -169,7 +166,7 @@ public class InterfaceMethodNameMinifier {
     List<Wrapper<DexMethod>> interfaceMethods =
         globalStateMap.keySet().stream()
             .filter(wrapper -> unificationParent.getOrDefault(wrapper, wrapper).equals(wrapper))
-            .sorted(options.testing.minifier.createInterfaceMethodOrdering(this))
+            .sorted(appView.options().testing.minifier.createInterfaceMethodOrdering(this))
             .collect(Collectors.toList());
 
     // Propagate reserved names to all states.
@@ -242,7 +239,7 @@ public class InterfaceMethodNameMinifier {
     DexMethod method = key.get();
     assert method != null;
 
-    Set<String> loggingFilter = options.extensiveInterfaceMethodMinifierLoggingFilter;
+    Set<String> loggingFilter = appView.options().extensiveInterfaceMethodMinifierLoggingFilter;
     if (!loggingFilter.isEmpty()) {
       if (sourceMethods.stream().map(DexMethod::toSourceString).anyMatch(loggingFilter::contains)) {
         print(method, sourceMethods, collectedStates, System.out);
@@ -361,7 +358,7 @@ public class InterfaceMethodNameMinifier {
   }
 
   private void collectSuperInterfaces(DexType iface, Set<DexType> interfaces) {
-    DexClass clazz = appInfo.definitionFor(iface);
+    DexClass clazz = appView.definitionFor(iface);
     // In cases where we lack the interface's definition, we can at least look at subtypes and
     // tie those up to get proper naming.
     if (clazz != null) {

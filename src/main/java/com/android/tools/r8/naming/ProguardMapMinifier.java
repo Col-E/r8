@@ -38,11 +38,9 @@ import java.util.Set;
 public class ProguardMapMinifier {
 
   private final AppView<AppInfoWithLiveness> appView;
-  private final AppInfoWithLiveness appInfo;
   private final RootSet rootSet;
   private final SeedMapper seedMapper;
   private final Set<DexCallSite> desugaredCallSites;
-  private final DexItemFactory factory;
 
   public ProguardMapMinifier(
       AppView<AppInfoWithLiveness> appView,
@@ -50,8 +48,6 @@ public class ProguardMapMinifier {
       SeedMapper seedMapper,
       Set<DexCallSite> desugaredCallSites) {
     this.appView = appView;
-    this.appInfo = appView.appInfo();
-    this.factory = appInfo.dexItemFactory;
     this.rootSet = rootSet;
     this.seedMapper = seedMapper;
     this.desugaredCallSites = desugaredCallSites;
@@ -69,24 +65,25 @@ public class ProguardMapMinifier {
     Map<DexReference, MemberNaming> memberNames = new IdentityHashMap<>();
     for (String key : seedMapper.getKeyset()) {
       ClassNamingForMapApplier classNaming = seedMapper.getMapping(key);
-      DexType type = factory.lookupType(factory.createString(key));
+      DexType type =
+          appView.dexItemFactory().lookupType(appView.dexItemFactory().createString(key));
       if (type == null) {
         // The map contains additional mapping of classes compared to what we have seen. This should
         // have no effect.
         continue;
       }
-      DexClass dexClass = appInfo.definitionFor(type);
+      DexClass dexClass = appView.definitionFor(type);
       if (dexClass == null) {
         continue;
       }
-      DexString mappedName = factory.createString(classNaming.renamedName);
-      DexType mappedType = factory.lookupType(mappedName);
+      DexString mappedName = appView.dexItemFactory().createString(classNaming.renamedName);
+      DexType mappedType = appView.dexItemFactory().lookupType(mappedName);
       // The mappedType has to be available:
       // - If it is null we have not seen it.
       // - If the mapped type is itself the name is already reserved (by itself).
       // - If the there is no definition for the mapped type we will not get a naming clash.
       // Otherwise, there will be a naming conflict.
-      if (mappedType != null && type != mappedType && appInfo.definitionFor(mappedType) != null) {
+      if (mappedType != null && type != mappedType && appView.definitionFor(mappedType) != null) {
         appView
             .options()
             .reporter
@@ -100,7 +97,8 @@ public class ProguardMapMinifier {
           memberNaming -> {
             Signature signature = memberNaming.getOriginalSignature();
             assert !signature.isQualified();
-            DexMethod originalMethod = ((MethodSignature) signature).toDexMethod(factory, type);
+            DexMethod originalMethod =
+                ((MethodSignature) signature).toDexMethod(appView.dexItemFactory(), type);
             assert !memberNames.containsKey(originalMethod);
             memberNames.put(originalMethod, memberNaming);
           });
@@ -108,7 +106,8 @@ public class ProguardMapMinifier {
           memberNaming -> {
             Signature signature = memberNaming.getOriginalSignature();
             assert !signature.isQualified();
-            DexField originalField = ((FieldSignature) signature).toDexField(factory, type);
+            DexField originalField =
+                ((FieldSignature) signature).toDexField(appView.dexItemFactory(), type);
             assert !memberNames.containsKey(originalField);
             memberNames.put(originalField, memberNaming);
           });
@@ -132,7 +131,7 @@ public class ProguardMapMinifier {
 
     ApplyMappingMemberNamingStrategy nameStrategy =
         new ApplyMappingMemberNamingStrategy(
-            memberNames, appInfo.dexItemFactory, appView.options().reporter);
+            memberNames, appView.dexItemFactory(), appView.options().reporter);
     timing.begin("MinifyMethods");
     MethodRenaming methodRenaming =
         new MethodNameMinifier(appView, rootSet, nameStrategy)
@@ -146,13 +145,10 @@ public class ProguardMapMinifier {
 
     appView.options().reporter.failIfPendingErrors();
 
-    NamingLens lens =
-        new MinifiedRenaming(classRenaming, methodRenaming, fieldRenaming, appView.appInfo());
+    NamingLens lens = new MinifiedRenaming(appView, classRenaming, methodRenaming, fieldRenaming);
 
     timing.begin("MinifyIdentifiers");
-    new IdentifierMinifier(
-            appInfo, appView.options().getProguardConfiguration().getAdaptClassStrings(), lens)
-        .run();
+    new IdentifierMinifier(appView, lens).run();
     timing.end();
 
     return lens;

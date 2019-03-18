@@ -142,23 +142,23 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
     timing.begin("Phase 2");
     InterfaceMethodNameMinifier interfaceMethodNameMinifier =
         new InterfaceMethodNameMinifier(
-            appInfo, desugaredCallSites, equivalence, frontierState, minifierState, options);
+            appView, desugaredCallSites, equivalence, frontierState, minifierState);
     interfaceMethodNameMinifier.assignNamesToInterfaceMethods(timing);
     timing.end();
     // Phase 3: Assign names top-down by traversing the subtype hierarchy.
     timing.begin("Phase 3");
-    assignNamesToClassesMethods(appInfo.dexItemFactory.objectType, false);
+    assignNamesToClassesMethods(appView.dexItemFactory().objectType, false);
     timing.end();
     // Phase 4: Do the same for private methods.
     timing.begin("Phase 4");
-    assignNamesToClassesMethods(appInfo.dexItemFactory.objectType, true);
+    assignNamesToClassesMethods(appView.dexItemFactory().objectType, true);
     timing.end();
 
     return new MethodRenaming(renaming, interfaceMethodNameMinifier.getCallSiteRenamings());
   }
 
   private void assignNamesToClassesMethods(DexType type, boolean doPrivates) {
-    DexClass holder = appInfo.definitionFor(type);
+    DexClass holder = appView.definitionFor(type);
     boolean shouldAssignName = holder != null && !alwaysReserveMemberNames(holder);
     if (shouldAssignName) {
       Map<Wrapper<DexMethod>, DexString> renamingAtThisLevel = new HashMap<>();
@@ -200,7 +200,7 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
 
   private void reserveNamesInClasses() {
     reserveNamesInClasses(
-        appInfo.dexItemFactory.objectType, appInfo.dexItemFactory.objectType, null);
+        appView.dexItemFactory().objectType, appView.dexItemFactory().objectType, null);
   }
 
   private void reserveNamesInClasses(
@@ -211,7 +211,7 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
 
     // If this is a library class (or effectively a library class as it is missing) move the
     // frontier forward.
-    DexClass holder = appInfo.definitionFor(type);
+    DexClass holder = appView.definitionFor(type);
     for (DexType subtype : type.allExtendsSubtypes()) {
       assert !subtype.isInterface();
       reserveNamesInClasses(
@@ -235,17 +235,17 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
               ignore ->
                   parent == null
                       ? NamingState.createRoot(
-                          appInfo.dexItemFactory,
+                          appView.dexItemFactory(),
                           dictionary,
                           getKeyTransform(),
                           strategy,
                           useUniqueMemberNames)
                       : parent.createChild());
 
-      DexClass holder = appInfo.definitionFor(type);
+      DexClass holder = appView.definitionFor(type);
       if (holder != null) {
         boolean keepAll = alwaysReserveMemberNames(holder) || holder.accessFlags.isAnnotation();
-        for (DexEncodedMethod method : shuffleMethods(holder.methods(), options)) {
+        for (DexEncodedMethod method : shuffleMethods(holder.methods(), appView.options())) {
           // TODO(christofferqa): Wouldn't it be sufficient only to reserve names for non-private
           //  methods?
           if (keepAll || rootSet.noObfuscation.contains(method.method)) {

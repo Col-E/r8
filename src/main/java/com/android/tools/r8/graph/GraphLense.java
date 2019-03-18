@@ -939,14 +939,17 @@ public abstract class GraphLense {
      * <p>Handle methods moved from interface to class or class to interface.
      */
     protected final Type mapVirtualInterfaceInvocationTypes(
-        AppInfo appInfo, DexMethod newMethod, DexMethod originalMethod, Type type) {
+        DexDefinitionSupplier definitions,
+        DexMethod newMethod,
+        DexMethod originalMethod,
+        Type type) {
       if (type == Type.VIRTUAL || type == Type.INTERFACE) {
         // Get the invoke type of the actual definition.
-        DexClass newTargetClass = appInfo.definitionFor(newMethod.holder);
+        DexClass newTargetClass = definitions.definitionFor(newMethod.holder);
         if (newTargetClass == null) {
           return type;
         }
-        DexClass originalTargetClass = appInfo.definitionFor(originalMethod.holder);
+        DexClass originalTargetClass = definitions.definitionFor(originalMethod.holder);
         if (originalTargetClass != null
             && (originalTargetClass.isInterface() ^ (type == Type.INTERFACE))) {
           // The invoke was wrong to start with, so we keep it wrong. This is to ensure we get

@@ -4,9 +4,9 @@
 package com.android.tools.r8.optimize;
 
 import com.android.tools.r8.graph.AccessFlags;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -29,7 +29,7 @@ import java.util.function.Function;
 
 public class MemberRebindingAnalysis {
 
-  private final AppInfoWithLiveness appInfo;
+  private final AppView<AppInfoWithLiveness> appView;
   private final GraphLense lense;
   private final InternalOptions options;
 
@@ -37,14 +37,14 @@ public class MemberRebindingAnalysis {
 
   public MemberRebindingAnalysis(AppView<AppInfoWithLiveness> appView) {
     assert appView.graphLense().isContextFreeForMethods();
-    this.appInfo = appView.appInfo();
+    this.appView = appView;
     this.lense = appView.graphLense();
     this.options = appView.options();
-    this.builder = MemberRebindingLense.builder(appInfo);
+    this.builder = MemberRebindingLense.builder(appView);
   }
 
   private DexMethod validTargetFor(DexMethod target, DexMethod original) {
-    DexClass clazz = appInfo.definitionFor(target.holder);
+    DexClass clazz = appView.definitionFor(target.holder);
     assert clazz != null;
     if (!clazz.isLibraryClass()) {
       return target;
@@ -56,12 +56,12 @@ public class MemberRebindingAnalysis {
     } else {
       newHolder = firstLibraryClass(target.holder, original.holder);
     }
-    return appInfo.dexItemFactory.createMethod(newHolder, original.proto, original.name);
+    return appView.dexItemFactory().createMethod(newHolder, original.proto, original.name);
   }
 
   private DexField validTargetFor(DexField target, DexField original,
       BiFunction<DexClass, DexField, DexEncodedField> lookup) {
-    DexClass clazz = appInfo.definitionFor(target.holder);
+    DexClass clazz = appView.definitionFor(target.holder);
     assert clazz != null;
     if (!clazz.isLibraryClass()) {
       return target;
@@ -72,12 +72,12 @@ public class MemberRebindingAnalysis {
     } else {
       newHolder = firstLibraryClass(target.holder, original.holder);
     }
-    return appInfo.dexItemFactory.createField(newHolder, original.type, original.name);
+    return appView.dexItemFactory().createField(newHolder, original.type, original.name);
   }
 
   private <T> DexType firstLibraryClassForInterfaceTarget(T target, DexType current,
       BiFunction<DexClass, T, ?> lookup) {
-    DexClass clazz = appInfo.definitionFor(current);
+    DexClass clazz = appView.definitionFor(current);
     Object potential = lookup.apply(clazz, target);
     if (potential != null) {
       // Found, return type.
@@ -101,24 +101,24 @@ public class MemberRebindingAnalysis {
   }
 
   private DexType firstLibraryClass(DexType top, DexType bottom) {
-    assert appInfo.definitionFor(top).isLibraryClass();
-    DexClass searchClass = appInfo.definitionFor(bottom);
+    assert appView.definitionFor(top).isLibraryClass();
+    DexClass searchClass = appView.definitionFor(bottom);
     while (!searchClass.isLibraryClass()) {
-      searchClass = appInfo.definitionFor(searchClass.superType);
+      searchClass = appView.definitionFor(searchClass.superType);
     }
     return searchClass.type;
   }
 
   private DexEncodedMethod classLookup(DexMethod method) {
-    return appInfo.resolveMethodOnClass(method.holder, method).asResultOfResolve();
+    return appView.appInfo().resolveMethodOnClass(method.holder, method).asResultOfResolve();
   }
 
   private DexEncodedMethod interfaceLookup(DexMethod method) {
-    return appInfo.resolveMethodOnInterface(method.holder, method).asResultOfResolve();
+    return appView.appInfo().resolveMethodOnInterface(method.holder, method).asResultOfResolve();
   }
 
   private DexEncodedMethod anyLookup(DexMethod method) {
-    return appInfo.resolveMethod(method.holder, method).asResultOfResolve();
+    return appView.appInfo().resolveMethod(method.holder, method).asResultOfResolve();
   }
 
   private void computeMethodRebinding(
@@ -130,7 +130,7 @@ public class MemberRebindingAnalysis {
       if (!method.holder.isClassType()) {
         continue;
       }
-      DexClass originalClass = appInfo.definitionFor(method.holder);
+      DexClass originalClass = appView.definitionFor(method.holder);
       if (originalClass == null || originalClass.isLibraryClass()) {
         continue;
       }
@@ -138,7 +138,7 @@ public class MemberRebindingAnalysis {
       // TODO(b/128404854) Rebind to the lowest library class or program class. For now we allow
       //  searching in library for methods, but this should be done on classpath instead.
       if (target != null && target.method != method) {
-        DexClass targetClass = appInfo.definitionFor(target.method.holder);
+        DexClass targetClass = appView.definitionFor(target.method.holder);
         if (!originalClass.isLibraryClass()) {
           // In Java bytecode, it is only possible to target interface methods that are in one of
           // the immediate super-interfaces via a super-invocation (see IndirectSuperInterfaceTest).
@@ -193,7 +193,7 @@ public class MemberRebindingAnalysis {
         findHolderForInterfaceMethodBridge(originalClass, targetClass.type);
     assert bridgeHolder != null;
     assert bridgeHolder != targetClass;
-    DexEncodedMethod bridgeMethod = target.toForwardingMethod(bridgeHolder, appInfo);
+    DexEncodedMethod bridgeMethod = target.toForwardingMethod(bridgeHolder, appView);
     bridgeHolder.addMethod(bridgeMethod);
     assert lookupTarget.apply(method) == bridgeMethod;
     return bridgeMethod;
@@ -203,10 +203,10 @@ public class MemberRebindingAnalysis {
     if (clazz.accessFlags.isInterface()) {
       return clazz;
     }
-    DexClass superClass = appInfo.definitionFor(clazz.superType);
+    DexClass superClass = appView.definitionFor(clazz.superType);
     if (superClass == null
         || superClass.isLibraryClass()
-        || !superClass.type.isSubtypeOf(iface, appInfo)) {
+        || !superClass.type.isSubtypeOf(iface, appView)) {
       return clazz;
     }
     return findHolderForInterfaceMethodBridge(superClass.asProgramClass(), iface);
@@ -214,14 +214,14 @@ public class MemberRebindingAnalysis {
 
   private boolean mayNeedBridgeForVisibility(DexType context, DexEncodedMethod method) {
     DexType holderType = method.method.holder;
-    DexClass holder = appInfo.definitionFor(holderType);
+    DexClass holder = appView.definitionFor(holderType);
     if (holder == null) {
       return false;
     }
     ConstraintWithTarget classVisibility =
-        ConstraintWithTarget.deriveConstraint(context, holderType, holder.accessFlags, appInfo);
+        ConstraintWithTarget.deriveConstraint(context, holderType, holder.accessFlags, appView);
     ConstraintWithTarget methodVisibility =
-        ConstraintWithTarget.deriveConstraint(context, holderType, method.accessFlags, appInfo);
+        ConstraintWithTarget.deriveConstraint(context, holderType, method.accessFlags, appView);
     // We may need bridge for visibility if the target class is not visible while the target method
     // is visible from the calling context.
     return classVisibility == ConstraintWithTarget.NEVER
@@ -244,7 +244,7 @@ public class MemberRebindingAnalysis {
       DexProgramClass bridgeHolder =
           findHolderForVisibilityBridge(originalClass, targetClass, packageDescriptor);
       assert bridgeHolder != null;
-      DexEncodedMethod bridgeMethod = target.toForwardingMethod(bridgeHolder, appInfo);
+      DexEncodedMethod bridgeMethod = target.toForwardingMethod(bridgeHolder, appView);
       bridgeHolder.addMethod(bridgeMethod);
       assert lookupTarget.apply(method) == bridgeMethod;
       return bridgeMethod;
@@ -259,13 +259,13 @@ public class MemberRebindingAnalysis {
     }
     DexProgramClass newHolder = null;
     // Recurse through supertype chain.
-    if (originalClass.superType.isSubtypeOf(targetClass.type, appInfo)) {
-      DexClass superClass = appInfo.definitionFor(originalClass.superType);
+    if (originalClass.superType.isSubtypeOf(targetClass.type, appView)) {
+      DexClass superClass = appView.definitionFor(originalClass.superType);
       newHolder = findHolderForVisibilityBridge(superClass, targetClass, packageDescriptor);
     } else {
       for (DexType iface : originalClass.interfaces.values) {
-        if (iface.isSubtypeOf(targetClass.type, appInfo)) {
-          DexClass interfaceClass = appInfo.definitionFor(iface);
+        if (iface.isSubtypeOf(targetClass.type, appView)) {
+          DexClass interfaceClass = appView.definitionFor(iface);
           newHolder = findHolderForVisibilityBridge(interfaceClass, targetClass, packageDescriptor);
         }
       }
@@ -296,7 +296,7 @@ public class MemberRebindingAnalysis {
               .allMatch(
                   context ->
                       isMemberVisibleFromOriginalContext(
-                          appInfo,
+                          appView,
                           context.method.holder,
                           target.field.holder,
                           target.accessFlags))) {
@@ -307,18 +307,21 @@ public class MemberRebindingAnalysis {
   }
 
   public static boolean isMemberVisibleFromOriginalContext(
-      AppInfo appInfo, DexType context, DexType holder, AccessFlags<?> memberAccessFlags) {
-    DexClass clazz = appInfo.definitionFor(holder);
+      DexDefinitionSupplier definitions,
+      DexType context,
+      DexType holder,
+      AccessFlags<?> memberAccessFlags) {
+    DexClass clazz = definitions.definitionFor(holder);
     if (clazz == null) {
       return false;
     }
     ConstraintWithTarget classVisibility =
-        ConstraintWithTarget.deriveConstraint(context, holder, clazz.accessFlags, appInfo);
+        ConstraintWithTarget.deriveConstraint(context, holder, clazz.accessFlags, definitions);
     if (classVisibility == ConstraintWithTarget.NEVER) {
       return false;
     }
     ConstraintWithTarget memberVisibility =
-        ConstraintWithTarget.deriveConstraint(context, holder, memberAccessFlags, appInfo);
+        ConstraintWithTarget.deriveConstraint(context, holder, memberAccessFlags, definitions);
     return memberVisibility != ConstraintWithTarget.NEVER;
   }
 
@@ -337,6 +340,7 @@ public class MemberRebindingAnalysis {
   }
 
   public GraphLense run() {
+    AppInfoWithLiveness appInfo = appView.appInfo();
     // Virtual invokes are on classes, so use class resolution.
     computeMethodRebinding(appInfo.virtualInvokes, this::classLookup, Type.VIRTUAL);
     // Interface invokes are always on interfaces, so use interface resolution.

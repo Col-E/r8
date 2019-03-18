@@ -11,8 +11,8 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.NamingState.InternalState;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
-import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import java.util.IdentityHashMap;
@@ -23,9 +23,7 @@ import java.util.function.Function;
 abstract class MemberNameMinifier<MemberType, StateType extends CachedHashValueDexItem> {
 
   protected final AppView<AppInfoWithLiveness> appView;
-  protected final AppInfoWithLiveness appInfo;
   protected final RootSet rootSet;
-  protected final InternalOptions options;
   protected final List<String> dictionary;
 
   protected final Map<MemberType, DexString> renaming = new IdentityHashMap<>();
@@ -42,18 +40,21 @@ abstract class MemberNameMinifier<MemberType, StateType extends CachedHashValueD
 
   MemberNameMinifier(
       AppView<AppInfoWithLiveness> appView, RootSet rootSet, MemberNamingStrategy strategy) {
+    ProguardConfiguration proguardConfiguration = appView.options().getProguardConfiguration();
     this.appView = appView;
-    this.appInfo = appView.appInfo();
     this.rootSet = rootSet;
-    this.options = appView.options();
-    this.dictionary = options.getProguardConfiguration().getObfuscationDictionary();
-    this.useUniqueMemberNames = options.getProguardConfiguration().isUseUniqueClassMemberNames();
+    this.dictionary = proguardConfiguration.getObfuscationDictionary();
+    this.useUniqueMemberNames = proguardConfiguration.isUseUniqueClassMemberNames();
     this.overloadAggressively =
-        options.getProguardConfiguration().isOverloadAggressivelyWithoutUseUniqueClassMemberNames();
+        proguardConfiguration.isOverloadAggressivelyWithoutUseUniqueClassMemberNames();
     this.globalState =
         NamingState.createRoot(
-            appInfo.dexItemFactory, dictionary, getKeyTransform(), strategy, useUniqueMemberNames);
-    this.useApplyMapping = options.getProguardConfiguration().hasApplyMappingFile();
+            appView.dexItemFactory(),
+            dictionary,
+            getKeyTransform(),
+            strategy,
+            useUniqueMemberNames);
+    this.useApplyMapping = proguardConfiguration.hasApplyMappingFile();
   }
 
   abstract Function<StateType, ?> getKeyTransform();

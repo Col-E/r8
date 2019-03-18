@@ -43,12 +43,12 @@ class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
     // dispatch in Java, field resolution still traverses the super type chain and external
     // code might use a subtype to reference the field.
     timing.begin("reserve-classes");
-    reserveNamesInSubtypes(appInfo.dexItemFactory.objectType, globalState);
+    reserveNamesInSubtypes(appView.dexItemFactory().objectType, globalState);
     timing.end();
     // Next, reserve field names in interfaces. These should only be static.
     timing.begin("reserve-interfaces");
-    DexType.forAllInterfaces(appInfo.dexItemFactory,
-        iface -> reserveNamesInSubtypes(iface, globalState));
+    DexType.forAllInterfaces(
+        appView.dexItemFactory(), iface -> reserveNamesInSubtypes(iface, globalState));
     timing.end();
     // Rename the definitions.
     timing.begin("rename-definitions");
@@ -76,7 +76,7 @@ class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
   }
 
   private void reserveNamesInSubtypes(DexType type, NamingState<DexType, ?> state) {
-    DexClass holder = appInfo.definitionFor(type);
+    DexClass holder = appView.definitionFor(type);
     if (holder == null) {
       return;
     }
@@ -97,11 +97,11 @@ class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
   }
 
   private void renameFieldsInClasses() {
-    renameFieldsInSubclasses(appInfo.dexItemFactory.objectType, null);
+    renameFieldsInSubclasses(appView.dexItemFactory().objectType, null);
   }
 
   private void renameFieldsInSubclasses(DexType type, DexType parent) {
-    DexClass clazz = appInfo.definitionFor(type);
+    DexClass clazz = appView.definitionFor(type);
     if (clazz == null) {
       return;
     }
@@ -119,13 +119,13 @@ class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
   }
 
   private void renameFieldsInInterfaces() {
-    for (DexType interfaceType : DexType.allInterfaces(appInfo.dexItemFactory)) {
+    for (DexType interfaceType : DexType.allInterfaces(appView.dexItemFactory())) {
       renameFieldsInInterface(interfaceType);
     }
   }
 
   private void renameFieldsInInterface(DexType type) {
-    DexClass clazz = appInfo.definitionFor(type);
+    DexClass clazz = appView.definitionFor(type);
     if (clazz == null) {
       return;
     }
@@ -140,7 +140,7 @@ class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
   private void renameField(DexEncodedField encodedField, NamingState<DexType, ?> state) {
     DexField field = encodedField.field;
 
-    Set<String> loggingFilter = options.extensiveFieldMinifierLoggingFilter;
+    Set<String> loggingFilter = appView.options().extensiveFieldMinifierLoggingFilter;
     if (!loggingFilter.isEmpty()) {
       if (loggingFilter.contains(field.toSourceString())) {
         print(field, state, System.out);
@@ -155,6 +155,7 @@ class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
 
   private void renameNonReboundReferences() {
     // TODO(b/123068484): Collect non-rebound references instead of visiting all references.
+    AppInfoWithLiveness appInfo = appView.appInfo();
     Sets.union(
         Sets.union(appInfo.staticFieldReads.keySet(), appInfo.staticFieldWrites.keySet()),
         Sets.union(appInfo.instanceFieldReads.keySet(), appInfo.instanceFieldWrites.keySet()))
@@ -166,18 +167,18 @@ class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
     if (renaming.containsKey(field)) {
       return;
     }
-    DexEncodedField definition = appInfo.definitionFor(field);
+    DexEncodedField definition = appView.definitionFor(field);
     if (definition != null) {
       assert definition.field == field;
       return;
     }
     // Now, `field` is reference. Find its definition and check if it's renamed.
-    DexClass holder = appInfo.definitionFor(field.holder);
+    DexClass holder = appView.definitionFor(field.holder);
     // We don't care pruned types or library classes.
     if (holder == null || holder.isLibraryClass()) {
       return;
     }
-    definition = appInfo.resolveField(field);
+    definition = appView.appInfo().resolveField(field);
     if (definition == null) {
       // The program is already broken in the sense that it has an unresolvable field reference.
       // Leave it as-is.

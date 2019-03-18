@@ -5,6 +5,7 @@ package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationElement;
 import com.android.tools.r8.graph.DexClass;
@@ -28,21 +29,14 @@ import java.util.Set;
 
 public class AnnotationRemover {
 
-  private final AppInfoWithLiveness appInfo;
-  private final GraphLense lense;
+  private final AppView<AppInfoWithLiveness> appView;
   private final ProguardKeepAttributes keep;
-  private final InternalOptions options;
   private final Set<DexType> classesToRetainInnerClassAttributeFor;
 
   public AnnotationRemover(
-      AppInfoWithLiveness appInfo,
-      GraphLense lense,
-      InternalOptions options,
-      Set<DexType> classesToRetainInnerClassAttributeFor) {
-    this.appInfo = appInfo;
-    this.lense = lense;
-    this.keep = options.getProguardConfiguration().getKeepAttributes();
-    this.options = options;
+      AppView<AppInfoWithLiveness> appView, Set<DexType> classesToRetainInnerClassAttributeFor) {
+    this.appView = appView;
+    this.keep = appView.options().getProguardConfiguration().getKeepAttributes();
     this.classesToRetainInnerClassAttributeFor = classesToRetainInnerClassAttributeFor;
   }
 
@@ -51,7 +45,7 @@ public class AnnotationRemover {
    */
   private boolean filterAnnotations(DexAnnotation annotation) {
     return shouldKeepAnnotation(
-        annotation, isAnnotationTypeLive(annotation), appInfo.dexItemFactory, options);
+        annotation, isAnnotationTypeLive(annotation), appView.dexItemFactory(), appView.options());
   }
 
   static boolean shouldKeepAnnotation(
@@ -114,14 +108,15 @@ public class AnnotationRemover {
   }
 
   private boolean isAnnotationTypeLive(DexAnnotation annotation) {
-    DexType annotationType = annotation.annotation.type.toBaseType(appInfo.dexItemFactory);
-    DexClass definition = appInfo.definitionFor(annotationType);
+    DexType annotationType = annotation.annotation.type.toBaseType(appView.dexItemFactory());
+    DexClass definition = appView.definitionFor(annotationType);
     // TODO(b/73102187): How to handle annotations without definition.
-    if (options.enableTreeShaking && definition == null) {
+    if (appView.options().enableTreeShaking && definition == null) {
       return false;
     }
-    return definition == null || definition.isLibraryClass()
-        || appInfo.liveTypes.contains(annotationType);
+    return definition == null
+        || definition.isLibraryClass()
+        || appView.appInfo().liveTypes.contains(annotationType);
   }
 
   /**
@@ -148,7 +143,7 @@ public class AnnotationRemover {
   }
 
   public AnnotationRemover ensureValid(ProguardConfiguration.Builder compatibility) {
-    keep.ensureValid(options.forceProguardCompatibility, compatibility);
+    keep.ensureValid(appView.options().forceProguardCompatibility, compatibility);
     return this;
   }
 
@@ -226,7 +221,7 @@ public class AnnotationRemover {
   }
 
   public void run() {
-    for (DexProgramClass clazz : appInfo.classes()) {
+    for (DexProgramClass clazz : appView.appInfo().classes()) {
       stripAttributes(clazz);
       clazz.annotations = clazz.annotations.rewrite(this::rewriteAnnotation);
       clazz.forEachMethod(this::processMethod);
@@ -254,15 +249,16 @@ public class AnnotationRemover {
   }
 
   private DexEncodedAnnotation rewriteEncodedAnnotation(DexEncodedAnnotation original) {
-    DexType annotationType = original.type.toBaseType(appInfo.dexItemFactory);
+    GraphLense graphLense = appView.graphLense();
+    DexType annotationType = original.type.toBaseType(appView.dexItemFactory());
     return original.rewrite(
-        lense::lookupType,
-        element -> rewriteAnnotationElement(lense.lookupType(annotationType), element));
+        graphLense::lookupType,
+        element -> rewriteAnnotationElement(graphLense.lookupType(annotationType), element));
   }
 
   private DexAnnotationElement rewriteAnnotationElement(
       DexType annotationType, DexAnnotationElement original) {
-    DexClass definition = appInfo.definitionFor(annotationType);
+    DexClass definition = appView.definitionFor(annotationType);
     // TODO(b/73102187): How to handle annotations without definition.
     if (definition == null) {
       return original;
@@ -277,10 +273,11 @@ public class AnnotationRemover {
   private boolean enclosingMethodPinned(DexClass clazz) {
     return clazz.getEnclosingMethod() != null
         && clazz.getEnclosingMethod().getEnclosingClass() != null
-        && appInfo.isPinned(clazz.getEnclosingMethod().getEnclosingClass());
+        && appView.appInfo().isPinned(clazz.getEnclosingMethod().getEnclosingClass());
   }
 
   private boolean innerClassPinned(DexClass clazz) {
+    AppInfoWithLiveness appInfo = appView.appInfo();
     List<InnerClassAttribute> innerClasses = clazz.getInnerClasses();
     for (InnerClassAttribute innerClass : innerClasses) {
       if (appInfo.isPinned(innerClass.getInner())) {
@@ -310,10 +307,10 @@ public class AnnotationRemover {
     // if only one side is kept - keep the attributes is any class mentioned in these attributes
     // is kept.
     boolean keptAnyway =
-        appInfo.isPinned(clazz.type)
+        appView.appInfo().isPinned(clazz.type)
             || enclosingMethodPinned(clazz)
             || innerClassPinned(clazz)
-            || options.forceProguardCompatibility;
+            || appView.options().forceProguardCompatibility;
     boolean keepForThisInnerClass = false;
     boolean keepForThisEnclosingClass = false;
     if (!keptAnyway) {

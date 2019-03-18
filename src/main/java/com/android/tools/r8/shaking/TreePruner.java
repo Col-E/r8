@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -30,24 +31,24 @@ import java.util.function.Predicate;
 public class TreePruner {
 
   private final DexApplication application;
-  private final AppInfoWithLiveness appInfo;
-  private final InternalOptions options;
+  private final AppView<AppInfoWithLiveness> appView;
   private final UsagePrinter usagePrinter;
   private final Set<DexType> prunedTypes = Sets.newIdentityHashSet();
 
-  public TreePruner(
-      DexApplication application, AppInfoWithLiveness appInfo, InternalOptions options) {
+  public TreePruner(DexApplication application, AppView<AppInfoWithLiveness> appView) {
     this.application = application;
-    this.appInfo = appInfo;
-    this.options = options;
+    this.appView = appView;
+
+    ProguardConfiguration proguardConfiguration = appView.options().getProguardConfiguration();
     this.usagePrinter =
-        options.getProguardConfiguration() != null
-            && options.getProguardConfiguration().isPrintUsage()
-        ? new UsagePrinter() : UsagePrinter.DONT_PRINT;
+        proguardConfiguration != null && proguardConfiguration.isPrintUsage()
+            ? new UsagePrinter()
+            : UsagePrinter.DONT_PRINT;
   }
 
   public DexApplication run() {
     application.timing.begin("Pruning application...");
+    InternalOptions options = appView.options();
     if (options.debugKeepRules && options.enableMinification) {
       options.reporter.info(
           new StringDiagnostic(
@@ -70,6 +71,8 @@ public class TreePruner {
   }
 
   private List<DexProgramClass> getNewProgramClasses(List<DexProgramClass> classes) {
+    AppInfoWithLiveness appInfo = appView.appInfo();
+    InternalOptions options = appView.options();
     List<DexProgramClass> newClasses = new ArrayList<>();
     for (DexProgramClass clazz : classes) {
       if (!appInfo.liveTypes.contains(clazz.type)) {
@@ -125,6 +128,7 @@ public class TreePruner {
   }
 
   private boolean isAttributeReferencingPrunedItem(EnclosingMethodAttribute attr) {
+    AppInfoWithLiveness appInfo = appView.appInfo();
     return
         (attr.getEnclosingClass() != null
             && !appInfo.liveTypes.contains(attr.getEnclosingClass()))
@@ -133,6 +137,7 @@ public class TreePruner {
   }
 
   private boolean isAttributeReferencingPrunedType(InnerClassAttribute attr) {
+    AppInfoWithLiveness appInfo = appView.appInfo();
     if (!appInfo.liveTypes.contains(attr.getInner())) {
       return true;
     }
@@ -173,6 +178,8 @@ public class TreePruner {
   }
 
   private DexEncodedMethod[] reachableMethods(List<DexEncodedMethod> methods, DexClass clazz) {
+    AppInfoWithLiveness appInfo = appView.appInfo();
+    InternalOptions options = appView.options();
     int firstUnreachable = firstUnreachableIndex(methods, appInfo.liveMethods::contains);
     // Return the original array if all methods are used.
     if (firstUnreachable == -1) {
@@ -232,6 +239,7 @@ public class TreePruner {
   }
 
   private DexEncodedField[] reachableFields(List<DexEncodedField> fields) {
+    AppInfoWithLiveness appInfo = appView.appInfo();
     Predicate<DexField> isReachableOrReferencedField =
         field ->
             appInfo.liveFields.contains(field)

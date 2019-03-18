@@ -628,7 +628,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     return builder.build();
   }
 
-  public DexEncodedMethod toForwardingMethod(DexClass holder, AppInfo appInfo) {
+  public DexEncodedMethod toForwardingMethod(DexClass holder, DexDefinitionSupplier definitions) {
     checkIfObsolete();
     // Clear the final flag, as this method is now overwritten. Do this before creating the builder
     // for the forwarding method, as the forwarding method will copy the access flags from this,
@@ -636,7 +636,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     // final.
     accessFlags.demoteFromFinal();
     DexMethod newMethod =
-        appInfo.dexItemFactory.createMethod(holder.type, method.proto, method.name);
+        definitions.dexItemFactory().createMethod(holder.type, method.proto, method.name);
     Invoke.Type type = accessFlags.isStatic() ? Invoke.Type.STATIC : Invoke.Type.SUPER;
     Builder builder = builder(this);
     builder.setMethod(newMethod);
@@ -646,7 +646,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       builder.accessFlags.setAbstract();
     } else {
       // Create code that forwards the call to the target.
-      DexClass target = appInfo.definitionFor(method.holder);
+      DexClass target = definitions.definitionFor(method.holder);
       builder.setCode(
           new SynthesizedCode(
               callerPosition ->
