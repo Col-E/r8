@@ -584,7 +584,8 @@ def BuildAppWithShrinker(
 
   env_vars = {}
   env_vars['ANDROID_HOME'] = utils.getAndroidHome()
-  env_vars['JAVA_OPTS'] = '-ea:com.android.tools.r8...'
+  if not options.disable_assertions:
+    env_vars['JAVA_OPTS'] = '-ea:com.android.tools.r8...'
 
   releaseTarget = app.releaseTarget
   if not releaseTarget:
@@ -760,9 +761,16 @@ def RebuildAppWithShrinker(
   # is 'r8'.
   entry_point = 'com.android.tools.r8.R8'
 
-  cmd = [jdk.GetJavaExecutable(), '-ea:com.android.tools.r8...', '-cp', r8_jar,
-      entry_point, '--release', '--min-api', str(min_sdk), '--pg-conf',
-      proguard_config_file, '--lib', android_jar, '--output', zip_dest, apk]
+  cmd = ([jdk.GetJavaExecutable()] +
+         (['-ea:com.android.tools.r8...']
+          if not options.disable_assertions
+          else []) +
+         ['-cp', r8_jar, entry_point,
+         '--release', '--min-api', str(min_sdk),
+         '--pg-conf', proguard_config_file,
+         '--lib', android_jar,
+         '--output', zip_dest,
+         apk])
 
   for android_optional_jar in utils.get_android_optional_jars(compile_sdk):
     cmd.append('--lib')
@@ -925,6 +933,10 @@ def ParseOptions(argv):
   result.add_option('--app',
                     help='What app to run on',
                     choices=GetAllAppNames())
+  result.add_option('--disable-assertions',
+                    help='Disable assertions when compiling',
+                    default=False,
+                    action='store_true')
   result.add_option('--download-only', '--download_only',
                     help='Whether to download apps without any compilation',
                     default=False,
