@@ -91,6 +91,10 @@ def GetUrl(version_or_path, file_name, is_master):
 def GetMavenUrl(is_master):
   return GetVersionDestination('http://storage.googleapis.com/', '', is_master)
 
+def SetRLimitToMax():
+  (soft, hard) = resource.getrlimit(resource.RLIMIT_NOFILE)
+  resource.setrlimit(resource.RLIMIT_NOFILE, (hard, hard))
+
 def PrintResourceInfo():
   (soft, hard) = resource.getrlimit(resource.RLIMIT_NOFILE)
   print('INFO: Open files soft limit: %s' % soft)
@@ -101,6 +105,8 @@ def Main():
   if not utils.is_bot() and not options.dry_run:
     raise Exception('You are not a bot, don\'t archive builds')
 
+  if utils.is_bot():
+    SetRLimitToMax()
   PrintResourceInfo()
   # Create maven release which uses a build that exclude dependencies.
   create_maven_release.main(["--out", utils.LIBS])
