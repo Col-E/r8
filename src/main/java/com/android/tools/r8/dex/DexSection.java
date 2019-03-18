@@ -30,6 +30,10 @@ public class DexSection {
   }
 
   public String typeName() {
+    return typeName(this.type);
+  }
+
+  public static String typeName(int type) {
     // Type names are in UpperCamelCase because they're used as labels in
     // benchmarks.
     switch (type) {

@@ -4,6 +4,7 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.ProgramResource.Kind;
+import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.DexParser;
 import com.android.tools.r8.dex.DexSection;
 import com.android.tools.r8.origin.CommandLineOrigin;
@@ -96,6 +97,30 @@ public class DexSegments {
     AndroidApp app = command.getInputApp();
 
     Map<String, SegmentInfo> result = new LinkedHashMap<>();
+    // Fill the results with all benchmark items otherwise golem may report missing benchmarks.
+    int[] benchmarks =
+        new int[] {
+          Constants.TYPE_ENCODED_ARRAY_ITEM,
+          Constants.TYPE_HEADER_ITEM,
+          Constants.TYPE_DEBUG_INFO_ITEM,
+          Constants.TYPE_FIELD_ID_ITEM,
+          Constants.TYPE_ANNOTATION_SET_REF_LIST,
+          Constants.TYPE_STRING_ID_ITEM,
+          Constants.TYPE_MAP_LIST,
+          Constants.TYPE_PROTO_ID_ITEM,
+          Constants.TYPE_METHOD_ID_ITEM,
+          Constants.TYPE_TYPE_ID_ITEM,
+          Constants.TYPE_STRING_DATA_ITEM,
+          Constants.TYPE_CLASS_DATA_ITEM,
+          Constants.TYPE_TYPE_LIST,
+          Constants.TYPE_ANNOTATIONS_DIRECTORY_ITEM,
+          Constants.TYPE_ANNOTATION_ITEM,
+          Constants.TYPE_ANNOTATION_SET_ITEM,
+          Constants.TYPE_CLASS_DEF_ITEM
+        };
+    for (int benchmark : benchmarks) {
+      result.computeIfAbsent(DexSection.typeName(benchmark), (key) -> new SegmentInfo());
+    }
     try (Closer closer = Closer.create()) {
       for (ProgramResource resource : app.computeAllProgramResources()) {
         if (resource.getKind() == Kind.DEX) {
