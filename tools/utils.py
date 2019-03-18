@@ -504,14 +504,8 @@ def get_android_optional_jars(api):
       android_optional_jar for android_optional_jar in android_optional_jars
       if os.path.isfile(android_optional_jar)]
 
-def is_new_bot():
-  return 'SWARMING_BOT_ID' in os.environ
-
-def is_old_bot():
-  return 'BUILDBOT_SLAVENAME' in os.environ
-
 def is_bot():
-  return 'USER' in os.environ and os.environ['USER'] == 'chrome-bot'
+  return 'SWARMING_BOT_ID' in os.environ
 
 def uncompressed_size(path):
   return sum(z.file_size for z in zipfile.ZipFile(path).infolist())
