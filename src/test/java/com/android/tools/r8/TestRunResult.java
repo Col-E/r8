@@ -152,20 +152,6 @@ public abstract class TestRunResult<RR extends TestRunResult<?>> {
     builder.append("COMMAND: ").append(result.command).append('\n').append(result);
   }
 
-  public RR writeInfo(PrintStream ps) {
-    StringBuilder sb = new StringBuilder();
-    appendInfo(sb);
-    ps.println(sb.toString());
-    return self();
-  }
-
-  public RR writeApplicaion(PrintStream ps) {
-    StringBuilder sb = new StringBuilder();
-    appendApplication(sb);
-    ps.println(sb.toString());
-    return self();
-  }
-
   public RR writeProcessResult(PrintStream ps) {
     StringBuilder sb = new StringBuilder();
     appendProcessResult(sb);
