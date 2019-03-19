@@ -414,6 +414,10 @@ public class Enqueuer {
         continue;
       }
       DexDefinition dependentDefinition = appView.definitionFor(dependentItem);
+      if (dependentDefinition == null) {
+        assert false;
+        continue;
+      }
       if (!dependentDefinition.isStaticMember()) {
         enqueueRootItem(holder, entry.getValue());
         // Enough to enqueue the known holder once.
