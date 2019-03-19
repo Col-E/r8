@@ -13,6 +13,8 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.ExternalR8TestCompileResult;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.utils.FileUtils;
@@ -25,17 +27,22 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * This test relies on a freshly built build/libs/r8lib_with_deps.jar. If this test fails remove
  * build directory and rebuild r8lib_with_deps by calling test.py or gradle r8libWithdeps.
  */
+@RunWith(Parameterized.class)
 public class BootstrapCurrentEqualityTest extends TestBase {
 
   private static final Path MAIN_KEEP = Paths.get("src/main/keep.txt");
@@ -54,8 +61,19 @@ public class BootstrapCurrentEqualityTest extends TestBase {
 
   @BeforeClass
   public static void beforeAll() throws Exception {
-    r8R8Debug = compileR8(CompilationMode.DEBUG);
-    r8R8Release = compileR8(CompilationMode.RELEASE);
+    if (data().stream().count() > 0) {
+      r8R8Debug = compileR8(CompilationMode.DEBUG);
+      r8R8Release = compileR8(CompilationMode.RELEASE);
+    }
+  }
+
+  @Parameters
+  public static TestParametersCollection data() {
+    return getTestParameters().withCfRuntimes().build();
+  }
+
+  public BootstrapCurrentEqualityTest(TestParameters parameters) {
+    // TODO: use parameters to run on the right java.
   }
 
   private static Pair<Path, Path> compileR8(CompilationMode mode) throws Exception {
