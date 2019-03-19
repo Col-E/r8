@@ -120,14 +120,28 @@ public class NonNullTracker {
             knownToBeNonNullValues.add(knownToBeNonNullValue);
           }
         }
-        if (current.isInvokeMethod()
-            && !current.isInvokePolymorphic()
-            && appView.appInfo().hasLiveness()) {
-          DexEncodedMethod singleTarget =
-              current
-                  .asInvokeMethod()
-                  .lookupSingleTarget(
-                      appView.appInfo().withLiveness(), code.method.method.holder);
+        if (current.isInvokeMethod() && !current.isInvokePolymorphic()) {
+          DexEncodedMethod singleTarget = null;
+          if (appView.enableWholeProgramOptimizations()) {
+            assert appView.appInfo().hasLiveness();
+            singleTarget =
+                current
+                    .asInvokeMethod()
+                    .lookupSingleTarget(
+                        appView.appInfo().withLiveness(), code.method.method.holder);
+          } else {
+            // Even in D8, invoke-{direct|static} can be resolved without liveness.
+            // Due to the incremental compilation, though, it is allowed only if the holder of the
+            // invoked method is same as that of the method we are processing now.
+            DexMethod invokedMethod = current.asInvokeMethod().getInvokedMethod();
+            if (invokedMethod.holder == code.method.method.holder) {
+              if (current.isInvokeDirect()) {
+                singleTarget = appView.appInfo().lookupDirectTarget(invokedMethod);
+              } else if (current.isInvokeStatic()) {
+                singleTarget = appView.appInfo().lookupStaticTarget(invokedMethod);
+              }
+            }
+          }
           if (singleTarget != null
               && singleTarget.getOptimizationInfo().getNonNullParamOnNormalExits() != null) {
             BitSet facts = singleTarget.getOptimizationInfo().getNonNullParamOnNormalExits();
