@@ -1848,9 +1848,54 @@ public abstract class R8RunArtTestsTest {
     }
   }
 
+  private static class VmErrors {
+    private final Set<TestRuntime> failedVms = new HashSet<>();
+    private StringBuilder message;
+
+    private void addShouldHaveFailedError(CompilerUnderTest compilerUnderTest, TestRuntime vm) {
+      addFailure(vm);
+      message.append(
+          "FAILURE: Test should have failed on "
+              + vm
+              + " after compiling with "
+              + compilerUnderTest
+              + ".\n");
+    }
+
+    private void addFailedOnRunError(
+        CompilerUnderTest compilerUnderTest, TestRuntime vm, AssertionError error) {
+      addFailure(vm);
+      message.append(
+          "FAILURE: Test failed on "
+              + vm
+              + " after compiling with "
+              + compilerUnderTest
+              + ", error:\n"
+              + error.getMessage()
+              + "\n");
+    }
+
+    private void addFailure(TestRuntime vm) {
+      if (message == null) {
+        message = new StringBuilder();
+      }
+      failedVms.add(vm);
+    }
+  }
+
   protected void runJctfTest(
       CompilerUnderTest compilerUnderTest, String classFilePath, String fullClassName)
       throws IOException, CompilationFailedException {
+    VmErrors vmErrors = runJctfTestCore(compilerUnderTest, classFilePath, fullClassName);
+    if (vmErrors.message != null) {
+      throw new RuntimeException(vmErrors.message.toString());
+    }
+  }
+
+  private VmErrors runJctfTestCore(
+      CompilerUnderTest compilerUnderTest, String classFilePath, String fullClassName)
+      throws IOException, CompilationFailedException {
+    VmErrors vmErrors = new VmErrors();
     List<TestRuntime> vms = new ArrayList<>();
     if (compilerUnderTest == CompilerUnderTest.R8CF) {
       for (CfVm vm : TestParametersBuilder.getAvailableCfVms()) {
@@ -1890,7 +1935,7 @@ public abstract class R8RunArtTestsTest {
     }
 
     if (vmSpecs.isEmpty()) {
-      return;
+      return vmErrors;
     }
 
     File classFile = new File(JCTF_TESTS_PREFIX + "/" + classFilePath);
@@ -1959,7 +2004,7 @@ public abstract class R8RunArtTestsTest {
         runJctfTestDoRunOnJava(
             fileNames, vmSpec.spec, fullClassName, compilationMode, vmSpec.vm.asCf().getVm());
       }
-      return;
+      return vmErrors;
     }
 
     CompilationOptions compilationOptions = null;
@@ -1981,17 +2026,31 @@ public abstract class R8RunArtTestsTest {
       Files.copy(
           compiledDir.toPath().resolve("classes.dex"),
           vmSpec.spec.directory.toPath().resolve("classes.dex"));
-      runJctfTestDoRunOnArt(fileNames, vmSpec.spec, fullClassName, vmSpec.vm.asDex().getVm());
+
+      AssertionError vmError = null;
+      try {
+        runJctfTestDoRunOnArt(fileNames, vmSpec.spec, fullClassName, vmSpec.vm.asDex().getVm());
+      } catch (AssertionError e) {
+        vmError = e;
+      }
+      if (vmSpec.spec.failsOnRun && vmError == null) {
+        vmErrors.addShouldHaveFailedError(firstCompilerUnderTest, vmSpec.vm);
+      } else if (!vmSpec.spec.failsOnRun && vmError != null) {
+        vmErrors.addFailedOnRunError(firstCompilerUnderTest, vmSpec.vm, vmError);
+      }
     }
 
     if (compilerUnderTest != CompilerUnderTest.R8_AFTER_D8) {
-      return;
+      return vmErrors;
     }
 
     // Second pass (R8), if R8_AFTER_D8.
     CompilationOptions r8CompilationOptions = null;
     File r8CompiledDir = temp.newFolder();
     for (VmSpec vmSpec : vmSpecs) {
+      if (vmSpec.spec.failsOnRun || vmErrors.failedVms.contains(vmSpec.vm)) {
+        continue;
+      }
       File r8ResultDir = temp.newFolder("r8-output-" + vmSpec.vm.toString());
       TestSpecification specification =
           JctfTestSpecifications.getExpectedOutcome(
@@ -2019,8 +2078,13 @@ public abstract class R8RunArtTestsTest {
       Files.copy(
           r8CompiledDir.toPath().resolve("classes.dex"),
           specification.directory.toPath().resolve("classes.dex"));
-      runJctfTestDoRunOnArt(fileNames, specification, fullClassName, vmSpec.vm.asDex().getVm());
+      try {
+        runJctfTestDoRunOnArt(fileNames, specification, fullClassName, vmSpec.vm.asDex().getVm());
+      } catch (AssertionError e) {
+        vmErrors.addFailedOnRunError(CompilerUnderTest.R8, vmSpec.vm, e);
+      }
     }
+    return vmErrors;
   }
 
   private void runJctfTestDoRunOnArt(
@@ -2061,19 +2125,12 @@ public abstract class R8RunArtTestsTest {
     builder.setMainClass(JUNIT_TEST_RUNNER);
     builder.appendProgramArgument(fullClassName);
 
-    if (specification.failsOnRun) {
-      expectException(AssertionError.class);
-    }
-
     try {
       ToolHelper.runArt(builder);
     } catch (AssertionError e) {
       addDexInformationToVerificationError(fileNames, processedFile,
           specification.resolveFile("classes.dex"), e);
       throw e;
-    }
-    if (specification.failsOnRun) {
-      System.err.println("Should have failed run with art.");
     }
   }
 
