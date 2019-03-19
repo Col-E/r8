@@ -916,7 +916,7 @@ public class IRConverter {
 
     previous = printMethod(code, "IR after disable assertions (SSA)", previous);
 
-    if (options.enableNonNullTracking && nonNullTracker != null) {
+    if (nonNullTracker != null) {
       nonNullTracker.addNonNull(code);
       assert code.isConsistentSSA();
     }
@@ -975,7 +975,7 @@ public class IRConverter {
       invertConditionalsForTesting(code);
     }
 
-    if (options.enableNonNullTracking && nonNullTracker != null) {
+    if (nonNullTracker != null) {
       // Computation of non-null parameters on normal exits rely on the existence of non-null IRs.
       nonNullTracker.computeNonNullParamOnNormalExits(feedback, code);
       nonNullTracker.cleanupNonNull(code);
