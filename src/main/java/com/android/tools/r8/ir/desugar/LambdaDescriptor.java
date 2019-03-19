@@ -237,7 +237,7 @@ public final class LambdaDescriptor {
       return LambdaDescriptor.MATCH_FAILED;
     }
 
-    DexItemFactory factory = appInfo.dexItemFactory;
+    DexItemFactory factory = appInfo.dexItemFactory();
     DexMethod bootstrapMethod = callSite.bootstrapMethod.asMethod();
     if (!factory.isLambdaMetafactoryMethod(bootstrapMethod)) {
       // It is not a lambda, thus no need to manage this call site.

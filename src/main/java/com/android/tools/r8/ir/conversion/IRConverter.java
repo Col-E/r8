@@ -148,8 +148,10 @@ public class IRConverter {
 
   private List<Action> onWaveDoneActions = null;
 
-  // The argument `appView` is only available when full program optimizations are allowed
-  // (i.e., when running R8).
+  /**
+   * The argument `appView` is used to determine if whole program optimizations are allowed or not
+   * (i.e., whether we are running R8). See {@link AppView#enableWholeProgramOptimizations()}.
+   */
   public IRConverter(
       AppView<? extends AppInfo> appView,
       Timing timing,
@@ -727,14 +729,13 @@ public class IRConverter {
   private DexType computeOutlineClassType() {
     DexType result;
     int count = 0;
-    AppInfo appInfo = appView.appInfo();
     do {
       String name = OutlineOptions.CLASS_NAME + (count == 0 ? "" : Integer.toString(count));
       count++;
-      result = appInfo.dexItemFactory.createType(DescriptorUtils.javaTypeToDescriptor(name));
-    } while (appInfo.definitionFor(result) != null);
+      result = appView.dexItemFactory().createType(DescriptorUtils.javaTypeToDescriptor(name));
+    } while (appView.definitionFor(result) != null);
     // Register the newly generated type in the subtyping hierarchy, if we have one.
-    appInfo.registerNewType(result, appInfo.dexItemFactory.objectType);
+    appView.appInfo().registerNewType(result, appView.dexItemFactory().objectType);
     return result;
   }
 
@@ -1270,8 +1271,7 @@ public class IRConverter {
     deadCodeRemover.run(code);
     materializeInstructionBeforeLongOperationsWorkaround(code);
     workaroundForwardingInitializerBug(code);
-    LinearScanRegisterAllocator registerAllocator =
-        new LinearScanRegisterAllocator(appView.appInfo(), code, options);
+    LinearScanRegisterAllocator registerAllocator = new LinearScanRegisterAllocator(appView, code);
     registerAllocator.allocateRegisters();
     if (options.canHaveExceptionTargetingLoopHeaderBug()) {
       codeRewriter.workaroundExceptionTargetingLoopHeaderBug(code);

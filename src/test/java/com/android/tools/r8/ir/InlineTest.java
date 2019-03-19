@@ -50,8 +50,7 @@ public class InlineTest extends IrInjectionTestBase {
         new RootSetBuilder(
                 appView,
                 application,
-                ImmutableList.of(ProguardKeepRule.defaultKeepAllRule(unused -> {})),
-                options)
+                ImmutableList.of(ProguardKeepRule.defaultKeepAllRule(unused -> {})))
             .run(executorService);
     Timing timing = new Timing(getClass().getSimpleName());
     Enqueuer enqueuer = new Enqueuer(appView, options, null);

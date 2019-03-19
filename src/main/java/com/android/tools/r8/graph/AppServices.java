@@ -98,7 +98,7 @@ public class AppServices {
 
     public AppServices build() {
       Iterable<ProgramResourceProvider> programResourceProviders =
-          appView.appInfo().app.programResourceProviders;
+          appView.appInfo().app().programResourceProviders;
       for (ProgramResourceProvider programResourceProvider : programResourceProviders) {
         DataResourceProvider dataResourceProvider =
             programResourceProvider.getDataResourceProvider();

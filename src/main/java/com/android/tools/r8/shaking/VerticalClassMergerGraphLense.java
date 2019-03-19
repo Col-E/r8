@@ -5,6 +5,7 @@
 package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -47,7 +48,8 @@ import java.util.Set;
 //
 // For the invocation "invoke-virtual A.m()" in B.m2, this graph lense will return the method B.m.
 public class VerticalClassMergerGraphLense extends NestedGraphLense {
-  private final AppInfo appInfo;
+
+  private final AppView<? extends AppInfo> appView;
 
   private final Map<DexType, Map<DexMethod, GraphLenseLookupResult>>
       contextualVirtualToDirectMethodMaps;
@@ -55,7 +57,7 @@ public class VerticalClassMergerGraphLense extends NestedGraphLense {
   private final Map<DexMethod, DexMethod> originalMethodSignaturesForBridges;
 
   public VerticalClassMergerGraphLense(
-      AppInfo appInfo,
+      AppView<? extends AppInfo> appView,
       Map<DexField, DexField> fieldMap,
       Map<DexMethod, DexMethod> methodMap,
       Set<DexMethod> mergedMethods,
@@ -71,8 +73,8 @@ public class VerticalClassMergerGraphLense extends NestedGraphLense {
         originalFieldSignatures,
         originalMethodSignatures,
         previousLense,
-        appInfo.dexItemFactory);
-    this.appInfo = appInfo;
+        appView.dexItemFactory());
+    this.appView = appView;
     this.contextualVirtualToDirectMethodMaps = contextualVirtualToDirectMethodMaps;
     this.mergedMethods = mergedMethods;
     this.originalMethodSignaturesForBridges = originalMethodSignaturesForBridges;
@@ -120,7 +122,7 @@ public class VerticalClassMergerGraphLense extends NestedGraphLense {
 
   @Override
   protected Type mapInvocationType(DexMethod newMethod, DexMethod originalMethod, Type type) {
-    return super.mapVirtualInterfaceInvocationTypes(appInfo, newMethod, originalMethod, type);
+    return super.mapVirtualInterfaceInvocationTypes(appView, newMethod, originalMethod, type);
   }
 
   @Override
@@ -174,7 +176,7 @@ public class VerticalClassMergerGraphLense extends NestedGraphLense {
     public GraphLense build(
         GraphLense previousLense,
         Map<DexType, DexType> mergedClasses,
-        AppInfo appInfo) {
+        AppView<? extends AppInfo> appView) {
       if (fieldMap.isEmpty()
           && methodMap.isEmpty()
           && contextualVirtualToDirectMethodMaps.isEmpty()) {
@@ -184,11 +186,11 @@ public class VerticalClassMergerGraphLense extends NestedGraphLense {
       BiMap<DexField, DexField> originalFieldSignatures = fieldMap.inverse();
       // Build new graph lense.
       return new VerticalClassMergerGraphLense(
-          appInfo,
+          appView,
           fieldMap,
           methodMap,
           getMergedMethodSignaturesAfterClassMerging(
-              mergedMethodsBuilder.build(), mergedClasses, appInfo.dexItemFactory, cache),
+              mergedMethodsBuilder.build(), mergedClasses, appView.dexItemFactory(), cache),
           contextualVirtualToDirectMethodMaps,
           originalFieldSignatures,
           originalMethodSignatures,

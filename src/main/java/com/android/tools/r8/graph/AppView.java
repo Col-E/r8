@@ -26,7 +26,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
   private AppView(
       T appInfo, WholeProgramOptimizations wholeProgramOptimizations, InternalOptions options) {
     this.appInfo = appInfo;
-    this.dexItemFactory = appInfo != null ? appInfo.dexItemFactory : null;
+    this.dexItemFactory = appInfo != null ? appInfo.dexItemFactory() : null;
     this.wholeProgramOptimizations = wholeProgramOptimizations;
     this.graphLense = GraphLense.getIdentityLense();
     this.options = options;
@@ -45,7 +45,12 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
   }
 
   public void setAppInfo(T appInfo) {
+    assert !appInfo.isObsolete();
+    AppInfo previous = this.appInfo;
     this.appInfo = appInfo;
+    if (appInfo != previous) {
+      previous.markObsolete();
+    }
   }
 
   public AppServices appServices() {

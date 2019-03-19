@@ -340,8 +340,7 @@ public class StringConcatRewriter {
 
       // new-instance v0, StringBuilder
       TypeLatticeElement stringBuilderTypeLattice =
-          TypeLatticeElement.fromDexType(
-              factory.stringBuilderType, definitelyNotNull(), appView.appInfo());
+          TypeLatticeElement.fromDexType(factory.stringBuilderType, definitelyNotNull(), appView);
       Value sbInstance = code.createValue(stringBuilderTypeLattice);
       appendInstruction(new NewInstance(factory.stringBuilderType, sbInstance));
 
@@ -364,8 +363,7 @@ public class StringConcatRewriter {
       if (concatValue == null) {
         // The out value might be empty in case it was optimized out.
         concatValue =
-            code.createValue(
-                TypeLatticeElement.stringClassType(appView.appInfo(), definitelyNotNull()));
+            code.createValue(TypeLatticeElement.stringClassType(appView, definitelyNotNull()));
       }
 
       // Replace the instruction.
@@ -444,8 +442,7 @@ public class StringConcatRewriter {
       @Override
       Value getOrCreateValue() {
         Value value =
-            code.createValue(
-                TypeLatticeElement.stringClassType(appView.appInfo(), definitelyNotNull()));
+            code.createValue(TypeLatticeElement.stringClassType(appView, definitelyNotNull()));
         appendInstruction(
             new ConstString(
                 value,

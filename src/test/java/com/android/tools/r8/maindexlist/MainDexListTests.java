@@ -752,8 +752,9 @@ public class MainDexListTests extends TestBase {
                 DexAnnotationSet.empty(),
                 ParameterAnnotationsList.empty(),
                 code);
-        IRCode ir = code.buildIR(method, AppView.createForR8(null, options), Origin.unknown());
-        RegisterAllocator allocator = new LinearScanRegisterAllocator(appInfo, ir, options);
+        AppView<? extends AppInfo> appView = AppView.createForR8(null, options);
+        IRCode ir = code.buildIR(method, appView, Origin.unknown());
+        RegisterAllocator allocator = new LinearScanRegisterAllocator(appView, ir);
         method.setCode(ir, allocator, options);
         directMethods[i] = method;
       }

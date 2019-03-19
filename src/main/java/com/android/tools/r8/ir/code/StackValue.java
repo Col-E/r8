@@ -25,8 +25,7 @@ public class StackValue extends Value {
       TypeInfo typeInfo, int height, AppView<? extends AppInfo> appView) {
     return new StackValue(
         typeInfo,
-        TypeLatticeElement.fromDexType(
-            typeInfo.getDexType(), Nullability.maybeNull(), appView.appInfo()),
+        TypeLatticeElement.fromDexType(typeInfo.getDexType(), Nullability.maybeNull(), appView),
         height);
   }
 

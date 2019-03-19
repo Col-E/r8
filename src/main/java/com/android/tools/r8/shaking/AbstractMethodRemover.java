@@ -31,7 +31,7 @@ public class AbstractMethodRemover {
 
   public void run() {
     assert scope.getParent() == null;
-    processClass(appInfo.dexItemFactory.objectType);
+    processClass(appInfo.dexItemFactory().objectType);
   }
 
   private void processClass(DexType type) {

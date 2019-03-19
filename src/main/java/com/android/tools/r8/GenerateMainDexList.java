@@ -10,9 +10,9 @@ import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexReference;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.DiscardedChecker;
 import com.android.tools.r8.shaking.Enqueuer;
-import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.shaking.MainDexListBuilder;
 import com.android.tools.r8.shaking.RootSetBuilder;
@@ -24,8 +24,8 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
-import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
@@ -49,7 +49,7 @@ public class GenerateMainDexList {
       appView.setAppServices(AppServices.builder(appView).build());
 
       RootSet mainDexRootSet =
-          new RootSetBuilder(appView, application, options.mainDexKeepRules, options).run(executor);
+          new RootSetBuilder(appView, application, options.mainDexKeepRules).run(executor);
 
       GraphConsumer graphConsumer = options.mainDexKeptGraphConsumer;
       WhyAreYouKeepingConsumer whyAreYouKeepingConsumer = null;
@@ -59,10 +59,9 @@ public class GenerateMainDexList {
       }
 
       Enqueuer enqueuer = new Enqueuer(appView, options, graphConsumer);
-      AppInfoWithLiveness mainDexAppInfo = enqueuer.traceMainDex(mainDexRootSet, executor, timing);
+      Set<DexType> liveTypes = enqueuer.traceMainDex(mainDexRootSet, executor, timing);
       // LiveTypes is the result.
-      MainDexClasses mainDexClasses =
-          new MainDexListBuilder(new HashSet<>(mainDexAppInfo.liveTypes), application).run();
+      MainDexClasses mainDexClasses = new MainDexListBuilder(liveTypes, application).run();
 
       List<String> result =
           mainDexClasses.getClasses().stream()
@@ -75,9 +74,7 @@ public class GenerateMainDexList {
       }
 
       if (!mainDexRootSet.checkDiscarded.isEmpty()) {
-        new DiscardedChecker(
-                mainDexRootSet, mainDexClasses.getClasses(), appView.appInfo(), options)
-            .run();
+        new DiscardedChecker(mainDexRootSet, mainDexClasses.getClasses(), appView).run();
       }
       // Print -whyareyoukeeping results if any.
       if (whyAreYouKeepingConsumer != null) {

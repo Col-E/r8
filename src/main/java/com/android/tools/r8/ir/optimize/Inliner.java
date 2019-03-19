@@ -63,12 +63,12 @@ public class Inliner {
   public Inliner(AppView<AppInfoWithLiveness> appView, MainDexClasses mainDexClasses) {
     this.appView = appView;
     this.mainDexClasses = mainDexClasses;
-    fillInBlackList(appView.appInfo());
+    fillInBlackList();
   }
 
-  private void fillInBlackList(AppInfoWithLiveness appInfo) {
-    blackList.add(appInfo.dexItemFactory.kotlin.intrinsics.throwParameterIsNullException);
-    blackList.add(appInfo.dexItemFactory.kotlin.intrinsics.throwNpe);
+  private void fillInBlackList() {
+    blackList.add(appView.dexItemFactory().kotlin.intrinsics.throwParameterIsNullException);
+    blackList.add(appView.dexItemFactory().kotlin.intrinsics.throwNpe);
   }
 
   public boolean isBlackListed(DexMethod method) {

@@ -212,7 +212,7 @@ public class PrintUses {
         registerTypeReference(type);
       }
       for (DexAnnotation annotation : method.annotations.annotations) {
-        if (annotation.annotation.type == appInfo.dexItemFactory.annotationThrows) {
+        if (annotation.annotation.type == appInfo.dexItemFactory().annotationThrows) {
           DexValueArray dexValues = (DexValueArray) annotation.annotation.elements[0].value;
           for (DexValue dexValType : dexValues.getValues()) {
             registerTypeReference(((DexValueType) dexValType).value);
@@ -302,7 +302,7 @@ public class PrintUses {
   }
 
   private void analyze() {
-    UseCollector useCollector = new UseCollector(appInfo.dexItemFactory);
+    UseCollector useCollector = new UseCollector(appInfo.dexItemFactory());
     for (DexProgramClass dexProgramClass : application.classes()) {
       useCollector.registerSuperType(dexProgramClass, dexProgramClass.superType);
       for (DexType implementsType : dexProgramClass.interfaces.values) {

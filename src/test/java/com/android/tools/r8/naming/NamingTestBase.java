@@ -74,8 +74,7 @@ abstract class NamingTestBase {
         AppView.createForR8(new AppInfoWithSubtyping(program), options);
     appView.setAppServices(AppServices.builder(appView).build());
 
-    RootSet rootSet =
-        new RootSetBuilder(appView, program, configuration.getRules(), options).run(executor);
+    RootSet rootSet = new RootSetBuilder(appView, program, configuration.getRules()).run(executor);
 
     Enqueuer enqueuer = new Enqueuer(appView, options, null);
     appView.setAppInfo(

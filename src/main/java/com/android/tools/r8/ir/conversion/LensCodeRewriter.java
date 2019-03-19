@@ -91,7 +91,6 @@ public class LensCodeRewriter {
    * Replace type appearances, invoke targets and field accesses with actual definitions.
    */
   public void rewrite(IRCode code, DexEncodedMethod method) {
-    AppInfo appInfo = appView.appInfo();
     GraphLense graphLense = appView.graphLense();
 
     Set<Value> newSSAValues = Sets.newIdentityHashSet();
@@ -112,12 +111,16 @@ public class LensCodeRewriter {
           InvokeCustom invokeCustom = current.asInvokeCustom();
           DexCallSite callSite = invokeCustom.getCallSite();
           DexProto newMethodProto =
-              appInfo.dexItemFactory.applyClassMappingToProto(
-                  callSite.methodProto, graphLense::lookupType, protoFixupCache);
+              appView
+                  .dexItemFactory()
+                  .applyClassMappingToProto(
+                      callSite.methodProto, graphLense::lookupType, protoFixupCache);
           DexMethodHandle newBootstrapMethod = rewriteDexMethodHandle(
               callSite.bootstrapMethod, method, NOT_ARGUMENT_TO_LAMBDA_METAFACTORY);
           boolean isLambdaMetaFactory =
-              appInfo.dexItemFactory.isLambdaMetafactoryMethod(callSite.bootstrapMethod.asMethod());
+              appView
+                  .dexItemFactory()
+                  .isLambdaMetafactoryMethod(callSite.bootstrapMethod.asMethod());
           MethodHandleUse methodHandleUse = isLambdaMetaFactory
               ? ARGUMENT_TO_LAMBDA_METAFACTORY
               : NOT_ARGUMENT_TO_LAMBDA_METAFACTORY;
@@ -127,8 +130,10 @@ public class LensCodeRewriter {
               || newBootstrapMethod != callSite.bootstrapMethod
               || !newArgs.equals(callSite.bootstrapArgs)) {
             DexCallSite newCallSite =
-                appInfo.dexItemFactory.createCallSite(
-                    callSite.methodName, newMethodProto, newBootstrapMethod, newArgs);
+                appView
+                    .dexItemFactory()
+                    .createCallSite(
+                        callSite.methodName, newMethodProto, newBootstrapMethod, newArgs);
             InvokeCustom newInvokeCustom = new InvokeCustom(newCallSite, invokeCustom.outValue(),
                 invokeCustom.inValues());
             iterator.replaceCurrentInstruction(newInvokeCustom);
@@ -147,16 +152,17 @@ public class LensCodeRewriter {
           DexMethod invokedMethod = invoke.getInvokedMethod();
           DexType invokedHolder = invokedMethod.holder;
           if (invokedHolder.isArrayType()) {
-            DexType baseType = invokedHolder.toBaseType(appInfo.dexItemFactory);
+            DexType baseType = invokedHolder.toBaseType(appView.dexItemFactory());
             DexType mappedBaseType = graphLense.lookupType(baseType);
             if (baseType != mappedBaseType) {
               DexType mappedHolder =
-                  invokedHolder.replaceBaseType(mappedBaseType, appInfo.dexItemFactory);
+                  invokedHolder.replaceBaseType(mappedBaseType, appView.dexItemFactory());
               // Just reuse proto and name, as no methods on array types can be renamed nor
               // change signature.
               DexMethod actualTarget =
-                  appInfo.dexItemFactory.createMethod(
-                      mappedHolder, invokedMethod.proto, invokedMethod.name);
+                  appView
+                      .dexItemFactory()
+                      .createMethod(mappedHolder, invokedMethod.proto, invokedMethod.name);
               Invoke newInvoke =
                   Invoke.create(
                       VIRTUAL,

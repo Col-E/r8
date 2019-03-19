@@ -53,11 +53,10 @@ public abstract class Binop extends Instruction {
       int leftRegister = allocator.getRegisterForValue(leftValue(), getNumber());
       int rightRegister = allocator.getRegisterForValue(rightValue(), getNumber());
       int destRegister = allocator.getRegisterForValue(outValue, getNumber());
-      return ((leftRegister == destRegister) ||
-          (isCommutative() && rightRegister == destRegister)) &&
-          leftRegister <= U4BIT_MAX &&
-          rightRegister <= U4BIT_MAX &&
-          !(allocator.getOptions().canHaveMul2AddrBug() && isMul());
+      return ((leftRegister == destRegister) || (isCommutative() && rightRegister == destRegister))
+          && leftRegister <= U4BIT_MAX
+          && rightRegister <= U4BIT_MAX
+          && !(allocator.options().canHaveMul2AddrBug() && isMul());
     }
     return false;
   }

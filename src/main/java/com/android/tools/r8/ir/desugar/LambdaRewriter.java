@@ -273,8 +273,7 @@ public class LambdaRewriter {
       // The out value might be empty in case it was optimized out.
       lambdaInstanceValue =
           code.createValue(
-              TypeLatticeElement.fromDexType(
-                  lambdaClass.type, Nullability.maybeNull(), appView.appInfo()));
+              TypeLatticeElement.fromDexType(lambdaClass.type, Nullability.maybeNull(), appView));
     }
 
     // For stateless lambdas we replace InvokeCustom instruction with StaticGet

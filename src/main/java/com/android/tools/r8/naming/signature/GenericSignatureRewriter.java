@@ -29,7 +29,6 @@ import java.util.function.Supplier;
 public class GenericSignatureRewriter {
 
   private final AppView<AppInfoWithLiveness> appView;
-  private final AppInfoWithLiveness appInfo;
   private final Map<DexType, DexString> renaming;
   private final Reporter reporter;
 
@@ -40,7 +39,6 @@ public class GenericSignatureRewriter {
   public GenericSignatureRewriter(
       AppView<AppInfoWithLiveness> appView, Map<DexType, DexString> renaming) {
     this.appView = appView;
-    this.appInfo = appView.appInfo();
     this.renaming = renaming;
     this.reporter = appView.options().reporter;
   }
@@ -50,7 +48,7 @@ public class GenericSignatureRewriter {
     final GenericSignatureParser<DexType> genericSignatureParser =
         new GenericSignatureParser<>(genericSignatureCollector);
 
-    for (DexClass clazz : appInfo.classes()) {
+    for (DexClass clazz : appView.appInfo().classes()) {
       clazz.annotations =
           rewriteGenericSignatures(
               clazz.annotations,
@@ -86,13 +84,12 @@ public class GenericSignatureRewriter {
     int invalid = VALID;
     for (int i = 0; i < annotations.annotations.length && invalid == VALID; i++) {
       DexAnnotation annotation = annotations.annotations[i];
-      if (DexAnnotation.isSignatureAnnotation(annotation, appInfo.dexItemFactory)) {
+      if (DexAnnotation.isSignatureAnnotation(annotation, appView.dexItemFactory())) {
         String signature = DexAnnotation.getSignature(annotation);
         try {
           parser.accept(signature);
-          annotations.annotations[i] = DexAnnotation.createSignatureAnnotation(
-              collector.get(),
-              appInfo.dexItemFactory);
+          annotations.annotations[i] =
+              DexAnnotation.createSignatureAnnotation(collector.get(), appView.dexItemFactory());
         } catch (GenericSignatureFormatError e) {
           parseError.accept(signature, e);
           invalid = i;
@@ -159,10 +156,10 @@ public class GenericSignatureRewriter {
 
     @Override
     public DexType parsedTypeName(String name) {
-      DexType type = appInfo.dexItemFactory.createType(getDescriptorFromClassBinaryName(name));
+      DexType type = appView.dexItemFactory().createType(getDescriptorFromClassBinaryName(name));
       type = appView.graphLense().lookupType(type);
-      if (appInfo.wasPruned(type)) {
-        type = appInfo.dexItemFactory.objectType;
+      if (appView.appInfo().wasPruned(type)) {
+        type = appView.dexItemFactory().objectType;
       }
       DexString renamedDescriptor = renaming.getOrDefault(type, type.descriptor);
       renamedSignature.append(getClassBinaryNameFromDescriptor(renamedDescriptor.toString()));
@@ -174,11 +171,13 @@ public class GenericSignatureRewriter {
       assert enclosingType.isClassType();
       String enclosingDescriptor = enclosingType.toDescriptorString();
       DexType type =
-          appInfo.dexItemFactory.createType(
-              getDescriptorFromClassBinaryName(
-                  getClassBinaryNameFromDescriptor(enclosingDescriptor)
-                      + DescriptorUtils.INNER_CLASS_SEPARATOR
-                      + name));
+          appView
+              .dexItemFactory()
+              .createType(
+                  getDescriptorFromClassBinaryName(
+                      getClassBinaryNameFromDescriptor(enclosingDescriptor)
+                          + DescriptorUtils.INNER_CLASS_SEPARATOR
+                          + name));
       String enclosingRenamedBinaryName =
           getClassBinaryNameFromDescriptor(
               renaming.getOrDefault(enclosingType, enclosingType.descriptor).toString());

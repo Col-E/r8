@@ -31,7 +31,7 @@ public class MainDexDirectReferenceTracer {
   private final Consumer<DexType> consumer;
 
   public MainDexDirectReferenceTracer(AppInfoWithSubtyping appInfo, Consumer<DexType> consumer) {
-    this.codeDirectReferenceCollector = new DirectReferencesCollector(appInfo.dexItemFactory);
+    this.codeDirectReferenceCollector = new DirectReferencesCollector(appInfo.dexItemFactory());
     this.appInfo = appInfo;
     this.consumer = consumer;
   }
@@ -68,7 +68,7 @@ public class MainDexDirectReferenceTracer {
     new MainDexDirectReferenceTracer(
             appInfo,
             type -> {
-              DexType baseType = type.toBaseType(appInfo.dexItemFactory);
+              DexType baseType = type.toBaseType(appInfo.dexItemFactory());
               if (baseType.isClassType() && !classes.contains(baseType)) {
                 DexClass cls = appInfo.definitionFor(baseType);
                 if (cls != null && !cls.isLibraryClass()) {

@@ -436,7 +436,7 @@ public abstract class Instruction implements InstructionOrPhi {
     }
     // In debug mode or if the instruction can throw we must account for positions, in release mode
     // we do want to share non-throwing instructions even if their positions differ.
-    if (instructionTypeCanThrow() || allocator.getOptions().debug) {
+    if (instructionTypeCanThrow() || allocator.options().debug) {
       if (!identicalNonValueParts(other)) {
         return false;
       }

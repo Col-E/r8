@@ -144,7 +144,7 @@ public class CfRegisterAllocator implements RegisterAllocator {
   }
 
   @Override
-  public InternalOptions getOptions() {
+  public InternalOptions options() {
     return appView.options();
   }
 

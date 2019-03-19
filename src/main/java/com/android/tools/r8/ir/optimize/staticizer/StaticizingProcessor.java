@@ -444,10 +444,9 @@ final class StaticizingProcessor {
                   ? null
                   : code.createValue(
                       TypeLatticeElement.fromDexType(
-                          method.proto.returnType, maybeNull(), classStaticizer.appView.appInfo()),
+                          method.proto.returnType, maybeNull(), classStaticizer.appView),
                       outValue == null ? null : outValue.getLocalInfo());
-          it.replaceCurrentInstruction(
-              new InvokeStatic(newMethod, newOutValue, invoke.inValues()));
+          it.replaceCurrentInstruction(new InvokeStatic(newMethod, newOutValue, invoke.inValues()));
         }
         continue;
       }

@@ -41,7 +41,7 @@ public class IdenticalAfterRegisterAllocationTest {
     }
 
     @Override
-    public InternalOptions getOptions() {
+    public InternalOptions options() {
       return new InternalOptions();
     }
 

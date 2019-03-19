@@ -94,7 +94,7 @@ public class MemberValuePropagation {
         && rule.hasReturnValue() && rule.getReturnValue().isField()) {
       DexField field = rule.getReturnValue().getField();
       assert typeLattice
-          == TypeLatticeElement.fromDexType(field.type, Nullability.maybeNull(), appView.appInfo());
+          == TypeLatticeElement.fromDexType(field.type, Nullability.maybeNull(), appView);
       DexEncodedField staticField = appView.appInfo().lookupStaticTarget(field.holder, field);
       if (staticField != null) {
         Value value = code.createValue(typeLattice, instruction.getLocalInfo());

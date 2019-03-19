@@ -95,7 +95,7 @@ public class IrInjectionTestBase extends SmaliTestBase {
         RootSet rootSet,
         MethodSubject method,
         List<IRCode> additionalCode) {
-      this.application = appView.appInfo().app;
+      this.application = appView.appInfo().app();
       this.appView = appView;
       this.rootSet = rootSet;
       this.method = method.getMethod();

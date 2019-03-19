@@ -111,10 +111,7 @@ public class SingleTargetLookupTest extends AsmTestBase {
     ExecutorService executor = Executors.newSingleThreadExecutor();
     RootSet rootSet =
         new RootSetBuilder(
-                appView,
-                application,
-                buildKeepRuleForClass(Main.class, application.dexItemFactory),
-                options)
+                appView, application, buildKeepRuleForClass(Main.class, application.dexItemFactory))
             .run(executor);
     appInfo =
         new Enqueuer(appView, options, null)
@@ -203,15 +200,17 @@ public class SingleTargetLookupTest extends AsmTestBase {
   }
 
   private static DexMethod buildMethod(Class clazz, String name) {
-    return appInfo.dexItemFactory.createMethod(
-        toType(clazz),
-        appInfo.dexItemFactory.createProto(appInfo.dexItemFactory.voidType),
-        name
-    );
+    return appInfo
+        .dexItemFactory()
+        .createMethod(
+            toType(clazz),
+            appInfo.dexItemFactory().createProto(appInfo.dexItemFactory().voidType),
+            name);
   }
 
   private static DexType toType(Class clazz) {
-    return appInfo.dexItemFactory
+    return appInfo
+        .dexItemFactory()
         .createType(DescriptorUtils.javaTypeToDescriptor(clazz.getCanonicalName()));
   }
 

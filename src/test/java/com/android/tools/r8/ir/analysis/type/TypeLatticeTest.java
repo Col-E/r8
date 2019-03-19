@@ -30,6 +30,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TypeLatticeTest extends TestBase {
+
   private static final String IO_EXCEPTION = "Ljava/io/IOException;";
   private static final String NOT_FOUND = "Ljava/io/FileNotFoundException;";
   private static final String INTERRUPT = "Ljava/io/InterruptedIOException;";
@@ -505,7 +506,7 @@ public class TypeLatticeTest extends TestBase {
 
   @Test
   public void testSelfOrderWithoutSubtypingInfo() {
-    DexType type = appInfo.dexItemFactory.createType("Lmy/Type;");
+    DexType type = factory.createType("Lmy/Type;");
     TypeLatticeElement nonNullType =
         fromDexType(type, Nullability.definitelyNotNull(), appInfo);
     TypeLatticeElement nullableType = nonNullType.asNullable();

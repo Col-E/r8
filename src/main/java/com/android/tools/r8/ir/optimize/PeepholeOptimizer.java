@@ -413,7 +413,7 @@ public class PeepholeOptimizer {
             changed = true;
             int otherPredIndex = blockToIndex.get(wrapper);
             BasicBlock otherPred = block.getPredecessors().get(otherPredIndex);
-            assert !allocator.getOptions().debug
+            assert !allocator.options().debug
                 || Objects.equals(pred.getPosition(), otherPred.getPosition());
             allocator.mergeBlocks(otherPred, pred);
             pred.clearCatchHandlers();
