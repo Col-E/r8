@@ -287,8 +287,7 @@ APP_REPOSITORIES = [
       'apps': [
           App({
               'id': 'eu.kanade.tachiyomi',
-              'flavor': 'standard',
-              'releaseTarget': 'app:assembleRelease',
+              'flavor': 'dev',
               'min_sdk': 16
           })
       ]
