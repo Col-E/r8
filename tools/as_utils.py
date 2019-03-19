@@ -171,12 +171,13 @@ def MoveFile(src, dst, quiet=False):
 def MoveProfileReportTo(dest_dir, build_stdout, quiet=False):
   html_file = None
   profile_message = 'See the profiling report at: '
+  # We are not interested in the profiling report for buildSrc.
   for line in build_stdout:
-    if profile_message in line:
+    if (profile_message in line) and ('buildSrc' not in line):
+      assert not html_file, "Only one report should be created"
       html_file = line[len(profile_message):]
       if html_file.startswith('file://'):
         html_file = html_file[len('file://'):]
-      break
 
   if not html_file:
     return

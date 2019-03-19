@@ -250,7 +250,6 @@ APP_REPOSITORIES = [
               'module': '',
               'flavor': 'play',
               'main_dex_rules': 'multidex-config.pro',
-              'releaseTarget': 'assemblePlayRelease',
               'signed_apk_name': 'Signal-play-release-4.32.7.apk'
           })
       ]
@@ -679,8 +678,7 @@ def ComputeRecompilationResults(
     app, repo, options, checkout_dir, temp_dir, shrinker, proguard_config_file):
   recompilation_results = []
 
-  # Build app with gradle using -D...keepRuleSynthesisForRecompilation=
-  # true.
+  # Build app with gradle using -D...keepRuleSynthesisForRecompilation=true.
   out_dir = os.path.join(checkout_dir, 'out', shrinker + '-1')
   (apk_dest, profile_dest_dir, ext_proguard_config_file) = \
       BuildAppWithShrinker(
