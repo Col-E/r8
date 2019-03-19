@@ -222,7 +222,7 @@ public class StaticClassMerger {
   }
 
   public GraphLense run() {
-    for (DexProgramClass clazz : appView.appInfo().app.classesWithDeterministicOrder()) {
+    for (DexProgramClass clazz : appView.appInfo().app().classesWithDeterministicOrder()) {
       MergeGroup group = satisfiesMergeCriteria(clazz);
       if (group != MergeGroup.DONT_MERGE) {
         merge(clazz, group);

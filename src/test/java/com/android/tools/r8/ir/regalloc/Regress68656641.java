@@ -4,6 +4,7 @@
 package com.android.tools.r8.ir.regalloc;
 
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.IRCode;
@@ -21,8 +22,8 @@ import org.junit.Test;
 public class Regress68656641 extends SmaliTestBase {
 
   private static class MyRegisterAllocator extends LinearScanRegisterAllocator {
-    public MyRegisterAllocator(AppInfo appInfo, IRCode code, InternalOptions options) {
-      super(appInfo, code, options);
+    public MyRegisterAllocator(AppView<? extends AppInfo> appView, IRCode code) {
+      super(appView, code);
     }
 
     public void addInactiveIntervals(LiveIntervals intervals) {
@@ -56,8 +57,9 @@ public class Regress68656641 extends SmaliTestBase {
   public void splitOverlappingInactiveIntervalWithNoNextUse() {
     InternalOptions options = new InternalOptions();
     AppInfo appInfo = new AppInfo(DexApplication.builder(options.itemFactory, null).build());
+    AppView<? extends AppInfo> appView = AppView.createForD8(appInfo, options);
     IRCode code = simpleCode();
-    MyRegisterAllocator allocator = new MyRegisterAllocator(appInfo, code, options);
+    MyRegisterAllocator allocator = new MyRegisterAllocator(appView, code);
     // Setup live an inactive live interval with ranges [0, 10[ and [20, 30[ with only
     // uses in the first interval and which is linked to another interval.
     LiveIntervals inactiveIntervals =

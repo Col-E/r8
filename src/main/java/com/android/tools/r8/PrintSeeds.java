@@ -87,8 +87,7 @@ public class PrintSeeds {
           AppView.createForR8(new AppInfoWithSubtyping(application), options);
       appView.setAppServices(AppServices.builder(appView).build());
       RootSet rootSet =
-          new RootSetBuilder(
-                  appView, application, options.getProguardConfiguration().getRules(), options)
+          new RootSetBuilder(appView, application, options.getProguardConfiguration().getRules())
               .run(executor);
       Enqueuer enqueuer = new Enqueuer(appView, options, null);
       AppInfoWithLiveness appInfo =

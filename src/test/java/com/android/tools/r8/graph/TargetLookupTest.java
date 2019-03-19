@@ -78,7 +78,7 @@ public class TargetLookupTest extends SmaliTestBase {
 
     AndroidApp application = buildApplication(builder);
     AppInfo appInfo = getAppInfo(application);
-    CodeInspector inspector = new CodeInspector(appInfo.app);
+    CodeInspector inspector = new CodeInspector(appInfo.app());
     DexEncodedMethod method = getMethod(inspector, DEFAULT_CLASS_NAME, "int", "x",
         ImmutableList.of());
     assertNull(appInfo.lookupVirtualTarget(method.method.holder, method.method));
@@ -99,7 +99,7 @@ public class TargetLookupTest extends SmaliTestBase {
   }
 
   @Test
-  public void lookupDirectSuper() throws Exception {
+  public void lookupDirectSuper() {
     SmaliBuilder builder = new SmaliBuilder("TestSuper");
 
     builder.addDefaultConstructor();
@@ -148,7 +148,7 @@ public class TargetLookupTest extends SmaliTestBase {
 
     AndroidApp application = buildApplication(builder);
     AppInfo appInfo = getAppInfo(application);
-    CodeInspector inspector = new CodeInspector(appInfo.app);
+    CodeInspector inspector = new CodeInspector(appInfo.app());
 
     DexMethod methodXOnTestSuper =
         getMethod(inspector, "TestSuper", "int", "x", ImmutableList.of()).method;
@@ -160,7 +160,7 @@ public class TargetLookupTest extends SmaliTestBase {
     DexProto methodXProto = methodXOnTestSuper.proto;
     DexString methodXName = methodXOnTestSuper.name;
     DexMethod methodXOnTest =
-        appInfo.dexItemFactory.createMethod(classTest, methodXProto, methodXName);
+        appInfo.dexItemFactory().createMethod(classTest, methodXProto, methodXName);
 
     assertNull(appInfo.lookupVirtualTarget(classTestSuper, methodXOnTestSuper));
     assertNull(appInfo.lookupVirtualTarget(classTest, methodXOnTestSuper));
@@ -197,7 +197,7 @@ public class TargetLookupTest extends SmaliTestBase {
 
     AndroidApp application = buildApplication(builder);
     AppInfo appInfo = getAppInfo(application);
-    DexItemFactory factory = appInfo.dexItemFactory;
+    DexItemFactory factory = appInfo.dexItemFactory();
 
     DexField aFieldOnSubClass = factory
         .createField(factory.createType("LSubClass;"), factory.intType, "aField");
@@ -229,7 +229,7 @@ public class TargetLookupTest extends SmaliTestBase {
     }
     AndroidApp application = builder.build();
     AppInfo appInfo = getAppInfo(application);
-    DexItemFactory factory = appInfo.dexItemFactory;
+    DexItemFactory factory = appInfo.dexItemFactory();
 
     DexType i0 = factory.createType("L" + pkg + "/I0;");
     DexType i1 = factory.createType("L" + pkg + "/I1;");

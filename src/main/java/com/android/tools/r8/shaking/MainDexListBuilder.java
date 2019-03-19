@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
  * <li> Annotation classes with a possible enum value and all classes annotated by them.
  */
 public class MainDexListBuilder {
+
   private final Set<DexType> roots;
   private final AppInfoWithSubtyping appInfo;
   private final Map<DexType, Boolean> annotationTypeContainEnum;
@@ -41,19 +42,19 @@ public class MainDexListBuilder {
     // Only consider program classes for the root set.
     this.roots = roots.stream().filter(this::isProgramClass).collect(Collectors.toSet());
     mainDexClassesBuilder = MainDexClasses.builder(appInfo).addRoots(this.roots);
-    DexClass enumType = appInfo.definitionFor(appInfo.dexItemFactory.enumType);
+    DexClass enumType = appInfo.definitionFor(appInfo.dexItemFactory().enumType);
     if (enumType == null) {
       throw new CompilationError("Tracing for legacy multi dex is not possible without all"
           + " classpath libraries (java.lang.Enum is missing)");
     }
-    DexClass annotationType = appInfo.definitionFor(appInfo.dexItemFactory.annotationType);
+    DexClass annotationType = appInfo.definitionFor(appInfo.dexItemFactory().annotationType);
     if (annotationType == null) {
       throw new CompilationError("Tracing for legacy multi dex is not possible without all"
           + " classpath libraries (java.lang.annotation.Annotation is missing)");
     }
     annotationTypeContainEnum =
         Maps.newHashMapWithExpectedSize(
-            appInfo.subtypes(appInfo.dexItemFactory.annotationType).size());
+            appInfo.subtypes(appInfo.dexItemFactory().annotationType).size());
   }
 
   public MainDexClasses run() {
@@ -99,7 +100,7 @@ public class MainDexListBuilder {
         for (DexEncodedMethod method : clazz.virtualMethods()) {
           DexProto proto = method.method.proto;
           if (proto.parameters.isEmpty()) {
-            DexType valueType = proto.returnType.toBaseType(appInfo.dexItemFactory);
+            DexType valueType = proto.returnType.toBaseType(appInfo.dexItemFactory());
             if (isEnum(valueType)) {
               value = true;
               break;
@@ -116,11 +117,11 @@ public class MainDexListBuilder {
   }
 
   private boolean isEnum(DexType valueType) {
-    return valueType.isSubtypeOf(appInfo.dexItemFactory.enumType, appInfo);
+    return valueType.isSubtypeOf(appInfo.dexItemFactory().enumType, appInfo);
   }
 
   private boolean isAnnotation(DexType valueType) {
-    return valueType.isSubtypeOf(appInfo.dexItemFactory.annotationType, appInfo);
+    return valueType.isSubtypeOf(appInfo.dexItemFactory().annotationType, appInfo);
   }
 
   private boolean isProgramClass(DexType dexType) {
@@ -140,7 +141,7 @@ public class MainDexListBuilder {
     for (DexEncodedMethod method : clazz.virtualMethods()) {
       DexProto proto = method.method.proto;
       if (proto.parameters.isEmpty()) {
-        DexType valueType = proto.returnType.toBaseType(appInfo.dexItemFactory);
+        DexType valueType = proto.returnType.toBaseType(appInfo.dexItemFactory());
         if (isEnum(valueType)) {
           addDirectDependency(valueType);
         }
@@ -155,7 +156,7 @@ public class MainDexListBuilder {
 
   private void addDirectDependency(DexType type) {
     // Consider only component type of arrays
-    type = type.toBaseType(appInfo.dexItemFactory);
+    type = type.toBaseType(appInfo.dexItemFactory());
 
     if (!type.isClassType() || mainDexClassesBuilder.contains(type)) {
       return;

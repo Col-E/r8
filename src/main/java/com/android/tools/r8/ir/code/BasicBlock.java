@@ -1307,7 +1307,7 @@ public class BasicBlock {
   public static BasicBlock createRethrowBlock(
       IRCode code, Position position, DexType guard, AppView<? extends AppInfo> appView) {
     TypeLatticeElement guardTypeLattice =
-        TypeLatticeElement.fromDexType(guard, Nullability.definitelyNotNull(), appView.appInfo());
+        TypeLatticeElement.fromDexType(guard, Nullability.definitelyNotNull(), appView);
     BasicBlock block = new BasicBlock();
     MoveException moveException =
         new MoveException(

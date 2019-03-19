@@ -201,7 +201,6 @@ public class VerticalClassMerger {
   private final AppInfoWithLiveness appInfo;
   private final AppView<AppInfoWithLiveness> appView;
   private final ExecutorService executorService;
-  private final GraphLense graphLense;
   private final MethodPoolCollection methodPoolCollection;
   private final Timing timing;
   private Collection<DexMethod> invokes;
@@ -236,7 +235,6 @@ public class VerticalClassMerger {
     this.appInfo = appView.appInfo();
     this.appView = appView;
     this.executorService = executorService;
-    this.graphLense = appView.graphLense();
     this.methodPoolCollection = new MethodPoolCollection(application);
     this.renamedMembersLense = new VerticalClassMergerGraphLense.Builder();
     this.timing = timing;
@@ -331,7 +329,7 @@ public class VerticalClassMerger {
   }
 
   private void markTypeAsPinned(DexType type, AbortReason reason) {
-    DexType baseType = type.toBaseType(appInfo.dexItemFactory);
+    DexType baseType = type.toBaseType(appView.dexItemFactory());
     if (!baseType.isClassType() || appInfo.isPinned(baseType)) {
       // We check for the case where the type is pinned according to appInfo.isPinned,
       // so we only need to add it here if it is not the case.
@@ -584,7 +582,7 @@ public class VerticalClassMerger {
     }
 
     private boolean typeMayReferenceMergedSourceOrTarget(DexType type) {
-      type = type.toBaseType(appInfo.dexItemFactory);
+      type = type.toBaseType(appView.dexItemFactory());
       if (type.isClassType()) {
         if (mergeeCandidates.contains(type)) {
           return true;
@@ -600,7 +598,7 @@ public class VerticalClassMerger {
 
   public GraphLense run() {
     timing.begin("merge");
-    GraphLense mergingGraphLense = mergeClasses(graphLense);
+    GraphLense mergingGraphLense = mergeClasses();
     timing.end();
     timing.begin("fixup");
     GraphLense result = new TreeFixer().fixupTypeReferences(mergingGraphLense);
@@ -676,13 +674,13 @@ public class VerticalClassMerger {
     return true;
   }
 
-  private GraphLense mergeClasses(GraphLense graphLense) {
+  private GraphLense mergeClasses() {
     // Visit the program classes in a top-down order according to the class hierarchy.
     TopDownClassHierarchyTraversal.visit(appView, mergeCandidates, this::mergeClassIfPossible);
     if (Log.ENABLED) {
       Log.debug(getClass(), "Merged %d classes.", mergedClasses.size());
     }
-    return renamedMembersLense.build(graphLense, mergedClasses, appInfo);
+    return renamedMembersLense.build(appView.graphLense(), mergedClasses, appView);
   }
 
   private boolean methodResolutionMayChange(DexClass source, DexClass target) {
@@ -1182,7 +1180,7 @@ public class VerticalClassMerger {
       SynthesizedBridgeCode code =
           new SynthesizedBridgeCode(
               newMethod,
-              graphLense.getOriginalMethodSignature(method.method),
+              appView.graphLense().getOriginalMethodSignature(method.method),
               invocationTarget.method,
               invocationTarget.isPrivateMethod() ? DIRECT : STATIC,
               target.isInterface());
@@ -1406,7 +1404,7 @@ public class VerticalClassMerger {
     DexType[] parameterTypes = new DexType[proto.parameters.size() + 1];
     parameterTypes[0] = receiverType;
     System.arraycopy(proto.parameters.values, 0, parameterTypes, 1, proto.parameters.size());
-    return appInfo.dexItemFactory.createProto(proto.returnType, parameterTypes);
+    return appView.dexItemFactory().createProto(proto.returnType, parameterTypes);
   }
 
   private class TreeFixer {
@@ -1588,7 +1586,7 @@ public class VerticalClassMerger {
       int bitsUsed = 0;
       int accumulator = 0;
       for (DexType parameterType : proto.parameters.values) {
-        DexType parameterBaseType = parameterType.toBaseType(appInfo.dexItemFactory);
+        DexType parameterBaseType = parameterType.toBaseType(appView.dexItemFactory());
         // Substitute the type with the already merged class to estimate what it will look like.
         DexType mappedType = mergedClasses.getOrDefault(parameterBaseType, parameterBaseType);
         accumulator <<= 1;
@@ -1604,7 +1602,7 @@ public class VerticalClassMerger {
         }
       }
       // We also take the return type into account for potential conflicts.
-      DexType returnBaseType = proto.returnType.toBaseType(appInfo.dexItemFactory);
+      DexType returnBaseType = proto.returnType.toBaseType(appView.dexItemFactory());
       DexType mappedReturnType = mergedClasses.getOrDefault(returnBaseType, returnBaseType);
       accumulator <<= 1;
       if (mappedReturnType == type) {
@@ -1678,7 +1676,7 @@ public class VerticalClassMerger {
     public GraphLenseLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
       // First look up the method using the existing graph lense (for example, the type will have
       // changed if the method was publicized by ClassAndMemberPublicizer).
-      GraphLenseLookupResult lookup = graphLense.lookupMethod(method, context, type);
+      GraphLenseLookupResult lookup = appView.graphLense().lookupMethod(method, context, type);
       DexMethod previousMethod = lookup.getMethod();
       Type previousType = lookup.getType();
       // Then check if there is a renaming due to the vertical class merger.

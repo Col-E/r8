@@ -30,10 +30,10 @@ import com.android.tools.r8.ir.code.Value;
  */
 public class TypeChecker {
 
-  private final AppInfo appInfo;
+  private final AppView<? extends AppInfo> appView;
 
   public TypeChecker(AppView<? extends AppInfo> appView) {
-    this.appInfo = appView.appInfo();
+    this.appView = appView;
   }
 
   public boolean check(IRCode code) {
@@ -72,8 +72,9 @@ public class TypeChecker {
             ? instruction.asInstancePut().value()
             : instruction.asStaticPut().inValue();
     TypeLatticeElement valueType = value.getTypeLattice();
-    TypeLatticeElement fieldType = TypeLatticeElement.fromDexType(
-        instruction.getField().type, valueType.nullability(), appInfo);
+    TypeLatticeElement fieldType =
+        TypeLatticeElement.fromDexType(
+            instruction.getField().type, valueType.nullability(), appView);
     if (isSubtypeOf(valueType, fieldType)) {
       return true;
     }
@@ -81,7 +82,7 @@ public class TypeChecker {
     if (fieldType.isClassType() && valueType.isReference()) {
       // Interface types are treated like Object according to the JVM spec.
       // https://docs.oracle.com/javase/specs/jvms/se9/html/jvms-4.html#jvms-4.10.1.2-100
-      DexClass clazz = appInfo.definitionFor(instruction.getField().type);
+      DexClass clazz = appView.definitionFor(instruction.getField().type);
       return clazz != null && clazz.isInterface();
     }
 
@@ -90,15 +91,16 @@ public class TypeChecker {
 
   public boolean check(Throw instruction) {
     TypeLatticeElement valueType = instruction.exception().getTypeLattice();
-    TypeLatticeElement throwableType = TypeLatticeElement.fromDexType(
-        appInfo.dexItemFactory.throwableType, valueType.nullability(), appInfo);
+    TypeLatticeElement throwableType =
+        TypeLatticeElement.fromDexType(
+            appView.dexItemFactory().throwableType, valueType.nullability(), appView);
     return isSubtypeOf(valueType, throwableType);
   }
 
   private boolean isSubtypeOf(
       TypeLatticeElement expectedSubtype, TypeLatticeElement expectedSupertype) {
     return (expectedSubtype.isNullType() && expectedSupertype.isReference())
-        || expectedSubtype.lessThanOrEqual(expectedSupertype, appInfo)
-        || expectedSubtype.isBasedOnMissingClass(appInfo);
+        || expectedSubtype.lessThanOrEqual(expectedSupertype, appView)
+        || expectedSubtype.isBasedOnMissingClass(appView);
   }
 }

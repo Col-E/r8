@@ -217,7 +217,7 @@ public class TypeVerificationHelper {
   }
 
   private TypeLatticeElement getLatticeElement(DexType type) {
-    return TypeLatticeElement.fromDexType(type, Nullability.maybeNull(), appView.appInfo());
+    return TypeLatticeElement.fromDexType(type, Nullability.maybeNull(), appView);
   }
 
   public Map<Value, TypeInfo> computeVerificationTypes() {

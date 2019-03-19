@@ -94,19 +94,15 @@ public class RootSetBuilder {
   public RootSetBuilder(
       AppView<? extends AppInfo> appView,
       DexApplication application,
-      Iterable<? extends ProguardConfigurationRule> rules,
-      InternalOptions options) {
+      Iterable<? extends ProguardConfigurationRule> rules) {
     this.appView = appView;
     this.application = application.asDirect();
     this.rules = rules;
-    this.options = options;
+    this.options = appView.options();
   }
 
-  RootSetBuilder(
-      AppView<? extends AppInfo> appView,
-      Collection<ProguardIfRule> ifRules,
-      InternalOptions options) {
-    this(appView, appView.appInfo().app, ifRules, options);
+  RootSetBuilder(AppView<? extends AppInfo> appView, Collection<ProguardIfRule> ifRules) {
+    this(appView, appView.appInfo().app(), ifRules);
   }
 
   // Process a class with the keep rule.
@@ -864,7 +860,7 @@ public class RootSetBuilder {
       return;
     }
     if (type.isArrayType()) {
-      type = type.toBaseType(application.dexItemFactory);
+      type = type.toBaseType(appView.dexItemFactory());
     }
     if (type.isPrimitiveType()) {
       return;

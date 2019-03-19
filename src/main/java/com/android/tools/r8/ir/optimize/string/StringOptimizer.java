@@ -120,7 +120,7 @@ public class StringOptimizer {
         String sub = rcvString.substring(beginIndexValue, endIndexValue);
         Value stringValue =
             code.createValue(
-                TypeLatticeElement.stringClassType(appView.appInfo(), definitelyNotNull()),
+                TypeLatticeElement.stringClassType(appView, definitelyNotNull()),
                 invoke.getLocalInfo());
         it.replaceCurrentInstruction(
             new ConstString(stringValue, factory.createString(sub), throwingInfo));
@@ -335,7 +335,7 @@ public class StringOptimizer {
       if (name != null) {
         Value stringValue =
             code.createValue(
-                TypeLatticeElement.stringClassType(appView.appInfo(), definitelyNotNull()),
+                TypeLatticeElement.stringClassType(appView, definitelyNotNull()),
                 invoke.getLocalInfo());
         ConstString constString = new ConstString(stringValue, name, throwingInfo);
         it.replaceCurrentInstruction(constString);
@@ -401,7 +401,7 @@ public class StringOptimizer {
         if (inType.isNullType()) {
           Value nullStringValue =
               code.createValue(
-                  TypeLatticeElement.stringClassType(appView.appInfo(), definitelyNotNull()),
+                  TypeLatticeElement.stringClassType(appView, definitelyNotNull()),
                   invoke.getLocalInfo());
           ConstString nullString =
               new ConstString(nullStringValue, factory.createString("null"), throwingInfo);

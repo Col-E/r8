@@ -470,11 +470,11 @@ final class LambdaClass {
     abstract boolean ensureAccessibility();
 
     DexClass definitionFor(DexType type) {
-      return rewriter.converter.appView.appInfo().app.definitionFor(type);
+      return rewriter.converter.appView.appInfo().app().definitionFor(type);
     }
 
     DexProgramClass programDefinitionFor(DexType type) {
-      return rewriter.converter.appView.appInfo().app.programDefinitionFor(type);
+      return rewriter.converter.appView.appInfo().app().programDefinitionFor(type);
     }
   }
 

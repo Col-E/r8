@@ -9,7 +9,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -19,8 +18,8 @@ import java.util.function.Consumer;
 
 public class AppInfo implements DexDefinitionSupplier {
 
-  public final DexApplication app;
-  public final DexItemFactory dexItemFactory;
+  private final DexApplication app;
+  private final DexItemFactory dexItemFactory;
   private final ConcurrentHashMap<DexType, Map<Descriptor<?,?>, KeyedDexItem<?>>> definitions =
       new ConcurrentHashMap<>();
   // For some optimizations, e.g. optimizing synthetic classes, we may need to resolve the current
@@ -28,38 +27,60 @@ public class AppInfo implements DexDefinitionSupplier {
   private final ConcurrentHashMap<DexType, DexProgramClass> synthesizedClasses =
       new ConcurrentHashMap<>();
 
+  // Set when a new AppInfo replaces a previous one. All public methods should verify that the
+  // current instance is not obsolete, to ensure that we almost use the most recent AppInfo.
+  private boolean obsolete;
+
   public AppInfo(DexApplication application) {
     this.app = application;
     this.dexItemFactory = app.dexItemFactory;
   }
 
   protected AppInfo(AppInfo previous) {
+    assert !previous.isObsolete();
     this.app = previous.app;
     this.dexItemFactory = app.dexItemFactory;
     this.definitions.putAll(previous.definitions);
     this.synthesizedClasses.putAll(previous.synthesizedClasses);
   }
 
-  protected AppInfo(DirectMappedDexApplication application, GraphLense lense) {
-    // Rebuild information from scratch, as the application object has changed. We do not
-    // use the lense here, as it is about applied occurrences and not definitions.
-    // In particular, we have to invalidate the definitions cache, as its keys are no longer
-    // valid.
-    this(application);
+  public boolean isObsolete() {
+    return obsolete;
+  }
+
+  public void markObsolete() {
+    obsolete = true;
+  }
+
+  public void unsetObsolete() {
+    obsolete = false;
+  }
+
+  public boolean checkIfObsolete() {
+    assert !isObsolete();
+    return true;
+  }
+
+  public DexApplication app() {
+    assert checkIfObsolete();
+    return app;
   }
 
   @Override
   public DexItemFactory dexItemFactory() {
+    assert checkIfObsolete();
     return dexItemFactory;
   }
 
   public void addSynthesizedClass(DexProgramClass clazz) {
+    assert checkIfObsolete();
     assert clazz.type.isD8R8SynthesizedClassType();
     DexProgramClass previous = synthesizedClasses.put(clazz.type, clazz);
     assert previous == null || previous == clazz;
   }
 
   public Collection<DexProgramClass> getSynthesizedClassesForSanityCheck() {
+    assert checkIfObsolete();
     return Collections.unmodifiableCollection(synthesizedClasses.values());
   }
 
@@ -74,15 +95,18 @@ public class AppInfo implements DexDefinitionSupplier {
   }
 
   public Iterable<DexProgramClass> classes() {
+    assert checkIfObsolete();
     return app.classes();
   }
 
   public Iterable<DexProgramClass> classesWithDeterministicOrder() {
+    assert checkIfObsolete();
     return app.classesWithDeterministicOrder();
   }
 
   @Override
   public DexDefinition definitionFor(DexReference reference) {
+    assert checkIfObsolete();
     if (reference.isDexType()) {
       return definitionFor(reference.asDexType());
     }
@@ -95,6 +119,7 @@ public class AppInfo implements DexDefinitionSupplier {
 
   @Override
   public DexClass definitionFor(DexType type) {
+    assert checkIfObsolete();
     DexProgramClass cached = synthesizedClasses.get(type);
     if (cached != null) {
       assert app.definitionFor(type) == null;
@@ -104,12 +129,14 @@ public class AppInfo implements DexDefinitionSupplier {
   }
 
   public Origin originFor(DexType type) {
+    assert checkIfObsolete();
     DexClass definition = app.definitionFor(type);
     return definition == null ? Origin.unknown() : definition.origin;
   }
 
   @Override
   public DexEncodedMethod definitionFor(DexMethod method) {
+    assert checkIfObsolete();
     DexType holderType = method.holder;
     DexEncodedMethod cached = (DexEncodedMethod) getDefinitions(holderType).get(method);
     if (cached != null && cached.isObsolete()) {
@@ -121,6 +148,7 @@ public class AppInfo implements DexDefinitionSupplier {
 
   @Override
   public DexEncodedField definitionFor(DexField field) {
+    assert checkIfObsolete();
     return (DexEncodedField) getDefinitions(field.holder).get(field);
   }
 
@@ -145,6 +173,7 @@ public class AppInfo implements DexDefinitionSupplier {
    * @return The actual target for {@code method} or {@code null} if none found.
    */
   public DexEncodedMethod lookupStaticTarget(DexMethod method) {
+    assert checkIfObsolete();
     ResolutionResult resolutionResult = resolveMethod(method.holder, method);
     DexEncodedMethod target = resolutionResult.asSingleTarget();
     return target == null || target.isStatic() ? target : null;
@@ -152,16 +181,16 @@ public class AppInfo implements DexDefinitionSupplier {
 
   /**
    * Lookup super method following the super chain from the holder of {@code method}.
-   * <p>
-   * This method will resolve the method on the holder of {@code method} and only return a non-null
-   * value if the result of resolution was an instance (i.e. non-static) method.
+   *
+   * <p>This method will resolve the method on the holder of {@code method} and only return a
+   * non-null value if the result of resolution was an instance (i.e. non-static) method.
    *
    * @param method the method to lookup
    * @param invocationContext the class the invoke is contained in, i.e., the holder of the caller.
    * @return The actual target for {@code method} or {@code null} if none found.
    */
-  public DexEncodedMethod lookupSuperTarget(DexMethod method,
-      DexType invocationContext) {
+  public DexEncodedMethod lookupSuperTarget(DexMethod method, DexType invocationContext) {
+    assert checkIfObsolete();
     // Make sure we are not chasing NotFoundError.
     ResolutionResult resolutionResult = resolveMethod(method.holder, method);
     if (resolutionResult.asListOfTargets().isEmpty()) {
@@ -192,6 +221,7 @@ public class AppInfo implements DexDefinitionSupplier {
    * @return The actual target for {@code method} or {@code null} if none found.
    */
   public DexEncodedMethod lookupDirectTarget(DexMethod method) {
+    assert checkIfObsolete();
     ResolutionResult resolutionResult = resolveMethod(method.holder, method);
     DexEncodedMethod target = resolutionResult.asSingleTarget();
     return target == null || target.isDirectMethod() ? target : null;
@@ -204,6 +234,7 @@ public class AppInfo implements DexDefinitionSupplier {
    * non-null value if the result of resolution was a non-static, non-private method.
    */
   public DexEncodedMethod lookupVirtualTarget(DexType type, DexMethod method) {
+    assert checkIfObsolete();
     assert type.isClassType() || type.isArrayType();
     ResolutionResult resolutionResult = resolveMethod(type, method);
     DexEncodedMethod target = resolutionResult.asSingleTarget();
@@ -221,6 +252,7 @@ public class AppInfo implements DexDefinitionSupplier {
    * kind of a method reference.
    */
   public ResolutionResult resolveMethod(DexType holder, DexMethod method) {
+    assert checkIfObsolete();
     if (holder.isArrayType()) {
       return resolveMethodOnArray(holder, method);
     }
@@ -241,6 +273,7 @@ public class AppInfo implements DexDefinitionSupplier {
    * All invokations will have target java.lang.Object except clone which has no target.
    */
   public ResolutionResult resolveMethodOnArray(DexType holder, DexMethod method) {
+    assert checkIfObsolete();
     assert holder.isArrayType();
     if (method.name == dexItemFactory.cloneMethodName) {
       return EmptyResult.get();
@@ -261,6 +294,7 @@ public class AppInfo implements DexDefinitionSupplier {
    * resolved method is used as basis for dispatch.
    */
   public ResolutionResult resolveMethodOnClass(DexType holder, DexMethod method) {
+    assert checkIfObsolete();
     DexClass clazz = definitionFor(holder);
     // Step 1: If holder is an interface, resolution fails with an ICCE. We return null.
     if (clazz == null || clazz.isInterface()) {
@@ -385,6 +419,7 @@ public class AppInfo implements DexDefinitionSupplier {
    * resolved method is used as basis for dispatch.
    */
   public ResolutionResult resolveMethodOnInterface(DexType holder, DexMethod desc) {
+    assert checkIfObsolete();
     // Step 1: Lookup interface.
     DexClass definition = definitionFor(holder);
     // If the definition is not an interface, resolution fails with an ICCE. We just return the
@@ -419,6 +454,7 @@ public class AppInfo implements DexDefinitionSupplier {
    * of null indicates that the field is either undefined or not an instance field.
    */
   public DexEncodedField lookupInstanceTarget(DexType type, DexField field) {
+    assert checkIfObsolete();
     assert type.isClassType();
     DexEncodedField result = resolveFieldOn(type, field);
     return result == null || result.accessFlags.isStatic() ? null : result;
@@ -431,6 +467,7 @@ public class AppInfo implements DexDefinitionSupplier {
    * of null indicates that the field is either undefined or not a static field.
    */
   public DexEncodedField lookupStaticTarget(DexType type, DexField field) {
+    assert checkIfObsolete();
     assert type.isClassType();
     DexEncodedField result = resolveFieldOn(type, field);
     return result == null || !result.accessFlags.isStatic() ? null : result;
@@ -441,6 +478,7 @@ public class AppInfo implements DexDefinitionSupplier {
    * #resolveFieldOn}.
    */
   public DexEncodedField resolveField(DexField field) {
+    assert checkIfObsolete();
     return resolveFieldOn(field.holder, field);
   }
 
@@ -451,6 +489,7 @@ public class AppInfo implements DexDefinitionSupplier {
    * Section 5.4.3.2 of the JVM Spec</a>.
    */
   public DexEncodedField resolveFieldOn(DexType type, DexField desc) {
+    assert checkIfObsolete();
     DexClass holder = definitionFor(type);
     if (holder == null) {
       return null;
@@ -483,6 +522,7 @@ public class AppInfo implements DexDefinitionSupplier {
    * The only requirement is that the method is indeed static.
    */
   public DexEncodedMethod dispatchStaticInvoke(ResolutionResult resolvedMethod) {
+    assert checkIfObsolete();
     DexEncodedMethod target = resolvedMethod.asSingleTarget();
     if (target != null && target.accessFlags.isStatic()) {
       return target;
@@ -496,6 +536,7 @@ public class AppInfo implements DexDefinitionSupplier {
    * The only requirement is that the method is not static.
    */
   public DexEncodedMethod dispatchDirectInvoke(ResolutionResult resolvedMethod) {
+    assert checkIfObsolete();
     DexEncodedMethod target = resolvedMethod.asSingleTarget();
     if (target != null && !target.accessFlags.isStatic()) {
       return target;
@@ -520,40 +561,33 @@ public class AppInfo implements DexDefinitionSupplier {
   }
 
   public boolean hasSubtyping() {
+    assert checkIfObsolete();
     return false;
   }
 
   public AppInfoWithSubtyping withSubtyping() {
+    assert checkIfObsolete();
     return null;
   }
 
   public boolean hasLiveness() {
+    assert checkIfObsolete();
     return false;
   }
 
   public AppInfoWithLiveness withLiveness() {
+    assert checkIfObsolete();
     return null;
   }
 
   public void registerNewType(DexType newType, DexType superType) {
     // We do not track subtyping relationships in the basic AppInfo. So do nothing.
+    assert checkIfObsolete();
   }
 
   public boolean isInMainDexList(DexType type) {
+    assert checkIfObsolete();
     return app.mainDexList.contains(type);
-  }
-
-  public List<DexClass> getSuperTypeClasses(DexType type) {
-    List<DexClass> result = new ArrayList<>();
-    do {
-      DexClass clazz = definitionFor(type);
-      if (clazz == null) {
-        break;
-      }
-      result.add(clazz);
-      type = clazz.superType;
-    } while (type != null);
-    return result;
   }
 
   public interface ResolutionResult {
@@ -630,7 +664,6 @@ public class AppInfo implements DexDefinitionSupplier {
     public void forEachTarget(Consumer<DexEncodedMethod> consumer) {
       methods.forEach(consumer);
     }
-
   }
 
   private static class EmptyResult implements ResolutionResult {
@@ -669,6 +702,5 @@ public class AppInfo implements DexDefinitionSupplier {
     public void forEachTarget(Consumer<DexEncodedMethod> consumer) {
       // Intentionally left empty.
     }
-
   }
 }

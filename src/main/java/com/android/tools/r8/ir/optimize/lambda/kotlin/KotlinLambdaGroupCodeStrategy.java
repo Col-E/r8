@@ -120,7 +120,7 @@ final class KotlinLambdaGroupCodeStrategy implements Strategy {
             group.getGroupClassType(),
             context.code.createValue(
                 TypeLatticeElement.fromDexType(
-                    newInstance.clazz, definitelyNotNull(), context.appView.appInfo())));
+                    newInstance.clazz, definitelyNotNull(), context.appView)));
     context.instructions().replaceCurrentInstruction(patchedNewInstance);
   }
 
@@ -167,7 +167,7 @@ final class KotlinLambdaGroupCodeStrategy implements Strategy {
     // Since all captured values of non-primitive types are stored in fields of type
     // java.lang.Object, we need to cast them to appropriate type to satisfy the verifier.
     TypeLatticeElement castTypeLattice =
-        TypeLatticeElement.fromDexType(fieldType, definitelyNotNull(), context.appView.appInfo());
+        TypeLatticeElement.fromDexType(fieldType, definitelyNotNull(), context.appView);
     Value newValue = context.code.createValue(castTypeLattice, newInstanceGet.getLocalInfo());
     newInstanceGet.outValue().replaceUsers(newValue);
     CheckCast cast = new CheckCast(newValue, newInstanceGet.outValue(), fieldType);
@@ -232,7 +232,7 @@ final class KotlinLambdaGroupCodeStrategy implements Strategy {
     return returnType == context.factory.voidType
         ? null
         : context.code.createValue(
-            TypeLatticeElement.fromDexType(returnType, maybeNull(), context.appView.appInfo()));
+            TypeLatticeElement.fromDexType(returnType, maybeNull(), context.appView));
   }
 
   private List<Value> mapInitializerArgs(

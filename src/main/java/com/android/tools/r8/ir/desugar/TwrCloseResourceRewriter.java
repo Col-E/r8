@@ -49,12 +49,12 @@ import java.util.concurrent.ExecutorService;
 // tree shaking to remove them since now they should not be referenced.
 //
 public final class TwrCloseResourceRewriter {
+
   public static final String UTILITY_CLASS_NAME = "$r8$twr$utility";
   public static final String UTILITY_CLASS_DESCRIPTOR = "L$r8$twr$utility;";
 
   private final AppView<? extends AppInfo> appView;
   private final IRConverter converter;
-  private final DexItemFactory factory;
 
   private final DexMethod twrCloseResourceMethod;
 
@@ -63,13 +63,15 @@ public final class TwrCloseResourceRewriter {
   public TwrCloseResourceRewriter(AppView<? extends AppInfo> appView, IRConverter converter) {
     this.appView = appView;
     this.converter = converter;
-    this.factory = appView.dexItemFactory();
 
-    DexType twrUtilityClass = factory.createType(UTILITY_CLASS_DESCRIPTOR);
-    DexProto twrCloseResourceProto = factory.createProto(
-        factory.voidType, factory.throwableType, factory.objectType);
-    this.twrCloseResourceMethod = factory.createMethod(
-        twrUtilityClass, twrCloseResourceProto, factory.twrCloseResourceMethodName);
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    DexType twrUtilityClass = dexItemFactory.createType(UTILITY_CLASS_DESCRIPTOR);
+    DexProto twrCloseResourceProto =
+        dexItemFactory.createProto(
+            dexItemFactory.voidType, dexItemFactory.throwableType, dexItemFactory.objectType);
+    this.twrCloseResourceMethod =
+        dexItemFactory.createMethod(
+            twrUtilityClass, twrCloseResourceProto, dexItemFactory.twrCloseResourceMethodName);
   }
 
   // Rewrites calls to $closeResource() method. Can be invoked concurrently.
@@ -111,7 +113,7 @@ public final class TwrCloseResourceRewriter {
     //    right attributes, but it still does not guarantee much since we also
     //    need to look into code and doing this seems an overkill
     //
-    DexItemFactory dexItemFactory = appView.appInfo().dexItemFactory;
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
     return original.name == dexItemFactory.twrCloseResourceMethodName
         && original.proto == dexItemFactory.twrCloseResourceMethodProto;
   }
@@ -137,7 +139,7 @@ public final class TwrCloseResourceRewriter {
             null,
             new SynthesizedOrigin("twr utility class", getClass()),
             ClassAccessFlags.fromSharedAccessFlags(Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC),
-            factory.objectType,
+            appView.dexItemFactory().objectType,
             DexTypeList.empty(),
             null,
             null,
@@ -145,9 +147,9 @@ public final class TwrCloseResourceRewriter {
             DexAnnotationSet.empty(),
             DexEncodedField.EMPTY_ARRAY,
             DexEncodedField.EMPTY_ARRAY,
-            new DexEncodedMethod[]{method},
+            new DexEncodedMethod[] {method},
             DexEncodedMethod.EMPTY_ARRAY,
-            factory.getSkipNameValidationForTesting(),
+            appView.dexItemFactory().getSkipNameValidationForTesting(),
             referencingClasses);
 
     code.setUpContext(utilityClass);

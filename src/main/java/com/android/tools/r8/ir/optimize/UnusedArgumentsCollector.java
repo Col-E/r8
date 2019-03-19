@@ -134,7 +134,7 @@ public class UnusedArgumentsCollector {
         }
         assert newIndex == parameters.length;
       }
-      return appView.appInfo().dexItemFactory.createProto(method.proto.returnType, parameters);
+      return appView.dexItemFactory().createProto(method.proto.returnType, parameters);
     }
 
     private boolean isMethodSignatureAvailable(DexMethod method) {

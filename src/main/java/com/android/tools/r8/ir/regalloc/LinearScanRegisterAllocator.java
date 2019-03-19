@@ -11,6 +11,7 @@ import com.android.tools.r8.cf.FixedLocalValue;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Add;
@@ -122,14 +123,12 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     }
   }
 
-  // App info to be able to create types.
-  private final AppInfo appInfo;
+  // App view to be able to create types and access the options.
+  private final AppView<? extends AppInfo> appView;
   // The code for which to allocate registers.
   private final IRCode code;
   // Number of registers used for arguments.
   protected final int numberOfArgumentRegisters;
-  // Compiler options.
-  private final InternalOptions options;
 
   // Mapping from basic blocks to the set of values live at entry to that basic block.
   private Map<BasicBlock, LiveAtEntrySets> liveAtEntrySets;
@@ -185,10 +184,9 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     return numberOfArgumentRegisters;
   }
 
-  public LinearScanRegisterAllocator(AppInfo appInfo, IRCode code, InternalOptions options) {
-    this.appInfo = appInfo;
+  public LinearScanRegisterAllocator(AppView<? extends AppInfo> appView, IRCode code) {
+    this.appView = appView;
     this.code = code;
-    this.options = options;
     int argumentRegisters = 0;
     for (Instruction instruction : code.entryBlock().getInstructions()) {
       if (instruction.isArgument()) {
@@ -223,7 +221,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     // register allocation. We just treat the method as being in debug mode in order to keep
     // locals alive for their entire live range. In release mode the liveness is all that matters
     // and we do not actually want locals information in the output.
-    if (options.debug) {
+    if (options().debug) {
       computeDebugInfo(blocks);
     } else if (code.method.getOptimizationInfo().isReachabilitySensitive()) {
       InstructionIterator it = code.instructionIterator();
@@ -641,8 +639,8 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   }
 
   @Override
-  public InternalOptions getOptions() {
-    return options;
+  public InternalOptions options() {
+    return appView.options();
   }
 
   private ImmutableList<BasicBlock> computeLivenessInformation() {
@@ -676,8 +674,9 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
 
     switch (mode) {
       case ALLOW_ARGUMENT_REUSE_U4BIT:
-        if (!succeeded || highestUsedRegister() > Constants.U4BIT_MAX
-            || options.testing.alwaysUsePessimisticRegisterAllocation) {
+        if (!succeeded
+            || highestUsedRegister() > Constants.U4BIT_MAX
+            || options().testing.alwaysUsePessimisticRegisterAllocation) {
           // Redo allocation in mode ALLOW_ARGUMENT_REUSE_U8BIT. This may in principle also fail.
           // It is extremely rare that a method will use more than 256 registers, though.
           result = performAllocation(ArgumentReuseMode.ALLOW_ARGUMENT_REUSE_U8BIT, true);
@@ -699,7 +698,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
         computeUnusedRegisters();
 
         if (highestUsedRegister() > Constants.U8BIT_MAX
-            || options.testing.alwaysUsePessimisticRegisterAllocation) {
+            || options().testing.alwaysUsePessimisticRegisterAllocation) {
           // Redo allocation in mode ALLOW_ARGUMENT_REUSE_U16BIT. This always succeed.
           unusedRegisters = null;
           result = performAllocation(ArgumentReuseMode.ALLOW_ARGUMENT_REUSE_U16BIT, true);
@@ -1423,7 +1422,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   // We work around that bug by disallowing aget-wide with the same array
   // and result register.
   private boolean needsArrayGetWideWorkaround(LiveIntervals intervals) {
-    if (options.canUseSameArrayAndResultRegisterInArrayGetWide()) {
+    if (options().canUseSameArrayAndResultRegisterInArrayGetWide()) {
       return false;
     }
     if (intervals.requiredRegisters() == 1) {
@@ -1455,7 +1454,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   }
 
   private boolean needsSingleResultOverlappingLongOperandsWorkaround(LiveIntervals intervals) {
-    if (!options.canHaveCmpLongBug() && !options.canHaveLongToIntBug()) {
+    if (!options().canHaveCmpLongBug() && !options().canHaveLongToIntBug()) {
       return false;
     }
     if (intervals.requiredRegisters() == 2) {
@@ -1516,7 +1515,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   // Dalvik would add v0 and v2 and write that to v3. It would then read v1 and v3 and produce
   // the wrong result.
   private boolean needsLongResultOverlappingLongOperandsWorkaround(LiveIntervals intervals) {
-    if (!options.canHaveOverlappingLongRegisterBug()) {
+    if (!options().canHaveOverlappingLongRegisterBug()) {
       return false;
     }
     if (intervals.requiredRegisters() == 1) {
@@ -1651,7 +1650,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     // Set all free positions for possible registers to max integer.
     RegisterPositions freePositions = new RegisterPositions(registerConstraint + 1);
 
-    if ((options.debug || code.method.getOptimizationInfo().isReachabilitySensitive())
+    if ((options().debug || code.method.getOptimizationInfo().isReachabilitySensitive())
         && !code.method.accessFlags.isStatic()) {
       // If we are generating debug information or if the method is reachability sensitive,
       // we pin the this value register. The debugger expects to always be able to find it in
@@ -2365,7 +2364,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   private void insertMoves() {
     computeRematerializableBits();
 
-    SpillMoveSet spillMoves = new SpillMoveSet(this, code, appInfo);
+    SpillMoveSet spillMoves = new SpillMoveSet(this, code, appView);
     for (LiveIntervals intervals : liveIntervals) {
       if (intervals.hasSplits()) {
         LiveIntervals current = intervals;
@@ -2507,12 +2506,12 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   }
 
   private void computeLiveRanges() {
-    computeLiveRanges(options, code, liveAtEntrySets, liveIntervals);
+    computeLiveRanges(options(), code, liveAtEntrySets, liveIntervals);
     // Art VMs before Android M assume that the register for the receiver never changes its value.
     // This assumption is used during verification. Allowing the receiver register to be
     // overwritten can therefore lead to verification errors. If we could be targeting one of these
     // VMs we block the receiver register throughout the method.
-    if ((options.canHaveThisTypeVerifierBug() || options.canHaveThisJitCodeDebuggingBug())
+    if ((options().canHaveThisTypeVerifierBug() || options().canHaveThisJitCodeDebuggingBug())
         && !code.method.accessFlags.isStatic()) {
       for (Instruction instruction : code.entryBlock().getInstructions()) {
         if (instruction.isArgument() && instruction.outValue().isThis()) {

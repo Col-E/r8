@@ -30,17 +30,17 @@ public class DexEncodedField extends KeyedDexItem<DexField> {
     this.staticValue = staticValue;
   }
 
-  public boolean isProgramField(AppInfo appInfo) {
+  public boolean isProgramField(DexDefinitionSupplier definitions) {
     if (field.holder.isClassType()) {
-      DexClass clazz = appInfo.definitionFor(field.holder);
+      DexClass clazz = definitions.definitionFor(field.holder);
       return clazz != null && clazz.isProgramClass();
     }
     return false;
   }
 
   @Override
-  public void collectIndexedItems(IndexedItemCollection indexedItems,
-      DexMethod method, int instructionOffset) {
+  public void collectIndexedItems(
+      IndexedItemCollection indexedItems, DexMethod method, int instructionOffset) {
     field.collectIndexedItems(indexedItems, method, instructionOffset);
     annotations.collectIndexedItems(indexedItems, method, instructionOffset);
     if (accessFlags.isStatic()) {

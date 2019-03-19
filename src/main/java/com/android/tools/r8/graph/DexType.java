@@ -116,21 +116,24 @@ public class DexType extends DexReference implements PresortedComparable<DexType
     return hierarchyLevel == INTERFACE_LEVEL;
   }
 
-  public boolean isExternalizable(AppInfo appInfo) {
-    return implementedInterfaces(appInfo).contains(appInfo.dexItemFactory.externalizableType);
+  public boolean isExternalizable(DexDefinitionSupplier definitions) {
+    return implementedInterfaces(definitions)
+        .contains(definitions.dexItemFactory().externalizableType);
   }
 
-  public boolean isSerializable(AppInfo appInfo) {
-    return implementedInterfaces(appInfo).contains(appInfo.dexItemFactory.serializableType);
+  public boolean isSerializable(DexDefinitionSupplier definitions) {
+    return implementedInterfaces(definitions)
+        .contains(definitions.dexItemFactory().serializableType);
   }
 
-  public boolean classInitializationMayHaveSideEffects(AppInfo appInfo) {
-    return classInitializationMayHaveSideEffects(appInfo, Predicates.alwaysFalse());
+  public boolean classInitializationMayHaveSideEffects(DexDefinitionSupplier definitions) {
+    return classInitializationMayHaveSideEffects(definitions, Predicates.alwaysFalse());
   }
 
-  public boolean classInitializationMayHaveSideEffects(AppInfo appInfo, Predicate<DexType> ignore) {
-    DexClass clazz = appInfo.definitionFor(this);
-    return clazz == null || clazz.classInitializationMayHaveSideEffects(appInfo, ignore);
+  public boolean classInitializationMayHaveSideEffects(
+      DexDefinitionSupplier definitions, Predicate<DexType> ignore) {
+    DexClass clazz = definitions.definitionFor(this);
+    return clazz == null || clazz.classInitializationMayHaveSideEffects(definitions, ignore);
   }
 
   public boolean initializationOfParentTypesMayHaveSideEffects(AppInfo appInfo) {

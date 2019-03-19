@@ -5,6 +5,7 @@ package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinition;
@@ -31,17 +32,16 @@ public class DiscardedChecker {
     this.options = options;
   }
 
-  public DiscardedChecker(
-      RootSet rootSet, Set<DexType> types, AppInfo appInfo, InternalOptions options) {
+  public DiscardedChecker(RootSet rootSet, Set<DexType> types, AppView<? extends AppInfo> appView) {
     this.checkDiscarded = rootSet.checkDiscarded;
     this.classes = new ArrayList<>();
     types.forEach(
         type -> {
-          DexClass clazz = appInfo.definitionFor(type);
+          DexClass clazz = appView.definitionFor(type);
           assert clazz.isProgramClass();
           this.classes.add(clazz.asProgramClass());
         });
-    this.options = options;
+    this.options = appView.options();
   }
 
   public void run() {

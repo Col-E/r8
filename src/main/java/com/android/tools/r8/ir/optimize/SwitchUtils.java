@@ -72,7 +72,7 @@ public class SwitchUtils {
     InvokeVirtual ordinalInvoke = index.asInvokeVirtual();
     DexMethod ordinalMethod = ordinalInvoke.getInvokedMethod();
     DexClass enumClass = appInfo.definitionFor(ordinalMethod.holder);
-    DexItemFactory dexItemFactory = appInfo.dexItemFactory;
+    DexItemFactory dexItemFactory = appInfo.dexItemFactory();
     // After member rebinding, enumClass will be the actual java.lang.Enum class.
     if (enumClass == null
         || (!enumClass.accessFlags.isEnum() && enumClass.type != dexItemFactory.enumType)

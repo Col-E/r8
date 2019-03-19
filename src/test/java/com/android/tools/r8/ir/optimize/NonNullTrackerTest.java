@@ -35,7 +35,7 @@ public class NonNullTrackerTest extends NonNullTrackerTestBase {
       Consumer<IRCode> testAugmentedIRCode)
       throws Exception {
     AppView<? extends AppInfo> appView = build(testClass);
-    CodeInspector codeInspector = new CodeInspector(appView.appInfo().app);
+    CodeInspector codeInspector = new CodeInspector(appView.appInfo().app());
     MethodSubject fooSubject = codeInspector.clazz(testClass.getName()).method(signature);
     IRCode irCode = fooSubject.buildIR();
     checkCountOfNonNull(irCode, 0);

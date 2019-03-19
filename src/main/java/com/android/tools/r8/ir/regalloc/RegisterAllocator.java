@@ -13,7 +13,8 @@ public interface RegisterAllocator {
   int registersUsed();
   int getRegisterForValue(Value value, int instructionNumber);
   int getArgumentOrAllocateRegisterForValue(Value value, int instructionNumber);
-  InternalOptions getOptions();
+
+  InternalOptions options();
 
   void mergeBlocks(BasicBlock kept, BasicBlock removed);
 

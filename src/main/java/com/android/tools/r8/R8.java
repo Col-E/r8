@@ -294,7 +294,7 @@ public class R8 {
 
         // Compute kotlin info before setting the roots and before
         // kotlin metadata annotation is removed.
-        computeKotlinInfoForProgramClasses(application, appView.appInfo());
+        computeKotlinInfoForProgramClasses(application, appView);
 
         ProguardConfiguration.Builder compatibility =
             ProguardConfiguration.builder(application.dexItemFactory, options.reporter);
@@ -313,12 +313,11 @@ public class R8 {
 
         rootSet =
             new RootSetBuilder(
-                appView,
-                application,
-                Iterables.concat(
-                    options.getProguardConfiguration().getRules(), synthesizedProguardRules),
-                options
-            ).run(executorService);
+                    appView,
+                    application,
+                    Iterables.concat(
+                        options.getProguardConfiguration().getRules(), synthesizedProguardRules))
+                .run(executorService);
 
         Enqueuer enqueuer = new Enqueuer(appView, options, null, compatibility);
         appView.setAppInfo(
@@ -401,15 +400,14 @@ public class R8 {
       if (!options.mainDexKeepRules.isEmpty()) {
         // Find classes which may have code executed before secondary dex files installation.
         mainDexRootSet =
-            new RootSetBuilder(appView, application, options.mainDexKeepRules, options)
-                .run(executorService);
+            new RootSetBuilder(appView, application, options.mainDexKeepRules).run(executorService);
         Enqueuer enqueuer = new Enqueuer(appView, options, null);
-        AppInfoWithLiveness mainDexAppInfo =
+        // Live types is the tracing result.
+        Set<DexType> mainDexBaseClasses =
             enqueuer.traceMainDex(mainDexRootSet, executorService, timing);
-        // LiveTypes is the tracing result.
-        Set<DexType> mainDexBaseClasses = new HashSet<>(mainDexAppInfo.liveTypes);
         // Calculate the automatic main dex list according to legacy multidex constraints.
         mainDexClasses = new MainDexListBuilder(mainDexBaseClasses, application).run();
+        appView.appInfo().unsetObsolete();
       }
 
       if (appView.appInfo().hasLiveness()) {
@@ -508,7 +506,7 @@ public class R8 {
 
       // Overwrite SourceFile if specified. This step should be done after IR conversion.
       timing.begin("Rename SourceFile");
-      new SourceFileRewriter(appView.appInfo(), options).run();
+      new SourceFileRewriter(appView).run();
       timing.end();
 
       // Collect the already pruned types before creating a new app info without liveness.
@@ -527,16 +525,13 @@ public class R8 {
 
         Enqueuer enqueuer = new Enqueuer(appView, options, mainDexKeptGraphConsumer);
         // Find classes which may have code executed before secondary dex files installation.
-        AppInfoWithLiveness mainDexAppInfo =
+        // Live types is the tracing result.
+        Set<DexType> mainDexBaseClasses =
             enqueuer.traceMainDex(mainDexRootSet, executorService, timing);
-        // LiveTypes is the tracing result.
-        Set<DexType> mainDexBaseClasses = new HashSet<>(mainDexAppInfo.liveTypes);
         // Calculate the automatic main dex list according to legacy multidex constraints.
         mainDexClasses = new MainDexListBuilder(mainDexBaseClasses, application).run();
         if (!mainDexRootSet.checkDiscarded.isEmpty()) {
-          new DiscardedChecker(
-                  mainDexRootSet, mainDexClasses.getClasses(), appView.appInfo(), options)
-              .run();
+          new DiscardedChecker(mainDexRootSet, mainDexClasses.getClasses(), appView).run();
         }
         if (whyAreYouKeepingConsumer != null) {
           for (DexReference reference : mainDexRootSet.reasonAsked) {
@@ -696,8 +691,8 @@ public class R8 {
   }
 
   private void computeKotlinInfoForProgramClasses(
-      DexApplication application, AppInfoWithSubtyping appInfo) {
-    Kotlin kotlin = appInfo.dexItemFactory.kotlin;
+      DexApplication application, AppView<? extends AppInfo> appView) {
+    Kotlin kotlin = appView.dexItemFactory().kotlin;
     Reporter reporter = options.reporter;
     for (DexProgramClass programClass : application.classes()) {
       programClass.setKotlinInfo(kotlin.getKotlinInfo(programClass, reporter));

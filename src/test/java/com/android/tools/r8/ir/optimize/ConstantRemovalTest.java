@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -29,8 +30,8 @@ import org.junit.Test;
 public class ConstantRemovalTest {
 
   private static class MockLinearScanRegisterAllocator extends LinearScanRegisterAllocator {
-    public MockLinearScanRegisterAllocator(AppInfo appInfo, IRCode code, InternalOptions options) {
-      super(appInfo, code, options);
+    public MockLinearScanRegisterAllocator(AppView<? extends AppInfo> appView, IRCode code) {
+      super(appView, code);
     }
 
     @Override
@@ -130,6 +131,7 @@ public class ConstantRemovalTest {
     InternalOptions options = new InternalOptions();
     options.debug = true;
     AppInfo appInfo = new AppInfo(DexApplication.builder(options.itemFactory, null).build());
+    AppView<? extends AppInfo> appView = AppView.createForD8(appInfo, options);
     IRCode code =
         new IRCode(
             options,
@@ -140,7 +142,7 @@ public class ConstantRemovalTest {
             false,
             false,
             Origin.unknown());
-    PeepholeOptimizer.optimize(code, new MockLinearScanRegisterAllocator(appInfo, code, options));
+    PeepholeOptimizer.optimize(code, new MockLinearScanRegisterAllocator(appView, code));
 
     // Check that all four constant number instructions remain.
     assertEquals(

@@ -4,13 +4,14 @@
 package com.android.tools.r8.naming;
 
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDebugEvent;
 import com.android.tools.r8.graph.DexDebugEvent.SetFile;
 import com.android.tools.r8.graph.DexDebugInfo;
 import com.android.tools.r8.graph.DexString;
-import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.shaking.ProguardConfiguration;
 import java.util.Arrays;
 
 /**
@@ -20,27 +21,25 @@ import java.util.Arrays;
  */
 public class SourceFileRewriter {
 
-  private final AppInfo appInfo;
-  private final InternalOptions options;
+  private final AppView<? extends AppInfo> appView;
 
-  public SourceFileRewriter(AppInfo appInfo, InternalOptions options) {
-    this.appInfo = appInfo;
-    this.options = options;
+  public SourceFileRewriter(AppView<? extends AppInfo> appView) {
+    this.appView = appView;
   }
 
   public void run() {
-    String renameSourceFile = options.getProguardConfiguration().getRenameSourceFileAttribute();
+    ProguardConfiguration proguardConfiguration = appView.options().getProguardConfiguration();
+    String renameSourceFile = proguardConfiguration.getRenameSourceFileAttribute();
     // Return early if a user wants to keep the current source file attribute as-is.
-    if (renameSourceFile == null
-        && options.getProguardConfiguration().getKeepAttributes().sourceFile) {
+    if (renameSourceFile == null && proguardConfiguration.getKeepAttributes().sourceFile) {
       return;
     }
     // Now, the user wants either to remove source file attribute or to rename it.
     DexString dexRenameSourceFile =
         renameSourceFile == null
-            ? appInfo.dexItemFactory.createString("")
-            : appInfo.dexItemFactory.createString(renameSourceFile);
-    for (DexClass clazz : appInfo.classes()) {
+            ? appView.dexItemFactory().createString("")
+            : appView.dexItemFactory().createString(renameSourceFile);
+    for (DexClass clazz : appView.appInfo().classes()) {
       clazz.sourceFile = dexRenameSourceFile;
       clazz.forEachMethod(encodedMethod -> {
         // Abstract methods do not have code_item.

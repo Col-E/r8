@@ -50,7 +50,7 @@ public class NullabilityTest extends NonNullTrackerTestBase {
       BiConsumer<AppInfo, IRCode> inspector)
       throws Exception {
     AppView<? extends AppInfo> appView = build(mainClass);
-    CodeInspector codeInspector = new CodeInspector(appView.appInfo().app);
+    CodeInspector codeInspector = new CodeInspector(appView.appInfo().app());
     MethodSubject fooSubject = codeInspector.clazz(mainClass.getName()).method(signature);
     DexEncodedMethod foo = codeInspector.clazz(mainClass.getName()).method(signature).getMethod();
     IRCode irCode = fooSubject.buildIR();
@@ -119,129 +119,209 @@ public class NullabilityTest extends NonNullTrackerTestBase {
   public void nonNullAfterSafeInvokes() throws Exception {
     MethodSignature signature =
         new MethodSignature("foo", "int", new String[]{"java.lang.String"});
-    buildAndTest(NonNullAfterInvoke.class, signature, false, (appInfo, irCode) -> {
-      DexType assertionErrorType = appInfo.dexItemFactory.createType("Ljava/lang/AssertionError;");
-      DexType mainClass = appInfo.dexItemFactory.createType(
-          DescriptorUtils.javaTypeToDescriptor(NonNullAfterInvoke.class.getCanonicalName()));
-      Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
-          InvokeVirtual.class, stringClassType(appInfo, maybeNull()),
-          NonNull.class, stringClassType(appInfo, definitelyNotNull()),
-          NewInstance.class, fromDexType(assertionErrorType, definitelyNotNull(), appInfo));
-      forEachOutValue(irCode, (v, l) -> verifyClassTypeLattice(expectedLattices, mainClass, v, l));
-    });
+    buildAndTest(
+        NonNullAfterInvoke.class,
+        signature,
+        false,
+        (appInfo, irCode) -> {
+          DexType assertionErrorType =
+              appInfo.dexItemFactory().createType("Ljava/lang/AssertionError;");
+          DexType mainClass =
+              appInfo
+                  .dexItemFactory()
+                  .createType(
+                      DescriptorUtils.javaTypeToDescriptor(
+                          NonNullAfterInvoke.class.getCanonicalName()));
+          Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices =
+              ImmutableMap.of(
+                  InvokeVirtual.class, stringClassType(appInfo, maybeNull()),
+                  NonNull.class, stringClassType(appInfo, definitelyNotNull()),
+                  NewInstance.class, fromDexType(assertionErrorType, definitelyNotNull(), appInfo));
+          forEachOutValue(
+              irCode, (v, l) -> verifyClassTypeLattice(expectedLattices, mainClass, v, l));
+        });
   }
 
   @Test
   public void stillNullAfterExceptionCatch_invoke() throws Exception {
     MethodSignature signature =
         new MethodSignature("bar", "int", new String[]{"java.lang.String"});
-    buildAndTest(NonNullAfterInvoke.class, signature, true, (appInfo, irCode) -> {
-      DexType assertionErrorType = appInfo.dexItemFactory.createType("Ljava/lang/AssertionError;");
-      DexType mainClass = appInfo.dexItemFactory.createType(
-          DescriptorUtils.javaTypeToDescriptor(NonNullAfterInvoke.class.getCanonicalName()));
-      Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
-          InvokeVirtual.class, stringClassType(appInfo, maybeNull()),
-          NonNull.class, stringClassType(appInfo, definitelyNotNull()),
-          NewInstance.class, fromDexType(assertionErrorType, definitelyNotNull(), appInfo));
-      forEachOutValue(irCode, (v, l) -> verifyClassTypeLattice(expectedLattices, mainClass, v, l));
-    });
+    buildAndTest(
+        NonNullAfterInvoke.class,
+        signature,
+        true,
+        (appInfo, irCode) -> {
+          DexType assertionErrorType =
+              appInfo.dexItemFactory().createType("Ljava/lang/AssertionError;");
+          DexType mainClass =
+              appInfo
+                  .dexItemFactory()
+                  .createType(
+                      DescriptorUtils.javaTypeToDescriptor(
+                          NonNullAfterInvoke.class.getCanonicalName()));
+          Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices =
+              ImmutableMap.of(
+                  InvokeVirtual.class, stringClassType(appInfo, maybeNull()),
+                  NonNull.class, stringClassType(appInfo, definitelyNotNull()),
+                  NewInstance.class, fromDexType(assertionErrorType, definitelyNotNull(), appInfo));
+          forEachOutValue(
+              irCode, (v, l) -> verifyClassTypeLattice(expectedLattices, mainClass, v, l));
+        });
   }
 
   @Test
   public void nonNullAfterSafeArrayAccess() throws Exception {
     MethodSignature signature =
         new MethodSignature("foo", "int", new String[]{"java.lang.String[]"});
-    buildAndTest(NonNullAfterArrayAccess.class, signature, false, (appInfo, irCode) -> {
-      DexType assertionErrorType = appInfo.dexItemFactory.createType("Ljava/lang/AssertionError;");
-      DexType mainClass = appInfo.dexItemFactory.createType(
-          DescriptorUtils.javaTypeToDescriptor(NonNullAfterArrayAccess.class.getCanonicalName()));
-      Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
-          // An element inside a non-null array could be null.
-          ArrayGet.class, fromDexType(appInfo.dexItemFactory.stringType, maybeNull(), appInfo),
-          NewInstance.class, fromDexType(assertionErrorType, definitelyNotNull(), appInfo));
-      forEachOutValue(irCode, (v, l) -> {
-        if (l.isArrayType()) {
-          ArrayTypeLatticeElement lattice = l.asArrayTypeLatticeElement();
-          assertEquals(1, lattice.getNesting());
-          TypeLatticeElement elementTypeLattice = lattice.getArrayMemberTypeAsMemberType();
-          assertTrue(elementTypeLattice.isClassType());
-          assertEquals(
-              appInfo.dexItemFactory.stringType,
-              elementTypeLattice.asClassTypeLatticeElement().getClassType());
-          assertEquals(v.definition.isArgument(), l.isNullable());
-        } else if (l.isClassType()) {
-          verifyClassTypeLattice(expectedLattices, mainClass, v, l);
-        }
-      });
-    });
+    buildAndTest(
+        NonNullAfterArrayAccess.class,
+        signature,
+        false,
+        (appInfo, irCode) -> {
+          DexType assertionErrorType =
+              appInfo.dexItemFactory().createType("Ljava/lang/AssertionError;");
+          DexType mainClass =
+              appInfo
+                  .dexItemFactory()
+                  .createType(
+                      DescriptorUtils.javaTypeToDescriptor(
+                          NonNullAfterArrayAccess.class.getCanonicalName()));
+          Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices =
+              ImmutableMap.of(
+                  // An element inside a non-null array could be null.
+                  ArrayGet.class,
+                      fromDexType(appInfo.dexItemFactory().stringType, maybeNull(), appInfo),
+                  NewInstance.class, fromDexType(assertionErrorType, definitelyNotNull(), appInfo));
+          forEachOutValue(
+              irCode,
+              (v, l) -> {
+                if (l.isArrayType()) {
+                  ArrayTypeLatticeElement lattice = l.asArrayTypeLatticeElement();
+                  assertEquals(1, lattice.getNesting());
+                  TypeLatticeElement elementTypeLattice = lattice.getArrayMemberTypeAsMemberType();
+                  assertTrue(elementTypeLattice.isClassType());
+                  assertEquals(
+                      appInfo.dexItemFactory().stringType,
+                      elementTypeLattice.asClassTypeLatticeElement().getClassType());
+                  assertEquals(v.definition.isArgument(), l.isNullable());
+                } else if (l.isClassType()) {
+                  verifyClassTypeLattice(expectedLattices, mainClass, v, l);
+                }
+              });
+        });
   }
 
   @Test
   public void stillNullAfterExceptionCatch_aget() throws Exception {
     MethodSignature signature =
         new MethodSignature("bar", "int", new String[]{"java.lang.String[]"});
-    buildAndTest(NonNullAfterArrayAccess.class, signature, true, (appInfo, irCode) -> {
-      DexType assertionErrorType = appInfo.dexItemFactory.createType("Ljava/lang/AssertionError;");
-      DexType mainClass = appInfo.dexItemFactory.createType(
-          DescriptorUtils.javaTypeToDescriptor(NonNullAfterArrayAccess.class.getCanonicalName()));
-      Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
-          // An element inside a non-null array could be null.
-          ArrayGet.class, fromDexType(appInfo.dexItemFactory.stringType, maybeNull(), appInfo),
-          NewInstance.class, fromDexType(assertionErrorType, definitelyNotNull(), appInfo));
-      forEachOutValue(irCode, (v, l) -> {
-        if (l.isArrayType()) {
-          ArrayTypeLatticeElement lattice = l.asArrayTypeLatticeElement();
-          assertEquals(1, lattice.getNesting());
-          TypeLatticeElement elementTypeLattice = lattice.getArrayMemberTypeAsMemberType();
-          assertTrue(elementTypeLattice.isClassType());
-          assertEquals(
-              appInfo.dexItemFactory.stringType,
-              elementTypeLattice.asClassTypeLatticeElement().getClassType());
-          assertEquals(v.definition.isArgument(), l.isNullable());
-        } else if (l.isClassType()) {
-          verifyClassTypeLattice(expectedLattices, mainClass, v, l);
-        }
-      });
-    });
+    buildAndTest(
+        NonNullAfterArrayAccess.class,
+        signature,
+        true,
+        (appInfo, irCode) -> {
+          DexType assertionErrorType =
+              appInfo.dexItemFactory().createType("Ljava/lang/AssertionError;");
+          DexType mainClass =
+              appInfo
+                  .dexItemFactory()
+                  .createType(
+                      DescriptorUtils.javaTypeToDescriptor(
+                          NonNullAfterArrayAccess.class.getCanonicalName()));
+          Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices =
+              ImmutableMap.of(
+                  // An element inside a non-null array could be null.
+                  ArrayGet.class,
+                      fromDexType(appInfo.dexItemFactory().stringType, maybeNull(), appInfo),
+                  NewInstance.class, fromDexType(assertionErrorType, definitelyNotNull(), appInfo));
+          forEachOutValue(
+              irCode,
+              (v, l) -> {
+                if (l.isArrayType()) {
+                  ArrayTypeLatticeElement lattice = l.asArrayTypeLatticeElement();
+                  assertEquals(1, lattice.getNesting());
+                  TypeLatticeElement elementTypeLattice = lattice.getArrayMemberTypeAsMemberType();
+                  assertTrue(elementTypeLattice.isClassType());
+                  assertEquals(
+                      appInfo.dexItemFactory().stringType,
+                      elementTypeLattice.asClassTypeLatticeElement().getClassType());
+                  assertEquals(v.definition.isArgument(), l.isNullable());
+                } else if (l.isClassType()) {
+                  verifyClassTypeLattice(expectedLattices, mainClass, v, l);
+                }
+              });
+        });
   }
 
   @Test
   public void nonNullAfterSafeFieldAccess() throws Exception {
     MethodSignature signature = new MethodSignature("foo", "int",
         new String[]{FieldAccessTest.class.getCanonicalName()});
-    buildAndTest(NonNullAfterFieldAccess.class, signature, false, (appInfo, irCode) -> {
-      DexType assertionErrorType = appInfo.dexItemFactory.createType("Ljava/lang/AssertionError;");
-      DexType mainClass = appInfo.dexItemFactory.createType(
-          DescriptorUtils.javaTypeToDescriptor(NonNullAfterFieldAccess.class.getCanonicalName()));
-      DexType testClass = appInfo.dexItemFactory.createType(
-          DescriptorUtils.javaTypeToDescriptor(FieldAccessTest.class.getCanonicalName()));
-      Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
-          Argument.class, fromDexType(testClass, maybeNull(), appInfo),
-          NonNull.class, fromDexType(testClass, definitelyNotNull(), appInfo),
-          // instance may not be initialized.
-          InstanceGet.class, fromDexType(appInfo.dexItemFactory.stringType, maybeNull(), appInfo),
-          NewInstance.class, fromDexType(assertionErrorType, definitelyNotNull(), appInfo));
-      forEachOutValue(irCode, (v, l) -> verifyClassTypeLattice(expectedLattices, mainClass, v, l));
-    });
+    buildAndTest(
+        NonNullAfterFieldAccess.class,
+        signature,
+        false,
+        (appInfo, irCode) -> {
+          DexType assertionErrorType =
+              appInfo.dexItemFactory().createType("Ljava/lang/AssertionError;");
+          DexType mainClass =
+              appInfo
+                  .dexItemFactory()
+                  .createType(
+                      DescriptorUtils.javaTypeToDescriptor(
+                          NonNullAfterFieldAccess.class.getCanonicalName()));
+          DexType testClass =
+              appInfo
+                  .dexItemFactory()
+                  .createType(
+                      DescriptorUtils.javaTypeToDescriptor(
+                          FieldAccessTest.class.getCanonicalName()));
+          Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices =
+              ImmutableMap.of(
+                  Argument.class, fromDexType(testClass, maybeNull(), appInfo),
+                  NonNull.class, fromDexType(testClass, definitelyNotNull(), appInfo),
+                  // instance may not be initialized.
+                  InstanceGet.class,
+                      fromDexType(appInfo.dexItemFactory().stringType, maybeNull(), appInfo),
+                  NewInstance.class, fromDexType(assertionErrorType, definitelyNotNull(), appInfo));
+          forEachOutValue(
+              irCode, (v, l) -> verifyClassTypeLattice(expectedLattices, mainClass, v, l));
+        });
   }
 
   @Test
   public void stillNullAfterExceptionCatch_iget() throws Exception {
     MethodSignature signature = new MethodSignature("bar", "int",
         new String[]{FieldAccessTest.class.getCanonicalName()});
-    buildAndTest(NonNullAfterFieldAccess.class, signature, true, (appInfo, irCode) -> {
-      DexType assertionErrorType = appInfo.dexItemFactory.createType("Ljava/lang/AssertionError;");
-      DexType mainClass = appInfo.dexItemFactory.createType(
-          DescriptorUtils.javaTypeToDescriptor(NonNullAfterFieldAccess.class.getCanonicalName()));
-      DexType testClass = appInfo.dexItemFactory.createType(
-          DescriptorUtils.javaTypeToDescriptor(FieldAccessTest.class.getCanonicalName()));
-      Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices = ImmutableMap.of(
-          Argument.class, fromDexType(testClass, maybeNull(), appInfo),
-          NonNull.class, fromDexType(testClass, definitelyNotNull(), appInfo),
-          // instance may not be initialized.
-          InstanceGet.class, fromDexType(appInfo.dexItemFactory.stringType, maybeNull(), appInfo),
-          NewInstance.class, fromDexType(assertionErrorType, definitelyNotNull(), appInfo));
-      forEachOutValue(irCode, (v, l) -> verifyClassTypeLattice(expectedLattices, mainClass, v, l));
-    });
+    buildAndTest(
+        NonNullAfterFieldAccess.class,
+        signature,
+        true,
+        (appInfo, irCode) -> {
+          DexType assertionErrorType =
+              appInfo.dexItemFactory().createType("Ljava/lang/AssertionError;");
+          DexType mainClass =
+              appInfo
+                  .dexItemFactory()
+                  .createType(
+                      DescriptorUtils.javaTypeToDescriptor(
+                          NonNullAfterFieldAccess.class.getCanonicalName()));
+          DexType testClass =
+              appInfo
+                  .dexItemFactory()
+                  .createType(
+                      DescriptorUtils.javaTypeToDescriptor(
+                          FieldAccessTest.class.getCanonicalName()));
+          Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices =
+              ImmutableMap.of(
+                  Argument.class, fromDexType(testClass, maybeNull(), appInfo),
+                  NonNull.class, fromDexType(testClass, definitelyNotNull(), appInfo),
+                  // instance may not be initialized.
+                  InstanceGet.class,
+                      fromDexType(appInfo.dexItemFactory().stringType, maybeNull(), appInfo),
+                  NewInstance.class, fromDexType(assertionErrorType, definitelyNotNull(), appInfo));
+          forEachOutValue(
+              irCode, (v, l) -> verifyClassTypeLattice(expectedLattices, mainClass, v, l));
+        });
   }
 }

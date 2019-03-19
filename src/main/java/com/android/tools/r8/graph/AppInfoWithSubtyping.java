@@ -28,6 +28,7 @@ public class AppInfoWithSubtyping extends AppInfo {
 
   public AppInfoWithSubtyping(DexApplication application) {
     super(application);
+    // Recompute subtype map if we have modified the graph.
     populateSubtypeMap(application.asDirect(), application.dexItemFactory);
   }
 
@@ -35,29 +36,26 @@ public class AppInfoWithSubtyping extends AppInfo {
     super(previous);
     missingClasses.addAll(previous.missingClasses);
     subtypeMap.putAll(previous.subtypeMap);
-    assert app instanceof DirectMappedDexApplication;
-  }
-
-  protected AppInfoWithSubtyping(DirectMappedDexApplication application, GraphLense lense) {
-    super(application, lense);
-    // Recompute subtype map if we have modified the graph.
-    populateSubtypeMap(application, dexItemFactory);
+    assert app() instanceof DirectMappedDexApplication;
   }
 
   private DirectMappedDexApplication getDirectApplication() {
     // TODO(herhut): Remove need for cast.
-    return (DirectMappedDexApplication) app;
+    return (DirectMappedDexApplication) app();
   }
 
   public Iterable<DexLibraryClass> libraryClasses() {
+    assert checkIfObsolete();
     return getDirectApplication().libraryClasses();
   }
 
   public Set<DexType> getMissingClasses() {
+    assert checkIfObsolete();
     return Collections.unmodifiableSet(missingClasses);
   }
 
   public Set<DexType> subtypes(DexType type) {
+    assert checkIfObsolete();
     assert type.isClassType();
     ImmutableSet<DexType> subtypes = subtypeMap.get(type);
     return subtypes == null ? ImmutableSet.of() : subtypes;
@@ -84,7 +82,7 @@ public class AppInfoWithSubtyping extends AppInfo {
         holderClass.superType.addDirectSubtype(holder);
       } else {
         // We found java.lang.Object
-        assert dexItemFactory.objectType == holder;
+        assert dexItemFactory().objectType == holder;
       }
       for (DexType inter : holderClass.interfaces.values) {
         populateSuperType(map, inter, baseClass, definitions);
@@ -98,8 +96,8 @@ public class AppInfoWithSubtyping extends AppInfo {
         missingClasses.add(holder);
       }
       // The subtype chain is broken, at least make this type a subtype of Object.
-      if (holder != dexItemFactory.objectType) {
-        dexItemFactory.objectType.addDirectSubtype(holder);
+      if (holder != dexItemFactory().objectType) {
+        dexItemFactory().objectType.addDirectSubtype(holder);
       }
     }
   }
@@ -119,6 +117,7 @@ public class AppInfoWithSubtyping extends AppInfo {
 
   // For mapping invoke virtual instruction to target methods.
   public Set<DexEncodedMethod> lookupVirtualTargets(DexMethod method) {
+    assert checkIfObsolete();
     if (method.holder.isArrayType()) {
       // For javac output this will only be clone(), but in general the methods from Object can
       // be invoked with an array type holder.
@@ -169,6 +168,7 @@ public class AppInfoWithSubtyping extends AppInfo {
    */
   @Override
   public DexEncodedMethod lookupSuperTarget(DexMethod method, DexType invocationContext) {
+    assert checkIfObsolete();
     if (!invocationContext.isSubtypeOf(method.holder, this)) {
       DexClass contextClass = definitionFor(invocationContext);
       throw new CompilationError(
@@ -179,11 +179,13 @@ public class AppInfoWithSubtyping extends AppInfo {
   }
 
   protected boolean hasAnyInstantiatedLambdas(DexType type) {
+    assert checkIfObsolete();
     return true; // Don't know, there might be.
   }
 
   // For mapping invoke interface instruction to target methods.
   public Set<DexEncodedMethod> lookupInterfaceTargets(DexMethod method) {
+    assert checkIfObsolete();
     // First check that there is a target for this invoke-interface to hit. If there is none,
     // this will fail at runtime.
     ResolutionResult topTarget = resolveMethodOnInterface(method.holder, method);
@@ -250,6 +252,7 @@ public class AppInfoWithSubtyping extends AppInfo {
    * @return Methods implemented by the lambda expression that created the {@code callSite}.
    */
   public Set<DexEncodedMethod> lookupLambdaImplementedMethods(DexCallSite callSite) {
+    assert checkIfObsolete();
     List<DexType> callSiteInterfaces = LambdaDescriptor.getInterfaces(callSite, this);
     if (callSiteInterfaces == null || callSiteInterfaces.isEmpty()) {
       return Collections.emptySet();
@@ -290,24 +293,28 @@ public class AppInfoWithSubtyping extends AppInfo {
   }
 
   public boolean isStringConcat(DexMethodHandle bootstrapMethod) {
+    assert checkIfObsolete();
     return bootstrapMethod.type.isInvokeStatic()
-        && (bootstrapMethod.asMethod() == dexItemFactory.stringConcatWithConstantsMethod
-            || bootstrapMethod.asMethod() == dexItemFactory.stringConcatMethod);
+        && (bootstrapMethod.asMethod() == dexItemFactory().stringConcatWithConstantsMethod
+            || bootstrapMethod.asMethod() == dexItemFactory().stringConcatMethod);
   }
 
   @Override
   public void registerNewType(DexType newType, DexType superType) {
+    assert checkIfObsolete();
     // Register the relationship between this type and its superType.
     superType.addDirectSubtype(newType);
   }
 
   @Override
   public boolean hasSubtyping() {
+    assert checkIfObsolete();
     return true;
   }
 
   @Override
   public AppInfoWithSubtyping withSubtyping() {
+    assert checkIfObsolete();
     return this;
   }
 }

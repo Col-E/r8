@@ -1575,15 +1575,14 @@ public class CodeRewriter {
 
   private boolean checkArgumentType(InvokeMethod invoke, int argumentIndex) {
     // TODO(sgjesse): Insert cast if required.
-    AppInfo appInfo = appView.appInfo();
     TypeLatticeElement returnType =
         TypeLatticeElement.fromDexType(
-            invoke.getInvokedMethod().proto.returnType, maybeNull(), appInfo);
+            invoke.getInvokedMethod().proto.returnType, maybeNull(), appView);
     TypeLatticeElement argumentType =
         TypeLatticeElement.fromDexType(
-            getArgumentType(invoke, argumentIndex), maybeNull(), appInfo);
+            getArgumentType(invoke, argumentIndex), maybeNull(), appView);
     return appView.enableWholeProgramOptimizations()
-        ? argumentType.lessThanOrEqual(returnType, appInfo)
+        ? argumentType.lessThanOrEqual(returnType, appView)
         : argumentType.equals(returnType);
   }
 
@@ -1879,7 +1878,6 @@ public class CodeRewriter {
   // Returns true if the given check-cast instruction was removed.
   private boolean removeCheckCastInstructionIfTrivial(
       CheckCast checkCast, InstructionIterator it, IRCode code) {
-    AppInfo appInfo = appView.appInfo();
     Value inValue = checkCast.object();
     Value outValue = checkCast.outValue();
     DexType castType = checkCast.getType();
@@ -1916,11 +1914,11 @@ public class CodeRewriter {
     TypeLatticeElement inTypeLattice = inValue.getTypeLattice();
     TypeLatticeElement outTypeLattice = outValue.getTypeLattice();
     TypeLatticeElement castTypeLattice =
-        TypeLatticeElement.fromDexType(castType, inTypeLattice.nullability(), appInfo);
+        TypeLatticeElement.fromDexType(castType, inTypeLattice.nullability(), appView);
 
     assert inTypeLattice.nullability().lessThanOrEqual(outTypeLattice.nullability());
 
-    if (inTypeLattice.lessThanOrEqual(castTypeLattice, appInfo)) {
+    if (inTypeLattice.lessThanOrEqual(castTypeLattice, appView)) {
       // 1) Trivial cast.
       //   A a = ...
       //   A a' = (A) a;
@@ -1928,7 +1926,7 @@ public class CodeRewriter {
       //   A < B
       //   A a = ...
       //   B b = (B) a;
-      assert inTypeLattice.lessThanOrEqual(outTypeLattice, appInfo);
+      assert inTypeLattice.lessThanOrEqual(outTypeLattice, appView);
       removeOrReplaceByDebugLocalWrite(checkCast, it, inValue, outValue);
       return true;
     }
@@ -1944,19 +1942,18 @@ public class CodeRewriter {
   }
 
   private boolean isTypeInaccessibleInCurrentContext(DexType type, DexEncodedMethod context) {
-    AppInfo appInfo = appView.appInfo();
-    DexType baseType = type.toBaseType(appInfo.dexItemFactory);
+    DexType baseType = type.toBaseType(appView.dexItemFactory());
     if (baseType.isPrimitiveType()) {
       return false;
     }
-    DexClass clazz = appInfo.definitionFor(baseType);
+    DexClass clazz = appView.definitionFor(baseType);
     if (clazz == null) {
       // Conservatively say yes.
       return true;
     }
     ConstraintWithTarget classVisibility =
         ConstraintWithTarget.deriveConstraint(
-            context.method.holder, baseType, clazz.accessFlags, appInfo);
+            context.method.holder, baseType, clazz.accessFlags, appView);
     return classVisibility == ConstraintWithTarget.NEVER;
   }
 
@@ -1969,22 +1966,21 @@ public class CodeRewriter {
       return false;
     }
 
-    AppInfo appInfo = appView.appInfo();
     Value inValue = instanceOf.value();
     TypeLatticeElement inType = inValue.getTypeLattice();
     TypeLatticeElement instanceOfType =
-        TypeLatticeElement.fromDexType(instanceOf.type(), inType.nullability(), appInfo);
+        TypeLatticeElement.fromDexType(instanceOf.type(), inType.nullability(), appView);
 
     InstanceOfResult result = InstanceOfResult.UNKNOWN;
     if (inType.isDefinitelyNull()) {
       result = InstanceOfResult.FALSE;
-    } else if (inType.lessThanOrEqual(instanceOfType, appInfo) && !inType.isNullable()) {
+    } else if (inType.lessThanOrEqual(instanceOfType, appView) && !inType.isNullable()) {
       result = InstanceOfResult.TRUE;
     } else if (!inValue.isPhi()
         && inValue.definition.isCreatingInstanceOrArray()
-        && instanceOfType.strictlyLessThan(inType, appInfo)) {
+        && instanceOfType.strictlyLessThan(inType, appView)) {
       result = InstanceOfResult.FALSE;
-    } else if (appInfo.hasLiveness()) {
+    } else if (appView.appInfo().hasLiveness()) {
       if (instanceOf.type().isClassType()
           && isNeverInstantiatedDirectlyOrIndirectly(instanceOf.type())) {
         // The type of the instance-of instruction is a program class, and is never instantiated
@@ -2018,13 +2014,12 @@ public class CodeRewriter {
   }
 
   private boolean isNeverInstantiatedDirectlyOrIndirectly(DexType type) {
-    AppInfo appInfo = appView.appInfo();
-    assert appInfo.hasLiveness();
+    assert appView.appInfo().hasLiveness();
     assert type.isClassType();
-    DexClass clazz = appInfo.definitionFor(type);
+    DexClass clazz = appView.definitionFor(type);
     return clazz != null
         && clazz.isProgramClass()
-        && !appInfo.withLiveness().isInstantiatedDirectlyOrIndirectly(type);
+        && !appView.appInfo().withLiveness().isInstantiatedDirectlyOrIndirectly(type);
   }
 
   public static void removeOrReplaceByDebugLocalWrite(
@@ -3641,7 +3636,7 @@ public class CodeRewriter {
 
   private Value addConstString(IRCode code, InstructionListIterator iterator, String s) {
     TypeLatticeElement typeLattice =
-        TypeLatticeElement.stringClassType(appView.appInfo(), definitelyNotNull());
+        TypeLatticeElement.stringClassType(appView, definitelyNotNull());
     Value value = code.createValue(typeLattice);
     ThrowingInfo throwingInfo =
         options.isGeneratingClassFiles() ? ThrowingInfo.NO_THROW : ThrowingInfo.CAN_THROW;
@@ -3675,8 +3670,7 @@ public class CodeRewriter {
     DexType javaIoPrintStreamType = dexItemFactory.createType("Ljava/io/PrintStream;");
     Value out =
         code.createValue(
-            TypeLatticeElement.fromDexType(
-                javaIoPrintStreamType, definitelyNotNull(), appView.appInfo()));
+            TypeLatticeElement.fromDexType(javaIoPrintStreamType, definitelyNotNull(), appView));
 
     DexProto proto = dexItemFactory.createProto(dexItemFactory.voidType, dexItemFactory.objectType);
     DexMethod print = dexItemFactory.createMethod(javaIoPrintStreamType, proto, "print");
@@ -3741,9 +3735,7 @@ public class CodeRewriter {
         iterator.add(new InvokeVirtual(print, null, ImmutableList.of(out, nul)));
         iterator = isNotNullBlock.listIterator();
         iterator.setInsertionPosition(position);
-        value =
-            code.createValue(
-                TypeLatticeElement.classClassType(appView.appInfo(), definitelyNotNull()));
+        value = code.createValue(TypeLatticeElement.classClassType(appView, definitelyNotNull()));
         iterator.add(new InvokeVirtual(dexItemFactory.objectMethods.getClass, value,
             ImmutableList.of(arguments.get(i))));
         iterator.add(new InvokeVirtual(print, null, ImmutableList.of(out, value)));
