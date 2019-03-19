@@ -13,6 +13,8 @@ import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.utils.FileUtils;
@@ -23,7 +25,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class BootstrapTest extends TestBase {
 
   private static final Path R8_STABLE_JAR = Paths.get("third_party/r8/r8.jar");
@@ -54,6 +60,15 @@ public class BootstrapTest extends TestBase {
     public String toString() {
       return processResult.toString() + "\n\n" + pgMap;
     }
+  }
+
+  @Parameters
+  public static TestParametersCollection data() {
+    return getTestParameters().withCfRuntimes().build();
+  }
+
+  public BootstrapTest(TestParameters parameters) {
+    // TODO: use parameters to fork the right Java.
   }
 
   @Test
