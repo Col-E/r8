@@ -87,9 +87,6 @@ def ParseOptions():
   result.add_option('--jctf-compile-only', '--jctf_compile_only',
       help="Don't run, only compile JCTF tests.",
       default=False, action='store_true')
-  result.add_option('--aosp-jar', '--aosp_jar',
-      help='Run aosp_jar test.',
-      default=False, action='store_true')
   result.add_option('--disable-assertions', '--disable_assertions',
       help='Disable assertions when running tests.',
       default=False, action='store_true')
@@ -171,8 +168,6 @@ def Main():
     gradle_args.append('-Ponly_jctf')
   if options.jctf_compile_only:
     gradle_args.append('-Pjctf_compile_only')
-  if options.aosp_jar:
-    gradle_args.append('-Paosp_jar')
   if options.disable_assertions:
     gradle_args.append('-Pdisable_assertions')
   if options.with_code_coverage:
