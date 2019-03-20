@@ -17,6 +17,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -33,6 +34,7 @@ public abstract class DexClass extends DexDefinition {
 
   private static final DexEncodedMethod[] NO_METHODS = {};
   private static final DexEncodedField[] NO_FIELDS = {};
+  private Optional<DexEncodedMethod> cachedClassInitializer = null;
 
   public final Origin origin;
   public DexType type;
@@ -140,6 +142,7 @@ public abstract class DexClass extends DexDefinition {
   }
 
   public void appendDirectMethod(DexEncodedMethod method) {
+    cachedClassInitializer = null;
     DexEncodedMethod[] newMethods = new DexEncodedMethod[directMethods.length + 1];
     System.arraycopy(directMethods, 0, newMethods, 0, directMethods.length);
     newMethods[directMethods.length] = method;
@@ -149,6 +152,7 @@ public abstract class DexClass extends DexDefinition {
   }
 
   public void appendDirectMethods(Collection<DexEncodedMethod> methods) {
+    cachedClassInitializer = null;
     DexEncodedMethod[] newMethods = new DexEncodedMethod[directMethods.length + methods.size()];
     System.arraycopy(directMethods, 0, newMethods, 0, directMethods.length);
     int i = directMethods.length;
@@ -162,6 +166,7 @@ public abstract class DexClass extends DexDefinition {
   }
 
   public void removeDirectMethod(int index) {
+    cachedClassInitializer = null;
     DexEncodedMethod[] newMethods = new DexEncodedMethod[directMethods.length - 1];
     System.arraycopy(directMethods, 0, newMethods, 0, index);
     System.arraycopy(directMethods, index + 1, newMethods, index, directMethods.length - index - 1);
@@ -169,12 +174,14 @@ public abstract class DexClass extends DexDefinition {
   }
 
   public void setDirectMethod(int index, DexEncodedMethod method) {
+    cachedClassInitializer = null;
     directMethods[index] = method;
     assert verifyCorrectnessOfMethodHolder(method);
     assert verifyNoDuplicateMethods();
   }
 
   public void setDirectMethods(DexEncodedMethod[] methods) {
+    cachedClassInitializer = null;
     directMethods = MoreObjects.firstNonNull(methods, NO_METHODS);
     assert verifyCorrectnessOfMethodHolders(directMethods());
     assert verifyNoDuplicateMethods();
@@ -602,10 +609,16 @@ public abstract class DexClass extends DexDefinition {
   }
 
   public DexEncodedMethod getClassInitializer() {
-    return Arrays.stream(directMethods)
-        .filter(DexEncodedMethod::isClassInitializer)
-        .findAny()
-        .orElse(null);
+    if (cachedClassInitializer == null) {
+      cachedClassInitializer = Optional.empty();
+      for (DexEncodedMethod directMethod : directMethods) {
+        if (directMethod.isClassInitializer()) {
+          cachedClassInitializer = Optional.of(directMethod);
+          break;
+        }
+      }
+    }
+    return cachedClassInitializer.orElse(null);
   }
 
   public Origin getOrigin() {
