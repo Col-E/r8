@@ -5,6 +5,7 @@
 package com.android.tools.r8.naming.arraytypes;
 
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -37,7 +38,7 @@ public class ArrayTypesTest extends TestBase {
 
   @Parameterized.Parameters(name = "Backend: {0}")
   public static Object[] data() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   @BeforeClass

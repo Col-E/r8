@@ -51,7 +51,7 @@ public class R8InliningTest extends TestBase {
   public static Collection<Object[]> data() {
     return buildParameters(
         ImmutableList.of("Inlining"),
-        Backend.values(),
+        ToolHelper.getBackends(),
         BooleanUtils.values(),
         BooleanUtils.values());
   }

@@ -8,6 +8,7 @@ import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import com.google.common.collect.ImmutableList;
@@ -25,7 +26,7 @@ public class AnnotationsOnFieldsTest extends TestBase {
 
   @Parameterized.Parameters(name = "Backend: {0}")
   public static Backend[] data() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   public AnnotationsOnFieldsTest(Backend backend) {

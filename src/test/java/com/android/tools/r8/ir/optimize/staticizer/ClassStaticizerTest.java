@@ -16,6 +16,7 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestRunResult;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.InvokeDirect;
 import com.android.tools.r8.code.InvokeStatic;
@@ -63,7 +64,7 @@ public class ClassStaticizerTest extends TestBase {
 
   @Parameterized.Parameters(name = "Backend: {0}")
   public static Backend[] data() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   public ClassStaticizerTest(Backend backend) {

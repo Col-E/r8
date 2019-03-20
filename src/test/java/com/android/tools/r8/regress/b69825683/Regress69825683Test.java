@@ -28,7 +28,7 @@ public class Regress69825683Test extends TestBase {
 
   @Parameterized.Parameters(name = "Backend: {0}")
   public static Backend[] data() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   public Regress69825683Test(Backend backend) {

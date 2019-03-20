@@ -11,6 +11,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatibilityTestBase;
 import com.android.tools.r8.smali.ConstantFoldingTest.TriConsumer;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -101,7 +102,7 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatibilityT
 
   @Parameterized.Parameters(name = "Backend: {0}")
   public static Backend[] data() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   public ImplicitlyKeptDefaultConstructorTest(Backend backend) {

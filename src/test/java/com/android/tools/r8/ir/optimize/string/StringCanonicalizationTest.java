@@ -11,6 +11,7 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompileResult;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject.JumboStringMode;
@@ -131,7 +132,7 @@ public class StringCanonicalizationTest extends TestBase {
 
   @Parameterized.Parameters(name = "Backend: {0}")
   public static Backend[] data() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   public StringCanonicalizationTest(Backend backend) {

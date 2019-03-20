@@ -68,7 +68,7 @@ public class MinifierClassSignatureTest extends TestBase {
 
   @Parameters(name = "Backend: {0}")
   public static Backend[] data() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   public MinifierClassSignatureTest(Backend backend) {

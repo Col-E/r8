@@ -34,7 +34,7 @@ public class ShareCommonCodeOnDistinctPositionsTestRunner extends TestBase {
 
   @Parameters(name = "Backend: {0}")
   public static Backend[] parameters() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   private final Backend backend;

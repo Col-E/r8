@@ -112,7 +112,7 @@ public class IdentifierMinifierTest extends TestBase {
 
     // Duplicate parameters for each backend.
     List<Object[]> parametersWithBackend = new ArrayList<>();
-    for (Backend backend : Backend.values()) {
+    for (Backend backend : ToolHelper.getBackends()) {
       for (Object[] row : parameters) {
         Object[] newRow = new Object[row.length + 1];
         newRow[0] = backend;

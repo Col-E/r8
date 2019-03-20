@@ -10,6 +10,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
@@ -31,7 +32,7 @@ public class B126592786 extends TestBase {
 
   @Parameterized.Parameters(name = "Backend: {0} minify: {1}")
   public static Collection<Object[]> data() {
-    return buildParameters(Backend.values(), BooleanUtils.values());
+    return buildParameters(ToolHelper.getBackends(), BooleanUtils.values());
   }
 
   public B126592786(Backend backend, boolean minify) {

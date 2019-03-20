@@ -25,7 +25,7 @@ public class RewriteSwitchMapsTest extends TestBase {
 
   @Parameterized.Parameters(name = "Backend: {0}")
   public static Backend[] data() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   public RewriteSwitchMapsTest(Backend backend) {

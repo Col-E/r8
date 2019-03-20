@@ -10,6 +10,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.naming.retrace.StackTrace.StackTraceLine;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
@@ -24,7 +25,7 @@ public class DesugarLambdaRetraceTest extends RetraceTestBase {
 
   @Parameters(name = "Backend: {0}, mode: {1}")
   public static Collection<Object[]> data() {
-    return buildParameters(Backend.values(), CompilationMode.values());
+    return buildParameters(ToolHelper.getBackends(), CompilationMode.values());
   }
 
   public DesugarLambdaRetraceTest(Backend backend, CompilationMode mode) {

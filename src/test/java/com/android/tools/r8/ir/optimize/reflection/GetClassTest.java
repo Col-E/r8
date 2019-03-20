@@ -13,6 +13,7 @@ import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestRunResult;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -133,7 +134,7 @@ public class GetClassTest extends TestBase {
 
   @Parameterized.Parameters(name = "Backend: {0}")
   public static Backend[] data() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   public GetClassTest(Backend backend) {

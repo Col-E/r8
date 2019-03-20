@@ -13,6 +13,7 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestRunResult;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -85,7 +86,7 @@ public class StringInMonitorTest extends TestBase {
 
   @Parameterized.Parameters(name = "Backend: {0}")
   public static Backend[] data() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   public StringInMonitorTest(Backend backend) {

@@ -22,7 +22,7 @@ public class ProcessKotlinStdlibTest extends KotlinTestBase {
 
   @Parameterized.Parameters(name = "Backend: {0} target: {1}")
   public static Collection<Object[]> data() {
-    return buildParameters(Backend.values(), KotlinTargetVersion.values());
+    return buildParameters(ToolHelper.getBackends(), KotlinTargetVersion.values());
   }
 
   private void test(String... rules) throws Exception {

@@ -25,7 +25,7 @@ public class IllegalAccessErrorTest extends AsmTestBase {
 
   @Parameterized.Parameters(name = "backend: {0}")
   public static Backend[] data() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
 

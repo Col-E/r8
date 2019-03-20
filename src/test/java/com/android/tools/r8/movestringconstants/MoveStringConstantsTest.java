@@ -36,7 +36,7 @@ public class MoveStringConstantsTest extends TestBase {
 
   @Parameters(name = "Backend: {0}")
   public static Backend[] data() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   private void runTest(Consumer<CodeInspector> inspection) throws Exception {

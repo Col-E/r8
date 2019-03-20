@@ -8,6 +8,7 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompileResult;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -35,7 +36,7 @@ public class NestedStringBuilderTest extends TestBase {
 
   @Parameterized.Parameters(name = "Backend: {0}")
   public static Backend[] data() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   public NestedStringBuilderTest(Backend backend) {

@@ -76,7 +76,7 @@ public class InvalidTypesTest extends JasminTestBase {
 
   @Parameters(name = "Backend: {0}, mode: {1}, use interface: {2}")
   public static Collection<Object[]> parameters() {
-    return buildParameters(Backend.values(), Mode.values(), BooleanUtils.values());
+    return buildParameters(ToolHelper.getBackends(), Mode.values(), BooleanUtils.values());
   }
 
   @Test

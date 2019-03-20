@@ -9,6 +9,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.memberrebinding.testclasses.IllegalFieldRebindingTestClasses;
 import com.android.tools.r8.memberrebinding.testclasses.IllegalFieldRebindingTestClasses.B;
 import com.android.tools.r8.utils.StringUtils;
@@ -28,7 +29,7 @@ public class IllegalFieldRebindingTest extends TestBase {
 
   @Parameters(name = "Backend: {0}")
   public static Backend[] data() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   public IllegalFieldRebindingTest(Backend backend) {

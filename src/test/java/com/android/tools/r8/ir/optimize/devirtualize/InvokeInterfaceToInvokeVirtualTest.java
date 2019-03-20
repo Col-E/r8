@@ -35,7 +35,7 @@ public class InvokeInterfaceToInvokeVirtualTest extends TestBase {
 
   @Parameterized.Parameters(name = "Backend: {0}")
   public static Backend[] data() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   public InvokeInterfaceToInvokeVirtualTest(Backend backend) {

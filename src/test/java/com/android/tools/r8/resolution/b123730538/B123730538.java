@@ -36,7 +36,7 @@ public class B123730538 extends TestBase {
 
   @Parameterized.Parameters(name = "Backend: {0}")
   public static Object[] data() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   public B123730538(Backend backend) {

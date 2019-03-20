@@ -10,6 +10,7 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.R8TestCompileResult;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.FileUtils;
@@ -100,7 +101,7 @@ public class NoRelaxationForSerializableTest extends AccessRelaxationTestBase {
 
   @Parameterized.Parameters(name = "Backend: {0}, access-modification: {1}")
   public static List<Object[]> data() {
-    return buildParameters(Backend.values(), BooleanUtils.values());
+    return buildParameters(ToolHelper.getBackends(), BooleanUtils.values());
   }
 
   public NoRelaxationForSerializableTest(Backend backend, boolean accessModification) {

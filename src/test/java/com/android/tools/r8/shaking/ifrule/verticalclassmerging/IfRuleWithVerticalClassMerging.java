@@ -10,6 +10,7 @@ import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
@@ -78,7 +79,7 @@ public class IfRuleWithVerticalClassMerging extends TestBase {
   @Parameters(name = "Backend: {0}, vertical class merging: {1}")
   public static Collection<Object[]> data() {
     // We don't run this on Proguard, as Proguard does not merge A into B.
-    return buildParameters(Backend.values(), BooleanUtils.values());
+    return buildParameters(ToolHelper.getBackends(), BooleanUtils.values());
   }
 
   private void configure(InternalOptions options) {

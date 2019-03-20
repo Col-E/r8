@@ -5,6 +5,7 @@ package com.android.tools.r8.memberrebinding;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
@@ -132,7 +133,7 @@ public class IndirectSuperInterfaceTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static Backend[] setup() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   public IndirectSuperInterfaceTest(Backend backend) {

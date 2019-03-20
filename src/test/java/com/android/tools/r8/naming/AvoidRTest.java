@@ -10,6 +10,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.R8TestBuilder;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminTestBase;
 import com.android.tools.r8.utils.FileUtils;
@@ -29,7 +30,7 @@ public class AvoidRTest extends JasminTestBase {
 
   @Parameters(name = "Backend: {0}")
   public static Backend[] data() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   public AvoidRTest(Backend backend) {

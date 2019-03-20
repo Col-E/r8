@@ -45,7 +45,7 @@ public class B116282409 extends JasminTestBase {
 
   @Parameters(name = "Backend: {0}, vertical class merging: {1}")
   public static Collection<Object[]> data() {
-    return buildParameters(Backend.values(), BooleanUtils.values());
+    return buildParameters(ToolHelper.getBackends(), BooleanUtils.values());
   }
 
   public B116282409(Backend backend, boolean enableVerticalClassMerging) {

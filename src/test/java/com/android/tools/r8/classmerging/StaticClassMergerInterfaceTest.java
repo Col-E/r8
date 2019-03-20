@@ -27,7 +27,7 @@ public class StaticClassMergerInterfaceTest extends TestBase {
 
   @Parameters(name = "Backend: {0}")
   public static Backend[] data() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   public StaticClassMergerInterfaceTest(Backend backend) {

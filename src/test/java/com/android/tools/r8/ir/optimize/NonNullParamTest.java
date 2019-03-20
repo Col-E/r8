@@ -9,6 +9,7 @@ import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ir.optimize.nonnull.IntrinsicsDeputy;
 import com.android.tools.r8.ir.optimize.nonnull.NonNullParamAfterInvokeDirect;
 import com.android.tools.r8.ir.optimize.nonnull.NonNullParamAfterInvokeInterface;
@@ -39,7 +40,7 @@ public class NonNullParamTest extends TestBase {
 
   @Parameterized.Parameters(name = "Backend: {0}")
   public static Backend[] data() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   public NonNullParamTest(Backend backend) {

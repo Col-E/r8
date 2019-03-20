@@ -41,7 +41,7 @@ public class CheckCastDebugTestRunner extends DebugTestBase {
 
   @Parameterized.Parameters(name = "Backend: {0}")
   public static Backend[] data() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   public CheckCastDebugTestRunner(Backend backend) {

@@ -34,7 +34,7 @@ public class RenameSourceFileDebugTest extends DebugTestBase {
 
   @BeforeClass
   public static void initDebuggeePath() throws Exception {
-    for (Backend backend : Backend.values()) {
+    for (Backend backend : ToolHelper.getBackends()) {
       Path outdir = temp.newFolder().toPath();
       Path outjar = outdir.resolve("r8_compiled.jar");
       Path proguardMapPath = outdir.resolve("proguard.map");
@@ -75,7 +75,7 @@ public class RenameSourceFileDebugTest extends DebugTestBase {
 
   @Parameterized.Parameters(name = "Backend: {0}")
   public static Backend[] data() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   public RenameSourceFileDebugTest(Backend backend) {

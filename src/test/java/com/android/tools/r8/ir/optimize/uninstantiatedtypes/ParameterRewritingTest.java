@@ -11,6 +11,7 @@ import static org.junit.Assert.assertThat;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -28,7 +29,7 @@ public class ParameterRewritingTest extends TestBase {
 
   @Parameters(name = "Backend: {0}")
   public static Backend[] data() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   public ParameterRewritingTest(Backend backend) {

@@ -29,7 +29,7 @@ public class Regress65432240 extends JasminTestBase {
 
   @Parameterized.Parameters(name = "Backend: {0}")
   public static Backend[] data() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   public Regress65432240(Backend backend) {

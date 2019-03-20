@@ -5,6 +5,7 @@ package com.android.tools.r8.cf;
 
 import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.ToolHelper;
 import java.nio.file.Path;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -18,7 +19,7 @@ public class DebugInfoTestRunner extends TestBase {
 
   @Parameters(name = "{0}")
   public static Backend[] data() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   private final Backend backend;

@@ -10,6 +10,7 @@ import static org.junit.Assert.fail;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.shaking.forceproguardcompatibility.keepattributes.TestKeepAttributes;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
@@ -28,7 +29,7 @@ public class KeepAttributesTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static Backend[] parameters() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   private final Backend backend;

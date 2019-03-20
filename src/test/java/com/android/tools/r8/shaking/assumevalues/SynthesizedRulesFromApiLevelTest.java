@@ -48,7 +48,7 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
 
   @Parameters(name = "Backend: {0}")
   public static Backend[] data() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   // Simple mock implementation of class android.os.Build$VERSION with just the SDK_INT field.

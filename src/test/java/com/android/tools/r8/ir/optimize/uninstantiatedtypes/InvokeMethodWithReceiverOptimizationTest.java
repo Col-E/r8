@@ -12,6 +12,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -37,7 +38,7 @@ public class InvokeMethodWithReceiverOptimizationTest extends TestBase {
 
   @Parameters(name = "Backend: {0}, enable argument removal: {1}")
   public static List<Object[]> data() {
-    return buildParameters(Backend.values(), BooleanUtils.values());
+    return buildParameters(ToolHelper.getBackends(), BooleanUtils.values());
   }
 
   public InvokeMethodWithReceiverOptimizationTest(Backend backend, boolean enableArgumentRemoval) {

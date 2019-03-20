@@ -11,6 +11,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.jasmin.JasminTestBase;
@@ -33,7 +34,7 @@ public class FieldReadsJasminTest extends JasminTestBase {
 
   @Parameterized.Parameters(name = "Backend: {0}")
   public static Object[] data() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   public FieldReadsJasminTest(Backend backend) {

@@ -35,7 +35,7 @@ public class MockitoTest extends TestBase {
 
   @Parameterized.Parameters(name = "Backend: {0} minify: {1}")
   public static Collection<Object[]> data() {
-    return buildParameters(Backend.values(), BooleanUtils.values());
+    return buildParameters(ToolHelper.getBackends(), BooleanUtils.values());
   }
 
   public MockitoTest(Backend backend, boolean minify) {
