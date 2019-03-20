@@ -2118,6 +2118,7 @@ public abstract class R8RunArtTestsTest {
     ArtCommandBuilder builder = buildArtCommand(processedFile, specification, dexVm);
     if (dexVm.isNewerThan(DexVm.ART_4_4_4_HOST)) {
       builder.appendArtOption("-Ximage:/system/non/existent/image.art");
+      builder.appendArtOption("-Xnoimage-dex2oat");
     }
     for (String s : ToolHelper.getBootLibs(dexVm)) {
       builder.appendBootClassPath(new File(s).getCanonicalPath());
