@@ -42,7 +42,7 @@ public class NullCheckCastTest extends TestBase {
 
   @Parameterized.Parameters(name = "backend: {0}")
   public static Backend[] data() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   public NullCheckCastTest(Backend backend) {

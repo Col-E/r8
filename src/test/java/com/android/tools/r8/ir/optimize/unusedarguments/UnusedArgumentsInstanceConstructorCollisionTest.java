@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize.unusedarguments;
 
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.StringUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -19,7 +20,7 @@ public class UnusedArgumentsInstanceConstructorCollisionTest extends TestBase {
 
   @Parameters(name = "Backend: {0}")
   public static Backend[] parameters() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   public UnusedArgumentsInstanceConstructorCollisionTest(Backend backend) {

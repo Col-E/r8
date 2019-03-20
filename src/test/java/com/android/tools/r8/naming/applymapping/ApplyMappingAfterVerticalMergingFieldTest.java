@@ -9,6 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import org.junit.Assume;
@@ -58,7 +59,7 @@ public class ApplyMappingAfterVerticalMergingFieldTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static Backend[] data() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   public ApplyMappingAfterVerticalMergingFieldTest(Backend backend) {

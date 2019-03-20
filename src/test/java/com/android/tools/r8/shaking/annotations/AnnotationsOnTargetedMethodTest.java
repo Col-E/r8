@@ -35,7 +35,7 @@ public class AnnotationsOnTargetedMethodTest extends TestBase {
 
   @Parameters(name = "Backend: {0}")
   public static Backend[] data() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   public AnnotationsOnTargetedMethodTest(Backend backend) {

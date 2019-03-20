@@ -10,6 +10,7 @@ import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.StringConsumer.FileConsumer;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -28,7 +29,7 @@ public class AtomicFieldUpdaterTest extends TestBase {
 
   @Parameters(name = "backend: {0}")
   public static Backend[] data() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   public AtomicFieldUpdaterTest(Backend backend) {

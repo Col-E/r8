@@ -332,7 +332,7 @@ public class MemberRebindingTest {
   @Parameters(name = "{0}")
   public static Collection<TestConfiguration> data() {
     ImmutableList.Builder<TestConfiguration> builder = ImmutableList.builder();
-    for (Backend backend : Backend.values()) {
+    for (Backend backend : ToolHelper.getBackends()) {
       TestConfiguration.add(
           builder,
           "memberrebinding",

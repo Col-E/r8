@@ -10,6 +10,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.android.tools.r8.DeviceRunner.DeviceRunnerConfigurationException;
+import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.ToolHelper.DexVm.Kind;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.errors.Unreachable;
@@ -583,6 +584,13 @@ public class ToolHelper {
       return PROGUARD6_0_1 + ".bat";
     }
     return PROGUARD6_0_1 + ".sh";
+  }
+
+  public static Backend[] getBackends() {
+    if (getDexVm() == DexVm.ART_DEFAULT) {
+      return Backend.values();
+    }
+    return new Backend[]{Backend.DEX};
   }
 
   private static String getRetraceScript() {

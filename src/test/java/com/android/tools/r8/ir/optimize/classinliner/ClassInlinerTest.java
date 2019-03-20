@@ -16,6 +16,7 @@ import static org.junit.Assert.assertThat;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestRunResult;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.ir.optimize.classinliner.builders.BuildersTestClass;
 import com.android.tools.r8.ir.optimize.classinliner.builders.ControlFlow;
@@ -67,7 +68,7 @@ public class ClassInlinerTest extends TestBase {
 
   @Parameterized.Parameters(name = "Backend: {0}")
   public static Backend[] data() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   public ClassInlinerTest(Backend backend) {

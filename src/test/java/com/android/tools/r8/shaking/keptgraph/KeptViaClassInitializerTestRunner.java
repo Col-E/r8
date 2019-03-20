@@ -73,7 +73,7 @@ public class KeptViaClassInitializerTestRunner extends TestBase {
 
   @Parameters(name = "{0}")
   public static Backend[] data() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   public KeptViaClassInitializerTestRunner(Backend backend) {

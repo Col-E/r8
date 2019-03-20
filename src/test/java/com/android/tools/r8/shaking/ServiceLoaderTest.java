@@ -15,6 +15,7 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.naming.AdaptResourceFileContentsTest.DataResourceConsumerForTesting;
 import com.android.tools.r8.origin.Origin;
@@ -44,7 +45,7 @@ public class ServiceLoaderTest extends TestBase {
 
   @Parameters(name = "Backend: {0}, include WorldGreeter: {1}")
   public static List<Object[]> data() {
-    return buildParameters(Backend.values(), BooleanUtils.values());
+    return buildParameters(ToolHelper.getBackends(), BooleanUtils.values());
   }
 
   public ServiceLoaderTest(Backend backend, boolean includeWorldGreeter) {

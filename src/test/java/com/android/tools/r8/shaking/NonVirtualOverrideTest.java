@@ -46,7 +46,7 @@ public class NonVirtualOverrideTest extends TestBase {
 
   @Parameterized.Parameters(name = "Backend: {0}, class inlining: {1}, vertical class merging: {2}")
   public static Collection<Object[]> data() {
-    return buildParameters(Backend.values(), BooleanUtils.values(), BooleanUtils.values());
+    return buildParameters(ToolHelper.getBackends(), BooleanUtils.values(), BooleanUtils.values());
   }
 
   public NonVirtualOverrideTest(

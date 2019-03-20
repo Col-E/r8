@@ -18,6 +18,7 @@ import com.android.tools.r8.DataResourceConsumer;
 import com.android.tools.r8.DataResourceProvider.Visitor;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.TestCompileResult;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatibilityTestBase;
 import com.android.tools.r8.utils.ArchiveResourceProvider;
@@ -52,7 +53,7 @@ public class AdaptResourceFileContentsTest extends ProguardCompatibilityTestBase
 
   @Parameterized.Parameters(name = "Backend: {0}")
   public static Backend[] data() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   public AdaptResourceFileContentsTest(Backend backend) {

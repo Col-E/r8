@@ -36,7 +36,7 @@ public class EnumMinification extends TestBase {
 
   @Parameters(name = "Backend: {0}")
   public static Backend[] data() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   public EnumMinification(Backend backend) {

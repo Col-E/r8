@@ -8,6 +8,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.KotlinTestBase;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -31,7 +32,7 @@ public class EnumMinificationKotlinTest extends KotlinTestBase {
 
   @Parameterized.Parameters(name = "Backend: {0} target: {1} minify: {2}")
   public static Collection<Object[]> data() {
-    return buildParameters(Backend.values(), KotlinTargetVersion.values(), BooleanUtils.values());
+    return buildParameters(ToolHelper.getBackends(), KotlinTargetVersion.values(), BooleanUtils.values());
   }
 
   public EnumMinificationKotlinTest(

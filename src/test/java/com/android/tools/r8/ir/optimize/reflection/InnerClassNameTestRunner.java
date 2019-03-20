@@ -116,7 +116,7 @@ public class InnerClassNameTestRunner extends TestBase {
 
   @Parameters(name = "{0} minify:{1} {2}")
   public static Collection<Object[]> parameters() {
-    return buildParameters(Backend.values(), BooleanUtils.values(), TestNamingConfig.values());
+    return buildParameters(ToolHelper.getBackends(), BooleanUtils.values(), TestNamingConfig.values());
   }
 
   private final Backend backend;

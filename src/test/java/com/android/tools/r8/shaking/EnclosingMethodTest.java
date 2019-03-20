@@ -51,7 +51,7 @@ public class EnclosingMethodTest extends TestBase {
 
   @Parameterized.Parameters(name = "Backend: {0} minification: {1}")
   public static Collection<Object[]> data() {
-    return buildParameters(Backend.values(), BooleanUtils.values());
+    return buildParameters(ToolHelper.getBackends(), BooleanUtils.values());
   }
 
   public EnclosingMethodTest(Backend backend, boolean enableMinification) throws Exception {

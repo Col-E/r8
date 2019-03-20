@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize.unusedarguments;
 
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.ToolHelper;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -17,7 +18,7 @@ public class UnusedArgumentsBootstrapTest extends TestBase {
 
   @Parameters(name = "Backend: {0}")
   public static Backend[] data() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   public UnusedArgumentsBootstrapTest(Backend backend) {

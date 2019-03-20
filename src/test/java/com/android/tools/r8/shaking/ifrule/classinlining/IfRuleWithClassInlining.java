@@ -9,6 +9,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -34,7 +35,7 @@ public class IfRuleWithClassInlining extends TestBase {
 
   @Parameters(name = "Backend: {0}, class inlining: {1}, with if rule: {2}")
   public static List<Object[]> data() {
-    return buildParameters(Backend.values(), BooleanUtils.values(), BooleanUtils.values());
+    return buildParameters(ToolHelper.getBackends(), BooleanUtils.values(), BooleanUtils.values());
   }
 
   @Test

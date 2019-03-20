@@ -94,7 +94,7 @@ public class PrintUsageTest extends TestBase {
     inspections.put("shaking12:keep-rules-printusage.txt", PrintUsageTest::inspectShaking12);
 
     List<Object[]> testCases = new ArrayList<>();
-    for (Backend backend : Backend.values()) {
+    for (Backend backend : ToolHelper.getBackends()) {
       Set<String> usedInspections = new HashSet<>();
       for (String test : tests) {
         File[] keepFiles = new File(ToolHelper.EXAMPLES_DIR + test)

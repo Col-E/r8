@@ -21,7 +21,7 @@ public class B114554345 extends TestBase {
 
   @Parameters(name = "backend: {0}")
   public static Backend[] data() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   public B114554345(Backend backend) {

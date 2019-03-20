@@ -37,7 +37,7 @@ public class FieldRenamingTest extends TestBase {
 
   @Parameterized.Parameters(name = "Backend: {0}")
   public static Object[] data() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   public FieldRenamingTest(Backend backend) {

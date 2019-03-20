@@ -9,6 +9,7 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.utils.StringUtils;
@@ -37,7 +38,7 @@ public class RemovedClassTestRunner extends TestBase {
 
   @Parameters(name = "{0}")
   public static Backend[] data() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   public RemovedClassTestRunner(Backend backend) {

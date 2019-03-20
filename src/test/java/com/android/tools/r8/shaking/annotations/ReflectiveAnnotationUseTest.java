@@ -12,6 +12,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.KotlinTestBase;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.graph.DexAnnotationElement;
 import com.android.tools.r8.utils.AndroidApp;
@@ -60,7 +61,7 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
 
   @Parameterized.Parameters(name = "Backend: {0} target: {1} minify: {2}")
   public static Collection<Object[]> data() {
-    return buildParameters(Backend.values(), KotlinTargetVersion.values(), BooleanUtils.values());
+    return buildParameters(ToolHelper.getBackends(), KotlinTargetVersion.values(), BooleanUtils.values());
   }
 
   public ReflectiveAnnotationUseTest(

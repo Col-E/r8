@@ -4,6 +4,7 @@
 package com.android.tools.r8.debug;
 
 import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.FrameInspector;
 import com.android.tools.r8.utils.DescriptorUtils;
 import java.util.List;
@@ -30,7 +31,7 @@ public class LoadInvokeLoadOptimizationTestRunner extends DebugTestBase {
         parameters()
             .add("CF", temp -> testForJvm(temp).addTestClasspath().debugConfig())
             .add("D8", temp -> testForD8(temp).addProgramClasses(CLASS).debugConfig());
-    for (Backend backend : Backend.values()) {
+    for (Backend backend : ToolHelper.getBackends()) {
       parameters.add(
           "R8/" + backend,
           temp ->

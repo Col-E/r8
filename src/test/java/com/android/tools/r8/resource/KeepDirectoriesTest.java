@@ -51,7 +51,7 @@ public class KeepDirectoriesTest extends ProguardCompatibilityTestBase {
 
   @Parameterized.Parameters(name = "Backend: {0}, Minify: {1}")
   public static Collection<Object[]> data() {
-    return buildParameters(Backend.values(), BooleanUtils.values());
+    return buildParameters(ToolHelper.getBackends(), BooleanUtils.values());
   }
 
   public KeepDirectoriesTest(Backend backend, boolean minify) {

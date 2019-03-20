@@ -35,7 +35,7 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
 
   @Parameterized.Parameters(name = "Backend: {0}, argument removal: {1}")
   public static List<Object[]> data() {
-    return buildParameters(Backend.values(), BooleanUtils.values());
+    return buildParameters(ToolHelper.getBackends(), BooleanUtils.values());
   }
 
   public NonConstructorRelaxationTest(Backend backend, boolean enableArgumentRemoval) {

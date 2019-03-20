@@ -28,7 +28,7 @@ public class SwitchRewritingJarTest extends JasminTestBase {
 
   @Parameterized.Parameters(name = "Backend: {0}")
   public static Backend[] data() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   public SwitchRewritingJarTest(Backend backend) {

@@ -10,6 +10,7 @@ import static org.junit.Assert.assertFalse;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.shaking.WhyAreYouKeepingConsumer;
 import com.android.tools.r8.utils.StringUtils;
@@ -58,7 +59,7 @@ public class WhyAreYouKeepingTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static Backend[] parameters() {
-    return Backend.values();
+    return ToolHelper.getBackends();
   }
 
   public final Backend backend;
