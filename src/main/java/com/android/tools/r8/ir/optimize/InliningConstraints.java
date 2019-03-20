@@ -274,6 +274,21 @@ public class InliningConstraints {
       ConstraintWithTarget fieldConstraintWithTarget =
           ConstraintWithTarget.deriveConstraint(
               invocationContext, fieldHolder, target.accessFlags, appView);
+
+      // If the field has not been member-rebound, then we also need to make sure that the
+      // `invocationContext` has access to the definition of the field.
+      //
+      // See, for example, InlineNonReboundFieldTest (b/128604123).
+      if (field.holder != target.field.holder) {
+        DexType actualFieldHolder = graphLense.lookupType(target.field.holder);
+        fieldConstraintWithTarget =
+            ConstraintWithTarget.meet(
+                fieldConstraintWithTarget,
+                ConstraintWithTarget.deriveConstraint(
+                    invocationContext, actualFieldHolder, target.accessFlags, appView),
+                appView);
+      }
+
       ConstraintWithTarget classConstraintWithTarget =
           ConstraintWithTarget.deriveConstraint(
               invocationContext, fieldHolder, fieldClass.accessFlags, appView);
