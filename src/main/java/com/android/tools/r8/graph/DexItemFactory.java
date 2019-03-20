@@ -39,6 +39,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -686,6 +687,7 @@ public class DexItemFactory {
     public final DexMethod appendObject;
     public final DexMethod appendString;
     public final DexMethod appendStringBuffer;
+    private final Set<DexMethod> appenders;
 
     private StringBuildingMethods(DexType receiver) {
       DexType sbufType = createType(createString("Ljava/lang/StringBuffer;"));
@@ -706,23 +708,29 @@ public class DexItemFactory {
       appendObject = createMethod(receiver, createProto(receiver, objectType), append);
       appendString = createMethod(receiver, createProto(receiver, stringType), append);
       appendStringBuffer = createMethod(receiver, createProto(receiver, sbufType), append);
+
+      appenders = new HashSet<>();
+      appenders.add(appendBoolean);
+      appenders.add(appendChar);
+      appenders.add(appendCharArray);
+      appenders.add(appendSubCharArray);
+      appenders.add(appendCharSequence);
+      appenders.add(appendSubCharSequence);
+      appenders.add(appendInt);
+      appenders.add(appendDouble);
+      appenders.add(appendFloat);
+      appenders.add(appendLong);
+      appenders.add(appendObject);
+      appenders.add(appendString);
+      appenders.add(appendStringBuffer);
+    }
+
+    public boolean isAppend(DexMethod method) {
+      return appenders.contains(method);
     }
 
     public void forEachAppendMethod(Consumer<DexMethod> consumer) {
-      consumer.accept(appendBoolean);
-      consumer.accept(appendChar);
-      consumer.accept(appendCharArray);
-      consumer.accept(appendSubCharArray);
-      consumer.accept(appendCharSequence);
-      consumer.accept(appendSubCharSequence);
-      consumer.accept(appendInt);
-      consumer.accept(appendDouble);
-      consumer.accept(appendFloat);
-      consumer.accept(appendLong);
-      consumer.accept(appendObject);
-      consumer.accept(appendString);
-      consumer.accept(appendStringBuffer);
-      consumer.accept(appendBoolean);
+      appenders.forEach(consumer);
     }
   }
 
