@@ -20,6 +20,8 @@ import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.dex.Constants;
@@ -79,6 +81,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -95,7 +98,11 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class MainDexListTests extends TestBase {
 
   private static final int MAX_METHOD_COUNT = Constants.U16BIT_MAX;
@@ -105,6 +112,15 @@ public class MainDexListTests extends TestBase {
   private static final int MANY_CLASSES_SINGLE_DEX_METHODS_PER_CLASS = 2;
   private static final int MANY_CLASSES_MULTI_DEX_METHODS_PER_CLASS = 10;
   private static List<String> MANY_CLASSES;
+
+  @Parameters
+  public static TestParametersCollection data() {
+    return getTestParameters().withCfRuntimes().build();
+  }
+
+  public MainDexListTests(TestParameters parameters) {
+    // We ignore the paramters, but only run once instead of running on every vm
+  }
 
   interface Runner {
     void run(DiagnosticsHandler handler) throws Throwable;
@@ -117,6 +133,9 @@ public class MainDexListTests extends TestBase {
   // Generate the test applications in a @BeforeClass method, as they are used by several tests.
   @BeforeClass
   public static void generateTestApplications() throws Throwable {
+    if (data().stream().count() == 0) {
+      return;
+    }
     ImmutableList.Builder<String> builder = ImmutableList.builder();
     for (int i = 0; i < MANY_CLASSES_COUNT; ++i) {
       String pkg = i % 2 == 0 ? "a" : "b";
