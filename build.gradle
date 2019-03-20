@@ -1475,14 +1475,6 @@ task getJarsFromSupportLibs(type: GetJarsFromConfiguration) {
     setConfiguration(configurations.supportLibs)
 }
 
-task AospJarTest(type: Exec) {
-    dependsOn CompatDx, downloadDeps
-    def script = "tools/test_aosp_jar.py"
-    inputs.files files(script)
-    commandLine "python", script, "--no-build"
-    workingDir = projectDir
-}
-
 def getR8LibTask() {
     if (project.hasProperty('r8lib')) {
         return R8Lib
@@ -1596,13 +1588,14 @@ test {
 
     if (project.hasProperty('tool')) {
         if (project.property('tool') == 'r8') {
-            exclude "com/android/tools/r8/art/*/d8/**"
             exclude "com/android/tools/r8/jctf/**"
         } else if (project.property('tool') == 'd8') {
             if (project.hasProperty('only_jctf')) {
                 include "com/android/tools/r8/jctf/d8/**"
             } else {
-                include "com/android/tools/r8/art/*/d8/**"
+                // Don't run anything, deprecated
+                println "Running with deprecated tool d8, not running any tests"
+                include ""
             }
         } else {
             assert(project.property('tool') == 'r8cf')
@@ -1639,9 +1632,6 @@ test {
     }
     if (project.hasProperty('test_dir')) {
         systemProperty 'test_dir', project.property('test_dir')
-    }
-    if (project.hasProperty('aosp_jar')) {
-        dependsOn AospJarTest
     }
     if (project.hasProperty('r8lib') || project.hasProperty('r8lib_no_deps')) {
         dependsOn configureTestForR8Lib
