@@ -149,7 +149,7 @@ APP_REPOSITORIES = [
   Repo({
       'name': 'chanu',
       'url': 'https://github.com/mkj-gram/chanu.git',
-      'revision': 'f5dae10b965974f7bf7cf75b8fa80ba9c844f102',
+      'revision': '6e53458f167b6d78398da60c20fd0da01a232617',
       'apps': [
           App({
               'id': 'com.chanapps.four.activity'
