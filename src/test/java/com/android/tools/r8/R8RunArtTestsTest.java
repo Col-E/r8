@@ -2062,7 +2062,7 @@ public abstract class R8RunArtTestsTest {
       if (specification.skipTest) {
         continue;
       }
-      CompilationOptions thisOptions = new CompilationOptions(vmSpec.spec);
+      CompilationOptions thisOptions = new CompilationOptions(specification);
       if (r8CompilationOptions == null) {
         r8CompilationOptions = thisOptions;
         executeCompilerUnderTest(
