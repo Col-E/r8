@@ -37,8 +37,7 @@ public class PreamblePositionTestRunner {
   }
 
   private void testBothBranches(boolean invertConditionals) throws Exception {
-    Path testClassDir = temp.newFolder(TEST_PACKAGE.split(".")).toPath();
-    Path testClassPath = testClassDir.resolve(TEST_CLASS + ".class");
+    Path testClassPath = temp.newFolder().toPath().resolve(TEST_CLASS + ".class");
     Path outputDexPath = temp.newFolder().toPath();
 
     Files.write(testClassPath, PreamblePositionTestSourceDump.dump());
