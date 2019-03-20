@@ -135,11 +135,11 @@ public abstract class ClassMap<T extends DexClass> {
     return loadedClasses;
   }
 
-  public Map<DexType, DexClass> getAllClassesInMap() {
+  public Map<DexType, T> getAllClassesInMap() {
     if (classProvider.get() != null) {
       throw new Unreachable("Getting all classes from not fully loaded collection.");
     }
-    ImmutableMap.Builder<DexType, DexClass> builder = ImmutableMap.builder();
+    ImmutableMap.Builder<DexType, T> builder = ImmutableMap.builder();
     // This is fully loaded, so the class map will no longer change.
     for (Map.Entry<DexType, Supplier<T>> entry : classes.entrySet()) {
       builder.put(entry.getKey(), entry.getValue().get());

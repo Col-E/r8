@@ -6,7 +6,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.ProgramResourceProvider;
+import com.android.tools.r8.DataResourceProvider;
 import com.android.tools.r8.dex.ApplicationReader.ProgramClassConflictResolver;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.ClasspathClassCollection;
@@ -15,29 +15,46 @@ import com.android.tools.r8.utils.ProgramClassCollection;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.util.Collections;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 
 public class LazyLoadedDexApplication extends DexApplication {
 
+  private final ProgramClassCollection programClasses;
   private final ClasspathClassCollection classpathClasses;
   private final LibraryClassCollection libraryClasses;
 
-  /**
-   * Constructor should only be invoked by the DexApplication.Builder.
-   */
-  private LazyLoadedDexApplication(ClassNameMapper proguardMap,
+  /** Constructor should only be invoked by the DexApplication.Builder. */
+  private LazyLoadedDexApplication(
+      ClassNameMapper proguardMap,
       ProgramClassCollection programClasses,
-      ImmutableList<ProgramResourceProvider> programResourceProviders,
+      ImmutableList<DataResourceProvider> dataResourceProviders,
       ClasspathClassCollection classpathClasses,
       LibraryClassCollection libraryClasses,
-      ImmutableSet<DexType> mainDexList, String deadCode,
-      DexItemFactory dexItemFactory, DexString highestSortingString,
+      ImmutableSet<DexType> mainDexList,
+      String deadCode,
+      DexItemFactory dexItemFactory,
+      DexString highestSortingString,
       Timing timing) {
-    super(proguardMap, programClasses, programResourceProviders, mainDexList, deadCode,
-        dexItemFactory, highestSortingString, timing);
+    super(
+        proguardMap,
+        dataResourceProviders,
+        mainDexList,
+        deadCode,
+        dexItemFactory,
+        highestSortingString,
+        timing);
+    this.programClasses = programClasses;
     this.classpathClasses = classpathClasses;
     this.libraryClasses = libraryClasses;
+  }
+
+  @Override
+  List<DexProgramClass> programClasses() {
+    programClasses.forceLoad(t -> true);
+    return programClasses.getAllClasses();
   }
 
   @Override
@@ -53,59 +70,97 @@ public class LazyLoadedDexApplication extends DexApplication {
     return clazz;
   }
 
+  @Override
+  public DexProgramClass programDefinitionFor(DexType type) {
+    assert type.isClassType() : "Cannot lookup definition for type: " + type;
+    return programClasses.get(type);
+  }
+
   static class AllClasses {
-    private Map<DexType, DexClass> libraryClasses;
-    private Map<DexType, DexClass> classpathClasses;
-    private Map<DexType, DexClass> programClasses;
-    private Map<DexType, DexClass> classes;
+
+    // Mapping of all types to their definitions.
+    private final Map<DexType, DexClass> allClasses;
+    // Collections of the three different types for iteration.
+    private final ImmutableList<DexProgramClass> programClasses;
+    private final ImmutableList<DexClasspathClass> classpathClasses;
+    private final ImmutableList<DexLibraryClass> libraryClasses;
 
     AllClasses(
-        LibraryClassCollection libraryClasses,
-        ClasspathClassCollection classpathClasses,
-        ProgramClassCollection programClasses) {
-      load(libraryClasses, classpathClasses, programClasses);
-
+        LibraryClassCollection libraryClassesLoader,
+        ClasspathClassCollection classpathClassesLoader,
+        ProgramClassCollection programClassesLoader) {
       // Collect loaded classes in the precedence order program classes, class path classes and
       // library classes.
-      // TODO(b/120884788): Change this.
-      classes = new IdentityHashMap<>();
-      classes.putAll(this.programClasses);
-      if (classpathClasses != null) {
-        classpathClasses.getAllClasses().forEach(clazz -> classes.putIfAbsent(clazz.type, clazz));
+      // TODO(b/120884788): Change library priority.
+      assert programClassesLoader != null;
+      // Program classes are supposed to be loaded, but force-loading them is no-op.
+      programClassesLoader.forceLoad(type -> true);
+      Map<DexType, DexProgramClass> allProgramClasses = programClassesLoader.getAllClassesInMap();
+      int expectedMaxSize = allProgramClasses.size();
+      programClasses = ImmutableList.copyOf(allProgramClasses.values());
+
+      Map<DexType, DexClasspathClass> allClasspathClasses = null;
+      if (classpathClassesLoader != null) {
+        classpathClassesLoader.forceLoad(type -> true);
+        allClasspathClasses = classpathClassesLoader.getAllClassesInMap();
+        expectedMaxSize += allClasspathClasses.size();
       }
-      if (libraryClasses != null) {
-        libraryClasses.getAllClasses().forEach(clazz -> classes.putIfAbsent(clazz.type, clazz));
+
+      Map<DexType, DexLibraryClass> allLibraryClasses = null;
+      if (libraryClassesLoader != null) {
+        libraryClassesLoader.forceLoad(type -> true);
+        allLibraryClasses = libraryClassesLoader.getAllClassesInMap();
+        expectedMaxSize += allLibraryClasses.size();
       }
+
+      // Note: using hash map for building as the immutable builder does not support contains.
+      Map<DexType, DexClass> prioritizedClasses = new IdentityHashMap<>(expectedMaxSize);
+      prioritizedClasses.putAll(allProgramClasses);
+
+      if (allClasspathClasses != null) {
+        ImmutableList.Builder<DexClasspathClass> builder = ImmutableList.builder();
+        allClasspathClasses.forEach(
+            (type, clazz) -> {
+              if (!prioritizedClasses.containsKey(type)) {
+                prioritizedClasses.put(type, clazz);
+                builder.add(clazz);
+              }
+            });
+        classpathClasses = builder.build();
+      } else {
+        classpathClasses = ImmutableList.of();
+      }
+
+      if (allLibraryClasses != null) {
+        ImmutableList.Builder<DexLibraryClass> builder = ImmutableList.builder();
+        allLibraryClasses.forEach(
+            (type, clazz) -> {
+              if (!prioritizedClasses.containsKey(type)) {
+                prioritizedClasses.put(type, clazz);
+                builder.add(clazz);
+              }
+            });
+        libraryClasses = builder.build();
+      } else {
+        libraryClasses = ImmutableList.of();
+      }
+      allClasses = Collections.unmodifiableMap(prioritizedClasses);
     }
 
-    public Map<DexType, DexClass> getLibraryClasses() {
-      return libraryClasses;
+    public Map<DexType, DexClass> getAllClasses() {
+      return allClasses;
     }
 
-    public Map<DexType, DexClass> getClasspathClasses() {
+    public ImmutableList<DexProgramClass> getProgramClasses() {
+      return programClasses;
+    }
+
+    public ImmutableList<DexClasspathClass> getClasspathClasses() {
       return classpathClasses;
     }
 
-    public Map<DexType, DexClass> getClasses() {
-      return classes;
-    }
-
-    private void load(
-        LibraryClassCollection libraryClasses,
-        ClasspathClassCollection classpathClasses,
-        ProgramClassCollection programClasses) {
-      if (libraryClasses != null) {
-        libraryClasses.forceLoad(type -> true);
-        this.libraryClasses = libraryClasses.getAllClassesInMap();
-      }
-      if (classpathClasses != null) {
-        classpathClasses.forceLoad(type -> true);
-        this.classpathClasses = classpathClasses.getAllClassesInMap();
-      }
-      assert programClasses != null;
-      // Program classes are supposed to be loaded, but force-loading them is no-op.
-      programClasses.forceLoad(type -> true);
-      this.programClasses = programClasses.getAllClassesInMap();
+    public ImmutableList<DexLibraryClass> getLibraryClasses() {
+      return libraryClasses;
     }
   }
 
@@ -156,7 +211,7 @@ public class LazyLoadedDexApplication extends DexApplication {
       return new LazyLoadedDexApplication(
           proguardMap,
           ProgramClassCollection.create(programClasses, resolver),
-          ImmutableList.copyOf(programResourceProviders),
+          ImmutableList.copyOf(dataResourceProviders),
           classpathClasses,
           libraryClasses,
           ImmutableSet.copyOf(mainDexList),

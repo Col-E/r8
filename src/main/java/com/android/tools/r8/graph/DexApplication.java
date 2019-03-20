@@ -6,7 +6,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.ProgramResourceProvider;
+import com.android.tools.r8.DataResourceProvider;
 import com.android.tools.r8.dex.ApplicationReader.ProgramClassConflictResolver;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.naming.ClassNameMapper;
@@ -24,10 +24,7 @@ import java.util.Set;
 
 public abstract class DexApplication {
 
-  // Maps type into class, may be used concurrently.
-  final ProgramClassCollection programClasses;
-
-  public final ImmutableList<ProgramResourceProvider> programResourceProviders;
+  public final ImmutableList<DataResourceProvider> dataResourceProviders;
 
   public final ImmutableSet<DexType> mainDexList;
   public final String deadCode;
@@ -41,22 +38,17 @@ public abstract class DexApplication {
   // Information on the lexicographically largest string referenced from code.
   public final DexString highestSortingString;
 
-  /**
-   * Constructor should only be invoked by the DexApplication.Builder.
-   */
+  /** Constructor should only be invoked by the DexApplication.Builder. */
   DexApplication(
       ClassNameMapper proguardMap,
-      ProgramClassCollection programClasses,
-      ImmutableList<ProgramResourceProvider> programResourceProviders,
+      ImmutableList<DataResourceProvider> dataResourceProviders,
       ImmutableSet<DexType> mainDexList,
       String deadCode,
       DexItemFactory dexItemFactory,
       DexString highestSortingString,
       Timing timing) {
-    assert programClasses != null;
     this.proguardMap = proguardMap;
-    this.programClasses = programClasses;
-    this.programResourceProviders = programResourceProviders;
+    this.dataResourceProviders = dataResourceProviders;
     this.mainDexList = mainDexList;
     this.deadCode = deadCode;
     this.dexItemFactory = dexItemFactory;
@@ -72,23 +64,38 @@ public abstract class DexApplication {
   // Also note that the order may add to non-determinism in reporting errors for invalid
   // code, but this non-determinism exists even with the same order of classes since we
   // may process classes concurrently and fail-fast on the first error.
-  private <T> boolean reorderClasses(List<T> classes) {
-    if (!InternalOptions.DETERMINISTIC_DEBUGGING) {
-      Collections.shuffle(classes);
+  private static class ReorderBox<T> {
+
+    private List<T> classes;
+
+    ReorderBox(List<T> classes) {
+      this.classes = classes;
     }
-    return true;
+
+    boolean reorderClasses() {
+      if (!InternalOptions.DETERMINISTIC_DEBUGGING) {
+        List<T> shuffled = new ArrayList<>(classes);
+        Collections.shuffle(shuffled);
+        classes = ImmutableList.copyOf(shuffled);
+      }
+      return true;
+    }
+
+    List<T> getClasses() {
+      return classes;
+    }
   }
 
+  abstract List<DexProgramClass> programClasses();
+
   public List<DexProgramClass> classes() {
-    programClasses.forceLoad(type -> true);
-    List<DexProgramClass> classes = programClasses.getAllClasses();
-    assert reorderClasses(classes);
-    return classes;
+    ReorderBox<DexProgramClass> box = new ReorderBox<>(programClasses());
+    assert box.reorderClasses();
+    return box.getClasses();
   }
 
   public Iterable<DexProgramClass> classesWithDeterministicOrder() {
-    programClasses.forceLoad(type -> true);
-    List<DexProgramClass> classes = programClasses.getAllClasses();
+    List<DexProgramClass> classes = new ArrayList<>(programClasses());
     // To keep the order deterministic, we sort the classes by their type, which is a unique key.
     classes.sort((a, b) -> a.type.slowCompareTo(b.type));
     return classes;
@@ -96,10 +103,7 @@ public abstract class DexApplication {
 
   public abstract DexClass definitionFor(DexType type);
 
-  public DexProgramClass programDefinitionFor(DexType type) {
-    DexClass clazz = programClasses.get(type);
-    return clazz == null ? null : clazz.asProgramClass();
-  }
+  public abstract DexProgramClass programDefinitionFor(DexType type);
 
   @Override
   public abstract String toString();
@@ -116,9 +120,9 @@ public abstract class DexApplication {
     // new or removing existing classes), classpath and library
     // collections will be considered monolithic collections.
 
-    final List<DexProgramClass> programClasses;
+    final List<DexProgramClass> programClasses = new ArrayList<>();
 
-    final List<ProgramResourceProvider> programResourceProviders = new ArrayList<>();
+    final List<DataResourceProvider> dataResourceProviders = new ArrayList<>();
 
     public final DexItemFactory dexItemFactory;
     ClassNameMapper proguardMap;
@@ -130,7 +134,6 @@ public abstract class DexApplication {
     private final Collection<DexProgramClass> synthesizedClasses;
 
     public Builder(DexItemFactory dexItemFactory, Timing timing) {
-      this.programClasses = new ArrayList<>();
       this.dexItemFactory = dexItemFactory;
       this.timing = timing;
       this.deadCode = null;
@@ -140,8 +143,8 @@ public abstract class DexApplication {
     abstract T self();
 
     public Builder(DexApplication application) {
-      programClasses = application.programClasses.getAllClasses();
-      addProgramResourceProviders(application.programResourceProviders);
+      programClasses.addAll(application.programClasses());
+      dataResourceProviders.addAll(application.dataResourceProviders);
       proguardMap = application.getProguardMap();
       timing = application.timing;
       highestSortingString = application.highestSortingString;
@@ -164,11 +167,8 @@ public abstract class DexApplication {
       return self();
     }
 
-    public synchronized T addProgramResourceProviders(
-        List<ProgramResourceProvider> programResourceProviders) {
-      if (programResourceProviders != null) {
-        this.programResourceProviders.addAll(programResourceProviders);
-      }
+    public synchronized T addDataResourceProvider(DataResourceProvider provider) {
+      dataResourceProviders.add(provider);
       return self();
     }
 

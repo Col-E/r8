@@ -7,7 +7,6 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.origin.Origin;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.Collections;
@@ -106,7 +105,7 @@ public class AppInfoWithSubtyping extends AppInfo {
     dexItemFactory.clearSubtypeInformation();
     dexItemFactory.objectType.tagAsSubtypeRoot();
     Map<DexType, Set<DexType>> map = new IdentityHashMap<>();
-    for (DexClass clazz : Iterables.<DexClass>concat(app.classes(), app.libraryClasses())) {
+    for (DexClass clazz : app.allClasses()) {
       populateAllSuperTypes(map, clazz.type, clazz, app::definitionFor);
     }
     for (Map.Entry<DexType, Set<DexType>> entry : map.entrySet()) {

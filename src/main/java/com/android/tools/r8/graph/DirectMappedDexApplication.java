@@ -6,51 +6,77 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.ProgramResourceProvider;
+import com.android.tools.r8.DataResourceProvider;
 import com.android.tools.r8.graph.LazyLoadedDexApplication.AllClasses;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.ProgramClassCollection;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
 public class DirectMappedDexApplication extends DexApplication {
 
-  private final AllClasses allClasses;
-  private final ImmutableMap<DexType, DexLibraryClass> libraryClasses;
+  // Unmodifiable mapping of all types to their definitions.
+  private final Map<DexType, DexClass> allClasses;
+  // Collections of the three different types for iteration.
+  private final ImmutableList<DexProgramClass> programClasses;
+  private final ImmutableList<DexClasspathClass> classpathClasses;
+  private final ImmutableList<DexLibraryClass> libraryClasses;
 
-  private DirectMappedDexApplication(ClassNameMapper proguardMap,
-      AllClasses allClasses,
-      ProgramClassCollection programClasses,
-      ImmutableList<ProgramResourceProvider> programResourceProviders,
-      ImmutableMap<DexType, DexLibraryClass> libraryClasses,
-      ImmutableSet<DexType> mainDexList, String deadCode,
-      DexItemFactory dexItemFactory, DexString highestSortingString,
+  private DirectMappedDexApplication(
+      ClassNameMapper proguardMap,
+      Map<DexType, DexClass> allClasses,
+      ImmutableList<DexProgramClass> programClasses,
+      ImmutableList<DexClasspathClass> classpathClasses,
+      ImmutableList<DexLibraryClass> libraryClasses,
+      ImmutableList<DataResourceProvider> dataResourceProviders,
+      ImmutableSet<DexType> mainDexList,
+      String deadCode,
+      DexItemFactory dexItemFactory,
+      DexString highestSortingString,
       Timing timing) {
-    super(proguardMap, programClasses, programResourceProviders, mainDexList, deadCode,
-        dexItemFactory, highestSortingString, timing);
-    this.allClasses = allClasses;
+    super(
+        proguardMap,
+        dataResourceProviders,
+        mainDexList,
+        deadCode,
+        dexItemFactory,
+        highestSortingString,
+        timing);
+    this.allClasses = Collections.unmodifiableMap(allClasses);
+    this.programClasses = programClasses;
+    this.classpathClasses = classpathClasses;
     this.libraryClasses = libraryClasses;
   }
 
+  public Collection<DexClass> allClasses() {
+    return allClasses.values();
+  }
+
+  @Override
+  List<DexProgramClass> programClasses() {
+    return programClasses;
+  }
+
   public Collection<DexLibraryClass> libraryClasses() {
-    return libraryClasses.values();
+    return libraryClasses;
   }
 
   @Override
   public DexClass definitionFor(DexType type) {
     assert type.isClassType() : "Cannot lookup definition for type: " + type;
-    DexClass result = programClasses.get(type);
-    if (result == null) {
-      result = libraryClasses.get(type);
-    }
-    return result;
+    return allClasses.get(type);
+  }
+
+  @Override
+  public DexProgramClass programDefinitionFor(DexType type) {
+    DexClass clazz = definitionFor(type);
+    return clazz instanceof DexProgramClass ? clazz.asProgramClass() : null;
   }
 
   @Override
@@ -76,8 +102,7 @@ public class DirectMappedDexApplication extends DexApplication {
   public DirectMappedDexApplication rewrittenWithLense(GraphLense graphLense) {
     // As a side effect, this will rebuild the program classes and library classes maps.
     DirectMappedDexApplication rewrittenApplication = this.builder().build().asDirect();
-    assert rewrittenApplication.mappingIsValid(graphLense, programClasses.getAllTypes());
-    assert rewrittenApplication.mappingIsValid(graphLense, libraryClasses.keySet());
+    assert rewrittenApplication.mappingIsValid(graphLense, allClasses.keySet());
     return rewrittenApplication;
   }
 
@@ -99,22 +124,22 @@ public class DirectMappedDexApplication extends DexApplication {
 
   public static class Builder extends DexApplication.Builder<Builder> {
 
-    private final AllClasses allClasses;
-    private final List<DexLibraryClass> libraryClasses = new ArrayList<>();
+    private final ImmutableList<DexLibraryClass> libraryClasses;
+    private final ImmutableList<DexClasspathClass> classpathClasses;
 
     Builder(LazyLoadedDexApplication application) {
       super(application);
       // As a side-effect, this will force-load all classes.
-      this.allClasses = application.loadAllClasses();
-      Map<DexType, DexClass> allClasses = this.allClasses.getClasses();
-      // TODO(120884788): This filter will only add library classes which are not program classes.
-      Iterables.filter(allClasses.values(), DexLibraryClass.class).forEach(libraryClasses::add);
+      AllClasses allClasses = application.loadAllClasses();
+      assert application.programClasses().equals(allClasses.getProgramClasses());
+      libraryClasses = allClasses.getLibraryClasses();
+      classpathClasses = allClasses.getClasspathClasses();
     }
 
     private Builder(DirectMappedDexApplication application) {
       super(application);
-      this.allClasses = application.allClasses;
-      this.libraryClasses.addAll(application.libraryClasses.values());
+      libraryClasses = application.libraryClasses;
+      classpathClasses = application.classpathClasses;
     }
 
     @Override
@@ -125,18 +150,40 @@ public class DirectMappedDexApplication extends DexApplication {
     @Override
     public DexApplication build() {
       // Rebuild the map. This will fail if keys are not unique.
+      // TODO(zerny): It seems weird that we have conflict resolution here.
+      ImmutableList<DexProgramClass> newProgramClasses =
+          ImmutableList.copyOf(
+              ProgramClassCollection.create(
+                      programClasses, ProgramClassCollection::resolveClassConflictImpl)
+                  .getAllClasses());
+      // TODO(zerny): Consider not rebuilding the map if no program classes are added.
+      Map<DexType, DexClass> allClasses = new IdentityHashMap<>(
+          newProgramClasses.size() + classpathClasses.size() + libraryClasses.size());
+      // Note: writing classes in reverse priority order, so a duplicate will be correctly ordered.
+      // There should never be duplicates and that is asserted in the addAll subroutine.
+      addAll(allClasses, libraryClasses);
+      addAll(allClasses, classpathClasses);
+      addAll(allClasses, programClasses);
       return new DirectMappedDexApplication(
           proguardMap,
           allClasses,
-          ProgramClassCollection.create(
-              programClasses, ProgramClassCollection::resolveClassConflictImpl),
-          ImmutableList.copyOf(programResourceProviders),
-          libraryClasses.stream().collect(ImmutableMap.toImmutableMap(c -> c.type, c -> c)),
+          newProgramClasses,
+          classpathClasses,
+          libraryClasses,
+          ImmutableList.copyOf(dataResourceProviders),
           ImmutableSet.copyOf(mainDexList),
           deadCode,
           dexItemFactory,
           highestSortingString,
           timing);
+    }
+  }
+
+  private static <T extends DexClass> void addAll(
+      Map<DexType, DexClass> allClasses, Iterable<T> toAdd) {
+    for (DexClass clazz : toAdd) {
+      DexClass old = allClasses.put(clazz.type, clazz);
+      assert old == null;
     }
   }
 }

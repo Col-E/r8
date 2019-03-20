@@ -13,7 +13,6 @@ import com.android.tools.r8.DataResourceProvider.Visitor;
 import com.android.tools.r8.DexFilePerClassFileConsumer;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.ProgramConsumer;
-import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.dex.FileWriter.ByteBufferResult;
 import com.android.tools.r8.errors.CompilationError;
@@ -53,12 +52,10 @@ import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.stream.Collectors;
 
 public class ApplicationWriter {
 
@@ -333,17 +330,11 @@ public class ApplicationWriter {
     }
     DataResourceConsumer dataResourceConsumer = options.dataResourceConsumer;
     if (dataResourceConsumer != null) {
-      List<DataResourceProvider> dataResourceProviders = application.programResourceProviders
-          .stream()
-          .map(ProgramResourceProvider::getDataResourceProvider)
-          .filter(Objects::nonNull)
-          .collect(Collectors.toList());
-
       ResourceAdapter resourceAdapter =
           new ResourceAdapter(appView, application.dexItemFactory, graphLense, namingLens, options);
       Set<String> generatedResourceNames = new HashSet<>();
 
-      for (DataResourceProvider dataResourceProvider : dataResourceProviders) {
+      for (DataResourceProvider dataResourceProvider : application.dataResourceProviders) {
         try {
           dataResourceProvider.accept(
               new Visitor() {

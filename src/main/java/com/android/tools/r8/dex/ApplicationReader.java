@@ -8,8 +8,10 @@ import static com.android.tools.r8.graph.ClassKind.LIBRARY;
 import static com.android.tools.r8.graph.ClassKind.PROGRAM;
 
 import com.android.tools.r8.ClassFileResourceProvider;
+import com.android.tools.r8.DataResourceProvider;
 import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ProgramResource.Kind;
+import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.errors.CompilationError;
@@ -115,7 +117,12 @@ public class ApplicationReader {
       classReader.readSources();
       ThreadUtils.awaitFutures(futures);
       classReader.initializeLazyClassCollection(builder);
-      builder.addProgramResourceProviders(inputApp.getProgramResourceProviders());
+      for (ProgramResourceProvider provider : inputApp.getProgramResourceProviders()) {
+        DataResourceProvider dataResourceProvider = provider.getDataResourceProvider();
+        if (dataResourceProvider != null) {
+          builder.addDataResourceProvider(dataResourceProvider);
+        }
+      }
     } catch (ResourceException e) {
       throw options.reporter.fatalError(new StringDiagnostic(e.getMessage(), e.getOrigin()));
     } finally {

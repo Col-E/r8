@@ -8,7 +8,6 @@ import com.android.tools.r8.DataDirectoryResource;
 import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.DataResourceProvider;
 import com.android.tools.r8.DataResourceProvider.Visitor;
-import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.Origin;
@@ -97,14 +96,8 @@ public class AppServices {
     }
 
     public AppServices build() {
-      Iterable<ProgramResourceProvider> programResourceProviders =
-          appView.appInfo().app().programResourceProviders;
-      for (ProgramResourceProvider programResourceProvider : programResourceProviders) {
-        DataResourceProvider dataResourceProvider =
-            programResourceProvider.getDataResourceProvider();
-        if (dataResourceProvider != null) {
-          readServices(dataResourceProvider);
-        }
+      for (DataResourceProvider provider : appView.appInfo().app().dataResourceProviders) {
+        readServices(provider);
       }
       return new AppServices(appView, services);
     }
