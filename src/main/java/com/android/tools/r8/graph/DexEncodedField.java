@@ -11,8 +11,7 @@ import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 
 public class DexEncodedField extends KeyedDexItem<DexField> {
-
-  public static final DexEncodedField[] EMPTY_ARRAY = new DexEncodedField[]{};
+  public static final DexEncodedField[] EMPTY_ARRAY = {};
 
   public final DexField field;
   public final FieldAccessFlags accessFlags;

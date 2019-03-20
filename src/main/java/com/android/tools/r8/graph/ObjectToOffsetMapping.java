@@ -134,8 +134,8 @@ public class ObjectToOffsetMapping {
     }
   }
 
-  private static DexProgramClass[] sortClasses(DexApplication application,
-      Collection<DexProgramClass> classes) {
+  private static DexProgramClass[] sortClasses(
+      DexApplication application, Collection<DexProgramClass> classes) {
     // Collect classes in subtyping order, based on a sorted list of classes to start with.
     ProgramClassDepthsMemoized classDepths = new ProgramClassDepthsMemoized(application);
     List<DexProgramClass> sortedClasses =
@@ -148,7 +148,7 @@ public class ObjectToOffsetMapping {
                   return dx != dy ? dx - dy : x.type.compareTo(y.type);
                 })
             .collect(Collectors.toList());
-    return sortedClasses.toArray(new DexProgramClass[sortedClasses.size()]);
+    return sortedClasses.toArray(DexProgramClass.EMPTY_ARRAY);
   }
 
   private static <T> Collection<T> keysOrEmpty(Map<T, ?> map) {

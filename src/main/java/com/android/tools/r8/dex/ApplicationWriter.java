@@ -443,7 +443,7 @@ public class ApplicationWriter {
         DexAnnotation[] copy =
             ObjectArrays.concat(
                 clazz.annotations.annotations,
-                annotations.toArray(new DexAnnotation[annotations.size()]),
+                annotations.toArray(DexAnnotation.EMPTY_ARRAY),
                 DexAnnotation.class);
         clazz.annotations = new DexAnnotationSet(copy);
       }

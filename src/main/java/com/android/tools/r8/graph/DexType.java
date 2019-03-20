@@ -30,14 +30,14 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 public class DexType extends DexReference implements PresortedComparable<DexType> {
-
-  private final static int ROOT_LEVEL = 0;
-  private final static int UNKNOWN_LEVEL = -1;
-  private final static int INTERFACE_LEVEL = -2;
+  public static final DexType[] EMPTY_ARRAY = {};
+  private static final int ROOT_LEVEL = 0;
+  private static final int UNKNOWN_LEVEL = -1;
+  private static final int INTERFACE_LEVEL = -2;
 
   // Since most Java types has no sub-types, we can just share an empty immutable set until we need
   // to add to it.
-  private final static Set<DexType> NO_DIRECT_SUBTYPE = ImmutableSet.of();
+  private static final Set<DexType> NO_DIRECT_SUBTYPE = ImmutableSet.of();
 
   public final DexString descriptor;
   private String toStringCache = null;

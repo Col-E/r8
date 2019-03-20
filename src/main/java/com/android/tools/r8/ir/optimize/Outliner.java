@@ -566,7 +566,7 @@ public class Outliner {
 
     DexProto buildProto() {
       if (proto == null) {
-        DexType[] argumentTypesArray = argumentTypes.toArray(new DexType[argumentTypes.size()]);
+        DexType[] argumentTypesArray = argumentTypes.toArray(DexType.EMPTY_ARRAY);
         proto = appView.dexItemFactory().createProto(returnType, argumentTypesArray);
       }
       return proto;

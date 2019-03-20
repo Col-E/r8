@@ -296,8 +296,9 @@ final class LambdaClass {
   // Build a list of implemented interfaces.
   private DexTypeList buildInterfaces() {
     List<DexType> interfaces = descriptor.interfaces;
-    return interfaces.isEmpty() ? DexTypeList.empty()
-        : new DexTypeList(interfaces.toArray(new DexType[interfaces.size()]));
+    return interfaces.isEmpty()
+        ? DexTypeList.empty()
+        : new DexTypeList(interfaces.toArray(DexType.EMPTY_ARRAY));
   }
 
   // Creates a delegation target for this particular lambda class. Note that we

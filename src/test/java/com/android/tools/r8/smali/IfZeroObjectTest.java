@@ -8,6 +8,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.utils.StringUtils;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -61,7 +62,7 @@ public class IfZeroObjectTest extends SmaliTestBase {
       main.add("  invoke-virtual { v0, v1 }, Ljava/io/PrintStream;->print(I)V");
     }
     main.add("  return-void");
-    builder.addMainMethod(2, main.toArray(new String[0]));
+    builder.addMainMethod(2, main.toArray(StringUtils.EMPTY_ARRAY));
 
     return runOnArtRaw(builder.build(), clazz);
   }

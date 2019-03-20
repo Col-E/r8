@@ -74,7 +74,7 @@ public class AbstractMethodRemover {
       }
     }
     if (methods != null) {
-      return methods.toArray(new DexEncodedMethod[methods.size()]);
+      return methods.toArray(DexEncodedMethod.EMPTY_ARRAY);
     }
     return null;
   }

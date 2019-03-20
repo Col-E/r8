@@ -19,9 +19,10 @@ import java.nio.ShortBuffer;
 import java.util.function.BiPredicate;
 
 public abstract class Instruction {
+  public static final Instruction[] EMPTY_ARRAY = {};
 
   public final static int[] NO_TARGETS = null;
-  public final static int[] EXIT_TARGET = new int[]{};
+  public final static int[] EXIT_TARGET = {};
 
   public int offset;
 

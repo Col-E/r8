@@ -22,6 +22,7 @@ import java.util.TreeSet;
 import java.util.function.Function;
 
 public class DexAnnotation extends DexItem {
+  public static final DexAnnotation[] EMPTY_ARRAY = {};
   public static final int VISIBILITY_BUILD = 0x00;
   public static final int VISIBILITY_RUNTIME = 0x01;
   public static final int VISIBILITY_SYSTEM = 0x02;
@@ -198,7 +199,7 @@ public class DexAnnotation extends DexItem {
     return createSystemValueAnnotation(factory.annotationDefault, factory,
         new DexValueAnnotation(
             new DexEncodedAnnotation(type,
-                defaults.toArray(new DexAnnotationElement[defaults.size()])))
+                defaults.toArray(DexAnnotationElement.EMPTY_ARRAY)))
     );
   }
 
@@ -306,7 +307,7 @@ public class DexAnnotation extends DexItem {
       at = endAt;
     }
 
-    return new DexValueArray(parts.toArray(new DexValue[parts.size()]));
+    return new DexValueArray(parts.toArray(DexValue.EMPTY_ARRAY));
   }
 
   private static DexValue toDexValue(String string, DexItemFactory factory) {

@@ -513,7 +513,7 @@ public class LineNumberOptimizer {
         new DexDebugInfo(
             positionEventEmitter.getStartLine(),
             debugInfo.parameters,
-            processedEvents.toArray(new DexDebugEvent[processedEvents.size()]));
+            processedEvents.toArray(DexDebugEvent.EMPTY_ARRAY));
 
     // TODO(b/111253214) Remove this as soon as we have external tests testing not only the
     // remapping but whether the non-positional debug events remain intact.

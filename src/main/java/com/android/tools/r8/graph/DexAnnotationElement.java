@@ -7,6 +7,7 @@ import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 
 public class DexAnnotationElement extends DexItem {
+  public static final DexAnnotationElement[] EMPTY_ARRAY = {};
 
   public final DexString name;
   public final DexValue value;

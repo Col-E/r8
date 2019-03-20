@@ -36,6 +36,7 @@ import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -1586,7 +1587,7 @@ public class OutlineTest extends SmaliTestBase {
         DEFAULT_METHOD_NAME + "1",
         parameters,
         0,
-        codeToOutline.toArray(new String[0])
+        codeToOutline.toArray(StringUtils.EMPTY_ARRAY)
     );
 
     MethodSignature signature2 = builder.addPrivateInstanceMethod(
@@ -1594,7 +1595,7 @@ public class OutlineTest extends SmaliTestBase {
         DEFAULT_METHOD_NAME + "2",
         parameters,
         0,
-        codeToOutline.toArray(new String[0])
+        codeToOutline.toArray(StringUtils.EMPTY_ARRAY)
     );
 
     builder.addMainMethod(
@@ -1661,7 +1662,7 @@ public class OutlineTest extends SmaliTestBase {
         DEFAULT_METHOD_NAME + "1",
         parameters,
         0,
-        codeToOutline.toArray(new String[0])
+        codeToOutline.toArray(StringUtils.EMPTY_ARRAY)
     );
 
     MethodSignature signature2 = builder.addPrivateInstanceMethod(
@@ -1669,7 +1670,7 @@ public class OutlineTest extends SmaliTestBase {
         DEFAULT_METHOD_NAME + "2",
         parameters,
         0,
-        codeToOutline.toArray(new String[0])
+        codeToOutline.toArray(StringUtils.EMPTY_ARRAY)
     );
 
     builder.addMainMethod(
@@ -1733,7 +1734,7 @@ public class OutlineTest extends SmaliTestBase {
         DEFAULT_METHOD_NAME + "1",
         parameters,
         0,
-        codeToOutline.toArray(new String[0])
+        codeToOutline.toArray(StringUtils.EMPTY_ARRAY)
     );
 
     MethodSignature signature2 = builder.addPrivateInstanceMethod(
@@ -1741,7 +1742,7 @@ public class OutlineTest extends SmaliTestBase {
         DEFAULT_METHOD_NAME + "2",
         parameters,
         0,
-        codeToOutline.toArray(new String[0])
+        codeToOutline.toArray(StringUtils.EMPTY_ARRAY)
     );
 
     builder.addMainMethod(
@@ -1805,7 +1806,7 @@ public class OutlineTest extends SmaliTestBase {
         DEFAULT_METHOD_NAME + "1",
         parameters,
         0,
-        codeToOutline.toArray(new String[0])
+        codeToOutline.toArray(StringUtils.EMPTY_ARRAY)
     );
 
     MethodSignature signature2 = builder.addPrivateInstanceMethod(
@@ -1813,7 +1814,7 @@ public class OutlineTest extends SmaliTestBase {
         DEFAULT_METHOD_NAME + "2",
         parameters,
         0,
-        codeToOutline.toArray(new String[0])
+        codeToOutline.toArray(StringUtils.EMPTY_ARRAY)
     );
 
     builder.addMainMethod(

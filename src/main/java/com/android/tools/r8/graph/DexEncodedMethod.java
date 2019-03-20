@@ -91,7 +91,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     PROCESSED_INLINING_CANDIDATE_SAME_CLASS,
   }
 
-  public static final DexEncodedMethod[] EMPTY_ARRAY = new DexEncodedMethod[]{};
+  public static final DexEncodedMethod[] EMPTY_ARRAY = {};
   public static final DexEncodedMethod SENTINEL =
       new DexEncodedMethod(null, null, null, null, null);
 

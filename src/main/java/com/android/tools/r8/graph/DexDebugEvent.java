@@ -11,6 +11,7 @@ import com.android.tools.r8.ir.code.Position;
 import java.util.Objects;
 
 abstract public class DexDebugEvent extends DexItem {
+  public static final DexDebugEvent[] EMPTY_ARRAY = {};
 
   @Override
   public void collectIndexedItems(IndexedItemCollection collection,

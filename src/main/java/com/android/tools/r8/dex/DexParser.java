@@ -530,7 +530,7 @@ public class DexParser {
         }
       }
     }
-    return new DexDebugInfo(start, parameters, events.toArray(new DexDebugEvent[events.size()]));
+    return new DexDebugInfo(start, parameters, events.toArray(DexDebugEvent.EMPTY_ARRAY));
   }
 
   private static class MemberAnnotationIterator<S extends Descriptor<?, S>, T extends DexItem> {
@@ -1131,7 +1131,7 @@ public class DexParser {
         int size = lazyAnnotations.size();
         return size == 0
             ? DexAnnotationSet.empty()
-            : new DexAnnotationSet(lazyAnnotations.toArray(new DexAnnotation[size]));
+            : new DexAnnotationSet(lazyAnnotations.toArray(DexAnnotation.EMPTY_ARRAY));
       }
       return originalAnnotations;
     }

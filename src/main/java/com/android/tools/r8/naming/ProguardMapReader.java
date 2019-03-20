@@ -8,6 +8,7 @@ import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.position.TextPosition;
 import com.android.tools.r8.utils.IdentifierUtils;
+import com.android.tools.r8.utils.StringUtils;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.HashMap;
@@ -397,7 +398,7 @@ public class ProguardMapReader implements AutoCloseable {
           expect(',');
           items.add(parseType(true));
         }
-        arguments = items.toArray(new String[items.size()]);
+        arguments = items.toArray(StringUtils.EMPTY_ARRAY);
       }
       expect(')');
       signature = new MethodSignature(name, type, arguments);

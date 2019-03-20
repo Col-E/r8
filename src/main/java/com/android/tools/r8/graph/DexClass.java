@@ -23,6 +23,7 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 public abstract class DexClass extends DexDefinition {
+  public static final DexClass[] EMPTY_ARRAY = {};
 
   public interface FieldSetter {
     void setField(int index, DexEncodedField field);
@@ -32,8 +33,6 @@ public abstract class DexClass extends DexDefinition {
     void setMethod(int index, DexEncodedMethod method);
   }
 
-  private static final DexEncodedMethod[] NO_METHODS = {};
-  private static final DexEncodedField[] NO_FIELDS = {};
   private Optional<DexEncodedMethod> cachedClassInitializer = null;
 
   public final Origin origin;
@@ -44,16 +43,16 @@ public abstract class DexClass extends DexDefinition {
   public DexString sourceFile;
 
   /** Access has to be synchronized during concurrent collection/writing phase. */
-  protected DexEncodedField[] staticFields = NO_FIELDS;
+  protected DexEncodedField[] staticFields = DexEncodedField.EMPTY_ARRAY;
 
   /** Access has to be synchronized during concurrent collection/writing phase. */
-  protected DexEncodedField[] instanceFields = NO_FIELDS;
+  protected DexEncodedField[] instanceFields = DexEncodedField.EMPTY_ARRAY;
 
   /** Access has to be synchronized during concurrent collection/writing phase. */
-  protected DexEncodedMethod[] directMethods = NO_METHODS;
+  protected DexEncodedMethod[] directMethods = DexEncodedMethod.EMPTY_ARRAY;
 
   /** Access has to be synchronized during concurrent collection/writing phase. */
-  protected DexEncodedMethod[] virtualMethods = NO_METHODS;
+  protected DexEncodedMethod[] virtualMethods = DexEncodedMethod.EMPTY_ARRAY;
 
   /** Enclosing context of this class if it is an inner class, null otherwise. */
   private EnclosingMethodAttribute enclosingMethod;
@@ -182,7 +181,7 @@ public abstract class DexClass extends DexDefinition {
 
   public void setDirectMethods(DexEncodedMethod[] methods) {
     cachedClassInitializer = null;
-    directMethods = MoreObjects.firstNonNull(methods, NO_METHODS);
+    directMethods = MoreObjects.firstNonNull(methods, DexEncodedMethod.EMPTY_ARRAY);
     assert verifyCorrectnessOfMethodHolders(directMethods());
     assert verifyNoDuplicateMethods();
   }
@@ -232,7 +231,7 @@ public abstract class DexClass extends DexDefinition {
   }
 
   public void setVirtualMethods(DexEncodedMethod[] methods) {
-    virtualMethods = MoreObjects.firstNonNull(methods, NO_METHODS);
+    virtualMethods = MoreObjects.firstNonNull(methods, DexEncodedMethod.EMPTY_ARRAY);
     assert verifyCorrectnessOfMethodHolders(virtualMethods());
     assert verifyNoDuplicateMethods();
   }
@@ -394,7 +393,7 @@ public abstract class DexClass extends DexDefinition {
   }
 
   public void setStaticFields(DexEncodedField[] fields) {
-    staticFields = MoreObjects.firstNonNull(fields, NO_FIELDS);
+    staticFields = MoreObjects.firstNonNull(fields, DexEncodedField.EMPTY_ARRAY);
     assert verifyCorrectnessOfFieldHolders(staticFields());
     assert verifyNoDuplicateFields();
   }
@@ -453,7 +452,7 @@ public abstract class DexClass extends DexDefinition {
   }
 
   public void setInstanceFields(DexEncodedField[] fields) {
-    instanceFields = MoreObjects.firstNonNull(fields, NO_FIELDS);
+    instanceFields = MoreObjects.firstNonNull(fields, DexEncodedField.EMPTY_ARRAY);
     assert verifyCorrectnessOfFieldHolders(instanceFields());
     assert verifyNoDuplicateFields();
   }

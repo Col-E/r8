@@ -9,6 +9,7 @@ import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.StringUtils;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -50,7 +51,7 @@ public class DXTestBuilder
       List<String> args = new ArrayList<>();
       args.add("--output=" + outJar.toString());
       args.addAll(injars.stream().map(Path::toString).collect(Collectors.toList()));
-      ProcessResult result = ToolHelper.runDX(args.toArray(new String[0]));
+      ProcessResult result = ToolHelper.runDX(args.toArray(StringUtils.EMPTY_ARRAY));
       if (result.exitCode != 0) {
         throw new CompilationFailedException(result.toString());
       }

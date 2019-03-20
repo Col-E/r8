@@ -396,8 +396,8 @@ public class MainDexTracingTest extends TestBase {
       index++;
     }
     // Everything else should be sorted according to name.
-    String[] entriesUnsorted = entryNames.toArray(new String[0]);
-    String[] entriesSorted = entryNames.toArray(new String[0]);
+    String[] entriesUnsorted = entryNames.toArray(StringUtils.EMPTY_ARRAY);
+    String[] entriesSorted = entryNames.toArray(StringUtils.EMPTY_ARRAY);
     Arrays.sort(entriesSorted);
     Assert.assertArrayEquals(entriesUnsorted, entriesSorted);
   }

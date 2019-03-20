@@ -26,7 +26,7 @@ public class InstructionFactory extends BaseInstructionFactory {
       Instruction instruction = readFrom(range, mapping);
       insn.add(instruction);
     }
-    return insn.toArray(new Instruction[insn.size()]);
+    return insn.toArray(Instruction.EMPTY_ARRAY);
   }
 
   private static class ShortBufferBytecodeStream implements BytecodeStream {

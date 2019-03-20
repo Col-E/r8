@@ -19,6 +19,7 @@ import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.signature.GenericSignatureParser;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.StringUtils;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
@@ -70,9 +71,8 @@ public class FoundClassSubject extends ClassSubject {
         codeInspector.dexItemFactory.createProto(
             codeInspector.toDexType(codeInspector.getObfuscatedTypeName(returnType)), parameterTypes);
     if (naming != null) {
-      String[] parameterStrings = new String[parameterTypes.length];
       Signature signature =
-          new MethodSignature(name, returnType, parameters.toArray(parameterStrings));
+          new MethodSignature(name, returnType, parameters.toArray(StringUtils.EMPTY_ARRAY));
       MemberNaming methodNaming = naming.lookupByOriginalSignature(signature);
       if (methodNaming != null) {
         name = methodNaming.getRenamedName();

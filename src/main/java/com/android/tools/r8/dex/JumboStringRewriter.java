@@ -126,7 +126,7 @@ public class JumboStringRewriter {
             oldCode.registerSize,
             oldCode.incomingRegisterSize,
             oldCode.outgoingRegisterSize,
-            newInstructions.toArray(new Instruction[newInstructions.size()]),
+            newInstructions.toArray(Instruction.EMPTY_ARRAY),
             newTries,
             newHandlers,
             newDebugInfo);
@@ -245,7 +245,7 @@ public class JumboStringRewriter {
       return new DexDebugInfo(
           code.getDebugInfo().startLine,
           code.getDebugInfo().parameters,
-          events.toArray(new DexDebugEvent[events.size()]));
+          events.toArray(DexDebugEvent.EMPTY_ARRAY));
     }
     return code.getDebugInfo();
   }

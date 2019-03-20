@@ -44,6 +44,6 @@ public class FlagFile {
         flags.add(arg);
       }
     }
-    return flags.toArray(new String[flags.size()]);
+    return flags.toArray(StringUtils.EMPTY_ARRAY);
   }
 }

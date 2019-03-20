@@ -31,6 +31,7 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.PreloadedClassFileProvider;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.TestDescriptionWatcher;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.ZipUtils;
@@ -447,7 +448,7 @@ public class TestBase {
 
   /** Create a temporary JAR file containing the specified test classes. */
   protected Path jarTestClasses(List<Class<?>> classes) throws IOException {
-    return jarTestClasses(classes.toArray(new Class<?>[classes.size()]));
+    return jarTestClasses(classes.toArray(new Class<?>[]{}));
   }
 
   /**
@@ -825,7 +826,8 @@ public class TestBase {
     mainAndArgs.add(main);
     mainAndArgs.addAll(args);
     return ToolHelper.runJava(
-        Collections.singletonList(writeToJar(classes)), mainAndArgs.toArray(new String[0]));
+        Collections.singletonList(writeToJar(classes)),
+        mainAndArgs.toArray(StringUtils.EMPTY_ARRAY));
   }
 
   protected ProcessResult runOnJavaRaw(AndroidApp app, String mainClass, List<String> args)
@@ -835,14 +837,14 @@ public class TestBase {
     List<String> mainAndArgs = new ArrayList<>();
     mainAndArgs.add(mainClass);
     mainAndArgs.addAll(args);
-    return ToolHelper.runJava(out, mainAndArgs.toArray(new String[0]));
+    return ToolHelper.runJava(out, mainAndArgs.toArray(StringUtils.EMPTY_ARRAY));
   }
 
   protected ProcessResult runOnJavaRawNoVerify(AndroidApp app, String mainClass, List<String> args)
       throws IOException {
     Path out = File.createTempFile("junit", ".zip", temp.getRoot()).toPath();
     app.writeToZip(out, OutputMode.ClassFile);
-    return ToolHelper.runJavaNoVerify(out, mainClass, args.toArray(new String[0]));
+    return ToolHelper.runJavaNoVerify(out, mainClass, args.toArray(StringUtils.EMPTY_ARRAY));
   }
 
   /** Run application on Art or Java with the specified main class. */

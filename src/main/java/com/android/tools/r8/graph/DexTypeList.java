@@ -20,7 +20,7 @@ public class DexTypeList extends DexItem implements Comparable<DexTypeList> {
   }
 
   private DexTypeList() {
-    this.values = new DexType[0];
+    this.values = DexType.EMPTY_ARRAY;
   }
 
   public DexTypeList(DexType[] values) {

@@ -19,9 +19,10 @@ import java.util.List;
 import java.util.function.Supplier;
 
 public class DexProgramClass extends DexClass implements Supplier<DexProgramClass> {
+  public static final DexProgramClass[] EMPTY_ARRAY = {};
 
   private static final DexEncodedArray SENTINEL_NOT_YET_COMPUTED =
-      new DexEncodedArray(new DexValue[0]);
+      new DexEncodedArray(DexValue.EMPTY_ARRAY);
 
   private final ProgramResource.Kind originKind;
   private DexEncodedArray staticValues = SENTINEL_NOT_YET_COMPUTED;
@@ -282,12 +283,10 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
             length = i + 1;
           }
         }
-        if (length > 0) {
-          staticValues = new DexEncodedArray(
-              values.subList(0, length).toArray(new DexValue[length]));
-        } else {
-          staticValues = null;
-        }
+        staticValues =
+            length > 0
+                ? new DexEncodedArray(values.subList(0, length).toArray(DexValue.EMPTY_ARRAY))
+                : null;
       }
     }
   }

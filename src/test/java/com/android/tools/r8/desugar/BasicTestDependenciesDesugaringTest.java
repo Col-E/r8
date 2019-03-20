@@ -10,6 +10,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.OffOrAuto;
+import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.Sets;
 import java.io.File;
 import java.io.IOException;
@@ -37,14 +38,13 @@ public class BasicTestDependenciesDesugaringTest {
     try {
       allLibs =
           Files.readAllLines(Paths.get(ToolHelper.BUILD_DIR, "generated", "supportlibraries.txt"))
-          .toArray(new String[0]);
+          .toArray(StringUtils.EMPTY_ARRAY);
     } catch (IOException e) {
       throw new AssertionError(e);
     }
   }
 
-  private static Set<String> knownIssues = Sets.newHashSet(new String[]{
-  });
+  private static Set<String> knownIssues = Sets.newHashSet(StringUtils.EMPTY_ARRAY);
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();

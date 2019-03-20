@@ -22,6 +22,7 @@ import org.objectweb.asm.Handle;
 import org.objectweb.asm.Type;
 
 public abstract class DexValue extends DexItem {
+  public static final DexValue[] EMPTY_ARRAY = {};
 
   public static final UnknownDexValue UNKNOWN = UnknownDexValue.UNKNOWN;
 

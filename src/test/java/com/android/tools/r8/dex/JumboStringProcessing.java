@@ -97,7 +97,7 @@ public class JumboStringProcessing extends TestBase {
     instr.setOffset(offset);
     instructions.add(instr);
     assert instr.getOffset() == lastInstructionOffset;
-    return instructions.toArray(new Instruction[instructions.size()]);
+    return instructions.toArray(Instruction.EMPTY_ARRAY);
   }
 
   private int countJumboStrings(Instruction[] instructions) {

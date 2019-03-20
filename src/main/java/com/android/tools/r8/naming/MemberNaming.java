@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.MemberNaming.Signature.SignatureKind;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.StringUtils;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
@@ -214,7 +215,7 @@ public class MemberNaming {
     public MethodSignature(String name, String type, Collection<String> parameters) {
       super(name);
       this.type = type;
-      this.parameters = parameters.toArray(new String[parameters.size()]);
+      this.parameters = parameters.toArray(StringUtils.EMPTY_ARRAY);
     }
 
     public static MethodSignature fromDexMethod(DexMethod method) {

@@ -835,8 +835,7 @@ public class ToolHelper {
 
   public static Path getPackageDirectoryForTestPackage(Package pkg) {
     List<String> parts = getNamePartsForTestPackage(pkg);
-    return getClassPathForTests().resolve(
-        Paths.get("", parts.toArray(new String[parts.size() - 1])));
+    return getClassPathForTests().resolve(Paths.get("", parts.toArray(StringUtils.EMPTY_ARRAY)));
   }
 
   public static String getJarEntryForTestPackage(Package pkg) {
@@ -873,8 +872,7 @@ public class ToolHelper {
 
   public static Path getClassFileForTestClass(Class clazz) {
     List<String> parts = getNamePartsForTestClass(clazz);
-    return getClassPathForTests().resolve(
-        Paths.get("", parts.toArray(new String[parts.size() - 1])));
+    return getClassPathForTests().resolve(Paths.get("", parts.toArray(StringUtils.EMPTY_ARRAY)));
   }
 
   public static Collection<Path> getClassFilesForInnerClasses(Path path) throws IOException {
@@ -901,7 +899,7 @@ public class ToolHelper {
 
   public static Path getFileNameForTestClass(Class clazz) {
     List<String> parts = getNamePartsForTestClass(clazz);
-    return Paths.get("", parts.toArray(new String[parts.size() - 1]));
+    return Paths.get("", parts.toArray(StringUtils.EMPTY_ARRAY));
   }
 
   public static String getJarEntryForTestClass(Class clazz) {
@@ -1073,7 +1071,7 @@ public class ToolHelper {
     List<String> args = new ArrayList<>();
     Collections.addAll(args, extraArgs);
     Collections.addAll(args, "--output=" + outDir + "/classes.dex", fileName);
-    int result = runDX(args.toArray(new String[args.size()])).exitCode;
+    int result = runDX(args.toArray(StringUtils.EMPTY_ARRAY)).exitCode;
     return result != 0 ? null : builderFromProgramDirectory(Paths.get(outDir)).build();
   }
 

@@ -16,6 +16,7 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OffOrAuto;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.TestDescriptionWatcher;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
@@ -621,7 +622,8 @@ public abstract class RunExamplesAndroidOTest
         ArrayList<String> javaArgs = Lists.newArrayList(args);
         javaArgs.add(0, qualifiedMainClass);
         ToolHelper.ProcessResult javaResult =
-            ToolHelper.runJava(ImmutableList.copyOf(jars), javaArgs.toArray(new String[0]));
+            ToolHelper.runJava(
+                ImmutableList.copyOf(jars), javaArgs.toArray(StringUtils.EMPTY_ARRAY));
         assertEquals("JVM run failed", javaResult.exitCode, 0);
         assertTrue(
             "JVM output does not match art output.\n\tjvm: "

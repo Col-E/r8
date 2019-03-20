@@ -111,8 +111,7 @@ final class InterfaceProcessor {
 
     // If at least one bridge method was removed then update the table.
     if (remainingMethods.size() < iface.virtualMethods().size()) {
-      iface.setVirtualMethods(remainingMethods.toArray(
-          new DexEncodedMethod[remainingMethods.size()]));
+      iface.setVirtualMethods(remainingMethods.toArray(DexEncodedMethod.EMPTY_ARRAY));
     }
     remainingMethods.clear();
 
@@ -165,8 +164,7 @@ final class InterfaceProcessor {
       }
     }
     if (remainingMethods.size() < iface.directMethods().size()) {
-      iface.setDirectMethods(remainingMethods.toArray(
-          new DexEncodedMethod[remainingMethods.size()]));
+      iface.setDirectMethods(remainingMethods.toArray(DexEncodedMethod.EMPTY_ARRAY));
     }
 
     if (companionMethods.isEmpty()) {
@@ -198,7 +196,7 @@ final class InterfaceProcessor {
             DexAnnotationSet.empty(),
             DexEncodedField.EMPTY_ARRAY,
             DexEncodedField.EMPTY_ARRAY,
-            companionMethods.toArray(new DexEncodedMethod[companionMethods.size()]),
+            companionMethods.toArray(DexEncodedMethod.EMPTY_ARRAY),
             DexEncodedMethod.EMPTY_ARRAY,
             rewriter.factory.getSkipNameValidationForTesting(),
             Collections.singletonList(iface));
@@ -273,7 +271,7 @@ final class InterfaceProcessor {
             DexAnnotationSet.empty(),
             DexEncodedField.EMPTY_ARRAY,
             DexEncodedField.EMPTY_ARRAY,
-            dispatchMethods.toArray(new DexEncodedMethod[dispatchMethods.size()]),
+            dispatchMethods.toArray(DexEncodedMethod.EMPTY_ARRAY),
             DexEncodedMethod.EMPTY_ARRAY,
             rewriter.factory.getSkipNameValidationForTesting(),
             callers);

@@ -125,7 +125,7 @@ public class CompatDxTests {
     // Only test this with CompatDx, as dx does not like the empty .dex file.
     List<String> d8Args =ImmutableList.of(
         "--output=" + temp.newFolder("out").toString(), jarWithClassesAndDex.toString());
-    CompatDx.main(d8Args.toArray(new String[d8Args.size()]));
+    CompatDx.main(d8Args.toArray(StringUtils.EMPTY_ARRAY));
   }
 
   private void runDexer(String... args) throws IOException {
@@ -164,7 +164,7 @@ public class CompatDxTests {
     }
     Collections.addAll(d8Args, args);
     System.out.println("running: d8 " + StringUtils.join(d8Args, " "));
-    CompatDx.main(d8Args.toArray(new String[d8Args.size()]));
+    CompatDx.main(d8Args.toArray(StringUtils.EMPTY_ARRAY));
 
     List<String> dxArgs = new ArrayList<>(args.length + 2);
     if (dxOut != null) {
@@ -172,7 +172,7 @@ public class CompatDxTests {
     }
     Collections.addAll(dxArgs, args);
     System.out.println("running: dx " + StringUtils.join(dxArgs, " "));
-    ProcessResult result = ToolHelper.runDX(dxArgs.toArray(new String[dxArgs.size()]));
+    ProcessResult result = ToolHelper.runDX(dxArgs.toArray(StringUtils.EMPTY_ARRAY));
     assertEquals(result.stderr, 0, result.exitCode);
 
     if (out == null) {

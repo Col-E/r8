@@ -89,9 +89,11 @@ public class TestGenerator {
                     recentConstants.set(0,
                         ((String) recentConstants.get(0)).substring(RECIPE_PREFIX.length()));
 
-                    mv.visitInvokeDynamicInsn(MAKE_CONCAT_WITH_CONSTANTS.getName(),
-                        removeLastParams(desc, recentConstants.size()), MAKE_CONCAT_WITH_CONSTANTS,
-                        recentConstants.toArray(new Object[recentConstants.size()]));
+                    mv.visitInvokeDynamicInsn(
+                        MAKE_CONCAT_WITH_CONSTANTS.getName(),
+                        removeLastParams(desc, recentConstants.size()),
+                        MAKE_CONCAT_WITH_CONSTANTS,
+                        recentConstants.toArray());
                     recentConstants.clear();
                     return;
                   }

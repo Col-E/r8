@@ -266,7 +266,7 @@ public class DexBuilder {
             registerAllocator.registersUsed(),
             inRegisterCount,
             outRegisterCount,
-            dexInstructions.toArray(new Instruction[dexInstructions.size()]),
+            dexInstructions.toArray(Instruction.EMPTY_ARRAY),
             tryInfo.tries,
             tryInfo.handlers,
             debugEventBuilder.build());
@@ -809,7 +809,7 @@ public class DexBuilder {
           pairs.add(new TypeAddrPair(type, targetOffset));
         }
       }
-      TypeAddrPair[] pairsArray = pairs.toArray(new TypeAddrPair[pairs.size()]);
+      TypeAddrPair[] pairsArray = pairs.toArray(new TypeAddrPair[]{});
       handlers[j] = new TryHandler(pairsArray, catchAllOffset);
     }
     return handlers;

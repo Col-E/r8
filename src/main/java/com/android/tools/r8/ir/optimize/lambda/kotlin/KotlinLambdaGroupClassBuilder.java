@@ -61,9 +61,10 @@ abstract class KotlinLambdaGroupClassBuilder<T extends KotlinLambdaGroup>
   // Take the attribute from the group, if exists.
   @Override
   protected List<InnerClassAttribute> buildInnerClasses() {
-    return !id.hasInnerClassAttribute() ? Collections.emptyList()
-        : Lists.newArrayList(new InnerClassAttribute(
-            id.innerClassAccess, group.getGroupClassType(), null, null));
+    return !id.hasInnerClassAttribute()
+        ? Collections.emptyList()
+        : Lists.newArrayList(
+            new InnerClassAttribute(id.innerClassAccess, group.getGroupClassType(), null, null));
   }
 
   @Override
@@ -71,9 +72,10 @@ abstract class KotlinLambdaGroupClassBuilder<T extends KotlinLambdaGroup>
     // Kotlin-style lambdas supported by the merged may only contain optional signature and
     // kotlin metadata annotations. We remove the latter, but keep the signature if present.
     String signature = id.signature;
-    return signature == null ? DexAnnotationSet.empty()
-        : new DexAnnotationSet(new DexAnnotation[]{
-            DexAnnotation.createSignatureAnnotation(signature, factory)});
+    return signature == null
+        ? DexAnnotationSet.empty()
+        : new DexAnnotationSet(
+            new DexAnnotation[]{DexAnnotation.createSignatureAnnotation(signature, factory)});
   }
 
   @Override
@@ -130,7 +132,7 @@ abstract class KotlinLambdaGroupClassBuilder<T extends KotlinLambdaGroup>
       }
     }
 
-    return result.toArray(new DexEncodedMethod[result.size()]);
+    return result.toArray(DexEncodedMethod.EMPTY_ARRAY);
   }
 
   // Build a map of virtual methods with unique name/proto pointing to a list of methods
@@ -231,7 +233,7 @@ abstract class KotlinLambdaGroupClassBuilder<T extends KotlinLambdaGroup>
       }
     });
     assert result.isEmpty() == !group.hasAnySingletons();
-    return result.toArray(new DexEncodedField[result.size()]);
+    return result.toArray(DexEncodedField.EMPTY_ARRAY);
   }
 
   @Override

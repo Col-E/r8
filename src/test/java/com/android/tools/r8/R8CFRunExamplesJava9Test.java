@@ -9,6 +9,7 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -112,7 +113,11 @@ public class R8CFRunExamplesJava9Test extends RunExamplesJava9Test<R8Command.Bui
       thrown.expect(Throwable.class);
     }
     String[] mainAndArgs =
-        ImmutableList.builder().add(qualifiedMainClass).addAll(args).build().toArray(new String[0]);
+        ImmutableList.builder()
+            .add(qualifiedMainClass)
+            .addAll(args)
+            .build()
+            .toArray(StringUtils.EMPTY_ARRAY);
     ProcessResult outputResult = ToolHelper.runJava(Arrays.asList(outputJars), mainAndArgs);
     ToolHelper.ProcessResult inputResult =
         ToolHelper.runJava(ImmutableList.copyOf(inputJars), mainAndArgs);

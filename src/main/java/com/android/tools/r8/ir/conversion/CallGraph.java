@@ -154,7 +154,7 @@ public class CallGraph extends CallSiteInformation {
       InternalOptions options,
       Timing timing) {
     CallGraph graph = new CallGraph(options);
-    DexClass[] classes = application.classes().toArray(new DexClass[application.classes().size()]);
+    DexClass[] classes = application.classes().toArray(DexClass.EMPTY_ARRAY);
     Arrays.sort(classes, (DexClass a, DexClass b) -> a.type.slowCompareTo(b.type));
     for (DexClass clazz : classes) {
       for (DexEncodedMethod method : clazz.allMethodsSorted()) {
@@ -304,7 +304,7 @@ public class CallGraph extends CallSiteInformation {
 
       // Sort the callees before calling traverse recursively. This will ensure cycles are broken
       // the same way across multiple invocations of the R8 compiler.
-      Node[] callees = node.callees.toArray(new Node[node.callees.size()]);
+      Node[] callees = node.callees.toArray(new Node[]{});
       Arrays.sort(callees, (Node a, Node b) -> a.method.method.slowCompareTo(b.method.method));
       if (options.testing.nondeterministicCycleElimination) {
         reorderNodes(Arrays.asList(callees));

@@ -22,6 +22,7 @@ import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dexsplitter.DexSplitter.Options;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.FeatureClassMapping.FeatureMappingException;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
@@ -302,7 +303,7 @@ public class DexSplitterTests {
         args.add("base_renamed");
       }
 
-      DexSplitter.main(args.toArray(new String[0]));
+      DexSplitter.main(args.toArray(StringUtils.EMPTY_ARRAY));
     }
     String baseOutputName = explicitBase || !renameBase ? "base" : "base_renamed";
     Path base = output.resolve(baseOutputName).resolve("classes.dex");

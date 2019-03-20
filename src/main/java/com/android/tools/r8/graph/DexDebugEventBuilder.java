@@ -118,7 +118,7 @@ public class DexDebugEventBuilder {
         params[i] = (local == null || local.signature != null) ? null : local.name;
       }
     }
-    return new DexDebugInfo(startLine, params, events.toArray(new DexDebugEvent[events.size()]));
+    return new DexDebugInfo(startLine, params, events.toArray(DexDebugEvent.EMPTY_ARRAY));
   }
 
   private void updateBlockEntry(Instruction instruction) {

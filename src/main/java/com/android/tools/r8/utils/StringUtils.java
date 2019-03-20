@@ -13,12 +13,12 @@ import java.util.List;
 import java.util.function.Function;
 
 public class StringUtils {
+  public static final String[] EMPTY_ARRAY = {};
+  public static final String LINE_SEPARATOR = System.getProperty("line.separator");
 
-  public final static String LINE_SEPARATOR = System.getProperty("line.separator");
-
-  private final static char[] IDENTIFIER_LETTERS
+  private static final char[] IDENTIFIER_LETTERS
       = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_".toCharArray();
-  private final static int NUMBER_OF_LETTERS = IDENTIFIER_LETTERS.length;
+  private static final int NUMBER_OF_LETTERS = IDENTIFIER_LETTERS.length;
 
   public enum BraceType {
     PARENS,

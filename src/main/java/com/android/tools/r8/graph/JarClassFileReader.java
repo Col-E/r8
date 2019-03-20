@@ -335,10 +335,10 @@ public class JarClassFileReader {
               enclosingMember,
               innerClasses,
               createAnnotationSet(annotations),
-              staticFields.toArray(new DexEncodedField[staticFields.size()]),
-              instanceFields.toArray(new DexEncodedField[instanceFields.size()]),
-              directMethods.toArray(new DexEncodedMethod[directMethods.size()]),
-              virtualMethods.toArray(new DexEncodedMethod[virtualMethods.size()]),
+              staticFields.toArray(DexEncodedField.EMPTY_ARRAY),
+              instanceFields.toArray(DexEncodedField.EMPTY_ARRAY),
+              directMethods.toArray(DexEncodedMethod.EMPTY_ARRAY),
+              virtualMethods.toArray(DexEncodedMethod.EMPTY_ARRAY),
               application.getFactory().getSkipNameValidationForTesting());
       if (clazz.isProgramClass()) {
         context.owner = clazz.asProgramClass();
@@ -416,7 +416,7 @@ public class JarClassFileReader {
   private static DexAnnotationSet createAnnotationSet(List<DexAnnotation> annotations) {
     return annotations == null || annotations.isEmpty()
         ? DexAnnotationSet.empty()
-        : new DexAnnotationSet(annotations.toArray(new DexAnnotation[annotations.size()]));
+        : new DexAnnotationSet(annotations.toArray(DexAnnotation.EMPTY_ARRAY));
   }
 
   private static class CreateFieldVisitor extends FieldVisitor {
@@ -673,8 +673,8 @@ public class JarClassFileReader {
               method, parent.origin, parameterCount, parameterNames.size());
         }
         getAnnotations().add(DexAnnotation.createMethodParametersAnnotation(
-            parameterNames.toArray(new DexValue[parameterNames.size()]),
-            parameterFlags.toArray(new DexValue[parameterFlags.size()]),
+            parameterNames.toArray(DexValue.EMPTY_ARRAY),
+            parameterFlags.toArray(DexValue.EMPTY_ARRAY),
             parent.application.getFactory()));
       }
       DexEncodedMethod dexMethod =
@@ -765,7 +765,7 @@ public class JarClassFileReader {
     public AnnotationVisitor visitArray(String name) {
       return new CreateAnnotationVisitor(application, (names, values) -> {
         assert names == null;
-        addElement(name, new DexValueArray(values.toArray(new DexValue[values.size()])));
+        addElement(name, new DexValueArray(values.toArray(DexValue.EMPTY_ARRAY)));
       });
     }
 
