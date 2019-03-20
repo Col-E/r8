@@ -222,6 +222,10 @@ public class ToolHelper {
       return SHORT_NAME_MAP.get(shortName);
     }
 
+    public static DexVm fromVersion(Version version) {
+      return SHORT_NAME_MAP.get(version.shortName + "_" + Kind.HOST.toString());
+    }
+
     public boolean isNewerThan(DexVm other) {
       return version.isNewerThan(other.version);
     }

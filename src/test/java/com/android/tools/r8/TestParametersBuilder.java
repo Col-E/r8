@@ -6,32 +6,47 @@ package com.android.tools.r8;
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.TestRuntime.DexRuntime;
+import com.android.tools.r8.TestRuntime.NoneRuntime;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.errors.Unreachable;
-import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class TestParametersBuilder {
 
   // Static computation of VMs configured as available by the testing invocation.
-  private static final List<CfVm> availableCfVms = getAvailableCfVms();
-  private static final List<DexVm> availableDexVms = getAvailableDexVms();
+  private static final List<TestRuntime> availableRuntimes =
+      getAvailableRuntimes().collect(Collectors.toList());
 
-  // Predicate describing which available CF runtimes are applicable to the test.
-  // Built via the methods found below. Default none.
-  private Predicate<CfVm> cfRuntimePredicate = vm -> false;
-
-  // Predicate describing which available DEX runtimes are applicable to the test.
-  // Built via the methods found below. Default none.
-  private Predicate<DexVm.Version> dexRuntimePredicate = vm -> false;
+  // Predicate describing which test parameters are applicable to the test.
+  // Built via the methods found below. Default to no applicable parameters, i.e., the emtpy set.
+  private Predicate<TestParameters> filter = param -> false;
 
   private TestParametersBuilder() {}
 
   public static TestParametersBuilder builder() {
     return new TestParametersBuilder();
+  }
+
+  private TestParametersBuilder withFilter(Predicate<TestParameters> predicate) {
+    filter = filter.or(predicate);
+    return this;
+  }
+
+  private TestParametersBuilder withCfRuntimeFilter(Predicate<CfVm> predicate) {
+    return withFilter(p -> p.isCfRuntime() && predicate.test(p.getRuntime().asCf().getVm()));
+  }
+
+  private TestParametersBuilder withDexRuntimeFilter(Predicate<DexVm.Version> predicate) {
+    return withFilter(
+        p -> p.isDexRuntime() && predicate.test(p.getRuntime().asDex().getVm().getVersion()));
+  }
+
+  public TestParametersBuilder withNoneRuntime() {
+    return withFilter(p -> p.getRuntime() == NoneRuntime.getInstance());
   }
 
   public TestParametersBuilder withAllRuntimes() {
@@ -40,104 +55,84 @@ public class TestParametersBuilder {
 
   /** Add specific runtime if available. */
   public TestParametersBuilder withCfRuntime(CfVm runtime) {
-    cfRuntimePredicate = cfRuntimePredicate.or(vm -> vm == runtime);
-    return this;
+    return withCfRuntimeFilter(vm -> vm == runtime);
   }
 
   /** Add all available CF runtimes. */
   public TestParametersBuilder withCfRuntimes() {
-    cfRuntimePredicate = vm -> true;
-    return this;
+    return withCfRuntimeFilter(vm -> true);
   }
 
   /** Add all available CF runtimes between {@param startInclusive} and {@param endInclusive}. */
   public TestParametersBuilder withCfRuntimes(CfVm startInclusive, CfVm endInclusive) {
-    cfRuntimePredicate =
-        cfRuntimePredicate.or(
-            vm -> startInclusive.lessThanOrEqual(vm) && vm.lessThanOrEqual(endInclusive));
-    return this;
+    return withCfRuntimeFilter(
+        vm -> startInclusive.lessThanOrEqual(vm) && vm.lessThanOrEqual(endInclusive));
   }
 
   /** Add all available CF runtimes starting from and including {@param startInclusive}. */
   public TestParametersBuilder withCfRuntimesStartingFromIncluding(CfVm startInclusive) {
-    cfRuntimePredicate = cfRuntimePredicate.or(vm -> startInclusive.lessThanOrEqual(vm));
-    return this;
+    return withCfRuntimeFilter(vm -> startInclusive.lessThanOrEqual(vm));
   }
 
   /** Add all available CF runtimes starting from and excluding {@param startExcluding}. */
   public TestParametersBuilder withCfRuntimesStartingFromExcluding(CfVm startExcluding) {
-    cfRuntimePredicate = cfRuntimePredicate.or(vm -> startExcluding.lessThan(vm));
-    return this;
+    return withCfRuntimeFilter(vm -> startExcluding.lessThan(vm));
   }
 
   /** Add all available CF runtimes ending at and including {@param endInclusive}. */
   public TestParametersBuilder withCfRuntimesEndingAtIncluding(CfVm endInclusive) {
-    cfRuntimePredicate = cfRuntimePredicate.or(vm -> vm.lessThanOrEqual(endInclusive));
-    return this;
+    return withCfRuntimeFilter(vm -> vm.lessThanOrEqual(endInclusive));
   }
 
   /** Add all available CF runtimes ending at and excluding {@param endExclusive}. */
   public TestParametersBuilder withCfRuntimesEndingAtExcluding(CfVm endExclusive) {
-    cfRuntimePredicate = cfRuntimePredicate.or(vm -> vm.lessThan(endExclusive));
-    return this;
+    return withCfRuntimeFilter(vm -> vm.lessThan(endExclusive));
   }
 
   /** Add all available DEX runtimes. */
   public TestParametersBuilder withDexRuntimes() {
-    dexRuntimePredicate = vm -> true;
-    return this;
+    return withDexRuntimeFilter(vm -> true);
   }
 
   /** Add specific runtime if available. */
   public TestParametersBuilder withDexRuntime(DexVm.Version runtime) {
-    dexRuntimePredicate = dexRuntimePredicate.or(vm -> vm == runtime);
-    return this;
+    return withDexRuntimeFilter(vm -> vm == runtime);
   }
 
   /** Add all available CF runtimes between {@param startInclusive} and {@param endInclusive}. */
   public TestParametersBuilder withDexRuntimes(
       DexVm.Version startInclusive, DexVm.Version endInclusive) {
-    dexRuntimePredicate =
-        dexRuntimePredicate.or(
-            vm -> startInclusive.isOlderThanOrEqual(vm) && vm.isOlderThanOrEqual(endInclusive));
-    return this;
+    return withDexRuntimeFilter(
+        vm -> startInclusive.isOlderThanOrEqual(vm) && vm.isOlderThanOrEqual(endInclusive));
   }
 
   /** Add all available DEX runtimes starting from and including {@param startInclusive}. */
   public TestParametersBuilder withDexRuntimesStartingFromIncluding(DexVm.Version startInclusive) {
-    dexRuntimePredicate = dexRuntimePredicate.or(vm -> startInclusive.isOlderThanOrEqual(vm));
-    return this;
+    return withDexRuntimeFilter(vm -> startInclusive.isOlderThanOrEqual(vm));
   }
 
   /** Add all available DEX runtimes starting from and excluding {@param startExcluding}. */
   public TestParametersBuilder withDexRuntimesStartingFromExcluding(DexVm.Version startExcluding) {
-    dexRuntimePredicate =
-        dexRuntimePredicate.or(vm -> vm != startExcluding && startExcluding.isOlderThanOrEqual(vm));
-    return this;
+    return withDexRuntimeFilter(
+        vm -> vm != startExcluding && startExcluding.isOlderThanOrEqual(vm));
   }
 
   /** Add all available DEX runtimes ending at and including {@param endInclusive}. */
   public TestParametersBuilder withDexRuntimesEndingAtIncluding(DexVm.Version endInclusive) {
-    dexRuntimePredicate = dexRuntimePredicate.or(vm -> vm.isOlderThanOrEqual(endInclusive));
-    return this;
+    return withDexRuntimeFilter(vm -> vm.isOlderThanOrEqual(endInclusive));
   }
 
   /** Add all available DEX runtimes ending at and excluding {@param endExclusive}. */
   public TestParametersBuilder withDexRuntimesEndingAtExcluding(DexVm.Version endExclusive) {
-    dexRuntimePredicate =
-        dexRuntimePredicate.or(vm -> vm != endExclusive && vm.isOlderThanOrEqual(endExclusive));
-    return this;
+    return withDexRuntimeFilter(vm -> vm != endExclusive && vm.isOlderThanOrEqual(endExclusive));
   }
 
   public TestParametersCollection build() {
-    ImmutableList.Builder<TestParameters> parameters = ImmutableList.builder();
-    availableCfVms.stream()
-        .filter(cfRuntimePredicate)
-        .forEach(vm -> parameters.add(new TestParameters(new CfRuntime(vm))));
-    availableDexVms.stream()
-        .filter(vm -> dexRuntimePredicate.test(vm.getVersion()))
-        .forEach(vm -> parameters.add(new TestParameters(new DexRuntime(vm))));
-    return new TestParametersCollection(parameters.build());
+    return new TestParametersCollection(
+        getAvailableRuntimes()
+            .map(TestParameters::new)
+            .filter(filter)
+            .collect(Collectors.toList()));
   }
 
   // Public method to check that the CF runtime coincides with the system runtime.
@@ -158,33 +153,44 @@ public class TestParametersBuilder {
     return isSystemJdk(vm);
   }
 
-  public static List<CfVm> getAvailableCfVms() {
-    String cfVmsProperty = System.getProperty("cf_vms");
-    if (cfVmsProperty != null) {
-      return Arrays.stream(cfVmsProperty.split(":"))
-          .filter(s -> !s.isEmpty())
-          .map(TestRuntime.CfVm::fromName)
-          .filter(TestParametersBuilder::isSupportedJdk)
-          .collect(Collectors.toList());
+  private static Stream<TestRuntime> getAvailableRuntimes() {
+    String runtimesProperty = System.getProperty("runtimes");
+    Stream<TestRuntime> runtimes;
+    if (runtimesProperty != null) {
+      runtimes =
+          Arrays.stream(runtimesProperty.split(":"))
+              .filter(s -> !s.isEmpty())
+              .map(
+                  name -> {
+                    TestRuntime runtime = TestRuntime.fromName(name);
+                    if (runtime != null) {
+                      return runtime;
+                    }
+                    throw new RuntimeException("Unexpected runtime property name: " + name);
+                  });
     } else {
-      // TODO(b/127785410) Support multiple VMs at the same time.
-      return Arrays.stream(TestRuntime.CfVm.values())
-          .filter(TestParametersBuilder::isSystemJdk)
-          .collect(Collectors.toList());
+      runtimes =
+          Stream.concat(
+              Stream.of(NoneRuntime.getInstance()),
+              Stream.concat(
+                  Arrays.stream(TestRuntime.CfVm.values()).map(CfRuntime::new),
+                  Arrays.stream(DexVm.Version.values()).map(DexRuntime::new)));
     }
+    // TODO(b/127785410) Support multiple VMs at the same time.
+    return runtimes.filter(runtime -> !runtime.isCf() || isSupportedJdk(runtime.asCf().getVm()));
+  }
+
+  public static List<CfVm> getAvailableCfVms() {
+    return getAvailableRuntimes()
+        .filter(TestRuntime::isCf)
+        .map(runtime -> runtime.asCf().getVm())
+        .collect(Collectors.toList());
   }
 
   public static List<DexVm> getAvailableDexVms() {
-    String dexVmsProperty = System.getProperty("dex_vms");
-    if (dexVmsProperty != null) {
-      return Arrays.stream(dexVmsProperty.split(":"))
-          .filter(s -> !s.isEmpty())
-          .map(v -> DexVm.fromShortName(v + "_host"))
-          .collect(Collectors.toList());
-    } else {
-      return Arrays.stream(DexVm.Version.values())
-          .map(v -> DexVm.fromShortName(v.toString() + "_host"))
-          .collect(Collectors.toList());
-    }
+    return getAvailableRuntimes()
+        .filter(TestRuntime::isDex)
+        .map(runtime -> runtime.asDex().getVm())
+        .collect(Collectors.toList());
   }
 }

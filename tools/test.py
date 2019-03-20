@@ -255,27 +255,26 @@ def Main():
 
   rotate_test_reports()
 
+  if options.only_jctf:
+    # Note: not setting -Pruntimes will run with all available runtimes.
+    return_code = gradle.RunGradle(gradle_args, throw_on_failure=False)
+    return 0
+
   # Now run tests on selected runtime(s).
   vms_to_test = [options.dex_vm] if options.dex_vm != "all" else ALL_ART_VMS
 
-  # The full set of VMs is configured in the first run, then set to empty below.
-  dex_vms_property = ':'.join(vms_to_test)
-
-  if options.only_jctf:
-    vms_to_test = ['default']
-
   for art_vm in vms_to_test:
     vm_suffix = "_" + options.dex_vm_kind if art_vm != "default" else ""
+    runtimes = ['dex-' + art_vm]
+    # Only append the "none" runtime and JVMs if running on the "default" DEX VM.
+    if art_vm == "default":
+      runtimes.extend(['jdk8', 'jdk9', 'none'])
     return_code = gradle.RunGradle(
         gradle_args + [
           '-Pdex_vm=%s' % art_vm + vm_suffix,
-          '-Pdex_vms=%s' % dex_vms_property
-        ] +
-        # Only run the CF VMs on the 'default' configuration.
-        ([] if art_vm == "default" else ['-Pcf_vms=']),
+          '-Pruntimes=%s' % ':'.join(runtimes),
+        ],
         throw_on_failure=False)
-    # Only run the full set of DEX VMs on the first run.
-    dex_vms_property = ""
     if options.generate_golden_files_to:
       sha1 = '%s' % utils.get_HEAD_sha1()
       with utils.ChangedWorkingDirectory(options.generate_golden_files_to):

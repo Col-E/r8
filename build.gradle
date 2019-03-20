@@ -1555,16 +1555,14 @@ test {
         testLogging.showStandardStreams = true
     }
     if (project.hasProperty('dex_vm') && project.property('dex_vm') != 'default') {
-        println "Running with non default vm: " + project.property('dex_vm')
+        println "NOTE: Running with non default vm: " + project.property('dex_vm')
         systemProperty 'dex_vm', project.property('dex_vm')
     }
 
-    // Forward vm configurations for test parameters.
-    if (project.hasProperty('dex_vms')) {
-        systemProperty 'dex_vms', project.property('dex_vms')
-    }
-    if (project.hasProperty('cf_vms')) {
-        systemProperty 'cf_vms', project.property('cf_vms')
+    // Forward runtime configurations for test parameters.
+    if (project.hasProperty('runtimes')) {
+        println "NOTE: Running with runtimes: " + project.property('runtimes')
+        systemProperty 'runtimes', project.property('runtimes')
     }
 
     if (project.hasProperty('one_line_per_test')) {

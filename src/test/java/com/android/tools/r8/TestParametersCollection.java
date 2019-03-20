@@ -3,16 +3,16 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
-import com.google.common.collect.ImmutableList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.stream.Stream;
 import org.jetbrains.annotations.NotNull;
 
 public class TestParametersCollection implements Iterable<TestParameters> {
 
-  private final ImmutableList<TestParameters> parameters;
+  private final Collection<TestParameters> parameters;
 
-  public TestParametersCollection(ImmutableList<TestParameters> parameters) {
+  public TestParametersCollection(Collection<TestParameters> parameters) {
     assert parameters != null;
     this.parameters = parameters;
   }

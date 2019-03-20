@@ -11,6 +11,23 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 // Base class for the runtime structure in the test parameters.
 public class TestRuntime {
 
+  public static TestRuntime fromName(String name) {
+    if (NoneRuntime.NAME.equals(name)) {
+      return NoneRuntime.getInstance();
+    }
+    CfVm cfVm = CfVm.fromName(name);
+    if (cfVm != null) {
+      return new CfRuntime(cfVm);
+    }
+    if (name.startsWith("dex-")) {
+      DexVm dexVm = DexVm.fromShortName(name.substring(4) + "_host");
+      if (dexVm != null) {
+        return new DexRuntime(dexVm);
+      }
+    }
+    return null;
+  }
+
   // Enum describing the possible/supported CF runtimes.
   public enum CfVm {
     JDK8("jdk8"),
@@ -24,7 +41,7 @@ public class TestRuntime {
           return value;
         }
       }
-      throw new Unreachable("Unexpected CfVm name: " + v);
+      return null;
     }
 
     CfVm(String name) {
@@ -53,9 +70,30 @@ public class TestRuntime {
     }
   }
 
+  public static class NoneRuntime extends TestRuntime {
+
+    private static final String NAME = "none";
+    private static final NoneRuntime INSTANCE = new NoneRuntime();
+
+    private NoneRuntime() {}
+
+    public static NoneRuntime getInstance() {
+      return INSTANCE;
+    }
+
+    @Override
+    public String toString() {
+      return NAME;
+    }
+  }
+
   // Wrapper for the DEX runtimes.
   public static class DexRuntime extends TestRuntime {
     private final DexVm vm;
+
+    public DexRuntime(DexVm.Version version) {
+      this(DexVm.fromVersion(version));
+    }
 
     public DexRuntime(DexVm vm) {
       assert vm != null;

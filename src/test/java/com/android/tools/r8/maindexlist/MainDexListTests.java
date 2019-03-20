@@ -81,7 +81,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -113,9 +112,9 @@ public class MainDexListTests extends TestBase {
   private static final int MANY_CLASSES_MULTI_DEX_METHODS_PER_CLASS = 10;
   private static List<String> MANY_CLASSES;
 
-  @Parameters
+  @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withCfRuntimes().build();
+    return getTestParameters().withNoneRuntime().build();
   }
 
   public MainDexListTests(TestParameters parameters) {
