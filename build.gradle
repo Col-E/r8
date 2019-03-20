@@ -37,7 +37,7 @@ ext {
     guavaVersion = '23.0'
     joptSimpleVersion = '4.6'
     gsonVersion = '2.7'
-    junitVersion = '4.12'
+    junitVersion = '4.13-beta-2'
     mockitoVersion = '2.10.0'
     kotlinVersion = '1.3.11'
     kotlinExtMetadataJVMVersion = '0.0.4'

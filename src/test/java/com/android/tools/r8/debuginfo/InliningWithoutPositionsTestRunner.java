@@ -94,7 +94,7 @@ public class InliningWithoutPositionsTestRunner {
   @Test
   public void testStackTrace() throws Exception {
     // See InliningWithoutPositionsTestSourceDump for the code compiled here.
-    Path testClassDir = temp.newFolder(TEST_PACKAGE.split(".")).toPath();
+    Path testClassDir = temp.newFolder().toPath();
     Path testClassPath = testClassDir.resolve(TEST_CLASS + ".class");
     Path outputPath = temp.newFolder().toPath();
 
