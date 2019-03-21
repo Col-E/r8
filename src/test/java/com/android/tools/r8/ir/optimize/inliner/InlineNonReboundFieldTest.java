@@ -4,10 +4,15 @@
 
 package com.android.tools.r8.ir.optimize.inliner;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.junit.Assert.assertThat;
+
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ir.optimize.inliner.testclasses.Greeting;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import org.junit.Test;
 
 /** Regression test for b/128604123. */
@@ -16,14 +21,27 @@ public class InlineNonReboundFieldTest extends TestBase {
   @Test
   public void test() throws Exception {
     String expectedOutput = StringUtils.lines("Greeter: Hello world!");
-    testForR8(Backend.DEX)
-        .addProgramClasses(
-            TestClass.class, Greeter.class, Greeting.class, Greeting.getGreetingBase())
-        .addKeepMainRule(TestClass.class)
-        .enableClassInliningAnnotations()
-        .enableMergeAnnotations()
-        .run(TestClass.class)
-        .assertSuccessWithOutput(expectedOutput);
+    CodeInspector inspector =
+        testForR8(Backend.DEX)
+            .addProgramClasses(
+                TestClass.class, Greeter.class, Greeting.class, Greeting.getGreetingBase())
+            .addKeepMainRule(TestClass.class)
+            .enableClassInliningAnnotations()
+            .enableMergeAnnotations()
+            .run(TestClass.class)
+            .assertSuccessWithOutput(expectedOutput)
+            .inspector();
+
+    ClassSubject greeterSubject = inspector.clazz(Greeter.class);
+    assertThat(greeterSubject, isPresent());
+
+    // Verify that greet() is not inlined into main() -- that would lead to illegal access errors
+    // since main() does not have access to the GreetingBase.greeting field.
+    assertThat(greeterSubject.uniqueMethodWithName("greet"), isPresent());
+
+    // TODO(b/128967328): The method greetInternal() should be inlined into greet() since it has a
+    //  single call site and nothing prevents it from being inlined.
+    assertThat(greeterSubject.uniqueMethodWithName("greetInternal"), isPresent());
   }
 
   static class TestClass {
@@ -43,6 +61,10 @@ public class InlineNonReboundFieldTest extends TestBase {
     }
 
     void greet() {
+      greetInternal();
+    }
+
+    private void greetInternal() {
       System.out.println(TAG + ": " + greeting);
     }
   }

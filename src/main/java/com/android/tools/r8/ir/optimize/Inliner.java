@@ -100,7 +100,7 @@ public class Inliner {
         result = state;
         break;
       }
-      // TODO(b/111080693): we may need to collect all meaningful constraints.
+      // TODO(b/128967328): we may need to collect all meaningful constraints.
       result = ConstraintWithTarget.meet(result, state, appView.appInfo());
     }
     return result;
@@ -366,7 +366,7 @@ public class Inliner {
           // Then, PACKAGE is more restrictive constraint.
           return one;
         }
-        // TODO(b/111080693): towards finer-grained constraints, we need both.
+        // TODO(b/128967328): towards finer-grained constraints, we need both.
         // The target method is still inlineable to methods with a holder from the same package of
         // one's holder and a subtype of other's holder.
         return NEVER;

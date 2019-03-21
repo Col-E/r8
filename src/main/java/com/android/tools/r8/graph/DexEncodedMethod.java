@@ -57,10 +57,10 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
   /**
    * Encodes the processing state of a method.
-   * <p>
-   * We also use this enum to encode under what constraints a method may be inlined.
+   *
+   * <p>We also use this enum to encode under what constraints a method may be inlined.
    */
-  // TODO(b/111080693): Need to extend this to a state with the context.
+  // TODO(b/128967328): Need to extend this to a state with the context.
   public enum CompilationState {
     /**
      * Has not been processed, yet.
@@ -100,7 +100,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   public DexAnnotationSet annotations;
   public ParameterAnnotationsList parameterAnnotationsList;
   private Code code;
-  // TODO(b/111080693): towards finer-grained inlining constraints,
+  // TODO(b/128967328): towards finer-grained inlining constraints,
   //   we need to maintain a set of states with (potentially different) contexts.
   private CompilationState compilationState = CompilationState.NOT_PROCESSED;
   private OptimizationInfo optimizationInfo = DefaultOptimizationInfoImpl.DEFAULT_INSTANCE;
@@ -275,7 +275,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       }
       return true;
     }
-    // TODO(b/111080693): inlining candidate should satisfy all states if multiple states are there.
+    // TODO(b/128967328): inlining candidate should satisfy all states if multiple states are there.
     switch (compilationState) {
       case PROCESSED_INLINING_CANDIDATE_ANY:
         return true;
