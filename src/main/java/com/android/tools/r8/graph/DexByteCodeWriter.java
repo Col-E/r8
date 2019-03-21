@@ -66,7 +66,7 @@ public abstract class DexByteCodeWriter {
       if (anyMethodMatches(clazz)) {
         PrintStream ps = outputStreamProvider.apply(clazz);
         try {
-          writeClass(clazz, outputStreamProvider.apply(clazz));
+          writeClass(clazz, ps);
         } finally {
           closer.accept(ps);
         }
