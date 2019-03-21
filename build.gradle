@@ -49,8 +49,8 @@ apply from: 'copyAdditionalJctfCommonFiles.gradle'
 
 repositories {
     maven { url 'https://maven.google.com' }
-    maven { url 'https://kotlin.bintray.com/kotlinx' }
     mavenCentral()
+    maven { url 'https://kotlin.bintray.com/kotlinx' }
 }
 
 if (project.hasProperty('with_code_coverage')) {
