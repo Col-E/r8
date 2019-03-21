@@ -50,27 +50,25 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-class A {
-  private static String buildClassName(String className) {
-    return A.class.getPackage().getName() + "." + className;
-  }
-
-  public static void main(String[] args) {
-    try {
-      Class bClass = Class.forName(buildClassName("B"));
-      System.out.println("YES");
-    } catch (ClassNotFoundException e) {
-      System.out.println("NO");
-    }
-  }
-}
-
-class B {
-
-}
-
 @RunWith(Parameterized.class)
 public class LibraryProvidedProguardRulesTest extends TestBase {
+
+  static class A {
+    private static String buildClassName(String className) {
+      return com.android.tools.r8.shaking.A.class.getPackage().getName() + "." + className;
+    }
+
+    public static void main(String[] args) {
+      try {
+        Class bClass = Class.forName(buildClassName("B"));
+        System.out.println("YES");
+      } catch (ClassNotFoundException e) {
+        System.out.println("NO");
+      }
+    }
+  }
+
+  static class B {}
 
   private Backend backend;
 
