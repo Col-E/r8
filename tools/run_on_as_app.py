@@ -592,16 +592,40 @@ def BuildAppWithShrinker(
 
   # Build using gradle.
   args = [releaseTarget,
-         '--profile',
-         '-Pandroid.enableR8=' + str(isR8(shrinker)).lower(),
-         '-Pandroid.enableR8.fullMode=' + str(isR8FullMode(shrinker)).lower()]
+          '-Pandroid.enableR8=' + str(isR8(shrinker)).lower(),
+          '-Pandroid.enableR8.fullMode=' + str(isR8FullMode(shrinker)).lower()]
+
+  # Warm up gradle if pre_runs > 0. For posterity we generate the same sequence
+  # as the benchmarking at https://github.com/madsager/santa-tracker-android.
+  for i in range(0, options.gradle_pre_runs):
+    if i == 0:
+      utils.RunGradlew(
+          ["--stop"],
+          env_vars=env_vars,
+          quiet=options.quiet,
+          logging=not options.golem,
+          use_daemon=options.use_daemon)
+    utils.RunGradlew(
+        args,
+        env_vars=env_vars,
+        quiet=options.quiet,
+        clean=i > 0,
+        use_daemon=options.use_daemon,
+        logging=not options.golem)
+
   if keepRuleSynthesisForRecompilation:
     args.append('-Dcom.android.tools.r8.keepRuleSynthesisForRecompilation=true')
   if options.gradle_flags:
     args.extend(options.gradle_flags.split(' '))
 
-  stdout = utils.RunGradlew(args, env_vars=env_vars, quiet=options.quiet,
-                            logging=not options.golem)
+  args.append('--profile')
+
+  stdout = utils.RunGradlew(
+      args,
+      env_vars=env_vars,
+      quiet=options.quiet,
+      use_daemon=options.use_daemon,
+      logging=not options.golem)
 
   apk_base_name = (archives_base_name
       + (('-' + app.flavor) if app.flavor else '') + '-release')
@@ -652,9 +676,13 @@ def ComputeInstrumentationTestResults(
          '-Pandroid.enableR8=' + str(isR8(shrinker)).lower(),
          '-Pandroid.enableR8.fullMode=' + str(isR8FullMode(shrinker)).lower()]
   env_vars = { 'ANDROID_SERIAL': options.emulator_id }
-  stdout = \
-      utils.RunGradlew(args, env_vars=env_vars, quiet=options.quiet,
-                       fail=False, logging=not options.golem)
+  stdout = utils.RunGradlew(
+      args,
+      env_vars=env_vars,
+      quiet=options.quiet,
+      fail=False,
+      logging=not options.golem,
+      use_daemon=options.use_daemon)
 
   xml_test_result_dest = os.path.join(out_dir, 'test_result')
   as_utils.MoveXMLTestResultFileTo(
@@ -684,7 +712,6 @@ def ComputeRecompilationResults(
       BuildAppWithShrinker(
           app, repo, shrinker, checkout_dir, out_dir,
           temp_dir, options, keepRuleSynthesisForRecompilation=True)
-  dex_size = ComputeSizeOfDexFilesInApk(apk_dest)
   recompilation_result = {
     'apk_dest': apk_dest,
     'build_status': 'success',
@@ -947,6 +974,10 @@ def ParseOptions(argv):
                     action='store_true')
   result.add_option('--gradle-flags', '--gradle_flags',
                     help='Flags to pass in to gradle')
+  result.add_option('--gradle-pre-runs', '--gradle_pre_runs',
+                    help='Do rounds of compilations to warm up gradle',
+                    default=0,
+                    type=int)
   result.add_option('--ignore-versions', '--ignore_versions',
                     help='Allow checked-out app to differ in revision from '
                          'pinned',
@@ -994,6 +1025,10 @@ def ParseOptions(argv):
   result.add_option('--shrinker',
                     help='The shrinkers to use (by default, all are run)',
                     action='append')
+  result.add_option('--use-daemon', '--use_daemon',
+                    help='Whether to use a gradle daemon',
+                    default=False,
+                    action='store_true')
   result.add_option('--version',
                     help='The version of R8 to use (e.g., 1.4.51)')
   (options, args) = result.parse_args(argv)
@@ -1045,6 +1080,8 @@ def main(argv):
     options.no_build = True
     options.r8_compilation_steps = 1
     options.quiet = True
+    options.gradle_pre_runs = 2
+    options.use_daemon = True
 
   if not os.path.exists(WORKING_DIR):
     os.makedirs(WORKING_DIR)
