@@ -319,6 +319,9 @@ public class R8 {
                         options.getProguardConfiguration().getRules(), synthesizedProguardRules))
                 .run(executorService);
 
+        System.out.println("--------------------");
+        System.out.println("INITIAL TREE SHAKING");
+        System.out.println("--------------------");
         Enqueuer enqueuer = new Enqueuer(appView, options, null, compatibility);
         appView.setAppInfo(
             enqueuer.traceApplication(
@@ -559,6 +562,9 @@ public class R8 {
             }
           }
 
+          System.out.println("------------------");
+          System.out.println("FINAL TREE SHAKING");
+          System.out.println("------------------");
           Enqueuer enqueuer = new Enqueuer(appView, options, keptGraphConsumer);
           appView.setAppInfo(
               enqueuer.traceApplication(

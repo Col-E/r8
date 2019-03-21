@@ -543,6 +543,16 @@ public class Enqueuer {
 
     @Override
     public boolean registerInvokeInterface(DexMethod method) {
+      if (method
+          .toSourceString()
+          .equals("io.requery.proxy.Initializer io.requery.meta.Attribute.getInitializer()")) {
+        System.out.println(
+            "Found invoke-interface instruction with target `"
+                + method.toSourceString()
+                + "` (enclosing method: `"
+                + currentMethod.method.toSourceString()
+                + "`)");
+      }
       return registerInvokeInterface(method, KeepReason.invokedFrom(currentMethod));
     }
 
@@ -1041,6 +1051,11 @@ public class Enqueuer {
     if (!instantiatedTypes.add(clazz.type, reason)) {
       return;
     }
+
+    if (clazz.type.toSourceString().equals("io.requery.meta.ImmutableAttribute")) {
+      System.out.println("Type `" + clazz.type.toSourceString() + "` is instantiated");
+    }
+
     collectProguardCompatibilityRule(reason);
     if (Log.ENABLED) {
       Log.verbose(getClass(), "Class `%s` is instantiated, processing...", clazz);
@@ -1069,6 +1084,13 @@ public class Enqueuer {
    * that are not otherwise shadowed are considered, too.
    */
   private void transitionMethodsForInstantiatedClass(DexType instantiatedType) {
+    if (instantiatedType.toSourceString().equals("io.requery.meta.ImmutableAttribute")) {
+      System.out.println(
+          "Promoting reachable methods from `"
+              + instantiatedType.toSourceString()
+              + "` to being live");
+    }
+
     ScopedDexMethodSet seen = new ScopedDexMethodSet();
     Set<DexType> interfaces = Sets.newIdentityHashSet();
     DexType type = instantiatedType;
@@ -1084,6 +1106,13 @@ public class Enqueuer {
       // by the reachability logic.
       SetWithReason<DexEncodedMethod> reachableMethods = reachableVirtualMethods.get(type);
       if (reachableMethods != null) {
+        if (instantiatedType.toSourceString().equals("io.requery.meta.ImmutableAttribute")) {
+          System.out.println(
+              "Reachable methods to be promoted in `" + type.toSourceString() + "`:");
+          for (DexEncodedMethod reachableMethod : reachableMethods.getItems()) {
+            System.out.println(" - " + reachableMethod.method.toSourceString());
+          }
+        }
         transitionNonAbstractMethodsToLiveAndShadow(reachableMethods.getItems(), instantiatedType,
             seen);
       }
@@ -1327,6 +1356,11 @@ public class Enqueuer {
     if (Log.ENABLED) {
       Log.verbose(getClass(), "Marking virtual method `%s` as reachable.", method);
     }
+    if (method
+        .toSourceString()
+        .equals("io.requery.proxy.Initializer io.requery.meta.Attribute.getInitializer()")) {
+      System.out.println("Marking virtual method `" + method.toSourceString() + "` as reachable");
+    }
     if (method.holder.isArrayType()) {
       // This is an array type, so the actual class will be generated at runtime. We treat this
       // like an invoke on a direct subtype of java.lang.Object that has no further subtypes.
@@ -1344,9 +1378,21 @@ public class Enqueuer {
         ? appInfo.resolveMethodOnInterface(method.holder, method).asResultOfResolve()
         : appInfo.resolveMethodOnClass(method.holder, method).asResultOfResolve();
     if (topTarget == null) {
+      if (method
+          .toSourceString()
+          .equals("io.requery.proxy.Initializer io.requery.meta.Attribute.getInitializer()")) {
+        System.out.println(" - top target: null");
+      }
       reportMissingMethod(method);
       return;
     }
+
+    if (method
+        .toSourceString()
+        .equals("io.requery.proxy.Initializer io.requery.meta.Attribute.getInitializer()")) {
+      System.out.println(" - top target: " + topTarget.toSourceString());
+    }
+
     // We have to mark this as targeted, as even if this specific instance never becomes live, we
     // need at least an abstract version of it so that we have a target for the corresponding
     // invoke.
@@ -1354,12 +1400,35 @@ public class Enqueuer {
     Set<DexEncodedMethod> targets = interfaceInvoke
         ? appInfo.lookupInterfaceTargets(method)
         : appInfo.lookupVirtualTargets(method);
+
+    if (method
+        .toSourceString()
+        .equals("io.requery.proxy.Initializer io.requery.meta.Attribute.getInitializer()")) {
+      System.out.println(" - targets: ");
+      for (DexEncodedMethod encodedMethod : targets) {
+        System.out.println("     " + encodedMethod.method.toSourceString());
+      }
+    }
+
     for (DexEncodedMethod encodedMethod : targets) {
       // TODO(b/120959039): The reachable.add test might be hiding other paths to the method.
       SetWithReason<DexEncodedMethod> reachable =
           reachableVirtualMethods.computeIfAbsent(
               encodedMethod.method.holder, ignore -> newSetWithoutReasonReporter());
       if (reachable.add(encodedMethod, reason)) {
+        if (method
+            .toSourceString()
+            .equals("io.requery.proxy.Initializer io.requery.meta.Attribute.getInitializer()")) {
+          System.out.println(
+              "Method `"
+                  + encodedMethod.method.toSourceString()
+                  + "` became reachable (abstract: "
+                  + encodedMethod.accessFlags.isAbstract()
+                  + ", instantiated directly or indirectly: "
+                  + isInstantiatedOrHasInstantiatedSubtype(encodedMethod.method.holder)
+                  + ")");
+        }
+
         // Abstract methods cannot be live.
         if (!encodedMethod.accessFlags.isAbstract()) {
           // If the holder type is instantiated, the method is live. Otherwise check whether we find
@@ -1368,14 +1437,32 @@ public class Enqueuer {
           // they are instantiated.
           if (isInstantiatedOrHasInstantiatedSubtype(encodedMethod.method.holder)) {
             if (instantiatedTypes.contains(encodedMethod.method.holder)) {
-              markVirtualMethodAsLive(encodedMethod,
-                  KeepReason.reachableFromLiveType(encodedMethod.method.holder));
+              markVirtualMethodAsLive(
+                  encodedMethod, KeepReason.reachableFromLiveType(encodedMethod.method.holder));
             } else {
               Deque<DexType> worklist = new ArrayDeque<>();
               fillWorkList(worklist, encodedMethod.method.holder);
               while (!worklist.isEmpty()) {
                 DexType current = worklist.pollFirst();
                 DexClass currentHolder = appView.definitionFor(current);
+
+                if (method
+                    .toSourceString()
+                    .equals(
+                        "io.requery.proxy.Initializer"
+                            + " io.requery.meta.Attribute.getInitializer()")) {
+                  System.out.println(
+                      " - current: "
+                          + current.toSourceString()
+                          + " (instantiated: "
+                          + instantiatedTypes.contains(current)
+                          + ", lookup: `"
+                          + (currentHolder != null
+                              ? currentHolder.lookupVirtualMethod(encodedMethod.method)
+                              : "null")
+                          + "`)");
+                }
+
                 // If this class overrides the virtual, abort the search. Note that, according to
                 // the JVM spec, private methods cannot override a virtual method.
                 if (currentHolder == null
@@ -1665,6 +1752,15 @@ public class Enqueuer {
 
   private void processNewlyLiveMethod(DexEncodedMethod method, KeepReason reason) {
     if (liveMethods.add(method, reason)) {
+      if (method
+          .method
+          .toSourceString()
+          .equals(
+              "java.lang.Object io.requery.proxy.EntityProxy.get(io.requery.meta.Attribute,"
+                  + " boolean)")) {
+        System.out.println("Method `" + method.method.toSourceString() + "` is live");
+      }
+
       collectProguardCompatibilityRule(reason);
       DexClass holder = appView.definitionFor(method.method.holder);
       assert holder != null;
@@ -1689,6 +1785,17 @@ public class Enqueuer {
         method.parameterAnnotationsList.forEachAnnotation(
             annotation -> processAnnotation(method, annotation));
       }
+
+      if (method
+          .method
+          .toSourceString()
+          .equals(
+              "java.lang.Object io.requery.proxy.EntityProxy.get(io.requery.meta.Attribute,"
+                  + " boolean)")) {
+        System.out.println(
+            "Registering code references from `" + method.method.toSourceString() + "`");
+      }
+
       method.registerCodeReferences(new UseRegistry(options.itemFactory, method));
       // Add all dependent members to the workqueue.
       enqueueRootItems(rootSet.getDependentItems(method));
