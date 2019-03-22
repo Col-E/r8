@@ -116,8 +116,6 @@ public class DexItemFactory {
   public final DexString boxedShortDescriptor = createString("Ljava/lang/Short;");
   public final DexString boxedNumberDescriptor = createString("Ljava/lang/Number;");
 
-  public final DexString initMethodName = createString("<init>");
-
   public final DexString unboxBooleanMethodName = createString("booleanValue");
   public final DexString unboxByteMethodName = createString("byteValue");
   public final DexString unboxCharMethodName = createString("charValue");
@@ -517,7 +515,12 @@ public class DexItemFactory {
     public final DexMethod init;
 
     private NullPointerExceptionMethods() {
-      init = createMethod(npeDescriptor, initMethodName, voidDescriptor, DexString.EMPTY_ARRAY);
+      init =
+          createMethod(
+              npeDescriptor,
+              constructorMethodName,
+              voidDescriptor,
+              DexString.EMPTY_ARRAY);
     }
   }
 

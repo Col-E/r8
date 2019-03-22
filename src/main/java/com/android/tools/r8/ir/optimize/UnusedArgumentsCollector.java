@@ -161,7 +161,7 @@ public class UnusedArgumentsCollector {
       do {
         if (newName == null) {
           newName = method.method.name;
-        } else if (method.method.name != appView.dexItemFactory().initMethodName) {
+        } else if (!appView.dexItemFactory().isConstructor(method.method)) {
           newName =
               appView.dexItemFactory().createString(method.method.name.toSourceString() + count);
         } else {
