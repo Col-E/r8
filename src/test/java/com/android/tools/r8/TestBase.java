@@ -721,7 +721,7 @@ public class TestBase {
    * Run application on Art with the specified main class.
    */
   protected ProcessResult runOnArtRaw(AndroidApp app, Class mainClass) throws IOException {
-    return runOnArtRaw(app, mainClass.getCanonicalName());
+    return runOnArtRaw(app, mainClass.getTypeName());
   }
 
   /**

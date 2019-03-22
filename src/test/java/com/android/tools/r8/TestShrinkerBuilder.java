@@ -121,6 +121,10 @@ public abstract class TestShrinkerBuilder<
     return self();
   }
 
+  public T addKeepAllAttributes() {
+    return addKeepRules("-keepattributes *");
+  }
+
   public abstract T addApplyMapping(String proguardMap);
 
   private static String getMethodLine(MethodReference method) {

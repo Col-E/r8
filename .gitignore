@@ -45,6 +45,8 @@ third_party/dart-sdk
 third_party/dart-sdk.tar.gz
 third_party/desugar/desugar_*/
 third_party/desugar/desugar_*.tar.gz
+third_party/internal/*
+!third_party/internal/*.sha1
 third_party/gmail/*
 !third_party/gmail/*.sha1
 third_party/gmscore/*

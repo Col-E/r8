@@ -346,6 +346,7 @@ def x20Dependencies = [
         "classlib",
         "cf_segments",
         "desugar/desugar_20180308",
+        "internal/issue-127524985",
         "framework",
         "gmail/gmail_android_170604.16",
         "gmail/gmail_android_180826.15",

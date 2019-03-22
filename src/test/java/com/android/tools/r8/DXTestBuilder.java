@@ -3,12 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
 import com.android.tools.r8.D8Command.Builder;
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -64,12 +66,33 @@ public class DXTestBuilder
 
   @Override
   public DXTestBuilder addProgramClasses(Collection<Class<?>> classes) {
-    throw new Unimplemented("No support for adding classes directly");
+    return addProgramClassFileData(
+        ListUtils.map(
+            classes,
+            c -> {
+              try {
+                return ToolHelper.getClassAsBytes(c);
+              } catch (IOException e) {
+                throw new RuntimeException(e);
+              }
+            }));
   }
 
   @Override
   public DXTestBuilder addProgramClassFileData(Collection<byte[]> classes) {
-    throw new Unimplemented("No support for adding classfile data directly");
+    try {
+      Path out = getState().getNewTempFolder().resolve("out.jar");
+      ArchiveConsumer consumer = new ArchiveConsumer(out);
+      for (byte[] clazz : classes) {
+        String descriptor = TestBase.extractClassDescriptor(clazz);
+        consumer.accept(ByteDataView.of(clazz), descriptor, null);
+      }
+      consumer.finished(null);
+      addProgramFiles(out);
+      return self();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override
