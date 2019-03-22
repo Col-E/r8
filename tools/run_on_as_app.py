@@ -20,7 +20,6 @@ import zipfile
 from xml.dom import minidom
 
 import as_utils
-import create_maven_release
 import update_prebuilds_in_android
 
 SHRINKERS = ['r8', 'r8-full', 'r8-nolib', 'r8-nolib-full', 'pg']

@@ -65,7 +65,9 @@ POMTEMPLATE = Template(
 
 def parse_options(argv):
   result = argparse.ArgumentParser()
-  result.add_argument('--out', help='directory in which to put the output zip file')
+  result.add_argument('--out', help='The zip file to output')
+  result.add_argument('--r8lib', action='store_true',
+                      help='Build r8 with dependencies included shrunken')
   return result.parse_args(argv)
 
 def determine_version():
@@ -172,8 +174,8 @@ def generate_dependencies():
         group=group, artifact=artifact, version=version)
   return result
 
-def write_pom_file(version, pom_file):
-  dependencies = generate_dependencies()
+def write_pom_file(version, pom_file, exclude_dependencies):
+  dependencies = "" if exclude_dependencies else generate_dependencies()
   version_pom = POMTEMPLATE.substitute(
       version=version, dependencies=dependencies)
   with open(pom_file, 'w') as file:
@@ -199,14 +201,15 @@ def write_sha1_for(file):
   with (open(file + '.sha1', 'w')) as file:
     file.write(hexdigest)
 
-def main(argv):
-  options = parse_options(argv)
-  outdir = options.out
-  if outdir == None:
-    print 'Need to supply output dir with --out.'
+def run(out, is_r8lib=False):
+  if out == None:
+    print 'Need to supply output zip with --out.'
     exit(1)
   # Build the R8 no deps artifact.
-  gradle.RunGradleExcludeDeps([utils.R8])
+  if not is_r8lib:
+    gradle.RunGradleExcludeDeps([utils.R8])
+  else:
+    gradle.RunGradle([utils.R8LIB])
   # Create directory structure for this version.
   version = determine_version()
   with utils.TempDir() as tmp_dir:
@@ -214,17 +217,24 @@ def main(argv):
     makedirs(version_dir)
     # Write the pom file.
     pom_file = join(version_dir, 'r8-' + version + '.pom')
-    write_pom_file(version, pom_file)
+    write_pom_file(version, pom_file, is_r8lib)
     # Copy the jar to the output.
     target_jar = join(version_dir, 'r8-' + version + '.jar')
-    copyfile(utils.R8_JAR, target_jar)
+    copyfile(utils.R8LIB_JAR if is_r8lib else utils.R8_JAR, target_jar)
     # Create check sums.
     write_md5_for(target_jar)
     write_md5_for(pom_file)
     write_sha1_for(target_jar)
     write_sha1_for(pom_file)
-    # Zip it up.
-    make_archive(join(outdir, 'r8'), 'zip', tmp_dir)
+    # Zip it up - make_archive will append zip to the file, so remove.
+    assert out.endswith('.zip')
+    base_no_zip = out[0:len(out)-4]
+    make_archive(base_no_zip, 'zip', tmp_dir)
+
+def main(argv):
+  options = parse_options(argv)
+  out = options.out
+  run(out, options.r8lib)
 
 if __name__ == "__main__":
   exit(main(sys.argv[1:]))

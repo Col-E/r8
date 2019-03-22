@@ -109,7 +109,8 @@ def Main():
     SetRLimitToMax()
   PrintResourceInfo()
   # Create maven release which uses a build that exclude dependencies.
-  create_maven_release.main(["--out", utils.LIBS])
+  create_maven_release.run(utils.MAVEN_ZIP)
+  create_maven_release.run(utils.MAVEN_ZIP_LIB, is_r8lib=True)
 
   # Generate and copy a full build without dependencies.
   gradle.RunGradleExcludeDeps([utils.R8, utils.R8_SRC])
@@ -164,6 +165,7 @@ def Main():
       utils.COMPATPROGUARDLIB_JAR,
       utils.COMPATPROGUARDLIB_JAR + '.map',
       utils.MAVEN_ZIP,
+      utils.MAVEN_ZIP_LIB,
       utils.GENERATED_LICENSE,
     ]:
       file_name = os.path.basename(file)
