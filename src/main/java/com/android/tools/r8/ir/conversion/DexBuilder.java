@@ -70,6 +70,7 @@ import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
@@ -120,15 +121,40 @@ public class DexBuilder {
 
   BasicBlock nextBlock;
 
-  public DexBuilder(
-      IRCode ir,
-      RegisterAllocator registerAllocator,
-      InternalOptions options) {
+  public DexBuilder(IRCode ir, RegisterAllocator registerAllocator) {
+    this(ir, registerAllocator, ir.options);
     assert ir != null;
     assert registerAllocator != null;
+  }
+
+  private DexBuilder(IRCode ir, RegisterAllocator registerAllocator, InternalOptions options) {
     this.ir = ir;
     this.registerAllocator = registerAllocator;
     this.options = options;
+    if (isBuildingForComparison()) {
+      instructionToInfo = new Info[1];
+    }
+  }
+
+  public static boolean identicalInstructionsAfterBuildingDexCode(
+      com.android.tools.r8.ir.code.Instruction a,
+      com.android.tools.r8.ir.code.Instruction b,
+      RegisterAllocator allocator) {
+    DexBuilder builder = new DexBuilder(null, allocator, allocator.options());
+    Info infoA = buildInfoForComparison(a, builder);
+    Info infoB = buildInfoForComparison(b, builder);
+    return infoA.identicalInstructions(infoB, builder);
+  }
+
+  private static Info buildInfoForComparison(
+      com.android.tools.r8.ir.code.Instruction instruction, DexBuilder builder) {
+    instruction.buildDex(builder);
+    assert builder.instructionToInfo.length == 1;
+    return builder.instructionToInfo[0];
+  }
+
+  private boolean isBuildingForComparison() {
+    return ir == null;
   }
 
   private void reset() {
@@ -561,7 +587,8 @@ public class DexBuilder {
 
   public void add(com.android.tools.r8.ir.code.Instruction instr, Instruction dex) {
     assert !instr.isGoto();
-    assert !instr.isDexItemBasedConstString()
+    assert isBuildingForComparison()
+        || !instr.isDexItemBasedConstString()
         || ir.method.getOptimizationInfo().useIdentifierNameString();
     add(instr, new FixedSizeInfo(instr, dex));
   }
@@ -597,6 +624,11 @@ public class DexBuilder {
   }
 
   private void add(com.android.tools.r8.ir.code.Instruction ir, Info info) {
+    if (isBuildingForComparison()) {
+      // We are building for instruction comparison, so just set the info.
+      setSingleInfo(info);
+      return;
+    }
     assert ir != null;
     assert info != null;
     assert getInfo(ir) == null;
@@ -621,6 +653,11 @@ public class DexBuilder {
       previousNonFallthroughInfo = info;
     }
     instructionToInfo[instructionNumberToIndex(instruction.getNumber())] = info;
+  }
+
+  private void setSingleInfo(Info info) {
+    assert instructionToInfo.length == 1;
+    instructionToInfo[0] = info;
   }
 
   private Info getTargetInfo(BasicBlock block) {
@@ -887,6 +924,8 @@ public class DexBuilder {
     public com.android.tools.r8.ir.code.Instruction getIR() {
       return ir;
     }
+
+    public abstract boolean identicalInstructions(Info other, DexBuilder builder);
   }
 
   private static class FixedSizeInfo extends Info {
@@ -922,6 +961,12 @@ public class DexBuilder {
     @Override
     public void addInstructions(DexBuilder builder, List<Instruction> instructions) {
       instructions.add(instruction);
+    }
+
+    @Override
+    public boolean identicalInstructions(Info other, DexBuilder builder) {
+      return other instanceof FixedSizeInfo
+          && instruction.equals(((FixedSizeInfo) other).instruction);
     }
   }
 
@@ -970,6 +1015,12 @@ public class DexBuilder {
     public int getSize() {
       return size;
     }
+
+    @Override
+    public boolean identicalInstructions(Info other, DexBuilder builder) {
+      return other instanceof MultiFixedSizeInfo
+          && Arrays.equals(instructions, ((MultiFixedSizeInfo) other).instructions);
+    }
   }
 
   private static class FallThroughInfo extends Info {
@@ -1000,6 +1051,11 @@ public class DexBuilder {
     @Override
     public int maxSize() {
       return 0;
+    }
+
+    @Override
+    public boolean identicalInstructions(Info other, DexBuilder builder) {
+      return other instanceof FallThroughInfo;
     }
   }
 
@@ -1127,6 +1183,11 @@ public class DexBuilder {
         instructions.add(dex);
       }
     }
+
+    @Override
+    public boolean identicalInstructions(Info other, DexBuilder builder) {
+      return other instanceof GotoInfo;
+    }
   }
 
   public static class IfInfo extends Info {
@@ -1135,6 +1196,18 @@ public class DexBuilder {
 
     public IfInfo(If branch) {
       super(branch);
+    }
+
+    private int getRegister(int operandIndex, DexBuilder builder) {
+      If branch = getBranch();
+      return builder.allocatedRegister(branch.inValues().get(operandIndex), branch.getNumber());
+    }
+
+    private int[] getRegisters(DexBuilder builder) {
+      if (getBranch().isZeroTest()) {
+        return new int[] {getRegister(0, builder)};
+      }
+      return new int[] {getRegister(0, builder), getRegister(1, builder)};
     }
 
     private If getBranch() {
@@ -1167,7 +1240,7 @@ public class DexBuilder {
       int source = builder.getInfo(branch).getOffset();
       int target = builder.getInfo(branch.getTrueTarget().entry()).getOffset();
       int relativeOffset = target - source;
-      int register1 = builder.allocatedRegister(branch.inValues().get(0), branch.getNumber());
+      int register1 = getRegister(0, builder);
 
       if (relativeOffset < 0) {
         builder.hasBackwardsBranch = true;
@@ -1203,7 +1276,7 @@ public class DexBuilder {
             break;
         }
       } else {
-        int register2 = builder.allocatedRegister(branch.inValues().get(1), branch.getNumber());
+        int register2 = getRegister(1, builder);
         switch (getBranch().getType()) {
           case EQ:
             instruction = new IfEq(register1, register2, relativeOffset);
@@ -1252,6 +1325,16 @@ public class DexBuilder {
     public int getSize() {
       return size;
     }
+
+    @Override
+    public boolean identicalInstructions(Info other, DexBuilder builder) {
+      if (!(other instanceof IfInfo)) {
+        return false;
+      }
+      IfInfo otherInfo = (IfInfo) other;
+      return getBranch().getType() == otherInfo.getBranch().getType()
+          && Arrays.equals(getRegisters(builder), otherInfo.getRegisters(builder));
+    }
   }
 
   public static class MoveInfo extends Info {
@@ -1272,6 +1355,16 @@ public class DexBuilder {
 
     public int destRegister(DexBuilder builder) {
       return builder.allocatedRegister(getMove().dest(), getMove().getNumber());
+    }
+
+    @Override
+    public boolean identicalInstructions(Info other, DexBuilder builder) {
+      if (!(other instanceof MoveInfo)) {
+        return false;
+      }
+      MoveInfo moveInfo = (MoveInfo) other;
+      return srcRegister(builder) == moveInfo.srcRegister(builder)
+          && destRegister(builder) == moveInfo.destRegister(builder);
     }
 
     @Override
