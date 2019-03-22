@@ -864,10 +864,44 @@ public class DexParser {
 
   private void populateTypes() {
     DexSection dexSection = lookupSection(Constants.TYPE_TYPE_ID_ITEM);
+    assert verifyOrderOfTypeIds(dexSection);
     indexedItems.initializeTypes(dexSection.length);
     for (int i = 0; i < dexSection.length; i++) {
       indexedItems.setType(i, typeAt(i));
     }
+  }
+
+  /**
+   * From https://source.android.com/devices/tech/dalvik/dex-format#file-layout:
+   *
+   * <p>This list must be sorted by string_id index, and it must not contain any duplicate entries.
+   */
+  private boolean verifyOrderOfTypeIds(DexSection dexSection) {
+    if (dexSection.length >= 2) {
+      int initialOffset = dexSection.offset;
+      dexReader.position(initialOffset);
+
+      int prevStringIndex = dexReader.getUint();
+
+      for (int index = 1; index < dexSection.length; index++) {
+        int offset = initialOffset + Constants.TYPE_TYPE_ID_ITEM_SIZE * index;
+        dexReader.position(offset);
+
+        int stringIndex = dexReader.getUint();
+
+        boolean isValidOrder = stringIndex > prevStringIndex;
+        assert isValidOrder
+            : String.format(
+                "Out-of-order type ids (type #%s: `%s`, type #%s: `%s`)",
+                index - 1,
+                indexedItems.getString(prevStringIndex),
+                index,
+                indexedItems.getString(stringIndex));
+
+        prevStringIndex = stringIndex;
+      }
+    }
+    return true;
   }
 
   private void populateFields() {
