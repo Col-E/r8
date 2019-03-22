@@ -209,7 +209,7 @@ def run(out, is_r8lib=False):
   if not is_r8lib:
     gradle.RunGradleExcludeDeps([utils.R8])
   else:
-    gradle.RunGradle([utils.R8LIB])
+    gradle.RunGradle([utils.R8LIB, '-Pno_internal'])
   # Create directory structure for this version.
   version = determine_version()
   with utils.TempDir() as tmp_dir:
