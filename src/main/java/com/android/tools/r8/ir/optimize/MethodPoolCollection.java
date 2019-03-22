@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.optimize;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 
 // Per-class collection of method signatures.
@@ -48,17 +49,15 @@ public class MethodPoolCollection extends MemberPoolCollection<DexMethod> {
         }
       }
       if (clazz.isInterface()) {
-        clazz.type.forAllImplementsSubtypes(
-            implementer -> {
-              DexClass subClazz = application.definitionFor(implementer);
-              if (subClazz != null) {
-                MemberPool<DexMethod> childPool =
-                    memberPools.computeIfAbsent(subClazz, k -> new MemberPool<>(equivalence));
-                childPool.linkInterface(methodPool);
-              }
-            });
+        for (DexType subtype : clazz.type.allImmediateSubtypes()) {
+          DexClass subClazz = application.definitionFor(subtype);
+          if (subClazz != null) {
+            MemberPool<DexMethod> childPool =
+                memberPools.computeIfAbsent(subClazz, k -> new MemberPool<>(equivalence));
+            childPool.linkInterface(methodPool);
+          }
+        }
       }
     };
   }
-
 }

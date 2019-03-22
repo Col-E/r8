@@ -4,7 +4,8 @@
 
 package com.android.tools.r8.ir.optimize.uninstantiatedtypes;
 
-import static org.hamcrest.CoreMatchers.containsString;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverMerge;
@@ -13,6 +14,8 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -41,16 +44,18 @@ public class NestedInterfaceMethodTest extends TestBase {
       testForJvm().addTestClasspath().run(TestClass.class).assertSuccessWithOutput(expectedOutput);
     }
 
-    testForR8(parameters.getBackend())
-        .addInnerClasses(NestedInterfaceMethodTest.class)
-        .addKeepMainRule(TestClass.class)
-        .enableInliningAnnotations()
-        .enableMergeAnnotations()
-        .setMinApi(AndroidApiLevel.B)
-        .run(parameters.getRuntime(), TestClass.class)
-        .assertFailureWithErrorThatMatches(containsString("AbstractMethodError"));
+    CodeInspector inspector =
+        testForR8(parameters.getBackend())
+            .addInnerClasses(NestedInterfaceMethodTest.class)
+            .addKeepMainRule(TestClass.class)
+            .enableInliningAnnotations()
+            .enableMergeAnnotations()
+            .addOptionsModification(options -> options.enableDevirtualization = false)
+            .setMinApi(AndroidApiLevel.B)
+            .run(parameters.getRuntime(), TestClass.class)
+            .assertSuccessWithOutput(expectedOutput)
+            .inspector();
 
-    /*
     ClassSubject interfaceSubject = inspector.clazz(I.class);
     assertThat(interfaceSubject, isPresent());
     assertThat(interfaceSubject.method(Uninstantiated.class.getTypeName(), "m"), isPresent());
@@ -58,7 +63,6 @@ public class NestedInterfaceMethodTest extends TestBase {
     ClassSubject classSubject = inspector.clazz(A.class);
     assertThat(classSubject, isPresent());
     assertThat(classSubject.method(Uninstantiated.class.getTypeName(), "m"), isPresent());
-    */
   }
 
   static class TestClass {
