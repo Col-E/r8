@@ -1111,6 +1111,19 @@ public class ToolHelper {
     return runProcess(builder);
   }
 
+  public static ProcessResult runJava(List<String> vmArgs, List<Path> classpath, String... args)
+      throws IOException {
+    String cp =
+        classpath.stream().map(Path::toString).collect(Collectors.joining(CLASSPATH_SEPARATOR));
+    List<String> cmdline = new ArrayList<String>(Arrays.asList(getJavaExecutable()));
+    cmdline.addAll(vmArgs);
+    cmdline.add("-cp");
+    cmdline.add(cp);
+    cmdline.addAll(Arrays.asList(args));
+    ProcessBuilder builder = new ProcessBuilder(cmdline);
+    return runProcess(builder);
+  }
+
   public static ProcessResult runJavaNoVerify(
       Path classpath, String mainClass, String... args) throws IOException {
     return runJavaNoVerify(
@@ -1217,53 +1230,59 @@ public class ToolHelper {
   // multiple calls within the same test.
   private static int testOutputPathIndex = 0;
 
-  public static ProcessResult runArtRaw(List<String> files, String mainClass,
-      Consumer<ArtCommandBuilder> extras, DexVm version)
+  public static ProcessResult runArtRaw(
+      List<String> files,
+      String mainClass,
+      Consumer<ArtCommandBuilder> extras,
+      DexVm version,
+      String... args)
       throws IOException {
+    ArtCommandBuilder builder =
+        version != null ? new ArtCommandBuilder(version) : new ArtCommandBuilder();
+    files.forEach(builder::appendClasspath);
+    builder.setMainClass(mainClass);
+    if (extras != null) {
+      extras.accept(builder);
+    }
+    for (String arg : args) {
+      builder.appendProgramArgument(arg);
+    }
+    ProcessResult processResult = null;
 
-      ArtCommandBuilder builder =
-          version != null ? new ArtCommandBuilder(version) : new ArtCommandBuilder();
-      files.forEach(builder::appendClasspath);
-      builder.setMainClass(mainClass);
-      if (extras != null) {
-        extras.accept(builder);
+    // Whenever we start a new test method we reset the index count.
+    String reset_output_index = System.getProperty("reset_output_index");
+    if (reset_output_index != null) {
+      System.clearProperty("reset_output_index");
+      testOutputPathIndex = 0;
+    } else {
+      assert testOutputPathIndex >= 0;
+      testOutputPathIndex++;
+    }
+
+    String goldenFilesDirInProp = System.getProperty("use_golden_files_in");
+    if (goldenFilesDirInProp != null) {
+      File goldenFileDir = new File(goldenFilesDirInProp);
+      assert goldenFileDir.isDirectory();
+      processResult =
+          compareAgainstGoldenFiles(
+              files.stream().map(f -> new File(f)).collect(Collectors.toList()), goldenFileDir);
+      if (processResult.exitCode == 0) {
+        processResult = readProcessResult(goldenFileDir);
       }
+    } else {
+      processResult = runArtProcessRaw(builder);
+    }
 
-      ProcessResult processResult = null;
+    String goldenFilesDirToProp = System.getProperty("generate_golden_files_to");
+    if (goldenFilesDirToProp != null) {
+      File goldenFileDir = new File(goldenFilesDirToProp);
+      assert goldenFileDir.isDirectory();
+      storeAsGoldenFiles(
+          files.stream().map(f -> new File(f)).collect(Collectors.toList()), goldenFileDir);
+      storeProcessResult(processResult, goldenFileDir);
+    }
 
-      // Whenever we start a new test method we reset the index count.
-      String reset_output_index = System.getProperty("reset_output_index");
-      if (reset_output_index != null) {
-        System.clearProperty("reset_output_index");
-        testOutputPathIndex = 0;
-      } else {
-        assert testOutputPathIndex >= 0;
-        testOutputPathIndex++;
-      }
-
-      String goldenFilesDirInProp = System.getProperty("use_golden_files_in");
-      if (goldenFilesDirInProp != null) {
-        File goldenFileDir = new File(goldenFilesDirInProp);
-        assert goldenFileDir.isDirectory();
-        processResult = compareAgainstGoldenFiles(
-            files.stream().map(f -> new File(f)).collect(Collectors.toList()), goldenFileDir);
-        if (processResult.exitCode == 0) {
-          processResult = readProcessResult(goldenFileDir);
-        }
-      } else {
-        processResult = runArtProcessRaw(builder);
-      }
-
-      String goldenFilesDirToProp = System.getProperty("generate_golden_files_to");
-      if (goldenFilesDirToProp != null) {
-        File goldenFileDir = new File(goldenFilesDirToProp);
-        assert goldenFileDir.isDirectory();
-        storeAsGoldenFiles(files.stream().map(f -> new File(f)).collect(Collectors.toList()),
-            goldenFileDir);
-        storeProcessResult(processResult, goldenFileDir);
-      }
-
-      return processResult;
+    return processResult;
   }
 
   private static Path findNonConflictingDestinationFilePath(Path testOutputPath) {

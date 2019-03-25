@@ -4,29 +4,29 @@
 
 package com.android.tools.r8.rewrite.assertions;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.DexIndexedConsumer;
-import com.android.tools.r8.OutputMode;
-import com.android.tools.r8.R8Command;
+import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
-import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import com.google.common.collect.ImmutableList;
-import java.nio.file.Path;
-import java.util.function.Consumer;
+import java.util.Collection;
 import java.util.function.Function;
+import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.BeforeParam;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
@@ -138,20 +138,109 @@ class AssertionEnablerClassAdapter extends ClassVisitor {
   }
 }
 
+class CompilationResults {
+
+  final R8TestCompileResult allowAccess;
+  final R8TestCompileResult withAssertions;
+  final R8TestCompileResult withoutAssertions;
+
+  CompilationResults(
+      R8TestCompileResult allowAccess,
+      R8TestCompileResult withAssertions,
+      R8TestCompileResult withoutAssertions) {
+    this.allowAccess = allowAccess;
+    this.withAssertions = withAssertions;
+    this.withoutAssertions = withoutAssertions;
+  }
+}
+
+@RunWith(Parameterized.class)
 public class RemoveAssertionsTest extends TestBase {
+
+  private final TestParameters parameters;
+
+  @Parameterized.Parameters(name = "{0}")
+  public static Collection<Object[]> data() {
+    return buildParameters(getTestParameters().withAllRuntimes().build());
+  }
+
+  public RemoveAssertionsTest(TestParameters parameters) {
+    this.parameters = parameters;
+  }
+
+  @ClassRule public static TemporaryFolder staticTemp = ToolHelper.getTemporaryFolderForTest();
+
+  @BeforeParam
+  public static void forceCompilation(TestParameters parameters) {
+    compilationResults.apply(parameters.getBackend());
+  }
+
+  private static Function<Backend, CompilationResults> compilationResults =
+      memoizeFunction(RemoveAssertionsTest::compileAll);
+
+  private static R8TestCompileResult compileWithAccessModification(Backend backend)
+      throws CompilationFailedException {
+    return testForR8(staticTemp, backend)
+        .addProgramClassFileData(ClassWithAssertionsDump.dump())
+        .addKeepMainRule(ClassWithAssertions.class)
+        .addKeepRules("-allowaccessmodification", "-dontobfuscate")
+        .addOptionsModification(o -> o.enableInlining = false)
+        .compile();
+  }
+
+  private static R8TestCompileResult compileCf(boolean disableAssertions)
+      throws CompilationFailedException {
+    return testForR8(staticTemp, Backend.CF)
+        .addProgramClassFileData(ClassWithAssertionsDump.dump())
+        .debug()
+        .noTreeShaking()
+        .noMinification()
+        .addOptionsModification(o -> o.disableAssertions = disableAssertions)
+        .compile();
+  }
+
+  private static byte[] identity(byte[] classBytes) {
+    return classBytes;
+  }
+
+  private static byte[] chromiumAssertionEnabler(byte[] classBytes) {
+    ClassWriter writer = new ClassWriter(0);
+    new ClassReader(classBytes).accept(new AssertionEnablerClassAdapter(writer), 0);
+    return writer.toByteArray();
+  }
+
+  private static R8TestCompileResult compileRegress110887293(Function<byte[], byte[]> rewriter)
+      throws CompilationFailedException {
+    return testForR8(staticTemp, Backend.DEX)
+        .addProgramClassFileData(
+            rewriter.apply(ClassWithAssertionsDump.dump()), ChromuimAssertionHookMockDump.dump())
+        .setMinApi(AndroidApiLevel.B)
+        .debug()
+        .noTreeShaking()
+        .noMinification()
+        .compile();
+  }
+
+  private static CompilationResults compileAll(Backend backend) throws CompilationFailedException {
+    R8TestCompileResult withAccess = compileWithAccessModification(backend);
+    if (backend == Backend.CF) {
+      return new CompilationResults(withAccess, compileCf(false), compileCf(true));
+    }
+    return new CompilationResults(
+        withAccess,
+        compileRegress110887293(RemoveAssertionsTest::chromiumAssertionEnabler),
+        compileRegress110887293(RemoveAssertionsTest::identity));
+  }
 
   @Test
   public void test() throws Exception {
+    // TODO(mkroghj) Why does this fail on JDK?
+    assumeTrue(parameters.isDexRuntime());
     // Run with R8, but avoid inlining to really validate that the methods "condition"
     // and "<clinit>" are gone.
-    Class testClass = ClassWithAssertions.class;
-    AndroidApp app = compileWithR8(
-        ImmutableList.of(testClass),
-        keepMainProguardConfiguration(testClass, true, false),
-        options -> options.enableInlining = false);
-    CodeInspector x = new CodeInspector(app);
-
-    ClassSubject clazz = x.clazz(ClassWithAssertions.class);
+    CompilationResults results = compilationResults.apply(parameters.getBackend());
+    CodeInspector inspector = results.allowAccess.inspector();
+    ClassSubject clazz = inspector.clazz(ClassWithAssertions.class);
     assertTrue(clazz.isPresent());
     MethodSubject conditionMethod =
         clazz.method(new MethodSignature("condition", "boolean", new String[]{}));
@@ -161,79 +250,54 @@ public class RemoveAssertionsTest extends TestBase {
     assertTrue(!clinit.isPresent());
   }
 
-  private Path buildTestToCf(Consumer<InternalOptions> consumer) throws Exception {
-    Path outputJar = temp.getRoot().toPath().resolve("output.jar");
-    R8Command command =
-        ToolHelper.prepareR8CommandBuilder(readClasses(ClassWithAssertions.class))
-            .setMode(CompilationMode.DEBUG)
-            .setDisableTreeShaking(true)
-            .setDisableMinification(true)
-            .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
-            .setOutput(outputJar, OutputMode.ClassFile)
-            .build();
-    ToolHelper.runR8(command, consumer);
-    return outputJar;
-  }
-
   @Test
   public void testCfOutput() throws Exception {
+    assumeTrue(parameters.isCfRuntime());
     String main = ClassWithAssertions.class.getCanonicalName();
-    ProcessResult result;
+    CompilationResults results = compilationResults.apply(parameters.getBackend());
     // Assertion is hit.
-    result = ToolHelper.runJava(buildTestToCf(options -> {}), "-ea", main, "0");
-    assertEquals(1, result.exitCode);
-    assertEquals("1\n".replace("\n", System.lineSeparator()), result.stdout);
+    results
+        .withAssertions
+        .enableRuntimeAssertions()
+        .run(parameters.getRuntime(), main, "0")
+        .assertFailureWithOutput(StringUtils.lines("1"));
     // Assertion is not hit.
-    result = ToolHelper.runJava(buildTestToCf(options -> {}), "-ea", main, "1");
-    assertEquals(0, result.exitCode);
-    assertEquals("1\n2\n".replace("\n", System.lineSeparator()), result.stdout);
+    results
+        .withAssertions
+        .enableRuntimeAssertions()
+        .run(parameters.getRuntime(), main, "1")
+        .assertSuccessWithOutput(StringUtils.lines("1", "2"));
     // Assertion is hit, but removed.
-    result = ToolHelper.runJava(
-        buildTestToCf(
-            options -> options.disableAssertions = true), "-ea", main, "0");
-    assertEquals(0, result.exitCode);
-    assertEquals("1\n2\n".replace("\n", System.lineSeparator()), result.stdout);
-  }
-
-  private byte[] identity(byte[] classBytes) {
-    return classBytes;
-  }
-
-  private byte[] chromiumAssertionEnabler(byte[] classBytes) {
-    ClassWriter writer = new ClassWriter(0);
-    new ClassReader(classBytes).accept(new AssertionEnablerClassAdapter(writer), 0);
-    return writer.toByteArray();
-  }
-
-  private AndroidApp runRegress110887293(Function<byte[], byte[]> rewriter) throws Exception {
-    return ToolHelper.runR8(
-        R8Command.builder()
-            .addClassProgramData(
-                rewriter.apply(ToolHelper.getClassAsBytes(ClassWithAssertions.class)),
-                Origin.unknown())
-            .addClassProgramData(
-                ToolHelper.getClassAsBytes(ChromuimAssertionHookMock.class), Origin.unknown())
-            .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
-            .setMode(CompilationMode.DEBUG)
-            .setDisableTreeShaking(true)
-            .setDisableMinification(true)
-            .build());
+    results
+        .withoutAssertions
+        .enableRuntimeAssertions()
+        .run(parameters.getRuntime(), main, "0")
+        .assertSuccessWithOutput(StringUtils.lines("1", "2"));
   }
 
   @Test
   public void regress110887293() throws Exception {
-    AndroidApp app;
+    assumeTrue(parameters.isDexRuntime());
+    String main = ClassWithAssertions.class.getCanonicalName();
+    CompilationResults results = compilationResults.apply(parameters.getBackend());
     // Assertions removed for default assertion code.
-    app = runRegress110887293(this::identity);
-    assertEquals("1\n2\n", runOnArt(app, ClassWithAssertions.class.getCanonicalName(), "0"));
-    assertEquals("1\n2\n", runOnArt(app, ClassWithAssertions.class.getCanonicalName(), "1"));
+    results
+        .withoutAssertions
+        .run(parameters.getRuntime(), main, "0")
+        .assertSuccessWithOutput(StringUtils.lines("1", "2"));
+    results
+        .withoutAssertions
+        .run(parameters.getRuntime(), main, "1")
+        .assertSuccessWithOutput(StringUtils.lines("1", "2"));
     // Assertions not removed when default assertion code is not present.
-    app = runRegress110887293(this::chromiumAssertionEnabler);
-    assertEquals(
-        "1\nGot AssertionError java.lang.AssertionError\n2\n".replace("\n", System.lineSeparator()),
-        runOnArt(app, ClassWithAssertions.class.getCanonicalName(), "0"));
-    assertEquals(
-        "1\n2\n".replace("\n", System.lineSeparator()),
-        runOnArt(app, ClassWithAssertions.class.getCanonicalName(), "1"));
+    results
+        .withAssertions
+        .run(parameters.getRuntime(), main, "0")
+        .assertSuccessWithOutput(
+            StringUtils.lines("1", "Got AssertionError java.lang.AssertionError", "2"));
+    results
+        .withAssertions
+        .run(parameters.getRuntime(), main, "1")
+        .assertSuccessWithOutput(StringUtils.lines("1", "2"));
   }
 }

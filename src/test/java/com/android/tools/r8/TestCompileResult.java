@@ -20,6 +20,7 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ObjectArrays;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
@@ -38,6 +39,7 @@ public abstract class TestCompileResult<
 
   public final AndroidApp app;
   final List<Path> additionalRunClassPath = new ArrayList<>();
+  final List<String> vmArguments = new ArrayList<>();
 
   TestCompileResult(TestState state, AndroidApp app) {
     super(state);
@@ -74,15 +76,23 @@ public abstract class TestCompileResult<
   }
 
   public RR run(TestRuntime runtime, String mainClass) throws ExecutionException, IOException {
+    return run(runtime, mainClass, new String[] {});
+  }
+
+  public RR run(TestRuntime runtime, String mainClass, String... args)
+      throws ExecutionException, IOException {
     assert getBackend() == runtime.getBackend();
     ClassSubject mainClassSubject = inspector().clazz(mainClass);
     assertThat(mainClassSubject, isPresent());
     if (runtime.isDex()) {
       return runArt(
-          runtime.asDex().getVm(), additionalRunClassPath, mainClassSubject.getFinalName());
+          runtime.asDex().getVm(), additionalRunClassPath, mainClassSubject.getFinalName(), args);
     }
     assert runtime.isCf();
-    return runJava(runtime, additionalRunClassPath, mainClassSubject.getFinalName());
+    return runJava(
+        runtime,
+        additionalRunClassPath,
+        ObjectArrays.concat(mainClassSubject.getFinalName(), args));
   }
 
   public CR addRunClasspathFiles(Path... classpath) {
@@ -114,6 +124,14 @@ public abstract class TestCompileResult<
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  public CR enableRuntimeAssertions() {
+    assert getBackend() == Backend.CF;
+    if (!this.vmArguments.contains("-ea")) {
+      this.vmArguments.add("-ea");
+    }
+    return self();
   }
 
   public Path writeToZip() throws IOException {
@@ -194,7 +212,7 @@ public abstract class TestCompileResult<
     }
   }
 
-  private RR runJava(TestRuntime runtime, List<Path> additionalClassPath, String mainClass)
+  private RR runJava(TestRuntime runtime, List<Path> additionalClassPath, String... arguments)
       throws IOException {
     // TODO(b/127785410): Always assume a non-null runtime.
     assert runtime == null || TestParametersBuilder.isSystemJdk(runtime.asCf().getVm());
@@ -204,11 +222,12 @@ public abstract class TestCompileResult<
         .addAll(additionalClassPath)
         .add(out)
         .build();
-    ProcessResult result = ToolHelper.runJava(classPath, mainClass);
+    ProcessResult result = ToolHelper.runJava(vmArguments, classPath, arguments);
     return createRunResult(result);
   }
 
-  private RR runArt(DexVm vm, List<Path> additionalClassPath, String mainClass) throws IOException {
+  private RR runArt(DexVm vm, List<Path> additionalClassPath, String mainClass, String... arguments)
+      throws IOException {
     // TODO(b/127785410): Always assume a non-null runtime.
     Path out = state.getNewTempFolder().resolve("out.zip");
     app.writeToZip(out, OutputMode.DexIndexed);
@@ -216,7 +235,7 @@ public abstract class TestCompileResult<
         .addAll(additionalClassPath.stream().map(Path::toString).collect(Collectors.toList()))
         .add(out.toString())
         .build();
-    ProcessResult result = ToolHelper.runArtRaw(classPath, mainClass, dummy -> {}, vm);
+    ProcessResult result = ToolHelper.runArtRaw(classPath, mainClass, dummy -> {}, vm, arguments);
     return createRunResult(result);
   }
 
