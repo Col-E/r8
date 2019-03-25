@@ -18,8 +18,8 @@ import com.android.tools.r8.utils.BiMapContainer;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.io.CharSource;
 import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -68,12 +68,8 @@ public class ClassNameMapper implements ProguardMap {
   }
 
   public static ClassNameMapper mapperFromInputStream(InputStream in) throws IOException {
-    BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
-    try (ProguardMapReader proguardReader = new ProguardMapReader(reader)) {
-      ClassNameMapper.Builder builder = ClassNameMapper.builder();
-      proguardReader.parse(builder);
-      return builder.build();
-    }
+    return mapperFromBufferedReader(
+        new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8)));
   }
 
   public static ClassNameMapper mapperFromFile(Path path) throws IOException {
@@ -92,8 +88,16 @@ public class ClassNameMapper implements ProguardMap {
   }
 
   public static ClassNameMapper mapperFromString(String contents) throws IOException {
-    return mapperFromInputStream(
-        new ByteArrayInputStream(contents.getBytes(StandardCharsets.UTF_8)));
+    return mapperFromBufferedReader(CharSource.wrap(contents).openBufferedStream());
+  }
+
+  private static ClassNameMapper mapperFromBufferedReader(BufferedReader reader)
+      throws IOException {
+    try (ProguardMapReader proguardReader = new ProguardMapReader(reader)) {
+      ClassNameMapper.Builder builder = ClassNameMapper.builder();
+      proguardReader.parse(builder);
+      return builder.build();
+    }
   }
 
   private final ImmutableMap<String, ClassNamingForNameMapper> classNameMappings;
