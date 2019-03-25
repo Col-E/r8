@@ -111,7 +111,7 @@ public abstract class R8RunArtTestsTest {
   private static final String JCTF_TESTS_LIB_PREFIX =
       JCTF_TESTS_PREFIX + "/com/google/jctf/test/lib";
   private static final String JUNIT_TEST_RUNNER = "org.junit.runner.JUnitCore";
-  private static final String JUNIT_JAR = "third_party/gradle/gradle/lib/plugins/junit-4.12.jar";
+  private static final String JUNIT_JAR = "third_party/junit/junit-4.13-beta-2.jar";
   private static final String HAMCREST_JAR =
       "third_party/gradle/gradle/lib/plugins/hamcrest-core-1.3.jar";
 
@@ -1683,11 +1683,12 @@ public abstract class R8RunArtTestsTest {
         }
       case D8: {
         assert keepRulesFile == null : "Keep-rules file specified for D8.";
-        D8Command.Builder builder =
-            D8Command.builder()
-                .setMode(mode)
-                .addProgramFiles(ListUtils.map(fileNames, Paths::get))
-                .setOutput(Paths.get(resultPath), OutputMode.DexIndexed);
+          D8Command.Builder builder =
+              D8Command.builder()
+                  .setMode(mode)
+                  .addProgramFiles(ListUtils.map(fileNames, Paths::get))
+                  .setOutput(Paths.get(resultPath), OutputMode.DexIndexed)
+                  .setDisableDesugaring(true);
         AndroidApiLevel minSdkVersion = needMinSdkVersion.get(name);
         if (minSdkVersion != null) {
           builder.setMinApiLevel(minSdkVersion.getLevel());
@@ -1708,6 +1709,7 @@ public abstract class R8RunArtTestsTest {
                   .setMode(mode)
                   .setDisableTreeShaking(true)
                   .setDisableMinification(true)
+                  .setDisableDesugaring(true)
                   .addProguardConfiguration(ImmutableList.of("-keepattributes *"), Origin.unknown())
                   .setOutput(
                       Paths.get(resultPath),

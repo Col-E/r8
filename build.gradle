@@ -272,6 +272,7 @@ def cloudDependencies = [
                 "jacoco",
                 "jasmin",
                 "jctf",
+                "junit",
                 "jdwp-tests",
                 "kotlin",
                 "openjdk/openjdk-rt-1.8",
