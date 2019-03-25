@@ -72,12 +72,6 @@ public abstract class TypeLatticeElement {
     if (isTop() || other.isTop()) {
       return TOP;
     }
-    if (isNullType()) {
-      return other.asNullable();
-    }
-    if (other.isNullType()) {
-      return asNullable();
-    }
     if (isPrimitive()) {
       return other.isPrimitive()
           ? asPrimitiveTypeLatticeElement().join(other.asPrimitiveTypeLatticeElement())
@@ -90,15 +84,20 @@ public abstract class TypeLatticeElement {
     // From now on, this and other are precise reference types, i.e., either ArrayType or ClassType.
     assert isReference() && other.isReference();
     assert isPreciseType() && other.isPreciseType();
+    Nullability nullabilityJoin = nullability().join(other.nullability());
+    if (isNullType()) {
+      return other.asReferenceTypeLatticeElement().getOrCreateVariant(nullabilityJoin);
+    }
+    if (other.isNullType()) {
+      return this.asReferenceTypeLatticeElement().getOrCreateVariant(nullabilityJoin);
+    }
     if (getClass() != other.getClass()) {
-      return objectClassType(definitions, nullability().join(other.nullability()));
+      return objectClassType(definitions, nullabilityJoin);
     }
     // From now on, getClass() == other.getClass()
     if (isArrayType()) {
       assert other.isArrayType();
-      TypeLatticeElement join =
-          asArrayTypeLatticeElement().join(other.asArrayTypeLatticeElement(), definitions);
-      return join != null ? join : (isNullable() ? this : other);
+      return asArrayTypeLatticeElement().join(other.asArrayTypeLatticeElement(), definitions);
     }
     if (isClassType()) {
       assert other.isClassType();
@@ -173,6 +172,10 @@ public abstract class TypeLatticeElement {
 
   public boolean isReference() {
     return false;
+  }
+
+  public ReferenceTypeLatticeElement asReferenceTypeLatticeElement() {
+    return null;
   }
 
   public boolean isArrayType() {

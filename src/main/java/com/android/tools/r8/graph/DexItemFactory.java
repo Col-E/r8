@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
-
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.graph.DexDebugEvent.AdvanceLine;
@@ -1074,42 +1072,53 @@ public class DexItemFactory {
 
   public ReferenceTypeLatticeElement createReferenceTypeLatticeElement(
       DexType type, Nullability nullability, DexDefinitionSupplier definitions) {
-    ReferenceTypeLatticeElement primary = referenceTypeLatticeElements.get(type);
-    if (primary != null) {
-      return nullability == primary.nullability()
-          ? primary
-          : primary.getOrCreateVariant(nullability);
-    }
-    synchronized (type) {
-      primary = referenceTypeLatticeElements.get(type);
-      if (primary == null) {
-        if (type.isClassType()) {
-          if (!type.isUnknown() && type.isInterface()) {
-            primary = new ClassTypeLatticeElement(objectType, maybeNull(), ImmutableSet.of(type));
-          } else {
-            // In theory, `interfaces` is the least upper bound of implemented interfaces.
-            // It is expensive to walk through type hierarchy; collect implemented interfaces; and
-            // compute the least upper bound of two interface sets. Hence, lazy computations.
-            // Most likely during lattice join. See {@link ClassTypeLatticeElement#getInterfaces}.
-            primary = new ClassTypeLatticeElement(type, maybeNull(), definitions);
-          }
-        } else {
-          assert type.isArrayType();
-          DexType elementType = type.toArrayElementType(this);
-          TypeLatticeElement elementTypeLattice =
-              TypeLatticeElement.fromDexType(elementType, maybeNull(), definitions, true);
-          primary = new ArrayTypeLatticeElement(elementTypeLattice, maybeNull());
-        }
-        referenceTypeLatticeElements.put(type, primary);
+    // Class case:
+    // If two concurrent threads will try to create the same class-type the concurrent hash map will
+    // synchronize on the type in .computeIfAbsent and only a single class type is created.
+    //
+    // Array case:
+    // Arrays will create a lattice element for its base type thus we take special care here.
+    // Multiple threads may race recursively to create a base type. We have two cases:
+    // (i)  If base type is class type and the threads will race to create the class type but only a
+    //      single one will be created (Class case).
+    // (ii) If base is ArrayLattice case we can use our induction hypothesis to get that only one
+    //      element is created for us up to this case. Threads will now race to return from the
+    //      latest recursive call and fight to get access to .computeIfAbsent to add the
+    //      ArrayTypeLatticeElement but only one will enter. The property that only one
+    //      ArrayTypeLatticeElement is created per level therefore holds inductively.
+    TypeLatticeElement memberType = null;
+    if (type.isArrayType()) {
+      ReferenceTypeLatticeElement existing = referenceTypeLatticeElements.get(type);
+      if (existing != null) {
+        return existing.getOrCreateVariant(nullability);
       }
-      // Make sure that canonicalized version is MAYBE_NULL variant.
-      assert primary.nullability().isMaybeNull();
+      memberType =
+          TypeLatticeElement.fromDexType(
+              type.toArrayElementType(this), Nullability.maybeNull(), definitions, true);
     }
-    // The call to getOrCreateVariant can't be under the DexType synchronized block, since that
-    // can create deadlocks with ClassTypeLatticeElement::getInterfaces (both lock on the lattice).
-    return nullability == primary.nullability()
-        ? primary
-        : primary.getOrCreateVariant(nullability);
+    TypeLatticeElement finalMemberType = memberType;
+    return referenceTypeLatticeElements
+        .computeIfAbsent(
+            type,
+            t -> {
+              if (type.isClassType()) {
+                if (!type.isUnknown() && type.isInterface()) {
+                  return ClassTypeLatticeElement.create(
+                      objectType, nullability, ImmutableSet.of(type));
+                } else {
+                  // In theory, `interfaces` is the least upper bound of implemented interfaces.
+                  // It is expensive to walk through type hierarchy; collect implemented interfaces;
+                  // and compute the least upper bound of two interface sets. Hence, lazy
+                  // computations. Most likely during lattice join. See {@link
+                  // ClassTypeLatticeElement#getInterfaces}.
+                  return ClassTypeLatticeElement.create(type, nullability, definitions);
+                }
+              } else {
+                assert type.isArrayType();
+                return ArrayTypeLatticeElement.create(finalMemberType, nullability);
+              }
+            })
+        .getOrCreateVariant(nullability);
   }
 
   private static <S extends PresortedComparable<S>> void assignSortedIndices(Collection<S> items,

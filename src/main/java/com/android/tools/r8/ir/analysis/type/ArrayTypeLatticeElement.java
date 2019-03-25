@@ -14,10 +14,24 @@ public class ArrayTypeLatticeElement extends ReferenceTypeLatticeElement {
 
   private final TypeLatticeElement memberTypeLattice;
 
-  public ArrayTypeLatticeElement(
+  // On-demand link between other nullability-variants.
+  private final NullabilityVariants<ArrayTypeLatticeElement> variants;
+
+  public static ArrayTypeLatticeElement create(
       TypeLatticeElement memberTypeLattice, Nullability nullability) {
-    super(nullability, null);
+    return NullabilityVariants.create(
+        nullability,
+        (variants) -> new ArrayTypeLatticeElement(memberTypeLattice, nullability, variants));
+  }
+
+  private ArrayTypeLatticeElement(
+      TypeLatticeElement memberTypeLattice,
+      Nullability nullability,
+      NullabilityVariants<ArrayTypeLatticeElement> variants) {
+    super(nullability);
+    assert memberTypeLattice.isPrimitive() || memberTypeLattice.nullability().isMaybeNull();
     this.memberTypeLattice = memberTypeLattice;
+    this.variants = variants;
   }
 
   public DexType getArrayType(DexItemFactory factory) {
@@ -58,22 +72,29 @@ public class ArrayTypeLatticeElement extends ReferenceTypeLatticeElement {
     return base;
   }
 
-  @Override
-  ReferenceTypeLatticeElement createVariant(Nullability nullability) {
-    if (this.nullability == nullability) {
-      return this;
-    }
-    return new ArrayTypeLatticeElement(memberTypeLattice, nullability);
+  private ArrayTypeLatticeElement createVariant(
+      Nullability nullability, NullabilityVariants<ArrayTypeLatticeElement> variants) {
+    assert this.nullability != nullability;
+    return new ArrayTypeLatticeElement(memberTypeLattice, nullability, variants);
   }
 
   @Override
   public TypeLatticeElement asNullable() {
-    return nullability.isNullable() ? this : getOrCreateVariant(maybeNull());
+    return getOrCreateVariant(maybeNull());
+  }
+
+  @Override
+  public ReferenceTypeLatticeElement getOrCreateVariant(Nullability nullability) {
+    ArrayTypeLatticeElement variant = variants.get(nullability);
+    if (variant != null) {
+      return variant;
+    }
+    return variants.getOrCreateElement(nullability, this::createVariant);
   }
 
   @Override
   public TypeLatticeElement asNonNullable() {
-    return nullability.isDefinitelyNotNull() ? this : getOrCreateVariant(definitelyNotNull());
+    return getOrCreateVariant(definitelyNotNull());
   }
 
   @Override
@@ -93,7 +114,7 @@ public class ArrayTypeLatticeElement extends ReferenceTypeLatticeElement {
 
   @Override
   public String toString() {
-    return memberTypeLattice.toString() + "[]";
+    return nullability.toString() + " (" + memberTypeLattice.toString() + "[])";
   }
 
   @Override
@@ -108,9 +129,6 @@ public class ArrayTypeLatticeElement extends ReferenceTypeLatticeElement {
     if (nullability() != other.nullability()) {
       return false;
     }
-    if (type != null && other.type != null && !type.equals(other.type)) {
-      return false;
-    }
     return memberTypeLattice.equals(other.memberTypeLattice);
   }
 
@@ -121,31 +139,50 @@ public class ArrayTypeLatticeElement extends ReferenceTypeLatticeElement {
 
   ReferenceTypeLatticeElement join(
       ArrayTypeLatticeElement other, DexDefinitionSupplier definitions) {
-    TypeLatticeElement aMember = getArrayMemberTypeAsMemberType();
-    TypeLatticeElement bMember = other.getArrayMemberTypeAsMemberType();
+    Nullability nullability = nullability().join(other.nullability());
+    ReferenceTypeLatticeElement join =
+        joinMember(this.memberTypeLattice, other.memberTypeLattice, definitions, nullability);
+    if (join == null) {
+      // Check if other has the right nullability before creating it.
+      if (other.nullability == nullability) {
+        return other;
+      } else {
+        return getOrCreateVariant(nullability);
+      }
+    } else {
+      assert join.nullability == nullability;
+      return join;
+    }
+  }
+
+  private static ReferenceTypeLatticeElement joinMember(
+      TypeLatticeElement aMember,
+      TypeLatticeElement bMember,
+      DexDefinitionSupplier definitions,
+      Nullability nullability) {
     if (aMember.equals(bMember)) {
       // Return null indicating the join is the same as the member to avoid object allocation.
       return null;
     }
-    Nullability nullability = nullability().join(other.nullability());
     if (aMember.isArrayType() && bMember.isArrayType()) {
-      ReferenceTypeLatticeElement join =
-          aMember
-              .asArrayTypeLatticeElement()
-              .join(bMember.asArrayTypeLatticeElement(), definitions);
-      return join == null ? null : new ArrayTypeLatticeElement(join, nullability);
+      TypeLatticeElement join =
+          joinMember(
+              aMember.asArrayTypeLatticeElement().memberTypeLattice,
+              bMember.asArrayTypeLatticeElement().memberTypeLattice,
+              definitions,
+              maybeNull());
+      return join == null ? null : ArrayTypeLatticeElement.create(join, nullability);
     }
     if (aMember.isClassType() && bMember.isClassType()) {
-      ClassTypeLatticeElement join =
+      ReferenceTypeLatticeElement join =
           aMember
               .asClassTypeLatticeElement()
               .join(bMember.asClassTypeLatticeElement(), definitions);
-      return join == null ? null : new ArrayTypeLatticeElement(join, nullability);
+      return ArrayTypeLatticeElement.create(join, nullability);
     }
     if (aMember.isPrimitive() || bMember.isPrimitive()) {
-      return objectClassType(definitions, nullability);
+      return aMember.objectClassType(definitions, nullability);
     }
-    return objectArrayType(definitions, nullability);
+    return aMember.objectArrayType(definitions, nullability);
   }
-
 }

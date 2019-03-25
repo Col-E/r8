@@ -22,33 +22,44 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
 
   private Set<DexType> lazyInterfaces;
   private DexDefinitionSupplier definitionsForLazyInterfacesComputation;
+  // On-demand link between other nullability-variants.
+  private final NullabilityVariants<ClassTypeLatticeElement> variants;
+  private final DexType type;
 
-  public ClassTypeLatticeElement(
+  public static ClassTypeLatticeElement create(
       DexType classType, Nullability nullability, Set<DexType> interfaces) {
-    this(classType, nullability, interfaces, null);
+    return NullabilityVariants.create(
+        nullability,
+        (variants) ->
+            new ClassTypeLatticeElement(classType, nullability, interfaces, variants, null));
   }
 
-  public ClassTypeLatticeElement(
+  public static ClassTypeLatticeElement create(
       DexType classType, Nullability nullability, DexDefinitionSupplier definitions) {
-    this(classType, nullability, null, definitions);
+    return NullabilityVariants.create(
+        nullability,
+        (variants) ->
+            new ClassTypeLatticeElement(classType, nullability, null, variants, definitions));
   }
 
   private ClassTypeLatticeElement(
       DexType classType,
       Nullability nullability,
       Set<DexType> interfaces,
+      NullabilityVariants<ClassTypeLatticeElement> variants,
       DexDefinitionSupplier definitions) {
-    super(nullability, classType);
+    super(nullability);
     assert classType.isClassType();
+    type = classType;
     definitionsForLazyInterfacesComputation = definitions;
     lazyInterfaces = interfaces;
+    this.variants = variants;
   }
 
   public DexType getClassType() {
     return type;
   }
 
-  @Override
   public Set<DexType> getInterfaces() {
     if (lazyInterfaces != null) {
       return lazyInterfaces;
@@ -64,23 +75,30 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
     return lazyInterfaces;
   }
 
-  @Override
-  ReferenceTypeLatticeElement createVariant(Nullability nullability) {
-    if (this.nullability == nullability) {
-      return this;
-    }
+  private ClassTypeLatticeElement createVariant(
+      Nullability nullability, NullabilityVariants<ClassTypeLatticeElement> variants) {
+    assert this.nullability != nullability;
     return new ClassTypeLatticeElement(
-        type, nullability, lazyInterfaces, definitionsForLazyInterfacesComputation);
+        type, nullability, lazyInterfaces, variants, definitionsForLazyInterfacesComputation);
   }
 
   @Override
   public TypeLatticeElement asNullable() {
-    return nullability.isNullable() ? this : getOrCreateVariant(maybeNull());
+    return getOrCreateVariant(maybeNull());
+  }
+
+  @Override
+  public ReferenceTypeLatticeElement getOrCreateVariant(Nullability nullability) {
+    ClassTypeLatticeElement variant = variants.get(nullability);
+    if (variant != null) {
+      return variant;
+    }
+    return variants.getOrCreateElement(nullability, this::createVariant);
   }
 
   @Override
   public TypeLatticeElement asNonNullable() {
-    return nullability.isDefinitelyNotNull() ? this : getOrCreateVariant(definitelyNotNull());
+    return getOrCreateVariant(definitelyNotNull());
   }
 
   @Override
@@ -103,7 +121,9 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
   @Override
   public String toString() {
     StringBuilder builder = new StringBuilder();
-    builder.append(super.toString());
+    builder.append(nullability);
+    builder.append(" ");
+    builder.append(type);
     builder.append(" {");
     builder.append(
         getInterfaces().stream().map(DexType::toString).collect(Collectors.joining(", ")));
@@ -130,7 +150,7 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
       lubItfs = computeLeastUpperBoundOfInterfaces(definitions, c1lubItfs, c2lubItfs);
     }
     Nullability nullability = nullability().join(other.nullability());
-    return new ClassTypeLatticeElement(lubType, nullability, lubItfs);
+    return ClassTypeLatticeElement.create(lubType, nullability, lubItfs);
   }
 
   private enum InterfaceMarker {
@@ -227,5 +247,28 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
       }
     }
     return lub;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof ClassTypeLatticeElement)) {
+      return false;
+    }
+    ClassTypeLatticeElement other = (ClassTypeLatticeElement) o;
+    if (nullability() != other.nullability()) {
+      return false;
+    }
+    if (!type.equals(other.type)) {
+      return false;
+    }
+    Set<DexType> thisInterfaces = getInterfaces();
+    Set<DexType> otherInterfaces = other.getInterfaces();
+    if (thisInterfaces.size() != otherInterfaces.size()) {
+      return false;
+    }
+    return thisInterfaces.containsAll(otherInterfaces);
   }
 }

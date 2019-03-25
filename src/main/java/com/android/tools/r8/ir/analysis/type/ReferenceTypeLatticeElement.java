@@ -5,76 +5,57 @@ package com.android.tools.r8.ir.analysis.type;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexType;
-import java.util.Collections;
-import java.util.Set;
 
-public class ReferenceTypeLatticeElement extends TypeLatticeElement {
-  private static final ReferenceTypeLatticeElement NULL_INSTANCE =
-      new ReferenceTypeLatticeElement(
-          Nullability.definitelyNull(), DexItemFactory.nullValueType);
+public abstract class ReferenceTypeLatticeElement extends TypeLatticeElement {
 
-  // TODO(b/72693244): Consider moving this to ClassTypeLatticeElement.
-  final DexType type;
+  private static class NullLatticeElement extends ReferenceTypeLatticeElement {
+
+    NullLatticeElement(Nullability nullability) {
+      super(nullability);
+    }
+
+    @Override
+    public ReferenceTypeLatticeElement getOrCreateVariant(Nullability nullability) {
+      throw new Unreachable("This should not be called on NullLaticeElement");
+    }
+
+    static NullLatticeElement create() {
+      return new NullLatticeElement(Nullability.definitelyNull());
+    }
+
+    @Override
+    public boolean isNullType() {
+      return true;
+    }
+
+    @Override
+    public String toString() {
+      return nullability.toString() + " " + DexItemFactory.nullValueType.toString();
+    }
+
+    @Override
+    public int hashCode() {
+      return System.identityHashCode(this);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (!(o instanceof NullLatticeElement)) {
+        return false;
+      }
+      return true;
+    }
+  }
+
+  private static final ReferenceTypeLatticeElement NULL_INSTANCE = NullLatticeElement.create();
 
   final Nullability nullability;
-  // On-demand link between maybe-null (primary) and definitely-null reference type lattices.
-  private ReferenceTypeLatticeElement primaryOrNullVariant;
-  // On-demand link between maybe-null (primary) and definitely-not-null reference type lattices.
-  // This link will be null for non-primary variants.
-  private ReferenceTypeLatticeElement nonNullVariant;
 
-  ReferenceTypeLatticeElement(Nullability nullability, DexType type) {
+  ReferenceTypeLatticeElement(Nullability nullability) {
     this.nullability = nullability;
-    this.type = type;
-  }
-
-  public ReferenceTypeLatticeElement getOrCreateVariant(Nullability variantNullability) {
-    if (nullability == variantNullability) {
-      return this;
-    }
-    ReferenceTypeLatticeElement primary = nullability.isMaybeNull() ? this : primaryOrNullVariant;
-    synchronized (this) {
-      // If the link towards the factory-created, canonicalized MAYBE_NULL variant doesn't exist,
-      // we are in the middle of join() computation.
-      if (primary == null) {
-        primary = createVariant(Nullability.maybeNull());
-        linkVariant(primary, this);
-      }
-    }
-    if (variantNullability.isMaybeNull()) {
-      return primary;
-    }
-    synchronized (primary) {
-      ReferenceTypeLatticeElement variant =
-          variantNullability.isDefinitelyNull()
-              ? primary.primaryOrNullVariant
-              : primary.nonNullVariant;
-      if (variant == null) {
-        variant = createVariant(variantNullability);
-        linkVariant(primary, variant);
-      }
-      return variant;
-    }
-  }
-
-  ReferenceTypeLatticeElement createVariant(Nullability nullability) {
-    throw new Unreachable("Should be defined by class/array type lattice element");
-  }
-
-  private static void linkVariant(
-      ReferenceTypeLatticeElement primary, ReferenceTypeLatticeElement variant) {
-    assert primary.nullability().isMaybeNull();
-    assert variant.primaryOrNullVariant == null && variant.nonNullVariant == null;
-    variant.primaryOrNullVariant = primary;
-    if (variant.nullability().isDefinitelyNotNull()) {
-      assert primary.nonNullVariant == null;
-      primary.nonNullVariant = variant;
-    } else {
-      assert variant.nullability().isDefinitelyNull();
-      assert primary.primaryOrNullVariant == null;
-      primary.primaryOrNullVariant = variant;
-    }
   }
 
   @Override
@@ -86,20 +67,7 @@ public class ReferenceTypeLatticeElement extends TypeLatticeElement {
     return NULL_INSTANCE;
   }
 
-  public Set<DexType> getInterfaces() {
-    return Collections.emptySet();
-  }
-
-  @Override
-  public boolean isNullType() {
-    return type == DexItemFactory.nullValueType;
-  }
-
-  @Override
-  public TypeLatticeElement asNullable() {
-    assert isNullType();
-    return this;
-  }
+  public abstract ReferenceTypeLatticeElement getOrCreateVariant(Nullability nullability);
 
   @Override
   public boolean isReference() {
@@ -107,36 +75,12 @@ public class ReferenceTypeLatticeElement extends TypeLatticeElement {
   }
 
   @Override
-  public String toString() {
-    return nullability.toString() + " " + type.toString();
+  public ReferenceTypeLatticeElement asReferenceTypeLatticeElement() {
+    return this;
   }
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (!(o instanceof ReferenceTypeLatticeElement)) {
-      return false;
-    }
-    ReferenceTypeLatticeElement other = (ReferenceTypeLatticeElement) o;
-    if (nullability() != other.nullability()) {
-      return false;
-    }
-    if (!type.equals(other.type)) {
-      return false;
-    }
-    Set<DexType> thisInterfaces = getInterfaces();
-    Set<DexType> otherInterfaces = other.getInterfaces();
-    if (thisInterfaces.size() != otherInterfaces.size()) {
-      return false;
-    }
-    return thisInterfaces.containsAll(otherInterfaces);
-  }
-
-  @Override
-  public int hashCode() {
-    assert isNullType();
-    return System.identityHashCode(this);
+    throw new Unreachable("Should be implemented on each sub type");
   }
 }
