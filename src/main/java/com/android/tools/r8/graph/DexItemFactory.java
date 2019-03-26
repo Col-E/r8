@@ -153,10 +153,12 @@ public class DexItemFactory {
   public final DexString getCanonicalNameName = createString("getCanonicalName");
   public final DexString getSimpleNameName = createString("getSimpleName");
   public final DexString getTypeNameName = createString("getTypeName");
+  public final DexString getDeclaredConstructorName = createString("getDeclaredConstructor");
   public final DexString getFieldName = createString("getField");
   public final DexString getDeclaredFieldName = createString("getDeclaredField");
   public final DexString getMethodName = createString("getMethod");
   public final DexString getDeclaredMethodName = createString("getDeclaredMethod");
+  public final DexString newInstanceName = createString("newInstance");
   public final DexString assertionsDisabled = createString("$assertionsDisabled");
   public final DexString invokeMethodName = createString("invoke");
   public final DexString invokeExactMethodName = createString("invokeExact");
@@ -170,6 +172,7 @@ public class DexItemFactory {
   public final DexString classLoaderDescriptor = createString("Ljava/lang/ClassLoader;");
   public final DexString autoCloseableDescriptor = createString("Ljava/lang/AutoCloseable;");
   public final DexString classArrayDescriptor = createString("[Ljava/lang/Class;");
+  public final DexString constructorDescriptor = createString("Ljava/lang/reflect/Constructor;");
   public final DexString fieldDescriptor = createString("Ljava/lang/reflect/Field;");
   public final DexString methodDescriptor = createString("Ljava/lang/reflect/Method;");
   public final DexString enumDescriptor = createString("Ljava/lang/Enum;");
@@ -259,6 +262,7 @@ public class DexItemFactory {
   public final LongMethods longMethods = new LongMethods();
   public final ThrowableMethods throwableMethods = new ThrowableMethods();
   public final ClassMethods classMethods = new ClassMethods();
+  public final ConstructorMethods constructorMethods = new ConstructorMethods();
   public final EnumMethods enumMethods = new EnumMethods();
   public final NullPointerExceptionMethods npeMethods = new NullPointerExceptionMethods();
   public final PrimitiveTypesBoxedTypeFields primitiveTypesBoxedTypeFields =
@@ -456,10 +460,12 @@ public class DexItemFactory {
     public final DexMethod getCanonicalName;
     public final DexMethod getSimpleName;
     public final DexMethod getTypeName;
+    public final DexMethod getDeclaredConstructor;
     public final DexMethod getField;
     public final DexMethod getDeclaredField;
     public final DexMethod getMethod;
     public final DexMethod getDeclaredMethod;
+    public final DexMethod newInstance;
     private final Set<DexMethod> getMembers;
     private final Set<DexMethod> getNames;
 
@@ -475,6 +481,12 @@ public class DexItemFactory {
           classDescriptor, getSimpleNameName, stringDescriptor, DexString.EMPTY_ARRAY);
       getTypeName = createMethod(
           classDescriptor, getTypeNameName, stringDescriptor, DexString.EMPTY_ARRAY);
+      getDeclaredConstructor =
+          createMethod(
+              classDescriptor,
+              getDeclaredConstructorName,
+              constructorDescriptor,
+              new DexString[] {classArrayDescriptor});
       getField = createMethod(classDescriptor, getFieldName, fieldDescriptor,
           new DexString[]{stringDescriptor});
       getDeclaredField = createMethod(classDescriptor, getDeclaredFieldName, fieldDescriptor,
@@ -483,6 +495,8 @@ public class DexItemFactory {
           new DexString[]{stringDescriptor, classArrayDescriptor});
       getDeclaredMethod = createMethod(classDescriptor, getDeclaredMethodName, methodDescriptor,
           new DexString[]{stringDescriptor, classArrayDescriptor});
+      newInstance =
+          createMethod(classDescriptor, newInstanceName, objectDescriptor, DexString.EMPTY_ARRAY);
       getMembers = ImmutableSet.of(getField, getDeclaredField, getMethod, getDeclaredMethod);
       getNames = ImmutableSet.of(getName, getCanonicalName, getSimpleName, getTypeName);
     }
@@ -493,6 +507,20 @@ public class DexItemFactory {
 
     public boolean isReflectiveNameLookup(DexMethod method) {
       return getNames.contains(method);
+    }
+  }
+
+  public class ConstructorMethods {
+
+    public final DexMethod newInstance;
+
+    private ConstructorMethods() {
+      newInstance =
+          createMethod(
+              constructorDescriptor,
+              newInstanceName,
+              objectDescriptor,
+              new DexString[] {objectArrayDescriptor});
     }
   }
 

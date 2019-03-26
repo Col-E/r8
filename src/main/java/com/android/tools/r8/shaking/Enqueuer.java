@@ -47,10 +47,12 @@ import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.KeyedDexItem;
 import com.android.tools.r8.graph.PresortedComparable;
+import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.logging.Log;
@@ -478,7 +480,10 @@ public class Enqueuer {
     }
 
     boolean registerInvokeVirtual(DexMethod method, KeepReason keepReason) {
-      if (appView.dexItemFactory().classMethods.isReflectiveMemberLookup(method)) {
+      if (method == appView.dexItemFactory().classMethods.newInstance
+          || method == appView.dexItemFactory().constructorMethods.newInstance) {
+        pendingReflectiveUses.add(currentMethod);
+      } else if (appView.dexItemFactory().classMethods.isReflectiveMemberLookup(method)) {
         // Implicitly add -identifiernamestring rule for the Java reflection in use.
         identifierNameStrings.add(method);
         // Revisit the current method to implicitly add -keep rule for items with reflective access.
@@ -1750,6 +1755,7 @@ public class Enqueuer {
   }
 
   private void markClassAsInstantiatedWithReason(DexClass clazz, KeepReason reason) {
+    assert clazz.isProgramClass();
     workList.add(Action.markInstantiated(clazz, reason));
     if (clazz.hasDefaultInitializer()) {
       workList.add(Action.markMethodLive(clazz.getDefaultInitializer(), reason));
@@ -1792,6 +1798,14 @@ public class Enqueuer {
     }
     InvokeMethod invoke = instruction.asInvokeMethod();
     DexMethod invokedMethod = invoke.getInvokedMethod();
+    if (invokedMethod == appView.dexItemFactory().classMethods.newInstance) {
+      handleJavaLangClassNewInstance(method, invoke);
+      return;
+    }
+    if (invokedMethod == appView.dexItemFactory().constructorMethods.newInstance) {
+      handleJavaLangReflectConstructorNewInstance(method, invoke);
+      return;
+    }
     if (invokedMethod == appView.dexItemFactory().enumMethods.valueOf) {
       handleJavaLangEnumValueOf(method, invoke);
       return;
@@ -1851,6 +1865,136 @@ public class Enqueuer {
         } else {
           markVirtualMethodAsLive(encodedMethod, KeepReason.reflectiveUseIn(method));
         }
+      }
+    }
+  }
+
+  /** Handles reflective uses of {@link Class#newInstance()}. */
+  private void handleJavaLangClassNewInstance(DexEncodedMethod method, InvokeMethod invoke) {
+    if (!invoke.isInvokeVirtual()) {
+      assert false;
+      return;
+    }
+
+    Value receiver = invoke.asInvokeVirtual().getReceiver();
+    if (receiver.isPhi() || !receiver.definition.isConstClass()) {
+      // Give up, we can't tell which class is being instantiated.
+      return;
+    }
+
+    DexType instantiatedType = receiver.definition.asConstClass().getValue();
+    if (!instantiatedType.isClassType()) {
+      // Not a class type. This should not happen in practice.
+      return;
+    }
+
+    DexClass clazz = appView.definitionFor(instantiatedType);
+    if (clazz != null && clazz.isProgramClass()) {
+      DexEncodedMethod defaultInitializer = clazz.getDefaultInitializer();
+      if (defaultInitializer != null) {
+        KeepReason reason = KeepReason.reflectiveUseIn(method);
+        markClassAsInstantiatedWithReason(clazz, reason);
+        markDirectStaticOrConstructorMethodAsLive(defaultInitializer, reason);
+      }
+    }
+  }
+
+  /** Handles reflective uses of {@link java.lang.reflect.Constructor#newInstance(Object...)}. */
+  private void handleJavaLangReflectConstructorNewInstance(
+      DexEncodedMethod method, InvokeMethod invoke) {
+    if (!invoke.isInvokeVirtual()) {
+      assert false;
+      return;
+    }
+
+    Value constructorValue = invoke.asInvokeVirtual().getReceiver().getAliasedValue();
+    if (constructorValue.isPhi() || !constructorValue.definition.isInvokeVirtual()) {
+      // Give up, we can't tell which class is being instantiated.
+      return;
+    }
+
+    InvokeVirtual constructorDefinition = constructorValue.definition.asInvokeVirtual();
+    if (constructorDefinition.getInvokedMethod()
+        != appView.dexItemFactory().classMethods.getDeclaredConstructor) {
+      // Give up, we can't tell which constructor is being invoked.
+      return;
+    }
+
+    Value classValue = constructorDefinition.getReceiver();
+    if (classValue.isPhi() || !classValue.definition.isConstClass()) {
+      // Give up, we can't tell which constructor is being invoked.
+      return;
+    }
+
+    DexType instantiatedType = classValue.definition.asConstClass().getValue();
+    if (!instantiatedType.isClassType()) {
+      // Not a class type. This should not happen in practice.
+      return;
+    }
+
+    DexClass clazz = appView.definitionFor(instantiatedType);
+    if (clazz != null && clazz.isProgramClass()) {
+      Value parametersValue = constructorDefinition.inValues().get(1);
+      if (parametersValue.isPhi() || !parametersValue.definition.isNewArrayEmpty()) {
+        // Give up, we can't tell which constructor is being invoked.
+        return;
+      }
+
+      Value parametersSizeValue = parametersValue.definition.asNewArrayEmpty().size();
+      if (parametersSizeValue.isPhi() || !parametersSizeValue.definition.isConstNumber()) {
+        // Give up, we can't tell which constructor is being invoked.
+        return;
+      }
+
+      DexEncodedMethod initializer = null;
+
+      int parametersSize = parametersSizeValue.definition.asConstNumber().getIntValue();
+      if (parametersSize == 0) {
+        initializer = clazz.getDefaultInitializer();
+      } else {
+        DexType[] parameterTypes = new DexType[parametersSize];
+        int missingIndices = parametersSize;
+        for (Instruction user : parametersValue.uniqueUsers()) {
+          if (user.isArrayPut()) {
+            ArrayPut arrayPutInstruction = user.asArrayPut();
+            if (arrayPutInstruction.array() != parametersValue) {
+              return;
+            }
+
+            Value indexValue = arrayPutInstruction.index();
+            if (indexValue.isPhi() || !indexValue.definition.isConstNumber()) {
+              return;
+            }
+            int index = indexValue.definition.asConstNumber().getIntValue();
+            if (index >= parametersSize) {
+              return;
+            }
+
+            Value value = arrayPutInstruction.value();
+            if (value.isPhi() || !value.definition.isConstClass()) {
+              return;
+            }
+            DexType type = value.definition.asConstClass().getValue();
+            if (parameterTypes[index] == type) {
+              continue;
+            }
+            if (parameterTypes[index] != null) {
+              return;
+            }
+            parameterTypes[index] = type;
+            missingIndices--;
+          }
+        }
+
+        if (missingIndices == 0) {
+          initializer = clazz.getInitializer(parameterTypes);
+        }
+      }
+
+      if (initializer != null) {
+        KeepReason reason = KeepReason.reflectiveUseIn(method);
+        markClassAsInstantiatedWithReason(clazz, reason);
+        markDirectStaticOrConstructorMethodAsLive(initializer, reason);
       }
     }
   }

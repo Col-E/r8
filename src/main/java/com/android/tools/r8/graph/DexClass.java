@@ -657,13 +657,18 @@ public abstract class DexClass extends DexDefinition {
     return getDefaultInitializer() != null;
   }
 
-  public DexEncodedMethod getDefaultInitializer() {
+  public DexEncodedMethod getInitializer(DexType[] parameters) {
     for (DexEncodedMethod method : directMethods()) {
-      if (method.isDefaultInitializer()) {
+      if (method.isInstanceInitializer()
+          && Arrays.equals(method.method.proto.parameters.values, parameters)) {
         return method;
       }
     }
     return null;
+  }
+
+  public DexEncodedMethod getDefaultInitializer() {
+    return getInitializer(DexType.EMPTY_ARRAY);
   }
 
   public boolean hasMissingSuperType(DexDefinitionSupplier definitions) {
