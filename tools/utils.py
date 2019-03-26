@@ -247,7 +247,7 @@ def makedirs_if_needed(path):
 
 def upload_dir_to_cloud_storage(directory, destination, is_html=False, public_read=True):
   # Upload and make the content encoding right for viewing directly
-  cmd = ['gsutil.py', 'cp']
+  cmd = ['gsutil.py', '-m', 'cp']
   if is_html:
     cmd += ['-z', 'html']
   if public_read:
