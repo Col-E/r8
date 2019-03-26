@@ -1730,14 +1730,7 @@ test {
 // 7. Update the manifest file describing the Android repo used:
 //    repo manifest -o <r8-checkout-root>/tools/linux/aosp_master_manifest.xml -r
 
-enum DexTool {
-    JACK,
-    DX
-}
-
 def androidCheckoutDir = file("${System.env.HOME}/android/master")
-def androidCheckoutJack = file("${androidCheckoutDir}/out/host/linux-x86/bin/jack");
-def androidCheckoutJackServer = file("${androidCheckoutDir}/out/host/linux-x86/bin/jack-admin");
 
 def artTestDir = file("${androidCheckoutDir}/art/test")
 
@@ -1818,17 +1811,13 @@ if (project.hasProperty('android_source')) {
         if (androidCheckoutDir.exists()) {
             dependsOn downloadDeps
             artTestBuildDir.mkdirs()
-            // Ensure Jack server is running.
-            "${androidCheckoutJackServer} start-server".execute()
             artTestDir.eachDir { dir ->
                 def name = dir.getName();
                 def markerFile = dir.toPath().resolve("info.txt").toFile();
                 if (markerFile.exists() && !(name in skippedTests)) {
                     if (!(name in skippedTestsDx)) {
-                        dependsOn buildArtTest(androidCheckoutDir, artTestBuildDir, dir, DexTool.DX);
+                        dependsOn buildArtTest(androidCheckoutDir, artTestBuildDir, dir);
                     }
-                    // After Android O, Jack is no longer alive
-                    //dependsOn buildArtTest(androidCheckoutDir, artTestBuildDir, dir, DexTool.JACK);
                 }
             }
         }
@@ -1836,11 +1825,6 @@ if (project.hasProperty('android_source')) {
             if (!androidCheckoutDir.exists()) {
                 throw new InvalidUserDataException(
                         "This task requires an Android checkout in ${androidCheckoutDir}");
-            } else if (!androidCheckoutJack.exists() ||
-                    !androidCheckoutJackServer.exists()) {
-                throw new InvalidUserDataException(
-                        "This task requires that tools for host testing have been build in the " +
-                                "Android checkout in ${androidCheckoutDir}");
             }
         }
         doLast {
@@ -1890,57 +1874,35 @@ if (project.hasProperty('android_source')) {
     }
 }
 
-def buildArtTest(androidCheckoutDir, artTestBuildDir, dir, dexTool) {
+def buildArtTest(androidCheckoutDir, artTestBuildDir, dir) {
     def artTestDir = file("${androidCheckoutDir}/art/test")
     def artRunTestScript = file("${artTestDir}/run-test")
     def dxExecutable = new File("tools/linux/dx/bin/dx");
     def dexMergerExecutable = Utils.dexMergerExecutable()
-    def dexToolName = dexTool == DexTool.DX ? "dx" : "jack"
 
     def name = dir.getName()
-    def buildTask = "build_art_test_${dexToolName}_${name}"
-    def sanitizeTask = "sanitize_art_test_${dexToolName}_${name}"
-    def copyCheckTask = "copy_check_art_test_${dexToolName}_${name}"
-    def smaliToDexTask = "smali_to_dex_${dexToolName}_${name}"
+    def buildTask = "build_art_test_dx_${name}"
+    def sanitizeTask = "sanitize_art_test_dx_${name}"
+    def copyCheckTask = "copy_check_art_test_dx_${name}"
+    def smaliToDexTask = "smali_to_dex_dx_${name}"
 
     def buildInputs = fileTree(dir: dir, include: '**/*')
-    def testDir = file("${artTestBuildDir}/${dexToolName}/${name}")
+    def testDir = file("${artTestBuildDir}/dx/${name}")
     def outputJar = testDir.toPath().resolve("${name}.jar").toFile()
     testDir.mkdirs()
-    if (dexTool == DexTool.DX) {
-        task "$buildTask"(type: Exec) {
-            outputs.upToDateWhen { false }
-            inputs.file buildInputs
-            executable "${artRunTestScript}"
-            args "--host"
-            args "--build-only"
-            args "--build-with-javac-dx"
-            args "--output-path", "${testDir}"
-            args "${name}"
-            environment DX: "${dxExecutable.absolutePath}"
-            environment DXMERGER: "${dexMergerExecutable.absolutePath}"
-            environment ANDROID_BUILD_TOP: "${androidCheckoutDir}"
-            outputs.file outputJar
-        }
-    } else {
-        assert dexTool == DexTool.JACK
-        def javaLibs = "${androidCheckoutDir}/out/host/common/obj/JAVA_LIBRARIES"
-        def jackClasspath = "${javaLibs}/core-libart-hostdex_intermediates/classes.jack:" +
-                "${javaLibs}/core-oj-hostdex_intermediates/classes.jack"
-        task "$buildTask"(type: Exec) {
-            outputs.upToDateWhen { false }
-            inputs.file buildInputs
-            executable "${artRunTestScript}"
-            args "--host"
-            args "--build-only"
-            args "--output-path", "${testDir}"
-            args "${name}"
-            environment JACK: "${androidCheckoutDir}/out/host/linux-x86/bin/jack"
-            environment JACK_CLASSPATH: jackClasspath
-            environment DXMERGER: "${dexMergerExecutable.absolutePath}"
-            environment ANDROID_BUILD_TOP: "${androidCheckoutDir}"
-            outputs.file outputJar
-        }
+    task "$buildTask"(type: Exec) {
+        outputs.upToDateWhen { false }
+        inputs.file buildInputs
+        executable "${artRunTestScript}"
+        args "--host"
+        args "--build-only"
+        args "--build-with-javac-dx"
+        args "--output-path", "${testDir}"
+        args "${name}"
+        environment DX: "${dxExecutable.absolutePath}"
+        environment DXMERGER: "${dexMergerExecutable.absolutePath}"
+        environment ANDROID_BUILD_TOP: "${androidCheckoutDir}"
+        outputs.file outputJar
     }
     task "${sanitizeTask}"(type: Exec, dependsOn: buildTask) {
         outputs.upToDateWhen { false }
@@ -1969,7 +1931,7 @@ def buildArtTest(androidCheckoutDir, artTestBuildDir, dir, dexTool) {
     task "${copyCheckTask}"(type: Copy, dependsOn: sanitizeTask) {
         def smali_dir = file("${dir}/smali")
         outputs.upToDateWhen { false }
-        if (smali_dir.exists() && dexTool == DexTool.DX) {
+        if (smali_dir.exists()) {
             dependsOn smaliToDexTask
         }
         from("${artTestDir}/${name}") {

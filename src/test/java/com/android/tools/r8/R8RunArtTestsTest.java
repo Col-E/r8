@@ -76,7 +76,6 @@ public abstract class R8RunArtTestsTest {
   private boolean expectedException = false;
 
   public enum DexTool {
-    JACK,
     DX,
     NONE // Working directly on .class files.
   }
@@ -608,7 +607,7 @@ public abstract class R8RunArtTestsTest {
           // "unneeded" const store. The following reflective call to the VM's GC will then see the
           // large array as still live and the subsequent allocations will fail to reach the desired
           // size before an out-of-memory error occurs. See:
-          // tests/art/{dx,jack}/104-growth-limit/src/Main.java:40
+          // tests/art/dx/104-growth-limit/src/Main.java:40
           .put(
               "104-growth-limit",
               TestCondition.match(TestCondition.R8_COMPILER, TestCondition.RELEASE_MODE))
@@ -737,7 +736,7 @@ public abstract class R8RunArtTestsTest {
                   TestCondition.runtimesUpTo(DexVm.Version.V4_4_4)))
           .put("072-precise-gc",
               TestCondition.match(
-                  TestCondition.tools(DexTool.JACK, DexTool.NONE),
+                  TestCondition.tools(DexTool.NONE),
                   TestCondition.D8_COMPILER,
                   TestCondition.runtimesUpTo(DexVm.Version.V4_4_4)))
           // This one is expected to have different output. It counts instances, but the list that
@@ -753,7 +752,7 @@ public abstract class R8RunArtTestsTest {
           // Triggers regression test in 6.0.1 when using R8/D8 in debug mode.
           .put("474-fp-sub-neg",
               TestCondition.match(
-                  TestCondition.tools(DexTool.NONE, DexTool.JACK),
+                  TestCondition.tools(DexTool.NONE),
                   TestCondition.D8_NOT_AFTER_R8CF_COMPILER,
                   TestCondition.runtimes(DexVm.Version.V6_0_1)))
           .build();
@@ -794,7 +793,7 @@ public abstract class R8RunArtTestsTest {
           .put(
               "370-dex-v37",
               TestCondition.match(
-                  TestCondition.tools(DexTool.JACK, DexTool.DX),
+                  TestCondition.tools(DexTool.DX),
                   TestCondition.compilers(CompilerUnderTest.D8),
                   TestCondition.runtimes(
                       DexVm.Version.V4_0_4,
@@ -884,7 +883,7 @@ public abstract class R8RunArtTestsTest {
           .put(
               "972-iface-super-multidex",
               TestCondition.match(
-                  TestCondition.tools(DexTool.JACK, DexTool.DX),
+                  TestCondition.tools(DexTool.DX),
                   TestCondition.runtimes(
                       DexVm.Version.V4_0_4,
                       DexVm.Version.V4_4_4,
@@ -895,7 +894,7 @@ public abstract class R8RunArtTestsTest {
               "978-virtual-interface",
               TestCondition.or(
                   TestCondition.match(
-                      TestCondition.tools(DexTool.JACK, DexTool.DX),
+                      TestCondition.tools(DexTool.DX),
                       TestCondition.compilers(CompilerUnderTest.D8),
                       TestCondition.runtimes(
                           DexVm.Version.V4_0_4,
@@ -904,7 +903,7 @@ public abstract class R8RunArtTestsTest {
                           DexVm.Version.V6_0_1)),
                   // On V4_0_4 and V4_4_4 the test will throw a verification error.
                   TestCondition.match(
-                      TestCondition.tools(DexTool.JACK, DexTool.DX),
+                      TestCondition.tools(DexTool.DX),
                       TestCondition.compilers(
                           CompilerUnderTest.R8,
                           CompilerUnderTest.R8_AFTER_D8,
@@ -922,9 +921,6 @@ public abstract class R8RunArtTestsTest {
           // also contains an iput on a static field.
           .put("600-verifier-fails", TestCondition.match(TestCondition.R8DEX_COMPILER))
           // Contains a method that falls off the end without a return.
-          .put("606-erroneous-class", TestCondition.match(
-              TestCondition.tools(DexTool.JACK),
-              TestCondition.R8_NOT_AFTER_D8_COMPILER))
           .put("606-erroneous-class", TestCondition.match(
               TestCondition.tools(DexTool.DX),
               TestCondition.R8_NOT_AFTER_D8_COMPILER,
@@ -1022,7 +1018,7 @@ public abstract class R8RunArtTestsTest {
               TestCondition.match(TestCondition.tools(DexTool.DX)))
           .build();
 
-  // Tests that does not have valid input for us to be compatible with jack/dx running.
+  // Tests that does not have valid input for us to be compatible with dx running.
   private static List<String> noInputJar = ImmutableList.of(
       "097-duplicate-method", // No input class files.
       "630-safecast-array", // No input class files.
@@ -1064,12 +1060,12 @@ public abstract class R8RunArtTestsTest {
   // Tests to skip on some conditions
   private static final Multimap<String, TestCondition> testToSkip =
       new ImmutableListMultimap.Builder<String, TestCondition>()
-          // When running R8 on dex input (D8, DX or JACK) this test non-deterministically fails
+          // When running R8 on dex input (D8, DX) this test non-deterministically fails
           // with a compiler exception, due to invoke-virtual on an interface, or it completes but
           // the output when run on Art is not as expected. b/65233869
           .put("162-method-resolution",
               TestCondition.match(
-                  TestCondition.tools(DexTool.DX, DexTool.JACK, DexTool.NONE),
+                  TestCondition.tools(DexTool.DX, DexTool.NONE),
                   TestCondition.R8_COMPILER))
           // Produces wrong output when compiled in release mode, which we cannot express.
           .put("015-switch",
@@ -1184,7 +1180,7 @@ public abstract class R8RunArtTestsTest {
     private final String name;
     // Directory of the test files (containing prebuild dex/jar files and expected output).
     private final File directory;
-    // Compiler that these expectations are for dx or Jack, or none if running on class files.
+    // Compiler that these expectations are for dx, or none if running on class files.
     private final DexTool dexTool;
     // Native library to use for running this test - if any.
     private final String nativeLibrary;
@@ -1384,7 +1380,7 @@ public abstract class R8RunArtTestsTest {
       skipTest.addAll(failuresToTriage);
 
       File artTestDir =
-          dexTool == DexTool.JACK || LEGACY_RUNTIME.contains(Runtime.fromDexVmVersion(version))
+          LEGACY_RUNTIME.contains(Runtime.fromDexVmVersion(version))
               ? legacyArtTestDir
               : defaultArtTestDir;
       // Collect the tests failing code generation.
@@ -1450,10 +1446,7 @@ public abstract class R8RunArtTestsTest {
       assert testDirs != null;
       for (File testDir : testDirs) {
         String name = testDir.getName();
-        // Skip all tests compiled to dex with jack on Dalvik. They have a too high dex
-        // version number in the generated output.
-        boolean skip = skipTest.contains(name) ||
-            (dexTool == DexTool.JACK && version.isOlderThanOrEqual(DexVm.Version.V4_4_4));
+        boolean skip = skipTest.contains(name);
         // All the native code for all Art tests is currently linked into the
         // libarttest.so file.
         data.put(
@@ -1501,7 +1494,7 @@ public abstract class R8RunArtTestsTest {
 
   private static String dexToolDirectory(DexTool tool) {
     // DexTool.NONE uses class files in the dx directory.
-    return tool == DexTool.JACK ? "jack" : "dx";
+    return "dx";
   }
 
   @Rule
