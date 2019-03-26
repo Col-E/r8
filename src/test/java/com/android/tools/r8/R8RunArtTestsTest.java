@@ -1214,6 +1214,8 @@ public abstract class R8RunArtTestsTest {
     private final boolean disableUninstantiatedTypeOptimization;
     // Has missing classes.
     private final boolean hasMissingClasses;
+    // Explicitly disable desugaring.
+    private final boolean disableDesugaring;
 
     TestSpecification(
         String name,
@@ -1231,7 +1233,8 @@ public abstract class R8RunArtTestsTest {
         boolean disableInlining,
         boolean disableClassInlining,
         boolean disableUninstantiatedTypeOptimization,
-        boolean hasMissingClasses) {
+        boolean hasMissingClasses,
+        boolean disableDesugaring) {
       this.name = name;
       this.dexTool = dexTool;
       this.nativeLibrary = nativeLibrary;
@@ -1248,6 +1251,7 @@ public abstract class R8RunArtTestsTest {
       this.disableClassInlining = disableClassInlining;
       this.disableUninstantiatedTypeOptimization = disableUninstantiatedTypeOptimization;
       this.hasMissingClasses = hasMissingClasses;
+      this.disableDesugaring = disableDesugaring;
     }
 
     TestSpecification(
@@ -1274,7 +1278,9 @@ public abstract class R8RunArtTestsTest {
           disableInlining,
           true, // Disable class inlining for JCTF tests.
           false,
-          false);
+          false,
+          true // Disable desugaring for JCTF tests.
+      );
     }
 
     TestSpecification(
@@ -1300,7 +1306,9 @@ public abstract class R8RunArtTestsTest {
           disableInlining,
           true, // Disable class inlining for JCTF tests.
           false,
-          false);
+          false,
+          true // Disable desugaring for JCTF tests.
+      );
     }
 
     public File resolveFile(String name) {
@@ -1466,7 +1474,8 @@ public abstract class R8RunArtTestsTest {
                 requireInliningToBeDisabled.contains(name),
                 requireClassInliningToBeDisabled.contains(name),
                 requireUninstantiatedTypeOptimizationToBeDisabled.contains(name),
-                hasMissingClasses.contains(name)));
+                hasMissingClasses.contains(name),
+                false));
       }
     }
     return data;
@@ -1534,12 +1543,14 @@ public abstract class R8RunArtTestsTest {
     private final boolean disableClassInlining;
     private final boolean disableUninstantiatedTypeOptimization;
     private final boolean hasMissingClasses;
+    private final boolean disableDesugaring;
 
     private CompilationOptions(TestSpecification spec) {
       this.disableInlining = spec.disableInlining;
       this.disableClassInlining = spec.disableClassInlining;
       this.disableUninstantiatedTypeOptimization = spec.disableUninstantiatedTypeOptimization;
       this.hasMissingClasses = spec.hasMissingClasses;
+      this.disableDesugaring = spec.disableDesugaring;
     }
 
     @Override
@@ -1688,7 +1699,7 @@ public abstract class R8RunArtTestsTest {
                   .setMode(mode)
                   .addProgramFiles(ListUtils.map(fileNames, Paths::get))
                   .setOutput(Paths.get(resultPath), OutputMode.DexIndexed)
-                  .setDisableDesugaring(true);
+                  .setDisableDesugaring(compilationOptions.disableDesugaring);
         AndroidApiLevel minSdkVersion = needMinSdkVersion.get(name);
         if (minSdkVersion != null) {
           builder.setMinApiLevel(minSdkVersion.getLevel());
@@ -1709,7 +1720,7 @@ public abstract class R8RunArtTestsTest {
                   .setMode(mode)
                   .setDisableTreeShaking(true)
                   .setDisableMinification(true)
-                  .setDisableDesugaring(true)
+                  .setDisableDesugaring(compilationOptions.disableDesugaring)
                   .addProguardConfiguration(ImmutableList.of("-keepattributes *"), Origin.unknown())
                   .setOutput(
                       Paths.get(resultPath),
