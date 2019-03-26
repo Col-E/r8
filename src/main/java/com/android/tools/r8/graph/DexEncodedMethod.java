@@ -106,6 +106,8 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   private OptimizationInfo optimizationInfo = DefaultOptimizationInfoImpl.DEFAULT_INSTANCE;
   private int classFileVersion = -1;
 
+  private DexEncodedMethod defaultInterfaceMethodImplementation = null;
+
   // This flag indicates the current instance is no longer up-to-date as another instance was
   // created based on this. Any further (public) operations on this instance will raise an error
   // to catch potential bugs due to the inconsistency (e.g., http://b/111893131)
@@ -126,6 +128,21 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     // By assigning an Exception, you can see when/how this instance becomes obsolete v.s.
     // when/how such obsolete instance is used.
     obsolete = true;
+  }
+
+  public DexEncodedMethod getDefaultInterfaceMethodImplementation() {
+    return defaultInterfaceMethodImplementation;
+  }
+
+  public void setDefaultInterfaceMethodImplementation(DexEncodedMethod implementation) {
+    assert defaultInterfaceMethodImplementation == null;
+    assert implementation != null;
+    assert code != null;
+    assert code == implementation.getCode();
+    assert code.getOwner() == implementation;
+    accessFlags.setAbstract();
+    removeCode();
+    defaultInterfaceMethodImplementation = implementation;
   }
 
   /**

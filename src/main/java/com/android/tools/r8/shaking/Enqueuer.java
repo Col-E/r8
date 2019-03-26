@@ -1629,9 +1629,19 @@ public class Enqueuer {
       markVirtualMethodAsReachable(target.method, holder.accessFlags.isInterface(), reason);
       // Reachability for default methods is based on live subtypes in general. For keep rules,
       // we need special handling as we essentially might have live subtypes that are outside of
-      // our reach. Do this here, as we still know that this is due to a keep rule.
-      if (holder.isInterface() && target.isNonAbstractVirtualMethod()) {
-        markVirtualMethodAsLive(target, reason);
+      // the current compilation unit. Keep either the default-method or its implementation method.
+      // TODO(b/120959039): Codify the kept-graph expectations for these cases in tests.
+      if (holder.isInterface() && target.isVirtualMethod()) {
+        if (target.isNonAbstractVirtualMethod()) {
+          markVirtualMethodAsLive(target, reason);
+        } else {
+          DexEncodedMethod implementation = target.getDefaultInterfaceMethodImplementation();
+          if (implementation != null) {
+            DexClass companion = appView.definitionFor(implementation.method.holder);
+            markTypeAsLive(companion.type);
+            markVirtualMethodAsLive(implementation, reason);
+          }
+        }
       }
     } else {
       markDirectStaticOrConstructorMethodAsLive(target, reason);

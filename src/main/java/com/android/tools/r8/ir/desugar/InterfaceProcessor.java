@@ -93,12 +93,9 @@ final class InterfaceProcessor {
         assert (dexCode.getDebugInfo() == null)
             || (companionMethod.getArity() == dexCode.getDebugInfo().parameters.length);
 
-        // Make the method abstract.
-        virtual.accessFlags.setAbstract();
-        virtual.removeCode(); // Remove code first to void ownership.
-
         DexEncodedMethod implMethod = new DexEncodedMethod(
             companionMethod, newFlags, virtual.annotations, virtual.parameterAnnotationsList, code);
+        virtual.setDefaultInterfaceMethodImplementation(implMethod);
         companionMethods.add(implMethod);
         graphLensBuilder.move(virtual.method, implMethod.method);
       }
