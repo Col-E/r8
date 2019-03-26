@@ -61,10 +61,10 @@ def parse_arguments(argv):
   return parser.parse_args(argv)
 
 def Main(argv):
-  utils.check_java_version()
   options = parse_arguments(argv)
   if options.golem:
     golem.link_third_party()
+  utils.check_java_version()
   outdir = options.out
 
   if options.app == 'gmscore':

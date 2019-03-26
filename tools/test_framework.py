@@ -65,11 +65,11 @@ def parse_arguments():
   return parser.parse_args()
 
 def Main():
-  utils.check_java_version()
   args = parse_arguments()
-  output_dir = args.output
   if args.golem:
     golem.link_third_party()
+  utils.check_java_version()
+  output_dir = args.output
   with utils.TempDir() as temp_dir:
 
     if not output_dir:
