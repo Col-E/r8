@@ -7,22 +7,42 @@ import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.StringUtils;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 // Regression test for b/128987064
+@RunWith(Parameterized.class)
 public class DoubleInliningInvokeSuperTest extends TestBase {
+  public static final String EXPECTED = StringUtils.lines("8", "8");
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection params() {
+    return getTestParameters().withAllRuntimes().build();
+  }
+
+  private final TestParameters parameters;
+
+  public DoubleInliningInvokeSuperTest(TestParameters parameters) {
+    this.parameters = parameters;
+  }
 
   @Test
   public void test() throws Exception {
-    testForR8(Backend.DEX)
+    testForR8(parameters.getBackend())
         .addInnerClasses(DoubleInliningInvokeSuperTest.class)
         .addKeepMainRule(TestClass.class)
         .addKeepRules("-keepclassmembers class * { void fooCaller(...); }")
         .enableClassInliningAnnotations()
         .enableInliningAnnotations()
         .enableMergeAnnotations()
-        .run(TestClass.class)
-        .assertSuccess();
+        .apply(parameters::setMinApiForRuntime)
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   @NeverClassInline
@@ -49,13 +69,13 @@ public class DoubleInliningInvokeSuperTest extends TestBase {
 
     // place-holder to make B#foo to be a double-inline selected target.
     B fooWrapper(Integer x) {
-      int y = System.currentTimeMillis() > 0 ? x * 2 : x;
+      int y = System.currentTimeMillis() > 0 ? x : x * 2;
       return foo(y);
     }
 
     // Another B#foo caller.
     B anotherWrapper(Integer x) {
-      int y = System.currentTimeMillis() > 0 ? x * 2 : x;
+      int y = System.currentTimeMillis() > 0 ? x : x * 2;
       // invoke-super in B#foo is inlined here during double-inlining.
       return foo(y);
     }
