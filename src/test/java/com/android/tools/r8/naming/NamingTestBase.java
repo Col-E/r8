@@ -34,18 +34,18 @@ import java.util.concurrent.ExecutorService;
 import java.util.function.BiConsumer;
 import org.junit.Before;
 
-public abstract class NamingTestBase {
+abstract class NamingTestBase {
 
   private final String appFileName;
-  protected final List<String> keepRulesFiles;
-  protected final BiConsumer<DexItemFactory, NamingLens> inspection;
+  final List<String> keepRulesFiles;
+  final BiConsumer<DexItemFactory, NamingLens> inspection;
 
   private final Timing timing;
 
   private DexApplication program;
-  protected DexItemFactory dexItemFactory;
+  DexItemFactory dexItemFactory;
 
-  protected NamingTestBase(
+  NamingTestBase(
       String test,
       List<String> keepRulesFiles,
       BiConsumer<DexItemFactory, NamingLens> inspection,
@@ -62,7 +62,7 @@ public abstract class NamingTestBase {
     dexItemFactory = program.dexItemFactory;
   }
 
-  protected NamingLens runMinifier(List<Path> configPaths) throws ExecutionException {
+  NamingLens runMinifier(List<Path> configPaths) throws ExecutionException {
     ProguardConfiguration configuration =
         ToolHelper.loadProguardConfiguration(dexItemFactory, configPaths);
     InternalOptions options = new InternalOptions(configuration, new Reporter());
@@ -82,8 +82,7 @@ public abstract class NamingTestBase {
     return new Minifier(appView.withLiveness(), rootSet, Collections.emptySet()).run(timing);
   }
 
-  protected static <T> Collection<Object[]> createTests(
-      List<String> tests, Map<String, T> inspections) {
+  static <T> Collection<Object[]> createTests(List<String> tests, Map<String, T> inspections) {
     List<Object[]> testCases = new ArrayList<>();
     Set<String> usedInspections = new HashSet<>();
     for (String test : tests) {

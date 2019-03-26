@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.naming.uniqueclassmembernames;
+package com.android.tools.r8.naming;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
@@ -39,7 +39,7 @@ public class UniqueFieldMemberNamesTest extends TestBase {
       ClassBuilder classBuilder = builder.addClass("A", "java/lang/Object");
       classBuilder.addField("public", "a", "Ljava/lang/Object;", null);
       classBuilder.addField("public", "f", "Ljava/lang/Object;", null);
-      programClassA = tempFolder.getRoot().toPath().resolve("a.jar");
+      programClassA = tempFolder.getRoot().toPath().resolve("input.jar");
       builder.writeJar(programClassA);
     }
     {
@@ -47,7 +47,7 @@ public class UniqueFieldMemberNamesTest extends TestBase {
       ClassBuilder classBuilder = builder.addClass("B", "java/lang/Object");
       classBuilder.addField("public", "f", "Ljava/lang/Object;", null);
       classBuilder.addField("public", "f", "Ljava/lang/String;", null);
-      programClassB = tempFolder.getRoot().toPath().resolve("b.jar");
+      programClassB = tempFolder.getRoot().toPath().resolve("library.jar");
       builder.writeJar(programClassB);
     }
   }
