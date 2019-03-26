@@ -1437,7 +1437,7 @@ tasks.withType(Test) {
     def userDefinedCoresPerFork = System.getenv('R8_GRADLE_CORES_PER_FORK')
     def coresPerFork = userDefinedCoresPerFork ? userDefinedCoresPerFork.toInteger() : 3
     // See https://docs.gradle.org/current/dsl/org.gradle.api.tasks.testing.Test.html.
-    maxParallelForks = (Runtime.runtime.availableProcessors().intdiv(coresPerFork) ?: 1) + 1
+    maxParallelForks = Runtime.runtime.availableProcessors().intdiv(coresPerFork) ?: 1
     println("NOTE: Max parallel forks " + maxParallelForks)
     forkEvery = 0
     if (project.hasProperty('disable_assertions')) {
