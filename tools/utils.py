@@ -459,7 +459,6 @@ def getCfSegmentSizes(cfFile):
 
   return result
 
-
 def get_maven_path(version):
   return os.path.join('com', 'android', 'tools', 'r8', version)
 
