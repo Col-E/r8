@@ -4,6 +4,7 @@
 package com.android.tools.r8.ir.optimize.reflection;
 
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -21,17 +22,18 @@ public abstract class GetNameTestBase extends TestBase {
   static final String CLASS_DESCRIPTOR = "Ljava/lang/Class;";
   static final String STRING_DESCRIPTOR = "Ljava/lang/String;";
 
-  final Backend backend;
+  final TestParameters parameters;
   final boolean enableMinification;
   Path mapping;
 
-  @Parameterized.Parameters(name = "Backend: {0} minification: {1}")
+  @Parameterized.Parameters(name = "{0} minification: {1}")
   public static Collection<Object[]> data() {
-    return buildParameters(ToolHelper.getBackends(), BooleanUtils.values());
+    return buildParameters(
+        getTestParameters().withAllRuntimes().build(), BooleanUtils.values());
   }
 
-  GetNameTestBase(Backend backend, boolean enableMinification) {
-    this.backend = backend;
+  GetNameTestBase(TestParameters parameters, boolean enableMinification) {
+    this.parameters = parameters;
     this.enableMinification = enableMinification;
   }
 

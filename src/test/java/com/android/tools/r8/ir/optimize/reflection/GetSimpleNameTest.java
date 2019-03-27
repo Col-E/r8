@@ -4,14 +4,16 @@
 package com.android.tools.r8.ir.optimize.reflection;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestRunResult;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.StringUtils;
@@ -145,8 +147,8 @@ public class GetSimpleNameTest extends GetNameTestBase {
   );
   private static final Class<?> MAIN = ClassGetSimpleName.class;
 
-  public GetSimpleNameTest(Backend backend, boolean enableMinification) throws Exception {
-    super(backend, enableMinification);
+  public GetSimpleNameTest(TestParameters parameters, boolean enableMinification) throws Exception {
+    super(parameters, enableMinification);
 
     ImmutableList.Builder<Path> builder = ImmutableList.builder();
     builder.addAll(ToolHelper.getClassFilesForTestDirectory(
@@ -161,10 +163,14 @@ public class GetSimpleNameTest extends GetNameTestBase {
   }
 
   @Test
-  public void testJVMoutput() throws Exception {
-    assumeTrue("Only run JVM reference once (for CF backend)",
-        backend == Backend.CF && !enableMinification);
-    testForJvm().addTestClasspath().run(MAIN).assertSuccessWithOutput(JAVA_OUTPUT);
+  public void testJVMOutput() throws Exception {
+    assumeTrue(
+        "Only run JVM reference once (for CF backend)",
+        parameters.getBackend() == Backend.CF && !enableMinification);
+    testForJvm()
+        .addTestClasspath()
+        .run(parameters.getRuntime(), MAIN)
+        .assertSuccessWithOutput(JAVA_OUTPUT);
   }
 
   private void test(TestRunResult result, int expectedCount) throws Exception {
@@ -178,63 +184,72 @@ public class GetSimpleNameTest extends GetNameTestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue("Only run D8 for Dex backend)",
-        backend == Backend.DEX && !enableMinification);
+    assumeTrue(
+        "Only run D8 for Dex backend",
+        parameters.getBackend() == Backend.DEX && !enableMinification);
 
-    TestRunResult result = testForD8()
-        .debug()
-        .addProgramFiles(classPaths)
-        .addOptionsModification(this::configure)
-        .run(MAIN)
-        .assertSuccessWithOutput(JAVA_OUTPUT);
+    D8TestRunResult result =
+        testForD8()
+            .debug()
+            .addProgramFiles(classPaths)
+            .apply(parameters::setMinApiForRuntime)
+            .addOptionsModification(this::configure)
+            .run(parameters.getRuntime(), MAIN)
+            .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 0);
 
-    result = testForD8()
-        .release()
-        .addProgramFiles(classPaths)
-        .addOptionsModification(this::configure)
-        .run(MAIN)
-        .assertSuccessWithOutput(JAVA_OUTPUT);
+    result =
+        testForD8()
+            .release()
+            .addProgramFiles(classPaths)
+            .apply(parameters::setMinApiForRuntime)
+            .addOptionsModification(this::configure)
+            .run(parameters.getRuntime(), MAIN)
+            .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 0);
   }
 
   @Test
   public void testR8_pinning() throws Exception {
     // Pinning the test class.
-    TestRunResult result = testForR8(backend)
-        .addProgramFiles(classPaths)
-        .enableInliningAnnotations()
-        .addKeepMainRule(MAIN)
-        .addKeepRules("-keep class **.ClassGetSimpleName*")
-        .addKeepRules("-keep class **.Outer*")
-        .addKeepRules("-keepattributes InnerClasses,EnclosingMethod")
-        .addKeepRules("-printmapping " + createNewMappingPath().toAbsolutePath().toString())
-        .minification(enableMinification)
-        .addOptionsModification(this::configure)
-        .run(MAIN)
-        .assertSuccessWithOutput(JAVA_OUTPUT);
+    R8TestRunResult result =
+        testForR8(parameters.getBackend())
+            .addProgramFiles(classPaths)
+            .enableInliningAnnotations()
+            .addKeepMainRule(MAIN)
+            .addKeepRules("-keep class **.ClassGetSimpleName*")
+            .addKeepRules("-keep class **.Outer*")
+            .addKeepRules("-keepattributes InnerClasses,EnclosingMethod")
+            .addKeepRules("-printmapping " + createNewMappingPath().toAbsolutePath().toString())
+            .minification(enableMinification)
+            .apply(parameters::setMinApiForRuntime)
+            .addOptionsModification(this::configure)
+            .run(parameters.getRuntime(), MAIN)
+            .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 0);
   }
 
   @Test
   public void testR8_shallow_pinning() throws Exception {
     // Shallow pinning the test class.
-    R8TestRunResult result = testForR8(backend)
-        .addProgramFiles(classPaths)
-        .enableInliningAnnotations()
-        .addKeepMainRule(MAIN)
-        .addKeepRules("-keep,allowobfuscation class **.ClassGetSimpleName*")
-        // See b/119471127: some old VMs are not resilient to broken attributes.
-        // Comment out the following line to reproduce b/120130435
-        // then use OUTPUT_WITH_SHRUNK_ATTRIBUTES
-        .addKeepRules("-keep,allowobfuscation class **.Outer*")
-        .addKeepRules("-keepattributes InnerClasses,EnclosingMethod")
-        .addKeepRules("-printmapping " + createNewMappingPath().toAbsolutePath().toString())
-        .minification(enableMinification)
-        .addOptionsModification(this::configure)
-        .run(MAIN);
+    R8TestRunResult result =
+        testForR8(parameters.getBackend())
+            .addProgramFiles(classPaths)
+            .enableInliningAnnotations()
+            .addKeepMainRule(MAIN)
+            .addKeepRules("-keep,allowobfuscation class **.ClassGetSimpleName*")
+            // See b/119471127: some old VMs are not resilient to broken attributes.
+            // Comment out the following line to reproduce b/120130435
+            // then use OUTPUT_WITH_SHRUNK_ATTRIBUTES
+            .addKeepRules("-keep,allowobfuscation class **.Outer*")
+            .addKeepRules("-keepattributes InnerClasses,EnclosingMethod")
+            .addKeepRules("-printmapping " + createNewMappingPath().toAbsolutePath().toString())
+            .minification(enableMinification)
+            .apply(parameters::setMinApiForRuntime)
+            .addOptionsModification(this::configure)
+            .run(parameters.getRuntime(), MAIN);
     if (enableMinification) {
-      if (backend == Backend.CF && ToolHelper.isJava8Runtime()) {
+      if (parameters.getBackend() == Backend.CF && ToolHelper.isJava8Runtime()) {
         // TODO(b/120639028): Incorrect inner-class structure fails on JVM prior to JDK 9.
         result.assertFailureWithErrorThatMatches(containsString("Malformed class name"));
         return;

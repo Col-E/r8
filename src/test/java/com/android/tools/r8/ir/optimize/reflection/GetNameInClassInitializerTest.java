@@ -7,7 +7,8 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestBuilder;
-import com.android.tools.r8.TestRunResult;
+import com.android.tools.r8.R8TestRunResult;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
@@ -37,9 +38,9 @@ public class GetNameInClassInitializerTest extends GetNameTestBase {
   private static final String JAVA_OUTPUT = GetNameClinitClass.class.getName();
   private static final Class<?> MAIN = GetNameClinitRunner.class;
 
-  public GetNameInClassInitializerTest(Backend backend, boolean enableMinification)
+  public GetNameInClassInitializerTest(TestParameters parameters, boolean enableMinification)
       throws Exception {
-    super(backend, enableMinification);
+    super(parameters, enableMinification);
 
     ImmutableList.Builder<Path> builder = ImmutableList.builder();
     builder.addAll(ToolHelper.getClassFilesForTestDirectory(
@@ -50,47 +51,49 @@ public class GetNameInClassInitializerTest extends GetNameTestBase {
   }
 
   @Test
-  public void testJVMoutput() throws Exception {
-    assumeTrue("Only run JVM reference once (for CF backend)",
-        backend == Backend.CF && !enableMinification);
-    testForJvm().addTestClasspath().run(MAIN).assertSuccessWithOutput(JAVA_OUTPUT);
+  public void testJVMOutput() throws Exception {
+    assumeTrue(
+        "Only run JVM reference once (for CF backend)",
+        parameters.getBackend() == Backend.CF && !enableMinification);
+    testForJvm()
+        .addTestClasspath()
+        .run(parameters.getRuntime(), MAIN)
+        .assertSuccessWithOutput(JAVA_OUTPUT);
   }
 
   @Test
   public void testR8_pinning() throws Exception {
     // Pinning the test class.
-    R8TestBuilder builder = testForR8(backend)
-        .addProgramFiles(classPaths)
-        .enableInliningAnnotations()
-        .addKeepMainRule(MAIN)
-        .addKeepRules("-keep class **.GetNameClinit*")
-        .addKeepRules("-printmapping");
-    if (!enableMinification) {
-      builder.addKeepRules("-dontobfuscate");
-    }
+    R8TestBuilder builder =
+        testForR8(parameters.getBackend())
+            .addProgramFiles(classPaths)
+            .enableInliningAnnotations()
+            .addKeepMainRule(MAIN)
+            .addKeepRules("-keep class **.GetNameClinit*")
+            .minification(enableMinification);
     builder
+        .apply(parameters::setMinApiForRuntime)
         .addOptionsModification(this::configure)
-        .run(MAIN)
+        .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT);
   }
 
   @Test
   public void testR8_shallow_pinning() throws Exception {
     // Pinning the test class.
-    R8TestBuilder builder = testForR8(backend)
-        .addProgramFiles(classPaths)
-        .enableInliningAnnotations()
-        .addKeepMainRule(MAIN)
-        .addKeepRules("-keep,allowobfuscation class **.GetNameClinit*")
-        .addKeepRules("-printmapping");
-    if (!enableMinification) {
-      builder.addKeepRules("-dontobfuscate");
-    }
+    R8TestBuilder builder =
+        testForR8(parameters.getBackend())
+            .addProgramFiles(classPaths)
+            .enableInliningAnnotations()
+            .addKeepMainRule(MAIN)
+            .addKeepRules("-keep,allowobfuscation class **.GetNameClinit*")
+            .minification(enableMinification);
 
-    TestRunResult result =
+    R8TestRunResult result =
         builder
+            .apply(parameters::setMinApiForRuntime)
             .addOptionsModification(this::configure)
-            .run(MAIN);
+            .run(parameters.getRuntime(), MAIN);
     result.assertSuccessWithOutput(
         result.inspector().clazz(GetNameClinitClass.class).getFinalName());
   }
