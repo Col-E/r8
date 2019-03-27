@@ -379,6 +379,25 @@ public class R8 {
 
       assert appView.appInfo().hasLiveness();
 
+      // Build conservative main dex content after first round of tree shaking. This is used
+      // by certain optimizations to avoid introducing additional class references into main dex
+      // classes, as that can cause the final number of main dex methods to grow.
+      RootSet mainDexRootSet = null;
+      MainDexClasses mainDexClasses = MainDexClasses.NONE;
+      if (!options.mainDexKeepRules.isEmpty()) {
+        assert appView.graphLense().isIdentityLense();
+        // Find classes which may have code executed before secondary dex files installation.
+        mainDexRootSet =
+            new RootSetBuilder(appView, application, options.mainDexKeepRules).run(executorService);
+        // Live types is the tracing result.
+        Set<DexType> mainDexBaseClasses =
+            new Enqueuer(appView, options, null)
+                .traceMainDex(mainDexRootSet, executorService, timing);
+        // Calculate the automatic main dex list according to legacy multidex constraints.
+        mainDexClasses = new MainDexListBuilder(mainDexBaseClasses, application).run();
+        appView.appInfo().unsetObsolete();
+      }
+
       if (options.getProguardConfiguration().isAccessModificationAllowed()) {
         GraphLense publicizedLense =
             ClassAndMemberPublicizer.run(
@@ -390,24 +409,6 @@ public class R8 {
           // visible super-method. MemberRebinding, if run, will then dispatch it correctly.
           new VisibilityBridgeRemover(appView.withLiveness()).run();
         }
-      }
-
-      // Build conservative main dex content before first round of tree shaking. This is used
-      // by certain optimizations to avoid introducing additional class references into main dex
-      // classes, as that can cause the final number of main dex methods to grow.
-      RootSet mainDexRootSet = null;
-      MainDexClasses mainDexClasses = MainDexClasses.NONE;
-      if (!options.mainDexKeepRules.isEmpty()) {
-        // Find classes which may have code executed before secondary dex files installation.
-        mainDexRootSet =
-            new RootSetBuilder(appView, application, options.mainDexKeepRules).run(executorService);
-        Enqueuer enqueuer = new Enqueuer(appView, options, null);
-        // Live types is the tracing result.
-        Set<DexType> mainDexBaseClasses =
-            enqueuer.traceMainDex(mainDexRootSet, executorService, timing);
-        // Calculate the automatic main dex list according to legacy multidex constraints.
-        mainDexClasses = new MainDexListBuilder(mainDexBaseClasses, application).run();
-        appView.appInfo().unsetObsolete();
       }
 
       if (appView.appInfo().hasLiveness()) {
