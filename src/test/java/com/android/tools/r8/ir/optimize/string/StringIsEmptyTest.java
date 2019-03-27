@@ -4,15 +4,18 @@
 package com.android.tools.r8.ir.optimize.string;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -20,7 +23,6 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -51,11 +53,6 @@ class StringIsEmptyTestMain {
 
 @RunWith(Parameterized.class)
 public class StringIsEmptyTest extends TestBase {
-  private final Backend backend;
-  private static final List<Class<?>> CLASSES = ImmutableList.of(
-      NeverInline.class,
-      StringIsEmptyTestMain.class
-  );
   private static final String JAVA_OUTPUT = StringUtils.lines(
       "false",
       "true",
@@ -64,19 +61,26 @@ public class StringIsEmptyTest extends TestBase {
   );
   private static final Class<?> MAIN = StringIsEmptyTestMain.class;
 
-  @Parameterized.Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimes().build();
   }
 
-  public StringIsEmptyTest(Backend backend) {
-    this.backend = backend;
+  private final TestParameters parameters;
+
+  public StringIsEmptyTest(TestParameters parameters) {
+    this.parameters = parameters;
   }
 
   @Test
-  public void testJVMoutput() throws Exception {
-    assumeTrue("Only run JVM reference once (for CF backend)", backend == Backend.CF);
-    testForJvm().addTestClasspath().run(MAIN).assertSuccessWithOutput(JAVA_OUTPUT);
+  public void testJVMOutput() throws Exception {
+    assumeTrue(
+        "Only run JVM reference once (for CF backend)",
+        parameters.getBackend() == Backend.CF);
+    testForJvm()
+        .addTestClasspath()
+        .run(parameters.getRuntime(), MAIN)
+        .assertSuccessWithOutput(JAVA_OUTPUT);
   }
 
   private static boolean isStringIsEmpty(DexMethod method) {
@@ -112,32 +116,38 @@ public class StringIsEmptyTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue("Only run D8 for Dex backend", backend == Backend.DEX);
+    assumeTrue("Only run D8 for Dex backend", parameters.getBackend() == Backend.DEX);
 
-    TestRunResult result = testForD8()
-        .debug()
-        .addProgramClasses(CLASSES)
-        .run(MAIN)
-        .assertSuccessWithOutput(JAVA_OUTPUT);
+    D8TestRunResult result =
+        testForD8()
+            .debug()
+            .addProgramClasses(MAIN)
+            .apply(parameters::setMinApiForRuntime)
+            .run(parameters.getRuntime(), MAIN)
+            .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 3);
 
-    result = testForD8()
-        .release()
-        .addProgramClasses(CLASSES)
-        .run(MAIN)
-        .assertSuccessWithOutput(JAVA_OUTPUT);
+    result =
+        testForD8()
+            .release()
+            .addProgramClasses(MAIN)
+            .apply(parameters::setMinApiForRuntime)
+            .run(parameters.getRuntime(), MAIN)
+            .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 1);
   }
 
   @Test
   public void testR8() throws Exception {
-    TestRunResult result = testForR8(backend)
-        .addProgramClasses(CLASSES)
-        .enableProguardTestOptions()
-        .enableInliningAnnotations()
-        .addKeepMainRule(MAIN)
-        .run(MAIN)
-        .assertSuccessWithOutput(JAVA_OUTPUT);
+    R8TestRunResult result =
+        testForR8(parameters.getBackend())
+            .addProgramClasses(MAIN)
+            .enableProguardTestOptions()
+            .enableInliningAnnotations()
+            .addKeepMainRule(MAIN)
+            .apply(parameters::setMinApiForRuntime)
+            .run(parameters.getRuntime(), MAIN)
+            .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 1);
   }
 }

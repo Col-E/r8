@@ -4,16 +4,18 @@
 package com.android.tools.r8.ir.optimize.string;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -23,10 +25,8 @@ import com.android.tools.r8.utils.codeinspector.InstructionSubject.JumboStringMo
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.android.tools.r8.utils.codeinspector.RangeSubject;
 import com.android.tools.r8.utils.codeinspector.TryCatchSubject;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
 import java.util.Iterator;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -75,28 +75,33 @@ class StringInMonitorTestMain {
 
 @RunWith(Parameterized.class)
 public class StringInMonitorTest extends TestBase {
-  private final Backend backend;
   private static final Class<?> MAIN = StringInMonitorTestMain.class;
-  private static final List<Class<?>> CLASSES = ImmutableList.of(NeverInline.class, MAIN);
   private static final String JAVA_OUTPUT = StringUtils.lines(
       "1st sync",
       "oom",
       "2nd sync"
   );
 
-  @Parameterized.Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimes().build();
   }
 
-  public StringInMonitorTest(Backend backend) {
-    this.backend = backend;
+  private final TestParameters parameters;
+
+  public StringInMonitorTest(TestParameters parameters) {
+    this.parameters = parameters;
   }
 
   @Test
-  public void testJVMoutput() throws Exception {
-    assumeTrue("Only run JVM reference once (for CF backend)", backend == Backend.CF);
-    testForJvm().addTestClasspath().run(MAIN).assertSuccessWithOutput(JAVA_OUTPUT);
+  public void testJVMOutput() throws Exception {
+    assumeTrue(
+        "Only run JVM reference once (for CF backend)",
+        parameters.getBackend() == Backend.CF);
+    testForJvm()
+        .addTestClasspath()
+        .run(parameters.getRuntime(), MAIN)
+        .assertSuccessWithOutput(JAVA_OUTPUT);
   }
 
   private void test(
@@ -114,7 +119,7 @@ public class StringInMonitorTest extends TestBase {
     assertEquals(expectedConstStringCount1, count);
 
     // TODO(b/122302789): CfInstruction#getOffset()
-    if (backend == Backend.DEX) {
+    if (parameters.getBackend() == Backend.DEX) {
       Iterator<InstructionSubject> constStringIterator =
           mainMethod.iterateInstructions(i -> i.isConstString(JumboStringMode.ALLOW));
       // All const-string's in main(...) should be covered by try (or synthetic catch-all) region.
@@ -143,7 +148,7 @@ public class StringInMonitorTest extends TestBase {
     assertEquals(expectedConstStringCount2, count);
 
     // In CF, we don't explicitly add monitor-{enter|exit} and catch-all for synchronized methods.
-    if (backend == Backend.DEX) {
+    if (parameters.getBackend() == Backend.DEX) {
       Iterator<InstructionSubject> constStringIterator =
           sync.iterateInstructions(i -> i.isConstString(JumboStringMode.ALLOW));
       // All const-string's in sync() should be covered by the synthetic catch-all regions.
@@ -173,32 +178,39 @@ public class StringInMonitorTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue("Only run D8 for Dex backend", backend == Backend.DEX);
-    TestRunResult result = testForD8()
-        .debug()
-        .addProgramClasses(CLASSES)
-        .run(MAIN)
-        .assertSuccessWithOutput(JAVA_OUTPUT);
+    assumeTrue("Only run D8 for Dex backend", parameters.getBackend() == Backend.DEX);
+
+    D8TestRunResult result =
+        testForD8()
+            .debug()
+            .addProgramClasses(MAIN)
+            .apply(parameters::setMinApiForRuntime)
+            .run(parameters.getRuntime(), MAIN)
+            .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 2, 2, 1);
 
-    result = testForD8()
-        .release()
-        .addProgramClasses(CLASSES)
-        .run(MAIN)
-        .assertSuccessWithOutput(JAVA_OUTPUT);
+    result =
+        testForD8()
+            .release()
+            .addProgramClasses(MAIN)
+            .apply(parameters::setMinApiForRuntime)
+            .run(parameters.getRuntime(), MAIN)
+            .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 2, 2, 1);
   }
 
   @Test
   public void testR8() throws Exception {
-    TestRunResult result = testForR8(backend)
-        .addProgramClasses(CLASSES)
-        .enableInliningAnnotations()
-        .addKeepMainRule(MAIN)
-        .run(MAIN)
-        .assertSuccessWithOutput(JAVA_OUTPUT);
+    R8TestRunResult result =
+        testForR8(parameters.getBackend())
+            .addProgramClasses(MAIN)
+            .enableInliningAnnotations()
+            .addKeepMainRule(MAIN)
+            .apply(parameters::setMinApiForRuntime)
+            .run(parameters.getRuntime(), MAIN)
+            .assertSuccessWithOutput(JAVA_OUTPUT);
     // Due to the different behavior regarding constant canonicalization.
-    int expectedConstStringCount3 = backend == Backend.CF ? 2 : 1;
+    int expectedConstStringCount3 = parameters.getBackend() == Backend.CF ? 2 : 1;
     test(result, 2, 2, expectedConstStringCount3);
   }
 

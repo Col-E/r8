@@ -4,16 +4,17 @@
 package com.android.tools.r8.ir.optimize.string;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
@@ -24,7 +25,6 @@ import com.android.tools.r8.utils.codeinspector.InstructionSubject.JumboStringMo
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -104,15 +104,6 @@ class StringValueOfTestMain {
 
 @RunWith(Parameterized.class)
 public class StringValueOfTest extends TestBase {
-  private final Backend backend;
-  private static final List<Class<?>> CLASSES = ImmutableList.of(
-      ForceInline.class,
-      NeverInline.class,
-      StringValueOfTestMain.class,
-      StringValueOfTestMain.Notification.class,
-      StringValueOfTestMain.Itf.class,
-      StringValueOfTestMain.Foo.class
-  );
   private static final String JAVA_OUTPUT = StringUtils.lines(
       "com.android.tools.r8.ir.optimize.string.StringValueOfTestMain$Foo",
       "com.android.tools.r8.ir.optimize.string.StringValueOfTestMain$Foo",
@@ -129,13 +120,15 @@ public class StringValueOfTest extends TestBase {
   private static final String STRING_DESCRIPTOR = "Ljava/lang/String;";
   private static final String STRING_TYPE = "java.lang.String";
 
-  @Parameterized.Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimes().build();
   }
 
-  public StringValueOfTest(Backend backend) {
-    this.backend = backend;
+  private final TestParameters parameters;
+
+  public StringValueOfTest(TestParameters parameters) {
+    this.parameters = parameters;
   }
 
   private void configure(InternalOptions options) {
@@ -143,9 +136,14 @@ public class StringValueOfTest extends TestBase {
   }
 
   @Test
-  public void testJVMoutput() throws Exception {
-    assumeTrue("Only run JVM reference once (for CF backend)", backend == Backend.CF);
-    testForJvm().addTestClasspath().run(MAIN).assertSuccessWithOutput(JAVA_OUTPUT);
+  public void testJVMOutput() throws Exception {
+    assumeTrue(
+        "Only run JVM reference once (for CF backend)",
+        parameters.getBackend() == Backend.CF);
+    testForJvm()
+        .addTestClasspath()
+        .run(parameters.getRuntime(), MAIN)
+        .assertSuccessWithOutput(JAVA_OUTPUT);
   }
 
   private static boolean isStringValueOf(DexMethod method) {
@@ -198,36 +196,42 @@ public class StringValueOfTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue("Only run D8 for Dex backend", backend == Backend.DEX);
+    assumeTrue("Only run D8 for Dex backend", parameters.getBackend() == Backend.DEX);
 
-    TestRunResult result = testForD8()
-        .debug()
-        .addProgramClasses(CLASSES)
-        .run(MAIN)
-        .assertSuccessWithOutput(JAVA_OUTPUT);
+    TestRunResult result =
+        testForD8()
+            .debug()
+            .addProgramClassesAndInnerClasses(MAIN)
+            .apply(parameters::setMinApiForRuntime)
+            .run(parameters.getRuntime(), MAIN)
+            .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 7, 1, 0);
 
-    result = testForD8()
-        .release()
-        .addProgramClasses(CLASSES)
-        .run(MAIN)
-        .assertSuccessWithOutput(JAVA_OUTPUT);
+    result =
+        testForD8()
+            .release()
+            .addProgramClassesAndInnerClasses(MAIN)
+            .apply(parameters::setMinApiForRuntime)
+            .run(parameters.getRuntime(), MAIN)
+            .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 5, 1, 1);
   }
 
   @Test
   public void testR8() throws Exception {
-    TestRunResult result = testForR8(backend)
-        .addProgramClasses(CLASSES)
-        .enableInliningAnnotations()
-        .addKeepMainRule(MAIN)
-        .addKeepRules("-dontobfuscate")
-        .addOptionsModification(this::configure)
-        .run(MAIN)
-        .assertSuccessWithOutput(JAVA_OUTPUT);
+    TestRunResult result =
+        testForR8(parameters.getBackend())
+            .addProgramClassesAndInnerClasses(MAIN)
+            .enableInliningAnnotations()
+            .addKeepMainRule(MAIN)
+            .apply(parameters::setMinApiForRuntime)
+            .noMinification()
+            .addOptionsModification(this::configure)
+            .run(parameters.getRuntime(), MAIN)
+            .assertSuccessWithOutput(JAVA_OUTPUT);
     // Due to the different behavior regarding constant canonicalization.
-    int expectedNullCount = backend == Backend.CF ? 2 : 1;
-    int expectedNullStringCount = backend == Backend.CF ? 2 : 1;
+    int expectedNullCount = parameters.getBackend() == Backend.CF ? 2 : 1;
+    int expectedNullStringCount = parameters.getBackend() == Backend.CF ? 2 : 1;
     test(result, 3, expectedNullCount, expectedNullStringCount);
   }
 }

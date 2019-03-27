@@ -4,21 +4,23 @@
 package com.android.tools.r8.ir.optimize.string;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompileResult;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject.JumboStringMode;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -122,21 +124,48 @@ class MessageLoader {
 
 @RunWith(Parameterized.class)
 public class StringCanonicalizationTest extends TestBase {
-  private final Backend backend;
-  private static final List<Class<?>> CLASSES = ImmutableList.of(
-      NeverInline.class,
-      MessageLoader.class,
-      MessageLoader.StaticInternString.class,
-      MessageLoader.StaticInternString2.class
+  private static final Class<?> MAIN = MessageLoader.class;
+  private static final String EXPECTED = StringUtils.lines(
+      "1st-tag/1",
+      "1st-tag$2",
+      "1st-tag/3",
+      "1st-tag$4",
+      "1st-tag/5",
+      "1st-tag$6",
+      "1st-tag/7",
+      "1st-tag$8",
+      "2nd-tag/1",
+      "2nd-tag$2",
+      "2nd-tag/3",
+      "2nd-tag$4",
+      "2nd-tag/5",
+      "2nd-tag$6",
+      "2nd-tag/7",
+      "2nd-tag$8",
+      "3rd-tag$0",
+      "3rd-tag$1",
+      "3rd-tag$2",
+      "3rd-tag$3",
+      "3rd-tag$4",
+      "3rd-tag$5",
+      "3rd-tag$6",
+      "3rd-tag$7",
+      "false",
+      "true",
+      "true",
+      "true"
   );
 
-  @Parameterized.Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    // CF should not canonicalize strings or lower them. See (r8g/30163) and (r8g/30320).
+    return getTestParameters().withDexRuntimes().build();
   }
 
-  public StringCanonicalizationTest(Backend backend) {
-    this.backend = backend;
+  private final TestParameters parameters;
+
+  public StringCanonicalizationTest(TestParameters parameters) {
+    this.parameters = parameters;
   }
 
   private void test(
@@ -147,9 +176,9 @@ public class StringCanonicalizationTest extends TestBase {
       int expectedInternCount,
       int expectedStringOpsCount) throws Exception {
     String main = MessageLoader.class.getCanonicalName();
-    String javaOutput = runOnJava(MessageLoader.class);
-    String vmOutput = runOnVM(result.app, main, backend);
-    assertEquals(javaOutput, vmOutput);
+    result
+        .run(parameters.getRuntime(), main)
+        .assertSuccessWithOutput(EXPECTED);
 
     CodeInspector codeInspector = result.inspector();
     ClassSubject mainClass = codeInspector.clazz(main);
@@ -172,33 +201,37 @@ public class StringCanonicalizationTest extends TestBase {
     assertEquals(expectedStringOpsCount, count);
   }
 
-
   @Test
   public void testD8() throws Exception {
-    assumeTrue("Only run D8 for Dex backend", backend == Backend.DEX);
-    TestCompileResult result = testForD8()
-        .release()
-        .addProgramClasses(CLASSES)
-        .compile();
+    assumeTrue("Only run D8 for Dex backend", parameters.getBackend() == Backend.DEX);
+
+    D8TestCompileResult result =
+        testForD8()
+            .release()
+            .addProgramClassesAndInnerClasses(MAIN)
+            .apply(parameters::setMinApiForRuntime)
+            .compile();
     test(result, 1, 1, 1, 1, 1);
 
-    result = testForD8()
-        .debug()
-        .addProgramClasses(CLASSES)
-        .compile();
+    result =
+        testForD8()
+            .debug()
+            .addProgramClassesAndInnerClasses(MAIN)
+            .apply(parameters::setMinApiForRuntime)
+            .compile();
     test(result, 2, 1, 1, 1, 1);
   }
 
   @Test
   public void testR8() throws Exception {
-    // CF should not canonicalize strings or lower them. See (r8g/30163) and (r8g/30320).
-    assumeTrue(backend == Backend.DEX);
-    TestCompileResult result = testForR8(backend)
-        .addProgramClasses(CLASSES)
-        .enableProguardTestOptions()
-        .enableInliningAnnotations()
-        .addKeepMainRule(MessageLoader.class)
-        .compile();
+    R8TestCompileResult result =
+        testForR8(parameters.getBackend())
+            .addProgramClassesAndInnerClasses(MAIN)
+            .enableProguardTestOptions()
+            .enableInliningAnnotations()
+            .addKeepMainRule(MessageLoader.class)
+            .apply(parameters::setMinApiForRuntime)
+            .compile();
     test(result, 1, 1, 1, 1, 1);
   }
 

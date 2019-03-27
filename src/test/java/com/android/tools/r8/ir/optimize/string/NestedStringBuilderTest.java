@@ -6,9 +6,12 @@ package com.android.tools.r8.ir.optimize.string;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.ForceInline;
+import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompileResult;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -32,18 +35,23 @@ class NestedStringBuilders {
 @RunWith(Parameterized.class)
 public class NestedStringBuilderTest extends TestBase {
   private static final Class<?> MAIN = NestedStringBuilders.class;
-  private final Backend backend;
+  private static final String EXPECTED = StringUtils.lines("one$two");
 
-  @Parameterized.Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimes().build();
   }
 
-  public NestedStringBuilderTest(Backend backend) {
-    this.backend = backend;
+  private final TestParameters parameters;
+
+  public NestedStringBuilderTest(TestParameters parameters) {
+    this.parameters = parameters;
   }
 
   private void test(TestCompileResult result) throws Exception {
+    result
+        .run(parameters.getRuntime(), MAIN.getTypeName(), "$")
+        .assertSuccessWithOutput(EXPECTED);
     CodeInspector codeInspector = result.inspector();
     ClassSubject mainClass = codeInspector.clazz(MAIN);
     MethodSubject main = mainClass.mainMethod();
@@ -55,11 +63,13 @@ public class NestedStringBuilderTest extends TestBase {
 
   @Test
   public void b113859361() throws Exception {
-    TestCompileResult result = testForR8(backend)
-        .addProgramClasses(MAIN)
-        .enableInliningAnnotations()
-        .addKeepMainRule(MAIN)
-        .compile();
+    R8TestCompileResult result =
+        testForR8(parameters.getBackend())
+            .addProgramClasses(MAIN)
+            .enableInliningAnnotations()
+            .addKeepMainRule(MAIN)
+            .apply(parameters::setMinApiForRuntime)
+            .compile();
     test(result);
   }
 
