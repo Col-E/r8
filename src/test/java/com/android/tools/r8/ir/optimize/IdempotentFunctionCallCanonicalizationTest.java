@@ -4,19 +4,21 @@
 package com.android.tools.r8.ir.optimize;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.D8TestRunResult;
+import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -79,7 +81,6 @@ class IdempotentFunctionMain {
 @RunWith(Parameterized.class)
 public class IdempotentFunctionCallCanonicalizationTest extends TestBase {
   private static final Class<?> MAIN = IdempotentFunctionMain.class;
-  private static final List<Class<?>> CLASSES = ImmutableList.of(MAIN);
   private static final String JAVA_OUTPUT = StringUtils.lines(
       "true",
       "false",
@@ -90,21 +91,26 @@ public class IdempotentFunctionCallCanonicalizationTest extends TestBase {
   private static final String BOOLEAN_DESCRIPTOR = "Ljava/lang/Boolean;";
   private static final String INTEGER_DESCRIPTOR = "Ljava/lang/Integer;";
   private static final String LONG_DESCRIPTOR = "Ljava/lang/Long;";
+  private static final int EXPECTED_BOOLEAN_VALUE_OF = 2;
+  private static final int EXPECTED_INTEGER_VALUE_OF = 2;
+  private static final int EXPECTED_LONG_VALUE_OF = 7;
 
-  private final Backend backend;
-
-  @Parameterized.Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimes().build();
   }
 
-  public IdempotentFunctionCallCanonicalizationTest(Backend backend) {
-    this.backend = backend;
+  private final TestParameters parameters;
+
+  public IdempotentFunctionCallCanonicalizationTest(TestParameters parameters) {
+    this.parameters = parameters;
   }
 
   @Test
-  public void testJVMoutput() throws Exception {
-    assumeTrue("Only run JVM reference once (for CF backend)", backend == Backend.CF);
+  public void testJVMOutput() throws Exception {
+    assumeTrue(
+        "Only run JVM reference once (for CF backend)",
+        parameters.getBackend() == Backend.CF);
     testForJvm().addTestClasspath().run(MAIN).assertSuccessWithOutput(JAVA_OUTPUT);
   }
 
@@ -140,34 +146,43 @@ public class IdempotentFunctionCallCanonicalizationTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue("Only run D8 for Dex backend", backend == Backend.DEX);
+    assumeTrue("Only run D8 for Dex backend", parameters.getBackend() == Backend.DEX);
 
-    TestRunResult result = testForD8()
-        .debug()
-        .addProgramClasses(CLASSES)
-        .run(MAIN)
-        .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 2, 2, 7);
+    D8TestRunResult result =
+        testForD8()
+            .debug()
+            .addProgramClasses(MAIN)
+            .apply(parameters::setMinApiForRuntime)
+            .run(parameters.getRuntime(), MAIN)
+            .assertSuccessWithOutput(JAVA_OUTPUT);
+    test(result, EXPECTED_BOOLEAN_VALUE_OF, EXPECTED_INTEGER_VALUE_OF, EXPECTED_LONG_VALUE_OF);
 
-    result = testForD8()
-        .release()
-        .addProgramClasses(CLASSES)
-        .run(MAIN)
-        .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 2, 2, 7);
+    result =
+        testForD8()
+            .release()
+            .addProgramClasses(MAIN)
+            .apply(parameters::setMinApiForRuntime)
+            .run(parameters.getRuntime(), MAIN)
+            .assertSuccessWithOutput(JAVA_OUTPUT);
+    test(result, EXPECTED_BOOLEAN_VALUE_OF, EXPECTED_INTEGER_VALUE_OF, EXPECTED_LONG_VALUE_OF);
   }
 
   @Test
   public void testR8() throws Exception {
-    assumeTrue("Only applicable when constants are canonicalized", backend == Backend.DEX);
-
-    TestRunResult result = testForR8(backend)
-        .addProgramClasses(CLASSES)
-        .enableProguardTestOptions()
-        .enableInliningAnnotations()
-        .addKeepMainRule(MAIN)
-        .run(MAIN)
-        .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 2, 2, 7);
+    R8TestRunResult result =
+        testForR8(parameters.getBackend())
+            .addProgramClasses(MAIN)
+            .enableInliningAnnotations()
+            .addKeepMainRule(MAIN)
+            .apply(parameters::setMinApiForRuntime)
+            .run(parameters.getRuntime(), MAIN)
+            .assertSuccessWithOutput(JAVA_OUTPUT);
+    int expectedBooleanValueOfCount =
+        parameters.getBackend() == Backend.CF ? 6 : EXPECTED_BOOLEAN_VALUE_OF;
+    int expectedIntValueOfCount =
+        parameters.getBackend() == Backend.CF ? 5 : EXPECTED_INTEGER_VALUE_OF;
+    int expectedLongValueOfCount =
+        parameters.getBackend() == Backend.CF ? 10 : EXPECTED_LONG_VALUE_OF;
+    test(result, expectedBooleanValueOfCount, expectedIntValueOfCount, expectedLongValueOfCount);
   }
 }
