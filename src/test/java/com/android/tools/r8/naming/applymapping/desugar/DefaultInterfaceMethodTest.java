@@ -3,7 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming.applymapping.desugar;
 
+import static com.android.tools.r8.references.Reference.classFromClass;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.R8TestRunResult;
@@ -11,8 +13,12 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime;
+import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -70,12 +76,25 @@ public class DefaultInterfaceMethodTest extends TestBase {
 
   @Test
   public void testLibraryLinkedWithProgram() throws Throwable {
+    String ruleContent = "-keep class " + LibraryInterface.class.getTypeName() + " { *; }";
     R8TestCompileResult libraryResult =
         testForR8(parameters.getBackend())
             .addProgramClasses(LibraryInterface.class)
-            .addKeepRules("-keep class " + LibraryInterface.class.getTypeName() + " { *; }")
+            .addKeepRules(ruleContent)
             .apply(parameters::setMinApiForRuntime)
             .compile();
+    CodeInspector inspector = libraryResult.inspector();
+    assertTrue(inspector.clazz(LibraryInterface.class).isPresent());
+    assertTrue(inspector.method(LibraryInterface.class.getMethod("foo")).isPresent());
+    if (willDesugarDefaultInterfaceMethods(parameters.getRuntime())) {
+      ClassSubject companion = inspector.clazz(Reference.classFromDescriptor(
+          InterfaceMethodRewriter.getCompanionClassDescriptor(
+              classFromClass(LibraryInterface.class).getDescriptor())));
+      // Check that we included the companion class.
+      assertTrue(companion.isPresent());
+      // TODO(b/129223905): Check the method is also present on the companion class.
+      assertTrue(inspector.method(LibraryInterface.class.getMethod("foo")).isPresent());
+    }
 
     R8TestRunResult result =
         testForR8(parameters.getBackend())

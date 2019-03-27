@@ -135,6 +135,13 @@ public abstract class TestCompilerBuilder<
     return self();
   }
 
+  public T setMinApi(TestRuntime runtime) {
+    if (runtime.isDex()) {
+      setMinApi(ToolHelper.getMinApiLevelForDexVm(runtime.asDex().getVm()));
+    }
+    return self();
+  }
+
   public T setProgramConsumer(ProgramConsumer programConsumer) {
     assert programConsumer != null;
     this.programConsumer = programConsumer;

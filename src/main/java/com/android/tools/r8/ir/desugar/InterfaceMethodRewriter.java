@@ -289,12 +289,15 @@ public final class InterfaceMethodRewriter {
     }
   }
 
+  public static String getCompanionClassDescriptor(String descriptor) {
+    return descriptor.substring(0, descriptor.length() - 1) + COMPANION_CLASS_NAME_SUFFIX + ";";
+  }
+
   // Gets the companion class for the interface `type`.
   final DexType getCompanionClassType(DexType type) {
     assert type.isClassType();
     String descriptor = type.descriptor.toString();
-    String ccTypeDescriptor = descriptor.substring(0, descriptor.length() - 1)
-        + COMPANION_CLASS_NAME_SUFFIX + ";";
+    String ccTypeDescriptor = getCompanionClassDescriptor(descriptor);
     return factory.createType(ccTypeDescriptor);
   }
 

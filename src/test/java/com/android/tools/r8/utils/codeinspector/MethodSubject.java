@@ -77,4 +77,8 @@ public abstract class MethodSubject extends MemberSubject {
   public boolean isMethodSubject() {
     return true;
   }
+
+  public boolean hasCode() {
+    return getMethod().getCode() != null;
+  }
 }
