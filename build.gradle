@@ -11,6 +11,9 @@ import utils.Utils
 
 buildscript {
     repositories {
+        maven {
+            url 'http://storage.googleapis.com/r8-deps/maven_mirror/'
+        }
         mavenCentral()
         maven {
             url "https://plugins.gradle.org/m2/"
@@ -48,6 +51,9 @@ ext {
 apply from: 'copyAdditionalJctfCommonFiles.gradle'
 
 repositories {
+    maven {
+       url 'http://storage.googleapis.com/r8-deps/maven_mirror/'
+    }
     maven { url 'https://maven.google.com' }
     mavenCentral()
     maven { url 'https://kotlin.bintray.com/kotlinx' }
@@ -2008,6 +2014,35 @@ task copyMavenDeps(type: Copy) {
     from configurations.compileClasspath into "$buildDir/deps"
     from configurations.testCompile into "$buildDir/deps"
 }
+
+task printMavenDeps {
+    // Only actually print to stdout when we are updating.
+    if (project.hasProperty('updatemavendeps')) {
+        for (Configuration config : configurations) {
+            if (!config.isCanBeResolved()) {
+                continue
+            }
+            def componentIds = config.incoming.resolutionResult.allDependencies.collect {
+                it.selected.id
+            }
+            def result = dependencies.createArtifactResolutionQuery()
+                .forComponents(componentIds)
+                .withArtifacts(MavenModule, MavenPomArtifact)
+                .execute()
+            for (component in result.resolvedComponents) {
+                component.getArtifacts(MavenPomArtifact).each {
+                    println "POM: ${it.file} ${component.id}"
+                }
+            }
+            config.each {
+                println "JAR: ${it}"
+            }
+        }
+    }
+}
+
+
+
 
 // This task allows to build class files from Java 9 source in order to use them as inputs of
 // D8/R8 tests. Class files are generated in the same place than source files and must be commited
