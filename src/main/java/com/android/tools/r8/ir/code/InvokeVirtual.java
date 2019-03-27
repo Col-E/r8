@@ -117,10 +117,6 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
   @Override
   public boolean instructionMayHaveSideEffects(
       AppView<? extends AppInfo> appView, DexType context) {
-    if (!appView.enableWholeProgramOptimizations()) {
-      return true;
-    }
-
     if (appView.options().debug) {
       return true;
     }

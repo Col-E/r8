@@ -935,13 +935,13 @@ public class IRConverter {
     }
 
     if (!isDebugMode) {
-      stringOptimizer.computeTrivialOperationsOnConstString(code);
       // Reflection optimization 2. get*Name() with const-class -> const-string
       if (options.enableNameReflectionOptimization
           || options.testing.forceNameReflectionOptimization) {
         stringOptimizer.rewriteClassGetName(code, rootSet);
       }
-      // Reflection optimization 3. String#valueOf(const-string) -> no op.
+      // Reflection/string optimization 3. trivial conversion/computation on const-string
+      stringOptimizer.computeTrivialOperationsOnConstString(code);
       stringOptimizer.removeTrivialConversions(code);
       assert code.isConsistentSSA();
     }

@@ -173,7 +173,8 @@ public class ClassInitializerDefaultsOptimization {
     InstructionIterator instructionIterator = code.instructionIterator();
     while (instructionIterator.hasNext()) {
       Instruction instruction = instructionIterator.next();
-      if (!instruction.isStaticPut() || !unnecessaryStaticPuts.contains(instruction)) {
+      if (!instruction.isStaticPut()
+          || !unnecessaryStaticPuts.contains(instruction.asStaticPut())) {
         continue;
       }
       // Get a hold of the in-value.

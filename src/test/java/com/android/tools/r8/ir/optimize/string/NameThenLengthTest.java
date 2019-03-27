@@ -1,4 +1,4 @@
-// Copyright (c) 2018, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize.string;
@@ -9,15 +9,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.D8TestRunResult;
-import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -28,69 +27,46 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-class StringLengthTestMain {
+class NameThenLengthTestClass {
 
-  @ForceInline
-  static String simpleInlinable() {
-    return "Shared";
+  private static final String NAME;
+  private static final int LENGTH;
+  private static final int NAME_LENGTH;
+
+  static {
+    NAME = NameThenLengthTestClass.class.getSimpleName();
+    LENGTH = "NameThenLengthTestClass".length();
+    NAME_LENGTH = NameThenLengthTestClass.class.getSimpleName().length();
+  }
+
+  public static void main(String... args) {
+    System.out.println(NAME);
+    System.out.println(LENGTH);
+    System.out.println(NAME_LENGTH);
+
+    new NameThenLengthTestClass().instanceMethod();
   }
 
   @NeverInline
-  static int npe() {
-    String n = null;
-    // Cannot be computed at compile time.
-    return n.length();
-  }
-
-  public static void main(String[] args) {
-    String s1 = "GONE";
-    // Can be computed at compile time: constCount++
-    System.out.println(s1.length());
-
-    String s2 = simpleInlinable();
-    // Depends on inlining: constCount++
-    System.out.println(s2.length());
-    String s3 = simpleInlinable();
-    System.out.println(s3);
-
-    String s4 = "Another_shared";
-    // Can be computed at compile time: constCount++
-    System.out.println(s4.length());
-    System.out.println(s4);
-
-    String s5 = "\uD800\uDC00";  // U+10000
-    // Can be computed at compile time: constCount++
-    System.out.println(s5.length());
-    // Even reusable: should not increase any counts.
-    System.out.println(s5.codePointCount(0, s5.length()));
-    System.out.println(s5);
-
-    // Make sure this is not optimized in DEBUG mode.
-    int l = "ABC".length();
-    System.out.println(l);
-
-    try {
-      npe();
-    } catch (NullPointerException npe) {
-      // expected
-    }
+  void instanceMethod() {
+    // Note that the computed constants will be canonicalized.
+    System.out.println(NameThenLengthTestClass.class.getSimpleName());
+    System.out.println("NameThenLengthTestClass".length());
+    System.out.println(NameThenLengthTestClass.class.getSimpleName().length());
   }
 }
 
 @RunWith(Parameterized.class)
-public class StringLengthTest extends TestBase {
+public class NameThenLengthTest extends TestBase {
   private static final String JAVA_OUTPUT = StringUtils.lines(
-      "4",
-      "6",
-      "Shared",
-      "14",
-      "Another_shared",
-      "2",
-      "1",
-      "𐀀", // Different output in Windows.
-      "3"
+      "NameThenLengthTestClass",
+      "23",
+      "23",
+      "NameThenLengthTestClass",
+      "23",
+      "23"
   );
-  private static final Class<?> MAIN = StringLengthTestMain.class;
+  private static final Class<?> MAIN = NameThenLengthTestClass.class;
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
@@ -99,7 +75,7 @@ public class StringLengthTest extends TestBase {
 
   private final TestParameters parameters;
 
-  public StringLengthTest(TestParameters parameters) {
+  public NameThenLengthTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
@@ -108,13 +84,10 @@ public class StringLengthTest extends TestBase {
     assumeTrue(
         "Only run JVM reference once (for CF backend)",
         parameters.getBackend() == Backend.CF);
-    // TODO(b/119097175)
-    if (!ToolHelper.isWindows()) {
-      testForJvm()
-          .addTestClasspath()
-          .run(parameters.getRuntime(), MAIN)
-          .assertSuccessWithOutput(JAVA_OUTPUT);
-    }
+    testForJvm()
+        .addTestClasspath()
+        .run(parameters.getRuntime(), MAIN)
+        .assertSuccessWithOutput(JAVA_OUTPUT);
   }
 
   private static boolean isStringLength(DexMethod method) {
@@ -136,14 +109,28 @@ public class StringLengthTest extends TestBase {
   }
 
   private void test(
-      TestRunResult result, int expectedStringLengthCount, int expectedConstNumberCount)
+      TestRunResult result,
+      int expectedStringLengthCountInClinit,
+      int expectedConstNumberCountInClinit,
+      int expectedStringLengthCountInInstanceMethod,
+      int expectedConstNumberCountInInstanceMethod)
       throws Exception {
     CodeInspector codeInspector = result.inspector();
     ClassSubject mainClass = codeInspector.clazz(MAIN);
-    MethodSubject mainMethod = mainClass.mainMethod();
-    assertThat(mainMethod, isPresent());
-    assertEquals(expectedStringLengthCount, countStringLength(mainMethod));
-    assertEquals(expectedConstNumberCount, countNonZeroConstNumber(mainMethod));
+
+    MethodSubject clinit = mainClass.clinit();
+    assertThat(clinit, isPresent());
+    assertEquals(expectedStringLengthCountInClinit, countStringLength(clinit));
+    assertEquals(expectedConstNumberCountInClinit, countNonZeroConstNumber(clinit));
+
+    MethodSubject m = mainClass.uniqueMethodWithName("instanceMethod");
+    assertThat(m, isPresent());
+    assertEquals(expectedStringLengthCountInInstanceMethod, countStringLength(m));
+    assertEquals(expectedConstNumberCountInInstanceMethod, countNonZeroConstNumber(m));
+  }
+
+  void configure(InternalOptions options) {
+    options.testing.forceNameReflectionOptimization = true;
   }
 
   @Test
@@ -152,27 +139,24 @@ public class StringLengthTest extends TestBase {
 
     D8TestRunResult result =
         testForD8()
-            .release()
+            .debug()
             .addProgramClasses(MAIN)
+            .addOptionsModification(this::configure)
             .apply(parameters::setMinApiForRuntime)
-            .run(parameters.getRuntime(), MAIN);
-    // TODO(b/119097175)
-    if (!ToolHelper.isWindows()) {
-      result.assertSuccessWithOutput(JAVA_OUTPUT);
-    }
-    test(result, 1, 4);
+            .run(parameters.getRuntime(), MAIN)
+            .assertSuccessWithOutput(JAVA_OUTPUT);
+    test(result, 2, 0, 2, 0);
 
     result =
         testForD8()
-            .debug()
+            .release()
             .addProgramClasses(MAIN)
+            .addOptionsModification(this::configure)
             .apply(parameters::setMinApiForRuntime)
-            .run(parameters.getRuntime(), MAIN);
-    // TODO(b/119097175)
-    if (!ToolHelper.isWindows()) {
-      result.assertSuccessWithOutput(JAVA_OUTPUT);
-    }
-    test(result, 6, 0);
+            .run(parameters.getRuntime(), MAIN)
+            .assertSuccessWithOutput(JAVA_OUTPUT);
+    // TODO(b/125303292): NAME_LENGTH is still not computed at compile time.
+    test(result, 1, 0, 0, 1);
   }
 
   @Test
@@ -182,12 +166,14 @@ public class StringLengthTest extends TestBase {
             .addProgramClasses(MAIN)
             .enableInliningAnnotations()
             .addKeepMainRule(MAIN)
+            .noMinification()
+            .addOptionsModification(this::configure)
             .apply(parameters::setMinApiForRuntime)
-            .run(parameters.getRuntime(), MAIN);
-    // TODO(b/119097175)
-    if (!ToolHelper.isWindows()) {
-      result.assertSuccessWithOutput(JAVA_OUTPUT);
-    }
-    test(result, 0, parameters.getBackend() == Backend.DEX ? 5 : 6);
+            .run(parameters.getRuntime(), MAIN)
+            .assertSuccessWithOutput(JAVA_OUTPUT);
+    // No canonicalization in CF.
+    int expectedConstNumber = parameters.getBackend() == Backend.CF ? 2 : 1;
+    // TODO(b/125303292): NAME_LENGTH is still not computed at compile time.
+    test(result, 1, 0, 0, expectedConstNumber);
   }
 }
