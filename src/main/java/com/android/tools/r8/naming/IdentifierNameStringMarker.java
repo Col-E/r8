@@ -169,7 +169,7 @@ public class IdentifierNameStringMarker {
           List<Value> ins = invoke.arguments();
           Value[] changes = new Value [ins.size()];
           if (isReflectionMethod(appView.dexItemFactory(), invokedMethod)) {
-            DexReference itemBasedString = identifyIdentifier(appView, invoke);
+            DexReference itemBasedString = identifyIdentifier(invoke, appView);
             if (itemBasedString == null) {
               warnUndeterminedIdentifierIfNecessary(invokedMethod, originHolder, instruction, null);
               continue;

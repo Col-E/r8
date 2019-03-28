@@ -18,11 +18,12 @@ import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CheckCast;
-import com.android.tools.r8.ir.code.ConstString;
+import com.android.tools.r8.ir.code.ConstantValueUtils;
 import com.android.tools.r8.ir.code.DexItemBasedConstString;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.Value;
 import com.google.common.collect.Sets;
@@ -146,22 +147,21 @@ public final class IdentifierNameStringUtils {
    *     class or member name, or {@code null} if no such constant was found.
    */
   public static DexReference identifyIdentifier(
-      DexDefinitionSupplier definitions, InvokeMethod invoke) {
+      InvokeMethod invoke, DexDefinitionSupplier definitions) {
     List<Value> ins = invoke.arguments();
     // The only static call: Class#forName, which receives (String) as ins.
+    if (invoke.isInvokeStatic()) {
+      InvokeStatic invokeStatic = invoke.asInvokeStatic();
+      if (invokeStatic.getInvokedMethod() == definitions.dexItemFactory().classMethods.forName) {
+        return ConstantValueUtils.getDexTypeFromClassForName(invokeStatic, definitions);
+      }
+    }
+
+    // All the other cases receive either (Class, String) or (Class, String, Class[]) as ins.
     if (ins.size() == 1) {
-      Value in = ins.get(0);
-      if (in.isConstString()) {
-        ConstString constString = in.getConstInstruction().asConstString();
-        return inferMemberOrTypeFromNameString(definitions, constString.getValue());
-      }
-      if (in.isDexItemBasedConstString()) {
-        DexItemBasedConstString constString = in.getConstInstruction().asDexItemBasedConstString();
-        return constString.getItem();
-      }
       return null;
     }
-    // All the other cases receive either (Class, String) or (Class, String, Class[]) as ins.
+
     boolean isReferenceFieldUpdater =
         invoke.getReturnType().descriptor
             == definitions.dexItemFactory().referenceFieldUpdaterDescriptor;
@@ -217,12 +217,18 @@ public final class IdentifierNameStringUtils {
     DexReference itemBasedString = inferMemberFromNameString(definitions, dexString);
     if (itemBasedString == null) {
       // "fully.qualified.ClassName"
-      String maybeDescriptor = javaTypeToDescriptorIfValidJavaType(dexString.toString());
-      if (maybeDescriptor != null) {
-        return definitions.dexItemFactory().createType(maybeDescriptor);
-      }
+      return inferTypeFromNameString(definitions, dexString);
     }
     return itemBasedString;
+  }
+
+  public static DexType inferTypeFromNameString(
+      DexDefinitionSupplier definitions, DexString dexString) {
+    String maybeDescriptor = javaTypeToDescriptorIfValidJavaType(dexString.toString());
+    if (maybeDescriptor != null) {
+      return definitions.dexItemFactory().createType(maybeDescriptor);
+    }
+    return null;
   }
 
   private static DexReference inferMemberFromNameString(

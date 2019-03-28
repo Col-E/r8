@@ -48,6 +48,7 @@ import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.KeyedDexItem;
 import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.ir.code.ArrayPut;
+import com.android.tools.r8.ir.code.ConstantValueUtils;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Invoke.Type;
@@ -1827,7 +1828,7 @@ public class Enqueuer {
     if (!isReflectionMethod(appView.dexItemFactory(), invokedMethod)) {
       return;
     }
-    DexReference identifierItem = identifyIdentifier(appInfo, invoke);
+    DexReference identifierItem = identifyIdentifier(invoke, appView);
     if (identifierItem == null) {
       return;
     }
@@ -1886,15 +1887,12 @@ public class Enqueuer {
       return;
     }
 
-    Value receiver = invoke.asInvokeVirtual().getReceiver();
-    if (receiver.isPhi() || !receiver.definition.isConstClass()) {
-      // Give up, we can't tell which class is being instantiated.
-      return;
-    }
-
-    DexType instantiatedType = receiver.definition.asConstClass().getValue();
-    if (!instantiatedType.isClassType()) {
-      // Not a class type. This should not happen in practice.
+    DexType instantiatedType =
+        ConstantValueUtils.getDexTypeRepresentedByValue(
+            invoke.asInvokeVirtual().getReceiver(), appView);
+    if (instantiatedType == null || !instantiatedType.isClassType()) {
+      // Give up, we can't tell which class is being instantiated, or the type is not a class type.
+      // The latter should not happen in practice.
       return;
     }
 
@@ -1930,15 +1928,12 @@ public class Enqueuer {
       return;
     }
 
-    Value classValue = constructorDefinition.getReceiver();
-    if (classValue.isPhi() || !classValue.definition.isConstClass()) {
-      // Give up, we can't tell which constructor is being invoked.
-      return;
-    }
-
-    DexType instantiatedType = classValue.definition.asConstClass().getValue();
-    if (!instantiatedType.isClassType()) {
-      // Not a class type. This should not happen in practice.
+    DexType instantiatedType =
+        ConstantValueUtils.getDexTypeRepresentedByValue(
+            constructorDefinition.getReceiver(), appView);
+    if (instantiatedType == null || !instantiatedType.isClassType()) {
+      // Give up, we can't tell which constructor is being invoked, or the type is not a class type.
+      // The latter should not happen in practice.
       return;
     }
 
@@ -1980,11 +1975,13 @@ public class Enqueuer {
               return;
             }
 
-            Value value = arrayPutInstruction.value();
-            if (value.isPhi() || !value.definition.isConstClass()) {
+            DexType type =
+                ConstantValueUtils.getDexTypeRepresentedByValue(
+                    arrayPutInstruction.value(), appView);
+            if (type == null) {
               return;
             }
-            DexType type = value.definition.asConstClass().getValue();
+
             if (parameterTypes[index] == type) {
               continue;
             }
