@@ -13,9 +13,12 @@ import com.android.tools.r8.naming.MemberNaming.Signature.SignatureKind;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.ThrowingConsumer;
+import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -36,6 +39,7 @@ public class ClassNamingForMapApplier implements ClassNaming {
     private final String renamedName;
     private final Position position;
     private final Reporter reporter;
+    private final Map<MethodSignature, List<MemberNaming>> qualifiedMethodMembers = new HashMap<>();
     private final Map<MethodSignature, MemberNaming> methodMembers = new HashMap<>();
     private final Map<FieldSignature, MemberNaming> fieldMembers = new HashMap<>();
 
@@ -48,23 +52,20 @@ public class ClassNamingForMapApplier implements ClassNaming {
 
     @Override
     public ClassNaming.Builder addMemberEntry(MemberNaming entry) {
-      // Ignore all qualified signatures as they are the result of optimizations and thus the member
-      // is not kept/visible for apply mapping.
-      if (entry.signature.isQualified()) {
-        return this;
-      }
       // Unlike {@link ClassNamingForNameMapper.Builder#addMemberEntry},
       // the key is original signature.
       if (entry.isMethodNaming()) {
         MethodSignature signature = (MethodSignature) entry.getOriginalSignature();
-        if (methodMembers.put(signature, entry) != null) {
+        if (signature.isQualified()) {
+          qualifiedMethodMembers.computeIfAbsent(signature, k -> new ArrayList<>(2)).add(entry);
+        } else if (methodMembers.put(signature, entry) != null) {
           reporter.error(
               ProguardMapError.duplicateSourceMember(
                   signature.toString(), this.originalName, entry.position));
         }
       } else {
         FieldSignature signature = (FieldSignature) entry.getOriginalSignature();
-        if (fieldMembers.put(signature, entry) != null) {
+        if (!signature.isQualified() && fieldMembers.put(signature, entry) != null) {
           reporter.error(
               ProguardMapError.duplicateSourceMember(
                   signature.toString(), this.originalName, entry.position));
@@ -76,7 +77,7 @@ public class ClassNamingForMapApplier implements ClassNaming {
     @Override
     public ClassNamingForMapApplier build() {
       return new ClassNamingForMapApplier(
-          renamedName, originalName, position, methodMembers, fieldMembers);
+          renamedName, originalName, position, qualifiedMethodMembers, methodMembers, fieldMembers);
     }
 
     @Override
@@ -97,6 +98,7 @@ public class ClassNamingForMapApplier implements ClassNaming {
   final String renamedName;
   final Position position;
 
+  private final ImmutableMap<MethodSignature, List<MemberNaming>> qualifiedMethodMembers;
   private final ImmutableMap<MethodSignature, MemberNaming> methodMembers;
   private final ImmutableMap<FieldSignature, MemberNaming> fieldMembers;
 
@@ -106,6 +108,7 @@ public class ClassNamingForMapApplier implements ClassNaming {
         proxy.renamedName,
         proxy.originalName,
         proxy.position,
+        proxy.qualifiedMethodMembers,
         proxy.methodMembers,
         proxy.fieldMembers);
   }
@@ -114,13 +117,19 @@ public class ClassNamingForMapApplier implements ClassNaming {
       String renamedName,
       String originalName,
       Position position,
+      Map<MethodSignature, List<MemberNaming>> qualifiedMethodMembers,
       Map<MethodSignature, MemberNaming> methodMembers,
       Map<FieldSignature, MemberNaming> fieldMembers) {
     this.renamedName = renamedName;
     this.originalName = originalName;
     this.position = position;
+    this.qualifiedMethodMembers = ImmutableMap.copyOf(qualifiedMethodMembers);
     this.methodMembers = ImmutableMap.copyOf(methodMembers);
     this.fieldMembers = ImmutableMap.copyOf(fieldMembers);
+  }
+
+  public ImmutableMap<MethodSignature, List<MemberNaming>> getQualifiedMethodMembers() {
+    return qualifiedMethodMembers;
   }
 
   @Override
@@ -217,16 +226,14 @@ public class ClassNamingForMapApplier implements ClassNaming {
 
     return originalName.equals(that.originalName)
         && renamedName.equals(that.renamedName)
+        && qualifiedMethodMembers.equals(that.qualifiedMethodMembers)
         && methodMembers.equals(that.methodMembers)
         && fieldMembers.equals(that.fieldMembers);
   }
 
   @Override
   public int hashCode() {
-    int result = originalName.hashCode();
-    result = 31 * result + renamedName.hashCode();
-    result = 31 * result + methodMembers.hashCode();
-    result = 31 * result + fieldMembers.hashCode();
-    return result;
+    return Objects.hashCode(
+        originalName, renamedName, qualifiedMethodMembers, methodMembers, fieldMembers);
   }
 }

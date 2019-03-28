@@ -4,11 +4,9 @@
 package com.android.tools.r8.naming.applymapping.desugar;
 
 import static com.android.tools.r8.references.Reference.classFromClass;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.R8TestCompileResult;
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -96,23 +94,16 @@ public class DefaultInterfaceMethodTest extends TestBase {
       assertTrue(inspector.method(LibraryInterface.class.getMethod("foo")).isPresent());
     }
 
-    R8TestRunResult result =
-        testForR8(parameters.getBackend())
-            .noTreeShaking()
-            .addProgramClasses(ProgramClass.class)
-            .addLibraryClasses(LibraryInterface.class)
-            .addApplyMapping(libraryResult.getProguardMap())
-            .apply(parameters::setMinApiForRuntime)
-            .compile()
-            .addRunClasspathFiles(libraryResult.writeToZip())
-            .run(parameters.getRuntime(), ProgramClass.class);
-
-    if (willDesugarDefaultInterfaceMethods(parameters.getRuntime())) {
-      // TODO(b/127779880): The use of the default lambda will fail in case of desugaring.
-      result.assertFailureWithErrorThatMatches(containsString("AbstractMethodError"));
-    } else {
-      result.assertSuccessWithOutput(EXPECTED);
-    }
+    testForR8(parameters.getBackend())
+        .noTreeShaking()
+        .addProgramClasses(ProgramClass.class)
+        .addClasspathClasses(LibraryInterface.class)
+        .addApplyMapping(libraryResult.getProguardMap())
+        .apply(parameters::setMinApiForRuntime)
+        .compile()
+        .addRunClasspathFiles(libraryResult.writeToZip())
+        .run(parameters.getRuntime(), ProgramClass.class)
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   private static boolean willDesugarDefaultInterfaceMethods(TestRuntime runtime) {

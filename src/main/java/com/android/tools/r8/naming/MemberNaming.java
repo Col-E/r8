@@ -248,6 +248,11 @@ public class MemberNaming {
           parameterTypes);
     }
 
+    public MethodSignature toUnqualified() {
+      assert isQualified();
+      return new MethodSignature(name.substring(name.lastIndexOf('.') + 1), type, parameters);
+    }
+
     DexMethod toDexMethod(DexItemFactory factory, DexType clazz) {
       DexType[] paramTypes = new DexType[parameters.length];
       for (int i = 0; i < parameters.length; i++) {

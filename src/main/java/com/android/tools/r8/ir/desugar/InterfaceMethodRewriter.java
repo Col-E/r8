@@ -294,11 +294,15 @@ public final class InterfaceMethodRewriter {
   }
 
   // Gets the companion class for the interface `type`.
-  final DexType getCompanionClassType(DexType type) {
+  static DexType getCompanionClassType(DexType type, DexItemFactory factory) {
     assert type.isClassType();
     String descriptor = type.descriptor.toString();
     String ccTypeDescriptor = getCompanionClassDescriptor(descriptor);
     return factory.createType(ccTypeDescriptor);
+  }
+
+  DexType getCompanionClassType(DexType type) {
+    return getCompanionClassType(type, factory);
   }
 
   // Gets the forwarding class for the interface `type`.
@@ -311,12 +315,17 @@ public final class InterfaceMethodRewriter {
   }
 
   // Checks if `type` is a companion class.
-  private boolean isCompanionClassType(DexType type) {
+  public static boolean isCompanionClassType(DexType type) {
     return type.descriptor.toString().endsWith(COMPANION_CLASS_NAME_SUFFIX + ";");
   }
 
   // Gets the interface class for a companion class `type`.
   private DexType getInterfaceClassType(DexType type) {
+    return getInterfaceClassType(type, factory);
+  }
+
+  // Gets the interface class for a companion class `type`.
+  public static DexType getInterfaceClassType(DexType type, DexItemFactory factory) {
     assert isCompanionClassType(type);
     String descriptor = type.descriptor.toString();
     String interfaceTypeDescriptor = descriptor.substring(0,
@@ -344,7 +353,8 @@ public final class InterfaceMethodRewriter {
     return clazz.getName().endsWith(DISPATCH_CLASS_NAME_SUFFIX);
   }
 
-  private DexMethod instanceAsMethodOfCompanionClass(DexMethod method, String prefix) {
+  private static DexMethod instanceAsMethodOfCompanionClass(
+      DexMethod method, String prefix, DexItemFactory factory) {
     // Add an implicit argument to represent the receiver.
     DexType[] params = method.proto.parameters.values;
     DexType[] newParams = new DexType[params.length + 1];
@@ -352,7 +362,8 @@ public final class InterfaceMethodRewriter {
     System.arraycopy(params, 0, newParams, 1, params.length);
 
     // Add prefix to avoid name conflicts.
-    return factory.createMethod(getCompanionClassType(method.holder),
+    return factory.createMethod(
+        getCompanionClassType(method.holder, factory),
         factory.createProto(method.proto.returnType, newParams),
         factory.createString(prefix + method.name.toString()));
   }
@@ -367,14 +378,23 @@ public final class InterfaceMethodRewriter {
   }
 
   // Represent a default interface method as a method of companion class.
-  final DexMethod defaultAsMethodOfCompanionClass(DexMethod method) {
-    return instanceAsMethodOfCompanionClass(method, DEFAULT_METHOD_PREFIX);
+  public static DexMethod defaultAsMethodOfCompanionClass(
+      DexMethod method, DexItemFactory factory) {
+    return instanceAsMethodOfCompanionClass(method, DEFAULT_METHOD_PREFIX, factory);
+  }
+
+  DexMethod defaultAsMethodOfCompanionClass(DexMethod method) {
+    return defaultAsMethodOfCompanionClass(method, factory);
   }
 
   // Represent a private instance interface method as a method of companion class.
-  final DexMethod privateAsMethodOfCompanionClass(DexMethod method) {
+  static DexMethod privateAsMethodOfCompanionClass(DexMethod method, DexItemFactory factory) {
     // Add an implicit argument to represent the receiver.
-    return instanceAsMethodOfCompanionClass(method, PRIVATE_METHOD_PREFIX);
+    return instanceAsMethodOfCompanionClass(method, PRIVATE_METHOD_PREFIX, factory);
+  }
+
+  DexMethod privateAsMethodOfCompanionClass(DexMethod method) {
+    return privateAsMethodOfCompanionClass(method, factory);
   }
 
   /**

@@ -145,6 +145,7 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
             appView, desugaredCallSites, equivalence, frontierState, minifierState);
     interfaceMethodNameMinifier.assignNamesToInterfaceMethods(timing);
     timing.end();
+    // TODO(zerny): The traversals below should only traverse the reachable graph!
     // Phase 3: Assign names top-down by traversing the subtype hierarchy.
     timing.begin("Phase 3");
     assignNamesToClassesMethods(appView.dexItemFactory().objectType, false);

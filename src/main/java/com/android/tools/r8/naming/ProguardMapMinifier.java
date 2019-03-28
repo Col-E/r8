@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.naming.ClassNameMinifier.ClassNamingStrategy;
 import com.android.tools.r8.naming.ClassNameMinifier.ClassRenaming;
 import com.android.tools.r8.naming.ClassNameMinifier.Namespace;
@@ -63,6 +64,8 @@ public class ProguardMapMinifier {
     Map<DexType, DexString> mappedNames = new IdentityHashMap<>();
     List<DexClass> mappedClasses = new ArrayList<>();
     Map<DexReference, MemberNaming> memberNames = new IdentityHashMap<>();
+    Map<DexType, DexString> syntheticCompanionClasses = new IdentityHashMap<>();
+    Map<DexMethod, DexString> defaultInterfaceMethodImplementationNames = new IdentityHashMap<>();
     for (String key : seedMapper.getKeyset()) {
       ClassNamingForMapApplier classNaming = seedMapper.getMapping(key);
       DexType type =
@@ -74,6 +77,11 @@ public class ProguardMapMinifier {
       }
       DexClass dexClass = appView.definitionFor(type);
       if (dexClass == null) {
+        computeDefaultInterfaceMethodMappings(
+            type,
+            classNaming,
+            syntheticCompanionClasses,
+            defaultInterfaceMethodImplementationNames);
         continue;
       }
       DexString mappedName = appView.dexItemFactory().createString(classNaming.renamedName);
@@ -126,7 +134,8 @@ public class ProguardMapMinifier {
             // use the existing strategy.
             new MinificationPackageNamingStrategy(),
             mappedClasses);
-    ClassRenaming classRenaming = classNameMinifier.computeRenaming(timing);
+    ClassRenaming classRenaming =
+        classNameMinifier.computeRenaming(timing, syntheticCompanionClasses);
     timing.end();
 
     ApplyMappingMemberNamingStrategy nameStrategy =
@@ -136,6 +145,8 @@ public class ProguardMapMinifier {
     MethodRenaming methodRenaming =
         new MethodNameMinifier(appView, rootSet, nameStrategy)
             .computeRenaming(desugaredCallSites, timing);
+    // Amend the method renamings with the default interface methods.
+    methodRenaming.renaming.putAll(defaultInterfaceMethodImplementationNames);
     timing.end();
 
     timing.begin("MinifyFields");
@@ -152,6 +163,44 @@ public class ProguardMapMinifier {
     timing.end();
 
     return lens;
+  }
+
+  private void computeDefaultInterfaceMethodMappings(
+      DexType type,
+      ClassNamingForMapApplier classNaming,
+      Map<DexType, DexString> syntheticCompanionClasses,
+      Map<DexMethod, DexString> defaultInterfaceMethodImplementationNames) {
+    // If the class does not resolve, then check if it is a companion class for an interface on
+    // the class path.
+    if (!InterfaceMethodRewriter.isCompanionClassType(type)) {
+      return;
+    }
+    DexClass interfaceType =
+        appView.definitionFor(
+            InterfaceMethodRewriter.getInterfaceClassType(type, appView.dexItemFactory()));
+    if (interfaceType == null || !interfaceType.isClasspathClass()) {
+      return;
+    }
+    syntheticCompanionClasses.put(
+        type, appView.dexItemFactory().createString(classNaming.renamedName));
+    for (List<MemberNaming> namings : classNaming.getQualifiedMethodMembers().values()) {
+      // If the qualified name has been mapped to multiple names we can't compute a mapping (and it
+      // should not be possible that this is a default interface method in that case.)
+      if (namings.size() != 1) {
+        continue;
+      }
+      MemberNaming naming = namings.get(0);
+      MethodSignature signature = (MethodSignature) naming.getOriginalSignature();
+      if (signature.name.startsWith(interfaceType.type.toSourceString())) {
+        DexMethod defaultMethod =
+            InterfaceMethodRewriter.defaultAsMethodOfCompanionClass(
+                signature.toUnqualified().toDexMethod(appView.dexItemFactory(), interfaceType.type),
+                appView.dexItemFactory());
+        assert defaultMethod.holder == type;
+        defaultInterfaceMethodImplementationNames.put(
+            defaultMethod, appView.dexItemFactory().createString(naming.getRenamedName()));
+      }
+    }
   }
 
   static class ApplyMappingClassNamingStrategy implements ClassNamingStrategy {

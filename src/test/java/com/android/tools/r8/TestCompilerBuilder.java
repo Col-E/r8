@@ -3,17 +3,22 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.base.Suppliers;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -41,6 +46,9 @@ public abstract class TestCompilerBuilder<
   private AndroidApiLevel defaultMinApiLevel = ToolHelper.getMinApiLevelForDexVm();
   private Consumer<InternalOptions> optionsConsumer = DEFAULT_OPTIONS;
   private PrintStream stdout = null;
+
+  // Consider an in-order collection of both class and files on the classpath.
+  private List<Class<?>> classpathClasses = new ArrayList<>();
 
   TestCompilerBuilder(TestState state, B builder, Backend backend) {
     super(state, builder);
@@ -72,6 +80,31 @@ public abstract class TestCompilerBuilder<
     if (backend == Backend.DEX && defaultMinApiLevel != null) {
       builder.setMinApiLevel(defaultMinApiLevel.getLevel());
     }
+    if (!classpathClasses.isEmpty()) {
+      Path cp;
+      try {
+        cp = getState().getNewTempFolder().resolve("cp.jar");
+      } catch (IOException e) {
+        throw builder.getReporter().fatalError("Failed to create temp file for classpath archive");
+      }
+      ArchiveConsumer archiveConsumer = new ArchiveConsumer(cp);
+      for (Class<?> classpathClass : classpathClasses) {
+        try {
+          archiveConsumer.accept(
+              ByteDataView.of(ToolHelper.getClassAsBytes(classpathClass)),
+              DescriptorUtils.javaTypeToDescriptor(classpathClass.getTypeName()),
+              builder.getReporter());
+        } catch (IOException e) {
+          builder
+              .getReporter()
+              .error("Failed to read bytes for classpath class: " + classpathClass.getTypeName());
+        }
+      }
+      archiveConsumer.finished(builder.getReporter());
+      // TODO(zerny): Remove this HACK to add classpath to R8.
+      builder.getAppBuilder().addClasspathFiles(cp);
+    }
+
     PrintStream oldOut = System.out;
     try {
       if (stdout != null) {
@@ -158,6 +191,24 @@ public abstract class TestCompilerBuilder<
   public T addLibraryFiles(Collection<Path> files) {
     defaultLibrary = null;
     return super.addLibraryFiles(files);
+  }
+
+  public T addClasspathClasses(Class<?>... classes) {
+    return addClasspathClasses(Arrays.asList(classes));
+  }
+
+  public T addClasspathClasses(Collection<Class<?>> classes) {
+    classpathClasses.addAll(classes);
+    return self();
+  }
+
+  public T addClasspathFiles(Path... files) {
+    return addClasspathFiles(Arrays.asList(files));
+  }
+
+  public T addClasspathFiles(Collection<Path> files) {
+    builder.getAppBuilder().addClasspathFiles(files);
+    return self();
   }
 
   public T noDesugaring() {

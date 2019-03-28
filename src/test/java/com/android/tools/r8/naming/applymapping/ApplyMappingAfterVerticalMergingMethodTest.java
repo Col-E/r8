@@ -6,10 +6,12 @@ package com.android.tools.r8.naming.applymapping;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NeverPropagateValue;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -17,17 +19,19 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import org.junit.Assume;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.BeforeParam;
 
 @RunWith(Parameterized.class)
 public class ApplyMappingAfterVerticalMergingMethodTest extends TestBase {
@@ -38,6 +42,7 @@ public class ApplyMappingAfterVerticalMergingMethodTest extends TestBase {
   // Base class will be vertical class merged into subclass
   public static class LibraryBase {
 
+    @NeverPropagateValue
     @NeverInline
     public String foo() {
       return OUTPUT;
@@ -95,9 +100,9 @@ public class ApplyMappingAfterVerticalMergingMethodTest extends TestBase {
   @ClassRule
   public static TemporaryFolder staticTemp = ToolHelper.getTemporaryFolderForTest();
 
-  @BeforeClass
-  public static void forceCompilation() {
-    data().stream().forEach(p -> compilationResults.apply(p.getBackend()));
+  @BeforeParam
+  public static void forceCompilation(TestParameters parameters) {
+    compilationResults.apply(parameters.getBackend());
   }
 
   public static CompilationResult compile(Backend backend)
@@ -111,6 +116,7 @@ public class ApplyMappingAfterVerticalMergingMethodTest extends TestBase {
       throws CompilationFailedException, IOException, ExecutionException {
     return testForR8(staticTemp, backend)
         .enableInliningAnnotations()
+        .enableMemberValuePropagationAnnotations()
         .addProgramClasses(LIBRARY_CLASSES)
         .addKeepMainRule(LibrarySubclass.class)
         .addKeepClassAndDefaultConstructor(LibrarySubclass.class)
@@ -119,6 +125,13 @@ public class ApplyMappingAfterVerticalMergingMethodTest extends TestBase {
         .inspect(inspector -> {
           assertThat(inspector.clazz(LibraryBase.class), not(isPresent()));
           assertThat(inspector.clazz(LibrarySubclass.class), isPresent());
+          List<FoundMethodSubject> methods = inspector.clazz(LibrarySubclass.class).allMethods();
+          // TODO(b/129365817): This should have just the three methods: <init>, main and one foo.
+          assertEquals(4, methods.size());
+          assertEquals(1, methods.stream().filter(m -> m.isInstanceInitializer()).count());
+          assertEquals(1, methods.stream().filter(m -> m.getFinalName().contains("main")).count());
+          assertEquals(
+              2, methods.stream().filter(m -> m.getOriginalName().contains("foo")).count());
         });
   }
 
