@@ -63,35 +63,39 @@ public abstract class TestBaseBuilder<
 
   @Override
   public T addLibraryClasses(Collection<Class<?>> classes) {
-    addLibraryProvider(
-        new ClassFileResourceProvider() {
-          final Map<String, ProgramResource> resources;
-
-          {
-            ImmutableMap.Builder<String, ProgramResource> builder = ImmutableMap.builder();
-            classes.forEach(
-                c ->
-                    builder.put(
-                        DescriptorUtils.javaTypeToDescriptor(c.getTypeName()),
-                        ProgramResource.fromFile(Kind.CF, ToolHelper.getClassFileForTestClass(c))));
-            resources = builder.build();
-          }
-
-          @Override
-          public Set<String> getClassDescriptors() {
-            return resources.keySet();
-          }
-
-          @Override
-          public ProgramResource getProgramResource(String descriptor) {
-            return resources.get(descriptor);
-          }
-        });
+    builder.addLibraryResourceProvider(ClassFileResourceProviderFromClasses(classes));
     return self();
   }
 
   public T addMainDexListFiles(Collection<Path> files) {
     builder.addMainDexListFiles(files);
     return self();
+  }
+
+  public static ClassFileResourceProvider ClassFileResourceProviderFromClasses(
+      Collection<Class<?>> classes) {
+    return new ClassFileResourceProvider() {
+      final Map<String, ProgramResource> resources;
+
+      {
+        ImmutableMap.Builder<String, ProgramResource> builder = ImmutableMap.builder();
+        classes.forEach(
+            c ->
+                builder.put(
+                    DescriptorUtils.javaTypeToDescriptor(c.getTypeName()),
+                    ProgramResource.fromFile(Kind.CF, ToolHelper.getClassFileForTestClass(c))));
+        resources = builder.build();
+      }
+
+      @Override
+      public Set<String> getClassDescriptors() {
+        return resources.keySet();
+      }
+
+      @Override
+      public ProgramResource getProgramResource(String descriptor) {
+        return resources.get(descriptor);
+      }
+    };
   }
 }

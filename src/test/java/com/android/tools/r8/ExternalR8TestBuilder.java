@@ -188,6 +188,16 @@ public class ExternalR8TestBuilder
   }
 
   @Override
+  public ExternalR8TestBuilder addClasspathClasses(Collection<Class<?>> classes) {
+    throw new Unimplemented("No support for adding classpath data directly");
+  }
+
+  @Override
+  public ExternalR8TestBuilder addClasspathFiles(Collection<Path> files) {
+    throw new Unimplemented("No support for adding classpath data directly");
+  }
+
+  @Override
   public ExternalR8TestBuilder addKeepRuleFiles(List<Path> proguardConfigFiles) {
     this.proguardConfigFiles.addAll(proguardConfigFiles);
     return self();

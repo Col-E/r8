@@ -12,7 +12,6 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.Collection;
 
 /**
@@ -84,26 +83,22 @@ public final class D8Command extends BaseCompilerCommand {
       return self();
     }
 
-    /** Add classpath file resources. */
+    /** Add classpath file resources. These have @Override to ensure binary compatibility. */
+    @Override
     public Builder addClasspathFiles(Path... files) {
-      guard(() -> Arrays.stream(files).forEach(this::addClasspathFile));
-      return self();
+      return super.addClasspathFiles(files);
     }
 
     /** Add classpath file resources. */
+    @Override
     public Builder addClasspathFiles(Collection<Path> files) {
-      guard(() -> files.forEach(this::addClasspathFile));
-      return self();
-    }
-
-    private void addClasspathFile(Path file) {
-      guard(() -> getAppBuilder().addClasspathFile(file));
+      return super.addClasspathFiles(files);
     }
 
     /** Add classfile resources provider for class-path resources. */
+    @Override
     public Builder addClasspathResourceProvider(ClassFileResourceProvider provider) {
-      guard(() -> getAppBuilder().addClasspathResourceProvider(provider));
-      return self();
+      return super.addClasspathResourceProvider(provider);
     }
 
     /**

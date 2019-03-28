@@ -116,6 +116,18 @@ public class R8TestBuilder
         graphConsumer);
   }
 
+  @Override
+  public R8TestBuilder addClasspathClasses(Collection<Class<?>> classes) {
+    builder.addClasspathResourceProvider(ClassFileResourceProviderFromClasses(classes));
+    return self();
+  }
+
+  @Override
+  public R8TestBuilder addClasspathFiles(Collection<Path> files) {
+    builder.addClasspathFiles(files);
+    return self();
+  }
+
   public R8TestBuilder addDataResources(List<DataEntryResource> resources) {
     resources.forEach(builder.getAppBuilder()::addDataResource);
     return self();

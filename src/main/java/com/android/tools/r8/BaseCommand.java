@@ -213,6 +213,28 @@ public abstract class BaseCommand {
       return self();
     }
 
+    /** Add classpath file resources. */
+    public B addClasspathFiles(Path... files) {
+      guard(() -> Arrays.stream(files).forEach(this::addClasspathFile));
+      return self();
+    }
+
+    /** Add classpath file resources. */
+    public B addClasspathFiles(Collection<Path> files) {
+      guard(() -> files.forEach(this::addClasspathFile));
+      return self();
+    }
+
+    private void addClasspathFile(Path file) {
+      guard(() -> getAppBuilder().addClasspathFile(file));
+    }
+
+    /** Add classfile resources provider for class-path resources. */
+    public B addClasspathResourceProvider(ClassFileResourceProvider provider) {
+      guard(() -> getAppBuilder().addClasspathResourceProvider(provider));
+      return self();
+    }
+
     /** Add Java-bytecode program-data. */
     public B addClassProgramData(byte[] data, Origin origin) {
       guard(() -> app.addClassProgramData(data, origin));

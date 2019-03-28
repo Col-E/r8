@@ -259,6 +259,16 @@ public class ProguardTestBuilder
   }
 
   @Override
+  public ProguardTestBuilder addClasspathClasses(Collection<Class<?>> classes) {
+    throw new Unimplemented("No support for adding classpath data directly");
+  }
+
+  @Override
+  public ProguardTestBuilder addClasspathFiles(Collection<Path> files) {
+    throw new Unimplemented("No support for adding classpath data directly");
+  }
+
+  @Override
   public ProguardTestBuilder setProgramConsumer(ProgramConsumer programConsumer) {
     throw new Unimplemented("No support for program consumer");
   }

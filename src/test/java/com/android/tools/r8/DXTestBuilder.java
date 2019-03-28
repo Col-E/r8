@@ -65,6 +65,16 @@ public class DXTestBuilder
   }
 
   @Override
+  public DXTestBuilder addClasspathClasses(Collection<Class<?>> classes) {
+    throw new Unimplemented("No support for adding classpath data directly");
+  }
+
+  @Override
+  public DXTestBuilder addClasspathFiles(Collection<Path> files) {
+    throw new Unimplemented("No support for adding classpath data directly");
+  }
+
+  @Override
   public DXTestBuilder addProgramClasses(Collection<Class<?>> classes) {
     return addProgramClassFileData(
         ListUtils.map(

@@ -7,6 +7,8 @@ import com.android.tools.r8.D8Command.Builder;
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
+import java.nio.file.Path;
+import java.util.Collection;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -25,6 +27,18 @@ public class D8TestBuilder
   @Override
   D8TestBuilder self() {
     return this;
+  }
+
+  @Override
+  public D8TestBuilder addClasspathClasses(Collection<Class<?>> classes) {
+    builder.addClasspathResourceProvider(ClassFileResourceProviderFromClasses(classes));
+    return self();
+  }
+
+  @Override
+  public D8TestBuilder addClasspathFiles(Collection<Path> files) {
+    builder.addClasspathFiles(files);
+    return self();
   }
 
   @Override
