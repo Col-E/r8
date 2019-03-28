@@ -1064,6 +1064,15 @@ public class TestBase {
     }
   }
 
+  public static Path runtimeJar(TestParameters parameters) {
+    if (parameters.getBackend() == Backend.DEX) {
+      return ToolHelper.getAndroidJar(parameters.getRuntime().asDex().getMinApiLevel());
+    } else {
+      assert parameters.getBackend() == Backend.CF;
+      return ToolHelper.getJava8RuntimeJar();
+    }
+  }
+
   public static Path runtimeJar(Backend backend) {
     if (backend == Backend.DEX) {
       return ToolHelper.getDefaultAndroidJar();

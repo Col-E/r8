@@ -143,6 +143,7 @@ public class ApplyMappingAfterVerticalMergingMethodTest extends TestBase {
         .addProgramClasses(PROGRAM_CLASSES)
         .addApplyMapping(proguardMap)
         .addLibraryClasses(LIBRARY_CLASSES)
+        .addLibraryFiles(runtimeJar(backend))
         .setMinApi(AndroidApiLevel.B)
         .compile();
   }

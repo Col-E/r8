@@ -101,7 +101,7 @@ public class ApplyMappingAfterDevirtualizationTest extends TestBase {
 
   @Ignore("b/126503704")
   @Test
-  public void devirtualizingNoRenamingOfOverridenNotKeptInterfaceMethods() throws Exception {
+  public void devirtualizingNoRenamingOfOverriddenNotKeptInterfaceMethods() throws Exception {
     R8TestCompileResult libraryResult =
         testForR8(backend)
             .addProgramClasses(LIBRARY_CLASSES)
@@ -124,6 +124,7 @@ public class ApplyMappingAfterDevirtualizationTest extends TestBase {
         .addProgramClasses(PROGRAM_CLASSES)
         .addApplyMapping(libraryResult.getProguardMap())
         .addLibraryClasses(LIBRARY_CLASSES)
+        .addLibraryFiles(runtimeJar(backend))
         .compile()
         .addRunClasspathFiles(libraryResult.writeToZip())
         .run(ProgramClass.class)
@@ -132,7 +133,7 @@ public class ApplyMappingAfterDevirtualizationTest extends TestBase {
 
   @Ignore("b/126503704")
   @Test
-  public void devirtualizingNoRenamingOfOverridenKeptInterfaceMethods() throws Exception {
+  public void devirtualizingNoRenamingOfOverriddenKeptInterfaceMethods() throws Exception {
     R8TestCompileResult libraryResult =
         testForR8(backend)
             .addProgramClasses(LIBRARY_CLASSES)
@@ -155,6 +156,7 @@ public class ApplyMappingAfterDevirtualizationTest extends TestBase {
         .addProgramClasses(PROGRAM_CLASSES)
         .addApplyMapping(libraryResult.getProguardMap())
         .addLibraryClasses(LIBRARY_CLASSES)
+        .addLibraryFiles(runtimeJar(backend))
         .compile()
         .addRunClasspathFiles(libraryResult.writeToZip())
         .run(ProgramClass.class)

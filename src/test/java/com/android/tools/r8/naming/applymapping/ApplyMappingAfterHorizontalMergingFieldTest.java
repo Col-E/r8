@@ -107,6 +107,7 @@ public class ApplyMappingAfterHorizontalMergingFieldTest extends TestBase {
         .addProgramClasses(PROGRAM_CLASSES)
         .addApplyMapping(libraryResult.getProguardMap())
         .addLibraryClasses(LIBRARY_CLASSES)
+        .addLibraryFiles(runtimeJar(backend))
         .compile()
         .addRunClasspathFiles(libraryResult.writeToZip())
         .run(ProgramClass.class)

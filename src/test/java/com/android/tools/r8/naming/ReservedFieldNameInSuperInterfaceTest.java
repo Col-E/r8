@@ -6,8 +6,8 @@ package com.android.tools.r8.naming;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
 import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeFalse;
 
 import com.android.tools.r8.R8TestRunResult;
@@ -77,6 +77,7 @@ public class ReservedFieldNameInSuperInterfaceTest extends TestBase {
     testForR8(Backend.DEX)
         .addProgramClasses(TestClass.class, A.class, J.class)
         .addLibraryClasses(I.class)
+        .addLibraryFiles(runtimeJar(Backend.DEX))
         .enableMemberValuePropagationAnnotations()
         .enableMergeAnnotations()
         .addKeepMainRule(TestClass.class)
