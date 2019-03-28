@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.InliningOracle;
+import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
 import java.util.Collection;
 import java.util.List;
@@ -68,6 +69,29 @@ public abstract class InvokeMethod extends Invoke {
       InliningOracle decider,
       DexType invocationContext,
       ClassInitializationAnalysis classInitializationAnalysis);
+
+  @Override
+  public boolean identicalAfterRegisterAllocation(Instruction other, RegisterAllocator allocator) {
+    if (!super.identicalAfterRegisterAllocation(other, allocator)) {
+      return false;
+    }
+
+    if (allocator.options().canHaveIncorrectJoinForArrayOfInterfacesBug()) {
+      InvokeMethod invoke = other.asInvokeMethod();
+
+      // If one of the arguments of this invoke is an array, then make sure that the corresponding
+      // argument of the other invoke is the exact same value. Otherwise, the verifier may
+      // incorrectly join the types of these arrays to Object[].
+      for (int i = 0; i < arguments().size(); ++i) {
+        Value argument = arguments().get(i);
+        if (argument.getTypeLattice().isArrayType() && argument != invoke.arguments().get(i)) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
 
   @Override
   public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {

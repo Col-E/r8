@@ -967,4 +967,13 @@ public class InternalOptions {
   public boolean canHaveArtCheckCastVerifierBug() {
     return minApiLevel < AndroidApiLevel.J.getLevel();
   }
+
+  // The verifier will merge A[] and B[] to Object[], even when both A and B implement an interface
+  // I, i.e., the join should have been I[]. This can lead to verification errors when the value is
+  // used as an I[].
+  //
+  // See b/69826014.
+  public boolean canHaveIncorrectJoinForArrayOfInterfacesBug() {
+    return true;
+  }
 }
