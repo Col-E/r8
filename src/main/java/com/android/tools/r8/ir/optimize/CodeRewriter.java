@@ -1274,6 +1274,17 @@ public class CodeRewriter {
     while (it.hasNext()) {
       Instruction insn = it.next();
 
+      if (insn.isConstNumber()) {
+        continue;
+      }
+
+      if (insn.isConstString()) {
+        if (insn.instructionInstanceCanThrow()) {
+          return null;
+        }
+        continue;
+      }
+
       if (insn.isReturn()) {
         continue;
       }
