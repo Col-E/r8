@@ -72,7 +72,7 @@ public class GetNameInClassInitializerTest extends GetNameTestBase {
             .addKeepRules("-keep class **.GetNameClinit*")
             .minification(enableMinification);
     builder
-        .apply(parameters::setMinApiForRuntime)
+        .setMinApi(parameters.getRuntime())
         .addOptionsModification(this::configure)
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT);
@@ -91,7 +91,7 @@ public class GetNameInClassInitializerTest extends GetNameTestBase {
 
     R8TestRunResult result =
         builder
-            .apply(parameters::setMinApiForRuntime)
+            .setMinApi(parameters.getRuntime())
             .addOptionsModification(this::configure)
             .run(parameters.getRuntime(), MAIN);
     result.assertSuccessWithOutput(

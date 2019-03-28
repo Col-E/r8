@@ -246,7 +246,7 @@ public class StringContentCheckTest extends TestBase {
         testForD8()
             .debug()
             .addProgramClasses(MAIN)
-            .apply(parameters::setMinApiForRuntime)
+            .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 31);
@@ -255,7 +255,7 @@ public class StringContentCheckTest extends TestBase {
         testForD8()
             .release()
             .addProgramClasses(MAIN)
-            .apply(parameters::setMinApiForRuntime)
+            .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 16);
@@ -268,7 +268,7 @@ public class StringContentCheckTest extends TestBase {
             .addProgramClasses(MAIN)
             .enableInliningAnnotations()
             .addKeepMainRule(MAIN)
-            .apply(parameters::setMinApiForRuntime)
+            .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 16);

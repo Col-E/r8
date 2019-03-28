@@ -54,7 +54,7 @@ public class ReflectiveNewInstanceTest extends TestBase {
             .addKeepMainRule(TestClass.class)
             .enableGraphInspector()
             .enableUnusedArgumentAnnotations()
-            .apply(parameters::setMinApiForRuntime)
+            .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput(expectedOutputAfterR8)
             .graphInspector();

@@ -202,7 +202,7 @@ public class StringValueOfTest extends TestBase {
         testForD8()
             .debug()
             .addProgramClassesAndInnerClasses(MAIN)
-            .apply(parameters::setMinApiForRuntime)
+            .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 7, 1, 0);
@@ -211,7 +211,7 @@ public class StringValueOfTest extends TestBase {
         testForD8()
             .release()
             .addProgramClassesAndInnerClasses(MAIN)
-            .apply(parameters::setMinApiForRuntime)
+            .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 5, 1, 1);
@@ -224,7 +224,7 @@ public class StringValueOfTest extends TestBase {
             .addProgramClassesAndInnerClasses(MAIN)
             .enableInliningAnnotations()
             .addKeepMainRule(MAIN)
-            .apply(parameters::setMinApiForRuntime)
+            .setMinApi(parameters.getRuntime())
             .noMinification()
             .addOptionsModification(this::configure)
             .run(parameters.getRuntime(), MAIN)

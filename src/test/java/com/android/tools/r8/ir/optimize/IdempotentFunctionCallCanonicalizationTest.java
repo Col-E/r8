@@ -152,7 +152,7 @@ public class IdempotentFunctionCallCanonicalizationTest extends TestBase {
         testForD8()
             .debug()
             .addProgramClasses(MAIN)
-            .apply(parameters::setMinApiForRuntime)
+            .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, EXPECTED_BOOLEAN_VALUE_OF, EXPECTED_INTEGER_VALUE_OF, EXPECTED_LONG_VALUE_OF);
@@ -161,7 +161,7 @@ public class IdempotentFunctionCallCanonicalizationTest extends TestBase {
         testForD8()
             .release()
             .addProgramClasses(MAIN)
-            .apply(parameters::setMinApiForRuntime)
+            .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, EXPECTED_BOOLEAN_VALUE_OF, EXPECTED_INTEGER_VALUE_OF, EXPECTED_LONG_VALUE_OF);
@@ -174,7 +174,7 @@ public class IdempotentFunctionCallCanonicalizationTest extends TestBase {
             .addProgramClasses(MAIN)
             .enableInliningAnnotations()
             .addKeepMainRule(MAIN)
-            .apply(parameters::setMinApiForRuntime)
+            .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     int expectedBooleanValueOfCount =

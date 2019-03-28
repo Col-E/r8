@@ -184,7 +184,7 @@ public class StringInMonitorTest extends TestBase {
         testForD8()
             .debug()
             .addProgramClasses(MAIN)
-            .apply(parameters::setMinApiForRuntime)
+            .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 2, 2, 1);
@@ -193,7 +193,7 @@ public class StringInMonitorTest extends TestBase {
         testForD8()
             .release()
             .addProgramClasses(MAIN)
-            .apply(parameters::setMinApiForRuntime)
+            .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 2, 2, 1);
@@ -206,7 +206,7 @@ public class StringInMonitorTest extends TestBase {
             .addProgramClasses(MAIN)
             .enableInliningAnnotations()
             .addKeepMainRule(MAIN)
-            .apply(parameters::setMinApiForRuntime)
+            .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     // Due to the different behavior regarding constant canonicalization.

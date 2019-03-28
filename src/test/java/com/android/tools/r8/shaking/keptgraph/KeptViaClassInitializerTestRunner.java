@@ -94,10 +94,10 @@ public class KeptViaClassInitializerTestRunner extends TestBase {
             .enableInliningAnnotations()
             .addProgramClassesAndInnerClasses(Main.class, A.class, T.class)
             .addKeepMethodRules(mainMethod)
+            .setMinApi(AndroidApiLevel.N)
             .apply(
                 b -> {
                   if (backend == Backend.DEX) {
-                    b.setMinApi(AndroidApiLevel.N);
                     b.addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.N));
                   }
                 })

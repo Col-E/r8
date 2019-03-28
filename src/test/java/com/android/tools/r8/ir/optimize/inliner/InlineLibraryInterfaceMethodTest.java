@@ -45,7 +45,7 @@ public class InlineLibraryInterfaceMethodTest extends TestBase {
     testForR8(Backend.DEX)
         .addInnerClasses(InlineLibraryInterfaceMethodTest.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(testRuntime.asDex().getMinApiLevel())
+        .setMinApi(testRuntime)
         .noMinification()
         .run(testRuntime, TestClass.class)
         .assertSuccess()

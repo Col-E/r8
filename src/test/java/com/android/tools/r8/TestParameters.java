@@ -38,10 +38,4 @@ public class TestParameters {
   public String toString() {
     return runtime.toString();
   }
-
-  public void setMinApiForRuntime(TestCompilerBuilder<?, ?, ?, ?, ?> builder) {
-    if (runtime.isDex()) {
-      builder.setMinApi(runtime.asDex().getMinApiLevel());
-    }
-  }
 }

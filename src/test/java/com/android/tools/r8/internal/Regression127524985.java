@@ -52,7 +52,7 @@ public class Regression127524985 extends TestBase {
                 .addKeepAllAttributes()
                 .addKeepRules("-dontwarn *"))
         .addProgramFiles(JAR)
-        .apply(parameters::setMinApiForRuntime)
+        .setMinApi(parameters.getRuntime())
         .compile()
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(EXPECTED);

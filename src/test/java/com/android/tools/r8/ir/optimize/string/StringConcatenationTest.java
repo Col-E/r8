@@ -124,7 +124,7 @@ public class StringConcatenationTest extends TestBase {
         testForD8()
             .debug()
             .addProgramClasses(MAIN)
-            .apply(parameters::setMinApiForRuntime)
+            .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 3, 4);
@@ -133,7 +133,7 @@ public class StringConcatenationTest extends TestBase {
         testForD8()
             .release()
             .addProgramClasses(MAIN)
-            .apply(parameters::setMinApiForRuntime)
+            .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     // TODO(b/114002137): could be 1 and 3.
@@ -147,7 +147,7 @@ public class StringConcatenationTest extends TestBase {
             .addProgramClasses(MAIN)
             .enableInliningAnnotations()
             .addKeepMainRule(MAIN)
-            .apply(parameters::setMinApiForRuntime)
+            .setMinApi(parameters.getRuntime())
             .noMinification()
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);

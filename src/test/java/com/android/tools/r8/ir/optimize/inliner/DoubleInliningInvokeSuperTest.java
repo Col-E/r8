@@ -40,7 +40,7 @@ public class DoubleInliningInvokeSuperTest extends TestBase {
         .enableClassInliningAnnotations()
         .enableInliningAnnotations()
         .enableMergeAnnotations()
-        .apply(parameters::setMinApiForRuntime)
+        .setMinApi(parameters.getRuntime())
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);
   }

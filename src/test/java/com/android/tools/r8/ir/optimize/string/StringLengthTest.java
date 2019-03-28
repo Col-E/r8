@@ -154,7 +154,7 @@ public class StringLengthTest extends TestBase {
         testForD8()
             .release()
             .addProgramClasses(MAIN)
-            .apply(parameters::setMinApiForRuntime)
+            .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), MAIN);
     // TODO(b/119097175)
     if (!ToolHelper.isWindows()) {
@@ -166,7 +166,7 @@ public class StringLengthTest extends TestBase {
         testForD8()
             .debug()
             .addProgramClasses(MAIN)
-            .apply(parameters::setMinApiForRuntime)
+            .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), MAIN);
     // TODO(b/119097175)
     if (!ToolHelper.isWindows()) {
@@ -182,7 +182,7 @@ public class StringLengthTest extends TestBase {
             .addProgramClasses(MAIN)
             .enableInliningAnnotations()
             .addKeepMainRule(MAIN)
-            .apply(parameters::setMinApiForRuntime)
+            .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), MAIN);
     // TODO(b/119097175)
     if (!ToolHelper.isWindows()) {

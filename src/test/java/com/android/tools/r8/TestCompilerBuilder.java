@@ -128,6 +128,13 @@ public abstract class TestCompilerBuilder<
     return setMinApi(minApi);
   }
 
+  public T setMinApiThreshold(TestRuntime runtime) {
+    if (runtime.isDex()) {
+      setMinApiThreshold(runtime.asDex().getMinApiLevel());
+    }
+    return self();
+  }
+
   public T setMinApi(AndroidApiLevel minApiLevel) {
     if (backend == Backend.DEX) {
       this.defaultMinApiLevel = null;
@@ -138,7 +145,7 @@ public abstract class TestCompilerBuilder<
 
   public T setMinApi(TestRuntime runtime) {
     if (runtime.isDex()) {
-      setMinApi(ToolHelper.getMinApiLevelForDexVm(runtime.asDex().getVm()));
+      setMinApi(runtime.asDex().getMinApiLevel());
     }
     return self();
   }

@@ -58,7 +58,7 @@ public class KeepDeserializeLambdaMethodTestRunner extends TestBase {
         testForR8Compat(parameters.getBackend())
             .addProgramClasses(
                 com.android.tools.r8.cf.KeepDeserializeLambdaMethodTest.class, testClass)
-            .apply(parameters::setMinApiForRuntime)
+            .setMinApi(parameters.getRuntime())
             .addKeepMainRule(testClass)
             .noMinification();
     if (keepRule) {

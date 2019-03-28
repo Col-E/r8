@@ -192,7 +192,7 @@ public class GetSimpleNameTest extends GetNameTestBase {
         testForD8()
             .debug()
             .addProgramFiles(classPaths)
-            .apply(parameters::setMinApiForRuntime)
+            .setMinApi(parameters.getRuntime())
             .addOptionsModification(this::configure)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
@@ -202,7 +202,7 @@ public class GetSimpleNameTest extends GetNameTestBase {
         testForD8()
             .release()
             .addProgramFiles(classPaths)
-            .apply(parameters::setMinApiForRuntime)
+            .setMinApi(parameters.getRuntime())
             .addOptionsModification(this::configure)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
@@ -222,7 +222,7 @@ public class GetSimpleNameTest extends GetNameTestBase {
             .addKeepRules("-keepattributes InnerClasses,EnclosingMethod")
             .addKeepRules("-printmapping " + createNewMappingPath().toAbsolutePath().toString())
             .minification(enableMinification)
-            .apply(parameters::setMinApiForRuntime)
+            .setMinApi(parameters.getRuntime())
             .addOptionsModification(this::configure)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
@@ -245,7 +245,7 @@ public class GetSimpleNameTest extends GetNameTestBase {
             .addKeepRules("-keepattributes InnerClasses,EnclosingMethod")
             .addKeepRules("-printmapping " + createNewMappingPath().toAbsolutePath().toString())
             .minification(enableMinification)
-            .apply(parameters::setMinApiForRuntime)
+            .setMinApi(parameters.getRuntime())
             .addOptionsModification(this::configure)
             .run(parameters.getRuntime(), MAIN);
     if (enableMinification) {

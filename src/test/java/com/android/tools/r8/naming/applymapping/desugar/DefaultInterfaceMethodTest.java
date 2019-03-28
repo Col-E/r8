@@ -67,7 +67,7 @@ public class DefaultInterfaceMethodTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(LibraryInterface.class, ProgramClass.class)
         .addKeepMainRule(ProgramClass.class)
-        .apply(parameters::setMinApiForRuntime)
+        .setMinApi(parameters.getRuntime())
         .run(parameters.getRuntime(), ProgramClass.class)
         .assertSuccessWithOutput(EXPECTED);
   }
@@ -79,7 +79,7 @@ public class DefaultInterfaceMethodTest extends TestBase {
         testForR8(parameters.getBackend())
             .addProgramClasses(LibraryInterface.class)
             .addKeepRules(ruleContent)
-            .apply(parameters::setMinApiForRuntime)
+            .setMinApi(parameters.getRuntime())
             .compile();
     CodeInspector inspector = libraryResult.inspector();
     assertTrue(inspector.clazz(LibraryInterface.class).isPresent());
@@ -99,7 +99,7 @@ public class DefaultInterfaceMethodTest extends TestBase {
         .addProgramClasses(ProgramClass.class)
         .addClasspathClasses(LibraryInterface.class)
         .addApplyMapping(libraryResult.getProguardMap())
-        .apply(parameters::setMinApiForRuntime)
+        .setMinApi(parameters.getRuntime())
         .compile()
         .addRunClasspathFiles(libraryResult.writeToZip())
         .run(parameters.getRuntime(), ProgramClass.class)

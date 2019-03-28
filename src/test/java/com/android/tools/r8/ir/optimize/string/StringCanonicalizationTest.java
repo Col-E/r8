@@ -209,7 +209,7 @@ public class StringCanonicalizationTest extends TestBase {
         testForD8()
             .release()
             .addProgramClassesAndInnerClasses(MAIN)
-            .apply(parameters::setMinApiForRuntime)
+            .setMinApi(parameters.getRuntime())
             .compile();
     test(result, 1, 1, 1, 1, 1);
 
@@ -217,7 +217,7 @@ public class StringCanonicalizationTest extends TestBase {
         testForD8()
             .debug()
             .addProgramClassesAndInnerClasses(MAIN)
-            .apply(parameters::setMinApiForRuntime)
+            .setMinApi(parameters.getRuntime())
             .compile();
     test(result, 2, 1, 1, 1, 1);
   }
@@ -230,7 +230,7 @@ public class StringCanonicalizationTest extends TestBase {
             .enableProguardTestOptions()
             .enableInliningAnnotations()
             .addKeepMainRule(MessageLoader.class)
-            .apply(parameters::setMinApiForRuntime)
+            .setMinApi(parameters.getRuntime())
             .compile();
     test(result, 1, 1, 1, 1, 1);
   }
