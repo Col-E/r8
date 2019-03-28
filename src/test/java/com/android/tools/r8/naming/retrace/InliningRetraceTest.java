@@ -12,8 +12,10 @@ import static org.junit.Assert.assertThat;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
+import java.util.Collections;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -24,7 +26,9 @@ public class InliningRetraceTest extends RetraceTestBase {
 
   @Parameters(name = "Backend: {0}, mode: {1}")
   public static Collection<Object[]> data() {
-    return buildParameters(ToolHelper.getBackends(), CompilationMode.values());
+    return ToolHelper.getDexVm().getVersion() == Version.V5_1_1
+        ? Collections.emptyList()
+        : buildParameters(ToolHelper.getBackends(), CompilationMode.values());
   }
 
   public InliningRetraceTest(Backend backend, CompilationMode mode) {
