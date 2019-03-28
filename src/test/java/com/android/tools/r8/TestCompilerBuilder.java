@@ -193,6 +193,18 @@ public abstract class TestCompilerBuilder<
     return super.addLibraryFiles(files);
   }
 
+  @Override
+  public T addLibraryClasses(Collection<Class<?>> classes) {
+    defaultLibrary = null;
+    return super.addLibraryClasses(classes);
+  }
+
+  @Override
+  public T addLibraryProvider(ClassFileResourceProvider provider) {
+    defaultLibrary = null;
+    return super.addLibraryProvider(provider);
+  }
+
   public T addClasspathClasses(Class<?>... classes) {
     return addClasspathClasses(Arrays.asList(classes));
   }

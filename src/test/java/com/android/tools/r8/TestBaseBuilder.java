@@ -50,6 +50,11 @@ public abstract class TestBaseBuilder<
     return self();
   }
 
+  public T addLibraryProvider(ClassFileResourceProvider provider) {
+    builder.addLibraryResourceProvider(provider);
+    return self();
+  }
+
   @Override
   public T addLibraryFiles(Collection<Path> files) {
     builder.addLibraryFiles(files);
@@ -58,7 +63,7 @@ public abstract class TestBaseBuilder<
 
   @Override
   public T addLibraryClasses(Collection<Class<?>> classes) {
-    builder.addLibraryResourceProvider(
+    addLibraryProvider(
         new ClassFileResourceProvider() {
           final Map<String, ProgramResource> resources;
 
