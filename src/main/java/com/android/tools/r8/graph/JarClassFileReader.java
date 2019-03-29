@@ -296,6 +296,12 @@ public class JarClassFileReader {
     @Override
     public MethodVisitor visitMethod(
         int access, String name, String desc, String signature, String[] exceptions) {
+      if (classKind == ClassKind.LIBRARY) {
+        MethodAccessFlags flags = createMethodAccessFlags(name, access);
+        if (flags.isStatic() && flags.isConstructor()) {
+          return null;
+        }
+      }
       return new CreateMethodVisitor(access, name, desc, signature, exceptions, this);
     }
 

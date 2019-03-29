@@ -187,9 +187,11 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
     if (encodedMethod.accessFlags.isPrivate() != doPrivates) {
       return;
     }
+    if (encodedMethod.accessFlags.isConstructor()) {
+      return;
+    }
     DexMethod method = encodedMethod.method;
-    if (!state.isReserved(method.name, method.proto)
-        && !encodedMethod.accessFlags.isConstructor()) {
+    if (!state.isReserved(method.name, method.proto)) {
       DexString renamedName =
           renamingAtThisLevel.computeIfAbsent(
               equivalence.wrap(method),
@@ -249,7 +251,9 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
         for (DexEncodedMethod method : shuffleMethods(holder.methods(), appView.options())) {
           // TODO(christofferqa): Wouldn't it be sufficient only to reserve names for non-private
           //  methods?
-          if (keepAll || rootSet.noObfuscation.contains(method.method)) {
+          if (keepAll
+              || method.accessFlags.isConstructor()
+              || rootSet.noObfuscation.contains(method.method)) {
             reserveNamesForMethod(method.method, state);
           }
         }

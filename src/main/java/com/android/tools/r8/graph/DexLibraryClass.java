@@ -10,6 +10,7 @@ import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.kotlin.KotlinInfo;
 import com.android.tools.r8.origin.Origin;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -46,6 +47,7 @@ public class DexLibraryClass extends DexClass implements Supplier<DexLibraryClas
         annotations,
         origin,
         skipNameValidationForTesting);
+    assert Arrays.stream(directMethods).noneMatch(DexEncodedMethod::isClassInitializer);
     // Set all static field values to unknown. We don't want to use the value from the library
     // at compile time, as it can be different at runtime.
     for (DexEncodedField staticField : staticFields) {

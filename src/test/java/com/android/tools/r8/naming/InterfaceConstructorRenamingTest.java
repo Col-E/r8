@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ArchiveClassFileProvider;
@@ -73,8 +74,7 @@ public class InterfaceConstructorRenamingTest extends TestBase {
                     Collections.emptyList(),
                     null));
     assertTrue(clinit.isPresent());
-    // TODO(b/129455984): Assert false. <clinit> should never be renamed!
-    assertTrue(clinit.isRenamed());
+    assertFalse(clinit.isRenamed());
     return compileResult;
   }
 
@@ -86,11 +86,9 @@ public class InterfaceConstructorRenamingTest extends TestBase {
 
   @Test
   public void test() throws Throwable {
-    R8TestCompileResult compileResult = compile(parameters.getBackend());
-    // TODO(b/129455984): Run once fixed!
-    if (false) {
-      compileResult.run(parameters.getRuntime(), TestClass.class).assertSuccessWithOutput(EXPECTED);
-    }
+    compile(parameters.getBackend())
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   public interface TestInterface {
