@@ -4,7 +4,10 @@
 
 package com.android.tools.r8.dexfilemerger;
 
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8;
@@ -13,6 +16,7 @@ import com.android.tools.r8.DexFileMergerHelper;
 import com.android.tools.r8.ExtractMarker;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.ResourceException;
+import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.dex.Constants;
@@ -26,18 +30,14 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.concurrent.ExecutionException;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
-public class DexFileMergerTests {
+public class DexFileMergerTests extends TestBase {
 
   private static final String CLASS_DIR = ToolHelper.EXAMPLES_BUILD_DIR + "classes/dexmergesample";
   private static final String CLASS1_CLASS = CLASS_DIR + "/Class1.class";
   private static final String CLASS2_CLASS = CLASS_DIR + "/Class2.class";
   private static final int MAX_METHOD_COUNT = Constants.U16BIT_MAX;
-
-  @Rule public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
   private Path createMergerInputWithTwoClasses(OutputMode outputMode, boolean addMarker)
       throws CompilationFailedException, IOException {
@@ -128,11 +128,16 @@ public class DexFileMergerTests {
         });
   }
 
-  @Test(expected = CompilationFailedException.class)
-  public void failIfTooBig() throws IOException, ExecutionException, CompilationFailedException {
+  @Test
+  public void failIfTooBig() throws IOException, ExecutionException {
     // Generates an application with two classes, each with the number of methods just enough not to
     // fit into a single dex file.
-    generateClassesAndTest(1, 2);
+    try {
+      generateClassesAndTest(1, 2);
+      fail("Expect to fail");
+    } catch (CompilationFailedException e) {
+      assertThat(e.getCause().getMessage(), containsString("does not fit into a single dex file"));
+    }
   }
 
   @Test

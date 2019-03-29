@@ -522,7 +522,8 @@ public class FileWriter {
   }
 
   private void writeAnnotationSet(DexAnnotationSet set) {
-    assert PresortedComparable.isSorted(set.annotations, (item) -> item.annotation.type);
+    assert PresortedComparable.isSorted(set.annotations, (item) -> item.annotation.type)
+        : "Unsorted annotation set: " + set.toSourceString();
     mixedSectionOffsets.setOffsetFor(set, dest.align(4));
     if (Log.ENABLED) {
       Log.verbose(getClass(), "Writing AnnotationSet @ 0x%08x.", dest.position());

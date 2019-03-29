@@ -14,7 +14,7 @@ public class DexAnnotationSet extends CachedHashValueDexItem {
 
   private static final int UNSORTED = 0;
   private static final DexAnnotationSet THE_EMPTY_ANNOTATIONS_SET =
-      new DexAnnotationSet(new DexAnnotation[0]);
+      new DexAnnotationSet(DexAnnotation.EMPTY_ARRAY);
 
   public final DexAnnotation[] annotations;
   private int sorted = UNSORTED;
@@ -135,5 +135,10 @@ public class DexAnnotationSet extends CachedHashValueDexItem {
       return DexAnnotationSet.empty();
     }
     return new DexAnnotationSet(rewritten);
+  }
+
+  @Override
+  public String toString() {
+    return Arrays.toString(annotations);
   }
 }

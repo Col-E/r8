@@ -4,8 +4,11 @@
 
 package com.android.tools.r8.maindexlist;
 
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DexIndexedConsumer;
@@ -25,9 +28,7 @@ import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.stream.Collectors;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class MainDexListOutputTest extends TestBase {
 
@@ -70,10 +71,7 @@ public class MainDexListOutputTest extends TestBase {
     }
   }
 
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
-
-  @Test(expected = CompilationFailedException.class)
+  @Test
   public void testNoMainDex() throws Exception {
     Reporter reporter = new Reporter();
     try {
@@ -84,9 +82,12 @@ public class MainDexListOutputTest extends TestBase {
               ToolHelper.getClassAsBytes(HelloWorldMain.class), Origin.unknown())
           .setMainDexListOutputPath(mainDexListOutput)
           .build();
+      fail("Expect to fail");
     } catch (CompilationFailedException e) {
       assertEquals(1, reporter.errorCount);
-      throw e;
+      assertThat(
+          e.getCause().getMessage(),
+          containsString("--main-dex-list-output require --main-dex-rules and/or --main-dex-list"));
     }
   }
 
