@@ -9,6 +9,8 @@ import com.android.tools.r8.code.FillArrayDataPayload;
 import com.android.tools.r8.code.FilledNewArray;
 import com.android.tools.r8.code.FilledNewArrayRange;
 import com.android.tools.r8.code.Instruction;
+import com.android.tools.r8.code.InvokeCustom;
+import com.android.tools.r8.code.InvokeCustomRange;
 import com.android.tools.r8.code.InvokeDirect;
 import com.android.tools.r8.code.InvokeDirectRange;
 import com.android.tools.r8.code.InvokeInterface;
@@ -330,7 +332,9 @@ public class DexSourceCode implements SourceCode {
   }
 
   private boolean isInvoke(Instruction dex) {
-    return dex instanceof InvokeDirect
+    return dex instanceof InvokeCustom
+        || dex instanceof InvokeCustomRange
+        || dex instanceof InvokeDirect
         || dex instanceof InvokeDirectRange
         || dex instanceof InvokeVirtual
         || dex instanceof InvokeVirtualRange
