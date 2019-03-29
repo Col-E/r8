@@ -8,7 +8,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertThat;
 
-import com.android.tools.r8.R8TestBuilder;
+import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -46,10 +46,11 @@ public class MockitoTest extends TestBase {
   @Test
   public void b120675359_devirtualized() throws Exception {
     Path flagToKeepTestRunner = Paths.get(ToolHelper.EXAMPLES_DIR, M_I_PKG, "keep-rules.txt");
-    R8TestBuilder builder = testForR8(backend)
-        .addProgramFiles(MOCKITO_INTERFACE_JAR)
-        .addKeepRuleFiles(flagToKeepTestRunner)
-        .minification(minify);
+    R8FullTestBuilder builder =
+        testForR8(backend)
+            .addProgramFiles(MOCKITO_INTERFACE_JAR)
+            .addKeepRuleFiles(flagToKeepTestRunner)
+            .minification(minify);
     CodeInspector inspector = builder.compile().inspector();
     ClassSubject itf = inspector.clazz(M_I);
     assertThat(itf, isPresent());
@@ -61,10 +62,11 @@ public class MockitoTest extends TestBase {
   public void b120675359_conditional_keep() throws Exception {
     Path flagToKeepInterfaceConditionally =
         Paths.get(ToolHelper.EXAMPLES_DIR, M_I_PKG, "keep-rules-conditional-on-mock.txt");
-    R8TestBuilder builder = testForR8(backend)
-        .addProgramFiles(MOCKITO_INTERFACE_JAR)
-        .addKeepRuleFiles(flagToKeepInterfaceConditionally)
-        .minification(minify);
+    R8FullTestBuilder builder =
+        testForR8(backend)
+            .addProgramFiles(MOCKITO_INTERFACE_JAR)
+            .addKeepRuleFiles(flagToKeepInterfaceConditionally)
+            .minification(minify);
     CodeInspector inspector = builder.compile().inspector();
     ClassSubject itf = inspector.clazz(M_I);
     assertThat(itf, isPresent());

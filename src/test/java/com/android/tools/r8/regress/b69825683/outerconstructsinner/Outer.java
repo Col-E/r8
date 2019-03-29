@@ -4,16 +4,19 @@
 
 package com.android.tools.r8.regress.b69825683.outerconstructsinner;
 
+import com.android.tools.r8.AssumeMayHaveSideEffects;
+
 public class Outer {
 
+  @AssumeMayHaveSideEffects
   public Outer() {
     new Inner();
   }
 
   public class Inner {
 
-    private Inner() {
-    }
+    @AssumeMayHaveSideEffects
+    private Inner() {}
   }
 
   public static void main(String args[]) {

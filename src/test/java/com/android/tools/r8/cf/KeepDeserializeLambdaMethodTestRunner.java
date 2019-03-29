@@ -8,7 +8,7 @@ import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.R8TestBuilder;
+import com.android.tools.r8.R8CompatTestBuilder;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -54,7 +54,7 @@ public class KeepDeserializeLambdaMethodTestRunner extends TestBase {
   private void test(boolean keepRule)
       throws IOException, CompilationFailedException, ExecutionException {
     Class testClass = parameters.isCfRuntime() ? TEST_CLASS_CF : TEST_CLASS_DEX;
-    R8TestBuilder builder =
+    R8CompatTestBuilder builder =
         testForR8Compat(parameters.getBackend())
             .addProgramClasses(
                 com.android.tools.r8.cf.KeepDeserializeLambdaMethodTest.class, testClass)

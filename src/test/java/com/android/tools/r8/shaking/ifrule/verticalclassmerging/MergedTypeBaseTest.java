@@ -98,6 +98,7 @@ public abstract class MergedTypeBaseTest extends TestBase {
             getAdditionalKeepRules())
         .addOptionsModification(this::configure)
         .enableClassInliningAnnotations()
+        .enableSideEffectAnnotations()
         .run(getTestClass())
         .assertSuccessWithOutput(expected)
         .inspect(this::inspect);

@@ -155,6 +155,7 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
             .addProgramFiles(ToolHelper.getClassFilesForTestPackage(mainClass.getPackage()))
             .addOptionsModification(o -> o.enableVerticalClassMerging = enableVerticalClassMerging)
             .enableInliningAnnotations()
+            .enableMemberValuePropagationAnnotations()
             .noMinification()
             .addKeepRules(
                 "-keep class " + mainClass.getCanonicalName() + "{",
@@ -173,9 +174,8 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
                 "  *** p*();",
                 "}",
                 "",
-                "-allowaccessmodification"
-            )
-        .run(mainClass);
+                "-allowaccessmodification")
+            .run(mainClass);
 
     assertEquals(
         expectedOutput,

@@ -302,9 +302,10 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
           ClassSubject outerClass =
               checkClassIsKept(codeInspector, testedClass.getOuterClassName());
           ClassSubject companionClass = checkClassIsKept(codeInspector, testedClass.getClassName());
+
+          // Property field has been removed due to member value propagation.
           String propertyName = "property";
-          FieldSubject fieldSubject = checkFieldIsKept(outerClass, JAVA_LANG_STRING, propertyName);
-          assertTrue(fieldSubject.getField().accessFlags.isStatic());
+          checkFieldIsRemoved(outerClass, JAVA_LANG_STRING, propertyName);
 
           // The getter is always inlined since it just calls into the accessor.
           MemberNaming.MethodSignature getter = testedClass.getGetterForProperty(propertyName);
@@ -312,11 +313,6 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
 
           MemberNaming.MethodSignature getterAccessor =
               testedClass.getGetterAccessorForProperty(propertyName, AccessorKind.FROM_COMPANION);
-          if (allowAccessModification) {
-            assertTrue(fieldSubject.getField().accessFlags.isPublic());
-          } else {
-            assertTrue(fieldSubject.getField().accessFlags.isPrivate());
-          }
           checkMethodIsKept(outerClass, getterAccessor);
         });
   }
@@ -354,23 +350,18 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void testAccessorForInnerClassIsRemovedWhenNotUsed() throws Exception {
-    TestKotlinClass testedClass = PROPERTY_ACCESS_FOR_INNER_CLASS;
-    String mainClass = addMainToClasspath(testedClass.className + "Kt",
-        "noUseOfPropertyAccessorFromInnerClass");
-    runTest("accessors", mainClass, (app) -> {
-      CodeInspector codeInspector = new CodeInspector(app);
-      ClassSubject classSubject = checkClassIsKept(codeInspector, testedClass.getClassName());
+    String mainClass =
+        addMainToClasspath(
+            "accessors.PropertyAccessorForInnerClassKt", "noUseOfPropertyAccessorFromInnerClass");
+    runTest(
+        "accessors",
+        mainClass,
+        (app) -> {
+          CodeInspector codeInspector = new CodeInspector(app);
 
-      for (String propertyName : testedClass.properties.keySet()) {
-        MemberNaming.MethodSignature getterAccessor =
-            testedClass.getGetterAccessorForProperty(propertyName, AccessorKind.FROM_INNER);
-        MemberNaming.MethodSignature setterAccessor =
-            testedClass.getSetterAccessorForProperty(propertyName, AccessorKind.FROM_INNER);
-
-        checkMethodIsRemoved(classSubject, getterAccessor);
-        checkMethodIsRemoved(classSubject, setterAccessor);
-      }
-    });
+          // Class is removed because the instantiation of the inner class has no side effects.
+          checkClassIsRemoved(codeInspector, PROPERTY_ACCESS_FOR_INNER_CLASS.getClassName());
+        });
   }
 
   @Test

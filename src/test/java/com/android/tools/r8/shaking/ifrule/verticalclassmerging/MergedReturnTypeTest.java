@@ -10,6 +10,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
 
+import com.android.tools.r8.AssumeMayHaveSideEffects;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
@@ -25,6 +26,7 @@ public class MergedReturnTypeTest extends MergedTypeBaseTest {
       System.out.print(method().getClass().getName());
     }
 
+    @AssumeMayHaveSideEffects
     public static A method() {
       return new B();
     }
@@ -53,6 +55,7 @@ public class MergedReturnTypeTest extends MergedTypeBaseTest {
 
     static class SuperTestClass {
 
+      @AssumeMayHaveSideEffects
       public static A method() {
         return new B();
       }

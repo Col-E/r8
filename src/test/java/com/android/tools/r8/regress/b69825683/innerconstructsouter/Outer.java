@@ -4,18 +4,22 @@
 
 package com.android.tools.r8.regress.b69825683.innerconstructsouter;
 
+import com.android.tools.r8.NeverInline;
+
 public class Outer {
 
   private Outer() {
   }
 
   public static class Inner {
+
+    @NeverInline
     public Outer build() {
       return new Outer();
     }
   }
 
-  public static void main(String args[]) {
+  public static void main(String[] args) {
     Inner builder = new Inner();
     builder.build();
     for (java.lang.reflect.Constructor m : Outer.class.getDeclaredConstructors()) {

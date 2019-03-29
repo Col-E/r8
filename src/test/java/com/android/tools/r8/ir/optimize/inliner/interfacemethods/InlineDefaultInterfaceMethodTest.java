@@ -32,7 +32,7 @@ public class InlineDefaultInterfaceMethodTest extends TestBase {
             .setMinApi(AndroidApiLevel.M)
             .enableClassInliningAnnotations()
             .enableMergeAnnotations()
-            .minification(false)
+            .noMinification()
             .run(TestClass.class)
             .assertSuccessWithOutput(expectedOutput)
             .inspector();

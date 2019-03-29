@@ -31,7 +31,7 @@ public class StaticFieldPropagationTest extends TestBase {
             .addProgramClasses(TestClass.class, Log.class)
             .addKeepMainRule(TestClass.class)
             .enableInliningAnnotations()
-            .minification(false)
+            .noMinification()
             .run(TestClass.class)
             .assertSuccessWithOutput(expectedOutput);
 

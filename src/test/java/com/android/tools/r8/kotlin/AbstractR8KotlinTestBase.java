@@ -6,10 +6,10 @@ package com.android.tools.r8.kotlin;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -121,6 +121,13 @@ public abstract class AbstractR8KotlinTestBase extends KotlinTestBase {
     return classSubject;
   }
 
+  protected void checkClassIsRemoved(CodeInspector inspector, String className) {
+    checkClassExistsInInput(className);
+    ClassSubject classSubject = inspector.clazz(className);
+    assertNotNull(classSubject);
+    assertThat(classSubject, not(isPresent()));
+  }
+
   protected FieldSubject checkFieldIsKept(
       ClassSubject classSubject, String fieldType, String fieldName) {
     // Field must exist in the input.
@@ -135,6 +142,15 @@ public abstract class AbstractR8KotlinTestBase extends KotlinTestBase {
     FieldSubject fieldSubject = classSubject.uniqueFieldWithName(fieldName);
     assertThat(fieldSubject, isPresent());
     return fieldSubject;
+  }
+
+  protected void checkFieldIsRemoved(
+      ClassSubject classSubject, String fieldType, String fieldName) {
+    // Field must exist in the input.
+    checkFieldPresenceInInput(classSubject.getOriginalName(), fieldType, fieldName, true);
+    FieldSubject fieldSubject = classSubject.field(fieldType, fieldName);
+    assertNotNull(fieldSubject);
+    assertThat(fieldSubject, not(isPresent()));
   }
 
   protected void checkFieldIsAbsent(ClassSubject classSubject, String fieldType, String fieldName) {

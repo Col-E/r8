@@ -5,8 +5,8 @@
 package com.android.tools.r8.smali;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.code.Const4;
@@ -26,11 +26,9 @@ import com.android.tools.r8.code.Return;
 import com.android.tools.r8.code.ReturnObject;
 import com.android.tools.r8.code.ReturnVoid;
 import com.android.tools.r8.code.ReturnWide;
-import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
@@ -39,42 +37,46 @@ import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 import org.junit.Assert;
 import org.junit.Test;
 
 public class OutlineTest extends SmaliTestBase {
 
-  private Consumer<InternalOptions> configureOptions(Consumer<OutlineOptions> optionsConsumer) {
+  private static final String stringBuilderAppendSignature =
+      "Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;";
+  private static final String stringBuilderAppendDoubleSignature =
+      "Ljava/lang/StringBuilder;->append(D)Ljava/lang/StringBuilder;";
+  private static final String stringBuilderAppendIntSignature =
+      "Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;";
+  private static final String stringBuilderAppendLongSignature =
+      "Ljava/lang/StringBuilder;->append(J)Ljava/lang/StringBuilder;";
+  private static final String stringBuilderToStringSignature =
+      "Ljava/lang/StringBuilder;->toString()Ljava/lang/String;";
+
+  private Consumer<InternalOptions> configureOptions(Consumer<InternalOptions> optionsConsumer) {
+    return options -> {
+      // Disable inlining to make sure that code looks as expected.
+      options.enableInlining = false;
+      // Also apply outline options.
+      optionsConsumer.accept(options);
+    };
+  }
+
+  private Consumer<InternalOptions> configureOutlineOptions(
+      Consumer<OutlineOptions> optionsConsumer) {
     return options -> {
       // Disable inlining to make sure that code looks as expected.
       options.enableInlining = false;
       // Also apply outline options.
       optionsConsumer.accept(options.outline);
     };
-  }
-
-  DexEncodedMethod getInvokedMethod(DexApplication application, InvokeStatic invoke) {
-    CodeInspector inspector = new CodeInspector(application);
-    ClassSubject clazz = inspector.clazz(invoke.getMethod().holder.toSourceString());
-    assertTrue(clazz.isPresent());
-    DexMethod invokedMethod = invoke.getMethod();
-    invokedMethod.proto.returnType.toSourceString();
-    MethodSubject method = clazz.method(
-        invokedMethod.proto.returnType.toSourceString(),
-        invokedMethod.name.toString(),
-        Arrays.stream(invokedMethod.proto.parameters.values)
-            .map(DexType::toSourceString)
-            .collect(Collectors.toList()));
-    assertTrue(method.isPresent());
-    return method.getMethod();
   }
 
   private String firstOutlineMethodName() {
@@ -92,44 +94,46 @@ public class OutlineTest extends SmaliTestBase {
 
     String returnType = "java.lang.String";
     List<String> parameters = Collections.singletonList("java.lang.StringBuilder");
-    MethodSignature signature = builder.addStaticMethod(
-        returnType,
-        DEFAULT_METHOD_NAME,
-        parameters,
-        2,
-        "    move-object         v0, p0",
-        "    const-string        v1, \"Test\"",
-        "    invoke-virtual      { v0, v1 }, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;",
-        "    move-result-object  v0",
-        "    invoke-virtual      { v0, v1 }, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;",
-        "    move-result-object  v0",
-        "    invoke-virtual      { v0, v1 }, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;",
-        "    move-result-object  v0",
-        "    invoke-virtual      { v0, v1 }, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;",
-        "    move-result-object  v0",
-        "    invoke-virtual      { v0 }, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;",
-        "    move-result-object  v0",
-        "    return-object       v0"
-    );
+    MethodSignature signature =
+        builder.addStaticMethod(
+            returnType,
+            DEFAULT_METHOD_NAME,
+            parameters,
+            2,
+            "    move-object         v0, p0",
+            "    const-string        v1, \"Test\"",
+            "    invoke-virtual      { v0, v1 }, " + stringBuilderAppendSignature,
+            "    move-result-object  v0",
+            "    invoke-virtual      { v0, v1 }, " + stringBuilderAppendSignature,
+            "    move-result-object  v0",
+            "    invoke-virtual      { v0, v1 }, " + stringBuilderAppendSignature,
+            "    move-result-object  v0",
+            "    invoke-virtual      { v0, v1 }, " + stringBuilderAppendSignature,
+            "    move-result-object  v0",
+            "    invoke-virtual      { v0 }, " + stringBuilderToStringSignature,
+            "    move-result-object  v0",
+            "    return-object       v0");
 
     builder.addMainMethod(
         2,
         "    sget-object         v0, Ljava/lang/System;->out:Ljava/io/PrintStream;",
         "    new-instance        v1, Ljava/lang/StringBuilder;",
         "    invoke-direct       { v1 }, Ljava/lang/StringBuilder;-><init>()V",
-        "    invoke-static       { v1 }, LTest;->method(Ljava/lang/StringBuilder;)Ljava/lang/String;",
+        "    invoke-static       { v1 },"
+            + " LTest;->method(Ljava/lang/StringBuilder;)Ljava/lang/String;",
         "    move-result-object  v1",
         "    invoke-virtual      { v0, v1 }, Ljava/io/PrintStream;->print(Ljava/lang/String;)V",
-        "    return-void"
-    );
+        "    return-void");
 
     for (int i = 2; i < 6; i++) {
       final int j = i;
-      Consumer<InternalOptions> options = configureOptions(outline -> {
-        outline.threshold = 1;
-        outline.minSize = j;
-        outline.maxSize = j;
-      });
+      Consumer<InternalOptions> options =
+          configureOutlineOptions(
+              outline -> {
+                outline.threshold = 1;
+                outline.minSize = j;
+                outline.maxSize = j;
+              });
 
       AndroidApp originalApplication = buildApplication(builder);
       AndroidApp processedApplication = processApplication(originalApplication, options);
@@ -156,47 +160,49 @@ public class OutlineTest extends SmaliTestBase {
 
     String returnType = "java.lang.String";
     List<String> parameters = Collections.singletonList("java.lang.StringBuilder");
-    MethodSignature signature = builder.addStaticMethod(
-        returnType,
-        DEFAULT_METHOD_NAME,
-        parameters,
-        2,
-        "    move-object         v0, p0",
-        "    const-string        v1, \"Test1\"",
-        "    invoke-virtual      { v0, v1 }, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;",
-        "    move-result-object  v0",
-        "    const-string        v1, \"Test2\"",
-        "    invoke-virtual      { v0, v1 }, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;",
-        "    move-result-object  v0",
-        "    const-string        v1, \"Test3\"",
-        "    invoke-virtual      { v0, v1 }, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;",
-        "    move-result-object  v0",
-        "    const-string        v1, \"Test4\"",
-        "    invoke-virtual      { v0, v1 }, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;",
-        "    move-result-object  v0",
-        "    invoke-virtual      { v0 }, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;",
-        "    move-result-object  v0",
-        "    return-object       v0"
-    );
+    MethodSignature signature =
+        builder.addStaticMethod(
+            returnType,
+            DEFAULT_METHOD_NAME,
+            parameters,
+            2,
+            "    move-object         v0, p0",
+            "    const-string        v1, \"Test1\"",
+            "    invoke-virtual      { v0, v1 }, " + stringBuilderAppendSignature,
+            "    move-result-object  v0",
+            "    const-string        v1, \"Test2\"",
+            "    invoke-virtual      { v0, v1 }, " + stringBuilderAppendSignature,
+            "    move-result-object  v0",
+            "    const-string        v1, \"Test3\"",
+            "    invoke-virtual      { v0, v1 }, " + stringBuilderAppendSignature,
+            "    move-result-object  v0",
+            "    const-string        v1, \"Test4\"",
+            "    invoke-virtual      { v0, v1 }, " + stringBuilderAppendSignature,
+            "    move-result-object  v0",
+            "    invoke-virtual      { v0 }, " + stringBuilderToStringSignature,
+            "    move-result-object  v0",
+            "    return-object       v0");
 
     builder.addMainMethod(
         2,
         "    sget-object         v0, Ljava/lang/System;->out:Ljava/io/PrintStream;",
         "    new-instance        v1, Ljava/lang/StringBuilder;",
         "    invoke-direct       { v1 }, Ljava/lang/StringBuilder;-><init>()V",
-        "    invoke-static       { v1 }, LTest;->method(Ljava/lang/StringBuilder;)Ljava/lang/String;",
+        "    invoke-static       { v1 },"
+            + " LTest;->method(Ljava/lang/StringBuilder;)Ljava/lang/String;",
         "    move-result-object  v1",
         "    invoke-virtual      { v0, v1 }, Ljava/io/PrintStream;->print(Ljava/lang/String;)V",
-        "    return-void"
-    );
+        "    return-void");
 
     for (int i = 2; i < 6; i++) {
       final int finalI = i;
-      Consumer<InternalOptions> options = configureOptions(outline -> {
-        outline.threshold = 1;
-        outline.minSize = finalI;
-        outline.maxSize = finalI;
-      });
+      Consumer<InternalOptions> options =
+          configureOutlineOptions(
+              outline -> {
+                outline.threshold = 1;
+                outline.minSize = finalI;
+                outline.maxSize = finalI;
+              });
 
       AndroidApp originalApplication = buildApplication(builder);
       AndroidApp processedApplication = processApplication(originalApplication, options);
@@ -229,24 +235,24 @@ public class OutlineTest extends SmaliTestBase {
     // Method with const instructions after the outline.
     String returnType = "int";
     List<String> parameters = Collections.singletonList("java.lang.StringBuilder");
-    MethodSignature signature = builder.addStaticMethod(
-        returnType,
-        DEFAULT_METHOD_NAME,
-        parameters,
-        2,
-        "    move-object         v0, p0",
-        "    const-string        v1, \"Test\"",
-        "    invoke-virtual      { v0, v1 }, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;",
-        "    move-result-object  v0",
-        "    invoke-virtual      { v0, v1 }, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;",
-        "    move-result-object  v0",
-        "    invoke-virtual      { v0 }, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;",
-        "    move-result-object  v0",
-        "    const               v0, 0",
-        "    const               v1, 1",
-        "    add-int             v1, v1, v0",
-        "    return              v1"
-    );
+    MethodSignature signature =
+        builder.addStaticMethod(
+            returnType,
+            DEFAULT_METHOD_NAME,
+            parameters,
+            2,
+            "    move-object         v0, p0",
+            "    const-string        v1, \"Test\"",
+            "    invoke-virtual      { v0, v1 }, " + stringBuilderAppendSignature,
+            "    move-result-object  v0",
+            "    invoke-virtual      { v0, v1 }, " + stringBuilderAppendSignature,
+            "    move-result-object  v0",
+            "    invoke-virtual      { v0 }, " + stringBuilderToStringSignature,
+            "    move-result-object  v0",
+            "    const               v0, 0",
+            "    const               v1, 1",
+            "    add-int             v1, v1, v0",
+            "    return              v1");
 
     builder.addMainMethod(
         2,
@@ -259,9 +265,7 @@ public class OutlineTest extends SmaliTestBase {
         "    return-void"
     );
 
-    Consumer<InternalOptions> options = configureOptions(outline -> {
-      outline.threshold = 1;
-    });
+    Consumer<InternalOptions> options = configureOutlineOptions(outline -> outline.threshold = 1);
     AndroidApp originalApplication = buildApplication(builder);
     AndroidApp processedApplication = processApplication(originalApplication, options);
     assertEquals(2, getNumberOfProgramClasses(processedApplication));
@@ -288,28 +292,28 @@ public class OutlineTest extends SmaliTestBase {
     String returnType = "java.lang.String";
     List<String> parameters = ImmutableList.of(
         "java.lang.StringBuilder", "java.lang.String", "java.lang.String");
-    MethodSignature signature = builder.addStaticMethod(
-        returnType,
-        DEFAULT_METHOD_NAME,
-        parameters,
-        2,
-        "    invoke-virtual      { p0, p1 }, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;",
-        "    move-result-object  p0",
-        "    const-string        v0, \"Test1\"",
-        "    invoke-virtual      { p0, v0 }, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;",
-        "    move-result-object  p0",
-        "    invoke-virtual      { p0, p2 }, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;",
-        "    move-result-object  p0",
-        "    const-string        v1, \"Test2\"",
-        "    invoke-virtual      { p0, v1 }, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;",
-        "    move-result-object  p0",
-        "    const-string        v1, \"Test3\"",
-        "    invoke-virtual      { p0, v1 }, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;",
-        "    move-result-object  p0",
-        "    invoke-virtual      { p0 }, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;",
-        "    move-result-object  v1",
-        "    return-object  v1"
-    );
+    MethodSignature signature =
+        builder.addStaticMethod(
+            returnType,
+            DEFAULT_METHOD_NAME,
+            parameters,
+            2,
+            "    invoke-virtual      { p0, p1 }, " + stringBuilderAppendSignature,
+            "    move-result-object  p0",
+            "    const-string        v0, \"Test1\"",
+            "    invoke-virtual      { p0, v0 }, " + stringBuilderAppendSignature,
+            "    move-result-object  p0",
+            "    invoke-virtual      { p0, p2 }, " + stringBuilderAppendSignature,
+            "    move-result-object  p0",
+            "    const-string        v1, \"Test2\"",
+            "    invoke-virtual      { p0, v1 }, " + stringBuilderAppendSignature,
+            "    move-result-object  p0",
+            "    const-string        v1, \"Test3\"",
+            "    invoke-virtual      { p0, v1 }, " + stringBuilderAppendSignature,
+            "    move-result-object  p0",
+            "    invoke-virtual      { p0 }, " + stringBuilderToStringSignature,
+            "    move-result-object  v1",
+            "    return-object  v1");
 
     builder.addMainMethod(
         4,
@@ -318,15 +322,13 @@ public class OutlineTest extends SmaliTestBase {
         "    invoke-direct       { v1 }, Ljava/lang/StringBuilder;-><init>()V",
         "    const-string        v2, \"TestX\"",
         "    const-string        v3, \"TestY\"",
-        "    invoke-static       { v1, v2, v3 }, LTest;->method(Ljava/lang/StringBuilder;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;",
+        "    invoke-static       { v1, v2, v3 },"
+            + " LTest;->method(Ljava/lang/StringBuilder;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;",
         "    move-result-object  v1",
         "    invoke-virtual      { v0, v1 }, Ljava/io/PrintStream;->print(Ljava/lang/String;)V",
-        "    return-void"
-    );
+        "    return-void");
 
-    Consumer<InternalOptions> options = configureOptions(outline -> {
-      outline.threshold = 1;
-    });
+    Consumer<InternalOptions> options = configureOutlineOptions(outline -> outline.threshold = 1);
     AndroidApp originalApplication = buildApplication(builder);
     AndroidApp processedApplication = processApplication(originalApplication, options);
     assertEquals(2, getNumberOfProgramClasses(processedApplication));
@@ -352,44 +354,46 @@ public class OutlineTest extends SmaliTestBase {
 
     String returnType = "java.lang.String";
     List<String> parameters = Collections.singletonList("java.lang.StringBuilder");
-    MethodSignature signature = builder.addStaticMethod(
-        returnType,
-        DEFAULT_METHOD_NAME,
-        parameters,
-        3,
-        "    move-object         v0, p0",
-        "    const-wide          v1, 0x7fffffff00000000L",
-        "    invoke-virtual      { v0, v1, v2 }, Ljava/lang/StringBuilder;->append(J)Ljava/lang/StringBuilder;",
-        "    move-result-object  v0",
-        "    invoke-virtual      { v0, v1, v2 }, Ljava/lang/StringBuilder;->append(J)Ljava/lang/StringBuilder;",
-        "    move-result-object  v0",
-        "    invoke-virtual      { v0, v1, v2 }, Ljava/lang/StringBuilder;->append(J)Ljava/lang/StringBuilder;",
-        "    move-result-object  v0",
-        "    invoke-virtual      { v0, v1, v2 }, Ljava/lang/StringBuilder;->append(J)Ljava/lang/StringBuilder;",
-        "    move-result-object  v0",
-        "    invoke-virtual      { v0 }, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;",
-        "    move-result-object  v0",
-        "    return-object       v0"
-    );
+    MethodSignature signature =
+        builder.addStaticMethod(
+            returnType,
+            DEFAULT_METHOD_NAME,
+            parameters,
+            3,
+            "    move-object         v0, p0",
+            "    const-wide          v1, 0x7fffffff00000000L",
+            "    invoke-virtual      { v0, v1, v2 }, " + stringBuilderAppendLongSignature,
+            "    move-result-object  v0",
+            "    invoke-virtual      { v0, v1, v2 }, " + stringBuilderAppendLongSignature,
+            "    move-result-object  v0",
+            "    invoke-virtual      { v0, v1, v2 }, " + stringBuilderAppendLongSignature,
+            "    move-result-object  v0",
+            "    invoke-virtual      { v0, v1, v2 }, " + stringBuilderAppendLongSignature,
+            "    move-result-object  v0",
+            "    invoke-virtual      { v0 }, " + stringBuilderToStringSignature,
+            "    move-result-object  v0",
+            "    return-object       v0");
 
     builder.addMainMethod(
         2,
         "    sget-object         v0, Ljava/lang/System;->out:Ljava/io/PrintStream;",
         "    new-instance        v1, Ljava/lang/StringBuilder;",
         "    invoke-direct       { v1 }, Ljava/lang/StringBuilder;-><init>()V",
-        "    invoke-static       { v1 }, LTest;->method(Ljava/lang/StringBuilder;)Ljava/lang/String;",
+        "    invoke-static       { v1 },"
+            + " LTest;->method(Ljava/lang/StringBuilder;)Ljava/lang/String;",
         "    move-result-object  v1",
         "    invoke-virtual      { v0, v1 }, Ljava/io/PrintStream;->print(Ljava/lang/String;)V",
-        "    return-void"
-    );
+        "    return-void");
 
     for (int i = 2; i < 4; i++) {
       final int finalI = i;
-      Consumer<InternalOptions> options = configureOptions(outline -> {
-        outline.threshold = 1;
-        outline.minSize = finalI;
-        outline.maxSize = finalI;
-      });
+      Consumer<InternalOptions> options =
+          configureOutlineOptions(
+              outline -> {
+                outline.threshold = 1;
+                outline.minSize = finalI;
+                outline.maxSize = finalI;
+              });
 
       AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);
       AndroidApp processedApplication = processApplication(originalApplication, options);
@@ -428,44 +432,46 @@ public class OutlineTest extends SmaliTestBase {
 
     String returnType = "java.lang.String";
     List<String> parameters = Collections.singletonList("java.lang.StringBuilder");
-    MethodSignature signature = builder.addStaticMethod(
-        returnType,
-        DEFAULT_METHOD_NAME,
-        parameters,
-        3,
-        "    move-object         v0, p0",
-        "    const-wide          v1, 0x3ff0000000000000L",
-        "    invoke-virtual      { v0, v1, v2 }, Ljava/lang/StringBuilder;->append(D)Ljava/lang/StringBuilder;",
-        "    move-result-object  v0",
-        "    invoke-virtual      { v0, v1, v2 }, Ljava/lang/StringBuilder;->append(D)Ljava/lang/StringBuilder;",
-        "    move-result-object  v0",
-        "    invoke-virtual      { v0, v1, v2 }, Ljava/lang/StringBuilder;->append(D)Ljava/lang/StringBuilder;",
-        "    move-result-object  v0",
-        "    invoke-virtual      { v0, v1, v2 }, Ljava/lang/StringBuilder;->append(D)Ljava/lang/StringBuilder;",
-        "    move-result-object  v0",
-        "    invoke-virtual      { v0 }, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;",
-        "    move-result-object  v0",
-        "    return-object       v0"
-    );
+    MethodSignature signature =
+        builder.addStaticMethod(
+            returnType,
+            DEFAULT_METHOD_NAME,
+            parameters,
+            3,
+            "    move-object         v0, p0",
+            "    const-wide          v1, 0x3ff0000000000000L",
+            "    invoke-virtual      { v0, v1, v2 }, " + stringBuilderAppendDoubleSignature,
+            "    move-result-object  v0",
+            "    invoke-virtual      { v0, v1, v2 }, " + stringBuilderAppendDoubleSignature,
+            "    move-result-object  v0",
+            "    invoke-virtual      { v0, v1, v2 }, " + stringBuilderAppendDoubleSignature,
+            "    move-result-object  v0",
+            "    invoke-virtual      { v0, v1, v2 }, " + stringBuilderAppendDoubleSignature,
+            "    move-result-object  v0",
+            "    invoke-virtual      { v0 }, " + stringBuilderToStringSignature,
+            "    move-result-object  v0",
+            "    return-object       v0");
 
     builder.addMainMethod(
         2,
         "    sget-object         v0, Ljava/lang/System;->out:Ljava/io/PrintStream;",
         "    new-instance        v1, Ljava/lang/StringBuilder;",
         "    invoke-direct       { v1 }, Ljava/lang/StringBuilder;-><init>()V",
-        "    invoke-static       { v1 }, LTest;->method(Ljava/lang/StringBuilder;)Ljava/lang/String;",
+        "    invoke-static       { v1 },"
+            + " LTest;->method(Ljava/lang/StringBuilder;)Ljava/lang/String;",
         "    move-result-object  v1",
         "    invoke-virtual      { v0, v1 }, Ljava/io/PrintStream;->print(Ljava/lang/String;)V",
-        "    return-void"
-    );
+        "    return-void");
 
     for (int i = 2; i < 4; i++) {
       final int finalI = i;
-      Consumer<InternalOptions> options = configureOptions(outline -> {
-        outline.threshold = 1;
-        outline.minSize = finalI;
-        outline.maxSize = finalI;
-      });
+      Consumer<InternalOptions> options =
+          configureOutlineOptions(
+              outline -> {
+                outline.threshold = 1;
+                outline.minSize = finalI;
+                outline.maxSize = finalI;
+              });
 
       AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);
       AndroidApp processedApplication = processApplication(originalApplication, options);
@@ -504,40 +510,41 @@ public class OutlineTest extends SmaliTestBase {
 
     String returnType = "void";
     List<String> parameters = ImmutableList.of("java.lang.StringBuilder", "int");
-    MethodSignature signature = builder.addStaticMethod(
+    builder.addStaticMethod(
         returnType,
         DEFAULT_METHOD_NAME,
         parameters,
         1,
-        "    invoke-virtual      { p0, p1 }, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;",
+        "    invoke-virtual      { p0, p1 }, " + stringBuilderAppendIntSignature,
         "    move-result-object  v0",
-        "    invoke-virtual      { p0, p1 }, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;",
+        "    invoke-virtual      { p0, p1 }, " + stringBuilderAppendIntSignature,
         "    move-result-object  v0",
-        "    return-void"
-    );
+        "    return-void");
 
-    MethodSignature mainSignature = builder.addMainMethod(
-        2,
-        "    new-instance        v0, Ljava/lang/StringBuilder;",
-        "    invoke-direct       { v0 }, Ljava/lang/StringBuilder;-><init>()V",
-        "    const/4             v1, 0x1",
-        "    invoke-static       { v0, v1 }, LTest;->method(Ljava/lang/StringBuilder;I)V",
-        "    const/4             v1, 0x2",
-        "    invoke-static       { v0, v1 }, LTest;->method(Ljava/lang/StringBuilder;I)V",
-        "    invoke-virtual      { v0 }, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;",
-        "    move-result-object  v1",
-        "    sget-object         v0, Ljava/lang/System;->out:Ljava/io/PrintStream;",
-        "    invoke-virtual      { v0, v1 }, Ljava/io/PrintStream;->print(Ljava/lang/String;)V",
-        "    return-void"
-    );
+    MethodSignature mainSignature =
+        builder.addMainMethod(
+            2,
+            "    new-instance        v0, Ljava/lang/StringBuilder;",
+            "    invoke-direct       { v0 }, Ljava/lang/StringBuilder;-><init>()V",
+            "    const/4             v1, 0x1",
+            "    invoke-static       { v0, v1 }, LTest;->method(Ljava/lang/StringBuilder;I)V",
+            "    const/4             v1, 0x2",
+            "    invoke-static       { v0, v1 }, LTest;->method(Ljava/lang/StringBuilder;I)V",
+            "    invoke-virtual      { v0 }, " + stringBuilderToStringSignature,
+            "    move-result-object  v1",
+            "    sget-object         v0, Ljava/lang/System;->out:Ljava/io/PrintStream;",
+            "    invoke-virtual      { v0, v1 }, Ljava/io/PrintStream;->print(Ljava/lang/String;)V",
+            "    return-void");
 
     for (int i = 2; i < 6; i++) {
       final int finalI = i;
-      Consumer<InternalOptions> options = configureOptions(outline -> {
-        outline.threshold = 1;
-        outline.minSize = finalI;
-        outline.maxSize = finalI;
-      });
+      Consumer<InternalOptions> options =
+          configureOutlineOptions(
+              outline -> {
+                outline.threshold = 1;
+                outline.minSize = finalI;
+                outline.maxSize = finalI;
+              });
 
       AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);
       AndroidApp processedApplication = processApplication(originalApplication, options);
@@ -577,50 +584,50 @@ public class OutlineTest extends SmaliTestBase {
   public void constructor() throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
-    MethodSignature signature1 = builder.addStaticMethod(
-        "java.lang.String",
-        "method1",
-        Collections.emptyList(),
-        3,
-        "    new-instance        v0, Ljava/lang/StringBuilder;",
-        "    invoke-direct       { v0 }, Ljava/lang/StringBuilder;-><init>()V",
-        "    const-string        v1, \"Test1\"",
-        "    invoke-virtual      { v0, v1 }, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;",
-        "    move-result-object  v0",
-        "    invoke-virtual      { v0, v1 }, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;",
-        "    move-result-object  v0",
-        "    invoke-virtual      { v0, v1 }, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;",
-        "    move-result-object  v0",
-        "    invoke-virtual      { v0, v1 }, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;",
-        "    move-result-object  v0",
-        "    invoke-virtual      { v0 }, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;",
-        "    move-result-object  v0",
-        "    return-object       v0"
-    );
+    MethodSignature signature1 =
+        builder.addStaticMethod(
+            "java.lang.String",
+            "method1",
+            Collections.emptyList(),
+            3,
+            "    new-instance        v0, Ljava/lang/StringBuilder;",
+            "    invoke-direct       { v0 }, Ljava/lang/StringBuilder;-><init>()V",
+            "    const-string        v1, \"Test1\"",
+            "    invoke-virtual      { v0, v1 }, " + stringBuilderAppendSignature,
+            "    move-result-object  v0",
+            "    invoke-virtual      { v0, v1 }, " + stringBuilderAppendSignature,
+            "    move-result-object  v0",
+            "    invoke-virtual      { v0, v1 }, " + stringBuilderAppendSignature,
+            "    move-result-object  v0",
+            "    invoke-virtual      { v0, v1 }, " + stringBuilderAppendSignature,
+            "    move-result-object  v0",
+            "    invoke-virtual      { v0 }, " + stringBuilderToStringSignature,
+            "    move-result-object  v0",
+            "    return-object       v0");
 
-    MethodSignature signature2 = builder.addStaticMethod(
-        "java.lang.String",
-        "method2",
-        Collections.emptyList(),
-        3,
-        "    const/4             v1, 7",
-        "    new-instance        v0, Ljava/lang/StringBuilder;",
-        "    invoke-direct       { v0, v1 }, Ljava/lang/StringBuilder;-><init>(I)V",
-        "    const-string        v1, \"Test2\"",
-        "    invoke-virtual      { v0, v1 }, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;",
-        "    move-result-object  v0",
-        "    invoke-virtual      { v0, v1 }, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;",
-        "    move-result-object  v0",
-        "    invoke-virtual      { v0, v1 }, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;",
-        "    move-result-object  v0",
-        "    invoke-virtual      { v0, v1 }, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;",
-        "    move-result-object  v0",
-        "    invoke-virtual      { v0 }, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;",
-        "    move-result-object  v0",
-        "    return-object       v0"
-    );
+    MethodSignature signature2 =
+        builder.addStaticMethod(
+            "java.lang.String",
+            "method2",
+            Collections.emptyList(),
+            3,
+            "    const/4             v1, 7",
+            "    new-instance        v0, Ljava/lang/StringBuilder;",
+            "    invoke-direct       { v0, v1 }, Ljava/lang/StringBuilder;-><init>(I)V",
+            "    const-string        v1, \"Test2\"",
+            "    invoke-virtual      { v0, v1 }, " + stringBuilderAppendSignature,
+            "    move-result-object  v0",
+            "    invoke-virtual      { v0, v1 }, " + stringBuilderAppendSignature,
+            "    move-result-object  v0",
+            "    invoke-virtual      { v0, v1 }, " + stringBuilderAppendSignature,
+            "    move-result-object  v0",
+            "    invoke-virtual      { v0, v1 }, " + stringBuilderAppendSignature,
+            "    move-result-object  v0",
+            "    invoke-virtual      { v0 }, " + stringBuilderToStringSignature,
+            "    move-result-object  v0",
+            "    return-object       v0");
 
-    MethodSignature mainSignature = builder.addMainMethod(
+    builder.addMainMethod(
         2,
         "    sget-object         v0, Ljava/lang/System;->out:Ljava/io/PrintStream;",
         "    invoke-static       {}, LTest;->method1()Ljava/lang/String;",
@@ -629,14 +636,15 @@ public class OutlineTest extends SmaliTestBase {
         "    invoke-static       {}, LTest;->method2()Ljava/lang/String;",
         "    move-result-object  v1",
         "    invoke-virtual      { v0, v1 }, Ljava/io/PrintStream;->print(Ljava/lang/String;)V",
-        "    return-void"
-    );
+        "    return-void");
 
-    Consumer<InternalOptions> options = configureOptions(outline -> {
-      outline.threshold = 1;
-      outline.minSize = 7;
-      outline.maxSize = 7;
-    });
+    Consumer<InternalOptions> options =
+        configureOutlineOptions(
+            outline -> {
+              outline.threshold = 1;
+              outline.minSize = 7;
+              outline.maxSize = 7;
+            });
 
     AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);
     AndroidApp processedApplication = processApplication(originalApplication, options);
@@ -663,46 +671,48 @@ public class OutlineTest extends SmaliTestBase {
   public void constructorDontSplitNewInstanceAndInit() throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
-    MethodSignature signature = builder.addStaticMethod(
-        "java.lang.String",
-        DEFAULT_METHOD_NAME,
-        ImmutableList.of("java.lang.StringBuilder"),
-        2,
-        "    const-string        v0, \"Test1\"",
-        "    invoke-virtual      { p0, v0 }, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;",
-        "    move-result-object  p0",
-        "    invoke-virtual      { p0, v0 }, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;",
-        "    move-result-object  p0",
-        "    new-instance        v1, Ljava/lang/StringBuilder;",
-        "    invoke-direct       { v1 }, Ljava/lang/StringBuilder;-><init>()V",
-        "    const-string        v0, \"Test2\"",
-        "    invoke-virtual      { v1, v0 }, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;",
-        "    move-result-object  v1",
-        "    invoke-virtual      { v1, v0 }, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;",
-        "    move-result-object  v1",
-        "    invoke-virtual      { v1 }, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;",
-        "    move-result-object  v0",
-        "    return-object       v0"
-    );
+    MethodSignature signature =
+        builder.addStaticMethod(
+            "java.lang.String",
+            DEFAULT_METHOD_NAME,
+            ImmutableList.of("java.lang.StringBuilder"),
+            2,
+            "    const-string        v0, \"Test1\"",
+            "    invoke-virtual      { p0, v0 }, " + stringBuilderAppendSignature,
+            "    move-result-object  p0",
+            "    invoke-virtual      { p0, v0 }, " + stringBuilderAppendSignature,
+            "    move-result-object  p0",
+            "    new-instance        v1, Ljava/lang/StringBuilder;",
+            "    invoke-direct       { v1 }, Ljava/lang/StringBuilder;-><init>()V",
+            "    const-string        v0, \"Test2\"",
+            "    invoke-virtual      { v1, v0 }, " + stringBuilderAppendSignature,
+            "    move-result-object  v1",
+            "    invoke-virtual      { v1, v0 }, " + stringBuilderAppendSignature,
+            "    move-result-object  v1",
+            "    invoke-virtual      { v1 }, " + stringBuilderToStringSignature,
+            "    move-result-object  v0",
+            "    return-object       v0");
 
-    MethodSignature mainSignature = builder.addMainMethod(
+    builder.addMainMethod(
         2,
         "    sget-object         v0, Ljava/lang/System;->out:Ljava/io/PrintStream;",
         "    new-instance        v1, Ljava/lang/StringBuilder;",
         "    invoke-direct       { v1 }, Ljava/lang/StringBuilder;-><init>()V",
-        "    invoke-static       { v1 }, LTest;->method(Ljava/lang/StringBuilder;)Ljava/lang/String;",
+        "    invoke-static       { v1 },"
+            + " LTest;->method(Ljava/lang/StringBuilder;)Ljava/lang/String;",
         "    move-result-object  v1",
         "    invoke-virtual      { v0, v1 }, Ljava/io/PrintStream;->print(Ljava/lang/String;)V",
-        "    return-void"
-    );
+        "    return-void");
 
     for (int i = 2; i < 8; i++) {
       final int finalI = i;
-      Consumer<InternalOptions> options = configureOptions(outline -> {
-        outline.threshold = 1;
-        outline.minSize = finalI;
-        outline.maxSize = finalI;
-      });
+      Consumer<InternalOptions> options =
+          configureOutlineOptions(
+              outline -> {
+                outline.threshold = 1;
+                outline.minSize = finalI;
+                outline.maxSize = finalI;
+              });
 
       AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);
       AndroidApp processedApplication = processApplication(originalApplication, options);
@@ -740,32 +750,33 @@ public class OutlineTest extends SmaliTestBase {
   public void outlineWithoutArguments() throws Exception {
     SmaliBuilder builder = new SmaliBuilder(DEFAULT_CLASS_NAME);
 
-    MethodSignature signature1 = builder.addStaticMethod(
-        "java.lang.String",
-        DEFAULT_METHOD_NAME,
-        Collections.emptyList(),
-        1,
-        "    new-instance        v0, Ljava/lang/StringBuilder;",
-        "    invoke-direct       { v0 }, Ljava/lang/StringBuilder;-><init>()V",
-        "    invoke-virtual      { v0 }, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;",
-        "    move-result-object  v0",
-        "    return-object       v0"
-    );
+    MethodSignature signature1 =
+        builder.addStaticMethod(
+            "java.lang.String",
+            DEFAULT_METHOD_NAME,
+            Collections.emptyList(),
+            1,
+            "    new-instance        v0, Ljava/lang/StringBuilder;",
+            "    invoke-direct       { v0 }, Ljava/lang/StringBuilder;-><init>()V",
+            "    invoke-virtual      { v0 }, " + stringBuilderToStringSignature,
+            "    move-result-object  v0",
+            "    return-object       v0");
 
-    MethodSignature mainSignature = builder.addMainMethod(
+    builder.addMainMethod(
         2,
         "    sget-object         v0, Ljava/lang/System;->out:Ljava/io/PrintStream;",
         "    invoke-static       {}, LTest;->method()Ljava/lang/String;",
         "    move-result-object  v1",
         "    invoke-virtual      { v0, v1 }, Ljava/io/PrintStream;->print(Ljava/lang/String;)V",
-        "    return-void"
-    );
+        "    return-void");
 
-    Consumer<InternalOptions> options = configureOptions(outline -> {
-      outline.threshold = 1;
-      outline.minSize = 3;
-      outline.maxSize = 3;
-    });
+    Consumer<InternalOptions> options =
+        configureOutlineOptions(
+            outline -> {
+              outline.threshold = 1;
+              outline.minSize = 3;
+              outline.maxSize = 3;
+            });
 
     AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);
     AndroidApp processedApplication = processApplication(originalApplication, options);
@@ -791,37 +802,35 @@ public class OutlineTest extends SmaliTestBase {
     // The naming of the methods in this test is important. The method name that don't use the
     // output from StringBuilder.toString must sort before the method name that does.
     String returnType1 = "void";
-    MethodSignature signature1 = builder.addStaticMethod(
+    builder.addStaticMethod(
         returnType1,
         "method1",
         parameters,
         2,
         "    move-object         v0, p0",
         "    const-string        v1, \"Test\"",
-        "    invoke-virtual      { v0, v1 }, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;",
+        "    invoke-virtual      { v0, v1 }, " + stringBuilderAppendSignature,
         "    move-result-object  v0",
-        "    invoke-virtual      { v0, v1 }, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;",
+        "    invoke-virtual      { v0, v1 }, " + stringBuilderAppendSignature,
         "    move-result-object  v0",
-        "    invoke-virtual      { v0 }, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;",
-        "    return-void"
-    );
+        "    invoke-virtual      { v0 }, " + stringBuilderToStringSignature,
+        "    return-void");
 
     String returnType2 = "java.lang.String";
-    MethodSignature signature2 = builder.addStaticMethod(
+    builder.addStaticMethod(
         returnType2,
         "method2",
         parameters,
         2,
         "    move-object         v0, p0",
         "    const-string        v1, \"Test\"",
-        "    invoke-virtual      { v0, v1 }, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;",
+        "    invoke-virtual      { v0, v1 }, " + stringBuilderAppendSignature,
         "    move-result-object  v0",
-        "    invoke-virtual      { v0, v1 }, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;",
+        "    invoke-virtual      { v0, v1 }, " + stringBuilderAppendSignature,
         "    move-result-object  v0",
-        "    invoke-virtual      { v0 }, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;",
+        "    invoke-virtual      { v0 }, " + stringBuilderToStringSignature,
         "    move-result-object  v0",
-        "    return-object       v0"
-    );
+        "    return-object       v0");
 
     builder.addMainMethod(
         3,
@@ -829,17 +838,19 @@ public class OutlineTest extends SmaliTestBase {
         "    new-instance        v1, Ljava/lang/StringBuilder;",
         "    invoke-direct       { v1 }, Ljava/lang/StringBuilder;-><init>()V",
         "    invoke-static       { v1 }, LTest;->method1(Ljava/lang/StringBuilder;)V",
-        "    invoke-static       { v1 }, LTest;->method2(Ljava/lang/StringBuilder;)Ljava/lang/String;",
+        "    invoke-static       { v1 },"
+            + " LTest;->method2(Ljava/lang/StringBuilder;)Ljava/lang/String;",
         "    move-result-object  v2",
         "    invoke-virtual      { v0, v2 }, Ljava/io/PrintStream;->print(Ljava/lang/String;)V",
-        "    return-void"
-    );
+        "    return-void");
 
-    Consumer<InternalOptions> options = configureOptions(outline -> {
-      outline.threshold = 1;
-      outline.minSize = 3;
-      outline.maxSize = 3;
-    });
+    Consumer<InternalOptions> options =
+        configureOutlineOptions(
+            outline -> {
+              outline.threshold = 1;
+              outline.minSize = 3;
+              outline.maxSize = 3;
+            });
 
     AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);
     AndroidApp processedApplication = processApplication(originalApplication, options);
@@ -876,42 +887,43 @@ public class OutlineTest extends SmaliTestBase {
 
     String returnType = "java.lang.String";
     List<String> parameters = Collections.singletonList("java.lang.StringBuilder");
-    MethodSignature signature = builder.addStaticMethod(
+    builder.addStaticMethod(
         returnType,
         DEFAULT_METHOD_NAME,
         parameters,
         2,
         "    move-object         v0, p0",
         "    const-string        v1, \"Test\"",
-        "    invoke-virtual      { v0, v1 }, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;",
+        "    invoke-virtual      { v0, v1 }, " + stringBuilderAppendSignature,
         "    move-result-object  v0",
-        "    invoke-virtual      { v0, v1 }, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;",
+        "    invoke-virtual      { v0, v1 }, " + stringBuilderAppendSignature,
         "    move-result-object  v0",
-        "    invoke-virtual      { v0, v1 }, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;",
+        "    invoke-virtual      { v0, v1 }, " + stringBuilderAppendSignature,
         "    move-result-object  v0",
-        "    invoke-virtual      { v0, v1 }, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;",
+        "    invoke-virtual      { v0, v1 }, " + stringBuilderAppendSignature,
         "    move-result-object  v0",
-        "    invoke-virtual      { v0 }, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;",
+        "    invoke-virtual      { v0 }, " + stringBuilderToStringSignature,
         "    move-result-object  v0",
-        "    return-object       v0"
-    );
+        "    return-object       v0");
 
     builder.addMainMethod(
         2,
         "    sget-object         v0, Ljava/lang/System;->out:Ljava/io/PrintStream;",
         "    new-instance        v1, Ljava/lang/StringBuilder;",
         "    invoke-direct       { v1 }, Ljava/lang/StringBuilder;-><init>()V",
-        "    invoke-static       { v1 }, LTest;->method(Ljava/lang/StringBuilder;)Ljava/lang/String;",
+        "    invoke-static       { v1 },"
+            + " LTest;->method(Ljava/lang/StringBuilder;)Ljava/lang/String;",
         "    move-result-object  v1",
         "    invoke-virtual      { v0, v1 }, Ljava/io/PrintStream;->print(Ljava/lang/String;)V",
-        "    return-void"
-    );
+        "    return-void");
 
-    Consumer<InternalOptions> options = configureOptions(outline -> {
-      outline.threshold = 1;
-      outline.minSize = 3;
-      outline.maxSize = 3;
-    });
+    Consumer<InternalOptions> options =
+        configureOutlineOptions(
+            outline -> {
+              outline.threshold = 1;
+              outline.minSize = 3;
+              outline.maxSize = 3;
+            });
 
     AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);
     AndroidApp processedApplication = processApplication(originalApplication, options);
@@ -927,11 +939,13 @@ public class OutlineTest extends SmaliTestBase {
     }
 
     // Process the application several times. No more outlining as threshold has been raised.
-    options = configureOptions(outline -> {
-      outline.threshold = 2;
-      outline.minSize = 3;
-      outline.maxSize = 3;
-    });
+    options =
+        configureOutlineOptions(
+            outline -> {
+              outline.threshold = 2;
+              outline.minSize = 3;
+              outline.maxSize = 3;
+            });
     for (int i = 0; i < count; i++) {
       // Build a new application with the Outliner class.
       originalApplication = processedApplication;
@@ -972,11 +986,13 @@ public class OutlineTest extends SmaliTestBase {
         "    return-void"
     );
 
-    Consumer<InternalOptions> options = configureOptions(outline -> {
-      outline.threshold = 1;
-      outline.minSize = 5;
-      outline.maxSize = 5;
-    });
+    Consumer<InternalOptions> options =
+        configureOutlineOptions(
+            outline -> {
+              outline.threshold = 1;
+              outline.minSize = 5;
+              outline.maxSize = 5;
+            });
 
     AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);
     AndroidApp processedApplication = processApplication(originalApplication, options);
@@ -1036,11 +1052,13 @@ public class OutlineTest extends SmaliTestBase {
         "    return-void"
     );
 
-    Consumer<InternalOptions> options = configureOptions(outline -> {
-      outline.threshold = 1;
-      outline.minSize = 5;
-      outline.maxSize = 5;
-    });
+    Consumer<InternalOptions> options =
+        configureOutlineOptions(
+            outline -> {
+              outline.threshold = 1;
+              outline.minSize = 5;
+              outline.maxSize = 5;
+            });
 
     AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);
     AndroidApp processedApplication = processApplication(originalApplication, options);
@@ -1086,11 +1104,13 @@ public class OutlineTest extends SmaliTestBase {
         "    return-void"
     );
 
-    Consumer<InternalOptions> options = configureOptions(outline -> {
-      outline.threshold = 1;
-      outline.minSize = 4;
-      outline.maxSize = 4;
-    });
+    Consumer<InternalOptions> options =
+        configureOutlineOptions(
+            outline -> {
+              outline.threshold = 1;
+              outline.minSize = 4;
+              outline.maxSize = 4;
+            });
 
     AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);
     AndroidApp processedApplication = processApplication(originalApplication, options);
@@ -1161,11 +1181,13 @@ public class OutlineTest extends SmaliTestBase {
         "    return-void"
     );
 
-    Consumer<InternalOptions> options = configureOptions(outline -> {
-      outline.threshold = 1;
-      outline.minSize = 4;
-      outline.maxSize = 4;
-    });
+    Consumer<InternalOptions> options =
+        configureOutlineOptions(
+            outline -> {
+              outline.threshold = 1;
+              outline.minSize = 4;
+              outline.maxSize = 4;
+            });
 
     AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);
     AndroidApp processedApplication = processApplication(originalApplication, options);
@@ -1237,11 +1259,13 @@ public class OutlineTest extends SmaliTestBase {
         "    return-void"
     );
 
-    Consumer<InternalOptions> options = configureOptions(outline -> {
-      outline.threshold = 1;
-      outline.minSize = 3;  // Outline add, sub and mul.
-      outline.maxSize = 3;
-    });
+    Consumer<InternalOptions> options =
+        configureOutlineOptions(
+            outline -> {
+              outline.threshold = 1;
+              outline.minSize = 3; // Outline add, sub and mul.
+              outline.maxSize = 3;
+            });
 
     AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);
     AndroidApp processedApplication = processApplication(originalApplication, options);
@@ -1290,11 +1314,27 @@ public class OutlineTest extends SmaliTestBase {
         "    return-void"
     );
 
-    Consumer<InternalOptions> options = configureOptions(outline -> {
-      outline.threshold = 1;
-      outline.minSize = 3;
-      outline.maxSize = 3;
-    });
+    Consumer<InternalOptions> options =
+        configureOptions(
+            opts -> {
+              opts.outline.threshold = 1;
+              opts.outline.minSize = 3;
+              opts.outline.maxSize = 3;
+
+              // Do not allow dead code elimination of the new-instance and invoke-direct
+              // instructions.
+              // This can be achieved by not assuming that StringBuilder is present.
+              DexItemFactory dexItemFactory = opts.itemFactory;
+              dexItemFactory.libraryTypesAssumedToBePresent =
+                  new HashSet<>(dexItemFactory.libraryTypesAssumedToBePresent);
+              dexItemFactory.libraryTypesAssumedToBePresent.remove(
+                  dexItemFactory.stringBuilderType);
+              // ... and not assuming that StringBuilder.<init>() cannot have side effects.
+              dexItemFactory.libraryMethodsWithoutSideEffects =
+                  new HashSet<>(dexItemFactory.libraryMethodsWithoutSideEffects);
+              dexItemFactory.libraryMethodsWithoutSideEffects.remove(
+                  dexItemFactory.stringBuilderMethods.constructor);
+            });
 
     AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);
     AndroidApp processedApplication = processApplication(originalApplication, options);
@@ -1336,11 +1376,22 @@ public class OutlineTest extends SmaliTestBase {
         "    return-void"
     );
 
-    Consumer<InternalOptions> options = configureOptions(outline -> {
-      outline.threshold = 1;
-      outline.minSize = 3;
-      outline.maxSize = 3;
-    });
+    Consumer<InternalOptions> options =
+        configureOptions(
+            opts -> {
+              opts.outline.threshold = 1;
+              opts.outline.minSize = 3;
+              opts.outline.maxSize = 3;
+
+              // Do not allow dead code elimination of the new-instance instructions. This can be
+              // achieved
+              // by not assuming that StringBuilder is present.
+              DexItemFactory dexItemFactory = opts.itemFactory;
+              opts.itemFactory.libraryTypesAssumedToBePresent =
+                  new HashSet<>(dexItemFactory.libraryTypesAssumedToBePresent);
+              dexItemFactory.libraryTypesAssumedToBePresent.remove(
+                  dexItemFactory.stringBuilderType);
+            });
 
     AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);
     AndroidApp processedApplication = processApplication(originalApplication, options);
@@ -1375,22 +1426,26 @@ public class OutlineTest extends SmaliTestBase {
         "    new-instance        v2, Ljava/lang/Byte;",
         "    const/4             v3, 0x01  # 1",
         "    invoke-direct       { v2, v3 }, Ljava/lang/Byte;-><init>(B)V",
-        "    invoke-virtual      { v0, v1, v2 }, Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
+        "    invoke-virtual      { v0, v1, v2 },"
+            + " Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
         "    const-string        v1, \" http://schemas.google.com/g/2005#work\"",
         "    new-instance        v2, Ljava/lang/Byte;",
         "    const/4             v3, 0x02  # 2",
         "    invoke-direct       { v2, v3 }, Ljava/lang/Byte;-><init>(B)V",
-        "    invoke-virtual      { v0, v1, v2 }, Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
+        "    invoke-virtual      { v0, v1, v2 },"
+            + " Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
         "    const-string        v1, \"http://schemas.google.com/g/2005#other\"",
         "    new-instance        v2, Ljava/lang/Byte;",
         "    const/4             v3, 0x03  # 3",
         "    invoke-direct       { v2, v3 }, Ljava/lang/Byte;-><init>(B)V",
-        "    invoke-virtual      { v0, v1, v2 }, Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
+        "    invoke-virtual      { v0, v1, v2 },"
+            + " Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
         "    const-string        v1, \"http://schemas.google.com/g/2005#primary\"",
         "    const/4             v2, 0x04  # 4",
         "    invoke-static       { v2 }, Ljava/lang/Byte;->valueOf(B)Ljava/lang/Byte;",
         "    move-result-object  v2",
-        "    invoke-virtual      { v0, v1, v2 }, Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
+        "    invoke-virtual      { v0, v1, v2 },"
+            + " Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
         "    sput-object         v0, LA;->A:Ljava/util/Hashtable;",
         "    invoke-static       { v0 }, LA;->a(Ljava/util/Hashtable;)Ljava/util/Hashtable;",
         "    move-result-object  v0",
@@ -1401,37 +1456,44 @@ public class OutlineTest extends SmaliTestBase {
         "    new-instance        v2, Ljava/lang/Byte;",
         "    const/4             v3, 0x02  # 2",
         "    invoke-direct       { v2, v3 }, Ljava/lang/Byte;-><init>(B)V",
-        "    invoke-virtual      { v0, v1, v2 }, Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
+        "    invoke-virtual      { v0, v1, v2 },"
+            + " Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
         "    const-string        v1, \"http://schemas.google.com/g/2005#mobile\"",
         "    new-instance        v2, Ljava/lang/Byte;",
         "    const/4             v3, 0x01  # 1",
         "    invoke-direct       { v2, v3 }, Ljava/lang/Byte;-><init>(B)V",
-        "    invoke-virtual      { v0, v1, v2 }, Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
+        "    invoke-virtual      { v0, v1, v2 },"
+            + " Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
         "    const-string        v1, \"http://schemas.google.com/g/2005#pager\"",
         "    new-instance        v2, Ljava/lang/Byte;",
         "    const/4             v3, 0x06  # 6",
         "    invoke-direct       { v2, v3 }, Ljava/lang/Byte;-><init>(B)V",
-        "    invoke-virtual      { v0, v1, v2 }, Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
+        "    invoke-virtual      { v0, v1, v2 },"
+            + " Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
         "    const-string        v1, \"http://schemas.google.com/g/2005#work\"",
         "    new-instance        v2, Ljava/lang/Byte;",
         "    const/4             v3, 0x03  # 3",
         "    invoke-direct       { v2, v3 }, Ljava/lang/Byte;-><init>(B)V",
-        "    invoke-virtual      { v0, v1, v2 }, Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
+        "    invoke-virtual      { v0, v1, v2 },"
+            + " Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
         "    const-string        v1, \"http://schemas.google.com/g/2005#home_fax\"",
         "    new-instance        v2, Ljava/lang/Byte;",
         "    const/4             v3, 0x05  # 5",
         "    invoke-direct       { v2, v3 }, Ljava/lang/Byte;-><init>(B)V",
-        "    invoke-virtual      { v0, v1, v2 }, Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
+        "    invoke-virtual      { v0, v1, v2 },"
+            + " Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
         "    const-string        v1, \"http://schemas.google.com/g/2005#work_fax\"",
         "    new-instance        v2, Ljava/lang/Byte;",
         "    const/4             v3, 0x04  # 4",
         "    invoke-direct       { v2, v3 }, Ljava/lang/Byte;-><init>(B)V",
-        "    invoke-virtual      { v0, v1, v2 }, Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
+        "    invoke-virtual      { v0, v1, v2 },"
+            + " Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
         "    const-string        v1, \"http://schemas.google.com/g/2005#other\"",
         "    new-instance        v2, Ljava/lang/Byte;",
         "    const/4             v3, 0x07  # 7",
         "    invoke-direct       { v2, v3 }, Ljava/lang/Byte;-><init>(B)V",
-        "    invoke-virtual      { v0, v1, v2 }, Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
+        "    invoke-virtual      { v0, v1, v2 },"
+            + " Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
         "    sput-object         v0, LA;->C:Ljava/util/Hashtable;",
         "    invoke-static       { v0 }, LA;->a(Ljava/util/Hashtable;)Ljava/util/Hashtable;",
         "    move-result-object  v0",
@@ -1442,17 +1504,20 @@ public class OutlineTest extends SmaliTestBase {
         "    new-instance        v2, Ljava/lang/Byte;",
         "    const/4             v3, 0x01  # 1",
         "    invoke-direct       { v2, v3 }, Ljava/lang/Byte;-><init>(B)V",
-        "    invoke-virtual      { v0, v1, v2 }, Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
+        "    invoke-virtual      { v0, v1, v2 },"
+            + " Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
         "    const-string        v1, \"http://schemas.google.com/g/2005#work\"",
         "    new-instance        v2, Ljava/lang/Byte;",
         "    const/4             v3, 0x02  # 2",
         "    invoke-direct       { v2, v3 }, Ljava/lang/Byte;-><init>(B)V",
-        "    invoke-virtual      { v0, v1, v2 }, Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
+        "    invoke-virtual      { v0, v1, v2 },"
+            + " Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
         "    const-string        v1, \"http://schemas.google.com/g/2005#other\"",
         "    new-instance        v2, Ljava/lang/Byte;",
         "    const/4             v3, 0x03  # 3",
         "    invoke-direct       { v2, v3 }, Ljava/lang/Byte;-><init>(B)V",
-        "    invoke-virtual      { v0, v1, v2 }, Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
+        "    invoke-virtual      { v0, v1, v2 },"
+            + " Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
         "    sput-object         v0, LA;->E:Ljava/util/Hashtable;",
         "    invoke-static       { v0 }, LA;->a(Ljava/util/Hashtable;)Ljava/util/Hashtable;",
         "    move-result-object  v0",
@@ -1463,17 +1528,20 @@ public class OutlineTest extends SmaliTestBase {
         "    new-instance        v2, Ljava/lang/Byte;",
         "    const/4             v3, 0x01  # 1",
         "    invoke-direct       { v2, v3 }, Ljava/lang/Byte;-><init>(B)V",
-        "    invoke-virtual      { v0, v1, v2 }, Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
+        "    invoke-virtual      { v0, v1, v2 },"
+            + " Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
         "    const-string        v1, \"http://schemas.google.com/g/2005#work\"",
         "    new-instance        v2, Ljava/lang/Byte;",
         "    const/4             v3, 0x02  # 2",
         "    invoke-direct       { v2, v3 }, Ljava/lang/Byte;-><init>(B)V",
-        "    invoke-virtual      { v0, v1, v2 }, Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
+        "    invoke-virtual      { v0, v1, v2 },"
+            + " Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
         "    const-string        v1, \"http://schemas.google.com/g/2005#other\"",
         "    new-instance        v2, Ljava/lang/Byte;",
         "    const/4             v3, 0x03  # 3",
         "    invoke-direct       { v2, v3 }, Ljava/lang/Byte;-><init>(B)V",
-        "    invoke-virtual      { v0, v1, v2 }, Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
+        "    invoke-virtual      { v0, v1, v2 },"
+            + " Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
         "    sput-object         v0, LA;->G:Ljava/util/Hashtable;",
         "    invoke-static       { v0 }, LA;->a(Ljava/util/Hashtable;)Ljava/util/Hashtable;",
         "    move-result-object  v0",
@@ -1484,12 +1552,14 @@ public class OutlineTest extends SmaliTestBase {
         "    new-instance        v2, Ljava/lang/Byte;",
         "    const/4             v3, 0x01  # 1",
         "    invoke-direct       { v2, v3 }, Ljava/lang/Byte;-><init>(B)V",
-        "    invoke-virtual      { v0, v1, v2 }, Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
+        "    invoke-virtual      { v0, v1, v2 },"
+            + " Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
         "    const-string        v1, \"http://schemas.google.com/g/2005#other\"",
         "    new-instance        v2, Ljava/lang/Byte;",
         "    const/4             v3, 0x02  # 2",
         "    invoke-direct       { v2, v3 }, Ljava/lang/Byte;-><init>(B)V",
-        "    invoke-virtual      { v0, v1, v2 }, Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
+        "    invoke-virtual      { v0, v1, v2 },"
+            + " Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
         "    sput-object         v0, LA;->I:Ljava/util/Hashtable;",
         "    invoke-static       { v0 }, LA;->a(Ljava/util/Hashtable;)Ljava/util/Hashtable;",
         "    move-result-object  v0",
@@ -1500,52 +1570,57 @@ public class OutlineTest extends SmaliTestBase {
         "    new-instance        v2, Ljava/lang/Byte;",
         "    const/4             v3, 0x02  # 2",
         "    invoke-direct       { v2, v3 }, Ljava/lang/Byte;-><init>(B)V",
-        "    invoke-virtual      { v0, v1, v2 }, Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
+        "    invoke-virtual      { v0, v1, v2 },"
+            + " Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
         "    const-string        v1, \"http://schemas.google.com/g/2005#MSN\"",
         "    new-instance        v2, Ljava/lang/Byte;",
         "    const/4             v3, 0x03  # 3",
         "    invoke-direct       { v2, v3 }, Ljava/lang/Byte;-><init>(B)V",
-        "    invoke-virtual      { v0, v1, v2 }, Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
+        "    invoke-virtual      { v0, v1, v2 },"
+            + " Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
         "    const-string        v1, \"http://schemas.google.com/g/2005#YAHOO\"",
         "    new-instance        v2, Ljava/lang/Byte;",
         "    const/4             v3, 0x04  # 4",
         "    invoke-direct       { v2, v3 }, Ljava/lang/Byte;-><init>(B)V",
-        "    invoke-virtual      { v0, v1, v2 }, Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
+        "    invoke-virtual      { v0, v1, v2 },"
+            + " Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
         "    const-string        v1, \"http://schemas.google.com/g/2005#SKYPE\"",
         "    new-instance        v2, Ljava/lang/Byte;",
         "    const/4             v3, 0x05  # 5",
         "    invoke-direct       { v2, v3 }, Ljava/lang/Byte;-><init>(B)V",
-        "    invoke-virtual      { v0, v1, v2 }, Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
+        "    invoke-virtual      { v0, v1, v2 },"
+            + " Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
         "    const-string        v1, \"http://schemas.google.com/g/2005#QQ\"",
         "    new-instance        v2, Ljava/lang/Byte;",
         "    const/4             v3, 0x06  # 6",
         "    invoke-direct       { v2, v3 }, Ljava/lang/Byte;-><init>(B)V",
-        "    invoke-virtual      { v0, v1, v2 }, Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
+        "    invoke-virtual      { v0, v1, v2 },"
+            + " Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
         "    const-string        v1, \"http://schemas.google.com/g/2005#GOOGLE_TALK\"",
         "    new-instance        v2, Ljava/lang/Byte;",
         "    const/4             v3, 0x07  # 7",
         "    invoke-direct       { v2, v3 }, Ljava/lang/Byte;-><init>(B)V",
-        "    invoke-virtual      { v0, v1, v2 }, Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
+        "    invoke-virtual      { v0, v1, v2 },"
+            + " Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
         "    const-string        v1, \"http://schemas.google.com/g/2005#ICQ\"",
         "    new-instance        v2, Ljava/lang/Byte;",
         "    const/16            v3, 0x0008  # 8",
         "    invoke-direct       { v2, v3 }, Ljava/lang/Byte;-><init>(B)V",
-        "    invoke-virtual      { v0, v1, v2 }, Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
+        "    invoke-virtual      { v0, v1, v2 },"
+            + " Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
         "    const-string        v1, \"http://schemas.google.com/g/2005#JABBER\"",
         "    new-instance        v2, Ljava/lang/Byte;",
         "    const/16            v3, 0x0009  # 9",
         "    invoke-direct       { v2, v3 }, Ljava/lang/Byte;-><init>(B)V",
-        "    invoke-virtual      { v0, v1, v2 }, Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
+        "    invoke-virtual      { v0, v1, v2 },"
+            + " Ljava/util/Hashtable;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
         "    sput-object         v0, LA;->K:Ljava/util/Hashtable;",
         "    invoke-static       { v0 }, LA;->a(Ljava/util/Hashtable;)Ljava/util/Hashtable;",
         "    move-result-object  v0",
         "    sput-object         v0, LA;->L:Ljava/util/Hashtable;",
-        "    return-void"
-    );
+        "    return-void");
 
-    Consumer<InternalOptions> options = configureOptions(outline -> {
-      outline.threshold = 2;
-    });
+    Consumer<InternalOptions> options = configureOutlineOptions(outline -> outline.threshold = 2);
 
     AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);
     AndroidApp processedApplication = processApplication(originalApplication, options);
@@ -1617,11 +1692,13 @@ public class OutlineTest extends SmaliTestBase {
     );
 
     // Outline 2 times two instructions.
-    Consumer<InternalOptions> options = configureOptions(outline -> {
-      outline.threshold = 2;
-      outline.minSize = 2;
-      outline.maxSize = 2;
-    });
+    Consumer<InternalOptions> options =
+        configureOutlineOptions(
+            outline -> {
+              outline.threshold = 2;
+              outline.minSize = 2;
+              outline.maxSize = 2;
+            });
 
     AndroidApp originalApplication = buildApplication(builder);
     AndroidApp processedApplication = processApplication(originalApplication, options);
@@ -1690,11 +1767,13 @@ public class OutlineTest extends SmaliTestBase {
     );
 
     // Outline 2 times two instructions.
-    Consumer<InternalOptions> options = configureOptions(outline -> {
-      outline.threshold = 2;
-      outline.minSize = 2;
-      outline.maxSize = 2;
-    });
+    Consumer<InternalOptions> options =
+        configureOutlineOptions(
+            outline -> {
+              outline.threshold = 2;
+              outline.minSize = 2;
+              outline.maxSize = 2;
+            });
 
     AndroidApp originalApplication = buildApplication(builder);
     AndroidApp processedApplication = processApplication(originalApplication, options);
@@ -1762,11 +1841,13 @@ public class OutlineTest extends SmaliTestBase {
     );
 
     // Outline 2 times two instructions.
-    Consumer<InternalOptions> options = configureOptions(outline -> {
-      outline.threshold = 2;
-      outline.minSize = 2;
-      outline.maxSize = 2;
-    });
+    Consumer<InternalOptions> options =
+        configureOutlineOptions(
+            outline -> {
+              outline.threshold = 2;
+              outline.minSize = 2;
+              outline.maxSize = 2;
+            });
 
     AndroidApp originalApplication = buildApplication(builder);
     AndroidApp processedApplication = processApplication(originalApplication, options);
@@ -1834,11 +1915,13 @@ public class OutlineTest extends SmaliTestBase {
     );
 
     // Outline 2 times two instructions.
-    Consumer<InternalOptions> options = configureOptions(outline -> {
-      outline.threshold = 2;
-      outline.minSize = 2;
-      outline.maxSize = 2;
-    });
+    Consumer<InternalOptions> options =
+        configureOutlineOptions(
+            outline -> {
+              outline.threshold = 2;
+              outline.minSize = 2;
+              outline.maxSize = 2;
+            });
 
     AndroidApp originalApplication = buildApplication(builder);
     AndroidApp processedApplication = processApplication(originalApplication, options);

@@ -3,12 +3,15 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isMemberVisibleFromOriginalContext;
+
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.InvokeDirectRange;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -20,9 +23,11 @@ import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Predicate;
 import org.objectweb.asm.Opcodes;
 
 public class InvokeDirect extends InvokeMethodWithReceiver {
@@ -134,5 +139,116 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
       AnalysisAssumption assumption) {
     return ClassInitializationAnalysis.InstructionUtils.forInvokeDirect(
         this, clazz, appView, mode, assumption);
+  }
+
+  @Override
+  public boolean instructionMayHaveSideEffects(
+      AppView<? extends AppInfo> appView, DexType context) {
+    if (!appView.enableWholeProgramOptimizations()) {
+      return true;
+    }
+
+    if (appView.options().debug) {
+      return true;
+    }
+
+    // Check if it could throw a NullPointerException as a result of the receiver being null.
+    Value receiver = getReceiver();
+    if (receiver.getTypeLattice().nullability().isNullable()) {
+      return true;
+    }
+
+    // Find the target and check if the invoke may have side effects.
+    if (appView.appInfo().hasLiveness()) {
+      AppInfoWithLiveness appInfoWithLiveness = appView.appInfo().withLiveness();
+      DexEncodedMethod target = lookupSingleTarget(appInfoWithLiveness, context);
+      if (target == null) {
+        return true;
+      }
+
+      // Verify that the target method is accessible in the current context.
+      if (!isMemberVisibleFromOriginalContext(
+          appInfoWithLiveness, context, target.method.holder, target.accessFlags)) {
+        return true;
+      }
+
+      // Verify that the target method does not have side-effects. For program methods, we use
+      // optimization info, and for library methods, we use modeling.
+      DexClass clazz = appView.definitionFor(target.method.holder);
+      if (clazz == null) {
+        assert false : "Expected to be able to find the enclosing class of a method definition";
+        return true;
+      }
+
+      boolean targetMayHaveSideEffects;
+      if (clazz.isProgramClass()) {
+        targetMayHaveSideEffects =
+            target.getOptimizationInfo().mayHaveSideEffects()
+                && !appInfoWithLiveness.noSideEffects.containsKey(target.method);
+      } else {
+        targetMayHaveSideEffects =
+            !appView.dexItemFactory().libraryMethodsWithoutSideEffects.contains(target.method);
+      }
+
+      if (targetMayHaveSideEffects) {
+        return true;
+      }
+
+      // Success, the instruction does not have any side effects.
+      return false;
+    }
+
+    return true;
+  }
+
+  @Override
+  public boolean canBeDeadCode(AppView<? extends AppInfo> appView, IRCode code) {
+    DexEncodedMethod method = code.method;
+    if (instructionMayHaveSideEffects(appView, method.method.holder)) {
+      return false;
+    }
+
+    if (appView.dexItemFactory().isConstructor(getInvokedMethod())) {
+      // If it is a constructor call that initializes an uninitialized object, then the
+      // uninitialized object must be dead. This is the case if all the constructor calls cannot
+      // have side effects and the instance is dead except for the constructor calls.
+      List<Instruction> otherInitCalls = null;
+      for (Instruction user : getReceiver().uniqueUsers()) {
+        if (user == this) {
+          continue;
+        }
+        if (user.isInvokeDirect()) {
+          InvokeDirect invoke = user.asInvokeDirect();
+          if (appView.dexItemFactory().isConstructor(invoke.getInvokedMethod())
+              && invoke.getReceiver() == getReceiver()) {
+            // If another constructor call than `this` is found, then it must not have side effects.
+            if (invoke.instructionMayHaveSideEffects(appView, method.method.holder)) {
+              return false;
+            }
+            if (otherInitCalls == null) {
+              otherInitCalls = new ArrayList<>();
+            }
+            otherInitCalls.add(invoke);
+          }
+        }
+      }
+
+      // Now check that the instance is dead except for the constructor calls.
+      final List<Instruction> finalOtherInitCalls = otherInitCalls;
+      Predicate<Instruction> ignoreConstructorCalls =
+          instruction ->
+              instruction == this
+                  || (finalOtherInitCalls != null && finalOtherInitCalls.contains(instruction));
+      if (!getReceiver().isDead(appView, code, ignoreConstructorCalls)) {
+        return false;
+      }
+
+      // Verify that it is not a super-constructor call (these cannot be removed).
+      if (getReceiver() == code.getThis()) {
+        return false;
+      }
+    }
+
+    return true;
   }
 }

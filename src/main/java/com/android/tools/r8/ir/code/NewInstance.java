@@ -3,12 +3,15 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isMemberVisibleFromOriginalContext;
+
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfNew;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
@@ -118,6 +121,50 @@ public class NewInstance extends Instruction {
       AnalysisAssumption assumption) {
     return ClassInitializationAnalysis.InstructionUtils.forNewInstance(
         this, clazz, appView, mode, assumption);
+  }
+
+  @Override
+  public boolean instructionMayHaveSideEffects(
+      AppView<? extends AppInfo> appView, DexType context) {
+    if (!appView.enableWholeProgramOptimizations()) {
+      return true;
+    }
+
+    if (clazz.isPrimitiveType() || clazz.isArrayType()) {
+      assert false : "Unexpected new-instance instruction with primitive or array type";
+      return true;
+    }
+
+    DexClass definition = appView.definitionFor(clazz);
+    if (definition == null || definition.accessFlags.isAbstract()) {
+      return true;
+    }
+
+    if (definition.isLibraryClass()
+        && !appView.dexItemFactory().libraryTypesAssumedToBePresent.contains(clazz)) {
+      return true;
+    }
+
+    // Verify that the instruction does not lead to an IllegalAccessError.
+    if (!isMemberVisibleFromOriginalContext(
+        appView, context, definition.type, definition.accessFlags)) {
+      return true;
+    }
+
+    // Verify that the new-instance instruction won't lead to class initialization.
+    if (definition.classInitializationMayHaveSideEffects(
+        appView,
+        // Types that are a super type of `context` are guaranteed to be initialized already.
+        type -> context.isSubtypeOf(type, appView))) {
+      return true;
+    }
+
+    return false;
+  }
+
+  @Override
+  public boolean canBeDeadCode(AppView<? extends AppInfo> appView, IRCode code) {
+    return !instructionMayHaveSideEffects(appView, code.method.method.holder);
   }
 
   public void markNoSpilling() {

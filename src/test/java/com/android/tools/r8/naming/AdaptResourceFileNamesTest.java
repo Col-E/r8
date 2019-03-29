@@ -102,6 +102,13 @@ public class AdaptResourceFileNamesTest extends ProguardCompatibilityTestBase {
         "-neverinline class " + adaptresourcefilenames.B.Inner.class.getName() + " {",
         "  public void method();",
         "}",
+        "-assumemayhavesideeffects class " + adaptresourcefilenames.pkg.C.class.getName() + " {",
+        "  void <init>();",
+        "}",
+        "-assumemayhavesideeffects class " + adaptresourcefilenames.pkg.innerpkg.D.class.getName(),
+        "{",
+        "  void <init>();",
+        "}",
         "-neverclassinline class *");
   }
 

@@ -37,7 +37,6 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import org.junit.Test;
@@ -54,8 +53,7 @@ public class NullabilityTest extends NonNullTrackerTestBase {
     MethodSubject fooSubject = codeInspector.clazz(mainClass.getName()).method(signature);
     DexEncodedMethod foo = codeInspector.clazz(mainClass.getName()).method(signature).getMethod();
     IRCode irCode = fooSubject.buildIR();
-    NonNullTracker nonNullTracker = new NonNullTracker(appView, ImmutableSet.of());
-    nonNullTracker.addNonNull(irCode);
+    new NonNullTracker(appView).addNonNull(irCode);
     TypeAnalysis analysis = new TypeAnalysis(appView, foo);
     analysis.widening(foo, irCode);
     inspector.accept(appView.appInfo(), irCode);

@@ -1126,6 +1126,8 @@ public abstract class R8RunArtTestsTest {
       "958-methodhandle-stackframe"
   );
 
+  private static Map<String, List<String>> keepRules = ImmutableMap.of();
+
   private static List<String> failuresToTriage = ImmutableList.of(
       // Dex file input into a jar file, not yet supported by the test framework.
       "663-odd-dex-size",
@@ -1212,6 +1214,8 @@ public abstract class R8RunArtTestsTest {
     private final boolean hasMissingClasses;
     // Explicitly disable desugaring.
     private final boolean disableDesugaring;
+    // Extra keep rules to use when running with R8.
+    private final List<String> keepRules;
 
     TestSpecification(
         String name,
@@ -1230,7 +1234,8 @@ public abstract class R8RunArtTestsTest {
         boolean disableClassInlining,
         boolean disableUninstantiatedTypeOptimization,
         boolean hasMissingClasses,
-        boolean disableDesugaring) {
+        boolean disableDesugaring,
+        List<String> keepRules) {
       this.name = name;
       this.dexTool = dexTool;
       this.nativeLibrary = nativeLibrary;
@@ -1248,6 +1253,7 @@ public abstract class R8RunArtTestsTest {
       this.disableUninstantiatedTypeOptimization = disableUninstantiatedTypeOptimization;
       this.hasMissingClasses = hasMissingClasses;
       this.disableDesugaring = disableDesugaring;
+      this.keepRules = keepRules;
     }
 
     TestSpecification(
@@ -1275,8 +1281,8 @@ public abstract class R8RunArtTestsTest {
           true, // Disable class inlining for JCTF tests.
           false,
           false,
-          true // Disable desugaring for JCTF tests.
-      );
+          true, // Disable desugaring for JCTF tests.
+          ImmutableList.of());
     }
 
     TestSpecification(
@@ -1303,8 +1309,8 @@ public abstract class R8RunArtTestsTest {
           true, // Disable class inlining for JCTF tests.
           false,
           false,
-          true // Disable desugaring for JCTF tests.
-      );
+          true, // Disable desugaring for JCTF tests.
+          ImmutableList.of());
     }
 
     public File resolveFile(String name) {
@@ -1468,7 +1474,8 @@ public abstract class R8RunArtTestsTest {
                 requireClassInliningToBeDisabled.contains(name),
                 requireUninstantiatedTypeOptimizationToBeDisabled.contains(name),
                 hasMissingClasses.contains(name),
-                false));
+                false,
+                keepRules.getOrDefault(name, ImmutableList.of())));
       }
     }
     return data;
@@ -1537,6 +1544,7 @@ public abstract class R8RunArtTestsTest {
     private final boolean disableUninstantiatedTypeOptimization;
     private final boolean hasMissingClasses;
     private final boolean disableDesugaring;
+    private final List<String> keepRules;
 
     private CompilationOptions(TestSpecification spec) {
       this.disableInlining = spec.disableInlining;
@@ -1544,6 +1552,7 @@ public abstract class R8RunArtTestsTest {
       this.disableUninstantiatedTypeOptimization = spec.disableUninstantiatedTypeOptimization;
       this.hasMissingClasses = spec.hasMissingClasses;
       this.disableDesugaring = spec.disableDesugaring;
+      this.keepRules = spec.keepRules;
     }
 
     @Override
@@ -1715,9 +1724,11 @@ public abstract class R8RunArtTestsTest {
                   .setDisableMinification(true)
                   .setDisableDesugaring(compilationOptions.disableDesugaring)
                   .addProguardConfiguration(ImmutableList.of("-keepattributes *"), Origin.unknown())
+                  .addProguardConfiguration(compilationOptions.keepRules, Origin.unknown())
                   .setOutput(
                       Paths.get(resultPath),
                       cfBackend ? OutputMode.ClassFile : OutputMode.DexIndexed);
+          ToolHelper.allowTestProguardOptions(builder);
           // Add program files directly to the underlying app to avoid errors on DEX inputs.
           ToolHelper.getAppBuilder(builder).addProgramFiles(ListUtils.map(fileNames, Paths::get));
           if (cfBackend) {

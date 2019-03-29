@@ -6,8 +6,7 @@ package com.android.tools.r8.ir.optimize.reflection;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.R8TestBuilder;
-import com.android.tools.r8.R8TestRunResult;
+import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.google.common.collect.ImmutableList;
@@ -64,14 +63,12 @@ public class GetNameInClassInitializerTest extends GetNameTestBase {
   @Test
   public void testR8_pinning() throws Exception {
     // Pinning the test class.
-    R8TestBuilder builder =
-        testForR8(parameters.getBackend())
-            .addProgramFiles(classPaths)
-            .enableInliningAnnotations()
-            .addKeepMainRule(MAIN)
-            .addKeepRules("-keep class **.GetNameClinit*")
-            .minification(enableMinification);
-    builder
+    testForR8(parameters.getBackend())
+        .addProgramFiles(classPaths)
+        .enableInliningAnnotations()
+        .addKeepMainRule(MAIN)
+        .addKeepRules("-keep class **.GetNameClinit*")
+        .minification(enableMinification)
         .setMinApi(parameters.getRuntime())
         .addOptionsModification(this::configure)
         .run(parameters.getRuntime(), MAIN)
@@ -81,20 +78,18 @@ public class GetNameInClassInitializerTest extends GetNameTestBase {
   @Test
   public void testR8_shallow_pinning() throws Exception {
     // Pinning the test class.
-    R8TestBuilder builder =
+    R8TestCompileResult result =
         testForR8(parameters.getBackend())
             .addProgramFiles(classPaths)
             .enableInliningAnnotations()
             .addKeepMainRule(MAIN)
             .addKeepRules("-keep,allowobfuscation class **.GetNameClinit*")
-            .minification(enableMinification);
-
-    R8TestRunResult result =
-        builder
+            .minification(enableMinification)
             .setMinApi(parameters.getRuntime())
             .addOptionsModification(this::configure)
-            .run(parameters.getRuntime(), MAIN);
-    result.assertSuccessWithOutput(
-        result.inspector().clazz(GetNameClinitClass.class).getFinalName());
+            .compile();
+    result
+        .run(parameters.getRuntime(), MAIN)
+        .assertSuccessWithOutput(result.inspector().clazz(GetNameClinitClass.class).getFinalName());
   }
 }

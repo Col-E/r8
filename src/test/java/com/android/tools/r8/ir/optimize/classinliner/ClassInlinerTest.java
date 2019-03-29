@@ -93,15 +93,16 @@ public class ClassInlinerTest extends TestBase {
         ClassWithFinal.class
     };
     String javaOutput = runOnJava(main);
-    TestRunResult result = testForR8(backend)
-        .addProgramClasses(classes)
-        .enableInliningAnnotations()
-        .addKeepMainRule(main)
-        .addKeepRules(
-            "-dontobfuscate", "-allowaccessmodification", "-keepattributes LineNumberTable")
-        .addOptionsModification(this::configure)
-        .run(main)
-        .assertSuccessWithOutput(javaOutput);
+    TestRunResult result =
+        testForR8(backend)
+            .addProgramClasses(classes)
+            .enableInliningAnnotations()
+            .addKeepMainRule(main)
+            .addKeepRules("-allowaccessmodification", "-keepattributes LineNumberTable")
+            .addOptionsModification(this::configure)
+            .noMinification()
+            .run(main)
+            .assertSuccessWithOutput(javaOutput);
 
     CodeInspector inspector = result.inspector();
     ClassSubject clazz = inspector.clazz(main);
@@ -172,15 +173,16 @@ public class ClassInlinerTest extends TestBase {
         ControlFlow.class,
     };
     String javaOutput = runOnJava(main);
-    TestRunResult result = testForR8(backend)
-        .addProgramClasses(classes)
-        .enableInliningAnnotations()
-        .addKeepMainRule(main)
-        .addKeepRules(
-            "-dontobfuscate", "-allowaccessmodification", "-keepattributes LineNumberTable")
-        .addOptionsModification(this::configure)
-        .run(main)
-        .assertSuccessWithOutput(javaOutput);
+    TestRunResult result =
+        testForR8(backend)
+            .addProgramClasses(classes)
+            .enableInliningAnnotations()
+            .addKeepMainRule(main)
+            .addKeepRules(
+                "-dontobfuscate", "-allowaccessmodification", "-keepattributes LineNumberTable")
+            .addOptionsModification(this::configure)
+            .run(main)
+            .assertSuccessWithOutput(javaOutput);
 
     CodeInspector inspector = result.inspector();
     ClassSubject clazz = inspector.clazz(main);
@@ -190,13 +192,12 @@ public class ClassInlinerTest extends TestBase {
           Sets.newHashSet(
               "com.android.tools.r8.ir.optimize.classinliner.builders.Pair",
               "java.lang.StringBuilder");
-      if (backend == Backend.CF && i < 3) {
+      if (backend == Backend.CF) {
         // const-string canonicalization is disabled in CF, which helps ClassInliner identify
-        // PairBuilder as candidate. Concatenated builder calls in test #3 bother that again.
+        // PairBuilder as candidate.
         expected.add("com.android.tools.r8.ir.optimize.classinliner.builders.PairBuilder");
       }
-      assertEquals(expected,
-          collectTypes(clazz, "testSimpleBuilder" + i, "void"));
+      assertEquals(expected, collectTypes(clazz, "testSimpleBuilder" + i, "void"));
     }
 
     // Note that Pair created instances were also inlined in the following method since
@@ -223,9 +224,7 @@ public class ClassInlinerTest extends TestBase {
 
     assertFalse(inspector.clazz(ControlFlow.class).isPresent());
 
-    assertEquals(
-        Collections.emptySet(),
-        collectTypes(clazz, "testWithMoreControlFlow", "void"));
+    assertEquals(Collections.emptySet(), collectTypes(clazz, "testWithMoreControlFlow", "void"));
 
     assertFalse(inspector.clazz(BuildersTestClass.Pos.class).isPresent());
   }

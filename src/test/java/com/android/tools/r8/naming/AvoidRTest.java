@@ -9,7 +9,7 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.R8TestBuilder;
+import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminTestBase;
@@ -44,7 +44,7 @@ public class AvoidRTest extends JasminTestBase {
     Set<String> expectedNames = ImmutableSet.of("P", "Q", "S", "T");
 
     JasminBuilder jasminBuilder = new JasminBuilder();
-    R8TestBuilder builder = testForR8(backend);
+    R8FullTestBuilder builder = testForR8(backend);
     for (int i = 0; i < 4; i++) {
       jasminBuilder.addClass("TopLevel" + Integer.toString(i));
     }
@@ -76,7 +76,7 @@ public class AvoidRTest extends JasminTestBase {
   @Test
   public void test_withoutPackageHierarchy() throws Exception {
     JasminBuilder jasminBuilder = new JasminBuilder();
-    R8TestBuilder builder = testForR8(backend);
+    R8FullTestBuilder builder = testForR8(backend);
     for (int i = 0; i < 26 * 2; i++) {
       jasminBuilder.addClass("TestClass" + Integer.toString(i));
     }
@@ -96,7 +96,7 @@ public class AvoidRTest extends JasminTestBase {
   }
 
   private void test_withPackageHierarchy(String keepRule) throws Exception {
-    R8TestBuilder builder = testForR8(backend);
+    R8FullTestBuilder builder = testForR8(backend);
     JasminBuilder jasminBuilder = new JasminBuilder();
     for (int i = 0; i < 26 * 2; i++) {
       jasminBuilder.addClass("TopLevel" + Integer.toString(i));

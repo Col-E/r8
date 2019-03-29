@@ -63,7 +63,7 @@ public class CovariantReturnTypeTest extends TestBase {
             .addKeepMainRule("package.TestClass")
             .addKeepRules("-keepconstantarguments class * { *; }")
             .enableConstantArgumentAnnotations()
-            .treeShaking(false)
+            .noTreeShaking()
             .compile()
             .inspector();
 

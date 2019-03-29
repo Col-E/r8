@@ -4,8 +4,9 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
 import static java.lang.annotation.ElementType.FIELD;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.android.tools.r8.AssumeMayHaveSideEffects;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
@@ -22,6 +23,15 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class AnnotationsOnFieldsTest extends TestBase {
 
+  private static final List<Class<?>> CLASSES =
+      ImmutableList.of(
+          FieldAnnotation.class,
+          StaticFieldAnnotation.class,
+          FieldAnnotationUse.class,
+          StaticFieldAnnotationUse.class,
+          TestClass.class,
+          MainClass.class);
+
   private final Backend backend;
 
   @Parameterized.Parameters(name = "Backend: {0}")
@@ -33,28 +43,22 @@ public class AnnotationsOnFieldsTest extends TestBase {
     this.backend = backend;
   }
 
-  List<Class<?>> CLASSES = ImmutableList.of(
-      FieldAnnotation.class,
-      StaticFieldAnnotation.class,
-      FieldAnnotationUse.class,
-      StaticFieldAnnotationUse.class,
-      TestClass.class,
-      MainClass.class
-  );
-
   @Test
   public void test() throws Exception {
     testForR8Compat(backend)
         .enableClassInliningAnnotations()
         .addProgramClasses(CLASSES)
         .addKeepMainRule(MainClass.class)
-        .addKeepRules("-keep @interface **.*Annotation { *; }")
-        .addKeepRules("-keepclassmembers class * { @**.*Annotation <fields>; }")
-        .addKeepRules("-keepattributes *Annotation*")
+        .addKeepRules(
+            "-keep @interface **.*Annotation { *; }",
+            "-keepclassmembers class * { @**.*Annotation <fields>; }",
+            "-keepattributes *Annotation*")
+        .enableSideEffectAnnotations()
         .compile()
         .inspect(
             inspector -> {
               ClassSubject clazz = inspector.clazz(TestClass.class);
+              assertThat(clazz, isPresent());
               assertThat(clazz, isRenamed());
 
               FieldSubject field = clazz.uniqueFieldWithName("field");
@@ -91,6 +95,9 @@ class StaticFieldAnnotationUse {}
 
 @NeverClassInline
 class TestClass {
+
+  @AssumeMayHaveSideEffects
+  public TestClass() {}
 
   @StaticFieldAnnotation(clazz = StaticFieldAnnotationUse.class)
   static int staticField;

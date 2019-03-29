@@ -17,7 +17,6 @@ import com.android.tools.r8.ir.code.InvokePolymorphic;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.CallSiteInformation;
-import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.Inliner.InlineeWithReason;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
@@ -457,9 +456,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       assert IteratorUtils.peekNext(blockIterator) == block;
 
       // Kick off the tracker to add non-null IRs only to the inlinee blocks.
-      new NonNullTracker(
-              appView, IRConverter.libraryMethodsReturningNonNull(appView.dexItemFactory()))
-          .addNonNullInPart(code, blockIterator, inlinee.blocks::contains);
+      new NonNullTracker(appView).addNonNullInPart(code, blockIterator, inlinee.blocks::contains);
       assert !blockIterator.hasNext();
 
       // Restore the old state of the iterator.

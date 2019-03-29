@@ -8,7 +8,7 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.GenerateMainDexList;
 import com.android.tools.r8.GenerateMainDexListCommand;
-import com.android.tools.r8.R8TestBuilder;
+import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.errors.Unreachable;
@@ -83,7 +83,7 @@ public class MainDexListWhyAreYouKeeping extends TestBase {
   }
 
   public void runTestWithR8(GraphConsumer consumer, String rule) throws Exception {
-    R8TestBuilder builder =
+    R8FullTestBuilder builder =
         testForR8(Backend.DEX)
             .noTreeShaking()
             .noMinification()
@@ -133,9 +133,9 @@ public class MainDexListWhyAreYouKeeping extends TestBase {
         StringUtils.lines(
             "com.android.tools.r8.maindexlist.whyareyoukeeping.MainDexClass",
             "|- is instantiated in:",
-            "|  void com.android.tools.r8.maindexlist.whyareyoukeeping.HelloWorldMain.main(java.lang.String[])",
+            "|  void " + HelloWorldMain.class.getTypeName() + ".main(java.lang.String[])",
             "|- is referenced in keep rule:",
-            "|  -keep class com.android.tools.r8.maindexlist.whyareyoukeeping.HelloWorldMain {",
+            "|  -keep class " + HelloWorldMain.class.getTypeName() + " {",
             "|    public static void main(java.lang.String[]);",
             "|  }");
     assertEquals(expected, runTest(MainDexClass.class));

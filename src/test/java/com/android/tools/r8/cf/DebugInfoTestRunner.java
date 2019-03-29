@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.cf;
 
-import com.android.tools.r8.R8TestBuilder;
+import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import java.nio.file.Path;
@@ -49,7 +49,7 @@ public class DebugInfoTestRunner extends TestBase {
     }
   }
 
-  private R8TestBuilder builder() {
+  private R8FullTestBuilder builder() {
     return testForR8(backend)
         .debug()
         .noTreeShaking()

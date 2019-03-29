@@ -42,7 +42,10 @@ public class ReflectiveNewInstanceTest extends TestBase {
         StringUtils.lines("Success", "Success", "Success", "Success", "Success");
 
     if (parameters.getBackend() == Backend.CF) {
-      testForJvm().addTestClasspath().run(TestClass.class).assertSuccessWithOutput(expectedOutput);
+      testForJvm()
+          .addTestClasspath()
+          .run(parameters.getRuntime(), TestClass.class)
+          .assertSuccessWithOutput(expectedOutput);
     }
 
     String expectedOutputAfterR8 =

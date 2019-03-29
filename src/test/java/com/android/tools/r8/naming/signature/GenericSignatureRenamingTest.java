@@ -56,7 +56,7 @@ public class GenericSignatureRenamingTest extends TestBase {
         .assertSuccess();
   }
 
-  private void test(R8TestBuilder builder) throws Exception {
+  private void test(R8TestBuilder<?> builder) throws Exception {
     builder
         .addKeepRules("-dontoptimize")
         .addKeepRules("-keepattributes InnerClasses,EnclosingMethod,Signature")

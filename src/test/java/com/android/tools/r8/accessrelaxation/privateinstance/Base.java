@@ -4,9 +4,11 @@
 package com.android.tools.r8.accessrelaxation.privateinstance;
 
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NeverPropagateValue;
 
 public class Base {
 
+  @NeverPropagateValue
   @NeverInline
   private String foo() {
     return "Base::foo()";
@@ -16,6 +18,7 @@ public class Base {
     return foo();
   }
 
+  @NeverPropagateValue
   @NeverInline
   private String foo1() {
     return "Base::foo1()";
@@ -25,6 +28,7 @@ public class Base {
     return foo1();
   }
 
+  @NeverPropagateValue
   @NeverInline
   private String foo2() {
     return "Base::foo2()";
@@ -34,10 +38,10 @@ public class Base {
     return foo2();
   }
 
+  @NeverInline
   public void dump() {
     System.out.println(foo());
     System.out.println(foo1());
     System.out.println(foo2());
   }
-
 }

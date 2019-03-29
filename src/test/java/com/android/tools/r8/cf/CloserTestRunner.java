@@ -44,7 +44,7 @@ public class CloserTestRunner extends TestBase {
         .addProgramClasses(CloserTest.class)
         .addKeepMainRule(CloserTest.class)
         .setMode(CompilationMode.RELEASE)
-        .minification(false)
+        .noMinification()
         .noTreeShaking()
         .enableInliningAnnotations()
         .compile()

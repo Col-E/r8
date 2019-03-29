@@ -16,6 +16,7 @@ import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.utils.LongInterval;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.IntList;
@@ -29,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.function.Predicate;
 
 public class Value {
 
@@ -849,10 +851,30 @@ public class Value {
 
   public boolean isDead(AppView<? extends AppInfo> appView, IRCode code) {
     // Totally unused values are trivially dead.
-    return !isUsed() || isDead(appView, code, new HashSet<>());
+    return !isUsed() || isDead(appView, code, Predicates.alwaysFalse());
   }
 
-  protected boolean isDead(AppView<? extends AppInfo> appView, IRCode code, Set<Value> active) {
+  public boolean isDead(
+      AppView<? extends AppInfo> appView, IRCode code, Predicate<Instruction> ignoreUser) {
+    // Totally unused values are trivially dead.
+    return !isUsed() || isDead(appView, code, ignoreUser, new HashSet<>());
+  }
+
+  /**
+   * Used to determine if a given value is dead.
+   *
+   * <p>The predicate `ignoreUser` can be used to determine if a given value is dead under the
+   * assumption that the instructions for which `ignoreUser` returns true are also dead.
+   *
+   * <p>One use case of this is when we attempt to determine if a call to {@code <init>()} can be
+   * removed: calls to {@code <init>()} can only be removed if the receiver is dead except for the
+   * constructor call.
+   */
+  protected boolean isDead(
+      AppView<? extends AppInfo> appView,
+      IRCode code,
+      Predicate<Instruction> ignoreUser,
+      Set<Value> active) {
     // Give up when the dependent set of values reach a given threshold (otherwise this fails with
     // a StackOverflowError on Art003_omnibus_opcodesTest).
     if (active.size() > 100) {
@@ -868,18 +890,21 @@ public class Value {
     // currently active values.
     active.add(this);
     for (Instruction instruction : uniqueUsers()) {
+      if (ignoreUser.test(instruction)) {
+        continue;
+      }
       if (!instruction.canBeDeadCode(appView, code)) {
         return false;
       }
       Value outValue = instruction.outValue();
       if (outValue != null
           && !active.contains(outValue)
-          && !outValue.isDead(appView, code, active)) {
+          && !outValue.isDead(appView, code, ignoreUser, active)) {
         return false;
       }
     }
     for (Phi phi : uniquePhiUsers()) {
-      if (!active.contains(phi) && !phi.isDead(appView, code, active)) {
+      if (!active.contains(phi) && !phi.isDead(appView, code, ignoreUser, active)) {
         return false;
       }
     }

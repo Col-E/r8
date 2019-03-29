@@ -37,7 +37,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -361,8 +360,29 @@ public class DexItemFactory {
           createString("makeConcat")
       );
 
+  public final Set<DexMethod> libraryMethodsReturningReceiver =
+      ImmutableSet.<DexMethod>builder()
+          .addAll(stringBufferMethods.appendMethods)
+          .addAll(stringBuilderMethods.appendMethods)
+          .build();
+
+  // Library methods listed here are based on their original implementations. That is, we assume
+  // these cannot be overridden.
+  public final Set<DexMethod> libraryMethodsReturningNonNull =
+      ImmutableSet.of(classMethods.getName, classMethods.getSimpleName, stringMethods.valueOf);
+
+  public Set<DexMethod> libraryMethodsWithoutSideEffects =
+      ImmutableSet.of(
+          objectMethods.constructor,
+          stringBufferMethods.constructor,
+          stringBuilderMethods.constructor);
+
+  public Set<DexType> libraryTypesAssumedToBePresent =
+      ImmutableSet.of(objectType, stringBufferType, stringBuilderType);
+
   public final Set<DexType> libraryTypesWithoutStaticInitialization =
-      ImmutableSet.of(iteratorType, serializableType);
+      ImmutableSet.of(
+          iteratorType, objectType, serializableType, stringBufferType, stringBuilderType);
 
   private boolean skipNameValidationForTesting = false;
 
@@ -716,7 +736,9 @@ public class DexItemFactory {
     public final DexMethod appendObject;
     public final DexMethod appendString;
     public final DexMethod appendStringBuffer;
-    private final Set<DexMethod> appenders;
+    public final DexMethod constructor;
+
+    private final Set<DexMethod> appendMethods;
 
     private StringBuildingMethods(DexType receiver) {
       DexType sbufType = createType(createString("Ljava/lang/StringBuffer;"));
@@ -737,29 +759,27 @@ public class DexItemFactory {
       appendObject = createMethod(receiver, createProto(receiver, objectType), append);
       appendString = createMethod(receiver, createProto(receiver, stringType), append);
       appendStringBuffer = createMethod(receiver, createProto(receiver, sbufType), append);
+      constructor = createMethod(receiver, createProto(voidType), constructorMethodName);
 
-      appenders = new HashSet<>();
-      appenders.add(appendBoolean);
-      appenders.add(appendChar);
-      appenders.add(appendCharArray);
-      appenders.add(appendSubCharArray);
-      appenders.add(appendCharSequence);
-      appenders.add(appendSubCharSequence);
-      appenders.add(appendInt);
-      appenders.add(appendDouble);
-      appenders.add(appendFloat);
-      appenders.add(appendLong);
-      appenders.add(appendObject);
-      appenders.add(appendString);
-      appenders.add(appendStringBuffer);
+      appendMethods =
+          ImmutableSet.of(
+              appendBoolean,
+              appendChar,
+              appendCharArray,
+              appendSubCharArray,
+              appendCharSequence,
+              appendSubCharSequence,
+              appendInt,
+              appendDouble,
+              appendFloat,
+              appendLong,
+              appendObject,
+              appendString,
+              appendStringBuffer);
     }
 
-    public boolean isAppend(DexMethod method) {
-      return appenders.contains(method);
-    }
-
-    public void forEachAppendMethod(Consumer<DexMethod> consumer) {
-      appenders.forEach(consumer);
+    public boolean isAppendMethod(DexMethod method) {
+      return appendMethods.contains(method);
     }
   }
 

@@ -9,6 +9,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public abstract class KotlinTestBase extends TestBase {
+
+  public static final String checkParameterIsNotNullSignature =
+      "void kotlin.jvm.internal.Intrinsics.checkParameterIsNotNull("
+          + "java.lang.Object, java.lang.String)";
+  public static final String throwParameterIsNotNullExceptionSignature =
+      "void kotlin.jvm.internal.Intrinsics.throwParameterIsNullException(java.lang.String)";
+
   private static final String RSRC = "kotlinR8TestResources";
 
   protected final KotlinTargetVersion targetVersion;

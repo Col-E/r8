@@ -155,18 +155,13 @@ public class CodeRewriter {
 
   private final AppView<? extends AppInfo> appView;
   private final DexItemFactory dexItemFactory;
-  private final Set<DexMethod> libraryMethodsReturningReceiver;
   private final InternalOptions options;
 
-  public CodeRewriter(
-      AppView<? extends AppInfo> appView,
-      IRConverter converter,
-      Set<DexMethod> libraryMethodsReturningReceiver) {
+  public CodeRewriter(AppView<? extends AppInfo> appView, IRConverter converter) {
     this.appView = appView;
     this.converter = converter;
     this.options = appView.options();
     this.dexItemFactory = appView.dexItemFactory();
-    this.libraryMethodsReturningReceiver = libraryMethodsReturningReceiver;
   }
 
   private static boolean removedTrivialGotos(IRCode code) {
@@ -1641,7 +1636,10 @@ public class CodeRewriter {
             // and move it to iterator.
           }
         } else if (outValue != null && !outValue.hasLocalInfo()) {
-          if (libraryMethodsReturningReceiver.contains(invoke.getInvokedMethod())) {
+          if (appView
+              .dexItemFactory()
+              .libraryMethodsReturningReceiver
+              .contains(invoke.getInvokedMethod())) {
             if (checkArgumentType(invoke, 0)) {
               outValue.replaceUsers(invoke.arguments().get(0));
               invoke.setOutValue(null);

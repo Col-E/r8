@@ -333,8 +333,8 @@ public class MainDexTracingTest extends TestBase {
         .addOptionsModification(optionsConsumer)
         .assumeAllMethodsMayHaveSideEffects()
         .setMinApi(minSdk)
-        .minification(false)
-        .treeShaking(false)
+        .noMinification()
+        .noTreeShaking()
         .setMainDexListConsumer((string, handler) -> r8MainDexListOutput.content = string)
         .compile()
         .writeToZip(out);

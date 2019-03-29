@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.shaking.forceproguardcompatibility;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -446,14 +448,10 @@ public class ForceProguardCompatibilityTest extends TestBase {
     testAtomicFieldUpdaters(false, true);
   }
 
-  public void testKeepAttributes(boolean forceProguardCompatibility,
-      boolean innerClasses, boolean enclosingMethod) throws Exception {
-    CompatProguardCommandBuilder builder =
-        new CompatProguardCommandBuilder(forceProguardCompatibility);
-    Class mainClass = TestKeepAttributes.class;
-    builder.addProgramFiles(ToolHelper.getClassFilesForTestPackage(mainClass.getPackage()));
-    ImmutableList.Builder<String> proguardConfigurationBuilder = ImmutableList.builder();
-    String keepAttributes = "";
+  public void testKeepAttributes(
+      boolean forceProguardCompatibility, boolean innerClasses, boolean enclosingMethod)
+      throws Exception {
+    String keepRules = "";
     if (innerClasses || enclosingMethod) {
       List<String> attributes = new ArrayList<>();
       if (innerClasses) {
@@ -462,45 +460,42 @@ public class ForceProguardCompatibilityTest extends TestBase {
       if (enclosingMethod) {
         attributes.add(ProguardKeepAttributes.ENCLOSING_METHOD);
       }
-      keepAttributes = "-keepattributes " + String.join(",", attributes);
+      keepRules = "-keepattributes " + String.join(",", attributes);
     }
-    proguardConfigurationBuilder.add(
-        "-keep class " + mainClass.getCanonicalName() + " {",
-        "  <init>();",  // Add <init>() so it does not become a compatibility rule below.
-        "  public static void main(java.lang.String[]);",
-        "}",
-        keepAttributes);
-    List<String> proguardConfig = proguardConfigurationBuilder.build();
-    builder.addProguardConfiguration(proguardConfig, Origin.unknown());
     Path proguardCompatibilityRules = temp.newFile().toPath();
-    builder.setProguardCompatibilityRulesOutput(proguardCompatibilityRules);
+    CodeInspector inspector;
 
-    AndroidApp app;
-    builder.setProgramConsumer(emptyConsumer(backend)).addLibraryFiles(runtimeJar(backend));
     try {
-      app = ToolHelper.runR8(builder.build(), o -> o.enableClassInlining = false);
+      inspector =
+          testForR8Compat(backend, forceProguardCompatibility)
+              .addProgramFiles(
+                  ToolHelper.getClassFilesForTestPackage(TestKeepAttributes.class.getPackage()))
+              .addKeepRules(
+                  "-keep class " + TestKeepAttributes.class.getTypeName() + " {",
+                  "  <init>();", // Add <init>() so it does not become a compatibility rule below.
+                  "  public static void main(java.lang.String[]);",
+                  "}",
+                  keepRules)
+              .addOptionsModification(options -> options.enableClassInlining = false)
+              .enableSideEffectAnnotations()
+              .setProguardCompatibilityRulesOutput(proguardCompatibilityRules)
+              .compile()
+              .run(TestKeepAttributes.class)
+              .assertSuccessWithOutput(innerClasses || enclosingMethod ? "1" : "0")
+              .inspector();
     } catch (CompilationFailedException e) {
       assertTrue(!forceProguardCompatibility && (!innerClasses || !enclosingMethod));
       return;
     }
-    CodeInspector inspector = new CodeInspector(app);
-    assertTrue(inspector.clazz(getJavacGeneratedClassName(mainClass)).isPresent());
-    String result;
-    if (backend == Backend.DEX) {
-      result = runOnArt(app, mainClass);
-    } else {
-      assert backend == Backend.CF;
-      result = runOnJava(app, mainClass);
-    }
-    assertEquals(innerClasses || enclosingMethod ? "1" : "0", result);
+
+    assertThat(inspector.clazz(getJavacGeneratedClassName(TestKeepAttributes.class)), isPresent());
 
     // Check the Proguard compatibility configuration generated.
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(new DexItemFactory(), new Reporter());
     parser.parse(proguardCompatibilityRules);
-    System.out.println(proguardCompatibilityRules);
     ProguardConfiguration configuration = parser.getConfigRawForTesting();
-    assertEquals(0, configuration.getRules().size());
+    assertTrue(configuration.getRules().isEmpty());
     if (innerClasses ^ enclosingMethod) {
       assertTrue(configuration.getKeepAttributes().innerClasses);
       assertTrue(configuration.getKeepAttributes().enclosingMethod);

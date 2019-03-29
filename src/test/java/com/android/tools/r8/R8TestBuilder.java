@@ -5,7 +5,6 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.R8Command.Builder;
 import com.android.tools.r8.TestBase.Backend;
-import com.android.tools.r8.TestBase.R8Mode;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.CollectingGraphConsumer;
@@ -25,20 +24,11 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-public class R8TestBuilder
-    extends TestShrinkerBuilder<
-        R8Command, Builder, R8TestCompileResult, R8TestRunResult, R8TestBuilder> {
+public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
+    extends TestShrinkerBuilder<R8Command, Builder, R8TestCompileResult, R8TestRunResult, T> {
 
-  private R8TestBuilder(TestState state, Builder builder, Backend backend) {
+  R8TestBuilder(TestState state, Builder builder, Backend backend) {
     super(state, builder, backend);
-  }
-
-  public static R8TestBuilder create(TestState state, Backend backend, R8Mode mode) {
-    R8Command.Builder builder =
-        mode == R8Mode.Full
-            ? R8Command.builder(state.getDiagnosticsHandler())
-            : new CompatProguardCommandBuilder(true, state.getDiagnosticsHandler());
-    return new R8TestBuilder(state, builder, backend);
   }
 
   private boolean enableInliningAnnotations = false;
@@ -52,11 +42,6 @@ public class R8TestBuilder
   private List<String> keepRules = new ArrayList<>();
   private List<Path> mainDexRulesFiles = new ArrayList<>();
   private List<String> applyMappingMaps = new ArrayList<>();
-
-  @Override
-  R8TestBuilder self() {
-    return this;
-  }
 
   @Override
   R8TestCompileResult internalCompile(
@@ -117,73 +102,73 @@ public class R8TestBuilder
   }
 
   @Override
-  public R8TestBuilder addClasspathClasses(Collection<Class<?>> classes) {
+  public T addClasspathClasses(Collection<Class<?>> classes) {
     builder.addClasspathResourceProvider(ClassFileResourceProviderFromClasses(classes));
     return self();
   }
 
   @Override
-  public R8TestBuilder addClasspathFiles(Collection<Path> files) {
+  public T addClasspathFiles(Collection<Path> files) {
     builder.addClasspathFiles(files);
     return self();
   }
 
-  public R8TestBuilder addDataResources(List<DataEntryResource> resources) {
+  public T addDataResources(List<DataEntryResource> resources) {
     resources.forEach(builder.getAppBuilder()::addDataResource);
     return self();
   }
 
   @Override
-  public R8TestBuilder addDataEntryResources(DataEntryResource... resources) {
+  public T addDataEntryResources(DataEntryResource... resources) {
     return addDataResources(Arrays.asList(resources));
   }
 
   @Override
-  public R8TestBuilder addKeepRuleFiles(List<Path> files) {
+  public T addKeepRuleFiles(List<Path> files) {
     builder.addProguardConfigurationFiles(files);
     return self();
   }
 
   @Override
-  public R8TestBuilder addKeepRules(Collection<String> rules) {
+  public T addKeepRules(Collection<String> rules) {
     // Delay adding the actual rules so that we only associate a single origin and unique lines to
     // each actual rule.
     keepRules.addAll(rules);
     return self();
   }
 
-  public R8TestBuilder addMainDexRules(Collection<String> rules) {
+  public T addMainDexRules(Collection<String> rules) {
     builder.addMainDexRules(new ArrayList<>(rules), Origin.unknown());
     return self();
   }
 
-  public R8TestBuilder addMainDexRules(String... rules) {
+  public T addMainDexRules(String... rules) {
     return addMainDexRules(Arrays.asList(rules));
   }
 
-  public R8TestBuilder addMainDexRuleFiles(List<Path> files) {
+  public T addMainDexRuleFiles(List<Path> files) {
     mainDexRulesFiles.addAll(files);
     return self();
   }
 
-  public R8TestBuilder addMainDexRuleFiles(Path... files) {
+  public T addMainDexRuleFiles(Path... files) {
     return addMainDexRuleFiles(Arrays.asList(files));
   }
 
-  public R8TestBuilder addMainDexClassRules(Class<?>... classes) {
+  public T addMainDexClassRules(Class<?>... classes) {
     for (Class<?> clazz : classes) {
       addMainDexRules("-keep class " + clazz.getTypeName());
     }
     return self();
   }
 
-  public R8TestBuilder addMainDexListClasses(Class<?>... classes) {
+  public T addMainDexListClasses(Class<?>... classes) {
     builder.addMainDexClasses(
         Arrays.stream(classes).map(Class::getTypeName).collect(Collectors.toList()));
     return self();
   }
 
-  public R8TestBuilder enableInliningAnnotations() {
+  public T enableInliningAnnotations() {
     if (!enableInliningAnnotations) {
       enableInliningAnnotations = true;
       addInternalKeepRules(
@@ -193,7 +178,7 @@ public class R8TestBuilder
     return self();
   }
 
-  public R8TestBuilder enableClassInliningAnnotations() {
+  public T enableClassInliningAnnotations() {
     if (!enableClassInliningAnnotations) {
       enableClassInliningAnnotations = true;
       addInternalKeepRules("-neverclassinline @com.android.tools.r8.NeverClassInline class *");
@@ -201,7 +186,7 @@ public class R8TestBuilder
     return self();
   }
 
-  public R8TestBuilder enableMergeAnnotations() {
+  public T enableMergeAnnotations() {
     if (!enableMergeAnnotations) {
       enableMergeAnnotations = true;
       addInternalKeepRules("-nevermerge @com.android.tools.r8.NeverMerge class *");
@@ -209,7 +194,7 @@ public class R8TestBuilder
     return self();
   }
 
-  public R8TestBuilder enableMemberValuePropagationAnnotations() {
+  public T enableMemberValuePropagationAnnotations() {
     if (!enableMemberValuePropagationAnnotations) {
       enableMemberValuePropagationAnnotations = true;
       addInternalKeepRules(
@@ -218,7 +203,7 @@ public class R8TestBuilder
     return self();
   }
 
-  public R8TestBuilder enableSideEffectAnnotations() {
+  public T enableSideEffectAnnotations() {
     if (!enableSideEffectAnnotations) {
       enableSideEffectAnnotations = true;
       addInternalKeepRules(
@@ -229,7 +214,7 @@ public class R8TestBuilder
     return self();
   }
 
-  public R8TestBuilder assumeAllMethodsMayHaveSideEffects() {
+  public T assumeAllMethodsMayHaveSideEffects() {
     if (!enableSideEffectAnnotations) {
       enableSideEffectAnnotations = true;
       addInternalKeepRules("-assumemayhavesideeffects class * { <methods>; }");
@@ -237,7 +222,7 @@ public class R8TestBuilder
     return self();
   }
 
-  public R8TestBuilder enableConstantArgumentAnnotations() {
+  public T enableConstantArgumentAnnotations() {
     if (!enableConstantArgumentAnnotations) {
       enableConstantArgumentAnnotations = true;
       addInternalKeepRules(
@@ -246,7 +231,7 @@ public class R8TestBuilder
     return self();
   }
 
-  public R8TestBuilder enableUnusedArgumentAnnotations() {
+  public T enableUnusedArgumentAnnotations() {
     if (!enableUnusedArgumentAnnotations) {
       enableUnusedArgumentAnnotations = true;
       addInternalKeepRules(
@@ -255,35 +240,35 @@ public class R8TestBuilder
     return self();
   }
 
-  public R8TestBuilder enableProguardTestOptions() {
+  public T enableProguardTestOptions() {
     builder.allowTestProguardOptions();
     return self();
   }
 
-  public R8TestBuilder enableGraphInspector() {
+  public T enableGraphInspector() {
     return enableGraphInspector(null);
   }
 
-  public R8TestBuilder enableGraphInspector(GraphConsumer subConsumer) {
+  public T enableGraphInspector(GraphConsumer subConsumer) {
     CollectingGraphConsumer consumer = new CollectingGraphConsumer(subConsumer);
     setKeptGraphConsumer(consumer);
     graphConsumer = consumer;
     return self();
   }
 
-  public R8TestBuilder setKeptGraphConsumer(GraphConsumer graphConsumer) {
+  public T setKeptGraphConsumer(GraphConsumer graphConsumer) {
     assert this.graphConsumer == null;
     builder.setKeptGraphConsumer(graphConsumer);
     return self();
   }
 
-  public R8TestBuilder setMainDexKeptGraphConsumer(GraphConsumer graphConsumer) {
+  public T setMainDexKeptGraphConsumer(GraphConsumer graphConsumer) {
     builder.setMainDexKeptGraphConsumer(graphConsumer);
     return self();
   }
 
   @Override
-  public R8TestBuilder addApplyMapping(String proguardMap) {
+  public T addApplyMapping(String proguardMap) {
     applyMappingMaps.add(proguardMap);
     return self();
   }

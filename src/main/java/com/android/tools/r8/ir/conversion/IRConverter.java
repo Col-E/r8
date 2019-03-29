@@ -9,6 +9,7 @@ import static com.android.tools.r8.ir.optimize.CodeRewriter.checksNullBeforeSide
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppInfo.ResolutionResult;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
@@ -81,7 +82,6 @@ import com.android.tools.r8.utils.Timing;
 import com.google.common.base.Predicates;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
@@ -89,7 +89,6 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -167,7 +166,7 @@ public class IRConverter {
     this.rootSet = rootSet;
     this.printer = printer;
     this.mainDexClasses = mainDexClasses.getClasses();
-    this.codeRewriter = new CodeRewriter(appView, this, libraryMethodsReturningReceiver());
+    this.codeRewriter = new CodeRewriter(appView, this);
     this.classInitializerDefaultsOptimization =
         options.debug ? null : new ClassInitializerDefaultsOptimization(appView, this);
     this.stringConcatRewriter = new StringConcatRewriter(appView);
@@ -190,11 +189,7 @@ public class IRConverter {
             ? new CovariantReturnTypeAnnotationTransformer(this, appView.dexItemFactory())
             : null;
     this.stringOptimizer = new StringOptimizer(appView);
-    this.nonNullTracker =
-        options.enableNonNullTracking
-            ? new NonNullTracker(
-                appView, libraryMethodsReturningNonNull(appView.dexItemFactory()))
-            : null;
+    this.nonNullTracker = options.enableNonNullTracking ? new NonNullTracker(appView) : null;
     if (appView.enableWholeProgramOptimizations()) {
       assert appView.appInfo().hasLiveness();
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
@@ -272,24 +267,6 @@ public class IRConverter {
         return !options.canUseSuppressedExceptions();
     }
     throw new Unreachable();
-  }
-
-  private Set<DexMethod> libraryMethodsReturningReceiver() {
-    Set<DexMethod> methods = new HashSet<>();
-    DexItemFactory dexItemFactory = appView.dexItemFactory();
-    dexItemFactory.stringBufferMethods.forEachAppendMethod(methods::add);
-    dexItemFactory.stringBuilderMethods.forEachAppendMethod(methods::add);
-    return methods;
-  }
-
-  // Library methods listed here are based on their original implementations. That is, we assume
-  // these cannot be overridden.
-  public static Set<DexMethod> libraryMethodsReturningNonNull(DexItemFactory factory) {
-    return ImmutableSet.of(
-        factory.stringMethods.valueOf,
-        factory.classMethods.getName,
-        factory.classMethods.getSimpleName
-    );
   }
 
   private boolean removeLambdaDeserializationMethods() {
@@ -1189,6 +1166,8 @@ public class IRConverter {
       boolean mayHaveSideEffects =
           // If the method is synchronized then it acquires a lock.
           method.accessFlags.isSynchronized()
+              || (appView.dexItemFactory().isConstructor(method.method)
+                  && hasNonTrivialFinalizeMethod(method.method.holder))
               || Streams.stream(code.instructions())
                   .anyMatch(
                       instruction ->
@@ -1197,6 +1176,30 @@ public class IRConverter {
         feedback.methodMayNotHaveSideEffects(method);
       }
     }
+  }
+
+  // Returns true if `method` is an initializer and the enclosing class overrides the method
+  // `void java.lang.Object.finalize()`.
+  private boolean hasNonTrivialFinalizeMethod(DexType type) {
+    DexClass clazz = appView.definitionFor(type);
+    if (clazz != null) {
+      if (clazz.isProgramClass()) {
+        ResolutionResult resolutionResult =
+            appView
+                .appInfo()
+                .resolveMethodOnClass(type, appView.dexItemFactory().objectMethods.finalize);
+        for (DexEncodedMethod target : resolutionResult.asListOfTargets()) {
+          if (target.method != appView.dexItemFactory().objectMethods.finalize) {
+            return true;
+          }
+        }
+        return false;
+      } else {
+        // Conservatively report that the library class could implement finalize().
+        return true;
+      }
+    }
+    return false;
   }
 
   private void finalizeIR(DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {

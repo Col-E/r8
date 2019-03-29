@@ -4,14 +4,20 @@
 
 package com.android.tools.r8.shaking.forceproguardcompatibility.keepattributes;
 
+import com.android.tools.r8.AssumeMayHaveSideEffects;
+
 public class TestKeepAttributes {
   public static class InnerClass {
 
+    @AssumeMayHaveSideEffects
+    InnerClass() {}
   }
 
-  public static void methodWithMemberClass() {
+  private static void methodWithMemberClass() {
     class MemberClass {
 
+      @AssumeMayHaveSideEffects
+      private MemberClass() {}
     }
 
     new MemberClass();

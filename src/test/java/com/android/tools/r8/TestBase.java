@@ -81,17 +81,13 @@ public class TestBase {
     DEX
   }
 
-  public enum R8Mode {
-    Full,
-    Compat
+  public static R8FullTestBuilder testForR8(TemporaryFolder temp, Backend backend) {
+    return R8FullTestBuilder.create(new TestState(temp), backend);
   }
 
-  public static R8TestBuilder testForR8(TemporaryFolder temp, Backend backend) {
-    return R8TestBuilder.create(new TestState(temp), backend, R8Mode.Full);
-  }
-
-  public static R8TestBuilder testForR8Compat(TemporaryFolder temp, Backend backend) {
-    return R8TestBuilder.create(new TestState(temp), backend, R8Mode.Compat);
+  public static R8CompatTestBuilder testForR8Compat(
+      TemporaryFolder temp, Backend backend, boolean forceProguardCompatibility) {
+    return R8CompatTestBuilder.create(new TestState(temp), backend, forceProguardCompatibility);
   }
 
   public static ExternalR8TestBuilder testForExternalR8(TemporaryFolder temp, Backend backend) {
@@ -118,12 +114,16 @@ public class TestBase {
     return GenerateMainDexListTestBuilder.create(new TestState(temp));
   }
 
-  public R8TestBuilder testForR8(Backend backend) {
+  public R8FullTestBuilder testForR8(Backend backend) {
     return testForR8(temp, backend);
   }
 
-  public R8TestBuilder testForR8Compat(Backend backend) {
-    return testForR8Compat(temp, backend);
+  public R8CompatTestBuilder testForR8Compat(Backend backend) {
+    return testForR8Compat(backend, true);
+  }
+
+  public R8CompatTestBuilder testForR8Compat(Backend backend, boolean forceProguardCompatibility) {
+    return testForR8Compat(temp, backend, forceProguardCompatibility);
   }
 
   public ExternalR8TestBuilder testForExternalR8(Backend backend) {

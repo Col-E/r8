@@ -42,13 +42,9 @@ import java.util.function.Predicate;
 public class NonNullTracker {
 
   private final AppView<? extends AppInfo> appView;
-  private final Set<DexMethod> libraryMethodsReturningNonNull;
 
-  public NonNullTracker(
-      AppView<? extends AppInfo> appView,
-      Set<DexMethod> libraryMethodsReturningNonNull) {
+  public NonNullTracker(AppView<? extends AppInfo> appView) {
     this.appView = appView;
-    this.libraryMethodsReturningNonNull = libraryMethodsReturningNonNull;
   }
 
   @VisibleForTesting
@@ -102,8 +98,10 @@ public class NonNullTracker {
       while (iterator.hasNext()) {
         Instruction current = iterator.next();
         if (current.isInvokeMethod()
-            && libraryMethodsReturningNonNull.contains(
-                current.asInvokeMethod().getInvokedMethod())) {
+            && appView
+                .dexItemFactory()
+                .libraryMethodsReturningNonNull
+                .contains(current.asInvokeMethod().getInvokedMethod())) {
           Value knownToBeNonNullValue = current.outValue();
           // Avoid adding redundant non-null instruction.
           // Otherwise, we will have something like:
