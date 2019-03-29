@@ -47,13 +47,29 @@ public class DexLibraryClass extends DexClass implements Supplier<DexLibraryClas
         annotations,
         origin,
         skipNameValidationForTesting);
-    assert Arrays.stream(directMethods).noneMatch(DexEncodedMethod::isClassInitializer);
+    assert Arrays.stream(directMethods).allMatch(DexLibraryClass::verifyLibraryMethod);
+    assert Arrays.stream(virtualMethods).allMatch(DexLibraryClass::verifyLibraryMethod);
+    assert Arrays.stream(staticFields).allMatch(DexLibraryClass::verifyLibraryField);
+    assert Arrays.stream(instanceFields).allMatch(DexLibraryClass::verifyLibraryField);
     // Set all static field values to unknown. We don't want to use the value from the library
     // at compile time, as it can be different at runtime.
     for (DexEncodedField staticField : staticFields) {
       staticField.setStaticValue(DexValue.UNKNOWN);
     }
     assert kind == Kind.CF : "Invalid kind " + kind + " for library-path class " + type;
+  }
+
+  private static boolean verifyLibraryMethod(DexEncodedMethod method) {
+    assert !method.isClassInitializer();
+    assert !method.isPrivateMethod();
+    assert !method.hasCode();
+    return true;
+  }
+
+  private static boolean verifyLibraryField(DexEncodedField field) {
+    assert !field.isPrivate();
+    assert !field.isStatic() || !field.hasExplicitStaticValue();
+    return true;
   }
 
   @Override

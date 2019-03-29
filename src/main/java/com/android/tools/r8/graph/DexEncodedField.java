@@ -92,6 +92,10 @@ public class DexEncodedField extends KeyedDexItem<DexField> {
     return accessFlags.isStatic();
   }
 
+  public boolean isPrivate() {
+    return accessFlags.isPrivate();
+  }
+
   @Override
   public boolean isStaticMember() {
     return isStatic();

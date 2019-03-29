@@ -134,6 +134,10 @@ public class JarClassFileReader {
     return access & ~ACC_SYNTHETIC_ATTRIBUTE & ~ACC_DEPRECATED;
   }
 
+  public static FieldAccessFlags createFieldAccessFlags(int access) {
+    return FieldAccessFlags.fromCfAccessFlags(cleanAccessFlags(access));
+  }
+
   public static MethodAccessFlags createMethodAccessFlags(String name, int access) {
     boolean isConstructor =
         name.equals(Constants.INSTANCE_INITIALIZER_NAME)
@@ -290,7 +294,14 @@ public class JarClassFileReader {
     @Override
     public FieldVisitor visitField(
         int access, String name, String desc, String signature, Object value) {
-      return new CreateFieldVisitor(this, access, name, desc, signature, value);
+      if (classKind == ClassKind.LIBRARY) {
+        FieldAccessFlags flags = createFieldAccessFlags(access);
+        if (flags.isPrivate()) {
+          return null;
+        }
+      }
+      return new CreateFieldVisitor(
+          this, access, name, desc, signature, classKind == ClassKind.LIBRARY ? null : value);
     }
 
     @Override
@@ -298,7 +309,7 @@ public class JarClassFileReader {
         int access, String name, String desc, String signature, String[] exceptions) {
       if (classKind == ClassKind.LIBRARY) {
         MethodAccessFlags flags = createMethodAccessFlags(name, access);
-        if (flags.isStatic() && flags.isConstructor()) {
+        if ((flags.isStatic() && flags.isConstructor()) || flags.isPrivate()) {
           return null;
         }
       }
@@ -462,7 +473,7 @@ public class JarClassFileReader {
 
     @Override
     public void visitEnd() {
-      FieldAccessFlags flags = FieldAccessFlags.fromCfAccessFlags(cleanAccessFlags(access));
+      FieldAccessFlags flags = createFieldAccessFlags(access);
       DexField dexField = parent.application.getField(parent.type, name, desc);
       Wrapper<DexField> signature = FieldSignatureEquivalence.get().wrap(dexField);
       if (parent.fieldSignatures.add(signature)) {
