@@ -29,6 +29,7 @@
 #     Delete TESTING_COMPLETE
 #     Exit based on status
 
+import gradle
 import optparse
 import os
 import subprocess
@@ -306,6 +307,8 @@ def run_once(archive):
   # Bot does not have a lot of memory.
   env['R8_GRADLE_CORES_PER_FORK'] = '16'
   failed = any([execute(cmd, archive, env) for cmd in TEST_COMMANDS])
+  # Gradle daemon occasionally leaks memory, stop it.
+  gradle.RunGradle('--stop')
   archive_status(1 if failed else 0)
   return failed
 
