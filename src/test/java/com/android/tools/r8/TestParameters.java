@@ -4,15 +4,22 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.TestBase.Backend;
+import com.android.tools.r8.utils.AndroidApiLevel;
 
 // Actual test parameters for a specific configuration. Currently just the runtime configuration.
 public class TestParameters {
 
   private final TestRuntime runtime;
+  private final AndroidApiLevel apiLevel;
 
   public TestParameters(TestRuntime runtime) {
+    this(runtime, null);
+  }
+
+  public TestParameters(TestRuntime runtime, AndroidApiLevel apiLevel) {
     assert runtime != null;
     this.runtime = runtime;
+    this.apiLevel = apiLevel;
   }
 
   // Convenience predicates.
@@ -22,6 +29,14 @@ public class TestParameters {
 
   public boolean isCfRuntime() {
     return runtime.isCf();
+  }
+
+  public AndroidApiLevel getApiLevel() {
+    if (runtime.isDex() && apiLevel == null) {
+      throw new RuntimeException(
+          "Use of getApiLevel without configured API levels for TestParametersCollection.");
+    }
+    return apiLevel;
   }
 
   // Access to underlying runtime/wrapper.
@@ -36,6 +51,9 @@ public class TestParameters {
 
   @Override
   public String toString() {
+    if (apiLevel != null) {
+      return runtime.toString() + ", api:" + apiLevel.getLevel();
+    }
     return runtime.toString();
   }
 }

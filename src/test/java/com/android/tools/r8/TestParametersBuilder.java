@@ -9,6 +9,7 @@ import com.android.tools.r8.TestRuntime.DexRuntime;
 import com.android.tools.r8.TestRuntime.NoneRuntime;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
@@ -132,12 +133,40 @@ public class TestParametersBuilder {
     return withDexRuntimeFilter(vm -> vm != endExclusive && vm.isOlderThanOrEqual(endExclusive));
   }
 
+  /**
+   * API level configuration.
+   *
+   * <p>Currently enabling API level config will by default configure each DEX VM to be configured
+   * with two parameters, one running at the highest api-level supported by the VM and one at the
+   * lowest supported by the compiler (i.e., B).
+   */
+  private static final AndroidApiLevel lowestCompilerApiLevel = AndroidApiLevel.B;
+
+  private boolean enableAllApiLevels = false;
+
+  public TestParametersBuilder withAllApiLevels() {
+    enableAllApiLevels = true;
+    return this;
+  }
+
   public TestParametersCollection build() {
     return new TestParametersCollection(
         getAvailableRuntimes()
-            .map(TestParameters::new)
+            .flatMap(this::createParameters)
             .filter(filter)
             .collect(Collectors.toList()));
+  }
+
+  public Stream<TestParameters> createParameters(TestRuntime runtime) {
+    if (enableAllApiLevels && runtime.isDex()) {
+      AndroidApiLevel vmLevel = runtime.asDex().getMinApiLevel();
+      if (vmLevel != lowestCompilerApiLevel) {
+        return Stream.of(
+            new TestParameters(runtime, vmLevel),
+            new TestParameters(runtime, lowestCompilerApiLevel));
+      }
+    }
+    return Stream.of(new TestParameters(runtime));
   }
 
   // Public method to check that the CF runtime coincides with the system runtime.

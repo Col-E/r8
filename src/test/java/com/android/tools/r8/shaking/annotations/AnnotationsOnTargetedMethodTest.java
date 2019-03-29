@@ -4,12 +4,11 @@
 
 package com.android.tools.r8.shaking.annotations;
 
-import static org.junit.Assume.assumeTrue;
-
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.StringUtils;
 import java.lang.annotation.Annotation;
 import java.lang.annotation.ElementType;
@@ -31,34 +30,33 @@ public class AnnotationsOnTargetedMethodTest extends TestBase {
           "In OtherInterfaceImpl.targetedMethod()",
           MyAnnotation.class.getName());
 
-  private final Backend backend;
+  private final TestParameters parameters;
 
-  @Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimes().withAllApiLevels().build();
   }
 
-  public AnnotationsOnTargetedMethodTest(Backend backend) {
-    this.backend = backend;
-  }
-
-  @Test
-  public void jvmTest() throws Exception {
-    assumeTrue(
-        "JVM test independent of Art version - only run when testing on latest",
-        ToolHelper.getDexVm().getVersion().isLatest());
-    testForJvm().addTestClasspath().run(TestClass.class).assertSuccessWithOutput(expectedOutput);
+  public AnnotationsOnTargetedMethodTest(TestParameters parameters) {
+    this.parameters = parameters;
   }
 
   @Test
-  public void r8Test() throws Exception {
-    testForR8(backend)
+  public void test() throws Exception {
+    if (parameters.isCfRuntime()) {
+      testForJvm()
+          .addTestClasspath()
+          .run(parameters.getRuntime(), TestClass.class)
+          .assertSuccessWithOutput(expectedOutput);
+    }
+    testForR8(parameters.getBackend())
         .addInnerClasses(AnnotationsOnTargetedMethodTest.class)
         .addKeepMainRule(TestClass.class)
         .addKeepRules("-keepattributes *Annotation*", "-dontobfuscate")
         .enableInliningAnnotations()
         .enableMergeAnnotations()
-        .run(TestClass.class)
+        .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(expectedOutput);
   }
 
