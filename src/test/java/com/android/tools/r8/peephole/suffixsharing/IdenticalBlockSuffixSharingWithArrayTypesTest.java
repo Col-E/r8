@@ -70,7 +70,7 @@ public class IdenticalBlockSuffixSharingWithArrayTypesTest extends TestBase {
     String expectedOutput = StringUtils.lines("42");
     testForD8()
         .addInnerClasses(IdenticalBlockSuffixSharingWithArrayTypesTest.class)
-        .apply(parameters::setMinApiForRuntime)
+        .setMinApi(parameters.getRuntime())
         .compile()
         .inspect(this::verifyInstructionCount)
         .run(parameters.getRuntime(), clazz)
@@ -85,7 +85,7 @@ public class IdenticalBlockSuffixSharingWithArrayTypesTest extends TestBase {
         .addKeepMainRule(clazz)
         .enableClassInliningAnnotations()
         .enableInliningAnnotations()
-        .apply(parameters::setMinApiForRuntime)
+        .setMinApi(parameters.getRuntime())
         .compile()
         .inspect(this::verifyInstructionCount)
         .run(parameters.getRuntime(), clazz)
