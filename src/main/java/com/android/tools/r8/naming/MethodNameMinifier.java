@@ -218,7 +218,7 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
     for (DexType subtype : type.allExtendsSubtypes()) {
       assert !subtype.isInterface();
       reserveNamesInClasses(
-          subtype, holder == null || holder.isLibraryClass() ? subtype : libraryFrontier, state);
+          subtype, holder == null || holder.isNotProgramClass() ? subtype : libraryFrontier, state);
     }
   }
 

@@ -37,7 +37,7 @@ public abstract class ProguardConfigurationRule extends ProguardClassSpecificati
     return null;
   }
 
-  public boolean applyToLibraryClasses() {
+  public boolean applyToNonProgramClasses() {
     return false;
   }
 

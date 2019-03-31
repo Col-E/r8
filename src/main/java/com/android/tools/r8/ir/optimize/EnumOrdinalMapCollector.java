@@ -49,7 +49,7 @@ public class EnumOrdinalMapCollector {
 
   private void processClasses(DexProgramClass clazz) {
     // Enum classes are flagged as such. Also, for library classes, the ordinals are not known.
-    if (!clazz.accessFlags.isEnum() || clazz.isLibraryClass() || !clazz.hasClassInitializer()) {
+    if (!clazz.accessFlags.isEnum() || clazz.isNotProgramClass() || !clazz.hasClassInitializer()) {
       return;
     }
     DexEncodedMethod initializer = clazz.getClassInitializer();

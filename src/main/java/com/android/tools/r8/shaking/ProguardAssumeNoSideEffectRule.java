@@ -56,7 +56,7 @@ public class ProguardAssumeNoSideEffectRule extends ProguardConfigurationRule {
   }
 
   @Override
-  public boolean applyToLibraryClasses() {
+  public boolean applyToNonProgramClasses() {
     return true;
   }
 

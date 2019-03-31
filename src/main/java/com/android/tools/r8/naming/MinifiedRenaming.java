@@ -142,7 +142,7 @@ class MinifiedRenaming extends NamingLens {
       return true;
     }
     DexClass holder = appView.definitionFor(item.holder);
-    if (holder == null || holder.isLibraryClass()) {
+    if (holder == null || holder.isNotProgramClass()) {
       return true;
     }
     // We don't know which invoke type this method is used for, so checks that it has been
@@ -160,9 +160,9 @@ class MinifiedRenaming extends NamingLens {
         || (virtualTarget != null && virtualTarget.method == item)
         || (directTarget != null && directTarget.method == item)
         || (staticTarget != null && staticTarget.method == item)
-        || (directTargetHolder != null && directTargetHolder.isLibraryClass())
-        || (virtualTargetHolder != null && virtualTargetHolder.isLibraryClass())
-        || (staticTargetHolder != null && staticTargetHolder.isLibraryClass());
+        || (directTargetHolder != null && directTargetHolder.isNotProgramClass())
+        || (virtualTargetHolder != null && virtualTargetHolder.isNotProgramClass())
+        || (staticTargetHolder != null && staticTargetHolder.isNotProgramClass());
   }
 
   @Override

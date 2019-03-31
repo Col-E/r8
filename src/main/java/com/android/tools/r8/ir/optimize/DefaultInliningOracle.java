@@ -74,7 +74,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
         invoke.lookupSingleTarget(inliner.appView.appInfo(), invocationContext);
     if ((candidate == null)
         || (candidate.getCode() == null)
-        || inliner.appView.definitionFor(candidate.method.holder).isLibraryClass()) {
+        || inliner.appView.definitionFor(candidate.method.holder).isNotProgramClass()) {
       if (info != null) {
         info.exclude(invoke, "No inlinee");
       }
@@ -206,8 +206,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       return false;
     }
 
-    if (holder.isLibraryClass()) {
-      // Library functions should not be inlined.
+    if (holder.isNotProgramClass()) {
       return false;
     }
 

@@ -589,6 +589,8 @@ public abstract class DexClass extends DexDefinition {
     return null;
   }
 
+  public abstract boolean isNotProgramClass();
+
   public boolean isLibraryClass() {
     return false;
   }

@@ -76,7 +76,7 @@ public class ProguardAssumeMayHaveSideEffectsRule extends ProguardConfigurationR
   }
 
   @Override
-  public boolean applyToLibraryClasses() {
+  public boolean applyToNonProgramClasses() {
     return true;
   }
 

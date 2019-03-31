@@ -175,7 +175,7 @@ class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
     // Now, `field` is reference. Find its definition and check if it's renamed.
     DexClass holder = appView.definitionFor(field.holder);
     // We don't care pruned types or library classes.
-    if (holder == null || holder.isLibraryClass()) {
+    if (holder == null || holder.isNotProgramClass()) {
       return;
     }
     definition = appView.appInfo().resolveField(field);

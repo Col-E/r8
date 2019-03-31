@@ -95,6 +95,11 @@ public class DexLibraryClass extends DexClass implements Supplier<DexLibraryClas
   }
 
   @Override
+  public boolean isNotProgramClass() {
+    return true;
+  }
+
+  @Override
   public boolean isLibraryClass() {
     return true;
   }

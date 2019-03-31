@@ -115,7 +115,7 @@ public class AnnotationRemover {
       return false;
     }
     return definition == null
-        || definition.isLibraryClass()
+        || definition.isNotProgramClass()
         || appView.appInfo().liveTypes.contains(annotationType);
   }
 

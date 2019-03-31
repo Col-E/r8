@@ -216,6 +216,11 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
   }
 
   @Override
+  public boolean isNotProgramClass() {
+    return false;
+  }
+
+  @Override
   public KotlinInfo getKotlinInfo() {
     return kotlinInfo;
   }

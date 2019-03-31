@@ -49,7 +49,7 @@ final class ClassProcessor {
 
   final void process(DexClass clazz) {
     assert !clazz.isInterface();
-    if (!clazz.isProgramClass()) {
+    if (clazz.isNotProgramClass()) {
       // We assume that library classes don't need to be processed, since they
       // are provided by a runtime not supporting default interface methods.
       // We also skip classpath classes, which results in sub-optimal behavior

@@ -71,7 +71,7 @@ public class MainDexDirectReferenceTracer {
               DexType baseType = type.toBaseType(appInfo.dexItemFactory());
               if (baseType.isClassType() && !classes.contains(baseType)) {
                 DexClass cls = appInfo.definitionFor(baseType);
-                if (cls != null && !cls.isLibraryClass()) {
+                if (cls != null && cls.isProgramClass()) {
                   result.value = true;
                 }
               }

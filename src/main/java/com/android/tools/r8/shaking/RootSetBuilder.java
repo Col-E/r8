@@ -132,7 +132,7 @@ public class RootSetBuilder {
       Collection<ProguardMemberRule> memberKeepRules = rule.getMemberRules();
       Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier;
       if (rule instanceof ProguardKeepRule) {
-        if (clazz.isLibraryClass()) {
+        if (clazz.isNotProgramClass()) {
           return;
         }
         switch (((ProguardKeepRule) rule).getType()) {
@@ -228,16 +228,18 @@ public class RootSetBuilder {
         }
       }
     } else {
-      futures.add(executorService.submit(() -> {
-        for (DexProgramClass clazz : application.classes()) {
-          process(clazz, rule, ifRule);
-        }
-        if (rule.applyToLibraryClasses()) {
-          for (DexLibraryClass clazz : application.libraryClasses()) {
-            process(clazz, rule, ifRule);
-          }
-        }
-      }));
+      futures.add(
+          executorService.submit(
+              () -> {
+                for (DexProgramClass clazz : application.classes()) {
+                  process(clazz, rule, ifRule);
+                }
+                if (rule.applyToNonProgramClasses()) {
+                  for (DexLibraryClass clazz : application.libraryClasses()) {
+                    process(clazz, rule, ifRule);
+                  }
+                }
+              }));
     }
   }
 
@@ -493,7 +495,7 @@ public class RootSetBuilder {
         options.forceProguardCompatibility ? null : new HashSet<>();
     DexClass startingClass = clazz;
     while (clazz != null) {
-      if (!includeLibraryClasses && clazz.isLibraryClass()) {
+      if (!includeLibraryClasses && clazz.isNotProgramClass()) {
         return;
       }
       // In compat mode traverse all direct methods in the hierarchy.
@@ -536,7 +538,7 @@ public class RootSetBuilder {
       Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier,
       boolean includeLibraryClasses) {
     while (clazz != null) {
-      if (!includeLibraryClasses && clazz.isLibraryClass()) {
+      if (!includeLibraryClasses && clazz.isNotProgramClass()) {
         return;
       }
       clazz.forEachField(
@@ -866,7 +868,7 @@ public class RootSetBuilder {
       return;
     }
     DexClass definition = appView.definitionFor(type);
-    if (definition == null || definition.isLibraryClass()) {
+    if (definition == null || definition.isNotProgramClass()) {
       return;
     }
     // Keep the type if the item is also kept.

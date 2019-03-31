@@ -856,7 +856,7 @@ public class Enqueuer {
       }
       if (holder.superType != null) {
         markTypeAsLive(holder.superType);
-        if (holder.isLibraryClass()) {
+        if (holder.isNotProgramClass()) {
           // Library classes may only extend other implement library classes.
           ensureFromLibraryOrThrow(holder.superType, type);
           for (DexType iface : holder.interfaces.values) {
@@ -867,7 +867,7 @@ public class Enqueuer {
       // We also need to add the corresponding <clinit> to the set of live methods, as otherwise
       // static field initialization (and other class-load-time sideeffects) will not happen.
       KeepReason reason = KeepReason.reachableFromLiveType(type);
-      if (!holder.isLibraryClass() && holder.hasNonTrivialClassInitializer()) {
+      if (holder.isProgramClass() && holder.hasNonTrivialClassInitializer()) {
         DexEncodedMethod clinit = holder.getClassInitializer();
         if (clinit != null) {
           assert clinit.method.holder == holder.type;
@@ -879,7 +879,7 @@ public class Enqueuer {
         enqueueFirstNonSerializableClassInitializer(holder, reason);
       }
 
-      if (!holder.isLibraryClass()) {
+      if (holder.isProgramClass()) {
         if (!holder.annotations.isEmpty()) {
           processAnnotations(holder, holder.annotations.annotations);
         }
@@ -912,10 +912,10 @@ public class Enqueuer {
   }
 
   private void handleAnnotation(DexDefinition holder, DexAnnotation annotation) {
-    assert !holder.isDexClass() || !holder.asDexClass().isLibraryClass();
+    assert !holder.isDexClass() || holder.asDexClass().isProgramClass();
     DexType type = annotation.annotation.type;
     boolean annotationTypeIsLibraryClass =
-        appView.definitionFor(type) == null || appView.definitionFor(type).isLibraryClass();
+        appView.definitionFor(type) == null || appView.definitionFor(type).isNotProgramClass();
     boolean isLive = annotationTypeIsLibraryClass || liveTypes.contains(type);
     if (!shouldKeepAnnotation(annotation, isLive, appView.dexItemFactory(), options)) {
       // Remember this annotation for later.
@@ -1020,7 +1020,7 @@ public class Enqueuer {
     }
     markTypeAsLive(method.method.holder);
     markParameterAndReturnTypesAsLive(method);
-    if (!appView.definitionFor(method.method.holder).isLibraryClass()) {
+    if (appView.definitionFor(method.method.holder).isProgramClass()) {
       processAnnotations(method, method.annotations.annotations);
       method.parameterAnnotationsList.forEachAnnotation(
           annotation -> processAnnotation(method, annotation));
@@ -1032,8 +1032,7 @@ public class Enqueuer {
       // Keep targeted default methods in compatibility mode. The tree pruner will otherwise make
       // these methods abstract, whereas Proguard does not (seem to) touch their code.
       DexClass clazz = appView.definitionFor(method.method.holder);
-      if (!method.accessFlags.isAbstract()
-          && clazz.isInterface() && !clazz.isLibraryClass()) {
+      if (!method.accessFlags.isAbstract() && clazz.isInterface() && clazz.isProgramClass()) {
         markMethodAsKeptWithCompatRule(method);
       }
     }
@@ -1667,7 +1666,7 @@ public class Enqueuer {
   }
 
   private void markAllLibraryVirtualMethodsReachable(DexClass clazz) {
-    assert clazz.isLibraryClass();
+    assert clazz.isNotProgramClass();
     if (Log.ENABLED) {
       Log.verbose(getClass(), "Marking all methods of library class `%s` as reachable.",
           clazz.type);
@@ -1684,7 +1683,7 @@ public class Enqueuer {
       collectProguardCompatibilityRule(reason);
       DexClass holder = appView.definitionFor(method.method.holder);
       assert holder != null;
-      if (holder.isLibraryClass()) {
+      if (holder.isNotProgramClass()) {
         // We do not process library classes.
         return;
       }
@@ -1700,7 +1699,7 @@ public class Enqueuer {
         }
       }
       markParameterAndReturnTypesAsLive(method);
-      if (!appView.definitionFor(method.method.holder).isLibraryClass()) {
+      if (appView.definitionFor(method.method.holder).isProgramClass()) {
         processAnnotations(method, method.annotations.annotations);
         method.parameterAnnotationsList.forEachAnnotation(
             annotation -> processAnnotation(method, annotation));
@@ -2670,7 +2669,7 @@ public class Enqueuer {
           // Fields in the class that is synthesized by D8/R8 would be used soon.
           || field.holder.isD8R8SynthesizedClassType()
           // For library classes we don't know whether a field is read.
-          || isLibraryField(field);
+          || isLibraryOrClasspathField(field);
     }
 
     public boolean isFieldWritten(DexField field) {
@@ -2681,7 +2680,7 @@ public class Enqueuer {
           // Fields in the class that is synthesized by D8/R8 would be used soon.
           || field.holder.isD8R8SynthesizedClassType()
           // For library classes we don't know whether a field is rewritten.
-          || isLibraryField(field);
+          || isLibraryOrClasspathField(field);
     }
 
     public boolean isStaticFieldWrittenOnlyInEnclosingStaticInitializer(DexField field) {
@@ -2690,9 +2689,9 @@ public class Enqueuer {
       return staticFieldsWrittenOnlyInEnclosingStaticInitializer.contains(field);
     }
 
-    private boolean isLibraryField(DexField field) {
+    private boolean isLibraryOrClasspathField(DexField field) {
       DexClass holder = definitionFor(field.holder);
-      return holder == null || holder.isLibraryClass();
+      return holder == null || holder.isLibraryClass() || holder.isClasspathClass();
     }
 
     private Object2BooleanMap<DexReference> joinIdentifierNameStrings(
@@ -2854,14 +2853,14 @@ public class Enqueuer {
         return null;
       }
       DexClass holder = definitionFor(method.holder);
-      if (holder == null || holder.isLibraryClass() || holder.isInterface()) {
+      if (holder == null || holder.isNotProgramClass() || holder.isInterface()) {
         return null;
       }
       boolean refinedReceiverIsStrictSubType = refinedReceiverType != method.holder;
       DexClass refinedHolder =
           refinedReceiverIsStrictSubType ? definitionFor(refinedReceiverType) : holder;
       assert refinedHolder != null;
-      assert !refinedHolder.isLibraryClass();
+      assert refinedHolder.isProgramClass();
       if (method.isSingleVirtualMethodCached(refinedReceiverType)) {
         return method.getSingleVirtualMethodCache(refinedReceiverType);
       }
@@ -2968,7 +2967,7 @@ public class Enqueuer {
     private boolean interfacesMayHaveDefaultFor(DexTypeList ifaces, DexMethod method) {
       for (DexType iface : ifaces.values) {
         DexClass clazz = definitionFor(iface);
-        if (clazz == null || clazz.isLibraryClass()) {
+        if (clazz == null || clazz.isNotProgramClass()) {
           return true;
         }
         DexEncodedMethod candidate = clazz.lookupMethod(method);
@@ -2994,7 +2993,7 @@ public class Enqueuer {
         return null;
       }
       DexClass holder = definitionFor(method.holder);
-      if ((holder == null) || holder.isLibraryClass() || !holder.accessFlags.isInterface()) {
+      if ((holder == null) || holder.isNotProgramClass() || !holder.accessFlags.isInterface()) {
         return null;
       }
       // First check that there is a target for this invoke-interface to hit. If there is none,
@@ -3288,7 +3287,7 @@ public class Enqueuer {
         t -> {
           DexClass definition = appView.definitionFor(t);
           return new ClassGraphNode(
-              definition != null && definition.isLibraryClass(),
+              definition != null && definition.isNotProgramClass(),
               Reference.classFromDescriptor(t.toDescriptorString()));
         });
   }
@@ -3303,7 +3302,7 @@ public class Enqueuer {
             builder.add(Reference.typeFromDescriptor(param.toDescriptorString()));
           }
           return new MethodGraphNode(
-              holderDefinition != null && holderDefinition.isLibraryClass(),
+              holderDefinition != null && holderDefinition.isNotProgramClass(),
               Reference.method(
                   Reference.classFromDescriptor(m.holder.toDescriptorString()),
                   m.name.toString(),
@@ -3320,7 +3319,7 @@ public class Enqueuer {
         f -> {
           DexClass holderDefinition = appView.definitionFor(context.holder);
           return new FieldGraphNode(
-              holderDefinition != null && holderDefinition.isLibraryClass(),
+              holderDefinition != null && holderDefinition.isNotProgramClass(),
               Reference.field(
                   Reference.classFromDescriptor(f.holder.toDescriptorString()),
                   f.name.toString(),

@@ -77,6 +77,11 @@ public class DexClasspathClass extends DexClass implements Supplier<DexClasspath
   }
 
   @Override
+  public boolean isNotProgramClass() {
+    return true;
+  }
+
+  @Override
   public KotlinInfo getKotlinInfo() {
     throw new Unreachable("Kotlin into n classpath class is not supported yet.");
   }

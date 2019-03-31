@@ -164,7 +164,7 @@ public class MainDexListBuilder {
 
     DexClass clazz = appInfo.definitionFor(type);
     // No library classes in main-dex.
-    if (clazz == null || clazz.isLibraryClass()) {
+    if (clazz == null || clazz.isNotProgramClass()) {
       return;
     }
     addDirectDependency(clazz.asProgramClass());

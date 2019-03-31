@@ -294,7 +294,7 @@ public class IdentifierNameStringMarker {
     }
     DexClass originClass = appView.definitionFor(originHolder);
     // If the origin is a library class, it is out of developers' control.
-    if (originClass != null && originClass.isLibraryClass()) {
+    if (originClass != null && originClass.isNotProgramClass()) {
       return;
     }
     // Undetermined identifiers matter only if minification is enabled.

@@ -65,7 +65,7 @@ abstract class MemberNameMinifier<MemberType, StateType extends CachedHashValueD
   }
 
   protected boolean alwaysReserveMemberNames(DexClass holder) {
-    return !useApplyMapping && holder.isLibraryClass();
+    return !useApplyMapping && holder.isNotProgramClass();
   }
 
   // A class that provides access to the minification state. An instance of this class is passed

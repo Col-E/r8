@@ -218,7 +218,7 @@ public final class ClassInliner {
   //   - does not trigger any static initializers except for its own
   private boolean computeClassEligible(AppView<AppInfoWithLiveness> appView, DexClass clazz) {
     if (clazz == null
-        || clazz.isLibraryClass()
+        || clazz.isNotProgramClass()
         || clazz.accessFlags.isAbstract()
         || clazz.accessFlags.isInterface()
         || appView.appInfo().neverClassInline.contains(clazz.type)) {

@@ -91,7 +91,7 @@ public class AppInfoWithSubtyping extends AppInfo {
         holder.tagAsInteface();
       }
     } else {
-      if (!baseClass.isLibraryClass()) {
+      if (baseClass.isProgramClass() || baseClass.isClasspathClass()) {
         missingClasses.add(holder);
       }
       // The subtype chain is broken, at least make this type a subtype of Object.

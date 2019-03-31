@@ -362,7 +362,7 @@ public class StringOptimizer {
         // For most cases, library call is not interesting, e.g.,
         // System.out.println(...), String.valueOf(...), etc.
         // If it's too broad, we can introduce black-list.
-        if (holder == null || holder.isLibraryClass()) {
+        if (holder == null || holder.isNotProgramClass()) {
           continue;
         }
         // Heuristic: if the call target has the same method name, it could be still local.

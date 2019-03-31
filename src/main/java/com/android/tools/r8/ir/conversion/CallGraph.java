@@ -519,7 +519,7 @@ public class CallGraph extends CallSiteInformation {
     private void addPossibleTarget(DexEncodedMethod possibleTarget) {
       DexClass possibleTargetClass =
           appInfo.definitionFor(possibleTarget.method.holder);
-      if (possibleTargetClass != null && !possibleTargetClass.isLibraryClass()) {
+      if (possibleTargetClass != null && possibleTargetClass.isProgramClass()) {
         addTarget(possibleTarget);
       }
     }

@@ -37,7 +37,7 @@ public class AbstractMethodRemover {
   private void processClass(DexType type) {
     DexClass holder = appInfo.definitionFor(type);
     scope = scope.newNestedScope();
-    if (holder != null && !holder.isLibraryClass()) {
+    if (holder != null && holder.isProgramClass()) {
       DexEncodedMethod[] newVirtualMethods = processMethods(holder.virtualMethods());
       if (newVirtualMethods != null) {
         holder.setVirtualMethods(newVirtualMethods);

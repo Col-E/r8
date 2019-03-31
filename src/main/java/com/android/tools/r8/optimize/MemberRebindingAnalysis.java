@@ -46,7 +46,7 @@ public class MemberRebindingAnalysis {
   private DexMethod validTargetFor(DexMethod target, DexMethod original) {
     DexClass clazz = appView.definitionFor(target.holder);
     assert clazz != null;
-    if (!clazz.isLibraryClass()) {
+    if (clazz.isProgramClass()) {
       return target;
     }
     DexType newHolder;
@@ -63,7 +63,7 @@ public class MemberRebindingAnalysis {
       BiFunction<DexClass, DexField, DexEncodedField> lookup) {
     DexClass clazz = appView.definitionFor(target.holder);
     assert clazz != null;
-    if (!clazz.isLibraryClass()) {
+    if (clazz.isProgramClass()) {
       return target;
     }
     DexType newHolder;
@@ -87,23 +87,23 @@ public class MemberRebindingAnalysis {
       DexType matchingSuper = firstLibraryClassForInterfaceTarget(target, clazz.superType, lookup);
       if (matchingSuper != null) {
         // Found in supertype, return first library class.
-        return clazz.isLibraryClass() ? current : matchingSuper;
+        return clazz.isNotProgramClass() ? current : matchingSuper;
       }
     }
     for (DexType iface : clazz.interfaces.values) {
       DexType matchingIface = firstLibraryClassForInterfaceTarget(target, iface, lookup);
       if (matchingIface != null) {
         // Found in interface, return first library class.
-        return clazz.isLibraryClass() ? current : matchingIface;
+        return clazz.isNotProgramClass() ? current : matchingIface;
       }
     }
     return null;
   }
 
   private DexType firstLibraryClass(DexType top, DexType bottom) {
-    assert appView.definitionFor(top).isLibraryClass();
+    assert appView.definitionFor(top).isNotProgramClass();
     DexClass searchClass = appView.definitionFor(bottom);
-    while (!searchClass.isLibraryClass()) {
+    while (searchClass.isProgramClass()) {
       searchClass = appView.definitionFor(searchClass.superType);
     }
     return searchClass.type;
@@ -131,7 +131,7 @@ public class MemberRebindingAnalysis {
         continue;
       }
       DexClass originalClass = appView.definitionFor(method.holder);
-      if (originalClass == null || originalClass.isLibraryClass()) {
+      if (originalClass == null || originalClass.isNotProgramClass()) {
         continue;
       }
       DexEncodedMethod target = lookupTarget.apply(method);
@@ -139,7 +139,7 @@ public class MemberRebindingAnalysis {
       //  searching in library for methods, but this should be done on classpath instead.
       if (target != null && target.method != method) {
         DexClass targetClass = appView.definitionFor(target.method.holder);
-        if (!originalClass.isLibraryClass()) {
+        if (originalClass.isProgramClass()) {
           // In Java bytecode, it is only possible to target interface methods that are in one of
           // the immediate super-interfaces via a super-invocation (see IndirectSuperInterfaceTest).
           // To avoid introducing an IncompatibleClassChangeError at runtime we therefore insert a
@@ -205,7 +205,7 @@ public class MemberRebindingAnalysis {
     }
     DexClass superClass = appView.definitionFor(clazz.superType);
     if (superClass == null
-        || superClass.isLibraryClass()
+        || superClass.isNotProgramClass()
         || !superClass.type.isSubtypeOf(iface, appView)) {
       return clazz;
     }
@@ -254,7 +254,7 @@ public class MemberRebindingAnalysis {
 
   private DexProgramClass findHolderForVisibilityBridge(
       DexClass originalClass, DexClass targetClass, String packageDescriptor) {
-    if (originalClass == targetClass || originalClass.isLibraryClass()) {
+    if (originalClass == targetClass || originalClass.isNotProgramClass()) {
       return null;
     }
     DexProgramClass newHolder = null;
