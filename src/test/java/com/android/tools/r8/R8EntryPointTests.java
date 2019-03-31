@@ -4,6 +4,9 @@
 
 package com.android.tools.r8;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.StringContains.containsString;
+
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.utils.FileUtils;
 import com.google.common.collect.ImmutableList;
@@ -129,6 +132,66 @@ public class R8EntryPointTests extends TestBase {
     Assert.assertTrue(Files.isRegularFile(out));
     Assert.assertTrue(Files.isRegularFile(testFlags.getParent().resolve(MAPPING)));
     Assert.assertTrue(Files.isRegularFile(testFlags.getParent().resolve(SEEDS)));
+  }
+
+  @Test
+  public void testSpecifyClassfile() throws IOException, InterruptedException {
+    Path out = temp.newFile("classfile.zip").toPath();
+    ProcessResult r8 =
+        ToolHelper.forkR8(
+            Paths.get("."),
+            "--lib",
+            ToolHelper.getJava8RuntimeJar().toString(),
+            "--classfile",
+            "--output",
+            out.toString(),
+            "--pg-conf",
+            PROGUARD_FLAGS.toString(),
+            "--pg-conf",
+            testFlags.toString(),
+            INPUT_JAR.toString());
+    Assert.assertEquals(0, r8.exitCode);
+  }
+
+  @Test
+  public void testSpecifyDex() throws IOException, InterruptedException {
+    Path out = temp.newFile("dex.zip").toPath();
+    ProcessResult r8 =
+        ToolHelper.forkR8(
+            Paths.get("."),
+            "--lib",
+            ToolHelper.getDefaultAndroidJar().toString(),
+            "--dex",
+            "--output",
+            out.toString(),
+            "--pg-conf",
+            PROGUARD_FLAGS.toString(),
+            "--pg-conf",
+            testFlags.toString(),
+            INPUT_JAR.toString());
+    Assert.assertEquals(0, r8.exitCode);
+  }
+
+  @Test
+  public void testSpecifyDexAndClassfileNotAllowed() throws IOException, InterruptedException {
+    Path out = temp.newFile("dex.zip").toPath();
+    ProcessResult r8 =
+        ToolHelper.forkR8(
+            Paths.get("."),
+            "--lib",
+            ToolHelper.getDefaultAndroidJar().toString(),
+            "--dex",
+            "--classfile",
+            "--output",
+            out.toString(),
+            "--pg-conf",
+            PROGUARD_FLAGS.toString(),
+            "--pg-conf",
+            testFlags.toString(),
+            INPUT_JAR.toString());
+    Assert.assertEquals(1, r8.exitCode);
+    assertThat(
+        r8.stderr, containsString("Cannot compile in both --dex and --classfile output mode"));
   }
 
   private R8Command getCommand(Path out) throws IOException, CompilationFailedException {
