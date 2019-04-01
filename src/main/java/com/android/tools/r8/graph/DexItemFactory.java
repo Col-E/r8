@@ -186,7 +186,10 @@ public class DexItemFactory {
   public final DexString methodHandleDescriptor = createString("Ljava/lang/invoke/MethodHandle;");
   public final DexString methodTypeDescriptor = createString("Ljava/lang/invoke/MethodType;");
 
+  public final DexString invocationHandlerDescriptor =
+      createString("Ljava/lang/reflect/InvocationHandler;");
   public final DexString npeDescriptor = createString("Ljava/lang/NullPointerException;");
+  public final DexString proxyDescriptor = createString("Ljava/lang/reflect/Proxy;");
   public final DexString serviceLoaderDescriptor = createString("Ljava/util/ServiceLoader;");
 
   public final DexString intFieldUpdaterDescriptor =
@@ -248,7 +251,9 @@ public class DexItemFactory {
   public final DexType methodHandleType = createType(methodHandleDescriptor);
   public final DexType methodTypeType = createType(methodTypeDescriptor);
 
+  public final DexType invocationHandlerType = createType(invocationHandlerDescriptor);
   public final DexType npeType = createType(npeDescriptor);
+  public final DexType proxyType = createType(proxyDescriptor);
   public final DexType serviceLoaderType = createType(serviceLoaderDescriptor);
 
   public final StringBuildingMethods stringBuilderMethods =
@@ -270,6 +275,7 @@ public class DexItemFactory {
       new AtomicFieldUpdaterMethods();
   public final Kotlin kotlin;
   public final PolymorphicMethods polymorphicMethods = new PolymorphicMethods();
+  public final ProxyMethods proxyMethods = new ProxyMethods();
   public final ServiceLoaderMethods serviceLoaderMethods = new ServiceLoaderMethods();
 
   public final DexString twrCloseResourceMethodName = createString("$closeResource");
@@ -864,6 +870,19 @@ public class DexItemFactory {
         map.put(dexString, dexString);
       }
       return map.keySet();
+    }
+  }
+
+  public class ProxyMethods {
+
+    public final DexMethod newProxyInstance;
+
+    private ProxyMethods() {
+      newProxyInstance =
+          createMethod(
+              proxyType,
+              createProto(objectType, classLoaderType, classArrayType, invocationHandlerType),
+              createString("newProxyInstance"));
     }
   }
 

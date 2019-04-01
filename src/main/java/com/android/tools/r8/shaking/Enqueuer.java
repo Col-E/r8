@@ -71,6 +71,7 @@ import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 import it.unimi.dsi.fastutil.objects.Object2BooleanArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
+import java.lang.reflect.InvocationHandler;
 import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Deque;
@@ -509,19 +510,23 @@ public class Enqueuer {
     }
 
     boolean registerInvokeStatic(DexMethod method, KeepReason keepReason) {
-      if (method == appView.dexItemFactory().classMethods.forName
-          || appView.dexItemFactory().atomicFieldUpdaterMethods.isFieldUpdater(method)) {
+      DexItemFactory dexItemFactory = appView.dexItemFactory();
+      if (method == dexItemFactory.classMethods.forName
+          || dexItemFactory.atomicFieldUpdaterMethods.isFieldUpdater(method)) {
         // Implicitly add -identifiernamestring rule for the Java reflection in use.
         identifierNameStrings.add(method);
         // Revisit the current method to implicitly add -keep rule for items with reflective access.
         pendingReflectiveUses.add(currentMethod);
       }
       // See comment in handleJavaLangEnumValueOf.
-      if (method == appView.dexItemFactory().enumMethods.valueOf) {
+      if (method == dexItemFactory.enumMethods.valueOf) {
         pendingReflectiveUses.add(currentMethod);
       }
       // Handling of application services.
-      if (appView.dexItemFactory().serviceLoaderMethods.isLoadMethod(method)) {
+      if (dexItemFactory.serviceLoaderMethods.isLoadMethod(method)) {
+        pendingReflectiveUses.add(currentMethod);
+      }
+      if (method == dexItemFactory.proxyMethods.newProxyInstance) {
         pendingReflectiveUses.add(currentMethod);
       }
       if (!registerItemWithTargetAndContext(staticInvokes, method, currentMethod)) {
@@ -1880,23 +1885,28 @@ public class Enqueuer {
     }
     InvokeMethod invoke = instruction.asInvokeMethod();
     DexMethod invokedMethod = invoke.getInvokedMethod();
-    if (invokedMethod == appView.dexItemFactory().classMethods.newInstance) {
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    if (invokedMethod == dexItemFactory.classMethods.newInstance) {
       handleJavaLangClassNewInstance(method, invoke);
       return;
     }
-    if (invokedMethod == appView.dexItemFactory().constructorMethods.newInstance) {
+    if (invokedMethod == dexItemFactory.constructorMethods.newInstance) {
       handleJavaLangReflectConstructorNewInstance(method, invoke);
       return;
     }
-    if (invokedMethod == appView.dexItemFactory().enumMethods.valueOf) {
+    if (invokedMethod == dexItemFactory.enumMethods.valueOf) {
       handleJavaLangEnumValueOf(method, invoke);
       return;
     }
-    if (appView.dexItemFactory().serviceLoaderMethods.isLoadMethod(invokedMethod)) {
+    if (invokedMethod == dexItemFactory.proxyMethods.newProxyInstance) {
+      handleJavaLangReflectProxyNewProxyInstance(method, invoke);
+      return;
+    }
+    if (dexItemFactory.serviceLoaderMethods.isLoadMethod(invokedMethod)) {
       handleServiceLoaderInvocation(method, invoke);
       return;
     }
-    if (!isReflectionMethod(appView.dexItemFactory(), invokedMethod)) {
+    if (!isReflectionMethod(dexItemFactory, invokedMethod)) {
       return;
     }
     DexReference identifierItem = identifyIdentifier(invoke, appView);
@@ -1922,7 +1932,7 @@ public class Enqueuer {
         // is not present.
         boolean keepClass =
             !encodedField.accessFlags.isStatic()
-                && appView.dexItemFactory().atomicFieldUpdaterMethods.isFieldUpdater(invokedMethod);
+                && dexItemFactory.atomicFieldUpdaterMethods.isFieldUpdater(invokedMethod);
         if (keepClass) {
           DexClass holderClass = appView.definitionFor(encodedField.field.holder);
           markInstantiated(holderClass.type, KeepReason.reflectiveUseIn(method));
@@ -2073,6 +2083,44 @@ public class Enqueuer {
         KeepReason reason = KeepReason.reflectiveUseIn(method);
         markClassAsInstantiatedWithReason(clazz, reason);
         markDirectStaticOrConstructorMethodAsLive(initializer, reason);
+      }
+    }
+  }
+
+  /**
+   * Handles reflective uses of {@link java.lang.reflect.Proxy#newProxyInstance(ClassLoader,
+   * Class[], InvocationHandler)}.
+   */
+  private void handleJavaLangReflectProxyNewProxyInstance(
+      DexEncodedMethod method, InvokeMethod invoke) {
+    if (!invoke.isInvokeStatic()) {
+      assert false;
+      return;
+    }
+
+    Value interfacesValue = invoke.arguments().get(1);
+    if (interfacesValue.isPhi() || !interfacesValue.definition.isNewArrayEmpty()) {
+      // Give up, we can't tell which interfaces the proxy implements.
+      return;
+    }
+
+    for (Instruction user : interfacesValue.uniqueUsers()) {
+      if (!user.isArrayPut()) {
+        continue;
+      }
+
+      ArrayPut arrayPut = user.asArrayPut();
+      DexType type = ConstantValueUtils.getDexTypeRepresentedByValue(arrayPut.value(), appView);
+      if (type == null || !type.isClassType()) {
+        continue;
+      }
+
+      DexClass clazz = appView.definitionFor(type);
+      if (clazz != null && clazz.isProgramClass() && clazz.isInterface()) {
+        // Add this interface to the set of pinned items to ensure that we do not merge the
+        // interface into its subtype and to ensure that the devirtualizer does not perform illegal
+        // rewritings of invoke-interface instructions into invoke-virtual instructions.
+        pinnedItems.add(clazz.type);
       }
     }
   }
