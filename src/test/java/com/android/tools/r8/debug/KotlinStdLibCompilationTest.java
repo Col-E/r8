@@ -12,9 +12,8 @@ import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.KeepingDiagnosticHandler;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.stream.Collectors;
 import org.junit.Assume;
 import org.junit.Test;
@@ -25,14 +24,11 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class KotlinStdLibCompilationTest extends TestBase {
 
-  private static final Path kotlinStdLib =
-      Paths.get("third_party", "kotlin", "kotlinc", "lib", "kotlin-stdlib.jar");
-
   private final boolean useCfFrontend;
 
   @Parameters(name = "UseCf={0}")
-  public static Object[] setup() {
-    return new Object[] {true, false};
+  public static Boolean[] setup() {
+    return BooleanUtils.values();
   }
 
   public KotlinStdLibCompilationTest(boolean useCfFrontend) {
@@ -46,7 +42,7 @@ public class KotlinStdLibCompilationTest extends TestBase {
     ToolHelper.runD8(
         D8Command.builder(handler)
             .setMode(CompilationMode.DEBUG)
-            .addProgramFiles(kotlinStdLib)
+            .addProgramFiles(ToolHelper.getKotlinStdlibJar())
             .addLibraryFiles(ToolHelper.getAndroidJar(ToolHelper.getMinApiLevelForDexVm()))
             .setProgramConsumer(DexIndexedConsumer.emptyConsumer()),
         internalOptions -> internalOptions.enableCfFrontend = useCfFrontend);
@@ -72,7 +68,7 @@ public class KotlinStdLibCompilationTest extends TestBase {
     ToolHelper.runR8(
         R8Command.builder(handler)
             .setMode(CompilationMode.DEBUG)
-            .addProgramFiles(kotlinStdLib)
+            .addProgramFiles(ToolHelper.getKotlinStdlibJar())
             .addLibraryFiles(runtimeJar(backend))
             .setProgramConsumer(emptyConsumer(backend))
             .build(),
