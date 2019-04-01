@@ -1196,13 +1196,10 @@ public class RootSetBuilder {
           DexEncodedField encodedField = appInfo.definitionFor(field);
           if (encodedField != null
               && (encodedField.isStatic() || isKeptDirectlyOrIndirectly(field.holder, appInfo))) {
-            // TODO(b/121354886): Enable asserts for reads and writes.
-            /*assert appInfo.fieldsRead.contains(field)
+            assert appInfo.isFieldRead(field)
                 : "Expected kept field `" + field.toSourceString() + "` to be read";
-            assert appInfo.fieldsWritten.contains(field)
-                : "Expected kept field `" + field.toSourceString() + "` to be written";*/
-            assert appInfo.liveFields.contains(field)
-                : "Expected kept field `" + field.toSourceString() + "` to be live";
+            assert appInfo.isFieldWritten(field)
+                : "Expected kept field `" + field.toSourceString() + "` to be written";
           }
         }
       }

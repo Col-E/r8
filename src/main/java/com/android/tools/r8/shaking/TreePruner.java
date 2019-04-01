@@ -241,10 +241,7 @@ public class TreePruner {
   private DexEncodedField[] reachableFields(List<DexEncodedField> fields) {
     AppInfoWithLiveness appInfo = appView.appInfo();
     Predicate<DexField> isReachableOrReferencedField =
-        field ->
-            appInfo.liveFields.contains(field)
-                || appInfo.isFieldRead(field)
-                || appInfo.isFieldWritten(field);
+        field -> appInfo.isFieldRead(field) || appInfo.isFieldWritten(field);
     int firstUnreachable = firstUnreachableIndex(fields, isReachableOrReferencedField);
     // Return the original array if all fields are used.
     if (firstUnreachable == -1) {

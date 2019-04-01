@@ -7,6 +7,7 @@ import static com.android.tools.r8.graph.GraphLense.rewriteReferenceKeys;
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.identifyIdentifier;
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.isReflectionMethod;
 import static com.android.tools.r8.shaking.AnnotationRemover.shouldKeepAnnotation;
+import static com.android.tools.r8.shaking.EnqueuerUtils.extractProgramFieldDefinitions;
 
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.dex.IndexedItemCollection;
@@ -1158,6 +1159,9 @@ public class Enqueuer {
         reportMissingClass(type);
         break;
       }
+      if (!clazz.isProgramClass()) {
+        break;
+      }
       SetWithReason<DexEncodedField> reachableFields = reachableInstanceFields.get(type);
       if (reachableFields != null) {
         for (DexEncodedField field : reachableFields.getItems()) {
@@ -1185,6 +1189,11 @@ public class Enqueuer {
       reportMissingField(field);
       return;
     }
+
+    if (!encodedField.isProgramField(appView)) {
+      return;
+    }
+
     // This field might be an instance field reachable from a static context, e.g. a getStatic that
     // resolves to an instance field. We have to keep the instance field nonetheless, as otherwise
     // we might unmask a shadowed static field and hence change semantics.
@@ -1202,12 +1211,14 @@ public class Enqueuer {
     processAnnotations(encodedField, encodedField.annotations.annotations);
     liveFields.add(encodedField, reason);
     collectProguardCompatibilityRule(reason);
+
     // Add all dependent members to the workqueue.
     enqueueRootItems(rootSet.getDependentItems(encodedField));
   }
 
   private void markInstanceFieldAsLive(DexEncodedField field, KeepReason reason) {
     assert field != null;
+    assert field.isProgramField(appView);
     markTypeAsLive(field.field.holder);
     markTypeAsLive(field.field.type);
     if (Log.ENABLED) {
@@ -1303,6 +1314,9 @@ public class Enqueuer {
     DexEncodedField encodedField = appInfo.resolveField(field);
     if (encodedField == null) {
       reportMissingField(field);
+      return;
+    }
+    if (!encodedField.isProgramField(appView)) {
       return;
     }
     // We might have a instance field access that is dispatched to a static field. In such case,
@@ -1723,7 +1737,7 @@ public class Enqueuer {
     }
   }
 
-  <T extends Descriptor<?, T>> SortedMap<T, Set<DexEncodedMethod>> collectDescriptors(
+  private <T extends Descriptor<?, T>> SortedMap<T, Set<DexEncodedMethod>> collectDescriptors(
       Map<DexType, Set<TargetWithContext<T>>> map) {
     SortedMap<T, Set<DexEncodedMethod>> result = new TreeMap<>(PresortedComparable::slowCompare);
     for (Entry<DexType, Set<TargetWithContext<T>>> entry : map.entrySet()) {
@@ -1735,33 +1749,6 @@ public class Enqueuer {
       }
     }
     return Collections.unmodifiableSortedMap(result);
-  }
-
-  private static Set<DexField> collectReachedFields(
-      Set<DexField> set, Function<DexField, DexField> lookup) {
-    return set.stream()
-        .map(lookup)
-        .filter(Objects::nonNull)
-        .collect(Collectors.toCollection(Sets::newIdentityHashSet));
-  }
-
-  private DexField tryLookupInstanceField(DexField field) {
-    DexEncodedField target = appInfo.lookupInstanceTarget(field.holder, field);
-    return target == null ? null : target.field;
-  }
-
-  private DexField tryLookupStaticField(DexField field) {
-    DexEncodedField target = appInfo.lookupStaticTarget(field.holder, field);
-    return target == null ? null : target.field;
-  }
-
-  private SortedSet<DexField> mergeFieldAccesses(
-      Set<DexField> instanceFields, Set<DexField> staticFields) {
-    return ImmutableSortedSet.copyOf(
-        PresortedComparable<DexField>::slowCompareTo,
-        Sets.union(
-            collectReachedFields(instanceFields, this::tryLookupInstanceField),
-            collectReachedFields(staticFields, this::tryLookupStaticField)));
   }
 
   private void markClassAsInstantiatedWithReason(DexClass clazz, KeepReason reason) {
@@ -2180,16 +2167,14 @@ public class Enqueuer {
      */
     final SortedSet<DexMethod> liveMethods;
     /**
-     * Set of fields that belong to live classes and can be reached by invokes. These need to be
-     * kept.
-     */
-    public final SortedSet<DexField> liveFields;
-    /**
      * Set of all fields which may be touched by a get operation. This is actual field definitions.
+     * The set does not include kept fields nor library fields, since these are read by definition.
      */
     private final SortedSet<DexField> fieldsRead;
     /**
      * Set of all fields which may be touched by a put operation. This is actual field definitions.
+     * The set does not include kept fields nor library fields, since these are written by
+     * definition.
      */
     private SortedSet<DexField> fieldsWritten;
     /**
@@ -2339,15 +2324,24 @@ public class Enqueuer {
           ImmutableSortedSet.copyOf(
               DexMethod::slowCompareTo, enqueuer.virtualMethodsTargetedByInvokeDirect);
       this.liveMethods = toSortedDescriptorSet(enqueuer.liveMethods.getItems());
-      this.liveFields = toSortedDescriptorSet(enqueuer.liveFields.getItems());
       this.instanceFieldReads = enqueuer.collectDescriptors(enqueuer.instanceFieldsRead);
       this.instanceFieldWrites = enqueuer.collectDescriptors(enqueuer.instanceFieldsWritten);
       this.staticFieldReads = enqueuer.collectDescriptors(enqueuer.staticFieldsRead);
       this.staticFieldWrites = enqueuer.collectDescriptors(enqueuer.staticFieldsWritten);
+      // Filter out library fields and pinned fields, because these are read by default.
       this.fieldsRead =
-          enqueuer.mergeFieldAccesses(instanceFieldReads.keySet(), staticFieldReads.keySet());
+          extractProgramFieldDefinitions(
+              instanceFieldReads.keySet(),
+              staticFieldReads.keySet(),
+              appInfo,
+              field -> !enqueuer.pinnedItems.contains(field.field));
+      // Filter out library fields and pinned fields, because these are written by default.
       this.fieldsWritten =
-          enqueuer.mergeFieldAccesses(instanceFieldWrites.keySet(), staticFieldWrites.keySet());
+          extractProgramFieldDefinitions(
+              instanceFieldWrites.keySet(),
+              staticFieldWrites.keySet(),
+              appInfo,
+              field -> !enqueuer.pinnedItems.contains(field.field));
       this.staticFieldsWrittenOnlyInEnclosingStaticInitializer =
           ImmutableSortedSet.copyOf(
               DexField::slowCompareTo,
@@ -2401,7 +2395,6 @@ public class Enqueuer {
       this.methodsTargetedByInvokeDynamic = previous.methodsTargetedByInvokeDynamic;
       this.virtualMethodsTargetedByInvokeDirect = previous.virtualMethodsTargetedByInvokeDirect;
       this.liveMethods = previous.liveMethods;
-      this.liveFields = previous.liveFields;
       this.instanceFieldReads = previous.instanceFieldReads;
       this.instanceFieldWrites = previous.instanceFieldWrites;
       this.staticFieldReads = previous.staticFieldReads;
@@ -2461,7 +2454,6 @@ public class Enqueuer {
       this.virtualMethodsTargetedByInvokeDirect =
           lense.rewriteMethodsConservatively(previous.virtualMethodsTargetedByInvokeDirect);
       this.liveMethods = lense.rewriteMethodsConservatively(previous.liveMethods);
-      this.liveFields = rewriteItems(previous.liveFields, lense::lookupField);
       this.instanceFieldReads =
           rewriteKeysWhileMergingValues(previous.instanceFieldReads, lense::lookupField);
       this.instanceFieldWrites =
@@ -2546,7 +2538,6 @@ public class Enqueuer {
       this.methodsTargetedByInvokeDynamic = previous.methodsTargetedByInvokeDynamic;
       this.virtualMethodsTargetedByInvokeDirect = previous.virtualMethodsTargetedByInvokeDirect;
       this.liveMethods = previous.liveMethods;
-      this.liveFields = previous.liveFields;
       this.instanceFieldReads = previous.instanceFieldReads;
       this.instanceFieldWrites = previous.instanceFieldWrites;
       this.staticFieldReads = previous.staticFieldReads;
@@ -2664,7 +2655,6 @@ public class Enqueuer {
     public boolean isFieldRead(DexField field) {
       assert checkIfObsolete();
       return fieldsRead.contains(field)
-          // TODO(b/121354886): Pinned fields should be in `fieldsRead`.
           || isPinned(field)
           // Fields in the class that is synthesized by D8/R8 would be used soon.
           || field.holder.isD8R8SynthesizedClassType()
@@ -2675,7 +2665,6 @@ public class Enqueuer {
     public boolean isFieldWritten(DexField field) {
       assert checkIfObsolete();
       return fieldsWritten.contains(field)
-          // TODO(b/121354886): Pinned fields should be in `fieldsWritten`.
           || isPinned(field)
           // Fields in the class that is synthesized by D8/R8 would be used soon.
           || field.holder.isD8R8SynthesizedClassType()
