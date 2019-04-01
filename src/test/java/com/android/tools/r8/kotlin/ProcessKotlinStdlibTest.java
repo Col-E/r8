@@ -74,7 +74,7 @@ public class ProcessKotlinStdlibTest extends KotlinTestBase {
     test("-dontshrink");
   }
 
-  @Ignore("b/129557890")
+  @Ignore("b/129558497")
   @Test
   public void testDontShrinkDifferently() throws Exception {
     test(

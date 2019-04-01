@@ -226,6 +226,8 @@ public class JarCode extends Code {
       AppView<AppInfoWithLiveness> appView,
       GraphLense graphLense,
       DexType invocationContext) {
+    triggerDelayedParsingIfNeccessary();
+
     InliningConstraintVisitor visitor =
         new InliningConstraintVisitor(
             application, appView, graphLense, encodedMethod, invocationContext);
