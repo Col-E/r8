@@ -55,7 +55,13 @@ public class RemoveDeadBuildersTest extends TestBase {
 
     public static void main(String[] args) {
       new StringBuffer();
+      new StringBuffer("Hello world!");
+      new StringBuffer((CharSequence) "Hello world!");
+      new StringBuffer(42);
       new StringBuilder();
+      new StringBuilder("Hello world!");
+      new StringBuilder((CharSequence) "Hello world!");
+      new StringBuilder(42);
     }
   }
 }

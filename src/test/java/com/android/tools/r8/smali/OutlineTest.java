@@ -1333,7 +1333,7 @@ public class OutlineTest extends SmaliTestBase {
               dexItemFactory.libraryMethodsWithoutSideEffects =
                   new HashSet<>(dexItemFactory.libraryMethodsWithoutSideEffects);
               dexItemFactory.libraryMethodsWithoutSideEffects.remove(
-                  dexItemFactory.stringBuilderMethods.constructor);
+                  dexItemFactory.stringBuilderMethods.defaultConstructor);
             });
 
     AndroidApp originalApplication = buildApplicationWithAndroidJar(builder);

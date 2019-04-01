@@ -372,10 +372,11 @@ public class DexItemFactory {
       ImmutableSet.of(classMethods.getName, classMethods.getSimpleName, stringMethods.valueOf);
 
   public Set<DexMethod> libraryMethodsWithoutSideEffects =
-      ImmutableSet.of(
-          objectMethods.constructor,
-          stringBufferMethods.constructor,
-          stringBuilderMethods.constructor);
+      ImmutableSet.<DexMethod>builder()
+          .add(objectMethods.constructor)
+          .addAll(stringBufferMethods.constructorMethods)
+          .addAll(stringBuilderMethods.constructorMethods)
+          .build();
 
   public Set<DexType> libraryTypesAssumedToBePresent =
       ImmutableSet.of(objectType, stringBufferType, stringBuilderType);
@@ -736,9 +737,13 @@ public class DexItemFactory {
     public final DexMethod appendObject;
     public final DexMethod appendString;
     public final DexMethod appendStringBuffer;
-    public final DexMethod constructor;
+    public final DexMethod charSequenceConstructor;
+    public final DexMethod defaultConstructor;
+    public final DexMethod intConstructor;
+    public final DexMethod stringConstructor;
 
     private final Set<DexMethod> appendMethods;
+    private final Set<DexMethod> constructorMethods;
 
     private StringBuildingMethods(DexType receiver) {
       DexType sbufType = createType(createString("Ljava/lang/StringBuffer;"));
@@ -759,7 +764,14 @@ public class DexItemFactory {
       appendObject = createMethod(receiver, createProto(receiver, objectType), append);
       appendString = createMethod(receiver, createProto(receiver, stringType), append);
       appendStringBuffer = createMethod(receiver, createProto(receiver, sbufType), append);
-      constructor = createMethod(receiver, createProto(voidType), constructorMethodName);
+
+      charSequenceConstructor =
+          createMethod(receiver, createProto(voidType, charSequenceType), constructorMethodName);
+      defaultConstructor = createMethod(receiver, createProto(voidType), constructorMethodName);
+      intConstructor =
+          createMethod(receiver, createProto(voidType, intType), constructorMethodName);
+      stringConstructor =
+          createMethod(receiver, createProto(voidType, stringType), constructorMethodName);
 
       appendMethods =
           ImmutableSet.of(
@@ -776,6 +788,9 @@ public class DexItemFactory {
               appendObject,
               appendString,
               appendStringBuffer);
+      constructorMethods =
+          ImmutableSet.of(
+              charSequenceConstructor, defaultConstructor, intConstructor, stringConstructor);
     }
 
     public boolean isAppendMethod(DexMethod method) {
