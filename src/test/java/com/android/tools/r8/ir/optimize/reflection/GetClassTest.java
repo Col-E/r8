@@ -232,6 +232,10 @@ public class GetClassTest extends TestBase {
             .run(parameters.getRuntime(), MAIN);
     test(result, 5, 1, 1, 0);
 
+    // The number of expected const-class instructions differs because constant canonicalization is
+    // only enabled for the DEX backend.
+    int expectedConstClassCount = parameters.getBackend() == Backend.CF ? 7 : 5;
+
     // R8 release, no minification.
     result =
         testForR8(parameters.getBackend())
@@ -243,7 +247,7 @@ public class GetClassTest extends TestBase {
             .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 0, 7, 0, 1);
+    test(result, 0, expectedConstClassCount, 0, 1);
 
     // R8 release, minification.
     result =
@@ -255,7 +259,7 @@ public class GetClassTest extends TestBase {
             .setMinApi(parameters.getRuntime())
             // We are not checking output because it can't be matched due to minification. Just run.
             .run(parameters.getRuntime(), MAIN);
-    test(result, 0, 7, 0, 1);
+    test(result, 0, expectedConstClassCount, 0, 1);
   }
 
 }

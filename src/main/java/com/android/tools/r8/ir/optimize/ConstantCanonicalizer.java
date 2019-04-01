@@ -3,7 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
+import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
@@ -27,18 +30,23 @@ public class ConstantCanonicalizer {
 
   private static final int MAX_CANONICALIZED_CONSTANT = 15;
 
-  public static void canonicalize(IRCode code) {
+  public static void canonicalize(AppView<? extends AppInfo> appView, IRCode code) {
     Object2ObjectLinkedOpenCustomHashMap<ConstInstruction, List<Value>> valuesDefinedByConstant =
         new Object2ObjectLinkedOpenCustomHashMap<>(
             new Strategy<ConstInstruction>() {
               @Override
               public int hashCode(ConstInstruction constInstruction) {
-                assert constInstruction.isConstNumber() || constInstruction.isConstString();
+                assert constInstruction.isConstNumber()
+                    || constInstruction.isConstString()
+                    || constInstruction.isConstClass();
                 if (constInstruction.isConstNumber()) {
                   return Long.hashCode(constInstruction.asConstNumber().getRawValue())
                       + 13 * constInstruction.outType().hashCode();
                 }
-                return constInstruction.asConstString().getValue().hashCode();
+                if (constInstruction.isConstString()) {
+                  return constInstruction.asConstString().getValue().hashCode();
+                }
+                return constInstruction.asConstClass().getValue().hashCode();
               }
 
               @Override
@@ -56,8 +64,14 @@ public class ConstantCanonicalizer {
       InstructionListIterator it = block.listIterator();
       while (it.hasNext()) {
         Instruction current = it.next();
-        // Interested in ConstNumber and ConstString.
-        if (!current.isConstNumber() && !current.isConstString()) {
+        // Interested in ConstNumber, ConstString, and ConstClass
+        if (!current.isConstNumber() && !current.isConstString() && !current.isConstClass()) {
+          continue;
+        }
+        // Do not canonicalize ConstClass that may have side effects. Its original instructions
+        // will not be removed by dead code remover due to the side effects.
+        if (current.isConstClass()
+            && current.instructionMayHaveSideEffects(appView, code.method.method.holder)) {
           continue;
         }
         // Do not canonicalize ConstString instructions if there are monitor operations in the code.
@@ -102,14 +116,19 @@ public class ConstantCanonicalizer {
         .limit(MAX_CANONICALIZED_CONSTANT)
         .forEach((entry) -> {
           ConstInstruction canonicalizedConstant = entry.getKey().asConstInstruction();
-          assert canonicalizedConstant.isConstNumber() || canonicalizedConstant.isConstString();
+          assert canonicalizedConstant.isConstNumber()
+              || canonicalizedConstant.isConstString()
+              || canonicalizedConstant.isConstClass();
           ConstInstruction newConst;
           if (canonicalizedConstant.isConstNumber()) {
             ConstNumber canonicalizedConstantNumber = canonicalizedConstant.asConstNumber();
             newConst = ConstNumber.copyOf(code, canonicalizedConstantNumber);
-          } else {
+          } else if (canonicalizedConstant.isConstString()) {
             ConstString canonicalizedConstantString = canonicalizedConstant.asConstString();
             newConst = ConstString.copyOf(code, canonicalizedConstantString);
+          } else {
+            ConstClass canonicalizedConstClass = canonicalizedConstant.asConstClass();
+            newConst = ConstClass.copyOf(code, canonicalizedConstClass);
           }
           newConst.setPosition(firstNonNonePosition);
           insertCanonicalizedConstant(code, newConst);

@@ -111,7 +111,10 @@ public class IdempotentFunctionCallCanonicalizationTest extends TestBase {
     assumeTrue(
         "Only run JVM reference once (for CF backend)",
         parameters.getBackend() == Backend.CF);
-    testForJvm().addTestClasspath().run(MAIN).assertSuccessWithOutput(JAVA_OUTPUT);
+    testForJvm()
+        .addTestClasspath()
+        .run(parameters.getRuntime(), MAIN)
+        .assertSuccessWithOutput(JAVA_OUTPUT);
   }
 
   private static boolean isValueOf(DexMethod method, String descriptor) {

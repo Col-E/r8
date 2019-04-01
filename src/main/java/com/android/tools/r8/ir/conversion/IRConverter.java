@@ -1047,7 +1047,7 @@ public class IRConverter {
 
     // TODO(mkroghj) Test if shorten live ranges is worth it.
     if (!options.isGeneratingClassFiles()) {
-      ConstantCanonicalizer.canonicalize(code);
+      ConstantCanonicalizer.canonicalize(appView, code);
       codeRewriter.useDedicatedConstantForLitInstruction(code);
       codeRewriter.shortenLiveRanges(code);
     }
