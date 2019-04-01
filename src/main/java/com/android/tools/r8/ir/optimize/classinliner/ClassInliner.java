@@ -16,7 +16,7 @@ import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.InliningOracle;
 import com.android.tools.r8.ir.optimize.string.StringOptimizer;
-import com.android.tools.r8.shaking.Enqueuer.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.Streams;
 import java.util.Iterator;
 import java.util.List;
