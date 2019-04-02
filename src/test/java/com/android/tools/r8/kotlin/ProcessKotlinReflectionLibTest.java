@@ -77,7 +77,7 @@ public class ProcessKotlinReflectionLibTest extends KotlinTestBase {
     test(ImmutableList.of("-dontshrink"));
   }
 
-  @Ignore("b/129570925")
+  @Ignore("b/129558497")
   @Test
   public void testDontShrinkDifferently() throws Exception {
     test(

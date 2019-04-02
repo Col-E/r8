@@ -527,21 +527,24 @@ public class VerticalClassMerger {
       // Find all signatures that may reference a type that could be the source or target of a
       // merge operation.
       Set<Wrapper<DexMethod>> filteredSignatures = new HashSet<>();
-      for (DexMethod signature : appInfo.targetedMethods) {
-        DexClass definition = appInfo.definitionFor(signature.holder);
-        if (definition != null
-            && definition.isProgramClass()
-            && protoMayReferenceMergedSourceOrTarget(signature.proto)) {
-          filteredSignatures.add(equivalence.wrap(signature));
+      for (DexProgramClass clazz : appInfo.classes()) {
+        for (DexEncodedMethod encodedMethod : clazz.methods()) {
+          DexMethod method = encodedMethod.method;
+          DexClass definition = appInfo.definitionFor(method.holder);
+          if (definition != null
+              && definition.isProgramClass()
+              && protoMayReferenceMergedSourceOrTarget(method.proto)) {
+            filteredSignatures.add(equivalence.wrap(method));
 
-          // Record that we have seen a method named [signature.name] with the proto
-          // [signature.proto]. If at some point, we find a method with the same name, but a
-          // different proto, it could be the case that a method with the given name is overloaded.
-          DexProto existing =
-              overloadingInfo.computeIfAbsent(signature.name, key -> signature.proto);
-          if (existing != DexProto.SENTINEL && !existing.equals(signature.proto)) {
-            // Mark that this signature is overloaded by mapping it to SENTINEL.
-            overloadingInfo.put(signature.name, DexProto.SENTINEL);
+            // Record that we have seen a method named [signature.name] with the proto
+            // [signature.proto]. If at some point, we find a method with the same name, but a
+            // different proto, it could be the case that a method with the given name is
+            // overloaded.
+            DexProto existing = overloadingInfo.computeIfAbsent(method.name, key -> method.proto);
+            if (existing != DexProto.SENTINEL && !existing.equals(method.proto)) {
+              // Mark that this signature is overloaded by mapping it to SENTINEL.
+              overloadingInfo.put(method.name, DexProto.SENTINEL);
+            }
           }
         }
       }
