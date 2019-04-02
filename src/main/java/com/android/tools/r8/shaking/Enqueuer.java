@@ -883,7 +883,7 @@ public class Enqueuer {
           annotations.forEach(annotation -> handleAnnotation(holder, annotation));
         }
       } else {
-        assert deferredAnnotations.get(holder) == null;
+        assert !deferredAnnotations.containsKey(holder.type);
       }
 
       Map<DexReference, Set<ProguardKeepRule>> dependentItems = rootSet.getDependentItems(holder);
