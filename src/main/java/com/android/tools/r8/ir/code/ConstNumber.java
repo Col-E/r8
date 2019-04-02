@@ -232,7 +232,11 @@ public class ConstNumber extends ConstInstruction {
 
   @Override
   public String toString() {
-    return super.toString() + " " + value + " (" + outValue().getTypeLattice() + ")";
+    if (outValue != null) {
+      return super.toString() + " " + value + " (" + outValue().getTypeLattice() + ")";
+    } else {
+      return super.toString() + " " + value + " (dead)";
+    }
   }
 
   @Override

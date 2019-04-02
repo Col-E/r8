@@ -696,7 +696,7 @@ public class Value {
     boolean isConstant = definition != null && definition.isConstNumber();
     if (isConstant || hasLocalInfo()) {
       builder.append("(");
-      if (isConstant) {
+      if (isConstant && definition.asConstNumber().outValue != null) {
         ConstNumber constNumber = definition.asConstNumber();
         if (constNumber.outValue().getTypeLattice().isSingle()) {
           builder.append((int) constNumber.getRawValue());
