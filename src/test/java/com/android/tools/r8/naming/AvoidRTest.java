@@ -3,14 +3,15 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
-import static com.android.tools.r8.utils.DescriptorUtils.getSimpleClassNameFromDescriptor;
+import static com.android.tools.r8.utils.DescriptorUtils.getUnqualifiedClassNameFromDescriptor;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.R8FullTestBuilder;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminTestBase;
 import com.android.tools.r8.utils.FileUtils;
@@ -26,15 +27,15 @@ import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class AvoidRTest extends JasminTestBase {
-  private Backend backend;
+  private final TestParameters parameters;
 
-  @Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimes().build();
   }
 
-  public AvoidRTest(Backend backend) {
-    this.backend = backend;
+  public AvoidRTest(TestParameters parameters) {
+    this.parameters = parameters;
   }
 
   @Test
@@ -44,7 +45,7 @@ public class AvoidRTest extends JasminTestBase {
     Set<String> expectedNames = ImmutableSet.of("P", "Q", "S", "T");
 
     JasminBuilder jasminBuilder = new JasminBuilder();
-    R8FullTestBuilder builder = testForR8(backend);
+    R8FullTestBuilder builder = testForR8(parameters.getBackend());
     for (int i = 0; i < 4; i++) {
       jasminBuilder.addClass("TopLevel" + Integer.toString(i));
     }
@@ -67,8 +68,9 @@ public class AvoidRTest extends JasminTestBase {
             assertThat(classSubject, isRenamed());
             String renamedDescriptor = classSubject.getFinalDescriptor();
             assertTrue(usedDescriptors.add(renamedDescriptor));
-            assertNotEquals("R", getSimpleClassNameFromDescriptor(renamedDescriptor));
-            assertTrue(expectedNames.contains(getSimpleClassNameFromDescriptor(renamedDescriptor)));
+            assertNotEquals("R", getUnqualifiedClassNameFromDescriptor(renamedDescriptor));
+            assertTrue(expectedNames.contains(
+                getUnqualifiedClassNameFromDescriptor(renamedDescriptor)));
           });
         });
   }
@@ -76,7 +78,7 @@ public class AvoidRTest extends JasminTestBase {
   @Test
   public void test_withoutPackageHierarchy() throws Exception {
     JasminBuilder jasminBuilder = new JasminBuilder();
-    R8FullTestBuilder builder = testForR8(backend);
+    R8FullTestBuilder builder = testForR8(parameters.getBackend());
     for (int i = 0; i < 26 * 2; i++) {
       jasminBuilder.addClass("TestClass" + Integer.toString(i));
     }
@@ -96,7 +98,7 @@ public class AvoidRTest extends JasminTestBase {
   }
 
   private void test_withPackageHierarchy(String keepRule) throws Exception {
-    R8FullTestBuilder builder = testForR8(backend);
+    R8FullTestBuilder builder = testForR8(parameters.getBackend());
     JasminBuilder jasminBuilder = new JasminBuilder();
     for (int i = 0; i < 26 * 2; i++) {
       jasminBuilder.addClass("TopLevel" + Integer.toString(i));
@@ -120,7 +122,7 @@ public class AvoidRTest extends JasminTestBase {
             assertThat(classSubject, isRenamed());
             String renamedDescriptor = classSubject.getFinalDescriptor();
             assertTrue(usedDescriptors.add(renamedDescriptor));
-            assertNotEquals("R", getSimpleClassNameFromDescriptor(renamedDescriptor));
+            assertNotEquals("R", getUnqualifiedClassNameFromDescriptor(renamedDescriptor));
           });
         });
   }

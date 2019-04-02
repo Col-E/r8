@@ -3,9 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
-import static com.android.tools.r8.utils.DescriptorUtils.DESCRIPTOR_PACKAGE_SEPARATOR;
-import static com.android.tools.r8.utils.DescriptorUtils.descriptorToJavaType;
-
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -48,15 +45,6 @@ public abstract class NamingLens {
 
   public abstract DexString lookupDescriptor(DexType type);
 
-  public DexString lookupSimpleName(DexType type, DexItemFactory factory) {
-    String descriptor = lookupDescriptor(type).toString();
-    int lastSeparator = descriptor.lastIndexOf(DESCRIPTOR_PACKAGE_SEPARATOR);
-    String simpleName =
-        descriptor.substring(lastSeparator > 0 ? lastSeparator + 1 : 1, descriptor.length() - 1);
-    // TODO(b/120811478): Replace by DescriptorUtils.getSimpleClassNameFromDescriptor once fixed.
-    return factory.createString(simpleName);
-  }
-
   public abstract DexString lookupInnerName(InnerClassAttribute attribute, InternalOptions options);
 
   public abstract DexString lookupName(DexMethod method);
@@ -68,7 +56,7 @@ public abstract class NamingLens {
   public final DexString lookupName(DexReference reference, DexItemFactory dexItemFactory) {
     if (reference.isDexType()) {
       DexString renamed = lookupDescriptor(reference.asDexType());
-      return dexItemFactory.createString(descriptorToJavaType(renamed.toString()));
+      return dexItemFactory.createString(DescriptorUtils.descriptorToJavaType(renamed.toString()));
     }
     if (reference.isDexMethod()) {
       return lookupName(reference.asDexMethod());

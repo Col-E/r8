@@ -7,15 +7,13 @@ package com.android.tools.r8.utils;
 import static org.junit.Assert.assertEquals;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.junit.Test;
 
 public class DescriptorUtilsTest {
 
   @Test
-  public void toShorty() throws IOException {
+  public void toShorty() {
     assertEquals("Z", DescriptorUtils.javaTypeToShorty("boolean"));
     assertEquals("B", DescriptorUtils.javaTypeToShorty("byte"));
     assertEquals("S", DescriptorUtils.javaTypeToShorty("short"));
@@ -31,7 +29,7 @@ public class DescriptorUtilsTest {
   }
 
   @Test
-  public void toDescriptor() throws IOException {
+  public void toDescriptor() {
     assertEquals("Z", DescriptorUtils.javaTypeToDescriptor("boolean"));
     assertEquals("B", DescriptorUtils.javaTypeToDescriptor("byte"));
     assertEquals("S", DescriptorUtils.javaTypeToDescriptor("short"));
@@ -47,16 +45,16 @@ public class DescriptorUtilsTest {
   }
 
   @Test
-  public void fromDescriptor() throws IOException {
+  public void fromDescriptor() {
     String obj = "Ljava/lang/Object;";
-    assertEquals("Object", DescriptorUtils.getSimpleClassNameFromDescriptor(obj));
+    assertEquals("Object", DescriptorUtils.getUnqualifiedClassNameFromDescriptor(obj));
     assertEquals("java.lang.Object", DescriptorUtils.getClassNameFromDescriptor(obj));
     assertEquals("java.lang", DescriptorUtils.getPackageNameFromDescriptor(obj));
     assertEquals("java/lang/Object", DescriptorUtils.getClassBinaryNameFromDescriptor(obj));
   }
 
   @Test
-  public void toJavaType() throws IOException {
+  public void toJavaType() {
     assertEquals("boolean", DescriptorUtils.descriptorToJavaType("Z"));
     assertEquals("byte", DescriptorUtils.descriptorToJavaType("B"));
     assertEquals("short", DescriptorUtils.descriptorToJavaType("S"));

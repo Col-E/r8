@@ -65,8 +65,8 @@ class MinifiedRenaming extends NamingLens {
     }
     // The Java reflection library assumes that that inner-class names are separated by a $ and
     // thus we allow the mapping of an inner name to rely on that too. If the dollar is not
-    // present after pulling off the original inner-name, then we revert to using the simple name
-    // of the inner class as its name.
+    // present after pulling off the original inner-name, then we revert to using the unqualified
+    // name of the inner class as its name.
     DexType innerType = attribute.getInner();
     String inner = DescriptorUtils.descriptorToInternalName(innerType.descriptor.toString());
     String innerName = attribute.getInnerName().toString();
@@ -74,7 +74,9 @@ class MinifiedRenaming extends NamingLens {
     if (lengthOfPrefix < 0
         || inner.lastIndexOf(DescriptorUtils.INNER_CLASS_SEPARATOR, lengthOfPrefix - 1) < 0
         || !inner.endsWith(innerName)) {
-      return lookupSimpleName(innerType, options.itemFactory);
+      String descriptor = lookupDescriptor(innerType).toString();
+      return options.itemFactory.createString(
+          DescriptorUtils.getUnqualifiedClassNameFromDescriptor(descriptor));
     }
 
     // At this point we assume the input was of the form: <OuterType>$<index><InnerName>
@@ -90,7 +92,9 @@ class MinifiedRenaming extends NamingLens {
       // Hitting means we have converted a proper Outer$Inner relationship to an invalid one.
       assert !options.testing.allowFailureOnInnerClassErrors
           : "Outer$Inner class was remapped without keeping the dollar separator";
-      return lookupSimpleName(innerType, options.itemFactory);
+      String descriptor = lookupDescriptor(innerType).toString();
+      return options.itemFactory.createString(
+          DescriptorUtils.getUnqualifiedClassNameFromDescriptor(descriptor));
     }
     return options.itemFactory.createString(innerTypeMapped.substring(index + 1));
   }

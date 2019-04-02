@@ -6,7 +6,7 @@ package com.android.tools.r8.ir.optimize;
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 import static com.android.tools.r8.utils.DescriptorUtils.getCanonicalNameFromDescriptor;
 import static com.android.tools.r8.utils.DescriptorUtils.getClassNameFromDescriptor;
-import static com.android.tools.r8.utils.DescriptorUtils.getSimpleClassNameFromDescriptor;
+import static com.android.tools.r8.utils.DescriptorUtils.getUnqualifiedClassNameFromDescriptor;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
@@ -195,7 +195,7 @@ public class ReflectionOptimizer {
         if (!renamed && needsToRetrieveInnerName) {
           name = holder.getInnerClassAttributeForThisClass().getInnerName().toString();
         } else {
-          name = getSimpleClassNameFromDescriptor(descriptor);
+          name = getUnqualifiedClassNameFromDescriptor(descriptor);
         }
         if (arrayDepth > 0) {
           name = name + Strings.repeat("[]", arrayDepth);

@@ -170,7 +170,7 @@ public class TreeShaking1Test extends TreeShakingTest {
           String descriptor = clazz.getFinalDescriptor();
           Assert.assertTrue(
               descriptor,
-              DescriptorUtils.getSimpleClassNameFromDescriptor(descriptor).equals("Shaking")
+              DescriptorUtils.getUnqualifiedClassNameFromDescriptor(descriptor).equals("Shaking")
                   || DescriptorUtils.getPackageNameFromDescriptor(descriptor).equals("repackaged"));
         });
   }

@@ -629,8 +629,9 @@ public final class Java8MethodRewriter {
         if (dexMethod != null) {
           return dexMethod;
         }
-        String clazzDescriptor = DescriptorUtils.getSimpleClassNameFromDescriptor(clazz.toString());
-        String postFix = "$" + clazzDescriptor + "$" + method + "$" + proto.shorty.toString();
+        String unqualifiedName =
+            DescriptorUtils.getUnqualifiedClassNameFromDescriptor(clazz.toString());
+        String postFix = "$" + unqualifiedName + "$" + method + "$" + proto.shorty.toString();
         DexType clazz = factory.createType(UTILITY_CLASS_DESCRIPTOR_PREFIX + postFix + ";");
         dexMethod = factory.createMethod(clazz, proto, method);
         return dexMethod;

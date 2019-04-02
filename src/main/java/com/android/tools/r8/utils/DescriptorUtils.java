@@ -207,13 +207,13 @@ public class DescriptorUtils {
   }
 
   /**
-   * Get simple class name from its descriptor.
+   * Get unqualified class name from its descriptor.
    *
-   * @param classDescriptor a class descriptor i.e. "Ljava/lang/Object;"
-   * @return class name i.e. "Object"
+   * @param classDescriptor a class descriptor i.e. "Ljava/lang/Object;" or "La/b/C$D;"
+   * @return class name i.e. "Object" or "C$D" (not "D")
    */
-  public static String getSimpleClassNameFromDescriptor(String classDescriptor) {
-    return getSimpleClassNameFromBinaryName(getClassBinaryNameFromDescriptor(classDescriptor));
+  public static String getUnqualifiedClassNameFromDescriptor(String classDescriptor) {
+    return getUnqualifiedClassNameFromBinaryName(getClassBinaryNameFromDescriptor(classDescriptor));
   }
 
   /**
@@ -293,16 +293,18 @@ public class DescriptorUtils {
   }
 
   /**
-   * Get class name from its binary name.
+   * Get unqualified class name from its binary name.
    *
    * @param classBinaryName a class binary name i.e. "java/lang/Object" or "a/b/C$Inner"
-   * @return class name i.e. "Object" or "Inner"
+   * @return class name i.e. "Object" or "C$Inner" (not "Inner")
+   *
+   * Note that we cannot rely on $ separator in binary name or descriptor because a class, which is
+   * not a member or local class, can still contain $ in its name. For the correct retrieval of the
+   * simple name of member or local classes, use the inner name in the inner-class attribute (or
+   * refer to ReflectionOptimizer#computeClassName as an example).
    */
-  public static String getSimpleClassNameFromBinaryName(String classBinaryName) {
-    int simpleNameIndex = classBinaryName.lastIndexOf(INNER_CLASS_SEPARATOR);
-    if (simpleNameIndex < 0) {
-      simpleNameIndex = classBinaryName.lastIndexOf(DESCRIPTOR_PACKAGE_SEPARATOR);
-    }
+  public static String getUnqualifiedClassNameFromBinaryName(String classBinaryName) {
+    int simpleNameIndex = classBinaryName.lastIndexOf(DESCRIPTOR_PACKAGE_SEPARATOR);
     return (simpleNameIndex < 0) ? classBinaryName : classBinaryName.substring(simpleNameIndex + 1);
   }
 
