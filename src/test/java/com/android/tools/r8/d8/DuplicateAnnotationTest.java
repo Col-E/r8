@@ -121,7 +121,7 @@ public class DuplicateAnnotationTest extends TestBase {
           .setProgramConsumer(new ArchiveConsumer(dex1))
           .compile();
     } catch (CompilationFailedException e) {
-      assertThat(e.getCause().getMessage(), containsString("Unsorted annotation set"));
+      assertThat(e.getCause().getMessage(), containsString("Multiple annotations"));
       assertThat(e.getCause().getMessage(), containsString(TestKeep.class.getName()));
     }
   }

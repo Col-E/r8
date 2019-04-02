@@ -429,6 +429,11 @@ public class DexParser {
     for (int i = 0; i < size; i++) {
       result[i] = annotationAt(annotationOffsets[i]);
     }
+    DexType dupType = DexAnnotationSet.findDuplicateEntryType(result);
+    if (dupType != null) {
+      throw new CompilationError(
+          "Multiple annotations of type `" + dupType.toSourceString() + "`");
+    }
     return new DexAnnotationSet(result);
   }
 

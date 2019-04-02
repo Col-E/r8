@@ -7,6 +7,9 @@ import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.utils.ArrayUtils;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -21,6 +24,20 @@ public class DexAnnotationSet extends CachedHashValueDexItem {
 
   public DexAnnotationSet(DexAnnotation[] annotations) {
     this.annotations = annotations;
+  }
+
+  public static DexType findDuplicateEntryType(DexAnnotation[] annotations) {
+    return findDuplicateEntryType(Arrays.asList(annotations));
+  }
+
+  public static DexType findDuplicateEntryType(List<DexAnnotation> annotations) {
+    Set<DexType> seenTypes = new HashSet<>();
+    for (DexAnnotation annotation : annotations) {
+      if (!seenTypes.add(annotation.annotation.type)) {
+        return annotation.annotation.type;
+      }
+    }
+    return null;
   }
 
   public static DexAnnotationSet empty() {

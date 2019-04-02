@@ -351,7 +351,7 @@ public class JarClassFileReader {
               sourceFile,
               enclosingMember,
               innerClasses,
-              createAnnotationSet(annotations),
+              createAnnotationSet(annotations, application.options),
               staticFields.toArray(DexEncodedField.EMPTY_ARRAY),
               instanceFields.toArray(DexEncodedField.EMPTY_ARRAY),
               directMethods.toArray(DexEncodedMethod.EMPTY_ARRAY),
@@ -430,10 +430,19 @@ public class JarClassFileReader {
     }
   }
 
-  private static DexAnnotationSet createAnnotationSet(List<DexAnnotation> annotations) {
-    return annotations == null || annotations.isEmpty()
-        ? DexAnnotationSet.empty()
-        : new DexAnnotationSet(annotations.toArray(DexAnnotation.EMPTY_ARRAY));
+  private static DexAnnotationSet createAnnotationSet(
+      List<DexAnnotation> annotations, InternalOptions options) {
+    if (annotations == null || annotations.isEmpty()) {
+      return DexAnnotationSet.empty();
+    }
+    if (options.isGeneratingDex()) {
+      DexType dupType = DexAnnotationSet.findDuplicateEntryType(annotations);
+      if (dupType != null) {
+        throw new CompilationError(
+            "Multiple annotations of type `" + dupType.toSourceString() + "`");
+      }
+    }
+    return new DexAnnotationSet(annotations.toArray(DexAnnotation.EMPTY_ARRAY));
   }
 
   private static class CreateFieldVisitor extends FieldVisitor {
@@ -477,7 +486,8 @@ public class JarClassFileReader {
       DexField dexField = parent.application.getField(parent.type, name, desc);
       Wrapper<DexField> signature = FieldSignatureEquivalence.get().wrap(dexField);
       if (parent.fieldSignatures.add(signature)) {
-        DexAnnotationSet annotationSet = createAnnotationSet(annotations);
+        DexAnnotationSet annotationSet =
+            createAnnotationSet(annotations, parent.application.options);
         DexValue staticValue = flags.isStatic() ? getStaticValue(value, dexField.type) : null;
         DexEncodedField field = new DexEncodedField(dexField, flags, annotationSet, staticValue);
         if (flags.isStatic()) {
@@ -678,7 +688,8 @@ public class JarClassFileReader {
       } else {
         DexAnnotationSet[] sets = new DexAnnotationSet[parameterAnnotationsLists.size()];
         for (int i = 0; i < parameterAnnotationsLists.size(); i++) {
-          sets[i] = createAnnotationSet(parameterAnnotationsLists.get(i));
+          sets[i] =
+              createAnnotationSet(parameterAnnotationsLists.get(i), parent.application.options);
         }
         annotationsList = new ParameterAnnotationsList(sets);
       }
@@ -698,7 +709,7 @@ public class JarClassFileReader {
           new DexEncodedMethod(
               method,
               flags,
-              createAnnotationSet(annotations),
+              createAnnotationSet(annotations, parent.application.options),
               annotationsList,
               code,
               parent.version);
