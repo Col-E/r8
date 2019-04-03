@@ -55,6 +55,7 @@ public class MethodPoolCollection extends MemberPoolCollection<DexMethod> {
           if (subClazz != null) {
             MemberPool<DexMethod> childPool =
                 memberPools.computeIfAbsent(subClazz, k -> new MemberPool<>(equivalence));
+            methodPool.linkSubtype(childPool);
             childPool.linkInterface(methodPool);
           }
         }
