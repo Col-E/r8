@@ -145,6 +145,22 @@ public class Java8MethodsTest extends TestBase {
           System.out.println(Boolean.logicalXor(aBoolean, bBoolean));
         }
       }
+
+      long[] aLongs = new long[]{42L, 1L, -1L, Long.MAX_VALUE, Long.MIN_VALUE};
+      long[] bLongs = new long[]{43L, 2L, -2L, Long.MAX_VALUE, Long.MIN_VALUE};
+      for (long aLong : aLongs) {
+        System.out.println(Long.hashCode(aLong));
+        for (long bLong : bLongs) {
+          System.out.println(Long.max(aLong, bLong));
+          System.out.println(Long.min(aLong, bLong));
+          System.out.println(Long.sum(aLong, bLong));
+        }
+      }
+
+      char[] aChars = new char[]{'s', 'u', 'p', Character.MAX_VALUE, Character.MIN_VALUE};
+      for (char aChar : aChars) {
+        System.out.println(Character.hashCode(aChar));
+      }
     }
   }
 }

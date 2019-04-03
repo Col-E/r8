@@ -357,6 +357,58 @@ public final class Java8MethodRewriter {
     }
   }
 
+  private static final class LongMethods extends TemplateMethodCode {
+    LongMethods(InternalOptions options, DexMethod method, String methodName) {
+      super(options, method, methodName, method.proto.toDescriptorString());
+    }
+
+    public static LongMethods hashCodeCode(InternalOptions options, DexMethod method) {
+      return new LongMethods(options, method, "hashCodeImpl");
+    }
+
+    public static LongMethods maxCode(InternalOptions options, DexMethod method) {
+      return new LongMethods(options, method, "maxImpl");
+    }
+
+    public static LongMethods minCode(InternalOptions options, DexMethod method) {
+      return new LongMethods(options, method, "minImpl");
+    }
+
+    public static LongMethods sumCode(InternalOptions options, DexMethod method) {
+      return new LongMethods(options, method, "sumImpl");
+    }
+
+    public static int hashCodeImpl(long i) {
+      return Long.valueOf(i).hashCode();
+    }
+
+    public static long maxImpl(long a, long b) {
+      return java.lang.Math.max(a, b);
+    }
+
+    public static long minImpl(long a, long b) {
+      return java.lang.Math.min(a, b);
+    }
+
+    public static long sumImpl(long a, long b) {
+      return a + b;
+    }
+  }
+
+  private static final class CharacterMethods extends TemplateMethodCode {
+    CharacterMethods(InternalOptions options, DexMethod method, String methodName) {
+      super(options, method, methodName, method.proto.toDescriptorString());
+    }
+
+    public static CharacterMethods hashCodeCode(InternalOptions options, DexMethod method) {
+      return new CharacterMethods(options, method, "hashCodeImpl");
+    }
+
+    public static int hashCodeImpl(char i) {
+      return Character.valueOf(i).hashCode();
+    }
+  }
+
   public static final class RewritableMethods {
     // Map class, method, proto to a generator for creating the code and method.
     private final Map<DexString, Map<DexString, Map<DexProto, MethodGenerator>>> rewritable;
@@ -499,6 +551,42 @@ public final class Java8MethodRewriter {
       proto = factory.createProto(factory.booleanType, factory.booleanType, factory.booleanType);
       addOrGetMethod(clazz, method)
           .put(proto, new MethodGenerator(BooleanMethods::logicalXorCode, clazz, method, proto));
+
+      // Long
+      clazz = factory.boxedLongDescriptor;
+
+      // int Long.hashCode(long i)
+      method = factory.createString("hashCode");
+      proto = factory.createProto(factory.intType, factory.longType);
+      addOrGetMethod(clazz, method)
+          .put(proto, new MethodGenerator(LongMethods::hashCodeCode, clazz, method, proto));
+
+      // long Long.max(long a, long b)
+      method = factory.createString("max");
+      proto = factory.createProto(factory.longType, factory.longType, factory.longType);
+      addOrGetMethod(clazz, method)
+          .put(proto, new MethodGenerator(LongMethods::maxCode, clazz, method, proto));
+
+      // long Long.min(long a, long b)
+      method = factory.createString("min");
+      proto = factory.createProto(factory.longType, factory.longType, factory.longType);
+      addOrGetMethod(clazz, method)
+          .put(proto, new MethodGenerator(LongMethods::minCode, clazz, method, proto));
+
+      // long Long.sum(long a, long b)
+      method = factory.createString("sum");
+      proto = factory.createProto(factory.longType, factory.longType, factory.longType);
+      addOrGetMethod(clazz, method)
+          .put(proto, new MethodGenerator(LongMethods::sumCode, clazz, method, proto));
+
+      // Character
+      clazz = factory.boxedCharDescriptor;
+
+      // int Character.hashCode(char i)
+      method = factory.createString("hashCode");
+      proto = factory.createProto(factory.intType, factory.charType);
+      addOrGetMethod(clazz, method)
+          .put(proto, new MethodGenerator(CharacterMethods::hashCodeCode, clazz, method, proto));
     }
 
     private Map<DexString, Map<DexProto, MethodGenerator>> addOrGetClass(DexString clazz) {
