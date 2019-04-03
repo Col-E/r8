@@ -262,8 +262,6 @@ public class UninstantiatedTypeOptimization {
           }
         });
 
-    // TODO(christofferqa): There is no need to do anything at the call site when the graph lense
-    // is unchanged!
     if (!methodMapping.isEmpty()) {
       return new UninstantiatedTypeOptimizationGraphLense(
           methodMapping, removedArgumentsInfoPerMethod, appView);

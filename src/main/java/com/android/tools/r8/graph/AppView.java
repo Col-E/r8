@@ -94,8 +94,13 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
     return graphLense;
   }
 
-  public void setGraphLense(GraphLense graphLense) {
-    this.graphLense = graphLense;
+  /** @return true if the graph lens changed, otherwise false. */
+  public boolean setGraphLense(GraphLense graphLense) {
+    if (graphLense != this.graphLense) {
+      this.graphLense = graphLense;
+      return true;
+    }
+    return false;
   }
 
   public InternalOptions options() {

@@ -402,8 +402,8 @@ public class R8 {
         GraphLense publicizedLense =
             ClassAndMemberPublicizer.run(
                 executorService, timing, application, appView.withLiveness(), rootSet);
-        if (publicizedLense != appView.graphLense()) {
-          appView.setGraphLense(publicizedLense);
+        boolean changed = appView.setGraphLense(publicizedLense);
+        if (changed) {
           // We can now remove visibility bridges. Note that we do not need to update the
           // invoke-targets here, as the existing invokes will simply dispatch to the now
           // visible super-method. MemberRebinding, if run, will then dispatch it correctly.
@@ -415,16 +415,20 @@ public class R8 {
         AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
         appView.setGraphLense(new MemberRebindingAnalysis(appViewWithLiveness).run());
         if (options.enableHorizontalClassMerging) {
+          timing.begin("HorizontalStaticClassMerger");
           StaticClassMerger staticClassMerger =
               new StaticClassMerger(appViewWithLiveness, options, mainDexClasses);
-          appView.setGraphLense(staticClassMerger.run());
-          appViewWithLiveness.setAppInfo(
-              appViewWithLiveness
-                  .appInfo()
-                  .rewrittenWithLense(application.asDirect(), appView.graphLense()));
+          boolean changed = appView.setGraphLense(staticClassMerger.run());
+          if (changed) {
+            appViewWithLiveness.setAppInfo(
+                appViewWithLiveness
+                    .appInfo()
+                    .rewrittenWithLense(application.asDirect(), appView.graphLense()));
+          }
+          timing.end();
         }
         if (options.enableVerticalClassMerging) {
-          timing.begin("ClassMerger");
+          timing.begin("VerticalClassMerger");
           VerticalClassMerger verticalClassMerger =
               new VerticalClassMerger(
                   application,
@@ -432,39 +436,47 @@ public class R8 {
                   executorService,
                   timing,
                   mainDexClasses);
-          appView.setGraphLense(verticalClassMerger.run());
-          appView.setVerticallyMergedClasses(verticalClassMerger.getMergedClasses());
+          boolean changed = appView.setGraphLense(verticalClassMerger.run());
+          if (changed) {
+            appView.setVerticallyMergedClasses(verticalClassMerger.getMergedClasses());
+            application = application.asDirect().rewrittenWithLense(appView.graphLense());
+            appViewWithLiveness.setAppInfo(
+                appViewWithLiveness
+                    .appInfo()
+                    .prunedCopyFrom(application, verticalClassMerger.getRemovedClasses())
+                    .rewrittenWithLense(application.asDirect(), appView.graphLense()));
+          }
           timing.end();
-          application = application.asDirect().rewrittenWithLense(appView.graphLense());
-          appViewWithLiveness.setAppInfo(
-              appViewWithLiveness
-                  .appInfo()
-                  .prunedCopyFrom(application, verticalClassMerger.getRemovedClasses())
-                  .rewrittenWithLense(application.asDirect(), appView.graphLense()));
         }
         if (options.enableArgumentRemoval) {
           if (options.enableUnusedArgumentRemoval) {
             timing.begin("UnusedArgumentRemoval");
-            appView.setGraphLense(
-                new UnusedArgumentsCollector(appViewWithLiveness).run(executorService));
-            application = application.asDirect().rewrittenWithLense(appView.graphLense());
+            boolean changed =
+                appView.setGraphLense(
+                    new UnusedArgumentsCollector(appViewWithLiveness).run(executorService));
+            if (changed) {
+              application = application.asDirect().rewrittenWithLense(appView.graphLense());
+              appViewWithLiveness.setAppInfo(
+                  appViewWithLiveness
+                      .appInfo()
+                      .rewrittenWithLense(application.asDirect(), appView.graphLense()));
+            }
             timing.end();
-            appViewWithLiveness.setAppInfo(
-                appViewWithLiveness
-                    .appInfo()
-                    .rewrittenWithLense(application.asDirect(), appView.graphLense()));
           }
           if (options.enableUninstantiatedTypeOptimization) {
             timing.begin("UninstantiatedTypeOptimization");
-            appView.setGraphLense(
-                new UninstantiatedTypeOptimization(appViewWithLiveness, options)
-                    .run(new MethodPoolCollection(application), executorService, timing));
-            application = application.asDirect().rewrittenWithLense(appView.graphLense());
+            boolean changed =
+                appView.setGraphLense(
+                    new UninstantiatedTypeOptimization(appViewWithLiveness, options)
+                        .run(new MethodPoolCollection(application), executorService, timing));
+            if (changed) {
+              application = application.asDirect().rewrittenWithLense(appView.graphLense());
+              appViewWithLiveness.setAppInfo(
+                  appViewWithLiveness
+                      .appInfo()
+                      .rewrittenWithLense(application.asDirect(), appView.graphLense()));
+            }
             timing.end();
-            appViewWithLiveness.setAppInfo(
-                appViewWithLiveness
-                    .appInfo()
-                    .rewrittenWithLense(application.asDirect(), appView.graphLense()));
           }
         }
 
