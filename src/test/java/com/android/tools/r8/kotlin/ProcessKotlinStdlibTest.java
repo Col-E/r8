@@ -4,14 +4,13 @@
 package com.android.tools.r8.kotlin;
 
 import com.android.tools.r8.KotlinTestBase;
+import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
-import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
-import java.util.function.Consumer;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -36,11 +35,11 @@ public class ProcessKotlinStdlibTest extends KotlinTestBase {
   }
 
   private void test(
-      Collection<String> rules, Consumer<InternalOptions> optionsConsumer) throws Exception {
+      Collection<String> rules, ThrowableConsumer<R8FullTestBuilder> consumer) throws Exception {
     testForR8(parameters.getBackend())
         .addProgramFiles(ToolHelper.getKotlinStdlibJar())
-        .addOptionsModification(optionsConsumer)
         .addKeepRules(rules)
+        .apply(consumer)
         .compile();
   }
 
@@ -54,14 +53,18 @@ public class ProcessKotlinStdlibTest extends KotlinTestBase {
     test(ImmutableList.of("-dontshrink", "-dontoptimize"));
   }
 
-  @Ignore("b/129558497")
   @Test
   public void testDontShrinkAndDontOptimizeDifferently() throws Exception {
      test(
          ImmutableList.of("-keep,allowobfuscation class **.*Exception*"),
-         o -> {
-           o.enableTreeShaking = false;
-           o.enableVerticalClassMerging = false;
+         tb -> {
+           tb.noTreeShaking();
+           tb.addOptionsModification(o -> {
+             // Randomly choose a couple of optimizations.
+             o.enableClassInlining = false;
+             o.enableLambdaMerging = false;
+             o.enableValuePropagation = false;
+           });
          });
   }
 
@@ -75,12 +78,11 @@ public class ProcessKotlinStdlibTest extends KotlinTestBase {
     test(ImmutableList.of("-dontshrink"));
   }
 
-  @Ignore("b/129558497")
   @Test
   public void testDontShrinkDifferently() throws Exception {
     test(
         ImmutableList.of("-keep,allowobfuscation class **.*Exception*"),
-        o -> o.enableTreeShaking = false);
+        tb -> tb.noTreeShaking());
   }
 
   @Test

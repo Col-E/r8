@@ -30,7 +30,9 @@ public abstract class TestBuilder<RR extends TestRunResult, T extends TestBuilde
   }
 
   public T apply(ThrowableConsumer<T> fn) {
-    fn.acceptWithRuntimeException(self());
+    if (fn != null) {
+      fn.acceptWithRuntimeException(self());
+    }
     return self();
   }
 
