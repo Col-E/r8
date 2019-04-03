@@ -232,7 +232,7 @@ public class StringOptimizer {
       // b/120138731: Filter out local uses, which are likely one-time name computation. In such
       // case, the result of this optimization can lead to a regression if the corresponding class
       // is in a deep package hierarchy.
-      if (!code.options.testing.forceNameReflectionOptimization
+      if (!appView.options().testing.forceNameReflectionOptimization
           && !hasPotentialReadOutside(
               appView.appInfo(), code.method, EscapeAnalysis.escape(code, out))) {
         continue;
@@ -275,7 +275,7 @@ public class StringOptimizer {
       DexItemBasedConstString deferred = null;
       DexString name = null;
       if (invokedMethod == factory.classMethods.getName) {
-        if (code.options.enableMinification && !rootSet.noObfuscation.contains(holder.type)) {
+        if (appView.options().isMinifying() && !rootSet.noObfuscation.contains(holder.type)) {
           deferred =
               new DexItemBasedConstString(
                   invoke.outValue(),
@@ -299,7 +299,7 @@ public class StringOptimizer {
           if (!assumeTopLevel) {
             continue;
           }
-          if (code.options.enableMinification && !rootSet.noObfuscation.contains(holder.type)) {
+          if (appView.options().isMinifying() && !rootSet.noObfuscation.contains(holder.type)) {
             deferred =
                 new DexItemBasedConstString(
                     invoke.outValue(),
@@ -320,7 +320,7 @@ public class StringOptimizer {
           if (!assumeTopLevel) {
             continue;
           }
-          if (code.options.enableMinification && !rootSet.noObfuscation.contains(holder.type)) {
+          if (appView.options().isMinifying() && !rootSet.noObfuscation.contains(holder.type)) {
             deferred =
                 new DexItemBasedConstString(
                     invoke.outValue(),

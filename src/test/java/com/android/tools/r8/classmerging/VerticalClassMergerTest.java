@@ -8,9 +8,9 @@ import static com.android.tools.r8.smali.SmaliBuilder.buildCode;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationFailedException;
@@ -80,7 +80,6 @@ public class VerticalClassMergerTest extends TestBase {
   private void configure(InternalOptions options) {
     options.enableVerticalClassMerging = true;
     options.enableClassInlining = false;
-    options.enableMinification = false;
     options.enableSideEffectAnalysis = false;
     options.testing.nondeterministicCycleElimination = true;
   }
@@ -91,6 +90,7 @@ public class VerticalClassMergerTest extends TestBase {
         testForR8(Backend.DEX)
             .addProgramFiles(EXAMPLE_JAR)
             .addKeepRuleFiles(proguardConfig)
+            .noMinification()
             .addOptionsModification(optionsConsumer)
             .compile()
             .inspector();
@@ -1208,6 +1208,7 @@ public class VerticalClassMergerTest extends TestBase {
     Path proguardMapPath = File.createTempFile("mapping", ".txt", temp.getRoot()).toPath();
     R8Command.Builder commandBuilder =
         ToolHelper.prepareR8CommandBuilder(input)
+            .setDisableMinification(true)
             .addProguardConfiguration(ImmutableList.of(proguardConfig), Origin.unknown());
     ToolHelper.allowTestProguardOptions(commandBuilder);
     AndroidApp output =

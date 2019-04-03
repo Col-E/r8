@@ -281,7 +281,7 @@ public class ClassInitializerDefaultsOptimization {
       return null;
     }
 
-    if (appView.options().enableMinification && !converter.rootSet.noObfuscation.contains(holder)) {
+    if (appView.options().isMinifying() && !converter.rootSet.noObfuscation.contains(holder)) {
       if (invokedMethod == dexItemFactory.classMethods.getName) {
         return new DexItemBasedValueString(holder, new ClassNameComputationInfo(NAME));
       }

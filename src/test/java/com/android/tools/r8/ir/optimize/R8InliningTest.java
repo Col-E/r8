@@ -109,7 +109,8 @@ public class R8InliningTest extends TestBase {
             .addProgramFiles(getInputFile())
             .setOutput(out, outputMode(backend))
             .addProguardConfigurationFiles(Paths.get(keepRulesFile))
-            .addLibraryFiles(TestBase.runtimeJar(backend));
+            .addLibraryFiles(TestBase.runtimeJar(backend))
+            .setDisableMinification(true);
     if (mapFile != null) {
       commandBuilder.setProguardMapOutputPath(mapFile);
     }
@@ -127,7 +128,6 @@ public class R8InliningTest extends TestBase {
           // Disable class inlining to prevent that the instantiation of Nullability is removed, and
           // that the class is therefore made abstract.
           o.enableClassInlining = false;
-          o.enableMinification = minification;
           o.enableInlining = inlining;
           o.inliningInstructionLimit = 6;
         });

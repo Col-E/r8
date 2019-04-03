@@ -10,7 +10,7 @@ import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -39,17 +39,19 @@ public abstract class MergedTypeBaseTest extends TestBase {
 
   static class Unused {}
 
-  final Backend backend;
+  private final TestParameters parameters;
   final List<Class<?>> classes;
   final boolean enableVerticalClassMerging;
 
-  public MergedTypeBaseTest(Backend backend, boolean enableVerticalClassMerging) {
-    this(backend, enableVerticalClassMerging, ImmutableList.of());
+  public MergedTypeBaseTest(TestParameters parameters, boolean enableVerticalClassMerging) {
+    this(parameters, enableVerticalClassMerging, ImmutableList.of());
   }
 
   public MergedTypeBaseTest(
-      Backend backend, boolean enableVerticalClassMerging, List<Class<?>> additionalClasses) {
-    this.backend = backend;
+      TestParameters parameters,
+      boolean enableVerticalClassMerging,
+      List<Class<?>> additionalClasses) {
+    this.parameters = parameters;
     this.enableVerticalClassMerging = enableVerticalClassMerging;
     this.classes =
         ImmutableList.<Class<?>>builder()
@@ -58,10 +60,11 @@ public abstract class MergedTypeBaseTest extends TestBase {
             .build();
   }
 
-  @Parameters(name = "Backend: {0}, vertical class merging: {1}")
+  @Parameters(name = "{0}, vertical class merging: {1}")
   public static Collection<Object[]> data() {
     // We don't run this on Proguard, as Proguard does not merge A into B.
-    return buildParameters(ToolHelper.getBackends(), BooleanUtils.values());
+    return buildParameters(
+        getTestParameters().withAllRuntimes().build(), BooleanUtils.values());
   }
 
   public abstract Class<?> getTestClass();
@@ -89,23 +92,23 @@ public abstract class MergedTypeBaseTest extends TestBase {
     String expected = getExpectedStdout();
     assertEquals(expected, runOnJava(getTestClass()));
 
-    testForR8(backend)
+    testForR8(parameters.getBackend())
         .addProgramClasses(classes)
         .addKeepMainRule(getTestClass())
         .addKeepRules(
             getConditionForProguardIfRule(),
             "-keep class " + Unused.class.getTypeName(),
             getAdditionalKeepRules())
+        .noMinification()
         .addOptionsModification(this::configure)
         .enableClassInliningAnnotations()
         .enableSideEffectAnnotations()
-        .run(getTestClass())
+        .run(parameters.getRuntime(), getTestClass())
         .assertSuccessWithOutput(expected)
         .inspect(this::inspect);
   }
 
   private void configure(InternalOptions options) {
-    options.enableMinification = false;
     options.enableVerticalClassMerging = enableVerticalClassMerging;
 
     // To ensure that the handling of extends and implements rules work as intended,

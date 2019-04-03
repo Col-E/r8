@@ -250,33 +250,23 @@ public final class D8Command extends BaseCompilerCommand {
     internal.minApiLevel = getMinApiLevel();
     internal.intermediate = intermediate;
     // Assert and fixup defaults.
-    assert internal.enableMinification;
-    internal.enableMinification = false;
-    assert internal.enableTreeShaking;
-    internal.enableTreeShaking = false;
+    assert !internal.isShrinking();
+    assert !internal.isMinifying();
     assert !internal.passthroughDexCode;
     internal.passthroughDexCode = true;
 
-    // Disable some of R8 optimizations.
-    assert internal.enableInlining;
-    internal.enableInlining = false;
-    assert internal.enableClassInlining;
-    internal.enableClassInlining = false;
-    assert internal.enableHorizontalClassMerging;
-    internal.enableHorizontalClassMerging = false;
-    assert internal.enableVerticalClassMerging;
-    internal.enableVerticalClassMerging = false;
-    assert internal.enableClassStaticizer;
-    internal.enableClassStaticizer = false;
-    assert internal.enableSwitchMapRemoval;
-    internal.enableSwitchMapRemoval = false;
-    assert internal.outline.enabled;
-    internal.outline.enabled = false;
-    assert internal.enableValuePropagation;
-    internal.enableValuePropagation = false;
+    // Assert some of R8 optimizations are disabled.
+    assert !internal.enableInlining;
+    assert !internal.enableClassInlining;
+    assert !internal.enableHorizontalClassMerging;
+    assert !internal.enableVerticalClassMerging;
+    assert !internal.enableClassStaticizer;
+    assert !internal.enableSwitchMapRemoval;
+    assert !internal.outline.enabled;
+    assert !internal.enableValuePropagation;
+    assert !internal.enableLambdaMerging;
 
     internal.enableDesugaring = getEnableDesugaring();
-    internal.enableLambdaMerging = false;
     internal.enableInheritanceClassInDexDistributor = isOptimizeMultidexForLinearAlloc();
     return internal;
   }

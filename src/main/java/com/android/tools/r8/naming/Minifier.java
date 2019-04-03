@@ -39,7 +39,7 @@ public class Minifier {
   }
 
   public NamingLens run(Timing timing) {
-    assert appView.options().enableMinification;
+    assert appView.options().isMinifying();
     timing.begin("MinifyClasses");
     ClassNameMinifier classNameMinifier =
         new ClassNameMinifier(

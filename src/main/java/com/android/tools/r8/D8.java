@@ -163,16 +163,7 @@ public final class D8 {
     Timing timing = new Timing("D8");
     try {
       // Disable global optimizations.
-      options.enableArgumentRemoval = false;
-      options.enableMinification = false;
-      options.enableInlining = false;
-      options.enableClassInlining = false;
-      options.enableHorizontalClassMerging = false;
-      options.enableVerticalClassMerging = false;
-      options.enableUninstantiatedTypeOptimization = false;
-      options.enableUnusedArgumentRemoval = false;
-      options.enableClassStaticizer = false;
-      options.outline.enabled = false;
+      options.disableGlobalOptimizations();
 
       DexApplication app = new ApplicationReader(inputApp, options, timing).read(executor);
       AppInfo appInfo = new AppInfo(app);

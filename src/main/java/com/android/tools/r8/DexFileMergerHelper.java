@@ -72,7 +72,7 @@ public class DexFileMergerHelper {
     options.enableDesugaring = false;
     options.enableMainDexListCheck = false;
     options.minimalMainDex = minimalMainDex;
-    options.enableMinification = false;
+    assert !options.isMinifying();
     options.enableInlining = false;
     options.outline.enabled = false;
 

@@ -71,6 +71,8 @@ public class InternalOptions {
     reporter = new Reporter();
     itemFactory = new DexItemFactory();
     proguardConfiguration = null;
+    enableTreeShaking = false;
+    enableMinification = false;
   }
 
   // Constructor for D8.
@@ -80,6 +82,9 @@ public class InternalOptions {
     this.reporter = reporter;
     itemFactory = factory;
     proguardConfiguration = null;
+    enableTreeShaking = false;
+    enableMinification = false;
+    disableGlobalOptimizations();
   }
 
   // Constructor for R8.
@@ -89,22 +94,34 @@ public class InternalOptions {
     this.reporter = reporter;
     this.proguardConfiguration = proguardConfiguration;
     itemFactory = proguardConfiguration.getDexItemFactory();
+    enableTreeShaking = proguardConfiguration.isShrinking();
+    enableMinification = proguardConfiguration.isObfuscating();
     // -dontoptimize disables optimizations by flipping related flags.
     if (!proguardConfiguration.isOptimizing()) {
-      enableArgumentRemoval = false;
-      enableHorizontalClassMerging = false;
-      enableVerticalClassMerging = false;
-      enableUninstantiatedTypeOptimization = false;
-      enableUnusedArgumentRemoval = false;
-      enableDevirtualization = false;
-      enableNonNullTracking = false;
-      enableInlining = false;
-      enableClassInlining = false;
-      enableClassStaticizer = false;
-      enableSwitchMapRemoval = false;
-      outline.enabled = false;
-      enableValuePropagation = false;
+      disableAllOptimizations();
     }
+  }
+
+  void disableAllOptimizations() {
+    disableGlobalOptimizations();
+    enableNonNullTracking = false;
+  }
+
+  public void disableGlobalOptimizations() {
+    enableArgumentRemoval = false;
+    enableInlining = false;
+    enableClassInlining = false;
+    enableClassStaticizer = false;
+    enableDevirtualization = false;
+    enableLambdaMerging = false;
+    enableHorizontalClassMerging = false;
+    enableVerticalClassMerging = false;
+    enableUninstantiatedTypeOptimization = false;
+    enableUnusedArgumentRemoval = false;
+    outline.enabled = false;
+    enableSwitchMapRemoval = false;
+    enableValuePropagation = false;
+    enableSideEffectAnalysis = false;
   }
 
   public boolean printTimes = System.getProperty("com.android.tools.r8.printtimes") != null;
@@ -112,7 +129,7 @@ public class InternalOptions {
   // Flag to toggle if DEX code objects should pass-through without IR processing.
   public boolean passthroughDexCode = false;
 
-  // Optimization-related flags. These should conform to -dontoptimize.
+  // Optimization-related flags. These should conform to -dontoptimize and disableAllOptimizations.
   public boolean enableHorizontalClassMerging = true;
   public boolean enableVerticalClassMerging = true;
   public boolean enableArgumentRemoval = true;
@@ -257,14 +274,22 @@ public class InternalOptions {
   // to disable the check that the build makes sense for multi-dexing.
   public boolean enableMainDexListCheck = true;
 
-  public boolean enableTreeShaking = true;
+  private final boolean enableTreeShaking;
+  private final boolean enableMinification;
+
+  public boolean isShrinking() {
+    return enableTreeShaking;
+  }
+
+  public boolean isMinifying() {
+    return enableMinification;
+  }
 
   public boolean printCfg = false;
   public String printCfgFile;
   public boolean ignoreMissingClasses = false;
   // EXPERIMENTAL flag to get behaviour as close to Proguard as possible.
   public boolean forceProguardCompatibility = false;
-  public boolean enableMinification = true;
   public boolean disableAssertions = true;
   public boolean debugKeepRules = false;
   // Read input classes into CfCode format (instead of JarCode).

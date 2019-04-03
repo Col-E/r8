@@ -11,8 +11,6 @@ import org.junit.Test;
 public class KotlinLambdaMergingWithReprocessingTest extends AbstractR8KotlinTestBase {
   private Consumer<InternalOptions> optionsModifier =
     o -> {
-      o.enableTreeShaking = true;
-      o.enableMinification = false;
       o.enableInlining = true;
       o.enableClassInlining = true;
       o.enableLambdaMerging = true;

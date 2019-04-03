@@ -4,8 +4,8 @@
 package com.android.tools.r8.resolution;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.R8Command;
@@ -59,11 +59,11 @@ public class B77944861 extends TestBase {
                 ImmutableList.of(keepMainProguardConfiguration(main)), Origin.unknown())
             .setOutput(out, outputMode(backend))
             .addLibraryFiles(TestBase.runtimeJar(backend))
+            .setDisableTreeShaking(true)
+            .setDisableMinification(true)
             .build();
     return ToolHelper.runR8(command, o -> {
-      o.enableMinification = false;
       o.enableInlining = false;
-      o.enableTreeShaking = false;
     });
   }
 

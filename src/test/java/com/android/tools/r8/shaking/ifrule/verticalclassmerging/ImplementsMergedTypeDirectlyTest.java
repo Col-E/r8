@@ -5,10 +5,11 @@
 package com.android.tools.r8.shaking.ifrule.verticalclassmerging;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsNot.not;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 
@@ -21,8 +22,9 @@ public class ImplementsMergedTypeDirectlyTest extends MergedTypeBaseTest {
     }
   }
 
-  public ImplementsMergedTypeDirectlyTest(Backend backend, boolean enableVerticalClassMerging) {
-    super(backend, enableVerticalClassMerging);
+  public ImplementsMergedTypeDirectlyTest(
+      TestParameters parameters, boolean enableVerticalClassMerging) {
+    super(parameters, enableVerticalClassMerging);
   }
 
   @Override

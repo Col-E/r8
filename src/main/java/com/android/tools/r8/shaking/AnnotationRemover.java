@@ -110,7 +110,7 @@ public class AnnotationRemover {
     DexType annotationType = annotation.annotation.type.toBaseType(appView.dexItemFactory());
     DexClass definition = appView.definitionFor(annotationType);
     // TODO(b/73102187): How to handle annotations without definition.
-    if (appView.options().enableTreeShaking && definition == null) {
+    if (appView.options().isShrinking() && definition == null) {
       return false;
     }
     return definition == null

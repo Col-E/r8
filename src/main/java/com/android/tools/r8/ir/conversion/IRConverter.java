@@ -206,7 +206,7 @@ public class IRConverter {
       this.memberValuePropagation =
           options.enableValuePropagation ? new MemberValuePropagation(appViewWithLiveness) : null;
       this.lensCodeRewriter = new LensCodeRewriter(appViewWithLiveness);
-      if (!appInfoWithLiveness.identifierNameStrings.isEmpty() && options.enableMinification) {
+      if (!appInfoWithLiveness.identifierNameStrings.isEmpty() && options.isMinifying()) {
         this.identifierNameStringMarker = new IdentifierNameStringMarker(appViewWithLiveness);
       } else {
         this.identifierNameStringMarker = null;
@@ -474,7 +474,7 @@ public class IRConverter {
 
   public DexApplication optimize(DexApplication application, ExecutorService executorService)
       throws ExecutionException {
-    if (options.enableTreeShaking) {
+    if (options.isShrinking()) {
       assert !removeLambdaDeserializationMethods();
     } else {
       removeLambdaDeserializationMethods();

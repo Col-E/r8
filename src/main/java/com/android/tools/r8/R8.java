@@ -337,7 +337,7 @@ public class R8 {
           out.flush();
           proguardSeedsData = bytes.toString();
         }
-        if (options.enableTreeShaking) {
+        if (options.isShrinking()) {
           TreePruner pruner = new TreePruner(application, appView.withLiveness());
           application = pruner.run();
 
@@ -556,15 +556,15 @@ public class R8 {
 
       appView.setAppInfo(new AppInfoWithSubtyping(application));
 
-      if (options.enableTreeShaking
-          || options.enableMinification
+      if (options.isShrinking()
+          || options.isMinifying()
           || options.getProguardConfiguration().hasApplyMappingFile()) {
         timing.begin("Post optimization code stripping");
         try {
 
           GraphConsumer keptGraphConsumer = null;
           WhyAreYouKeepingConsumer whyAreYouKeepingConsumer = null;
-          if (options.enableTreeShaking) {
+          if (options.isShrinking()) {
             keptGraphConsumer = options.keptGraphConsumer;
             if (!rootSet.reasonAsked.isEmpty()) {
               whyAreYouKeepingConsumer = new WhyAreYouKeepingConsumer(keptGraphConsumer);
@@ -581,7 +581,7 @@ public class R8 {
                   timing));
 
           AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
-          if (options.enableTreeShaking) {
+          if (options.isShrinking()) {
             TreePruner pruner = new TreePruner(application, appViewWithLiveness);
             application = pruner.run();
             appViewWithLiveness.setAppInfo(
@@ -618,7 +618,7 @@ public class R8 {
       }
 
       // Only perform discard-checking if tree-shaking is turned on.
-      if (options.enableTreeShaking && !rootSet.checkDiscarded.isEmpty()) {
+      if (options.isShrinking() && !rootSet.checkDiscarded.isEmpty()) {
         new DiscardedChecker(rootSet, application, options).run();
       }
 
@@ -633,7 +633,7 @@ public class R8 {
             new ProguardMapMinifier(appView.withLiveness(), rootSet, seedMapper, desugaredCallSites)
                 .run(timing);
         timing.end();
-      } else if (options.enableMinification) {
+      } else if (options.isMinifying()) {
         timing.begin("Minification");
         namingLens = new Minifier(appView.withLiveness(), rootSet, desugaredCallSites).run(timing);
         timing.end();

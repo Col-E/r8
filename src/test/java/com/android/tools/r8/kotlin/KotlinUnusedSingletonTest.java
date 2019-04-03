@@ -10,7 +10,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
@@ -18,19 +17,12 @@ import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject.JumboStringMode;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
-import java.util.function.Consumer;
 import org.junit.Test;
 
 public class KotlinUnusedSingletonTest extends AbstractR8KotlinTestBase {
 
   private static final String printlnSignature =
       "void java.io.PrintStream.println(java.lang.Object)";
-
-  private Consumer<InternalOptions> optionsModifier =
-      o -> {
-        o.enableTreeShaking = true;
-        o.enableMinification = false;
-      };
 
   public KotlinUnusedSingletonTest(
       KotlinTargetVersion targetVersion, boolean allowAccessModification) {
@@ -44,7 +36,7 @@ public class KotlinUnusedSingletonTest extends AbstractR8KotlinTestBase {
     runTest(
         "unused_singleton",
         mainClassName,
-        optionsModifier,
+        "-dontobfuscate",
         app -> {
           CodeInspector inspector = new CodeInspector(app);
           ClassSubject main = inspector.clazz(mainClassName);

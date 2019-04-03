@@ -12,29 +12,43 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class RemoveCheckCastAfterClassInlining extends TestBase {
+  private final TestParameters parameters;
+
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withDexRuntimes().build();
+  }
+
+  public RemoveCheckCastAfterClassInlining(TestParameters parameters) {
+    this.parameters = parameters;
+  }
 
   @Test
   public void test() throws Exception {
-    AndroidApp input = readClasses(Lambda.class, Lambda.Consumer.class);
-    AndroidApp output =
-        compileWithR8(
-            input,
-            keepMainProguardConfiguration(Lambda.class),
-            options -> options.enableMinification = false);
-
     // Extract main method.
-    CodeInspector inspector = new CodeInspector(output);
+    CodeInspector inspector =
+        testForR8(parameters.getBackend())
+            .addProgramClassesAndInnerClasses(Lambda.class)
+            .addKeepMainRule(Lambda.class)
+            .noMinification()
+            .setMinApi(parameters.getRuntime())
+            .compile()
+            .inspector();
     ClassSubject classSubject = inspector.clazz(Lambda.class);
     MethodSubject methodSubject = classSubject.mainMethod();
     assertThat(methodSubject, isPresent());

@@ -9,6 +9,8 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.AssumeMayHaveSideEffects;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -49,15 +51,15 @@ public class StaticClassMergerTest extends TestBase {
     }
   }
 
-  private Backend backend;
+  private final TestParameters parameters;
 
-  public StaticClassMergerTest(Backend backend) {
-    this.backend = backend;
+  public StaticClassMergerTest(TestParameters parameters) {
+    this.parameters = parameters;
   }
 
-  @Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimes().build();
   }
 
   @Test
@@ -68,13 +70,13 @@ public class StaticClassMergerTest extends TestBase {
     testForJvm().addTestClasspath().run(TestClass.class).assertSuccessWithOutput(expected);
 
     CodeInspector inspector =
-        testForR8(backend)
+        testForR8(parameters.getBackend())
             .addInnerClasses(StaticClassMergerTest.class)
             .addKeepMainRule(TestClass.class)
-            .addOptionsModification(options -> options.enableMinification = false)
+            .noMinification()
             .enableInliningAnnotations()
             .enableSideEffectAnnotations()
-            .run(TestClass.class)
+            .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput(expected)
             .inspector();
 

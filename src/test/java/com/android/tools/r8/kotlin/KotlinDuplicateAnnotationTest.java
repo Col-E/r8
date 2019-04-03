@@ -29,8 +29,6 @@ public class KotlinDuplicateAnnotationTest extends AbstractR8KotlinTestBase {
 
   private Consumer<InternalOptions> optionsModifier =
     o -> {
-      o.enableTreeShaking = true;
-      o.enableMinification = false;
       o.enableInlining = false;
     };
 
@@ -57,11 +55,12 @@ public class KotlinDuplicateAnnotationTest extends AbstractR8KotlinTestBase {
     assumeTrue("test DEX", parameters.getBackend() == Backend.DEX);
     try {
       testForR8(parameters.getBackend())
-        .addProgramFiles(getKotlinJarFile(FOLDER))
-        .addOptionsModification(optionsModifier)
-        .addKeepMainRule(MAIN)
-        .addKeepRules(KEEP_RULES)
-        .compile();
+          .addProgramFiles(getKotlinJarFile(FOLDER))
+          .addKeepMainRule(MAIN)
+          .addKeepRules(KEEP_RULES)
+          .noMinification()
+          .addOptionsModification(optionsModifier)
+          .compile();
       fail("Expect to fail");
     } catch (CompilationFailedException e) {
       assertThat(e.getCause().getMessage(), containsString("Multiple annotations"));
@@ -74,9 +73,10 @@ public class KotlinDuplicateAnnotationTest extends AbstractR8KotlinTestBase {
     assumeTrue("test CF", parameters.getBackend() == Backend.CF);
     testForR8(parameters.getBackend())
         .addProgramFiles(getKotlinJarFile(FOLDER))
-        .addOptionsModification(optionsModifier)
         .addKeepMainRule(MAIN)
         .addKeepRules(KEEP_RULES)
+        .noMinification()
+        .addOptionsModification(optionsModifier)
         .compile()
         .assertNoMessages();
   }

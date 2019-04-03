@@ -4,9 +4,9 @@
 package com.android.tools.r8.ir.optimize.outliner.b111893131;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.DexIndexedConsumer;
@@ -74,13 +74,13 @@ public class B111893131 extends TestBase {
     builder.addProgramFiles(ToolHelper.getClassFileForTestClass(TestClass.Act.class));
     builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
     builder.setMinApiLevel(ToolHelper.getMinApiLevelForDexVm().getLevel());
+    builder.setDisableMinification(true);
     String config = keepMainProguardConfiguration(TestClass.class);
     builder.addProguardConfiguration(ImmutableList.of(config), Origin.unknown());
     AndroidApp app = ToolHelper.runR8(builder.build(), options -> {
       // To trigger outliner, set # of expected outline candidate as threshold.
       options.outline.threshold = 2;
       options.enableInlining = false;
-      options.enableMinification = false;
     });
     ProcessResult result = runOnArtRaw(app, TestClass.class);
     assertEquals(result.toString(), 0, result.exitCode);
@@ -94,7 +94,6 @@ public class B111893131 extends TestBase {
       Code code = encodedMethod.getCode();
       assertTrue(code.isDexCode());
       DexCode dexCode = code.asDexCode();
-      // TODO(b/111893131): all outline candidate should be replaced with a call to outlined code.
       verifyAbsenceOfStringBuilderAppend(dexCode.instructions);
     });
   }

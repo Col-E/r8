@@ -653,10 +653,8 @@ public final class R8Command extends BaseCompilerCommand {
     internal.programConsumer = getProgramConsumer();
     internal.minApiLevel = getMinApiLevel();
     internal.enableDesugaring = getEnableDesugaring();
-    assert internal.enableMinification;
-    internal.enableMinification = getEnableMinification();
-    assert internal.enableTreeShaking;
-    internal.enableTreeShaking = getEnableTreeShaking();
+    assert internal.isShrinking() == getEnableTreeShaking();
+    assert internal.isMinifying() == getEnableMinification();
     // In current implementation we only enable lambda merger if the tree
     // shaking is enabled. This is caused by the fact that we rely on tree
     // shaking for removing the lambda classes which should be revised later.
@@ -666,15 +664,15 @@ public final class R8Command extends BaseCompilerCommand {
         // TODO(70706667): We probably only want this in Proguard compatibility mode.
         || (forceProguardCompatibility
             && !proguardConfiguration.isOptimizing()
-            && !internal.enableMinification
-            && !internal.enableTreeShaking);
+            && !internal.isShrinking()
+            && !internal.isMinifying());
 
     assert !internal.verbose;
     internal.mainDexKeepRules = mainDexKeepRules;
     internal.minimalMainDex = getMode() == CompilationMode.DEBUG;
     internal.mainDexListConsumer = getMainDexListConsumer();
     internal.lineNumberOptimization =
-        !internal.debug && (proguardConfiguration.isOptimizing() || internal.enableMinification)
+        !internal.debug && (proguardConfiguration.isOptimizing() || internal.isMinifying())
             ? LineNumberOptimization.ON
             : LineNumberOptimization.OFF;
 

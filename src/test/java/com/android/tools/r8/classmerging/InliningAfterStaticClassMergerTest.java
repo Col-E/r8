@@ -5,11 +5,12 @@
 package com.android.tools.r8.classmerging;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -56,15 +57,15 @@ public class InliningAfterStaticClassMergerTest extends TestBase {
     }
   }
 
-  private Backend backend;
+  private final TestParameters parameters;
 
-  public InliningAfterStaticClassMergerTest(Backend backend) {
-    this.backend = backend;
+  public InliningAfterStaticClassMergerTest(TestParameters parameters) {
+    this.parameters = parameters;
   }
 
-  @Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimes().build();
   }
 
   @Test
@@ -75,14 +76,14 @@ public class InliningAfterStaticClassMergerTest extends TestBase {
     testForJvm().addTestClasspath().run(TestClass.class).assertSuccessWithOutput(expected);
 
     CodeInspector inspector =
-        testForR8(backend)
+        testForR8(parameters.getBackend())
             .addProgramClasses(
-                InliningAfterStaticClassMergerTest.TestClass.class,
-                InliningAfterStaticClassMergerTest.StaticMergeCandidateA.class,
-                InliningAfterStaticClassMergerTest.StaticMergeCandidateB.class)
+                TestClass.class,
+                StaticMergeCandidateA.class,
+                StaticMergeCandidateB.class)
             .addKeepMainRule(TestClass.class)
-            .addOptionsModification(options -> options.enableMinification = false)
-            .run(TestClass.class)
+            .noMinification()
+            .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput(expected)
             .inspector();
 

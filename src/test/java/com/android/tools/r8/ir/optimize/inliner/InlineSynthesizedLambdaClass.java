@@ -9,35 +9,48 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class InlineSynthesizedLambdaClass extends TestBase {
+  private final TestParameters parameters;
+
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withDexRuntimes().build();
+  }
+
+  public InlineSynthesizedLambdaClass(TestParameters parameters) {
+    this.parameters = parameters;
+  }
 
   @Test
   public void test() throws Exception {
-    AndroidApp input = readClasses(Lambda.class, Lambda.Consumer.class);
-    AndroidApp output =
-        compileWithR8(
-            input,
-            String.join(
-                System.lineSeparator(),
-                keepMainProguardConfiguration(Lambda.class),
-                "-allowaccessmodification"),
-            options -> options.enableMinification = false);
+    // Check that the program gives the expected result.
+    String javaOutput = runOnJava(Lambda.class);
 
     // Check that everything has been inlined into main.
-    CodeInspector inspector = new CodeInspector(output);
+    CodeInspector inspector =
+        testForR8(parameters.getBackend())
+            .addProgramClassesAndInnerClasses(Lambda.class)
+            .addKeepMainRule(Lambda.class)
+            .addKeepRules("-allowaccessmodification")
+            .noMinification()
+            .setMinApi(parameters.getRuntime())
+            .run(parameters.getRuntime(), Lambda.class)
+            .assertSuccessWithOutput(javaOutput)
+            .inspector();
     assertEquals(1, inspector.allClasses().size());
 
     ClassSubject classSubject = inspector.clazz(Lambda.class);
     assertThat(classSubject, isPresent());
     assertEquals(1, classSubject.allMethods().size());
-
-    // Check that the program gives the expected result.
-    assertEquals(runOnJava(Lambda.class), runOnArt(output, Lambda.class));
   }
 }
 

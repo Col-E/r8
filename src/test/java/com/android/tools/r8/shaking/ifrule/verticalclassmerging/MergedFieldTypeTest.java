@@ -5,12 +5,13 @@
 package com.android.tools.r8.shaking.ifrule.verticalclassmerging;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
@@ -26,8 +27,8 @@ public class MergedFieldTypeTest extends MergedTypeBaseTest {
     }
   }
 
-  public MergedFieldTypeTest(Backend backend, boolean enableVerticalClassMerging) {
-    super(backend, enableVerticalClassMerging);
+  public MergedFieldTypeTest(TestParameters parameters, boolean enableVerticalClassMerging) {
+    super(parameters, enableVerticalClassMerging);
   }
 
   @Override
@@ -71,8 +72,9 @@ public class MergedFieldTypeTest extends MergedTypeBaseTest {
       }
     }
 
-    public MergedFieldTypeWithCollisionTest(Backend backend, boolean enableVerticalClassMerging) {
-      super(backend, enableVerticalClassMerging, ImmutableList.of(SuperTestClass.class));
+    public MergedFieldTypeWithCollisionTest(
+        TestParameters parameters, boolean enableVerticalClassMerging) {
+      super(parameters, enableVerticalClassMerging, ImmutableList.of(SuperTestClass.class));
     }
 
     @Override

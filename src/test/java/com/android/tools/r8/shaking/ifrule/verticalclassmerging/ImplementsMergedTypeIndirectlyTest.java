@@ -6,6 +6,7 @@ package com.android.tools.r8.shaking.ifrule.verticalclassmerging;
 
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 
@@ -18,8 +19,9 @@ public class ImplementsMergedTypeIndirectlyTest extends MergedTypeBaseTest {
     }
   }
 
-  public ImplementsMergedTypeIndirectlyTest(Backend backend, boolean enableVerticalClassMerging) {
-    super(backend, enableVerticalClassMerging);
+  public ImplementsMergedTypeIndirectlyTest(
+      TestParameters parameters, boolean enableVerticalClassMerging) {
+    super(parameters, enableVerticalClassMerging);
   }
 
   @Override
