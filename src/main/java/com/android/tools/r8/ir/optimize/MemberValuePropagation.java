@@ -65,6 +65,18 @@ public class MemberValuePropagation {
     this.appView = appView;
   }
 
+  private boolean mayPropagateValueFor(DexEncodedField field) {
+    return field.isProgramField(appView)
+        ? appView.appInfo().mayPropagateValueFor(field.field)
+        : appView.appInfo().assumedValues.containsKey(field.field);
+  }
+
+  private boolean mayPropagateValueFor(DexEncodedMethod method) {
+    return method.isProgramMethod(appView)
+        ? appView.appInfo().mayPropagateValueFor(method.method)
+        : appView.appInfo().assumedValues.containsKey(method.method);
+  }
+
   private ProguardMemberRuleLookup lookupMemberRule(DexDefinition definition) {
     if (definition == null) {
       return null;
@@ -212,7 +224,7 @@ public class MemberValuePropagation {
     }
     // No Proguard rule could replace the instruction check for knowledge about the return value.
     DexEncodedMethod target = current.lookupSingleTarget(appView.appInfo(), callingContext);
-    if (target == null || appView.appInfo().neverPropagateValue.contains(target.method)) {
+    if (target == null || !mayPropagateValueFor(target)) {
       return;
     }
     if (target.getOptimizationInfo().neverReturnsNull()
@@ -262,7 +274,7 @@ public class MemberValuePropagation {
 
     // TODO(b/123857022): Should be able to use definitionFor().
     DexEncodedField target = appView.appInfo().lookupStaticTarget(field.holder, field);
-    if (target == null || appView.appInfo().neverPropagateValue.contains(target.field)) {
+    if (target == null || !mayPropagateValueFor(target)) {
       return;
     }
     // Check if a this value is known const.
@@ -319,16 +331,22 @@ public class MemberValuePropagation {
   }
 
   private void rewritePutWithConstantValues(
-      InstructionIterator iterator, FieldInstruction current) {
+      InstructionIterator iterator, FieldInstruction current, DexType context) {
     DexField field = current.getField();
     // TODO(b/123857022): Should be possible to use definitionFor().
     DexEncodedField target =
         current.isInstancePut()
             ? appView.appInfo().lookupInstanceTarget(field.holder, field)
             : appView.appInfo().lookupStaticTarget(field.holder, field);
-    if (target == null || appView.appInfo().neverPropagateValue.contains(target.field)) {
+    if (target == null) {
       return;
     }
+
+    if (target.field.holder.classInitializationMayHaveSideEffects(
+        appView, type -> context.isSubtypeOf(type, appView))) {
+      return;
+    }
+
     // TODO(b/123857022): Should be possible to use `!isFieldRead(field)`.
     if (!appView.appInfo().isFieldRead(target.field)) {
       // Remove writes to dead (i.e. never read) fields.
@@ -354,7 +372,7 @@ public class MemberValuePropagation {
           rewriteInvokeMethodWithConstantValues(
               code, callingContext, affectedValues, blocks, iterator, current.asInvokeMethod());
         } else if (current.isInstancePut() || current.isStaticPut()) {
-          rewritePutWithConstantValues(iterator, current.asFieldInstruction());
+          rewritePutWithConstantValues(iterator, current.asFieldInstruction(), callingContext);
         } else if (current.isStaticGet()) {
           rewriteStaticGetWithConstantValues(
               code,

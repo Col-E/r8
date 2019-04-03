@@ -150,7 +150,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
    * All methods and fields whose value *must* never be propagated due to a configuration directive.
    * (testing only).
    */
-  public final Set<DexReference> neverPropagateValue;
+  private final Set<DexReference> neverPropagateValue;
   /**
    * All items with -identifiernamestring rule. Bound boolean value indicates the rule is explicitly
    * specified by users (<code>true</code>) or not, i.e., implicitly added by R8 (<code>false</code>
@@ -644,6 +644,11 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     assert checkIfObsolete();
     assert isFieldWritten(field);
     return staticFieldsWrittenOnlyInEnclosingStaticInitializer.contains(field);
+  }
+
+  public boolean mayPropagateValueFor(DexReference reference) {
+    assert checkIfObsolete();
+    return !neverPropagateValue.contains(reference);
   }
 
   private boolean isLibraryOrClasspathField(DexField field) {

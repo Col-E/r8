@@ -997,10 +997,18 @@ public class RootSetBuilder {
     } else if (context instanceof MemberValuePropagationRule) {
       switch (((MemberValuePropagationRule) context).getType()) {
         case NEVER:
+          // Only add members from propgram classes to `neverPropagateValue` since class member
+          // values from library types are not propagated by default.
           if (item.isDexEncodedField()) {
-            neverPropagateValue.add(item.asDexEncodedField().field);
+            DexEncodedField field = item.asDexEncodedField();
+            if (field.isProgramField(appView)) {
+              neverPropagateValue.add(item.asDexEncodedField().field);
+            }
           } else if (item.isDexEncodedMethod()) {
-            neverPropagateValue.add(item.asDexEncodedMethod().method);
+            DexEncodedMethod method = item.asDexEncodedMethod();
+            if (method.isProgramMethod(appView)) {
+              neverPropagateValue.add(item.asDexEncodedMethod().method);
+            }
           }
           break;
         default:

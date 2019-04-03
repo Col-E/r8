@@ -186,6 +186,14 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     this.classFileVersion = classFileVersion;
   }
 
+  public boolean isProgramMethod(DexDefinitionSupplier definitions) {
+    if (method.holder.isClassType()) {
+      DexClass clazz = definitions.definitionFor(method.holder);
+      return clazz != null && clazz.isProgramClass();
+    }
+    return false;
+  }
+
   public boolean isProcessed() {
     checkIfObsolete();
     return compilationState != CompilationState.NOT_PROCESSED;
