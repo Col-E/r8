@@ -809,7 +809,7 @@ def RebuildAppWithShrinker(
   # copied APK, and then sign the APK.
   apk_masseur.masseur(
       apk, dex=zip_dest, resources='META-INF/services/*', out=apk_dest,
-      quiet=options.quiet)
+      quiet=options.quiet, keystore=options.keystore)
 
 def RunMonkey(app, options, apk_dest):
   if not WaitForEmulator(options):
@@ -971,6 +971,10 @@ def ParseOptions(argv):
                     help='Running on golem, do not download',
                     default=False,
                     action='store_true')
+  result.add_option('--bot',
+                    help='Running on bot, use third_party dependency.',
+                    default=False,
+                    action='store_true')
   result.add_option('--gradle-flags', '--gradle_flags',
                     help='Flags to pass in to gradle')
   result.add_option('--gradle-pre-runs', '--gradle_pre_runs',
@@ -1065,6 +1069,18 @@ def clone_repositories(quiet):
 
 def main(argv):
   (options, args) = ParseOptions(argv)
+
+  # If the keystore is relative to the repository root, use the full path.
+  if os.path.exists(os.path.join(utils.REPO_ROOT, options.keystore)):
+    options.keystore = os.path.join(utils.REPO_ROOT, options.keystore)
+
+  if options.bot:
+    if os.path.exists(WORKING_DIR):
+      shutil.rmtree(WORKING_DIR)
+    shutil.copytree(utils.OPENSOURCE_APPS_FOLDER, WORKING_DIR)
+    os.environ[utils.ANDROID_HOME_ENVIROMENT_NAME] = os.path.join(
+        utils.ANDROID_SDK)
+    os.environ[utils.ANDROID_TOOLS_VERSION_ENVIRONMENT_NAME] = '28.0.3'
 
   if options.golem:
     golem.link_third_party()
