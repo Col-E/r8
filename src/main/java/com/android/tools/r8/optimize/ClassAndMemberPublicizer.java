@@ -33,7 +33,7 @@ public final class ClassAndMemberPublicizer {
       DexApplication application, AppView<AppInfoWithLiveness> appView, RootSet rootSet) {
     this.application = application;
     this.appView = appView;
-    this.methodPoolCollection = new MethodPoolCollection(application);
+    this.methodPoolCollection = new MethodPoolCollection(appView);
     this.rootSet = rootSet;
   }
 

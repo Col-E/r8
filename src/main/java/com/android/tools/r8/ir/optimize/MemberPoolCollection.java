@@ -3,10 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
+import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.Descriptor;
-import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.TopDownClassHierarchyTraversal;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.base.Equivalence;
@@ -28,12 +30,12 @@ import java.util.function.Predicate;
 // Per-class collection of member signatures.
 public abstract class MemberPoolCollection<T extends Descriptor> {
 
+  final AppView<? extends AppInfo> appView;
   final Equivalence<T> equivalence;
-  final DexApplication application;
   final Map<DexClass, MemberPool<T>> memberPools = new ConcurrentHashMap<>();
 
-  MemberPoolCollection(DexApplication application, Equivalence<T> equivalence) {
-    this.application = application;
+  MemberPoolCollection(AppView<? extends AppInfo> appView, Equivalence<T> equivalence) {
+    this.appView = appView;
     this.equivalence = equivalence;
   }
 
@@ -41,8 +43,13 @@ public abstract class MemberPoolCollection<T extends Descriptor> {
     timing.begin("Building member pool collection");
     try {
       List<Future<?>> futures = new ArrayList<>();
-      List<? extends DexClass> classes = application.classes();
-      submitAll(classes, futures, executorService);
+
+      // Generate a future for each class that will build the member pool collection for the
+      // corresponding class. Note that, we visit the classes using a top-down class hierarchy
+      // traversal, since this ensures that we do not visit library classes that are not
+      // reachable from any program class.
+      TopDownClassHierarchyTraversal.forAllClasses(appView)
+          .visit(appView.appInfo().classes(), clazz -> submit(clazz, futures, executorService));
       ThreadUtils.awaitFutures(futures);
     } finally {
       timing.end();
@@ -88,8 +95,12 @@ public abstract class MemberPoolCollection<T extends Descriptor> {
       List<Future<?>> futures,
       ExecutorService executorService) {
     for (DexClass clazz : classes) {
-      futures.add(executorService.submit(computeMemberPoolForClass(clazz)));
+      submit(clazz, futures, executorService);
     }
+  }
+
+  private void submit(DexClass clazz, List<Future<?>> futures, ExecutorService executorService) {
+    futures.add(executorService.submit(computeMemberPoolForClass(clazz)));
   }
 
   abstract Runnable computeMemberPoolForClass(DexClass clazz);
@@ -107,10 +118,10 @@ public abstract class MemberPoolCollection<T extends Descriptor> {
       }
       if (superTypes.add(clazz)) {
         if (clazz.superType != null) {
-          addNonNull(worklist, application.definitionFor(clazz.superType));
+          addNonNull(worklist, appView.definitionFor(clazz.superType));
         }
         for (DexType interfaceType : clazz.interfaces.values) {
-          addNonNull(worklist, application.definitionFor(interfaceType));
+          addNonNull(worklist, appView.definitionFor(interfaceType));
         }
       }
     }
@@ -122,20 +133,18 @@ public abstract class MemberPoolCollection<T extends Descriptor> {
       DexClass subject, Predicate<DexClass> stoppingCriterion) {
     Set<DexClass> subTypes = new HashSet<>();
     Deque<DexClass> worklist = new ArrayDeque<>();
-    subject.type.forAllExtendsSubtypes(
-        type -> addNonNull(worklist, application.definitionFor(type)));
+    subject.type.forAllExtendsSubtypes(type -> addNonNull(worklist, appView.definitionFor(type)));
     subject.type.forAllImplementsSubtypes(
-        type -> addNonNull(worklist, application.definitionFor(type)));
+        type -> addNonNull(worklist, appView.definitionFor(type)));
     while (!worklist.isEmpty()) {
       DexClass clazz = worklist.pop();
       if (stoppingCriterion.test(clazz)) {
         continue;
       }
       if (subTypes.add(clazz)) {
-        clazz.type.forAllExtendsSubtypes(
-            type -> addNonNull(worklist, application.definitionFor(type)));
+        clazz.type.forAllExtendsSubtypes(type -> addNonNull(worklist, appView.definitionFor(type)));
         clazz.type.forAllImplementsSubtypes(
-            type -> addNonNull(worklist, application.definitionFor(type)));
+            type -> addNonNull(worklist, appView.definitionFor(type)));
       }
     }
     return subTypes;

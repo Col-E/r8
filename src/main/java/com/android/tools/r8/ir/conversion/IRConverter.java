@@ -215,7 +215,7 @@ public class IRConverter {
           options.enableDevirtualization ? new Devirtualizer(appViewWithLiveness) : null;
       this.uninstantiatedTypeOptimization =
           options.enableUninstantiatedTypeOptimization
-              ? new UninstantiatedTypeOptimization(appViewWithLiveness, options)
+              ? new UninstantiatedTypeOptimization(appViewWithLiveness)
               : null;
       this.typeChecker = new TypeChecker(appView);
     } else {

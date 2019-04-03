@@ -11,59 +11,93 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.function.Consumer;
 
-public class TopDownClassHierarchyTraversal {
+public class TopDownClassHierarchyTraversal<T extends DexClass> {
 
-  public static void visit(
-      AppView<? extends AppInfo> appView,
-      Iterable<DexProgramClass> classes,
-      Consumer<DexProgramClass> visitor) {
-    Deque<DexProgramClass> worklist = new ArrayDeque<>();
-    Set<DexProgramClass> visited = new HashSet<>();
+  private enum Scope {
+    ALL_CLASSES,
+    ONLY_PROGRAM_CLASSES
+  }
 
-    Iterator<DexProgramClass> classIterator = classes.iterator();
+  private final DexDefinitionSupplier definitions;
+  private final Scope scope;
+
+  private final Set<T> visited = new HashSet<>();
+  private final Deque<T> worklist = new ArrayDeque<>();
+
+  private TopDownClassHierarchyTraversal(DexDefinitionSupplier definitions, Scope scope) {
+    this.definitions = definitions;
+    this.scope = scope;
+  }
+
+  /**
+   * Returns a visitor that can be used to visit all the classes (including class path and library
+   * classes) that are reachable from a given set of sources.
+   */
+  public static TopDownClassHierarchyTraversal<DexClass> forAllClasses(
+      DexDefinitionSupplier definitions) {
+    return new TopDownClassHierarchyTraversal<>(definitions, Scope.ALL_CLASSES);
+  }
+
+  /**
+   * Returns a visitor that can be used to visit all the program classes that are reachable from a
+   * given set of sources.
+   */
+  public static TopDownClassHierarchyTraversal<DexProgramClass> forProgramClasses(
+      DexDefinitionSupplier definitions) {
+    return new TopDownClassHierarchyTraversal<>(definitions, Scope.ONLY_PROGRAM_CLASSES);
+  }
+
+  public void visit(Iterable<DexProgramClass> sources, Consumer<T> visitor) {
+    Iterator<DexProgramClass> sourceIterator = sources.iterator();
 
     // Visit the program classes in a top-down order according to the class hierarchy.
-    while (classIterator.hasNext() || !worklist.isEmpty()) {
+    while (sourceIterator.hasNext() || !worklist.isEmpty()) {
       if (worklist.isEmpty()) {
-        // Add the ancestors of this class (including the class itself) to the worklist in such a
-        // way that all super types of the class come before the class itself.
-        addAncestorsToWorklist(classIterator.next(), worklist, visited, appView);
+        // Add the ancestors of the next source (including the source itself) to the worklist in
+        // such a way that all super types of the source class come before the class itself.
+        addAncestorsToWorklist(sourceIterator.next());
         if (worklist.isEmpty()) {
           continue;
         }
       }
 
-      DexProgramClass clazz = worklist.removeFirst();
+      T clazz = worklist.removeFirst();
       if (visited.add(clazz)) {
+        assert scope != Scope.ONLY_PROGRAM_CLASSES || clazz.isProgramClass();
         visitor.accept(clazz);
       }
     }
+
+    visited.clear();
   }
 
-  private static void addAncestorsToWorklist(
-      DexProgramClass clazz,
-      Deque<DexProgramClass> worklist,
-      Set<DexProgramClass> visited,
-      AppView<? extends AppInfo> appView) {
-    if (visited.contains(clazz)) {
+  private void addAncestorsToWorklist(DexClass clazz) {
+    @SuppressWarnings("unchecked")
+    T clazzWithTypeT = (T) clazz;
+
+    if (visited.contains(clazzWithTypeT)) {
       return;
     }
 
-    worklist.addFirst(clazz);
+    worklist.addFirst(clazzWithTypeT);
 
     // Add super classes to worklist.
     if (clazz.superType != null) {
-      DexClass definition = appView.definitionFor(clazz.superType);
-      if (definition != null && definition.isProgramClass()) {
-        addAncestorsToWorklist(definition.asProgramClass(), worklist, visited, appView);
+      DexClass definition = definitions.definitionFor(clazz.superType);
+      if (definition != null) {
+        if (scope != Scope.ONLY_PROGRAM_CLASSES || definition.isProgramClass()) {
+          addAncestorsToWorklist(definition);
+        }
       }
     }
 
     // Add super interfaces to worklist.
     for (DexType interfaceType : clazz.interfaces.values) {
-      DexClass definition = appView.definitionFor(interfaceType);
-      if (definition != null && definition.isProgramClass()) {
-        addAncestorsToWorklist(definition.asProgramClass(), worklist, visited, appView);
+      DexClass definition = definitions.definitionFor(interfaceType);
+      if (definition != null) {
+        if (scope != Scope.ONLY_PROGRAM_CLASSES || definition.isProgramClass()) {
+          addAncestorsToWorklist(definition);
+        }
       }
     }
   }

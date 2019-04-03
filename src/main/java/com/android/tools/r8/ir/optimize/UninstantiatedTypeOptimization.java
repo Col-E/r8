@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
@@ -40,7 +41,6 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.MemberPoolCollection.MemberPool;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.base.Equivalence.Wrapper;
@@ -105,29 +105,20 @@ public class UninstantiatedTypeOptimization {
     }
   }
 
+  private static final MethodSignatureEquivalence equivalence = MethodSignatureEquivalence.get();
+
   private final AppView<AppInfoWithLiveness> appView;
-  private final DexItemFactory dexItemFactory;
-  private final InternalOptions options;
 
   private int numberOfInstanceGetOrInstancePutWithNullReceiver = 0;
   private int numberOfInvokesWithNullArgument = 0;
   private int numberOfInvokesWithNullReceiver = 0;
 
-  public UninstantiatedTypeOptimization(
-      AppView<AppInfoWithLiveness> appView, InternalOptions options) {
+  public UninstantiatedTypeOptimization(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
-    this.dexItemFactory = appView.dexItemFactory();
-    this.options = options;
   }
 
   public GraphLense run(
       MethodPoolCollection methodPoolCollection, ExecutorService executorService, Timing timing) {
-    BiMap<DexMethod, DexMethod> methodMapping = HashBiMap.create();
-    Map<DexMethod, RemovedArgumentsInfo> removedArgumentsInfoPerMethod = new IdentityHashMap<>();
-
-    MethodSignatureEquivalence equivalence = MethodSignatureEquivalence.get();
-
-    Map<Wrapper<DexMethod>, Set<DexType>> changedVirtualMethods = new HashMap<>();
 
     try {
       methodPoolCollection.buildAll(executorService, timing);
@@ -135,138 +126,154 @@ public class UninstantiatedTypeOptimization {
       throw new RuntimeException(e);
     }
 
-    TopDownClassHierarchyTraversal.visit(
-        appView,
-        appView.appInfo().classes(),
-        clazz -> {
-          MemberPool<DexMethod> methodPool = methodPoolCollection.get(clazz);
+    Map<Wrapper<DexMethod>, Set<DexType>> changedVirtualMethods = new HashMap<>();
+    BiMap<DexMethod, DexMethod> methodMapping = HashBiMap.create();
+    Map<DexMethod, RemovedArgumentsInfo> removedArgumentsInfoPerMethod = new IdentityHashMap<>();
 
-          if (clazz.isInterface()) {
-            // Do not allow changing the prototype of methods that override an interface method.
-            // This achieved by faking that there is already a method with the given signature.
-            for (DexEncodedMethod virtualMethod : clazz.virtualMethods()) {
-              RewrittenPrototypeDescription prototypeChanges =
-                  new RewrittenPrototypeDescription(
-                      isAlwaysNull(virtualMethod.method.proto.returnType),
-                      getRemovedArgumentsInfo(virtualMethod, ALLOW_ARGUMENT_REMOVAL));
-              if (!prototypeChanges.isEmpty()) {
-                DexMethod newMethod = getNewMethodSignature(virtualMethod, prototypeChanges);
-                Wrapper<DexMethod> wrapper = equivalence.wrap(newMethod);
-                if (!methodPool.hasSeenDirectly(wrapper)) {
-                  methodPool.seen(wrapper);
-                }
-              }
-            }
-            return;
-          }
-
-          Map<DexEncodedMethod, RewrittenPrototypeDescription> prototypeChangesPerMethod =
-              new IdentityHashMap<>();
-          for (DexEncodedMethod directMethod : clazz.directMethods()) {
-            RewrittenPrototypeDescription prototypeChanges =
-                getPrototypeChanges(directMethod, ALLOW_ARGUMENT_REMOVAL);
-            if (!prototypeChanges.isEmpty()) {
-              prototypeChangesPerMethod.put(directMethod, prototypeChanges);
-            }
-          }
-
-          // Reserve all signatures which are known to not be touched below.
-          Set<Wrapper<DexMethod>> usedSignatures = new HashSet<>();
-          for (DexEncodedMethod method : clazz.methods()) {
-            if (!prototypeChangesPerMethod.containsKey(method)) {
-              usedSignatures.add(equivalence.wrap(method.method));
-            }
-          }
-
-          // Change the return type of direct methods that return an uninstantiated type to void.
-          List<DexEncodedMethod> directMethods = clazz.directMethods();
-          for (int i = 0; i < directMethods.size(); ++i) {
-            DexEncodedMethod encodedMethod = directMethods.get(i);
-            DexMethod method = encodedMethod.method;
-            RewrittenPrototypeDescription prototypeChanges =
-                prototypeChangesPerMethod.getOrDefault(
-                    encodedMethod, RewrittenPrototypeDescription.none());
-            RemovedArgumentsInfo removedArgumentsInfo = prototypeChanges.getRemovedArgumentsInfo();
-            DexMethod newMethod = getNewMethodSignature(encodedMethod, prototypeChanges);
-            if (newMethod != method) {
-              Wrapper<DexMethod> wrapper = equivalence.wrap(newMethod);
-
-              // TODO(b/110806787): Can be extended to handle collisions by renaming the given
-              // method.
-              if (usedSignatures.add(wrapper)) {
-                clazz.setDirectMethod(i, encodedMethod.toTypeSubstitutedMethod(newMethod));
-                methodMapping.put(method, newMethod);
-                if (removedArgumentsInfo.hasRemovedArguments()) {
-                  removedArgumentsInfoPerMethod.put(newMethod, removedArgumentsInfo);
-                }
-              }
-            }
-          }
-
-          // Change the return type of virtual methods that return an uninstantiated type to void.
-          // This is done in two steps. First we change the return type of all methods that override
-          // a method whose return type has already been changed to void previously. Note that
-          // all supertypes of the current class are always visited prior to the current class.
-          // This is important to ensure that a method that used to override a method in its super
-          // class will continue to do so after this optimization.
-          List<DexEncodedMethod> virtualMethods = clazz.virtualMethods();
-          for (int i = 0; i < virtualMethods.size(); ++i) {
-            DexEncodedMethod encodedMethod = virtualMethods.get(i);
-            DexMethod method = encodedMethod.method;
-            RewrittenPrototypeDescription prototypeChanges =
-                getPrototypeChanges(encodedMethod, DISALLOW_ARGUMENT_REMOVAL);
-            DexMethod newMethod = getNewMethodSignature(encodedMethod, prototypeChanges);
-            if (newMethod != method) {
-              Wrapper<DexMethod> wrapper = equivalence.wrap(newMethod);
-
-              boolean isOverrideOfPreviouslyChangedMethodInSuperClass =
-                  changedVirtualMethods.getOrDefault(equivalence.wrap(method), ImmutableSet.of())
-                      .stream()
-                      .anyMatch(other -> clazz.type.isSubtypeOf(other, appView.appInfo()));
-              if (isOverrideOfPreviouslyChangedMethodInSuperClass) {
-                assert methodPool.hasSeen(wrapper);
-
-                boolean signatureIsAvailable = usedSignatures.add(wrapper);
-                assert signatureIsAvailable;
-
-                clazz.setVirtualMethod(i, encodedMethod.toTypeSubstitutedMethod(newMethod));
-                methodMapping.put(method, newMethod);
-              }
-            }
-          }
-          for (int i = 0; i < virtualMethods.size(); ++i) {
-            DexEncodedMethod encodedMethod = virtualMethods.get(i);
-            DexMethod method = encodedMethod.method;
-            RewrittenPrototypeDescription prototypeChanges =
-                getPrototypeChanges(encodedMethod, DISALLOW_ARGUMENT_REMOVAL);
-            DexMethod newMethod = getNewMethodSignature(encodedMethod, prototypeChanges);
-            if (newMethod != method) {
-              Wrapper<DexMethod> wrapper = equivalence.wrap(newMethod);
-
-              // TODO(b/110806787): Can be extended to handle collisions by renaming the given
-              // method. Note that this also requires renaming all of the methods that override this
-              // method, though.
-              if (!methodPool.hasSeen(wrapper) && usedSignatures.add(wrapper)) {
-                methodPool.seen(wrapper);
-
-                clazz.setVirtualMethod(i, encodedMethod.toTypeSubstitutedMethod(newMethod));
-                methodMapping.put(method, newMethod);
-
-                boolean added =
-                    changedVirtualMethods
-                        .computeIfAbsent(equivalence.wrap(method), key -> Sets.newIdentityHashSet())
-                        .add(clazz.type);
-                assert added;
-              }
-            }
-          }
-        });
+    TopDownClassHierarchyTraversal.forProgramClasses(appView)
+        .visit(
+            appView.appInfo().classes(),
+            clazz ->
+                processClass(
+                    clazz,
+                    changedVirtualMethods,
+                    methodMapping,
+                    methodPoolCollection,
+                    removedArgumentsInfoPerMethod));
 
     if (!methodMapping.isEmpty()) {
       return new UninstantiatedTypeOptimizationGraphLense(
           methodMapping, removedArgumentsInfoPerMethod, appView);
     }
     return appView.graphLense();
+  }
+
+  private void processClass(
+      DexProgramClass clazz,
+      Map<Wrapper<DexMethod>, Set<DexType>> changedVirtualMethods,
+      BiMap<DexMethod, DexMethod> methodMapping,
+      MethodPoolCollection methodPoolCollection,
+      Map<DexMethod, RemovedArgumentsInfo> removedArgumentsInfoPerMethod) {
+    MemberPool<DexMethod> methodPool = methodPoolCollection.get(clazz);
+
+    if (clazz.isInterface()) {
+      // Do not allow changing the prototype of methods that override an interface method.
+      // This achieved by faking that there is already a method with the given signature.
+      for (DexEncodedMethod virtualMethod : clazz.virtualMethods()) {
+        RewrittenPrototypeDescription prototypeChanges =
+            new RewrittenPrototypeDescription(
+                isAlwaysNull(virtualMethod.method.proto.returnType),
+                getRemovedArgumentsInfo(virtualMethod, ALLOW_ARGUMENT_REMOVAL));
+        if (!prototypeChanges.isEmpty()) {
+          DexMethod newMethod = getNewMethodSignature(virtualMethod, prototypeChanges);
+          Wrapper<DexMethod> wrapper = equivalence.wrap(newMethod);
+          if (!methodPool.hasSeenDirectly(wrapper)) {
+            methodPool.seen(wrapper);
+          }
+        }
+      }
+      return;
+    }
+
+    Map<DexEncodedMethod, RewrittenPrototypeDescription> prototypeChangesPerMethod =
+        new IdentityHashMap<>();
+    for (DexEncodedMethod directMethod : clazz.directMethods()) {
+      RewrittenPrototypeDescription prototypeChanges =
+          getPrototypeChanges(directMethod, ALLOW_ARGUMENT_REMOVAL);
+      if (!prototypeChanges.isEmpty()) {
+        prototypeChangesPerMethod.put(directMethod, prototypeChanges);
+      }
+    }
+
+    // Reserve all signatures which are known to not be touched below.
+    Set<Wrapper<DexMethod>> usedSignatures = new HashSet<>();
+    for (DexEncodedMethod method : clazz.methods()) {
+      if (!prototypeChangesPerMethod.containsKey(method)) {
+        usedSignatures.add(equivalence.wrap(method.method));
+      }
+    }
+
+    // Change the return type of direct methods that return an uninstantiated type to void.
+    List<DexEncodedMethod> directMethods = clazz.directMethods();
+    for (int i = 0; i < directMethods.size(); ++i) {
+      DexEncodedMethod encodedMethod = directMethods.get(i);
+      DexMethod method = encodedMethod.method;
+      RewrittenPrototypeDescription prototypeChanges =
+          prototypeChangesPerMethod.getOrDefault(
+              encodedMethod, RewrittenPrototypeDescription.none());
+      RemovedArgumentsInfo removedArgumentsInfo = prototypeChanges.getRemovedArgumentsInfo();
+      DexMethod newMethod = getNewMethodSignature(encodedMethod, prototypeChanges);
+      if (newMethod != method) {
+        Wrapper<DexMethod> wrapper = equivalence.wrap(newMethod);
+
+        // TODO(b/110806787): Can be extended to handle collisions by renaming the given
+        // method.
+        if (usedSignatures.add(wrapper)) {
+          clazz.setDirectMethod(i, encodedMethod.toTypeSubstitutedMethod(newMethod));
+          methodMapping.put(method, newMethod);
+          if (removedArgumentsInfo.hasRemovedArguments()) {
+            removedArgumentsInfoPerMethod.put(newMethod, removedArgumentsInfo);
+          }
+        }
+      }
+    }
+
+    // Change the return type of virtual methods that return an uninstantiated type to void.
+    // This is done in two steps. First we change the return type of all methods that override
+    // a method whose return type has already been changed to void previously. Note that
+    // all supertypes of the current class are always visited prior to the current class.
+    // This is important to ensure that a method that used to override a method in its super
+    // class will continue to do so after this optimization.
+    List<DexEncodedMethod> virtualMethods = clazz.virtualMethods();
+    for (int i = 0; i < virtualMethods.size(); ++i) {
+      DexEncodedMethod encodedMethod = virtualMethods.get(i);
+      DexMethod method = encodedMethod.method;
+      RewrittenPrototypeDescription prototypeChanges =
+          getPrototypeChanges(encodedMethod, DISALLOW_ARGUMENT_REMOVAL);
+      DexMethod newMethod = getNewMethodSignature(encodedMethod, prototypeChanges);
+      if (newMethod != method) {
+        Wrapper<DexMethod> wrapper = equivalence.wrap(newMethod);
+
+        boolean isOverrideOfPreviouslyChangedMethodInSuperClass =
+            changedVirtualMethods.getOrDefault(equivalence.wrap(method), ImmutableSet.of()).stream()
+                .anyMatch(other -> clazz.type.isSubtypeOf(other, appView.appInfo()));
+        if (isOverrideOfPreviouslyChangedMethodInSuperClass) {
+          assert methodPool.hasSeen(wrapper);
+
+          boolean signatureIsAvailable = usedSignatures.add(wrapper);
+          assert signatureIsAvailable;
+
+          clazz.setVirtualMethod(i, encodedMethod.toTypeSubstitutedMethod(newMethod));
+          methodMapping.put(method, newMethod);
+        }
+      }
+    }
+    for (int i = 0; i < virtualMethods.size(); ++i) {
+      DexEncodedMethod encodedMethod = virtualMethods.get(i);
+      DexMethod method = encodedMethod.method;
+      RewrittenPrototypeDescription prototypeChanges =
+          getPrototypeChanges(encodedMethod, DISALLOW_ARGUMENT_REMOVAL);
+      DexMethod newMethod = getNewMethodSignature(encodedMethod, prototypeChanges);
+      if (newMethod != method) {
+        Wrapper<DexMethod> wrapper = equivalence.wrap(newMethod);
+
+        // TODO(b/110806787): Can be extended to handle collisions by renaming the given
+        //  method. Note that this also requires renaming all of the methods that override this
+        //  method, though.
+        if (!methodPool.hasSeen(wrapper) && usedSignatures.add(wrapper)) {
+          methodPool.seen(wrapper);
+
+          clazz.setVirtualMethod(i, encodedMethod.toTypeSubstitutedMethod(newMethod));
+          methodMapping.put(method, newMethod);
+
+          boolean added =
+              changedVirtualMethods
+                  .computeIfAbsent(equivalence.wrap(method), key -> Sets.newIdentityHashSet())
+                  .add(clazz.type);
+          assert added;
+        }
+      }
+    }
   }
 
   private RewrittenPrototypeDescription getPrototypeChanges(
@@ -310,6 +317,8 @@ public class UninstantiatedTypeOptimization {
 
   private DexMethod getNewMethodSignature(
       DexEncodedMethod encodedMethod, RewrittenPrototypeDescription prototypeChanges) {
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+
     DexMethod method = encodedMethod.method;
     RemovedArgumentsInfo removedArgumentsInfo = prototypeChanges.getRemovedArgumentsInfo();
 
@@ -477,7 +486,7 @@ public class UninstantiatedTypeOptimization {
                 fieldType, Nullability.maybeNull(), appView.appInfo());
         if (!value.getTypeLattice().lessThanOrEqual(fieldLatticeType, appView.appInfo())) {
           // Broken type hierarchy. See FieldTypeTest#test_brokenTypeHierarchy.
-          assert options.testing.allowTypeErrors;
+          assert appView.options().testing.allowTypeErrors;
           return;
         }
 
@@ -553,7 +562,8 @@ public class UninstantiatedTypeOptimization {
     instructionIterator.previous();
     ConstNumber constNumberInstruction = code.createConstNull();
     // Note that we only keep position info for throwing instructions in release mode.
-    constNumberInstruction.setPosition(options.debug ? instruction.getPosition() : Position.none());
+    constNumberInstruction.setPosition(
+        appView.options().debug ? instruction.getPosition() : Position.none());
     instructionIterator.add(constNumberInstruction);
     instructionIterator.next();
 
@@ -579,7 +589,7 @@ public class UninstantiatedTypeOptimization {
               // target.
               return;
             }
-            if (!dexItemFactory.npeType.isSubtypeOf(guard, appView.appInfo())) {
+            if (!appView.dexItemFactory().npeType.isSubtypeOf(guard, appView.appInfo())) {
               // TODO(christofferqa): Consider updating previous dominator tree instead of
               // rebuilding it from scratch.
               DominatorTree dominatorTree = new DominatorTree(code, MAY_HAVE_UNREACHABLE_BLOCKS);

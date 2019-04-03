@@ -4,7 +4,8 @@
 
 package com.android.tools.r8.ir.optimize;
 
-import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -23,8 +24,8 @@ import com.android.tools.r8.utils.MethodSignatureEquivalence;
 // TODO(b/66369976): to determine if a certain method can be made `final`.
 public class MethodPoolCollection extends MemberPoolCollection<DexMethod> {
 
-  public MethodPoolCollection(DexApplication application) {
-    super(application, MethodSignatureEquivalence.get());
+  public MethodPoolCollection(AppView<? extends AppInfo> appView) {
+    super(appView, MethodSignatureEquivalence.get());
   }
 
   @Override
@@ -40,7 +41,7 @@ public class MethodPoolCollection extends MemberPoolCollection<DexMethod> {
             }
           });
       if (clazz.superType != null) {
-        DexClass superClazz = application.definitionFor(clazz.superType);
+        DexClass superClazz = appView.definitionFor(clazz.superType);
         if (superClazz != null) {
           MemberPool<DexMethod> superPool =
               memberPools.computeIfAbsent(superClazz, k -> new MemberPool<>(equivalence));
@@ -50,7 +51,7 @@ public class MethodPoolCollection extends MemberPoolCollection<DexMethod> {
       }
       if (clazz.isInterface()) {
         for (DexType subtype : clazz.type.allImmediateSubtypes()) {
-          DexClass subClazz = application.definitionFor(subtype);
+          DexClass subClazz = appView.definitionFor(subtype);
           if (subClazz != null) {
             MemberPool<DexMethod> childPool =
                 memberPools.computeIfAbsent(subClazz, k -> new MemberPool<>(equivalence));

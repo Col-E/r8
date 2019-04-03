@@ -467,8 +467,8 @@ public class R8 {
             timing.begin("UninstantiatedTypeOptimization");
             boolean changed =
                 appView.setGraphLense(
-                    new UninstantiatedTypeOptimization(appViewWithLiveness, options)
-                        .run(new MethodPoolCollection(application), executorService, timing));
+                    new UninstantiatedTypeOptimization(appViewWithLiveness)
+                        .run(new MethodPoolCollection(appView), executorService, timing));
             if (changed) {
               application = application.asDirect().rewrittenWithLense(appView.graphLense());
               appViewWithLiveness.setAppInfo(

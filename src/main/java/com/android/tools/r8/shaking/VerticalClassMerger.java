@@ -234,7 +234,7 @@ public class VerticalClassMerger {
     this.appInfo = appView.appInfo();
     this.appView = appView;
     this.executorService = executorService;
-    this.methodPoolCollection = new MethodPoolCollection(application);
+    this.methodPoolCollection = new MethodPoolCollection(appView);
     this.renamedMembersLense = new VerticalClassMergerGraphLense.Builder();
     this.timing = timing;
     this.mainDexClasses = mainDexClasses;
@@ -678,7 +678,8 @@ public class VerticalClassMerger {
 
   private GraphLense mergeClasses() {
     // Visit the program classes in a top-down order according to the class hierarchy.
-    TopDownClassHierarchyTraversal.visit(appView, mergeCandidates, this::mergeClassIfPossible);
+    TopDownClassHierarchyTraversal.forProgramClasses(appView)
+        .visit(mergeCandidates, this::mergeClassIfPossible);
     if (Log.ENABLED) {
       Log.debug(getClass(), "Merged %d classes.", mergedClasses.size());
     }
