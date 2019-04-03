@@ -13,8 +13,9 @@ BUILD_TARGETS = ['downloadDeps', 'downloadAndroidCts', 'downloadDx']
 
 def Main():
   gradle.RunGradle(BUILD_TARGETS)
-  utils.DownloadFromX20(utils.OPENSOURCE_APPS_SHA_FILE)
-  utils.DownloadFromX20(utils.ANDROID_SDK + '.tar.gz.sha1')
+  utils.DownloadFromGoogleCloudStorage(utils.OPENSOURCE_APPS_SHA_FILE)
+  utils.DownloadFromGoogleCloudStorage(utils.ANDROID_SDK + '.tar.gz.sha1',
+                                       bucket='r8-deps-internal')
 
 if __name__ == '__main__':
   sys.exit(Main())

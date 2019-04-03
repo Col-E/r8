@@ -6,18 +6,17 @@
 import os
 import run_on_as_app
 import shutil
+import subprocess
 import sys
-import upload_to_x20
 import utils
 
 def main():
-  # We need prodaccess to upload to x20
-  utils.check_prodacces()
-
   working_dir = run_on_as_app.WORKING_DIR
 
   print 'Removing directories that do not match checked out revision'
-  with utils.ChangedWorkingDirectory(working_dir):
+  if not os.path.exists(working_dir):
+    os.makedirs(working_dir)
+  else:
     for repo in run_on_as_app.APP_REPOSITORIES:
       repo_dir = os.path.join(working_dir, repo.name)
       if os.path.exists(repo_dir) \
@@ -28,22 +27,18 @@ def main():
   print 'Downloading all missing apps'
   run_on_as_app.clone_repositories(quiet=False)
 
-  # Package all files as x20 dependency
-  parent_dir = os.path.dirname(working_dir)
-  with utils.ChangedWorkingDirectory(parent_dir):
-    print 'Creating archive for opensource_apps (this may take some time)'
-    working_dir_name = os.path.basename(working_dir)
-    repo_dirs = [working_dir_name + '/' + repo.name
-                 for repo in run_on_as_app.APP_REPOSITORIES]
-    filename = utils.create_archive("opensource_apps", repo_dirs)
-    sha1 = utils.get_sha1(filename)
-    dest = os.path.join(upload_to_x20.GMSCORE_DEPS, sha1)
-    upload_to_x20.uploadFile(filename, dest)
-    sha1_file = '%s.sha1' % filename
-    with open(sha1_file, 'w') as output:
-      output.write(sha1)
-    shutil.move(sha1_file,
-                os.path.join(utils.THIRD_PARTY, 'opensource_apps.tar.gz.sha1'))
+  # Package all files as cloud dependency
+  print 'Creating archive for opensource_apps (this may take some time)'
+  if os.path.exists(utils.OPENSOURCE_APPS_FOLDER):
+    shutil.rmtree(utils.OPENSOURCE_APPS_FOLDER)
+  for repo in run_on_as_app.APP_REPOSITORIES:
+    repo_dir = os.path.join(working_dir, repo.name)
+    dst = os.path.join(utils.OPENSOURCE_APPS_FOLDER, repo.name)
+    shutil.copytree(repo_dir, dst)
+
+  with utils.ChangedWorkingDirectory(utils.THIRD_PARTY):
+    subprocess.check_call(['upload_to_google_storage.py', '-a', '--bucket',
+                           'r8-deps', 'opensource_apps'])
 
   print 'To have apps benchmarked on Golem, the updated apps have to be ' \
         'downloaded to the runners by ssh\'ing into each runner and do:\n' \
