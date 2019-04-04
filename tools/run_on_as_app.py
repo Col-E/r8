@@ -1108,7 +1108,7 @@ def main(argv):
 
   with utils.TempDir() as temp_dir:
     if not (options.no_build or options.golem):
-      gradle.RunGradle(['r8', 'r8lib'])
+      gradle.RunGradle(['r8', 'r8lib', '--no_internal'])
 
     if options.version:
       # Download r8-<version>.jar from
