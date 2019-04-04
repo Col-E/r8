@@ -2666,9 +2666,11 @@ public class CodeRewriter {
   private static class CSEExpressionEquivalence extends Equivalence<Instruction> {
 
     private final IRCode code;
+    private final InternalOptions options;
 
-    private CSEExpressionEquivalence(IRCode code) {
+    private CSEExpressionEquivalence(IRCode code, InternalOptions options) {
       this.code = code;
+      this.options = options;
     }
 
     @Override
@@ -2676,7 +2678,7 @@ public class CodeRewriter {
       // Some Dalvik VMs incorrectly handle Cmp instructions which leads to a requirement
       // that we do not perform common subexpression elimination for them. See comment on
       // canHaveCmpLongBug for details.
-      if (a.isCmp() && code.options.canHaveCmpLongBug()) {
+      if (a.isCmp() && options.canHaveCmpLongBug()) {
         return false;
       }
       // Note that we don't consider positions because CSE can at most remove an instruction.
@@ -2786,7 +2788,7 @@ public class CodeRewriter {
     if (hasCSECandidate(code, noCandidate)) {
       final ListMultimap<Wrapper<Instruction>, Value> instructionToValue =
           ArrayListMultimap.create();
-      final CSEExpressionEquivalence equivalence = new CSEExpressionEquivalence(code);
+      final CSEExpressionEquivalence equivalence = new CSEExpressionEquivalence(code, options);
       final DominatorTree dominatorTree = new DominatorTree(code);
       for (int i = 0; i < dominatorTree.getSortedBlocks().length; i++) {
         BasicBlock block = dominatorTree.getSortedBlocks()[i];
@@ -3458,7 +3460,7 @@ public class CodeRewriter {
    */
   public static void removeUnneededMovesOnExitingPaths(
       IRCode code, LinearScanRegisterAllocator allocator) {
-    if (!code.options.debug) {
+    if (!allocator.options().debug) {
       return;
     }
     for (BasicBlock block : code.blocks) {
@@ -3765,16 +3767,15 @@ public class CodeRewriter {
     iterator.add(new InvokeVirtual(printLn, null, ImmutableList.of(out, empty)));
   }
 
-  public static void ensureDirectStringNewToInit(IRCode code) {
-    DexItemFactory factory = code.options.itemFactory;
+  public static void ensureDirectStringNewToInit(IRCode code, DexItemFactory dexItemFactory) {
     for (BasicBlock block : code.blocks) {
       for (InstructionListIterator it = block.listIterator(); it.hasNext(); ) {
         Instruction instruction = it.next();
         if (instruction.isInvokeDirect()) {
           InvokeDirect invoke = instruction.asInvokeDirect();
           DexMethod method = invoke.getInvokedMethod();
-          if (factory.isConstructor(method)
-              && method.holder == factory.stringType
+          if (dexItemFactory.isConstructor(method)
+              && method.holder == dexItemFactory.stringType
               && invoke.getReceiver().isPhi()) {
             NewInstance newInstance = findNewInstance(invoke.getReceiver().asPhi());
             replaceTrivialNewInstancePhis(newInstance.outValue());

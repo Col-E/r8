@@ -117,7 +117,7 @@ public class ConstString extends ConstInstruction {
   @Override
   public boolean canBeDeadCode(AppView<? extends AppInfo> appView, IRCode code) {
     // No side-effect, such as throwing an exception, in CF.
-    return code.options.isGeneratingClassFiles() || !instructionInstanceCanThrow();
+    return appView.options().isGeneratingClassFiles() || !instructionInstanceCanThrow();
   }
 
   @Override

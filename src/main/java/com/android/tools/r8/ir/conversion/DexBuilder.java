@@ -122,9 +122,8 @@ public class DexBuilder {
   BasicBlock nextBlock;
 
   public DexBuilder(IRCode ir, RegisterAllocator registerAllocator) {
-    this(ir, registerAllocator, ir.options);
+    this(ir, registerAllocator, registerAllocator.options());
     assert ir != null;
-    assert registerAllocator != null;
   }
 
   private DexBuilder(IRCode ir, RegisterAllocator registerAllocator, InternalOptions options) {

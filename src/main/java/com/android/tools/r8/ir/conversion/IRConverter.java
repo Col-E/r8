@@ -827,7 +827,7 @@ public class IRConverter {
     }
 
     if (options.canHaveArtStringNewInitBug()) {
-      CodeRewriter.ensureDirectStringNewToInit(code);
+      CodeRewriter.ensureDirectStringNewToInit(code, appView.dexItemFactory());
     }
 
     boolean isDebugMode = options.debug || method.getOptimizationInfo().isReachabilitySensitive();

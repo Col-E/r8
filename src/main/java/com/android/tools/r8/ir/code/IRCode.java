@@ -104,7 +104,7 @@ public class IRCode {
   public boolean hasConstString;
   public final boolean hasMonitorInstruction;
 
-  public final InternalOptions options;
+  private final InternalOptions options;
 
   public final Origin origin;
 

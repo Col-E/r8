@@ -370,7 +370,7 @@ class SpillMoveSet {
         // In case the runtime might have a bound-check elimination bug we make sure to define all
         // indexing constants with an actual const instruction rather than a move. This appears to
         // avoid a bug where the index variable could end up being uninitialized.
-        if (code.options.canHaveBoundsCheckEliminationBug()
+        if (allocator.options().canHaveBoundsCheckEliminationBug()
             && move.from.getValue().isConstNumber()
             && move.type.isSingle()
             && allocator.unadjustedRealRegisterFromAllocated(move.to.getRegister()) < 256) {

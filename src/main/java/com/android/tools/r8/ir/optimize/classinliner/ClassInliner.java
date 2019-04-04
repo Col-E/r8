@@ -192,7 +192,7 @@ public final class ClassInliner {
       codeRewriter.simplifyIf(code);
       // If a method was inlined we may see more trivial computation/conversion of String.
       boolean isDebugMode =
-          code.options.debug || method.getOptimizationInfo().isReachabilitySensitive();
+          appView.options().debug || method.getOptimizationInfo().isReachabilitySensitive();
       if (!isDebugMode) {
         // Reflection/string optimization 3. trivial conversion/computation on const-string
         stringOptimizer.computeTrivialOperationsOnConstString(code);
