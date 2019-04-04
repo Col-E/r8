@@ -988,7 +988,7 @@ def ParseOptions(argv):
                     action='store_true')
   result.add_option('--keystore',
                     help='Path to app.keystore',
-                    default='app.keystore')
+                    default=os.path.join(utils.TOOLS_DIR, 'debug.keystore'))
   result.add_option('--keystore-password', '--keystore_password',
                     help='Password for app.keystore',
                     default='android')
@@ -1069,10 +1069,6 @@ def clone_repositories(quiet):
 
 def main(argv):
   (options, args) = ParseOptions(argv)
-
-  # If the keystore is relative to the repository root, use the full path.
-  if os.path.exists(os.path.join(utils.REPO_ROOT, options.keystore)):
-    options.keystore = os.path.join(utils.REPO_ROOT, options.keystore)
 
   if options.bot:
     if os.path.exists(WORKING_DIR):

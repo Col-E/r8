@@ -15,7 +15,8 @@ def Main():
   gradle.RunGradle(BUILD_TARGETS)
   utils.DownloadFromGoogleCloudStorage(utils.OPENSOURCE_APPS_SHA_FILE)
   utils.DownloadFromGoogleCloudStorage(utils.ANDROID_SDK + '.tar.gz.sha1',
-                                       bucket='r8-deps-internal')
+                                       bucket='r8-deps-internal',
+                                       auth=True)
 
 if __name__ == '__main__':
   sys.exit(Main())
