@@ -39,6 +39,11 @@ public class ArrayGet extends Instruction implements ImpreciseMemberTypeInstruct
     this.type = type;
   }
 
+  @Override
+  public <T> T accept(InstructionVisitor<T> visitor) {
+    return visitor.visit(this);
+  }
+
   public Value dest() {
     return outValue;
   }

@@ -39,6 +39,11 @@ public class DexItemBasedConstString extends ConstInstruction {
     this.throwingInfo = throwingInfo;
   }
 
+  @Override
+  public <T> T accept(InstructionVisitor<T> visitor) {
+    return visitor.visit(this);
+  }
+
   public static DexItemBasedConstString copyOf(Value newValue, DexItemBasedConstString original) {
     return new DexItemBasedConstString(
         newValue, original.getItem(), original.throwingInfo, original.classNameComputationInfo);

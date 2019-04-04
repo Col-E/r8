@@ -61,6 +61,8 @@ public abstract class Instruction implements InstructionOrPhi {
     setOutValue(outValue);
   }
 
+  public abstract <T> T accept(InstructionVisitor<T> visitor);
+
   public final Position getPosition() {
     assert position != null;
     return position;
@@ -1262,6 +1264,7 @@ public abstract class Instruction implements InstructionOrPhi {
    */
   public boolean definitelyTriggersClassInitialization(
       DexType clazz,
+      DexType context,
       AppView<? extends AppInfo> appView,
       Query mode,
       AnalysisAssumption assumption) {

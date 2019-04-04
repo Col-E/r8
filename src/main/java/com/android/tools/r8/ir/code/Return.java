@@ -28,6 +28,11 @@ public class Return extends JumpInstruction {
     super(null, value);
   }
 
+  @Override
+  public <T> T accept(InstructionVisitor<T> visitor) {
+    return visitor.visit(this);
+  }
+
   public boolean isReturnVoid() {
     return inValues.size() == 0;
   }

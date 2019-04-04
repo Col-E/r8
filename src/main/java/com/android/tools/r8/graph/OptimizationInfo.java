@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
 import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
 import com.android.tools.r8.graph.ParameterUsagesInfo.ParameterUsage;
 import java.util.BitSet;
+import java.util.Set;
 
 public interface OptimizationInfo {
 
@@ -40,6 +41,8 @@ public interface OptimizationInfo {
   boolean returnsConstantString();
 
   ClassInlinerEligibility getClassInlinerEligibility();
+
+  Set<DexType> getInitializedClassesOnNormalExit();
 
   TrivialInitializer getTrivialInitializerInfo();
 

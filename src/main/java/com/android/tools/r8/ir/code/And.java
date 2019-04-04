@@ -19,6 +19,11 @@ public class And extends LogicalBinop {
   }
 
   @Override
+  public <T> T accept(InstructionVisitor<T> visitor) {
+    return visitor.visit(this);
+  }
+
+  @Override
   public boolean isAnd() {
     return true;
   }

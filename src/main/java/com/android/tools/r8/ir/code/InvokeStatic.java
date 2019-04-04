@@ -43,6 +43,11 @@ public class InvokeStatic extends InvokeMethod {
   }
 
   @Override
+  public <T> T accept(InstructionVisitor<T> visitor) {
+    return visitor.visit(this);
+  }
+
+  @Override
   public Type getType() {
     return Type.STATIC;
   }
@@ -127,6 +132,7 @@ public class InvokeStatic extends InvokeMethod {
   @Override
   public boolean definitelyTriggersClassInitialization(
       DexType clazz,
+      DexType context,
       AppView<? extends AppInfo> appView,
       Query mode,
       AnalysisAssumption assumption) {

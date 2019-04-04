@@ -8,11 +8,16 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
 import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
 import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ParameterUsagesInfo;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import java.util.BitSet;
+import java.util.Set;
 
 public interface OptimizationFeedback {
+  void methodInitializesClassesOnNormalExit(
+      DexEncodedMethod method, Set<DexType> initializedClasses);
+
   void methodReturnsArgument(DexEncodedMethod method, int argument);
   void methodReturnsConstantNumber(DexEncodedMethod method, long value);
   void methodReturnsConstantString(DexEncodedMethod method, DexString value);

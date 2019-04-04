@@ -28,6 +28,11 @@ public class Neg extends Unop {
   }
 
   @Override
+  public <T> T accept(InstructionVisitor<T> visitor) {
+    return visitor.visit(this);
+  }
+
+  @Override
   public boolean canBeFolded() {
     return (type == NumericType.INT || type == NumericType.LONG || type == NumericType.FLOAT
             || type == NumericType.DOUBLE)

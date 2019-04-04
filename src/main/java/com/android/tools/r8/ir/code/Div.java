@@ -25,6 +25,11 @@ public class Div extends ArithmeticBinop {
   }
 
   @Override
+  public <T> T accept(InstructionVisitor<T> visitor) {
+    return visitor.visit(this);
+  }
+
+  @Override
   public boolean isDiv() {
     return true;
   }

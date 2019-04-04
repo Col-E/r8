@@ -21,6 +21,11 @@ public class Pop extends Instruction {
   }
 
   @Override
+  public <T> T accept(InstructionVisitor<T> visitor) {
+    return visitor.visit(this);
+  }
+
+  @Override
   protected void addInValue(Value value) {
     if (value.hasUsersInfo()) {
       super.addInValue(value);

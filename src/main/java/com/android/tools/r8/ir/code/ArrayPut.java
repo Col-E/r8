@@ -43,6 +43,11 @@ public class ArrayPut extends Instruction implements ImpreciseMemberTypeInstruct
     this.type = type;
   }
 
+  @Override
+  public <T> T accept(InstructionVisitor<T> visitor) {
+    return visitor.visit(this);
+  }
+
   public Value array() {
     return inValues.get(ARRAY_INDEX);
   }

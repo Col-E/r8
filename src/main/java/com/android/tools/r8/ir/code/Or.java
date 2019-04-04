@@ -18,6 +18,11 @@ public class Or extends LogicalBinop {
   }
 
   @Override
+  public <T> T accept(InstructionVisitor<T> visitor) {
+    return visitor.visit(this);
+  }
+
+  @Override
   public boolean isOr() {
     return true;
   }

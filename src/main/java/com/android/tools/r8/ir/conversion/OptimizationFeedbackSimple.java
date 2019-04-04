@@ -8,11 +8,19 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
 import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
 import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ParameterUsagesInfo;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import java.util.BitSet;
+import java.util.Set;
 
 public class OptimizationFeedbackSimple implements OptimizationFeedback {
+
+  @Override
+  public void methodInitializesClassesOnNormalExit(
+      DexEncodedMethod method, Set<DexType> initializedClasses) {
+    // Ignored.
+  }
 
   @Override
   public void methodReturnsArgument(DexEncodedMethod method, int argument) {

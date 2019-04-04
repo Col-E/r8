@@ -28,6 +28,11 @@ public class Inc extends Unop {
   }
 
   @Override
+  public <T> T accept(InstructionVisitor<T> visitor) {
+    return visitor.visit(this);
+  }
+
+  @Override
   protected void addInValue(Value value) {
     // Overriding IR addInValue since userinfo is cleared.
     assert !value.hasUsersInfo();

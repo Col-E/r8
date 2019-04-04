@@ -42,6 +42,11 @@ public class ConstNumber extends ConstInstruction {
     this.value = value;
   }
 
+  @Override
+  public <T> T accept(InstructionVisitor<T> visitor) {
+    return visitor.visit(this);
+  }
+
   public static ConstNumber copyOf(IRCode code, ConstNumber original) {
     Value newValue = new Value(
         code.valueNumberGenerator.next(),

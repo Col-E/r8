@@ -30,6 +30,11 @@ public class DebugLocalsChange extends Instruction {
     this.starting = starting;
   }
 
+  @Override
+  public <T> T accept(InstructionVisitor<T> visitor) {
+    return visitor.visit(this);
+  }
+
   public Int2ReferenceMap<DebugLocalInfo> getEnding() {
     return ending;
   }

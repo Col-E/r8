@@ -34,6 +34,11 @@ public class InvokeSuper extends InvokeMethodWithReceiver {
   }
 
   @Override
+  public <T> T accept(InstructionVisitor<T> visitor) {
+    return visitor.visit(this);
+  }
+
+  @Override
   public Type getType() {
     return Type.SUPER;
   }
@@ -116,10 +121,11 @@ public class InvokeSuper extends InvokeMethodWithReceiver {
   @Override
   public boolean definitelyTriggersClassInitialization(
       DexType clazz,
+      DexType context,
       AppView<? extends AppInfo> appView,
       Query mode,
       AnalysisAssumption assumption) {
     return ClassInitializationAnalysis.InstructionUtils.forInvokeSuper(
-        this, clazz, appView, mode, assumption);
+        this, clazz, context, appView, mode, assumption);
   }
 }

@@ -18,6 +18,11 @@ public class Shr extends LogicalBinop {
   }
 
   @Override
+  public <T> T accept(InstructionVisitor<T> visitor) {
+    return visitor.visit(this);
+  }
+
+  @Override
   boolean fitsInDexInstruction(Value value) {
     // The shr instruction only has the /lit8 variant.
     return fitsInLit8Instruction(value);

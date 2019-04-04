@@ -32,6 +32,11 @@ public class DebugLocalWrite extends Move {
   }
 
   @Override
+  public <T> T accept(InstructionVisitor<T> visitor) {
+    return visitor.visit(this);
+  }
+
+  @Override
   public boolean isDebugLocalWrite() {
     return true;
   }

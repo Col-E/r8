@@ -1489,8 +1489,9 @@ public class CodeRewriter {
     return alwaysTriggerExpectedEffectBeforeAnythingElse(
         code,
         (instruction, it) -> {
+          DexType context = code.method.method.holder;
           if (instruction.definitelyTriggersClassInitialization(
-              clazz, appView, DIRECTLY, AnalysisAssumption.INSTRUCTION_DOES_NOT_THROW)) {
+              clazz, context, appView, DIRECTLY, AnalysisAssumption.INSTRUCTION_DOES_NOT_THROW)) {
             // In order to preserve class initialization semantic, the exception must not be caught
             // by any handler. Therefore, we must ignore this instruction if it is covered by a
             // catch handler.

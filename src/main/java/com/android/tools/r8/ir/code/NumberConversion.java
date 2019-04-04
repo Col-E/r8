@@ -38,6 +38,11 @@ public class NumberConversion extends Unop {
     this.to = to;
   }
 
+  @Override
+  public <T> T accept(InstructionVisitor<T> visitor) {
+    return visitor.visit(this);
+  }
+
   public boolean isLongToIntConversion() {
     return from == NumericType.LONG && to == NumericType.INT;
   }

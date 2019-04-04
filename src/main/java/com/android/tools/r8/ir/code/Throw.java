@@ -20,6 +20,11 @@ public class Throw extends JumpInstruction {
     super(null, exception);
   }
 
+  @Override
+  public <T> T accept(InstructionVisitor<T> visitor) {
+    return visitor.visit(this);
+  }
+
   public Value exception() {
     return inValues.get(0);
   }

@@ -41,6 +41,11 @@ public class InstanceGet extends FieldInstruction {
     super(field, dest, object);
   }
 
+  @Override
+  public <T> T accept(InstructionVisitor<T> visitor) {
+    return visitor.visit(this);
+  }
+
   public Value dest() {
     return outValue;
   }
@@ -197,6 +202,7 @@ public class InstanceGet extends FieldInstruction {
   @Override
   public boolean definitelyTriggersClassInitialization(
       DexType clazz,
+      DexType context,
       AppView<? extends AppInfo> appView,
       Query mode,
       AnalysisAssumption assumption) {

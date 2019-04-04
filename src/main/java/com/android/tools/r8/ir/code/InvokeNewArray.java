@@ -29,6 +29,11 @@ public class InvokeNewArray extends Invoke {
   }
 
   @Override
+  public <T> T accept(InstructionVisitor<T> visitor) {
+    return visitor.visit(this);
+  }
+
+  @Override
   public DexType getReturnType() {
     return getArrayType();
   }

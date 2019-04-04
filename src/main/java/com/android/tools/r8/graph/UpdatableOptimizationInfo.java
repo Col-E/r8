@@ -7,8 +7,12 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
 import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
 import java.util.BitSet;
+import java.util.Set;
 
 public interface UpdatableOptimizationInfo extends OptimizationInfo {
+
+  void markInitializesClassesOnNormalExit(Set<DexType> initializedClasses);
+
   void markReturnsArgument(int argument);
 
   void markReturnsConstantNumber(long value);

@@ -41,6 +41,11 @@ public class Switch extends JumpInstruction {
     assert valid();
   }
 
+  @Override
+  public <T> T accept(InstructionVisitor<T> visitor) {
+    return visitor.visit(this);
+  }
+
   private boolean valid() {
     assert keys.length <= Constants.U16BIT_MAX;
     // Keys must be acceding, and cannot target the fallthrough.

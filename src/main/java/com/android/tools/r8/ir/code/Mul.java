@@ -23,6 +23,11 @@ public class Mul extends ArithmeticBinop {
   }
 
   @Override
+  public <T> T accept(InstructionVisitor<T> visitor) {
+    return visitor.visit(this);
+  }
+
+  @Override
   public boolean isCommutative() {
     return true;
   }

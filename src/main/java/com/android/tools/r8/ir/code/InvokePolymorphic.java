@@ -33,6 +33,11 @@ public class InvokePolymorphic extends InvokeMethod {
   }
 
   @Override
+  public <T> T accept(InstructionVisitor<T> visitor) {
+    return visitor.visit(this);
+  }
+
+  @Override
   public DexType getReturnType() {
     return proto.returnType;
   }

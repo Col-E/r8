@@ -29,6 +29,11 @@ public class ConstString extends ConstInstruction {
     this.throwingInfo = throwingInfo;
   }
 
+  @Override
+  public <T> T accept(InstructionVisitor<T> visitor) {
+    return visitor.visit(this);
+  }
+
   public static ConstString copyOf(IRCode code, ConstString original) {
     Value newValue =
         new Value(code.valueNumberGenerator.next(),

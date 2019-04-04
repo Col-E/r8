@@ -79,6 +79,11 @@ public class If extends JumpInstruction {
     this.type = type;
   }
 
+  @Override
+  public <T> T accept(InstructionVisitor<T> visitor) {
+    return visitor.visit(this);
+  }
+
   public boolean isZeroTest() {
     return inValues.size() == 1;
   }

@@ -28,6 +28,11 @@ public class NewArrayEmpty extends Instruction {
   }
 
   @Override
+  public <T> T accept(InstructionVisitor<T> visitor) {
+    return visitor.visit(this);
+  }
+
+  @Override
   public String toString() {
     return super.toString() + " " + type.toString();
   }

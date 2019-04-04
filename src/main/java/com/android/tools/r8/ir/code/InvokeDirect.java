@@ -47,6 +47,11 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
   }
 
   @Override
+  public <T> T accept(InstructionVisitor<T> visitor) {
+    return visitor.visit(this);
+  }
+
+  @Override
   public Type getType() {
     return Type.DIRECT;
   }
@@ -134,6 +139,7 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
   @Override
   public boolean definitelyTriggersClassInitialization(
       DexType clazz,
+      DexType context,
       AppView<? extends AppInfo> appView,
       Query mode,
       AnalysisAssumption assumption) {

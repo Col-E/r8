@@ -20,6 +20,11 @@ public class AlwaysMaterializingUser extends Instruction {
   }
 
   @Override
+  public <T> T accept(InstructionVisitor<T> visitor) {
+    return visitor.visit(this);
+  }
+
+  @Override
   public boolean canBeDeadCode(AppView<? extends AppInfo> appView, IRCode code) {
     // This instruction may never be considered dead as it must remain.
     return false;

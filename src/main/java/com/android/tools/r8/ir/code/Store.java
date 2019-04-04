@@ -24,6 +24,11 @@ public class Store extends Instruction {
     super(dest, src);
   }
 
+  @Override
+  public <T> T accept(InstructionVisitor<T> visitor) {
+    return visitor.visit(this);
+  }
+
   public Value src() {
     return inValues.get(0);
   }

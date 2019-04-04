@@ -25,6 +25,11 @@ public class ConstMethodType extends ConstInstruction {
     this.methodType = methodType;
   }
 
+  @Override
+  public <T> T accept(InstructionVisitor<T> visitor) {
+    return visitor.visit(this);
+  }
+
   public static ConstMethodType copyOf(IRCode code, ConstMethodType original) {
     Value newValue =
         new Value(

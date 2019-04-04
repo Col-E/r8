@@ -39,6 +39,11 @@ public class StaticGet extends FieldInstruction {
     super(field, dest, (Value) null);
   }
 
+  @Override
+  public <T> T accept(InstructionVisitor<T> visitor) {
+    return visitor.visit(this);
+  }
+
   public Value dest() {
     return outValue;
   }
@@ -190,6 +195,7 @@ public class StaticGet extends FieldInstruction {
   @Override
   public boolean definitelyTriggersClassInitialization(
       DexType clazz,
+      DexType context,
       AppView<? extends AppInfo> appView,
       Query mode,
       AnalysisAssumption assumption) {

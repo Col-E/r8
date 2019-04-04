@@ -26,6 +26,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.ir.analysis.InitializedClassesOnNormalExitAnalysis;
 import com.android.tools.r8.ir.analysis.TypeChecker;
 import com.android.tools.r8.ir.analysis.constant.SparseConditionalConstantPropagation;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
@@ -1063,6 +1064,7 @@ public class IRConverter {
         computeNonNullParamHints(feedback, method, code);
       }
 
+      computeInitializedClassesOnNormalExit(feedback, method, code);
       computeMayHaveSideEffects(feedback, method, code);
     }
 
@@ -1152,6 +1154,19 @@ public class IRConverter {
         }
       }
       feedback.setNonNullParamOrThrow(method, paramsCheckedForNull);
+    }
+  }
+
+  private void computeInitializedClassesOnNormalExit(
+      OptimizationFeedback feedback, DexEncodedMethod method, IRCode code) {
+    if (options.enableInitializedClassesAnalysis && appView.appInfo().hasLiveness()) {
+      AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+      Set<DexType> initializedClasses =
+          InitializedClassesOnNormalExitAnalysis.computeInitializedClassesOnNormalExit(
+              appViewWithLiveness, code);
+      if (initializedClasses != null && !initializedClasses.isEmpty()) {
+        feedback.methodInitializesClassesOnNormalExit(method, initializedClasses);
+      }
     }
   }
 

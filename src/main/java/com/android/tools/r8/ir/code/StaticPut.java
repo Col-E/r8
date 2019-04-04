@@ -34,6 +34,11 @@ public class StaticPut extends FieldInstruction {
     super(field, null, source);
   }
 
+  @Override
+  public <T> T accept(InstructionVisitor<T> visitor) {
+    return visitor.visit(this);
+  }
+
   public Value inValue() {
     assert inValues.size() == 1;
     return inValues.get(0);
@@ -158,6 +163,7 @@ public class StaticPut extends FieldInstruction {
   @Override
   public boolean definitelyTriggersClassInitialization(
       DexType clazz,
+      DexType context,
       AppView<? extends AppInfo> appView,
       Query mode,
       AnalysisAssumption assumption) {

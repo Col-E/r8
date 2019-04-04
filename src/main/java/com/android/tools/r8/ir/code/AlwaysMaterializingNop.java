@@ -21,6 +21,11 @@ public class AlwaysMaterializingNop extends Instruction {
   }
 
   @Override
+  public <T> T accept(InstructionVisitor<T> visitor) {
+    return visitor.visit(this);
+  }
+
+  @Override
   public boolean canBeDeadCode(AppView<? extends AppInfo> appView, IRCode code) {
     return false;
   }

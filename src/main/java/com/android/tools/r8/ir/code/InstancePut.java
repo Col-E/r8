@@ -39,6 +39,11 @@ public class InstancePut extends FieldInstruction {
     assert value().verifyCompatible(ValueType.fromDexType(field.type));
   }
 
+  @Override
+  public <T> T accept(InstructionVisitor<T> visitor) {
+    return visitor.visit(this);
+  }
+
   public Value object() {
     return inValues.get(0);
   }
@@ -171,6 +176,7 @@ public class InstancePut extends FieldInstruction {
   @Override
   public boolean definitelyTriggersClassInitialization(
       DexType clazz,
+      DexType context,
       AppView<? extends AppInfo> appView,
       Query mode,
       AnalysisAssumption assumption) {

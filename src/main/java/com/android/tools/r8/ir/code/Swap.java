@@ -29,6 +29,11 @@ public class Swap extends Instruction {
   }
 
   @Override
+  public <T> T accept(InstructionVisitor<T> visitor) {
+    return visitor.visit(this);
+  }
+
+  @Override
   public void setOutValue(Value value) {
     assert outValue == null || !outValue.hasUsersInfo() || !outValue.isUsed() ||
         value instanceof StackValues;

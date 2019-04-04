@@ -27,6 +27,11 @@ public class ConstMethodHandle extends ConstInstruction {
     this.methodHandle = methodHandle;
   }
 
+  @Override
+  public <T> T accept(InstructionVisitor<T> visitor) {
+    return visitor.visit(this);
+  }
+
   public static ConstMethodHandle copyOf(IRCode code, ConstMethodHandle original) {
     Value newValue =
         new Value(

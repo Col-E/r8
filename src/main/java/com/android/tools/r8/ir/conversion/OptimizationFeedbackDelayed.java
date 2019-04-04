@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
 import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
 import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ParameterUsagesInfo;
 import com.android.tools.r8.graph.UpdatableOptimizationInfo;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -15,6 +16,7 @@ import com.android.tools.r8.utils.IteratorUtils;
 import java.util.BitSet;
 import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.Set;
 
 public class OptimizationFeedbackDelayed implements OptimizationFeedback {
 
@@ -32,6 +34,12 @@ public class OptimizationFeedbackDelayed implements OptimizationFeedback {
     info = method.getOptimizationInfo().mutableCopy();
     optimizationInfos.put(method, info);
     return info;
+  }
+
+  @Override
+  public synchronized void methodInitializesClassesOnNormalExit(
+      DexEncodedMethod method, Set<DexType> initializedClasses) {
+    getOptimizationInfoForUpdating(method).markInitializesClassesOnNormalExit(initializedClasses);
   }
 
   @Override

@@ -28,6 +28,11 @@ public class ConstClass extends ConstInstruction {
     this.clazz = clazz;
   }
 
+  @Override
+  public <T> T accept(InstructionVisitor<T> visitor) {
+    return visitor.visit(this);
+  }
+
   public static ConstClass copyOf(IRCode code, ConstClass original) {
     Value newValue =
         new Value(

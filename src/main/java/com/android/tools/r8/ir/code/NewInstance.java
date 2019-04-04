@@ -34,6 +34,11 @@ public class NewInstance extends Instruction {
     this.clazz = clazz;
   }
 
+  @Override
+  public <T> T accept(InstructionVisitor<T> visitor) {
+    return visitor.visit(this);
+  }
+
   public Value dest() {
     return outValue;
   }
@@ -116,6 +121,7 @@ public class NewInstance extends Instruction {
   @Override
   public boolean definitelyTriggersClassInitialization(
       DexType clazz,
+      DexType context,
       AppView<? extends AppInfo> appView,
       Query mode,
       AnalysisAssumption assumption) {

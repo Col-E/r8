@@ -47,10 +47,12 @@ import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
+import com.google.common.collect.ImmutableSet;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 
 public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements ResolutionResult {
@@ -822,6 +824,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   public static class DefaultOptimizationInfoImpl implements OptimizationInfo {
     public static final OptimizationInfo DEFAULT_INSTANCE = new DefaultOptimizationInfoImpl();
 
+    public static Set<DexType> UNKNOWN_INITIALIZED_CLASSES_ON_NORMAL_EXIT = ImmutableSet.of();
     public static int UNKNOWN_RETURNED_ARGUMENT = -1;
     public static boolean UNKNOWN_NEVER_RETURNS_NULL = false;
     public static boolean UNKNOWN_NEVER_RETURNS_NORMALLY = false;
@@ -840,6 +843,11 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     public static BitSet NO_NULL_PARAMETER_ON_NORMAL_EXITS_FACTS = null;
 
     private DefaultOptimizationInfoImpl() {}
+
+    @Override
+    public Set<DexType> getInitializedClassesOnNormalExit() {
+      return UNKNOWN_INITIALIZED_CLASSES_ON_NORMAL_EXIT;
+    }
 
     @Override
     public TrivialInitializer getTrivialInitializerInfo() {
@@ -963,6 +971,8 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
   public static class OptimizationInfoImpl implements UpdatableOptimizationInfo {
 
+    private Set<DexType> initializedClassesOnNormalExit =
+        DefaultOptimizationInfoImpl.UNKNOWN_INITIALIZED_CLASSES_ON_NORMAL_EXIT;
     private int returnedArgument = DefaultOptimizationInfoImpl.UNKNOWN_RETURNED_ARGUMENT;
     private boolean mayHaveSideEffects = DefaultOptimizationInfoImpl.UNKNOWN_MAY_HAVE_SIDE_EFFECTS;
     private boolean neverReturnsNull = DefaultOptimizationInfoImpl.UNKNOWN_NEVER_RETURNS_NULL;
@@ -1032,6 +1042,11 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       nonNullParamOrThrow = template.nonNullParamOrThrow;
       nonNullParamOnNormalExits = template.nonNullParamOnNormalExits;
       reachabilitySensitive = template.reachabilitySensitive;
+    }
+
+    @Override
+    public Set<DexType> getInitializedClassesOnNormalExit() {
+      return initializedClassesOnNormalExit;
     }
 
     @Override
@@ -1181,6 +1196,11 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     @Override
     public void setInitializerEnablingJavaAssertions() {
       this.initializerEnablingJavaAssertions = true;
+    }
+
+    @Override
+    public void markInitializesClassesOnNormalExit(Set<DexType> initializedClassesOnNormalExit) {
+      this.initializedClassesOnNormalExit = initializedClassesOnNormalExit;
     }
 
     @Override

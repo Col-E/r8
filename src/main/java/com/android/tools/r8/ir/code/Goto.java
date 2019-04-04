@@ -22,6 +22,11 @@ public class Goto extends JumpInstruction {
     setBlock(block);
   }
 
+  @Override
+  public <T> T accept(InstructionVisitor<T> visitor) {
+    return visitor.visit(this);
+  }
+
   public BasicBlock getTarget() {
     assert getBlock().exit() == this;
     List<BasicBlock> successors = getBlock().getSuccessors();

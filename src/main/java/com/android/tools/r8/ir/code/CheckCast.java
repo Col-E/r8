@@ -32,6 +32,11 @@ public class CheckCast extends Instruction {
     this.type = type;
   }
 
+  @Override
+  public <T> T accept(InstructionVisitor<T> visitor) {
+    return visitor.visit(this);
+  }
+
   public DexType getType() {
     return type;
   }

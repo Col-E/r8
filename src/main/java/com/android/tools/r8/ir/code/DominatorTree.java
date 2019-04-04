@@ -169,10 +169,6 @@ public class DominatorTree implements BasicBlockChangeListener {
    * Iteration order is always the immediate dominator of the previously returned block. The
    * iteration starts by returning <code>dominated</code>.
    */
-  public Iterable<BasicBlock> dominatorBlocks(BasicBlock dominated) {
-    return dominatorBlocks(dominated, Inclusive.YES);
-  }
-
   public Iterable<BasicBlock> dominatorBlocks(BasicBlock dominated, Inclusive inclusive) {
     assert !obsolete;
     return () -> {
@@ -211,7 +207,9 @@ public class DominatorTree implements BasicBlockChangeListener {
 
   public Iterable<BasicBlock> normalExitDominatorBlocks() {
     assert !obsolete;
-    return dominatorBlocks(normalExitBlock);
+    // Do not include the `normalExitBlock`, since this is a synthetic block created here in the
+    // DominatorTree.
+    return dominatorBlocks(normalExitBlock, Inclusive.NO);
   }
 
   public BasicBlock[] getSortedBlocks() {

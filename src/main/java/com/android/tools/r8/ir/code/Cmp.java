@@ -38,6 +38,11 @@ public class Cmp extends Binop {
   }
 
   @Override
+  public <T> T accept(InstructionVisitor<T> visitor) {
+    return visitor.visit(this);
+  }
+
+  @Override
   public boolean isCommutative() {
     return false;
   }
