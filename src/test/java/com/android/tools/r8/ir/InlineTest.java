@@ -18,7 +18,6 @@ import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.ProguardClassFilter;
 import com.android.tools.r8.shaking.ProguardKeepRule;
 import com.android.tools.r8.shaking.RootSetBuilder;
-import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
 import com.android.tools.r8.utils.InternalOptions;
@@ -46,18 +45,18 @@ public class InlineTest extends IrInjectionTestBase {
         AppView.createForR8(new AppInfoWithSubtyping(application), options);
     appView.setAppServices(AppServices.builder(appView).build());
     ExecutorService executorService = ThreadUtils.getExecutorService(options);
-    RootSet rootSet =
+    appView.setRootSet(
         new RootSetBuilder(
                 appView,
                 application,
                 ImmutableList.of(ProguardKeepRule.defaultKeepAllRule(unused -> {})))
-            .run(executorService);
+            .run(executorService));
     Timing timing = new Timing(getClass().getSimpleName());
     Enqueuer enqueuer = new Enqueuer(appView, options, null);
     appView.setAppInfo(
-        enqueuer.traceApplication(rootSet, ProguardClassFilter.empty(), executorService, timing));
-
-    return new TestApplication(appView, rootSet, method, additionalCode);
+        enqueuer.traceApplication(
+            appView.rootSet(), ProguardClassFilter.empty(), executorService, timing));
+    return new TestApplication(appView, method, additionalCode);
   }
 
   private TestApplication codeForMethodReplaceTest(int a, int b) throws ExecutionException {

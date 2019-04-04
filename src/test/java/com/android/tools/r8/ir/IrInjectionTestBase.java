@@ -17,7 +17,6 @@ import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.MainDexClasses;
-import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
 import com.android.tools.r8.smali.SmaliTestBase;
@@ -77,7 +76,6 @@ public class IrInjectionTestBase extends SmaliTestBase {
 
     public final DexApplication application;
     public final AppView<? extends AppInfo> appView;
-    public final RootSet rootSet;
 
     public final DexEncodedMethod method;
     public final IRCode code;
@@ -87,17 +85,15 @@ public class IrInjectionTestBase extends SmaliTestBase {
     public final ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
 
     public TestApplication(AppView<? extends AppInfo> appView, MethodSubject method) {
-      this(appView, null, method, null);
+      this(appView, method, null);
     }
 
     public TestApplication(
         AppView<? extends AppInfo> appView,
-        RootSet rootSet,
         MethodSubject method,
         List<IRCode> additionalCode) {
       this.application = appView.appInfo().app();
       this.appView = appView;
-      this.rootSet = rootSet;
       this.method = method.getMethod();
       this.code = method.buildIR(appView.dexItemFactory());
       this.additionalCode = additionalCode;
@@ -133,7 +129,7 @@ public class IrInjectionTestBase extends SmaliTestBase {
 
     public String run() throws IOException {
       Timing timing = new Timing(getClass().getSimpleName());
-      IRConverter converter = new IRConverter(appView, timing, null, MainDexClasses.NONE, rootSet);
+      IRConverter converter = new IRConverter(appView, timing, null, MainDexClasses.NONE);
       converter.replaceCodeForTesting(method, code);
       AndroidApp app = writeDex(application, appView.options());
       return runOnArtRaw(app, DEFAULT_MAIN_CLASS_NAME).stdout;
