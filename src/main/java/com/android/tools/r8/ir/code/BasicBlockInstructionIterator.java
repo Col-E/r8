@@ -252,8 +252,12 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
     return false;
   }
 
-  private void splitBlockAndCopyCatchHandlers(IRCode code, BasicBlock invokeBlock,
-      BasicBlock inlinedBlock, ListIterator<BasicBlock> blocksIterator) {
+  private void splitBlockAndCopyCatchHandlers(
+      AppView<? extends AppInfo> appView,
+      IRCode code,
+      BasicBlock invokeBlock,
+      BasicBlock inlinedBlock,
+      ListIterator<BasicBlock> blocksIterator) {
     // Iterate through the instructions in the inlined block and split into blocks with only
     // one throwing instruction in each block.
     // NOTE: This iterator is replaced in the loop below, so that the iteration continues in
@@ -279,7 +283,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
         } else {
           nextBlock = null;
         }
-        currentBlock.copyCatchHandlers(code, blocksIterator, invokeBlock, code.options);
+        currentBlock.copyCatchHandlers(code, blocksIterator, invokeBlock, appView.options());
         if (nextBlock != null) {
           BasicBlock b = blocksIterator.next();
           assert b == nextBlock;
@@ -297,8 +301,12 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
     }
   }
 
-  private void appendCatchHandlers(IRCode code, BasicBlock invokeBlock,
-      IRCode inlinee, ListIterator<BasicBlock> blocksIterator) {
+  private void appendCatchHandlers(
+      AppView<? extends AppInfo> appView,
+      IRCode code,
+      BasicBlock invokeBlock,
+      IRCode inlinee,
+      ListIterator<BasicBlock> blocksIterator) {
     // Position right after the empty invoke block, by moving back through the newly added inlinee
     // blocks (they are now in the basic blocks list).
     for (int i = 0; i < inlinee.blocks.size(); i++) {
@@ -312,12 +320,12 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
       if (inlinedBlock.hasCatchHandlers()) {
         // The block already has catch handlers, so it has only one throwing instruction, and no
         // splitting is required.
-        inlinedBlock.copyCatchHandlers(code, blocksIterator, invokeBlock, code.options);
+        inlinedBlock.copyCatchHandlers(code, blocksIterator, invokeBlock, appView.options());
       } else {
         // The block does not have catch handlers, so it can have several throwing instructions.
         // Therefore the block must be split after each throwing instruction, and the catch
         // handlers must be added to each of these blocks.
-        splitBlockAndCopyCatchHandlers(code, invokeBlock, inlinedBlock, blocksIterator);
+        splitBlockAndCopyCatchHandlers(appView, code, invokeBlock, inlinedBlock, blocksIterator);
       }
     }
   }
@@ -493,7 +501,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
 
     // If the invoke block had catch handlers copy those down to all inlined blocks.
     if (invokeBlock.hasCatchHandlers()) {
-      appendCatchHandlers(code, invokeBlock, inlinee, blocksIterator);
+      appendCatchHandlers(appView, code, invokeBlock, inlinee, blocksIterator);
     }
 
     // If there are no normal exists, then unlink the invoke block and all the blocks that it
