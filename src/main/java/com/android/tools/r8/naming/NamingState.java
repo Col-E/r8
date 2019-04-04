@@ -13,7 +13,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.MemberNameMinifier.MemberNamingStrategy;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Table;
 import java.io.PrintStream;
@@ -33,16 +32,13 @@ class NamingState<ProtoType extends CachedHashValueDexItem, KeyType> {
   private final List<String> dictionary;
   private final Function<ProtoType, KeyType> keyTransform;
   private final MemberNamingStrategy strategy;
-  private final boolean useUniqueMemberNames;
 
   static <S, T extends CachedHashValueDexItem> NamingState<T, S> createRoot(
       DexItemFactory itemFactory,
       List<String> dictionary,
       Function<T, S> keyTransform,
-      MemberNamingStrategy strategy,
-      boolean useUniqueMemberNames) {
-    return new NamingState<>(
-        null, itemFactory, dictionary, keyTransform, strategy, useUniqueMemberNames);
+      MemberNamingStrategy strategy) {
+    return new NamingState<>(null, itemFactory, dictionary, keyTransform, strategy);
   }
 
   private NamingState(
@@ -50,19 +46,16 @@ class NamingState<ProtoType extends CachedHashValueDexItem, KeyType> {
       DexItemFactory itemFactory,
       List<String> dictionary,
       Function<ProtoType, KeyType> keyTransform,
-      MemberNamingStrategy strategy,
-      boolean useUniqueMemberNames) {
+      MemberNamingStrategy strategy) {
     this.parent = parent;
     this.itemFactory = itemFactory;
     this.dictionary = dictionary;
     this.keyTransform = keyTransform;
     this.strategy = strategy;
-    this.useUniqueMemberNames = useUniqueMemberNames;
   }
 
   public NamingState<ProtoType, KeyType> createChild() {
-    return new NamingState<>(
-        this, itemFactory, dictionary, keyTransform, strategy, useUniqueMemberNames);
+    return new NamingState<>(this, itemFactory, dictionary, keyTransform, strategy);
   }
 
   private InternalState findInternalStateFor(KeyType key) {
@@ -92,13 +85,12 @@ class NamingState<ProtoType extends CachedHashValueDexItem, KeyType> {
     return state.getAssignedNameFor(name, key);
   }
 
-  public DexString assignNewNameFor(
-      DexReference source, DexString original, ProtoType proto, boolean markAsUsed) {
+  public DexString assignNewNameFor(DexReference source, DexString original, ProtoType proto) {
     KeyType key = keyTransform.apply(proto);
     DexString result = getAssignedNameFor(original, key);
     if (result == null) {
       InternalState state = getOrCreateInternalStateFor(key);
-      result = state.getNameFor(source, original, key, markAsUsed);
+      result = state.getNewNameFor(source);
     }
     return result;
   }
@@ -118,19 +110,13 @@ class NamingState<ProtoType extends CachedHashValueDexItem, KeyType> {
     return state.isReserved(name);
   }
 
-  public boolean isAvailable(DexString original, ProtoType proto, DexString candidate) {
+  public boolean isAvailable(ProtoType proto, DexString candidate) {
     KeyType key = keyTransform.apply(proto);
     InternalState state = findInternalStateFor(key);
     if (state == null) {
       return true;
     }
-    assert !useUniqueMemberNames
-        || isNullOrEqualTo(state.getAssignedNameFor(original, key), candidate);
     return state.isAvailable(candidate);
-  }
-
-  private static <T> boolean isNullOrEqualTo(T a, T b) {
-    return a == null || a == b;
   }
 
   public void addRenaming(DexString original, ProtoType proto, DexString newName) {
@@ -214,18 +200,7 @@ class NamingState<ProtoType extends CachedHashValueDexItem, KeyType> {
     DexString getAssignedNameFor(DexString original, KeyType proto) {
       DexString result = null;
       if (renamings != null) {
-        if (useUniqueMemberNames) {
-          Map<KeyType, DexString> row = renamings.row(original);
-          if (row != null) {
-            // Either not renamed yet (0) or renamed (1). If renamed, return the same renamed name
-            // so that other members with the same name can be renamed to the same renamed name.
-            Set<DexString> renamedNames = Sets.newHashSet(row.values());
-            assert renamedNames.size() <= 1;
-            result = Iterables.getOnlyElement(renamedNames, null);
-          }
-        } else {
-          result = renamings.get(original, proto);
-        }
+        result = renamings.get(original, proto);
       }
       if (result == null && parentInternalState != null) {
         result = parentInternalState.getAssignedNameFor(original, proto);
@@ -233,18 +208,11 @@ class NamingState<ProtoType extends CachedHashValueDexItem, KeyType> {
       return result;
     }
 
-    DexString getNameFor(
-        DexReference source, DexString original, KeyType proto, boolean markAsUsed) {
-      DexString name = getAssignedNameFor(original, proto);
-      if (name != null) {
-        return name;
-      }
+    private DexString getNewNameFor(DexReference source) {
+      DexString name;
       do {
         name = nextSuggestedName(source);
       } while (!isAvailable(name) && !strategy.breakOnNotAvailable(source, name));
-      if (markAsUsed) {
-        addRenaming(original, proto, name);
-      }
       return name;
     }
 

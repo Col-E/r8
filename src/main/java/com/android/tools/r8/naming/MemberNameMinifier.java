@@ -26,7 +26,6 @@ abstract class MemberNameMinifier<MemberType, StateType extends CachedHashValueD
 
   protected final Map<MemberType, DexString> renaming = new IdentityHashMap<>();
   protected final NamingState<StateType, ?> globalState;
-  protected final boolean useUniqueMemberNames;
   protected final boolean overloadAggressively;
   protected final boolean useApplyMapping;
 
@@ -40,16 +39,9 @@ abstract class MemberNameMinifier<MemberType, StateType extends CachedHashValueD
     ProguardConfiguration proguardConfiguration = appView.options().getProguardConfiguration();
     this.appView = appView;
     this.dictionary = proguardConfiguration.getObfuscationDictionary();
-    this.useUniqueMemberNames = proguardConfiguration.isUseUniqueClassMemberNames();
-    this.overloadAggressively =
-        proguardConfiguration.isOverloadAggressivelyWithoutUseUniqueClassMemberNames();
+    this.overloadAggressively = proguardConfiguration.isOverloadAggressively();
     this.globalState =
-        NamingState.createRoot(
-            appView.dexItemFactory(),
-            dictionary,
-            getKeyTransform(),
-            strategy,
-            useUniqueMemberNames);
+        NamingState.createRoot(appView.dexItemFactory(), dictionary, getKeyTransform(), strategy);
     this.useApplyMapping = proguardConfiguration.hasApplyMappingFile();
   }
 
@@ -57,7 +49,7 @@ abstract class MemberNameMinifier<MemberType, StateType extends CachedHashValueD
 
   protected NamingState<StateType, ?> computeStateIfAbsent(
       DexType type, Function<DexType, NamingState<StateType, ?>> f) {
-    return useUniqueMemberNames ? globalState : states.computeIfAbsent(type, f);
+    return states.computeIfAbsent(type, f);
   }
 
   protected boolean alwaysReserveMemberNames(DexClass holder) {
@@ -77,23 +69,15 @@ abstract class MemberNameMinifier<MemberType, StateType extends CachedHashValueD
     }
 
     NamingState<StateType, ?> getState(DexType type) {
-      return useUniqueMemberNames ? globalState : states.get(type);
+      return states.get(type);
     }
 
     DexType getStateKey(NamingState<StateType, ?> state) {
       return states.inverse().get(state);
     }
 
-    NamingState<StateType, ?> globalState() {
-      return globalState;
-    }
-
     boolean isReservedInGlobalState(DexString name, StateType state) {
       return globalState.isReserved(name, state);
-    }
-
-    boolean useUniqueMemberNames() {
-      return useUniqueMemberNames;
     }
   }
 

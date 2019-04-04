@@ -19,7 +19,6 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -260,23 +259,11 @@ public class InterfaceMethodNameMinifier {
     // We use the origin state to allocate a name here so that we can reuse names between different
     // unrelated interfaces. This saves some space. The alternative would be to use a global state
     // for allocating names, which would save the work to search here.
-    DexString previousCandidate = null;
     DexString candidate;
     do {
       candidate = originState.assignNewName();
-
-      // If the state returns the same candidate for two consecutive trials, it should be this case:
-      //   1) an interface method with the same signature (name, param) but different return type
-      //   has been already renamed; and 2) -useuniqueclassmembernames is set.
-      // The option forces the naming state to return the same renamed name for the same signature.
-      // So, here we break the loop in an ad-hoc manner.
-      if (candidate != null && candidate == previousCandidate) {
-        assert minifierState.useUniqueMemberNames();
-        break;
-      }
       for (MethodNamingState state : collectedStates) {
         if (!state.isAvailable(candidate)) {
-          previousCandidate = candidate;
           candidate = null;
           break;
         }
@@ -333,10 +320,6 @@ public class InterfaceMethodNameMinifier {
   }
 
   private Set<NamingState<DexProto, ?>> getReachableStates(DexType type) {
-    if (minifierState.useUniqueMemberNames()) {
-      return ImmutableSet.of(minifierState.globalState());
-    }
-
     Set<DexType> reachableInterfaces = Sets.newIdentityHashSet();
     reachableInterfaces.add(type);
     collectSuperInterfaces(type, reachableInterfaces);

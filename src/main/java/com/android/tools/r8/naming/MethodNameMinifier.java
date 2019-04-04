@@ -166,7 +166,7 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
       for (DexEncodedMethod method : holder.allMethodsSorted()) {
         assignNameToMethod(method, state, renamingAtThisLevel, doPrivates);
       }
-      if (!doPrivates && !useUniqueMemberNames) {
+      if (!doPrivates) {
         renamingAtThisLevel.forEach(
             (key, candidate) -> {
               DexMethod method = key.get();
@@ -195,8 +195,7 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
       DexString renamedName =
           renamingAtThisLevel.computeIfAbsent(
               equivalence.wrap(method),
-              key ->
-                  state.assignNewNameFor(method, method.name, method.proto, useUniqueMemberNames));
+              key -> state.assignNewNameFor(method, method.name, method.proto));
       renaming.put(method, renamedName);
     }
   }
@@ -238,11 +237,7 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
               ignore ->
                   parent == null
                       ? NamingState.createRoot(
-                          appView.dexItemFactory(),
-                          dictionary,
-                          getKeyTransform(),
-                          strategy,
-                          useUniqueMemberNames)
+                          appView.dexItemFactory(), dictionary, getKeyTransform(), strategy)
                       : parent.createChild());
 
       DexClass holder = appView.definitionFor(type);
@@ -299,7 +294,7 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
     }
 
     DexString assignNewName() {
-      return parent.assignNewNameFor(method, name, proto, false);
+      return parent.assignNewNameFor(method, name, proto);
     }
 
     boolean isReserved() {
@@ -307,7 +302,7 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
     }
 
     boolean isAvailable(DexString candidate) {
-      return parent.isAvailable(name, proto, candidate);
+      return parent.isAvailable(proto, candidate);
     }
 
     void addRenaming(DexString newName) {

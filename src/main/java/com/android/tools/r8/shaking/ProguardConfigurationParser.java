@@ -85,9 +85,10 @@ public class ProguardConfigurationParser {
       // TODO(b/121340442): we may support this later.
       "dump");
 
-  private static final List<String> WARNED_FLAG_OPTIONS = ImmutableList.of(
-      // TODO(b/73707846): add support -addconfigurationdebugging
-      "addconfigurationdebugging");
+  private static final List<String> WARNED_FLAG_OPTIONS =
+      ImmutableList.of(
+          // TODO(b/73707846): add support -addconfigurationdebugging
+          "addconfigurationdebugging", "useuniqueclassmembernames");
 
   private static final List<String> WARNED_CLASS_DESCRIPTOR_OPTIONS = ImmutableList.of(
       // TODO(b/73708157): add support -assumenoexternalsideeffects <class_spec>
@@ -128,13 +129,6 @@ public class ProguardConfigurationParser {
           "-keepparameternames is not supported",
           configurationBuilder.getKeepParameterNamesOptionOrigin(),
           configurationBuilder.getKeepParameterNamesOptionPosition()));
-    }
-    if (configurationBuilder.isOverloadAggressively()
-        && configurationBuilder.isUseUniqueClassMemberNames()) {
-      reporter.warning(
-          new StringDiagnostic(
-              "The -overloadaggressively flag has no effect if -useuniqueclassmembernames"
-                  + " is also specified."));
     }
   }
 
@@ -204,8 +198,7 @@ public class ProguardConfigurationParser {
         skipWhitespace();
       } while (parseOption());
       // Collect the parsed configuration.
-      configurationBuilder.addParsedConfiguration(
-          contents.substring(positionAfterInclude, contents.length()));
+      configurationBuilder.addParsedConfiguration(contents.substring(positionAfterInclude));
     }
 
     private boolean parseOption()
@@ -394,8 +387,6 @@ public class ProguardConfigurationParser {
         MemberValuePropagationRule rule =
             parseMemberValuePropagationRule(MemberValuePropagationRule.Type.NEVER, optionStart);
         configurationBuilder.addRule(rule);
-      } else if (acceptString("useuniqueclassmembernames")) {
-        configurationBuilder.setUseUniqueClassMemberNames(true);
       } else if (acceptString("adaptclassstrings")) {
         parseClassFilter(configurationBuilder::addAdaptClassStringsPattern);
       } else if (acceptString("adaptresourcefilenames")) {
@@ -900,8 +891,7 @@ public class ProguardConfigurationParser {
           "Expected [!]interface|@interface|class|enum", origin, getPosition(start));
     }
 
-    private void parseClassType(
-        ProguardClassSpecification.Builder builder) throws ProguardRuleParserException {
+    private void parseClassType(ProguardClassSpecification.Builder builder) {
       skipWhitespace();
       TextPosition start = getPosition();
       if (acceptChar('!')) {
@@ -1183,7 +1173,7 @@ public class ProguardConfigurationParser {
       for (int i = 0; i < fileName.length(); i++) {
         if (fileName.charAt(i) == '<') {
           if (copied < i) {
-            result.append(fileName.substring(copied, i));
+            result.append(fileName, copied, i);
             copied = i;
           }
           start = i;
@@ -1837,11 +1827,6 @@ public class ProguardConfigurationParser {
               + "but unlikely to originate from a source language. "
               + "Maybe this is not the rule you are looking for.",
           origin, getPosition(start)));
-    }
-
-    private void failPartiallyImplementedOption(String optionName, TextPosition start) {
-      throw reporter.fatalError(new StringDiagnostic(
-          "Option " + optionName + " currently not supported", origin, getPosition(start)));
     }
 
     private Position getPosition(TextPosition start) {

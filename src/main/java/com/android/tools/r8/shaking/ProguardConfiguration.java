@@ -51,7 +51,6 @@ public class ProguardConfiguration {
     private Path obfuscationDictionary;
     private Path classObfuscationDictionary;
     private Path packageObfuscationDictionary;
-    private boolean useUniqueClassMemberNames;
     private boolean keepParameterNames;
     private Origin keepParameterNamesOptionOrigin;
     private Position keepParameterNamesOptionPosition;
@@ -209,14 +208,6 @@ public class ProguardConfiguration {
       this.packageObfuscationDictionary = packageObfuscationDictionary;
     }
 
-    public void setUseUniqueClassMemberNames(boolean useUniqueClassMemberNames) {
-      this.useUniqueClassMemberNames = useUniqueClassMemberNames;
-    }
-
-    boolean isUseUniqueClassMemberNames() {
-      return useUniqueClassMemberNames;
-    }
-
     boolean isOverloadAggressively() {
       return overloadAggressively;
     }
@@ -323,7 +314,6 @@ public class ProguardConfiguration {
           DictionaryReader.readAllNames(obfuscationDictionary, reporter),
           DictionaryReader.readAllNames(classObfuscationDictionary, reporter),
           DictionaryReader.readAllNames(packageObfuscationDictionary, reporter),
-          useUniqueClassMemberNames,
           keepParameterNames,
           adaptClassStrings.build(),
           adaptResourceFilenames.build(),
@@ -389,7 +379,6 @@ public class ProguardConfiguration {
   private final ImmutableList<String> obfuscationDictionary;
   private final ImmutableList<String> classObfuscationDictionary;
   private final ImmutableList<String> packageObfuscationDictionary;
-  private final boolean useUniqueClassMemberNames;
   private final boolean keepParameterNames;
   private final ProguardClassFilter adaptClassStrings;
   private final ProguardPathFilter adaptResourceFilenames;
@@ -427,7 +416,6 @@ public class ProguardConfiguration {
       ImmutableList<String> obfuscationDictionary,
       ImmutableList<String> classObfuscationDictionary,
       ImmutableList<String> packageObfuscationDictionary,
-      boolean useUniqueClassMemberNames,
       boolean keepParameterNames,
       ProguardClassFilter adaptClassStrings,
       ProguardPathFilter adaptResourceFilenames,
@@ -463,7 +451,6 @@ public class ProguardConfiguration {
     this.obfuscationDictionary = obfuscationDictionary;
     this.classObfuscationDictionary = classObfuscationDictionary;
     this.packageObfuscationDictionary = packageObfuscationDictionary;
-    this.useUniqueClassMemberNames = useUniqueClassMemberNames;
     this.keepParameterNames = keepParameterNames;
     this.adaptClassStrings = adaptClassStrings;
     this.adaptResourceFilenames = adaptResourceFilenames;
@@ -579,8 +566,8 @@ public class ProguardConfiguration {
     return rules;
   }
 
-  public boolean isOverloadAggressivelyWithoutUseUniqueClassMemberNames() {
-    return overloadAggressively && !useUniqueClassMemberNames;
+  public boolean isOverloadAggressively() {
+    return overloadAggressively;
   }
 
   public List<String> getObfuscationDictionary() {
@@ -593,10 +580,6 @@ public class ProguardConfiguration {
 
   public List<String> getPackageObfuscationDictionary() {
     return packageObfuscationDictionary;
-  }
-
-  public boolean isUseUniqueClassMemberNames() {
-    return useUniqueClassMemberNames;
   }
 
   public boolean isKeepParameterNames() {

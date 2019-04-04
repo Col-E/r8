@@ -75,7 +75,6 @@ public class CovariantReturnTypeInSubInterfaceTest extends TestBase {
         overloadAggressively ? "-overloadaggressively" : "# Not overload aggressively";
     List<String> config = ImmutableList.of(
         "-printmapping",
-        "-useuniqueclassmembernames",
         aggressive,
         "-keep class " + mainName + " {",
         "  public void main(...);",

@@ -150,8 +150,7 @@ class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
     }
 
     if (!state.isReserved(field.name, field.type)) {
-      renaming.put(
-          field, state.assignNewNameFor(field, field.name, field.type, useUniqueMemberNames));
+      renaming.put(field, state.assignNewNameFor(field, field.name, field.type));
     }
   }
 

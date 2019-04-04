@@ -24,85 +24,63 @@ import org.junit.runner.RunWith;
 
 @RunWith(VmTestRunner.class)
 public class InterfaceRenamingTestRunner extends TestBase {
-  static final Class CLASS = InterfaceRenamingTest.class;
-  static final Class[] CLASSES = InterfaceRenamingTest.CLASSES;
+
+  private static final Class<?> CLASS = InterfaceRenamingTest.class;
+  private static final Class<?>[] CLASSES = InterfaceRenamingTest.CLASSES;
 
   @Test
   public void testCfNoMinify() throws Exception {
-    testCf(MinifyMode.NONE, false);
+    testCf(MinifyMode.NONE);
   }
 
   @Test
   public void testCfMinify() throws Exception {
-    testCf(MinifyMode.JAVA, false);
-  }
-
-  @Test
-  public void testCfMinify_useUniqueClassMemberNames() throws Exception {
-    testCf(MinifyMode.JAVA, true);
+    testCf(MinifyMode.JAVA);
   }
 
   @Test
   public void testCfMinifyAggressive() throws Exception {
-    testCf(MinifyMode.AGGRESSIVE, false);
-  }
-
-  @Test
-  public void testCfMinifyAggressive_useUniqueClassMemberNames() throws Exception {
-    testCf(MinifyMode.AGGRESSIVE, true);
+    testCf(MinifyMode.AGGRESSIVE);
   }
 
   @Test
   public void testDexNoMinify() throws Exception {
-    testDex(MinifyMode.NONE, false);
+    testDex(MinifyMode.NONE);
   }
 
   @Test
   public void testDexMinify() throws Exception {
-    testDex(MinifyMode.JAVA, false);
-  }
-
-  @Test
-  public void testDexMinify_useUniqueClassMemberNames() throws Exception {
-    testDex(MinifyMode.JAVA, true);
+    testDex(MinifyMode.JAVA);
   }
 
   @Test
   public void testDexMinifyAggressive() throws Exception {
-    testDex(MinifyMode.AGGRESSIVE, false);
+    testDex(MinifyMode.AGGRESSIVE);
   }
 
-  @Test
-  public void testDexMinifyAggressive_useUniqueClassMemberNames() throws Exception {
-    testDex(MinifyMode.AGGRESSIVE, true);
-  }
-
-  private void testCf(MinifyMode minify, boolean useUniqueClassMemberNames) throws Exception {
+  private void testCf(MinifyMode minify) throws Exception {
     ProcessResult runInput =
         ToolHelper.runJava(ToolHelper.getClassPathForTests(), CLASS.getCanonicalName());
     assertEquals(0, runInput.exitCode);
     Path outCf = temp.getRoot().toPath().resolve("cf.zip");
-    build(new ClassFileConsumer.ArchiveConsumer(outCf), minify, useUniqueClassMemberNames);
+    build(new ClassFileConsumer.ArchiveConsumer(outCf), minify);
     ProcessResult runCf = ToolHelper.runJava(outCf, CLASS.getCanonicalName());
     assertEquals(runInput.toString(), runCf.toString());
   }
 
-  private void testDex(MinifyMode minify, boolean useUniqueClassMemberNames) throws Exception {
+  private void testDex(MinifyMode minify) throws Exception {
     ProcessResult runInput =
         ToolHelper.runJava(ToolHelper.getClassPathForTests(), CLASS.getCanonicalName());
     assertEquals(0, runInput.exitCode);
     Path outDex = temp.getRoot().toPath().resolve("dex.zip");
-    build(new DexIndexedConsumer.ArchiveConsumer(outDex), minify, useUniqueClassMemberNames);
+    build(new DexIndexedConsumer.ArchiveConsumer(outDex), minify);
     ProcessResult runDex =
         ToolHelper.runArtNoVerificationErrorsRaw(outDex.toString(), CLASS.getCanonicalName());
     assertEquals(runInput.stdout, runDex.stdout);
     assertEquals(runInput.exitCode, runDex.exitCode);
   }
 
-  private void build(
-      ProgramConsumer consumer,
-      MinifyMode minify,
-      boolean useUniqueClassMemberNames) throws Exception {
+  private void build(ProgramConsumer consumer, MinifyMode minify) throws Exception {
     List<String> config =
         Arrays.asList(
             "-keep public class " + CLASS.getCanonicalName() + " {",
@@ -115,7 +93,6 @@ public class InterfaceRenamingTestRunner extends TestBase {
                 pgConfig -> {
                   pgConfig.setPrintMapping(true);
                   pgConfig.setOverloadAggressively(minify == MinifyMode.AGGRESSIVE);
-                  pgConfig.setUseUniqueClassMemberNames(useUniqueClassMemberNames);
                   if (!minify.isMinify()) {
                     pgConfig.disableObfuscation();
                   }
