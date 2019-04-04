@@ -272,7 +272,6 @@ public class R8 {
       appView.setAppServices(AppServices.builder(appView).build());
 
       List<ProguardConfigurationRule> synthesizedProguardRules = new ArrayList<>();
-      RootSet rootSet;
       String proguardSeedsData = null;
       timing.begin("Strip unused code");
       Set<DexType> classesToRetainInnerClassAttributeFor = null;
@@ -311,24 +310,25 @@ public class R8 {
           }
         }
 
-        rootSet =
+        appView.setRootSet(
             new RootSetBuilder(
                     appView,
                     application,
                     Iterables.concat(
                         options.getProguardConfiguration().getRules(), synthesizedProguardRules))
-                .run(executorService);
+                .run(executorService));
 
         Enqueuer enqueuer = new Enqueuer(appView, options, null, compatibility);
-        appView.setAppInfo(
-            enqueuer.traceApplication(
-                rootSet,
-                options.getProguardConfiguration().getDontWarnPatterns(),
-                executorService,
-                timing));
-        assert rootSet.verifyKeptFieldsAreAccessedAndLive(appView.appInfo().withLiveness());
-        assert rootSet.verifyKeptMethodsAreTargetedAndLive(appView.appInfo().withLiveness());
-        assert rootSet.verifyKeptTypesAreLive(appView.appInfo().withLiveness());
+        AppView<AppInfoWithLiveness> appViewWithLiveness =
+            appView.setAppInfo(
+                enqueuer.traceApplication(
+                    appView.rootSet(),
+                    options.getProguardConfiguration().getDontWarnPatterns(),
+                    executorService,
+                    timing));
+        assert appView.rootSet().verifyKeptFieldsAreAccessedAndLive(appViewWithLiveness.appInfo());
+        assert appView.rootSet().verifyKeptMethodsAreTargetedAndLive(appViewWithLiveness.appInfo());
+        assert appView.rootSet().verifyKeptTypesAreLive(appViewWithLiveness.appInfo());
 
         if (options.getProguardConfiguration().isPrintSeeds()) {
           ByteArrayOutputStream bytes = new ByteArrayOutputStream();
@@ -401,7 +401,7 @@ public class R8 {
       if (options.getProguardConfiguration().isAccessModificationAllowed()) {
         GraphLense publicizedLense =
             ClassAndMemberPublicizer.run(
-                executorService, timing, application, appView.withLiveness(), rootSet);
+                executorService, timing, application, appView.withLiveness());
         boolean changed = appView.setGraphLense(publicizedLense);
         if (changed) {
           // We can now remove visibility bridges. Note that we do not need to update the
@@ -491,7 +491,7 @@ public class R8 {
       Set<DexCallSite> desugaredCallSites;
       CfgPrinter printer = options.printCfg ? new CfgPrinter() : null;
       try {
-        IRConverter converter = new IRConverter(appView, timing, printer, mainDexClasses, rootSet);
+        IRConverter converter = new IRConverter(appView, timing, printer, mainDexClasses);
         application = converter.optimize(application, executorService);
         desugaredCallSites = converter.getDesugaredCallSites();
       } finally {
@@ -566,7 +566,7 @@ public class R8 {
           WhyAreYouKeepingConsumer whyAreYouKeepingConsumer = null;
           if (options.isShrinking()) {
             keptGraphConsumer = options.keptGraphConsumer;
-            if (!rootSet.reasonAsked.isEmpty()) {
+            if (!appView.rootSet().reasonAsked.isEmpty()) {
               whyAreYouKeepingConsumer = new WhyAreYouKeepingConsumer(keptGraphConsumer);
               keptGraphConsumer = whyAreYouKeepingConsumer;
             }
@@ -575,7 +575,7 @@ public class R8 {
           Enqueuer enqueuer = new Enqueuer(appView, options, keptGraphConsumer);
           appView.setAppInfo(
               enqueuer.traceApplication(
-                  rootSet,
+                  appView.rootSet(),
                   options.getProguardConfiguration().getDontWarnPatterns(),
                   executorService,
                   timing));
@@ -593,7 +593,7 @@ public class R8 {
 
             // Print reasons on the application after pruning, so that we reflect the actual result.
             if (whyAreYouKeepingConsumer != null) {
-              for (DexReference reference : rootSet.reasonAsked) {
+              for (DexReference reference : appView.rootSet().reasonAsked) {
                 whyAreYouKeepingConsumer.printWhyAreYouKeeping(
                     enqueuer.getGraphNode(reference), System.out);
               }
@@ -618,8 +618,8 @@ public class R8 {
       }
 
       // Only perform discard-checking if tree-shaking is turned on.
-      if (options.isShrinking() && !rootSet.checkDiscarded.isEmpty()) {
-        new DiscardedChecker(rootSet, application, options).run();
+      if (options.isShrinking() && !appView.rootSet().checkDiscarded.isEmpty()) {
+        new DiscardedChecker(appView.rootSet(), application, options).run();
       }
 
       // Perform minification.
@@ -630,12 +630,12 @@ public class R8 {
                 options.reporter, options.getProguardConfiguration().getApplyMappingFile());
         timing.begin("apply-mapping");
         namingLens =
-            new ProguardMapMinifier(appView.withLiveness(), rootSet, seedMapper, desugaredCallSites)
+            new ProguardMapMinifier(appView.withLiveness(), seedMapper, desugaredCallSites)
                 .run(timing);
         timing.end();
       } else if (options.isMinifying()) {
         timing.begin("Minification");
-        namingLens = new Minifier(appView.withLiveness(), rootSet, desugaredCallSites).run(timing);
+        namingLens = new Minifier(appView.withLiveness(), desugaredCallSites).run(timing);
         timing.end();
       } else {
         if (appView.appInfo().hasLiveness()) {
@@ -664,7 +664,7 @@ public class R8 {
 
       // Validity checks.
       assert application.classes().stream().allMatch(DexClass::isValid);
-      assert rootSet.verifyKeptItemsAreKept(application, appView.appInfo());
+      assert appView.rootSet().verifyKeptItemsAreKept(application, appView.appInfo());
       assert appView
           .graphLense()
           .verifyMappingToOriginalProgram(

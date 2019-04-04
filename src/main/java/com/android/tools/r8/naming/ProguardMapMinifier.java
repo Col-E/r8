@@ -27,7 +27,6 @@ import com.android.tools.r8.naming.Minifier.MinificationPackageNamingStrategy;
 import com.android.tools.r8.naming.NamingState.InternalState;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.Timing;
 import java.util.ArrayList;
@@ -39,17 +38,14 @@ import java.util.Set;
 public class ProguardMapMinifier {
 
   private final AppView<AppInfoWithLiveness> appView;
-  private final RootSet rootSet;
   private final SeedMapper seedMapper;
   private final Set<DexCallSite> desugaredCallSites;
 
   public ProguardMapMinifier(
       AppView<AppInfoWithLiveness> appView,
-      RootSet rootSet,
       SeedMapper seedMapper,
       Set<DexCallSite> desugaredCallSites) {
     this.appView = appView;
-    this.rootSet = rootSet;
     this.seedMapper = seedMapper;
     this.desugaredCallSites = desugaredCallSites;
   }
@@ -59,7 +55,7 @@ public class ProguardMapMinifier {
 
     // A "fixed" obfuscation is given in the applymapping file.
     // TODO(mkroghj) Refactor into strategy.
-    rootSet.noObfuscation.clear();
+    appView.rootSet().noObfuscation.clear();
 
     Map<DexType, DexString> mappedNames = new IdentityHashMap<>();
     List<DexClass> mappedClasses = new ArrayList<>();
@@ -126,7 +122,6 @@ public class ProguardMapMinifier {
     ClassNameMinifier classNameMinifier =
         new ClassNameMinifier(
             appView,
-            rootSet,
             new ApplyMappingClassNamingStrategy(mappedNames),
             // The package naming strategy will actually not be used since all classes and methods
             // will be output with identity name if not found in mapping. However, there is a check
@@ -143,15 +138,14 @@ public class ProguardMapMinifier {
             memberNames, appView.dexItemFactory(), appView.options().reporter);
     timing.begin("MinifyMethods");
     MethodRenaming methodRenaming =
-        new MethodNameMinifier(appView, rootSet, nameStrategy)
-            .computeRenaming(desugaredCallSites, timing);
+        new MethodNameMinifier(appView, nameStrategy).computeRenaming(desugaredCallSites, timing);
     // Amend the method renamings with the default interface methods.
     methodRenaming.renaming.putAll(defaultInterfaceMethodImplementationNames);
     timing.end();
 
     timing.begin("MinifyFields");
     FieldRenaming fieldRenaming =
-        new FieldNameMinifier(appView, rootSet, nameStrategy).computeRenaming(timing);
+        new FieldNameMinifier(appView, nameStrategy).computeRenaming(timing);
     timing.end();
 
     appView.options().reporter.failIfPendingErrors();

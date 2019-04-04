@@ -13,7 +13,6 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.RootSetBuilder;
-import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -72,14 +71,15 @@ public abstract class NamingTestBase {
 
     AppView<AppInfoWithSubtyping> appView =
         AppView.createForR8(new AppInfoWithSubtyping(program), options);
+    appView.setRootSet(
+        new RootSetBuilder(appView, program, configuration.getRules()).run(executor));
     appView.setAppServices(AppServices.builder(appView).build());
-
-    RootSet rootSet = new RootSetBuilder(appView, program, configuration.getRules()).run(executor);
 
     Enqueuer enqueuer = new Enqueuer(appView, options, null);
     appView.setAppInfo(
-        enqueuer.traceApplication(rootSet, configuration.getDontWarnPatterns(), executor, timing));
-    return new Minifier(appView.withLiveness(), rootSet, Collections.emptySet()).run(timing);
+        enqueuer.traceApplication(
+            appView.rootSet(), configuration.getDontWarnPatterns(), executor, timing));
+    return new Minifier(appView.withLiveness(), Collections.emptySet()).run(timing);
   }
 
   protected static <T> Collection<Object[]> createTests(

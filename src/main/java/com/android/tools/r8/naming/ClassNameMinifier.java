@@ -20,7 +20,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.naming.signature.GenericSignatureRewriter;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
@@ -62,7 +61,6 @@ class ClassNameMinifier {
 
   ClassNameMinifier(
       AppView<AppInfoWithLiveness> appView,
-      RootSet rootSet,
       ClassNamingStrategy classNamingStrategy,
       PackageNamingStrategy packageNamingStrategy,
       Iterable<? extends DexClass> classes) {
@@ -78,10 +76,10 @@ class ClassNameMinifier {
     this.classDictionary = options.getProguardConfiguration().getClassObfuscationDictionary();
     this.keepInnerClassStructure = options.getProguardConfiguration().getKeepAttributes().signature;
     this.noObfuscationTypes =
-        DexReference.filterDexType(rootSet.noObfuscation.stream())
+        DexReference.filterDexType(appView.rootSet().noObfuscation.stream())
             .collect(Collectors.toSet());
     this.keepPackageName =
-        DexReference.filterDexType(rootSet.keepPackageName.stream())
+        DexReference.filterDexType(appView.rootSet().keepPackageName.stream())
             .collect(Collectors.toSet());
 
     // Initialize top-level naming state.

@@ -70,7 +70,6 @@ import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.IdentifierNameStringMarker;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.MainDexClasses;
-import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -109,7 +108,6 @@ public class IRConverter {
 
   public final AppView<? extends AppInfo> appView;
   public final Set<DexType> mainDexClasses;
-  public final RootSet rootSet;
 
   private final Timing timing;
   private final Outliner outliner;
@@ -155,15 +153,13 @@ public class IRConverter {
       AppView<? extends AppInfo> appView,
       Timing timing,
       CfgPrinter printer,
-      MainDexClasses mainDexClasses,
-      RootSet rootSet) {
+      MainDexClasses mainDexClasses) {
     assert appView.appInfo().hasLiveness() || appView.graphLense().isIdentityLense();
     assert appView.options() != null;
     assert appView.options().programConsumer != null;
     this.timing = timing != null ? timing : new Timing("internal");
     this.appView = appView;
     this.options = appView.options();
-    this.rootSet = rootSet;
     this.printer = printer;
     this.mainDexClasses = mainDexClasses.getClasses();
     this.codeRewriter = new CodeRewriter(appView, this);
@@ -192,9 +188,9 @@ public class IRConverter {
     this.nonNullTracker = options.enableNonNullTracking ? new NonNullTracker(appView) : null;
     if (appView.enableWholeProgramOptimizations()) {
       assert appView.appInfo().hasLiveness();
+      assert appView.rootSet() != null;
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
       AppInfoWithLiveness appInfoWithLiveness = appViewWithLiveness.appInfo();
-      assert rootSet != null;
       this.classInliner =
           options.enableClassInlining && options.enableInlining
               ? new ClassInliner(appViewWithLiveness, lambdaRewriter)
@@ -245,14 +241,14 @@ public class IRConverter {
 
   /** Create an IR converter for processing methods with full program optimization disabled. */
   public IRConverter(AppView<? extends AppInfo> appView) {
-    this(appView, null, null, MainDexClasses.NONE, null);
+    this(appView, null, null, MainDexClasses.NONE);
   }
 
   /**
    * Create an IR converter for processing methods with full program optimization disabled.
    */
   public IRConverter(AppInfo appInfo, InternalOptions options, Timing timing, CfgPrinter printer) {
-    this(AppView.createForD8(appInfo, options), timing, printer, MainDexClasses.NONE, null);
+    this(AppView.createForD8(appInfo, options), timing, printer, MainDexClasses.NONE);
   }
 
   private boolean enableTwrCloseResourceDesugaring() {
@@ -915,7 +911,7 @@ public class IRConverter {
       // Reflection optimization 2. get*Name() with const-class -> const-string
       if (options.enableNameReflectionOptimization
           || options.testing.forceNameReflectionOptimization) {
-        stringOptimizer.rewriteClassGetName(code, rootSet);
+        stringOptimizer.rewriteClassGetName(appView, code);
       }
       // Reflection/string optimization 3. trivial conversion/computation on const-string
       stringOptimizer.computeTrivialOperationsOnConstString(code);

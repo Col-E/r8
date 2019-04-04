@@ -12,7 +12,6 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.MethodJavaSignatureEquivalence;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
@@ -93,9 +92,8 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
   private final FrontierState frontierState = new FrontierState();
   private final MemberNamingStrategy strategy;
 
-  MethodNameMinifier(
-      AppView<AppInfoWithLiveness> appView, RootSet rootSet, MemberNamingStrategy strategy) {
-    super(appView, rootSet, strategy);
+  MethodNameMinifier(AppView<AppInfoWithLiveness> appView, MemberNamingStrategy strategy) {
+    super(appView, strategy);
     this.strategy = strategy;
     equivalence =
         overloadAggressively
@@ -255,7 +253,7 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
           //  methods?
           if (keepAll
               || method.accessFlags.isConstructor()
-              || rootSet.noObfuscation.contains(method.method)) {
+              || appView.rootSet().noObfuscation.contains(method.method)) {
             reserveNamesForMethod(method.method, state);
           }
         }

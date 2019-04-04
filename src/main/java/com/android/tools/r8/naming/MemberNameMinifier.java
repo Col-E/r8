@@ -12,7 +12,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.NamingState.InternalState;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardConfiguration;
-import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import java.util.IdentityHashMap;
@@ -23,7 +22,6 @@ import java.util.function.Function;
 abstract class MemberNameMinifier<MemberType, StateType extends CachedHashValueDexItem> {
 
   protected final AppView<AppInfoWithLiveness> appView;
-  protected final RootSet rootSet;
   protected final List<String> dictionary;
 
   protected final Map<MemberType, DexString> renaming = new IdentityHashMap<>();
@@ -38,11 +36,9 @@ abstract class MemberNameMinifier<MemberType, StateType extends CachedHashValueD
   // which is useful for debugging.
   private final BiMap<DexType, NamingState<StateType, ?>> states = HashBiMap.create();
 
-  MemberNameMinifier(
-      AppView<AppInfoWithLiveness> appView, RootSet rootSet, MemberNamingStrategy strategy) {
+  MemberNameMinifier(AppView<AppInfoWithLiveness> appView, MemberNamingStrategy strategy) {
     ProguardConfiguration proguardConfiguration = appView.options().getProguardConfiguration();
     this.appView = appView;
-    this.rootSet = rootSet;
     this.dictionary = proguardConfiguration.getObfuscationDictionary();
     this.useUniqueMemberNames = proguardConfiguration.isUseUniqueClassMemberNames();
     this.overloadAggressively =

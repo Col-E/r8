@@ -13,7 +13,6 @@ import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.ir.optimize.MethodPoolCollection;
 import com.android.tools.r8.optimize.PublicizerLense.PublicizedLenseBuilder;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.Timing;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -24,17 +23,15 @@ public final class ClassAndMemberPublicizer {
 
   private final DexApplication application;
   private final AppView<AppInfoWithLiveness> appView;
-  private final RootSet rootSet;
   private final MethodPoolCollection methodPoolCollection;
 
   private final PublicizedLenseBuilder lenseBuilder = PublicizerLense.createBuilder();
 
   private ClassAndMemberPublicizer(
-      DexApplication application, AppView<AppInfoWithLiveness> appView, RootSet rootSet) {
+      DexApplication application, AppView<AppInfoWithLiveness> appView) {
     this.application = application;
     this.appView = appView;
     this.methodPoolCollection = new MethodPoolCollection(appView);
-    this.rootSet = rootSet;
   }
 
   /**
@@ -47,10 +44,9 @@ public final class ClassAndMemberPublicizer {
       ExecutorService executorService,
       Timing timing,
       DexApplication application,
-      AppView<AppInfoWithLiveness> appView,
-      RootSet rootSet)
+      AppView<AppInfoWithLiveness> appView)
       throws ExecutionException {
-    return new ClassAndMemberPublicizer(application, appView, rootSet).run(executorService, timing);
+    return new ClassAndMemberPublicizer(application, appView).run(executorService, timing);
   }
 
   private GraphLense run(ExecutorService executorService, Timing timing)
@@ -112,7 +108,7 @@ public final class ClassAndMemberPublicizer {
       boolean wasSeen = methodPoolCollection.markIfNotSeen(holder, encodedMethod.method);
       if (wasSeen) {
         // We can't do anything further because even renaming is not allowed due to the keep rule.
-        if (rootSet.noObfuscation.contains(encodedMethod.method)) {
+        if (appView.rootSet().noObfuscation.contains(encodedMethod.method)) {
           return false;
         }
         // TODO(b/111118390): Renaming will enable more private instance methods to be publicized.

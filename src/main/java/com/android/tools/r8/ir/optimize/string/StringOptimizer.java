@@ -33,7 +33,6 @@ import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo;
-import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.google.common.annotations.VisibleForTesting;
 import java.util.Set;
 import java.util.function.BiFunction;
@@ -206,7 +205,7 @@ public class StringOptimizer {
   }
 
   // Find Class#get*Name() with a constant-class and replace it with a const-string if possible.
-  public void rewriteClassGetName(IRCode code, RootSet rootSet) {
+  public void rewriteClassGetName(AppView<? extends AppInfo> appView, IRCode code) {
     // Conflict with {@link CodeRewriter#collectClassInitializerDefaults}.
     if (code.method.isClassInitializer()) {
       return;
@@ -275,7 +274,8 @@ public class StringOptimizer {
       DexItemBasedConstString deferred = null;
       DexString name = null;
       if (invokedMethod == factory.classMethods.getName) {
-        if (appView.options().isMinifying() && !rootSet.noObfuscation.contains(holder.type)) {
+        if (appView.options().isMinifying()
+            && !appView.rootSet().noObfuscation.contains(holder.type)) {
           deferred =
               new DexItemBasedConstString(
                   invoke.outValue(),
@@ -299,7 +299,8 @@ public class StringOptimizer {
           if (!assumeTopLevel) {
             continue;
           }
-          if (appView.options().isMinifying() && !rootSet.noObfuscation.contains(holder.type)) {
+          if (appView.options().isMinifying()
+              && !appView.rootSet().noObfuscation.contains(holder.type)) {
             deferred =
                 new DexItemBasedConstString(
                     invoke.outValue(),
@@ -320,7 +321,8 @@ public class StringOptimizer {
           if (!assumeTopLevel) {
             continue;
           }
-          if (appView.options().isMinifying() && !rootSet.noObfuscation.contains(holder.type)) {
+          if (appView.options().isMinifying()
+              && !appView.rootSet().noObfuscation.contains(holder.type)) {
             deferred =
                 new DexItemBasedConstString(
                     invoke.outValue(),

@@ -6,6 +6,7 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.OptionalBool;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.shaking.VerticalClassMerger.VerticallyMergedClasses;
 import com.android.tools.r8.utils.InternalOptions;
 
@@ -22,6 +23,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
   private final WholeProgramOptimizations wholeProgramOptimizations;
   private GraphLense graphLense;
   private final InternalOptions options;
+  private RootSet rootSet;
   private VerticallyMergedClasses verticallyMergedClasses;
 
   private AppView(
@@ -45,13 +47,16 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
     return appInfo;
   }
 
-  public void setAppInfo(T appInfo) {
+  public <U extends T> AppView<U> setAppInfo(U appInfo) {
     assert !appInfo.isObsolete();
     AppInfo previous = this.appInfo;
     this.appInfo = appInfo;
     if (appInfo != previous) {
       previous.markObsolete();
     }
+    @SuppressWarnings("unchecked")
+    AppView<U> appViewWithSpecializedAppInfo = (AppView<U>) this;
+    return appViewWithSpecializedAppInfo;
   }
 
   public AppServices appServices() {
@@ -106,6 +111,15 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
 
   public InternalOptions options() {
     return options;
+  }
+
+  public RootSet rootSet() {
+    return rootSet;
+  }
+
+  public void setRootSet(RootSet rootSet) {
+    assert this.rootSet == null : "Root set should never be recomputed";
+    this.rootSet = rootSet;
   }
 
   // Get the result of vertical class merging. Returns null if vertical class merging has not been

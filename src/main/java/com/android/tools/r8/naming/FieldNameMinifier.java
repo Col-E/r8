@@ -10,7 +10,6 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
@@ -21,9 +20,8 @@ import java.util.function.Function;
 
 class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
 
-  FieldNameMinifier(
-      AppView<AppInfoWithLiveness> appView, RootSet rootSet, MemberNamingStrategy strategy) {
-    super(appView, rootSet, strategy);
+  FieldNameMinifier(AppView<AppInfoWithLiveness> appView, MemberNamingStrategy strategy) {
+    super(appView, strategy);
   }
 
   @Override
@@ -95,7 +93,7 @@ class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
   private void reserveFieldName(
       DexEncodedField encodedField, NamingState<DexType, ?> state, boolean alwaysReserve) {
     DexField field = encodedField.field;
-    if (alwaysReserve || rootSet.noObfuscation.contains(field)) {
+    if (alwaysReserve || appView.rootSet().noObfuscation.contains(field)) {
       state.reserveName(field.name, field.type);
     }
   }
