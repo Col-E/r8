@@ -116,8 +116,10 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
     builder.append(" ");
     builder.append(type);
     builder.append(" {");
-    builder.append(
-        getInterfaces().stream().map(DexType::toString).collect(Collectors.joining(", ")));
+    Set<DexType> interfaces = getInterfaces();
+    if (interfaces != null) {
+      builder.append(interfaces.stream().map(DexType::toString).collect(Collectors.joining(", ")));
+    }
     builder.append("}");
     return builder.toString();
   }
