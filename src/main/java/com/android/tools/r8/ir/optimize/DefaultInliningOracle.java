@@ -295,8 +295,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     // one of the following conditions is true:
     // * the candidate inlinee checks null receiver before any side effect
     // * the receiver is known to be non-null
-    boolean receiverIsNeverNull = !invoke.getReceiver().getTypeLattice().isNullable();
-    if (!receiverIsNeverNull
+    if (invoke.getReceiver().getTypeLattice().isNullable()
         && !candidate.getOptimizationInfo().checksNullReceiverBeforeAnySideEffect()) {
       if (info != null) {
         info.exclude(invoke, "receiver for candidate can be null");

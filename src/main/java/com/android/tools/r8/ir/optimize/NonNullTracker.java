@@ -219,8 +219,10 @@ public class NonNullTracker {
               // Avoid adding a non-null for the value without meaningful users.
               if (!dominatedUsers.isEmpty() || !dominatedPhiUsersWithPositions.isEmpty()) {
                 TypeLatticeElement typeLattice = knownToBeNonNullValue.getTypeLattice();
-                Value nonNullValue = code.createValue(
-                    typeLattice.asNonNullable(), knownToBeNonNullValue.getLocalInfo());
+                Value nonNullValue =
+                    code.createValue(
+                        typeLattice.asReferenceTypeLatticeElement().asNotNull(),
+                        knownToBeNonNullValue.getLocalInfo());
                 affectedValues.addAll(knownToBeNonNullValue.affectedValues());
                 NonNull nonNull = new NonNull(nonNullValue, knownToBeNonNullValue, theIf);
                 InstructionListIterator targetIterator = target.listIterator();
@@ -309,8 +311,11 @@ public class NonNullTracker {
         // A: non_null_rcv <- non-null(rcv)
         // ...y
         TypeLatticeElement typeLattice = knownToBeNonNullValue.getTypeLattice();
+        assert typeLattice.isReference();
         Value nonNullValue =
-            code.createValue(typeLattice.asNonNullable(), knownToBeNonNullValue.getLocalInfo());
+            code.createValue(
+                typeLattice.asReferenceTypeLatticeElement().asNotNull(),
+                knownToBeNonNullValue.getLocalInfo());
         affectedValues.addAll(knownToBeNonNullValue.affectedValues());
         NonNull nonNull = new NonNull(nonNullValue, knownToBeNonNullValue, current);
         nonNull.setPosition(current.getPosition());
@@ -357,15 +362,7 @@ public class NonNullTracker {
 
   private boolean isNonNullCandidate(Value knownToBeNonNullValue) {
     TypeLatticeElement typeLattice = knownToBeNonNullValue.getTypeLattice();
-    return
-        // e.g., v <- non-null INT ?!
-        typeLattice.isReference()
-        // v <- non-null NULL ?!
-        && !typeLattice.isNullType()
-        // v <- non-null known-to-be-non-null // redundant
-        && typeLattice.isNullable()
-        // redundant
-        && !knownToBeNonNullValue.isNeverNull();
+    return typeLattice.isReference() && !typeLattice.isNullType() && typeLattice.isNullable();
   }
 
   public void computeNonNullParamOnNormalExits(OptimizationFeedback feedback, IRCode code) {

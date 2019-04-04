@@ -1948,7 +1948,7 @@ public class CodeRewriter {
     // a' = (B) c;    // (this could be removed, since chained below.)
     // a'' = (A) a';  // this should remain for runtime verification.
     assert !inTypeLattice.isDefinitelyNull();
-    assert outTypeLattice.asNullable().equals(castTypeLattice.asNullable());
+    assert outTypeLattice.equalUpToNullability(castTypeLattice);
     return false;
   }
 

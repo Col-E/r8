@@ -100,7 +100,8 @@ public class NonNull extends Instruction {
 
   @Override
   public TypeLatticeElement evaluate(AppView<? extends AppInfo> appView) {
-    return src().getTypeLattice().asNonNullable();
+    assert src().getTypeLattice().isReference();
+    return src().getTypeLattice().asReferenceTypeLatticeElement().asNotNull();
   }
 
   @Override

@@ -233,7 +233,8 @@ public class MemberValuePropagation {
         && current.outValue().canBeNull()) {
       Value knownToBeNonNullValue = current.outValue();
       TypeLatticeElement typeLattice = knownToBeNonNullValue.getTypeLattice();
-      knownToBeNonNullValue.narrowing(appView, typeLattice.asNonNullable());
+      knownToBeNonNullValue.narrowing(
+          appView, typeLattice.asReferenceTypeLatticeElement().asNotNull());
       affectedValues.addAll(knownToBeNonNullValue.affectedValues());
     }
     if (target.getOptimizationInfo().returnsConstant()) {
@@ -323,7 +324,7 @@ public class MemberValuePropagation {
               && outValue.getTypeLattice().isReference()
               && outValue.canBeNull()) {
             TypeLatticeElement typeLattice = outValue.getTypeLattice();
-            outValue.narrowing(appView, typeLattice.asNonNullable());
+            outValue.narrowing(appView, typeLattice.asReferenceTypeLatticeElement().asNotNull());
             affectedValues.addAll(outValue.affectedValues());
           }
         }

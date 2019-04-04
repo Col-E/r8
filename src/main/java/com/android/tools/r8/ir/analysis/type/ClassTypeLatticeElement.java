@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.analysis.type;
 
-import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
-import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
@@ -15,6 +13,7 @@ import java.util.ArrayDeque;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -84,11 +83,6 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
   }
 
   @Override
-  public TypeLatticeElement asNullable() {
-    return getOrCreateVariant(maybeNull());
-  }
-
-  @Override
   public ReferenceTypeLatticeElement getOrCreateVariant(Nullability nullability) {
     ClassTypeLatticeElement variant = variants.get(nullability);
     if (variant != null) {
@@ -97,10 +91,6 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
     return variants.getOrCreateElement(nullability, this::createVariant);
   }
 
-  @Override
-  public TypeLatticeElement asNonNullable() {
-    return getOrCreateVariant(definitelyNotNull());
-  }
 
   @Override
   public boolean isBasedOnMissingClass(AppView<? extends AppInfoWithSubtyping> appView) {
@@ -135,7 +125,7 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
   @Override
   public int hashCode() {
     // The interfaces of a type do not contribute to its hashCode as they are lazily computed.
-    return (isNullable() ? 1 : -1) * type.hashCode();
+    return Objects.hash(nullability, type);
   }
 
   ClassTypeLatticeElement join(ClassTypeLatticeElement other, AppView<?> appView) {

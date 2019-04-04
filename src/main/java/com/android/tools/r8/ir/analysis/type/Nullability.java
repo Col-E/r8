@@ -14,6 +14,10 @@ import com.android.tools.r8.errors.Unreachable;
  *          /        \
  *   DEFINITELY     DEFINITELY
  *      NULL         NOT NULL
+ *          \        /
+ *            BOTTOM
+ *
+ * The bottom is introduced to handle the case where we have v <- NotNull (NULL).
  * </pre>
  */
 public class Nullability {
@@ -21,6 +25,7 @@ public class Nullability {
   private static final Nullability DEFINITELY_NULL = new Nullability();
   private static final Nullability DEFINITELY_NOT_NULL = new Nullability();
   private static final Nullability MAYBE_NULL = new Nullability();
+  private static final Nullability BOTTOM = new Nullability();
 
   private Nullability() {}
 
@@ -36,7 +41,17 @@ public class Nullability {
     return this == MAYBE_NULL;
   }
 
+  public boolean isNullable() {
+    return isMaybeNull() || isDefinitelyNull();
+  }
+
   public Nullability join(Nullability other) {
+    if (this == BOTTOM) {
+      return other;
+    }
+    if (other == BOTTOM) {
+      return this;
+    }
     if (this == other) {
       return this;
     }
@@ -45,10 +60,6 @@ public class Nullability {
 
   public boolean lessThanOrEqual(Nullability other) {
     return join(other) == other;
-  }
-
-  public boolean isNullable() {
-    return this == MAYBE_NULL || this == DEFINITELY_NULL;
   }
 
   public static Nullability definitelyNull() {
@@ -63,6 +74,10 @@ public class Nullability {
     return MAYBE_NULL;
   }
 
+  public static Nullability bottom() {
+    return BOTTOM;
+  }
+
   @Override
   public String toString() {
     if (this == MAYBE_NULL) {
@@ -73,6 +88,9 @@ public class Nullability {
     }
     if (this == DEFINITELY_NOT_NULL) {
       return "@NotNull";
+    }
+    if (this == BOTTOM) {
+      return "@Bottom";
     }
     throw new Unreachable("Unknown Nullability.");
   }

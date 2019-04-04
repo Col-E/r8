@@ -772,7 +772,7 @@ public class Value {
 
   public boolean canBeNull() {
     assert typeLattice.isReference();
-    return typeLattice.nullability().isNullable();
+    return typeLattice.isNullable();
   }
 
   public void markAsArgument() {

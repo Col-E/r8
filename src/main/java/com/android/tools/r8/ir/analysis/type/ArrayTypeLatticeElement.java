@@ -3,13 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.analysis.type;
 
-import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
+import java.util.Objects;
 
 public class ArrayTypeLatticeElement extends ReferenceTypeLatticeElement {
 
@@ -80,22 +80,12 @@ public class ArrayTypeLatticeElement extends ReferenceTypeLatticeElement {
   }
 
   @Override
-  public TypeLatticeElement asNullable() {
-    return getOrCreateVariant(maybeNull());
-  }
-
-  @Override
   public ReferenceTypeLatticeElement getOrCreateVariant(Nullability nullability) {
     ArrayTypeLatticeElement variant = variants.get(nullability);
     if (variant != null) {
       return variant;
     }
     return variants.getOrCreateElement(nullability, this::createVariant);
-  }
-
-  @Override
-  public TypeLatticeElement asNonNullable() {
-    return getOrCreateVariant(definitelyNotNull());
   }
 
   @Override
@@ -135,7 +125,7 @@ public class ArrayTypeLatticeElement extends ReferenceTypeLatticeElement {
 
   @Override
   public int hashCode() {
-    return (isNullable() ? 1 : -1) * memberTypeLattice.hashCode();
+    return Objects.hash(nullability, memberTypeLattice);
   }
 
   ReferenceTypeLatticeElement join(ArrayTypeLatticeElement other, AppView<?> appView) {

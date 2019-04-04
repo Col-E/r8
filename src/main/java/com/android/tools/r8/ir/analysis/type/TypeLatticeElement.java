@@ -37,24 +37,6 @@ public abstract class TypeLatticeElement {
   public abstract Nullability nullability();
 
   /**
-   * Defines how to join with null or switch to nullable lattice element.
-   *
-   * @return {@link TypeLatticeElement} a result of joining with null.
-   */
-  public TypeLatticeElement asNullable() {
-    return isNullable() ? this : TOP;
-  }
-
-  /**
-   * Defines how to switch to non-nullable lattice element.
-   *
-   * @return {@link TypeLatticeElement} a similar lattice element with nullable flag flipped.
-   */
-  public TypeLatticeElement asNonNullable() {
-    return BOTTOM;
-  }
-
-  /**
    * Computes the least upper bound of the current and the other elements.
    *
    * @param other {@link TypeLatticeElement} to join.
@@ -143,6 +125,27 @@ public abstract class TypeLatticeElement {
    */
   public boolean lessThanOrEqual(TypeLatticeElement other, AppView<?> appView) {
     return equals(other) || strictlyLessThan(other, appView);
+  }
+
+  /**
+   * Determines if the {@link TypeLatticeElement}s are equal up to nullability.
+   *
+   * @param other to check for equality with this
+   * @return {@code true} if {@param this} is equal up to nullability with {@param other}.
+   */
+  public boolean equalUpToNullability(TypeLatticeElement other) {
+    if (this == other) {
+      return true;
+    }
+    if (isPrimitive() || other.isPrimitive()) {
+      return false;
+    }
+    assert isReference() && other.isReference();
+    ReferenceTypeLatticeElement thisAsMaybeNull =
+        this.asReferenceTypeLatticeElement().getOrCreateVariant(Nullability.maybeNull());
+    ReferenceTypeLatticeElement otherAsMaybeNull =
+        other.asReferenceTypeLatticeElement().getOrCreateVariant(Nullability.maybeNull());
+    return thisAsMaybeNull.equals(otherAsMaybeNull);
   }
 
   /**
@@ -282,6 +285,10 @@ public abstract class TypeLatticeElement {
    */
   public boolean isDefinitelyNull() {
     return nullability().isDefinitelyNull();
+  }
+
+  public boolean isDefinitelyNotNull() {
+    return nullability().isDefinitelyNotNull();
   }
 
   public int requiredRegisters() {

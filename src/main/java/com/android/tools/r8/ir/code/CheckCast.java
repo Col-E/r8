@@ -134,7 +134,7 @@ public class CheckCast extends Instruction {
     } else {
       // We don't have enough information to remove the cast. Check that the out-value does not
       // have a more precise type than the cast-type.
-      assert castType.asNullable().equals(outType.asNullable());
+      assert outType.equalUpToNullability(castType);
 
       // Check soundness of null information.
       assert inType.nullability().lessThanOrEqual(outType.nullability());

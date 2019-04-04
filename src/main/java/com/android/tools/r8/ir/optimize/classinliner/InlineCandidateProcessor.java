@@ -738,7 +738,7 @@ final class InlineCandidateProcessor {
       // TODO(b/124842076) Extend this check to use checksNullReceiverBeforeAnySideEffect.
       InvokeMethodWithReceiver invokeMethodWithReceiver = invoke.asInvokeMethodWithReceiver();
       Value receiver = invokeMethodWithReceiver.getReceiver();
-      if (receiver.getTypeLattice().nullability().isNullable()) {
+      if (receiver.getTypeLattice().isNullable()) {
         return false;
       }
     }

@@ -16,11 +16,15 @@ public abstract class ReferenceTypeLatticeElement extends TypeLatticeElement {
 
     @Override
     public ReferenceTypeLatticeElement getOrCreateVariant(Nullability nullability) {
-      throw new Unreachable("This should not be called on NullLaticeElement");
+      return nullability.isNullable() ? NULL_INSTANCE : NULL_BOTTOM_INSTANCE;
     }
 
-    static NullLatticeElement create() {
+    private static NullLatticeElement create() {
       return new NullLatticeElement(Nullability.definitelyNull());
+    }
+
+    private static NullLatticeElement createBottom() {
+      return new NullLatticeElement(Nullability.bottom());
     }
 
     @Override
@@ -51,6 +55,8 @@ public abstract class ReferenceTypeLatticeElement extends TypeLatticeElement {
   }
 
   private static final ReferenceTypeLatticeElement NULL_INSTANCE = NullLatticeElement.create();
+  private static final ReferenceTypeLatticeElement NULL_BOTTOM_INSTANCE =
+      NullLatticeElement.createBottom();
 
   final Nullability nullability;
 
@@ -69,6 +75,10 @@ public abstract class ReferenceTypeLatticeElement extends TypeLatticeElement {
 
   public abstract ReferenceTypeLatticeElement getOrCreateVariant(Nullability nullability);
 
+  public TypeLatticeElement asNotNull() {
+    return getOrCreateVariant(Nullability.definitelyNotNull());
+  }
+
   @Override
   public boolean isReference() {
     return true;
@@ -81,6 +91,11 @@ public abstract class ReferenceTypeLatticeElement extends TypeLatticeElement {
 
   @Override
   public boolean equals(Object o) {
+    throw new Unreachable("Should be implemented on each sub type");
+  }
+
+  @Override
+  public int hashCode() {
     throw new Unreachable("Should be implemented on each sub type");
   }
 }

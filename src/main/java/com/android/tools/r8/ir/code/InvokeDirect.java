@@ -154,7 +154,7 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
 
     // Check if it could throw a NullPointerException as a result of the receiver being null.
     Value receiver = getReceiver();
-    if (receiver.getTypeLattice().nullability().isNullable()) {
+    if (receiver.getTypeLattice().isNullable()) {
       return true;
     }
 
