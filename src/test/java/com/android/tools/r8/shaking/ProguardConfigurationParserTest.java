@@ -957,8 +957,7 @@ public class ProguardConfigurationParserTest extends TestBase {
         new ProguardConfigurationParser(new DexItemFactory(), reporter);
     Path path = Paths.get(DONT_OPTIMIZE_OVERRIDES_PASSES);
     parser.parse(path);
-    checkDiagnostics(handler.warnings, path, 7, 1,
-        "Ignoring", "-optimizationpasses");
+    checkDiagnostics(handler.infos, path, 7, 1, "Ignoring", "-optimizationpasses");
     ProguardConfiguration config = parser.getConfig();
     assertFalse(config.isOptimizing());
   }
@@ -969,8 +968,7 @@ public class ProguardConfigurationParserTest extends TestBase {
         new ProguardConfigurationParser(new DexItemFactory(), reporter);
     Path path = Paths.get(OPTIMIZATION_PASSES);
     parser.parse(path);
-    checkDiagnostics(handler.warnings, path, 5, 1,
-        "Ignoring", "-optimizationpasses");
+    checkDiagnostics(handler.infos, path, 5, 1, "Ignoring", "-optimizationpasses");
     ProguardConfiguration config = parser.getConfig();
     assertTrue(config.isOptimizing());
   }
@@ -1055,8 +1053,8 @@ public class ProguardConfigurationParserTest extends TestBase {
       reset();
       Path proguardConfig = writeTextToTempFile(option);
       parser.parse(proguardConfig);
-      assertEquals(1, handler.warnings.size());
-      checkDiagnostics(handler.warnings, proguardConfig, 1, 1, "Ignoring", "-optimizations");
+      assertEquals(1, handler.infos.size());
+      checkDiagnostics(handler.infos, proguardConfig, 1, 1, "Ignoring", "-optimizations");
     }
   }
 
@@ -1072,10 +1070,10 @@ public class ProguardConfigurationParserTest extends TestBase {
       ProguardConfigurationParser parser =
           new ProguardConfigurationParser(new DexItemFactory(), reporter);
       parser.parse(proguardConfig);
-      assertEquals(3, handler.warnings.size());
+      assertEquals(3, handler.infos.size());
 
-      checkDiagnostics(handler.warnings, 0, proguardConfig, 1, 1, "Ignoring", "-optimizations");
-      Position p1 = handler.warnings.get(0).getPosition();
+      checkDiagnostics(handler.infos, 0, proguardConfig, 1, 1, "Ignoring", "-optimizations");
+      Position p1 = handler.infos.get(0).getPosition();
       assertTrue(p1 instanceof TextRange);
       TextRange r1 = (TextRange) p1;
       assertEquals(1, r1.getStart().getLine());
@@ -1084,8 +1082,8 @@ public class ProguardConfigurationParserTest extends TestBase {
       assertEquals(15, r1.getEnd().getColumn());
 
       checkDiagnostics(
-          handler.warnings, 1, proguardConfig, 2, 1, "Ignoring", "-optimizationpasses");
-      Position p2 = handler.warnings.get(1).getPosition();
+          handler.infos, 1, proguardConfig, 2, 1, "Ignoring", "-optimizationpasses");
+      Position p2 = handler.infos.get(1).getPosition();
       assertTrue(p2 instanceof TextRange);
       TextRange r2 = (TextRange) p2;
       assertEquals(2, r2.getStart().getLine());
@@ -1093,8 +1091,8 @@ public class ProguardConfigurationParserTest extends TestBase {
       assertEquals(2, r2.getEnd().getLine());
       assertEquals(22, r2.getEnd().getColumn());
 
-      checkDiagnostics(handler.warnings, 2, proguardConfig, 3, 1, "Ignoring", "-optimizations");
-      Position p3 = handler.warnings.get(2).getPosition();
+      checkDiagnostics(handler.infos, 2, proguardConfig, 3, 1, "Ignoring", "-optimizations");
+      Position p3 = handler.infos.get(2).getPosition();
       assertTrue(p3 instanceof TextRange);
       TextRange r3 = (TextRange) p3;
       assertEquals(3, r3.getStart().getLine());

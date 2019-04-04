@@ -263,7 +263,7 @@ public class ProguardConfigurationParser {
           throw reporter.fatalError(new StringDiagnostic(
               "Missing n of \"-optimizationpasses n\"", origin, getPosition(optionStart)));
         }
-        warnIgnoringOptions("optimizationpasses", optionStart);
+        infoIgnoringOptions("optimizationpasses", optionStart);
       } else if (acceptString("dontobfuscate")) {
         configurationBuilder.disableObfuscation();
       } else if (acceptString("dontshrink")) {
@@ -559,7 +559,7 @@ public class ProguardConfigurationParser {
       if (!acceptString("optimizations")) {
         return false;
       }
-      warnIgnoringOptions("optimizations", optionStart);
+      infoIgnoringOptions("optimizations", optionStart);
       do {
         skipWhitespace();
         skipOptimizationName();
@@ -1812,6 +1812,11 @@ public class ProguardConfigurationParser {
     private ProguardRuleParserException parseError(String message, TextPosition start) {
       return new ProguardRuleParserException(message, snippetForPosition(start),
           origin, getPosition(start));
+    }
+
+    private void infoIgnoringOptions(String optionName, TextPosition start) {
+      reporter.info(new StringDiagnostic(
+          "Ignoring option: -" + optionName, origin, getPosition(start)));
     }
 
     private void warnIgnoringOptions(String optionName, TextPosition start) {
