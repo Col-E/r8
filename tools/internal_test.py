@@ -224,7 +224,8 @@ def run_bot():
   delete_magic_file(TESTING_COMPLETE)
   log('Test status is: %s' % test_status)
   if test_status != '0':
-    fetch_and_print_logs(git_hash)
+    print('Tests failed, you can print the logs by running(googlers only):')
+    print('  tools/internal_tests.py --print_logs %s' % git_hash)
     return 1
 
 def run_continuously():
