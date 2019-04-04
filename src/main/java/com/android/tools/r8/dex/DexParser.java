@@ -1129,7 +1129,8 @@ public class DexParser {
     }
     dexReader.getUshort(); // unused
 
-    return dexItemFactory.createMethodHandle(type, fieldOrMethod);
+    return dexItemFactory.createMethodHandle(
+        type, fieldOrMethod, type == MethodHandleType.INVOKE_INTERFACE);
   }
 
   private DexCallSite callSiteAt(int index) {

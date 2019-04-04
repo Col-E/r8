@@ -155,7 +155,7 @@ public class InvokeStatic extends InvokeMethod {
 
       // Verify that the target method is accessible in the current context.
       if (!isMemberVisibleFromOriginalContext(
-          appInfoWithLiveness, context, target.method.holder, target.accessFlags)) {
+          appView, context, target.method.holder, target.accessFlags)) {
         return true;
       }
 
@@ -171,7 +171,7 @@ public class InvokeStatic extends InvokeMethod {
       return target.method.holder.classInitializationMayHaveSideEffects(
           appView.appInfo(),
           // Types that are a super type of `context` are guaranteed to be initialized already.
-          type -> context.isSubtypeOf(type, appView.appInfo()));
+          type -> appView.isSubtype(context, type).isTrue());
     }
 
     return true;

@@ -489,7 +489,7 @@ public class IRCode {
     // We can only type check the program if we have subtyping information. Therefore, we do not
     // require that the program type checks in D8.
     if (appView.enableWholeProgramOptimizations()) {
-      assert new TypeChecker(appView).check(this);
+      assert new TypeChecker(appView.withLiveness()).check(this);
     }
     assert blocks.stream().allMatch(block -> block.verifyTypes(appView));
     return true;

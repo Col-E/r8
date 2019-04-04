@@ -189,6 +189,8 @@ public class DexMethodHandle extends IndexedDexItem implements
   // Field or method that the method handle is targeting.
   public final Descriptor<? extends DexItem, ? extends Descriptor<?,?>> fieldOrMethod;
 
+  public final boolean isInterface;
+
   // If the method handle is of method type and is not an argument to a lambda metafactory
   // the method handle could flow to an invokeExact instruction which does equality checking
   // on method descriptors including the receiver. Therefore, for such method handles we
@@ -202,18 +204,22 @@ public class DexMethodHandle extends IndexedDexItem implements
 
   public DexMethodHandle(
       MethodHandleType type,
-      Descriptor<? extends DexItem, ? extends Descriptor<?,?>> fieldOrMethod) {
+      Descriptor<? extends DexItem, ? extends Descriptor<?, ?>> fieldOrMethod,
+      boolean isInterface) {
     this.type = type;
     this.fieldOrMethod = fieldOrMethod;
+    this.isInterface = isInterface;
     this.rewrittenTarget = null;
   }
 
   public DexMethodHandle(
       MethodHandleType type,
       Descriptor<? extends DexItem, ? extends Descriptor<?, ?>> fieldOrMethod,
+      boolean isInterface,
       DexMethod rewrittenTarget) {
     this.type = type;
     this.fieldOrMethod = fieldOrMethod;
+    this.isInterface = isInterface;
     this.rewrittenTarget = rewrittenTarget;
   }
 
@@ -224,14 +230,12 @@ public class DexMethodHandle extends IndexedDexItem implements
         methodHandleType.isFieldType()
             ? application.getField(handle.getOwner(), handle.getName(), handle.getDesc())
             : application.getMethod(handle.getOwner(), handle.getName(), handle.getDesc());
-    return application.getMethodHandle(methodHandleType, descriptor);
+    return application.getMethodHandle(methodHandleType, descriptor, handle.isInterface());
   }
 
   @Override
   public int computeHashCode() {
-    return type.hashCode()
-        + fieldOrMethod.computeHashCode() * 7
-        + Objects.hashCode(rewrittenTarget) * 13;
+    return Objects.hash(type, fieldOrMethod.computeHashCode(), isInterface, rewrittenTarget);
   }
 
   @Override
@@ -240,6 +244,7 @@ public class DexMethodHandle extends IndexedDexItem implements
       DexMethodHandle o = (DexMethodHandle) other;
       return type.equals(o.type)
           && fieldOrMethod.equals(o.fieldOrMethod)
+          && (isInterface == o.isInterface)
           && Objects.equals(rewrittenTarget, o.rewrittenTarget);
     }
     return false;
@@ -367,9 +372,10 @@ public class DexMethodHandle extends IndexedDexItem implements
               : lens.lookupName(method).toString();
       desc = method.proto.toDescriptorString(lens);
       if (method.holder.toDescriptorString().equals("Ljava/lang/invoke/LambdaMetafactory;")) {
+        assert !isInterface;
         itf = false;
       } else {
-        itf = method.holder.isInterface();
+        itf = isInterface;
       }
     } else {
       assert isFieldHandle();
@@ -377,7 +383,7 @@ public class DexMethodHandle extends IndexedDexItem implements
       owner = lens.lookupInternalName(field.holder);
       name = lens.lookupName(field).toString();
       desc = lens.lookupDescriptor(field.type).toString();
-      itf = field.holder.isInterface();
+      itf = isInterface;
     }
     return new Handle(getAsmTag(), owner, name, desc, itf);
   }

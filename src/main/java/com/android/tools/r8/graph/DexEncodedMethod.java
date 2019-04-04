@@ -307,7 +307,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       case PROCESSED_INLINING_CANDIDATE_ANY:
         return true;
       case PROCESSED_INLINING_CANDIDATE_SUBCLASS:
-        return containerType.isSubtypeOf(method.holder, appInfo);
+        return appInfo.isSubtype(containerType, method.holder);
       case PROCESSED_INLINING_CANDIDATE_SAME_PACKAGE:
         return containerType.isSamePackage(method.holder);
       case PROCESSED_INLINING_CANDIDATE_SAME_CLASS:

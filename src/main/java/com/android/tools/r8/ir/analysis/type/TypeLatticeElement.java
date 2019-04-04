@@ -4,6 +4,8 @@
 package com.android.tools.r8.ir.analysis.type;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
@@ -56,10 +58,10 @@ public abstract class TypeLatticeElement {
    * Computes the least upper bound of the current and the other elements.
    *
    * @param other {@link TypeLatticeElement} to join.
-   * @param definitions {@link DexDefinitionSupplier}.
+   * @param appView {@link DexDefinitionSupplier}.
    * @return {@link TypeLatticeElement}, a least upper bound of {@param this} and {@param other}.
    */
-  public TypeLatticeElement join(TypeLatticeElement other, DexDefinitionSupplier definitions) {
+  public TypeLatticeElement join(TypeLatticeElement other, AppView<?> appView) {
     if (this == other) {
       return this;
     }
@@ -92,25 +94,25 @@ public abstract class TypeLatticeElement {
       return this.asReferenceTypeLatticeElement().getOrCreateVariant(nullabilityJoin);
     }
     if (getClass() != other.getClass()) {
-      return objectClassType(definitions, nullabilityJoin);
+      return objectClassType(appView, nullabilityJoin);
     }
     // From now on, getClass() == other.getClass()
     if (isArrayType()) {
       assert other.isArrayType();
-      return asArrayTypeLatticeElement().join(other.asArrayTypeLatticeElement(), definitions);
+      return asArrayTypeLatticeElement().join(other.asArrayTypeLatticeElement(), appView);
     }
     if (isClassType()) {
       assert other.isClassType();
-      return asClassTypeLatticeElement().join(other.asClassTypeLatticeElement(), definitions);
+      return asClassTypeLatticeElement().join(other.asClassTypeLatticeElement(), appView);
     }
     throw new Unreachable("unless a new type lattice is introduced.");
   }
 
   public static TypeLatticeElement join(
-      Iterable<TypeLatticeElement> typeLattices, DexDefinitionSupplier definitions) {
+      Iterable<TypeLatticeElement> typeLattices, AppView<?> appView) {
     TypeLatticeElement result = BOTTOM;
     for (TypeLatticeElement other : typeLattices) {
-      result = result.join(other, definitions);
+      result = result.join(other, appView);
     }
     return result;
   }
@@ -119,15 +121,15 @@ public abstract class TypeLatticeElement {
    * Determines the strict partial order of the given {@link TypeLatticeElement}s.
    *
    * @param other expected to be *strictly* bigger than {@param this}
-   * @param definitions {@link DexDefinitionSupplier} to compute the least upper bound of {@link
+   * @param appView {@link DexDefinitionSupplier} to compute the least upper bound of {@link
    *     TypeLatticeElement}
    * @return {@code true} if {@param this} is strictly less than {@param other}.
    */
-  public boolean strictlyLessThan(TypeLatticeElement other, DexDefinitionSupplier definitions) {
+  public boolean strictlyLessThan(TypeLatticeElement other, AppView<?> appView) {
     if (equals(other)) {
       return false;
     }
-    TypeLatticeElement lub = join(other, definitions);
+    TypeLatticeElement lub = join(other, appView);
     return !equals(lub) && other.equals(lub);
   }
 
@@ -135,20 +137,21 @@ public abstract class TypeLatticeElement {
    * Determines the partial order of the given {@link TypeLatticeElement}s.
    *
    * @param other expected to be bigger than or equal to {@param this}
-   * @param definitions {@link DexDefinitionSupplier} to compute the least upper bound of {@link
+   * @param appView {@link DexDefinitionSupplier} to compute the least upper bound of {@link
    *     TypeLatticeElement}
    * @return {@code true} if {@param this} is less than or equal to {@param other}.
    */
-  public boolean lessThanOrEqual(TypeLatticeElement other, DexDefinitionSupplier definitions) {
-    return equals(other) || strictlyLessThan(other, definitions);
+  public boolean lessThanOrEqual(TypeLatticeElement other, AppView<?> appView) {
+    return equals(other) || strictlyLessThan(other, appView);
   }
 
   /**
    * Determines if this type is based on a missing class, directly or indirectly.
    *
    * @return {@code} true if this type is based on a missing class.
+   * @param appView
    */
-  public boolean isBasedOnMissingClass(DexDefinitionSupplier definitions) {
+  public boolean isBasedOnMissingClass(AppView<? extends AppInfoWithSubtyping> appView) {
     return false;
   }
 
@@ -287,41 +290,37 @@ public abstract class TypeLatticeElement {
   }
 
   public static ClassTypeLatticeElement objectClassType(
-      DexDefinitionSupplier definitions, Nullability nullability) {
-    return fromDexType(definitions.dexItemFactory().objectType, nullability, definitions)
+      AppView<?> appView, Nullability nullability) {
+    return fromDexType(appView.dexItemFactory().objectType, nullability, appView)
         .asClassTypeLatticeElement();
   }
 
-  static ArrayTypeLatticeElement objectArrayType(
-      DexDefinitionSupplier definitions, Nullability nullability) {
-    DexItemFactory dexItemFactory = definitions.dexItemFactory();
+  static ArrayTypeLatticeElement objectArrayType(AppView<?> appView, Nullability nullability) {
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
     return fromDexType(
-            dexItemFactory.createArrayType(1, dexItemFactory.objectType), nullability, definitions)
+            dexItemFactory.createArrayType(1, dexItemFactory.objectType), nullability, appView)
         .asArrayTypeLatticeElement();
   }
 
   public static ClassTypeLatticeElement classClassType(
-      DexDefinitionSupplier definitions, Nullability nullability) {
-    return fromDexType(definitions.dexItemFactory().classType, nullability, definitions)
+      AppView<?> appView, Nullability nullability) {
+    return fromDexType(appView.dexItemFactory().classType, nullability, appView)
         .asClassTypeLatticeElement();
   }
 
   public static ClassTypeLatticeElement stringClassType(
-      DexDefinitionSupplier definitions, Nullability nullability) {
-    return fromDexType(definitions.dexItemFactory().stringType, nullability, definitions)
+      AppView<?> appView, Nullability nullability) {
+    return fromDexType(appView.dexItemFactory().stringType, nullability, appView)
         .asClassTypeLatticeElement();
   }
 
   public static TypeLatticeElement fromDexType(
-      DexType type, Nullability nullability, DexDefinitionSupplier definitions) {
-    return fromDexType(type, nullability, definitions, false);
+      DexType type, Nullability nullability, AppView<?> appView) {
+    return fromDexType(type, nullability, appView, false);
   }
 
   public static TypeLatticeElement fromDexType(
-      DexType type,
-      Nullability nullability,
-      DexDefinitionSupplier definitions,
-      boolean asArrayElementType) {
+      DexType type, Nullability nullability, AppView<?> appView, boolean asArrayElementType) {
     if (type == DexItemFactory.nullValueType) {
       assert !nullability.isDefinitelyNotNull();
       return NULL;
@@ -329,9 +328,7 @@ public abstract class TypeLatticeElement {
     if (type.isPrimitiveType()) {
       return PrimitiveTypeLatticeElement.fromDexType(type, asArrayElementType);
     }
-    return definitions
-        .dexItemFactory()
-        .createReferenceTypeLatticeElement(type, nullability, definitions);
+    return appView.dexItemFactory().createReferenceTypeLatticeElement(type, nullability, appView);
   }
 
   public boolean isValueTypeCompatible(TypeLatticeElement other) {
@@ -340,9 +337,9 @@ public abstract class TypeLatticeElement {
         || (isWide() && other.isWide());
   }
 
-  public TypeLatticeElement checkCast(DexDefinitionSupplier definitions, DexType castType) {
-    TypeLatticeElement castTypeLattice = fromDexType(castType, nullability(), definitions);
-    if (lessThanOrEqual(castTypeLattice, definitions)) {
+  public TypeLatticeElement checkCast(AppView<?> appView, DexType castType) {
+    TypeLatticeElement castTypeLattice = fromDexType(castType, nullability(), appView);
+    if (lessThanOrEqual(castTypeLattice, appView)) {
       return this;
     }
     return castTypeLattice;

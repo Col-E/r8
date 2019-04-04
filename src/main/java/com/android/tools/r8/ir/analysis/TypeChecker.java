@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.analysis;
 
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.GraphLense;
@@ -30,9 +31,9 @@ import com.android.tools.r8.ir.code.Value;
  */
 public class TypeChecker {
 
-  private final AppView<? extends AppInfo> appView;
+  private final AppView<? extends AppInfoWithSubtyping> appView;
 
-  public TypeChecker(AppView<? extends AppInfo> appView) {
+  public TypeChecker(AppView<? extends AppInfoWithSubtyping> appView) {
     this.appView = appView;
   }
 

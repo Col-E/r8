@@ -416,7 +416,7 @@ final class StaticizingProcessor {
               new StaticGet(
                   code.createValue(
                       TypeLatticeElement.fromDexType(
-                          field.type, maybeNull(), classStaticizer.appView.appInfo()),
+                          field.type, maybeNull(), classStaticizer.appView),
                       outValue.getLocalInfo()),
                   field));
         }

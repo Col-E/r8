@@ -217,7 +217,7 @@ public class IRConverter {
           options.enableUninstantiatedTypeOptimization
               ? new UninstantiatedTypeOptimization(appViewWithLiveness)
               : null;
-      this.typeChecker = new TypeChecker(appView);
+      this.typeChecker = new TypeChecker(appView.withLiveness());
     } else {
       this.classInliner = null;
       this.classStaticizer = null;

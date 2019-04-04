@@ -328,7 +328,9 @@ public class RegisterMoveSchedulerTest {
   @Test
   public void multipleLiveTempRegisters() {
     InternalOptions options = new InternalOptions();
-    AppInfo appInfo = new AppInfo(DexApplication.builder(options.itemFactory, null).build());
+    AppView<AppInfo> appInfo =
+        AppView.createForD8(
+            new AppInfo(DexApplication.builder(options.itemFactory, null).build()), options);
     TypeLatticeElement objectType =
         TypeLatticeElement.fromDexType(
             options.itemFactory.objectType, Nullability.maybeNull(), appInfo);

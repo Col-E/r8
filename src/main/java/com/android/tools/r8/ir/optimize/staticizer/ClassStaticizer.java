@@ -116,49 +116,51 @@ public final class ClassStaticizer {
     Set<DexType> notEligible = Sets.newIdentityHashSet();
     Map<DexType, DexEncodedField> singletonFields = new HashMap<>();
 
-    app.classes().forEach(cls -> {
-      // We only consider classes eligible for staticizing if there is just
-      // one single static field in the whole app which has a type of this
-      // class. This field will be considered to be a candidate for a singleton
-      // field. The requirements for the initialization of this field will be
-      // checked later.
-      for (DexEncodedField field : cls.staticFields()) {
-        DexType type = field.field.type;
-        if (singletonFields.put(type, field) != null) {
-          // There is already candidate singleton field found.
-          notEligible.add(type);
-        }
-      }
+    app.classes()
+        .forEach(
+            cls -> {
+              // We only consider classes eligible for staticizing if there is just
+              // one single static field in the whole app which has a type of this
+              // class. This field will be considered to be a candidate for a singleton
+              // field. The requirements for the initialization of this field will be
+              // checked later.
+              for (DexEncodedField field : cls.staticFields()) {
+                DexType type = field.field.type;
+                if (singletonFields.put(type, field) != null) {
+                  // There is already candidate singleton field found.
+                  notEligible.add(type);
+                }
+              }
 
-      // Don't allow fields with this candidate types.
-      for (DexEncodedField field : cls.instanceFields()) {
-        notEligible.add(field.field.type);
-      }
+              // Don't allow fields with this candidate types.
+              for (DexEncodedField field : cls.instanceFields()) {
+                notEligible.add(field.field.type);
+              }
 
-      // Let's also assume no methods should take or return a
-      // value of this type.
-      for (DexEncodedMethod method : cls.methods()) {
-        DexProto proto = method.method.proto;
-        notEligible.add(proto.returnType);
-        notEligible.addAll(Arrays.asList(proto.parameters.values));
-      }
+              // Let's also assume no methods should take or return a
+              // value of this type.
+              for (DexEncodedMethod method : cls.methods()) {
+                DexProto proto = method.method.proto;
+                notEligible.add(proto.returnType);
+                notEligible.addAll(Arrays.asList(proto.parameters.values));
+              }
 
-      // High-level limitations on what classes we consider eligible.
-      if (cls.isInterface() // Must not be an interface or an abstract class.
-          || cls.accessFlags.isAbstract()
-          // Don't support candidates with instance fields
-          || cls.instanceFields().size() > 0
-          // Only support classes directly extending java.lang.Object
-          || cls.superType != factory.objectType
-          // Instead of requiring the class being final,
-          // just ensure it does not have subtypes
-          || cls.type.hasSubtypes()
-          // Staticizing classes implementing interfaces is more
-          // difficult, so don't support it until we really need it.
-          || !cls.interfaces.isEmpty()) {
-        notEligible.add(cls.type);
-      }
-    });
+              // High-level limitations on what classes we consider eligible.
+              if (cls.isInterface() // Must not be an interface or an abstract class.
+                  || cls.accessFlags.isAbstract()
+                  // Don't support candidates with instance fields
+                  || cls.instanceFields().size() > 0
+                  // Only support classes directly extending java.lang.Object
+                  || cls.superType != factory.objectType
+                  // Instead of requiring the class being final,
+                  // just ensure it does not have subtypes
+                  || appView.appInfo().hasSubtypes(cls.type)
+                  // Staticizing classes implementing interfaces is more
+                  // difficult, so don't support it until we really need it.
+                  || !cls.interfaces.isEmpty()) {
+                notEligible.add(cls.type);
+              }
+            });
 
     // Finalize the set of the candidates.
     app.classes().forEach(cls -> {

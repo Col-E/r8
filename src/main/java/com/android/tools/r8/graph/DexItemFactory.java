@@ -405,10 +405,6 @@ public class DexItemFactory {
     return dexMethod == metafactoryMethod || dexMethod == metafactoryAltMethod;
   }
 
-  public synchronized void clearSubtypeInformation() {
-    types.values().forEach(DexType::clearSubtypeInformation);
-  }
-
   public final BiMap<DexType, DexType> primitiveToBoxed = HashBiMap.create(
       ImmutableMap.<DexType, DexType>builder()
           .put(booleanType, boxedBooleanType)
@@ -1065,9 +1061,10 @@ public class DexItemFactory {
 
   public DexMethodHandle createMethodHandle(
       MethodHandleType type,
-      Descriptor<? extends DexItem, ? extends Descriptor<?, ?>> fieldOrMethod) {
+      Descriptor<? extends DexItem, ? extends Descriptor<?, ?>> fieldOrMethod,
+      boolean isInterface) {
     assert !sorted;
-    DexMethodHandle methodHandle = new DexMethodHandle(type, fieldOrMethod);
+    DexMethodHandle methodHandle = new DexMethodHandle(type, fieldOrMethod, isInterface);
     return canonicalize(methodHandles, methodHandle);
   }
 
@@ -1156,7 +1153,7 @@ public class DexItemFactory {
   }
 
   public ReferenceTypeLatticeElement createReferenceTypeLatticeElement(
-      DexType type, Nullability nullability, DexDefinitionSupplier definitions) {
+      DexType type, Nullability nullability, AppView<? extends AppInfo> appView) {
     // Class case:
     // If two concurrent threads will try to create the same class-type the concurrent hash map will
     // synchronize on the type in .computeIfAbsent and only a single class type is created.
@@ -1179,7 +1176,7 @@ public class DexItemFactory {
       }
       memberType =
           TypeLatticeElement.fromDexType(
-              type.toArrayElementType(this), Nullability.maybeNull(), definitions, true);
+              type.toArrayElementType(this), Nullability.maybeNull(), appView, true);
     }
     TypeLatticeElement finalMemberType = memberType;
     return referenceTypeLatticeElements
@@ -1187,21 +1184,26 @@ public class DexItemFactory {
             type,
             t -> {
               if (type.isClassType()) {
-                if (!type.isUnknown() && type.isInterface()) {
+                if (!appView.appInfo().hasSubtyping()) {
+                  return ClassTypeLatticeElement.create(type, nullability, (Set<DexType>) null);
+                }
+                AppView<? extends AppInfoWithSubtyping> appViewWithSubtyping =
+                    appView.withLiveness();
+                // TODO(zerny): It should never be the case that we have unknown at this point!
+                if (!appViewWithSubtyping.appInfo().isUnknown(type)
+                    && appViewWithSubtyping.appInfo().isInterface(type)) {
                   return ClassTypeLatticeElement.create(
                       objectType, nullability, ImmutableSet.of(type));
-                } else {
-                  // In theory, `interfaces` is the least upper bound of implemented interfaces.
-                  // It is expensive to walk through type hierarchy; collect implemented interfaces;
-                  // and compute the least upper bound of two interface sets. Hence, lazy
-                  // computations. Most likely during lattice join. See {@link
-                  // ClassTypeLatticeElement#getInterfaces}.
-                  return ClassTypeLatticeElement.create(type, nullability, definitions);
                 }
-              } else {
-                assert type.isArrayType();
-                return ArrayTypeLatticeElement.create(finalMemberType, nullability);
+                // In theory, `interfaces` is the least upper bound of implemented interfaces.
+                // It is expensive to walk through type hierarchy; collect implemented interfaces;
+                // and compute the least upper bound of two interface sets. Hence, lazy
+                // computations. Most likely during lattice join. See {@link
+                // ClassTypeLatticeElement#getInterfaces}.
+                return ClassTypeLatticeElement.create(type, nullability, appViewWithSubtyping);
               }
+              assert type.isArrayType();
+              return ArrayTypeLatticeElement.create(finalMemberType, nullability);
             })
         .getOrCreateVariant(nullability);
   }

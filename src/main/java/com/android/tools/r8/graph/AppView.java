@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.OptionalBool;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.VerticalClassMerger.VerticallyMergedClasses;
 import com.android.tools.r8.utils.InternalOptions;
@@ -121,5 +122,11 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
     @SuppressWarnings("unchecked")
     AppView<AppInfoWithLiveness> appViewWithLiveness = (AppView<AppInfoWithLiveness>) this;
     return appViewWithLiveness;
+  }
+
+  public OptionalBool isSubtype(DexType subtype, DexType supertype) {
+    return appInfo().hasSubtyping()
+        ? OptionalBool.of(appInfo().withSubtyping().isSubtype(subtype, supertype))
+        : OptionalBool.unknown();
   }
 }

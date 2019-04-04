@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.optimize;
 
+import com.android.tools.r8.graph.ClassHierarchy;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -29,7 +30,8 @@ interface InliningStrategy {
 
   void ensureMethodProcessed(DexEncodedMethod target, IRCode inlinee);
 
-  boolean isValidTarget(InvokeMethod invoke, DexEncodedMethod target, IRCode inlinee);
+  boolean isValidTarget(
+      InvokeMethod invoke, DexEncodedMethod target, IRCode inlinee, ClassHierarchy hierarchy);
 
   void updateTypeInformationIfNeeded(
       IRCode inlinee, ListIterator<BasicBlock> blockIterator, BasicBlock block);

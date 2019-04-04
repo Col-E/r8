@@ -93,7 +93,7 @@ public class InvokeSuper extends InvokeMethodWithReceiver {
     if (invocationContext == null) {
       return null;
     }
-    if (!invocationContext.isSubtypeOf(getInvokedMethod().holder, appInfo)) {
+    if (!appInfo.isSubtype(invocationContext, getInvokedMethod().holder)) {
       return null;
     } else {
       return appInfo.lookupSuperTarget(getInvokedMethod(), invocationContext);

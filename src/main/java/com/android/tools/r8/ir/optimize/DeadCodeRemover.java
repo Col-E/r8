@@ -159,7 +159,7 @@ public class DeadCodeRemover {
       boolean isSubsumedByPreviousGuard = false;
       for (int j = 0; j < i; ++j) {
         DexType previousGuard = catchHandlers.getGuards().get(j);
-        if (guard.isSubtypeOf(previousGuard, appView)) {
+        if (appView.isSubtype(guard, previousGuard).isTrue()) {
           isSubsumedByPreviousGuard = true;
           break;
         }

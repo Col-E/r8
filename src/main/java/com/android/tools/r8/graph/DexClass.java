@@ -673,24 +673,24 @@ public abstract class DexClass extends DexDefinition {
     return getInitializer(DexType.EMPTY_ARRAY);
   }
 
-  public boolean hasMissingSuperType(DexDefinitionSupplier definitions) {
-    if (superType != null && superType.isMissingOrHasMissingSuperType(definitions)) {
+  public boolean hasMissingSuperType(AppInfoWithSubtyping appInfo) {
+    if (superType != null && appInfo.isMissingOrHasMissingSuperType(superType)) {
       return true;
     }
     for (DexType interfaceType : interfaces.values) {
-      if (interfaceType.isMissingOrHasMissingSuperType(definitions)) {
+      if (appInfo.isMissingOrHasMissingSuperType(interfaceType)) {
         return true;
       }
     }
     return false;
   }
 
-  public boolean isSerializable(DexDefinitionSupplier definitions) {
-    return type.isSerializable(definitions);
+  public boolean isSerializable(AppView<? extends AppInfoWithSubtyping> appView) {
+    return appView.appInfo().isSerializable(type);
   }
 
-  public boolean isExternalizable(DexDefinitionSupplier definitions) {
-    return type.isExternalizable(definitions);
+  public boolean isExternalizable(AppView<? extends AppInfoWithSubtyping> appView) {
+    return appView.appInfo().isExternalizable(type);
   }
 
   public boolean classInitializationMayHaveSideEffects(DexDefinitionSupplier definitions) {

@@ -3,9 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
@@ -35,9 +35,9 @@ public class R8Shaking2LookupTest {
   private void validateSubtype(DexType super_type, DexType sub_type) {
     assertFalse(super_type.equals(sub_type));
     assertTrue(appInfo.subtypes(super_type).contains(sub_type));
-    assertTrue(sub_type.isSubtypeOf(super_type, appInfo));
+    assertTrue(appInfo.isSubtype(sub_type, super_type));
     assertFalse(appInfo.subtypes(sub_type).contains(super_type));
-    assertFalse(super_type.isSubtypeOf(sub_type, appInfo));
+    assertFalse(appInfo.isSubtype(super_type, sub_type));
   }
 
   private void validateSubtypeSize(DexType type, int size) {

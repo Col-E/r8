@@ -1427,15 +1427,15 @@ public class Enqueuer {
     }
   }
 
-  private static void fillWorkList(Deque<DexType> worklist, DexType type) {
-    if (type.isInterface()) {
+  private void fillWorkList(Deque<DexType> worklist, DexType type) {
+    if (appInfo.isInterface(type)) {
       // We need to check if the method is shadowed by a class that directly implements
       // the interface and go recursively down to the sub interfaces to reach class
       // implementing the interface
-      type.forAllImplementsSubtypes(worklist::addLast);
-      type.forAllExtendsSubtypes(worklist::addLast);
+      appInfo.forAllImplementsSubtypes(type, worklist::addLast);
+      appInfo.forAllExtendsSubtypes(type, worklist::addLast);
     } else {
-      type.forAllExtendsSubtypes(worklist::addLast);
+      appInfo.forAllExtendsSubtypes(type, worklist::addLast);
     }
   }
 

@@ -47,8 +47,10 @@ class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
     timing.end();
     // Next, reserve field names in interfaces. These should only be static.
     timing.begin("reserve-interfaces");
-    DexType.forAllInterfaces(
-        appView.dexItemFactory(), iface -> reserveNamesInSubtypes(iface, globalState));
+    appView
+        .appInfo()
+        .forAllInterfaces(
+            appView.dexItemFactory(), iface -> reserveNamesInSubtypes(iface, globalState));
     timing.end();
     // Rename the definitions.
     timing.begin("rename-definitions");
@@ -85,7 +87,9 @@ class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
     NamingState<DexType, ?> newState = computeStateIfAbsent(type, t -> state.createChild());
     holder.forEachField(
         field -> reserveFieldName(field, newState, alwaysReserveMemberNames(holder)));
-    type.forAllExtendsSubtypes(subtype -> reserveNamesInSubtypes(subtype, newState));
+    appView
+        .appInfo()
+        .forAllExtendsSubtypes(type, subtype -> reserveNamesInSubtypes(subtype, newState));
   }
 
   private void reserveFieldName(
@@ -113,13 +117,13 @@ class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
     for (DexEncodedField field : clazz.fields()) {
       renameField(field, state);
     }
-    for (DexType subclass : type.allExtendsSubtypes()) {
+    for (DexType subclass : appView.appInfo().allExtendsSubtypes(type)) {
       renameFieldsInSubclasses(subclass, type);
     }
   }
 
   private void renameFieldsInInterfaces() {
-    for (DexType interfaceType : DexType.allInterfaces(appView.dexItemFactory())) {
+    for (DexType interfaceType : appView.appInfo().allInterfaces(appView.dexItemFactory())) {
       renameFieldsInInterface(interfaceType);
     }
   }

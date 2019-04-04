@@ -7,6 +7,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.ir.analysis.type.Nullability;
@@ -91,8 +92,9 @@ public class TrivialGotoEliminationTest {
 
   @Test
   public void trivialGotoLoopAsFallthrough() {
+    InternalOptions options = new InternalOptions();
     DexApplication app = DexApplication.builder(new DexItemFactory(), new Timing("")).build();
-    AppInfo appInfo = new AppInfo(app);
+    AppView<AppInfo> appView = AppView.createForD8(new AppInfo(app), options);
     // Setup block structure:
     // block0:
     //   v0 <- argument
@@ -132,7 +134,7 @@ public class TrivialGotoEliminationTest {
         new Value(
             0,
             TypeLatticeElement.fromDexType(
-                app.dexItemFactory.throwableType, Nullability.definitelyNotNull(), appInfo),
+                app.dexItemFactory.throwableType, Nullability.definitelyNotNull(), appView),
             null);
     instruction = new Argument(value);
     instruction.setPosition(position);
@@ -157,7 +159,6 @@ public class TrivialGotoEliminationTest {
     // Check that the goto in block0 remains. There was a bug in the trivial goto elimination
     // that ended up removing that goto changing the code to start with the unreachable
     // throw.
-    InternalOptions options = new InternalOptions();
     options.debug = true;
     IRCode code =
         new IRCode(

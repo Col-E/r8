@@ -14,6 +14,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
@@ -36,7 +37,7 @@ public class TypeLatticeTest extends TestBase {
   private static final String INTERRUPT = "Ljava/io/InterruptedIOException;";
 
   private static DexItemFactory factory;
-  private static AppInfoWithSubtyping appInfo;
+  private static AppView<AppInfoWithSubtyping> appView;
 
   @BeforeClass
   public static void makeAppInfo() throws Exception {
@@ -57,7 +58,7 @@ public class TypeLatticeTest extends TestBase {
             .read()
             .toDirect();
     factory = options.itemFactory;
-    appInfo = new AppInfoWithSubtyping(application);
+    appView = AppView.createForR8(new AppInfoWithSubtyping(application), options);
   }
 
   private TopTypeLatticeElement top() {
@@ -77,7 +78,7 @@ public class TypeLatticeTest extends TestBase {
   }
 
   private TypeLatticeElement element(DexType type) {
-    return TypeLatticeElement.fromDexType(type, Nullability.maybeNull(), appInfo);
+    return TypeLatticeElement.fromDexType(type, Nullability.maybeNull(), appView);
   }
 
   private ArrayTypeLatticeElement array(int nesting, DexType base) {
@@ -86,15 +87,15 @@ public class TypeLatticeTest extends TestBase {
 
   private TypeLatticeElement join(TypeLatticeElement... elements) {
     assertTrue(elements.length > 1);
-    return TypeLatticeElement.join(Arrays.asList(elements), appInfo);
+    return TypeLatticeElement.join(Arrays.asList(elements), appView);
   }
 
   private boolean strictlyLessThan(TypeLatticeElement l1, TypeLatticeElement l2) {
-    return l1.strictlyLessThan(l2, appInfo);
+    return l1.strictlyLessThan(l2, appView);
   }
 
   private boolean lessThanOrEqual(TypeLatticeElement l1, TypeLatticeElement l2) {
-    return l1.lessThanOrEqual(l2, appInfo);
+    return l1.lessThanOrEqual(l2, appView);
   }
 
   @Test
@@ -507,8 +508,7 @@ public class TypeLatticeTest extends TestBase {
   @Test
   public void testSelfOrderWithoutSubtypingInfo() {
     DexType type = factory.createType("Lmy/Type;");
-    TypeLatticeElement nonNullType =
-        fromDexType(type, Nullability.definitelyNotNull(), appInfo);
+    TypeLatticeElement nonNullType = fromDexType(type, Nullability.definitelyNotNull(), appView);
     TypeLatticeElement nullableType = nonNullType.asNullable();
     // TODO(zerny): Once the null lattice is used for null info check that the class-type null is
     // also more specific that the nullableType.
@@ -524,31 +524,34 @@ public class TypeLatticeTest extends TestBase {
     DexType list = factory.createType("Ljava/util/List;");
     DexType serializable = factory.serializableType;
 
-    Set<DexType> lub = computeLeastUpperBoundOfInterfaces(appInfo,
-        ImmutableSet.of(set), ImmutableSet.of(list));
+    Set<DexType> lub =
+        computeLeastUpperBoundOfInterfaces(appView, ImmutableSet.of(set), ImmutableSet.of(list));
     assertEquals(1, lub.size());
     assertTrue(lub.contains(collection));
     verifyViaPairwiseJoin(lub,
         ImmutableSet.of(set), ImmutableSet.of(list));
 
-    lub = computeLeastUpperBoundOfInterfaces(appInfo,
-        ImmutableSet.of(set, serializable), ImmutableSet.of(list, serializable));
+    lub =
+        computeLeastUpperBoundOfInterfaces(
+            appView, ImmutableSet.of(set, serializable), ImmutableSet.of(list, serializable));
     assertEquals(2, lub.size());
     assertTrue(lub.contains(collection));
     assertTrue(lub.contains(serializable));
     verifyViaPairwiseJoin(lub,
         ImmutableSet.of(set, serializable), ImmutableSet.of(list, serializable));
 
-    lub = computeLeastUpperBoundOfInterfaces(appInfo,
-        ImmutableSet.of(set), ImmutableSet.of(list, serializable));
+    lub =
+        computeLeastUpperBoundOfInterfaces(
+            appView, ImmutableSet.of(set), ImmutableSet.of(list, serializable));
     assertEquals(1, lub.size());
     assertTrue(lub.contains(collection));
     assertFalse(lub.contains(serializable));
     verifyViaPairwiseJoin(lub,
         ImmutableSet.of(set), ImmutableSet.of(list, serializable));
 
-    lub = computeLeastUpperBoundOfInterfaces(appInfo,
-        ImmutableSet.of(set, serializable), ImmutableSet.of(list));
+    lub =
+        computeLeastUpperBoundOfInterfaces(
+            appView, ImmutableSet.of(set, serializable), ImmutableSet.of(list));
     assertEquals(1, lub.size());
     assertTrue(lub.contains(collection));
     assertFalse(lub.contains(serializable));
@@ -559,15 +562,16 @@ public class TypeLatticeTest extends TestBase {
     DexType wType = factory.createType("Ljava/lang/reflect/WildcardType;");
     DexType pType = factory.createType("Ljava/lang/reflect/ParameterizedType;");
 
-    lub = computeLeastUpperBoundOfInterfaces(appInfo,
-        ImmutableSet.of(wType), ImmutableSet.of(pType));
+    lub =
+        computeLeastUpperBoundOfInterfaces(appView, ImmutableSet.of(wType), ImmutableSet.of(pType));
     assertEquals(1, lub.size());
     assertTrue(lub.contains(type));
     verifyViaPairwiseJoin(lub,
         ImmutableSet.of(wType), ImmutableSet.of(pType));
 
-    lub = computeLeastUpperBoundOfInterfaces(appInfo,
-        ImmutableSet.of(list, serializable), ImmutableSet.of(pType));
+    lub =
+        computeLeastUpperBoundOfInterfaces(
+            appView, ImmutableSet.of(list, serializable), ImmutableSet.of(pType));
     assertEquals(0, lub.size());
     verifyViaPairwiseJoin(lub,
         ImmutableSet.of(list, serializable), ImmutableSet.of(pType));
@@ -580,8 +584,7 @@ public class TypeLatticeTest extends TestBase {
         DescriptorUtils.javaTypeToDescriptor(I3.class.getCanonicalName()));
     DexType i4 = factory.createType(
         DescriptorUtils.javaTypeToDescriptor(I4.class.getCanonicalName()));
-    lub = computeLeastUpperBoundOfInterfaces(appInfo,
-        ImmutableSet.of(i3), ImmutableSet.of(i4));
+    lub = computeLeastUpperBoundOfInterfaces(appView, ImmutableSet.of(i3), ImmutableSet.of(i4));
     assertEquals(2, lub.size());
     assertTrue(lub.contains(i1));
     assertTrue(lub.contains(i2));
@@ -593,8 +596,8 @@ public class TypeLatticeTest extends TestBase {
     ImmutableSet.Builder<DexType> builder = ImmutableSet.builder();
     for (DexType i1 : s1) {
       for (DexType i2 : s2) {
-        Set<DexType> lubPerPair = computeLeastUpperBoundOfInterfaces(appInfo,
-            ImmutableSet.of(i1), ImmutableSet.of(i2));
+        Set<DexType> lubPerPair =
+            computeLeastUpperBoundOfInterfaces(appView, ImmutableSet.of(i1), ImmutableSet.of(i2));
         for (DexType lubInterface : lubPerPair) {
           builder.add(lubInterface);
         }
@@ -604,7 +607,8 @@ public class TypeLatticeTest extends TestBase {
     ImmutableSet.Builder<DexType> lubBuilder = ImmutableSet.builder();
     for (DexType itf : pairwiseJoin) {
       // If there is a strict sub interface of this interface, it is not the least element.
-      if (pairwiseJoin.stream().anyMatch(other -> other.isStrictSubtypeOf(itf, appInfo))) {
+      if (pairwiseJoin.stream()
+          .anyMatch(other -> appView.appInfo().isStrictSubtypeOf(other, itf))) {
         continue;
       }
       lubBuilder.add(itf);

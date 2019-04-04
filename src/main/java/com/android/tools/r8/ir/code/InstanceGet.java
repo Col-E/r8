@@ -117,7 +117,7 @@ public class InstanceGet extends FieldInstruction {
       return false;
     }
     if (!isMemberVisibleFromOriginalContext(
-        appInfo,
+        appView,
         code.method.method.holder,
         resolvedField.field.holder,
         resolvedField.accessFlags)) {

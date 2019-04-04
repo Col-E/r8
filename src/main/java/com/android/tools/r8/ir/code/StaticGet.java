@@ -110,17 +110,19 @@ public class StaticGet extends FieldInstruction {
       return false;
     }
     if (!isMemberVisibleFromOriginalContext(
-        appInfo,
+        appView,
         code.method.method.holder,
         resolvedField.field.holder,
         resolvedField.accessFlags)) {
       return false;
     }
     DexType context = code.method.method.holder;
-    return !getField().holder.classInitializationMayHaveSideEffects(
-        appInfo,
-        // Types that are a super type of `context` are guaranteed to be initialized already.
-        type -> context.isSubtypeOf(type, appInfo));
+    return !getField()
+        .holder
+        .classInitializationMayHaveSideEffects(
+            appInfo,
+            // Types that are a super type of `context` are guaranteed to be initialized already.
+            type -> appView.isSubtype(context, type).isTrue());
   }
 
   @Override

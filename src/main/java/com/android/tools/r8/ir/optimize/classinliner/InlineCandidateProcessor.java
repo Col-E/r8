@@ -210,7 +210,7 @@ final class InlineCandidateProcessor {
     if (eligibleClassDefinition.instanceFields().size() > 0) {
       return false;
     }
-    if (eligibleClassDefinition.type.hasSubtypes()) {
+    if (appView.appInfo().hasSubtypes(eligibleClassDefinition.type)) {
       assert !eligibleClassDefinition.accessFlags.isFinal();
       return false;
     }

@@ -93,7 +93,7 @@ public class Devirtualizer {
               Value oldReceiver = newCheckCast.object();
               TypeLatticeElement oldReceiverType = oldReceiver.getTypeLattice();
               TypeLatticeElement newReceiverType = newReceiver.getTypeLattice();
-              if (newReceiverType.lessThanOrEqual(oldReceiverType, appView.appInfo())
+              if (newReceiverType.lessThanOrEqual(oldReceiverType, appView)
                   && dominatorTree.dominatedBy(block, devirtualizedInvoke.getBlock())) {
                 assert nonNull.src() == oldReceiver;
                 assert !oldReceiver.hasLocalInfo();
@@ -120,7 +120,7 @@ public class Devirtualizer {
         }
         // Due to the potential downcast below, make sure the new target holder is visible.
         ConstraintWithTarget visibility =
-            ConstraintWithTarget.classIsVisible(invocationContext, holderType, appView.appInfo());
+            ConstraintWithTarget.classIsVisible(invocationContext, holderType, appView);
         if (visibility == ConstraintWithTarget.NEVER) {
           continue;
         }

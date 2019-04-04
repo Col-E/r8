@@ -104,8 +104,9 @@ public class JarApplicationReader {
 
   public DexMethodHandle getMethodHandle(
       MethodHandleType type,
-      Descriptor<? extends DexItem, ? extends Descriptor<?, ?>> fieldOrMethod) {
-    return options.itemFactory.createMethodHandle(type, fieldOrMethod);
+      Descriptor<? extends DexItem, ? extends Descriptor<?, ?>> fieldOrMethod,
+      boolean isInterface) {
+    return options.itemFactory.createMethodHandle(type, fieldOrMethod, isInterface);
   }
 
   public DexProto getProto(String desc) {

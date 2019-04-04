@@ -168,7 +168,7 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
 
       // Verify that the target method is accessible in the current context.
       if (!isMemberVisibleFromOriginalContext(
-          appInfoWithLiveness, context, target.method.holder, target.accessFlags)) {
+          appView, context, target.method.holder, target.accessFlags)) {
         return true;
       }
 

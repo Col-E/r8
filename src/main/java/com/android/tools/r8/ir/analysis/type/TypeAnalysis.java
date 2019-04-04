@@ -8,8 +8,8 @@ import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.fromDexType;
 
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -170,12 +170,12 @@ public class TypeAnalysis {
   }
 
   public static DexType getRefinedReceiverType(
-      DexDefinitionSupplier definitions, InvokeMethodWithReceiver invoke) {
+      AppInfoWithSubtyping appInfo, InvokeMethodWithReceiver invoke) {
     DexType receiverType = invoke.getInvokedMethod().holder;
     TypeLatticeElement lattice = invoke.getReceiver().getTypeLattice();
     if (lattice.isClassType()) {
       DexType refinedType = lattice.asClassTypeLatticeElement().getClassType();
-      if (refinedType.isSubtypeOf(receiverType, definitions)) {
+      if (appInfo.isSubtype(refinedType, receiverType)) {
         return refinedType;
       }
     }

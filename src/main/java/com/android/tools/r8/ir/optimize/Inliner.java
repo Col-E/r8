@@ -6,8 +6,8 @@ package com.android.tools.r8.ir.optimize;
 import com.android.tools.r8.graph.AccessFlags;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.ClassHierarchy;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -101,7 +101,7 @@ public class Inliner {
         break;
       }
       // TODO(b/128967328): we may need to collect all meaningful constraints.
-      result = ConstraintWithTarget.meet(result, state, appView.appInfo());
+      result = ConstraintWithTarget.meet(result, state, appView);
     }
     return result;
   }
@@ -123,7 +123,7 @@ public class Inliner {
       return target == context;
     }
     if (flags.isProtected()) {
-      return context.isSubtypeOf(target, appView.appInfo()) || target.isSamePackage(context);
+      return appView.appInfo().isSubtype(context, target) || target.isSamePackage(context);
     }
     // package-private
     return target.isSamePackage(context);
@@ -272,10 +272,7 @@ public class Inliner {
     }
 
     public static ConstraintWithTarget deriveConstraint(
-        DexType contextHolder,
-        DexType targetHolder,
-        AccessFlags flags,
-        DexDefinitionSupplier definitions) {
+        DexType contextHolder, DexType targetHolder, AccessFlags flags, AppView<?> appView) {
       if (flags.isPublic()) {
         return ALWAYS;
       } else if (flags.isPrivate()) {
@@ -285,7 +282,7 @@ public class Inliner {
         if (targetHolder.isSamePackage(contextHolder)) {
           // Even though protected, this is visible via the same package from the context.
           return new ConstraintWithTarget(Constraint.PACKAGE, targetHolder);
-        } else if (contextHolder.isSubtypeOf(targetHolder, definitions)) {
+        } else if (appView.isSubtype(contextHolder, targetHolder).isTrue()) {
           return new ConstraintWithTarget(Constraint.SUBCLASS, targetHolder);
         }
         return NEVER;
@@ -297,29 +294,28 @@ public class Inliner {
     }
 
     public static ConstraintWithTarget classIsVisible(
-        DexType context, DexType clazz, DexDefinitionSupplier definitions) {
+        DexType context, DexType clazz, AppView<?> appView) {
       if (clazz.isArrayType()) {
-        return classIsVisible(
-            context, clazz.toArrayElementType(definitions.dexItemFactory()), definitions);
+        return classIsVisible(context, clazz.toArrayElementType(appView.dexItemFactory()), appView);
       }
 
       if (clazz.isPrimitiveType()) {
         return ALWAYS;
       }
 
-      DexClass definition = definitions.definitionFor(clazz);
+      DexClass definition = appView.definitionFor(clazz);
       return definition == null
           ? NEVER
-          : deriveConstraint(context, clazz, definition.accessFlags, definitions);
+          : deriveConstraint(context, clazz, definition.accessFlags, appView);
     }
 
     public static ConstraintWithTarget meet(
-        ConstraintWithTarget one, ConstraintWithTarget other, DexDefinitionSupplier definitions) {
+        ConstraintWithTarget one, ConstraintWithTarget other, AppView<?> appView) {
       if (one.equals(other)) {
         return one;
       }
       if (other.constraint.ordinal() < one.constraint.ordinal()) {
-        return meet(other, one, definitions);
+        return meet(other, one, appView);
       }
       // From now on, one.constraint.ordinal() <= other.constraint.ordinal()
       if (one == NEVER) {
@@ -345,7 +341,7 @@ public class Inliner {
           return NEVER;
         }
         assert other.constraint == Constraint.SUBCLASS;
-        if (one.targetHolder.isSubtypeOf(other.targetHolder, definitions)) {
+        if (appView.isSubtype(one.targetHolder, other.targetHolder).isTrue()) {
           return one;
         }
         return NEVER;
@@ -375,10 +371,10 @@ public class Inliner {
       assert Constraint.SUBCLASS.isSet(constraint);
       assert one.constraint == other.constraint;
       assert one.targetHolder != other.targetHolder;
-      if (one.targetHolder.isSubtypeOf(other.targetHolder, definitions)) {
+      if (appView.isSubtype(one.targetHolder, other.targetHolder).isTrue()) {
         return one;
       }
-      if (other.targetHolder.isSubtypeOf(one.targetHolder, definitions)) {
+      if (appView.isSubtype(other.targetHolder, one.targetHolder).isTrue()) {
         return other;
       }
       // SUBCLASS of x and SUBCLASS of y while x and y are not a subtype of each other.
@@ -451,8 +447,8 @@ public class Inliner {
     return numOfInstructions;
   }
 
-  boolean legalConstructorInline(DexEncodedMethod method,
-      InvokeMethod invoke, IRCode code) {
+  boolean legalConstructorInline(
+      DexEncodedMethod method, InvokeMethod invoke, IRCode code, ClassHierarchy hierarchy) {
 
     // In the Java VM Specification section "4.10.2.4. Instance Initialization Methods and
     // Newly Created Objects" it says:
@@ -497,7 +493,7 @@ public class Inliner {
           boolean callOnConstructorThatCallsConstructorSameClass =
               calleeMethodHolder == target.holder;
           boolean callOnSupertypeOfThisInConstructor =
-              callerMethodHolder.isImmediateSubtypeOf(target.holder)
+              hierarchy.isDirectSubtype(callerMethodHolder, target.holder)
                   && instruction.asInvokeDirect().getReceiver() == unInitializedObject
                   && receiverOfInnerCallIsThisOfOuter
                   && callerMethodIsConstructor;
@@ -628,7 +624,7 @@ public class Inliner {
 
               // Make sure constructor inlining is legal.
               assert !target.isClassInitializer();
-              if (!strategy.isValidTarget(invoke, target, inlinee.code)) {
+              if (!strategy.isValidTarget(invoke, target, inlinee.code, appView.appInfo())) {
                 continue;
               }
               DexType downcast = getDowncastTypeIfNeeded(strategy, invoke, target);

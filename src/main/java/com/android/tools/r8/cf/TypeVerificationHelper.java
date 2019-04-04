@@ -185,7 +185,7 @@ public class TypeVerificationHelper {
     Iterator<DexType> iterator = types.iterator();
     TypeLatticeElement result = getLatticeElement(iterator.next());
     while (iterator.hasNext()) {
-      result = result.join(getLatticeElement(iterator.next()), appView.appInfo());
+      result = result.join(getLatticeElement(iterator.next()), appView);
     }
     // All types are reference types so the join is either a class or an array.
     if (result.isClassType()) {

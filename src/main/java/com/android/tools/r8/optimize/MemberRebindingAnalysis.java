@@ -6,7 +6,6 @@ package com.android.tools.r8.optimize;
 import com.android.tools.r8.graph.AccessFlags;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -206,7 +205,7 @@ public class MemberRebindingAnalysis {
     DexClass superClass = appView.definitionFor(clazz.superType);
     if (superClass == null
         || superClass.isNotProgramClass()
-        || !superClass.type.isSubtypeOf(iface, appView)) {
+        || !appView.appInfo().isSubtype(superClass.type, iface)) {
       return clazz;
     }
     return findHolderForInterfaceMethodBridge(superClass.asProgramClass(), iface);
@@ -259,12 +258,12 @@ public class MemberRebindingAnalysis {
     }
     DexProgramClass newHolder = null;
     // Recurse through supertype chain.
-    if (originalClass.superType.isSubtypeOf(targetClass.type, appView)) {
+    if (appView.appInfo().isSubtype(originalClass.superType, targetClass.type)) {
       DexClass superClass = appView.definitionFor(originalClass.superType);
       newHolder = findHolderForVisibilityBridge(superClass, targetClass, packageDescriptor);
     } else {
       for (DexType iface : originalClass.interfaces.values) {
-        if (iface.isSubtypeOf(targetClass.type, appView)) {
+        if (appView.appInfo().isSubtype(iface, targetClass.type)) {
           DexClass interfaceClass = appView.definitionFor(iface);
           newHolder = findHolderForVisibilityBridge(interfaceClass, targetClass, packageDescriptor);
         }
@@ -307,21 +306,18 @@ public class MemberRebindingAnalysis {
   }
 
   public static boolean isMemberVisibleFromOriginalContext(
-      DexDefinitionSupplier definitions,
-      DexType context,
-      DexType holder,
-      AccessFlags<?> memberAccessFlags) {
-    DexClass clazz = definitions.definitionFor(holder);
+      AppView<?> appView, DexType context, DexType holder, AccessFlags<?> memberAccessFlags) {
+    DexClass clazz = appView.definitionFor(holder);
     if (clazz == null) {
       return false;
     }
     ConstraintWithTarget classVisibility =
-        ConstraintWithTarget.deriveConstraint(context, holder, clazz.accessFlags, definitions);
+        ConstraintWithTarget.deriveConstraint(context, holder, clazz.accessFlags, appView);
     if (classVisibility == ConstraintWithTarget.NEVER) {
       return false;
     }
     ConstraintWithTarget memberVisibility =
-        ConstraintWithTarget.deriveConstraint(context, holder, memberAccessFlags, definitions);
+        ConstraintWithTarget.deriveConstraint(context, holder, memberAccessFlags, appView);
     return memberVisibility != ConstraintWithTarget.NEVER;
   }
 

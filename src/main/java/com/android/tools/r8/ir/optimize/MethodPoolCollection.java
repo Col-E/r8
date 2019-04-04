@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.ir.optimize;
 
-import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexMethod;
@@ -24,7 +24,7 @@ import com.android.tools.r8.utils.MethodSignatureEquivalence;
 // TODO(b/66369976): to determine if a certain method can be made `final`.
 public class MethodPoolCollection extends MemberPoolCollection<DexMethod> {
 
-  public MethodPoolCollection(AppView<? extends AppInfo> appView) {
+  public MethodPoolCollection(AppView<? extends AppInfoWithSubtyping> appView) {
     super(appView, MethodSignatureEquivalence.get());
   }
 
@@ -50,7 +50,7 @@ public class MethodPoolCollection extends MemberPoolCollection<DexMethod> {
         }
       }
       if (clazz.isInterface()) {
-        for (DexType subtype : clazz.type.allImmediateSubtypes()) {
+        for (DexType subtype : appView.appInfo().allImmediateSubtypes(clazz.type)) {
           DexClass subClazz = appView.definitionFor(subtype);
           if (subClazz != null) {
             MemberPool<DexMethod> childPool =

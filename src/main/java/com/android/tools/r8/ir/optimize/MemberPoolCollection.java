@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
-import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.Descriptor;
 import com.android.tools.r8.graph.DexClass;
@@ -30,11 +30,12 @@ import java.util.function.Predicate;
 // Per-class collection of member signatures.
 public abstract class MemberPoolCollection<T extends Descriptor> {
 
-  final AppView<? extends AppInfo> appView;
   final Equivalence<T> equivalence;
+  final AppView<? extends AppInfoWithSubtyping> appView;
   final Map<DexClass, MemberPool<T>> memberPools = new ConcurrentHashMap<>();
 
-  MemberPoolCollection(AppView<? extends AppInfo> appView, Equivalence<T> equivalence) {
+  MemberPoolCollection(
+      AppView<? extends AppInfoWithSubtyping> appView, Equivalence<T> equivalence) {
     this.appView = appView;
     this.equivalence = equivalence;
   }
@@ -133,18 +134,28 @@ public abstract class MemberPoolCollection<T extends Descriptor> {
       DexClass subject, Predicate<DexClass> stoppingCriterion) {
     Set<DexClass> subTypes = new HashSet<>();
     Deque<DexClass> worklist = new ArrayDeque<>();
-    subject.type.forAllExtendsSubtypes(type -> addNonNull(worklist, appView.definitionFor(type)));
-    subject.type.forAllImplementsSubtypes(
-        type -> addNonNull(worklist, appView.definitionFor(type)));
+    appView
+        .appInfo()
+        .forAllExtendsSubtypes(
+            subject.type, type -> addNonNull(worklist, appView.definitionFor(type)));
+    appView
+        .appInfo()
+        .forAllImplementsSubtypes(
+            subject.type, type -> addNonNull(worklist, appView.definitionFor(type)));
     while (!worklist.isEmpty()) {
       DexClass clazz = worklist.pop();
       if (stoppingCriterion.test(clazz)) {
         continue;
       }
       if (subTypes.add(clazz)) {
-        clazz.type.forAllExtendsSubtypes(type -> addNonNull(worklist, appView.definitionFor(type)));
-        clazz.type.forAllImplementsSubtypes(
-            type -> addNonNull(worklist, appView.definitionFor(type)));
+        appView
+            .appInfo()
+            .forAllExtendsSubtypes(
+                clazz.type, type -> addNonNull(worklist, appView.definitionFor(type)));
+        appView
+            .appInfo()
+            .forAllImplementsSubtypes(
+                clazz.type, type -> addNonNull(worklist, appView.definitionFor(type)));
       }
     }
     return subTypes;

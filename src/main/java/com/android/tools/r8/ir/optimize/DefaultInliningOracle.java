@@ -4,6 +4,7 @@
 package com.android.tools.r8.ir.optimize;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.ClassHierarchy;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -125,7 +126,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     //   initialized, or
     // - there is no non-trivial class initializer.
     DexType targetHolder = target.method.holder;
-    if (method.method.holder.isSubtypeOf(targetHolder, appView.appInfo())) {
+    if (appView.appInfo().isSubtype(method.method.holder, targetHolder)) {
       return true;
     }
     DexClass clazz = inliner.appView.definitionFor(targetHolder);
@@ -383,9 +384,10 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
   }
 
   @Override
-  public boolean isValidTarget(InvokeMethod invoke, DexEncodedMethod target, IRCode inlinee) {
+  public boolean isValidTarget(
+      InvokeMethod invoke, DexEncodedMethod target, IRCode inlinee, ClassHierarchy hierarchy) {
     return !target.isInstanceInitializer()
-        || inliner.legalConstructorInline(method, invoke, inlinee);
+        || inliner.legalConstructorInline(method, invoke, inlinee, hierarchy);
   }
 
   @Override

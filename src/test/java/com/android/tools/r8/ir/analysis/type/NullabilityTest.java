@@ -46,7 +46,7 @@ public class NullabilityTest extends NonNullTrackerTestBase {
       Class<?> mainClass,
       MethodSignature signature,
       boolean npeCaught,
-      BiConsumer<AppInfo, IRCode> inspector)
+      BiConsumer<AppView<?>, IRCode> inspector)
       throws Exception {
     AppView<? extends AppInfo> appView = build(mainClass);
     CodeInspector codeInspector = new CodeInspector(appView.appInfo().app());
@@ -56,7 +56,7 @@ public class NullabilityTest extends NonNullTrackerTestBase {
     new NonNullTracker(appView).addNonNull(irCode);
     TypeAnalysis analysis = new TypeAnalysis(appView, foo);
     analysis.widening(foo, irCode);
-    inspector.accept(appView.appInfo(), irCode);
+    inspector.accept(appView, irCode);
     verifyLastInvoke(irCode, npeCaught);
   }
 

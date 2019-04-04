@@ -139,9 +139,10 @@ public class MemberValuePropagation {
       DebugLocalInfo debugLocalInfo) {
     assert typeLattice.isClassType();
     assert appView
-        .dexItemFactory()
-        .stringType
-        .isSubtypeOf(typeLattice.asClassTypeLatticeElement().getClassType(), appView.appInfo());
+        .isSubtype(
+            appView.dexItemFactory().stringType,
+            typeLattice.asClassTypeLatticeElement().getClassType())
+        .isTrue();
     Value returnedValue = code.createValue(typeLattice, debugLocalInfo);
     ConstString instruction =
         new ConstString(
@@ -343,7 +344,7 @@ public class MemberValuePropagation {
     }
 
     if (target.field.holder.classInitializationMayHaveSideEffects(
-        appView, type -> context.isSubtypeOf(type, appView))) {
+        appView, type -> appView.appInfo().isSubtype(context, type))) {
       return;
     }
 

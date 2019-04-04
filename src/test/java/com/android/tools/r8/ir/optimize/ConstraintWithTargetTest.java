@@ -8,6 +8,7 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
@@ -21,7 +22,7 @@ import org.junit.Test;
 
 public class ConstraintWithTargetTest {
   private static DexItemFactory factory;
-  private static AppInfoWithSubtyping appInfo;
+  private static AppView<AppInfoWithSubtyping> appView;
 
   @BeforeClass
   public static void makeAppInfo() throws Exception {
@@ -36,7 +37,7 @@ public class ConstraintWithTargetTest {
             .read()
             .toDirect();
     factory = options.itemFactory;
-    appInfo = new AppInfoWithSubtyping(application);
+    appView = AppView.createForR8(new AppInfoWithSubtyping(application), options);
   }
 
   private ConstraintWithTarget never() {
@@ -52,7 +53,7 @@ public class ConstraintWithTargetTest {
   }
 
   private ConstraintWithTarget meet(ConstraintWithTarget e1, ConstraintWithTarget e2) {
-    return ConstraintWithTarget.meet(e1, e2, appInfo);
+    return ConstraintWithTarget.meet(e1, e2, appView);
   }
 
   @Test

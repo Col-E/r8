@@ -236,7 +236,7 @@ public class UninstantiatedTypeOptimization {
 
         boolean isOverrideOfPreviouslyChangedMethodInSuperClass =
             changedVirtualMethods.getOrDefault(equivalence.wrap(method), ImmutableSet.of()).stream()
-                .anyMatch(other -> clazz.type.isSubtypeOf(other, appView.appInfo()));
+                .anyMatch(other -> appView.appInfo().isSubtype(clazz.type, other));
         if (isOverrideOfPreviouslyChangedMethodInSuperClass) {
           assert methodPool.hasSeen(wrapper);
 
@@ -482,9 +482,8 @@ public class UninstantiatedTypeOptimization {
                 : instruction.asStaticPut().inValue();
 
         TypeLatticeElement fieldLatticeType =
-            TypeLatticeElement.fromDexType(
-                fieldType, Nullability.maybeNull(), appView.appInfo());
-        if (!value.getTypeLattice().lessThanOrEqual(fieldLatticeType, appView.appInfo())) {
+            TypeLatticeElement.fromDexType(fieldType, Nullability.maybeNull(), appView);
+        if (!value.getTypeLattice().lessThanOrEqual(fieldLatticeType, appView)) {
           // Broken type hierarchy. See FieldTypeTest#test_brokenTypeHierarchy.
           assert appView.options().testing.allowTypeErrors;
           return;
@@ -589,7 +588,7 @@ public class UninstantiatedTypeOptimization {
               // target.
               return;
             }
-            if (!appView.dexItemFactory().npeType.isSubtypeOf(guard, appView.appInfo())) {
+            if (!appView.appInfo().isSubtype(appView.dexItemFactory().npeType, guard)) {
               // TODO(christofferqa): Consider updating previous dominator tree instead of
               // rebuilding it from scratch.
               DominatorTree dominatorTree = new DominatorTree(code, MAY_HAVE_UNREACHABLE_BLOCKS);

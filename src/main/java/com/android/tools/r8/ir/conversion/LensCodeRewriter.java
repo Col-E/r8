@@ -9,7 +9,6 @@ import static com.android.tools.r8.ir.code.Invoke.Type.STATIC;
 import static com.android.tools.r8.ir.code.Invoke.Type.VIRTUAL;
 
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
@@ -69,7 +68,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class LensCodeRewriter {
 
-  private final AppView<? extends AppInfo> appView;
+  private final AppView<? extends AppInfoWithSubtyping> appView;
 
   private final Map<DexProto, DexProto> protoFixupCache = new ConcurrentHashMap<>();
 
@@ -528,16 +527,19 @@ public class LensCodeRewriter {
         }
       }
       if (newType != oldType || actualTarget != invokedMethod || rewrittenTarget != actualTarget) {
+        DexClass holder = appView.definitionFor(actualTarget.holder);
+        boolean isInterface = holder != null ? holder.isInterface() : methodHandle.isInterface;
         return new DexMethodHandle(
             newType,
             actualTarget,
+            isInterface,
             rewrittenTarget != actualTarget ? rewrittenTarget : null);
       }
     } else {
       DexField field = methodHandle.asField();
       DexField actualField = appView.graphLense().lookupField(field);
       if (actualField != field) {
-        return new DexMethodHandle(methodHandle.type, actualField);
+        return new DexMethodHandle(methodHandle.type, actualField, methodHandle.isInterface);
       }
     }
     return methodHandle;
@@ -596,7 +598,7 @@ public class LensCodeRewriter {
   }
 
   private boolean canInvokeTargetWithInvokeVirtual(DexEncodedMethod target) {
-    return target.isVirtualMethod() && !target.method.holder.isInterface();
+    return target.isVirtualMethod() && !appView.appInfo().isInterface(target.method.holder);
   }
 
   private boolean hasAccessToInvokeTargetFromContext(DexEncodedMethod target, DexType context) {

@@ -6,7 +6,8 @@ package com.android.tools.r8.ir.analysis.type;
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 
-import com.android.tools.r8.graph.DexDefinitionSupplier;
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 
@@ -98,8 +99,8 @@ public class ArrayTypeLatticeElement extends ReferenceTypeLatticeElement {
   }
 
   @Override
-  public boolean isBasedOnMissingClass(DexDefinitionSupplier definitions) {
-    return memberTypeLattice.isBasedOnMissingClass(definitions);
+  public boolean isBasedOnMissingClass(AppView<? extends AppInfoWithSubtyping> appView) {
+    return memberTypeLattice.isBasedOnMissingClass(appView);
   }
 
   @Override
@@ -137,11 +138,10 @@ public class ArrayTypeLatticeElement extends ReferenceTypeLatticeElement {
     return (isNullable() ? 1 : -1) * memberTypeLattice.hashCode();
   }
 
-  ReferenceTypeLatticeElement join(
-      ArrayTypeLatticeElement other, DexDefinitionSupplier definitions) {
+  ReferenceTypeLatticeElement join(ArrayTypeLatticeElement other, AppView<?> appView) {
     Nullability nullability = nullability().join(other.nullability());
     ReferenceTypeLatticeElement join =
-        joinMember(this.memberTypeLattice, other.memberTypeLattice, definitions, nullability);
+        joinMember(this.memberTypeLattice, other.memberTypeLattice, appView, nullability);
     if (join == null) {
       // Check if other has the right nullability before creating it.
       if (other.nullability == nullability) {
@@ -158,7 +158,7 @@ public class ArrayTypeLatticeElement extends ReferenceTypeLatticeElement {
   private static ReferenceTypeLatticeElement joinMember(
       TypeLatticeElement aMember,
       TypeLatticeElement bMember,
-      DexDefinitionSupplier definitions,
+      AppView<?> appView,
       Nullability nullability) {
     if (aMember.equals(bMember)) {
       // Return null indicating the join is the same as the member to avoid object allocation.
@@ -169,20 +169,18 @@ public class ArrayTypeLatticeElement extends ReferenceTypeLatticeElement {
           joinMember(
               aMember.asArrayTypeLatticeElement().memberTypeLattice,
               bMember.asArrayTypeLatticeElement().memberTypeLattice,
-              definitions,
+              appView,
               maybeNull());
       return join == null ? null : ArrayTypeLatticeElement.create(join, nullability);
     }
     if (aMember.isClassType() && bMember.isClassType()) {
       ReferenceTypeLatticeElement join =
-          aMember
-              .asClassTypeLatticeElement()
-              .join(bMember.asClassTypeLatticeElement(), definitions);
+          aMember.asClassTypeLatticeElement().join(bMember.asClassTypeLatticeElement(), appView);
       return ArrayTypeLatticeElement.create(join, nullability);
     }
     if (aMember.isPrimitive() || bMember.isPrimitive()) {
-      return aMember.objectClassType(definitions, nullability);
+      return aMember.objectClassType(appView, nullability);
     }
-    return aMember.objectArrayType(definitions, nullability);
+    return aMember.objectArrayType(appView, nullability);
   }
 }

@@ -78,8 +78,8 @@ public class InterfaceMethodNameMinifier {
   }
 
   private void reserveNamesInInterfaces() {
-    for (DexType type : DexType.allInterfaces(appView.dexItemFactory())) {
-      assert type.isInterface();
+    for (DexType type : appView.appInfo().allInterfaces(appView.dexItemFactory())) {
+      assert appView.appInfo().isInterface(type);
       frontierState.allocateNamingStateAndReserve(type, type, null);
     }
   }
@@ -92,8 +92,8 @@ public class InterfaceMethodNameMinifier {
     // frontier states of classes that implement them. We add the frontier states so that we can
     // reserve the names for later method naming.
     timing.begin("Compute map");
-    for (DexType type : DexType.allInterfaces(appView.dexItemFactory())) {
-      assert type.isInterface();
+    for (DexType type : appView.appInfo().allInterfaces(appView.dexItemFactory())) {
+      assert appView.appInfo().isInterface(type);
       DexClass clazz = appView.definitionFor(type);
       if (clazz != null) {
         assert clazz.isInterface();
@@ -132,7 +132,7 @@ public class InterfaceMethodNameMinifier {
           callSites.put(callSite, implementedMethods.iterator().next().method);
           for (DexEncodedMethod method : implementedMethods) {
             DexType iface = method.method.holder;
-            assert iface.isInterface();
+            assert appView.appInfo().isInterface(iface);
             Set<NamingState<DexProto, ?>> collectedStates = getReachableStates(iface);
             addStatesToGlobalMapForMethod(method.method, collectedStates, iface);
             callSiteMethods.add(equivalence.wrap(method.method));
@@ -348,7 +348,7 @@ public class InterfaceMethodNameMinifier {
       reachableStates.add(minifierState.getState(reachableInterface));
 
       // And the frontiers that correspond to the classes that implement the interface.
-      for (DexType frontier : reachableInterface.allImplementsSubtypes()) {
+      for (DexType frontier : appView.appInfo().allImplementsSubtypes(reachableInterface)) {
         NamingState<DexProto, ?> state = minifierState.getState(frontierState.get(frontier));
         assert state != null;
         reachableStates.add(state);
@@ -371,8 +371,8 @@ public class InterfaceMethodNameMinifier {
   }
 
   private void collectSubInterfaces(DexType iface, Set<DexType> interfaces) {
-    for (DexType subtype : iface.allExtendsSubtypes()) {
-      assert subtype.isInterface();
+    for (DexType subtype : appView.appInfo().allExtendsSubtypes(iface)) {
+      assert appView.appInfo().isInterface(subtype);
       if (interfaces.add(subtype)) {
         collectSubInterfaces(subtype, interfaces);
       }

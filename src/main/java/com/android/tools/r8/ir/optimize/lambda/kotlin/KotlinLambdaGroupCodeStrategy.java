@@ -196,7 +196,7 @@ final class KotlinLambdaGroupCodeStrategy implements Strategy {
             new StaticGet(
                 context.code.createValue(
                     TypeLatticeElement.fromDexType(
-                        staticGet.getField().type, maybeNull(), context.appView.appInfo())),
+                        staticGet.getField().type, maybeNull(), context.appView)),
                 mapSingletonInstanceField(context.factory, staticGet.getField())));
   }
 

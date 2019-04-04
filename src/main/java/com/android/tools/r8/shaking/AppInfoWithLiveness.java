@@ -603,7 +603,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       if (indirectlyInstantiatedTypes.containsKey(type)) {
         return indirectlyInstantiatedTypes.get(type).booleanValue();
       }
-      for (DexType directSubtype : type.allImmediateSubtypes()) {
+      for (DexType directSubtype : allImmediateSubtypes(type)) {
         if (isInstantiatedDirectlyOrIndirectly(directSubtype)) {
           indirectlyInstantiatedTypes.put(type, Boolean.TRUE);
           return true;
@@ -785,7 +785,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     // This implements the logic from
     // https://docs.oracle.com/javase/specs/jvms/se9/html/jvms-6.html#jvms-6.5.invokevirtual
     assert method != null;
-    assert refinedReceiverType.isSubtypeOf(method.holder, this);
+    assert isSubtype(refinedReceiverType, method.holder);
     if (method.holder.isArrayType()) {
       // For javac output this will only be clone(), but in general the methods from Object can
       // be invoked with an array type holder.
@@ -862,7 +862,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       // For kept types we do not know all subtypes, so abort.
       return DexEncodedMethod.SENTINEL;
     }
-    for (DexType subtype : type.allExtendsSubtypes()) {
+    for (DexType subtype : allExtendsSubtypes(type)) {
       DexClass clazz = definitionFor(subtype);
       DexEncodedMethod target = clazz.lookupVirtualMethod(method);
       if (target != null && !target.isPrivateMethod()) {

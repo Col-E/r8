@@ -60,7 +60,7 @@ public final class ClassAndMemberPublicizer {
 
     // Phase 2: Visit classes and promote class/member to public if possible.
     timing.begin("Phase 2: promoteToPublic");
-    DexType.forAllInterfaces(appView.dexItemFactory(), this::publicizeType);
+    appView.appInfo().forAllInterfaces(appView.dexItemFactory(), this::publicizeType);
     publicizeType(appView.dexItemFactory().objectType);
     timing.end();
 
@@ -83,7 +83,7 @@ public final class ClassAndMemberPublicizer {
       }
     }
 
-    type.forAllExtendsSubtypes(this::publicizeType);
+    appView.appInfo().forAllExtendsSubtypes(type, this::publicizeType);
   }
 
   private boolean publicizeMethod(DexClass holder, DexEncodedMethod encodedMethod) {

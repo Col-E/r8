@@ -120,7 +120,7 @@ public class ReflectionOptimizer {
         continue;
       }
       // Only consider effectively final class. Exception: new Base().getClass().
-      if (!baseType.hasSubtypes()
+      if (!appView.appInfo().hasSubtypes(baseType)
           || !appView.appInfo().isInstantiatedIndirectly(baseType)
           || (!in.isPhi() && in.definition.isCreatingInstanceOrArray())) {
         // Make sure the target (base) type is visible.

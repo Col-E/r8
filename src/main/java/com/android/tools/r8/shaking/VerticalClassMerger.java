@@ -359,14 +359,14 @@ public class VerticalClassMerger {
     }
     // Note that the property "singleSubtype == null" cannot change during merging, since we visit
     // classes in a top-down order.
-    DexType singleSubtype = clazz.type.getSingleSubtype();
+    DexType singleSubtype = appInfo.getSingleSubtype(clazz.type);
     if (singleSubtype == null) {
       // TODO(christofferqa): Even if [clazz] has multiple subtypes, we could still merge it into
       // its subclass if [clazz] is not live. This should only be done, though, if it does not
       // lead to members being duplicated.
       return false;
     }
-    if (singleSubtype.isSerializable(appInfo) && !clazz.isSerializable(appInfo)) {
+    if (appInfo.isSerializable(singleSubtype) && !appInfo.isSerializable(clazz.type)) {
       // https://docs.oracle.com/javase/8/docs/platform/serialization/spec/serial-arch.html
       //   1.10 The Serializable Interface
       //   ...
@@ -415,7 +415,7 @@ public class VerticalClassMerger {
       }
       return false;
     }
-    DexClass targetClass = appInfo.definitionFor(clazz.type.getSingleSubtype());
+    DexClass targetClass = appInfo.definitionFor(appInfo.getSingleSubtype(clazz.type));
     if ((clazz.hasClassInitializer() && targetClass.hasClassInitializer())
         || targetClass.classInitializationMayHaveSideEffects(appInfo, type -> type == clazz.type)) {
       // TODO(herhut): Handle class initializers.
@@ -517,7 +517,7 @@ public class VerticalClassMerger {
 
     public OverloadedMethodSignaturesRetriever() {
       for (DexProgramClass mergeCandidate : mergeCandidates) {
-        mergeeCandidates.add(mergeCandidate.type.getSingleSubtype());
+        mergeeCandidates.add(appInfo.getSingleSubtype(mergeCandidate.type));
       }
     }
 
@@ -748,7 +748,7 @@ public class VerticalClassMerger {
     assert isMergeCandidate(clazz, pinnedTypes);
 
     DexProgramClass targetClass =
-        appInfo.definitionFor(clazz.type.getSingleSubtype()).asProgramClass();
+        appInfo.definitionFor(appInfo.getSingleSubtype(clazz.type)).asProgramClass();
     assert !mergedClasses.containsKey(targetClass.type);
 
     boolean clazzOrTargetClassHasBeenMerged =

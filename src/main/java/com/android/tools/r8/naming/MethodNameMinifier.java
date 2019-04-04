@@ -176,7 +176,9 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
             });
       }
     }
-    type.forAllExtendsSubtypes(subtype -> assignNamesToClassesMethods(subtype, doPrivates));
+    appView
+        .appInfo()
+        .forAllExtendsSubtypes(type, subtype -> assignNamesToClassesMethods(subtype, doPrivates));
   }
 
   private void assignNameToMethod(
@@ -208,15 +210,15 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
 
   private void reserveNamesInClasses(
       DexType type, DexType libraryFrontier, NamingState<DexProto, ?> parent) {
-    assert !type.isInterface();
+    assert !appView.appInfo().isInterface(type);
     NamingState<DexProto, ?> state =
         frontierState.allocateNamingStateAndReserve(type, libraryFrontier, parent);
 
     // If this is a library class (or effectively a library class as it is missing) move the
     // frontier forward.
     DexClass holder = appView.definitionFor(type);
-    for (DexType subtype : type.allExtendsSubtypes()) {
-      assert !subtype.isInterface();
+    for (DexType subtype : appView.appInfo().allExtendsSubtypes(type)) {
+      assert !appView.appInfo().isInterface(subtype);
       reserveNamesInClasses(
           subtype, holder == null || holder.isNotProgramClass() ? subtype : libraryFrontier, state);
     }

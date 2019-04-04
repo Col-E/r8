@@ -957,7 +957,7 @@ public class Outliner {
               DexType receiverType = argumentTypeFromInvoke(invoke, i);
               // Ensure that the outline argument type is specific enough.
               if (receiverType.isClassType()) {
-                if (receiverType.isSubtypeOf(argumentTypes.get(argumentIndex), appView)) {
+                if (appView.appInfo().isSubtype(receiverType, argumentTypes.get(argumentIndex))) {
                   argumentTypes.set(argumentIndex, receiverType);
                 }
               }

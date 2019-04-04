@@ -146,8 +146,9 @@ public class NewInstance extends Instruction {
     }
 
     // Verify that the instruction does not lead to an IllegalAccessError.
-    if (!isMemberVisibleFromOriginalContext(
-        appView, context, definition.type, definition.accessFlags)) {
+    if (appView.appInfo().hasSubtyping()
+        && !isMemberVisibleFromOriginalContext(
+            appView, context, definition.type, definition.accessFlags)) {
       return true;
     }
 
@@ -155,7 +156,7 @@ public class NewInstance extends Instruction {
     if (definition.classInitializationMayHaveSideEffects(
         appView,
         // Types that are a super type of `context` are guaranteed to be initialized already.
-        type -> context.isSubtypeOf(type, appView))) {
+        type -> appView.isSubtype(context, type).isTrue())) {
       return true;
     }
 

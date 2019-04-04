@@ -117,11 +117,11 @@ public class MainDexListBuilder {
   }
 
   private boolean isEnum(DexType valueType) {
-    return valueType.isSubtypeOf(appInfo.dexItemFactory().enumType, appInfo);
+    return appInfo.isSubtype(valueType, appInfo.dexItemFactory().enumType);
   }
 
   private boolean isAnnotation(DexType valueType) {
-    return valueType.isSubtypeOf(appInfo.dexItemFactory().annotationType, appInfo);
+    return appInfo.isSubtype(valueType, appInfo.dexItemFactory().annotationType);
   }
 
   private boolean isProgramClass(DexType dexType) {

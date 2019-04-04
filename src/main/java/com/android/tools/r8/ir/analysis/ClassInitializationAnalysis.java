@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.analysis;
 
+import com.android.tools.r8.OptionalBool;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfo.ResolutionResult;
 import com.android.tools.r8.graph.AppView;
@@ -194,8 +195,9 @@ public class ClassInitializationAnalysis {
           || exceptionalExit.isInvokeMethodWithReceiver()) {
         // If an instance-get, instance-put, or instance-invoke instruction does not fail with a
         // NullPointerException, then the receiver class must have been initialized.
-        if (!dexItemFactory.npeType.isSubtypeOf(guard, appView)) {
-          continue;
+        OptionalBool isCatchingNPE = appView.isSubtype(dexItemFactory.npeType, guard);
+        if (isCatchingNPE.isPossiblyTrue()) {
+          return AnalysisAssumption.NONE;
         }
       }
       if (exceptionalExit.isStaticGet()
@@ -203,12 +205,12 @@ public class ClassInitializationAnalysis {
           || exceptionalExit.isInvokeStatic()) {
         // If a static-get, static-put, or invoke-static does not fail with an ExceptionIn-
         // InitializerError, then the holder class must have been initialized.
-        if (!dexItemFactory.exceptionInInitializerErrorType.isSubtypeOf(guard, appView)) {
-          continue;
+        OptionalBool isCatchingInitError =
+            appView.isSubtype(dexItemFactory.exceptionInInitializerErrorType, guard);
+        if (isCatchingInitError.isPossiblyTrue()) {
+          return AnalysisAssumption.NONE;
         }
       }
-
-      return AnalysisAssumption.NONE;
     }
 
     // There are no paths from any of the catch handlers to the instruction of interest, so we can
@@ -339,7 +341,7 @@ public class ClassInitializationAnalysis {
         return false;
       }
       DexType holder = resolutionResult.asSingleTarget().method.holder;
-      return holder.isSubtypeOf(type, appView);
+      return appView.isSubtype(holder, type).isTrue();
     }
 
     public static boolean forInvokeVirtual(
@@ -366,7 +368,7 @@ public class ClassInitializationAnalysis {
         return false;
       }
       DexType holder = resolutionResult.asSingleTarget().method.holder;
-      return holder.isSubtypeOf(type, appView);
+      return appView.isSubtype(holder, type).isTrue();
     }
 
     public static boolean forNewInstance(
@@ -418,7 +420,7 @@ public class ClassInitializationAnalysis {
       if (mode == Query.DIRECTLY) {
         return typeKnownToBeInitialized == typeToBeInitialized;
       } else {
-        return typeKnownToBeInitialized.isSubtypeOf(typeToBeInitialized, appView);
+        return appView.isSubtype(typeKnownToBeInitialized, typeToBeInitialized).isTrue();
       }
     }
   }

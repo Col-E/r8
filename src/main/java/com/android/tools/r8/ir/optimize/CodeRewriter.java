@@ -1911,7 +1911,9 @@ public class CodeRewriter {
     // We might see chains of casts on subtypes. It suffices to cast to the lowest subtype,
     // as that will fail if a cast on a supertype would have failed.
     Predicate<Instruction> isCheckcastToSubtype =
-        user -> user.isCheckCast() && user.asCheckCast().getType().isSubtypeOf(castType, appView);
+        user ->
+            user.isCheckCast()
+                && appView.isSubtype(user.asCheckCast().getType(), castType).isTrue();
     if (!checkCast.getBlock().hasCatchHandlers()
         && outValue.isUsed()
         && outValue.numberOfPhiUsers() == 0
@@ -3140,7 +3142,7 @@ public class CodeRewriter {
       }
 
       if (dominatorTree.get().dominatedBy(block, dominator)) {
-        if (newValue.getTypeLattice().lessThanOrEqual(value.getTypeLattice(), appView.appInfo())) {
+        if (newValue.getTypeLattice().lessThanOrEqual(value.getTypeLattice(), appView)) {
           value.replaceUsers(newValue);
           block.listIterator(constNumber).removeOrReplaceByDebugLocalRead();
           constantWithValueIterator.remove();
