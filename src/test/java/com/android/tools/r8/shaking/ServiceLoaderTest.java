@@ -42,6 +42,8 @@ public class ServiceLoaderTest extends TestBase {
   private final boolean includeWorldGreeter;
 
   private DataResourceConsumerForTesting dataResourceConsumer;
+  private static final String LINE_COMMENT = "# This is a comment.";
+  private static final String POSTFIX_COMMENT = "# POSTFIX_COMMENT";
 
   @Parameters(name = "Backend: {0}, include WorldGreeter: {1}")
   public static List<Object[]> data() {
@@ -57,7 +59,14 @@ public class ServiceLoaderTest extends TestBase {
   public void test() throws Exception {
     String expectedOutput = includeWorldGreeter ? "Hello world!" : "Hello";
 
-    List<String> serviceImplementations = Lists.newArrayList(HelloGreeter.class.getTypeName());
+    List<String> serviceImplementations = Lists.newArrayList();
+
+    // Add a comment to the service implementations file.
+    serviceImplementations.add(LINE_COMMENT);
+
+    // Postfix a valid line with a comment.
+    serviceImplementations.add(HelloGreeter.class.getTypeName() + POSTFIX_COMMENT);
+
     if (includeWorldGreeter) {
       serviceImplementations.add(WorldGreeter.class.getTypeName());
     }
@@ -96,10 +105,11 @@ public class ServiceLoaderTest extends TestBase {
         includeWorldGreeter ? greeterSubject.getFinalName() : helloGreeterSubject.getFinalName();
     List<String> lines =
         dataResourceConsumer.get(AppServices.SERVICE_DIRECTORY_NAME + serviceFileName);
-    assertEquals(includeWorldGreeter ? 2 : 1, lines.size());
-    assertEquals(helloGreeterSubject.getFinalName(), lines.get(0));
+    assertEquals(includeWorldGreeter ? 2 : 1, lines.size() - 1);
+    assertEquals(LINE_COMMENT, lines.get(0));
+    assertEquals(helloGreeterSubject.getFinalName() + POSTFIX_COMMENT, lines.get(1));
     if (includeWorldGreeter) {
-      assertEquals(worldGreeterSubject.getFinalName(), lines.get(1));
+      assertEquals(worldGreeterSubject.getFinalName(), lines.get(2));
     }
 
     verifyGraphInformation(result.graphInspector());

@@ -141,6 +141,7 @@ public class AppServices {
         if (contents != null) {
           return Arrays.stream(contents.split(System.lineSeparator()))
               .map(String::trim)
+              .map(this::prefixUntilCommentChar)
               .filter(line -> !line.isEmpty())
               .filter(DescriptorUtils::isValidJavaType)
               .map(DescriptorUtils::javaTypeToDescriptor)
@@ -165,6 +166,11 @@ public class AppServices {
               .collect(Collectors.toSet());
         }
         return ImmutableSet.of();
+      }
+
+      private String prefixUntilCommentChar(String line) {
+        int commentCharIndex = line.indexOf('#');
+        return commentCharIndex > -1 ? line.substring(0, commentCharIndex) : line;
       }
     }
   }
