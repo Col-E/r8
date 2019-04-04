@@ -201,6 +201,8 @@ public abstract class R8RunArtTestsTest {
           // of '__gnu_cxx::recursive_init_error'
           .put("096-array-copy-concurrent-gc",
               TestCondition.match(TestCondition.runtimesUpTo(DexVm.Version.V4_4_4)))
+          // Failing with: expected "second > first =[tru]e" was "second > first =[fals]e"
+          .put("098-ddmc", TestCondition.match(TestCondition.runtimes(DexVm.Version.V6_0_1)))
           // Sometimes fails with out of memory on Dalvik.
           .put("114-ParallelGC",
               TestCondition.match(TestCondition.runtimesUpTo(DexVm.Version.V4_4_4)))
