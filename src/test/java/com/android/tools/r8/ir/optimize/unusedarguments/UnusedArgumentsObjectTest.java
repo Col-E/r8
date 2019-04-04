@@ -29,6 +29,7 @@ public class UnusedArgumentsObjectTest extends UnusedArgumentsTestBase {
   }
 
   static class TestObject {
+
     public final String s;
 
     TestObject(String s) {
@@ -45,43 +46,64 @@ public class UnusedArgumentsObjectTest extends UnusedArgumentsTestBase {
   static class TestClass {
 
     @NeverInline
-    public static Object a(Object a) {
+    public static Object publicStaticMethod(Object a) {
       return a;
     }
 
     @NeverInline
-    public static Object a(Object a, Object b) {
+    public static Object publicStaticMethod(Object a, Object b) {
       return a;
     }
 
     @NeverInline
-    public static Object a(Object a, Object b, Object c) {
+    public static Object publicStaticMethod(Object a, Object b, Object c) {
       return a;
     }
 
     @NeverInline
-    private Object b(Object a) {
+    private Object privateMethod(Object a) {
       return a;
     }
 
     @NeverInline
-    private Object b(Object a, Object b) {
+    private Object privateMethod(Object a, Object b) {
       return a;
     }
 
     @NeverInline
-    private Object b(Object a, Object b, Object c) {
+    private Object privateMethod(Object a, Object b, Object c) {
+      return a;
+    }
+
+    @NeverInline
+    public Object publicMethod(Object a) {
+      return a;
+    }
+
+    @NeverInline
+    public Object publicMethod(Object a, Object b) {
+      return a;
+    }
+
+    @NeverInline
+    public Object publicMethod(Object a, Object b, Object c) {
       return a;
     }
 
     public static void main(String[] args) {
       TestClass instance = new TestClass();
-      System.out.print(a(new TestObject("1")));
-      System.out.print(a(new TestObject("2"), new TestObject("3")));
-      System.out.print(a(new TestObject("4"), new TestObject("5"), new TestObject("6")));
-      System.out.print(instance.b(new TestObject("1")));
-      System.out.print(instance.b(new TestObject("2"), new TestObject("3")));
-      System.out.print(instance.b(new TestObject("4"), new TestObject("5"), new TestObject("6")));
+      System.out.print(publicStaticMethod(new TestObject("1")));
+      System.out.print(publicStaticMethod(new TestObject("2"), new TestObject("3")));
+      System.out.print(
+          publicStaticMethod(new TestObject("4"), new TestObject("5"), new TestObject("6")));
+      System.out.print(instance.privateMethod(new TestObject("1")));
+      System.out.print(instance.privateMethod(new TestObject("2"), new TestObject("3")));
+      System.out.print(
+          instance.privateMethod(new TestObject("4"), new TestObject("5"), new TestObject("6")));
+      System.out.print(instance.publicMethod(new TestObject("1")));
+      System.out.print(instance.publicMethod(new TestObject("2"), new TestObject("3")));
+      System.out.print(
+          instance.publicMethod(new TestObject("4"), new TestObject("5"), new TestObject("6")));
     }
   }
 
@@ -97,12 +119,12 @@ public class UnusedArgumentsObjectTest extends UnusedArgumentsTestBase {
 
   @Override
   public String getExpectedResult() {
-    return "124124";
+    return "124124124";
   }
 
   @Override
   public void inspectTestClass(ClassSubject clazz) {
-    assertEquals(8, clazz.allMethods().size());
+    assertEquals(11, clazz.allMethods().size());
     clazz.forAllMethods(
         method ->
             Assert.assertTrue(

@@ -10,19 +10,30 @@ import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.utils.ListUtils;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 public abstract class ClassSubject extends Subject {
 
   public abstract void forAllMethods(Consumer<FoundMethodSubject> inspection);
 
   public final List<FoundMethodSubject> allMethods() {
+    return allMethods(Predicates.alwaysTrue());
+  }
+
+  public final List<FoundMethodSubject> allMethods(Predicate<FoundMethodSubject> predicate) {
     ImmutableList.Builder<FoundMethodSubject> builder = ImmutableList.builder();
-    forAllMethods(builder::add);
+    forAllMethods(
+        methodSubject -> {
+          if (predicate.test(methodSubject)) {
+            builder.add(methodSubject);
+          }
+        });
     return builder.build();
   }
 

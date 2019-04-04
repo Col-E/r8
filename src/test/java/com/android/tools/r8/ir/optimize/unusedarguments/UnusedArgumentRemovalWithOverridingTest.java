@@ -10,13 +10,13 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.util.List;
 import org.junit.Test;
@@ -25,7 +25,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class CollisionWithLibraryMethodsTest extends TestBase {
+public class UnusedArgumentRemovalWithOverridingTest extends TestBase {
 
   private final boolean minification;
   private final TestParameters parameters;
@@ -35,19 +35,20 @@ public class CollisionWithLibraryMethodsTest extends TestBase {
     return buildParameters(BooleanUtils.values(), getTestParameters().withAllRuntimes().build());
   }
 
-  public CollisionWithLibraryMethodsTest(boolean minification, TestParameters parameters) {
+  public UnusedArgumentRemovalWithOverridingTest(boolean minification, TestParameters parameters) {
     this.minification = minification;
     this.parameters = parameters;
   }
 
   @Test
   public void test() throws Exception {
-    String expectedOutput = StringUtils.lines("Hello world!");
+    String expectedOutput = StringUtils.lines("Hello world!", "Hello world!");
     testForR8(parameters.getBackend())
-        .addInnerClasses(CollisionWithLibraryMethodsTest.class)
+        .addInnerClasses(UnusedArgumentRemovalWithOverridingTest.class)
         .addKeepMainRule(TestClass.class)
         .enableClassInliningAnnotations()
         .enableInliningAnnotations()
+        .enableMergeAnnotations()
         .minification(minification)
         .setMinApi(parameters.getRuntime())
         .compile()
@@ -57,33 +58,38 @@ public class CollisionWithLibraryMethodsTest extends TestBase {
   }
 
   private void verify(CodeInspector inspector) {
-    ClassSubject classSubject = inspector.clazz(Greeting.class);
+    ClassSubject classSubject = inspector.clazz(B.class);
     assertThat(classSubject, isPresent());
 
-    MethodSubject methodSubject = classSubject.allMethods(FoundMethodSubject::isVirtual).get(0);
+    MethodSubject methodSubject = classSubject.uniqueMethodWithName("greeting");
     assertThat(methodSubject, isPresent());
-
-    if (minification) {
-      assertEquals("a", methodSubject.getFinalName());
-      assertEquals(0, methodSubject.getMethod().method.proto.parameters.size());
-    } else {
-      assertEquals("toString1", methodSubject.getFinalName());
-      assertEquals(0, methodSubject.getMethod().method.proto.parameters.size());
-    }
+    assertEquals("java.lang.String", methodSubject.getMethod().method.proto.parameters.toString());
   }
 
   static class TestClass {
 
     public static void main(String[] args) {
-      System.out.println(new Greeting().toString(null));
+      System.out.println(new A().greeting("Hello world!"));
+      System.out.println(new B().greeting("Hello world!"));
     }
   }
 
   @NeverClassInline
-  static class Greeting {
+  @NeverMerge
+  static class A {
 
     @NeverInline
-    public String toString(Object unused) {
+    public String greeting(String used) {
+      return used;
+    }
+  }
+
+  @NeverClassInline
+  static class B extends A {
+
+    @NeverInline
+    @Override
+    public String greeting(String unused) {
       return "Hello world!";
     }
   }

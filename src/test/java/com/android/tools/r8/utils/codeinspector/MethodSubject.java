@@ -29,6 +29,8 @@ public abstract class MethodSubject extends MemberSubject {
 
   public abstract boolean isClassInitializer();
 
+  public abstract boolean isVirtual();
+
   @Override
   public abstract MethodSignature getOriginalSignature();
 

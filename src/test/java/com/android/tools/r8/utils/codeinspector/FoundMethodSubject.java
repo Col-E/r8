@@ -129,6 +129,11 @@ public class FoundMethodSubject extends MethodSubject {
   }
 
   @Override
+  public boolean isVirtual() {
+    return dexMethod.isVirtualMethod();
+  }
+
+  @Override
   public DexEncodedMethod getMethod() {
     return dexMethod;
   }

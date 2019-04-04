@@ -256,6 +256,10 @@ public class StringUtils {
     return Arrays.toString(digest);
   }
 
+  public static String numberToIdentifier(char[] prefix, int nameCount) {
+    return numberToIdentifier(prefix, nameCount, false);
+  }
+
   public static String numberToIdentifier(char[] prefix, int nameCount, boolean addSemicolon) {
     // TODO(herhut): Add support for using numbers.
     int size = addSemicolon ? 1 : 0;

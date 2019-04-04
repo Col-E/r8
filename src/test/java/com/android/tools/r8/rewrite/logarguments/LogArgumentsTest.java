@@ -13,7 +13,7 @@ import org.junit.Test;
 
 public class LogArgumentsTest extends TestBase {
 
-  private int occourences(String match, String value) {
+  private static int occurrences(String match, String value) {
     int count = 0;
     int startIndex = 0;
     while (true) {
@@ -40,12 +40,12 @@ public class LogArgumentsTest extends TestBase {
             .noTreeShaking()
             .run(TestStatic.class)
             .getStdOut();
-    assertEquals(7, occourences(qualifiedMethodName, result));
-    assertEquals(3, occourences("(primitive)", result));
-    assertEquals(3, occourences("(null)", result));
-    assertEquals(1, occourences("java.lang.Object", result));
-    assertEquals(1, occourences("java.lang.Integer", result));
-    assertEquals(1, occourences("java.lang.String", result));
+    assertEquals(7, occurrences(qualifiedMethodName, result));
+    assertEquals(3, occurrences("(primitive)", result));
+    assertEquals(3, occurrences("(null)", result));
+    assertEquals(1, occurrences("java.lang.Object", result));
+    assertEquals(1, occurrences("java.lang.Integer", result));
+    assertEquals(1, occurrences("java.lang.String", result));
   }
 
   @Test
@@ -61,14 +61,14 @@ public class LogArgumentsTest extends TestBase {
             .noTreeShaking()
             .run(TestInstance.class)
             .getStdOut();
-    assertEquals(7, occourences(qualifiedMethodName, result));
-    assertEquals(7, occourences(
-        "class com.android.tools.r8.rewrite.logarguments.TestInstance", result));
-    assertEquals(3, occourences("(primitive)", result));
-    assertEquals(3, occourences("(null)", result));
-    assertEquals(1, occourences("java.lang.Object", result));
-    assertEquals(1, occourences("java.lang.Integer", result));
-    assertEquals(1, occourences("java.lang.String", result));
+    assertEquals(7, occurrences(qualifiedMethodName, result));
+    assertEquals(
+        7, occurrences("class com.android.tools.r8.rewrite.logarguments.TestInstance", result));
+    assertEquals(3, occurrences("(primitive)", result));
+    assertEquals(3, occurrences("(null)", result));
+    assertEquals(1, occurrences("java.lang.Object", result));
+    assertEquals(1, occurrences("java.lang.Integer", result));
+    assertEquals(1, occurrences("java.lang.String", result));
   }
 
   @Test
@@ -78,13 +78,13 @@ public class LogArgumentsTest extends TestBase {
         readClasses(TestInner.class, TestInner.Inner.class),
         options -> options.logArgumentsFilter = ImmutableList.of(qualifiedMethodName));
     String result = runOnArt(app, TestInner.class);
-    assertEquals(7, occourences(qualifiedMethodName, result));
-    assertEquals(7, occourences(
-        "class com.android.tools.r8.rewrite.logarguments.TestInner$Inner", result));
-    assertEquals(3, occourences("(primitive)", result));
-    assertEquals(3, occourences("(null)", result));
-    assertEquals(1, occourences("java.lang.Object", result));
-    assertEquals(1, occourences("java.lang.Integer", result));
-    assertEquals(1, occourences("java.lang.String", result));
+    assertEquals(7, occurrences(qualifiedMethodName, result));
+    assertEquals(
+        7, occurrences("class com.android.tools.r8.rewrite.logarguments.TestInner$Inner", result));
+    assertEquals(3, occurrences("(primitive)", result));
+    assertEquals(3, occurrences("(null)", result));
+    assertEquals(1, occurrences("java.lang.Object", result));
+    assertEquals(1, occurrences("java.lang.Integer", result));
+    assertEquals(1, occurrences("java.lang.String", result));
   }
 }

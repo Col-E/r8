@@ -18,9 +18,12 @@ import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
 import com.android.tools.r8.graph.GraphLense.RewrittenPrototypeDescription.RemovedArgumentInfo;
 import com.android.tools.r8.graph.GraphLense.RewrittenPrototypeDescription.RemovedArgumentsInfo;
+import com.android.tools.r8.ir.optimize.MemberPoolCollection.MemberPool;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ThreadUtils;
+import com.android.tools.r8.utils.Timing;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -40,7 +43,10 @@ import java.util.stream.Collectors;
 
 public class UnusedArgumentsCollector {
 
+  private static final MethodSignatureEquivalence equivalence = MethodSignatureEquivalence.get();
+
   private final AppView<AppInfoWithLiveness> appView;
+  private final MethodPoolCollection methodPoolCollection;
 
   private final BiMap<DexMethod, DexMethod> methodMapping = HashBiMap.create();
   private final Map<DexMethod, RemovedArgumentsInfo> removedArguments = new IdentityHashMap<>();
@@ -81,11 +87,13 @@ public class UnusedArgumentsCollector {
     }
   }
 
-  public UnusedArgumentsCollector(AppView<AppInfoWithLiveness> appView) {
+  public UnusedArgumentsCollector(
+      AppView<AppInfoWithLiveness> appView, MethodPoolCollection methodPoolCollection) {
     this.appView = appView;
+    this.methodPoolCollection = methodPoolCollection;
   }
 
-  public GraphLense run(ExecutorService executorService) throws ExecutionException {
+  public GraphLense run(ExecutorService executorService, Timing timing) throws ExecutionException {
     ThreadUtils.awaitFutures(
         Streams.stream(appView.appInfo().classes())
             .map(this::runnableForClass)
@@ -93,6 +101,12 @@ public class UnusedArgumentsCollector {
             // Materialize list such that all runnables are submitted to the executor service
             // before calling awaitFutures().
             .collect(Collectors.toList()));
+
+    // Build method pool collection to enable unused argument removal for virtual methods.
+    methodPoolCollection.buildAll(executorService, timing);
+
+    // Visit classes in deterministic order to ensure deterministic output.
+    appView.appInfo().classesWithDeterministicOrder().forEach(this::processVirtualMethods);
 
     if (!methodMapping.isEmpty()) {
       return new UnusedArgumentsGraphLense(
@@ -114,29 +128,6 @@ public class UnusedArgumentsCollector {
     private final MethodSignatureEquivalence equivalence = MethodSignatureEquivalence.get();
     private final Set<Wrapper<DexMethod>> usedSignatures = new HashSet<>();
 
-    private DexProto protoWithRemovedArguments(
-        DexEncodedMethod encodedMethod, RemovedArgumentsInfo unused) {
-      DexMethod method = encodedMethod.method;
-
-      int firstArgumentIndex = encodedMethod.isStatic() ? 0 : 1;
-      int numberOfParameters = method.proto.parameters.size() - unused.numberOfRemovedArguments();
-      if (!encodedMethod.isStatic() && unused.isArgumentRemoved(0)) {
-        numberOfParameters++;
-      }
-
-      DexType[] parameters = new DexType[numberOfParameters];
-      if (numberOfParameters > 0) {
-        int newIndex = 0;
-        for (int oldIndex = 0; oldIndex < method.proto.parameters.size(); oldIndex++) {
-          if (!unused.isArgumentRemoved(oldIndex + firstArgumentIndex)) {
-            parameters[newIndex++] = method.proto.parameters.values[oldIndex];
-          }
-        }
-        assert newIndex == parameters.length;
-      }
-      return appView.dexItemFactory().createProto(method.proto.returnType, parameters);
-    }
-
     private boolean isMethodSignatureAvailable(DexMethod method) {
       return !usedSignatures.contains(equivalence.wrap(method));
     }
@@ -145,16 +136,49 @@ public class UnusedArgumentsCollector {
       usedSignatures.add(equivalence.wrap(method));
     }
 
-    private void markSignatureAsNoLongerUsed(DexMethod method) {
-      boolean removed = usedSignatures.remove(equivalence.wrap(method));
-      assert removed;
+    DexMethod getNewSignature(DexEncodedMethod method, DexProto newProto) {
+      DexMethod newSignature;
+      int count = 0;
+      DexString newName = null;
+      do {
+        if (newName == null) {
+          newName = method.method.name;
+        } else if (!appView.dexItemFactory().isConstructor(method.method)) {
+          newName =
+              appView
+                  .dexItemFactory()
+                  .createString(
+                      StringUtils.numberToIdentifier(
+                          method.method.name.toSourceString().toCharArray(), count));
+        } else {
+          // Constructors must be named `<init>`.
+          return null;
+        }
+        newSignature =
+            appView.dexItemFactory().createMethod(method.method.holder, newProto, newName);
+        count++;
+      } while (!isMethodSignatureAvailable(newSignature));
+      return newSignature;
     }
 
-    DexEncodedMethod removeArguments(DexEncodedMethod method, RemovedArgumentsInfo unused) {
-      if (unused == null) {
-        return null;
-      }
-      DexProto newProto = protoWithRemovedArguments(method, unused);
+    DexEncodedMethod removeArguments(DexEncodedMethod method, DexMethod newSignature) {
+      boolean removed = usedSignatures.remove(equivalence.wrap(method.method));
+      assert removed;
+
+      markSignatureAsUsed(newSignature);
+      return method.toTypeSubstitutedMethod(newSignature);
+    }
+  }
+
+  private class GloballyUsedSignatures {
+
+    private final MemberPool<DexMethod> methodPool;
+
+    GloballyUsedSignatures(MemberPool<DexMethod> methodPool) {
+      this.methodPool = methodPool;
+    }
+
+    DexMethod getNewSignature(DexEncodedMethod method, DexProto newProto) {
       DexMethod newSignature;
       int count = 0;
       DexString newName = null;
@@ -171,28 +195,38 @@ public class UnusedArgumentsCollector {
         newSignature =
             appView.dexItemFactory().createMethod(method.method.holder, newProto, newName);
         count++;
-      } while (!isMethodSignatureAvailable(newSignature));
-      markSignatureAsNoLongerUsed(method.method);
-      markSignatureAsUsed(newSignature);
+      } while (methodPool.hasSeen(equivalence.wrap(newSignature)));
+      return newSignature;
+    }
+
+    DexEncodedMethod removeArguments(DexEncodedMethod method, DexMethod newSignature) {
+      methodPool.seen(equivalence.wrap(newSignature));
       return method.toTypeSubstitutedMethod(newSignature);
     }
   }
 
   private Runnable runnableForClass(DexProgramClass clazz) {
-    return () -> this.processClass(clazz);
+    return () -> this.processDirectMethods(clazz);
   }
 
-  private void processClass(DexProgramClass clazz) {
+  private void processDirectMethods(DexProgramClass clazz) {
     UsedSignatures signatures = new UsedSignatures();
     for (DexEncodedMethod method : clazz.methods()) {
       signatures.markSignatureAsUsed(method.method);
     }
+
     List<DexEncodedMethod> directMethods = clazz.directMethods();
     for (int i = 0; i < directMethods.size(); i++) {
       DexEncodedMethod method = directMethods.get(i);
       RemovedArgumentsInfo unused = collectUnusedArguments(method);
-      DexEncodedMethod newMethod = signatures.removeArguments(method, unused);
-      if (newMethod != null) {
+      if (unused != null && unused.hasRemovedArguments()) {
+        DexProto newProto = createProtoWithRemovedArguments(method, unused);
+        DexMethod newSignature = signatures.getNewSignature(method, newProto);
+        if (newSignature == null) {
+          assert appView.dexItemFactory().isConstructor(method.method);
+          continue;
+        }
+        DexEncodedMethod newMethod = signatures.removeArguments(method, newSignature);
         clazz.setDirectMethod(i, newMethod);
         synchronized (this) {
           methodMapping.put(method.method, newMethod.method);
@@ -202,7 +236,38 @@ public class UnusedArgumentsCollector {
     }
   }
 
+  private void processVirtualMethods(DexProgramClass clazz) {
+    MemberPool<DexMethod> methodPool = methodPoolCollection.get(clazz);
+    GloballyUsedSignatures signatures = new GloballyUsedSignatures(methodPool);
+
+    List<DexEncodedMethod> virtualMethods = clazz.virtualMethods();
+    for (int i = 0; i < virtualMethods.size(); i++) {
+      DexEncodedMethod method = virtualMethods.get(i);
+      RemovedArgumentsInfo unused = collectUnusedArguments(method, methodPool);
+      if (unused != null && unused.hasRemovedArguments()) {
+        DexProto newProto = createProtoWithRemovedArguments(method, unused);
+        DexMethod newSignature = signatures.getNewSignature(method, newProto);
+
+        // Double-check that the new method signature is in fact available.
+        assert !methodPool.hasSeenStrictlyAbove(equivalence.wrap(newSignature));
+        assert !methodPool.hasSeenStrictlyBelow(equivalence.wrap(newSignature));
+
+        DexEncodedMethod newMethod =
+            signatures.removeArguments(method, signatures.getNewSignature(method, newProto));
+        clazz.setVirtualMethod(i, newMethod);
+
+        methodMapping.put(method.method, newMethod.method);
+        removedArguments.put(newMethod.method, unused);
+      }
+    }
+  }
+
   private RemovedArgumentsInfo collectUnusedArguments(DexEncodedMethod method) {
+    return collectUnusedArguments(method, null);
+  }
+
+  private RemovedArgumentsInfo collectUnusedArguments(
+      DexEncodedMethod method, MemberPool<DexMethod> methodPool) {
     if (ArgumentRemovalUtils.isPinned(method, appView)
         || appView.appInfo().keepUnusedArguments.contains(method.method)) {
       return null;
@@ -211,36 +276,64 @@ public class UnusedArgumentsCollector {
     if (method.getCode() == null || !method.getCode().isJarCode()) {
       return null;
     }
+    if (method.isVirtualMethod()) {
+      // Abort if the method overrides another method, or if the method is overridden. In both cases
+      // an unused argument cannot be removed unless it is unused in all of the related methods in
+      // the hierarchy.
+      assert methodPool != null;
+      Wrapper<DexMethod> wrapper = equivalence.wrap(method.method);
+      if (methodPool.hasSeenStrictlyAbove(wrapper) || methodPool.hasSeenStrictlyBelow(wrapper)) {
+        return null;
+      }
+    }
     assert method.getCode().getOwner() == method;
     int offset = method.accessFlags.isStatic() ? 0 : 1;
     int argumentCount = method.method.proto.parameters.size() + offset;
-    // TODO(65810338): Implement for virtual methods as well.
-    if (method.accessFlags.isPrivate()
-        || method.accessFlags.isStatic()
-        || method.isInstanceInitializer()) {
-      CollectUsedArguments collector = new CollectUsedArguments();
-      if (!method.accessFlags.isStatic()) {
-        // TODO(65810338): The receiver cannot be removed without transforming the method to being
-        // static.
-        collector.register(0);
-      }
-      method.getCode().registerArgumentReferences(collector);
-      BitSet used = collector.getUsedArguments();
-      if (used.cardinality() < argumentCount) {
-        List<RemovedArgumentInfo> unused = new ArrayList<>();
-        for (int argumentIndex = 0; argumentIndex < argumentCount; argumentIndex++) {
-          if (!used.get(argumentIndex)) {
-            unused.add(
-                RemovedArgumentInfo.builder()
-                    .setArgumentIndex(argumentIndex)
-                    .setType(method.method.proto.parameters.values[argumentIndex - offset])
-                    .build());
-          }
+    CollectUsedArguments collector = new CollectUsedArguments();
+    if (!method.accessFlags.isStatic()) {
+      // TODO(65810338): The receiver cannot be removed without transforming the method to being
+      // static.
+      collector.register(0);
+    }
+    method.getCode().registerArgumentReferences(collector);
+    BitSet used = collector.getUsedArguments();
+    if (used.cardinality() < argumentCount) {
+      List<RemovedArgumentInfo> unused = new ArrayList<>();
+      for (int argumentIndex = 0; argumentIndex < argumentCount; argumentIndex++) {
+        if (!used.get(argumentIndex)) {
+          unused.add(
+              RemovedArgumentInfo.builder()
+                  .setArgumentIndex(argumentIndex)
+                  .setType(method.method.proto.parameters.values[argumentIndex - offset])
+                  .build());
         }
-        return new RemovedArgumentsInfo(unused);
       }
+      return new RemovedArgumentsInfo(unused);
     }
     return null;
+  }
+
+  private DexProto createProtoWithRemovedArguments(
+      DexEncodedMethod encodedMethod, RemovedArgumentsInfo unused) {
+    DexMethod method = encodedMethod.method;
+
+    int firstArgumentIndex = encodedMethod.isStatic() ? 0 : 1;
+    int numberOfParameters = method.proto.parameters.size() - unused.numberOfRemovedArguments();
+    if (!encodedMethod.isStatic() && unused.isArgumentRemoved(0)) {
+      numberOfParameters++;
+    }
+
+    DexType[] parameters = new DexType[numberOfParameters];
+    if (numberOfParameters > 0) {
+      int newIndex = 0;
+      for (int oldIndex = 0; oldIndex < method.proto.parameters.size(); oldIndex++) {
+        if (!unused.isArgumentRemoved(oldIndex + firstArgumentIndex)) {
+          parameters[newIndex++] = method.proto.parameters.values[oldIndex];
+        }
+      }
+      assert newIndex == parameters.length;
+    }
+    return appView.dexItemFactory().createProto(method.proto.returnType, parameters);
   }
 
   private static class CollectUsedArguments extends ArgumentUse {

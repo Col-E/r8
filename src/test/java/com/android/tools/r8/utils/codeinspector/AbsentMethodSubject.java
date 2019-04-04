@@ -84,6 +84,11 @@ public class AbsentMethodSubject extends MethodSubject {
   }
 
   @Override
+  public boolean isVirtual() {
+    throw new Unreachable("Cannot determine if an absent method is virtual");
+  }
+
+  @Override
   public DexEncodedMethod getMethod() {
     return null;
   }

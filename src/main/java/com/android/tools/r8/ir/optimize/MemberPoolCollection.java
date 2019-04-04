@@ -162,6 +162,7 @@ public abstract class MemberPoolCollection<T extends Descriptor> {
   }
 
   public static class MemberPool<T> {
+
     private Equivalence<T> equivalence;
     private MemberPool<T> superType;
     private final Set<MemberPool<T>> interfaces = new HashSet<>();
@@ -187,40 +188,44 @@ public abstract class MemberPoolCollection<T extends Descriptor> {
       assert added;
     }
 
-    public void seen(T descriptor) {
-      seen(equivalence.wrap(descriptor));
+    public void seen(T member) {
+      seen(equivalence.wrap(member));
     }
 
-    public synchronized void seen(Wrapper<T> descriptor) {
-      boolean added = memberPool.add(descriptor);
+    public synchronized void seen(Wrapper<T> member) {
+      boolean added = memberPool.add(member);
       assert added;
     }
 
-    public boolean hasSeen(T descriptor) {
-      return hasSeen(equivalence.wrap(descriptor));
+    public boolean hasSeen(Wrapper<T> member) {
+      return hasSeenAbove(member, true) || hasSeenStrictlyBelow(member);
     }
 
-    public boolean hasSeen(Wrapper<T> descriptor) {
-      return hasSeenUpwardRecursive(descriptor) || hasSeenDownwardRecursive(descriptor);
+    public boolean hasSeenDirectly(Wrapper<T> member) {
+      return memberPool.contains(member);
     }
 
-    public boolean hasSeenDirectly(T descriptor) {
-      return hasSeenDirectly(equivalence.wrap(descriptor));
+    public boolean hasSeenStrictlyAbove(Wrapper<T> member) {
+      return hasSeenAbove(member, false);
     }
 
-    public boolean hasSeenDirectly(Wrapper<T> descriptor) {
-      return memberPool.contains(descriptor);
+    private boolean hasSeenAbove(Wrapper<T> member, boolean inclusive) {
+      if (inclusive && hasSeenDirectly(member)) {
+        return true;
+      }
+      return (superType != null && superType.hasSeenAbove(member, true))
+          || interfaces.stream().anyMatch(itf -> itf.hasSeenAbove(member, true));
     }
 
-    private boolean hasSeenUpwardRecursive(Wrapper<T> descriptor) {
-      return memberPool.contains(descriptor)
-          || (superType != null && superType.hasSeenUpwardRecursive(descriptor))
-          || interfaces.stream().anyMatch(itf -> itf.hasSeenUpwardRecursive(descriptor));
+    public boolean hasSeenStrictlyBelow(Wrapper<T> member) {
+      return hasSeenBelow(member, false);
     }
 
-    private boolean hasSeenDownwardRecursive(Wrapper<T> reference) {
-      return memberPool.contains(reference)
-          || subTypes.stream().anyMatch(subType -> subType.hasSeenDownwardRecursive(reference));
+    private boolean hasSeenBelow(Wrapper<T> member, boolean inclusive) {
+      if (inclusive && hasSeenDirectly(member)) {
+        return true;
+      }
+      return subTypes.stream().anyMatch(subType -> subType.hasSeenBelow(member, true));
     }
   }
 
