@@ -21,6 +21,7 @@ from xml.dom import minidom
 
 import as_utils
 import update_prebuilds_in_android
+import download_all_benchmark_dependencies
 
 SHRINKERS = ['r8', 'r8-full', 'r8-nolib', 'r8-nolib-full', 'pg']
 WORKING_DIR = os.path.join(utils.BUILD, 'opensource_apps')
@@ -1071,6 +1072,10 @@ def main(argv):
   (options, args) = ParseOptions(argv)
 
   if options.bot:
+    utils.DownloadFromGoogleCloudStorage(utils.OPENSOURCE_APPS_SHA_FILE)
+    utils.DownloadFromGoogleCloudStorage(utils.ANDROID_SDK + '.tar.gz.sha1',
+                                         bucket='r8-deps-internal',
+                                         auth=True)
     if os.path.exists(WORKING_DIR):
       shutil.rmtree(WORKING_DIR)
     shutil.copytree(utils.OPENSOURCE_APPS_FOLDER, WORKING_DIR)
