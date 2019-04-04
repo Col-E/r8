@@ -308,7 +308,7 @@ def run_once(archive):
   env['R8_GRADLE_CORES_PER_FORK'] = '16'
   failed = any([execute(cmd, archive, env) for cmd in TEST_COMMANDS])
   # Gradle daemon occasionally leaks memory, stop it.
-  gradle.RunGradle('--stop')
+  gradle.RunGradle(['--stop'])
   archive_status(1 if failed else 0)
   return failed
 
