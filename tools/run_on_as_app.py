@@ -603,7 +603,7 @@ def BuildAppWithShrinker(
           ["--stop"],
           env_vars=env_vars,
           quiet=options.quiet,
-          logging=not options.golem,
+          logging=not options.no_logging,
           use_daemon=options.use_daemon)
     utils.RunGradlew(
         args,
@@ -611,7 +611,7 @@ def BuildAppWithShrinker(
         quiet=options.quiet,
         clean=i > 0,
         use_daemon=options.use_daemon,
-        logging=not options.golem)
+        logging=not options.no_logging)
 
   if keepRuleSynthesisForRecompilation:
     args.append('-Dcom.android.tools.r8.keepRuleSynthesisForRecompilation=true')
@@ -625,7 +625,7 @@ def BuildAppWithShrinker(
       env_vars=env_vars,
       quiet=options.quiet,
       use_daemon=options.use_daemon,
-      logging=not options.golem)
+      logging=not options.no_logging)
 
   apk_base_name = (archives_base_name
       + (('-' + app.flavor) if app.flavor else '') + '-release')
@@ -1009,6 +1009,10 @@ def ParseOptions(argv):
                     help='Disable verbose logging',
                     default=False,
                     action='store_true')
+  result.add_option('--no-logging', '--no_logging',
+                    help='Disable logging except for errors',
+                    default=False,
+                    action='store_true')
   result.add_option('--print-dexsegments',
                     metavar='BENCHMARKNAME',
                     help='Print the sizes of individual dex segments as ' +
@@ -1082,6 +1086,7 @@ def main(argv):
     os.environ[utils.ANDROID_HOME_ENVIROMENT_NAME] = os.path.join(
         utils.ANDROID_SDK)
     os.environ[utils.ANDROID_TOOLS_VERSION_ENVIRONMENT_NAME] = '28.0.3'
+    options.no_logging = True
 
   if options.golem:
     golem.link_third_party()
@@ -1098,6 +1103,7 @@ def main(argv):
     options.quiet = True
     options.gradle_pre_runs = 2
     options.use_daemon = True
+    options.no_logging = True
 
   if not os.path.exists(WORKING_DIR):
     os.makedirs(WORKING_DIR)
