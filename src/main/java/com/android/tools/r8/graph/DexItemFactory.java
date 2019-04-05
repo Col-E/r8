@@ -191,7 +191,6 @@ public class DexItemFactory {
   public final DexString npeDescriptor = createString("Ljava/lang/NullPointerException;");
   public final DexString proxyDescriptor = createString("Ljava/lang/reflect/Proxy;");
   public final DexString serviceLoaderDescriptor = createString("Ljava/util/ServiceLoader;");
-  public final DexString listDescriptor = createString("Ljava/util/List;");
 
   public final DexString intFieldUpdaterDescriptor =
       createString("Ljava/util/concurrent/atomic/AtomicIntegerFieldUpdater;");
@@ -256,7 +255,6 @@ public class DexItemFactory {
   public final DexType npeType = createType(npeDescriptor);
   public final DexType proxyType = createType(proxyDescriptor);
   public final DexType serviceLoaderType = createType(serviceLoaderDescriptor);
-  public final DexType listType = createType(listDescriptor);
 
   public final StringBuildingMethods stringBuilderMethods =
       new StringBuildingMethods(stringBuilderType);
@@ -266,7 +264,6 @@ public class DexItemFactory {
   public final ObjectMethods objectMethods = new ObjectMethods();
   public final StringMethods stringMethods = new StringMethods();
   public final LongMethods longMethods = new LongMethods();
-  public final JavaUtilArraysMethods utilArraysMethods = new JavaUtilArraysMethods();
   public final ThrowableMethods throwableMethods = new ThrowableMethods();
   public final ClassMethods classMethods = new ClassMethods();
   public final ConstructorMethods constructorMethods = new ConstructorMethods();
@@ -279,6 +276,7 @@ public class DexItemFactory {
   public final Kotlin kotlin;
   public final PolymorphicMethods polymorphicMethods = new PolymorphicMethods();
   public final ProxyMethods proxyMethods = new ProxyMethods();
+  public final ServiceLoaderMethods serviceLoaderMethods = new ServiceLoaderMethods();
 
   public final DexString twrCloseResourceMethodName = createString("$closeResource");
   public final DexProto twrCloseResourceMethodProto =
@@ -321,8 +319,6 @@ public class DexItemFactory {
   public final DexType serializableType = createType("Ljava/io/Serializable;");
   public final DexType externalizableType = createType("Ljava/io/Externalizable;");
   public final DexType comparableType = createType("Ljava/lang/Comparable;");
-
-  public final ServiceLoaderMethods serviceLoaderMethods = new ServiceLoaderMethods();
 
   public final DexMethod metafactoryMethod =
       createMethod(
@@ -437,20 +433,6 @@ public class DexItemFactory {
     private LongMethods() {
       compare = createMethod(boxedLongDescriptor,
           createString("compare"), intDescriptor, new DexString[]{longDescriptor, longDescriptor});
-    }
-  }
-
-  public class JavaUtilArraysMethods {
-
-    public final DexMethod asList;
-
-    private JavaUtilArraysMethods() {
-      asList =
-          createMethod(
-              createString("Ljava/util/Arrays;"),
-              createString("asList"),
-              listDescriptor,
-              new DexString[] {objectArrayDescriptor});
     }
   }
 
@@ -905,7 +887,6 @@ public class DexItemFactory {
     public final DexMethod load;
     public final DexMethod loadWithClassLoader;
     public final DexMethod loadInstalled;
-    public final DexMethod iterator;
 
     private ServiceLoaderMethods() {
       DexString loadName = createString("load");
@@ -920,8 +901,6 @@ public class DexItemFactory {
               serviceLoaderType,
               createProto(serviceLoaderType, classType),
               createString("loadInstalled"));
-      iterator =
-          createMethod(serviceLoaderType, createProto(iteratorType), createString("iterator"));
     }
 
     public boolean isLoadMethod(DexMethod method) {

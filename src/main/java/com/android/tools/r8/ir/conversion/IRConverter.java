@@ -59,7 +59,6 @@ import com.android.tools.r8.ir.optimize.Outliner;
 import com.android.tools.r8.ir.optimize.PeepholeOptimizer;
 import com.android.tools.r8.ir.optimize.RedundantFieldLoadElimination;
 import com.android.tools.r8.ir.optimize.ReflectionOptimizer;
-import com.android.tools.r8.ir.optimize.ServiceLoaderRewriter;
 import com.android.tools.r8.ir.optimize.UninstantiatedTypeOptimization;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInliner;
 import com.android.tools.r8.ir.optimize.lambda.LambdaMerger;
@@ -136,7 +135,6 @@ public class IRConverter {
   private final UninstantiatedTypeOptimization uninstantiatedTypeOptimization;
   private final TypeChecker typeChecker;
   private final IdempotentFunctionCallCanonicalizer idempotentFunctionCallCanonicalizer;
-  private final ServiceLoaderRewriter serviceLoaderRewriter;
 
   final DeadCodeRemover deadCodeRemover;
 
@@ -217,8 +215,6 @@ public class IRConverter {
               ? new UninstantiatedTypeOptimization(appViewWithLiveness)
               : null;
       this.typeChecker = new TypeChecker(appView.withLiveness());
-      this.serviceLoaderRewriter =
-          options.enableServiceLoaderRewriting ? new ServiceLoaderRewriter() : null;
     } else {
       this.classInliner = null;
       this.classStaticizer = null;
@@ -230,7 +226,6 @@ public class IRConverter {
       this.devirtualizer = null;
       this.uninstantiatedTypeOptimization = null;
       this.typeChecker = null;
-      this.serviceLoaderRewriter = null;
     }
     this.deadCodeRemover = new DeadCodeRemover(appView, codeRewriter);
     this.idempotentFunctionCallCanonicalizer =
@@ -868,11 +863,6 @@ public class IRConverter {
     // check. In the latter case, the type checker should be extended to detect the issue such that
     // we will return with finalizeEmptyThrowingCode() above.
     assert code.verifyTypes(appView);
-
-    if (serviceLoaderRewriter != null) {
-      assert appView.appInfo().hasLiveness();
-      serviceLoaderRewriter.rewrite(code, appView.withLiveness());
-    }
 
     if (classStaticizer != null) {
       classStaticizer.fixupMethodCode(method, code);
