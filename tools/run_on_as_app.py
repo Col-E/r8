@@ -841,14 +841,18 @@ def RunMonkey(app, options, apk_dest):
 
 def LogResultsForApps(result_per_shrinker_per_app, options):
   print('')
+  app_errors = 0
   for (app, result_per_shrinker) in result_per_shrinker_per_app:
-    LogResultsForApp(app, result_per_shrinker, options)
+    app_errors += (1 if LogResultsForApp(app, result_per_shrinker, options)
+                   else 0)
+  return app_errors
 
 def LogResultsForApp(app, result_per_shrinker, options):
   if options.print_dexsegments:
     LogSegmentsForApp(app, result_per_shrinker, options)
+    return False
   else:
-    LogComparisonResultsForApp(app, result_per_shrinker, options)
+    return LogComparisonResultsForApp(app, result_per_shrinker, options)
 
 def LogSegmentsForApp(app, result_per_shrinker, options):
   for shrinker in SHRINKERS:
@@ -864,7 +868,7 @@ def LogSegmentsForApp(app, result_per_shrinker, options):
 
 def LogComparisonResultsForApp(app, result_per_shrinker, options):
   print(app.name + ':')
-
+  app_error = False
   if result_per_shrinker.get('status', 'success') != 'success':
     error_message = result_per_shrinker.get('error_message')
     print('  skipped ({})'.format(error_message))
@@ -880,6 +884,7 @@ def LogComparisonResultsForApp(app, result_per_shrinker, options):
     result = result_per_shrinker.get(shrinker)
     build_status = result.get('build_status')
     if build_status != 'success':
+      app_error = True
       warn('  {}: {}'.format(shrinker, build_status))
     else:
       print('  {}:'.format(shrinker))
@@ -910,6 +915,7 @@ def LogComparisonResultsForApp(app, result_per_shrinker, options):
       if options.monkey:
         monkey_status = result.get('monkey_status')
         if monkey_status != 'success':
+          app_error = True
           warn('    monkey: {}'.format(monkey_status))
         else:
           success('    monkey: {}'.format(monkey_status))
@@ -919,6 +925,7 @@ def LogComparisonResultsForApp(app, result_per_shrinker, options):
       for recompilation_result in recompilation_results:
         build_status = recompilation_result.get('build_status')
         if build_status != 'success':
+          app_error = True
           print('    recompilation #{}: {}'.format(i, build_status))
         else:
           dex_size = recompilation_result.get('dex_size')
@@ -945,12 +952,15 @@ def LogComparisonResultsForApp(app, result_per_shrinker, options):
         if succeeded:
           success('    tests: succeeded')
         else:
+          app_error = True
           warn(
               '    tests: failed (failures: {}, errors: {}, skipped: {})'
               .format(
                   instrumentation_test_results.get('failures'),
                   instrumentation_test_results.get('errors'),
                   instrumentation_test_results.get('skipped')))
+
+  return app_error
 
 def ParseOptions(argv):
   result = optparse.OptionParser()
@@ -1143,7 +1153,7 @@ def main(argv):
       result_per_shrinker_per_app.append(
           (app, GetResultsForApp(app, repo, options, temp_dir)))
 
-    LogResultsForApps(result_per_shrinker_per_app, options)
+    return LogResultsForApps(result_per_shrinker_per_app, options)
 
 def success(message):
   CGREEN = '\033[32m'
