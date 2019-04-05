@@ -2175,7 +2175,7 @@ public class Enqueuer {
   private void handleServiceInstantiation(DexType serviceType, KeepReason reason) {
     instantiatedAppServices.add(serviceType);
 
-    Set<DexType> serviceImplementationTypes =
+    List<DexType> serviceImplementationTypes =
         appView.appServices().serviceImplementationsFor(serviceType);
     for (DexType serviceImplementationType : serviceImplementationTypes) {
       if (!serviceImplementationType.isClassType()) {

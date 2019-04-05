@@ -13,13 +13,15 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.io.ByteStreams;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -33,9 +35,9 @@ public class AppServices {
   private final AppView<? extends AppInfo> appView;
 
   // Mapping from service types to service implementation types.
-  private final Map<DexType, Set<DexType>> services;
+  private final Map<DexType, List<DexType>> services;
 
-  private AppServices(AppView<? extends AppInfo> appView, Map<DexType, Set<DexType>> services) {
+  private AppServices(AppView<? extends AppInfo> appView, Map<DexType, List<DexType>> services) {
     this.appView = appView;
     this.services = services;
   }
@@ -45,25 +47,25 @@ public class AppServices {
     return services.keySet();
   }
 
-  public Set<DexType> serviceImplementationsFor(DexType serviceType) {
+  public List<DexType> serviceImplementationsFor(DexType serviceType) {
     assert verifyRewrittenWithLens();
     assert services.containsKey(serviceType);
-    Set<DexType> serviceImplementationTypes = services.get(serviceType);
+    List<DexType> serviceImplementationTypes = services.get(serviceType);
     if (serviceImplementationTypes == null) {
       assert false
           : "Unexpected attempt to get service implementations for non-service type `"
               + serviceType.toSourceString()
               + "`";
-      return ImmutableSet.of();
+      return ImmutableList.of();
     }
     return serviceImplementationTypes;
   }
 
   public AppServices rewrittenWithLens(GraphLense graphLens) {
-    ImmutableMap.Builder<DexType, Set<DexType>> rewrittenServices = ImmutableMap.builder();
-    for (Entry<DexType, Set<DexType>> entry : services.entrySet()) {
+    ImmutableMap.Builder<DexType, List<DexType>> rewrittenServices = ImmutableMap.builder();
+    for (Entry<DexType, List<DexType>> entry : services.entrySet()) {
       DexType rewrittenServiceType = graphLens.lookupType(entry.getKey());
-      ImmutableSet.Builder<DexType> rewrittenServiceImplementationTypes = ImmutableSet.builder();
+      ImmutableList.Builder<DexType> rewrittenServiceImplementationTypes = ImmutableList.builder();
       for (DexType serviceImplementationType : entry.getValue()) {
         rewrittenServiceImplementationTypes.add(graphLens.lookupType(serviceImplementationType));
       }
@@ -73,7 +75,7 @@ public class AppServices {
   }
 
   private boolean verifyRewrittenWithLens() {
-    for (Entry<DexType, Set<DexType>> entry : services.entrySet()) {
+    for (Entry<DexType, List<DexType>> entry : services.entrySet()) {
       assert entry.getKey() == appView.graphLense().lookupType(entry.getKey());
       for (DexType type : entry.getValue()) {
         assert type == appView.graphLense().lookupType(type);
@@ -89,7 +91,7 @@ public class AppServices {
   public static class Builder {
 
     private final AppView<? extends AppInfo> appView;
-    private final Map<DexType, Set<DexType>> services = new IdentityHashMap<>();
+    private final Map<DexType, List<DexType>> services = new IdentityHashMap<>();
 
     private Builder(AppView<? extends AppInfo> appView) {
       this.appView = appView;
@@ -137,8 +139,9 @@ public class AppServices {
         }
       }
 
-      private Set<DexType> readServiceImplementationsForService(String contents, Origin origin) {
+      private List<DexType> readServiceImplementationsForService(String contents, Origin origin) {
         if (contents != null) {
+          Set<DexType> seenTypes = new HashSet<>();
           return Arrays.stream(contents.split(System.lineSeparator()))
               .map(String::trim)
               .map(this::prefixUntilCommentChar)
@@ -161,11 +164,11 @@ public class AppServices {
                                   origin));
                       return false;
                     }
-                    return true;
+                    return seenTypes.add(serviceImplementationType);
                   })
-              .collect(Collectors.toSet());
+              .collect(Collectors.toList());
         }
-        return ImmutableSet.of();
+        return ImmutableList.of();
       }
 
       private String prefixUntilCommentChar(String line) {
