@@ -5,6 +5,7 @@ package com.android.tools.r8.naming;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
@@ -23,6 +24,7 @@ import com.android.tools.r8.utils.Timing;
 import it.unimi.dsi.fastutil.objects.Object2IntLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import java.util.Set;
+import java.util.TreeSet;
 
 public class Minifier {
 
@@ -36,6 +38,10 @@ public class Minifier {
 
   public NamingLens run(Timing timing) {
     assert appView.options().isMinifying();
+    timing.begin("ComputeInterfaces");
+    Set<DexClass> interfaces = new TreeSet<>((a, b) -> a.type.slowCompareTo(b.type));
+    interfaces.addAll(appView.appInfo().computeReachableInterfaces(desugaredCallSites));
+    timing.end();
     timing.begin("MinifyClasses");
     ClassNameMinifier classNameMinifier =
         new ClassNameMinifier(
@@ -54,7 +60,8 @@ public class Minifier {
     MemberNamingStrategy minifyMembers = new MinifierMemberNamingStrategy(appView.dexItemFactory());
     timing.begin("MinifyMethods");
     MethodRenaming methodRenaming =
-        new MethodNameMinifier(appView, minifyMembers).computeRenaming(desugaredCallSites, timing);
+        new MethodNameMinifier(appView, minifyMembers)
+            .computeRenaming(interfaces, desugaredCallSites, timing);
     timing.end();
 
     assert new MinifiedRenaming(appView, classRenaming, methodRenaming, FieldRenaming.empty())
@@ -62,7 +69,7 @@ public class Minifier {
 
     timing.begin("MinifyFields");
     FieldRenaming fieldRenaming =
-        new FieldNameMinifier(appView, minifyMembers).computeRenaming(timing);
+        new FieldNameMinifier(appView, minifyMembers).computeRenaming(interfaces, timing);
     timing.end();
 
     NamingLens lens = new MinifiedRenaming(appView, classRenaming, methodRenaming, fieldRenaming);

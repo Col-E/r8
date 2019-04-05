@@ -14,6 +14,7 @@ import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
@@ -35,7 +36,7 @@ class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
     }
   }
 
-  FieldRenaming computeRenaming(Timing timing) {
+  FieldRenaming computeRenaming(Collection<DexClass> interfaces, Timing timing) {
     // Reserve names in all classes first. We do this in subtyping order so we do not
     // shadow a reserved field in subclasses. While there is no concept of virtual field
     // dispatch in Java, field resolution still traverses the super type chain and external
@@ -45,15 +46,14 @@ class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
     timing.end();
     // Next, reserve field names in interfaces. These should only be static.
     timing.begin("reserve-interfaces");
-    appView
-        .appInfo()
-        .forAllInterfaces(
-            appView.dexItemFactory(), iface -> reserveNamesInSubtypes(iface, globalState));
+    for (DexClass iface : interfaces) {
+      reserveNamesInSubtypes(iface.type, globalState);
+    }
     timing.end();
     // Rename the definitions.
     timing.begin("rename-definitions");
     renameFieldsInClasses();
-    renameFieldsInInterfaces();
+    renameFieldsInInterfaces(interfaces);
     timing.end();
     // Rename the references that are not rebound to definitions for some reasons.
     timing.begin("rename-references");
@@ -120,17 +120,13 @@ class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
     }
   }
 
-  private void renameFieldsInInterfaces() {
-    for (DexType interfaceType : appView.appInfo().allInterfaces(appView.dexItemFactory())) {
-      renameFieldsInInterface(interfaceType);
+  private void renameFieldsInInterfaces(Collection<DexClass> interfaces) {
+    for (DexClass iface : interfaces) {
+      renameFieldsInInterface(iface);
     }
   }
 
-  private void renameFieldsInInterface(DexType type) {
-    DexClass clazz = appView.definitionFor(type);
-    if (clazz == null) {
-      return;
-    }
+  private void renameFieldsInInterface(DexClass clazz) {
     assert clazz.isInterface();
     NamingState<DexType, ?> state = minifierState.getState(clazz.type);
     assert state != null;

@@ -20,6 +20,7 @@ import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableMap;
 import java.io.PrintStream;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -128,7 +129,8 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
     }
   }
 
-  MethodRenaming computeRenaming(Set<DexCallSite> desugaredCallSites, Timing timing) {
+  MethodRenaming computeRenaming(
+      Collection<DexClass> interfaces, Set<DexCallSite> desugaredCallSites, Timing timing) {
     // Phase 1: Reserve all the names that need to be kept and allocate linked state in the
     //          library part.
     timing.begin("Phase 1");
@@ -141,9 +143,8 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
     InterfaceMethodNameMinifier interfaceMethodNameMinifier =
         new InterfaceMethodNameMinifier(
             appView, desugaredCallSites, equivalence, frontierState, minifierState);
-    interfaceMethodNameMinifier.assignNamesToInterfaceMethods(timing);
+    interfaceMethodNameMinifier.assignNamesToInterfaceMethods(timing, interfaces);
     timing.end();
-    // TODO(zerny): The traversals below should only traverse the reachable graph!
     // Phase 3: Assign names top-down by traversing the subtype hierarchy.
     timing.begin("Phase 3");
     assignNamesToClassesMethods(appView.dexItemFactory().objectType, false);

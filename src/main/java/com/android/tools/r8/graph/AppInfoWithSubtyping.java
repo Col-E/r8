@@ -584,16 +584,6 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
     return ImmutableList.of();
   }
 
-  public Iterable<DexType> allInterfaces(DexItemFactory dexItemFactory) {
-    assert getTypeInfo(dexItemFactory.objectType).hierarchyLevel == ROOT_LEVEL;
-    return Iterables.filter(
-        getTypeInfo(dexItemFactory.objectType).directSubtypes, t -> getTypeInfo(t).isInterface());
-  }
-
-  public void forAllInterfaces(DexItemFactory factory, Consumer<DexType> f) {
-    allInterfaces(factory).forEach(f);
-  }
-
   public boolean isMissingOrHasMissingSuperType(DexType type) {
     DexClass clazz = definitionFor(type);
     return clazz == null || clazz.hasMissingSuperType(this);

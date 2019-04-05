@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
@@ -28,8 +29,10 @@ import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
+import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -538,6 +541,44 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.switchMaps = switchMaps;
     this.ordinalsMaps = ordinalsMaps;
     previous.markObsolete();
+  }
+
+  public Collection<DexClass> computeReachableInterfaces(Set<DexCallSite> desugaredCallSites) {
+    Set<DexClass> interfaces = Sets.newIdentityHashSet();
+    Set<DexType> seen = Sets.newIdentityHashSet();
+    Deque<DexType> worklist = new ArrayDeque<>();
+    for (DexProgramClass clazz : classes()) {
+      worklist.add(clazz.type);
+    }
+    // TODO(b/129458850): Remove this once desugared classes are made part of the program classes.
+    for (DexCallSite callSite : desugaredCallSites) {
+      for (DexEncodedMethod method : lookupLambdaImplementedMethods(callSite)) {
+        worklist.add(method.method.holder);
+      }
+    }
+    for (DexCallSite callSite : callSites) {
+      for (DexEncodedMethod method : lookupLambdaImplementedMethods(callSite)) {
+        worklist.add(method.method.holder);
+      }
+    }
+    while (!worklist.isEmpty()) {
+      DexType type = worklist.pop();
+      if (!seen.add(type)) {
+        continue;
+      }
+      DexClass definition = definitionFor(type);
+      if (definition == null) {
+        continue;
+      }
+      if (definition.isInterface()) {
+        interfaces.add(definition);
+      }
+      if (definition.superType != null) {
+        worklist.add(definition.superType);
+      }
+      Collections.addAll(worklist, definition.interfaces.values);
+    }
+    return interfaces;
   }
 
   public AppInfoWithLiveness withoutStaticFieldsWrites(Set<DexField> noLongerWrittenFields) {

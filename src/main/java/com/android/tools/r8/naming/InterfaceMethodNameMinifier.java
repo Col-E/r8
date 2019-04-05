@@ -22,6 +22,7 @@ import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -30,6 +31,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -76,30 +78,30 @@ public class InterfaceMethodNameMinifier {
     return callSiteRenamings;
   }
 
-  private void reserveNamesInInterfaces() {
-    for (DexType type : appView.appInfo().allInterfaces(appView.dexItemFactory())) {
-      assert appView.appInfo().isInterface(type);
-      frontierState.allocateNamingStateAndReserve(type, type, null);
+  private void reserveNamesInInterfaces(Collection<DexClass> interfaces) {
+    for (DexClass iface : interfaces) {
+      assert iface.isInterface();
+      frontierState.allocateNamingStateAndReserve(iface.type, iface.type, null);
     }
   }
 
-  void assignNamesToInterfaceMethods(Timing timing) {
+  void assignNamesToInterfaceMethods(Timing timing, Collection<DexClass> interfaces) {
     // Reserve all the names that are required for interfaces.
-    reserveNamesInInterfaces();
+    reserveNamesInInterfaces(interfaces);
 
     // First compute a map from method signatures to a set of naming states for interfaces and
     // frontier states of classes that implement them. We add the frontier states so that we can
     // reserve the names for later method naming.
     timing.begin("Compute map");
-    for (DexType type : appView.appInfo().allInterfaces(appView.dexItemFactory())) {
-      assert appView.appInfo().isInterface(type);
-      DexClass clazz = appView.definitionFor(type);
-      if (clazz != null) {
-        assert clazz.isInterface();
-        Set<NamingState<DexProto, ?>> collectedStates = getReachableStates(type);
-        for (DexEncodedMethod method : shuffleMethods(clazz.methods(), appView.options())) {
-          addStatesToGlobalMapForMethod(method.method, collectedStates, type);
-        }
+    Set<DexType> allInterfaceTypes = new HashSet<>(interfaces.size());
+    for (DexClass iface : interfaces) {
+      allInterfaceTypes.add(iface.type);
+    }
+    for (DexClass iface : interfaces) {
+      Set<NamingState<DexProto, ?>> collectedStates =
+          getReachableStates(iface.type, allInterfaceTypes);
+      for (DexEncodedMethod method : shuffleMethods(iface.methods(), appView.options())) {
+        addStatesToGlobalMapForMethod(method.method, collectedStates, iface.type);
       }
     }
 
@@ -131,8 +133,8 @@ public class InterfaceMethodNameMinifier {
           callSites.put(callSite, implementedMethods.iterator().next().method);
           for (DexEncodedMethod method : implementedMethods) {
             DexType iface = method.method.holder;
-            assert appView.appInfo().isInterface(iface);
-            Set<NamingState<DexProto, ?>> collectedStates = getReachableStates(iface);
+            Set<NamingState<DexProto, ?>> collectedStates =
+                getReachableStates(iface, allInterfaceTypes);
             addStatesToGlobalMapForMethod(method.method, collectedStates, iface);
             callSiteMethods.add(equivalence.wrap(method.method));
           }
@@ -160,6 +162,7 @@ public class InterfaceMethodNameMinifier {
     // Go over every method and assign a name.
     timing.begin("Allocate names");
 
+    timing.begin("sort");
     // Sort the methods by the number of dependent states, so that we use short names for methods
     // that are referenced in many places.
     List<Wrapper<DexMethod>> interfaceMethods =
@@ -167,7 +170,9 @@ public class InterfaceMethodNameMinifier {
             .filter(wrapper -> unificationParent.getOrDefault(wrapper, wrapper).equals(wrapper))
             .sorted(appView.options().testing.minifier.createInterfaceMethodOrdering(this))
             .collect(Collectors.toList());
+    timing.end();
 
+    timing.begin("propogate");
     // Propagate reserved names to all states.
     List<Wrapper<DexMethod>> reservedInterfaceMethods =
         interfaceMethods.stream()
@@ -176,18 +181,24 @@ public class InterfaceMethodNameMinifier {
     for (Wrapper<DexMethod> key : reservedInterfaceMethods) {
       propagateReservedNames(key, unification);
     }
+    timing.end();
 
+    timing.begin("assert");
     // Verify that there is no more to propagate.
     assert reservedInterfaceMethods.stream()
         .noneMatch(key -> propagateReservedNames(key, unification));
+    timing.end();
 
+    timing.begin("assing interface");
     // Assign names to unreserved interface methods.
     for (Wrapper<DexMethod> key : interfaceMethods) {
       if (!reservedInterfaceMethods.contains(key)) {
         assignNameToInterfaceMethod(key, unification);
       }
     }
+    timing.end();
 
+    timing.begin("callsites");
     for (Entry<DexCallSite, DexMethod> entry : callSites.entrySet()) {
       DexMethod method = entry.getValue();
       DexString renamed = minifierState.getRenaming(method);
@@ -200,6 +211,7 @@ public class InterfaceMethodNameMinifier {
       }
     }
     timing.end();
+    timing.end(); // end compute map timing
   }
 
   private boolean propagateReservedNames(
@@ -280,6 +292,7 @@ public class InterfaceMethodNameMinifier {
 
   private void addStatesToGlobalMapForMethod(
       DexMethod method, Set<NamingState<DexProto, ?>> collectedStates, DexType originInterface) {
+    assert collectedStates.stream().noneMatch(Objects::isNull);
     Wrapper<DexMethod> key = equivalence.wrap(method);
     globalStateMap.computeIfAbsent(key, k -> new HashSet<>()).addAll(collectedStates);
     sourceMethodsMap.computeIfAbsent(key, k -> new HashSet<>()).add(method);
@@ -319,16 +332,14 @@ public class InterfaceMethodNameMinifier {
     return false;
   }
 
-  private Set<NamingState<DexProto, ?>> getReachableStates(DexType type) {
-    Set<DexType> reachableInterfaces = Sets.newIdentityHashSet();
-    reachableInterfaces.add(type);
-    collectSuperInterfaces(type, reachableInterfaces);
-    collectSubInterfaces(type, reachableInterfaces);
-
+  private Set<NamingState<DexProto, ?>> getReachableStates(DexType type, Set<DexType> allInterfaces) {
+    Set<DexType> reachableInterfaces = getReachableInterfaces(type, allInterfaces);
     Set<NamingState<DexProto, ?>> reachableStates = new HashSet<>();
     for (DexType reachableInterface : reachableInterfaces) {
       // Add the interface itself.
-      reachableStates.add(minifierState.getState(reachableInterface));
+      NamingState<DexProto, ?> ifaceState = minifierState.getState(reachableInterface);
+      assert ifaceState != null;
+      reachableStates.add(ifaceState);
 
       // And the frontiers that correspond to the classes that implement the interface.
       for (DexType frontier : appView.appInfo().allImplementsSubtypes(reachableInterface)) {
@@ -340,24 +351,36 @@ public class InterfaceMethodNameMinifier {
     return reachableStates;
   }
 
-  private void collectSuperInterfaces(DexType iface, Set<DexType> interfaces) {
+  private Set<DexType> getReachableInterfaces(DexType type, Set<DexType> allInterfaces) {
+    if (!allInterfaces.contains(type)) {
+      return Collections.emptySet();
+    }
+    Set<DexType> reachableInterfaces = Sets.newIdentityHashSet();
+    reachableInterfaces.add(type);
+    collectSuperInterfaces(type, reachableInterfaces, allInterfaces);
+    collectSubInterfaces(type, reachableInterfaces, allInterfaces);
+    return reachableInterfaces;
+  }
+
+  private void collectSuperInterfaces(
+      DexType iface, Set<DexType> reachable, Set<DexType> allInterfaces) {
     DexClass clazz = appView.definitionFor(iface);
-    // In cases where we lack the interface's definition, we can at least look at subtypes and
-    // tie those up to get proper naming.
     if (clazz != null) {
       for (DexType type : clazz.interfaces.values) {
-        if (interfaces.add(type)) {
-          collectSuperInterfaces(type, interfaces);
+        if (allInterfaces.contains(type) && reachable.add(type)) {
+          collectSuperInterfaces(type, reachable, allInterfaces);
         }
       }
     }
   }
 
-  private void collectSubInterfaces(DexType iface, Set<DexType> interfaces) {
+  private void collectSubInterfaces(
+      DexType iface, Set<DexType> reachableInterfaces, Set<DexType> allInterfaces) {
+    // In cases where we lack the interface's definition, we can at least look at subtypes and
+    // tie those up to get proper naming.
     for (DexType subtype : appView.appInfo().allExtendsSubtypes(iface)) {
-      assert appView.appInfo().isInterface(subtype);
-      if (interfaces.add(subtype)) {
-        collectSubInterfaces(subtype, interfaces);
+      if (allInterfaces.contains(subtype) && reachableInterfaces.add(subtype)) {
+        collectSubInterfaces(subtype, reachableInterfaces, allInterfaces);
       }
     }
   }

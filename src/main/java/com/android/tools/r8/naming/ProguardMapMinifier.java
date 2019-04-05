@@ -34,6 +34,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 public class ProguardMapMinifier {
 
@@ -133,19 +134,23 @@ public class ProguardMapMinifier {
         classNameMinifier.computeRenaming(timing, syntheticCompanionClasses);
     timing.end();
 
+    Set<DexClass> interfaces = new TreeSet<>((a, b) -> a.type.slowCompareTo(b.type));
+    interfaces.addAll(appView.appInfo().computeReachableInterfaces(desugaredCallSites));
+
     ApplyMappingMemberNamingStrategy nameStrategy =
         new ApplyMappingMemberNamingStrategy(
             memberNames, appView.dexItemFactory(), appView.options().reporter);
     timing.begin("MinifyMethods");
     MethodRenaming methodRenaming =
-        new MethodNameMinifier(appView, nameStrategy).computeRenaming(desugaredCallSites, timing);
+        new MethodNameMinifier(appView, nameStrategy)
+            .computeRenaming(interfaces, desugaredCallSites, timing);
     // Amend the method renamings with the default interface methods.
     methodRenaming.renaming.putAll(defaultInterfaceMethodImplementationNames);
     timing.end();
 
     timing.begin("MinifyFields");
     FieldRenaming fieldRenaming =
-        new FieldNameMinifier(appView, nameStrategy).computeRenaming(timing);
+        new FieldNameMinifier(appView, nameStrategy).computeRenaming(interfaces, timing);
     timing.end();
 
     appView.options().reporter.failIfPendingErrors();
