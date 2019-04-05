@@ -54,7 +54,6 @@ class ClassNameMinifier {
   private final List<String> classDictionary;
   private final boolean keepInnerClassStructure;
 
-  private final Set<DexType> noObfuscationTypes;
   private final Set<DexType> keepPackageName;
 
   private final Namespace topLevelState;
@@ -75,9 +74,6 @@ class ClassNameMinifier {
     this.packageDictionary = options.getProguardConfiguration().getPackageObfuscationDictionary();
     this.classDictionary = options.getProguardConfiguration().getClassObfuscationDictionary();
     this.keepInnerClassStructure = options.getProguardConfiguration().getKeepAttributes().signature;
-    this.noObfuscationTypes =
-        DexReference.filterDexType(appView.rootSet().noObfuscation.stream())
-            .collect(Collectors.toSet());
     this.keepPackageName =
         DexReference.filterDexType(appView.rootSet().keepPackageName.stream())
             .collect(Collectors.toSet());
@@ -111,7 +107,7 @@ class ClassNameMinifier {
     // Collect names we have to keep.
     timing.begin("reserve");
     for (DexClass clazz : classes) {
-      if (noObfuscationTypes.contains(clazz.type)) {
+      if (classNamingStrategy.noObfuscation().contains(clazz.type)) {
         assert !renaming.containsKey(clazz.type);
         registerClassAsUsed(clazz.type);
       }
@@ -177,7 +173,7 @@ class ClassNameMinifier {
   private void renameDanglingType(DexType type) {
     if (appView.appInfo().wasPruned(type)
         && !renaming.containsKey(type)
-        && !noObfuscationTypes.contains(type)) {
+        && !classNamingStrategy.noObfuscation().contains(type)) {
       // We have a type that is defined in the program source but is only used in a proto or
       // return type. As we don't need the class, we can rename it to anything as long as it is
       // unique.
@@ -194,7 +190,8 @@ class ClassNameMinifier {
     if (keepInnerClassStructure) {
       DexType outerClass = getOutClassForType(type);
       if (outerClass != null) {
-        if (!renaming.containsKey(outerClass) && !noObfuscationTypes.contains(outerClass)) {
+        if (!renaming.containsKey(outerClass)
+            && !classNamingStrategy.noObfuscation().contains(outerClass)) {
           // The outer class was not previously kept and will not be kept.
           // We have to force keep the outer class now.
           registerClassAsUsed(outerClass);
@@ -429,6 +426,8 @@ class ClassNameMinifier {
     DexString next(Namespace namespace, DexType type, char[] packagePrefix);
 
     boolean bypassDictionary();
+
+    Set<DexReference> noObfuscation();
   }
 
   protected interface PackageNamingStrategy {

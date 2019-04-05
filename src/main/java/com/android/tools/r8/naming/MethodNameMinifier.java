@@ -249,7 +249,7 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
           //  methods?
           if (keepAll
               || method.accessFlags.isConstructor()
-              || appView.rootSet().noObfuscation.contains(method.method)) {
+              || strategy.noObfuscation().contains(method.method)) {
             reserveNamesForMethod(method.method, state);
           }
         }

@@ -93,7 +93,7 @@ class FieldNameMinifier extends MemberNameMinifier<DexField, DexType> {
   private void reserveFieldName(
       DexEncodedField encodedField, NamingState<DexType, ?> state, boolean alwaysReserve) {
     DexField field = encodedField.field;
-    if (alwaysReserve || appView.rootSet().noObfuscation.contains(field)) {
+    if (alwaysReserve || strategy.noObfuscation().contains(field)) {
       state.reserveName(field.name, field.type);
     }
   }

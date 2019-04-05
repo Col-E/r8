@@ -46,7 +46,8 @@ public class Minifier {
     ClassNameMinifier classNameMinifier =
         new ClassNameMinifier(
             appView,
-            new MinificationClassNamingStrategy(appView.dexItemFactory()),
+            new MinificationClassNamingStrategy(
+                appView.dexItemFactory(), appView.rootSet().noObfuscation),
             new MinificationPackageNamingStrategy(),
             // Use deterministic class order to make sure renaming is deterministic.
             appView.appInfo().classesWithDeterministicOrder());
@@ -57,7 +58,8 @@ public class Minifier {
             appView, classRenaming, MethodRenaming.empty(), FieldRenaming.empty())
         .verifyNoCollisions(appView.appInfo().classes(), appView.dexItemFactory());
 
-    MemberNamingStrategy minifyMembers = new MinifierMemberNamingStrategy(appView.dexItemFactory());
+    MemberNamingStrategy minifyMembers =
+        new MinifierMemberNamingStrategy(appView.dexItemFactory(), appView.rootSet().noObfuscation);
     timing.begin("MinifyMethods");
     MethodRenaming methodRenaming =
         new MethodNameMinifier(appView, minifyMembers)
@@ -85,9 +87,11 @@ public class Minifier {
 
     private final DexItemFactory factory;
     private final Object2IntMap<Namespace> namespaceCounters = new Object2IntLinkedOpenHashMap<>();
+    private final Set<DexReference> noObfuscation;
 
-    MinificationClassNamingStrategy(DexItemFactory factory) {
+    MinificationClassNamingStrategy(DexItemFactory factory, Set<DexReference> noObfuscation) {
       this.factory = factory;
+      this.noObfuscation = noObfuscation;
       namespaceCounters.defaultReturnValue(1);
     }
 
@@ -102,6 +106,11 @@ public class Minifier {
     @Override
     public boolean bypassDictionary() {
       return false;
+    }
+
+    @Override
+    public Set<DexReference> noObfuscation() {
+      return noObfuscation;
     }
   }
 
@@ -134,9 +143,11 @@ public class Minifier {
     public static char[] EMPTY_CHAR_ARRAY = new char[0];
 
     private final DexItemFactory factory;
+    private final Set<DexReference> noObfuscation;
 
-    public MinifierMemberNamingStrategy(DexItemFactory factory) {
+    public MinifierMemberNamingStrategy(DexItemFactory factory, Set<DexReference> noObfuscation) {
       this.factory = factory;
+      this.noObfuscation = noObfuscation;
     }
 
     @Override
@@ -153,6 +164,11 @@ public class Minifier {
     @Override
     public boolean breakOnNotAvailable(DexReference source, DexString name) {
       return false;
+    }
+
+    @Override
+    public Set<DexReference> noObfuscation() {
+      return noObfuscation;
     }
   }
 }

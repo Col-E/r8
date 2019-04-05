@@ -17,6 +17,7 @@ import com.google.common.collect.HashBiMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
 abstract class MemberNameMinifier<MemberType, StateType extends CachedHashValueDexItem> {
@@ -28,6 +29,7 @@ abstract class MemberNameMinifier<MemberType, StateType extends CachedHashValueD
   protected final NamingState<StateType, ?> globalState;
   protected final boolean overloadAggressively;
   protected final boolean useApplyMapping;
+  protected final MemberNamingStrategy strategy;
 
   protected final State minifierState = new State();
 
@@ -43,6 +45,7 @@ abstract class MemberNameMinifier<MemberType, StateType extends CachedHashValueD
     this.globalState =
         NamingState.createRoot(appView.dexItemFactory(), dictionary, getKeyTransform(), strategy);
     this.useApplyMapping = proguardConfiguration.hasApplyMappingFile();
+    this.strategy = strategy;
   }
 
   abstract Function<StateType, ?> getKeyTransform();
@@ -87,5 +90,7 @@ abstract class MemberNameMinifier<MemberType, StateType extends CachedHashValueD
     boolean bypassDictionary();
 
     boolean breakOnNotAvailable(DexReference source, DexString name);
+
+    Set<DexReference> noObfuscation();
   }
 }
