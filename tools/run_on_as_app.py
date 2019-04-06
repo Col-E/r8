@@ -215,7 +215,8 @@ APP_REPOSITORIES = [
               'id': 'net.nurik.roman.muzei',
               'module': 'main',
               'archives_base_name': 'muzei',
-              'compile_sdk': 28
+              'compile_sdk': 28,
+              'skip': True,
           })
       ]
   }),
@@ -299,7 +300,8 @@ APP_REPOSITORIES = [
           App({
               'id': 'app.tivi',
               'min_sdk': 23,
-              'compile_sdk': 28
+              'compile_sdk': 28,
+              'skip': True
           })
       ]
   }),
@@ -1097,6 +1099,8 @@ def main(argv):
         utils.ANDROID_SDK)
     os.environ[utils.ANDROID_TOOLS_VERSION_ENVIRONMENT_NAME] = '28.0.3'
     options.no_logging = True
+    options.shrinker = [shrinker for shrinker in SHRINKERS if shrinker != 'pg']
+    print(options.shrinker)
 
   if options.golem:
     golem.link_third_party()
