@@ -8,14 +8,15 @@ import static junit.framework.Assert.assertNotNull;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertNull;
 import static junit.framework.TestCase.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -127,31 +128,30 @@ public class ServiceLoaderRewritingTest extends TestBase {
   @Test
   public void testRewritings() throws IOException, CompilationFailedException, ExecutionException {
     Path path = temp.newFile("out.zip").toPath();
-    R8TestRunResult inspect =
-        testForR8(parameters.getBackend())
-            .addInnerClasses(ServiceLoaderRewritingTest.class)
-            .addKeepMainRule(MainRunner.class)
-            .setMinApi(parameters.getRuntime())
-            .addDataEntryResources(
-                DataEntryResource.fromBytes(
-                    StringUtils.lines(ServiceImpl.class.getTypeName()).getBytes(),
-                    "META-INF/services/" + Service.class.getTypeName(),
-                    Origin.unknown()))
-            .compile()
-            .writeToZip(path)
-            .run(parameters.getRuntime(), MainRunner.class)
-            .assertSuccessWithOutput(EXPECTED_OUTPUT)
-            .inspect(
-                inspector -> {
-                  // Check that we have actually rewritten the calls to ServiceLoader.load.
-                  ClassSubject clazz = inspector.clazz(MainRunner.class);
-                  assertTrue(clazz.isPresent());
-                  MethodSubject main = clazz.uniqueMethodWithName("main");
-                  assertTrue(main.isPresent());
-                  assertTrue(
-                      main.streamInstructions()
-                          .noneMatch(ServiceLoaderRewritingTest::isServiceLoaderLoad));
-                });
+    testForR8(parameters.getBackend())
+        .addInnerClasses(ServiceLoaderRewritingTest.class)
+        .addKeepMainRule(MainRunner.class)
+        .setMinApi(parameters.getRuntime())
+        .addDataEntryResources(
+            DataEntryResource.fromBytes(
+                StringUtils.lines(ServiceImpl.class.getTypeName()).getBytes(),
+                "META-INF/services/" + Service.class.getTypeName(),
+                Origin.unknown()))
+        .compile()
+        .writeToZip(path)
+        .run(parameters.getRuntime(), MainRunner.class)
+        .assertSuccessWithOutput(EXPECTED_OUTPUT)
+        .inspect(
+            inspector -> {
+              // Check that we have actually rewritten the calls to ServiceLoader.load.
+              ClassSubject clazz = inspector.clazz(MainRunner.class);
+              assertTrue(clazz.isPresent());
+              MethodSubject main = clazz.uniqueMethodWithName("main");
+              assertTrue(main.isPresent());
+              assertTrue(
+                  main.streamInstructions()
+                      .noneMatch(ServiceLoaderRewritingTest::isServiceLoaderLoad));
+            });
 
     // Check that we have removed the service configuration from META-INF/services.
     ZipFile zip = new ZipFile(path.toFile());
@@ -239,6 +239,10 @@ public class ServiceLoaderRewritingTest extends TestBase {
   @Test
   public void testKeepAsOriginal()
       throws IOException, CompilationFailedException, ExecutionException {
+    // TODO(b/130164528)
+    assumeTrue(
+        parameters.getRuntime().isCf()
+            || !parameters.getRuntime().asDex().getVm().getVersion().equals(Version.V7_0_0));
     Path path = temp.newFile("out.zip").toPath();
     CodeInspector inspector =
         testForR8(parameters.getBackend())
