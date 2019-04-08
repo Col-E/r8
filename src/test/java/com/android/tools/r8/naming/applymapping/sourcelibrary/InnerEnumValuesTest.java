@@ -4,11 +4,12 @@
 package com.android.tools.r8.naming.applymapping.sourcelibrary;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.naming.applymapping.sourcelibrary.Outer.InnerEnum;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -16,7 +17,6 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import java.nio.file.Path;
-import java.util.Collection;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -31,15 +31,15 @@ public class InnerEnumValuesTest extends TestBase {
       "STATE_A", "STATE_B", "STATE_A", "STATE_B");
 
   private static Path mappingFile;
-  private final Backend backend;
+  private final TestParameters parameters;
 
-  @Parameterized.Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withCfRuntimes().build();
   }
 
-  public InnerEnumValuesTest(Backend backend) {
-    this.backend = backend;
+  public InnerEnumValuesTest(TestParameters parameters) {
+    this.parameters = parameters;
   }
 
   @Before
@@ -63,20 +63,17 @@ public class InnerEnumValuesTest extends TestBase {
 
   @Test
   public void b124177369() throws Exception {
-    CodeInspector inspector = testForR8(Backend.CF)
+    CodeInspector inspector = testForR8(parameters.getBackend())
         .addProgramClassesAndInnerClasses(
             Outer.class)
         .addProgramClasses(MAIN)
         .addKeepMainRule(MAIN)
         .addKeepRules("-applymapping " + mappingFile.toAbsolutePath())
-        .run(MAIN)
+        .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(EXPECTED_OUTPUT)
         .inspector();
     ClassSubject enumSubject = inspector.clazz(RENAMED_NAME);
     assertThat(enumSubject, isPresent());
-    // TODO(b/124177369): method signature Object Outer$InnerEnum[]#clone() left in values().
-    //  .run(MAIN)
-    //  .assertSuccessWithOutput(EXPECTED_OUTPUT);
     FieldSubject fieldX = enumSubject.uniqueFieldWithName("STATE_A");
     assertThat(fieldX, isPresent());
     assertEquals("state_X", fieldX.getFinalName());
