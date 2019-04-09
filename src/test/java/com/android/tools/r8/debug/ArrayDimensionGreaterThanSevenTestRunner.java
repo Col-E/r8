@@ -18,6 +18,7 @@ import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.DebuggeeState;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.function.Consumer;
@@ -39,6 +40,9 @@ public class ArrayDimensionGreaterThanSevenTestRunner extends DebugTestBase {
             .setMode(CompilationMode.DEBUG)
             .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
             .setOutput(cfOut, OutputMode.ClassFile)
+            .setDisableTreeShaking(true)
+            .setDisableMinification(true)
+            .addProguardConfiguration(ImmutableList.of("-keepattributes *"), Origin.unknown())
             .build(),
         optionsConsumer);
     return new CfDebugTestConfig(cfOut);
@@ -49,7 +53,6 @@ public class ArrayDimensionGreaterThanSevenTestRunner extends DebugTestBase {
   }
 
   @Test
-  @Ignore("b/111296969")
   // Once R8 does not use expanded frames this can be enabled again.
   public void test() throws Exception {
     DebugTestConfig cfConfig = new CfDebugTestConfig().addPaths(ToolHelper.getClassPathForTests());
@@ -69,6 +72,8 @@ public class ArrayDimensionGreaterThanSevenTestRunner extends DebugTestBase {
   @Test
   // Verify that ASM fails when using expanded frames directly.
   // See b/111296969
+  // Right now the test passes because the dump uses up to 7 dimensions
+  // But we need to update it to check for the 31-32 boundary
   public void runTestOnAsmDump() throws Exception {
     Path out = temp.getRoot().toPath().resolve("out.jar");
     ArchiveConsumer consumer = new ArchiveConsumer(out);
@@ -78,7 +83,6 @@ public class ArrayDimensionGreaterThanSevenTestRunner extends DebugTestBase {
         null);
     consumer.finished(null);
     ProcessResult result = ToolHelper.runJava(out, NAME);
-    assertEquals("Expected ASM to fail when using visitFrame(F_NEW, ...)", 1, result.exitCode);
-    assertThat(result.stderr, containsString("java.lang.NoClassDefFoundError: F"));
+    assertEquals("Assumes ASM can go at least up to 7 dimensions", 0, result.exitCode);
   }
 }
