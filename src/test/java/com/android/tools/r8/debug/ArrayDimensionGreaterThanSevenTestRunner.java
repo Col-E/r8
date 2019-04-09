@@ -13,6 +13,7 @@ import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.DebuggeeState;
 import com.android.tools.r8.origin.Origin;
@@ -23,6 +24,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
+import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -55,6 +57,8 @@ public class ArrayDimensionGreaterThanSevenTestRunner extends DebugTestBase {
   @Test
   // Once R8 does not use expanded frames this can be enabled again.
   public void test() throws Exception {
+    Assume.assumeTrue(ToolHelper.getDexVm().isNewerThan(DexVm.ART_5_1_1_HOST)
+        && !ToolHelper.isWindows());
     DebugTestConfig cfConfig = new CfDebugTestConfig().addPaths(ToolHelper.getClassPathForTests());
     DebugTestConfig d8Config = new D8DebugTestConfig().compileAndAddClasses(temp, CLASS);
     DebugTestConfig r8JarConfig =
@@ -83,6 +87,6 @@ public class ArrayDimensionGreaterThanSevenTestRunner extends DebugTestBase {
         null);
     consumer.finished(null);
     ProcessResult result = ToolHelper.runJava(out, NAME);
-    assertEquals("Assumes ASM can go at least up to 7 dimensions", 0, result.exitCode);
+    assertEquals("Assumes ASM can go up to 7 dimensions", 0, result.exitCode);
   }
 }
