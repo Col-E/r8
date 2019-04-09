@@ -64,6 +64,10 @@ public abstract class TestShrinkerBuilder<
     return addKeepRules("-keep class ** { *; }");
   }
 
+  public T addKeepAndMinifyAllClassesRule() {
+    return addKeepRules("-keep,allowobfuscation class ** { *; }");
+  }
+
   public T addKeepAllInterfacesRule() {
     return addKeepRules("-keep interface ** { *; }");
   }
