@@ -216,7 +216,6 @@ APP_REPOSITORIES = [
               'module': 'main',
               'archives_base_name': 'muzei',
               'compile_sdk': 28,
-              'skip': True,
           })
       ]
   }),
@@ -391,11 +390,18 @@ def CheckIsBuiltWithExpectedR8(apk, temp_dir, shrinker, options):
       'Expected APK to be built with R8 version {} (was: {})'.format(
           expected_version, marker))
 
-def isR8(shrinker):
+def IsR8(shrinker):
   return 'r8' in shrinker
 
-def isR8FullMode(shrinker):
+def IsR8FullMode(shrinker):
   return shrinker == 'r8-full' or shrinker == 'r8-nolib-full'
+
+def IsLoggingEnabledFor(app, options):
+  if options.no_logging:
+    return False
+  if options.app_logging_filter and app.name not in options.app_logging_filter:
+    return False
+  return True
 
 def IsMinifiedR8(shrinker):
   return 'nolib' not in shrinker
@@ -594,8 +600,8 @@ def BuildAppWithShrinker(
 
   # Build using gradle.
   args = [releaseTarget,
-          '-Pandroid.enableR8=' + str(isR8(shrinker)).lower(),
-          '-Pandroid.enableR8.fullMode=' + str(isR8FullMode(shrinker)).lower()]
+          '-Pandroid.enableR8=' + str(IsR8(shrinker)).lower(),
+          '-Pandroid.enableR8.fullMode=' + str(IsR8FullMode(shrinker)).lower()]
 
   # Warm up gradle if pre_runs > 0. For posterity we generate the same sequence
   # as the benchmarking at https://github.com/madsager/santa-tracker-android.
@@ -605,7 +611,7 @@ def BuildAppWithShrinker(
           ["--stop"],
           env_vars=env_vars,
           quiet=options.quiet,
-          logging=not options.no_logging,
+          logging=IsLoggingEnabledFor(app, options),
           use_daemon=options.use_daemon)
     utils.RunGradlew(
         args,
@@ -613,7 +619,7 @@ def BuildAppWithShrinker(
         quiet=options.quiet,
         clean=i > 0,
         use_daemon=options.use_daemon,
-        logging=not options.no_logging)
+        logging=IsLoggingEnabledFor(app, options))
 
   if keepRuleSynthesisForRecompilation:
     args.append('-Dcom.android.tools.r8.keepRuleSynthesisForRecompilation=true')
@@ -627,7 +633,7 @@ def BuildAppWithShrinker(
       env_vars=env_vars,
       quiet=options.quiet,
       use_daemon=options.use_daemon,
-      logging=not options.no_logging)
+      logging=IsLoggingEnabledFor(app, options))
 
   apk_base_name = (archives_base_name
       + (('-' + app.flavor) if app.flavor else '') + '-release')
@@ -675,15 +681,15 @@ def BuildAppWithShrinker(
 def ComputeInstrumentationTestResults(
     app, options, checkout_dir, out_dir, shrinker):
   args = ['connectedAndroidTest',
-         '-Pandroid.enableR8=' + str(isR8(shrinker)).lower(),
-         '-Pandroid.enableR8.fullMode=' + str(isR8FullMode(shrinker)).lower()]
+         '-Pandroid.enableR8=' + str(IsR8(shrinker)).lower(),
+         '-Pandroid.enableR8.fullMode=' + str(IsR8FullMode(shrinker)).lower()]
   env_vars = { 'ANDROID_SERIAL': options.emulator_id }
   stdout = utils.RunGradlew(
       args,
       env_vars=env_vars,
       quiet=options.quiet,
       fail=False,
-      logging=not options.golem,
+      logging=IsLoggingEnabledFor(app, options),
       use_daemon=options.use_daemon)
 
   xml_test_result_dest = os.path.join(out_dir, 'test_result')
@@ -1005,11 +1011,14 @@ def ParseOptions(argv):
   result.add_option('--keystore-password', '--keystore_password',
                     help='Password for app.keystore',
                     default='android')
+  result.add_option('--app-logging-filter', '--app_logging_filter',
+                    help='The apps for which to turn on logging',
+                    action='append')
   result.add_option('--monkey',
                     help='Whether to install and run app(s) with monkey',
                     default=False,
                     action='store_true')
-  result.add_option('--monkey_events',
+  result.add_option('--monkey-events', '--monkey_events',
                     help='Number of events that the monkey should trigger',
                     default=250,
                     type=int)
@@ -1057,6 +1066,9 @@ def ParseOptions(argv):
     del options.app
   else:
     options.apps = GetAllApps()
+  if options.app_logging_filter:
+    for app_name in options.app_logging_filter:
+      assert any(app.name == app_name for (app, repo) in options.apps)
   if options.shrinker:
     for shrinker in options.shrinker:
       assert shrinker in SHRINKERS
@@ -1098,7 +1110,9 @@ def main(argv):
     os.environ[utils.ANDROID_HOME_ENVIROMENT_NAME] = os.path.join(
         utils.ANDROID_SDK)
     os.environ[utils.ANDROID_TOOLS_VERSION_ENVIRONMENT_NAME] = '28.0.3'
-    options.no_logging = True
+    # TODO(b/130051781): Logging temporarily enabled for muzei for debugging.
+    options.app_logging_filter = ['muzei']
+    options.no_logging = False
     options.shrinker = [shrinker for shrinker in SHRINKERS if shrinker != 'pg']
     print(options.shrinker)
 
