@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.optimize;
 
-import static com.android.tools.r8.ir.code.DominatorTree.Assumption.MAY_HAVE_UNREACHABLE_BLOCKS;
 import static com.android.tools.r8.ir.optimize.UninstantiatedTypeOptimization.Strategy.ALLOW_ARGUMENT_REMOVAL;
 import static com.android.tools.r8.ir.optimize.UninstantiatedTypeOptimization.Strategy.DISALLOW_ARGUMENT_REMOVAL;
 
@@ -27,16 +26,11 @@ import com.android.tools.r8.graph.TopDownClassHierarchyTraversal;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
-import com.android.tools.r8.ir.code.CatchHandlers;
-import com.android.tools.r8.ir.code.ConstNumber;
-import com.android.tools.r8.ir.code.DominatorTree;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
-import com.android.tools.r8.ir.code.Position;
-import com.android.tools.r8.ir.code.Throw;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.MemberPoolCollection.MemberPool;
 import com.android.tools.r8.logging.Log;
@@ -425,8 +419,8 @@ public class UninstantiatedTypeOptimization {
       // would lead to an IncompatibleClassChangeError (see MemberResolutionTest#lookupStaticField-
       // WithFieldGetFromNullReferenceDirectly).
       if (!receiver.getTypeLattice().isDefinitelyNull()) {
-        replaceCurrentInstructionWithThrowNull(
-            instruction, blockIterator, instructionIterator, code, blocksToBeRemoved);
+        instructionIterator.replaceCurrentInstructionWithThrowNull(
+            appView, code, blockIterator, blocksToBeRemoved);
         ++numberOfInstanceGetOrInstancePutWithNullReceiver;
         replacedByThrowNull = true;
       }
@@ -512,8 +506,8 @@ public class UninstantiatedTypeOptimization {
     if (invoke.isInvokeMethodWithReceiver()) {
       Value receiver = invoke.asInvokeMethodWithReceiver().getReceiver();
       if (receiver.isAlwaysNull(appView)) {
-        replaceCurrentInstructionWithThrowNull(
-            invoke, blockIterator, instructionIterator, code, blocksToBeRemoved);
+        instructionIterator.replaceCurrentInstructionWithThrowNull(
+            appView, code, blockIterator, blocksToBeRemoved);
         ++numberOfInvokesWithNullReceiver;
         return;
       }
@@ -530,71 +524,12 @@ public class UninstantiatedTypeOptimization {
       for (int i = 0; i < invoke.arguments().size(); i++) {
         Value argument = invoke.arguments().get(i);
         if (argument.isAlwaysNull(appView) && facts.get(i)) {
-          replaceCurrentInstructionWithThrowNull(
-              invoke, blockIterator, instructionIterator, code, blocksToBeRemoved);
+          instructionIterator.replaceCurrentInstructionWithThrowNull(
+              appView, code, blockIterator, blocksToBeRemoved);
           ++numberOfInvokesWithNullArgument;
           return;
         }
       }
-    }
-  }
-
-  private void replaceCurrentInstructionWithThrowNull(
-      Instruction instruction,
-      ListIterator<BasicBlock> blockIterator,
-      InstructionListIterator instructionIterator,
-      IRCode code,
-      Set<BasicBlock> blocksToBeRemoved) {
-    BasicBlock block = instruction.getBlock();
-    assert !blocksToBeRemoved.contains(block);
-
-    BasicBlock normalSuccessorBlock = instructionIterator.split(code, blockIterator);
-    instructionIterator.previous();
-
-    // Unlink all blocks that are dominated by successor.
-    {
-      DominatorTree dominatorTree = new DominatorTree(code, MAY_HAVE_UNREACHABLE_BLOCKS);
-      blocksToBeRemoved.addAll(block.unlink(normalSuccessorBlock, dominatorTree));
-    }
-
-    // Insert constant null before the instruction.
-    instructionIterator.previous();
-    ConstNumber constNumberInstruction = code.createConstNull();
-    // Note that we only keep position info for throwing instructions in release mode.
-    constNumberInstruction.setPosition(
-        appView.options().debug ? instruction.getPosition() : Position.none());
-    instructionIterator.add(constNumberInstruction);
-    instructionIterator.next();
-
-    // Replace the instruction by throw.
-    Throw throwInstruction = new Throw(constNumberInstruction.outValue());
-    for (Value inValue : instruction.inValues()) {
-      if (inValue.hasLocalInfo()) {
-        // Add this value as a debug value to avoid changing its live range.
-        throwInstruction.addDebugValue(inValue);
-      }
-    }
-    instructionIterator.replaceCurrentInstruction(throwInstruction);
-    instructionIterator.next();
-    instructionIterator.remove();
-
-    // Remove all catch handlers where the guard does not include NullPointerException.
-    if (block.hasCatchHandlers()) {
-      CatchHandlers<BasicBlock> catchHandlers = block.getCatchHandlers();
-      catchHandlers.forEach(
-          (guard, target) -> {
-            if (blocksToBeRemoved.contains(target)) {
-              // Already removed previously. This may happen if two catch handlers have the same
-              // target.
-              return;
-            }
-            if (!appView.appInfo().isSubtype(appView.dexItemFactory().npeType, guard)) {
-              // TODO(christofferqa): Consider updating previous dominator tree instead of
-              // rebuilding it from scratch.
-              DominatorTree dominatorTree = new DominatorTree(code, MAY_HAVE_UNREACHABLE_BLOCKS);
-              blocksToBeRemoved.addAll(block.unlink(target, dominatorTree));
-            }
-          });
     }
   }
 

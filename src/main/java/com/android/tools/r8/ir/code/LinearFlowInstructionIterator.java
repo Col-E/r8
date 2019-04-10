@@ -5,10 +5,12 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Set;
 
 public class LinearFlowInstructionIterator implements InstructionIterator, InstructionListIterator {
 
@@ -33,6 +35,16 @@ public class LinearFlowInstructionIterator implements InstructionIterator, Instr
   @Override
   public void replaceCurrentInstruction(Instruction newInstruction) {
     currentBlockIterator.replaceCurrentInstruction(newInstruction);
+  }
+
+  @Override
+  public void replaceCurrentInstructionWithThrowNull(
+      AppView<? extends AppInfoWithSubtyping> appView,
+      IRCode code,
+      ListIterator<BasicBlock> blockIterator,
+      Set<BasicBlock> blocksToRemove) {
+    currentBlockIterator.replaceCurrentInstructionWithThrowNull(
+        appView, code, blockIterator, blocksToRemove);
   }
 
   @Override

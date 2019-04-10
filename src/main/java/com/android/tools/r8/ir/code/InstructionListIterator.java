@@ -5,11 +5,13 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Set;
 
 public interface InstructionListIterator
     extends InstructionIterator, PreviousUntilIterator<Instruction> {
@@ -49,6 +51,25 @@ public interface InstructionListIterator
   }
 
   /**
+   * Replace the current instruction with null throwing instructions.
+   *
+   * @param appView with subtype info through which we can test if the guard is subtype of NPE.
+   * @param code the IR code for the block this iterator originates from.
+   * @param blockIterator basic block iterator used to iterate the blocks.
+   * @param blocksToRemove set passed where blocks that were detached from the graph, but not
+   *     removed yet are added. When inserting `throw null`, catch handlers whose guard does not
+   *     catch NPE will be removed, but not yet removed using the passed block
+   *     <code>blockIterator</code>. When iterating using <code>blockIterator</code> after then
+   *     method returns the blocks in this set must be skipped when iterating with the active
+   *     <code>blockIterator</code> and ultimately removed.
+   */
+  void replaceCurrentInstructionWithThrowNull(
+      AppView<? extends AppInfoWithSubtyping> appView,
+      IRCode code,
+      ListIterator<BasicBlock> blockIterator,
+      Set<BasicBlock> blocksToRemove);
+
+  /**
    * Split the block into two blocks at the point of the {@link ListIterator} cursor. The existing
    * block will have all the instructions before the cursor, and the new block all the
    * instructions after the cursor.
@@ -64,7 +85,6 @@ public interface InstructionListIterator
    * @return Returns the new block with the instructions after the cursor.
    */
   BasicBlock split(IRCode code, ListIterator<BasicBlock> blockIterator);
-
 
   default BasicBlock split(IRCode code) {
     return split(code, null);
@@ -117,9 +137,9 @@ public interface InstructionListIterator
    * @param blockIterator basic block iterator used to iterate the blocks. This must be positioned
    *     just after the block for which this is the instruction iterator. After this method returns
    *     it will be positioned just after the basic block returned.
-   * @param blocksToRemove list passed where blocks that where detached from the graph, but not
+   * @param blocksToRemove list passed where blocks that were detached from the graph, but not
    *     removed are added. When inlining an inlinee that always throws blocks in the <code>code
-   *     </code> can be detached, and not simply removed unsing the passed <code>blockIterator
+   *     </code> can be detached, and not simply removed using the passed <code>blockIterator
    *     </code>. When iterating using <code>blockIterator</code> after then method returns the
    *     blocks in this list must be skipped when iterating with the active <code>blockIterator
    *     </code> and ultimately removed.

@@ -7,6 +7,7 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexType;
@@ -22,6 +23,8 @@ import com.android.tools.r8.utils.InternalOptions;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Set;
+
 import org.junit.Test;
 
 public class RegisterMoveSchedulerTest {
@@ -41,6 +44,15 @@ public class RegisterMoveSchedulerTest {
 
     @Override
     public void replaceCurrentInstruction(Instruction newInstruction) {
+      throw new Unimplemented();
+    }
+
+    @Override
+    public void replaceCurrentInstructionWithThrowNull(
+      AppView<? extends AppInfoWithSubtyping> appView,
+      IRCode code,
+      ListIterator<BasicBlock> blockIterator,
+      Set<BasicBlock> blocksToRemove) {
       throw new Unimplemented();
     }
 

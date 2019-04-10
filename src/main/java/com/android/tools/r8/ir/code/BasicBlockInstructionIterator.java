@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.code;
 import static com.android.tools.r8.ir.code.DominatorTree.Assumption.MAY_HAVE_UNREACHABLE_BLOCKS;
 
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
@@ -179,6 +180,68 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
     listIterator.remove();
     listIterator.add(newInstruction);
     current.clearBlock();
+  }
+
+  @Override
+  public void replaceCurrentInstructionWithThrowNull(
+      AppView<? extends AppInfoWithSubtyping> appView,
+      IRCode code,
+      ListIterator<BasicBlock> blockIterator,
+      Set<BasicBlock> blocksToRemove) {
+    if (current == null) {
+      throw new IllegalStateException();
+    }
+    BasicBlock block = current.getBlock();
+    assert !blocksToRemove.contains(block);
+
+    BasicBlock normalSuccessorBlock = split(code, blockIterator);
+    previous();
+
+    // Unlink all blocks that are dominated by successor.
+    {
+      DominatorTree dominatorTree = new DominatorTree(code, MAY_HAVE_UNREACHABLE_BLOCKS);
+      blocksToRemove.addAll(block.unlink(normalSuccessorBlock, dominatorTree));
+    }
+
+    // Insert constant null before the instruction.
+    previous();
+    ConstNumber constNumberInstruction = code.createConstNull();
+    // Note that we only keep position info for throwing instructions in release mode.
+    constNumberInstruction.setPosition(
+        appView.options().debug ? current.getPosition() : Position.none());
+    add(constNumberInstruction);
+    next();
+
+    // Replace the instruction by throw.
+    Throw throwInstruction = new Throw(constNumberInstruction.outValue());
+    for (Value inValue : current.inValues()) {
+      if (inValue.hasLocalInfo()) {
+        // Add this value as a debug value to avoid changing its live range.
+        throwInstruction.addDebugValue(inValue);
+      }
+    }
+    replaceCurrentInstruction(throwInstruction);
+    next();
+    remove();
+
+    // Remove all catch handlers where the guard does not include NullPointerException.
+    if (block.hasCatchHandlers()) {
+      CatchHandlers<BasicBlock> catchHandlers = block.getCatchHandlers();
+      catchHandlers.forEach(
+          (guard, target) -> {
+            if (blocksToRemove.contains(target)) {
+              // Already removed previously. This may happen if two catch handlers have the same
+              // target.
+              return;
+            }
+            if (!appView.appInfo().isSubtype(appView.dexItemFactory().npeType, guard)) {
+              // TODO(christofferqa): Consider updating previous dominator tree instead of
+              //   rebuilding it from scratch.
+              DominatorTree dominatorTree = new DominatorTree(code, MAY_HAVE_UNREACHABLE_BLOCKS);
+              blocksToRemove.addAll(block.unlink(target, dominatorTree));
+            }
+          });
+    }
   }
 
   @Override
