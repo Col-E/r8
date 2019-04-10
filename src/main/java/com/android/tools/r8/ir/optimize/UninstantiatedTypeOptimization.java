@@ -162,7 +162,7 @@ public class UninstantiatedTypeOptimization {
       for (DexEncodedMethod virtualMethod : clazz.virtualMethods()) {
         RewrittenPrototypeDescription prototypeChanges =
             new RewrittenPrototypeDescription(
-                isAlwaysNull(virtualMethod.method.proto.returnType),
+                virtualMethod.method.proto.returnType.isAlwaysNull(appView),
                 getRemovedArgumentsInfo(virtualMethod, ALLOW_ARGUMENT_REMOVAL));
         if (!prototypeChanges.isEmpty()) {
           DexMethod newMethod = getNewMethodSignature(virtualMethod, prototypeChanges);
@@ -283,7 +283,7 @@ public class UninstantiatedTypeOptimization {
       return RewrittenPrototypeDescription.none();
     }
     return new RewrittenPrototypeDescription(
-        isAlwaysNull(encodedMethod.method.proto.returnType),
+        encodedMethod.method.proto.returnType.isAlwaysNull(appView),
         getRemovedArgumentsInfo(encodedMethod, strategy));
   }
 
@@ -298,7 +298,7 @@ public class UninstantiatedTypeOptimization {
     int offset = encodedMethod.isStatic() ? 0 : 1;
     for (int i = 0; i < proto.parameters.size(); ++i) {
       DexType type = proto.parameters.values[i];
-      if (isAlwaysNull(type)) {
+      if (type.isAlwaysNull(appView)) {
         if (removedArgumentsInfo == null) {
           removedArgumentsInfo = new ArrayList<>();
         }
@@ -420,7 +420,7 @@ public class UninstantiatedTypeOptimization {
     boolean replacedByThrowNull = false;
 
     Value receiver = instruction.inValues().get(0);
-    if (isAlwaysNull(receiver)) {
+    if (receiver.isAlwaysNull(appView)) {
       // Unable to rewrite instruction if the receiver is defined from "const-number 0", since this
       // would lead to an IncompatibleClassChangeError (see MemberResolutionTest#lookupStaticField-
       // WithFieldGetFromNullReferenceDirectly).
@@ -456,7 +456,7 @@ public class UninstantiatedTypeOptimization {
       IRCode code,
       Set<BasicBlock> blocksToBeRemoved) {
     DexType fieldType = instruction.getField().type;
-    if (isAlwaysNull(fieldType)) {
+    if (fieldType.isAlwaysNull(appView)) {
       // Before trying to remove this instruction, we need to be sure that the field actually
       // exists. Otherwise this instruction would throw a NoSuchFieldError exception.
       DexEncodedField field = appView.definitionFor(instruction.getField());
@@ -511,7 +511,7 @@ public class UninstantiatedTypeOptimization {
       Set<BasicBlock> blocksToBeRemoved) {
     if (invoke.isInvokeMethodWithReceiver()) {
       Value receiver = invoke.asInvokeMethodWithReceiver().getReceiver();
-      if (isAlwaysNull(receiver)) {
+      if (receiver.isAlwaysNull(appView)) {
         replaceCurrentInstructionWithThrowNull(
             invoke, blockIterator, instructionIterator, code, blocksToBeRemoved);
         ++numberOfInvokesWithNullReceiver;
@@ -529,7 +529,7 @@ public class UninstantiatedTypeOptimization {
     if (facts != null) {
       for (int i = 0; i < invoke.arguments().size(); i++) {
         Value argument = invoke.arguments().get(i);
-        if (isAlwaysNull(argument) && facts.get(i)) {
+        if (argument.isAlwaysNull(appView) && facts.get(i)) {
           replaceCurrentInstructionWithThrowNull(
               invoke, blockIterator, instructionIterator, code, blocksToBeRemoved);
           ++numberOfInvokesWithNullArgument;
@@ -598,28 +598,4 @@ public class UninstantiatedTypeOptimization {
     }
   }
 
-  private boolean isAlwaysNull(Value value) {
-    if (value.hasLocalInfo()) {
-      // Not always null as the value can be changed via the debugger.
-      return false;
-    }
-    TypeLatticeElement typeLatticeElement = value.getTypeLattice();
-    if (typeLatticeElement.isDefinitelyNull()) {
-      return true;
-    }
-    if (typeLatticeElement.isClassType()) {
-      return isAlwaysNull(typeLatticeElement.asClassTypeLatticeElement().getClassType());
-    }
-    return false;
-  }
-
-  private boolean isAlwaysNull(DexType type) {
-    if (type.isClassType()) {
-      DexClass clazz = appView.definitionFor(type);
-      return clazz != null
-          && clazz.isProgramClass()
-          && !appView.appInfo().isInstantiatedDirectlyOrIndirectly(type);
-    }
-    return false;
-  }
 }

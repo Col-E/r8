@@ -13,6 +13,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.desugar.Java8MethodRewriter;
 import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
 import com.google.common.base.Predicates;
@@ -61,6 +62,16 @@ public class DexType extends DexReference implements PresortedComparable<DexType
       AppInfo appInfo, Predicate<DexType> ignore) {
     DexClass clazz = appInfo.definitionFor(this);
     return clazz == null || clazz.initializationOfParentTypesMayHaveSideEffects(appInfo, ignore);
+  }
+
+  public boolean isAlwaysNull(AppView<AppInfoWithLiveness> appView) {
+    if (isClassType()) {
+      DexClass clazz = appView.definitionFor(this);
+      return clazz != null
+          && clazz.isProgramClass()
+          && !appView.appInfo().isInstantiatedDirectlyOrIndirectly(this);
+    }
+    return false;
   }
 
   public boolean isSamePackage(DexType other) {
