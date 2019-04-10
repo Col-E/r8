@@ -502,6 +502,9 @@ public class R8 {
         timing.end();
       }
 
+      // Clear the reference type lattice element cache to reduce memory pressure.
+      appView.dexItemFactory().clearReferenceTypeLatticeElementsCache();
+
       // At this point all code has been mapped according to the graph lens. We cannot remove the
       // graph lens entirely, though, since it is needed for mapping all field and method signatures
       // back to the original program.
