@@ -300,7 +300,6 @@ APP_REPOSITORIES = [
               'id': 'app.tivi',
               'min_sdk': 23,
               'compile_sdk': 28,
-              'skip': True
           })
       ]
   }),
