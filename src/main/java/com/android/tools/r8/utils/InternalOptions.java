@@ -912,13 +912,14 @@ public class InternalOptions {
   // The Dalvik tracing JIT can trace past the end of the instruction stream and end up
   // parsing non-code bytes as code (typically leading to a crash). See b/117907456.
   //
-  // In order to workaround this we insert a return of the right type after the throw
-  // when the instruction stream ends with a throw and there are backwards branches
-  // in the code.
-  //
+  // In order to workaround this we insert a goto past the throw, and another goto after the throw
+  // jumping back to the throw.
+
   // We used to insert a empty loop at the end, however, mediatek has an optimizer
   // on lollipop devices that cannot deal with an unreachable infinite loop, so we
   // couldn't do that. See b/119895393.
+  // We also could not insert any dead code (e.g. a return) because that would make mediatek
+  // dominator calculations on 7.0.0 crash. See b/128926846.
   public boolean canHaveTracingPastInstructionsStreamBug() {
     return minApiLevel < AndroidApiLevel.L.getLevel();
   }

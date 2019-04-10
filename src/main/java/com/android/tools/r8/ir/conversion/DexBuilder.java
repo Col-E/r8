@@ -32,7 +32,6 @@ import com.android.tools.r8.code.MoveWide;
 import com.android.tools.r8.code.MoveWide16;
 import com.android.tools.r8.code.MoveWideFrom16;
 import com.android.tools.r8.code.Nop;
-import com.android.tools.r8.code.ReturnVoid;
 import com.android.tools.r8.code.Throw;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
@@ -236,19 +235,45 @@ public class DexBuilder {
 
     // Workaround dalvik tracing bug, where the dalvik tracing JIT can end up tracing
     // past the end of the instruction stream if the instruction streams ends with a throw.
+    // See: b/117907456
     // We could have also changed the block order, however, moving the throwing block higher
     // led to larger code in all experiments (multiple gmscore version and R8 run on itself).
     if (options.canHaveTracingPastInstructionsStreamBug()
         && dexInstructions.get(dexInstructions.size() - 1) instanceof Throw
         && hasBackwardsBranch) {
-      // Generating a throw with the right type makes some Art constant propagation
-      // implementations crash. Therefore, since this is dead code anyway, we do not
-      // generate a return of the right type. Instead we just generate an unreachable
-      // return-void. See b/121355317.
-      Instruction returnVoid = new ReturnVoid();
-      returnVoid.setOffset(offset);
-      offset += returnVoid.getSize();
-      dexInstructions.add(returnVoid);
+      // This is the last in a series of different workarounds tried out.
+      // Having an empty non reachable loop make some mediatek vms crash: b/119895393
+      // Having a (unreachable) return null/return-void (type correct) trips up the constant
+      // propagation in some vms: b/121355317
+      // Having always a (unreachable) return-void causes Mediatek 4.4.2/4.4.4 to crash trying
+      // to get a dominator for the unreachable code: b/128926846
+      // Current implementation generates code that jumps over the throw, and then back to the throw
+      // again.
+      // throw v10
+      // becomes:
+      // goto +2
+      // throw v10
+      // goto -1
+      // That way we have no unreachable code, and we never end in a throw. The tracer will still
+      // trace to the throw, but after moving to the second goto it will trace back again and see
+      // an instruction it has already seen.
+      Instruction throwInstruction = dexInstructions.get(dexInstructions.size() -1);
+      offset = throwInstruction.getOffset();
+
+      // Generate the new forward and backward gotos, update offsets.
+      Instruction forward = new Goto(throwInstruction.getSize() + Goto.SIZE);
+      Instruction backward = new Goto(-throwInstruction.getSize());
+      forward.setOffset(offset);
+      offset += forward.getSize();
+      throwInstruction.setOffset(offset);
+      offset += throwInstruction.getSize();
+      backward.setOffset(offset);
+      offset += backward.getSize();
+      // Replace the throw in the instruction stream with goto(forward), throw, goto(backwards)
+      dexInstructions.remove(dexInstructions.size()-1);
+      dexInstructions.add(forward);
+      dexInstructions.add(throwInstruction);
+      dexInstructions.add(backward);
     }
 
     // Compute switch payloads.
