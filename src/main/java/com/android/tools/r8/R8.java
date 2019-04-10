@@ -398,6 +398,11 @@ public class R8 {
         appView.appInfo().unsetObsolete();
       }
 
+      // The class type lattice elements include information about the interfaces that a class
+      // implements. This information can change as a result of vertical class merging, so we need
+      // to clear the cache, so that we will recompute the type lattice elements.
+      appView.dexItemFactory().clearReferenceTypeLatticeElementsCache();
+
       if (options.getProguardConfiguration().isAccessModificationAllowed()) {
         GraphLense publicizedLense =
             ClassAndMemberPublicizer.run(
@@ -411,81 +416,78 @@ public class R8 {
         }
       }
 
-      if (appView.appInfo().hasLiveness()) {
-        AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
-        appView.setGraphLense(new MemberRebindingAnalysis(appViewWithLiveness).run());
-        if (options.enableHorizontalClassMerging) {
-          timing.begin("HorizontalStaticClassMerger");
-          StaticClassMerger staticClassMerger =
-              new StaticClassMerger(appViewWithLiveness, options, mainDexClasses);
-          boolean changed = appView.setGraphLense(staticClassMerger.run());
-          if (changed) {
-            appViewWithLiveness.setAppInfo(
-                appViewWithLiveness
-                    .appInfo()
-                    .rewrittenWithLense(application.asDirect(), appView.graphLense()));
-          }
-          timing.end();
+      AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+      appView.setGraphLense(new MemberRebindingAnalysis(appViewWithLiveness).run());
+      if (options.enableHorizontalClassMerging) {
+        timing.begin("HorizontalStaticClassMerger");
+        StaticClassMerger staticClassMerger =
+            new StaticClassMerger(appViewWithLiveness, options, mainDexClasses);
+        boolean changed = appView.setGraphLense(staticClassMerger.run());
+        if (changed) {
+          appViewWithLiveness.setAppInfo(
+              appViewWithLiveness
+                  .appInfo()
+                  .rewrittenWithLense(application.asDirect(), appView.graphLense()));
         }
-        if (options.enableVerticalClassMerging) {
-          timing.begin("VerticalClassMerger");
-          VerticalClassMerger verticalClassMerger =
-              new VerticalClassMerger(
-                  application,
-                  appViewWithLiveness,
-                  executorService,
-                  timing,
-                  mainDexClasses);
-          boolean changed = appView.setGraphLense(verticalClassMerger.run());
+        timing.end();
+      }
+      if (options.enableVerticalClassMerging) {
+        timing.begin("VerticalClassMerger");
+        VerticalClassMerger verticalClassMerger =
+            new VerticalClassMerger(
+                application, appViewWithLiveness, executorService, timing, mainDexClasses);
+        boolean changed = appView.setGraphLense(verticalClassMerger.run());
+        if (changed) {
+          appView.setVerticallyMergedClasses(verticalClassMerger.getMergedClasses());
+          application = application.asDirect().rewrittenWithLense(appView.graphLense());
+          appViewWithLiveness.setAppInfo(
+              appViewWithLiveness
+                  .appInfo()
+                  .prunedCopyFrom(application, verticalClassMerger.getRemovedClasses())
+                  .rewrittenWithLense(application.asDirect(), appView.graphLense()));
+        }
+        timing.end();
+      }
+      if (options.enableArgumentRemoval) {
+        if (options.enableUnusedArgumentRemoval) {
+          timing.begin("UnusedArgumentRemoval");
+          boolean changed =
+              appView.setGraphLense(
+                  new UnusedArgumentsCollector(
+                          appViewWithLiveness, new MethodPoolCollection(appView))
+                      .run(executorService, timing));
           if (changed) {
-            appView.setVerticallyMergedClasses(verticalClassMerger.getMergedClasses());
             application = application.asDirect().rewrittenWithLense(appView.graphLense());
             appViewWithLiveness.setAppInfo(
                 appViewWithLiveness
                     .appInfo()
-                    .prunedCopyFrom(application, verticalClassMerger.getRemovedClasses())
                     .rewrittenWithLense(application.asDirect(), appView.graphLense()));
           }
           timing.end();
         }
-        if (options.enableArgumentRemoval) {
-          if (options.enableUnusedArgumentRemoval) {
-            timing.begin("UnusedArgumentRemoval");
-            boolean changed =
-                appView.setGraphLense(
-                    new UnusedArgumentsCollector(
-                            appViewWithLiveness, new MethodPoolCollection(appView))
-                        .run(executorService, timing));
-            if (changed) {
-              application = application.asDirect().rewrittenWithLense(appView.graphLense());
-              appViewWithLiveness.setAppInfo(
-                  appViewWithLiveness
-                      .appInfo()
-                      .rewrittenWithLense(application.asDirect(), appView.graphLense()));
-            }
-            timing.end();
+        if (options.enableUninstantiatedTypeOptimization) {
+          timing.begin("UninstantiatedTypeOptimization");
+          boolean changed =
+              appView.setGraphLense(
+                  new UninstantiatedTypeOptimization(appViewWithLiveness)
+                      .run(new MethodPoolCollection(appView), executorService, timing));
+          if (changed) {
+            application = application.asDirect().rewrittenWithLense(appView.graphLense());
+            appViewWithLiveness.setAppInfo(
+                appViewWithLiveness
+                    .appInfo()
+                    .rewrittenWithLense(application.asDirect(), appView.graphLense()));
           }
-          if (options.enableUninstantiatedTypeOptimization) {
-            timing.begin("UninstantiatedTypeOptimization");
-            boolean changed =
-                appView.setGraphLense(
-                    new UninstantiatedTypeOptimization(appViewWithLiveness)
-                        .run(new MethodPoolCollection(appView), executorService, timing));
-            if (changed) {
-              application = application.asDirect().rewrittenWithLense(appView.graphLense());
-              appViewWithLiveness.setAppInfo(
-                  appViewWithLiveness
-                      .appInfo()
-                      .rewrittenWithLense(application.asDirect(), appView.graphLense()));
-            }
-            timing.end();
-          }
+          timing.end();
         }
-
-        // Collect switch maps and ordinals maps.
-        appViewWithLiveness.setAppInfo(new SwitchMapCollector(appViewWithLiveness).run());
-        appViewWithLiveness.setAppInfo(new EnumOrdinalMapCollector(appViewWithLiveness).run());
       }
+
+      // None of the optimizations above should lead to the creation of type lattice elements.
+      assert appView.dexItemFactory().verifyNoCachedReferenceTypeLatticeElements();
+
+      // Collect switch maps and ordinals maps.
+      appViewWithLiveness.setAppInfo(new SwitchMapCollector(appViewWithLiveness).run());
+      appViewWithLiveness.setAppInfo(new EnumOrdinalMapCollector(appViewWithLiveness).run());
 
       appView.setAppServices(appView.appServices().rewrittenWithLens(appView.graphLense()));
 
@@ -563,7 +565,6 @@ public class R8 {
           || options.getProguardConfiguration().hasApplyMappingFile()) {
         timing.begin("Post optimization code stripping");
         try {
-
           GraphConsumer keptGraphConsumer = null;
           WhyAreYouKeepingConsumer whyAreYouKeepingConsumer = null;
           if (options.isShrinking()) {
@@ -582,7 +583,6 @@ public class R8 {
                   executorService,
                   timing));
 
-          AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
           if (options.isShrinking()) {
             TreePruner pruner = new TreePruner(application, appViewWithLiveness);
             application = pruner.run();
