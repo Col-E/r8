@@ -346,8 +346,8 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     assert Sets.intersection(instanceFieldWrites.keySet(), staticFieldWrites.keySet()).isEmpty();
   }
 
-  private AppInfoWithLiveness(AppInfoWithLiveness previous, DexApplication application) {
-    this(previous, application, null);
+  private AppInfoWithLiveness(AppInfoWithLiveness previous) {
+    this(previous, previous.app(), null);
   }
 
   private AppInfoWithLiveness(
@@ -398,6 +398,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
         previous.switchMaps,
         previous.ordinalsMaps,
         previous.instantiatedLambdas);
+    copyMetadataFromPrevious(previous);
     assert removedClasses == null || assertNoItemRemoved(previous.pinnedItems, removedClasses);
     assert Sets.intersection(instanceFieldReads.keySet(), staticFieldReads.keySet()).isEmpty();
     assert Sets.intersection(instanceFieldWrites.keySet(), staticFieldWrites.keySet()).isEmpty();
@@ -586,7 +587,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     if (noLongerWrittenFields.isEmpty()) {
       return this;
     }
-    AppInfoWithLiveness result = new AppInfoWithLiveness(this, app());
+    AppInfoWithLiveness result = new AppInfoWithLiveness(this);
     Predicate<DexField> isFieldWritten = field -> !noLongerWrittenFields.contains(field);
     result.fieldsWritten = filter(fieldsWritten, isFieldWritten);
     result.staticFieldsWrittenOnlyInEnclosingStaticInitializer =

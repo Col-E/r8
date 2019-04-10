@@ -41,6 +41,10 @@ public class AppInfo implements DexDefinitionSupplier {
     this.app = previous.app;
     this.dexItemFactory = app.dexItemFactory;
     this.definitions.putAll(previous.definitions);
+    copyMetadataFromPrevious(previous);
+  }
+
+  public void copyMetadataFromPrevious(AppInfo previous) {
     this.synthesizedClasses.putAll(previous.synthesizedClasses);
   }
 
