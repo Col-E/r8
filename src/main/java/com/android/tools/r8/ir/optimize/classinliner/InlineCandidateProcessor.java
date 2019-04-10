@@ -662,7 +662,7 @@ final class InlineCandidateProcessor {
       return null; // Don't inline itself.
     }
 
-    if (isDesugaredLambda) {
+    if (isDesugaredLambda && !singleTarget.accessFlags.isBridge()) {
       markSizeForInlining(singleTarget);
       return new InliningInfo(singleTarget, eligibleClass);
     }
