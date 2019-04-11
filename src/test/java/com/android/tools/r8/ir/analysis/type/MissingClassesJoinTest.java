@@ -15,6 +15,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
+import com.google.common.base.Throwables;
 import java.nio.file.Path;
 import java.util.List;
 import org.junit.Test;
@@ -97,7 +98,11 @@ public class MissingClassesJoinTest extends TestBase {
       result.assertFailureWithErrorThatMatches(containsString("NullPointerException"));
     } catch (Exception e) {
       // Compilation should only fail when type errors are not allowed.
-      assertFalse(allowTypeErrors);
+      assertFalse(
+          StringUtils.joinLines(
+              "Test should only throw when type errors are not allowed",
+              Throwables.getStackTraceAsString(e)),
+          allowTypeErrors);
 
       // Verify that we fail with an assertion error.
       assertThat(e.getCause().getMessage(), containsString("AssertionError"));
