@@ -1109,9 +1109,7 @@ def main(argv):
     os.environ[utils.ANDROID_HOME_ENVIROMENT_NAME] = os.path.join(
         utils.ANDROID_SDK)
     os.environ[utils.ANDROID_TOOLS_VERSION_ENVIRONMENT_NAME] = '28.0.3'
-    # TODO(b/130051781): Logging temporarily enabled for muzei for debugging.
-    options.app_logging_filter = ['muzei']
-    options.no_logging = False
+    options.no_logging = True
     options.shrinker = [shrinker for shrinker in SHRINKERS if shrinker != 'pg']
     print(options.shrinker)
 
