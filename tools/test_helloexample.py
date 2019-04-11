@@ -204,7 +204,7 @@ def Main():
       track_memory_file = os.path.join(output_dir, utils.MEMORY_USE_TMP_FILE)
       cmd_prefix.extend(['tools/track_memory.sh', track_memory_file])
 
-    name = 'Hello'
+    name = 'CompileHelloExample'
 
     tool = args.tool
     output_mode = args.output_mode
