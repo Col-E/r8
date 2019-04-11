@@ -11,11 +11,13 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -27,14 +29,16 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class ReservedFieldNameInSubClassTest extends TestBase {
 
+  private final TestParameters parameters;
   private final boolean reserveName;
 
-  @Parameterized.Parameters(name = "Reserve name: {0}")
-  public static Boolean[] data() {
-    return BooleanUtils.values();
+  @Parameterized.Parameters(name = "{0}, reserve name: {1}")
+  public static List<Object[]> data() {
+    return buildParameters(getTestParameters().withAllRuntimes().build(), BooleanUtils.values());
   }
 
-  public ReservedFieldNameInSubClassTest(boolean reserveName) {
+  public ReservedFieldNameInSubClassTest(TestParameters parameters, boolean reserveName) {
+    this.parameters = parameters;
     this.reserveName = reserveName;
   }
 
@@ -42,7 +46,7 @@ public class ReservedFieldNameInSubClassTest extends TestBase {
   public void test() throws Exception {
     String expectedOutput = StringUtils.lines("Hello world!");
     CodeInspector inspector =
-        testForR8(Backend.DEX)
+        testForR8(parameters.getBackend())
             .addProgramClasses(
                 TestClass.class, A.class, B.class, C.class, I.class, J.class, K.class)
             .enableMergeAnnotations()
@@ -53,7 +57,8 @@ public class ReservedFieldNameInSubClassTest extends TestBase {
                         + C.class.getTypeName()
                         + "{ java.lang.String a; }"
                     : "")
-            .run(TestClass.class)
+            .setMinApi(parameters.getRuntime())
+            .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput(expectedOutput)
             .inspector();
 
@@ -98,9 +103,9 @@ public class ReservedFieldNameInSubClassTest extends TestBase {
       assertThat(f1FieldSubject, isRenamed());
       assertEquals("a", f1FieldSubject.getFinalName());
 
-      // TODO(b/128973195): B.f2 should be renamed to f instead of a.
+      // TODO(b/128973195): B.f2 should be renamed to f instead of b.
       assertThat(f2FieldSubject, isRenamed());
-      assertEquals("a", f2FieldSubject.getFinalName());
+      assertEquals("b", f2FieldSubject.getFinalName());
 
       // TODO(b/128973195): I.f3 should be renamed to b instead of a.
       assertThat(f3FieldSubject, isRenamed());
