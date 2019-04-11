@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayDeque;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -28,6 +29,7 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
 
   public static ClassTypeLatticeElement create(
       DexType classType, Nullability nullability, Set<DexType> interfaces) {
+    assert interfaces != null;
     return NullabilityVariants.create(
         nullability,
         (variants) ->
@@ -36,6 +38,7 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
 
   public static ClassTypeLatticeElement create(
       DexType classType, Nullability nullability, AppView<? extends AppInfoWithSubtyping> appView) {
+    assert appView != null;
     return NullabilityVariants.create(
         nullability,
         (variants) -> new ClassTypeLatticeElement(classType, nullability, null, variants, appView));
@@ -133,14 +136,14 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
   ClassTypeLatticeElement join(ClassTypeLatticeElement other, AppView<?> appView) {
     Nullability nullability = nullability().join(other.nullability());
     if (!appView.appInfo().hasSubtyping()) {
-      assert getInterfaces() == null;
-      assert other.getInterfaces() == null;
+      assert getInterfaces().isEmpty();
+      assert other.getInterfaces().isEmpty();
       return ClassTypeLatticeElement.create(
           getClassType() == other.getClassType()
               ? getClassType()
               : appView.dexItemFactory().objectType,
           nullability,
-          (Set<DexType>) null);
+          Collections.emptySet());
     }
     DexType lubType =
         appView
@@ -176,6 +179,9 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
 
   static Set<DexType> computeLeastUpperBoundOfInterfaces(
       AppView<? extends AppInfoWithSubtyping> appView, Set<DexType> s1, Set<DexType> s2) {
+    if (s1.isEmpty() || s2.isEmpty()) {
+      return Collections.emptySet();
+    }
     Set<DexType> cached = appView.dexItemFactory().leastUpperBoundOfInterfacesTable.get(s1, s2);
     if (cached != null) {
       return cached;

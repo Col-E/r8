@@ -208,7 +208,6 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
 
   private void reserveNamesInClasses(
       DexType type, DexType libraryFrontier, NamingState<DexProto, ?> parent) {
-    assert !appView.appInfo().isInterface(type);
     NamingState<DexProto, ?> state =
         frontierState.allocateNamingStateAndReserve(type, libraryFrontier, parent);
 
@@ -216,7 +215,6 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
     // frontier forward.
     DexClass holder = appView.definitionFor(type);
     for (DexType subtype : appView.appInfo().allExtendsSubtypes(type)) {
-      assert !appView.appInfo().isInterface(subtype);
       reserveNamesInClasses(
           subtype, holder == null || holder.isNotProgramClass() ? subtype : libraryFrontier, state);
     }

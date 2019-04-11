@@ -36,6 +36,7 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -1214,23 +1215,21 @@ public class DexItemFactory {
             type,
             t -> {
               if (type.isClassType()) {
-                if (!appView.appInfo().hasSubtyping()) {
-                  return ClassTypeLatticeElement.create(type, nullability, (Set<DexType>) null);
+                if (!appView.enableWholeProgramOptimizations()) {
+                  // Don't reason at the level of interfaces in D8.
+                  return ClassTypeLatticeElement.create(type, nullability, Collections.emptySet());
                 }
-                AppView<? extends AppInfoWithSubtyping> appViewWithSubtyping =
-                    appView.withLiveness();
-                // TODO(zerny): It should never be the case that we have unknown at this point!
-                if (!appViewWithSubtyping.appInfo().isUnknown(type)
-                    && appViewWithSubtyping.appInfo().isInterface(type)) {
+                assert appView.appInfo().hasSubtyping();
+                if (appView.isInterface(type).isTrue()) {
                   return ClassTypeLatticeElement.create(
-                      objectType, nullability, ImmutableSet.of(type));
+                      objectType, nullability, Collections.singleton(type));
                 }
                 // In theory, `interfaces` is the least upper bound of implemented interfaces.
                 // It is expensive to walk through type hierarchy; collect implemented interfaces;
                 // and compute the least upper bound of two interface sets. Hence, lazy
                 // computations. Most likely during lattice join. See {@link
                 // ClassTypeLatticeElement#getInterfaces}.
-                return ClassTypeLatticeElement.create(type, nullability, appViewWithSubtyping);
+                return ClassTypeLatticeElement.create(type, nullability, appView.withSubtyping());
               }
               assert type.isArrayType();
               return ArrayTypeLatticeElement.create(finalMemberType, nullability);

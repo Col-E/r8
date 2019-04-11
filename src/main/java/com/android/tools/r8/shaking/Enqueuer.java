@@ -1428,7 +1428,7 @@ public class Enqueuer {
   }
 
   private void fillWorkList(Deque<DexType> worklist, DexType type) {
-    if (appInfo.isInterface(type)) {
+    if (appInfo.isMarkedAsInterface(type)) {
       // We need to check if the method is shadowed by a class that directly implements
       // the interface and go recursively down to the sub interfaces to reach class
       // implementing the interface

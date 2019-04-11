@@ -13,6 +13,7 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -120,7 +121,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
         new ApplicationReader(app, TEST_OPTIONS, new Timing("TypeAnalysisTest.appReader"))
             .read().toDirect();
     inspection.accept(
-        AppView.createForR8(new AppInfo(dexApplication), TEST_OPTIONS),
+        AppView.createForR8(new AppInfoWithSubtyping(dexApplication), TEST_OPTIONS),
         new CodeInspector(dexApplication));
   }
 

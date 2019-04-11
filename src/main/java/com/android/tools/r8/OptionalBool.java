@@ -12,6 +12,11 @@ public abstract class OptionalBool {
         public boolean isTrue() {
           return true;
         }
+
+        @Override
+        public String toString() {
+          return "true";
+        }
       };
 
   private static final OptionalBool FALSE =
@@ -20,6 +25,11 @@ public abstract class OptionalBool {
         public boolean isFalse() {
           return true;
         }
+
+        @Override
+        public String toString() {
+          return "false";
+        }
       };
 
   private static final OptionalBool UNKNOWN =
@@ -27,6 +37,11 @@ public abstract class OptionalBool {
         @Override
         public boolean isUnknown() {
           return true;
+        }
+
+        @Override
+        public String toString() {
+          return "unknown";
         }
       };
 

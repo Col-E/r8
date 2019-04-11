@@ -66,7 +66,8 @@ public class R8GMSCoreLookupTest {
 
   private void testInterfaceLookup(DexProgramClass clazz, DexEncodedMethod method) {
     Set<DexEncodedMethod> targets = appInfo.lookupInterfaceTargets(method.method);
-    if (appInfo.subtypes(method.method.holder).stream().allMatch(appInfo::isInterface)) {
+    if (appInfo.subtypes(method.method.holder).stream()
+        .allMatch(t -> appInfo.definitionFor(t).isInterface())) {
       assertTrue(targets.isEmpty());
     } else {
       assertFalse(targets.isEmpty());

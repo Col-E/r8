@@ -466,7 +466,7 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
     return getTypeInfo(type).isUnknown();
   }
 
-  public boolean isInterface(DexType type) {
+  public boolean isMarkedAsInterface(DexType type) {
     return getTypeInfo(type).isInterface();
   }
 

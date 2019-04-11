@@ -87,6 +87,21 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
     return appInfo().definitionFor(type);
   }
 
+  public OptionalBool isInterface(DexType type) {
+    // Without whole program information we should not assume anything about any other class than
+    // the current holder in a given context.
+    if (enableWholeProgramOptimizations()) {
+      assert appInfo().hasSubtyping();
+      if (appInfo().hasSubtyping()) {
+        AppInfoWithSubtyping appInfo = appInfo().withSubtyping();
+        return appInfo.isUnknown(type)
+            ? OptionalBool.unknown()
+            : OptionalBool.of(appInfo.isMarkedAsInterface(type));
+      }
+    }
+    return OptionalBool.unknown();
+  }
+
   @Override
   public DexItemFactory dexItemFactory() {
     return dexItemFactory;
@@ -130,6 +145,13 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
 
   public void setVerticallyMergedClasses(VerticallyMergedClasses verticallyMergedClasses) {
     this.verticallyMergedClasses = verticallyMergedClasses;
+  }
+
+  @SuppressWarnings("unchecked")
+  public AppView<AppInfoWithSubtyping> withSubtyping() {
+    return appInfo.hasSubtyping()
+        ? (AppView<AppInfoWithSubtyping>) this
+        : null;
   }
 
   public AppView<AppInfoWithLiveness> withLiveness() {
