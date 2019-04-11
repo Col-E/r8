@@ -63,6 +63,7 @@ final class LambdaClass {
   final LambdaDescriptor descriptor;
   final DexMethod constructor;
   final DexMethod classConstructor;
+  final DexMethod createInstanceMethod;
   final DexField instanceField;
   final Target target;
   final AtomicBoolean addToMainDexList = new AtomicBoolean(false);
@@ -70,8 +71,11 @@ final class LambdaClass {
   private final Supplier<DexProgramClass> lazyDexClass =
       Suppliers.memoize(this::synthesizeLambdaClass); // NOTE: thread-safe.
 
-  LambdaClass(LambdaRewriter rewriter, DexType accessedFrom,
-      DexType lambdaClassType, LambdaDescriptor descriptor) {
+  LambdaClass(
+      LambdaRewriter rewriter,
+      DexType accessedFrom,
+      DexType lambdaClassType,
+      LambdaDescriptor descriptor) {
     assert rewriter != null;
     assert lambdaClassType != null;
     assert descriptor != null;
@@ -93,6 +97,13 @@ final class LambdaClass {
         : factory.createMethod(lambdaClassType, constructorProto, rewriter.classConstructorName);
     this.instanceField = !stateless ? null
         : factory.createField(lambdaClassType, lambdaClassType, rewriter.instanceFieldName);
+    this.createInstanceMethod =
+        stateless
+            ? null
+            : factory.createMethod(
+                lambdaClassType,
+                factory.createProto(lambdaClassType, descriptor.captures.values),
+                rewriter.createInstanceMethodName);
 
     // We have to register this new class as a subtype of object.
     rewriter.converter.appView.appInfo().registerNewType(type, factory.objectType);
@@ -124,8 +135,13 @@ final class LambdaClass {
     return rewriter.factory.createType(lambdaClassDescriptor.toString());
   }
 
-  final DexProgramClass getLambdaClass() {
+  final DexProgramClass getOrCreateLambdaClass() {
     return lazyDexClass.get();
+  }
+
+  DexMethod getCreateInstanceMethod() {
+    assert createInstanceMethod != null;
+    return createInstanceMethod;
   }
 
   private DexProgramClass synthesizeLambdaClass() {
@@ -179,7 +195,7 @@ final class LambdaClass {
       if (synthesizedFrom.add(clazz)) {
         // The lambda class may already have been synthesized, and we therefore need to update the
         // synthesized lambda class as well.
-        getLambdaClass().addSynthesizedFrom(clazz);
+        getOrCreateLambdaClass().addSynthesizedFrom(clazz);
       }
     }
   }
@@ -226,7 +242,10 @@ final class LambdaClass {
   // Synthesize direct methods.
   private DexEncodedMethod[] synthesizeDirectMethods() {
     boolean stateless = isStateless();
-    DexEncodedMethod[] methods = new DexEncodedMethod[stateless ? 2 : 1];
+    boolean enableStatefulLambdaCreateInstanceMethod =
+        rewriter.converter.appView.options().testing.enableStatefulLambdaCreateInstanceMethod;
+    DexEncodedMethod[] methods =
+        new DexEncodedMethod[(stateless || enableStatefulLambdaCreateInstanceMethod) ? 2 : 1];
 
     // Constructor.
     methods[0] =
@@ -252,6 +271,16 @@ final class LambdaClass {
               ParameterAnnotationsList.empty(),
               new SynthesizedCode(
                   callerPosition -> new LambdaClassConstructorSourceCode(this, callerPosition)));
+    } else if (enableStatefulLambdaCreateInstanceMethod) {
+      methods[1] =
+          new DexEncodedMethod(
+              createInstanceMethod,
+              MethodAccessFlags.fromSharedAccessFlags(
+                  Constants.ACC_SYNTHETIC | Constants.ACC_STATIC | Constants.ACC_PUBLIC, false),
+              DexAnnotationSet.empty(),
+              ParameterAnnotationsList.empty(),
+              new SynthesizedCode(
+                  callerPosition -> new LambdaCreateInstanceSourceCode(this, callerPosition)));
     }
     return methods;
   }

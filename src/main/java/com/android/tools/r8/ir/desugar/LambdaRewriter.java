@@ -24,6 +24,7 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeCustom;
 import com.android.tools.r8.ir.code.InvokeDirect;
+import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
@@ -53,6 +54,7 @@ public class LambdaRewriter {
   public static final String LAMBDA_GROUP_CLASS_NAME_PREFIX = "-$$LambdaGroup$";
   static final String EXPECTED_LAMBDA_METHOD_PREFIX = "lambda$";
   static final String LAMBDA_INSTANCE_FIELD_NAME = "INSTANCE";
+  static final String LAMBDA_CREATE_INSTANCE_METHOD_NAME = "$$createInstance";
 
   private final AppView<? extends AppInfo> appView;
   final IRConverter converter;
@@ -63,6 +65,7 @@ public class LambdaRewriter {
   final DexString constructorName;
   final DexString classConstructorName;
   final DexString instanceFieldName;
+  final DexString createInstanceMethodName;
 
   final BiMap<DexMethod, DexMethod> methodMapping = HashBiMap.create();
 
@@ -93,6 +96,7 @@ public class LambdaRewriter {
     this.objectInitMethod = factory.createMethod(factory.objectType, initProto, constructorName);
     this.classConstructorName = factory.createString(Constants.CLASS_INITIALIZER_NAME);
     this.instanceFieldName = factory.createString(LAMBDA_INSTANCE_FIELD_NAME);
+    this.createInstanceMethodName = factory.createString(LAMBDA_CREATE_INSTANCE_METHOD_NAME);
   }
 
   /**
@@ -176,7 +180,7 @@ public class LambdaRewriter {
    */
   public DexProgramClass getLambdaClass(DexType type) {
     LambdaClass lambdaClass = getKnown(knownLambdaClasses, type);
-    return lambdaClass == null ? null : lambdaClass.getLambdaClass();
+    return lambdaClass == null ? null : lambdaClass.getOrCreateLambdaClass();
   }
 
   /** Generates lambda classes and adds them to the builder. */
@@ -184,13 +188,14 @@ public class LambdaRewriter {
       throws ExecutionException {
     AppInfo appInfo = appView.appInfo();
     for (LambdaClass lambdaClass : knownLambdaClasses.values()) {
-      DexProgramClass synthesizedClass = lambdaClass.getLambdaClass();
+      DexProgramClass synthesizedClass = lambdaClass.getOrCreateLambdaClass();
       appInfo.addSynthesizedClass(synthesizedClass);
       builder.addSynthesizedClass(synthesizedClass, lambdaClass.addToMainDexList.get());
     }
     converter.optimizeSynthesizedClasses(
         knownLambdaClasses.values().stream()
-            .map(LambdaClass::getLambdaClass).collect(ImmutableSet.toImmutableSet()),
+            .map(LambdaClass::getOrCreateLambdaClass)
+            .collect(ImmutableSet.toImmutableSet()),
         executorService);
   }
 
@@ -227,8 +232,11 @@ public class LambdaRewriter {
     // We check the map twice to to minimize time spent in synchronized block.
     LambdaClass lambdaClass = getKnown(knownLambdaClasses, lambdaClassType);
     if (lambdaClass == null) {
-      lambdaClass = putIfAbsent(knownLambdaClasses, lambdaClassType,
-          new LambdaClass(this, accessedFrom, lambdaClassType, descriptor));
+      lambdaClass =
+          putIfAbsent(
+              knownLambdaClasses,
+              lambdaClassType,
+              new LambdaClass(this, accessedFrom, lambdaClassType, descriptor));
     }
     lambdaClass.addSynthesizedFrom(appView.definitionFor(accessedFrom).asProgramClass());
     if (isInMainDexList(accessedFrom)) {
@@ -286,42 +294,57 @@ public class LambdaRewriter {
       return;
     }
 
-    // For stateful lambdas we always create a new instance since we need to pass
-    // captured values to the constructor.
-    //
-    // We replace InvokeCustom instruction with a new NewInstance instruction
-    // instantiating lambda followed by InvokeDirect instruction calling a
-    // constructor on it.
-    //
-    //    original:
-    //      Invoke-Custom rResult <- { rArg0, rArg1, ... }; call site: ...
-    //
-    //    result:
-    //      NewInstance   rResult <-  LambdaClass
-    //      Invoke-Direct { rResult, rArg0, rArg1, ... }; method: void LambdaClass.<init>(...)
-    NewInstance newInstance = new NewInstance(lambdaClass.type, lambdaInstanceValue);
-    instructions.replaceCurrentInstruction(newInstance);
+    if (!converter.appView.options().testing.enableStatefulLambdaCreateInstanceMethod) {
+      // For stateful lambdas we always create a new instance since we need to pass
+      // captured values to the constructor.
+      //
+      // We replace InvokeCustom instruction with a new NewInstance instruction
+      // instantiating lambda followed by InvokeDirect instruction calling a
+      // constructor on it.
+      //
+      //    original:
+      //      Invoke-Custom rResult <- { rArg0, rArg1, ... }; call site: ...
+      //
+      //    result:
+      //      NewInstance   rResult <-  LambdaClass
+      //      Invoke-Direct { rResult, rArg0, rArg1, ... }; method: void LambdaClass.<init>(...)
+      NewInstance newInstance = new NewInstance(lambdaClass.type, lambdaInstanceValue);
+      instructions.replaceCurrentInstruction(newInstance);
 
-    List<Value> arguments = new ArrayList<>();
-    arguments.add(lambdaInstanceValue);
-    arguments.addAll(invoke.arguments()); // Optional captures.
-    InvokeDirect constructorCall = new InvokeDirect(
-        lambdaClass.constructor, null /* no return value */, arguments);
-    instructions.add(constructorCall);
-    constructorCall.setPosition(newInstance.getPosition());
+      List<Value> arguments = new ArrayList<>();
+      arguments.add(lambdaInstanceValue);
+      arguments.addAll(invoke.arguments()); // Optional captures.
+      InvokeDirect constructorCall =
+          new InvokeDirect(lambdaClass.constructor, null /* no return value */, arguments);
+      instructions.add(constructorCall);
+      constructorCall.setPosition(newInstance.getPosition());
 
-    // If we don't have catch handlers we are done.
-    if (!constructorCall.getBlock().hasCatchHandlers()) {
-      return;
+      // If we don't have catch handlers we are done.
+      if (!constructorCall.getBlock().hasCatchHandlers()) {
+        return;
+      }
+
+      // Move the iterator back to position it between the two instructions, split
+      // the block between the two instructions, and copy the catch handlers.
+      instructions.previous();
+      assert instructions.peekNext().isInvokeDirect();
+      BasicBlock currentBlock = newInstance.getBlock();
+      BasicBlock nextBlock = instructions.split(code, blocks);
+      assert !instructions.hasNext();
+      nextBlock.copyCatchHandlers(code, blocks, currentBlock, appView.options());
+    } else {
+      // For stateful lambdas we call the createInstance method.
+      //
+      //    original:
+      //      Invoke-Custom rResult <- { rArg0, rArg1, ... }; call site: ...
+      //
+      //    result:
+      //      Invoke-Static rResult <- { rArg0, rArg1, ... }; method void
+      // LambdaClass.createInstance(...)
+      InvokeStatic invokeStatic =
+          new InvokeStatic(
+              lambdaClass.getCreateInstanceMethod(), lambdaInstanceValue, invoke.arguments());
+      instructions.replaceCurrentInstruction(invokeStatic);
     }
-
-    // Move the iterator back to position it between the two instructions, split
-    // the block between the two instructions, and copy the catch handlers.
-    instructions.previous();
-    assert instructions.peekNext().isInvokeDirect();
-    BasicBlock currentBlock = newInstance.getBlock();
-    BasicBlock nextBlock = instructions.split(code, blocks);
-    assert !instructions.hasNext();
-    nextBlock.copyCatchHandlers(code, blocks, currentBlock, appView.options());
   }
 }
