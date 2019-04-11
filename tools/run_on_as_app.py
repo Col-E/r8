@@ -209,7 +209,7 @@ APP_REPOSITORIES = [
   Repo({
       'name': 'muzei',
       'url': 'https://github.com/sgjesse/muzei.git',
-      'revision': 'e7e4ab1039bb18009254b94831b17676bc3b8bc1',
+      'revision': 'a1f1d9b119faa0db09b6bbffe2318c4ec3679418',
       'apps': [
           App({
               'id': 'net.nurik.roman.muzei',
