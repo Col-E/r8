@@ -115,8 +115,7 @@ public class JvmTestBuilder extends TestBuilder<JvmTestRunResult, JvmTestBuilder
 
   public JvmTestRunResult run(TestRuntime runtime, String mainClass) throws IOException {
     assert runtime.isCf();
-    assert TestParametersBuilder.isSystemJdk(runtime.asCf().getVm());
-    ProcessResult result = ToolHelper.runJava(classpath, mainClass);
+    ProcessResult result = ToolHelper.runJava(runtime.asCf().getVm(), classpath, mainClass);
     return new JvmTestRunResult(builder.build(), result);
   }
 

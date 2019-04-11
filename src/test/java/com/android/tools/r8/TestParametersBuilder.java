@@ -183,8 +183,9 @@ public class TestParametersBuilder {
 
   // Currently the only supported VM is the system VM. This should be extended to start supporting
   // the checked in versions too, making it possible to run tests on more than one JDK at a time.
+
   private static boolean isSupportedJdk(CfVm vm) {
-    return isSystemJdk(vm);
+    return isSystemJdk(vm) || TestRuntime.CHECKED_IN_JDKS.containsKey(vm);
   }
 
   private static Stream<TestRuntime> getAvailableRuntimes() {

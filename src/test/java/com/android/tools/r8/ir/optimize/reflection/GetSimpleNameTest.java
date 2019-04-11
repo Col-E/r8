@@ -15,6 +15,7 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRunResult;
+import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -249,7 +250,7 @@ public class GetSimpleNameTest extends GetNameTestBase {
             .addOptionsModification(this::configure)
             .run(parameters.getRuntime(), MAIN);
     if (enableMinification) {
-      if (parameters.getBackend() == Backend.CF && ToolHelper.isJava8Runtime()) {
+      if (parameters.isCfRuntime() && parameters.getRuntime().asCf().getVm() == CfVm.JDK8) {
         // TODO(b/120639028): Incorrect inner-class structure fails on JVM prior to JDK 9.
         result.assertFailureWithErrorThatMatches(containsString("Malformed class name"));
         return;

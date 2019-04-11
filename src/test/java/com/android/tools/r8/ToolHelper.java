@@ -11,6 +11,7 @@ import static org.junit.Assert.fail;
 
 import com.android.tools.r8.DeviceRunner.DeviceRunnerConfigurationException;
 import com.android.tools.r8.TestBase.Backend;
+import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper.DexVm.Kind;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.errors.Unreachable;
@@ -1103,19 +1104,24 @@ public class ToolHelper {
   }
 
   public static ProcessResult runJava(List<Path> classpath, String... args) throws IOException {
-    String cp =
-        classpath.stream().map(Path::toString).collect(Collectors.joining(CLASSPATH_SEPARATOR));
-    List<String> cmdline = new ArrayList<String>(Arrays.asList(getJavaExecutable(), "-cp", cp));
-    cmdline.addAll(Arrays.asList(args));
-    ProcessBuilder builder = new ProcessBuilder(cmdline);
-    return runProcess(builder);
+    return runJava(ImmutableList.of(), classpath, args);
   }
 
   public static ProcessResult runJava(List<String> vmArgs, List<Path> classpath, String... args)
       throws IOException {
+    return runJava(null, vmArgs, classpath, args);
+  }
+
+  public static ProcessResult runJava(CfVm runtime, List<Path> classpath, String... args)
+      throws IOException {
+    return runJava(runtime, ImmutableList.of(), classpath, args);
+  }
+
+  public static ProcessResult runJava(
+      CfVm runtime, List<String> vmArgs, List<Path> classpath, String... args) throws IOException {
     String cp =
         classpath.stream().map(Path::toString).collect(Collectors.joining(CLASSPATH_SEPARATOR));
-    List<String> cmdline = new ArrayList<String>(Arrays.asList(getJavaExecutable()));
+    List<String> cmdline = new ArrayList<String>(Arrays.asList(getJavaExecutable(runtime)));
     cmdline.addAll(vmArgs);
     cmdline.add("-cp");
     cmdline.add(cp);
@@ -1201,8 +1207,24 @@ public class ToolHelper {
     return runProcess(new ProcessBuilder(command).directory(dir.toFile()));
   }
 
+  @Deprecated
+  // Use getJavaExecutable(CfVm) to specify a JDK version or getSystemJavaExecutable
   public static String getJavaExecutable() {
+    return getSystemJavaExecutable();
+  }
+
+  public static String getSystemJavaExecutable() {
     return Paths.get(System.getProperty("java.home"), "bin", "java").toString();
+  }
+
+  public static String getJavaExecutable(CfVm runtime) {
+    if (TestRuntime.CHECKED_IN_JDKS.containsKey(runtime)) {
+      return TestRuntime.getCheckInJDKPathFor(runtime).toString();
+    } else {
+      // TODO(b/127785410): Always assume a non-null runtime.
+      assert runtime == null || TestParametersBuilder.isSystemJdk(runtime);
+      return getSystemJavaExecutable();
+    }
   }
 
   public static ProcessResult runArtRaw(ArtCommandBuilder builder) throws IOException {

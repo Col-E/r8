@@ -7,6 +7,9 @@ import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.google.common.collect.ImmutableMap;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 // Base class for the runtime structure in the test parameters.
 public class TestRuntime {
@@ -70,6 +73,26 @@ public class TestRuntime {
     }
   }
 
+  // Values are the path in third_party/openjdk to the repository with bin"
+  public static ImmutableMap<CfVm, Path> CHECKED_IN_JDKS =
+      ImmutableMap.of(
+          CfVm.JDK8,
+          Paths.get("jdk8", "linux-x86"),
+          CfVm.JDK9,
+          Paths.get("openjdk-9.0.4", "linux"));
+
+  public static Path getCheckInJDKPathFor(CfVm jdk) {
+    assert ToolHelper.isLinux();
+    return Paths.get("third_party", "openjdk")
+        .resolve(CHECKED_IN_JDKS.get(jdk))
+        .resolve(Paths.get("bin", "java"));
+  }
+
+  public static TestRuntime getDefaultJavaRuntime() {
+    // For compatibility with old tests not specifying a Java runtime
+    return new CfRuntime(CfVm.JDK9);
+  }
+
   public static class NoneRuntime extends TestRuntime {
 
     private static final String NAME = "none";
@@ -89,6 +112,7 @@ public class TestRuntime {
 
   // Wrapper for the DEX runtimes.
   public static class DexRuntime extends TestRuntime {
+
     private final DexVm vm;
 
     public DexRuntime(DexVm.Version version) {
@@ -126,6 +150,7 @@ public class TestRuntime {
 
   // Wrapper for the CF runtimes.
   public static class CfRuntime extends TestRuntime {
+
     private final CfVm vm;
 
     public CfRuntime(CfVm vm) {

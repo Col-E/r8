@@ -65,7 +65,10 @@ public abstract class TestCompileResult<
       case DEX:
         return runArt(null, additionalRunClassPath, mainClassSubject.getFinalName());
       case CF:
-        return runJava(null, additionalRunClassPath, mainClassSubject.getFinalName());
+        return runJava(
+            TestRuntime.getDefaultJavaRuntime(),
+            additionalRunClassPath,
+            mainClassSubject.getFinalName());
       default:
         throw new Unreachable();
     }
@@ -214,15 +217,15 @@ public abstract class TestCompileResult<
 
   private RR runJava(TestRuntime runtime, List<Path> additionalClassPath, String... arguments)
       throws IOException {
-    // TODO(b/127785410): Always assume a non-null runtime.
-    assert runtime == null || TestParametersBuilder.isSystemJdk(runtime.asCf().getVm());
+    assert runtime != null;
     Path out = state.getNewTempFolder().resolve("out.zip");
     app.writeToZip(out, OutputMode.ClassFile);
     List<Path> classPath = ImmutableList.<Path>builder()
         .addAll(additionalClassPath)
         .add(out)
         .build();
-    ProcessResult result = ToolHelper.runJava(vmArguments, classPath, arguments);
+    ProcessResult result =
+        ToolHelper.runJava(runtime.asCf().getVm(), vmArguments, classPath, arguments);
     return createRunResult(result);
   }
 
