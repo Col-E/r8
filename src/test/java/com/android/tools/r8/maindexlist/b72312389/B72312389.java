@@ -4,12 +4,11 @@
 package com.android.tools.r8.maindexlist.b72312389;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import com.android.tools.r8.BaseCommand;
 import com.android.tools.r8.CompatProguardCommandBuilder;
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.DiagnosticsHandler;
@@ -58,7 +57,7 @@ public class B72312389 extends TestBase {
         .addMainDexRules(keepInstrumentationTestCaseRules, Origin.unknown())
         .build();
     List<String> mainDexList = GenerateMainDexList.run(command);
-    assertTrue(mainDexList.contains("junit/framework/TestCase.class"));
+    assertFalse(mainDexList.contains("junit/framework/TestCase.class"));
     diagnostics.assertEmpty();
   }
 
@@ -86,9 +85,9 @@ public class B72312389 extends TestBase {
         .build();
     CodeInspector inspector = new CodeInspector(ToolHelper.runR8(command));
     assertTrue(inspector.clazz("instrumentationtest.InstrumentationTest").isPresent());
-    assertTrue(mainDexList.content.contains("junit/framework/TestCase.class"));
-    // TODO(72794301): Two copies of this message is a bit over the top.
-    assertEquals(2,
+    assertFalse(mainDexList.content.contains("junit/framework/TestCase.class"));
+    assertEquals(
+        0,
         diagnostics.countLibraryClassExtensdProgramClassWarnings(
             "android.test.InstrumentationTestCase", "junit.framework.TestCase"));
   }
@@ -102,12 +101,8 @@ public class B72312389 extends TestBase {
         .addMainDexRules(keepInstrumentationTestCaseRules, Origin.unknown())
         .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
         .build();
-    try {
-      R8.run(command);
-      fail();
-    } catch (CompilationFailedException e) {
-      // Expected, as library class extending program class is an error for R8.
-    }
+    R8.run(command);
+    diagnostics.assertEmpty();
   }
 
   private static class CollectingDiagnosticHandler implements DiagnosticsHandler {

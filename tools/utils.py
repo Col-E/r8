@@ -337,16 +337,18 @@ def cloud_storage_exists(destination):
   return exit_code == 0
 
 class TempDir(object):
- def __init__(self, prefix=''):
+ def __init__(self, prefix='', delete=True):
    self._temp_dir = None
    self._prefix = prefix
+   self._delete = delete
 
  def __enter__(self):
    self._temp_dir = tempfile.mkdtemp(self._prefix)
    return self._temp_dir
 
  def __exit__(self, *_):
-   shutil.rmtree(self._temp_dir, ignore_errors=True)
+   if self._delete:
+     shutil.rmtree(self._temp_dir, ignore_errors=True)
 
 class ChangedWorkingDirectory(object):
  def __init__(self, working_directory, quiet=False):
