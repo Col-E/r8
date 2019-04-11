@@ -194,6 +194,17 @@ class NamingState<ProtoType extends CachedHashValueDexItem, KeyType> {
     }
 
     public int incrementAndGet() {
+      int parentNameCount = 0;
+      InternalState tmp = parentInternalState;
+      while (tmp != null) {
+        if (tmp.nameCount > parentNameCount) {
+          parentNameCount = tmp.nameCount;
+        }
+        tmp = tmp.parentInternalState;
+      }
+      if (parentNameCount > nameCount) {
+        nameCount = parentNameCount;
+      }
       return nameCount++;
     }
 

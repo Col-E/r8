@@ -5,8 +5,8 @@
 package com.android.tools.r8.naming;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertNotEquals;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
@@ -42,8 +42,7 @@ public class FieldMinificationCollisionTest extends TestBase {
     FieldSubject f3Subject = inspector.clazz(C.class).uniqueFieldWithName("f3");
     assertThat(f3Subject, isPresent());
 
-    // TODO(b/127932803): f1 and f3 should not be given the same name.
-    assertEquals(f1Subject.getFinalName(), f3Subject.getFinalName());
+    assertNotEquals(f1Subject.getFinalName(), f3Subject.getFinalName());
   }
 
   static class TestClass {
