@@ -4,9 +4,7 @@
 
 # Different utility functions used accross scripts
 
-import defines
 import hashlib
-import jdk
 import os
 import re
 import shutil
@@ -15,6 +13,9 @@ import sys
 import tarfile
 import tempfile
 import zipfile
+
+import defines
+import jdk
 
 ANDROID_JAR_DIR = 'third_party/android_jar/lib-v{api}'
 ANDROID_JAR = os.path.join(ANDROID_JAR_DIR, 'android.jar')
@@ -63,6 +64,12 @@ RETRACE_JAR = os.path.join(
     'proguard6.0.1',
     'lib',
     'retrace.jar')
+PROGUARD_JAR = os.path.join(
+    THIRD_PARTY,
+    'proguard',
+    'proguard6.0.1',
+    'lib',
+    'proguard.jar')
 CF_SEGMENTS_TOOL = os.path.join(THIRD_PARTY, 'cf_segments')
 PINNED_R8_JAR = os.path.join(REPO_ROOT, 'third_party/r8/r8.jar')
 PINNED_PGR8_JAR = os.path.join(REPO_ROOT, 'third_party/r8/r8-pg6.0.1.jar')

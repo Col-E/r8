@@ -20,6 +20,7 @@ LINKED_THIRD_PARTY_DIRECTORIES = [
     'opensource_apps',
     'proguardsettings',
     'r8',
+    'sample_libraries',
     'youtube',
 ]
 
