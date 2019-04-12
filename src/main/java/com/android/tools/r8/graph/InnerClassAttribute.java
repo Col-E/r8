@@ -5,6 +5,7 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import org.objectweb.asm.ClassWriter;
 
@@ -78,5 +79,27 @@ public class InnerClassAttribute {
     if (innerName != null) {
       innerName.collectIndexedItems(indexedItems);
     }
+  }
+
+  public DexType getLiveContext(AppInfoWithLiveness appInfo) {
+    DexType context = getOuter();
+    if (context == null) {
+      DexClass inner = appInfo.definitionFor(getInner());
+      if (inner != null && inner.getEnclosingMethod() != null) {
+        EnclosingMethodAttribute enclosingMethodAttribute = inner.getEnclosingMethod();
+        if (enclosingMethodAttribute.getEnclosingClass() != null) {
+          context = enclosingMethodAttribute.getEnclosingClass();
+        } else {
+          DexMethod enclosingMethod = enclosingMethodAttribute.getEnclosingMethod();
+          if (!appInfo.liveMethods.contains(enclosingMethod)) {
+            // EnclosingMethodAttribute will be pruned as it references the pruned method.
+            // Hence, the current InnerClassAttribute will be removed too. No live context.
+            return null;
+          }
+          context = enclosingMethod.holder;
+        }
+      }
+    }
+    return context;
   }
 }

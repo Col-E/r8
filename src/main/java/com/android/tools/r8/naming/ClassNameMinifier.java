@@ -5,6 +5,7 @@ package com.android.tools.r8.naming;
 
 import static com.android.tools.r8.utils.DescriptorUtils.DESCRIPTOR_PACKAGE_SEPARATOR;
 import static com.android.tools.r8.utils.DescriptorUtils.INNER_CLASS_SEPARATOR;
+import static com.android.tools.r8.utils.DescriptorUtils.computeInnerClassSeparator;
 import static com.android.tools.r8.utils.DescriptorUtils.getClassBinaryNameFromDescriptor;
 import static com.android.tools.r8.utils.DescriptorUtils.getPackageBinaryNameFromJavaType;
 
@@ -71,7 +72,9 @@ class ClassNameMinifier {
         options.getProguardConfiguration().isAccessModificationAllowed();
     this.packageDictionary = options.getProguardConfiguration().getPackageObfuscationDictionary();
     this.classDictionary = options.getProguardConfiguration().getClassObfuscationDictionary();
-    this.keepInnerClassStructure = options.getProguardConfiguration().getKeepAttributes().signature;
+    this.keepInnerClassStructure =
+        options.getProguardConfiguration().getKeepAttributes().signature
+            || options.getProguardConfiguration().getKeepAttributes().innerClasses;
 
     // Initialize top-level naming state.
     topLevelState = new Namespace(
@@ -111,10 +114,22 @@ class ClassNameMinifier {
 
     timing.begin("rename-classes");
     for (DexClass clazz : classes) {
+      // Let anonymous classes be as-is.
+      if (clazz.isAnonymousClass()) {
+        continue;
+      }
       if (!renaming.containsKey(clazz.type)) {
+        // TreePruner already removed inner-class / enclosing-method attributes for local classes.
+        assert !clazz.isLocalClass();
         clazz.annotations = clazz.annotations.keepIf(this::isNotKotlinMetadata);
         DexString renamed = computeName(clazz.type);
         renaming.put(clazz.type, renamed);
+        // If the class is a member class and it has used $ separator, its renamed name should have
+        // the same separator (as long as inner-class attribute is honored).
+        assert !keepInnerClassStructure
+            || !clazz.isMemberClass()
+            || !clazz.type.getInternalName().contains(String.valueOf(INNER_CLASS_SEPARATOR))
+            || renamed.toString().contains(String.valueOf(INNER_CLASS_SEPARATOR));
       }
     }
     timing.end();
@@ -223,17 +238,26 @@ class ClassNameMinifier {
     if (clazz.getEnclosingMethod() != null) {
       return null;
     }
-    for (InnerClassAttribute innerClassAttribute : clazz.getInnerClasses()) {
-      if (innerClassAttribute.getInner() == type) {
-        // For DEX inputs this could result in returning the outer class of a local class since we
-        // can't distinguish it from a member class based on just the enclosing-class annotation.
-        // We could filter out the local classes by looking for a corresponding entry in the
-        // inner-classes attribute table which must exist only for member classes. Since DEX files
-        // are not a supported mode for R8 we just return the outer class in both cases.
-        return innerClassAttribute.getOuter();
-      }
+    // For DEX inputs this could result in returning the outer class of a local class since we
+    // can't distinguish it from a member class based on just the enclosing-class annotation.
+    // We could filter out the local classes by looking for a corresponding entry in the
+    // inner-classes attribute table which must exist only for member classes. Since DEX files
+    // are not a supported input for R8 we just return the outer class in both cases.
+    InnerClassAttribute attribute = clazz.getInnerClassAttributeForThisClass();
+    if (attribute == null) {
+      return null;
     }
-    return null;
+    return attribute.getOuter();
+  }
+
+  private String getInnerNameForType(DexType type) {
+    // This util is used only after the corresponding outer-class is recognized.
+    // Therefore, the definition for the type and its inner-class attribute should be found.
+    DexClass clazz = appView.definitionFor(type);
+    assert clazz != null;
+    InnerClassAttribute attribute = clazz.getInnerClassAttributeForThisClass();
+    assert attribute != null;
+    return attribute.getInnerName().toString();
   }
 
   private DexString computeName(DexType type) {
@@ -243,7 +267,11 @@ class ClassNameMinifier {
       // of the outer class for the $ prefix.
       DexType outerClass = getOutClassForType(type);
       if (outerClass != null) {
-        state = getStateForOuterClass(outerClass);
+        String innerClassSeparator =
+            computeInnerClassSeparator(
+                outerClass, type, getInnerNameForType(type), appView.options());
+        assert innerClassSeparator != null;
+        state = getStateForOuterClass(outerClass, innerClassSeparator);
       }
     }
     if (state == null) {
@@ -305,7 +333,7 @@ class ClassNameMinifier {
     return state;
   }
 
-  private Namespace getStateForOuterClass(DexType outer) {
+  private Namespace getStateForOuterClass(DexType outer, String innerClassSeparator) {
     String prefix = getClassBinaryNameFromDescriptor(outer.toDescriptorString());
     Namespace state = states.get(prefix);
     if (state == null) {
@@ -321,7 +349,7 @@ class ClassNameMinifier {
         renaming.put(outer, renamed);
       }
       String binaryName = getClassBinaryNameFromDescriptor(renamed.toString());
-      state = new Namespace(binaryName, INNER_CLASS_SEPARATOR);
+      state = new Namespace(binaryName, innerClassSeparator);
       states.put(prefix, state);
     }
     return state;
@@ -352,10 +380,10 @@ class ClassNameMinifier {
     private final Iterator<String> classDictionaryIterator;
 
     Namespace(String packageName) {
-      this(packageName, DESCRIPTOR_PACKAGE_SEPARATOR);
+      this(packageName, String.valueOf(DESCRIPTOR_PACKAGE_SEPARATOR));
     }
 
-    Namespace(String packageName, char separator) {
+    Namespace(String packageName, String separator) {
       this.packageName = packageName;
       this.packagePrefix = ("L" + packageName
           // L or La/b/ (or La/b/C$)

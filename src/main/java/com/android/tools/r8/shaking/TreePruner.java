@@ -9,7 +9,6 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
@@ -19,6 +18,7 @@ import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.google.common.base.Predicates;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -118,6 +118,18 @@ public class TreePruner {
         if (reachableStaticFields != null) {
           clazz.setStaticFields(reachableStaticFields);
         }
+        // If the class is a local class, it'll become an ordinary class by renaming.
+        // Invalidate its inner-class / enclosing-method attributes early.
+        if (appView.options().isMinifying()
+            && !appView.rootSet().noObfuscation.contains(clazz.type)
+            && clazz.isLocalClass()) {
+          assert clazz.getEnclosingMethod() != null;
+          assert clazz.getInnerClassAttributeForThisClass() != null;
+          clazz.removeEnclosingMethod(Predicates.alwaysTrue());
+          InnerClassAttribute innerClassAttribute =
+              clazz.getInnerClassAttributeForThisClass();
+          clazz.removeInnerClasses(attr -> attr == innerClassAttribute);
+        }
         clazz.removeInnerClasses(this::isAttributeReferencingPrunedType);
         clazz.removeEnclosingMethod(this::isAttributeReferencingPrunedItem);
         usagePrinter.visited();
@@ -140,24 +152,7 @@ public class TreePruner {
     if (!appInfo.liveTypes.contains(attr.getInner())) {
       return true;
     }
-    DexType context = attr.getOuter();
-    if (context == null) {
-      DexClass inner = appInfo.definitionFor(attr.getInner());
-      if (inner != null && inner.getEnclosingMethod() != null) {
-        EnclosingMethodAttribute enclosingMethodAttribute = inner.getEnclosingMethod();
-        if (enclosingMethodAttribute.getEnclosingClass() != null) {
-          context = enclosingMethodAttribute.getEnclosingClass();
-        } else {
-          DexMethod enclosingMethod = enclosingMethodAttribute.getEnclosingMethod();
-          if (!appInfo.liveMethods.contains(enclosingMethod)) {
-            // EnclosingMethodAttribute will be pruned as it references the pruned method.
-            // Hence, removal of the current InnerClassAttribute too.
-            return true;
-          }
-          context = enclosingMethod.holder;
-        }
-      }
-    }
+    DexType context = attr.getLiveContext(appInfo);
     return context == null || !appInfo.liveTypes.contains(context);
   }
 

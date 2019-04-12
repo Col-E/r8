@@ -351,8 +351,7 @@ public class R8 {
         }
 
         classesToRetainInnerClassAttributeFor =
-            AnnotationRemover.computeClassesToRetainInnerClassAttributeFor(
-                appView.appInfo().withLiveness(), options);
+            AnnotationRemover.computeClassesToRetainInnerClassAttributeFor(appView.withLiveness());
         new AnnotationRemover(appView.withLiveness(), classesToRetainInnerClassAttributeFor)
             .ensureValid(compatibility)
             .run();

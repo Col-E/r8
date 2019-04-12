@@ -598,7 +598,6 @@ public class InternalOptions {
     public boolean forceJumboStringProcessing = false;
     public boolean nondeterministicCycleElimination = false;
     public Set<Inliner.Reason> validInliningReasons = null;
-    public boolean allowFailureOnInnerClassErrors = false;
     public boolean noLocalsTableOnInput = false;
     public boolean forceNameReflectionOptimization = false;
     public boolean disallowLoadStoreOptimization = false;

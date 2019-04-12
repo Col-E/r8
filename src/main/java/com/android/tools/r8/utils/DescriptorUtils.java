@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
 
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.google.common.collect.ImmutableMap;
 import java.io.File;
@@ -306,6 +307,28 @@ public class DescriptorUtils {
   public static String getUnqualifiedClassNameFromBinaryName(String classBinaryName) {
     int simpleNameIndex = classBinaryName.lastIndexOf(DESCRIPTOR_PACKAGE_SEPARATOR);
     return (simpleNameIndex < 0) ? classBinaryName : classBinaryName.substring(simpleNameIndex + 1);
+  }
+
+  public static String computeInnerClassSeparator(
+      DexType outerClass, DexType innerClass, String innerName, InternalOptions options) {
+    String outerInternalRaw = outerClass.getInternalName();
+    String innerInternalRaw = innerClass.getInternalName();
+    // outer-internal<separator>inner-name == inner-internal
+    if (outerInternalRaw.length() + innerName.length() > innerInternalRaw.length()) {
+      return null;
+    }
+    String separator =
+        innerInternalRaw.substring(
+            outerInternalRaw.length(), innerInternalRaw.length() - innerName.length());
+    // Any non-$ separator results in a runtime exception in getCanonicalName.
+    if (!separator.startsWith(String.valueOf(INNER_CLASS_SEPARATOR))) {
+      // But, if the minification is enabled, we can choose $ separator.
+      if (options.isMinifying()) {
+        return String.valueOf(INNER_CLASS_SEPARATOR);
+      }
+      return null;
+    }
+    return separator;
   }
 
   public static boolean isClassDescriptor(String descriptor) {

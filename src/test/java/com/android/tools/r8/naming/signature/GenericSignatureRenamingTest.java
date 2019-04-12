@@ -153,12 +153,12 @@ class Main {
         ownerClassOfSuperOfZ + " expected to be equal to " + A.class);
 
     // Check that the owner-owner of the superclass of Z is A.
-    Class ownerOfownerOfSuperOfZZ =
+    Class ownerOfOwnerOfSuperOfZZ =
         getEnclosingClass(classZZ.getGenericSuperclass()).getEnclosingClass();
 
     check(
-        ownerOfownerOfSuperOfZZ == A.class,
-        ownerOfownerOfSuperOfZZ + " expected to be equal to " + A.class);
+        ownerOfOwnerOfSuperOfZZ == A.class,
+        ownerOfOwnerOfSuperOfZZ + " expected to be equal to " + A.class);
   }
 
   private static Class getEnclosingClass(Type type) {

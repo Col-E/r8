@@ -8,5 +8,5 @@
   public static void main(...);
 }
 
-# allow access modification to enable minifcation
+# allow access modification to enable minification
 -allowaccessmodification

@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize.reflection;
 
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ir.optimize.reflection.InnerClassNameTestRunner.TestNamingConfig;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
@@ -22,9 +23,9 @@ public class InnerClassNameTestDump implements Opcodes {
         ACC_STATIC);
   }
 
-  public static Collection<byte[]> dump(TestNamingConfig config) {
+  public static Collection<byte[]> dump(TestNamingConfig config, TestParameters parameters) {
     return ImmutableList.of(
-        dumpMainClass(config),
+        dumpMainClass(config, parameters),
         dumpOuterClass(config),
         dumpInnerClass(config));
   }
@@ -95,7 +96,7 @@ public class InnerClassNameTestDump implements Opcodes {
     return classWriter.toByteArray();
   }
 
-  public static byte[] dumpMainClass(TestNamingConfig config) {
+  public static byte[] dumpMainClass(TestNamingConfig config, TestParameters parameters) {
 
     ClassWriter classWriter = new ClassWriter(0);
     MethodVisitor methodVisitor;
@@ -171,7 +172,7 @@ public class InnerClassNameTestDump implements Opcodes {
           INVOKEVIRTUAL, "java/lang/StringBuilder", "toString", "()Ljava/lang/String;", false);
       methodVisitor.visitMethodInsn(
           INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V", false);
-      if (config.isGetTypeNameSupported()) {
+      if (TestNamingConfig.isGetTypeNameSupported(parameters)) {
         Label label2 = new Label();
         methodVisitor.visitLabel(label2);
         methodVisitor.visitLineNumber(16, label2);

@@ -5,7 +5,6 @@ package com.android.tools.r8.ir.optimize.reflection;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 
@@ -15,7 +14,6 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRunResult;
-import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -137,14 +135,14 @@ public class GetSimpleNameTest extends GetNameTestBase {
       "Outer$Inner"
   );
   private static final String RENAMED_OUTPUT = StringUtils.lines(
-      "f",
-      "e",
-      "b",
+      "c",
       "a",
-      "d[][][]",
+      "a",
+      "a",
+      "b[][][]",
       "[][][]",
-      "g", // TODO(b/120639028): Should have A$B structure. May differ on old VMs.
-      "g" // TODO(b/120639028): Should have A$B structure. May differ on old VMs.
+      "a",
+      "a"
   );
   private static final Class<?> MAIN = ClassGetSimpleName.class;
 
@@ -174,13 +172,12 @@ public class GetSimpleNameTest extends GetNameTestBase {
         .assertSuccessWithOutput(JAVA_OUTPUT);
   }
 
-  private void test(TestRunResult result, int expectedCount) throws Exception {
+  private void test(TestRunResult result) throws Exception {
     CodeInspector codeInspector = result.inspector();
     ClassSubject mainClass = codeInspector.clazz(MAIN);
     MethodSubject mainMethod = mainClass.mainMethod();
     assertThat(mainMethod, isPresent());
-    long count = countGetName(mainMethod);
-    assertEquals(expectedCount, count);
+    assertEquals(0, countGetName(mainMethod));
   }
 
   @Test
@@ -197,7 +194,7 @@ public class GetSimpleNameTest extends GetNameTestBase {
             .addOptionsModification(this::configure)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 0);
+    test(result);
 
     result =
         testForD8()
@@ -207,7 +204,7 @@ public class GetSimpleNameTest extends GetNameTestBase {
             .addOptionsModification(this::configure)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 0);
+    test(result);
   }
 
   @Test
@@ -227,7 +224,7 @@ public class GetSimpleNameTest extends GetNameTestBase {
             .addOptionsModification(this::configure)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 0);
+    test(result);
   }
 
   @Test
@@ -250,16 +247,10 @@ public class GetSimpleNameTest extends GetNameTestBase {
             .addOptionsModification(this::configure)
             .run(parameters.getRuntime(), MAIN);
     if (enableMinification) {
-      if (parameters.isCfRuntime() && parameters.getRuntime().asCf().getVm() == CfVm.JDK8) {
-        // TODO(b/120639028): Incorrect inner-class structure fails on JVM prior to JDK 9.
-        result.assertFailureWithErrorThatMatches(containsString("Malformed class name"));
-        return;
-      } else {
-        result.assertSuccessWithOutput(RENAMED_OUTPUT);
-      }
+      result.assertSuccessWithOutput(RENAMED_OUTPUT);
     } else {
       result.assertSuccessWithOutput(JAVA_OUTPUT);
     }
-    test(result, 0);
+    test(result);
   }
 }

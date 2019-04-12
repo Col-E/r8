@@ -8,21 +8,20 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isMemberClass;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
 import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
-import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.shaking.innerclassesenclosingmethod.testclasses.Outer;
-import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 class Main {
 
@@ -43,17 +42,35 @@ class Main {
   }
 }
 
+@RunWith(Parameterized.class)
 public class KeepInnerClassesEnclosingMethodAnnotationsTest extends TestBase {
+
+  enum TestConfig {
+    R8,
+    PROGUARD
+  }
+
+  @Parameterized.Parameters(name = "{0}")
+  public static Object[] parameters() {
+    return TestConfig.values();
+  }
+
+  private final TestConfig config;
+
+  public KeepInnerClassesEnclosingMethodAnnotationsTest(TestConfig config) {
+    this.config = config;
+  }
+
   private static class TestResult {
 
-    public final AndroidApp app;
-    public final CodeInspector inspector;
-    public final ClassSubject outer;
-    public final ClassSubject inner;
+    final String stdout;
+    final CodeInspector inspector;
+    final ClassSubject outer;
+    final ClassSubject inner;
 
-    TestResult(AndroidApp app) throws Throwable {
-      this.app = app;
-      this.inspector = new CodeInspector(app);
+    TestResult(TestRunResult result) throws Throwable {
+      this.stdout = result.getStdOut();
+      this.inspector = result.inspector();
       this.outer = inspector.clazz(Outer.class);
       this.inner = inspector.clazz(Outer.Inner.class);
       assertThat(outer, isPresent());
@@ -61,26 +78,38 @@ public class KeepInnerClassesEnclosingMethodAnnotationsTest extends TestBase {
     }
   }
 
-  private TestResult runTest(List<String> proguardConfiguration) throws Throwable {
+  private TestResult runProguard(List<String> proguardConfiguration) throws Throwable {
     return new TestResult(
-        ToolHelper.runR8(
-            R8Command.builder()
-                .addProgramFiles(ToolHelper.getClassFilesForTestPackage(Outer.class.getPackage()))
-                .addClassProgramData(ToolHelper.getClassAsBytes(Main.class), Origin.unknown())
-                .addProguardConfiguration(proguardConfiguration, Origin.unknown())
-                .setProgramConsumer(emptyConsumer(Backend.DEX))
-                .build()));
+        testForProguard()
+            .addProgramClasses(ImmutableList.of(Main.class, Outer.class, Outer.Inner.class))
+            .addKeepRules(proguardConfiguration)
+            .run(Main.class));
   }
 
-  private void noInnerClassesEnclosingMethodInformation(TestResult result) throws Throwable {
-    List<String> lines = StringUtils.splitLines(runOnArt(result.app, Main.class));
+  private TestResult runR8(List<String> proguardConfiguration) throws Throwable {
+    return new TestResult(
+        testForR8(Backend.DEX)
+            .addProgramClassesAndInnerClasses(Outer.class)
+            .addProgramClasses(Main.class)
+            .addKeepRules(proguardConfiguration)
+            .run(Main.class));
+  }
+
+  private TestResult runShrinker(List<String> proguardConfiguration) throws Throwable {
+    return config == TestConfig.R8
+        ? runR8(proguardConfiguration)
+        : runProguard(proguardConfiguration);
+  }
+
+  private void noInnerClassesEnclosingMethodInformation(TestResult result) {
+    List<String> lines = StringUtils.splitLines(result.stdout);
     assertEquals(2, lines.size());
     assertEquals("No declared classes", lines.get(0));
     assertEquals("No declaring classes", lines.get(1));
   }
 
-  private void fullInnerClassesEnclosingMethodInformation(TestResult result) throws Throwable {
-    List<String> lines = StringUtils.splitLines(runOnArt(result.app, Main.class));
+  private void fullInnerClassesEnclosingMethodInformation(TestResult result) {
+    List<String> lines = StringUtils.splitLines(result.stdout);
     assertEquals(2, lines.size());
     assertEquals("Declared class: " + result.inner.getFinalName(), lines.get(0));
     assertEquals("Declaring class: " + result.outer.getFinalName(), lines.get(1));
@@ -89,7 +118,7 @@ public class KeepInnerClassesEnclosingMethodAnnotationsTest extends TestBase {
   @Test
   public void testKeepAll() throws Throwable {
     TestResult result =
-        runTest(
+        runShrinker(
             ImmutableList.of(
                 "-keepattributes InnerClasses,EnclosingMethod",
                 "-keep class **Outer*",
@@ -103,7 +132,7 @@ public class KeepInnerClassesEnclosingMethodAnnotationsTest extends TestBase {
   @Test
   public void testKeepAllWithoutAttributes() throws Throwable {
     TestResult result =
-        runTest(
+        runShrinker(
             ImmutableList.of("-keep class **Outer*", keepMainProguardConfiguration(Main.class)));
     assertThat(result.outer, not(isRenamed()));
     assertThat(result.inner, not(isRenamed()));
@@ -114,12 +143,12 @@ public class KeepInnerClassesEnclosingMethodAnnotationsTest extends TestBase {
   @Test
   public void testKeepInner() throws Throwable {
     TestResult result =
-        runTest(
+        runShrinker(
             ImmutableList.of(
                 "-keepattributes InnerClasses,EnclosingMethod",
                 "-keep class **Outer$Inner",
                 keepMainProguardConfiguration(Main.class)));
-    assertThat(result.outer, isRenamed());
+    assertThat(result.outer, not(isRenamed()));
     assertThat(result.inner, not(isRenamed()));
     assertThat(result.inner, isMemberClass());
     fullInnerClassesEnclosingMethodInformation(result);
@@ -128,7 +157,7 @@ public class KeepInnerClassesEnclosingMethodAnnotationsTest extends TestBase {
   @Test
   public void testKeepOuter() throws Throwable {
     TestResult result =
-        runTest(
+        runShrinker(
             ImmutableList.of(
                 "-keepattributes InnerClasses,EnclosingMethod",
                 "-keep class **Outer",

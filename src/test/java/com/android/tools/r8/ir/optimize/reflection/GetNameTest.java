@@ -157,32 +157,32 @@ public class GetNameTest extends GetNameTestBase {
   );
   private static final String RENAMED_OUTPUT = StringUtils.lines(
       // getName
-      "com.android.tools.r8.ir.optimize.reflection.e",
+      "com.android.tools.r8.ir.optimize.reflection.c",
       // getTypeName
       // TODO(b/119426668): desugar Type#getTypeName
-      // "com.android.tools.r8.ir.optimize.reflection.e",
+      // "com.android.tools.r8.ir.optimize.reflection.c",
       // getCanonicalName
-      "com.android.tools.r8.ir.optimize.reflection.e",
-      // getSimpleName
-      "e",
-      // getName, inner
       "com.android.tools.r8.ir.optimize.reflection.c",
+      // getSimpleName
+      "c",
+      // getName, inner
+      "com.android.tools.r8.ir.optimize.reflection.c$a",
       // getTypeName, inner
       // TODO(b/119426668): desugar Type#getTypeName
-      // "com.android.tools.r8.ir.optimize.reflection.c",
+      // "com.android.tools.r8.ir.optimize.reflection.c$a",
       // getCanonicalName, inner
-      "com.android.tools.r8.ir.optimize.reflection.c",
+      "com.android.tools.r8.ir.optimize.reflection.c.a",
       // getSimpleName, inner
-      "c",
+      "a",
       // getName, array
-      "[Lcom.android.tools.r8.ir.optimize.reflection.e;",
+      "[Lcom.android.tools.r8.ir.optimize.reflection.c;",
       // getTypeName, array
       // TODO(b/119426668): desugar Type#getTypeName
-      // "com.android.tools.r8.ir.optimize.reflection.e[]",
+      // "com.android.tools.r8.ir.optimize.reflection.c[]",
       // getCanonicalName, array
-      "com.android.tools.r8.ir.optimize.reflection.e[]",
+      "com.android.tools.r8.ir.optimize.reflection.c[]",
       // getSimpleName, array
-      "e[]",
+      "c[]",
       // getName, anonymous
       "com.android.tools.r8.ir.optimize.reflection.a",
       // getTypeName, anonymous
@@ -298,12 +298,7 @@ public class GetNameTest extends GetNameTestBase {
             .addOptionsModification(this::configure)
             .run(parameters.getRuntime(), MAIN);
     if (enableMinification) {
-      // TODO(b/118536394): Mismatched attributes?
-      if (parameters.getBackend() == Backend.CF) {
-        return;
-      }
-      // TODO(b/120185045): Short name of innerName is not renamed.
-      // result.assertSuccessWithOutput(RENAMED_OUTPUT);
+      result.assertSuccessWithOutput(RENAMED_OUTPUT);
     } else {
       result.assertSuccessWithOutput(JAVA_OUTPUT);
     }

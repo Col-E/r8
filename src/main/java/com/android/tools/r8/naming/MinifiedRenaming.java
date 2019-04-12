@@ -63,40 +63,30 @@ class MinifiedRenaming extends NamingLens {
     if (attribute.getInnerName() == null) {
       return null;
     }
-    // The Java reflection library assumes that that inner-class names are separated by a $ and
-    // thus we allow the mapping of an inner name to rely on that too. If the dollar is not
-    // present after pulling off the original inner-name, then we revert to using the unqualified
-    // name of the inner class as its name.
     DexType innerType = attribute.getInner();
     String inner = DescriptorUtils.descriptorToInternalName(innerType.descriptor.toString());
     String innerName = attribute.getInnerName().toString();
-    int lengthOfPrefix = inner.length() - innerName.length();
-    if (lengthOfPrefix < 0
-        || inner.lastIndexOf(DescriptorUtils.INNER_CLASS_SEPARATOR, lengthOfPrefix - 1) < 0
-        || !inner.endsWith(innerName)) {
-      String descriptor = lookupDescriptor(innerType).toString();
-      return options.itemFactory.createString(
-          DescriptorUtils.getUnqualifiedClassNameFromDescriptor(descriptor));
-    }
-
     // At this point we assume the input was of the form: <OuterType>$<index><InnerName>
-    // Find the mapped type and if it remains the same return that, otherwise split at $.
+    // Find the mapped type and if it remains the same return that, otherwise split at
+    // either the input separator ($, $$, or anything that starts with $) or $ (that we recover
+    // while minifying, e.g., empty separator, under bar, etc.).
     String innerTypeMapped =
         DescriptorUtils.descriptorToInternalName(lookupDescriptor(innerType).toString());
     if (inner.equals(innerTypeMapped)) {
       return attribute.getInnerName();
     }
-    int index = innerTypeMapped.lastIndexOf(DescriptorUtils.INNER_CLASS_SEPARATOR);
+    String separator =
+        DescriptorUtils.computeInnerClassSeparator(
+            attribute.getOuter(), innerType, innerName, options);
+    assert separator != null;
+    int index = innerTypeMapped.lastIndexOf(separator);
     if (index < 0) {
-      // TODO(b/120639028): Replace this by "assert false" and remove the testing option.
-      // Hitting means we have converted a proper Outer$Inner relationship to an invalid one.
-      assert !options.testing.allowFailureOnInnerClassErrors
-          : "Outer$Inner class was remapped without keeping the dollar separator";
+      assert false : innerType + " -> " + innerTypeMapped;
       String descriptor = lookupDescriptor(innerType).toString();
       return options.itemFactory.createString(
           DescriptorUtils.getUnqualifiedClassNameFromDescriptor(descriptor));
     }
-    return options.itemFactory.createString(innerTypeMapped.substring(index + 1));
+    return options.itemFactory.createString(innerTypeMapped.substring(index + separator.length()));
   }
 
   @Override

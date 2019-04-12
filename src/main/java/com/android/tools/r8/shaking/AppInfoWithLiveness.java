@@ -83,7 +83,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
    * Set of methods that belong to live classes and can be reached by invokes. These need to be
    * kept.
    */
-  final SortedSet<DexMethod> liveMethods;
+  public final SortedSet<DexMethod> liveMethods;
   /**
    * Set of all fields which may be touched by a get operation. This is actual field definitions.
    * The set does not include kept fields nor library fields, since these are read by definition.
