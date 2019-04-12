@@ -5,7 +5,7 @@
 package com.android.tools.r8.graph;
 
 public class BottomUpClassHierarchyTraversal<T extends DexClass>
-    extends ClassHierarchyTraversal<T> {
+    extends ClassHierarchyTraversal<T, BottomUpClassHierarchyTraversal<T>> {
 
   private BottomUpClassHierarchyTraversal(
       AppView<? extends AppInfoWithSubtyping> appView, Scope scope) {
@@ -31,9 +31,18 @@ public class BottomUpClassHierarchyTraversal<T extends DexClass>
   }
 
   @Override
+  BottomUpClassHierarchyTraversal<T> self() {
+    return this;
+  }
+
+  @Override
   void addDependentsToWorklist(DexClass clazz) {
     @SuppressWarnings("unchecked")
     T clazzWithTypeT = (T) clazz;
+
+    if (excludeInterfaces && clazzWithTypeT.isInterface()) {
+      return;
+    }
 
     if (visited.contains(clazzWithTypeT)) {
       return;

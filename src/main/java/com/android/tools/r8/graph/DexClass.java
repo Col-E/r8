@@ -12,10 +12,12 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -710,6 +712,15 @@ public abstract class DexClass extends DexDefinition {
       return true;
     }
     return initializationOfParentTypesMayHaveSideEffects(definitions, ignore);
+  }
+
+  public Iterable<DexType> allImmediateSupertypes() {
+    Iterator<DexType> iterator =
+        superType != null
+            ? Iterators.concat(
+                Iterators.singletonIterator(superType), Iterators.forArray(interfaces.values))
+            : Iterators.forArray(interfaces.values);
+    return () -> iterator;
   }
 
   public boolean initializationOfParentTypesMayHaveSideEffects(DexDefinitionSupplier definitions) {

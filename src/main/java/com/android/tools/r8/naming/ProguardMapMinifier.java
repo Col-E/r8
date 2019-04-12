@@ -18,13 +18,11 @@ import com.android.tools.r8.naming.ClassNameMinifier.ClassNamingStrategy;
 import com.android.tools.r8.naming.ClassNameMinifier.ClassRenaming;
 import com.android.tools.r8.naming.ClassNameMinifier.Namespace;
 import com.android.tools.r8.naming.FieldNameMinifier.FieldRenaming;
-import com.android.tools.r8.naming.MemberNameMinifier.MemberNamingStrategy;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.MethodNameMinifier.MethodRenaming;
 import com.android.tools.r8.naming.Minifier.MinificationPackageNamingStrategy;
-import com.android.tools.r8.naming.NamingState.InternalState;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Reporter;
@@ -241,7 +239,16 @@ public class ProguardMapMinifier {
     }
 
     @Override
-    public DexString next(DexReference reference, InternalState internalState) {
+    public DexString next(DexMethod method, MethodNamingState.InternalState internalState) {
+      return next(method);
+    }
+
+    @Override
+    public DexString next(DexField field, FieldNamingState.InternalState internalState) {
+      return next(field);
+    }
+
+    private DexString next(DexReference reference) {
       if (mappedNames.containsKey(reference)) {
         return factory.createString(mappedNames.get(reference).getRenamedName());
       } else if (reference.isDexMethod()) {

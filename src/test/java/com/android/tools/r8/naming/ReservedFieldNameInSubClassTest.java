@@ -99,51 +99,41 @@ public class ReservedFieldNameInSubClassTest extends TestBase {
     assertThat(aFieldSubject, isPresent());
 
     if (reserveName) {
-      // TODO(b/128973195): A.f1 should be renamed to e instead of a.
       assertThat(f1FieldSubject, isRenamed());
-      assertEquals("a", f1FieldSubject.getFinalName());
+      assertEquals("e", f1FieldSubject.getFinalName());
 
-      // TODO(b/128973195): B.f2 should be renamed to f instead of b.
       assertThat(f2FieldSubject, isRenamed());
-      assertEquals("b", f2FieldSubject.getFinalName());
+      assertEquals("f", f2FieldSubject.getFinalName());
 
-      // TODO(b/128973195): I.f3 should be renamed to b instead of a.
       assertThat(f3FieldSubject, isRenamed());
-      assertEquals("a", f3FieldSubject.getFinalName());
+      assertEquals("b", f3FieldSubject.getFinalName());
 
-      // TODO(b/128973195): J.f4 should be renamed to c instead of b.
       assertThat(f4FieldSubject, isRenamed());
-      assertEquals("b", f4FieldSubject.getFinalName());
+      assertEquals("c", f4FieldSubject.getFinalName());
 
-      // TODO(b/128973195): K.f5 should be renamed to d instead of a.
       assertThat(f5FieldSubject, isRenamed());
-      assertEquals("a", f5FieldSubject.getFinalName());
+      assertEquals("d", f5FieldSubject.getFinalName());
 
       // B.a should not be renamed because it is not allowed to be minified.
       assertThat(aFieldSubject, not(isRenamed()));
     } else {
-      // TODO(b/128973195): A.f1 should be renamed to d instead of a.
       assertThat(f1FieldSubject, isRenamed());
-      assertEquals("a", f1FieldSubject.getFinalName());
+      assertEquals("d", f1FieldSubject.getFinalName());
 
-      // TODO(b/128973195): B.f2 should be renamed to e instead of b.
       assertThat(f2FieldSubject, isRenamed());
-      assertEquals("b", f2FieldSubject.getFinalName());
+      assertEquals("e", f2FieldSubject.getFinalName());
 
-      // TODO(b/128973195): I.f3 should be renamed to a instead of a.
       assertThat(f3FieldSubject, isRenamed());
       assertEquals("a", f3FieldSubject.getFinalName());
 
       assertThat(f4FieldSubject, isRenamed());
       assertEquals("b", f4FieldSubject.getFinalName());
 
-      // TODO(b/128973195): K.f5 should be renamed to c instead of a.
       assertThat(f5FieldSubject, isRenamed());
-      assertEquals("a", f5FieldSubject.getFinalName());
+      assertEquals("c", f5FieldSubject.getFinalName());
 
-      // TODO(b/128973195): C.a should be renamed to f instead of c.
       assertThat(aFieldSubject, isRenamed());
-      assertEquals("c", aFieldSubject.getFinalName());
+      assertEquals("f", aFieldSubject.getFinalName());
     }
   }
 

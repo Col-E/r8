@@ -5,7 +5,10 @@ package com.android.tools.r8.naming;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.AnyOf.anyOf;
+import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 
 import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestBase;
@@ -73,13 +76,12 @@ public class ReservedFieldNameInInterfacesWithCommonSubClassTest extends TestBas
     assertThat(aFieldSubject, isPresent());
 
     if (reserveName) {
-      assertEquals("a", f1FieldSubject.getFinalName());
-      // TODO(b/128973195): J.a should not be renamed to the same as I.f1.
+      assertEquals("b", f1FieldSubject.getFinalName());
       assertEquals("a", aFieldSubject.getFinalName());
     } else {
-      // TODO(b/128973195): I.f1 Should not be renamed to the same as J.a.
-      assertEquals("a", f1FieldSubject.getFinalName());
-      assertEquals("a", aFieldSubject.getFinalName());
+      assertThat(f1FieldSubject.getFinalName(), anyOf(is("a"), is("b")));
+      assertThat(aFieldSubject.getFinalName(), anyOf(is("a"), is("b")));
+      assertNotEquals(aFieldSubject.getFinalName(), f1FieldSubject.getFinalName());
     }
   }
 

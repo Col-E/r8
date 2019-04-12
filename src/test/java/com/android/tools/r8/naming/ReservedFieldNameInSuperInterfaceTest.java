@@ -103,9 +103,7 @@ public class ReservedFieldNameInSuperInterfaceTest extends TestBase {
     FieldSubject f2FieldSubject = aClassSubject.uniqueFieldWithName("f2");
     assertThat(f2FieldSubject, isPresent());
     assertThat(f2FieldSubject, isRenamed());
-
-    // TODO(b/128973195): A.f2 should be renamed to c instead of a.
-    assertEquals("a", f2FieldSubject.getFinalName());
+    assertEquals("c", f2FieldSubject.getFinalName());
   }
 
   interface I {

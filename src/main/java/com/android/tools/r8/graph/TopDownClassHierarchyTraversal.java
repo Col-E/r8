@@ -4,7 +4,8 @@
 
 package com.android.tools.r8.graph;
 
-public class TopDownClassHierarchyTraversal<T extends DexClass> extends ClassHierarchyTraversal<T> {
+public class TopDownClassHierarchyTraversal<T extends DexClass>
+    extends ClassHierarchyTraversal<T, TopDownClassHierarchyTraversal<T>> {
 
   private TopDownClassHierarchyTraversal(
       AppView<? extends AppInfoWithSubtyping> appView, Scope scope) {
@@ -30,9 +31,18 @@ public class TopDownClassHierarchyTraversal<T extends DexClass> extends ClassHie
   }
 
   @Override
+  TopDownClassHierarchyTraversal<T> self() {
+    return this;
+  }
+
+  @Override
   void addDependentsToWorklist(DexClass clazz) {
     @SuppressWarnings("unchecked")
     T clazzWithTypeT = (T) clazz;
+
+    if (excludeInterfaces && clazzWithTypeT.isInterface()) {
+      return;
+    }
 
     if (visited.contains(clazzWithTypeT)) {
       return;
@@ -51,11 +61,13 @@ public class TopDownClassHierarchyTraversal<T extends DexClass> extends ClassHie
     }
 
     // Add super interfaces to worklist.
-    for (DexType interfaceType : clazz.interfaces.values) {
-      DexClass definition = appView.definitionFor(interfaceType);
-      if (definition != null) {
-        if (scope != Scope.ONLY_PROGRAM_CLASSES || definition.isProgramClass()) {
-          addDependentsToWorklist(definition);
+    if (!excludeInterfaces) {
+      for (DexType interfaceType : clazz.interfaces.values) {
+        DexClass definition = appView.definitionFor(interfaceType);
+        if (definition != null) {
+          if (scope != Scope.ONLY_PROGRAM_CLASSES || definition.isProgramClass()) {
+            addDependentsToWorklist(definition);
+          }
         }
       }
     }

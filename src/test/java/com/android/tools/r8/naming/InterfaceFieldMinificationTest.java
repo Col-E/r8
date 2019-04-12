@@ -4,13 +4,12 @@
 
 package com.android.tools.r8.naming;
 
-import static org.hamcrest.CoreMatchers.containsString;
-
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.naming.testclasses.Greeting;
+import com.android.tools.r8.utils.StringUtils;
 import org.junit.Test;
 
 /** Regression test for b/128600647. */
@@ -18,6 +17,7 @@ public class InterfaceFieldMinificationTest extends TestBase {
 
   @Test
   public void test() throws Exception {
+    String expectedOutput = StringUtils.lines("Greeter: Hello world!");
     testForR8(Backend.DEX)
         .addProgramClasses(
             TestClass.class, Greeter.class, Greeting.class, Greeting.getGreetingBase(), Tag.class)
@@ -27,7 +27,7 @@ public class InterfaceFieldMinificationTest extends TestBase {
         .enableInliningAnnotations()
         .enableMergeAnnotations()
         .run(TestClass.class)
-        .assertFailureWithErrorThatMatches(containsString("IncompatibleClassChangeError"));
+        .assertSuccessWithOutput(expectedOutput);
   }
 
   static class TestClass {

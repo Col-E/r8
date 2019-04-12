@@ -245,6 +245,11 @@ public class DexType extends DexReference implements PresortedComparable<DexType
         || name.contains(Java8MethodRewriter.UTILITY_CLASS_NAME_PREFIX);
   }
 
+  public boolean isProgramType(DexDefinitionSupplier definitions) {
+    DexClass clazz = definitions.definitionFor(this);
+    return clazz != null && clazz.isProgramClass();
+  }
+
   public int elementSizeForPrimitiveArrayType() {
     assert isPrimitiveArrayType();
     switch (descriptor.content[1]) {

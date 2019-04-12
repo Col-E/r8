@@ -11,7 +11,8 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.function.Consumer;
 
-abstract class ClassHierarchyTraversal<T extends DexClass> {
+abstract class ClassHierarchyTraversal<
+    T extends DexClass, CHT extends ClassHierarchyTraversal<T, CHT>> {
 
   enum Scope {
     ALL_CLASSES,
@@ -24,9 +25,18 @@ abstract class ClassHierarchyTraversal<T extends DexClass> {
   final Set<T> visited = new HashSet<>();
   final Deque<T> worklist = new ArrayDeque<>();
 
+  boolean excludeInterfaces = false;
+
   ClassHierarchyTraversal(AppView<? extends AppInfoWithSubtyping> appView, Scope scope) {
     this.appView = appView;
     this.scope = scope;
+  }
+
+  abstract CHT self();
+
+  public CHT excludeInterfaces() {
+    this.excludeInterfaces = true;
+    return self();
   }
 
   public void visit(Iterable<DexProgramClass> sources, Consumer<T> visitor) {

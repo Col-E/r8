@@ -5,15 +5,15 @@ package com.android.tools.r8.naming.applymapping.sourcelibrary;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
-import com.android.tools.r8.R8Command;
+import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
@@ -26,6 +26,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 // AbstractChecker -> X:
+@NeverMerge
 abstract class AbstractChecker {
   // String tag -> p
   private String tag = "PrivateInitialTag_AbstractChecker";
@@ -74,19 +75,16 @@ class MemberResolutionTestMain {
 
 @RunWith(Parameterized.class)
 public class MemberResolutionTest extends TestBase {
-  private static final List<Class<?>> CLASSES =
-      ImmutableList.of(
-          AbstractChecker.class, ConcreteChecker.class, MemberResolutionTestMain.class);
 
-  private Backend backend;
+  private final TestParameters parameters;
 
-  @Parameterized.Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimes().build();
   }
 
-  public MemberResolutionTest(Backend backend) {
-    this.backend = backend;
+  public MemberResolutionTest(TestParameters parameters) {
+    this.parameters = parameters;
   }
 
   @Test
@@ -105,31 +103,33 @@ public class MemberResolutionTest extends TestBase {
             "  void foo() -> a");
     FileUtils.writeTextFile(mapPath, pgMap);
 
-    AndroidApp app = readClasses(CLASSES);
-    R8Command.Builder builder = ToolHelper.prepareR8CommandBuilder(app, emptyConsumer(backend));
-    builder
-        .addProguardConfiguration(
-            ImmutableList.of(
-                keepMainProguardConfiguration(MemberResolutionTestMain.class),
-                // Do not turn on -allowaccessmodification
-                "-applymapping " + mapPath,
-                "-dontobfuscate"), // to use the renamed names in test-mapping.txt
-            Origin.unknown())
-        .addLibraryFiles(runtimeJar(backend));
-    AndroidApp processedApp =
-        ToolHelper.runR8(
-            builder.build(),
-            options -> {
-              options.enableInlining = false;
-              options.enableVerticalClassMerging = false;
-            });
+    String expectedOutput =
+        StringUtils.lines(
+            "AbstractChecker#check:PrivateInitialTag_AbstractChecker",
+            "ConcreteChecker#check:NewTag");
 
-    String outputBefore = runOnJava(MemberResolutionTestMain.class);
-    String outputAfter = runOnVM(processedApp, MemberResolutionTestMain.class, backend);
-    assertEquals(outputBefore, outputAfter);
+    if (parameters.getBackend() == Backend.CF) {
+      testForJvm()
+          .addTestClasspath()
+          .run(parameters.getRuntime(), MemberResolutionTestMain.class)
+          .assertSuccessWithOutput(expectedOutput);
+    }
 
-    CodeInspector codeInspector = new CodeInspector(processedApp, mapPath);
-    ClassSubject base = codeInspector.clazz(AbstractChecker.class);
+    CodeInspector inspector =
+        testForR8(parameters.getBackend())
+            .addProgramClasses(
+                AbstractChecker.class, ConcreteChecker.class, MemberResolutionTestMain.class)
+            .addKeepMainRule(MemberResolutionTestMain.class)
+            .addKeepRules("-applymapping " + mapPath)
+            .enableMergeAnnotations()
+            .noMinification()
+            .addOptionsModification(options -> options.enableInlining = false)
+            .setMinApi(parameters.getRuntime())
+            .run(parameters.getRuntime(), MemberResolutionTestMain.class)
+            .assertSuccessWithOutput(expectedOutput)
+            .inspector();
+
+    ClassSubject base = inspector.clazz(AbstractChecker.class);
     assertThat(base, isPresent());
     FieldSubject p = base.field("java.lang.String", "tag");
     assertThat(p, isPresent());
@@ -140,7 +140,7 @@ public class MemberResolutionTest extends TestBase {
     assertThat(x, isRenamed());
     assertEquals("x", x.getFinalName());
 
-    ClassSubject sub = codeInspector.clazz(ConcreteChecker.class);
+    ClassSubject sub = inspector.clazz(ConcreteChecker.class);
     assertThat(sub, isPresent());
     FieldSubject q = sub.field("java.lang.String", "tag");
     assertThat(q, isPresent());

@@ -77,8 +77,7 @@ public class ReservedFieldNameInSubInterfaceTest extends TestBase {
 
       // Interface fields are visited/renamed before fields on classes. Thus, the interface field
       // I.f1 will be visited first and assigned the name b (since the name a is reserved).
-      // TODO(b/128973195): Should be renamed to b instead of a.
-      assertEquals("a", f1FieldSubject.getFinalName());
+      assertEquals("b", f1FieldSubject.getFinalName());
 
     } else {
       // Interface fields are visited/renamed before fields on classes. Thus, the interface field
@@ -91,7 +90,7 @@ public class ReservedFieldNameInSubInterfaceTest extends TestBase {
       assertEquals("b", aFieldSubject.getFinalName());
     }
 
-    inspect(inspector);
+    inspect(inspector, "c");
   }
 
   @Test
@@ -110,10 +109,10 @@ public class ReservedFieldNameInSubInterfaceTest extends TestBase {
             testForD8().addProgramClasses(I.class, J.class).compile().writeToZip())
         .run(TestClass.class)
         .assertSuccessWithOutput(expectedOutput)
-        .inspect(this::inspect);
+        .inspect(inspector -> inspect(inspector, "b"));
   }
 
-  private void inspect(CodeInspector inspector) {
+  private void inspect(CodeInspector inspector, String expectedNameForF2) {
     ClassSubject aClassSubject = inspector.clazz(A.class);
     assertThat(aClassSubject, isPresent());
 
@@ -121,8 +120,7 @@ public class ReservedFieldNameInSubInterfaceTest extends TestBase {
     assertThat(f2FieldSubject, isPresent());
     assertThat(f2FieldSubject, isRenamed());
 
-    // TODO(b/128973195): A.f2 should be renamed to c.
-    assertEquals("a", f2FieldSubject.getFinalName());
+    assertEquals(expectedNameForF2, f2FieldSubject.getFinalName());
   }
 
   @NeverMerge

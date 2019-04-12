@@ -5,7 +5,6 @@ package com.android.tools.r8.naming.b128656974;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
 
@@ -18,12 +17,10 @@ import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class B128656974 extends TestBase {
 
-  @Ignore("b/128656974")
   @Test
   public void testField() throws Exception {
     Class<?> main = TestClassMainForField.class;
@@ -125,5 +122,4 @@ public class B128656974 extends TestBase {
       instance.foo();
     }
   }
-
 }

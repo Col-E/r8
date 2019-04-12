@@ -18,8 +18,9 @@ import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableMap;
-import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
@@ -29,82 +30,126 @@ import java.util.function.Function;
 
 /**
  * A pass to rename methods using common, short names.
- * <p>
- * To assign names, we model the scopes of methods names and overloading/shadowing based on the
- * subtyping tree of classes. Such a naming scope is encoded by {@link NamingState}. It keeps
+ *
+ * <p>To assign names, we model the scopes of methods names and overloading/shadowing based on the
+ * subtyping tree of classes. Such a naming scope is encoded by {@link MethodNamingState}. It keeps
  * track of its parent node, names that have been reserved (due to keep annotations or otherwise)
  * and what names have been used for renaming so far.
- * <p>
- * As in the Dalvik VM method dispatch takes argument and return types of methods into account, we
- * can further reuse names if the prototypes of two methods differ. For this, we store the above
- * state separately for each proto using a map from protos to {@link NamingState.InternalState}
- * objects. These internal state objects are also linked.
- * <p>
- * Name assignment happens in 4 stages. In the first stage, we record all names that are used by
- * library classes or are flagged using a keep rule as reserved. This step also allocates the
- * {@link NamingState} objects for library classes. We can fully allocate these objects as we
- * never perform naming for library classes. For non-library classes, we only allocate a state
- * for the highest non-library class, i.e., we allocate states for every direct subtype of a library
- * class. The states at the boundary between library and program classes are referred to as the
- * frontier states in the code.
- * <p>
- * When reserving names in program classes, we reserve them in the state of the corresponding
+ *
+ * <p>As in the Dalvik VM method dispatch takes argument and return types of methods into account,
+ * we can further reuse names if the prototypes of two methods differ. For this, we store the above
+ * state separately for each proto using a map from protos to {@link
+ * MethodNamingState.InternalState} objects. These internal state objects are also linked.
+ *
+ * <p>Name assignment happens in 4 stages. In the first stage, we record all names that are used by
+ * library classes or are flagged using a keep rule as reserved. This step also allocates the {@link
+ * MethodNamingState} objects for library classes. We can fully allocate these objects as we never
+ * perform naming for library classes. For non-library classes, we only allocate a state for the
+ * highest non-library class, i.e., we allocate states for every direct subtype of a library class.
+ * The states at the boundary between library and program classes are referred to as the frontier
+ * states in the code.
+ *
+ * <p>When reserving names in program classes, we reserve them in the state of the corresponding
  * frontier class. This is to ensure that the names are not used for renaming in any supertype.
  * Thus, they will still be available in the subtype where they are reserved. Note that name
  * reservation only blocks names from being used for minification. We assume that the input program
  * is correctly named.
- * <p>
- * In stage 2, we reserve names that stem from interfaces. These are not propagated to
+ *
+ * <p>In stage 2, we reserve names that stem from interfaces. These are not propagated to
  * subinterfaces or implementing classes. Instead, stage 3 makes sure to query related states when
  * making naming decisions.
- * <p>
- * In stage 3, we compute minified names for all interface methods. We do this first to reduce
+ *
+ * <p>In stage 3, we compute minified names for all interface methods. We do this first to reduce
  * assignment conflicts. Interfaces do not build a tree-like inheritance structure we can exploit.
  * Thus, we have to infer the structure on the fly. For this, we compute a sets of reachable
- * interfaces. i.e., interfaces that are related via subtyping. Based on these sets, we then
- * find, for each method signature, the classes and interfaces this method signature is defined in.
- * For classes, as we still use frontier states at this point, we do not have to consider subtype
+ * interfaces. i.e., interfaces that are related via subtyping. Based on these sets, we then find,
+ * for each method signature, the classes and interfaces this method signature is defined in. For
+ * classes, as we still use frontier states at this point, we do not have to consider subtype
  * relations. For interfaces, we reserve the name in all reachable interfaces and thus ensure
  * availability.
- * <p>
- * Name assignment in this phase is a search over all impacted naming states. Using the naming state
- * of the interface this method first originated from, we propose names until we find a matching
- * one. We use the naming state of the interface to not impact name availability in naming states of
- * classes. Hence, skipping over names during interface naming does not impact their availability in
- * the next phase.
- * <p>
- * In the final stage, we assign names to methods by traversing the subtype tree, now allocating
+ *
+ * <p>Name assignment in this phase is a search over all impacted naming states. Using the naming
+ * state of the interface this method first originated from, we propose names until we find a
+ * matching one. We use the naming state of the interface to not impact name availability in naming
+ * states of classes. Hence, skipping over names during interface naming does not impact their
+ * availability in the next phase.
+ *
+ * <p>In the final stage, we assign names to methods by traversing the subtype tree, now allocating
  * separate naming states for each class starting from the frontier. In the first swoop, we allocate
  * all non-private methods, updating naming states accordingly. In a second swoop, we then allocate
  * private methods, as those may safely use names that are used by a public method further down in
  * the subtyping tree.
- * <p>
- * Finally, the computed renamings are returned as a map from {@link DexMethod} to
- * {@link DexString}. The MethodNameMinifier object should not be retained to ensure all
- * intermediate state is freed.
- * <p>
- * TODO(herhut): Currently, we do not minify members of annotation interfaces, as this would require
- * parsing and minification of the string arguments to annotations.
+ *
+ * <p>Finally, the computed renamings are returned as a map from {@link DexMethod} to {@link
+ * DexString}. The MethodNameMinifier object should not be retained to ensure all intermediate state
+ * is freed.
+ *
+ * <p>TODO(b/130338621): Currently, we do not minify members of annotation interfaces, as this would
+ * require parsing and minification of the string arguments to annotations.
  */
-class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
+class MethodNameMinifier {
 
-  private final Equivalence<DexMethod> equivalence;
+  // A class that provides access to the minification state. An instance of this class is passed
+  // from the method name minifier to the interface method name minifier.
+  class State {
 
-  private final FrontierState frontierState = new FrontierState();
-  private final MemberNamingStrategy strategy;
+    DexString getRenaming(DexMethod key) {
+      return renaming.get(key);
+    }
 
-  MethodNameMinifier(AppView<AppInfoWithLiveness> appView, MemberNamingStrategy strategy) {
-    super(appView, strategy);
-    this.strategy = strategy;
-    equivalence =
-        overloadAggressively
-            ? MethodSignatureEquivalence.get()
-            : MethodJavaSignatureEquivalence.get();
+    void putRenaming(DexMethod key, DexString value) {
+      renaming.put(key, value);
+    }
+
+    MethodNamingState<?> getState(DexType type) {
+      return states.get(type);
+    }
+
+    DexType getStateKey(MethodNamingState<?> state) {
+      return states.inverse().get(state);
+    }
+
+    boolean isReservedInGlobalState(DexString name, DexProto state) {
+      return globalState.isReserved(name, state);
+    }
   }
 
-  @Override
-  Function<DexProto, ?> getKeyTransform() {
-    if (overloadAggressively) {
+  private final AppView<AppInfoWithLiveness> appView;
+  private final Equivalence<DexMethod> equivalence;
+  private final MemberNamingStrategy strategy;
+
+  private final Map<DexMethod, DexString> renaming = new IdentityHashMap<>();
+  private final MethodNamingState<?> globalState;
+
+  private final State minifierState = new State();
+  private final FrontierState frontierState = new FrontierState();
+
+  // The use of a bidirectional map allows us to map a naming state to the type it represents,
+  // which is useful for debugging.
+  private final BiMap<DexType, MethodNamingState<?>> states = HashBiMap.create();
+
+  MethodNameMinifier(AppView<AppInfoWithLiveness> appView, MemberNamingStrategy strategy) {
+    this.appView = appView;
+    this.equivalence =
+        appView.options().getProguardConfiguration().isOverloadAggressively()
+            ? MethodSignatureEquivalence.get()
+            : MethodJavaSignatureEquivalence.get();
+    this.globalState = MethodNamingState.createRoot(appView, getKeyTransform(), strategy);
+    this.strategy = strategy;
+  }
+
+  private MethodNamingState<?> computeStateIfAbsent(
+      DexType type, Function<DexType, MethodNamingState<?>> f) {
+    return states.computeIfAbsent(type, f);
+  }
+
+  private boolean alwaysReserveMemberNames(DexClass holder) {
+    return !appView.options().getProguardConfiguration().hasApplyMappingFile()
+        && holder.isNotProgramClass();
+  }
+
+  private Function<DexProto, ?> getKeyTransform() {
+    if (appView.options().getProguardConfiguration().isOverloadAggressively()) {
       // Use the full proto as key, hence reuse names based on full signature.
       return a -> a;
     } else {
@@ -162,7 +207,7 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
     boolean shouldAssignName = holder != null && !alwaysReserveMemberNames(holder);
     if (shouldAssignName) {
       Map<Wrapper<DexMethod>, DexString> renamingAtThisLevel = new HashMap<>();
-      NamingState<DexProto, ?> state =
+      MethodNamingState<?> state =
           computeStateIfAbsent(type, k -> minifierState.getState(holder.superType).createChild());
       for (DexEncodedMethod method : holder.allMethodsSorted()) {
         assignNameToMethod(method, state, renamingAtThisLevel, doPrivates);
@@ -182,7 +227,7 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
 
   private void assignNameToMethod(
       DexEncodedMethod encodedMethod,
-      NamingState<DexProto, ?> state,
+      MethodNamingState<?> state,
       Map<Wrapper<DexMethod>, DexString> renamingAtThisLevel,
       boolean doPrivates) {
     if (encodedMethod.accessFlags.isPrivate() != doPrivates) {
@@ -207,8 +252,10 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
   }
 
   private void reserveNamesInClasses(
-      DexType type, DexType libraryFrontier, NamingState<DexProto, ?> parent) {
-    NamingState<DexProto, ?> state =
+      DexType type, DexType libraryFrontier, MethodNamingState<?> parent) {
+    assert appView.isInterface(type).isFalse();
+
+    MethodNamingState<?> state =
         frontierState.allocateNamingStateAndReserve(type, libraryFrontier, parent);
 
     // If this is a library class (or effectively a library class as it is missing) move the
@@ -224,19 +271,18 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
 
     private final Map<DexType, DexType> frontiers = new IdentityHashMap<>();
 
-    NamingState<DexProto, ?> allocateNamingStateAndReserve(
-        DexType type, DexType frontier, NamingState<DexProto, ?> parent) {
+    MethodNamingState<?> allocateNamingStateAndReserve(
+        DexType type, DexType frontier, MethodNamingState<?> parent) {
       if (frontier != type) {
         frontiers.put(type, frontier);
       }
 
-      NamingState<DexProto, ?> state =
+      MethodNamingState<?> state =
           computeStateIfAbsent(
               frontier,
               ignore ->
                   parent == null
-                      ? NamingState.createRoot(
-                          appView.dexItemFactory(), dictionary, getKeyTransform(), strategy)
+                      ? MethodNamingState.createRoot(appView, getKeyTransform(), strategy)
                       : parent.createChild());
 
       DexClass holder = appView.definitionFor(type);
@@ -256,7 +302,7 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
       return state;
     }
 
-    private void reserveNamesForMethod(DexMethod method, NamingState<DexProto, ?> state) {
+    private void reserveNamesForMethod(DexMethod method, MethodNamingState<?> state) {
       state.reserveName(method.name, method.proto);
       globalState.reserveName(method.name, method.proto);
     }
@@ -268,65 +314,6 @@ class MethodNameMinifier extends MemberNameMinifier<DexMethod, DexProto> {
     public DexType put(DexType type, DexType frontier) {
       assert frontier != type;
       return frontiers.put(type, frontier);
-    }
-  }
-
-  /**
-   * Capture a (name, proto)-pair for a {@link NamingState}. Each method methodState.METHOD(...)
-   * simply defers to parent.METHOD(name, proto, ...). This allows R8 to assign the same name to
-   * methods with different prototypes, which is needed for multi-interface lambdas.
-   */
-  static class MethodNamingState {
-
-    private final NamingState<DexProto, ?> parent;
-    private final DexString name;
-    private final DexProto proto;
-    private final DexMethod method;
-
-    MethodNamingState(
-        NamingState<DexProto, ?> parent, DexMethod method, DexString name, DexProto proto) {
-      this.method = method;
-      assert parent != null;
-      this.parent = parent;
-      this.name = name;
-      this.proto = proto;
-    }
-
-    DexString assignNewName() {
-      return parent.assignNewNameFor(method, name, proto);
-    }
-
-    boolean isReserved() {
-      return parent.isReserved(name, proto);
-    }
-
-    boolean isAvailable(DexString candidate) {
-      return parent.isAvailable(proto, candidate);
-    }
-
-    void addRenaming(DexString newName) {
-      parent.addRenaming(name, proto, newName);
-    }
-
-    DexString getName() {
-      return name;
-    }
-
-    DexProto getProto() {
-      return proto;
-    }
-
-    void print(
-        String indentation,
-        Function<NamingState<DexProto, ?>, DexType> stateKeyGetter,
-        PrintStream out) {
-      DexType stateKey = stateKeyGetter.apply(parent);
-      out.print(indentation);
-      out.print(stateKey != null ? stateKey.toSourceString() : "<?>");
-      out.print(".");
-      out.print(name.toSourceString());
-      out.println(proto.toSmaliString());
-      parent.printState(proto, stateKeyGetter, indentation + "  ", out);
     }
   }
 

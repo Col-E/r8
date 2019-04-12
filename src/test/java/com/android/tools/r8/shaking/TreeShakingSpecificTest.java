@@ -12,6 +12,7 @@ import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
+import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.ToolHelper;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -36,10 +37,6 @@ import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class TreeShakingSpecificTest {
-  enum Backend {
-    DEX,
-    CF
-  }
 
   private Backend backend;
 

@@ -6,7 +6,9 @@ package com.android.tools.r8.naming;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
@@ -15,9 +17,7 @@ import com.android.tools.r8.naming.ClassNameMinifier.ClassRenaming;
 import com.android.tools.r8.naming.ClassNameMinifier.Namespace;
 import com.android.tools.r8.naming.ClassNameMinifier.PackageNamingStrategy;
 import com.android.tools.r8.naming.FieldNameMinifier.FieldRenaming;
-import com.android.tools.r8.naming.MemberNameMinifier.MemberNamingStrategy;
 import com.android.tools.r8.naming.MethodNameMinifier.MethodRenaming;
-import com.android.tools.r8.naming.NamingState.InternalState;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.Timing;
@@ -151,9 +151,14 @@ public class Minifier {
     }
 
     @Override
-    public DexString next(DexReference dexReference, InternalState internalState) {
+    public DexString next(DexMethod method, MethodNamingState.InternalState internalState) {
       int counter = internalState.incrementAndGet();
       return factory.createString(StringUtils.numberToIdentifier(EMPTY_CHAR_ARRAY, counter, false));
+    }
+
+    @Override
+    public DexString next(DexField field, FieldNamingState.InternalState internalState) {
+      return internalState.nextNameAccordingToState();
     }
 
     @Override
