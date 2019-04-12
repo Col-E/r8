@@ -9,6 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
@@ -96,7 +97,7 @@ public class MissingClassesJoinTest extends TestBase {
       //         locals: { 'java/lang/Object' }
       //         stack: { 'java/lang/Object' }
       result.assertFailureWithErrorThatMatches(containsString("NullPointerException"));
-    } catch (Exception e) {
+    } catch (CompilationFailedException e) {
       // Compilation should only fail when type errors are not allowed.
       assertFalse(
           StringUtils.joinLines(
