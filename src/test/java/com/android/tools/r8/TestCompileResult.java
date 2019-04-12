@@ -78,6 +78,11 @@ public abstract class TestCompileResult<
     return run(runtime, mainClass.getTypeName());
   }
 
+  public RR run(TestRuntime runtime, Class<?> mainClass, String... args)
+      throws ExecutionException, IOException {
+    return run(runtime, mainClass.getTypeName(), args);
+  }
+
   public RR run(TestRuntime runtime, String mainClass) throws ExecutionException, IOException {
     return run(runtime, mainClass, new String[] {});
   }
