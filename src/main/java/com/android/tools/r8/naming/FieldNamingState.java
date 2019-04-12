@@ -91,13 +91,7 @@ public class FieldNamingState extends FieldNamingStateBase<InternalState> implem
     private int nextNameIndex;
 
     public InternalState() {
-      this(1);
-    }
-
-    public InternalState(int nextNameIndex) {
-      this(
-          nextNameIndex,
-          appView.options().getProguardConfiguration().getObfuscationDictionary().iterator());
+      this(1, appView.options().getProguardConfiguration().getObfuscationDictionary().iterator());
     }
 
     public InternalState(int nextNameIndex, Iterator<String> dictionaryIterator) {
