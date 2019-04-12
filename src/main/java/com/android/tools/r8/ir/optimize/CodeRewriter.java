@@ -1611,68 +1611,80 @@ public class CodeRewriter {
     AppInfoWithLiveness appInfoWithLiveness = appView.appInfo().withLiveness();
     Set<Value> needToWidenValues = Sets.newIdentityHashSet();
     Set<Value> needToNarrowValues = Sets.newIdentityHashSet();
-    InstructionIterator iterator = code.instructionIterator();
-    while (iterator.hasNext()) {
-      Instruction current = iterator.next();
-      if (current.isInvokeMethod()) {
-        InvokeMethod invoke = current.asInvokeMethod();
-        Value outValue = invoke.outValue();
-        // TODO(b/124246610): extend to other variants that receive error messages or supplier.
-        if (invoke.getInvokedMethod() == dexItemFactory.objectsMethods.requireNonNull) {
-          Value obj = invoke.arguments().get(0);
-          if ((outValue == null && obj.hasLocalInfo())
-              || (outValue != null && !obj.hasSameOrNoLocal(outValue))) {
-            continue;
-          }
-          Nullability nullability = obj.getTypeLattice().nullability();
-          if (nullability.isDefinitelyNotNull()) {
-            if (outValue != null) {
-              outValue.replaceUsers(obj);
-              needToNarrowValues.addAll(outValue.affectedValues());
+    Set<BasicBlock> blocksToBeRemoved = Sets.newIdentityHashSet();
+    ListIterator<BasicBlock> blockIterator = code.listIterator();
+    while (blockIterator.hasNext()) {
+      BasicBlock block = blockIterator.next();
+      if (blocksToBeRemoved.contains(block)) {
+        continue;
+      }
+      InstructionListIterator iterator = block.listIterator();
+      while (iterator.hasNext()) {
+        Instruction current = iterator.next();
+        if (current.isInvokeMethod()) {
+          InvokeMethod invoke = current.asInvokeMethod();
+          Value outValue = invoke.outValue();
+          // TODO(b/124246610): extend to other variants that receive error messages or supplier.
+          if (invoke.getInvokedMethod() == dexItemFactory.objectsMethods.requireNonNull) {
+            Value obj = invoke.arguments().get(0);
+            if ((outValue == null && obj.hasLocalInfo())
+                || (outValue != null && !obj.hasSameOrNoLocal(outValue))) {
+              continue;
             }
-            iterator.removeOrReplaceByDebugLocalRead();
-          } else if (nullability.isDefinitelyNull()) {
-            // TODO(b/124246610): throw NPE.
-            // Refactor UninstantiatedTypeOptimization#replaceCurrentInstructionWithThrowNull
-            // and move it to iterator.
-          }
-        } else if (outValue != null && !outValue.hasLocalInfo()) {
-          if (appView
-              .dexItemFactory()
-              .libraryMethodsReturningReceiver
-              .contains(invoke.getInvokedMethod())) {
-            if (checkArgumentType(invoke, 0)) {
-              outValue.replaceUsers(invoke.arguments().get(0));
-              invoke.setOutValue(null);
+            Nullability nullability = obj.getTypeLattice().nullability();
+            if (nullability.isDefinitelyNotNull()) {
+              if (outValue != null) {
+                outValue.replaceUsers(obj);
+                needToNarrowValues.addAll(outValue.affectedValues());
+              }
+              iterator.removeOrReplaceByDebugLocalRead();
+            } else if (obj.isAlwaysNull(appView) && appView.appInfo().hasSubtyping()) {
+              iterator.replaceCurrentInstructionWithThrowNull(
+                  appView.withSubtyping(), code, blockIterator, blocksToBeRemoved);
             }
-          } else if (appInfoWithLiveness != null) {
-            DexEncodedMethod target =
-                invoke.lookupSingleTarget(appInfoWithLiveness, code.method.method.holder);
-            if (target != null) {
-              DexMethod invokedMethod = target.method;
-              // Check if the invoked method is known to return one of its arguments.
-              DexEncodedMethod definition = appView.definitionFor(invokedMethod);
-              if (definition != null && definition.getOptimizationInfo().returnsArgument()) {
-                int argumentIndex = definition.getOptimizationInfo().getReturnedArgument();
-                // Replace the out value of the invoke with the argument and ignore the out value.
-                if (argumentIndex >= 0 && checkArgumentType(invoke, argumentIndex)) {
-                  Value argument = invoke.arguments().get(argumentIndex);
-                  assert outValue.verifyCompatible(argument.outType());
-                  if (argument
-                      .getTypeLattice()
-                      .lessThanOrEqual(outValue.getTypeLattice(), appView)) {
-                    needToNarrowValues.addAll(outValue.affectedValues());
-                  } else {
-                    needToWidenValues.addAll(outValue.affectedValues());
+          } else if (outValue != null && !outValue.hasLocalInfo()) {
+            if (appView
+                .dexItemFactory()
+                .libraryMethodsReturningReceiver
+                .contains(invoke.getInvokedMethod())) {
+              if (checkArgumentType(invoke, 0)) {
+                outValue.replaceUsers(invoke.arguments().get(0));
+                invoke.setOutValue(null);
+              }
+            } else if (appInfoWithLiveness != null) {
+              DexEncodedMethod target =
+                  invoke.lookupSingleTarget(appInfoWithLiveness, code.method.method.holder);
+              if (target != null) {
+                DexMethod invokedMethod = target.method;
+                // Check if the invoked method is known to return one of its arguments.
+                DexEncodedMethod definition = appView.definitionFor(invokedMethod);
+                if (definition != null && definition.getOptimizationInfo().returnsArgument()) {
+                  int argumentIndex = definition.getOptimizationInfo().getReturnedArgument();
+                  // Replace the out value of the invoke with the argument and ignore the out value.
+                  if (argumentIndex >= 0 && checkArgumentType(invoke, argumentIndex)) {
+                    Value argument = invoke.arguments().get(argumentIndex);
+                    assert outValue.verifyCompatible(argument.outType());
+                    if (argument
+                        .getTypeLattice()
+                        .lessThanOrEqual(outValue.getTypeLattice(), appView)) {
+                      needToNarrowValues.addAll(outValue.affectedValues());
+                    } else {
+                      needToWidenValues.addAll(outValue.affectedValues());
+                    }
+                    outValue.replaceUsers(argument);
+                    invoke.setOutValue(null);
                   }
-                  outValue.replaceUsers(argument);
-                  invoke.setOutValue(null);
                 }
               }
             }
           }
         }
       }
+    }
+    if (!blocksToBeRemoved.isEmpty()) {
+      code.removeBlocks(blocksToBeRemoved);
+      code.removeAllTrivialPhis();
+      assert code.getUnreachableBlocks().isEmpty();
     }
     if (!needToWidenValues.isEmpty() || !needToNarrowValues.isEmpty()) {
       TypeAnalysis analysis = new TypeAnalysis(appView, code.method);

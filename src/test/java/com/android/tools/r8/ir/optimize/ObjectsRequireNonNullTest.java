@@ -4,26 +4,46 @@
 package com.android.tools.r8.ir.optimize;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NeverPropagateValue;
+import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
-import com.android.tools.r8.VmTestRunner;
-import com.android.tools.r8.VmTestRunner.IgnoreIfVmOlderThan;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.Streams;
 import java.util.Objects;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 class ObjectsRequireNonNullTestMain {
+
+  static class Uninitialized {
+    void noWayToCall() {
+      System.out.println("Uninitialized, hence no way to call this.");
+    }
+  }
+
+  @NeverPropagateValue
+  @NeverInline
+  static void consumeUninitialized(Uninitialized arg) {
+    Uninitialized nonNullArg = Objects.requireNonNull(arg);
+    // Dead code.
+    nonNullArg.noWayToCall();
+  }
 
   static class Foo {
     @NeverInline
@@ -60,22 +80,50 @@ class ObjectsRequireNonNullTestMain {
     } catch (NullPointerException npe) {
       System.out.println("Expected NPE");
     }
+
+    try {
+      consumeUninitialized(null);
+    } catch (NullPointerException npe) {
+      System.out.println("Expected NPE");
+    }
   }
 }
 
-@RunWith(VmTestRunner.class)
+@RunWith(Parameterized.class)
 public class ObjectsRequireNonNullTest extends TestBase {
   private static final String JAVA_OUTPUT = StringUtils.lines(
       "Foo::toString",
       "Foo::bar",
       "Foo::bar",
+      "Expected NPE",
       "Expected NPE"
   );
   private static final Class<?> MAIN = ObjectsRequireNonNullTestMain.class;
 
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters()
+        .withCfRuntimes()
+        // Objects#requireNonNull will be desugared VMs older than API level K.
+        .withDexRuntimesStartingFromExcluding(Version.V4_4_4)
+        .build();
+  }
+
+  private final TestParameters parameters;
+
+  public ObjectsRequireNonNullTest(TestParameters parameters) {
+    this.parameters = parameters;
+  }
+
   @Test
   public void testJvmOutput() throws Exception {
-    testForJvm().addTestClasspath().run(MAIN).assertSuccessWithOutput(JAVA_OUTPUT);
+    assumeTrue(
+        "Only run JVM reference once (for CF backend)",
+        parameters.getBackend() == Backend.CF);
+    testForJvm()
+        .addTestClasspath()
+        .run(parameters.getRuntime(), MAIN)
+        .assertSuccessWithOutput(JAVA_OUTPUT);
   }
 
   private static boolean isObjectsRequireNonNull(DexMethod method) {
@@ -92,48 +140,64 @@ public class ObjectsRequireNonNullTest extends TestBase {
     })).count();
   }
 
-  private void test(TestRunResult result, int expectedCount) throws Exception {
+  private void test(
+      TestRunResult result,
+      int expectedCountInMain,
+      int expectedCountInConsumer) throws Exception {
     CodeInspector codeInspector = result.inspector();
     ClassSubject mainClass = codeInspector.clazz(MAIN);
     MethodSubject mainMethod = mainClass.mainMethod();
     assertThat(mainMethod, isPresent());
-    long count = countObjectsRequireNonNull(mainMethod);
-    assertEquals(expectedCount, count);
+    assertEquals(expectedCountInMain, countObjectsRequireNonNull(mainMethod));
 
     MethodSubject unknownArg = mainClass.uniqueMethodWithName("unknownArg");
     assertThat(unknownArg, isPresent());
     // Due to the nullable argument, requireNonNull should remain.
     assertEquals(1, countObjectsRequireNonNull(unknownArg));
+
+    MethodSubject uninit = mainClass.uniqueMethodWithName("consumeUninitialized");
+    assertThat(uninit, isPresent());
+    assertEquals(expectedCountInConsumer, countObjectsRequireNonNull(uninit));
+    if (expectedCountInConsumer == 0) {
+      assertEquals(
+          0, Streams.stream(uninit.iterateInstructions(InstructionSubject::isInvoke)).count());
+      assertEquals(
+          1, Streams.stream(uninit.iterateInstructions(InstructionSubject::isThrow)).count());
+    }
   }
 
   @Test
-  @IgnoreIfVmOlderThan(Version.V4_4_4)
   public void testD8() throws Exception {
-    TestRunResult result = testForD8()
+    assumeTrue("Only run D8 for Dex backend", parameters.getBackend() == Backend.DEX);
+    D8TestRunResult result = testForD8()
         .debug()
         .addProgramClassesAndInnerClasses(MAIN)
-        .run(MAIN)
+        .setMinApi(parameters.getRuntime())
+        .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 2);
+    test(result, 2, 1);
 
     result = testForD8()
         .release()
         .addProgramClassesAndInnerClasses(MAIN)
-        .run(MAIN)
+        .setMinApi(parameters.getRuntime())
+        .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 0);
+    test(result, 0, 1);
   }
 
   @Test
-  @IgnoreIfVmOlderThan(Version.V4_4_4)
   public void testR8() throws Exception {
-    // CF disables move result optimization.
-    TestRunResult result = testForR8(Backend.DEX)
+    assumeTrue("CF disables move result optimization", parameters.getBackend() == Backend.DEX);
+    R8TestRunResult result = testForR8(parameters.getBackend())
         .addProgramClassesAndInnerClasses(MAIN)
         .enableInliningAnnotations()
+        .enableMemberValuePropagationAnnotations()
         .addKeepMainRule(MAIN)
-        .run(MAIN)
+        .noMinification()
+        .setMinApi(parameters.getRuntime())
+        .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 0);
+    test(result, 0, 0);
   }
 }
