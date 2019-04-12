@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import static org.junit.Assume.assumeTrue;
+
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.errors.Unreachable;
@@ -82,7 +84,7 @@ public class TestRuntime {
           Paths.get("openjdk-9.0.4", "linux"));
 
   public static Path getCheckInJDKPathFor(CfVm jdk) {
-    assert ToolHelper.isLinux();
+    assumeTrue(ToolHelper.isLinux());
     return Paths.get("third_party", "openjdk")
         .resolve(CHECKED_IN_JDKS.get(jdk))
         .resolve(Paths.get("bin", "java"));
