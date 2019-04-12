@@ -7,7 +7,9 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.utils.AndroidApp;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class R8GMSCoreV10TreeShakeJarVerificationTest
     extends R8GMSCoreTreeShakeJarVerificationTest {

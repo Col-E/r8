@@ -60,15 +60,12 @@ public class LazyLoadedDexApplication extends DexApplication {
   @Override
   public DexClass definitionFor(DexType type) {
     assert type.isClassType() : "Cannot lookup definition for type: " + type;
-    DexClass clazz = null;
-    if (libraryClasses != null) {
-      clazz = libraryClasses.get(type);
-    }
-    if (clazz == null) {
-      clazz = programClasses.get(type);
-    }
+    DexClass clazz = programClasses.get(type);
     if (clazz == null && classpathClasses != null) {
       clazz = classpathClasses.get(type);
+    }
+    if (clazz == null && libraryClasses != null) {
+      clazz = libraryClasses.get(type);
     }
     return clazz;
   }
@@ -92,24 +89,16 @@ public class LazyLoadedDexApplication extends DexApplication {
         LibraryClassCollection libraryClassesLoader,
         ClasspathClassCollection classpathClassesLoader,
         ProgramClassCollection programClassesLoader) {
-      int expectedMaxSize = 0;
-
-      // Force-load library classes.
-      Map<DexType, DexLibraryClass> allLibraryClasses = null;
-      if (libraryClassesLoader != null) {
-        libraryClassesLoader.forceLoad(type -> true);
-        allLibraryClasses = libraryClassesLoader.getAllClassesInMap();
-        expectedMaxSize += allLibraryClasses.size();
-      }
-
-      // Program classes should be fully loaded.
+      // Collect loaded classes in the precedence order program classes, class path classes and
+      // library classes.
+      // TODO(b/120884788): Change library priority.
       assert programClassesLoader != null;
-      assert programClassesLoader.isFullyLoaded();
+      // Program classes are supposed to be loaded, but force-loading them is no-op.
       programClassesLoader.forceLoad(type -> true);
       Map<DexType, DexProgramClass> allProgramClasses = programClassesLoader.getAllClassesInMap();
-      expectedMaxSize += allProgramClasses.size();
+      int expectedMaxSize = allProgramClasses.size();
+      programClasses = ImmutableList.copyOf(allProgramClasses.values());
 
-      // Force-load classpath classes.
       Map<DexType, DexClasspathClass> allClasspathClasses = null;
       if (classpathClassesLoader != null) {
         classpathClassesLoader.forceLoad(type -> true);
@@ -117,36 +106,16 @@ public class LazyLoadedDexApplication extends DexApplication {
         expectedMaxSize += allClasspathClasses.size();
       }
 
+      Map<DexType, DexLibraryClass> allLibraryClasses = null;
+      if (libraryClassesLoader != null) {
+        libraryClassesLoader.forceLoad(type -> true);
+        allLibraryClasses = libraryClassesLoader.getAllClassesInMap();
+        expectedMaxSize += allLibraryClasses.size();
+      }
 
-      // Collect loaded classes in the precedence order library classes, program classes and
-      // class path classes.
       // Note: using hash map for building as the immutable builder does not support contains.
       Map<DexType, DexClass> prioritizedClasses = new IdentityHashMap<>(expectedMaxSize);
-      if (allLibraryClasses != null) {
-        ImmutableList.Builder<DexLibraryClass> builder = ImmutableList.builder();
-        allLibraryClasses.forEach(
-            (type, clazz) -> {
-              if (!prioritizedClasses.containsKey(type)) {
-                prioritizedClasses.put(type, clazz);
-                builder.add(clazz);
-              }
-            });
-        libraryClasses = builder.build();
-      } else {
-        libraryClasses = ImmutableList.of();
-      }
-
-      {
-        ImmutableList.Builder<DexProgramClass> builder = ImmutableList.builder();
-        allProgramClasses.forEach(
-            (type, clazz) -> {
-              if (!prioritizedClasses.containsKey(type)) {
-                prioritizedClasses.put(type, clazz);
-                builder.add(clazz);
-              }
-            });
-        programClasses = builder.build();
-      }
+      prioritizedClasses.putAll(allProgramClasses);
 
       if (allClasspathClasses != null) {
         ImmutableList.Builder<DexClasspathClass> builder = ImmutableList.builder();
@@ -162,10 +131,20 @@ public class LazyLoadedDexApplication extends DexApplication {
         classpathClasses = ImmutableList.of();
       }
 
+      if (allLibraryClasses != null) {
+        ImmutableList.Builder<DexLibraryClass> builder = ImmutableList.builder();
+        allLibraryClasses.forEach(
+            (type, clazz) -> {
+              if (!prioritizedClasses.containsKey(type)) {
+                prioritizedClasses.put(type, clazz);
+                builder.add(clazz);
+              }
+            });
+        libraryClasses = builder.build();
+      } else {
+        libraryClasses = ImmutableList.of();
+      }
       allClasses = Collections.unmodifiableMap(prioritizedClasses);
-
-      assert prioritizedClasses.size()
-          == libraryClasses.size() + classpathClasses.size() + programClasses.size();
     }
 
     public Map<DexType, DexClass> getAllClasses() {

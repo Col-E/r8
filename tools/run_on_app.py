@@ -15,7 +15,6 @@ import gmail_data
 import gmscore_data
 import golem
 import nest_data
-from sanitize_libraries import SanitizeLibraries
 import toolhelper
 import utils
 import youtube_data
@@ -302,14 +301,9 @@ def run_with_options(options, args, extra_args=None):
 
   if options.compiler == 'r8':
     if 'pgconf' in values and not options.k:
-      sanitized_lib_path = os.path.join(
-          os.path.abspath(outdir), 'sanitized_lib.jar')
-      sanitized_pgconf_path = os.path.join(
-          os.path.abspath(outdir), 'sanitized.config')
-      SanitizeLibraries(
-          sanitized_lib_path, sanitized_pgconf_path, values['pgconf'])
-      args.extend(['--pg-conf', sanitized_pgconf_path])
-      app_provided_pg_conf = True
+      for pgconf in values['pgconf']:
+        args.extend(['--pg-conf', pgconf])
+        app_provided_pg_conf = True
     if options.k:
       args.extend(['--pg-conf', options.k])
     if 'maindexrules' in values:
