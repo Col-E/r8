@@ -42,6 +42,8 @@ public class ProguardConfiguration {
     private boolean verbose;
     private String renameSourceFileAttribute;
     private final List<String> keepAttributePatterns = new ArrayList<>();
+    private final ProguardPackageNameList.Builder keepPackageNamesPatterns =
+        ProguardPackageNameList.builder();
     private final ProguardClassFilter.Builder dontWarnPatterns = ProguardClassFilter.builder();
     private final ProguardClassFilter.Builder dontNotePatterns = ProguardClassFilter.builder();
     protected final Set<ProguardConfigurationRule> rules = Sets.newLinkedHashSet();
@@ -180,6 +182,10 @@ public class ProguardConfiguration {
       this.rules.add(rule);
     }
 
+    public void addKeepPackageNamesPattern(boolean isNegated, ProguardPackageMatcher pattern) {
+      keepPackageNamesPatterns.addPackageName(isNegated, pattern);
+    }
+
     public void addDontWarnPattern(ProguardClassNameList pattern) {
       dontWarnPatterns.addPattern(pattern);
     }
@@ -283,42 +289,44 @@ public class ProguardConfiguration {
     }
 
     public ProguardConfiguration buildRaw() {
-      ProguardConfiguration configuration = new ProguardConfiguration(
-          String.join(System.lineSeparator(), parsedConfiguration),
-          dexItemFactory,
-          injars,
-          libraryjars,
-          packageObfuscationMode,
-          packagePrefix,
-          allowAccessModification,
-          ignoreWarnings,
-          optimizing,
-          obfuscating,
-          shrinking,
-          printConfiguration,
-          printConfigurationFile,
-          printUsage,
-          printUsageFile,
-          printMapping,
-          printMappingFile,
-          applyMappingFile,
-          verbose,
-          renameSourceFileAttribute,
-          ProguardKeepAttributes.fromPatterns(keepAttributePatterns),
-          dontWarnPatterns.build(),
-          dontNotePatterns.build(),
-          rules,
-          printSeeds,
-          seedFile,
-          overloadAggressively,
-          DictionaryReader.readAllNames(obfuscationDictionary, reporter),
-          DictionaryReader.readAllNames(classObfuscationDictionary, reporter),
-          DictionaryReader.readAllNames(packageObfuscationDictionary, reporter),
-          keepParameterNames,
-          adaptClassStrings.build(),
-          adaptResourceFilenames.build(),
-          adaptResourceFileContents.build(),
-          keepDirectories.build());
+      ProguardConfiguration configuration =
+          new ProguardConfiguration(
+              String.join(System.lineSeparator(), parsedConfiguration),
+              dexItemFactory,
+              injars,
+              libraryjars,
+              packageObfuscationMode,
+              packagePrefix,
+              allowAccessModification,
+              ignoreWarnings,
+              optimizing,
+              obfuscating,
+              shrinking,
+              printConfiguration,
+              printConfigurationFile,
+              printUsage,
+              printUsageFile,
+              printMapping,
+              printMappingFile,
+              applyMappingFile,
+              verbose,
+              renameSourceFileAttribute,
+              ProguardKeepAttributes.fromPatterns(keepAttributePatterns),
+              keepPackageNamesPatterns.build(),
+              dontWarnPatterns.build(),
+              dontNotePatterns.build(),
+              rules,
+              printSeeds,
+              seedFile,
+              overloadAggressively,
+              DictionaryReader.readAllNames(obfuscationDictionary, reporter),
+              DictionaryReader.readAllNames(classObfuscationDictionary, reporter),
+              DictionaryReader.readAllNames(packageObfuscationDictionary, reporter),
+              keepParameterNames,
+              adaptClassStrings.build(),
+              adaptResourceFilenames.build(),
+              adaptResourceFileContents.build(),
+              keepDirectories.build());
 
       reporter.failIfPendingErrors();
 
@@ -370,6 +378,7 @@ public class ProguardConfiguration {
   private final boolean verbose;
   private final String renameSourceFileAttribute;
   private final ProguardKeepAttributes keepAttributes;
+  private final ProguardPackageNameList keepPackageNamesPatterns;
   private final ProguardClassFilter dontWarnPatterns;
   private final ProguardClassFilter dontNotePatterns;
   protected final ImmutableList<ProguardConfigurationRule> rules;
@@ -407,6 +416,7 @@ public class ProguardConfiguration {
       boolean verbose,
       String renameSourceFileAttribute,
       ProguardKeepAttributes keepAttributes,
+      ProguardPackageNameList keepPackageNamesPatterns,
       ProguardClassFilter dontWarnPatterns,
       ProguardClassFilter dontNotePatterns,
       Set<ProguardConfigurationRule> rules,
@@ -442,6 +452,7 @@ public class ProguardConfiguration {
     this.verbose = verbose;
     this.renameSourceFileAttribute = renameSourceFileAttribute;
     this.keepAttributes = keepAttributes;
+    this.keepPackageNamesPatterns = keepPackageNamesPatterns;
     this.dontWarnPatterns = dontWarnPatterns;
     this.dontNotePatterns = dontNotePatterns;
     this.rules = ImmutableList.copyOf(rules);
@@ -552,6 +563,10 @@ public class ProguardConfiguration {
 
   public ProguardKeepAttributes getKeepAttributes() {
     return keepAttributes;
+  }
+
+  public ProguardPackageNameList getKeepPackageNamesPatterns() {
+    return keepPackageNamesPatterns;
   }
 
   public ProguardClassFilter getDontWarnPatterns() {

@@ -82,6 +82,14 @@ public class DexType extends DexReference implements PresortedComparable<DexType
     return descriptor.toString();
   }
 
+  public String toBinaryName() {
+    String descriptor = toDescriptorString();
+    assert descriptor.length() > 1
+        && descriptor.charAt(0) == 'L'
+        && descriptor.charAt(descriptor.length() - 1) == ';';
+    return descriptor.substring(1, descriptor.length() - 1);
+  }
+
   @Override
   public String toSourceString() {
     if (toStringCache == null) {
@@ -322,5 +330,9 @@ public class DexType extends DexReference implements PresortedComparable<DexType
   public String getInternalName() {
     assert isClassType() || isArrayType();
     return DescriptorUtils.descriptorToInternalName(toDescriptorString());
+  }
+
+  public String getPackageName() {
+    return DescriptorUtils.getPackageNameFromBinaryName(toBinaryName());
   }
 }

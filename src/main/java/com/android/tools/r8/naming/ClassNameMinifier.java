@@ -20,6 +20,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.naming.signature.GenericSignatureRewriter;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.ProguardPackageNameList;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
@@ -34,7 +35,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 class ClassNameMinifier {
 
@@ -54,8 +54,6 @@ class ClassNameMinifier {
   private final List<String> classDictionary;
   private final boolean keepInnerClassStructure;
 
-  private final Set<DexType> keepPackageName;
-
   private final Namespace topLevelState;
 
   ClassNameMinifier(
@@ -74,9 +72,6 @@ class ClassNameMinifier {
     this.packageDictionary = options.getProguardConfiguration().getPackageObfuscationDictionary();
     this.classDictionary = options.getProguardConfiguration().getClassObfuscationDictionary();
     this.keepInnerClassStructure = options.getProguardConfiguration().getKeepAttributes().signature;
-    this.keepPackageName =
-        DexReference.filterDexType(appView.rootSet().keepPackageName.stream())
-            .collect(Collectors.toSet());
 
     // Initialize top-level naming state.
     topLevelState = new Namespace(
@@ -261,8 +256,9 @@ class ClassNameMinifier {
     String packageName = getPackageBinaryNameFromJavaType(type.getPackageDescriptor());
     // Check whether the given class should be kept.
     // or check whether the given class belongs to a package that is kept for another class.
-    if (keepPackageName.contains(type)
-        || noObfuscationPrefixes.contains(packageName)) {
+    ProguardPackageNameList keepPackageNames =
+        appView.options().getProguardConfiguration().getKeepPackageNamesPatterns();
+    if (noObfuscationPrefixes.contains(packageName) || keepPackageNames.matches(type)) {
       return states.computeIfAbsent(packageName, Namespace::new);
     }
     Namespace state = topLevelState;

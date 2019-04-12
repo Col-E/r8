@@ -10,7 +10,6 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.errors.Unreachable;
@@ -60,8 +59,7 @@ public class KeepPackageNamesTest extends TestBase {
               getPackageNameFromDescriptor(sub.getOriginalDescriptor()),
               getPackageNameFromDescriptor(sub.getFinalDescriptor()));
           assertThat(
-              getPackageNameFromDescriptor(sub.getFinalDescriptor()),
-              containsString(PACKAGE_NAME));
+              getPackageNameFromDescriptor(sub.getFinalDescriptor()), containsString(PACKAGE_NAME));
           break;
         case DOUBLE_ASTERISKS:
           assertEquals(
@@ -95,7 +93,6 @@ public class KeepPackageNamesTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    assumeTrue("b/130135768", config == TestConfig.DOUBLE_ASTERISKS);
     testForR8(Backend.DEX)
         .addProgramClasses(CLASSES)
         .addKeepAndMinifyAllClassesRule()
