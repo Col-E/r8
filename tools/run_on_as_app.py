@@ -660,7 +660,8 @@ def BuildAppWithShrinker(
           signed_apk,
           options.keystore,
           options.keystore_password,
-          quiet=options.quiet)
+          quiet=options.quiet,
+          logging=IsLoggingEnabledFor(app, options))
 
   if os.path.isfile(signed_apk):
     apk_dest = os.path.join(out_dir, signed_apk_name)
@@ -811,13 +812,15 @@ def RebuildAppWithShrinker(
     cmd.append('--main-dex-rules')
     cmd.append(main_dex_rules)
 
-  utils.RunCmd(cmd, quiet=options.quiet)
+  utils.RunCmd(
+    cmd, quiet=options.quiet, logging=IsLoggingEnabledFor(app, options))
 
   # Make a copy of the given APK, move the newly generated dex files into the
   # copied APK, and then sign the APK.
   apk_masseur.masseur(
       apk, dex=zip_dest, resources='META-INF/services/*', out=apk_dest,
-      quiet=options.quiet, keystore=options.keystore)
+      quiet=options.quiet, logging=IsLoggingEnabledFor(app, options),
+      keystore=options.keystore)
 
 def RunMonkey(app, options, apk_dest):
   if not WaitForEmulator(options):
@@ -836,7 +839,8 @@ def RunMonkey(app, options, apk_dest):
       '-s', str(random_seed), str(number_of_events_to_generate)]
 
   try:
-    stdout = utils.RunCmd(cmd, quiet=options.quiet)
+    stdout = utils.RunCmd(
+        cmd, quiet=options.quiet, logging=IsLoggingEnabledFor(app, options))
     succeeded = (
         'Events injected: {}'.format(number_of_events_to_generate) in stdout)
   except subprocess.CalledProcessError as e:
