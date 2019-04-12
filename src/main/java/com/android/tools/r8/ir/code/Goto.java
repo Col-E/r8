@@ -97,7 +97,7 @@ public class Goto extends JumpInstruction {
 
   public boolean isTrivialGotoToTheNextBlock(IRCode code) {
     BasicBlock thisBlock = getBlock();
-    ListIterator<BasicBlock> blockIterator = code.blocks.listIterator();
+    ListIterator<BasicBlock> blockIterator = code.listIterator();
     while (blockIterator.hasNext()) {
       BasicBlock block = blockIterator.next();
       if (thisBlock == block) {

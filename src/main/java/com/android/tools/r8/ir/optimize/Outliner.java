@@ -1317,7 +1317,7 @@ public class Outliner {
 
   public void applyOutliningCandidate(IRCode code, DexEncodedMethod method) {
     assert !(method.getCode() instanceof OutlineCode);
-    ListIterator<BasicBlock> blocksIterator = code.blocks.listIterator();
+    ListIterator<BasicBlock> blocksIterator = code.listIterator();
     while (blocksIterator.hasNext()) {
       BasicBlock block = blocksIterator.next();
       List<Integer> toRemove = new ArrayList<>();

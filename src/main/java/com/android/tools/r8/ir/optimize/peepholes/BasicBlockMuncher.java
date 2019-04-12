@@ -35,7 +35,7 @@ public class BasicBlockMuncher {
   }
 
   private static void runPeepholes(IRCode code, List<BasicBlockPeephole> peepholes) {
-    ListIterator<BasicBlock> blocksIterator = code.blocks.listIterator(code.blocks.size());
+    ListIterator<BasicBlock> blocksIterator = code.listIterator(code.blocks.size());
     while (blocksIterator.hasPrevious()) {
       BasicBlock currentBlock = blocksIterator.previous();
       InstructionListIterator it =

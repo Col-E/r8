@@ -13,7 +13,7 @@ public class IRCodeInstructionsIterator implements InstructionIterator {
   private InstructionListIterator instructionIterator;
 
   public IRCodeInstructionsIterator(IRCode code) {
-    blockIterator = code.blocks.listIterator();
+    blockIterator = code.listIterator();
     instructionIterator = blockIterator.next().listIterator();
   }
 

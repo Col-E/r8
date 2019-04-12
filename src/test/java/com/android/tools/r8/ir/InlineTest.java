@@ -297,7 +297,7 @@ public class InlineTest extends IrInjectionTestBase {
 
     // Run code inlining all invokes with a.
     test = codeForMultipleMethodReplaceTest(a, b);
-    ListIterator<BasicBlock> blocksIterator = test.code.blocks.listIterator();
+    ListIterator<BasicBlock> blocksIterator = test.code.listIterator();
     Iterator<IRCode> inlinee = test.additionalCode.listIterator();  // IR code for a's
     List<BasicBlock> blocksToRemove = new ArrayList<>();
     while (blocksIterator.hasNext()) {
@@ -316,7 +316,7 @@ public class InlineTest extends IrInjectionTestBase {
 
     // Run code inlining all invokes with b.
     test = codeForMultipleMethodReplaceTest(a, b);
-    blocksIterator = test.code.blocks.listIterator();
+    blocksIterator = test.code.listIterator();
     inlinee = test.additionalCode.listIterator(3);  // IR code for b's
     while (blocksIterator.hasNext()) {
       BasicBlock block = blocksIterator.next();
@@ -768,7 +768,7 @@ public class InlineTest extends IrInjectionTestBase {
     {
       // Run code inlining all invokes with a.
       TestApplication test = codeForInlineAlwaysThrowsMultiple(twoGuards);
-      ListIterator<BasicBlock> blocksIterator = test.code.blocks.listIterator();
+      ListIterator<BasicBlock> blocksIterator = test.code.listIterator();
       Iterator<IRCode> inlinee = test.additionalCode.listIterator(); // IR code for a's.
       List<BasicBlock> blocksToRemove = new ArrayList<>();
       InstructionListIterator iterator;
@@ -792,7 +792,7 @@ public class InlineTest extends IrInjectionTestBase {
     {
       // Run code inlining all invokes with b.
       TestApplication test = codeForInlineAlwaysThrowsMultiple(twoGuards);
-      ListIterator<BasicBlock> blocksIterator = test.code.blocks.listIterator();
+      ListIterator<BasicBlock> blocksIterator = test.code.listIterator();
       Iterator<IRCode> inlinee = test.additionalCode.listIterator(3); // IR code for b's.
       List<BasicBlock> blocksToRemove = new ArrayList<>();
       InstructionListIterator iterator;
@@ -924,7 +924,7 @@ public class InlineTest extends IrInjectionTestBase {
     {
       // Run code inlining all invokes with a.
       TestApplication test = codeForInlineAlwaysThrowsMultipleWithControlFlow(a, twoGuards);
-      ListIterator<BasicBlock> blocksIterator = test.code.blocks.listIterator();
+      ListIterator<BasicBlock> blocksIterator = test.code.listIterator();
       Iterator<IRCode> inlinee = test.additionalCode.listIterator(); // IR code for a's.
       List<BasicBlock> blocksToRemove = new ArrayList<>();
       InstructionListIterator iterator;
@@ -948,7 +948,7 @@ public class InlineTest extends IrInjectionTestBase {
     {
       // Run code inlining all invokes with b.
       TestApplication test = codeForInlineAlwaysThrowsMultipleWithControlFlow(a, twoGuards);
-      ListIterator<BasicBlock> blocksIterator = test.code.blocks.listIterator();
+      ListIterator<BasicBlock> blocksIterator = test.code.listIterator();
       Iterator<IRCode> inlinee = test.additionalCode.listIterator(3); // IR code for b's.
       List<BasicBlock> blocksToRemove = new ArrayList<>();
       InstructionListIterator iterator;

@@ -547,7 +547,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
     // Position the block iterator cursor just after the invoke block.
     if (blocksIterator == null) {
       // If no block iterator was passed create one for the insertion of the inlinee blocks.
-      blocksIterator = code.blocks.listIterator(code.blocks.indexOf(invokeBlock));
+      blocksIterator = code.listIterator(code.blocks.indexOf(invokeBlock));
     } else {
       // If a block iterator was passed, back up to the block with the invoke instruction.
       blocksIterator.previous();

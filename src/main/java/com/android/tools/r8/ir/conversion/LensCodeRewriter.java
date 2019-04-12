@@ -93,7 +93,7 @@ public class LensCodeRewriter {
     GraphLense graphLense = appView.graphLense();
 
     Set<Value> newSSAValues = Sets.newIdentityHashSet();
-    ListIterator<BasicBlock> blocks = code.blocks.listIterator();
+    ListIterator<BasicBlock> blocks = code.listIterator();
     boolean mayHaveUnreachableBlocks = false;
     while (blocks.hasNext()) {
       BasicBlock block = blocks.next();

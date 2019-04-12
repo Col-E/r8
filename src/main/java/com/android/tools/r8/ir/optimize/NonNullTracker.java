@@ -25,6 +25,7 @@ import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.OptimizationFeedback;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Predicates;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
@@ -78,7 +79,7 @@ public class NonNullTracker {
   }
 
   public void addNonNull(IRCode code) {
-    addNonNullInPart(code, code.blocks.listIterator(), b -> true);
+    addNonNullInPart(code, code.listIterator(), Predicates.alwaysTrue());
   }
 
   public void addNonNullInPart(

@@ -496,7 +496,7 @@ public class DexBuilder {
     if (ifsNeedingRewrite.isEmpty()) {
       return;
     }
-    ListIterator<BasicBlock> it = ir.blocks.listIterator();
+    ListIterator<BasicBlock> it = ir.listIterator();
     while (it.hasNext()) {
       BasicBlock block = it.next();
       if (ifsNeedingRewrite.contains(block)) {

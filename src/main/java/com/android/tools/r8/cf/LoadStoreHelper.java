@@ -99,7 +99,7 @@ public class LoadStoreHelper {
 
   public void insertLoadsAndStores() {
     clonableConstants = new IdentityHashMap<>();
-    blockIterator = code.blocks.listIterator();
+    blockIterator = code.listIterator();
     while (blockIterator.hasNext()) {
       InstructionListIterator it = blockIterator.next().listIterator();
       while (it.hasNext()) {

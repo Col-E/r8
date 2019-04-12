@@ -364,7 +364,7 @@ public class MemberValuePropagation {
   public void rewriteWithConstantValues(
       IRCode code, DexType callingContext, Predicate<DexEncodedMethod> isProcessedConcurrently) {
     Set<Value> affectedValues = Sets.newIdentityHashSet();
-    ListIterator<BasicBlock> blocks = code.blocks.listIterator();
+    ListIterator<BasicBlock> blocks = code.listIterator();
     while (blocks.hasNext()) {
       BasicBlock block = blocks.next();
       InstructionListIterator iterator = block.listIterator();

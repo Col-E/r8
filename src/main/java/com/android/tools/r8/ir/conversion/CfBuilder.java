@@ -63,7 +63,6 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -264,7 +263,7 @@ public class CfBuilder {
     emittedLabels = new HashSet<>(code.blocks.size());
     newInstanceLabels = new HashMap<>(initializers.size());
     instructions = new ArrayList<>();
-    Iterator<BasicBlock> blockIterator = code.blocks.iterator();
+    ListIterator<BasicBlock> blockIterator = code.listIterator();
     BasicBlock block = blockIterator.next();
     CfLabel tryCatchStart = null;
     CatchHandlers<BasicBlock> tryCatchHandlers = CatchHandlers.EMPTY_BASIC_BLOCK;
