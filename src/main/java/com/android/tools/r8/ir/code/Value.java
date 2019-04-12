@@ -13,7 +13,6 @@ import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.regalloc.LiveIntervals;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.MethodPosition;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.LongInterval;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -446,7 +445,7 @@ public class Value {
     return !users.isEmpty() || !phiUsers.isEmpty() || numberOfDebugUsers() > 0;
   }
 
-  public boolean isAlwaysNull(AppView<AppInfoWithLiveness> appView) {
+  public boolean isAlwaysNull(AppView<? extends AppInfo> appView) {
     if (hasLocalInfo()) {
       // Not always null as the value can be changed via the debugger.
       return false;
@@ -454,8 +453,11 @@ public class Value {
     if (typeLattice.isDefinitelyNull()) {
       return true;
     }
-    if (typeLattice.isClassType()) {
-      return typeLattice.asClassTypeLatticeElement().getClassType().isAlwaysNull(appView);
+    if (typeLattice.isClassType() && appView.appInfo().hasLiveness()) {
+      return typeLattice
+          .asClassTypeLatticeElement()
+          .getClassType()
+          .isAlwaysNull(appView.withLiveness());
     }
     return false;
   }

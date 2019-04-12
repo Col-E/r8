@@ -11,6 +11,7 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NeverPropagateValue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -23,7 +24,6 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject.JumboStringMode;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -44,6 +44,15 @@ class StringValueOfTestMain {
 
   interface Itf {
     String getter();
+  }
+
+  static class Uninitialized {
+  }
+
+  @NeverInline
+  @NeverPropagateValue
+  static String consumeUninitialized(Uninitialized arg) {
+    return String.valueOf(arg);
   }
 
   @NeverInline
@@ -90,6 +99,7 @@ class StringValueOfTestMain {
     } catch (NullPointerException npe) {
       fail("Not expected: " + npe);
     }
+    System.out.println(consumeUninitialized(null));
 
     // No matter what we pass, that function will return null.
     // But, we're not sure about it, hence not optimizing String#valueOf.
@@ -109,6 +119,7 @@ public class StringValueOfTest extends TestBase {
       "com.android.tools.r8.ir.optimize.string.StringValueOfTestMain$Foo",
       "com.android.tools.r8.ir.optimize.string.StringValueOfTestMain$Foo",
       "com.android.tools.r8.ir.optimize.string.StringValueOfTestMain$Foo",
+      "null",
       "null",
       "null",
       "null",
@@ -173,25 +184,29 @@ public class StringValueOfTest extends TestBase {
 
   private void test(
       TestRunResult result,
-      int expectedStringValueOfCount,
+      int expectedStringValueOfCountInMain,
       int expectedNullCount,
-      int expectedNullStringCount)
+      int expectedNullStringCountInMain,
+      int expectedStringValueOfCountInConsumer,
+      int expectedNullStringCountInConsumer)
       throws Exception {
     CodeInspector codeInspector = result.inspector();
     ClassSubject mainClass = codeInspector.clazz(MAIN);
     MethodSubject mainMethod = mainClass.mainMethod();
     assertThat(mainMethod, isPresent());
-    long count = countStringValueOf(mainMethod);
-    assertEquals(expectedStringValueOfCount, count);
-    count = countConstNullNumber(mainMethod);
-    assertEquals(expectedNullCount, count);
-    count = countNullStringNumber(mainMethod);
-    assertEquals(expectedNullStringCount, count);
+    assertEquals(expectedStringValueOfCountInMain, countStringValueOf(mainMethod));
+    assertEquals(expectedNullCount, countConstNullNumber(mainMethod));
+    assertEquals(expectedNullStringCountInMain, countNullStringNumber(mainMethod));
 
-    MethodSubject hideNPE = mainClass.method(STRING_TYPE, "hideNPE", ImmutableList.of(STRING_TYPE));
+    MethodSubject hideNPE = mainClass.uniqueMethodWithName("hideNPE");
     assertThat(hideNPE, isPresent());
     // Due to the nullable argument, valueOf should remain.
     assertEquals(1, countStringValueOf(hideNPE));
+
+    MethodSubject uninit = mainClass.uniqueMethodWithName("consumeUninitialized");
+    assertThat(uninit, isPresent());
+    assertEquals(expectedStringValueOfCountInConsumer, countStringValueOf(uninit));
+    assertEquals(expectedNullStringCountInConsumer, countNullStringNumber(uninit));
   }
 
   @Test
@@ -205,7 +220,7 @@ public class StringValueOfTest extends TestBase {
             .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 7, 1, 0);
+    test(result, 7, 1, 0, 1, 0);
 
     result =
         testForD8()
@@ -214,7 +229,7 @@ public class StringValueOfTest extends TestBase {
             .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 5, 1, 1);
+    test(result, 5, 1, 1, 1, 0);
   }
 
   @Test
@@ -223,6 +238,7 @@ public class StringValueOfTest extends TestBase {
         testForR8(parameters.getBackend())
             .addProgramClassesAndInnerClasses(MAIN)
             .enableInliningAnnotations()
+            .enableMemberValuePropagationAnnotations()
             .addKeepMainRule(MAIN)
             .setMinApi(parameters.getRuntime())
             .noMinification()
@@ -232,6 +248,6 @@ public class StringValueOfTest extends TestBase {
     // Due to the different behavior regarding constant canonicalization.
     int expectedNullCount = parameters.getBackend() == Backend.CF ? 2 : 1;
     int expectedNullStringCount = parameters.getBackend() == Backend.CF ? 2 : 1;
-    test(result, 3, expectedNullCount, expectedNullStringCount);
+    test(result, 3, expectedNullCount, expectedNullStringCount, 0, 1);
   }
 }

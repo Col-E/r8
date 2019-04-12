@@ -400,7 +400,7 @@ public class StringOptimizer {
           continue;
         }
         TypeLatticeElement inType = in.getTypeLattice();
-        if (inType.isNullType()) {
+        if (in.isAlwaysNull(appView)) {
           Value nullStringValue =
               code.createValue(
                   TypeLatticeElement.stringClassType(appView, definitelyNotNull()),
