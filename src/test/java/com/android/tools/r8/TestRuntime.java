@@ -36,7 +36,8 @@ public class TestRuntime {
   // Enum describing the possible/supported CF runtimes.
   public enum CfVm {
     JDK8("jdk8"),
-    JDK9("jdk9");
+    JDK9("jdk9"),
+    JDK11("jdk11");
 
     private final String name;
 
@@ -58,7 +59,7 @@ public class TestRuntime {
     }
 
     public static CfVm last() {
-      return JDK9;
+      return JDK11;
     }
 
     public boolean lessThan(CfVm other) {
@@ -75,13 +76,44 @@ public class TestRuntime {
     }
   }
 
-  // Values are the path in third_party/openjdk to the repository with bin"
-  public static ImmutableMap<CfVm, Path> CHECKED_IN_JDKS =
-      ImmutableMap.of(
+  // Values are the path in third_party/openjdk to the repository with bin
+  public static ImmutableMap<CfVm, Path> CHECKED_IN_JDKS = initializeCheckedInJDKs();
+
+  public static ImmutableMap<CfVm, Path> initializeCheckedInJDKs() {
+    if (ToolHelper.isLinux()) {
+      return ImmutableMap.of(
           CfVm.JDK8,
           Paths.get("jdk8", "linux-x86"),
           CfVm.JDK9,
-          Paths.get("openjdk-9.0.4", "linux"));
+          Paths.get("openjdk-9.0.4", "linux"),
+          CfVm.JDK11,
+          Paths.get("jdk-11", "Linux"));
+    }
+    if (ToolHelper.isMac()) {
+      return ImmutableMap.of(
+          CfVm.JDK8,
+          Paths.get("jdk8", "darwin-x86"),
+          CfVm.JDK9,
+          Paths.get("openjdk-9.0.4", "osx"),
+          CfVm.JDK11,
+          Paths.get("jdk-11", "Mac"));
+    }
+    assert ToolHelper.isWindows();
+    return ImmutableMap.of(
+        CfVm.JDK9,
+        Paths.get("openjdk-9.0.4", "windows"),
+        CfVm.JDK11,
+        Paths.get("jdk-11", "Windows"));
+  }
+
+  public static boolean isCheckedInJDK(CfVm jdk) {
+    // Non-linux checked-in jdk support has never been tested,
+    // so we pretend they do not exist.
+    if (!ToolHelper.isLinux()) {
+      return false;
+    }
+    return CHECKED_IN_JDKS.containsKey(jdk);
+  }
 
   public static Path getCheckInJDKPathFor(CfVm jdk) {
     assumeTrue(ToolHelper.isLinux());

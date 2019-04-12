@@ -177,15 +177,14 @@ public class TestParametersBuilder {
         return version.startsWith("1.8.");
       case JDK9:
         return version.startsWith("9.");
+      case JDK11:
+        return version.startsWith("11.");
     }
     throw new Unreachable();
   }
 
-  // Currently the only supported VM is the system VM. This should be extended to start supporting
-  // the checked in versions too, making it possible to run tests on more than one JDK at a time.
-
   private static boolean isSupportedJdk(CfVm vm) {
-    return isSystemJdk(vm) || TestRuntime.CHECKED_IN_JDKS.containsKey(vm);
+    return isSystemJdk(vm) || TestRuntime.isCheckedInJDK(vm);
   }
 
   private static Stream<TestRuntime> getAvailableRuntimes() {

@@ -1218,7 +1218,7 @@ public class ToolHelper {
   }
 
   public static String getJavaExecutable(CfVm runtime) {
-    if (TestRuntime.CHECKED_IN_JDKS.containsKey(runtime)) {
+    if (TestRuntime.isCheckedInJDK(runtime)) {
       return TestRuntime.getCheckInJDKPathFor(runtime).toString();
     } else {
       // TODO(b/127785410): Always assume a non-null runtime.
