@@ -121,6 +121,15 @@ def IsGradleCompilerTask(x, shrinker):
       or 'transformClassesWithDexBuilderFor' in x
       or 'transformDexArchiveWithDexMergerFor' in x)
 
+def ListFiles(directory, predicate=None):
+  files = []
+  for root, directories, filenames in os.walk(directory):
+    for filename in filenames:
+      file = os.path.join(root, filename)
+      if predicate is None or predicate(file):
+        files.append(file)
+  return files
+
 def SetPrintConfigurationDirective(app, checkout_dir, destination):
   proguard_config_file = FindProguardConfigurationFile(app, checkout_dir)
   with open(proguard_config_file) as f:
