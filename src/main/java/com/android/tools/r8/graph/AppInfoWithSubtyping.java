@@ -115,10 +115,11 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
   private final Map<DexType, ImmutableSet<DexType>> subtypeMap = new IdentityHashMap<>();
 
   // Map from types to their subtyping information.
-  private Map<DexType, TypeInfo> typeInfo;
+  private final Map<DexType, TypeInfo> typeInfo;
 
   public AppInfoWithSubtyping(DexApplication application) {
     super(application);
+    typeInfo = Collections.synchronizedMap(new IdentityHashMap<>());
     // Recompute subtype map if we have modified the graph.
     populateSubtypeMap(application.asDirect(), application.dexItemFactory);
   }
@@ -127,7 +128,7 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
     super(previous);
     missingClasses.addAll(previous.missingClasses);
     subtypeMap.putAll(previous.subtypeMap);
-    typeInfo = new IdentityHashMap<>(previous.typeInfo);
+    typeInfo = Collections.synchronizedMap(new IdentityHashMap<>(previous.typeInfo));
     assert app() instanceof DirectMappedDexApplication;
   }
 
@@ -199,7 +200,6 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
   }
 
   private void populateSubtypeMap(DirectMappedDexApplication app, DexItemFactory dexItemFactory) {
-    typeInfo = new IdentityHashMap<>();
     getTypeInfo(dexItemFactory.objectType).tagAsSubtypeRoot();
     Map<DexType, Set<DexType>> map = new IdentityHashMap<>();
     for (DexClass clazz : app.allClasses()) {
