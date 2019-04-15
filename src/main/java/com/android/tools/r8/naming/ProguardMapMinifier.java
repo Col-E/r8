@@ -266,11 +266,12 @@ public class ProguardMapMinifier {
 
     @Override
     public boolean breakOnNotAvailable(DexReference source, DexString name) {
-      // This is an error where we have renamed a member to an name that exists in a subtype or
-      // renamed a field to something that exists in a subclass.
+      // If we renamed a member to a name that exists in a subtype we should warn that potentially
+      // a member lookup may no longer visit its parent.
       MemberNaming memberNaming = mappedNames.get(source);
       assert source.isDexMethod() || source.isDexField();
-      reporter.error(
+      // TODO(b/128868424) Check if we can remove this warning for fields.
+      reporter.warning(
           ApplyMappingError.mapToExistingMember(
               source.toSourceString(),
               name.toString(),
