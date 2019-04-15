@@ -22,6 +22,7 @@ import com.android.tools.r8.desugaring.interfacemethods.default2.TestMainDefault
 import com.android.tools.r8.desugaring.interfacemethods.static0.TestMainStatic0;
 import com.android.tools.r8.desugaring.interfacemethods.static1.TestMainStatic1;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.InternalOptions;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -183,12 +184,12 @@ public class InterfaceMethodDesugaringTests extends AsmTestBase {
       ClassReader cr = new ClassReader(input);
       ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
       cr.accept(
-          new ClassVisitor(Opcodes.ASM6, cw) {
+          new ClassVisitor(InternalOptions.ASM_VERSION, cw) {
             @Override
             public MethodVisitor visitMethod(int access, String name,
                 String desc, String signature, String[] exceptions) {
               MethodVisitor visitor = super.visitMethod(access, name, desc, signature, exceptions);
-              return new MethodVisitor(Opcodes.ASM6, visitor) {
+              return new MethodVisitor(InternalOptions.ASM_VERSION, visitor) {
                 @Override
                 public void visitMethodInsn(
                     int opcode, String owner, String name, String desc, boolean itf) {

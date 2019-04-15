@@ -5,6 +5,7 @@
 package com.android.tools.r8.kotlin;
 
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.InternalOptions;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -46,7 +47,7 @@ public final class AsmUtils {
     public boolean foundMethod = false;
 
     public MethodFinder(String methodName, String methodDescriptor) {
-      super(Opcodes.ASM6);
+      super(InternalOptions.ASM_VERSION);
       this.methodName = methodName;
       this.methodDescriptor = methodDescriptor;
     }
@@ -77,7 +78,7 @@ public final class AsmUtils {
     public boolean foundField = false;
 
     public FieldFinder(String fieldName, String fieldType) {
-      super(Opcodes.ASM6);
+      super(InternalOptions.ASM_VERSION);
       this.fieldName = fieldName;
       this.fieldDescriptor = DescriptorUtils.javaTypeToDescriptor(fieldType);
     }

@@ -39,6 +39,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Consumer;
+import org.objectweb.asm.Opcodes;
 
 public class InternalOptions {
 
@@ -50,6 +51,8 @@ public class InternalOptions {
     OFF,
     ON
   }
+
+  public static final int ASM_VERSION = Opcodes.ASM7;
 
   public final DexItemFactory itemFactory;
 

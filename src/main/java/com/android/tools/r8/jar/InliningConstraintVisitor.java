@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.jar;
 
-import static org.objectweb.asm.Opcodes.ASM6;
+import static com.android.tools.r8.utils.InternalOptions.ASM_VERSION;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
@@ -51,7 +51,7 @@ public class InliningConstraintVisitor extends MethodVisitor {
       GraphLense graphLense,
       DexEncodedMethod method,
       DexType invocationContext) {
-    super(ASM6);
+    super(ASM_VERSION);
     assert graphLense.isContextFreeForMethods();
     this.application = application;
     this.appView = appView;

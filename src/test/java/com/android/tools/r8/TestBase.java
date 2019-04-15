@@ -7,7 +7,7 @@ package com.android.tools.r8;
 import static com.google.common.collect.Lists.cartesianProduct;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.objectweb.asm.Opcodes.ASM6;
+import static com.android.tools.r8.utils.InternalOptions.ASM_VERSION;
 
 import com.android.tools.r8.DataResourceProvider.Visitor;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
@@ -894,7 +894,7 @@ public class TestBase {
       private String className;
 
       private ClassNameExtractor() {
-        super(ASM6);
+        super(ASM_VERSION);
       }
 
       @Override

@@ -8,6 +8,7 @@ import static com.google.common.io.ByteStreams.toByteArray;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.io.PrintWriter;
@@ -396,7 +397,7 @@ public class CfFrontendExamplesTest extends TestBase {
     private final List<Part> parts = new ArrayList<>();
 
     ASMifierSorted() {
-      super(Opcodes.ASM6, "cw", 0);
+      super(InternalOptions.ASM_VERSION, "cw", 0);
     }
 
     @Override

@@ -51,12 +51,12 @@ public class TestGenerator {
       ClassReader cr = new ClassReader(input);
       ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
       cr.accept(
-          new ClassVisitor(Opcodes.ASM6, cw) {
+          new ClassVisitor(Opcodes.ASM7, cw) {
             @Override
             public MethodVisitor visitMethod(int access,
                 final String methodName, String desc, String signature, String[] exceptions) {
               MethodVisitor mv = super.visitMethod(access, methodName, desc, signature, exceptions);
-              return new MethodVisitor(Opcodes.ASM6, mv) {
+              return new MethodVisitor(Opcodes.ASM7, mv) {
                 private List<Object> recentConstants = new ArrayList<>();
 
                 @Override

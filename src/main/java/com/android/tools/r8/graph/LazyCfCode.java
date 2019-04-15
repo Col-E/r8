@@ -58,6 +58,7 @@ import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.InternalOptions;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import java.util.ArrayList;
@@ -218,7 +219,7 @@ public class LazyCfCode extends Code {
 
     ClassCodeVisitor(
         ReparseContext context, JarApplicationReader application, boolean useJsrInliner) {
-      super(Opcodes.ASM6);
+      super(InternalOptions.ASM_VERSION);
       this.context = context;
       this.application = application;
       this.usrJsrInliner = useJsrInliner;
@@ -256,7 +257,7 @@ public class LazyCfCode extends Code {
     private DexMethod method;
 
     MethodCodeVisitor(JarApplicationReader application, LazyCfCode code) {
-      super(Opcodes.ASM6);
+      super(InternalOptions.ASM_VERSION);
       this.application = application;
       this.factory = application.getFactory();
       this.method = code.method;

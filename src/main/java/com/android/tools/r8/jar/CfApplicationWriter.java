@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.jar;
 
-import static org.objectweb.asm.Opcodes.ASM6;
+import static com.android.tools.r8.utils.InternalOptions.ASM_VERSION;
 
 import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer;
@@ -410,8 +410,8 @@ public class CfApplicationWriter {
 
   public static String printCf(byte[] result) {
     ClassReader reader = new ClassReader(result);
-    ClassNode node = new ClassNode(ASM6);
-    reader.accept(node, ASM6);
+    ClassNode node = new ClassNode(ASM_VERSION);
+    reader.accept(node, ASM_VERSION);
     StringWriter writer = new StringWriter();
     for (MethodNode method : node.methods) {
       writer.append(method.name).append(method.desc).append('\n');

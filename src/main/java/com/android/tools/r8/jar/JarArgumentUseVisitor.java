@@ -5,7 +5,7 @@
 package com.android.tools.r8.jar;
 
 import static org.objectweb.asm.Opcodes.ALOAD;
-import static org.objectweb.asm.Opcodes.ASM6;
+import static com.android.tools.r8.utils.InternalOptions.ASM_VERSION;
 import static org.objectweb.asm.Opcodes.DLOAD;
 import static org.objectweb.asm.Opcodes.FLOAD;
 import static org.objectweb.asm.Opcodes.ILOAD;
@@ -25,7 +25,7 @@ public class JarArgumentUseVisitor extends MethodVisitor {
   private final int arguments;
 
   public JarArgumentUseVisitor(DexEncodedMethod method, ArgumentUse registry) {
-    super(ASM6);
+    super(ASM_VERSION);
     this.registry = registry;
 
     DexProto proto = method.method.proto;

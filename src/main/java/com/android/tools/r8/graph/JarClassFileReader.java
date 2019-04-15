@@ -7,7 +7,7 @@ import static org.objectweb.asm.ClassReader.SKIP_CODE;
 import static org.objectweb.asm.ClassReader.SKIP_DEBUG;
 import static org.objectweb.asm.ClassReader.SKIP_FRAMES;
 import static org.objectweb.asm.Opcodes.ACC_DEPRECATED;
-import static org.objectweb.asm.Opcodes.ASM6;
+import static com.android.tools.r8.utils.InternalOptions.ASM_VERSION;
 
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.dex.Constants;
@@ -199,7 +199,7 @@ public class JarClassFileReader {
         byte[] classCache,
         JarApplicationReader application,
         Consumer<DexClass> classConsumer) {
-      super(ASM6);
+      super(ASM_VERSION);
       this.origin = origin;
       this.classKind = classKind;
       this.classConsumer = classConsumer;
@@ -456,7 +456,7 @@ public class JarClassFileReader {
 
     public CreateFieldVisitor(CreateDexClassVisitor parent,
         int access, String name, String desc, String signature, Object value) {
-      super(ASM6);
+      super(ASM_VERSION);
       this.parent = parent;
       this.access = access;
       this.name = name;
@@ -568,7 +568,7 @@ public class JarClassFileReader {
 
     public CreateMethodVisitor(int access, String name, String desc, String signature,
         String[] exceptions, CreateDexClassVisitor parent) {
-      super(ASM6);
+      super(ASM_VERSION);
       this.name = name;
       this.parent = parent;
       this.method = parent.application.getMethod(parent.type, name, desc);
@@ -766,7 +766,7 @@ public class JarClassFileReader {
 
     public CreateAnnotationVisitor(
         JarApplicationReader application, BiConsumer<List<DexString>, List<DexValue>> onVisitEnd) {
-      super(ASM6);
+      super(ASM_VERSION);
       this.application = application;
       this.onVisitEnd = onVisitEnd;
     }

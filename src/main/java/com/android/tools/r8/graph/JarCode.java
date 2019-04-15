@@ -364,7 +364,7 @@ public class JarCode extends Code {
     private final boolean useJsrInliner;
 
     public SecondVisitor(BiFunction<String, String, JarCode> codeLocator, boolean useJsrInliner) {
-      super(Opcodes.ASM6);
+      super(InternalOptions.ASM_VERSION);
       this.codeLocator = codeLocator;
       this.useJsrInliner = useJsrInliner;
     }
@@ -375,7 +375,7 @@ public class JarCode extends Code {
       MethodNode node =
           useJsrInliner
               ? new JSRInlinerAdapter(null, access, name, desc, signature, exceptions)
-              : new MethodNode(Opcodes.ASM6, access, name, desc, signature, exceptions);
+              : new MethodNode(InternalOptions.ASM_VERSION, access, name, desc, signature, exceptions);
       JarCode code = null;
       MethodAccessFlags flags = JarClassFileReader.createMethodAccessFlags(name, access);
       if (!flags.isAbstract() && !flags.isNative()) {

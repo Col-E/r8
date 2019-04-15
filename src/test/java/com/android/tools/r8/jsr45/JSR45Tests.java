@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.AnnotationSubject;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -144,7 +145,7 @@ public class JSR45Tests {
       throws IOException, ExecutionException {
     ClassReader classReader = new ClassReader(new FileInputStream(inputPath.toFile()));
     ReadSourceDebugExtensionAttribute sourceDebugExtensionReader =
-        new ReadSourceDebugExtensionAttribute(Opcodes.ASM6, null);
+        new ReadSourceDebugExtensionAttribute(InternalOptions.ASM_VERSION, null);
     classReader.accept(sourceDebugExtensionReader, 0);
 
     CodeInspector codeInspector = new CodeInspector(androidApp);

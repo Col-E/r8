@@ -16,6 +16,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.io.ByteStreams;
 import java.nio.file.Path;
 import java.util.Collections;
@@ -49,7 +50,7 @@ public class InliningClassVersionTest extends TestBase {
     private final int version;
 
     DowngradeVisitor(ClassVisitor cv, int version) {
-      super(Opcodes.ASM6, cv);
+      super(InternalOptions.ASM_VERSION, cv);
       this.version = version;
     }
 
@@ -96,7 +97,7 @@ public class InliningClassVersionTest extends TestBase {
       private int version = -1;
 
       private ClassVersionReader() {
-        super(Opcodes.ASM6);
+        super(InternalOptions.ASM_VERSION);
       }
 
       @Override

@@ -15,6 +15,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -75,7 +76,7 @@ import org.objectweb.asm.Type;
  */
 class AssertionEnablerClassAdapter extends ClassVisitor {
   AssertionEnablerClassAdapter(ClassVisitor visitor) {
-    super(Opcodes.ASM6, visitor);
+    super(InternalOptions.ASM_VERSION, visitor);
   }
 
   @Override

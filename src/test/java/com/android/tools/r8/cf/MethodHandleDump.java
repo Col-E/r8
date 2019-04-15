@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.cf;
 
+import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import org.objectweb.asm.ClassReader;
@@ -87,7 +88,7 @@ public class MethodHandleDump implements Opcodes {
     ClassReader cr = new ClassReader(input);
     ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
     cr.accept(
-        new ClassVisitor(ASM6, cw) {
+        new ClassVisitor(InternalOptions.ASM_VERSION, cw) {
 
           @Override
           public MethodVisitor visitMethod(

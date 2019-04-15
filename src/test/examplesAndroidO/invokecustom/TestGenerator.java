@@ -41,7 +41,7 @@ public class TestGenerator {
       ClassReader cr = new ClassReader(input);
       ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
       cr.accept(
-          new ClassVisitor(Opcodes.ASM6, cw) {
+          new ClassVisitor(Opcodes.ASM7, cw) {
             @Override
             public void visitEnd() {
               generateMethodTest1(cw);
