@@ -239,7 +239,8 @@ public class ServiceLoaderRewritingTest extends TestBase {
   @Test
   public void testKeepAsOriginal()
       throws IOException, CompilationFailedException, ExecutionException {
-    // TODO(b/130164528)
+    // The CL that changed behaviour after Nougat is:
+    // https://android-review.googlesource.com/c/platform/libcore/+/273135
     assumeTrue(
         parameters.getRuntime().isCf()
             || !parameters.getRuntime().asDex().getVm().getVersion().equals(Version.V7_0_0));

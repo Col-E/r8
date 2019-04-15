@@ -54,6 +54,10 @@ import java.util.List;
  *
  * We therefore only conservatively rewrite if the invoke is on is on the form
  * ServiceLoader.load(X.class, X.class.getClassLoader()) or ServiceLoader.load(X.class, null).
+ *
+ * Android Nougat do not use ClassLoader.getSystemClassLoader() when passing null and will
+ * almost certainly fail when trying to find the service. It seems unlikely that programs rely on
+ * this behaviour.
  */
 public class ServiceLoaderRewriter {
 
