@@ -4,6 +4,8 @@
 package com.android.tools.r8.ir.optimize.reflection;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationFailedException;
@@ -14,6 +16,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -171,9 +174,15 @@ public class InnerClassNameTestRunner extends TestBase {
             .minification(minify)
             .setMinApi(parameters.getRuntime())
             .compile();
-    } catch (CompilationFailedException e) {
-      assertTrue("b/120597515", config == TestNamingConfig.NON_NESTED_INNER);
-      assertTrue("b/120597515", minify);
+    } catch (InternalCompilerError e) {
+      assertThat(e.getMessage(), containsString("Malformed class name"));
+      assertThat(e.getMessage(), containsString(config.getInnerTypeRaw()));
+      assertTrue(
+          "b/120597515",
+          config == TestNamingConfig.EMTPY_SEPARATOR
+              || config == TestNamingConfig.UNDERBAR_SEPARATOR
+              || config == TestNamingConfig.NON_NESTED_INNER);
+      assertFalse("b/120597515", minify);
       return;
     }
     CodeInspector inspector = r8CompileResult.inspector();
@@ -205,32 +214,9 @@ public class InnerClassNameTestRunner extends TestBase {
         break;
       case EMTPY_SEPARATOR:
       case UNDERBAR_SEPARATOR:
-        if (!minify
-            && parameters.isCfRuntime()
-            && parameters.getRuntime().asCf().getVm().lessThanOrEqual(CfVm.JDK8)) {
-          // Any non-$ separator results in a runtime exception in getCanonicalName.
-          r8RunResult.assertFailureWithErrorThatMatches(containsString("Malformed class name"));
-        } else {
-          assert minify
-              || parameters.isDexRuntime()
-              || !parameters.getRuntime().asCf().getVm().lessThanOrEqual(CfVm.JDK8);
-          r8RunResult.assertSuccessWithOutput(getExpectedMinified(inspector));
-        }
-        break;
       case NON_NESTED_INNER:
-        if (minify) {
-          // TODO(b/120597515): better fail early while reading class file.
-          throw new Unreachable("Expect to see compilation error: " + config);
-        }
-        if (parameters.isCfRuntime()
-            && parameters.getRuntime().asCf().getVm().lessThanOrEqual(CfVm.JDK8)) {
-          // Any non-$ separator results in a runtime exception in getCanonicalName.
-          r8RunResult.assertFailureWithErrorThatMatches(containsString("Malformed class name"));
-        } else {
-          assert parameters.isDexRuntime()
-              || !parameters.getRuntime().asCf().getVm().lessThanOrEqual(CfVm.JDK8);
-          r8RunResult.assertSuccessWithOutput(getExpectedMinified(inspector));
-        }
+        assertTrue("Expect to see compilation error", minify);
+        r8RunResult.assertSuccessWithOutput(getExpectedMinified(inspector));
         break;
       default:
         throw new Unreachable("Unexpected test configuration: " + config);

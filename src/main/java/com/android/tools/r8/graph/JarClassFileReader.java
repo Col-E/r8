@@ -12,6 +12,7 @@ import static com.android.tools.r8.utils.InternalOptions.ASM_VERSION;
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexValue.DexValueAnnotation;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
@@ -30,6 +31,7 @@ import com.android.tools.r8.graph.DexValue.DexValueType;
 import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FieldSignatureEquivalence;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
@@ -209,6 +211,14 @@ public class JarClassFileReader {
 
     @Override
     public void visitInnerClass(String name, String outerName, String innerName, int access) {
+      if (outerName != null && innerName != null) {
+        String separator =
+            DescriptorUtils.computeInnerClassSeparator(
+                outerName, name, innerName, application.options);
+        if (separator == null) {
+          throw new InternalCompilerError("Malformed class name: " + name);
+        }
+      }
       innerClasses.add(
           new InnerClassAttribute(
               access,
