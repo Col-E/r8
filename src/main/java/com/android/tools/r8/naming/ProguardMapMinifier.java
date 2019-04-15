@@ -270,12 +270,16 @@ public class ProguardMapMinifier {
       // a member lookup may no longer visit its parent.
       MemberNaming memberNaming = mappedNames.get(source);
       assert source.isDexMethod() || source.isDexField();
-      // TODO(b/128868424) Check if we can remove this warning for fields.
-      reporter.warning(
-          ApplyMappingError.mapToExistingMember(
-              source.toSourceString(),
-              name.toString(),
-              memberNaming == null ? Position.UNKNOWN : memberNaming.position));
+      ApplyMappingError applyMappingError = ApplyMappingError.mapToExistingMember(
+          source.toSourceString(),
+          name.toString(),
+          memberNaming == null ? Position.UNKNOWN : memberNaming.position);
+      if (source.isDexMethod()) {
+        reporter.error(applyMappingError);
+      } else {
+        // TODO(b/128868424) Check if we can remove this warning for fields.
+        reporter.warning(applyMappingError);
+      }
       return true;
     }
 
