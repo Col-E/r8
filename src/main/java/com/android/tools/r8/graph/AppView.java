@@ -9,6 +9,8 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.shaking.VerticalClassMerger.VerticallyMergedClasses;
 import com.android.tools.r8.utils.InternalOptions;
+import com.google.common.collect.ImmutableSet;
+import java.util.Set;
 
 public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
 
@@ -24,6 +26,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
   private GraphLense graphLense;
   private final InternalOptions options;
   private RootSet rootSet;
+  private Set<DexMethod> unneededVisibilityBridgeMethods = ImmutableSet.of();
   private VerticallyMergedClasses verticallyMergedClasses;
 
   private AppView(
@@ -135,6 +138,14 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
   public void setRootSet(RootSet rootSet) {
     assert this.rootSet == null : "Root set should never be recomputed";
     this.rootSet = rootSet;
+  }
+
+  public Set<DexMethod> unneededVisibilityBridgeMethods() {
+    return unneededVisibilityBridgeMethods;
+  }
+
+  public void setUnneededVisibilityBridgeMethods(Set<DexMethod> unneededVisibilityBridgeMethods) {
+    this.unneededVisibilityBridgeMethods = unneededVisibilityBridgeMethods;
   }
 
   // Get the result of vertical class merging. Returns null if vertical class merging has not been

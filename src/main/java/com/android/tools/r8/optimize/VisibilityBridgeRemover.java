@@ -14,13 +14,22 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.Sets;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 
 public class VisibilityBridgeRemover {
 
   private final AppView<AppInfoWithLiveness> appView;
+  private final Consumer<DexEncodedMethod> unneededVisibilityBridgeConsumer;
 
   public VisibilityBridgeRemover(AppView<AppInfoWithLiveness> appView) {
+    this(appView, null);
+  }
+
+  public VisibilityBridgeRemover(
+      AppView<AppInfoWithLiveness> appView,
+      Consumer<DexEncodedMethod> unneededVisibilityBridgeConsumer) {
     this.appView = appView;
+    this.unneededVisibilityBridgeConsumer = unneededVisibilityBridgeConsumer;
   }
 
   private void removeUnneededVisibilityBridgesFromClass(DexProgramClass clazz) {
@@ -42,6 +51,9 @@ public class VisibilityBridgeRemover {
           methodsToBeRemoved = Sets.newIdentityHashSet();
         }
         methodsToBeRemoved.add(method);
+        if (unneededVisibilityBridgeConsumer != null) {
+          unneededVisibilityBridgeConsumer.accept(method);
+        }
       }
     }
     if (methodsToBeRemoved != null) {

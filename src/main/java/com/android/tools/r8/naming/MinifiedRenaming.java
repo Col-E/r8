@@ -156,7 +156,8 @@ class MinifiedRenaming extends NamingLens {
         || (staticTarget != null && staticTarget.method == item)
         || (directTargetHolder != null && directTargetHolder.isNotProgramClass())
         || (virtualTargetHolder != null && virtualTargetHolder.isNotProgramClass())
-        || (staticTargetHolder != null && staticTargetHolder.isNotProgramClass());
+        || (staticTargetHolder != null && staticTargetHolder.isNotProgramClass())
+        || appView.unneededVisibilityBridgeMethods().contains(item);
   }
 
   @Override

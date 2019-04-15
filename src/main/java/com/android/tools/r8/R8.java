@@ -19,6 +19,7 @@ import com.android.tools.r8.graph.AppliedGraphLens;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
@@ -74,6 +75,7 @@ import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.VersionProperties;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Closer;
@@ -664,6 +666,24 @@ public class R8 {
         System.out.println("Finished compilation with method filter: ");
         options.methodsFilter.forEach(m -> System.out.println("  - " + m));
         return;
+      }
+
+      // Remove unneeeded visibility bridges that have been inserted for member rebinding.
+      // This can only be done if we have AppInfoWithLiveness.
+      if (appView.appInfo().hasLiveness()) {
+        ImmutableSet.Builder<DexMethod> unneededVisibilityBridgeMethods = ImmutableSet.builder();
+        new VisibilityBridgeRemover(
+                appView.withLiveness(),
+                unneededVisibilityBridgeMethod ->
+                    unneededVisibilityBridgeMethods.add(unneededVisibilityBridgeMethod.method))
+            .run();
+        appView.setUnneededVisibilityBridgeMethods(unneededVisibilityBridgeMethods.build());
+      } else {
+        // If we don't have AppInfoWithLiveness here, it must be because we are not shrinking. When
+        // we are not shrinking, we can't move visibility bridges. In principle, though, it would be
+        // possible to remove visibility bridges that have been synthesized by R8, but we currently
+        // do not have this information.
+        assert !options.isShrinking();
       }
 
       // Validity checks.
