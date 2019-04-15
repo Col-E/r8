@@ -85,7 +85,7 @@ public class KeepPackageNamesTest extends TestBase {
   public void testProguard() throws Exception {
     testForProguard()
         .addProgramClasses(CLASSES)
-        .addKeepAndMinifyAllClassesRule()
+        .addKeepAllClassesRuleWithAllowObfuscation()
         .addKeepRules(config.getKeepRule())
         .compile()
         .inspect(config::inspect);
@@ -95,7 +95,7 @@ public class KeepPackageNamesTest extends TestBase {
   public void testR8() throws Exception {
     testForR8(Backend.DEX)
         .addProgramClasses(CLASSES)
-        .addKeepAndMinifyAllClassesRule()
+        .addKeepAllClassesRuleWithAllowObfuscation()
         .addKeepRules(config.getKeepRule())
         .compile()
         .inspect(config::inspect);

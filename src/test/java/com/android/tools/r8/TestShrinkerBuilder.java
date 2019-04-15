@@ -64,7 +64,7 @@ public abstract class TestShrinkerBuilder<
     return addKeepRules("-keep class ** { *; }");
   }
 
-  public T addKeepAndMinifyAllClassesRule() {
+  public T addKeepAllClassesRuleWithAllowObfuscation() {
     return addKeepRules("-keep,allowobfuscation class ** { *; }");
   }
 
@@ -75,6 +75,13 @@ public abstract class TestShrinkerBuilder<
   public T addKeepClassRules(Class<?>... classes) {
     for (Class<?> clazz : classes) {
       addKeepRules("-keep class " + clazz.getTypeName());
+    }
+    return self();
+  }
+
+  public T addKeepClassRulesWithAllowObfuscation(Class<?>... classes) {
+    for (Class<?> clazz : classes) {
+      addKeepRules("-keep,allowobfuscation class " + clazz.getTypeName());
     }
     return self();
   }
