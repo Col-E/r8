@@ -148,9 +148,7 @@ public class StringValueOfTest extends TestBase {
 
   @Test
   public void testJVMOutput() throws Exception {
-    assumeTrue(
-        "Only run JVM reference once (for CF backend)",
-        parameters.getBackend() == Backend.CF);
+    assumeTrue("Only run JVM reference once (for CF backend)", parameters.isCfRuntime());
     testForJvm()
         .addTestClasspath()
         .run(parameters.getRuntime(), MAIN)
@@ -211,7 +209,7 @@ public class StringValueOfTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue("Only run D8 for Dex backend", parameters.getBackend() == Backend.DEX);
+    assumeTrue("Only run D8 for Dex backend", parameters.isDexRuntime());
 
     TestRunResult result =
         testForD8()
@@ -246,8 +244,8 @@ public class StringValueOfTest extends TestBase {
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     // Due to the different behavior regarding constant canonicalization.
-    int expectedNullCount = parameters.getBackend() == Backend.CF ? 2 : 1;
-    int expectedNullStringCount = parameters.getBackend() == Backend.CF ? 2 : 1;
+    int expectedNullCount = parameters.isCfRuntime() ? 2 : 1;
+    int expectedNullStringCount = parameters.isCfRuntime() ? 2 : 1;
     test(result, 3, expectedNullCount, expectedNullStringCount, 0, 1);
   }
 }

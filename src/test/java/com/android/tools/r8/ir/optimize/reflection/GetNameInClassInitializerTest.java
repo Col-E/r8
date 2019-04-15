@@ -53,7 +53,7 @@ public class GetNameInClassInitializerTest extends GetNameTestBase {
   public void testJVMOutput() throws Exception {
     assumeTrue(
         "Only run JVM reference once (for CF backend)",
-        parameters.getBackend() == Backend.CF && !enableMinification);
+        parameters.isCfRuntime() && !enableMinification);
     testForJvm()
         .addTestClasspath()
         .run(parameters.getRuntime(), MAIN)

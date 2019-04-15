@@ -203,7 +203,7 @@ public class StringCanonicalizationTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue("Only run D8 for Dex backend", parameters.getBackend() == Backend.DEX);
+    assumeTrue("Only run D8 for Dex backend", parameters.isDexRuntime());
 
     D8TestCompileResult result =
         testForD8()

@@ -138,6 +138,7 @@ public class InternalOptions {
   public boolean enableNonNullTracking = true;
   public boolean enableInlining =
       !Version.isDev() || System.getProperty("com.android.tools.r8.disableinlining") == null;
+  public boolean enableInliningOfInvokesWithNullableReceivers = true;
   public boolean enableClassInlining = true;
   public boolean enableClassStaticizer = true;
   public boolean enableInitializedClassesAnalysis = true;

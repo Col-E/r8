@@ -81,9 +81,7 @@ public class NameThenLengthTest extends TestBase {
 
   @Test
   public void testJVMOutput() throws Exception {
-    assumeTrue(
-        "Only run JVM reference once (for CF backend)",
-        parameters.getBackend() == Backend.CF);
+    assumeTrue("Only run JVM reference once (for CF backend)", parameters.isCfRuntime());
     testForJvm()
         .addTestClasspath()
         .run(parameters.getRuntime(), MAIN)
@@ -135,7 +133,7 @@ public class NameThenLengthTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue("Only run D8 for Dex backend", parameters.getBackend() == Backend.DEX);
+    assumeTrue("Only run D8 for Dex backend", parameters.isDexRuntime());
 
     D8TestRunResult result =
         testForD8()
@@ -172,7 +170,7 @@ public class NameThenLengthTest extends TestBase {
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     // No canonicalization in CF.
-    int expectedConstNumber = parameters.getBackend() == Backend.CF ? 2 : 1;
+    int expectedConstNumber = parameters.isCfRuntime() ? 2 : 1;
     // TODO(b/125303292): NAME_LENGTH is still not computed at compile time.
     test(result, 1, 0, 0, expectedConstNumber);
   }

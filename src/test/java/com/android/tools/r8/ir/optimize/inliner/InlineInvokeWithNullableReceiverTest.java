@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize.inliner;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -65,12 +66,15 @@ public class InlineInvokeWithNullableReceiverTest extends TestBase {
     MethodSubject methodSubject = classSubject.mainMethod();
     assertThat(methodSubject, isPresent());
 
-    // TODO(b/130202534): A `throw` instruction should have been synthesized into main().
-    assertTrue(methodSubject.streamInstructions().noneMatch(InstructionSubject::isThrow));
+    // A `throw` instruction should have been synthesized into main().
+    assertTrue(methodSubject.streamInstructions().anyMatch(InstructionSubject::isThrow));
 
-    // TODO(b/130202534): Class A should be absent.
+    // Class A is still present because the instance flows into a phi that has a null-check.
     ClassSubject otherClassSubject = inspector.clazz(A.class);
     assertThat(otherClassSubject, isPresent());
+
+    // Method A.m() should no longer be present due to inlining.
+    assertThat(otherClassSubject.uniqueMethodWithName("m"), not(isPresent()));
   }
 
   static class TestClass {

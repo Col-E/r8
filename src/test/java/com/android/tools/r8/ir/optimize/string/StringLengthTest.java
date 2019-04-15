@@ -105,9 +105,7 @@ public class StringLengthTest extends TestBase {
 
   @Test
   public void testJVMOutput() throws Exception {
-    assumeTrue(
-        "Only run JVM reference once (for CF backend)",
-        parameters.getBackend() == Backend.CF);
+    assumeTrue("Only run JVM reference once (for CF backend)", parameters.isCfRuntime());
     // TODO(b/119097175)
     if (!ToolHelper.isWindows()) {
       testForJvm()
@@ -148,7 +146,7 @@ public class StringLengthTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue("Only run D8 for Dex backend", parameters.getBackend() == Backend.DEX);
+    assumeTrue("Only run D8 for Dex backend", parameters.isDexRuntime());
 
     D8TestRunResult result =
         testForD8()
@@ -188,6 +186,6 @@ public class StringLengthTest extends TestBase {
     if (!ToolHelper.isWindows()) {
       result.assertSuccessWithOutput(JAVA_OUTPUT);
     }
-    test(result, 0, parameters.getBackend() == Backend.DEX ? 5 : 6);
+    test(result, 0, parameters.isDexRuntime() ? 5 : 6);
   }
 }

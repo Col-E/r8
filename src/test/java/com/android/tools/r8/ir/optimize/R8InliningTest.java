@@ -9,6 +9,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -42,37 +43,27 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class R8InliningTest extends TestBase {
 
-  private Backend backend;
-
   private static final String DEFAULT_DEX_FILENAME = "classes.dex";
   private static final String DEFAULT_MAP_FILENAME = "proguard.map";
+  private static final String NAME = "inlining";
+  private static final String KEEP_RULES_FILE = ToolHelper.EXAMPLES_DIR + NAME + "/keep-rules.txt";
 
-  @Parameters(name = "{0}, backend={1}, minification={2}, allowaccessmodification={3}")
+  @Parameters(name = "{1}, allow access modification: {0}")
   public static Collection<Object[]> data() {
-    return buildParameters(
-        ImmutableList.of("Inlining"),
-        ToolHelper.getBackends(),
-        BooleanUtils.values(),
-        BooleanUtils.values());
+    return buildParameters(BooleanUtils.values(), getTestParameters().withAllRuntimes().build());
   }
 
-  private final String name;
-  private final String keepRulesFile;
-  private final boolean minification;
   private final boolean allowAccessModification;
+  private final TestParameters parameters;
   private Path outputDir = null;
 
-  public R8InliningTest(
-      String name, Backend backend, boolean minification, boolean allowAccessModification) {
-    this.name = name.toLowerCase();
-    this.keepRulesFile = ToolHelper.EXAMPLES_DIR + this.name + "/keep-rules.txt";
-    this.backend = backend;
-    this.minification = minification;
+  public R8InliningTest(boolean allowAccessModification, TestParameters parameters) {
     this.allowAccessModification = allowAccessModification;
+    this.parameters = parameters;
   }
 
   private Path getInputFile() {
-    return Paths.get(ToolHelper.EXAMPLES_BUILD_DIR, name + FileUtils.JAR_EXTENSION);
+    return Paths.get(ToolHelper.EXAMPLES_BUILD_DIR, NAME + FileUtils.JAR_EXTENSION);
   }
 
   private Path getGeneratedDexFile() {
@@ -80,14 +71,13 @@ public class R8InliningTest extends TestBase {
   }
 
   private List<Path> getGeneratedFiles(Path dir) throws IOException {
-    if (backend == Backend.DEX) {
+    if (parameters.isDexRuntime()) {
       return Collections.singletonList(dir.resolve(Paths.get(DEFAULT_DEX_FILENAME)));
-    } else {
-      assert backend == Backend.CF;
-      return Files.walk(dir)
-          .filter(f -> f.toString().endsWith(".class"))
-          .collect(Collectors.toList());
     }
+    assert parameters.isCfRuntime();
+    return Files.walk(dir)
+        .filter(f -> f.toString().endsWith(".class"))
+        .collect(Collectors.toList());
   }
 
   private List<Path> getGeneratedFiles() throws IOException {
@@ -103,18 +93,18 @@ public class R8InliningTest extends TestBase {
   }
 
   private void generateR8Version(Path out, Path mapFile, boolean inlining) throws Exception {
-    assert backend == Backend.DEX || backend == Backend.CF;
+    assert parameters.isDexRuntime() || parameters.isCfRuntime();
     R8Command.Builder commandBuilder =
         R8Command.builder()
             .addProgramFiles(getInputFile())
-            .setOutput(out, outputMode(backend))
-            .addProguardConfigurationFiles(Paths.get(keepRulesFile))
-            .addLibraryFiles(TestBase.runtimeJar(backend))
+            .setOutput(out, outputMode(parameters.getBackend()))
+            .addProguardConfigurationFiles(Paths.get(KEEP_RULES_FILE))
+            .addLibraryFiles(TestBase.runtimeJar(parameters.getBackend()))
             .setDisableMinification(true);
     if (mapFile != null) {
       commandBuilder.setProguardMapOutputPath(mapFile);
     }
-    if (backend == Backend.DEX) {
+    if (parameters.isDexRuntime()) {
       commandBuilder.setMinApiLevel(AndroidApiLevel.M.getLevel());
     }
     if (allowAccessModification) {
@@ -129,6 +119,7 @@ public class R8InliningTest extends TestBase {
           // that the class is therefore made abstract.
           o.enableClassInlining = false;
           o.enableInlining = inlining;
+          o.enableInliningOfInvokesWithNullableReceivers = false;
           o.inliningInstructionLimit = 6;
         });
   }
@@ -139,12 +130,12 @@ public class R8InliningTest extends TestBase {
     Path mapFile = outputDir.resolve(DEFAULT_MAP_FILENAME);
     generateR8Version(outputDir, mapFile, true);
     String output;
-    if (backend == Backend.DEX) {
+    if (parameters.isDexRuntime()) {
       output =
           ToolHelper.runArtNoVerificationErrors(
               outputDir.resolve(DEFAULT_DEX_FILENAME).toString(), "inlining.Inlining");
     } else {
-      assert backend == Backend.CF;
+      assert parameters.isCfRuntime();
       output = ToolHelper.runJavaNoVerify(outputDir, "inlining.Inlining").stdout;
     }
 
@@ -217,7 +208,7 @@ public class R8InliningTest extends TestBase {
     generateR8Version(nonInlinedOutputDir, null, false);
 
     long nonInlinedSize, inlinedSize;
-    if (backend == Backend.DEX) {
+    if (parameters.isDexRuntime()) {
       Path nonInlinedDexFile = nonInlinedOutputDir.resolve(DEFAULT_DEX_FILENAME);
       nonInlinedSize = Files.size(nonInlinedDexFile);
       inlinedSize = Files.size(getGeneratedDexFile());
@@ -227,7 +218,7 @@ public class R8InliningTest extends TestBase {
         dump(getGeneratedDexFile(), "Inlining enabled");
       }
     } else {
-      assert backend == Backend.CF;
+      assert parameters.isCfRuntime();
       nonInlinedSize = sumOfClassFileSizes(nonInlinedOutputDir);
       inlinedSize = sumOfClassFileSizes(outputDir);
     }

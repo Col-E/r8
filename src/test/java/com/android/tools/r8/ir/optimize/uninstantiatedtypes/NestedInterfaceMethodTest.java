@@ -40,7 +40,7 @@ public class NestedInterfaceMethodTest extends TestBase {
   public void test() throws Exception {
     String expectedOutput = StringUtils.lines("In A.m()", "In A.m()");
 
-    if (parameters.getBackend() == Backend.CF) {
+    if (parameters.isCfRuntime()) {
       testForJvm().addTestClasspath().run(TestClass.class).assertSuccessWithOutput(expectedOutput);
     }
 
@@ -50,7 +50,11 @@ public class NestedInterfaceMethodTest extends TestBase {
             .addKeepMainRule(TestClass.class)
             .enableInliningAnnotations()
             .enableMergeAnnotations()
-            .addOptionsModification(options -> options.enableDevirtualization = false)
+            .addOptionsModification(
+                options -> {
+                  options.enableDevirtualization = false;
+                  options.enableInliningOfInvokesWithNullableReceivers = false;
+                })
             .setMinApi(AndroidApiLevel.B)
             .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput(expectedOutput)

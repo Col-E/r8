@@ -95,9 +95,7 @@ public class StringInMonitorTest extends TestBase {
 
   @Test
   public void testJVMOutput() throws Exception {
-    assumeTrue(
-        "Only run JVM reference once (for CF backend)",
-        parameters.getBackend() == Backend.CF);
+    assumeTrue("Only run JVM reference once (for CF backend)", parameters.isCfRuntime());
     testForJvm()
         .addTestClasspath()
         .run(parameters.getRuntime(), MAIN)
@@ -119,7 +117,7 @@ public class StringInMonitorTest extends TestBase {
     assertEquals(expectedConstStringCount1, count);
 
     // TODO(b/122302789): CfInstruction#getOffset()
-    if (parameters.getBackend() == Backend.DEX) {
+    if (parameters.isDexRuntime()) {
       Iterator<InstructionSubject> constStringIterator =
           mainMethod.iterateInstructions(i -> i.isConstString(JumboStringMode.ALLOW));
       // All const-string's in main(...) should be covered by try (or synthetic catch-all) region.
@@ -148,7 +146,7 @@ public class StringInMonitorTest extends TestBase {
     assertEquals(expectedConstStringCount2, count);
 
     // In CF, we don't explicitly add monitor-{enter|exit} and catch-all for synchronized methods.
-    if (parameters.getBackend() == Backend.DEX) {
+    if (parameters.isDexRuntime()) {
       Iterator<InstructionSubject> constStringIterator =
           sync.iterateInstructions(i -> i.isConstString(JumboStringMode.ALLOW));
       // All const-string's in sync() should be covered by the synthetic catch-all regions.
@@ -178,7 +176,7 @@ public class StringInMonitorTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue("Only run D8 for Dex backend", parameters.getBackend() == Backend.DEX);
+    assumeTrue("Only run D8 for Dex backend", parameters.isDexRuntime());
 
     D8TestRunResult result =
         testForD8()
@@ -210,7 +208,7 @@ public class StringInMonitorTest extends TestBase {
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     // Due to the different behavior regarding constant canonicalization.
-    int expectedConstStringCount3 = parameters.getBackend() == Backend.CF ? 2 : 1;
+    int expectedConstStringCount3 = parameters.isCfRuntime() ? 2 : 1;
     test(result, 2, 2, expectedConstStringCount3);
   }
 

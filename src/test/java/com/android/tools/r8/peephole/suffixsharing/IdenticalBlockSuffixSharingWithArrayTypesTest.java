@@ -65,7 +65,7 @@ public class IdenticalBlockSuffixSharingWithArrayTypesTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue("Only run D8 for DEX backend", parameters.getBackend() == Backend.DEX);
+    assumeTrue("Only run D8 for DEX backend", parameters.isDexRuntime());
 
     String expectedOutput = StringUtils.lines("42");
     testForD8()

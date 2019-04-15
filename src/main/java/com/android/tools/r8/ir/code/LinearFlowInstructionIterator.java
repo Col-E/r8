@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.utils.InternalOptions;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
@@ -35,6 +36,11 @@ public class LinearFlowInstructionIterator implements InstructionIterator, Instr
   @Override
   public void replaceCurrentInstruction(Instruction newInstruction) {
     currentBlockIterator.replaceCurrentInstruction(newInstruction);
+  }
+
+  @Override
+  public Value insertConstNullInstruction(IRCode code, InternalOptions options) {
+    return currentBlockIterator.insertConstNullInstruction(code, options);
   }
 
   @Override

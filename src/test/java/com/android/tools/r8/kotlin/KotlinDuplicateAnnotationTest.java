@@ -52,7 +52,7 @@ public class KotlinDuplicateAnnotationTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void test_dex() {
-    assumeTrue("test DEX", parameters.getBackend() == Backend.DEX);
+    assumeTrue("test DEX", parameters.isDexRuntime());
     try {
       testForR8(parameters.getBackend())
           .addProgramFiles(getKotlinJarFile(FOLDER))
@@ -70,7 +70,7 @@ public class KotlinDuplicateAnnotationTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void test_cf() throws Exception {
-    assumeTrue("test CF", parameters.getBackend() == Backend.CF);
+    assumeTrue("test CF", parameters.isCfRuntime());
     testForR8(parameters.getBackend())
         .addProgramFiles(getKotlinJarFile(FOLDER))
         .addKeepMainRule(MAIN)

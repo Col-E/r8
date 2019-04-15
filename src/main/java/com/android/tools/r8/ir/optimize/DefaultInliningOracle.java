@@ -290,20 +290,6 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       return null;
     }
 
-    // We can only inline an instance method call if we preserve the null check semantic (which
-    // would throw NullPointerException if the receiver is null). Therefore we can inline only if
-    // one of the following conditions is true:
-    // * the candidate inlinee checks null receiver before any side effect
-    // * the receiver is known to be non-null
-    if (invoke.getReceiver().getTypeLattice().isNullable()
-        && !candidate.getOptimizationInfo().checksNullReceiverBeforeAnySideEffect()) {
-      if (info != null) {
-        info.exclude(invoke, "receiver for candidate can be null");
-      }
-      assert !inliner.appView.appInfo().forceInline.contains(candidate.method);
-      return null;
-    }
-
     Reason reason = computeInliningReason(candidate);
     if (!candidate.isInliningCandidate(method, reason, inliner.appView.appInfo())) {
       // Abort inlining attempt if the single target is not an inlining candidate.
@@ -320,7 +306,25 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     if (info != null) {
       info.include(invoke.getType(), candidate);
     }
-    return new InlineAction(candidate, invoke, reason);
+
+    InlineAction action = new InlineAction(candidate, invoke, reason);
+
+    if (invoke.getReceiver().getTypeLattice().isDefinitelyNull()) {
+      action.setShouldReturnEmptyThrowingCode();
+    } else {
+      // When inlining an instance method call, we need to preserve the null check for the receiver.
+      // Therefore, if the receiver may be null and the candidate inlinee does not throw if the
+      // receiver is null before any other side effect, then we must synthesize a null check.
+      if (invoke.getReceiver().getTypeLattice().isNullable()
+          && !candidate.getOptimizationInfo().checksNullReceiverBeforeAnySideEffect()) {
+        if (!appView.options().enableInliningOfInvokesWithNullableReceivers) {
+          return null;
+        }
+        action.setShouldSynthesizeNullCheckForReceiver();
+      }
+    }
+
+    return action;
   }
 
   @Override

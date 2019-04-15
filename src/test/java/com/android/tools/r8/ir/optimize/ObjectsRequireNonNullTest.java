@@ -117,9 +117,7 @@ public class ObjectsRequireNonNullTest extends TestBase {
 
   @Test
   public void testJvmOutput() throws Exception {
-    assumeTrue(
-        "Only run JVM reference once (for CF backend)",
-        parameters.getBackend() == Backend.CF);
+    assumeTrue("Only run JVM reference once (for CF backend)", parameters.isCfRuntime());
     testForJvm()
         .addTestClasspath()
         .run(parameters.getRuntime(), MAIN)
@@ -168,7 +166,7 @@ public class ObjectsRequireNonNullTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue("Only run D8 for Dex backend", parameters.getBackend() == Backend.DEX);
+    assumeTrue("Only run D8 for Dex backend", parameters.isDexRuntime());
     D8TestRunResult result = testForD8()
         .debug()
         .addProgramClassesAndInnerClasses(MAIN)
@@ -188,7 +186,7 @@ public class ObjectsRequireNonNullTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    assumeTrue("CF disables move result optimization", parameters.getBackend() == Backend.DEX);
+    assumeTrue("CF disables move result optimization", parameters.isDexRuntime());
     R8TestRunResult result = testForR8(parameters.getBackend())
         .addProgramClassesAndInnerClasses(MAIN)
         .enableInliningAnnotations()

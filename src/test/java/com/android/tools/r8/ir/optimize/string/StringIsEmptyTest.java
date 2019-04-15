@@ -74,9 +74,7 @@ public class StringIsEmptyTest extends TestBase {
 
   @Test
   public void testJVMOutput() throws Exception {
-    assumeTrue(
-        "Only run JVM reference once (for CF backend)",
-        parameters.getBackend() == Backend.CF);
+    assumeTrue("Only run JVM reference once (for CF backend)", parameters.isCfRuntime());
     testForJvm()
         .addTestClasspath()
         .run(parameters.getRuntime(), MAIN)
@@ -116,7 +114,7 @@ public class StringIsEmptyTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue("Only run D8 for Dex backend", parameters.getBackend() == Backend.DEX);
+    assumeTrue("Only run D8 for Dex backend", parameters.isDexRuntime());
 
     D8TestRunResult result =
         testForD8()

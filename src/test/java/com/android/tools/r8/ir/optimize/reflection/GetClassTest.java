@@ -137,9 +137,7 @@ public class GetClassTest extends TestBase {
 
   @Test
   public void testJVMOutput() throws Exception {
-    assumeTrue(
-        "Only run JVM reference once (for CF backend)",
-        parameters.getBackend() == Backend.CF);
+    assumeTrue("Only run JVM reference once (for CF backend)", parameters.isCfRuntime());
     testForJvm()
         .addTestClasspath()
         .run(parameters.getRuntime(), MAIN)
@@ -194,7 +192,7 @@ public class GetClassTest extends TestBase {
 
     @Test
   public void testD8() throws Exception {
-    assumeTrue("Only run D8 for Dex backend", parameters.getBackend() == Backend.DEX);
+    assumeTrue("Only run D8 for Dex backend", parameters.isDexRuntime());
 
     // D8 debug.
     D8TestRunResult result =
@@ -234,7 +232,7 @@ public class GetClassTest extends TestBase {
 
     // The number of expected const-class instructions differs because constant canonicalization is
     // only enabled for the DEX backend.
-    int expectedConstClassCount = parameters.getBackend() == Backend.CF ? 7 : 5;
+    int expectedConstClassCount = parameters.isCfRuntime() ? 7 : 5;
 
     // R8 release, no minification.
     result =

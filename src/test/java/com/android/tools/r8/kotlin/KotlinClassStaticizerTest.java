@@ -6,8 +6,8 @@ package com.android.tools.r8.kotlin;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
@@ -35,7 +35,7 @@ public class KotlinClassStaticizerTest extends AbstractR8KotlinTestBase {
         "class_staticizer",
         mainClassName,
         false,
-        (app) -> {
+        app -> {
           CodeInspector inspector = new CodeInspector(app);
           assertThat(inspector.clazz("class_staticizer.Regular$Companion"), isPresent());
           assertThat(inspector.clazz("class_staticizer.Derived$Companion"), isPresent());
@@ -57,7 +57,7 @@ public class KotlinClassStaticizerTest extends AbstractR8KotlinTestBase {
         "class_staticizer",
         mainClassName,
         true,
-        (app) -> {
+        app -> {
           CodeInspector inspector = new CodeInspector(app);
           assertThat(inspector.clazz("class_staticizer.Regular$Companion"), not(isPresent()));
           assertThat(inspector.clazz("class_staticizer.Derived$Companion"), not(isPresent()));
@@ -71,10 +71,14 @@ public class KotlinClassStaticizerTest extends AbstractR8KotlinTestBase {
   protected void runTest(String folder, String mainClass,
       boolean enabled, AndroidAppInspector inspector) throws Exception {
     runTest(
-        folder, mainClass, null,
+        folder,
+        mainClass,
+        null,
         options -> {
           options.enableClassInlining = false;
           options.enableClassStaticizer = enabled;
-        }, inspector);
+          options.enableInliningOfInvokesWithNullableReceivers = false;
+        },
+        inspector);
   }
 }

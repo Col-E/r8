@@ -7,15 +7,15 @@ package com.android.tools.r8.shaking;
 import static com.android.tools.r8.references.Reference.classFromClass;
 import static com.android.tools.r8.references.Reference.methodFromMethod;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.naming.AdaptResourceFileContentsTest.DataResourceConsumerForTesting;
 import com.android.tools.r8.origin.Origin;
@@ -38,21 +38,21 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class ServiceLoaderTest extends TestBase {
 
-  private final Backend backend;
   private final boolean includeWorldGreeter;
+  private final TestParameters parameters;
 
   private DataResourceConsumerForTesting dataResourceConsumer;
   private static final String LINE_COMMENT = "# This is a comment.";
   private static final String POSTFIX_COMMENT = "# POSTFIX_COMMENT";
 
-  @Parameters(name = "Backend: {0}, include WorldGreeter: {1}")
+  @Parameters(name = "{1}, include WorldGreeter: {0}")
   public static List<Object[]> data() {
-    return buildParameters(ToolHelper.getBackends(), BooleanUtils.values());
+    return buildParameters(BooleanUtils.values(), getTestParameters().withAllRuntimes().build());
   }
 
-  public ServiceLoaderTest(Backend backend, boolean includeWorldGreeter) {
-    this.backend = backend;
+  public ServiceLoaderTest(boolean includeWorldGreeter, TestParameters parameters) {
     this.includeWorldGreeter = includeWorldGreeter;
+    this.parameters = parameters;
   }
 
   @Test
@@ -72,7 +72,7 @@ public class ServiceLoaderTest extends TestBase {
     }
 
     R8TestRunResult result =
-        testForR8(backend)
+        testForR8(parameters.getBackend())
             .addInnerClasses(ServiceLoaderTest.class)
             .addKeepMainRule(TestClass.class)
             .addDataEntryResources(
@@ -85,9 +85,11 @@ public class ServiceLoaderTest extends TestBase {
                   dataResourceConsumer =
                       new DataResourceConsumerForTesting(options.dataResourceConsumer);
                   options.dataResourceConsumer = dataResourceConsumer;
+                  options.enableInliningOfInvokesWithNullableReceivers = false;
                 })
             .enableGraphInspector()
-            .run(TestClass.class)
+            .setMinApi(parameters.getRuntime())
+            .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput(expectedOutput);
 
     CodeInspector inspector = result.inspector();
@@ -163,7 +165,7 @@ public class ServiceLoaderTest extends TestBase {
     }
 
     CodeInspector inspector =
-        testForR8(backend)
+        testForR8(parameters.getBackend())
             .addInnerClasses(ServiceLoaderTest.class)
             .addKeepMainRule(OtherTestClass.class)
             .addDataEntryResources(
@@ -177,7 +179,8 @@ public class ServiceLoaderTest extends TestBase {
                       new DataResourceConsumerForTesting(options.dataResourceConsumer);
                   options.dataResourceConsumer = dataResourceConsumer;
                 })
-            .run(OtherTestClass.class)
+            .setMinApi(parameters.getRuntime())
+            .run(parameters.getRuntime(), OtherTestClass.class)
             .assertSuccessWithOutput(expectedOutput)
             .inspector();
 

@@ -52,7 +52,7 @@ public class MissingClassesJoinTest extends TestBase {
             .compile()
             .writeToZip();
 
-    if (parameters.getBackend() == Backend.DEX && !allowTypeErrors) {
+    if (parameters.isDexRuntime() && !allowTypeErrors) {
       testForD8()
           // Intentionally not adding ASub2 as a program class.
           .addProgramClasses(A.class, ASub1.class, Box.class, TestClass.class)

@@ -46,7 +46,7 @@ public class UnusedArgumentsCollisionTest extends TestBase {
   public void test() throws Exception {
     String expectedOutput = StringUtils.lines("Hello world", "Hello world");
 
-    if (parameters.getBackend() == Backend.CF && !minification) {
+    if (parameters.isCfRuntime() && !minification) {
       testForJvm()
           .addTestClasspath()
           .run(parameters.getRuntime(), TestClass.class)

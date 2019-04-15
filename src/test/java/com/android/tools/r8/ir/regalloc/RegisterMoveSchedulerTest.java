@@ -18,13 +18,13 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Move;
+import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
-
 import org.junit.Test;
 
 public class RegisterMoveSchedulerTest {
@@ -44,6 +44,11 @@ public class RegisterMoveSchedulerTest {
 
     @Override
     public void replaceCurrentInstruction(Instruction newInstruction) {
+      throw new Unimplemented();
+    }
+
+    @Override
+    public Value insertConstNullInstruction(IRCode code, InternalOptions options) {
       throw new Unimplemented();
     }
 

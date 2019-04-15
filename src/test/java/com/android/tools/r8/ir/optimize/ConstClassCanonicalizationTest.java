@@ -107,9 +107,7 @@ public class ConstClassCanonicalizationTest extends TestBase {
 
   @Test
   public void testJVMOutput() throws Exception {
-    assumeTrue(
-        "Only run JVM reference once (for CF backend)",
-        parameters.getBackend() == Backend.CF);
+    assumeTrue("Only run JVM reference once (for CF backend)", parameters.isCfRuntime());
     testForJvm()
         .addTestClasspath()
         .run(parameters.getRuntime(), MAIN)
@@ -118,7 +116,7 @@ public class ConstClassCanonicalizationTest extends TestBase {
 
   @Test
   public void testD8_incremental() throws Exception {
-    assumeTrue("Only run D8 for Dex backend", parameters.getBackend() == Backend.DEX);
+    assumeTrue("Only run D8 for Dex backend", parameters.isDexRuntime());
 
     Path zipA = temp.newFile("a.zip").toPath().toAbsolutePath();
     testForD8()
@@ -173,7 +171,7 @@ public class ConstClassCanonicalizationTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue("Only run D8 for Dex backend", parameters.getBackend() == Backend.DEX);
+    assumeTrue("Only run D8 for Dex backend", parameters.isDexRuntime());
 
     D8TestRunResult result =
         testForD8()
@@ -208,11 +206,11 @@ public class ConstClassCanonicalizationTest extends TestBase {
     // The number of expected const-class instructions differs because constant canonicalization is
     // only enabled for the DEX backend.
     int expectedMainCount =
-        parameters.getBackend() == Backend.CF ? ORIGINAL_MAIN_COUNT : CANONICALIZED_MAIN_COUNT;
+        parameters.isCfRuntime() ? ORIGINAL_MAIN_COUNT : CANONICALIZED_MAIN_COUNT;
     int expectedOuterCount =
-        parameters.getBackend() == Backend.CF ? ORIGINAL_OUTER_COUNT : CANONICALIZED_OUTER_COUNT;
+        parameters.isCfRuntime() ? ORIGINAL_OUTER_COUNT : CANONICALIZED_OUTER_COUNT;
     int expectedInnerCount =
-        parameters.getBackend() == Backend.CF ? ORIGINAL_INNER_COUNT : CANONICALIZED_INNER_COUNT;
+        parameters.isCfRuntime() ? ORIGINAL_INNER_COUNT : CANONICALIZED_INNER_COUNT;
     test(result, expectedMainCount, expectedOuterCount, expectedInnerCount);
   }
 

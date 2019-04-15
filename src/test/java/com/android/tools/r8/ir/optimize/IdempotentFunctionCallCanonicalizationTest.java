@@ -108,9 +108,7 @@ public class IdempotentFunctionCallCanonicalizationTest extends TestBase {
 
   @Test
   public void testJVMOutput() throws Exception {
-    assumeTrue(
-        "Only run JVM reference once (for CF backend)",
-        parameters.getBackend() == Backend.CF);
+    assumeTrue("Only run JVM reference once (for CF backend)", parameters.isCfRuntime());
     testForJvm()
         .addTestClasspath()
         .run(parameters.getRuntime(), MAIN)
@@ -149,7 +147,7 @@ public class IdempotentFunctionCallCanonicalizationTest extends TestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue("Only run D8 for Dex backend", parameters.getBackend() == Backend.DEX);
+    assumeTrue("Only run D8 for Dex backend", parameters.isDexRuntime());
 
     D8TestRunResult result =
         testForD8()
@@ -180,12 +178,9 @@ public class IdempotentFunctionCallCanonicalizationTest extends TestBase {
             .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
-    int expectedBooleanValueOfCount =
-        parameters.getBackend() == Backend.CF ? 6 : EXPECTED_BOOLEAN_VALUE_OF;
-    int expectedIntValueOfCount =
-        parameters.getBackend() == Backend.CF ? 5 : EXPECTED_INTEGER_VALUE_OF;
-    int expectedLongValueOfCount =
-        parameters.getBackend() == Backend.CF ? 10 : EXPECTED_LONG_VALUE_OF;
+    int expectedBooleanValueOfCount = parameters.isCfRuntime() ? 6 : EXPECTED_BOOLEAN_VALUE_OF;
+    int expectedIntValueOfCount = parameters.isCfRuntime() ? 5 : EXPECTED_INTEGER_VALUE_OF;
+    int expectedLongValueOfCount = parameters.isCfRuntime() ? 10 : EXPECTED_LONG_VALUE_OF;
     test(result, expectedBooleanValueOfCount, expectedIntValueOfCount, expectedLongValueOfCount);
   }
 }

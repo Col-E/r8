@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.utils.InternalOptions;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
@@ -49,6 +50,8 @@ public interface InstructionListIterator
   default void setInsertionPosition(Position position) {
     // Intentionally empty.
   }
+
+  Value insertConstNullInstruction(IRCode code, InternalOptions options);
 
   /**
    * Replace the current instruction with null throwing instructions.

@@ -89,6 +89,9 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
         o.enableClassStaticizer = false;
       };
 
+  private Consumer<InternalOptions> disableInliningOfInvokesWithNullableReceivers =
+      o -> o.enableInliningOfInvokesWithNullableReceivers = false;
+
   public R8KotlinPropertiesTest(
       KotlinTargetVersion targetVersion, boolean allowAccessModification) {
     super(targetVersion, allowAccessModification);
@@ -413,7 +416,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     runTest(
         PACKAGE_NAME,
         mainClass,
-        disableAggressiveClassOptimizations,
+        disableAggressiveClassOptimizations.andThen(disableInliningOfInvokesWithNullableReceivers),
         app -> {
           CodeInspector codeInspector = new CodeInspector(app);
           ClassSubject outerClass =
@@ -486,7 +489,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     runTest(
         PACKAGE_NAME,
         mainClass,
-        disableAggressiveClassOptimizations,
+        disableAggressiveClassOptimizations.andThen(disableInliningOfInvokesWithNullableReceivers),
         app -> {
           CodeInspector codeInspector = new CodeInspector(app);
           ClassSubject outerClass =
@@ -521,7 +524,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     runTest(
         PACKAGE_NAME,
         mainClass,
-        disableAggressiveClassOptimizations,
+        disableAggressiveClassOptimizations.andThen(disableInliningOfInvokesWithNullableReceivers),
         app -> {
           CodeInspector codeInspector = new CodeInspector(app);
           ClassSubject outerClass =
@@ -593,7 +596,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     runTest(
         PACKAGE_NAME,
         mainClass,
-        disableAggressiveClassOptimizations,
+        disableAggressiveClassOptimizations.andThen(disableInliningOfInvokesWithNullableReceivers),
         app -> {
           CodeInspector codeInspector = new CodeInspector(app);
           ClassSubject outerClass =
@@ -622,7 +625,7 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
     runTest(
         PACKAGE_NAME,
         mainClass,
-        disableAggressiveClassOptimizations,
+        disableAggressiveClassOptimizations.andThen(disableInliningOfInvokesWithNullableReceivers),
         app -> {
           CodeInspector codeInspector = new CodeInspector(app);
           ClassSubject outerClass =

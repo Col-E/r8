@@ -6,20 +6,16 @@ package com.android.tools.r8.shaking.proxy;
 
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.ClassFileConsumer;
-import com.android.tools.r8.DexIndexedConsumer;
-import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.graph.invokesuper.Consumer;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.proxy.testclasses.BaseInterface;
 import com.android.tools.r8.shaking.proxy.testclasses.Main;
 import com.android.tools.r8.shaking.proxy.testclasses.SubClass;
 import com.android.tools.r8.shaking.proxy.testclasses.SubInterface;
 import com.android.tools.r8.shaking.proxy.testclasses.TestClass;
-import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
@@ -29,6 +25,7 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -36,55 +33,47 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class ProxiesTest extends TestBase {
-  private Backend backend;
 
-  @Parameterized.Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
+  private final TestParameters parameters;
+
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimes().build();
   }
 
-  public ProxiesTest(Backend backend) {
-    this.backend = backend;
+  public ProxiesTest(TestParameters parameters) {
+    this.parameters = parameters;
   }
 
-  private void runTest(List<String> additionalKeepRules, Consumer<CodeInspector> inspection,
-      String expectedResult)
+  private void runTest(
+      List<String> additionalKeepRules, Consumer<CodeInspector> inspection, String expectedResult)
       throws Exception {
-    Class mainClass = Main.class;
-    R8Command.Builder builder = R8Command.builder();
-    builder.addProgramFiles(ToolHelper.getClassFilesForTestPackage(mainClass.getPackage()));
-    builder.addProguardConfiguration(ImmutableList.of(
-        "-keep class " + mainClass.getCanonicalName() + " {",
-        // Keep x, y and z to avoid them being inlined into main.
-        "  private void x(com.android.tools.r8.shaking.proxy.testclasses.BaseInterface);",
-        "  private void y(com.android.tools.r8.shaking.proxy.testclasses.SubInterface);",
-        "  private void z(com.android.tools.r8.shaking.proxy.testclasses.TestClass);",
-        "  private void z(com.android.tools.r8.shaking.proxy.testclasses.SubClass);",
-        "  public static void main(java.lang.String[]);",
-        "}",
-        "-dontobfuscate"),
-        Origin.unknown()
-    );
-    builder.addProguardConfiguration(additionalKeepRules, Origin.unknown());
-    if (backend == Backend.DEX) {
-      builder
-          .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
-          .addLibraryFiles(ToolHelper.getDefaultAndroidJar());
-    } else {
-      assert backend == Backend.CF;
-      builder
-          .setProgramConsumer(ClassFileConsumer.emptyConsumer())
-          .addLibraryFiles(ToolHelper.getJava8RuntimeJar());
-    }
-    AndroidApp app = ToolHelper.runR8(builder.build(), o -> {
-      o.enableDevirtualization = false;
-      // Tests indirectly check if a certain method is inlined or not, where the target method has
-      // at least 4 instructions.
-      o.inliningInstructionLimit = 4;
-    });
-    inspection.accept(new CodeInspector(app));
-    String result = backend == Backend.DEX ? runOnArt(app, mainClass) : runOnJava(app, mainClass);
-    assertEquals(StringUtils.withNativeLineSeparator(expectedResult), result);
+    testForR8(parameters.getBackend())
+        .addProgramFiles(ToolHelper.getClassFilesForTestPackage(Main.class.getPackage()))
+        .addKeepMainRule(Main.class)
+        .addKeepRules(
+            "-keep class " + Main.class.getCanonicalName() + " {",
+            // Keep x, y and z to avoid them being inlined into main.
+            "  private void x(com.android.tools.r8.shaking.proxy.testclasses.BaseInterface);",
+            "  private void y(com.android.tools.r8.shaking.proxy.testclasses.SubInterface);",
+            "  private void z(com.android.tools.r8.shaking.proxy.testclasses.TestClass);",
+            "  private void z(com.android.tools.r8.shaking.proxy.testclasses.SubClass);",
+            "}")
+        .addKeepRules(additionalKeepRules)
+        .addOptionsModification(
+            o -> {
+              o.enableDevirtualization = false;
+              o.enableInliningOfInvokesWithNullableReceivers = false;
+              // Tests indirectly check if a certain method is inlined or not, where the target
+              // method has at least 4 instructions.
+              o.inliningInstructionLimit = 4;
+            })
+        .noMinification()
+        .setMinApi(parameters.getRuntime())
+        .compile()
+        .inspect(inspection)
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutput(StringUtils.withNativeLineSeparator(expectedResult));
   }
 
   private int countInstructionInX(CodeInspector inspector, Predicate<InstructionSubject> invoke) {

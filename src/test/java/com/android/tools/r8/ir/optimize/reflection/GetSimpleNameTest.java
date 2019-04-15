@@ -165,7 +165,7 @@ public class GetSimpleNameTest extends GetNameTestBase {
   public void testJVMOutput() throws Exception {
     assumeTrue(
         "Only run JVM reference once (for CF backend)",
-        parameters.getBackend() == Backend.CF && !enableMinification);
+        parameters.isCfRuntime() && !enableMinification);
     testForJvm()
         .addTestClasspath()
         .run(parameters.getRuntime(), MAIN)
@@ -182,9 +182,7 @@ public class GetSimpleNameTest extends GetNameTestBase {
 
   @Test
   public void testD8() throws Exception {
-    assumeTrue(
-        "Only run D8 for Dex backend",
-        parameters.getBackend() == Backend.DEX && !enableMinification);
+    assumeTrue("Only run D8 for Dex backend", parameters.isDexRuntime() && !enableMinification);
 
     D8TestRunResult result =
         testForD8()

@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Phi.RegisterReadType;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -183,6 +184,15 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
   }
 
   @Override
+  public Value insertConstNullInstruction(IRCode code, InternalOptions options) {
+    ConstNumber constNumberInstruction = code.createConstNull();
+    // Note that we only keep position info for throwing instructions in release mode.
+    constNumberInstruction.setPosition(options.debug ? current.getPosition() : Position.none());
+    add(constNumberInstruction);
+    return constNumberInstruction.outValue();
+  }
+
+  @Override
   public void replaceCurrentInstructionWithThrowNull(
       AppView<? extends AppInfoWithSubtyping> appView,
       IRCode code,
@@ -205,15 +215,11 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
 
     // Insert constant null before the instruction.
     previous();
-    ConstNumber constNumberInstruction = code.createConstNull();
-    // Note that we only keep position info for throwing instructions in release mode.
-    constNumberInstruction.setPosition(
-        appView.options().debug ? current.getPosition() : Position.none());
-    add(constNumberInstruction);
+    Value nullValue = insertConstNullInstruction(code, appView.options());
     next();
 
     // Replace the instruction by throw.
-    Throw throwInstruction = new Throw(constNumberInstruction.outValue());
+    Throw throwInstruction = new Throw(nullValue);
     for (Value inValue : current.inValues()) {
       if (inValue.hasLocalInfo()) {
         // Add this value as a debug value to avoid changing its live range.

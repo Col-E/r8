@@ -108,7 +108,7 @@ public class MemberResolutionTest extends TestBase {
             "AbstractChecker#check:PrivateInitialTag_AbstractChecker",
             "ConcreteChecker#check:NewTag");
 
-    if (parameters.getBackend() == Backend.CF) {
+    if (parameters.isCfRuntime()) {
       testForJvm()
           .addTestClasspath()
           .run(parameters.getRuntime(), MemberResolutionTestMain.class)

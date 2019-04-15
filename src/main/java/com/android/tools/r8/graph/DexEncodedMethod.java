@@ -517,6 +517,12 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     return this;
   }
 
+  public IRCode buildEmptyThrowingIRCode(AppView<? extends AppInfo> appView, Origin origin) {
+    DexCode emptyThrowingDexCode = buildEmptyThrowingDexCode();
+    emptyThrowingDexCode.setOwner(this);
+    return emptyThrowingDexCode.buildIR(this, appView, origin);
+  }
+
   /**
    * Generates a {@link DexCode} object for the given instructions.
    * <p>
