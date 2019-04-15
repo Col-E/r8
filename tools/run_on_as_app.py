@@ -1119,7 +1119,9 @@ def main(argv):
     os.environ[utils.ANDROID_HOME_ENVIROMENT_NAME] = os.path.join(
         utils.ANDROID_SDK)
     os.environ[utils.ANDROID_TOOLS_VERSION_ENVIRONMENT_NAME] = '28.0.3'
-    options.no_logging = True
+    # TODO(b/130343699): Temporary logging for debugging.
+    options.app_logging_filter = ['rover-android']
+    options.no_logging = False
     options.shrinker = [shrinker for shrinker in SHRINKERS if shrinker != 'pg']
     print(options.shrinker)
 
