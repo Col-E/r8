@@ -78,6 +78,8 @@ public interface InstructionSubject {
 
   boolean isInstanceOf();
 
+  boolean isInstanceOf(String type);
+
   boolean isIf(); // Also include CF/if_cmp* instructions.
 
   boolean isPackedSwitch();

@@ -222,6 +222,11 @@ public class CfInstructionSubject implements InstructionSubject {
   }
 
   @Override
+  public boolean isInstanceOf(String type) {
+    return isInstanceOf() && ((CfInstanceOf) instruction).getType().toString().equals(type);
+  }
+
+  @Override
   public boolean isIf() {
     return instruction instanceof CfIf || instruction instanceof CfIfCmp;
   }

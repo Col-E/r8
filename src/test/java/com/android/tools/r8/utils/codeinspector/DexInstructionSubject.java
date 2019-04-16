@@ -340,6 +340,11 @@ public class DexInstructionSubject implements InstructionSubject {
     return instruction instanceof InstanceOf;
   }
 
+  @Override
+  public boolean isInstanceOf(String type) {
+    return isInstanceOf() && ((InstanceOf) instruction).getType().toString().equals(type);
+  }
+
   public boolean isConst4() {
     return instruction instanceof Const4;
   }

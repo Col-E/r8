@@ -31,7 +31,7 @@ public class CodeMatchers {
 
       @Override
       public void describeTo(Description description) {
-        description.appendText(" does not invoke `" + target.toSourceString() + "`");
+        description.appendText("invokes method `" + target.toSourceString() + "`");
       }
 
       @Override
@@ -42,6 +42,6 @@ public class CodeMatchers {
   }
 
   public static Predicate<InstructionSubject> isInvokeWithTarget(DexMethod target) {
-    return instruction -> instruction.isInvokeStatic() && instruction.getMethod() == target;
+    return instruction -> instruction.isInvoke() && instruction.getMethod() == target;
   }
 }

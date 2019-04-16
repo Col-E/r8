@@ -112,6 +112,7 @@ public class InternalOptions {
 
   public void disableGlobalOptimizations() {
     enableArgumentRemoval = false;
+    enableDynamicTypeOptimization = false;
     enableInlining = false;
     enableClassInlining = false;
     enableClassStaticizer = false;
@@ -133,6 +134,7 @@ public class InternalOptions {
   public boolean passthroughDexCode = false;
 
   // Optimization-related flags. These should conform to -dontoptimize and disableAllOptimizations.
+  public boolean enableDynamicTypeOptimization = true;
   public boolean enableHorizontalClassMerging = true;
   public boolean enableVerticalClassMerging = true;
   public boolean enableArgumentRemoval = true;
