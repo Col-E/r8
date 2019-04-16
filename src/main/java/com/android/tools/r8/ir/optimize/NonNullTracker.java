@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.code.Assume;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.DominatorTree;
 import com.android.tools.r8.ir.code.IRCode;
@@ -20,7 +21,6 @@ import com.android.tools.r8.ir.code.If.Type;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
-import com.android.tools.r8.ir.code.NonNull;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.OptimizationFeedback;
@@ -225,7 +225,7 @@ public class NonNullTracker {
                         typeLattice.asReferenceTypeLatticeElement().asNotNull(),
                         knownToBeNonNullValue.getLocalInfo());
                 affectedValues.addAll(knownToBeNonNullValue.affectedValues());
-                NonNull nonNull = new NonNull(nonNullValue, knownToBeNonNullValue, theIf);
+                Assume nonNull = new Assume(nonNullValue, knownToBeNonNullValue, theIf);
                 InstructionListIterator targetIterator = target.listIterator();
                 nonNull.setPosition(targetIterator.next().getPosition());
                 targetIterator.previous();
@@ -318,7 +318,7 @@ public class NonNullTracker {
                 typeLattice.asReferenceTypeLatticeElement().asNotNull(),
                 knownToBeNonNullValue.getLocalInfo());
         affectedValues.addAll(knownToBeNonNullValue.affectedValues());
-        NonNull nonNull = new NonNull(nonNullValue, knownToBeNonNullValue, current);
+        Assume nonNull = new Assume(nonNullValue, knownToBeNonNullValue, current);
         nonNull.setPosition(current.getPosition());
         if (blockWithNonNullInstruction != block) {
           // If we split, add non-null IR on top of the new split block.
@@ -484,7 +484,7 @@ public class NonNullTracker {
       //
       // rcv#foo
       if (instruction.isNonNull()) {
-        NonNull nonNull = instruction.asNonNull();
+        Assume nonNull = instruction.asNonNull();
         Value src = nonNull.src();
         Value dest = nonNull.dest();
         affectedValues.addAll(dest.affectedValues());

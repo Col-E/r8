@@ -260,7 +260,7 @@ public abstract class DefaultInstructionVisitor<T> implements InstructionVisitor
   }
 
   @Override
-  public T visit(NonNull instruction) {
+  public T visit(Assume instruction) {
     return null;
   }
 

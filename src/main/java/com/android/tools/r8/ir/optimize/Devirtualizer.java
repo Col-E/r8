@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.code.Assume;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.DominatorTree;
@@ -17,7 +18,6 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeInterface;
 import com.android.tools.r8.ir.code.InvokeVirtual;
-import com.android.tools.r8.ir.code.NonNull;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -66,7 +66,7 @@ public class Devirtualizer {
         // ...
         // non_null_rcv <- non-null rcv_c  // <- Update the input rcv to the non-null, too.
         if (current.isNonNull()) {
-          NonNull nonNull = current.asNonNull();
+          Assume nonNull = current.asNonNull();
           Instruction origin = nonNull.origin();
           if (origin.isInvokeInterface()
               && !origin.asInvokeInterface().getReceiver().hasLocalInfo()

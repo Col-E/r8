@@ -836,7 +836,7 @@ public abstract class Instruction implements InstructionOrPhi {
     return false;
   }
 
-  public NonNull asNonNull() {
+  public Assume asNonNull() {
     return null;
   }
 

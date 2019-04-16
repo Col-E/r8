@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.ArrayGet;
+import com.android.tools.r8.ir.code.Assume;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.Instruction;
@@ -24,7 +25,6 @@ import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.NewInstance;
-import com.android.tools.r8.ir.code.NonNull;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.NonNullTracker;
 import com.android.tools.r8.ir.optimize.NonNullTrackerTestBase;
@@ -133,7 +133,7 @@ public class NullabilityTest extends NonNullTrackerTestBase {
           Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices =
               ImmutableMap.of(
                   InvokeVirtual.class, stringClassType(appInfo, maybeNull()),
-                  NonNull.class, stringClassType(appInfo, definitelyNotNull()),
+                  Assume.class, stringClassType(appInfo, definitelyNotNull()),
                   NewInstance.class, fromDexType(assertionErrorType, definitelyNotNull(), appInfo));
           forEachOutValue(
               irCode, (v, l) -> verifyClassTypeLattice(expectedLattices, mainClass, v, l));
@@ -160,7 +160,7 @@ public class NullabilityTest extends NonNullTrackerTestBase {
           Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices =
               ImmutableMap.of(
                   InvokeVirtual.class, stringClassType(appInfo, maybeNull()),
-                  NonNull.class, stringClassType(appInfo, definitelyNotNull()),
+                  Assume.class, stringClassType(appInfo, definitelyNotNull()),
                   NewInstance.class, fromDexType(assertionErrorType, definitelyNotNull(), appInfo));
           forEachOutValue(
               irCode, (v, l) -> verifyClassTypeLattice(expectedLattices, mainClass, v, l));
@@ -277,7 +277,7 @@ public class NullabilityTest extends NonNullTrackerTestBase {
           Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices =
               ImmutableMap.of(
                   Argument.class, fromDexType(testClass, maybeNull(), appInfo),
-                  NonNull.class, fromDexType(testClass, definitelyNotNull(), appInfo),
+                  Assume.class, fromDexType(testClass, definitelyNotNull(), appInfo),
                   // instance may not be initialized.
                   InstanceGet.class,
                       fromDexType(appInfo.dexItemFactory().stringType, maybeNull(), appInfo),
@@ -313,7 +313,7 @@ public class NullabilityTest extends NonNullTrackerTestBase {
           Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices =
               ImmutableMap.of(
                   Argument.class, fromDexType(testClass, maybeNull(), appInfo),
-                  NonNull.class, fromDexType(testClass, definitelyNotNull(), appInfo),
+                  Assume.class, fromDexType(testClass, definitelyNotNull(), appInfo),
                   // instance may not be initialized.
                   InstanceGet.class,
                       fromDexType(appInfo.dexItemFactory().stringType, maybeNull(), appInfo),

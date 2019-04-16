@@ -14,12 +14,12 @@ import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 
-public class NonNull extends Instruction {
+public class Assume extends Instruction {
   private final static String ERROR_MESSAGE = "This fake IR should be removed after inlining.";
 
   final Instruction origin;
 
-  public NonNull(Value dest, Value src, Instruction origin) {
+  public Assume(Value dest, Value src, Instruction origin) {
     super(dest, src);
     assert !src.isNeverNull();
     this.origin = origin;
@@ -48,7 +48,7 @@ public class NonNull extends Instruction {
   }
 
   @Override
-  public NonNull asNonNull() {
+  public Assume asNonNull() {
     return this;
   }
 

@@ -104,7 +104,7 @@ public interface InstructionVisitor<T> {
 
   T visit(NewInstance instruction);
 
-  T visit(NonNull instruction);
+  T visit(Assume instruction);
 
   T visit(Not instruction);
 
