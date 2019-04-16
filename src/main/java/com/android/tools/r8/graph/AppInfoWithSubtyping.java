@@ -37,7 +37,7 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
     int hierarchyLevel = UNKNOWN_LEVEL;
     /**
      * Set of direct subtypes. This set has to remain sorted to ensure determinism. The actual
-     * sorting is not important but {@link #slowCompareTo(DexType)} works well.
+     * sorting is not important but {@link DexType#slowCompareTo(DexType)} works well.
      */
     Set<DexType> directSubtypes = NO_DIRECT_SUBTYPE;
 
@@ -647,6 +647,7 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
     return info.directSubtypes.contains(subtype);
   }
 
+  // TODO(b/130636783): inconsistent location
   public DexType computeLeastUpperBoundOfClasses(DexType subtype, DexType other) {
     if (subtype == other) {
       return subtype;

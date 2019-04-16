@@ -4,11 +4,9 @@
 
 package com.android.tools.r8.ir.analysis;
 
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
@@ -27,7 +25,7 @@ import com.android.tools.r8.ir.code.Value;
  * that it is dead.
  *
  * <p>Pruning code that does not verify is necessary in order to be able to assert that the types
- * are sound using {@link Instruction#verifyTypes(AppInfo, GraphLense)}.
+ * are sound using {@link Instruction#verifyTypes(AppView)}.
  */
 public class TypeChecker {
 

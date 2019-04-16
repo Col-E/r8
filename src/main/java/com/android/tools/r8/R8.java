@@ -402,7 +402,7 @@ public class R8 {
       // The class type lattice elements include information about the interfaces that a class
       // implements. This information can change as a result of vertical class merging, so we need
       // to clear the cache, so that we will recompute the type lattice elements.
-      appView.dexItemFactory().clearReferenceTypeLatticeElementsCache();
+      appView.dexItemFactory().clearTypeLatticeElementsCache();
 
       if (options.getProguardConfiguration().isAccessModificationAllowed()) {
         GraphLense publicizedLense =
@@ -484,7 +484,7 @@ public class R8 {
       }
 
       // None of the optimizations above should lead to the creation of type lattice elements.
-      assert appView.dexItemFactory().verifyNoCachedReferenceTypeLatticeElements();
+      assert appView.dexItemFactory().verifyNoCachedTypeLatticeElements();
 
       // Collect switch maps and ordinals maps.
       appViewWithLiveness.setAppInfo(new SwitchMapCollector(appViewWithLiveness).run());
@@ -504,7 +504,7 @@ public class R8 {
       }
 
       // Clear the reference type lattice element cache to reduce memory pressure.
-      appView.dexItemFactory().clearReferenceTypeLatticeElementsCache();
+      appView.dexItemFactory().clearTypeLatticeElementsCache();
 
       // At this point all code has been mapped according to the graph lens. We cannot remove the
       // graph lens entirely, though, since it is needed for mapping all field and method signatures

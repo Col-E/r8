@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import static com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement.computeLeastUpperBoundOfInterfaces;
+
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.graph.DexDebugEvent.AdvanceLine;
@@ -72,6 +74,8 @@ public class DexItemFactory {
   // ReferenceTypeLattice canonicalization.
   private final ConcurrentHashMap<DexType, ReferenceTypeLatticeElement>
       referenceTypeLatticeElements = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<DexType, Set<DexType>>
+      classTypeLatticeInterfaces = new ConcurrentHashMap<>();
   public final LRUCacheTable<Set<DexType>, Set<DexType>, Set<DexType>>
       leastUpperBoundOfInterfacesTable = LRUCacheTable.create(8, 8);
 
@@ -1174,12 +1178,16 @@ public class DexItemFactory {
     return method.name == classConstructorMethodName;
   }
 
-  public void clearReferenceTypeLatticeElementsCache() {
+  public void clearTypeLatticeElementsCache() {
     referenceTypeLatticeElements.clear();
+    classTypeLatticeInterfaces.clear();
+    leastUpperBoundOfInterfacesTable.clear();
   }
 
-  public boolean verifyNoCachedReferenceTypeLatticeElements() {
+  public boolean verifyNoCachedTypeLatticeElements() {
     assert referenceTypeLatticeElements.isEmpty();
+    assert classTypeLatticeInterfaces.isEmpty();
+    assert leastUpperBoundOfInterfacesTable.isEmpty();
     return true;
   }
 
@@ -1235,6 +1243,18 @@ public class DexItemFactory {
               return ArrayTypeLatticeElement.create(finalMemberType, nullability);
             })
         .getOrCreateVariant(nullability);
+  }
+
+  public Set<DexType> getOrComputeLeastUpperBoundOfImplementedInterfaces(
+      DexType type, AppView<? extends AppInfoWithSubtyping> appView) {
+    return classTypeLatticeInterfaces
+        .computeIfAbsent(
+            type,
+            t -> {
+              Set<DexType> itfs = appView.appInfo().implementedInterfaces(t);
+              return computeLeastUpperBoundOfInterfaces(appView, itfs, itfs);
+            }
+        );
   }
 
   private static <S extends PresortedComparable<S>> void assignSortedIndices(Collection<S> items,

@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.analysis.type;
 
-
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
@@ -21,8 +20,10 @@ import java.util.stream.Collectors;
 
 public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
 
+  // Least upper bound of interfaces that this class type is implementing.
+  // Lazily computed on demand via DexItemFactory, where the canonicalized set will be maintained.
   private Set<DexType> lazyInterfaces;
-  private AppView<? extends AppInfoWithSubtyping> appViewForLazyInterfacesComputation;
+  private AppView<? extends AppInfoWithSubtyping> appView;
   // On-demand link between other nullability-variants.
   private final NullabilityVariants<ClassTypeLatticeElement> variants;
   private final DexType type;
@@ -52,8 +53,9 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
       AppView<? extends AppInfoWithSubtyping> appView) {
     super(nullability);
     assert classType.isClassType();
+    assert interfaces != null || appView != null;
     type = classType;
-    appViewForLazyInterfacesComputation = appView;
+    this.appView = appView;
     lazyInterfaces = interfaces;
     this.variants = variants;
   }
@@ -63,26 +65,20 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
   }
 
   public Set<DexType> getInterfaces() {
-    if (appViewForLazyInterfacesComputation == null) {
-      return lazyInterfaces;
+    if (lazyInterfaces == null) {
+      assert appView != null;
+      lazyInterfaces =
+          appView.dexItemFactory()
+              .getOrComputeLeastUpperBoundOfImplementedInterfaces(type, appView);
     }
-    synchronized (this) {
-      if (lazyInterfaces == null) {
-        Set<DexType> itfs =
-            appViewForLazyInterfacesComputation.appInfo().implementedInterfaces(type);
-        lazyInterfaces =
-            computeLeastUpperBoundOfInterfaces(appViewForLazyInterfacesComputation, itfs, itfs);
-        appViewForLazyInterfacesComputation = null;
-      }
-    }
+    assert lazyInterfaces != null;
     return lazyInterfaces;
   }
 
   private ClassTypeLatticeElement createVariant(
       Nullability nullability, NullabilityVariants<ClassTypeLatticeElement> variants) {
     assert this.nullability != nullability;
-    return new ClassTypeLatticeElement(
-        type, nullability, lazyInterfaces, variants, appViewForLazyInterfacesComputation);
+    return new ClassTypeLatticeElement(type, nullability, lazyInterfaces, variants, appView);
   }
 
   @Override
@@ -136,8 +132,8 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
   ClassTypeLatticeElement join(ClassTypeLatticeElement other, AppView<?> appView) {
     Nullability nullability = nullability().join(other.nullability());
     if (!appView.appInfo().hasSubtyping()) {
-      assert getInterfaces().isEmpty();
-      assert other.getInterfaces().isEmpty();
+      assert lazyInterfaces != null && lazyInterfaces.isEmpty();
+      assert other.lazyInterfaces != null && other.lazyInterfaces.isEmpty();
       return ClassTypeLatticeElement.create(
           getClassType() == other.getClassType()
               ? getClassType()
@@ -157,7 +153,7 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
       lubItfs = c1lubItfs;
     }
     if (lubItfs == null) {
-      lubItfs = computeLeastUpperBoundOfInterfaces(appView.withLiveness(), c1lubItfs, c2lubItfs);
+      lubItfs = computeLeastUpperBoundOfInterfaces(appView.withSubtyping(), c1lubItfs, c2lubItfs);
     }
     return ClassTypeLatticeElement.create(lubType, nullability, lubItfs);
   }
@@ -177,7 +173,8 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
     }
   }
 
-  static Set<DexType> computeLeastUpperBoundOfInterfaces(
+  // TODO(b/130636783): inconsistent location
+  public static Set<DexType> computeLeastUpperBoundOfInterfaces(
       AppView<? extends AppInfoWithSubtyping> appView, Set<DexType> s1, Set<DexType> s2) {
     if (s1.isEmpty() || s2.isEmpty()) {
       return Collections.emptySet();
