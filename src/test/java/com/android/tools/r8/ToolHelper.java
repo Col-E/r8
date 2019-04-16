@@ -95,6 +95,7 @@ public class ToolHelper {
   public static final String EXAMPLES_ANDROID_O_BUILD_DIR = TESTS_BUILD_DIR + "examplesAndroidO/";
   public static final String EXAMPLES_ANDROID_P_BUILD_DIR = TESTS_BUILD_DIR + "examplesAndroidP/";
   public static final String EXAMPLES_JAVA9_BUILD_DIR = TESTS_BUILD_DIR + "examplesJava9/";
+  public static final String EXAMPLES_JAVA11_BUILD_DIR = TESTS_BUILD_DIR + "examplesJava11/";
   public static final String SMALI_DIR = TESTS_DIR + "smali/";
   public static final String SMALI_BUILD_DIR = TESTS_BUILD_DIR + "smali/";
 

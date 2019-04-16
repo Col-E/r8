@@ -1282,6 +1282,22 @@ task buildExampleJava9Jars {
     }
 }
 
+task buildExampleJava11Jars {
+    def examplesDir = file("src/test/examplesJava11")
+    examplesDir.eachDir { dir ->
+        def name = dir.getName();
+        def exampleOutputDir = file("build/test/examplesJava11");
+        def jarName = "${name}.jar"
+        dependsOn "jar_examplesJava11_${name}"
+        task "jar_examplesJava11_${name}"(type: Jar) {
+            archiveName = jarName
+            destinationDir = exampleOutputDir
+            from "src/test/examplesJava11"  // Java 11 classes
+            include "**/" + name + "/**/*.class"
+        }
+    }
+}
+
 task buildExamplesKotlin {
     if (OperatingSystem.current().isMacOsX() || OperatingSystem.current().isWindows()) {
         logger.lifecycle("WARNING: Testing (including building kotlin examples) is only partially" +
@@ -1362,6 +1378,7 @@ task buildExamples {
     dependsOn buildExampleAndroidOJars
     dependsOn buildExampleAndroidPJars
     dependsOn buildExampleJava9Jars
+    dependsOn buildExampleJava11Jars
     dependsOn buildExampleAndroidApi
     def examplesDir = file("src/test/examples")
     def noDexTests = [
@@ -2092,4 +2109,46 @@ task buildJava9Tests {
     }
 
     dependsOn compile_Java9examples
+}
+
+// Same as above for Java 11
+// ./tools/gradle.py -Pjava11Home=<java 11 home> buildJava11Tests
+task buildJava11Tests {
+    def javacOutputFolder = getTemporaryDir();
+    def examplesDir = file("src/test/examplesJava11")
+
+    task "compile_Java11examples"(type: JavaCompile) {
+        doFirst {
+            if (!project.hasProperty('java11Home') || project.property('java11Home').isEmpty()) {
+                throw new GradleException("Set java11Home property.")
+            }
+        }
+
+        source = fileTree(dir: examplesDir, include: '**/*.java')
+        destinationDir = javacOutputFolder
+        classpath = sourceSets.main.compileClasspath
+        options.compilerArgs += ["-Xlint:-options"]
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+        options.fork = true
+
+        if (project.hasProperty('java11Home')) {
+            options.forkOptions.javaHome = file(getProperty('java11Home'))
+        }
+
+        doLast {
+            def classfileFrom = copySpec {
+                from javacOutputFolder
+                include "**/*.class"
+            }
+            copy {
+                into examplesDir
+                with classfileFrom
+            }
+            delete javacOutputFolder
+            println "Warning: in my cases nested classes were not showed on IntelliJ"
+        }
+    }
+
+    dependsOn compile_Java11examples
 }
