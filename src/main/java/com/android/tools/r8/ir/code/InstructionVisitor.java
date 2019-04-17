@@ -24,6 +24,8 @@ public interface InstructionVisitor<T> {
 
   T visit(ArrayPut instruction);
 
+  T visit(Assume<?> instruction);
+
   T visit(CheckCast instruction);
 
   T visit(Cmp instruction);
@@ -103,8 +105,6 @@ public interface InstructionVisitor<T> {
   T visit(NewArrayFilledData instruction);
 
   T visit(NewInstance instruction);
-
-  T visit(Assume instruction);
 
   T visit(Not instruction);
 

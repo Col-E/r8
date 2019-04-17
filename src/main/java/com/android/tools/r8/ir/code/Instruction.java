@@ -18,6 +18,7 @@ import com.android.tools.r8.ir.analysis.constant.Bottom;
 import com.android.tools.r8.ir.analysis.constant.ConstRangeLatticeElement;
 import com.android.tools.r8.ir.analysis.constant.LatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.code.Assume.NonNullAssumption;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -604,6 +605,22 @@ public abstract class Instruction implements InstructionOrPhi {
     return null;
   }
 
+  public boolean isAssume() {
+    return false;
+  }
+
+  public Assume<?> asAssume() {
+    return null;
+  }
+
+  public boolean isAssumeNonNull() {
+    return false;
+  }
+
+  public Assume<NonNullAssumption> asAssumeNonNull() {
+    return null;
+  }
+
   public boolean isBinop() {
     return false;
   }
@@ -829,14 +846,6 @@ public abstract class Instruction implements InstructionOrPhi {
   }
 
   public NewInstance asNewInstance() {
-    return null;
-  }
-
-  public boolean isNonNull() {
-    return false;
-  }
-
-  public Assume asNonNull() {
     return null;
   }
 

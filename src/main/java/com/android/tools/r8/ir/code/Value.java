@@ -236,8 +236,9 @@ public class Value {
 
   /**
    * If this value is defined by an instruction that defines an alias of another value, such as the
-   * NonNull instruction, then the incoming value to the NonNull instruction is returned (if the
-   * incoming value is not itself defined by an instruction that introduces an alias).
+   * {@link Assume} instruction, then the incoming value to the {@link Assume} instruction is
+   * returned (if the incoming value is not itself defined by an instruction that introduces an
+   * alias).
    *
    * <p>If a phi value is found, then that phi value is returned.
    *
@@ -260,7 +261,7 @@ public class Value {
         assert visited.add(aliasedValue);
       }
     } while (aliasedValue != lastAliasedValue);
-    assert aliasedValue.isPhi() || !aliasedValue.definition.isNonNull();
+    assert aliasedValue.isPhi() || !aliasedValue.definition.isAssume();
     return aliasedValue;
   }
 
@@ -783,7 +784,7 @@ public class Value {
    */
   public boolean isNeverNull() {
     assert typeLattice.isReference();
-    return (definition != null && definition.isNonNull())
+    return (definition != null && definition.isAssumeNonNull())
         || typeLattice.nullability().isDefinitelyNotNull();
   }
 

@@ -61,15 +61,15 @@ public class NonNullTrackerTest extends NonNullTrackerTestBase {
     while (it.hasNext()) {
       prev = curr != null && !curr.isGoto() ? curr : prev;
       curr = it.next();
-      if (curr.isNonNull()) {
+      if (curr.isAssumeNonNull()) {
         // Make sure non-null is added to the right place.
         assertTrue(prev == null
             || NonNullTracker.throwsOnNullInput(prev)
             || (prev.isIf() && prev.asIf().isZeroTest())
             || !curr.getBlock().getPredecessors().contains(prev.getBlock()));
         // Make sure non-null is used or inserted for arguments.
-        assertTrue(curr.outValue().numberOfAllUsers() > 0
-            || curr.asNonNull().src().isArgument());
+        assertTrue(
+            curr.outValue().numberOfAllUsers() > 0 || curr.asAssumeNonNull().src().isArgument());
         count++;
       }
     }
@@ -143,28 +143,33 @@ public class NonNullTrackerTest extends NonNullTrackerTestBase {
   public void avoidRedundantNonNull() throws Exception {
     MethodSignature signature = new MethodSignature("foo2", "int",
         new String[]{FieldAccessTest.class.getCanonicalName()});
-    buildAndTest(NonNullAfterFieldAccess.class, signature, 1, ircode -> {
-      // There are two InstancePut instructions of interest.
-      int count = 0;
-      InstructionIterator it = ircode.instructionIterator();
-      while (it.hasNext()) {
-        Instruction instruction = it.nextUntil(Instruction::isInstancePut);
-        if (instruction == null) {
-          break;
-        }
-        InstancePut iput = instruction.asInstancePut();
-        if (count == 0) {
-          // First one in the very first line: its value should not be replaced by NonNullMarker
-          // because this instruction will happen _before_ non-null.
-          assertFalse(iput.value().definition.isNonNull());
-        } else if (count == 1) {
-          // Second one after a safe invocation, which should use the value added by NonNullMarker.
-          assertTrue(iput.object().definition.isNonNull());
-        }
-        count++;
-      }
-      assertEquals(2, count);
-    });
+    buildAndTest(
+        NonNullAfterFieldAccess.class,
+        signature,
+        1,
+        ircode -> {
+          // There are two InstancePut instructions of interest.
+          int count = 0;
+          InstructionIterator it = ircode.instructionIterator();
+          while (it.hasNext()) {
+            Instruction instruction = it.nextUntil(Instruction::isInstancePut);
+            if (instruction == null) {
+              break;
+            }
+            InstancePut iput = instruction.asInstancePut();
+            if (count == 0) {
+              // First one in the very first line: its value should not be replaced by NonNullMarker
+              // because this instruction will happen _before_ non-null.
+              assertFalse(iput.value().definition.isAssumeNonNull());
+            } else if (count == 1) {
+              // Second one after a safe invocation, which should use the value added by
+              // NonNullMarker.
+              assertTrue(iput.object().definition.isAssumeNonNull());
+            }
+            count++;
+          }
+          assertEquals(2, count);
+        });
   }
 
   @Test

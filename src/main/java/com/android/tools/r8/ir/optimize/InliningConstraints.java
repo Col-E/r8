@@ -221,7 +221,7 @@ public class InliningConstraints {
     return ConstraintWithTarget.classIsVisible(invocationContext, type, appView);
   }
 
-  public ConstraintWithTarget forNonNull() {
+  public ConstraintWithTarget forAssume() {
     return ConstraintWithTarget.ALWAYS;
   }
 

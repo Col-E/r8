@@ -111,10 +111,10 @@ public class RedundantFieldLoadElimination {
             assert !couldBeVolatile(field);
             if (instruction.isInstanceGet() && !instruction.outValue().hasLocalInfo()) {
               Value object = instruction.asInstanceGet().object();
-              // Values from NonNull instructions will always be replaced with their original
-              // value before code is generated.
-              if (!object.isPhi() && object.definition.isNonNull()) {
-                object = object.definition.asNonNull().src();
+              // Values from Assume instructions will always be replaced with their original value
+              // before code is generated.
+              if (!object.isPhi() && object.definition.isAssume()) {
+                object = object.definition.asAssume().src();
               }
               FieldAndObject fieldAndObject = new FieldAndObject(field, object);
               if (activeInstanceFields.containsKey(fieldAndObject)) {

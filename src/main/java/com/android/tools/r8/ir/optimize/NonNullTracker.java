@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Assume;
+import com.android.tools.r8.ir.code.Assume.NonNullAssumption;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.DominatorTree;
 import com.android.tools.r8.ir.code.IRCode;
@@ -225,7 +226,9 @@ public class NonNullTracker {
                         typeLattice.asReferenceTypeLatticeElement().asNotNull(),
                         knownToBeNonNullValue.getLocalInfo());
                 affectedValues.addAll(knownToBeNonNullValue.affectedValues());
-                Assume nonNull = new Assume(nonNullValue, knownToBeNonNullValue, theIf);
+                Assume<NonNullAssumption> nonNull =
+                    Assume.createAssumeNonNullInstruction(
+                        nonNullValue, knownToBeNonNullValue, theIf);
                 InstructionListIterator targetIterator = target.listIterator();
                 nonNull.setPosition(targetIterator.next().getPosition());
                 targetIterator.previous();
@@ -318,7 +321,8 @@ public class NonNullTracker {
                 typeLattice.asReferenceTypeLatticeElement().asNotNull(),
                 knownToBeNonNullValue.getLocalInfo());
         affectedValues.addAll(knownToBeNonNullValue.affectedValues());
-        Assume nonNull = new Assume(nonNullValue, knownToBeNonNullValue, current);
+        Assume<NonNullAssumption> nonNull =
+            Assume.createAssumeNonNullInstruction(nonNullValue, knownToBeNonNullValue, current);
         nonNull.setPosition(current.getPosition());
         if (blockWithNonNullInstruction != block) {
           // If we split, add non-null IR on top of the new split block.
@@ -387,8 +391,8 @@ public class NonNullTracker {
       // Collect basic blocks that check nullability of the parameter.
       nullCheckedBlocks.clear();
       for (Instruction user : argument.uniqueUsers()) {
-        if (user.isNonNull()) {
-          nullCheckedBlocks.add(user.asNonNull().getBlock());
+        if (user.isAssumeNonNull()) {
+          nullCheckedBlocks.add(user.asAssumeNonNull().getBlock());
         }
         if (user.isIf()
             && user.asIf().isZeroTest()
@@ -483,8 +487,8 @@ public class NonNullTracker {
       //  ~>
       //
       // rcv#foo
-      if (instruction.isNonNull()) {
-        Assume nonNull = instruction.asNonNull();
+      if (instruction.isAssumeNonNull()) {
+        Assume<NonNullAssumption> nonNull = instruction.asAssumeNonNull();
         Value src = nonNull.src();
         Value dest = nonNull.dest();
         affectedValues.addAll(dest.affectedValues());

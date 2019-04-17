@@ -4,25 +4,37 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.LoadStoreHelper;
+import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.code.Assume.Assumption;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 
-public class Assume extends Instruction {
-  private final static String ERROR_MESSAGE = "This fake IR should be removed after inlining.";
+public class Assume<An extends Assumption> extends Instruction {
 
-  final Instruction origin;
+  private static final String ERROR_MESSAGE =
+      "Expected Assume instructions to be removed after IR processing.";
 
-  public Assume(Value dest, Value src, Instruction origin) {
+  private final An assumption;
+  private final Instruction origin;
+
+  private Assume(An assumption, Value dest, Value src, Instruction origin) {
     super(dest, src);
-    assert !src.isNeverNull();
+    assert assumption != null;
+    assert assumption.verifyCorrectnessOfValues(dest, src);
+    this.assumption = assumption;
     this.origin = origin;
+  }
+
+  public static Assume<NonNullAssumption> createAssumeNonNullInstruction(
+      Value dest, Value src, Instruction origin) {
+    return new Assume<>(NonNullAssumption.get(), dest, src, origin);
   }
 
   @Override
@@ -43,13 +55,26 @@ public class Assume extends Instruction {
   }
 
   @Override
-  public boolean isNonNull() {
+  public boolean isAssume() {
     return true;
   }
 
   @Override
-  public Assume asNonNull() {
+  public Assume<An> asAssume() {
     return this;
+  }
+
+  @Override
+  public boolean isAssumeNonNull() {
+    return assumption.isAssumeNonNull();
+  }
+
+  @Override
+  public Assume<NonNullAssumption> asAssumeNonNull() {
+    assert isAssumeNonNull();
+    @SuppressWarnings("unchecked")
+    Assume<NonNullAssumption> self = (Assume<NonNullAssumption>) this;
+    return self;
   }
 
   @Override
@@ -94,19 +119,26 @@ public class Assume extends Instruction {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    return other.isNonNull();
+    if (!other.isAssume()) {
+      return false;
+    }
+    Assume<?> assumeInstruction = other.asAssume();
+    return assumption.equals(assumeInstruction.assumption);
   }
 
   @Override
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, DexType invocationContext) {
-    return inliningConstraints.forNonNull();
+    return inliningConstraints.forAssume();
   }
 
   @Override
   public TypeLatticeElement evaluate(AppView<? extends AppInfo> appView) {
-    assert src().getTypeLattice().isReference();
-    return src().getTypeLattice().asReferenceTypeLatticeElement().asNotNull();
+    if (assumption.isAssumeNonNull()) {
+      assert src().getTypeLattice().isReference();
+      return src().getTypeLattice().asReferenceTypeLatticeElement().asNotNull();
+    }
+    throw new Unimplemented();
   }
 
   @Override
@@ -117,5 +149,38 @@ public class Assume extends Instruction {
   @Override
   public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
     throw new Unreachable(ERROR_MESSAGE);
+  }
+
+  abstract static class Assumption {
+
+    public boolean isAssumeNonNull() {
+      return false;
+    }
+
+    public boolean verifyCorrectnessOfValues(Value dest, Value src) {
+      return true;
+    }
+  }
+
+  public static class NonNullAssumption extends Assumption {
+
+    private static final NonNullAssumption instance = new NonNullAssumption();
+
+    private NonNullAssumption() {}
+
+    public static NonNullAssumption get() {
+      return instance;
+    }
+
+    @Override
+    public boolean isAssumeNonNull() {
+      return true;
+    }
+
+    @Override
+    public boolean verifyCorrectnessOfValues(Value dest, Value src) {
+      assert !src.isNeverNull();
+      return true;
+    }
   }
 }
