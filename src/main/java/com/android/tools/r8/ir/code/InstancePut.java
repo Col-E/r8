@@ -174,6 +174,16 @@ public class InstancePut extends FieldInstruction {
   }
 
   @Override
+  public boolean throwsOnNullInput() {
+    return true;
+  }
+
+  @Override
+  public Value getNonNullInput() {
+    return object();
+  }
+
+  @Override
   public boolean definitelyTriggersClassInitialization(
       DexType clazz,
       DexType context,

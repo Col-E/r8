@@ -5,12 +5,13 @@
 package com.android.tools.r8.ir.optimize.instanceofremoval;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -58,15 +59,15 @@ public class UninstantiatedAnnotationTypeTest extends TestBase {
     }
   }
 
-  @Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimes().build();
   }
 
-  private final Backend backend;
+  private final TestParameters parameters;
 
-  public UninstantiatedAnnotationTypeTest(Backend backend) {
-    this.backend = backend;
+  public UninstantiatedAnnotationTypeTest(TestParameters parameters) {
+    this.parameters = parameters;
   }
 
   @Test
@@ -76,12 +77,13 @@ public class UninstantiatedAnnotationTypeTest extends TestBase {
     testForJvm().addTestClasspath().run(TestClass.class).assertSuccessWithOutput(expected);
 
     CodeInspector inspector =
-        testForR8(backend)
+        testForR8(parameters.getBackend())
             .addInnerClasses(UninstantiatedAnnotationTypeTest.class)
             .addKeepMainRule(TestClass.class)
             .addKeepRules("-keepattributes RuntimeVisibleAnnotations")
             .enableInliningAnnotations()
-            .run(TestClass.class)
+            .setMinApi(parameters.getRuntime())
+            .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput(expected)
             .inspector();
 

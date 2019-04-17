@@ -935,7 +935,7 @@ public class IRConverter {
       devirtualizer.devirtualizeInvokeInterface(code, method.method.holder);
     }
     if (uninstantiatedTypeOptimization != null) {
-      uninstantiatedTypeOptimization.rewrite(method, code);
+      uninstantiatedTypeOptimization.rewrite(code);
     }
 
     assert code.verifyTypes(appView);

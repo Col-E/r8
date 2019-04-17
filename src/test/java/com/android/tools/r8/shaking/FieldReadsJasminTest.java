@@ -5,13 +5,14 @@ package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.jasmin.JasminTestBase;
@@ -30,15 +31,15 @@ import org.junit.runners.Parameterized;
 public class FieldReadsJasminTest extends JasminTestBase {
   private static final String CLS = "Empty";
   private static final String MAIN = "Main";
-  private final Backend backend;
+  private final TestParameters parameters;
 
-  @Parameterized.Parameters(name = "Backend: {0}")
-  public static Object[] data() {
-    return ToolHelper.getBackends();
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimes().build();
   }
 
-  public FieldReadsJasminTest(Backend backend) {
-    this.backend = backend;
+  public FieldReadsJasminTest(TestParameters parameters) {
+    this.parameters = parameters;
   }
 
   @Test
@@ -79,9 +80,10 @@ public class FieldReadsJasminTest extends JasminTestBase {
   }
 
   private void ensureNoFields(JasminBuilder app, ClassBuilder clazz) throws Exception {
-    testForR8(backend)
+    testForR8(parameters.getBackend())
         .addProgramClassFileData(app.buildClasses())
         .addKeepRules("-keep class * { <methods>; }")
+        .setMinApi(parameters.getRuntime())
         .compile()
         .inspect(inspector -> {
           ClassSubject classSubject = inspector.clazz(clazz.name);
@@ -129,9 +131,10 @@ public class FieldReadsJasminTest extends JasminTestBase {
       ClassBuilder fieldHolder,
       String fieldName)
       throws Exception {
-    testForR8(backend)
+    testForR8(parameters.getBackend())
         .addProgramClassFileData(app.buildClasses())
         .addKeepRules("-keep class * { <methods>; }")
+        .setMinApi(parameters.getRuntime())
         .compile()
         .inspect(inspector -> {
           FieldSubject fld = inspector.clazz(fieldHolder.name).uniqueFieldWithName(fieldName);
@@ -264,9 +267,10 @@ public class FieldReadsJasminTest extends JasminTestBase {
       ClassBuilder fieldHolder,
       String fieldName)
       throws Exception {
-    testForR8(backend)
+    testForR8(parameters.getBackend())
         .addProgramClassFileData(app.buildClasses())
         .addKeepRules("-keep class * { <methods>; }")
+        .setMinApi(parameters.getRuntime())
         .compile()
         .inspect(inspector -> {
           FieldSubject fld = inspector.clazz(fieldHolder.name).uniqueFieldWithName(fieldName);

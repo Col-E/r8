@@ -181,22 +181,28 @@ public class DexItemFactory {
   public final DexString methodDescriptor = createString("Ljava/lang/reflect/Method;");
   public final DexString enumDescriptor = createString("Ljava/lang/Enum;");
   public final DexString annotationDescriptor = createString("Ljava/lang/annotation/Annotation;");
-  public final DexString throwableDescriptor = createString(throwableDescriptorString);
-  public final DexString exceptionInInitializerErrorDescriptor =
-      createString("Ljava/lang/ExceptionInInitializerError;");
   public final DexString objectsDescriptor = createString("Ljava/util/Objects;");
+
   public final DexString stringBuilderDescriptor = createString("Ljava/lang/StringBuilder;");
   public final DexString stringBufferDescriptor = createString("Ljava/lang/StringBuffer;");
+
   public final DexString varHandleDescriptor = createString("Ljava/lang/invoke/VarHandle;");
   public final DexString methodHandleDescriptor = createString("Ljava/lang/invoke/MethodHandle;");
   public final DexString methodTypeDescriptor = createString("Ljava/lang/invoke/MethodType;");
-
   public final DexString invocationHandlerDescriptor =
       createString("Ljava/lang/reflect/InvocationHandler;");
-  public final DexString npeDescriptor = createString("Ljava/lang/NullPointerException;");
   public final DexString proxyDescriptor = createString("Ljava/lang/reflect/Proxy;");
   public final DexString serviceLoaderDescriptor = createString("Ljava/util/ServiceLoader;");
   public final DexString listDescriptor = createString("Ljava/util/List;");
+
+  public final DexString throwableDescriptor = createString(throwableDescriptorString);
+  public final DexString illegalAccessErrorDescriptor =
+      createString("Ljava/lang/IllegalAccessError;");
+  public final DexString icceDescriptor = createString("Ljava/lang/IncompatibleClassChangeError;");
+  public final DexString exceptionInInitializerErrorDescriptor =
+      createString("Ljava/lang/ExceptionInInitializerError;");
+  public final DexString noSuchFieldErrorDescriptor = createString("Ljava/lang/NoSuchFieldError");
+  public final DexString npeDescriptor = createString("Ljava/lang/NullPointerException;");
 
   public final DexString intFieldUpdaterDescriptor =
       createString("Ljava/util/concurrent/atomic/AtomicIntegerFieldUpdater;");
@@ -243,9 +249,7 @@ public class DexItemFactory {
   public final DexType classArrayType = createType(classArrayDescriptor);
   public final DexType enumType = createType(enumDescriptor);
   public final DexType annotationType = createType(annotationDescriptor);
-  public final DexType throwableType = createType(throwableDescriptor);
-  public final DexType exceptionInInitializerErrorType =
-      createType(exceptionInInitializerErrorDescriptor);
+
   public final DexType classType = createType(classDescriptor);
   public final DexType classLoaderType = createType(classLoaderDescriptor);
   public final DexType autoCloseableType = createType(autoCloseableDescriptor);
@@ -256,12 +260,18 @@ public class DexItemFactory {
   public final DexType varHandleType = createType(varHandleDescriptor);
   public final DexType methodHandleType = createType(methodHandleDescriptor);
   public final DexType methodTypeType = createType(methodTypeDescriptor);
-
   public final DexType invocationHandlerType = createType(invocationHandlerDescriptor);
-  public final DexType npeType = createType(npeDescriptor);
   public final DexType proxyType = createType(proxyDescriptor);
   public final DexType serviceLoaderType = createType(serviceLoaderDescriptor);
   public final DexType listType = createType(listDescriptor);
+
+  public final DexType throwableType = createType(throwableDescriptor);
+  public final DexType illegalAccessErrorType = createType(illegalAccessErrorDescriptor);
+  public final DexType icceType = createType(icceDescriptor);
+  public final DexType exceptionInInitializerErrorType =
+      createType(exceptionInInitializerErrorDescriptor);
+  public final DexType noSuchFieldErrorType = createType(noSuchFieldErrorDescriptor);
+  public final DexType npeType = createType(npeDescriptor);
 
   public final StringBuildingMethods stringBuilderMethods =
       new StringBuildingMethods(stringBuilderType);

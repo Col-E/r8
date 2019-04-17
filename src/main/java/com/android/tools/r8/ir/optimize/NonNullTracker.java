@@ -5,7 +5,6 @@ package com.android.tools.r8.ir.optimize;
 
 import static com.android.tools.r8.ir.code.DominatorTree.Assumption.MAY_HAVE_UNREACHABLE_BLOCKS;
 
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -25,7 +24,6 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.OptimizationFeedback;
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -47,36 +45,6 @@ public class NonNullTracker {
 
   public NonNullTracker(AppView<? extends AppInfo> appView) {
     this.appView = appView;
-  }
-
-  @VisibleForTesting
-  static boolean throwsOnNullInput(Instruction instruction) {
-    return (instruction.isInvokeMethodWithReceiver() && !instruction.isInvokeDirect())
-        || instruction.isInstanceGet()
-        || instruction.isInstancePut()
-        || instruction.isArrayGet()
-        || instruction.isArrayPut()
-        || instruction.isArrayLength()
-        || instruction.isMonitor();
-  }
-
-  private Value getNonNullInput(Instruction instruction) {
-    if (instruction.isInvokeMethodWithReceiver()) {
-      return instruction.asInvokeMethodWithReceiver().getReceiver();
-    } else if (instruction.isInstanceGet()) {
-      return instruction.asInstanceGet().object();
-    } else if (instruction.isInstancePut()) {
-      return instruction.asInstancePut().object();
-    } else if (instruction.isArrayGet()) {
-      return instruction.asArrayGet().array();
-    } else if (instruction.isArrayPut()) {
-      return instruction.asArrayPut().array();
-    } else if (instruction.isArrayLength()) {
-      return instruction.asArrayLength().array();
-    } else if (instruction.isMonitor()) {
-      return instruction.asMonitor().object();
-    }
-    throw new Unreachable("Should conform to throwsOnNullInput.");
   }
 
   public void addNonNull(IRCode code) {
@@ -114,10 +82,10 @@ public class NonNullTracker {
             knownToBeNonNullValues.add(knownToBeNonNullValue);
           }
         }
-        if (throwsOnNullInput(current)) {
-          Value knownToBeNonNullValue = getNonNullInput(current);
-          if (isNonNullCandidate(knownToBeNonNullValue)) {
-            knownToBeNonNullValues.add(knownToBeNonNullValue);
+        if (current.throwsOnNullInput()) {
+          Value couldBeNonNull = current.getNonNullInput();
+          if (isNonNullCandidate(couldBeNonNull)) {
+            knownToBeNonNullValues.add(couldBeNonNull);
           }
         }
         if (current.isInvokeMethod() && !current.isInvokePolymorphic()) {
@@ -365,8 +333,8 @@ public class NonNullTracker {
     return predecessorIndexes;
   }
 
-  private boolean isNonNullCandidate(Value knownToBeNonNullValue) {
-    TypeLatticeElement typeLattice = knownToBeNonNullValue.getTypeLattice();
+  private static boolean isNonNullCandidate(Value couldBeNonNullValue) {
+    TypeLatticeElement typeLattice = couldBeNonNullValue.getTypeLattice();
     return typeLattice.isReference() && !typeLattice.isNullType() && typeLattice.isNullable();
   }
 

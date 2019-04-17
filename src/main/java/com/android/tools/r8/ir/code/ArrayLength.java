@@ -119,4 +119,15 @@ public class ArrayLength extends Instruction {
   public boolean throwsNpeIfValueIsNull(Value value, DexItemFactory dexItemFactory) {
     return array() == value;
   }
+
+  @Override
+  public boolean throwsOnNullInput() {
+    return true;
+  }
+
+  @Override
+  public Value getNonNullInput() {
+    return array();
+  }
+
 }

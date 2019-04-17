@@ -99,7 +99,11 @@ class StringValueOfTestMain {
     } catch (NullPointerException npe) {
       fail("Not expected: " + npe);
     }
-    System.out.println(consumeUninitialized(null));
+    try {
+      System.out.println(consumeUninitialized(null));
+    } catch (NullPointerException npe) {
+      fail("Not expected: " + npe);
+    }
 
     // No matter what we pass, that function will return null.
     // But, we're not sure about it, hence not optimizing String#valueOf.
@@ -129,7 +133,6 @@ public class StringValueOfTest extends TestBase {
   private static final Class<?> MAIN = StringValueOfTestMain.class;
 
   private static final String STRING_DESCRIPTOR = "Ljava/lang/String;";
-  private static final String STRING_TYPE = "java.lang.String";
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {

@@ -134,4 +134,14 @@ public class Monitor extends Instruction {
   public boolean throwsNpeIfValueIsNull(Value value, DexItemFactory dexItemFactory) {
     return object() == value;
   }
+
+  @Override
+  public boolean throwsOnNullInput() {
+    return true;
+  }
+
+  @Override
+  public Value getNonNullInput() {
+    return object();
+  }
 }

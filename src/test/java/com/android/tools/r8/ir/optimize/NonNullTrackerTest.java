@@ -64,7 +64,7 @@ public class NonNullTrackerTest extends NonNullTrackerTestBase {
       if (curr.isAssumeNonNull()) {
         // Make sure non-null is added to the right place.
         assertTrue(prev == null
-            || NonNullTracker.throwsOnNullInput(prev)
+            || prev.throwsOnNullInput()
             || (prev.isIf() && prev.asIf().isZeroTest())
             || !curr.getBlock().getPredecessors().contains(prev.getBlock()));
         // Make sure non-null is used or inserted for arguments.

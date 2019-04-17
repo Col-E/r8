@@ -4,11 +4,11 @@
 package com.android.tools.r8.naming;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.KotlinTestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -27,30 +27,35 @@ public class EnumMinificationKotlinTest extends KotlinTestBase {
   private static final String MAIN_CLASS_NAME = "minify_enum.MainKt";
   private static final String ENUM_CLASS_NAME = "minify_enum.MinifyEnum";
 
-  private final Backend backend;
+  private final TestParameters parameters;
   private final boolean minify;
 
-  @Parameterized.Parameters(name = "Backend: {0} target: {1} minify: {2}")
+  @Parameterized.Parameters(name = "{0} target: {1} minify: {2}")
   public static Collection<Object[]> data() {
-    return buildParameters(ToolHelper.getBackends(), KotlinTargetVersion.values(), BooleanUtils.values());
+    return buildParameters(
+        getTestParameters().withAllRuntimes().build(),
+        KotlinTargetVersion.values(),
+        BooleanUtils.values());
   }
 
   public EnumMinificationKotlinTest(
-      Backend backend, KotlinTargetVersion targetVersion, boolean minify) {
+      TestParameters parameters, KotlinTargetVersion targetVersion, boolean minify) {
     super(targetVersion);
-    this.backend = backend;
+    this.parameters = parameters;
     this.minify = minify;
   }
 
   @Test
   public void b121221542() throws Exception {
-    CodeInspector inspector = testForR8(backend)
-        .addProgramFiles(getKotlinJarFile(FOLDER))
-        .addProgramFiles(getJavaJarFile(FOLDER))
-        .addKeepMainRule(MAIN_CLASS_NAME)
-        .minification(minify)
-        .run(MAIN_CLASS_NAME)
-        .inspector();
+    CodeInspector inspector =
+        testForR8(parameters.getBackend())
+            .addProgramFiles(getKotlinJarFile(FOLDER))
+            .addProgramFiles(getJavaJarFile(FOLDER))
+            .addKeepMainRule(MAIN_CLASS_NAME)
+            .minification(minify)
+            .setMinApi(parameters.getRuntime())
+            .run(parameters.getRuntime(), MAIN_CLASS_NAME)
+            .inspector();
     ClassSubject enumClass = inspector.clazz(ENUM_CLASS_NAME);
     assertThat(enumClass, isPresent());
     assertEquals(minify, enumClass.isRenamed());

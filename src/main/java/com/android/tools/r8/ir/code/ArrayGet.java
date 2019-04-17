@@ -240,6 +240,16 @@ public class ArrayGet extends Instruction implements ImpreciseMemberTypeInstruct
   }
 
   @Override
+  public boolean throwsOnNullInput() {
+    return true;
+  }
+
+  @Override
+  public Value getNonNullInput() {
+    return array();
+  }
+
+  @Override
   public void constrainType(TypeConstraintResolver constraintResolver) {
     constraintResolver.constrainArrayMemberType(type, dest(), array(), t -> type = t);
   }

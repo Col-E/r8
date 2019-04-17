@@ -8,6 +8,7 @@ import static com.android.tools.r8.ir.optimize.UninstantiatedTypeOptimization.St
 import static com.android.tools.r8.ir.optimize.UninstantiatedTypeOptimization.Strategy.DISALLOW_ARGUMENT_REMOVAL;
 
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -23,6 +24,7 @@ import com.android.tools.r8.graph.GraphLense.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.GraphLense.RewrittenPrototypeDescription.RemovedArgumentInfo;
 import com.android.tools.r8.graph.GraphLense.RewrittenPrototypeDescription.RemovedArgumentsInfo;
 import com.android.tools.r8.graph.TopDownClassHierarchyTraversal;
+import com.android.tools.r8.ir.analysis.AbstractError;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -104,8 +106,10 @@ public class UninstantiatedTypeOptimization {
   private final AppView<AppInfoWithLiveness> appView;
 
   private int numberOfInstanceGetOrInstancePutWithNullReceiver = 0;
+  private int numberOfArrayInstructionsWithNullArray = 0;
   private int numberOfInvokesWithNullArgument = 0;
   private int numberOfInvokesWithNullReceiver = 0;
+  private int numberOfMonitorWithNullReceiver = 0;
 
   public UninstantiatedTypeOptimization(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
@@ -349,7 +353,7 @@ public class UninstantiatedTypeOptimization {
         method.holder, dexItemFactory.createProto(newReturnType, newParameters), method.name);
   }
 
-  public void rewrite(DexEncodedMethod method, IRCode code) {
+  public void rewrite(IRCode code) {
     Set<BasicBlock> blocksToBeRemoved = Sets.newIdentityHashSet();
     ListIterator<BasicBlock> blockIterator = code.listIterator();
     while (blockIterator.hasNext()) {
@@ -360,22 +364,35 @@ public class UninstantiatedTypeOptimization {
       InstructionListIterator instructionIterator = block.listIterator();
       while (instructionIterator.hasNext()) {
         Instruction instruction = instructionIterator.next();
-        if (instruction.isFieldInstruction()) {
-          if (instruction.isInstanceGet() || instruction.isInstancePut()) {
-            rewriteInstanceFieldInstruction(
-                instruction.asFieldInstruction(),
-                blockIterator,
-                instructionIterator,
-                code,
-                blocksToBeRemoved);
-          } else {
-            rewriteStaticFieldInstruction(
-                instruction.asFieldInstruction(),
-                blockIterator,
-                instructionIterator,
-                code,
-                blocksToBeRemoved);
+        if (instruction.throwsOnNullInput()) {
+          Value couldBeNullValue = instruction.getNonNullInput();
+          if (isThrowNullCandidate(
+              couldBeNullValue, instruction, appView, code.method.method.holder)) {
+            if (instruction.isInstanceGet() || instruction.isInstancePut()) {
+              ++numberOfInstanceGetOrInstancePutWithNullReceiver;
+            } else if (instruction.isInvokeMethodWithReceiver()) {
+              ++numberOfInvokesWithNullReceiver;
+            } else if (instruction.isArrayGet()
+                || instruction.isArrayPut()
+                || instruction.isArrayLength()) {
+              ++numberOfArrayInstructionsWithNullArray;
+            } else if (instruction.isMonitor()) {
+              ++numberOfMonitorWithNullReceiver;
+            } else {
+              assert false;
+            }
+            instructionIterator.replaceCurrentInstructionWithThrowNull(
+                appView, code, blockIterator, blocksToBeRemoved);
+            continue;
           }
+        }
+        if (instruction.isFieldInstruction()) {
+          rewriteFieldInstruction(
+              instruction.asFieldInstruction(),
+              blockIterator,
+              instructionIterator,
+              code,
+              blocksToBeRemoved);
         } else if (instruction.isInvokeMethod()) {
           rewriteInvoke(
               instruction.asInvokeMethod(),
@@ -392,6 +409,29 @@ public class UninstantiatedTypeOptimization {
     assert code.isConsistentSSA();
   }
 
+  private static boolean isThrowNullCandidate(
+      Value couldBeNullValue,
+      Instruction current,
+      AppView<? extends AppInfoWithSubtyping> appView,
+      DexType context) {
+    if (!couldBeNullValue.isAlwaysNull(appView)) {
+      return false;
+    }
+    if (current.isFieldInstruction()) {
+      // Other resolution-related errors come first.
+      AbstractError abstractError =
+          current.asFieldInstruction().instructionInstanceCanThrow(appView, context);
+      if (abstractError.isThrowing()
+          && abstractError.getSpecificError(appView.dexItemFactory())
+              != appView.dexItemFactory().npeType) {
+        // We can't replace the current instruction with `throw null` if it may throw another
+        // Error/Exception than NullPointerException.
+        return false;
+      }
+    }
+    return true;
+  }
+
   public void logResults() {
     assert Log.ENABLED;
     Log.info(
@@ -399,50 +439,19 @@ public class UninstantiatedTypeOptimization {
         "Number of instance-get/instance-put with null receiver: %s",
         numberOfInstanceGetOrInstancePutWithNullReceiver);
     Log.info(
+        getClass(),
+        "Number of array instructions with null reference: %s",
+        numberOfArrayInstructionsWithNullArray);
+    Log.info(
         getClass(), "Number of invokes with null argument: %s", numberOfInvokesWithNullArgument);
     Log.info(
         getClass(), "Number of invokes with null receiver: %s", numberOfInvokesWithNullReceiver);
+    Log.info(
+        getClass(), "Number of monitor with null receiver: %s", numberOfMonitorWithNullReceiver);
   }
 
-  private void rewriteInstanceFieldInstruction(
-      FieldInstruction instruction,
-      ListIterator<BasicBlock> blockIterator,
-      InstructionListIterator instructionIterator,
-      IRCode code,
-      Set<BasicBlock> blocksToBeRemoved) {
-    assert instruction.isInstanceGet() || instruction.isInstancePut();
-    boolean replacedByThrowNull = false;
-
-    Value receiver = instruction.inValues().get(0);
-    if (receiver.isAlwaysNull(appView)) {
-      // Unable to rewrite instruction if the receiver is defined from "const-number 0", since this
-      // would lead to an IncompatibleClassChangeError (see MemberResolutionTest#lookupStaticField-
-      // WithFieldGetFromNullReferenceDirectly).
-      if (!receiver.getTypeLattice().isDefinitelyNull()) {
-        instructionIterator.replaceCurrentInstructionWithThrowNull(
-            appView, code, blockIterator, blocksToBeRemoved);
-        ++numberOfInstanceGetOrInstancePutWithNullReceiver;
-        replacedByThrowNull = true;
-      }
-    }
-
-    if (!replacedByThrowNull) {
-      rewriteFieldInstruction(
-          instruction, blockIterator, instructionIterator, code, blocksToBeRemoved);
-    }
-  }
-
-  private void rewriteStaticFieldInstruction(
-      FieldInstruction instruction,
-      ListIterator<BasicBlock> blockIterator,
-      InstructionListIterator instructionIterator,
-      IRCode code,
-      Set<BasicBlock> blocksToBeRemoved) {
-    assert instruction.isStaticGet() || instruction.isStaticPut();
-    rewriteFieldInstruction(
-        instruction, blockIterator, instructionIterator, code, blocksToBeRemoved);
-  }
-
+  // instance-{get|put} with a null receiver has already been rewritten to `throw null`.
+  // At this point, field-instruction whose target field type is uninstantiated will be handled.
   private void rewriteFieldInstruction(
       FieldInstruction instruction,
       ListIterator<BasicBlock> blockIterator,
@@ -451,13 +460,18 @@ public class UninstantiatedTypeOptimization {
       Set<BasicBlock> blocksToBeRemoved) {
     DexType fieldType = instruction.getField().type;
     if (fieldType.isAlwaysNull(appView)) {
-      // Before trying to remove this instruction, we need to be sure that the field actually
-      // exists. Otherwise this instruction would throw a NoSuchFieldError exception.
-      DexEncodedField field = appView.definitionFor(instruction.getField());
-      if (field == null) {
+      AbstractError abstractError =
+          instruction.instructionInstanceCanThrow(appView, code.method.method.holder);
+      if (abstractError.isThrowing()) {
         return;
       }
 
+      // TODO(b/123857022): Should be possible to use definitionFor().
+      DexEncodedField field = appView.appInfo().resolveField(instruction.getField());
+      if (field == null) {
+        assert false : "Expected field-instruction with non-existent field to throw";
+        return;
+      }
       // We also need to be sure that this field instruction cannot trigger static class
       // initialization.
       if (field.field.holder != code.method.method.holder) {
@@ -497,22 +511,16 @@ public class UninstantiatedTypeOptimization {
     }
   }
 
+  // invoke instructions with a null receiver has already been rewritten to `throw null`.
+  // At this point, we attempt to explore non-null-param-or-throw optimization info and replace
+  // the invocation with `throw null` if an argument is known to be null and the method is going to
+  // throw for that null argument.
   private void rewriteInvoke(
       InvokeMethod invoke,
       ListIterator<BasicBlock> blockIterator,
       InstructionListIterator instructionIterator,
       IRCode code,
       Set<BasicBlock> blocksToBeRemoved) {
-    if (invoke.isInvokeMethodWithReceiver()) {
-      Value receiver = invoke.asInvokeMethodWithReceiver().getReceiver();
-      if (receiver.isAlwaysNull(appView)) {
-        instructionIterator.replaceCurrentInstructionWithThrowNull(
-            appView, code, blockIterator, blocksToBeRemoved);
-        ++numberOfInvokesWithNullReceiver;
-        return;
-      }
-    }
-
     DexEncodedMethod target =
         invoke.lookupSingleTarget(appView.appInfo(), code.method.method.holder);
     if (target == null) {

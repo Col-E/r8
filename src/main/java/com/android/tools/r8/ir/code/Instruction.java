@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.AbstractError;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
 import com.android.tools.r8.ir.analysis.constant.Bottom;
@@ -514,8 +515,15 @@ public abstract class Instruction implements InstructionOrPhi {
     return instructionInstanceCanThrow();
   }
 
+  public AbstractError instructionInstanceCanThrow(
+      AppView<? extends AppInfo> appView, DexType context) {
+    return instructionInstanceCanThrow() ? AbstractError.top() : AbstractError.bottom();
+  }
+
   /** Returns true is this instruction can be treated as dead code if its outputs are not used. */
   public boolean canBeDeadCode(AppView<? extends AppInfo> appView, IRCode code) {
+    // TODO(b/129530569): instructions with fine-grained side effect analysis may use:
+    // return !instructionMayHaveSideEffects(appView, code.method.method.holder);
     return !instructionInstanceCanThrow();
   }
 
@@ -1262,6 +1270,21 @@ public abstract class Instruction implements InstructionOrPhi {
    */
   public boolean throwsNpeIfValueIsNull(Value value, DexItemFactory dexItemFactory) {
     return false;
+  }
+
+  // Any instructions that override `throwsNpeIfValueIsNull` should override this too.
+  // `throw` instruction is also throwing if the input is null. However, this util and the below
+  // one are used to insert Assume instruction if input is known to be non-null or replace the
+  // instruction with `throw null`. In either case, nullability of `throw` does not add anything
+  // new: `throw X` with null reference X has the same effect as `throw null`; `throw X` with
+  // non-null reference X ends, hence having non-null X after that instruction is non-sense.
+  public boolean throwsOnNullInput() {
+    return false;
+  }
+
+  // Any instructions that override `throwsOnNullInput` should override this too.
+  public Value getNonNullInput() {
+    throw new Unreachable("Should conform to throwsOnNullInput.");
   }
 
   /**

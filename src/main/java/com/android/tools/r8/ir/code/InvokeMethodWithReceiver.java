@@ -48,6 +48,16 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
   }
 
   @Override
+  public boolean throwsOnNullInput() {
+    return true;
+  }
+
+  @Override
+  public Value getNonNullInput() {
+    return getReceiver();
+  }
+
+  @Override
   public boolean verifyTypes(AppView<? extends AppInfo> appView) {
     assert super.verifyTypes(appView);
 

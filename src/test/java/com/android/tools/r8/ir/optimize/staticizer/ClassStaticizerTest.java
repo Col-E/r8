@@ -6,17 +6,17 @@ package com.android.tools.r8.ir.optimize.staticizer;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.InvokeDirect;
 import com.android.tools.r8.code.InvokeStatic;
@@ -60,20 +60,20 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class ClassStaticizerTest extends TestBase {
-  private Backend backend;
+  private final TestParameters parameters;
 
-  @Parameterized.Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    // TODO(b/112831361): support for class staticizer in CF backend.
+    return getTestParameters().withDexRuntimes().build();
   }
 
-  public ClassStaticizerTest(Backend backend) {
-    this.backend = backend;
+  public ClassStaticizerTest(TestParameters parameters) {
+    this.parameters = parameters;
   }
 
   @Test
   public void testTrivial() throws Exception {
-    assumeTrue("b/112831361", backend == Backend.DEX);
     Class<?> main = TrivialTestClass.class;
     Class<?>[] classes = {
         NeverInline.class,
@@ -86,17 +86,18 @@ public class ClassStaticizerTest extends TestBase {
         SimpleWithPhi.Companion.class
     };
     String javaOutput = runOnJava(main);
-    TestRunResult result = testForR8(backend)
-        .addProgramClasses(classes)
-        .enableProguardTestOptions()
-        .enableInliningAnnotations()
-        .addKeepMainRule(main)
-        .noMinification()
-        .addKeepRules("-allowaccessmodification")
-        .addKeepRules("-keepattributes InnerClasses,EnclosingMethod")
-        .addOptionsModification(this::configure)
-        .run(main)
-        .assertSuccessWithOutput(javaOutput);
+    TestRunResult result =
+        testForR8(parameters.getBackend())
+            .addProgramClasses(classes)
+            .enableInliningAnnotations()
+            .addKeepMainRule(main)
+            .noMinification()
+            .addKeepRules("-allowaccessmodification")
+            .addKeepRules("-keepattributes InnerClasses,EnclosingMethod")
+            .addOptionsModification(this::configure)
+            .setMinApi(parameters.getRuntime())
+            .run(parameters.getRuntime(), main)
+            .assertSuccessWithOutput(javaOutput);
 
     CodeInspector inspector = result.inspector();
     ClassSubject clazz = inspector.clazz(main);
@@ -155,7 +156,6 @@ public class ClassStaticizerTest extends TestBase {
 
   @Test
   public void testMoveToHost_fieldOnly() throws Exception {
-    assumeTrue("b/112831361", backend == Backend.DEX);
     Class<?> main = MoveToHostFieldOnlyTestClass.class;
     Class<?>[] classes = {
         NeverInline.class,
@@ -163,15 +163,16 @@ public class ClassStaticizerTest extends TestBase {
         HostOkFieldOnly.class,
         CandidateOkFieldOnly.class
     };
-    TestRunResult result = testForR8(backend)
-        .addProgramClasses(classes)
-        .enableProguardTestOptions()
-        .enableInliningAnnotations()
-        .addKeepMainRule(main)
-        .noMinification()
-        .addKeepRules("-allowaccessmodification")
-        .addOptionsModification(this::configure)
-        .run(main);
+    TestRunResult result =
+        testForR8(parameters.getBackend())
+            .addProgramClasses(classes)
+            .enableInliningAnnotations()
+            .addKeepMainRule(main)
+            .noMinification()
+            .addKeepRules("-allowaccessmodification")
+            .addOptionsModification(this::configure)
+            .setMinApi(parameters.getRuntime())
+            .run(parameters.getRuntime(), main);
 
     CodeInspector inspector = result.inspector();
     ClassSubject clazz = inspector.clazz(main);
@@ -185,7 +186,6 @@ public class ClassStaticizerTest extends TestBase {
 
   @Test
   public void testMoveToHost() throws Exception {
-    assumeTrue("b/112831361", backend == Backend.DEX);
     Class<?> main = MoveToHostTestClass.class;
     Class<?>[] classes = {
         NeverInline.class,
@@ -200,16 +200,17 @@ public class ClassStaticizerTest extends TestBase {
         CandidateConflictField.class
     };
     String javaOutput = runOnJava(main);
-    TestRunResult result = testForR8(backend)
-        .addProgramClasses(classes)
-        .enableProguardTestOptions()
-        .enableInliningAnnotations()
-        .addKeepMainRule(main)
-        .noMinification()
-        .addKeepRules("-allowaccessmodification")
-        .addOptionsModification(this::configure)
-        .run(main)
-        .assertSuccessWithOutput(javaOutput);
+    TestRunResult result =
+        testForR8(parameters.getBackend())
+            .addProgramClasses(classes)
+            .enableInliningAnnotations()
+            .addKeepMainRule(main)
+            .noMinification()
+            .addKeepRules("-allowaccessmodification")
+            .addOptionsModification(this::configure)
+            .setMinApi(parameters.getRuntime())
+            .run(parameters.getRuntime(), main)
+            .assertSuccessWithOutput(javaOutput);
 
     CodeInspector inspector = result.inspector();
     ClassSubject clazz = inspector.clazz(main);
@@ -313,28 +314,28 @@ public class ClassStaticizerTest extends TestBase {
 
   private void configure(InternalOptions options) {
     options.enableClassInlining = false;
+    options.enableUninstantiatedTypeOptimization = false;
   }
-
 
   @Test
   public void dualInlinedMethodRewritten() throws Exception {
-    assumeTrue("b/112831361", backend == Backend.DEX);
     Class<?> main = DualCallTest.class;
     Class<?>[] classes = {
         DualCallTest.class,
         Candidate.class
     };
     String javaOutput = runOnJava(main);
-    TestRunResult result = testForR8(backend)
-        .addProgramClasses(classes)
-        .enableProguardTestOptions()
-        .enableInliningAnnotations()
-        .addKeepMainRule(main)
-        .noMinification()
-        .addKeepRules("-allowaccessmodification")
-        .addOptionsModification(this::configure)
-        .run(main)
-        .assertSuccessWithOutput(javaOutput);
+    TestRunResult result =
+        testForR8(parameters.getBackend())
+            .addProgramClasses(classes)
+            .enableInliningAnnotations()
+            .addKeepMainRule(main)
+            .noMinification()
+            .addKeepRules("-allowaccessmodification")
+            .addOptionsModification(this::configure)
+            .setMinApi(parameters.getRuntime())
+            .run(parameters.getRuntime(), main)
+            .assertSuccessWithOutput(javaOutput);
 
     CodeInspector inspector = result.inspector();
     ClassSubject clazz = inspector.clazz(main);

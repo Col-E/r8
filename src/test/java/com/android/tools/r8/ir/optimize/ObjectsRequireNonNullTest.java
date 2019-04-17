@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.D8TestRunResult;
@@ -77,12 +78,14 @@ class ObjectsRequireNonNullTestMain {
     unknownArg(instance);
     try {
       unknownArg(null);
+      fail("Expected NullPointerException");
     } catch (NullPointerException npe) {
       System.out.println("Expected NPE");
     }
 
     try {
       consumeUninitialized(null);
+      fail("Expected NullPointerException");
     } catch (NullPointerException npe) {
       System.out.println("Expected NPE");
     }
@@ -167,35 +170,38 @@ public class ObjectsRequireNonNullTest extends TestBase {
   @Test
   public void testD8() throws Exception {
     assumeTrue("Only run D8 for Dex backend", parameters.isDexRuntime());
-    D8TestRunResult result = testForD8()
-        .debug()
-        .addProgramClassesAndInnerClasses(MAIN)
-        .setMinApi(parameters.getRuntime())
-        .run(parameters.getRuntime(), MAIN)
-        .assertSuccessWithOutput(JAVA_OUTPUT);
+    D8TestRunResult result =
+        testForD8()
+            .debug()
+            .addProgramClassesAndInnerClasses(MAIN)
+            .setMinApi(parameters.getRuntime())
+            .run(parameters.getRuntime(), MAIN)
+            .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 2, 1);
 
-    result = testForD8()
-        .release()
-        .addProgramClassesAndInnerClasses(MAIN)
-        .setMinApi(parameters.getRuntime())
-        .run(parameters.getRuntime(), MAIN)
-        .assertSuccessWithOutput(JAVA_OUTPUT);
+    result =
+        testForD8()
+            .release()
+            .addProgramClassesAndInnerClasses(MAIN)
+            .setMinApi(parameters.getRuntime())
+            .run(parameters.getRuntime(), MAIN)
+            .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 0, 1);
   }
 
   @Test
   public void testR8() throws Exception {
     assumeTrue("CF disables move result optimization", parameters.isDexRuntime());
-    R8TestRunResult result = testForR8(parameters.getBackend())
-        .addProgramClassesAndInnerClasses(MAIN)
-        .enableInliningAnnotations()
-        .enableMemberValuePropagationAnnotations()
-        .addKeepMainRule(MAIN)
-        .noMinification()
-        .setMinApi(parameters.getRuntime())
-        .run(parameters.getRuntime(), MAIN)
-        .assertSuccessWithOutput(JAVA_OUTPUT);
+    R8TestRunResult result =
+        testForR8(parameters.getBackend())
+            .addProgramClassesAndInnerClasses(MAIN)
+            .enableInliningAnnotations()
+            .enableMemberValuePropagationAnnotations()
+            .addKeepMainRule(MAIN)
+            .noMinification()
+            .setMinApi(parameters.getRuntime())
+            .run(parameters.getRuntime(), MAIN)
+            .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 0, 0);
   }
 }

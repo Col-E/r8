@@ -13,6 +13,7 @@ import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.DXTestRunResult;
 import com.android.tools.r8.ProguardTestRunResult;
 import com.android.tools.r8.R8TestRunResult;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
@@ -64,19 +65,20 @@ public class InvalidTypesTest extends JasminTestBase {
     }
   }
 
-  private final Backend backend;
+  private final TestParameters parameters;
   private final Mode mode;
   private final boolean useInterface;
 
-  public InvalidTypesTest(Backend backend, Mode mode, boolean useInterface) {
-    this.backend = backend;
+  public InvalidTypesTest(TestParameters parameters, Mode mode, boolean useInterface) {
+    this.parameters = parameters;
     this.mode = mode;
     this.useInterface = useInterface;
   }
 
-  @Parameters(name = "Backend: {0}, mode: {1}, use interface: {2}")
+  @Parameters(name = "{0}, mode: {1}, use interface: {2}")
   public static Collection<Object[]> parameters() {
-    return buildParameters(ToolHelper.getBackends(), Mode.values(), BooleanUtils.values());
+    return buildParameters(
+        getTestParameters().withAllRuntimes().build(), Mode.values(), BooleanUtils.values());
   }
 
   @Test
@@ -167,7 +169,7 @@ public class InvalidTypesTest extends JasminTestBase {
     Path inputJar = temp.getRoot().toPath().resolve("input.jar");
     jasminBuilder.writeJar(inputJar);
 
-    if (backend == Backend.CF) {
+    if (parameters.isCfRuntime()) {
       TestRunResult<?> jvmResult = testForJvm().addClasspath(inputJar).run(mainClass.name);
       checkTestRunResult(jvmResult, Compiler.JAVAC);
 
@@ -179,7 +181,7 @@ public class InvalidTypesTest extends JasminTestBase {
               .run(mainClass.name);
       checkTestRunResult(proguardResult, Compiler.PROGUARD);
     } else {
-      assert backend == Backend.DEX;
+      assert parameters.isDexRuntime();
 
       DXTestRunResult dxResult = testForDX().addProgramFiles(inputJar).run(mainClass.name);
       checkTestRunResult(dxResult, Compiler.DX);
@@ -189,7 +191,7 @@ public class InvalidTypesTest extends JasminTestBase {
     }
 
     R8TestRunResult r8Result =
-        testForR8(backend)
+        testForR8(parameters.getBackend())
             .addProgramFiles(inputJar)
             .addKeepMainRule(mainClass.name)
             .addKeepRules(
@@ -202,7 +204,8 @@ public class InvalidTypesTest extends JasminTestBase {
                   }
                 })
             .enableInliningAnnotations()
-            .run(mainClass.name);
+            .setMinApi(parameters.getRuntime())
+            .run(parameters.getRuntime(), mainClass.name);
     checkTestRunResult(r8Result, Compiler.R8);
   }
 
@@ -304,13 +307,13 @@ public class InvalidTypesTest extends JasminTestBase {
   }
 
   private Matcher<String> getMatcherForExpectedError() {
-    if (backend == Backend.CF) {
+    if (parameters.isCfRuntime()) {
       return allOf(
           containsString("java.lang.VerifyError"),
           containsString("Bad type in putfield/putstatic"));
     }
 
-    assert backend == Backend.DEX;
+    assert parameters.isDexRuntime();
     return allOf(
         containsString("java.lang.VerifyError"),
         anyOf(

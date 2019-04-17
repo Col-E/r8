@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
-import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isMemberVisibleFromOriginalContext;
-
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfFieldInstruction;
@@ -19,7 +17,6 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
@@ -98,36 +95,22 @@ public class StaticGet extends FieldInstruction {
   }
 
   @Override
-  public boolean canBeDeadCode(AppView<? extends AppInfo> appView, IRCode code) {
-    // Not applicable for D8.
-    if (!appView.enableWholeProgramOptimizations()) {
-      return false;
-    }
+  public boolean instructionMayHaveSideEffects(
+      AppView<? extends AppInfo> appView, DexType context) {
+    return instructionInstanceCanThrow(appView, context).isThrowing();
+  }
 
+  @Override
+  public boolean canBeDeadCode(AppView<? extends AppInfo> appView, IRCode code) {
     // static-get can be dead as long as it cannot have any of the following:
     // * NoSuchFieldError (resolution failure)
+    // * IncompatibleClassChangeError (static-* instruction for instance fields)
     // * IllegalAccessError (not visible from the access context)
     // * side-effects in <clinit>
-    // TODO(b/123857022): Should be possible to use definitionFor().
-    AppInfo appInfo = appView.appInfo();
-    DexEncodedField resolvedField = appInfo.resolveField(getField());
-    if (resolvedField == null) {
-      return false;
-    }
-    if (!isMemberVisibleFromOriginalContext(
-        appView,
-        code.method.method.holder,
-        resolvedField.field.holder,
-        resolvedField.accessFlags)) {
-      return false;
-    }
-    DexType context = code.method.method.holder;
-    return !getField()
-        .holder
-        .classInitializationMayHaveSideEffects(
-            appInfo,
-            // Types that are a super type of `context` are guaranteed to be initialized already.
-            type -> appView.isSubtype(context, type).isTrue());
+    boolean canBeDeadCode = !instructionMayHaveSideEffects(appView, code.method.method.holder);
+    assert appView.enableWholeProgramOptimizations() || !canBeDeadCode
+        : "Expected static-get instruction to have side effects in D8";
+    return canBeDeadCode;
   }
 
   @Override
