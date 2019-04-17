@@ -1293,6 +1293,8 @@ public class Outliner {
             sourceFile,
             null,
             Collections.emptyList(),
+            null,
+            Collections.emptyList(),
             // TODO: Build dex annotations structure.
             DexAnnotationSet.empty(),
             DexEncodedField.EMPTY_ARRAY, // Static fields.

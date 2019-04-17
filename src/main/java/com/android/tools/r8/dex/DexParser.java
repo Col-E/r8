@@ -702,6 +702,8 @@ public class DexParser {
               superclass,
               typeListAt(interfacesOffsets[i]),
               source,
+              null,
+              Collections.emptyList(),
               attrs.getEnclosingMethodAttribute(),
               attrs.getInnerClasses(),
               attrs.getAnnotations(),

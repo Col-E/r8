@@ -3,11 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import static com.android.tools.r8.utils.InternalOptions.ASM_VERSION;
 import static org.objectweb.asm.ClassReader.SKIP_CODE;
 import static org.objectweb.asm.ClassReader.SKIP_DEBUG;
 import static org.objectweb.asm.ClassReader.SKIP_FRAMES;
 import static org.objectweb.asm.Opcodes.ACC_DEPRECATED;
-import static com.android.tools.r8.utils.InternalOptions.ASM_VERSION;
 
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.dex.Constants;
@@ -181,6 +181,8 @@ public class JarClassFileReader {
     private DexType superType;
     private DexTypeList interfaces;
     private DexString sourceFile;
+    private NestHostClassAttribute nestHost = null;
+    private final List<NestMemberClassAttribute> nestMembers = new ArrayList<>();
     private EnclosingMethodAttribute enclosingMember = null;
     private final List<InnerClassAttribute> innerClasses = new ArrayList<>();
     private List<DexAnnotation> annotations = null;
@@ -226,6 +228,22 @@ public class JarClassFileReader {
           name == null
               ? new EnclosingMethodAttribute(ownerType)
               : new EnclosingMethodAttribute(application.getMethod(ownerType, name, desc));
+    }
+
+    @Override
+    public void visitNestHost(String nestHost) {
+      assert this.nestHost == null && nestMembers.isEmpty();
+      DexType nestHostType = application.getTypeFromName(nestHost);
+      // TODO anonymous classes b/130716158
+      this.nestHost = new NestHostClassAttribute(nestHostType);
+    }
+
+    @Override
+    public void visitNestMember(String nestMember) {
+      assert nestHost == null;
+      DexType nestMemberType = application.getTypeFromName(nestMember);
+      // TODO anonymous classes b/130716158
+      nestMembers.add(new NestMemberClassAttribute(nestMemberType));
     }
 
     private String illegalClassFilePrefix(ClassAccessFlags accessFlags, String name) {
@@ -349,6 +367,8 @@ public class JarClassFileReader {
               superType,
               interfaces,
               sourceFile,
+              nestHost,
+              nestMembers,
               enclosingMember,
               innerClasses,
               createAnnotationSet(annotations, application.options),

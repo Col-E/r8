@@ -162,6 +162,8 @@ final class LambdaClass {
             rewriter.factory.createString("lambda"),
             null,
             Collections.emptyList(),
+            null,
+            Collections.emptyList(),
             DexAnnotationSet.empty(),
             synthesizeStaticFields(),
             synthesizeInstanceFields(),

@@ -62,6 +62,9 @@ public abstract class DexClass extends DexDefinition {
   /** InnerClasses table. If this class is an inner class, it will have an entry here. */
   private final List<InnerClassAttribute> innerClasses;
 
+  private final NestHostClassAttribute nestHost;
+  private final List<NestMemberClassAttribute> nestMembers;
+
   public DexAnnotationSet annotations;
 
   public DexClass(
@@ -74,6 +77,8 @@ public abstract class DexClass extends DexDefinition {
       DexEncodedField[] instanceFields,
       DexEncodedMethod[] directMethods,
       DexEncodedMethod[] virtualMethods,
+      NestHostClassAttribute nestHost,
+      List<NestMemberClassAttribute> nestMembers,
       EnclosingMethodAttribute enclosingMethod,
       List<InnerClassAttribute> innerClasses,
       DexAnnotationSet annotations,
@@ -90,6 +95,9 @@ public abstract class DexClass extends DexDefinition {
     setInstanceFields(instanceFields);
     setDirectMethods(directMethods);
     setVirtualMethods(virtualMethods);
+    this.nestHost = nestHost;
+    this.nestMembers = nestMembers;
+    assert nestMembers != null;
     this.enclosingMethod = enclosingMethod;
     this.innerClasses = innerClasses;
     this.annotations = annotations;
@@ -800,6 +808,19 @@ public abstract class DexClass extends DexDefinition {
     return innerClass != null
         && innerClass.isAnonymous()
         && getEnclosingMethod() != null;
+  }
+
+  public boolean isInANest() {
+    assert nestMembers != null;
+    return !(nestMembers.isEmpty()) || (nestHost != null);
+  }
+
+  public NestHostClassAttribute getNestHostClassAttribute() {
+    return nestHost;
+  }
+
+  public List<NestMemberClassAttribute> getNestMembersClassAttributes() {
+    return nestMembers;
   }
 
   /** Returns kotlin class info if the class is synthesized by kotlin compiler. */

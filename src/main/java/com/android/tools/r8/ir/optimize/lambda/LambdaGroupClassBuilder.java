@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.origin.SynthesizedOrigin;
+import java.util.Collections;
 import java.util.List;
 
 // Encapsulates lambda group class building logic and separates
@@ -42,6 +43,8 @@ public abstract class LambdaGroupClassBuilder<T extends LambdaGroup> {
         superClassType,
         buildInterfaces(),
         factory.createString(origin),
+        null,
+        Collections.emptyList(),
         buildEnclosingMethodAttribute(),
         buildInnerClasses(),
         buildAnnotations(),

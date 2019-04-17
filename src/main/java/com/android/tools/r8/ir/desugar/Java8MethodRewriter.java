@@ -135,10 +135,12 @@ public final class Java8MethodRewriter {
               null,
               null,
               Collections.emptyList(),
+              null,
+              Collections.emptyList(),
               DexAnnotationSet.empty(),
               DexEncodedField.EMPTY_ARRAY,
               DexEncodedField.EMPTY_ARRAY,
-              new DexEncodedMethod[]{dexEncodedMethod},
+              new DexEncodedMethod[] {dexEncodedMethod},
               DexEncodedMethod.EMPTY_ARRAY,
               factory.getSkipNameValidationForTesting(),
               referencingClasses);

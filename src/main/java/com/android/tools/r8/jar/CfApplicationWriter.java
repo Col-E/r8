@@ -37,6 +37,7 @@ import com.android.tools.r8.graph.DexValue.DexValueType;
 import com.android.tools.r8.graph.DexValue.UnknownDexValue;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.InnerClassAttribute;
+import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.ProguardMapSupplier;
@@ -160,6 +161,14 @@ public class CfApplicationWriter {
 
     if (clazz.getEnclosingMethod() != null) {
       clazz.getEnclosingMethod().write(writer, namingLens);
+    }
+
+    if (clazz.getNestHostClassAttribute() != null) {
+      clazz.getNestHostClassAttribute().write(writer, namingLens);
+    }
+
+    for (NestMemberClassAttribute entry : clazz.getNestMembersClassAttributes()) {
+      entry.write(writer, namingLens);
     }
 
     for (InnerClassAttribute entry : clazz.getInnerClasses()) {

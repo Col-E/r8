@@ -101,6 +101,8 @@ public class SharedClassWritingTest {
         null,
         null,
         Collections.emptyList(),
+        null,
+        Collections.emptyList(),
         DexAnnotationSet.empty(),
         DexEncodedField.EMPTY_ARRAY,
         DexEncodedField.EMPTY_ARRAY,
