@@ -444,7 +444,6 @@ public class R8 {
           appViewWithLiveness.setAppInfo(
               appViewWithLiveness
                   .appInfo()
-                  .prunedCopyFrom(application, verticalClassMerger.getRemovedClasses())
                   .rewrittenWithLense(application.asDirect(), appView.graphLense()));
         }
         timing.end();
