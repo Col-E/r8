@@ -311,26 +311,18 @@ public class DescriptorUtils {
 
   public static String computeInnerClassSeparator(
       DexType outerClass, DexType innerClass, String innerName, InternalOptions options) {
-    return computeInnerClassSeparator(
-        outerClass.getInternalName(), innerClass.getInternalName(), innerName, options);
-  }
-
-  public static String computeInnerClassSeparator(
-      String outerDescriptor, String innerDescriptor, String innerName, InternalOptions options) {
+    String outerInternalRaw = outerClass.getInternalName();
+    String innerInternalRaw = innerClass.getInternalName();
     // outer-internal<separator>inner-name == inner-internal
-    if (outerDescriptor.length() + innerName.length() > innerDescriptor.length()) {
-      // But, if the minification is enabled, we can choose $ separator.
-      if (options.isMinifying()) {
-        return String.valueOf(INNER_CLASS_SEPARATOR);
-      }
+    if (outerInternalRaw.length() + innerName.length() > innerInternalRaw.length()) {
       return null;
     }
     String separator =
-        innerDescriptor.substring(
-            outerDescriptor.length(), innerDescriptor.length() - innerName.length());
+        innerInternalRaw.substring(
+            outerInternalRaw.length(), innerInternalRaw.length() - innerName.length());
     // Any non-$ separator results in a runtime exception in getCanonicalName.
     if (!separator.startsWith(String.valueOf(INNER_CLASS_SEPARATOR))) {
-      // Again, if the minification is enabled, we can choose $ separator.
+      // But, if the minification is enabled, we can choose $ separator.
       if (options.isMinifying()) {
         return String.valueOf(INNER_CLASS_SEPARATOR);
       }
