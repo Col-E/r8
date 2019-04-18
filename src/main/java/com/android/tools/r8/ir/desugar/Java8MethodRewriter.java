@@ -380,6 +380,14 @@ public final class Java8MethodRewriter {
       return new LongMethods(options, method, "sumImpl");
     }
 
+    public static LongMethods divideUnsignedCode(InternalOptions options, DexMethod method) {
+      return new LongMethods(options, method, "divideUnsignedImpl");
+    }
+
+    public static LongMethods remainderUnsignedCode(InternalOptions options, DexMethod method) {
+      return new LongMethods(options, method, "remainderUnsignedImpl");
+    }
+
     public static int hashCodeImpl(long i) {
       return Long.valueOf(i).hashCode();
     }
@@ -394,6 +402,78 @@ public final class Java8MethodRewriter {
 
     public static long sumImpl(long a, long b) {
       return a + b;
+    }
+
+    public static long divideUnsignedImpl(long dividend, long divisor) {
+      // This implementation is adapted from Guava's UnsignedLongs.java and Longs.java.
+
+      if (divisor < 0) { // i.e., divisor >= 2^63:
+        // Reference implementation calls UnsignedLongs.compare(dividend, divisor) whose
+        // implementation is Longs.compare(UnsignedLong.flip(a), UnsignedLong.flip(b)). The
+        // implementations of flip() and compare() are inlined here instead.
+        long dividendFlipped = dividend ^ Long.MIN_VALUE;
+        long divisorFlipped = divisor ^ Long.MIN_VALUE;
+        if (dividendFlipped < divisorFlipped) {
+          return 0; // dividend < divisor
+        } else {
+          return 1; // dividend >= divisor
+        }
+      }
+
+      // Optimization - use signed division if dividend < 2^63
+      if (dividend >= 0) {
+        return dividend / divisor;
+      }
+
+      // Otherwise, approximate the quotient, check, and correct if necessary. Our approximation is
+      // guaranteed to be either exact or one less than the correct value. This follows from the
+      // fact that floor(floor(x)/i) == floor(x/i) for any real x and integer i != 0. The proof is
+      // not quite trivial.
+      long quotient = ((dividend >>> 1) / divisor) << 1;
+      long rem = dividend - quotient * divisor;
+
+      // Reference implementation calls UnsignedLongs.compare(rem, divisor) whose
+      // implementation is Longs.compare(UnsignedLong.flip(a), UnsignedLong.flip(b)). The
+      // implementations of flip() and compare() are inlined here instead.
+      long remFlipped = rem ^ Long.MIN_VALUE;
+      long divisorFlipped = divisor ^ Long.MIN_VALUE;
+      return quotient + (remFlipped >= divisorFlipped ? 1 : 0);
+    }
+
+    public static long remainderUnsignedImpl(long dividend, long divisor) {
+      // This implementation is adapted from Guava's UnsignedLongs.java and Longs.java.
+
+      if (divisor < 0) { // i.e., divisor >= 2^63:
+        // Reference implementation calls UnsignedLongs.compare(dividend, divisor) whose
+        // implementation is Longs.compare(UnsignedLong.flip(a), UnsignedLong.flip(b)). The
+        // implementations of flip() and compare() are inlined here instead.
+        long dividendFlipped = dividend ^ Long.MIN_VALUE;
+        long divisorFlipped = divisor ^ Long.MIN_VALUE;
+        if (dividendFlipped < divisorFlipped) {
+          return dividend; // dividend < divisor
+        } else {
+          return dividend - divisor; // dividend >= divisor
+        }
+      }
+
+      // Optimization - use signed modulus if dividend < 2^63
+      if (dividend >= 0) {
+        return dividend % divisor;
+      }
+
+      // Otherwise, approximate the quotient, check, and correct if necessary. Our approximation is
+      // guaranteed to be either exact or one less than the correct value. This follows from the
+      // fact that floor(floor(x)/i) == floor(x/i) for any real x and integer i != 0. The proof is
+      // not quite trivial.
+      long quotient = ((dividend >>> 1) / divisor) << 1;
+      long rem = dividend - quotient * divisor;
+
+      // Reference implementation calls UnsignedLongs.compare(rem, divisor) whose
+      // implementation is Longs.compare(UnsignedLong.flip(a), UnsignedLong.flip(b)). The
+      // implementations of flip() and compare() are inlined here instead.
+      long remFlipped = rem ^ Long.MIN_VALUE;
+      long divisorFlipped = divisor ^ Long.MIN_VALUE;
+      return rem - (remFlipped >= divisorFlipped ? divisor : 0);
     }
   }
 
@@ -580,6 +660,19 @@ public final class Java8MethodRewriter {
       proto = factory.createProto(factory.longType, factory.longType, factory.longType);
       addOrGetMethod(clazz, method)
           .put(proto, new MethodGenerator(LongMethods::sumCode, clazz, method, proto));
+
+      // long Long.divideUnsigned(long a, long b)
+      method = factory.createString("divideUnsigned");
+      proto = factory.createProto(factory.longType, factory.longType, factory.longType);
+      addOrGetMethod(clazz, method)
+          .put(proto, new MethodGenerator(LongMethods::divideUnsignedCode, clazz, method, proto));
+
+      // long Long.remainderUnsigned(long a, long b)
+      method = factory.createString("remainderUnsigned");
+      proto = factory.createProto(factory.longType, factory.longType, factory.longType);
+      addOrGetMethod(clazz, method)
+          .put(proto,
+              new MethodGenerator(LongMethods::remainderUnsignedCode, clazz, method, proto));
 
       // Character
       clazz = factory.boxedCharDescriptor;

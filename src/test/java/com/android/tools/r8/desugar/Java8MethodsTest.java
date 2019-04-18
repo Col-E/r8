@@ -146,14 +146,18 @@ public class Java8MethodsTest extends TestBase {
         }
       }
 
-      long[] aLongs = new long[]{42L, 1L, -1L, Long.MAX_VALUE, Long.MIN_VALUE};
-      long[] bLongs = new long[]{43L, 2L, -2L, Long.MAX_VALUE, Long.MIN_VALUE};
+      long[] aLongs = new long[]{42L, 1L, -1L, Integer.MIN_VALUE, Integer.MAX_VALUE,
+          Long.MAX_VALUE, Long.MIN_VALUE};
+      long[] bLongs = new long[]{43L, 2L, -2L, Integer.MIN_VALUE, Integer.MAX_VALUE,
+          Long.MAX_VALUE, Long.MIN_VALUE};
       for (long aLong : aLongs) {
         System.out.println(Long.hashCode(aLong));
         for (long bLong : bLongs) {
           System.out.println(Long.max(aLong, bLong));
           System.out.println(Long.min(aLong, bLong));
           System.out.println(Long.sum(aLong, bLong));
+          System.out.println(Long.divideUnsigned(aLong, bLong));
+          System.out.println(Long.remainderUnsigned(aLong, bLong));
         }
       }
 
