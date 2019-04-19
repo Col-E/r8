@@ -1350,7 +1350,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
-  public void parseInvalidKeepattributes() {
+  public void parseInvalidKeepattributes_brokenList() {
     try {
       ProguardConfigurationParser parser =
           new ProguardConfigurationParser(new DexItemFactory(), reporter);
@@ -1359,6 +1359,21 @@ public class ProguardConfigurationParserTest extends TestBase {
     } catch (AbortException e) {
       assertTrue(
           handler.errors.get(0).getDiagnosticMessage().contains("Expected list element at "));
+    }
+  }
+
+  @Test
+  public void parseInvalidKeepattributes_className() {
+    try {
+      ProguardConfigurationParser parser =
+          new ProguardConfigurationParser(new DexItemFactory(), reporter);
+      parser.parse(createConfigurationForTesting(
+          ImmutableList.of("-keepattributes androidx.annotation.Keep")));
+      fail();
+    } catch (AbortException e) {
+      // TODO(b/130746806): better error message?
+      assertTrue(
+          handler.errors.get(0).getDiagnosticMessage().contains("Expected char '-' at "));
     }
   }
 
