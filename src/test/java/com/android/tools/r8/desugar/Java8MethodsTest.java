@@ -4,9 +4,18 @@
 
 package com.android.tools.r8.desugar;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static java.util.stream.Collectors.toList;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
+
+import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.nio.file.Path;
+import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -26,6 +35,37 @@ public class Java8MethodsTest extends TestBase {
         .addProgramClasses(Java8Methods.class)
         .run(Java8Methods.class)
         .assertSuccessWithOutput(expectedOutput);
+
+    assertDesugaring(AndroidApiLevel.O, 27);
+    assertDesugaring(AndroidApiLevel.N, 25);
+    assertDesugaring(AndroidApiLevel.M, 0);
+  }
+
+  private void assertDesugaring(AndroidApiLevel apilevel, int expectedJavaLangInvokeStatics)
+      throws Exception {
+    D8TestCompileResult runResult = testForD8()
+        .addProgramClasses(Java8Methods.class)
+        .setMinApi(apilevel)
+        .compile();
+
+    MethodSubject mainMethod = runResult.inspector()
+        .clazz(Java8Methods.class)
+        .mainMethod();
+    assertThat(mainMethod, isPresent());
+
+    List<InstructionSubject> javaLangInvokeStatics = mainMethod
+        .streamInstructions()
+        .filter(InstructionSubject::isInvokeStatic)
+        .filter(is -> is.getMethod().holder.toDescriptorString().startsWith("Ljava/lang/"))
+        .collect(toList());
+
+    int actualJavaLangInvokeStatics = javaLangInvokeStatics.size();
+    assertEquals("Expected "
+        + expectedJavaLangInvokeStatics
+        + " invoke-static on java/lang/<Type> but found "
+        + actualJavaLangInvokeStatics
+        + ": "
+        + javaLangInvokeStatics, expectedJavaLangInvokeStatics, actualJavaLangInvokeStatics);
   }
 
   @Test
@@ -138,7 +178,7 @@ public class Java8MethodsTest extends TestBase {
       }
 
       for (boolean aBoolean : new boolean[]{true, false}) {
-        System.out.println(aBoolean);
+        System.out.println(Boolean.hashCode(aBoolean));
         for (boolean bBoolean : new boolean[]{true, false}) {
           System.out.println(Boolean.logicalAnd(aBoolean, bBoolean));
           System.out.println(Boolean.logicalOr(aBoolean, bBoolean));

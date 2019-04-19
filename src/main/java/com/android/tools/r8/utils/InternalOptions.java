@@ -667,7 +667,9 @@ public class InternalOptions {
   }
 
   public boolean canUseJava8Methods() {
-    return hasMinApi(AndroidApiLevel.N);
+    // This value must be set to the highest API level of all methods we desugar. The implementation
+    // will conditionally desugar based on the specified minimum API level.
+    return hasMinApi(AndroidApiLevel.O);
   }
 
   public boolean canUsePrivateInterfaceMethods() {
