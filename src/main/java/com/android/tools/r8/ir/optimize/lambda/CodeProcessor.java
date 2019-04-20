@@ -16,10 +16,10 @@ import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.ConstMethodHandle;
 import com.android.tools.r8.ir.code.ConstMethodType;
+import com.android.tools.r8.ir.code.DefaultInstructionVisitor;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.InstancePut;
-import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.InvokeMethod;
@@ -42,7 +42,7 @@ import java.util.function.Function;
 //
 // This class is also used inside particular strategies as a context of the instruction
 // being checked or patched, it provides access to code, block and instruction iterators.
-public abstract class CodeProcessor {
+public abstract class CodeProcessor extends DefaultInstructionVisitor<Void> {
   // Strategy (specific to lambda group) for detecting valid references to the
   // lambda classes (of this group) and patching them with group class references.
   public interface Strategy {
@@ -185,49 +185,24 @@ public abstract class CodeProcessor {
       BasicBlock block = blocks.next();
       instructions = block.listIterator();
       while (instructions.hasNext()) {
-        onInstruction(instructions.next());
+        instructions.next().accept(this);
       }
     }
   }
 
-  private void onInstruction(Instruction instruction) {
-    if (instruction.isInvoke()) {
-      handle(instruction.asInvoke());
-    } else if (instruction.isNewInstance()) {
-      handle(instruction.asNewInstance());
-    } else if (instruction.isCheckCast()) {
-      handle(instruction.asCheckCast());
-    } else if (instruction.isNewArrayEmpty()) {
-      handle(instruction.asNewArrayEmpty());
-    } else if (instruction.isConstClass()) {
-      handle(instruction.asConstClass());
-    } else if (instruction.isConstMethodType()) {
-      handle(instruction.asConstMethodType());
-    } else if (instruction.isConstMethodHandle()) {
-      handle(instruction.asConstMethodHandle());
-    } else if (instruction.isInstanceGet()) {
-      handle(instruction.asInstanceGet());
-    } else if (instruction.isInstancePut()) {
-      handle(instruction.asInstancePut());
-    } else if (instruction.isStaticGet()) {
-      handle(instruction.asStaticGet());
-    } else if (instruction.isStaticPut()) {
-      handle(instruction.asStaticPut());
-    }
-  }
-
-  private void handle(Invoke invoke) {
+  @Override
+  public Void handleInvoke(Invoke invoke) {
     if (invoke.isInvokeNewArray()) {
       lambdaChecker.accept(invoke.asInvokeNewArray().getReturnType());
-      return;
+      return null;
     }
     if (invoke.isInvokeMultiNewArray()) {
       lambdaChecker.accept(invoke.asInvokeMultiNewArray().getReturnType());
-      return;
+      return null;
     }
     if (invoke.isInvokeCustom()) {
       lambdaChecker.accept(invoke.asInvokeCustom().getCallSite());
-      return;
+      return null;
     }
 
     InvokeMethod invokeMethod = invoke.asInvokeMethod();
@@ -239,7 +214,7 @@ public abstract class CodeProcessor {
       if (invokeMethod.getInvokedMethod().holder != this.method.method.holder) {
         process(strategy, invokeMethod);
       }
-      return;
+      return null;
     }
 
     // For the rest invalidate any references.
@@ -247,9 +222,11 @@ public abstract class CodeProcessor {
       lambdaChecker.accept(invoke.asInvokePolymorphic().getProto());
     }
     lambdaChecker.accept(invokeMethod.getInvokedMethod(), null);
+    return null;
   }
 
-  private void handle(NewInstance newInstance) {
+  @Override
+  public Void visit(NewInstance newInstance) {
     Strategy strategy = strategyProvider.apply(newInstance.clazz);
     if (strategy.isValidNewInstance(this, newInstance)) {
       // Only rewrite references to lambda classes if we are outside the class.
@@ -257,29 +234,41 @@ public abstract class CodeProcessor {
         process(strategy, newInstance);
       }
     }
+    return null;
   }
 
-  private void handle(CheckCast checkCast) {
+  @Override
+  public Void visit(CheckCast checkCast) {
     lambdaChecker.accept(checkCast.getType());
+    return null;
   }
 
-  private void handle(NewArrayEmpty newArrayEmpty) {
+  @Override
+  public Void visit(NewArrayEmpty newArrayEmpty) {
     lambdaChecker.accept(newArrayEmpty.type);
+    return null;
   }
 
-  private void handle(ConstClass constClass) {
+  @Override
+  public Void visit(ConstClass constClass) {
     lambdaChecker.accept(constClass.getValue());
+    return null;
   }
 
-  private void handle(ConstMethodType constMethodType) {
+  @Override
+  public Void visit(ConstMethodType constMethodType) {
     lambdaChecker.accept(constMethodType.getValue());
+    return null;
   }
 
-  private void handle(ConstMethodHandle constMethodHandle) {
+  @Override
+  public Void visit(ConstMethodHandle constMethodHandle) {
     lambdaChecker.accept(constMethodHandle.getValue());
+    return null;
   }
 
-  private void handle(InstanceGet instanceGet) {
+  @Override
+  public Void visit(InstanceGet instanceGet) {
     DexField field = instanceGet.getField();
     Strategy strategy = strategyProvider.apply(field.holder);
     if (strategy.isValidInstanceFieldRead(this, field)) {
@@ -294,9 +283,11 @@ public abstract class CodeProcessor {
     // We avoid fields with type being lambda class, it is possible for
     // a lambda to capture another lambda, but we don't support it for now.
     lambdaChecker.accept(field.type);
+    return null;
   }
 
-  private void handle(InstancePut instancePut) {
+  @Override
+  public Void visit(InstancePut instancePut) {
     DexField field = instancePut.getField();
     Strategy strategy = strategyProvider.apply(field.holder);
     if (strategy.isValidInstanceFieldWrite(this, field)) {
@@ -311,9 +302,11 @@ public abstract class CodeProcessor {
     // We avoid fields with type being lambda class, it is possible for
     // a lambda to capture another lambda, but we don't support it for now.
     lambdaChecker.accept(field.type);
+    return null;
   }
 
-  private void handle(StaticGet staticGet) {
+  @Override
+  public Void visit(StaticGet staticGet) {
     DexField field = staticGet.getField();
     Strategy strategy = strategyProvider.apply(field.holder);
     if (strategy.isValidStaticFieldRead(this, field)) {
@@ -325,9 +318,11 @@ public abstract class CodeProcessor {
       lambdaChecker.accept(field.type);
       lambdaChecker.accept(field.holder);
     }
+    return null;
   }
 
-  private void handle(StaticPut staticPut) {
+  @Override
+  public Void visit(StaticPut staticPut) {
     DexField field = staticPut.getField();
     Strategy strategy = strategyProvider.apply(field.holder);
     if (strategy.isValidStaticFieldWrite(this, field)) {
@@ -339,6 +334,7 @@ public abstract class CodeProcessor {
       lambdaChecker.accept(field.type);
       lambdaChecker.accept(field.holder);
     }
+    return null;
   }
 
   abstract void process(Strategy strategy, InvokeMethod invokeMethod);
