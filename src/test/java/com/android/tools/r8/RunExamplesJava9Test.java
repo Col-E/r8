@@ -211,7 +211,7 @@ public abstract class RunExamplesJava9Test
             "varhandle"
         ))
         .put(DexVm.Version.DEFAULT, ImmutableList.of(
-            // TODO(mikaelpeltier): Update runtime when the support will be ready
+            // TODO(b/72536415): Update runtime when the support will be ready
             "varhandle"
         ));
     failsOn = builder.build();
