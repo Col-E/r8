@@ -64,7 +64,7 @@ public class TypeChecker {
     return checkFieldPut(instruction);
   }
 
-  private boolean checkFieldPut(FieldInstruction instruction) {
+  public boolean checkFieldPut(FieldInstruction instruction) {
     assert instruction.isFieldPut();
     Value value =
         instruction.isInstancePut()

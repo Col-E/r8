@@ -25,8 +25,7 @@ import com.android.tools.r8.graph.GraphLense.RewrittenPrototypeDescription.Remov
 import com.android.tools.r8.graph.GraphLense.RewrittenPrototypeDescription.RemovedArgumentsInfo;
 import com.android.tools.r8.graph.TopDownClassHierarchyTraversal;
 import com.android.tools.r8.ir.analysis.AbstractError;
-import com.android.tools.r8.ir.analysis.type.Nullability;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.TypeChecker;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
@@ -104,6 +103,7 @@ public class UninstantiatedTypeOptimization {
   private static final MethodSignatureEquivalence equivalence = MethodSignatureEquivalence.get();
 
   private final AppView<AppInfoWithLiveness> appView;
+  private final TypeChecker typeChecker;
 
   private int numberOfInstanceGetOrInstancePutWithNullReceiver = 0;
   private int numberOfArrayInstructionsWithNullArray = 0;
@@ -113,6 +113,7 @@ public class UninstantiatedTypeOptimization {
 
   public UninstantiatedTypeOptimization(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
+    this.typeChecker = new TypeChecker(appView);
   }
 
   public GraphLense run(
@@ -484,14 +485,7 @@ public class UninstantiatedTypeOptimization {
 
       BasicBlock block = instruction.getBlock();
       if (instruction.isFieldPut()) {
-        Value value =
-            instruction.isInstancePut()
-                ? instruction.asInstancePut().value()
-                : instruction.asStaticPut().inValue();
-
-        TypeLatticeElement fieldLatticeType =
-            TypeLatticeElement.fromDexType(fieldType, Nullability.maybeNull(), appView);
-        if (!value.getTypeLattice().lessThanOrEqual(fieldLatticeType, appView)) {
+        if (!typeChecker.checkFieldPut(instruction)) {
           // Broken type hierarchy. See FieldTypeTest#test_brokenTypeHierarchy.
           assert appView.options().testing.allowTypeErrors;
           return;

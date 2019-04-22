@@ -597,7 +597,7 @@ public class InternalOptions {
 
     public boolean allowProguardRulesThatUseExtendsOrImplementsWrong = true;
     public boolean allowTypeErrors =
-        !Version.isDev() || System.getProperty("com.android.tools.r8.allowTypeErrors") != null;;
+        !Version.isDev() || System.getProperty("com.android.tools.r8.allowTypeErrors") != null;
     public boolean alwaysUsePessimisticRegisterAllocation = false;
     public boolean invertConditionals = false;
     public boolean placeExceptionalBlocksLast = false;
