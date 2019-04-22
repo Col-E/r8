@@ -4,21 +4,35 @@
 
 package com.android.tools.r8.rewrite.staticvalues.inlibraries;
 
-import static org.junit.Assert.assertEquals;
-
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.jasmin.JasminBuilder;
-import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.smali.SmaliBuilder;
-import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.PreloadedClassFileProvider;
 import com.google.common.collect.ImmutableList;
-import org.junit.Assume;
+import java.nio.file.Path;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class StaticLibraryValuesChangeTest extends TestBase {
+
+  private final TestParameters parameters;
+
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withDexRuntimes().build();
+  }
+
+  public StaticLibraryValuesChangeTest(TestParameters parameters) {
+    this.parameters = parameters;
+  }
+
   @Test
   public void testStatic() throws Exception {
     /*
@@ -38,10 +52,6 @@ public class StaticLibraryValuesChangeTest extends TestBase {
      * The third version is used for running the R8 compiled TestMain on Art.
      */
 
-    // TODO(66944616): Can we make this work on Dalvik as well?
-    Assume.assumeTrue("Skipping on VM versions < 4.4.4",
-        ToolHelper.getDexVm().getVersion().isNewerThan(Version.V4_4_4));
-
     // Build the second version of LibraryClass
     JasminBuilder compileTimeLibrary = new JasminBuilder();
     JasminBuilder.ClassBuilder clazz = compileTimeLibrary.addClass(
@@ -52,15 +62,6 @@ public class StaticLibraryValuesChangeTest extends TestBase {
         ".limit locals 0",
         "  iconst_2",
         "  ireturn");
-
-    // Compile TestMain with R8 using the second version of LibraryClass as library.
-    AndroidApp.Builder builder = AndroidApp.builder();
-    builder.addProgramFiles(ToolHelper.getClassFileForTestClass(TestMain.class));
-    builder.addLibraryFiles(ToolHelper.getDefaultAndroidJar());
-    builder.addLibraryResourceProvider(PreloadedClassFileProvider.fromClassData(
-        "Lcom/android/tools/r8/rewrite/staticvalues/inlibraries/LibraryClass;",
-        compileTimeLibrary.buildClasses().get(0)));
-    AndroidApp app = compileWithR8(builder.build(), "-dontshrink\n-dontobfuscate\n");
 
     // Build the third version of LibraryClass
     SmaliBuilder runtimeLibrary = new SmaliBuilder(LibraryClass.class.getCanonicalName());
@@ -74,10 +75,23 @@ public class StaticLibraryValuesChangeTest extends TestBase {
         "    return              v0"
     );
 
-    // Merge the compiled TestMain with the runtime version of LibraryClass.
-    builder = AndroidApp.builder(app);
-    builder.addDexProgramData(runtimeLibrary.compile(), EmbeddedOrigin.INSTANCE);
-    String result = runOnArt(builder.build(), TestMain.class);
-    assertEquals("33", result);
+    Path lib = temp.newFile("lib.dex").toPath().toAbsolutePath();
+    FileUtils.writeToFile(lib, null, runtimeLibrary.compile());
+
+    testForR8(parameters.getBackend())
+        .setMinApi(parameters.getRuntime())
+        .addProgramClasses(TestMain.class)
+        .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
+        // Compile TestMain with R8 using the second version of LibraryClass as library.
+        .addLibraryProvider(PreloadedClassFileProvider.fromClassData(
+            DescriptorUtils.javaTypeToDescriptor(LibraryClass.class.getName()),
+            compileTimeLibrary.buildClasses().get(0)))
+        .noTreeShaking()
+        .noMinification()
+        .compile()
+        // Merge the compiled TestMain with the runtime version of LibraryClass.
+        .addRunClasspathFiles(lib)
+        .run(parameters.getRuntime(), TestMain.class)
+        .assertSuccessWithOutput("33");
   }
 }
