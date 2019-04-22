@@ -93,7 +93,8 @@ APP_REPOSITORIES = [
               'id': 'com.numix.calculator',
               'dir': 'Calculator',
               'name': 'numix-calculator',
-              'has_instrumentation_tests': True
+              'has_instrumentation_tests': True,
+              'skip': True
           })
       ]
   }),
