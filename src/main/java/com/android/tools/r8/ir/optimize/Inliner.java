@@ -495,12 +495,34 @@ public class Inliner {
     }
   }
 
-  static final int numberOfInstructions(IRCode code) {
-    int numOfInstructions = 0;
+  static int numberOfInstructions(IRCode code) {
+    int numberOfInstructions = 0;
     for (BasicBlock block : code.blocks) {
-      numOfInstructions += block.getInstructions().size();
+      for (Instruction instruction : block.getInstructions()) {
+        assert !instruction.isDebugInstruction();
+
+        // Do not include argument instructions since they do not materialize in the output.
+        if (instruction.isArgument()) {
+          continue;
+        }
+
+        // Do not include assume instructions in the calculation of the inlining budget, since they
+        // do not materialize in the output.
+        if (instruction.isAssume()) {
+          continue;
+        }
+
+        // Do not include goto instructions that target a basic block with exactly one predecessor,
+        // since these goto instructions will generally not materialize.
+        if (instruction.isGoto()) {
+          if (instruction.asGoto().getTarget().getPredecessors().size() == 1) {
+            continue;
+          }
+        }
+        ++numberOfInstructions;
+      }
     }
-    return numOfInstructions;
+    return numberOfInstructions;
   }
 
   boolean legalConstructorInline(
