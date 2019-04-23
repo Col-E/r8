@@ -218,7 +218,7 @@ public class GetNameTest extends GetNameTestBase {
   @Test
   public void testJVMOutput() throws Exception {
     assumeTrue(
-        "Only run JVM reference once (for CF backend)",
+        "Only run JVM reference on CF runtimes",
         parameters.isCfRuntime() && !enableMinification);
     testForJvm()
         .addTestClasspath()

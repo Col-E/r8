@@ -7,12 +7,12 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.KotlinTestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.graph.DexAnnotationElement;
 import com.android.tools.r8.utils.AndroidApp;
@@ -56,24 +56,27 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
       "f4", "field4]"
   );
 
-  private final Backend backend;
+  private final TestParameters parameters;
   private final boolean minify;
 
-  @Parameterized.Parameters(name = "Backend: {0} target: {1} minify: {2}")
+  @Parameterized.Parameters(name = "{0} target: {1} minify: {2}")
   public static Collection<Object[]> data() {
-    return buildParameters(ToolHelper.getBackends(), KotlinTargetVersion.values(), BooleanUtils.values());
+    return buildParameters(
+        getTestParameters().withAllRuntimes().build(),
+        KotlinTargetVersion.values(),
+        BooleanUtils.values());
   }
 
   public ReflectiveAnnotationUseTest(
-      Backend backend, KotlinTargetVersion targetVersion, boolean minify) {
+      TestParameters parameters, KotlinTargetVersion targetVersion, boolean minify) {
     super(targetVersion);
-    this.backend = backend;
+    this.parameters = parameters;
     this.minify = minify;
   }
 
   @Test
-  public void b120951621_JVMoutput() throws Exception {
-    assumeTrue("Only run JVM reference once (for CF backend)", backend == Backend.CF);
+  public void b120951621_JVMOutput() throws Exception {
+    assumeTrue("Only run JVM reference on CF runtimes", parameters.isCfRuntime());
     AndroidApp app = AndroidApp.builder()
         .addProgramFile(getKotlinJarFile(FOLDER))
         .addProgramFile(getJavaJarFile(FOLDER))
@@ -84,7 +87,7 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
 
   @Test
   public void b120951621_keepAll() throws Exception {
-    CodeInspector inspector = testForR8(backend)
+    CodeInspector inspector = testForR8(parameters.getBackend())
         .addProgramFiles(getKotlinJarFile(FOLDER))
         .addProgramFiles(getJavaJarFile(FOLDER))
         .addKeepMainRule(MAIN_CLASS_NAME)
@@ -95,7 +98,8 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
             "}"
         )
         .minification(minify)
-        .run(MAIN_CLASS_NAME)
+        .setMinApi(parameters.getRuntime())
+        .run(parameters.getRuntime(), MAIN_CLASS_NAME)
         .assertSuccessWithOutput(JAVA_OUTPUT).inspector();
     ClassSubject clazz = inspector.clazz(ANNOTATION_NAME);
     assertThat(clazz, isPresent());
@@ -122,7 +126,7 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
 
   @Test
   public void b120951621_partiallyKeep() throws Exception {
-    CodeInspector inspector = testForR8(backend)
+    CodeInspector inspector = testForR8(parameters.getBackend())
         .addProgramFiles(getKotlinJarFile(FOLDER))
         .addProgramFiles(getJavaJarFile(FOLDER))
         .addKeepMainRule(MAIN_CLASS_NAME)
@@ -133,7 +137,8 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
             "}"
         )
         .minification(minify)
-        .run(MAIN_CLASS_NAME)
+        .setMinApi(parameters.getRuntime())
+        .run(parameters.getRuntime(), MAIN_CLASS_NAME)
         .assertSuccessWithOutput(JAVA_OUTPUT).inspector();
     ClassSubject clazz = inspector.clazz(ANNOTATION_NAME);
     assertThat(clazz, isPresent());
@@ -158,13 +163,14 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
 
   @Test
   public void b120951621_keepAnnotation() throws Exception {
-    CodeInspector inspector = testForR8(backend)
+    CodeInspector inspector = testForR8(parameters.getBackend())
         .addProgramFiles(getKotlinJarFile(FOLDER))
         .addProgramFiles(getJavaJarFile(FOLDER))
         .addKeepMainRule(MAIN_CLASS_NAME)
         .addKeepRules(KEEP_ANNOTATIONS)
         .minification(minify)
-        .run(MAIN_CLASS_NAME)
+        .setMinApi(parameters.getRuntime())
+        .run(parameters.getRuntime(), MAIN_CLASS_NAME)
         .assertSuccessWithOutput(JAVA_OUTPUT).inspector();
     ClassSubject clazz = inspector.clazz(ANNOTATION_NAME);
     assertThat(clazz, isPresent());
@@ -189,12 +195,13 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
 
   @Test
   public void b120951621_noKeep() throws Exception {
-    CodeInspector inspector = testForR8(backend)
+    CodeInspector inspector = testForR8(parameters.getBackend())
         .addProgramFiles(getKotlinJarFile(FOLDER))
         .addProgramFiles(getJavaJarFile(FOLDER))
         .addKeepMainRule(MAIN_CLASS_NAME)
         .minification(minify)
-        .run(MAIN_CLASS_NAME)
+        .setMinApi(parameters.getRuntime())
+        .run(parameters.getRuntime(), MAIN_CLASS_NAME)
         .assertSuccessWithOutput(OUTPUT_WITHOUT_ANNOTATION).inspector();
     ClassSubject clazz = inspector.clazz(ANNOTATION_NAME);
     assertThat(clazz, isPresent());

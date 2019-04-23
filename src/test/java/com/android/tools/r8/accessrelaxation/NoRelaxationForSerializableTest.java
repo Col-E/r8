@@ -10,7 +10,7 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.R8TestCompileResult;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.FileUtils;
@@ -99,13 +99,13 @@ public class NoRelaxationForSerializableTest extends AccessRelaxationTestBase {
   private final boolean accessModification;
   private Path configuration;
 
-  @Parameterized.Parameters(name = "Backend: {0}, access-modification: {1}")
+  @Parameterized.Parameters(name = "{0}, access-modification: {1}")
   public static List<Object[]> data() {
-    return buildParameters(ToolHelper.getBackends(), BooleanUtils.values());
+    return buildParameters(getTestParameters().withAllRuntimes().build(), BooleanUtils.values());
   }
 
-  public NoRelaxationForSerializableTest(Backend backend, boolean accessModification) {
-    super(backend);
+  public NoRelaxationForSerializableTest(TestParameters parameters, boolean accessModification) {
+    super(parameters);
     this.accessModification = accessModification;
   }
 
@@ -120,36 +120,39 @@ public class NoRelaxationForSerializableTest extends AccessRelaxationTestBase {
 
   @Test
   public void testProguard_withKeepRules() throws Exception {
-    assumeTrue(backend == Backend.CF);
+    assumeTrue(parameters.isCfRuntime());
     testForProguard()
         .addProgramClasses(CLASSES)
         .addKeepRuleFiles(configuration)
         .addKeepRules(KEEPMEMBER_RULES)
         .compile()
-        .run(MAIN)
+        .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(EXPECTED_OUTPUT)
         .inspect(this::inspect);
   }
 
   @Test
   public void testR8_withKeepRules() throws Exception {
-    R8TestCompileResult result = testForR8(backend)
+    R8TestCompileResult result = testForR8(parameters.getBackend())
         .addProgramClasses(CLASSES)
         .enableClassInliningAnnotations()
         .enableInliningAnnotations()
         .addKeepRuleFiles(configuration)
         .addKeepRules(KEEPMEMBER_RULES)
+        .setMinApi(parameters.getRuntime())
         .compile()
         .inspect(this::inspect);
     // TODO(b/117302947): Need to update ART binary.
-    if (backend == Backend.CF) {
-      result.run(MAIN).assertSuccessWithOutput(EXPECTED_OUTPUT);
+    if (parameters.isCfRuntime()) {
+      result
+          .run(parameters.getRuntime(), MAIN)
+          .assertSuccessWithOutput(EXPECTED_OUTPUT);
     }
   }
 
   @Test
   public void testProguard_withoutKeepRules() throws Exception {
-    assumeTrue(backend == Backend.CF);
+    assumeTrue(parameters.isCfRuntime());
     testForProguard()
         .addProgramClasses(CLASSES)
         .addKeepRuleFiles(configuration)
@@ -160,15 +163,18 @@ public class NoRelaxationForSerializableTest extends AccessRelaxationTestBase {
 
   @Test
   public void testR8_withoutKeepRules() throws Exception {
-    R8TestCompileResult result = testForR8(backend)
+    R8TestCompileResult result = testForR8(parameters.getBackend())
         .addProgramClasses(CLASSES)
         .enableClassInliningAnnotations()
         .enableInliningAnnotations()
         .addKeepRuleFiles(configuration)
+        .setMinApi(parameters.getRuntime())
         .compile();
     // TODO(b/117302947): Need to update ART binary.
-    if (backend == Backend.CF) {
-      result.run(MAIN).assertFailureWithErrorThatMatches(containsString("Could not deserialize"));
+    if (parameters.isCfRuntime()) {
+      result
+          .run(parameters.getRuntime(), MAIN)
+          .assertFailureWithErrorThatMatches(containsString("Could not deserialize"));
     }
   }
 

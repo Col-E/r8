@@ -4,12 +4,13 @@
 package com.android.tools.r8.accessrelaxation;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.R8TestRunResult;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -160,12 +161,12 @@ public final class ConstructorRelaxationTest extends AccessRelaxationTestBase {
   };
 
   @Parameterized.Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimes().build();
   }
 
-  public ConstructorRelaxationTest(Backend backend) {
-    super(backend);
+  public ConstructorRelaxationTest(TestParameters parameters) {
+    super(parameters);
   }
 
   @Test
@@ -180,7 +181,7 @@ public final class ConstructorRelaxationTest extends AccessRelaxationTestBase {
     Class mainClass = CtorTestMain.class;
 
     R8TestRunResult result =
-        testForR8(backend)
+        testForR8(parameters.getBackend())
             .addProgramClasses(mainClass)
             .addProgramClasses(CLASSES)
             .addOptionsModification(o -> {
@@ -188,17 +189,18 @@ public final class ConstructorRelaxationTest extends AccessRelaxationTestBase {
               o.enableVerticalClassMerging = false;
             })
             .noMinification()
-        .addKeepRules(
-            "-keep class " + mainClass.getCanonicalName() + "{",
-            "  public static void main(java.lang.String[]);",
-            "}",
-            "",
-            "-keep class *.L* {",
-            "  <init>(...);",
-            "}",
-            "",
-            "-allowaccessmodification")
-        .run(mainClass);
+            .addKeepRules(
+                "-keep class " + mainClass.getCanonicalName() + "{",
+                "  public static void main(java.lang.String[]);",
+                "}",
+                "",
+                "-keep class *.L* {",
+                "  <init>(...);",
+                "}",
+                "",
+                "-allowaccessmodification")
+            .setMinApi(parameters.getRuntime())
+            .run(parameters.getRuntime(), mainClass);
 
     assertEquals(
         expectedOutput,

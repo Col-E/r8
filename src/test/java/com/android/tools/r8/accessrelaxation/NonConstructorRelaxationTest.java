@@ -7,6 +7,7 @@ package com.android.tools.r8.accessrelaxation;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.R8TestRunResult;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.accessrelaxation.privateinstance.Base;
 import com.android.tools.r8.accessrelaxation.privateinstance.Sub1;
@@ -33,13 +34,13 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
 
   private boolean enableArgumentRemoval;
 
-  @Parameterized.Parameters(name = "Backend: {0}, argument removal: {1}")
+  @Parameterized.Parameters(name = "{0}, argument removal: {1}")
   public static List<Object[]> data() {
-    return buildParameters(ToolHelper.getBackends(), BooleanUtils.values());
+    return buildParameters(getTestParameters().withAllRuntimes().build(), BooleanUtils.values());
   }
 
-  public NonConstructorRelaxationTest(Backend backend, boolean enableArgumentRemoval) {
-    super(backend);
+  public NonConstructorRelaxationTest(TestParameters parameters, boolean enableArgumentRemoval) {
+    super(parameters);
     this.enableArgumentRemoval = enableArgumentRemoval;
   }
 
@@ -65,13 +66,16 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
             "B::foo()A::foo()A::baz()A::bar()A::bar(int)",
             "C::blah(int)");
     Class<?> mainClass = C.class;
-    if (backend == Backend.CF) {
-      // Only run JVM reference once (for CF backend)
-      testForJvm().addTestClasspath().run(mainClass).assertSuccessWithOutput(expectedOutput);
+    if (parameters.isCfRuntime()) {
+      // Only run JVM reference on CF runtimes.
+      testForJvm()
+          .addTestClasspath()
+          .run(parameters.getRuntime(), mainClass)
+          .assertSuccessWithOutput(expectedOutput);
     }
 
     R8TestRunResult result =
-        testForR8(backend)
+        testForR8(parameters.getBackend())
             .addProgramFiles(ToolHelper.getClassFilesForTestPackage(mainClass.getPackage()))
             .enableInliningAnnotations()
             .enableMemberValuePropagationAnnotations()
@@ -101,7 +105,8 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
                 "}",
                 "",
                 "-allowaccessmodification")
-            .run(mainClass);
+            .setMinApi(parameters.getRuntime())
+            .run(parameters.getRuntime(), mainClass);
 
     assertEquals(
         expectedOutput,
@@ -145,13 +150,16 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
             "Itf2::foo2(0) >> Sub2::foo2()",
             "Sub2::bar2(0)");
     Class<?> mainClass = TestMain.class;
-    if (backend == Backend.CF) {
-      // Only run JVM reference once (for CF backend)
-      testForJvm().addTestClasspath().run(mainClass).assertSuccessWithOutput(expectedOutput);
+    if (parameters.isCfRuntime()) {
+      // Only run JVM reference on CF runtimes.
+      testForJvm()
+          .addTestClasspath()
+          .run(parameters.getRuntime(), mainClass)
+          .assertSuccessWithOutput(expectedOutput);
     }
 
     R8TestRunResult result =
-        testForR8(backend)
+        testForR8(parameters.getBackend())
             .addProgramFiles(ToolHelper.getClassFilesForTestPackage(mainClass.getPackage()))
             .addOptionsModification(o -> o.enableVerticalClassMerging = enableVerticalClassMerging)
             .enableInliningAnnotations()
@@ -175,7 +183,8 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
                 "}",
                 "",
                 "-allowaccessmodification")
-            .run(mainClass);
+            .setMinApi(parameters.getRuntime())
+            .run(parameters.getRuntime(), mainClass);
 
     assertEquals(
         expectedOutput,

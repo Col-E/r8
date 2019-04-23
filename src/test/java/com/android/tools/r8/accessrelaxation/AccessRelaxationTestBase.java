@@ -6,9 +6,10 @@ package com.android.tools.r8.accessrelaxation;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPublic;
 import static org.hamcrest.CoreMatchers.not;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -16,10 +17,10 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 
 abstract class AccessRelaxationTestBase extends TestBase {
 
-  final Backend backend;
+  final TestParameters parameters;
 
-  AccessRelaxationTestBase(Backend backend) {
-    this.backend = backend;
+  AccessRelaxationTestBase(TestParameters parameters) {
+    this.parameters = parameters;
   }
 
   static void assertPublic(CodeInspector codeInspector, Class clazz, MethodSignature signature) {

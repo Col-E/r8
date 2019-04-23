@@ -105,7 +105,7 @@ public class StringLengthTest extends TestBase {
 
   @Test
   public void testJVMOutput() throws Exception {
-    assumeTrue("Only run JVM reference once (for CF backend)", parameters.isCfRuntime());
+    assumeTrue("Only run JVM reference on CF runtimes", parameters.isCfRuntime());
     // TODO(b/119097175)
     if (!ToolHelper.isWindows()) {
       testForJvm()
