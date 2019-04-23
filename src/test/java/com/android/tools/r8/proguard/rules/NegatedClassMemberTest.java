@@ -78,7 +78,8 @@ public class NegatedClassMemberTest extends TestBase {
                       + ", Unexpected character '!': "
                       + "The negation character can only be used to negate access flags"),
               containsString(
-                  StringUtils.joinLines(
+                  StringUtils.join(
+                      "\n",
                       "-keepclasseswithmembers class ** { long x; !long y; }",
                       "                                           ^"))));
     }
