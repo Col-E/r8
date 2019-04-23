@@ -4,10 +4,10 @@
 
 package com.android.tools.r8;
 
+import static com.android.tools.r8.utils.InternalOptions.ASM_VERSION;
 import static com.google.common.collect.Lists.cartesianProduct;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static com.android.tools.r8.utils.InternalOptions.ASM_VERSION;
 
 import com.android.tools.r8.DataResourceProvider.Visitor;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
@@ -69,6 +69,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 import org.objectweb.asm.ClassReader;
@@ -160,6 +162,23 @@ public class TestBase {
 
   @Rule
   public TestDescriptionWatcher watcher = new TestDescriptionWatcher();
+
+  private static TemporaryFolder staticTemp = null;
+
+  @BeforeClass
+  public static void testBaseBeforeClassSetup() {
+    assert staticTemp == null;
+    staticTemp = ToolHelper.getTemporaryFolderForTest();
+  }
+
+  @AfterClass
+  public static void testBaseBeforeClassTearDown() {
+    staticTemp = null;
+  }
+
+  public static TemporaryFolder getStaticTemp() {
+    return staticTemp;
+  }
 
   public static TestParametersBuilder getTestParameters() {
     return TestParametersBuilder.builder();
