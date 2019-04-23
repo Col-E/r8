@@ -68,8 +68,15 @@ sourceSets {
     test {
         java {
             srcDirs = [
-                'src/test/java',
-                'build/generated/test/java',
+                    'src/test/java',
+                    'build/generated/test/java',
+            ]
+        }
+    }
+    java11 {
+        java {
+            srcDirs = [
+                    'src/test/examplesJava11'
             ]
         }
     }
@@ -218,6 +225,7 @@ dependencies {
     implementation group: 'org.ow2.asm', name: 'asm-analysis', version: asmVersion
     implementation group: 'org.ow2.asm', name: 'asm-util', version: asmVersion
     testCompile sourceSets.examples.output
+    testCompile sourceSets.java11.output
     testCompile "junit:junit:$junitVersion"
     testCompile group: 'org.smali', name: 'smali', version: smaliVersion
     testCompile files('third_party/jasmin/jasmin-2.4.jar')
@@ -490,6 +498,21 @@ sourceSets.configureEach { sourceSet ->
         options.forkOptions.jvmArgs << "-Xbootclasspath/a:third_party/openjdk/openjdk-rt-1.8/rt.jar"
     }
 }
+
+tasks.named(sourceSets.java11.compileJavaTaskName).get().configure {
+    options.fork = true
+    options.forkOptions.jvmArgs = []
+    if (OperatingSystem.current().isLinux()) {
+        options.forkOptions.javaHome = file('third_party/openjdk/jdk-11/Linux')
+    } else if (OperatingSystem.current().isMacOsX()) {
+        options.forkOptions.javaHome = file('third_party/openjdk/jdk-11/Mac')
+    } else {
+        options.forkOptions.javaHome = file('third_party/openjdk/jdk-11/Windows')
+    }
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}
+
 
 if (!project.hasProperty('without_error_prone') &&
         // Don't enable error prone on Java 8 as the plugin setup does not support it.
@@ -1292,7 +1315,7 @@ task buildExampleJava11Jars {
         task "jar_examplesJava11_${name}"(type: Jar) {
             archiveName = jarName
             destinationDir = exampleOutputDir
-            from "src/test/examplesJava11"  // Java 11 classes
+            from "build/classes/java/java11/"  // Java 11 classes
             include "**/" + name + "/**/*.class"
         }
     }
@@ -2109,46 +2132,4 @@ task buildJava9Tests {
     }
 
     dependsOn compile_Java9examples
-}
-
-// Same as above for Java 11
-// ./tools/gradle.py -Pjava11Home=<java 11 home> buildJava11Tests
-task buildJava11Tests {
-    def javacOutputFolder = getTemporaryDir();
-    def examplesDir = file("src/test/examplesJava11")
-
-    task "compile_Java11examples"(type: JavaCompile) {
-        doFirst {
-            if (!project.hasProperty('java11Home') || project.property('java11Home').isEmpty()) {
-                throw new GradleException("Set java11Home property.")
-            }
-        }
-
-        source = fileTree(dir: examplesDir, include: '**/*.java')
-        destinationDir = javacOutputFolder
-        classpath = sourceSets.main.compileClasspath
-        options.compilerArgs += ["-Xlint:-options"]
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-        options.fork = true
-
-        if (project.hasProperty('java11Home')) {
-            options.forkOptions.javaHome = file(getProperty('java11Home'))
-        }
-
-        doLast {
-            def classfileFrom = copySpec {
-                from javacOutputFolder
-                include "**/*.class"
-            }
-            copy {
-                into examplesDir
-                with classfileFrom
-            }
-            delete javacOutputFolder
-            println "Warning: in my cases nested classes were not showed on IntelliJ"
-        }
-    }
-
-    dependsOn compile_Java11examples
 }

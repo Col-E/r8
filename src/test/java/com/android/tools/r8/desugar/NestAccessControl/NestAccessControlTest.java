@@ -39,7 +39,7 @@ public class NestAccessControlTest extends TestBase {
         .addProgramFiles(Paths.get(EXAMPLE_DIR, "nestHostExample" + JAR_EXTENSION))
         .setMinApi(parameters.getRuntime())
         .compile()
-        .run(parameters.getRuntime(), "NestHostExample")
+        .run(parameters.getRuntime(), "nestHostExample.NestHostExample")
         .assertFailureWithErrorThatMatches(containsString("IllegalAccessError"));
   }
 }
