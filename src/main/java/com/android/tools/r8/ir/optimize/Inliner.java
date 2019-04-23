@@ -519,6 +519,12 @@ public class Inliner {
             continue;
           }
         }
+
+        // Do not include return instructions since they do not materialize once inlined.
+        if (instruction.isReturn()) {
+          continue;
+        }
+
         ++numberOfInstructions;
       }
     }
