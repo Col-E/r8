@@ -4,8 +4,11 @@
 
 package com.android.tools.r8.naming.arraytypes;
 
+import static org.junit.Assume.assumeTrue;
+
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -24,7 +27,7 @@ import org.objectweb.asm.Opcodes;
 @RunWith(Parameterized.class)
 public class ArrayTypesTest extends TestBase {
 
-  private final Backend backend;
+  private final TestParameters parameters;
 
   private static String packageName;
   private static String arrayBaseTypeDescriptor;
@@ -32,13 +35,13 @@ public class ArrayTypesTest extends TestBase {
   private static String generatedTestClassName;
   private static String expectedOutput;
 
-  public ArrayTypesTest(Backend backend) {
-    this.backend = backend;
+  public ArrayTypesTest(TestParameters parameters) {
+    this.parameters = parameters;
   }
 
-  @Parameterized.Parameters(name = "Backend: {0}")
-  public static Object[] data() {
-    return ToolHelper.getBackends();
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimes().build();
   }
 
   @BeforeClass
@@ -66,13 +69,14 @@ public class ArrayTypesTest extends TestBase {
   }
 
   private void runR8Test(boolean enableMinification) throws Exception {
-    testForR8(backend)
+    testForR8(parameters.getBackend())
         .minification(enableMinification)
         .addProgramClasses(Main.class, A.class)
         .addProgramClassFileData(generateTestClass())
         .addKeepMainRule(Main.class)
         .addKeepRules("-keep class " + generatedTestClassName + " { test(...); }")
-        .run(Main.class)
+        .setMinApi(parameters.getRuntime())
+        .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput(expectedOutput);
   }
 
@@ -95,27 +99,28 @@ public class ArrayTypesTest extends TestBase {
         StringUtils.lines(
             A.class.getTypeName() + " -> " + packageName + ".a:"));
 
-    testForR8(backend)
+    testForR8(parameters.getBackend())
         .addProgramClasses(Main.class, A.class)
         .addProgramClassFileData(generateTestClass())
         .addKeepMainRule(Main.class)
         .addKeepRules("-applymapping " + mappingFile.toAbsolutePath())
         .noMinification()
         .noTreeShaking()
-        .run(Main.class)
+        .setMinApi(parameters.getRuntime())
+        .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput(expectedOutput);
   }
 
   @Test
   public void testD8() throws Exception {
-    if (backend == Backend.DEX) {
-      testForD8()
-          .addProgramClasses(Main.class, A.class)
-          .addProgramClassFileData(generateTestClass())
-          .run(Main.class)
-          .writeProcessResult(System.out)
-          .assertSuccessWithOutput(expectedOutput);
-    }
+    assumeTrue(parameters.isDexRuntime());
+    testForD8()
+        .addProgramClasses(Main.class, A.class)
+        .addProgramClassFileData(generateTestClass())
+        .setMinApi(parameters.getRuntime())
+        .run(parameters.getRuntime(), Main.class)
+        .writeProcessResult(System.out)
+        .assertSuccessWithOutput(expectedOutput);
   }
 
   public static byte[] generateTestClass() {

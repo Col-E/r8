@@ -11,6 +11,7 @@ import com.android.tools.r8.code.AputChar;
 import com.android.tools.r8.code.AputObject;
 import com.android.tools.r8.code.AputShort;
 import com.android.tools.r8.code.AputWide;
+import com.android.tools.r8.code.ArrayLength;
 import com.android.tools.r8.code.CheckCast;
 import com.android.tools.r8.code.Const;
 import com.android.tools.r8.code.Const16;
@@ -392,6 +393,11 @@ public class DexInstructionSubject implements InstructionSubject {
   @Override
   public boolean isNewArray() {
     return instruction instanceof NewArray;
+  }
+
+  @Override
+  public boolean isArrayLength() {
+    return instruction instanceof ArrayLength;
   }
 
   @Override

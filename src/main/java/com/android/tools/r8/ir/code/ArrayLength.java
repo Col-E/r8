@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.AbstractError;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
@@ -67,6 +68,27 @@ public class ArrayLength extends Instruction {
   @Override
   public boolean instructionTypeCanThrow() {
     return true;
+  }
+
+  @Override
+  public AbstractError instructionInstanceCanThrow(
+      AppView<? extends AppInfo> appView, DexType context) {
+    if (array().typeLattice.isNullable()) {
+      return AbstractError.specific(appView.dexItemFactory().npeType);
+    }
+
+    return AbstractError.bottom();
+  }
+
+  @Override
+  public boolean instructionMayHaveSideEffects(
+      AppView<? extends AppInfo> appView, DexType context) {
+    return instructionInstanceCanThrow(appView, context).isThrowing();
+  }
+
+  @Override
+  public boolean canBeDeadCode(AppView<? extends AppInfo> appView, IRCode code) {
+    return !instructionMayHaveSideEffects(appView, code.method.method.holder);
   }
 
   @Override

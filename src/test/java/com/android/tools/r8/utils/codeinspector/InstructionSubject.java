@@ -90,6 +90,8 @@ public interface InstructionSubject {
 
   boolean isNewArray();
 
+  boolean isArrayLength();
+
   boolean isArrayPut();
 
   boolean isMonitorEnter();
