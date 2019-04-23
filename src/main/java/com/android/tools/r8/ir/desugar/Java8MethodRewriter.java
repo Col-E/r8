@@ -30,7 +30,6 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.Java8MethodRewriter.RewritableMethods.MethodGenerator;
 import com.android.tools.r8.ir.synthetic.TemplateMethodCode;
 import com.android.tools.r8.origin.SynthesizedOrigin;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
@@ -60,10 +59,14 @@ public final class Java8MethodRewriter {
     this.appView = appView;
     this.converter = converter;
     this.factory = appView.dexItemFactory();
-    this.rewritableMethods = new RewritableMethods(factory, appView.options().minApiLevel);
+    this.rewritableMethods = new RewritableMethods(factory, appView.options());
   }
 
   public void desugar(IRCode code) {
+    if (rewritableMethods.isEmpty()) {
+      return; // Nothing to do!
+    }
+
     InstructionIterator iterator = code.instructionIterator();
     while (iterator.hasNext()) {
       Instruction instruction = iterator.next();
@@ -497,16 +500,20 @@ public final class Java8MethodRewriter {
     private final Map<DexString, Map<DexString, Map<DexProto, MethodGenerator>>> rewritable =
         new HashMap<>();
 
-    public RewritableMethods(DexItemFactory factory, int minApiLevel) {
-      if (minApiLevel < AndroidApiLevel.N.getLevel()) {
-        initializeAndroidNMethods(factory);
+    public RewritableMethods(DexItemFactory factory, InternalOptions options) {
+      if (!options.canUseJava8SignedOperations()) {
+        initializeJava8SignedOperations(factory);
       }
-      if (minApiLevel < AndroidApiLevel.O.getLevel()) {
-        initializeAndroidOMethods(factory);
+      if (!options.canUseJava8UnsignedOperations()) {
+        initializeJava8UnsignedOperations(factory);
       }
     }
 
-    private void initializeAndroidNMethods(DexItemFactory factory) {
+    boolean isEmpty() {
+      return rewritable.isEmpty();
+    }
+
+    private void initializeJava8SignedOperations(DexItemFactory factory) {
       // Byte
       DexString clazz = factory.boxedByteDescriptor;
       // int Byte.hashCode(byte i)
@@ -680,7 +687,7 @@ public final class Java8MethodRewriter {
           .put(proto, new MethodGenerator(CharacterMethods::hashCodeCode, clazz, method, proto));
     }
 
-    private void initializeAndroidOMethods(DexItemFactory factory) {
+    private void initializeJava8UnsignedOperations(DexItemFactory factory) {
       DexString clazz = factory.boxedLongDescriptor;
 
       // long Long.divideUnsigned(long a, long b)

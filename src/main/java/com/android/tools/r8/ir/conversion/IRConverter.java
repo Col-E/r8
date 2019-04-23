@@ -179,7 +179,7 @@ public class IRConverter {
             ? new TwrCloseResourceRewriter(appView, this)
             : null;
     this.java8MethodRewriter =
-        (options.enableDesugaring && !options.canUseJava8Methods())
+        options.enableDesugaring
             ? new Java8MethodRewriter(appView, this)
             : null;
     this.lambdaMerger = options.enableLambdaMerging ? new LambdaMerger(appView) : null;

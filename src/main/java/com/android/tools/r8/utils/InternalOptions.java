@@ -666,9 +666,11 @@ public class InternalOptions {
     return isGeneratingClassFiles() || hasMinApi(AndroidApiLevel.K);
   }
 
-  public boolean canUseJava8Methods() {
-    // This value must be set to the highest API level of all methods we desugar. The implementation
-    // will conditionally desugar based on the specified minimum API level.
+  public boolean canUseJava8SignedOperations() {
+    return hasMinApi(AndroidApiLevel.N);
+  }
+
+  public boolean canUseJava8UnsignedOperations() {
     return hasMinApi(AndroidApiLevel.O);
   }
 
