@@ -280,6 +280,13 @@ public class InterfaceMethodNameMinifier {
     for (Wrapper<DexMethod> wrapper : unifiedMethods) {
       DexMethod unifiedMethod = wrapper.get();
       assert unifiedMethod != null;
+      assert globalStateMap.containsKey(wrapper)
+          : "Expected globalStateMap to contain " + unifiedMethod.toSourceStringWithoutHolder();
+      assert globalStateMap.get(wrapper) != null
+          : "Expected globalStateMap to map "
+              + unifiedMethod.toSourceStringWithoutHolder()
+              + " to a non-null MethodNamingState.";
+
       for (MethodNamingState<?> namingState : globalStateMap.get(wrapper)) {
         if (!namingState.isReserved(unifiedMethod.name, unifiedMethod.proto)) {
           namingState.reserveName(unifiedMethod.name, unifiedMethod.proto);
@@ -364,6 +371,12 @@ public class InterfaceMethodNameMinifier {
     for (Wrapper<DexMethod> wrapper : unifiedMethods) {
       DexMethod unifiedMethod = wrapper.get();
       assert unifiedMethod != null;
+      assert globalStateMap.containsKey(wrapper)
+          : "Expected globalStateMap to contain " + unifiedMethod.toSourceStringWithoutHolder();
+      assert globalStateMap.get(wrapper) != null
+          : "Expected globalStateMap to map "
+              + unifiedMethod.toSourceStringWithoutHolder()
+              + " to a non-null MethodNamingState.";
 
       for (MethodNamingState<?> namingState : globalStateMap.get(wrapper)) {
         if (namingState.isReserved(unifiedMethod.name, unifiedMethod.proto)) {

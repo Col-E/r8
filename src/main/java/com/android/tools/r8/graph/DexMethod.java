@@ -163,21 +163,26 @@ public class DexMethod extends Descriptor<DexEncodedMethod, DexMethod>
 
   @Override
   public String toSourceString() {
-    StringBuilder builder = new StringBuilder();
-    builder.append(proto.returnType.toSourceString());
-    builder.append(" ");
-    builder.append(holder.toSourceString());
-    builder.append(".");
-    builder.append(name);
-    builder.append("(");
+    return toSourceString(true);
+  }
+
+  public String toSourceStringWithoutHolder() {
+    return toSourceString(false);
+  }
+
+  private String toSourceString(boolean includeHolder) {
+    StringBuilder builder = new StringBuilder(proto.returnType.toSourceString()).append(" ");
+    if (includeHolder) {
+      builder.append(holder.toSourceString()).append(".");
+    }
+    builder.append(name).append("(");
     for (int i = 0; i < getArity(); i++) {
       if (i != 0) {
         builder.append(", ");
       }
       builder.append(proto.parameters.values[i].toSourceString());
     }
-    builder.append(")");
-    return builder.toString();
+    return builder.append(")").toString();
   }
 
   public boolean isLambdaDeserializeMethod(DexItemFactory dexItemFactory) {
