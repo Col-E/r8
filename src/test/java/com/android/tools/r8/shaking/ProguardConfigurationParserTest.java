@@ -2449,7 +2449,7 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
-  public void b124181032() throws Exception {
+  public void b124181032() {
     // Test spaces and quotes in class name list.
     ProguardConfigurationParser parser;
     parser = new ProguardConfigurationParser(new DexItemFactory(), reporter);
@@ -2518,6 +2518,24 @@ public class ProguardConfigurationParserTest extends TestBase {
       ProguardConfigurationRule rule = rules.get(0);
       assertEquals(ProguardKeepRuleType.KEEP.toString(), rule.typeString());
       assertEquals("*", rule.getClassNames().toString());
+    }
+  }
+
+  @Test
+  public void negatedMemberTypeTest() throws IOException {
+    Path proguardConfigurationFile = writeTextToTempFile("-keepclassmembers class ** { !int x; }");
+    try {
+      new ProguardConfigurationParser(new DexItemFactory(), reporter)
+          .parse(proguardConfigurationFile);
+      fail("Expected to fail since the type name cannot be negated.");
+    } catch (AbortException e) {
+      checkDiagnostics(
+          handler.errors,
+          proguardConfigurationFile,
+          1,
+          30,
+          "Unexpected character '!': "
+              + "The negation character can only be used to negate access flags");
     }
   }
 }

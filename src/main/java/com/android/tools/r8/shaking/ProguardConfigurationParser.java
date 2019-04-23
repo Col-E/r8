@@ -951,8 +951,9 @@ public class ProguardConfigurationParser {
       boolean found = true;
       while (found && !eof()) {
         found = false;
+        boolean negated = parseNegation();
         ProguardAccessFlags flags =
-            parseNegation() ? ruleBuilder.getNegatedAccessFlags() : ruleBuilder.getAccessFlags();
+            negated ? ruleBuilder.getNegatedAccessFlags() : ruleBuilder.getAccessFlags();
         skipWhitespace();
         switch (peekChar()) {
           case 'a':
@@ -1008,6 +1009,12 @@ public class ProguardConfigurationParser {
           default:
             // Intentionally left empty.
         }
+
+        // Ensure that we do not consume a negation character '!' when the subsequent identifier
+        // does not match a valid access flag name (e.g., "private !int x").
+        if (!found && negated) {
+          unacceptString("!");
+        }
       }
     }
 
@@ -1015,6 +1022,11 @@ public class ProguardConfigurationParser {
         ProguardMemberRule.Builder ruleBuilder, boolean allowValueSpecification)
         throws ProguardRuleParserException {
       skipWhitespace();
+      if (!eof() && peekChar() == '!') {
+        throw parseError(
+            "Unexpected character '!': "
+                + "The negation character can only be used to negate access flags");
+      }
       if (acceptString("<methods>")) {
         ruleBuilder.setRuleType(ProguardMemberType.ALL_METHODS);
       } else if (acceptString("<fields>")) {
