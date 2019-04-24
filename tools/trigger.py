@@ -26,6 +26,10 @@ def ParseOptions():
   result.add_option('--release',
                     help='Run on the release branch builders.',
                     default=False, action='store_true')
+  result.add_option('--cl',
+                    help='Run the specified cl on the bots. This should be '
+                    'the full url, e.g., '
+                    'https://r8-review.googlesource.com/c/r8/+/37420/1')
   result.add_option('--builder', help='Trigger specific builder')
   return result.parse_args()
 
@@ -63,20 +67,33 @@ def trigger_builders(builders, commit):
     cmd = ['bb', 'add', 'r8/ci/%s' % builder , '-commit', commit_url]
     subprocess.check_call(cmd)
 
+def trigger_cl(builders, cl_url):
+  for builder in builders:
+    cmd = ['bb', 'add', 'r8/ci/%s' % builder , '-cl', cl_url]
+    subprocess.check_call(cmd)
+
 def Main():
   (options, args) = ParseOptions()
-  if len(args) != 1:
+  if len(args) != 1 and not options.cl:
     print 'Takes exactly one argument, the commit to run'
     return 1
-  commit = args[0]
+
+  if options.cl and options.release:
+    print 'You can\'t run cls on the release bots'
+    return 1
+
+  commit = None if options.cl else args[0]
   (master_builders, release_builders) = get_builders()
+  builders = release_builders if options.release else master_builders
   if options.builder:
     builder = options.builder
     assert builder in master_builders or builder in release_builders
-    trigger_builders([builder], commit)
+    builders = [options.builder]
+  if options.cl:
+    trigger_cl(builders, options.cl)
   else:
-    trigger_builders(release_builders if options.release else master_builders,
-                     commit)
+    assert commit
+    trigger_builders(builders, commit)
 
 if __name__ == '__main__':
   sys.exit(Main())
