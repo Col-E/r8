@@ -1045,6 +1045,8 @@ public class ProguardConfigurationParser {
             ruleBuilder.setRuleType(ProguardMemberType.ALL);
           } else {
             if (hasNextChar('(')) {
+              // Parsing "<init>" is already done, and thus neither '<' nor '>' can appear.
+              checkConstructorPattern(first, firstStart);
               ruleBuilder.setRuleType(ProguardMemberType.CONSTRUCTOR);
               ruleBuilder.setName(first);
               ruleBuilder.setArguments(parseArgumentList());
@@ -1055,6 +1057,10 @@ public class ProguardConfigurationParser {
               if (second != null) {
                 skipWhitespace();
                 if (hasNextChar('(')) {
+                  // Neither '<' nor '>' can appear except for "[access-flag]* void <init>(...)".
+                  if (!first.pattern.contains("void") || !second.pattern.equals("<init>")) {
+                    checkConstructorPattern(second, secondStart);
+                  }
                   ruleBuilder.setRuleType(ProguardMemberType.METHOD);
                   ruleBuilder.setName(second);
                   ruleBuilder
@@ -1137,6 +1143,18 @@ public class ProguardConfigurationParser {
       if (ruleBuilder.isValid()) {
         skipWhitespace();
         expectChar(';');
+      }
+    }
+
+    private void checkConstructorPattern(
+        IdentifierPatternWithWildcards pattern, TextPosition position)
+        throws ProguardRuleParserException {
+      if (pattern.pattern.contains("<")) {
+        throw parseError("Unexpected character '<' in method name. "
+            + "The character '<' is only allowed in the method name '<init>'.", position);
+      } else if (pattern.pattern.contains(">")) {
+        throw parseError("Unexpected character '>' in method name. "
+            + "The character '>' is only allowed in the method name '<init>'.", position);
       }
     }
 
