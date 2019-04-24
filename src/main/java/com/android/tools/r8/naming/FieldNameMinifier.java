@@ -114,7 +114,8 @@ class FieldNameMinifier {
       return true;
     }
     if (!appView.options().getProguardConfiguration().hasApplyMappingFile()
-        && appView.rootSet().noObfuscation.contains(field.field)) {
+        && appView.rootSet().noObfuscation.contains(
+            appView.graphLense().getOriginalFieldSignature(field.field))) {
       return true;
     }
     return false;

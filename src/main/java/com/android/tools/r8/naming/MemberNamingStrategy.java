@@ -8,7 +8,6 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
-import java.util.Set;
 
 public interface MemberNamingStrategy {
 
@@ -20,5 +19,5 @@ public interface MemberNamingStrategy {
 
   boolean breakOnNotAvailable(DexReference source, DexString name);
 
-  Set<DexReference> noObfuscation();
+  boolean noObfuscation(DexReference reference);
 }

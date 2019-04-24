@@ -293,7 +293,7 @@ class MethodNameMinifier {
           //  methods?
           if (keepAll
               || method.accessFlags.isConstructor()
-              || strategy.noObfuscation().contains(method.method)) {
+              || strategy.noObfuscation(method.method)) {
             reserveNamesForMethod(method.method, state);
           }
         }

@@ -28,7 +28,6 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.Timing;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -200,8 +199,6 @@ public class ProguardMapMinifier {
   static class ApplyMappingClassNamingStrategy implements ClassNamingStrategy {
 
     private final Map<DexType, DexString> mappings;
-    // We have an explicit mapping from the proguard map thus everything might have to be renamed.
-    private final Set<DexReference> noObfuscation = new HashSet<>();
 
     ApplyMappingClassNamingStrategy(Map<DexType, DexString> mappings) {
       this.mappings = mappings;
@@ -218,8 +215,9 @@ public class ProguardMapMinifier {
     }
 
     @Override
-    public Set<DexReference> noObfuscation() {
-      return noObfuscation;
+    public boolean noObfuscation(DexType type) {
+      // We have an explicit mapping from the proguard map thus everything might have to be renamed.
+      return false;
     }
   }
 
@@ -228,8 +226,6 @@ public class ProguardMapMinifier {
     private final Map<DexReference, MemberNaming> mappedNames;
     private final DexItemFactory factory;
     private final Reporter reporter;
-    // We have an explicit mapping from the proguard map thus everything might have to be renamed.
-    private final Set<DexReference> noObfuscation = new HashSet<>();
 
     public ApplyMappingMemberNamingStrategy(
         Map<DexReference, MemberNaming> mappedNames, DexItemFactory factory, Reporter reporter) {
@@ -284,8 +280,9 @@ public class ProguardMapMinifier {
     }
 
     @Override
-    public Set<DexReference> noObfuscation() {
-      return noObfuscation;
+    public boolean noObfuscation(DexReference reference) {
+      // We have an explicit mapping from the proguard map thus everything might have to be renamed.
+      return false;
     }
   }
 }

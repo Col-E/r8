@@ -7,7 +7,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
@@ -46,8 +45,7 @@ public class Minifier {
     ClassNameMinifier classNameMinifier =
         new ClassNameMinifier(
             appView,
-            new MinificationClassNamingStrategy(
-                appView.dexItemFactory(), appView.rootSet().noObfuscation),
+            new MinificationClassNamingStrategy(appView),
             new MinificationPackageNamingStrategy(),
             // Use deterministic class order to make sure renaming is deterministic.
             appView.appInfo().classesWithDeterministicOrder());
@@ -58,8 +56,7 @@ public class Minifier {
             appView, classRenaming, MethodRenaming.empty(), FieldRenaming.empty())
         .verifyNoCollisions(appView.appInfo().classes(), appView.dexItemFactory());
 
-    MemberNamingStrategy minifyMembers =
-        new MinifierMemberNamingStrategy(appView.dexItemFactory(), appView.rootSet().noObfuscation);
+    MemberNamingStrategy minifyMembers = new MinifierMemberNamingStrategy(appView);
     timing.begin("MinifyMethods");
     MethodRenaming methodRenaming =
         new MethodNameMinifier(appView, minifyMembers)
@@ -85,13 +82,11 @@ public class Minifier {
 
   static class MinificationClassNamingStrategy implements ClassNamingStrategy {
 
-    private final DexItemFactory factory;
+    private final AppView<?> appView;
     private final Object2IntMap<Namespace> namespaceCounters = new Object2IntLinkedOpenHashMap<>();
-    private final Set<DexReference> noObfuscation;
 
-    MinificationClassNamingStrategy(DexItemFactory factory, Set<DexReference> noObfuscation) {
-      this.factory = factory;
-      this.noObfuscation = noObfuscation;
+    MinificationClassNamingStrategy(AppView<?> appView) {
+      this.appView = appView;
       namespaceCounters.defaultReturnValue(1);
     }
 
@@ -99,7 +94,8 @@ public class Minifier {
     public DexString next(Namespace namespace, DexType type, char[] packagePrefix) {
       int counter = namespaceCounters.put(namespace, namespaceCounters.getInt(namespace) + 1);
       DexString string =
-          factory.createString(StringUtils.numberToIdentifier(packagePrefix, counter, true));
+          appView.dexItemFactory()
+              .createString(StringUtils.numberToIdentifier(packagePrefix, counter, true));
       return string;
     }
 
@@ -109,8 +105,8 @@ public class Minifier {
     }
 
     @Override
-    public Set<DexReference> noObfuscation() {
-      return noObfuscation;
+    public boolean noObfuscation(DexType type) {
+      return appView.rootSet().noObfuscation.contains(appView.graphLense().getOriginalType(type));
     }
   }
 
@@ -142,18 +138,17 @@ public class Minifier {
 
     public static char[] EMPTY_CHAR_ARRAY = new char[0];
 
-    private final DexItemFactory factory;
-    private final Set<DexReference> noObfuscation;
+    private final AppView<?> appView;
 
-    public MinifierMemberNamingStrategy(DexItemFactory factory, Set<DexReference> noObfuscation) {
-      this.factory = factory;
-      this.noObfuscation = noObfuscation;
+    public MinifierMemberNamingStrategy(AppView<?> appView) {
+      this.appView = appView;
     }
 
     @Override
     public DexString next(DexMethod method, MethodNamingState.InternalState internalState) {
       int counter = internalState.incrementAndGet();
-      return factory.createString(StringUtils.numberToIdentifier(EMPTY_CHAR_ARRAY, counter, false));
+      return appView.dexItemFactory()
+          .createString(StringUtils.numberToIdentifier(EMPTY_CHAR_ARRAY, counter, false));
     }
 
     @Override
@@ -172,8 +167,15 @@ public class Minifier {
     }
 
     @Override
-    public Set<DexReference> noObfuscation() {
-      return noObfuscation;
+    public boolean noObfuscation(DexReference reference) {
+      if (reference.isDexField()) {
+        return appView.rootSet().noObfuscation.contains(
+            appView.graphLense().getOriginalFieldSignature(reference.asDexField()));
+      } else {
+        assert reference.isDexMethod();
+        return appView.rootSet().noObfuscation.contains(
+            appView.graphLense().getOriginalMethodSignature(reference.asDexMethod()));
+      }
     }
   }
 }

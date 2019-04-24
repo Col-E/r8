@@ -15,7 +15,6 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProto;
-import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.InnerClassAttribute;
@@ -105,7 +104,7 @@ class ClassNameMinifier {
     // Collect names we have to keep.
     timing.begin("reserve");
     for (DexClass clazz : classes) {
-      if (classNamingStrategy.noObfuscation().contains(clazz.type)) {
+      if (classNamingStrategy.noObfuscation(clazz.type)) {
         assert !renaming.containsKey(clazz.type);
         registerClassAsUsed(clazz.type);
       }
@@ -183,7 +182,7 @@ class ClassNameMinifier {
   private void renameDanglingType(DexType type) {
     if (appView.appInfo().wasPruned(type)
         && !renaming.containsKey(type)
-        && !classNamingStrategy.noObfuscation().contains(type)) {
+        && !classNamingStrategy.noObfuscation(type)) {
       // We have a type that is defined in the program source but is only used in a proto or
       // return type. As we don't need the class, we can rename it to anything as long as it is
       // unique.
@@ -201,7 +200,7 @@ class ClassNameMinifier {
       DexType outerClass = getOutClassForType(type);
       if (outerClass != null) {
         if (!renaming.containsKey(outerClass)
-            && !classNamingStrategy.noObfuscation().contains(outerClass)) {
+            && !classNamingStrategy.noObfuscation(outerClass)) {
           // The outer class was not previously kept and will not be kept.
           // We have to force keep the outer class now.
           registerClassAsUsed(outerClass);
@@ -451,7 +450,7 @@ class ClassNameMinifier {
 
     boolean bypassDictionary();
 
-    Set<DexReference> noObfuscation();
+    boolean noObfuscation(DexType type);
   }
 
   protected interface PackageNamingStrategy {
