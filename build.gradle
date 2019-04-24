@@ -217,7 +217,6 @@ dependencies {
     implementation group: 'org.ow2.asm', name: 'asm-analysis', version: asmVersion
     implementation group: 'org.ow2.asm', name: 'asm-util', version: asmVersion
     testCompile sourceSets.examples.output
-    testCompile sourceSets.java11.output
     testCompile "junit:junit:$junitVersion"
     testCompile group: 'org.smali', name: 'smali', version: smaliVersion
     testCompile files('third_party/jasmin/jasmin-2.4.jar')
@@ -1306,7 +1305,7 @@ task buildExampleJava11Jars {
         task "jar_examplesJava11_${name}"(type: Jar) {
             archiveName = jarName
             destinationDir = exampleOutputDir
-            from "build/classes/java/java11/"  // Java 11 classes
+            from sourceSets.java11.output
             include "**/" + name + "/**/*.class"
         }
     }
