@@ -36,7 +36,7 @@ public class Java8MethodsTest extends TestBase {
         .run(Java8Methods.class)
         .assertSuccessWithOutput(expectedOutput);
 
-    assertDesugaring(AndroidApiLevel.O, 27);
+    assertDesugaring(AndroidApiLevel.O, 31);
     assertDesugaring(AndroidApiLevel.N, 25);
     assertDesugaring(AndroidApiLevel.M, 0);
   }
@@ -142,6 +142,9 @@ public class Java8MethodsTest extends TestBase {
           System.out.println(Integer.max(aInt, bInt));
           System.out.println(Integer.min(aInt, bInt));
           System.out.println(Integer.sum(aInt, bInt));
+          System.out.println(Integer.divideUnsigned(aInt, bInt));
+          System.out.println(Integer.remainderUnsigned(aInt, bInt));
+          System.out.println(Integer.compareUnsigned(aInt, bInt));
         }
       }
 
@@ -198,6 +201,7 @@ public class Java8MethodsTest extends TestBase {
           System.out.println(Long.sum(aLong, bLong));
           System.out.println(Long.divideUnsigned(aLong, bLong));
           System.out.println(Long.remainderUnsigned(aLong, bLong));
+          System.out.println(Long.compareUnsigned(aLong, bLong));
         }
       }
 

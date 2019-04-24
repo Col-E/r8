@@ -214,6 +214,18 @@ public final class Java8MethodRewriter {
       return new IntegerMethods(options, method, "sumImpl");
     }
 
+    public static IntegerMethods divideUnsignedCode(InternalOptions options, DexMethod method) {
+      return new IntegerMethods(options, method, "divideUnsignedImpl");
+    }
+
+    public static IntegerMethods remainderUnsignedCode(InternalOptions options, DexMethod method) {
+      return new IntegerMethods(options, method, "remainderUnsignedImpl");
+    }
+
+    public static IntegerMethods compareUnsignedCode(InternalOptions options, DexMethod method) {
+      return new IntegerMethods(options, method, "compareUnsignedImpl");
+    }
+
     public static int hashCodeImpl(int i) {
       return Integer.valueOf(i).hashCode();
     }
@@ -228,6 +240,24 @@ public final class Java8MethodRewriter {
 
     public static int sumImpl(int a, int b) {
       return a + b;
+    }
+
+    public static int divideUnsignedImpl(int dividend, int divisor) {
+      long dividendLong = dividend & 0xffffffffL;
+      long divisorLong = divisor & 0xffffffffL;
+      return (int) (dividendLong / divisorLong);
+    }
+
+    public static int remainderUnsignedImpl(int dividend, int divisor) {
+      long dividendLong = dividend & 0xffffffffL;
+      long divisorLong = divisor & 0xffffffffL;
+      return (int) (dividendLong % divisorLong);
+    }
+
+    public static int compareUnsignedImpl(int a, int b) {
+      int aFlipped = a ^ Integer.MIN_VALUE;
+      int bFlipped = b ^ Integer.MIN_VALUE;
+      return (aFlipped < bFlipped) ? -1 : ((aFlipped > bFlipped) ? 1 : 0);
     }
   }
 
@@ -392,6 +422,10 @@ public final class Java8MethodRewriter {
       return new LongMethods(options, method, "remainderUnsignedImpl");
     }
 
+    public static LongMethods compareUnsignedCode(InternalOptions options, DexMethod method) {
+      return new LongMethods(options, method, "compareUnsignedImpl");
+    }
+
     public static int hashCodeImpl(long i) {
       return Long.valueOf(i).hashCode();
     }
@@ -478,6 +512,12 @@ public final class Java8MethodRewriter {
       long remFlipped = rem ^ Long.MIN_VALUE;
       long divisorFlipped = divisor ^ Long.MIN_VALUE;
       return rem - (remFlipped >= divisorFlipped ? divisor : 0);
+    }
+
+    public static int compareUnsignedImpl(long a, long b) {
+      long aFlipped = a ^ Long.MIN_VALUE;
+      long bFlipped = b ^ Long.MIN_VALUE;
+      return (aFlipped < bFlipped) ? -1 : ((aFlipped > bFlipped) ? 1 : 0);
     }
   }
 
@@ -688,11 +728,31 @@ public final class Java8MethodRewriter {
     }
 
     private void initializeJava8UnsignedOperations(DexItemFactory factory) {
-      DexString clazz = factory.boxedLongDescriptor;
+      DexString clazz = factory.boxedIntDescriptor;
+
+      // int Integer.divideUnsigned(int a, int b)
+      DexString method = factory.createString("divideUnsigned");
+      DexProto proto = factory.createProto(factory.intType, factory.intType, factory.intType);
+      addOrGetMethod(clazz, method).put(proto,
+          new MethodGenerator(IntegerMethods::divideUnsignedCode, clazz, method, proto));
+
+      // int Integer.remainderUnsigned(int a, int b)
+      method = factory.createString("remainderUnsigned");
+      proto = factory.createProto(factory.intType, factory.intType, factory.intType);
+      addOrGetMethod(clazz, method).put(proto,
+          new MethodGenerator(IntegerMethods::remainderUnsignedCode, clazz, method, proto));
+
+      // int Integer.compareUnsigned(int a, int b)
+      method = factory.createString("compareUnsigned");
+      proto = factory.createProto(factory.intType, factory.intType, factory.intType);
+      addOrGetMethod(clazz, method).put(proto,
+          new MethodGenerator(IntegerMethods::compareUnsignedCode, clazz, method, proto));
+
+      clazz = factory.boxedLongDescriptor;
 
       // long Long.divideUnsigned(long a, long b)
-      DexString method = factory.createString("divideUnsigned");
-      DexProto proto = factory.createProto(factory.longType, factory.longType, factory.longType);
+      method = factory.createString("divideUnsigned");
+      proto = factory.createProto(factory.longType, factory.longType, factory.longType);
       addOrGetMethod(clazz, method).put(proto,
           new MethodGenerator(LongMethods::divideUnsignedCode, clazz, method, proto));
 
@@ -701,6 +761,12 @@ public final class Java8MethodRewriter {
       proto = factory.createProto(factory.longType, factory.longType, factory.longType);
       addOrGetMethod(clazz, method).put(proto,
           new MethodGenerator(LongMethods::remainderUnsignedCode, clazz, method, proto));
+
+      // int Long.compareUnsigned(long a, long b)
+      method = factory.createString("compareUnsigned");
+      proto = factory.createProto(factory.intType, factory.longType, factory.longType);
+      addOrGetMethod(clazz, method).put(proto,
+          new MethodGenerator(LongMethods::compareUnsignedCode, clazz, method, proto));
     }
 
     private Map<DexString, Map<DexProto, MethodGenerator>> addOrGetClass(DexString clazz) {
