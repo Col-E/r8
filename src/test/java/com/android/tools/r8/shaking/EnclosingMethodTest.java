@@ -6,6 +6,7 @@ package com.android.tools.r8.shaking;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -41,7 +42,7 @@ class GetNameMain {
 
 @RunWith(Parameterized.class)
 public class EnclosingMethodTest extends TestBase {
-  private final Backend backend;
+  private final TestParameters parameters;
   private final boolean enableMinification;
   private Collection<Path> classPaths;
   private static final String JAVA_OUTPUT = "-Returned-null-" + System.lineSeparator();
@@ -49,13 +50,14 @@ public class EnclosingMethodTest extends TestBase {
       "com.android.tools.r8.shaking.GetNameClass$1" + System.lineSeparator();
   private static final Class<?> MAIN = GetNameMain.class;
 
-  @Parameterized.Parameters(name = "Backend: {0} minification: {1}")
+  @Parameterized.Parameters(name = "{0} minification: {1}")
   public static Collection<Object[]> data() {
-    return buildParameters(ToolHelper.getBackends(), BooleanUtils.values());
+    return buildParameters(getTestParameters().withAllRuntimes().build(), BooleanUtils.values());
   }
 
-  public EnclosingMethodTest(Backend backend, boolean enableMinification) throws Exception {
-    this.backend = backend;
+  public EnclosingMethodTest(TestParameters parameters, boolean enableMinification)
+      throws Exception {
+    this.parameters = parameters;
     this.enableMinification = enableMinification;
 
     ImmutableList.Builder<Path> builder = ImmutableList.builder();
@@ -71,14 +73,17 @@ public class EnclosingMethodTest extends TestBase {
   }
 
   @Test
-  public void testJVMoutput() throws Exception {
-    assumeTrue("Only run JVM reference once (for CF backend)", backend == Backend.CF);
-    testForJvm().addTestClasspath().run(MAIN).assertSuccessWithOutput(JAVA_OUTPUT);
+  public void testJVMOutput() throws Exception {
+    assumeTrue("Only run JVM reference on CF runtimes", parameters.isCfRuntime());
+    testForJvm()
+        .addTestClasspath()
+        .run(parameters.getRuntime(), MAIN)
+        .assertSuccessWithOutput(JAVA_OUTPUT);
   }
 
   @Test
   public void testR8() throws Exception {
-    testForR8(backend)
+    testForR8(parameters.getBackend())
         .addProgramFiles(classPaths)
         .enableInliningAnnotations()
         .addOptionsModification(this::configure)
@@ -86,7 +91,8 @@ public class EnclosingMethodTest extends TestBase {
         .addKeepRules("-keep class **.GetName*")
         .addKeepRules("-keepattributes InnerClasses,EnclosingMethod")
         .minification(enableMinification)
-        .run(MAIN)
+        .setMinApi(parameters.getRuntime())
+        .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(OUTPUT_WITH_SHRUNK_ATTRIBUTES);
   }
 }
