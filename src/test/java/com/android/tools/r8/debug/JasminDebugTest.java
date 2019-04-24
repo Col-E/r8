@@ -12,7 +12,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-// TODO(b/65474850) Should we build Jasmin at compile time or runtime ?
 public class JasminDebugTest extends DebugTestBase {
 
   final String className = "UselessCheckCast";

@@ -13,8 +13,6 @@ import org.junit.Test;
  * Regression test to ensure that an incomplete phi creation cannot introduce a local before the
  * locals actual start. The recursive read-register in IRBuilder did not previously account for the
  * change in blocks when determining the local information of the incomplete phi.
- *
- * <p>TODO(b/65474850) Should we build Jasmin at compile time or runtime ?
  */
 public class NoLocalForPhiDebugTest extends DebugTestBase {
 
