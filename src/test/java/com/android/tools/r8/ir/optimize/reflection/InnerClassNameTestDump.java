@@ -36,7 +36,12 @@ public class InnerClassNameTestDump implements Opcodes {
     MethodVisitor methodVisitor;
 
     classWriter.visit(
-        V1_8, ACC_SUPER, config.getOuterInternalType(), null, "java/lang/Object", null);
+        V1_8,
+        ACC_PUBLIC | ACC_SUPER,
+        config.getOuterInternalType(),
+        null,
+        "java/lang/Object",
+        null);
 
     classWriter.visitSource("InnerClassNameTest.java", null);
 
@@ -69,7 +74,12 @@ public class InnerClassNameTestDump implements Opcodes {
     MethodVisitor methodVisitor;
 
     classWriter.visit(
-        V1_8, ACC_SUPER, config.getInnerInternalType(), null, "java/lang/Object", null);
+        V1_8,
+        ACC_PUBLIC | ACC_SUPER,
+        config.getInnerInternalType(),
+        null,
+        "java/lang/Object",
+        null);
 
     classWriter.visitSource("InnerClassNameTest.java", null);
 

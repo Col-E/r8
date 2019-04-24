@@ -269,7 +269,7 @@ class ClassNameMinifier {
       if (outerClass != null) {
         String innerClassSeparator =
             computeInnerClassSeparator(
-                outerClass, type, getInnerNameForType(type), appView.options());
+                outerClass, type, getInnerNameForType(type), appView.options().isMinifying());
         assert innerClassSeparator != null;
         state = getStateForOuterClass(outerClass, innerClassSeparator);
       }

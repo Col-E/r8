@@ -7,7 +7,6 @@ package com.android.tools.r8;
 import java.util.List;
 import org.hamcrest.Matcher;
 
-
 public interface TestDiagnosticMessages {
 
   public List<Diagnostic> getInfos();
@@ -27,6 +26,10 @@ public interface TestDiagnosticMessages {
   public TestDiagnosticMessages assertWarningsCount(int count);
 
   public TestDiagnosticMessages assertErrorsCount(int count);
+
+  public TestDiagnosticMessages assertInfoMessageThatMatches(Matcher<String> matcher);
+
+  public TestDiagnosticMessages assertNoInfoMessageThatMatches(Matcher<String> matcher);
 
   public TestDiagnosticMessages assertWarningMessageThatMatches(Matcher<String> matcher);
 

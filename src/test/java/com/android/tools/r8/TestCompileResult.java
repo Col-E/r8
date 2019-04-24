@@ -5,7 +5,7 @@ package com.android.tools.r8;
 
 import static com.android.tools.r8.TestBase.Backend.DEX;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
 import com.android.tools.r8.TestBase.Backend;
@@ -174,6 +174,16 @@ public abstract class TestCompileResult<
 
   public CR assertOnlyWarnings() {
     getDiagnosticMessages().assertOnlyWarnings();
+    return self();
+  }
+
+  public CR assertInfoMessageThatMatches(Matcher<String> matcher) {
+    getDiagnosticMessages().assertInfoMessageThatMatches(matcher);
+    return self();
+  }
+
+  public CR assertNoInfoMessageThatMatches(Matcher<String> matcher) {
+    getDiagnosticMessages().assertNoInfoMessageThatMatches(matcher);
     return self();
   }
 

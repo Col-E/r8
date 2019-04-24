@@ -91,22 +91,23 @@ public class TestDiagnosticMessagesImpl implements DiagnosticsHandler, TestDiagn
     return this;
   }
 
-  public TestDiagnosticMessages assertWarningMessageThatMatches(Matcher<String> matcher) {
-    assertNotEquals(0, getWarnings().size());
-    for (int i = 0; i < getWarnings().size(); i++) {
-      if (matcher.matches(getWarnings().get(i).getDiagnosticMessage())) {
+  private TestDiagnosticMessages assertMessageThatMatches(
+      List<Diagnostic> diagnostics, String tag, Matcher<String> matcher) {
+    assertNotEquals(0, diagnostics.size());
+    for (int i = 0; i < diagnostics.size(); i++) {
+      if (matcher.matches(diagnostics.get(i).getDiagnosticMessage())) {
         return this;
       }
     }
-    StringBuilder builder = new StringBuilder("No warning matches " + matcher.toString());
+    StringBuilder builder = new StringBuilder("No " + tag + " matches " + matcher.toString());
     builder.append(System.lineSeparator());
     if (getWarnings().size() == 0) {
-      builder.append("There were no warnings.");
+      builder.append("There were no " + tag + "s.");
     } else {
-      builder.append("There were " + getWarnings().size() + " warnings:");
+      builder.append("There were " + diagnostics.size() + " "+ tag + "s:");
       builder.append(System.lineSeparator());
-      for (int i = 0; i < getWarnings().size(); i++) {
-        builder.append(getWarnings().get(i).getDiagnosticMessage());
+      for (int i = 0; i < diagnostics.size(); i++) {
+        builder.append(diagnostics.get(i).getDiagnosticMessage());
         builder.append(System.lineSeparator());
       }
     }
@@ -114,14 +115,31 @@ public class TestDiagnosticMessagesImpl implements DiagnosticsHandler, TestDiagn
     return this;
   }
 
-  public TestDiagnosticMessages assertNoWarningMessageThatMatches(Matcher<String> matcher) {
-    assertNotEquals(0, getWarnings().size());
-    for (int i = 0; i < getWarnings().size(); i++) {
-      String message = getWarnings().get(i).getDiagnosticMessage();
+  private TestDiagnosticMessages assertNoMessageThatMatches(
+      List<Diagnostic> diagnostics, String tag, Matcher<String> matcher) {
+    assertNotEquals(0, diagnostics.size());
+    for (int i = 0; i < diagnostics.size(); i++) {
+      String message = diagnostics.get(i).getDiagnosticMessage();
       if (matcher.matches(message)) {
-        fail("The warning: \"" + message + "\" + matches " + matcher + ".");
+        fail("The " + tag + ": \"" + message + "\" + matches " + matcher + ".");
       }
     }
     return this;
+  }
+
+  public TestDiagnosticMessages assertInfoMessageThatMatches(Matcher<String> matcher) {
+    return assertMessageThatMatches(getInfos(), "info", matcher);
+  }
+
+  public TestDiagnosticMessages assertNoInfoMessageThatMatches(Matcher<String> matcher) {
+    return assertNoMessageThatMatches(getInfos(), "info", matcher);
+  }
+
+  public TestDiagnosticMessages assertWarningMessageThatMatches(Matcher<String> matcher) {
+    return assertMessageThatMatches(getWarnings(), "warning", matcher);
+  }
+
+  public TestDiagnosticMessages assertNoWarningMessageThatMatches(Matcher<String> matcher) {
+    return assertNoMessageThatMatches(getWarnings(), "warning", matcher);
   }
 }

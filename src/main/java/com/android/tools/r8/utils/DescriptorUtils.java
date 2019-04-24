@@ -281,7 +281,6 @@ public class DescriptorUtils {
     return className.replace(JAVA_PACKAGE_SEPARATOR, DESCRIPTOR_PACKAGE_SEPARATOR);
   }
 
-
   /**
    * Convert a class binary name to a descriptor.
    *
@@ -310,20 +309,28 @@ public class DescriptorUtils {
   }
 
   public static String computeInnerClassSeparator(
-      DexType outerClass, DexType innerClass, String innerName, InternalOptions options) {
-    String outerInternalRaw = outerClass.getInternalName();
-    String innerInternalRaw = innerClass.getInternalName();
+      DexType outerClass, DexType innerClass, String innerName, boolean isMinifying) {
+    return computeInnerClassSeparator(
+        outerClass.getInternalName(), innerClass.getInternalName(), innerName, isMinifying);
+  }
+
+  public static String computeInnerClassSeparator(
+      String outerDescriptor, String innerDescriptor, String innerName, boolean isMinifying) {
     // outer-internal<separator>inner-name == inner-internal
-    if (outerInternalRaw.length() + innerName.length() > innerInternalRaw.length()) {
+    if (outerDescriptor.length() + innerName.length() > innerDescriptor.length()) {
+      // But, if the minification is enabled, we can choose $ separator.
+      if (isMinifying) {
+        return String.valueOf(INNER_CLASS_SEPARATOR);
+      }
       return null;
     }
     String separator =
-        innerInternalRaw.substring(
-            outerInternalRaw.length(), innerInternalRaw.length() - innerName.length());
+        innerDescriptor.substring(
+            outerDescriptor.length(), innerDescriptor.length() - innerName.length());
     // Any non-$ separator results in a runtime exception in getCanonicalName.
     if (!separator.startsWith(String.valueOf(INNER_CLASS_SEPARATOR))) {
-      // But, if the minification is enabled, we can choose $ separator.
-      if (options.isMinifying()) {
+      // Again, if the minification is enabled, we can choose $ separator.
+      if (isMinifying) {
         return String.valueOf(INNER_CLASS_SEPARATOR);
       }
       return null;
