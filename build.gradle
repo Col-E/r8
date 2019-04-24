@@ -96,14 +96,6 @@ sourceSets {
         }
         output.resourcesDir = 'build/classes/cfSegments'
     }
-    classlib {
-        java {
-            srcDirs = [
-                    'third_party/classlib/java',
-            ]
-        }
-        output.resourcesDir = 'build/classes/classlib'
-    }
     debugTestResources {
         java {
             srcDirs = ['src/test/debugTestResources']
@@ -234,7 +226,6 @@ dependencies {
     jctfCommonCompile "junit:junit:$junitVersion"
     jctfTestsCompile "junit:junit:$junitVersion"
     jctfTestsCompile sourceSets.jctfCommon.output
-    cfSegmentsCompile sourceSets.classlib.output
     examplesAndroidOCompile group: 'org.ow2.asm', name: 'asm', version: asmVersion
     examplesAndroidPCompile group: 'org.ow2.asm', name: 'asm', version: asmVersion
     // Import Guava for @Nullable annotation
