@@ -52,6 +52,10 @@ def GetGitHash():
 def IsMaster(version):
   branches = subprocess.check_output(['git', 'branch', '-r', '--contains',
                                       'HEAD'])
+  # CL runs from gerrit does not have a branch, we always treat them as master
+  # commits to archive these to the hash based location
+  if len(branches) == 0:
+    return True
   if not version.endswith('-dev'):
     # Sanity check, we don't want to archive on top of release builds EVER
     # Note that even though we branch, we never push the bots to build the same
