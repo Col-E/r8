@@ -65,12 +65,12 @@ public class BasicNestHostWithInnerClass {
           + BasicNestedClass.staticMethod();
     }
 
-    public static void main(String[] args) {
-      BasicNestHostWithInnerClass outer = BasicNestedClass.createOuterInstance("field");
-      BasicNestedClass inner = BasicNestHostWithInnerClass.createNestedInstance("nest1SField");
+  }
+  public static void main(String[] args) {
+    BasicNestHostWithInnerClass outer = BasicNestedClass.createOuterInstance("field");
+    BasicNestedClass inner = BasicNestHostWithInnerClass.createNestedInstance("nest1SField");
 
-      System.out.println(outer.accessNested(inner));
-      System.out.println(inner.accessOuter(outer));
-    }
+    System.out.println(outer.accessNested(inner));
+    System.out.println(inner.accessOuter(outer));
   }
 }

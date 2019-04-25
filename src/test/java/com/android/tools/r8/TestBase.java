@@ -61,7 +61,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.jar.JarOutputStream;
@@ -166,13 +168,16 @@ public class TestBase {
   private static TemporaryFolder staticTemp = null;
 
   @BeforeClass
-  public static void testBaseBeforeClassSetup() {
+  public static void testBaseBeforeClassSetup() throws IOException {
     assert staticTemp == null;
     staticTemp = ToolHelper.getTemporaryFolderForTest();
+    staticTemp.create();
   }
 
   @AfterClass
   public static void testBaseBeforeClassTearDown() {
+    assert staticTemp != null;
+    staticTemp.delete();
     staticTemp = null;
   }
 
@@ -195,6 +200,35 @@ public class TestBase {
                     throw new RuntimeException(e);
                   }
                 }));
+  }
+
+  protected static <S, T, U> BiFunction<S, T, U> memoizeBiFunction(
+      ThrowableBiFunction<S, T, U> fn) {
+    class Pair {
+      final S first;
+      final T second;
+
+      public Pair(S first, T second) {
+        this.first = first;
+        this.second = second;
+      }
+
+      @Override
+      public boolean equals(Object obj) {
+        if (!(obj instanceof Pair)) {
+          return false;
+        }
+        Pair other = (Pair) obj;
+        return Objects.equals(first, other.first) && Objects.equals(second, other.second);
+      }
+
+      @Override
+      public int hashCode() {
+        return Objects.hash(first, second);
+      }
+    }
+    final Function<Pair, U> memoizedFn = memoizeFunction(pair -> fn.apply(pair.first, pair.second));
+    return (a, b) -> memoizedFn.apply(new Pair(a, b));
   }
 
   /**

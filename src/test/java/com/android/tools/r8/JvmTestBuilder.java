@@ -142,8 +142,15 @@ public class JvmTestBuilder extends TestBuilder<JvmTestRunResult, JvmTestBuilder
 
   @Override
   public JvmTestBuilder addProgramFiles(Collection<Path> files) {
-    throw new Unimplemented(
-        "No support for adding paths directly (we need to compute the descriptor)");
+    for (Path file : files) {
+      if (FileUtils.isArchive(file)) {
+        classpath.add(file);
+      } else {
+        throw new Unimplemented(
+            "No support for adding paths directly (we need to compute the descriptor)");
+      }
+    }
+    return self();
   }
 
   @Override
