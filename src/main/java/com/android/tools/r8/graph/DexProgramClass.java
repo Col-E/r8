@@ -342,19 +342,15 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
     assert !virtualMethod.accessFlags.isStatic();
     assert !virtualMethod.accessFlags.isPrivate();
     assert !virtualMethod.accessFlags.isConstructor();
-    synchronized (virtualMethods) {
-      virtualMethods = Arrays.copyOf(virtualMethods, virtualMethods.length + 1);
-      virtualMethods[virtualMethods.length - 1] = virtualMethod;
-    }
+    virtualMethods = Arrays.copyOf(virtualMethods, virtualMethods.length + 1);
+    virtualMethods[virtualMethods.length - 1] = virtualMethod;
   }
 
   public void addDirectMethod(DexEncodedMethod staticMethod) {
     assert staticMethod.accessFlags.isStatic() || staticMethod.accessFlags.isPrivate()
         || staticMethod.accessFlags.isConstructor();
-    synchronized (directMethods) {
-      directMethods = Arrays.copyOf(directMethods, directMethods.length + 1);
-      directMethods[directMethods.length - 1] = staticMethod;
-    }
+    directMethods = Arrays.copyOf(directMethods, directMethods.length + 1);
+    directMethods[directMethods.length - 1] = staticMethod;
   }
 
   public void sortMembers() {
