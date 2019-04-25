@@ -73,13 +73,6 @@ sourceSets {
             ]
         }
     }
-    java11 {
-        java {
-            srcDirs = [
-                    'src/test/examplesJava11'
-            ]
-        }
-    }
     apiUsageSample {
         java {
             srcDirs = ['src/test/apiUsageSample', 'src/main/java']
@@ -119,6 +112,20 @@ sourceSets {
             srcDirs = ['src/test/examples']
         }
         output.resourcesDir = 'build/classes/examples'
+    }
+    examplesJava9 {
+        java {
+            srcDirs = [
+                    'src/test/examplesJava9'
+            ]
+        }
+    }
+    examplesJava11 {
+        java {
+            srcDirs = [
+                    'src/test/examplesJava11'
+            ]
+        }
     }
     examplesKotlin {
         java {
@@ -489,15 +496,31 @@ sourceSets.configureEach { sourceSet ->
     }
 }
 
-tasks.named(sourceSets.java11.compileJavaTaskName).get().configure {
+tasks.named(sourceSets.examplesJava9.compileJavaTaskName).get().configure {
+    def jdkDir = 'third_party/openjdk/openjdk-9.0.4/'
     options.fork = true
     options.forkOptions.jvmArgs = []
     if (OperatingSystem.current().isLinux()) {
-        options.forkOptions.javaHome = file('third_party/openjdk/jdk-11/Linux')
+        options.forkOptions.javaHome = file(jdkDir + 'linux')
     } else if (OperatingSystem.current().isMacOsX()) {
-        options.forkOptions.javaHome = file('third_party/openjdk/jdk-11/Mac')
+        options.forkOptions.javaHome = file(jdkDir + 'osx')
     } else {
-        options.forkOptions.javaHome = file('third_party/openjdk/jdk-11/Windows')
+        options.forkOptions.javaHome = file(jdkDir + 'windows')
+    }
+    sourceCompatibility = JavaVersion.VERSION_1_9
+    targetCompatibility = JavaVersion.VERSION_1_9
+}
+
+tasks.named(sourceSets.examplesJava11.compileJavaTaskName).get().configure {
+    def jdkDir = 'third_party/openjdk/jdk-11/'
+    options.fork = true
+    options.forkOptions.jvmArgs = []
+    if (OperatingSystem.current().isLinux()) {
+        options.forkOptions.javaHome = file(jdkDir + 'Linux')
+    } else if (OperatingSystem.current().isMacOsX()) {
+        options.forkOptions.javaHome = file(jdkDir + 'Mac')
+    } else {
+        options.forkOptions.javaHome = file(jdkDir + 'Windows')
     }
     sourceCompatibility = JavaVersion.VERSION_11
     targetCompatibility = JavaVersion.VERSION_11
@@ -1289,7 +1312,7 @@ task buildExampleJava9Jars {
         task "jar_examplesJava9_${name}"(type: Jar) {
             archiveName = jarName
             destinationDir = exampleOutputDir
-            from "src/test/examplesJava9"  // Java 1.9 classes
+            from sourceSets.examplesJava9.output
             include "**/" + name + "/**/*.class"
         }
     }
@@ -1305,7 +1328,7 @@ task buildExampleJava11Jars {
         task "jar_examplesJava11_${name}"(type: Jar) {
             archiveName = jarName
             destinationDir = exampleOutputDir
-            from sourceSets.java11.output
+            from sourceSets.examplesJava11.output
             include "**/" + name + "/**/*.class"
         }
     }
@@ -2074,52 +2097,4 @@ task printMavenDeps {
             }
         }
     }
-}
-
-
-
-
-// This task allows to build class files from Java 9 source in order to use them as inputs of
-// D8/R8 tests. Class files are generated in the same place than source files and must be commited
-// to the D8 repository because there is no way to generate them on all computers due to the need of
-// Java 9.
-// Use the following command to rebuild class files of tests:
-// ./tools/gradle.py -Pjava9Home=<java 9 home> buildJava9Tests
-task buildJava9Tests {
-    def javacOutputFolder = getTemporaryDir();
-    def examplesDir = file("src/test/examplesJava9")
-
-    task "compile_Java9examples"(type: JavaCompile) {
-        doFirst {
-            if (!project.hasProperty('java9Home') || project.property('java9Home').isEmpty()) {
-                throw new GradleException("Set java9Home property.")
-            }
-        }
-
-        source = fileTree(dir: examplesDir, include: '**/*.java')
-        destinationDir = javacOutputFolder
-        classpath = sourceSets.main.compileClasspath
-        options.compilerArgs += ["-Xlint:-options"]
-        sourceCompatibility = JavaVersion.VERSION_1_9
-        targetCompatibility = JavaVersion.VERSION_1_9
-        options.fork = true
-
-        if (project.hasProperty('java9Home')) {
-            options.forkOptions.javaHome = file(getProperty('java9Home'))
-        }
-
-        doLast {
-            def classfileFrom = copySpec {
-                from javacOutputFolder
-                include "**/*.class"
-            }
-            copy {
-                into examplesDir
-                with classfileFrom
-            }
-            delete javacOutputFolder
-        }
-    }
-
-    dependsOn compile_Java9examples
 }
