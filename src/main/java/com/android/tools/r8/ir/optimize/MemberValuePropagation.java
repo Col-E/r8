@@ -202,7 +202,9 @@ public class MemberValuePropagation {
     if (!invokedHolder.isClassType()) {
       return;
     }
-    // TODO(70550443): Maybe check all methods here.
+    // TODO(b/130804193): search for all call targets and apply -assumenosideeffects if one of
+    //   call targets has a matching rule?
+    // TODO(b/130804193): using refined receiver type for InvokeMethodWithReceiver?
     DexEncodedMethod definition =
         appView.appInfo().lookup(current.getType(), invokedMethod, callingContext);
     ProguardMemberRuleLookup lookup = lookupMemberRule(definition);
