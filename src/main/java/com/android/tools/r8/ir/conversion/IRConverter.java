@@ -196,7 +196,7 @@ public class IRConverter {
       AppInfoWithLiveness appInfoWithLiveness = appViewWithLiveness.appInfo();
       this.classInliner =
           options.enableClassInlining && options.enableInlining
-              ? new ClassInliner(appViewWithLiveness, lambdaRewriter)
+              ? new ClassInliner(lambdaRewriter)
               : null;
       this.classStaticizer =
           options.enableClassStaticizer ? new ClassStaticizer(appViewWithLiveness, this) : null;

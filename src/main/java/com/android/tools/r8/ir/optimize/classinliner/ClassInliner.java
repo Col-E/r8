@@ -30,7 +30,7 @@ public final class ClassInliner {
   private final LambdaRewriter lambdaRewriter;
   private final ConcurrentHashMap<DexClass, Boolean> knownClasses = new ConcurrentHashMap<>();
 
-  public ClassInliner(AppView<AppInfoWithLiveness> appView, LambdaRewriter lambdaRewriter) {
+  public ClassInliner(LambdaRewriter lambdaRewriter) {
     this.lambdaRewriter = lambdaRewriter;
   }
 
