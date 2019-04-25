@@ -107,16 +107,10 @@ public class TestRuntime {
   }
 
   public static boolean isCheckedInJDK(CfVm jdk) {
-    // Non-linux checked-in jdk support has never been tested,
-    // so we pretend they do not exist.
-    if (!ToolHelper.isLinux()) {
-      return false;
-    }
     return CHECKED_IN_JDKS.containsKey(jdk);
   }
 
   public static Path getCheckInJDKPathFor(CfVm jdk) {
-    assumeTrue(ToolHelper.isLinux());
     return Paths.get("third_party", "openjdk")
         .resolve(CHECKED_IN_JDKS.get(jdk))
         .resolve(Paths.get("bin", "java"));
