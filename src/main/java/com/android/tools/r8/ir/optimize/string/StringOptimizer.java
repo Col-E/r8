@@ -275,7 +275,7 @@ public class StringOptimizer {
       DexString name = null;
       if (invokedMethod == factory.classMethods.getName) {
         if (appView.options().isMinifying()
-            && !appView.rootSet().noObfuscation.contains(holder.type)) {
+            && !appView.rootSet().mayBeMinified(holder.type, appView)) {
           deferred =
               new DexItemBasedConstString(
                   invoke.outValue(),
@@ -300,7 +300,7 @@ public class StringOptimizer {
             continue;
           }
           if (appView.options().isMinifying()
-              && !appView.rootSet().noObfuscation.contains(holder.type)) {
+              && !appView.rootSet().mayBeMinified(holder.type, appView)) {
             deferred =
                 new DexItemBasedConstString(
                     invoke.outValue(),
@@ -322,7 +322,7 @@ public class StringOptimizer {
             continue;
           }
           if (appView.options().isMinifying()
-              && !appView.rootSet().noObfuscation.contains(holder.type)) {
+              && !appView.rootSet().mayBeMinified(holder.type, appView)) {
             deferred =
                 new DexItemBasedConstString(
                     invoke.outValue(),

@@ -106,7 +106,7 @@ public class Minifier {
 
     @Override
     public boolean noObfuscation(DexType type) {
-      return appView.rootSet().noObfuscation.contains(appView.graphLense().getOriginalType(type));
+      return appView.rootSet().mayBeMinified(type, appView);
     }
   }
 
@@ -168,14 +168,7 @@ public class Minifier {
 
     @Override
     public boolean noObfuscation(DexReference reference) {
-      if (reference.isDexField()) {
-        return appView.rootSet().noObfuscation.contains(
-            appView.graphLense().getOriginalFieldSignature(reference.asDexField()));
-      } else {
-        assert reference.isDexMethod();
-        return appView.rootSet().noObfuscation.contains(
-            appView.graphLense().getOriginalMethodSignature(reference.asDexMethod()));
-      }
+      return appView.rootSet().mayBeMinified(reference, appView);
     }
   }
 }

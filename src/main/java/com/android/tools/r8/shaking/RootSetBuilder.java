@@ -1030,7 +1030,7 @@ public class RootSetBuilder {
 
     public final Map<DexReference, Set<ProguardKeepRule>> noShrinking;
     public final Set<DexReference> noOptimization;
-    public final Set<DexReference> noObfuscation;
+    private final Set<DexReference> noObfuscation;
     public final ImmutableList<DexReference> reasonAsked;
     public final Set<DexReference> checkDiscarded;
     public final Set<DexMethod> alwaysInline;
@@ -1185,6 +1185,24 @@ public class RootSetBuilder {
     public void move(DexReference original, DexReference rewritten) {
       copy(original, rewritten);
       prune(original);
+    }
+
+    void shouldNotBeMinified(DexReference reference) {
+      noObfuscation.add(reference);
+    }
+
+    public boolean mayBeMinified(DexReference reference, AppView<?> appView) {
+      if (reference.isDexType()) {
+        return noObfuscation.contains(
+            appView.graphLense().getOriginalType(reference.asDexType()));
+      } else if (reference.isDexMethod()) {
+        return noObfuscation.contains(
+            appView.graphLense().getOriginalMethodSignature(reference.asDexMethod()));
+      } else {
+        assert reference.isDexField();
+        return noObfuscation.contains(
+            appView.graphLense().getOriginalFieldSignature(reference.asDexField()));
+      }
     }
 
     public boolean verifyKeptFieldsAreAccessedAndLive(AppInfoWithLiveness appInfo) {

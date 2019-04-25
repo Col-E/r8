@@ -1421,9 +1421,9 @@ public class Enqueuer {
     DexEncodedMethod valuesMethod = clazz.lookupMethod(generatedEnumValuesMethod(clazz));
     if (valuesMethod != null) {
       // TODO(sgjesse): Does this have to be enqueued as a root item? Right now it is done as the
-      // marking of not renaming is in the root set.
+      // marking of not renaming it in the root set.
       enqueueRootItem(valuesMethod, reason);
-      rootSet.noObfuscation.add(valuesMethod.toReference());
+      rootSet.shouldNotBeMinified(valuesMethod.toReference());
     }
   }
 
