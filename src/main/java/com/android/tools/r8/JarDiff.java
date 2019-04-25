@@ -165,9 +165,7 @@ public class JarDiff {
     class1.forEachMethod(
         method1 -> {
           DexEncodedMethod method2 = class2.lookupMethod(method1.method);
-          if (method2 == null) {
-            compareMethods(method1, method2);
-          }
+          compareMethods(method1, method2);
         });
     class2.forEachMethod(
         method2 -> {

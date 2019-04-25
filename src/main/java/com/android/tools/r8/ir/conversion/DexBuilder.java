@@ -223,12 +223,10 @@ public class DexBuilder {
       int previousInstructionCount = dexInstructions.size();
       info.addInstructions(this, dexInstructions);
       int instructionStartOffset = instructionOffset;
-      if (previousInstructionCount < dexInstructions.size()) {
-        while (previousInstructionCount < dexInstructions.size()) {
-          Instruction instruction = dexInstructions.get(previousInstructionCount++);
-          instruction.setOffset(instructionOffset);
-          instructionOffset += instruction.getSize();
-        }
+      while (previousInstructionCount < dexInstructions.size()) {
+        Instruction instruction = dexInstructions.get(previousInstructionCount++);
+        instruction.setOffset(instructionOffset);
+        instructionOffset += instruction.getSize();
       }
       debugEventBuilder.add(instructionStartOffset, instructionOffset, ir);
     }

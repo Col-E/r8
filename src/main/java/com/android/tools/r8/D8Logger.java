@@ -38,9 +38,9 @@ public final class D8Logger {
       String[] absArgs = Arrays.stream(args)
           .map(s -> s.startsWith("-") ? s : Paths.get(s).toAbsolutePath().toString())
           .toArray(String[]::new);
-      FileWriter fw = new FileWriter(output, true);
-      fw.write(String.join("\t", absArgs) + "\n");
-      fw.close();
+      try (FileWriter fw = new FileWriter(output, true)) {
+        fw.write(String.join("\t", absArgs) + System.lineSeparator());
+      }
     }
 
     if (Arrays.stream(args).anyMatch(s -> s.equals("--dex"))) {

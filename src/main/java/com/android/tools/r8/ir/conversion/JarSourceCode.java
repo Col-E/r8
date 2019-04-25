@@ -1313,7 +1313,7 @@ public class JarSourceCode implements SourceCode {
       }
       case Opcodes.POP: {
         Slot value = state.pop();
-        value.isCategory1();
+        assert value.isCategory1();
         break;
       }
       case Opcodes.POP2: {

@@ -27,12 +27,10 @@ import java.util.stream.Collectors;
 
 public final class ClassInliner {
 
-  private final AppView<AppInfoWithLiveness> appView;
   private final LambdaRewriter lambdaRewriter;
   private final ConcurrentHashMap<DexClass, Boolean> knownClasses = new ConcurrentHashMap<>();
 
   public ClassInliner(AppView<AppInfoWithLiveness> appView, LambdaRewriter lambdaRewriter) {
-    this.appView = appView;
     this.lambdaRewriter = lambdaRewriter;
   }
 
@@ -204,7 +202,7 @@ public final class ClassInliner {
   private boolean isClassEligible(AppView<AppInfoWithLiveness> appView, DexClass clazz) {
     Boolean eligible = knownClasses.get(clazz);
     if (eligible == null) {
-      Boolean computed = computeClassEligible(appView, clazz);
+      boolean computed = computeClassEligible(appView, clazz);
       Boolean existing = knownClasses.putIfAbsent(clazz, computed);
       assert existing == null || existing == computed;
       eligible = existing == null ? computed : existing;

@@ -370,8 +370,9 @@ public class R8 {
                     StandardOpenOption.CREATE,
                     StandardOpenOption.TRUNCATE_EXISTING,
                     StandardOpenOption.WRITE);
-            PrintStream ps = new PrintStream(outputStream);
-            ps.println(compatibility.buildRaw().toString());
+            try (PrintStream ps = new PrintStream(outputStream)) {
+              ps.println(compatibility.buildRaw().toString());
+            }
           }
         }
       } finally {
