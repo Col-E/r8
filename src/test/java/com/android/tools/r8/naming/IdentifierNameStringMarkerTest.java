@@ -162,6 +162,7 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     List<String> pgConfigs = ImmutableList.of(
         "-identifiernamestring class " + CLASS_NAME + " { static java.lang.String sClassName; }",
         "-keep class " + CLASS_NAME,
+        "-keepclassmembers,allowobfuscation class " + CLASS_NAME + " { static <fields>; }",
         "-dontoptimize");
     CodeInspector inspector = getInspectorAfterRunR8(builder, pgConfigs);
 
@@ -193,6 +194,7 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     List<String> pgConfigs = ImmutableList.of(
         "-identifiernamestring class " + CLASS_NAME + " { static java.lang.String sClassName; }",
         "-keep class " + CLASS_NAME,
+        "-keepclassmembers,allowobfuscation class " + CLASS_NAME + " { static <fields>; }",
         "-dontoptimize");
     CodeInspector inspector = getInspectorAfterRunR8(builder, pgConfigs);
 
@@ -230,6 +232,7 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     List<String> pgConfigs = ImmutableList.of(
         "-identifiernamestring class " + CLASS_NAME + " { static java.lang.String sClassName; }",
         "-keep class " + CLASS_NAME,
+        "-keepclassmembers,allowobfuscation class " + CLASS_NAME + " { static <fields>; }",
         "-keep,allowobfuscation class " + BOO,
         "-dontoptimize");
     CodeInspector inspector = getInspectorAfterRunR8(builder, pgConfigs);

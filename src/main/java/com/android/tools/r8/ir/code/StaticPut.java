@@ -26,6 +26,8 @@ import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.ProguardMemberRule;
 import org.objectweb.asm.Opcodes;
 
 public class StaticPut extends FieldInstruction {
@@ -86,6 +88,51 @@ public class StaticPut extends FieldInstruction {
   public boolean instructionTypeCanThrow() {
     // This can cause <clinit> to run.
     return true;
+  }
+
+  @Override
+  public boolean instructionMayHaveSideEffects(
+      AppView<? extends AppInfo> appView, DexType context) {
+    if (appView.appInfo().hasLiveness()) {
+      AppInfoWithLiveness appInfoWithLiveness = appView.appInfo().withLiveness();
+      // MemberValuePropagation will replace the field read only if the target field has bound
+      // -assumevalues rule whose return value is *single*.
+      //
+      // Note that, in principle, class initializer of the field's holder may have side effects.
+      // However, with -assumevalues, we assume that the developer wants to remove field accesses.
+      ProguardMemberRule rule = appInfoWithLiveness.assumedValues.get(getField());
+      if (rule != null && rule.getReturnValue().isSingleValue()) {
+        return false;
+      }
+
+      if (instructionInstanceCanThrow(appView, context).isThrowing()) {
+        return true;
+      }
+
+      if (appInfoWithLiveness.isFieldRead(getField())) {
+        return true;
+      }
+
+      return false;
+    }
+
+    // In D8, we always have to assume that the field can be read, and thus have side effects.
+    assert instructionInstanceCanThrow(appView, context).isThrowing();
+    return true;
+  }
+
+  @Override
+  public boolean canBeDeadCode(AppView<? extends AppInfo> appView, IRCode code) {
+    // static-put can be dead as long as it cannot have any of the following:
+    // * NoSuchFieldError (resolution failure)
+    // * IncompatibleClassChangeError (static-* instruction for instance fields)
+    // * IllegalAccessError (not visible from the access context)
+    // * side-effects in <clinit>
+    // * not read _globally_
+    boolean haveSideEffects = instructionMayHaveSideEffects(appView, code.method.method.holder);
+    assert appView.enableWholeProgramOptimizations() || haveSideEffects
+        : "Expected static-put instruction to have side effects in D8";
+    return !haveSideEffects;
   }
 
   @Override

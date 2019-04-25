@@ -4,6 +4,7 @@
 package com.android.tools.r8.shaking.assumevalues;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -53,7 +54,7 @@ public class DeadFieldAfterAssumevaluesTest extends TestBase {
   }
 
   @Test
-  public void b130561746() throws Exception {
+  public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramClasses(MAIN)
         .addKeepMainRule(MAIN)
@@ -75,11 +76,10 @@ public class DeadFieldAfterAssumevaluesTest extends TestBase {
         .noneMatch(i -> i.isIf() || i.isIfEqz() || i.isIfNez()));
 
     FieldSubject hasR8 = main.uniqueFieldWithName("HAS_R8");
-    // TODO(b/130561746): can be removed.
-    assertThat(hasR8, isPresent());
+    assertThat(hasR8, not(isPresent()));
 
     MethodSubject clinit = main.clinit();
-    // TODO(b/130561746): can be removed if the above static field is gone.
+    // TODO(b/130561746): need to model that Boolean.parseBoolean doesn't have side-effects.
     assertThat(clinit, isPresent());
   }
 }

@@ -19,6 +19,7 @@ import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
@@ -76,7 +77,8 @@ public class FieldTypeTest extends TestBase {
         "new " + impl1.name,
         "dup",
         "invokespecial " + impl1.name + "/<init>()V",
-        // Unused, i.e., not read, field, yet still remained in the output.
+        // Unused, i.e., not read, field, hence removable.
+        // Needs an extra keep rule to keep this (to reproduce broken type hierarchy)
         "putstatic " + client.name + "/" + obj1.name + " " + itf1.getDescriptor(),
         "new " + impl2.name,
         "dup",
@@ -105,11 +107,12 @@ public class FieldTypeTest extends TestBase {
     );
 
     final String mainClassName = mainClass.name;
-    String proguardConfig =
-        keepMainProguardConfiguration(mainClass.name, false, false)
-            // AGP default is to not turn optimizations on, which disables MemberValuePropagation,
-            // resulting in the problematic putstatic being remained.
-            + "-dontoptimize\n";
+    String proguardConfig = StringUtils.lines(
+        keepMainProguardConfiguration(mainClass.name, false, false),
+        // AGP default is to not turn optimizations on
+        "-dontoptimize",
+        "-keepclassmembers class " + client.name + " { static ** " + obj1.name + "; }"
+    );
 
     // Run input program on java.
     Path outputDirectory = temp.newFolder().toPath();

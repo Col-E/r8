@@ -375,7 +375,7 @@ public class MemberValuePropagation {
         if (current.isInvokeMethod()) {
           rewriteInvokeMethodWithConstantValues(
               code, callingContext, affectedValues, blocks, iterator, current.asInvokeMethod());
-        } else if (current.isInstancePut() || current.isStaticPut()) {
+        } else if (current.isInstancePut()) {
           rewritePutWithConstantValues(iterator, current.asFieldInstruction(), callingContext);
         } else if (current.isStaticGet()) {
           rewriteStaticGetWithConstantValues(

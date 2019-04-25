@@ -114,10 +114,10 @@ public class InstanceGet extends FieldInstruction {
     // * IncompatibleClassChangeError (instance-* instruction for static fields)
     // * IllegalAccessError (not visible from the access context)
     // * NullPointerException (null receiver)
-    boolean canBeDeadCode = !instructionMayHaveSideEffects(appView, code.method.method.holder);
-    assert appView.enableWholeProgramOptimizations() || !canBeDeadCode
+    boolean haveSideEffects = instructionMayHaveSideEffects(appView, code.method.method.holder);
+    assert appView.enableWholeProgramOptimizations() || haveSideEffects
         : "Expected instance-get instruction to have side effects in D8";
-    return canBeDeadCode;
+    return !haveSideEffects;
   }
 
   @Override
