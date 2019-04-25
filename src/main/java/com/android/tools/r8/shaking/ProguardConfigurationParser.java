@@ -1663,6 +1663,10 @@ public class ProguardConfigurationParser {
           pattern = null;
         }
       }
+      skipWhitespace();
+      if (!eof() && !hasNextChar('-') && !hasNextChar('@')) {
+        throw parseError("Unexpected attribute");
+      }
       return patterns;
     }
 

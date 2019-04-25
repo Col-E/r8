@@ -1363,17 +1363,36 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
-  public void parseInvalidKeepattributes_className() {
-    try {
-      ProguardConfigurationParser parser =
-          new ProguardConfigurationParser(new DexItemFactory(), reporter);
-      parser.parse(createConfigurationForTesting(
-          ImmutableList.of("-keepattributes androidx.annotation.Keep")));
-      fail();
-    } catch (AbortException e) {
-      // TODO(b/130746806): better error message?
-      assertTrue(
-          handler.errors.get(0).getDiagnosticMessage().contains("Expected char '-' at "));
+  public void parseInvalidKeepattributes_className() throws Exception {
+    List<String> classNames = ImmutableList.of("androidx.annotation.Keep", "**.Keep", "K*<1>p");
+    Path proguardConfig;
+    for (String className : classNames) {
+      reset();
+      proguardConfig = writeTextToTempFile("-keepattributes " + className + ",*Annotations*");
+      try {
+        parser.parse(proguardConfig);
+        fail("Expect to fail due to unsupported attribute.");
+      } catch (AbortException e) {
+        checkDiagnostics(
+            handler.errors,
+            proguardConfig,
+            1,
+            className.contains(".") ? className.indexOf('.') + 17 : className.length() + 13,
+            "Unexpected attribute");
+      }
+      reset();
+      proguardConfig = writeTextToTempFile("-keepattributes *Annotations*," + className);
+      try {
+        parser.parse(proguardConfig);
+        fail("Expect to fail due to unsupported attribute.");
+      } catch (AbortException e) {
+        checkDiagnostics(
+            handler.errors,
+            proguardConfig,
+            1,
+            className.contains(".") ? className.indexOf('.') + 31 : className.length() + 27,
+            "Unexpected attribute");
+      }
     }
   }
 
