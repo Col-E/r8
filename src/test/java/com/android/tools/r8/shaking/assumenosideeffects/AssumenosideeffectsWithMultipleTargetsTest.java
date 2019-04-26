@@ -107,7 +107,6 @@ public class AssumenosideeffectsWithMultipleTargetsTest extends TestBase {
         "The end"
     );
     private static final String OUTPUT_WITH_PARTIAL_INFO = StringUtils.lines(
-        "TestClass: message1",
         "TestClass: message2",
         "The end"
     );
@@ -146,7 +145,7 @@ public class AssumenosideeffectsWithMultipleTargetsTest extends TestBase {
             expectedInfoCallsInMainMethod = 2;
             break;
           case RULE_WITH_IMPLEMENTS:
-            expectedInfoCallsInMainMethod = 1;
+            expectedInfoCallsInMainMethod = 0;
             break;
           default:
             throw new Unreachable();

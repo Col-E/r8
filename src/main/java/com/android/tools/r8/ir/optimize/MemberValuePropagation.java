@@ -206,9 +206,7 @@ public class MemberValuePropagation {
     }
     // TODO(b/130804193): search for all call targets and apply -assumenosideeffects if one of
     //   call targets has a matching rule?
-    // TODO(b/130804193): using refined receiver type for InvokeMethodWithReceiver?
-    DexEncodedMethod definition =
-        appView.appInfo().lookupSingleTarget(current.getType(), invokedMethod, callingContext);
+    DexEncodedMethod definition = current.lookupSingleTarget(appView, callingContext);
     ProguardMemberRuleLookup lookup = lookupMemberRule(definition);
     boolean invokeReplaced = false;
     if (lookup != null) {
