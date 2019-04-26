@@ -225,7 +225,7 @@ def run_bot():
   log('Test status is: %s' % test_status)
   if test_status != '0':
     print('Tests failed, you can print the logs by running(googlers only):')
-    print('  tools/internal_tests.py --print_logs %s' % git_hash)
+    print('  tools/internal_test.py --print_logs %s' % git_hash)
     return 1
 
 def run_continuously():
