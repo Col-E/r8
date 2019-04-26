@@ -10,6 +10,7 @@ import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -81,6 +82,10 @@ public abstract class TestRunResult<RR extends TestRunResult<?>> {
     assertSuccess();
     assertEquals(errorMessage("Run stdout incorrect.", expected), expected, result.stdout);
     return self();
+  }
+
+  public RR assertSuccessWithOutputLines(String... expected) {
+    return assertSuccessWithOutput(StringUtils.lines(expected));
   }
 
   public RR assertSuccessWithOutputThatMatches(Matcher<String> matcher) {
