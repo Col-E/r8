@@ -5,7 +5,6 @@ package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.DiagnosticsChecker.checkDiagnostics;
 import static com.android.tools.r8.shaking.ProguardConfigurationSourceStrings.createConfigurationForTesting;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -13,6 +12,7 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -27,7 +27,6 @@ import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.position.TextRange;
 import com.android.tools.r8.shaking.ProguardConfigurationParser.IdentifierPatternWithWildcards;
-import com.android.tools.r8.shaking.constructor.InitMatchingTest;
 import com.android.tools.r8.utils.AbortException;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
@@ -2416,12 +2415,6 @@ public class ProguardConfigurationParserTest extends TestBase {
     return parser.getConfig();
   }
 
-  private ProguardConfiguration parseAndVerifyParserEndsCleanly(Path config) {
-    parser.parse(config);
-    verifyParserEndsCleanly();
-    return parser.getConfig();
-  }
-
   private void verifyParserEndsCleanly() {
     assertEquals(0, handler.infos.size());
     assertEquals(0, handler.warnings.size());
@@ -2577,46 +2570,6 @@ public class ProguardConfigurationParserTest extends TestBase {
           30,
           "Unexpected character '!': "
               + "The negation character can only be used to negate access flags");
-    }
-  }
-
-  @Test
-  public void b130710288() throws Exception {
-    // "[[access-flag]* void] <init>" is the only valid format.
-    for (String initName : ImmutableList.of("<init>", "void <init>", "public void <init>")) {
-      Path initConfig = writeTextToTempFile(
-          "-keep class **.MyClass {",
-          "  " + initName + "(...);",
-          "}");
-      parseAndVerifyParserEndsCleanly(initConfig);
-    }
-
-    for (String initName : InitMatchingTest.INIT_NAMES) {
-      // Tested above.
-      if (initName.contains("<init>")) {
-        continue;
-      }
-      reset();
-      Path proguardConfig = writeTextToTempFile(
-          "-keep class **.MyClass {",
-          "  " + initName + "(...);",
-          "}");
-      try {
-        parser.parse(proguardConfig);
-        fail("Expect to fail due to unsupported constructor name pattern.");
-      } catch (AbortException e) {
-        int column = initName.contains("void") ? initName.indexOf("void") + 8 : 3;
-        checkDiagnostics(
-            handler.errors, proguardConfig, 2, column, "Unexpected character", "method name");
-      }
-      // For some exceptional cases, Proguard accepts the rules but fails with an empty jar message.
-      if (initName.contains("<init>")
-          || initName.contains("<clinit>")
-          || initName.contains("void")) {
-        continue;
-      }
-      verifyFailWithProguard6(
-          proguardConfig, "Expecting type and name instead of just '" + initName + "'");
     }
   }
 }
