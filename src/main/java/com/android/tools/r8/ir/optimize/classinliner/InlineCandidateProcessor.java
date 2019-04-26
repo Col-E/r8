@@ -879,7 +879,7 @@ final class InlineCandidateProcessor {
   private DexEncodedMethod findSingleTarget(InvokeMethod invoke) {
     if (isExtraMethodCall(invoke)) {
       DexType invocationContext = method.method.holder;
-      return invoke.lookupSingleTarget(appView.appInfo(), invocationContext);
+      return invoke.lookupSingleTarget(appView, invocationContext);
     }
     // We don't use computeSingleTarget(...) on invoke since it sometimes fails to
     // find the single target, while this code may be more successful since we exactly

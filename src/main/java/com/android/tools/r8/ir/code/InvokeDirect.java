@@ -112,15 +112,15 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
   }
 
   @Override
-  public DexEncodedMethod lookupSingleTarget(AppInfoWithLiveness appInfo,
-      DexType invocationContext) {
-    return appInfo.lookupDirectTarget(getInvokedMethod());
+  public DexEncodedMethod lookupSingleTarget(
+      AppView<AppInfoWithLiveness> appView, DexType invocationContext) {
+    return appView.appInfo().lookupDirectTarget(getInvokedMethod());
   }
 
   @Override
-  public Collection<DexEncodedMethod> lookupTargets(AppInfoWithSubtyping appInfo,
-      DexType invocationContext) {
-    DexEncodedMethod target = appInfo.lookupDirectTarget(getInvokedMethod());
+  public Collection<DexEncodedMethod> lookupTargets(
+      AppView<? extends AppInfoWithSubtyping> appView, DexType invocationContext) {
+    DexEncodedMethod target = appView.appInfo().lookupDirectTarget(getInvokedMethod());
     return target == null ? Collections.emptyList() : Collections.singletonList(target);
   }
 
@@ -164,8 +164,8 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
 
     // Find the target and check if the invoke may have side effects.
     if (appView.appInfo().hasLiveness()) {
-      AppInfoWithLiveness appInfoWithLiveness = appView.appInfo().withLiveness();
-      DexEncodedMethod target = lookupSingleTarget(appInfoWithLiveness, context);
+      AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+      DexEncodedMethod target = lookupSingleTarget(appViewWithLiveness, context);
       if (target == null) {
         return true;
       }
@@ -188,7 +188,7 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
       if (clazz.isProgramClass()) {
         targetMayHaveSideEffects =
             target.getOptimizationInfo().mayHaveSideEffects()
-                && !appInfoWithLiveness.noSideEffects.containsKey(target.method);
+                && !appViewWithLiveness.appInfo().noSideEffects.containsKey(target.method);
       } else {
         targetMayHaveSideEffects =
             !appView.dexItemFactory().libraryMethodsWithoutSideEffects.contains(target.method);

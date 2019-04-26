@@ -71,8 +71,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
   }
 
   private DexEncodedMethod validateCandidate(InvokeMethod invoke, DexType invocationContext) {
-    DexEncodedMethod candidate =
-        invoke.lookupSingleTarget(inliner.appView.appInfo(), invocationContext);
+    DexEncodedMethod candidate = invoke.lookupSingleTarget(inliner.appView, invocationContext);
     if ((candidate == null)
         || (candidate.getCode() == null)
         || inliner.appView.definitionFor(candidate.method.holder).isNotProgramClass()) {

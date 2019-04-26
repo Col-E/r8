@@ -514,8 +514,7 @@ public class UninstantiatedTypeOptimization {
       InstructionListIterator instructionIterator,
       IRCode code,
       Set<BasicBlock> blocksToBeRemoved) {
-    DexEncodedMethod target =
-        invoke.lookupSingleTarget(appView.appInfo(), code.method.method.holder);
+    DexEncodedMethod target = invoke.lookupSingleTarget(appView, code.method.method.holder);
     if (target == null) {
       return;
     }
@@ -533,5 +532,4 @@ public class UninstantiatedTypeOptimization {
       }
     }
   }
-
 }

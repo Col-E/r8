@@ -84,17 +84,17 @@ public class InvokeInterface extends InvokeMethodWithReceiver {
   }
 
   @Override
-  public DexEncodedMethod lookupSingleTarget(AppInfoWithLiveness appInfo,
-      DexType invocationContext) {
-    DexType refinedReceiverType = TypeAnalysis.getRefinedReceiverType(appInfo, this);
+  public DexEncodedMethod lookupSingleTarget(
+      AppView<AppInfoWithLiveness> appView, DexType invocationContext) {
+    DexType refinedReceiverType = TypeAnalysis.getRefinedReceiverType(appView, this);
     DexMethod method = getInvokedMethod();
-    return appInfo.lookupSingleInterfaceTarget(method, refinedReceiverType);
+    return appView.appInfo().lookupSingleInterfaceTarget(method, refinedReceiverType);
   }
 
   @Override
-  public Collection<DexEncodedMethod> lookupTargets(AppInfoWithSubtyping appInfo,
-      DexType invocationContext) {
-    return appInfo.lookupInterfaceTargets(getInvokedMethod());
+  public Collection<DexEncodedMethod> lookupTargets(
+      AppView<? extends AppInfoWithSubtyping> appView, DexType invocationContext) {
+    return appView.appInfo().lookupInterfaceTargets(getInvokedMethod());
   }
 
   @Override

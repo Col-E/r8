@@ -327,9 +327,8 @@ public class ClassInitializationAnalysis {
         return false;
       }
       if (appView.appInfo().hasLiveness()) {
-        AppInfoWithLiveness appInfoWithLiveness = appView.appInfo().withLiveness();
         DexEncodedMethod singleTarget =
-            instruction.lookupSingleTarget(appInfoWithLiveness, context);
+            instruction.lookupSingleTarget(appView.withLiveness(), context);
         if (singleTarget != null) {
           return isTypeInitializedBy(type, singleTarget, appView, mode);
         }
@@ -377,9 +376,8 @@ public class ClassInitializationAnalysis {
         return false;
       }
       if (appView.appInfo().hasLiveness()) {
-        AppInfoWithLiveness appInfoWithLiveness = appView.appInfo().withLiveness();
         DexEncodedMethod singleTarget =
-            instruction.lookupSingleTarget(appInfoWithLiveness, context);
+            instruction.lookupSingleTarget(appView.withLiveness(), context);
         if (singleTarget != null) {
           return isTypeInitializedBy(type, singleTarget, appView, mode);
         }
@@ -421,9 +419,8 @@ public class ClassInitializationAnalysis {
         return false;
       }
       if (appView.appInfo().hasLiveness()) {
-        AppInfoWithLiveness appInfoWithLiveness = appView.appInfo().withLiveness();
         DexEncodedMethod singleTarget =
-            instruction.lookupSingleTarget(appInfoWithLiveness, context);
+            instruction.lookupSingleTarget(appView.withLiveness(), context);
         if (singleTarget != null) {
           return isTypeInitializedBy(type, singleTarget, appView, mode);
         }

@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.InvokePolymorphicRange;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -112,15 +113,15 @@ public class InvokePolymorphic extends InvokeMethod {
   }
 
   @Override
-  public DexEncodedMethod lookupSingleTarget(AppInfoWithLiveness appInfo,
-      DexType invocationContext) {
+  public DexEncodedMethod lookupSingleTarget(
+      AppView<AppInfoWithLiveness> appView, DexType invocationContext) {
     // TODO(herhut): Implement lookup target for invokePolymorphic.
     return null;
   }
 
   @Override
-  public Collection<DexEncodedMethod> lookupTargets(AppInfoWithSubtyping appInfo,
-      DexType invocationContext) {
+  public Collection<DexEncodedMethod> lookupTargets(
+      AppView<? extends AppInfoWithSubtyping> appView, DexType invocationContext) {
     // TODO(herhut): Implement lookup target for invokePolymorphic.
     return null;
   }

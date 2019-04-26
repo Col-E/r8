@@ -86,7 +86,6 @@ import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.SwitchUtils.EnumSwitchInfo;
 import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
 import com.android.tools.r8.kotlin.Kotlin;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOutputMode;
 import com.android.tools.r8.utils.LongInterval;
@@ -1603,7 +1602,6 @@ public class CodeRewriter {
     if (options.isGeneratingClassFiles()) {
       return;
     }
-    AppInfoWithLiveness appInfoWithLiveness = appView.appInfo().withLiveness();
     Set<Value> needToWidenValues = Sets.newIdentityHashSet();
     Set<Value> needToNarrowValues = Sets.newIdentityHashSet();
     Set<BasicBlock> blocksToBeRemoved = Sets.newIdentityHashSet();
@@ -1646,9 +1644,9 @@ public class CodeRewriter {
                 outValue.replaceUsers(invoke.arguments().get(0));
                 invoke.setOutValue(null);
               }
-            } else if (appInfoWithLiveness != null) {
+            } else if (appView.appInfo().hasLiveness()) {
               DexEncodedMethod target =
-                  invoke.lookupSingleTarget(appInfoWithLiveness, code.method.method.holder);
+                  invoke.lookupSingleTarget(appView.withLiveness(), code.method.method.holder);
               if (target != null) {
                 DexMethod invokedMethod = target.method;
                 // Check if the invoked method is known to return one of its arguments.
@@ -3174,8 +3172,7 @@ public class CodeRewriter {
   // null value (which should result in NPE). Note that this throw is not
   // expected to be ever reached, but is intended to satisfy verifier.
   public void processMethodsNeverReturningNormally(IRCode code) {
-    AppInfoWithLiveness appInfoWithLiveness = appView.appInfo().withLiveness();
-    if (appInfoWithLiveness == null) {
+    if (!appView.appInfo().hasLiveness()) {
       return;
     }
 
@@ -3192,8 +3189,9 @@ public class CodeRewriter {
           continue;
         }
 
-        DexEncodedMethod singleTarget = insn.asInvokeMethod().lookupSingleTarget(
-            appInfoWithLiveness, code.method.method.holder);
+        InvokeMethod invoke = insn.asInvokeMethod();
+        DexEncodedMethod singleTarget =
+            invoke.lookupSingleTarget(appView.withLiveness(), code.method.method.holder);
         if (singleTarget == null || !singleTarget.getOptimizationInfo().neverReturnsNormally()) {
           continue;
         }
@@ -3221,7 +3219,7 @@ public class CodeRewriter {
 
         // Insert 'null' constant.
         ConstNumber nullConstant = code.createConstNull(gotoInsn.getLocalInfo());
-        nullConstant.setPosition(insn.getPosition());
+        nullConstant.setPosition(invoke.getPosition());
         throwNullInsnIterator.add(nullConstant);
 
         // Replace Goto with Throw.

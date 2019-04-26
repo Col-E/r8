@@ -208,7 +208,7 @@ public class MemberValuePropagation {
     //   call targets has a matching rule?
     // TODO(b/130804193): using refined receiver type for InvokeMethodWithReceiver?
     DexEncodedMethod definition =
-        appView.appInfo().lookup(current.getType(), invokedMethod, callingContext);
+        appView.appInfo().lookupSingleTarget(current.getType(), invokedMethod, callingContext);
     ProguardMemberRuleLookup lookup = lookupMemberRule(definition);
     boolean invokeReplaced = false;
     if (lookup != null) {
@@ -228,7 +228,7 @@ public class MemberValuePropagation {
       return;
     }
     // No Proguard rule could replace the instruction check for knowledge about the return value.
-    DexEncodedMethod target = current.lookupSingleTarget(appView.appInfo(), callingContext);
+    DexEncodedMethod target = current.lookupSingleTarget(appView, callingContext);
     if (target == null || !mayPropagateValueFor(target)) {
       return;
     }

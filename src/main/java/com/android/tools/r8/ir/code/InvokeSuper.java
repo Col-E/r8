@@ -92,22 +92,23 @@ public class InvokeSuper extends InvokeMethodWithReceiver {
   }
 
   @Override
-  public DexEncodedMethod lookupSingleTarget(AppInfoWithLiveness appInfo,
-      DexType invocationContext) {
+  public DexEncodedMethod lookupSingleTarget(
+      AppView<AppInfoWithLiveness> appView, DexType invocationContext) {
     if (invocationContext == null) {
       return null;
     }
-    if (!appInfo.isSubtype(invocationContext, getInvokedMethod().holder)) {
+    if (!appView.appInfo().isSubtype(invocationContext, getInvokedMethod().holder)) {
       return null;
     } else {
-      return appInfo.lookupSuperTarget(getInvokedMethod(), invocationContext);
+      return appView.appInfo().lookupSuperTarget(getInvokedMethod(), invocationContext);
     }
   }
 
   @Override
-  public Collection<DexEncodedMethod> lookupTargets(AppInfoWithSubtyping appInfo,
-      DexType invocationContext) {
-    DexEncodedMethod target = appInfo.lookupSuperTarget(getInvokedMethod(), invocationContext);
+  public Collection<DexEncodedMethod> lookupTargets(
+      AppView<? extends AppInfoWithSubtyping> appView, DexType invocationContext) {
+    DexEncodedMethod target =
+        appView.appInfo().lookupSuperTarget(getInvokedMethod(), invocationContext);
     return target == null ? Collections.emptyList() : Collections.singletonList(target);
   }
 

@@ -167,12 +167,12 @@ public class TypeAnalysis {
   }
 
   public static DexType getRefinedReceiverType(
-      AppInfoWithSubtyping appInfo, InvokeMethodWithReceiver invoke) {
+      AppView<? extends AppInfoWithSubtyping> appView, InvokeMethodWithReceiver invoke) {
     DexType receiverType = invoke.getInvokedMethod().holder;
     TypeLatticeElement lattice = invoke.getReceiver().getTypeLattice();
     if (lattice.isClassType()) {
       DexType refinedType = lattice.asClassTypeLatticeElement().getClassType();
-      if (appInfo.isSubtype(refinedType, receiverType)) {
+      if (appView.appInfo().isSubtype(refinedType, receiverType)) {
         return refinedType;
       }
     }

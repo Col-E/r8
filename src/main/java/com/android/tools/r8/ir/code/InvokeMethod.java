@@ -59,10 +59,10 @@ public abstract class InvokeMethod extends Invoke {
   // In subclasses, e.g., invoke-virtual or invoke-super, use a narrower receiver type by using
   // receiver type and calling context---the holder of the method where the current invocation is.
   public abstract DexEncodedMethod lookupSingleTarget(
-      AppInfoWithLiveness appInfo, DexType invocationContext);
+      AppView<AppInfoWithLiveness> appView, DexType invocationContext);
 
   public abstract Collection<DexEncodedMethod> lookupTargets(
-      AppInfoWithSubtyping appInfo, DexType invocationContext);
+      AppView<? extends AppInfoWithSubtyping> appView, DexType invocationContext);
 
   public abstract InlineAction computeInlining(
       InliningOracle decider,

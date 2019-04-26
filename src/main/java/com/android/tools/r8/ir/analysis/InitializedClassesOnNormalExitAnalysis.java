@@ -130,7 +130,7 @@ public class InitializedClassesOnNormalExitAnalysis {
         InvokeMethod invoke = instruction.asInvokeMethod();
         DexMethod method = invoke.getInvokedMethod();
         if (method.holder.isClassType()) {
-          DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView.appInfo(), context);
+          DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, context);
           if (singleTarget != null) {
             markInitializedOnNormalExit(singleTarget.method.holder);
             markInitializedOnNormalExit(

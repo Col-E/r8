@@ -538,7 +538,7 @@ public class CallGraph extends CallSiteInformation {
       GraphLenseLookupResult result = graphLense.lookupMethod(method, source.method, type);
       method = result.getMethod();
       type = result.getType();
-      DexEncodedMethod definition = appInfo.lookup(type, method, source.method.holder);
+      DexEncodedMethod definition = appInfo.lookupSingleTarget(type, method, source.method.holder);
       if (definition != null) {
         assert !source.accessFlags.isBridge() || definition != caller.method;
         DexClass clazz = appInfo.definitionFor(definition.method.holder);

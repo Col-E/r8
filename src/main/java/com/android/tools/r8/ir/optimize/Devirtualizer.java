@@ -109,7 +109,7 @@ public class Devirtualizer {
           continue;
         }
         InvokeInterface invoke = current.asInvokeInterface();
-        DexEncodedMethod target = invoke.lookupSingleTarget(appView.appInfo(), invocationContext);
+        DexEncodedMethod target = invoke.lookupSingleTarget(appView, invocationContext);
         if (target == null) {
           continue;
         }

@@ -94,8 +94,7 @@ public class NonNullTracker {
             singleTarget =
                 current
                     .asInvokeMethod()
-                    .lookupSingleTarget(
-                        appView.appInfo().withLiveness(), code.method.method.holder);
+                    .lookupSingleTarget(appView.withLiveness(), code.method.method.holder);
           } else {
             // Even in D8, invoke-{direct|static} can be resolved without liveness.
             // Due to the incremental compilation, though, it is allowed only if the holder of the

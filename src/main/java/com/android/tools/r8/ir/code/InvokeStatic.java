@@ -96,16 +96,16 @@ public class InvokeStatic extends InvokeMethod {
   }
 
   @Override
-  public DexEncodedMethod lookupSingleTarget(AppInfoWithLiveness appInfo,
-      DexType invocationContext) {
+  public DexEncodedMethod lookupSingleTarget(
+      AppView<AppInfoWithLiveness> appView, DexType invocationContext) {
     DexMethod method = getInvokedMethod();
-    return appInfo.lookupStaticTarget(method);
+    return appView.appInfo().lookupStaticTarget(method);
   }
 
   @Override
-  public Collection<DexEncodedMethod> lookupTargets(AppInfoWithSubtyping appInfo,
-      DexType invocationContext) {
-    DexEncodedMethod target = appInfo.lookupStaticTarget(getInvokedMethod());
+  public Collection<DexEncodedMethod> lookupTargets(
+      AppView<? extends AppInfoWithSubtyping> appView, DexType invocationContext) {
+    DexEncodedMethod target = appView.appInfo().lookupStaticTarget(getInvokedMethod());
     return target == null ? Collections.emptyList() : Collections.singletonList(target);
   }
 
@@ -151,8 +151,8 @@ public class InvokeStatic extends InvokeMethod {
 
     // Find the target and check if the invoke may have side effects.
     if (appView.appInfo().hasLiveness()) {
-      AppInfoWithLiveness appInfoWithLiveness = appView.appInfo().withLiveness();
-      DexEncodedMethod target = lookupSingleTarget(appInfoWithLiveness, context);
+      AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+      DexEncodedMethod target = lookupSingleTarget(appViewWithLiveness, context);
       if (target == null) {
         return true;
       }
@@ -166,7 +166,7 @@ public class InvokeStatic extends InvokeMethod {
       // Verify that the target method does not have side-effects.
       boolean targetMayHaveSideEffects =
           target.getOptimizationInfo().mayHaveSideEffects()
-              && !appInfoWithLiveness.noSideEffects.containsKey(target.method);
+              && !appViewWithLiveness.appInfo().noSideEffects.containsKey(target.method);
       if (targetMayHaveSideEffects) {
         return true;
       }

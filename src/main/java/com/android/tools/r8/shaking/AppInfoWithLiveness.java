@@ -794,7 +794,8 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     return prunedTypes;
   }
 
-  public DexEncodedMethod lookup(Type type, DexMethod target, DexType invocationContext) {
+  public DexEncodedMethod lookupSingleTarget(
+      Type type, DexMethod target, DexType invocationContext) {
     assert checkIfObsolete();
     DexType holder = target.holder;
     if (!holder.isClassType()) {
