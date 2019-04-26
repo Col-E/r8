@@ -12,14 +12,11 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.StringUtils;
-import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Sets;
-import com.google.common.collect.Table;
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -75,7 +72,7 @@ class MethodNamingState<KeyType> {
     if (state == null) {
       return null;
     }
-    return state.getAssignedNameFor(name, key);
+    return state.getAssignedNameFor(name);
   }
 
   public DexString assignNewNameFor(DexMethod source, DexString original, DexProto proto) {
@@ -115,7 +112,7 @@ class MethodNamingState<KeyType> {
   public void addRenaming(DexString original, DexProto proto, DexString newName) {
     KeyType key = keyTransform.apply(proto);
     InternalState state = getOrCreateInternalStateFor(key);
-    state.addRenaming(original, key, newName);
+    state.addRenaming(original, newName);
   }
 
   void printState(
@@ -148,7 +145,7 @@ class MethodNamingState<KeyType> {
     protected final DexItemFactory itemFactory;
     private final InternalState parentInternalState;
     private Set<DexString> reservedNames = null;
-    private Table<DexString, KeyType, DexString> renamings = null;
+    private Map<DexString, DexString> renamings = null;
     private int virtualNameCount;
     private int directNameCount = 0;
     private final Iterator<String> dictionaryIterator;
@@ -210,13 +207,13 @@ class MethodNamingState<KeyType> {
       }
     }
 
-    DexString getAssignedNameFor(DexString original, KeyType proto) {
+    DexString getAssignedNameFor(DexString original) {
       DexString result = null;
       if (renamings != null) {
-        result = renamings.get(original, proto);
+        result = renamings.get(original);
       }
       if (result == null && parentInternalState != null) {
-        result = parentInternalState.getAssignedNameFor(original, proto);
+        result = parentInternalState.getAssignedNameFor(original);
       }
       return result;
     }
@@ -229,11 +226,11 @@ class MethodNamingState<KeyType> {
       return name;
     }
 
-    void addRenaming(DexString original, KeyType proto, DexString newName) {
+    void addRenaming(DexString original, DexString newName) {
       if (renamings == null) {
-        renamings = HashBasedTable.create();
+        renamings = new HashMap<>();
       }
-      renamings.put(original, proto, newName);
+      renamings.put(original, newName);
     }
 
     DexString nextSuggestedName(DexMethod source) {
@@ -307,17 +304,13 @@ class MethodNamingState<KeyType> {
       if (renamings == null || renamings.isEmpty()) {
         out.print(" <NO RENAMINGS>");
       } else {
-        for (DexString original : renamings.rowKeySet()) {
-          Map<KeyType, DexString> row = renamings.row(original);
-          for (Entry<KeyType, DexString> entry : row.entrySet()) {
-            out.print(System.lineSeparator());
-            out.print(indentation);
-            out.print("  ");
-            out.print(original.toSourceString());
-            out.print(entry.getKey().toString());
-            out.print(" -> ");
-            out.print(entry.getValue().toSourceString());
-          }
+        for (DexString original : renamings.keySet()) {
+          out.print(System.lineSeparator());
+          out.print(indentation);
+          out.print("  ");
+          out.print(original.toSourceString());
+          out.print(" -> ");
+          out.print(renamings.get(original).toSourceString());
         }
       }
       out.println();
