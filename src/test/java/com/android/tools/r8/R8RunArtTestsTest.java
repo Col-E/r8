@@ -197,6 +197,9 @@ public abstract class R8RunArtTestsTest {
           // printWeakReference on lines Main.java:78-79. An expected flaky
           // result contains: "but was:<wimp: [null]".
           .put("036-finalizer", TestCondition.any())
+          // The test waits for a maximum of 500 ms which is unreliable when running on buildbots:
+          // Elapsed time was too long: elapsed=552 max=550
+          .put("053-wait-some", TestCondition.any())
           // Failed on buildbot with: terminate called after throwing an instance
           // of '__gnu_cxx::recursive_init_error'
           .put("096-array-copy-concurrent-gc",
