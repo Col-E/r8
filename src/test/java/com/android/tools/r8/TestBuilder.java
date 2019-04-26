@@ -25,7 +25,7 @@ public abstract class TestBuilder<RR extends TestRunResult, T extends TestBuilde
 
   abstract T self();
 
-  public <S> S map(ThrowableFunction<T, S> fn) {
+  public <S, E extends Throwable> S map(ThrowingFunction<T, S, E> fn) {
     return fn.applyWithRuntimeException(self());
   }
 

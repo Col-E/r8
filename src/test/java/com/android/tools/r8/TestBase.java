@@ -189,7 +189,8 @@ public class TestBase {
     return TestParametersBuilder.builder();
   }
 
-  protected static <S, T> Function<S, T> memoizeFunction(ThrowableFunction<S, T> fn) {
+  protected static <S, T, E extends Throwable> Function<S, T> memoizeFunction(
+      ThrowingFunction<S, T, E> fn) {
     return CacheBuilder.newBuilder()
         .build(
             CacheLoader.from(
@@ -202,8 +203,8 @@ public class TestBase {
                 }));
   }
 
-  protected static <S, T, U> BiFunction<S, T, U> memoizeBiFunction(
-      ThrowableBiFunction<S, T, U> fn) {
+  protected static <S, T, U, E extends Throwable> BiFunction<S, T, U> memoizeBiFunction(
+      ThrowingBiFunction<S, T, U, E> fn) {
     class Pair {
       final S first;
       final T second;

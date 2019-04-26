@@ -5,7 +5,6 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.ThrowingFunction;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -14,6 +13,10 @@ import java.nio.file.Path;
 import java.util.function.Consumer;
 
 public abstract class DexByteCodeWriter {
+
+  private interface OutputStreamProvider {
+    PrintStream get(DexClass clazz) throws IOException;
+  }
 
   final DexApplication application;
   final InternalOptions options;
@@ -31,7 +34,7 @@ public abstract class DexByteCodeWriter {
     }
   }
 
-  private ThrowingFunction<DexClass, PrintStream, IOException> oneFilePerClass(Path path) {
+  private OutputStreamProvider oneFilePerClass(Path path) {
     return (clazz) -> {
       String className = DescriptorUtils.descriptorToJavaType(clazz.type.toDescriptorString(),
           application.getProguardMap());
@@ -58,13 +61,12 @@ public abstract class DexByteCodeWriter {
     });
   }
 
-  private void write(ThrowingFunction<DexClass, PrintStream, IOException> outputStreamProvider,
-      Consumer<PrintStream> closer)
+  private void write(OutputStreamProvider outputStreamProvider, Consumer<PrintStream> closer)
       throws IOException {
     Iterable<DexProgramClass> classes = application.classesWithDeterministicOrder();
     for (DexProgramClass clazz : classes) {
       if (anyMethodMatches(clazz)) {
-        PrintStream ps = outputStreamProvider.apply(clazz);
+        PrintStream ps = outputStreamProvider.get(clazz);
         try {
           writeClass(clazz, ps);
         } finally {

@@ -14,7 +14,7 @@ public abstract class TestBaseResult<CR extends TestBaseResult<CR, RR>, RR exten
 
   public abstract CR self();
 
-  public <S> S map(ThrowableFunction<CR, S> fn) {
+  public <S, E extends Throwable> S map(ThrowingFunction<CR, S, E> fn) {
     return fn.applyWithRuntimeException(self());
   }
 

@@ -7,6 +7,7 @@ import static java.util.Collections.emptyList;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
+import com.android.tools.r8.ThrowingBiFunction;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.VmTestRunner;
@@ -14,7 +15,6 @@ import com.android.tools.r8.VmTestRunner.IgnoreForRangeOfVmVersions;
 import com.android.tools.r8.VmTestRunner.IgnoreForVmVersions;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassFileVersion;
-import com.android.tools.r8.utils.ThrowingBiFunction;
 import com.android.tools.r8.utils.ThrowingSupplier;
 import java.util.function.BiConsumer;
 import java.util.function.Predicate;
