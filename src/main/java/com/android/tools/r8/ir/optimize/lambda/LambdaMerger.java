@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.optimize.lambda;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
@@ -100,7 +99,7 @@ public final class LambdaMerger {
   // should not be happening very frequently and we ignore possible overhead.
   private final Set<DexEncodedMethod> methodsToReprocess = Sets.newIdentityHashSet();
 
-  private final AppView<? extends AppInfo> appView;
+  private final AppView<?> appView;
   private final DexItemFactory factory;
   private final Kotlin kotlin;
   private final DiagnosticsHandler reporter;
@@ -112,7 +111,7 @@ public final class LambdaMerger {
   // Lambda visitor throwing Unreachable on each lambdas it sees.
   private final LambdaTypeVisitor lambdaChecker;
 
-  public LambdaMerger(AppView<? extends AppInfo> appView) {
+  public LambdaMerger(AppView<?> appView) {
     this.appView = appView;
     this.factory = appView.dexItemFactory();
     this.kotlin = factory.kotlin;

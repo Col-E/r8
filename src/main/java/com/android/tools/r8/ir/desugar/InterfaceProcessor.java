@@ -11,7 +11,6 @@ import com.android.tools.r8.code.InvokeSuper;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unimplemented;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.Code;
@@ -50,13 +49,13 @@ import java.util.Set;
 // Also moves static interface methods into a companion class.
 final class InterfaceProcessor {
 
-  private final AppView<? extends AppInfo> appView;
+  private final AppView<?> appView;
   private final InterfaceMethodRewriter rewriter;
 
   // All created companion and dispatch classes indexed by interface type.
   final Map<DexType, DexProgramClass> syntheticClasses = new IdentityHashMap<>();
 
-  InterfaceProcessor(AppView<? extends AppInfo> appView, InterfaceMethodRewriter rewriter) {
+  InterfaceProcessor(AppView<?> appView, InterfaceMethodRewriter rewriter) {
     this.appView = appView;
     this.rewriter = rewriter;
   }

@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.code;
 
 import static com.android.tools.r8.ir.code.DominatorTree.Assumption.MAY_HAVE_UNREACHABLE_BLOCKS;
 
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
@@ -322,7 +321,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
   }
 
   private void splitBlockAndCopyCatchHandlers(
-      AppView<? extends AppInfo> appView,
+      AppView<?> appView,
       IRCode code,
       BasicBlock invokeBlock,
       BasicBlock inlinedBlock,
@@ -371,7 +370,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
   }
 
   private void appendCatchHandlers(
-      AppView<? extends AppInfo> appView,
+      AppView<?> appView,
       IRCode code,
       BasicBlock invokeBlock,
       IRCode inlinee,
@@ -411,7 +410,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
 
   @Override
   public BasicBlock inlineInvoke(
-      AppView<? extends AppInfo> appView,
+      AppView<?> appView,
       IRCode code,
       IRCode inlinee,
       ListIterator<BasicBlock> blocksIterator,
@@ -597,7 +596,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
   }
 
   private InstructionListIterator ensureSingleReturnInstruction(
-      AppView<? extends AppInfo> appView, IRCode code, List<BasicBlock> normalExits) {
+      AppView<?> appView, IRCode code, List<BasicBlock> normalExits) {
     if (normalExits.size() == 1) {
       InstructionListIterator it = normalExits.get(0).listIterator();
       it.nextUntil(Instruction::isReturn);

@@ -124,7 +124,7 @@ public class RegisterMoveSchedulerTest {
 
     @Override
     public BasicBlock inlineInvoke(
-        AppView<? extends AppInfo> appView,
+        AppView<?> appView,
         IRCode code,
         IRCode inlinee,
         ListIterator<BasicBlock> blockIterator,

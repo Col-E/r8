@@ -5,7 +5,6 @@ package com.android.tools.r8.ir.optimize;
 
 import static com.android.tools.r8.ir.code.DominatorTree.Assumption.MAY_HAVE_UNREACHABLE_BLOCKS;
 
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
@@ -41,9 +40,9 @@ import java.util.function.Predicate;
 
 public class NonNullTracker {
 
-  private final AppView<? extends AppInfo> appView;
+  private final AppView<?> appView;
 
-  public NonNullTracker(AppView<? extends AppInfo> appView) {
+  public NonNullTracker(AppView<?> appView) {
     this.appView = appView;
   }
 

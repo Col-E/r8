@@ -108,7 +108,7 @@ public class IRConverter {
 
   private static final int PEEPHOLE_OPTIMIZATION_PASSES = 2;
 
-  public final AppView<? extends AppInfo> appView;
+  public final AppView<?> appView;
   public final Set<DexType> mainDexClasses;
 
   private final Timing timing;
@@ -153,10 +153,7 @@ public class IRConverter {
    * (i.e., whether we are running R8). See {@link AppView#enableWholeProgramOptimizations()}.
    */
   public IRConverter(
-      AppView<? extends AppInfo> appView,
-      Timing timing,
-      CfgPrinter printer,
-      MainDexClasses mainDexClasses) {
+      AppView<?> appView, Timing timing, CfgPrinter printer, MainDexClasses mainDexClasses) {
     assert appView.appInfo().hasLiveness() || appView.graphLense().isIdentityLense();
     assert appView.options() != null;
     assert appView.options().programConsumer != null;
@@ -246,7 +243,7 @@ public class IRConverter {
   }
 
   /** Create an IR converter for processing methods with full program optimization disabled. */
-  public IRConverter(AppView<? extends AppInfo> appView) {
+  public IRConverter(AppView<?> appView) {
     this(appView, null, null, MainDexClasses.NONE);
   }
 

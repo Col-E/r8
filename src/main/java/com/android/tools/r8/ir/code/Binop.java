@@ -8,7 +8,6 @@ import static com.android.tools.r8.dex.Constants.U8BIT_MAX;
 
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.PrimitiveTypeLatticeElement;
@@ -135,7 +134,7 @@ public abstract class Binop extends Instruction {
   }
 
   @Override
-  public TypeLatticeElement evaluate(AppView<? extends AppInfo> appView) {
+  public TypeLatticeElement evaluate(AppView<?> appView) {
     return PrimitiveTypeLatticeElement.fromNumericType(type);
   }
 

@@ -15,7 +15,6 @@ import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.cf.code.CfSwitch;
 import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.cf.code.CfTryCatch;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.CfCode.LocalVariableInfo;
@@ -267,7 +266,7 @@ public class CfSourceCode implements SourceCode {
   @Override
   public int traceInstruction(int instructionIndex, IRBuilder builder) {
     CfInstruction instruction = code.getInstructions().get(instructionIndex);
-    AppView<? extends AppInfo> appView = builder.appView;
+    AppView<?> appView = builder.appView;
     assert appView.options().isGeneratingClassFiles()
         == internalOutputMode.isGeneratingClassFiles();
     if (canThrowHelper(instruction)) {

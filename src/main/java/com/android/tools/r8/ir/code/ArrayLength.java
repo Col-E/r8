@@ -7,7 +7,6 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.code.CfArrayLength;
 import com.android.tools.r8.dex.Constants;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
@@ -71,8 +70,7 @@ public class ArrayLength extends Instruction {
   }
 
   @Override
-  public AbstractError instructionInstanceCanThrow(
-      AppView<? extends AppInfo> appView, DexType context) {
+  public AbstractError instructionInstanceCanThrow(AppView<?> appView, DexType context) {
     if (array().typeLattice.isNullable()) {
       return AbstractError.specific(appView.dexItemFactory().npeType);
     }
@@ -81,13 +79,12 @@ public class ArrayLength extends Instruction {
   }
 
   @Override
-  public boolean instructionMayHaveSideEffects(
-      AppView<? extends AppInfo> appView, DexType context) {
+  public boolean instructionMayHaveSideEffects(AppView<?> appView, DexType context) {
     return instructionInstanceCanThrow(appView, context).isThrowing();
   }
 
   @Override
-  public boolean canBeDeadCode(AppView<? extends AppInfo> appView, IRCode code) {
+  public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
     return !instructionMayHaveSideEffects(appView, code.method.method.holder);
   }
 
@@ -128,7 +125,7 @@ public class ArrayLength extends Instruction {
   }
 
   @Override
-  public TypeLatticeElement evaluate(AppView<? extends AppInfo> appView) {
+  public TypeLatticeElement evaluate(AppView<?> appView) {
     return TypeLatticeElement.INT;
   }
 

@@ -15,7 +15,6 @@ import com.android.tools.r8.code.SgetShort;
 import com.android.tools.r8.code.SgetWide;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
@@ -95,13 +94,12 @@ public class StaticGet extends FieldInstruction {
   }
 
   @Override
-  public boolean instructionMayHaveSideEffects(
-      AppView<? extends AppInfo> appView, DexType context) {
+  public boolean instructionMayHaveSideEffects(AppView<?> appView, DexType context) {
     return instructionInstanceCanThrow(appView, context).isThrowing();
   }
 
   @Override
-  public boolean canBeDeadCode(AppView<? extends AppInfo> appView, IRCode code) {
+  public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
     // static-get can be dead as long as it cannot have any of the following:
     // * NoSuchFieldError (resolution failure)
     // * IncompatibleClassChangeError (static-* instruction for instance fields)
@@ -165,13 +163,12 @@ public class StaticGet extends FieldInstruction {
   }
 
   @Override
-  public DexType computeVerificationType(
-      AppView<? extends AppInfo> appView, TypeVerificationHelper helper) {
+  public DexType computeVerificationType(AppView<?> appView, TypeVerificationHelper helper) {
     return getField().type;
   }
 
   @Override
-  public TypeLatticeElement evaluate(AppView<? extends AppInfo> appView) {
+  public TypeLatticeElement evaluate(AppView<?> appView) {
     return TypeLatticeElement.fromDexType(getField().type, Nullability.maybeNull(), appView);
   }
 
@@ -179,7 +176,7 @@ public class StaticGet extends FieldInstruction {
   public boolean definitelyTriggersClassInitialization(
       DexType clazz,
       DexType context,
-      AppView<? extends AppInfo> appView,
+      AppView<?> appView,
       Query mode,
       AnalysisAssumption assumption) {
     return ClassInitializationAnalysis.InstructionUtils.forStaticGet(

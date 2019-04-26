@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstClass;
@@ -30,7 +29,7 @@ public class ConstantCanonicalizer {
 
   private static final int MAX_CANONICALIZED_CONSTANT = 15;
 
-  public static void canonicalize(AppView<? extends AppInfo> appView, IRCode code) {
+  public static void canonicalize(AppView<?> appView, IRCode code) {
     Object2ObjectLinkedOpenCustomHashMap<ConstInstruction, List<Value>> valuesDefinedByConstant =
         new Object2ObjectLinkedOpenCustomHashMap<>(
             new Strategy<ConstInstruction>() {

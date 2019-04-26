@@ -9,7 +9,6 @@ import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.Code;
@@ -1514,8 +1513,7 @@ public class Outliner {
     }
 
     @Override
-    public IRCode buildIR(
-        DexEncodedMethod encodedMethod, AppView<? extends AppInfo> appView, Origin origin) {
+    public IRCode buildIR(DexEncodedMethod encodedMethod, AppView<?> appView, Origin origin) {
       assert getOwner() == encodedMethod;
       OutlineSourceCode source = new OutlineSourceCode(outline, encodedMethod.method);
       return new IRBuilder(encodedMethod, appView, source, origin).build(encodedMethod);

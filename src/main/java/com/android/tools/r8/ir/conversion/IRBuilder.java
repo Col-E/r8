@@ -12,7 +12,6 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexCallSite;
@@ -386,7 +385,7 @@ public class IRBuilder {
   final private ValueNumberGenerator valueNumberGenerator;
   private final DexEncodedMethod method;
   private DexEncodedMethod context;
-  public final AppView<? extends AppInfo> appView;
+  public final AppView<?> appView;
   private final Origin origin;
   final RewrittenPrototypeDescription prototypeChanges;
   private ListIterator<RemovedArgumentInfo> removedArgumentsIterator;
@@ -420,17 +419,13 @@ public class IRBuilder {
   // Flag indicating if the code has a monitor instruction.
   private boolean hasMonitorInstruction = false;
 
-  public IRBuilder(
-      DexEncodedMethod method,
-      AppView<? extends AppInfo> appView,
-      SourceCode source,
-      Origin origin) {
+  public IRBuilder(DexEncodedMethod method, AppView<?> appView, SourceCode source, Origin origin) {
     this(method, appView, source, origin, new ValueNumberGenerator());
   }
 
   public IRBuilder(
       DexEncodedMethod method,
-      AppView<? extends AppInfo> appView,
+      AppView<?> appView,
       SourceCode source,
       Origin origin,
       ValueNumberGenerator valueNumberGenerator) {

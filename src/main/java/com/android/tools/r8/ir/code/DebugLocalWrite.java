@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfStore;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
@@ -57,8 +56,7 @@ public class DebugLocalWrite extends Move {
   }
 
   @Override
-  public DexType computeVerificationType(
-      AppView<? extends AppInfo> appView, TypeVerificationHelper helper) {
+  public DexType computeVerificationType(AppView<?> appView, TypeVerificationHelper helper) {
     return helper.getDexType(src());
   }
 

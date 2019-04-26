@@ -8,7 +8,6 @@ import com.android.tools.r8.code.MoveResultObject;
 import com.android.tools.r8.code.MoveResultWide;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -263,7 +262,7 @@ public abstract class Invoke extends Instruction {
   }
 
   @Override
-  public TypeLatticeElement evaluate(AppView<? extends AppInfo> appView) {
+  public TypeLatticeElement evaluate(AppView<?> appView) {
     DexType returnType = getReturnType();
     if (returnType.isVoidType()) {
       throw new Unreachable("void methods have no type.");

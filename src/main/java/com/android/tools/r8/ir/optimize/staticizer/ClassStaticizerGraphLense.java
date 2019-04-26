@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.optimize.staticizer;
 
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
@@ -16,7 +15,7 @@ import com.google.common.collect.ImmutableMap;
 class ClassStaticizerGraphLense extends NestedGraphLense {
 
   ClassStaticizerGraphLense(
-      AppView<? extends AppInfo> appView,
+      AppView<?> appView,
       BiMap<DexField, DexField> fieldMapping,
       BiMap<DexMethod, DexMethod> methodMapping) {
     super(

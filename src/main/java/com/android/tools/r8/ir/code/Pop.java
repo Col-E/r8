@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
@@ -87,7 +86,7 @@ public class Pop extends Instruction {
   }
 
   @Override
-  public boolean canBeDeadCode(AppView<? extends AppInfo> appView, IRCode code) {
+  public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
     // Pop cannot be dead code as it modifies the stack height.
     return false;
   }

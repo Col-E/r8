@@ -16,7 +16,6 @@ import com.android.tools.r8.code.ConstWide16;
 import com.android.tools.r8.code.ConstWide32;
 import com.android.tools.r8.code.ConstWideHigh16;
 import com.android.tools.r8.dex.Constants;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.constant.Bottom;
@@ -288,8 +287,7 @@ public class ConstNumber extends ConstInstruction {
   }
 
   @Override
-  public DexType computeVerificationType(
-      AppView<? extends AppInfo> appView, TypeVerificationHelper helper) {
+  public DexType computeVerificationType(AppView<?> appView, TypeVerificationHelper helper) {
     assert outType().isObject();
     return appView.dexItemFactory().nullValueType;
   }
@@ -303,12 +301,12 @@ public class ConstNumber extends ConstInstruction {
   }
 
   @Override
-  public TypeLatticeElement evaluate(AppView<? extends AppInfo> appView) {
+  public TypeLatticeElement evaluate(AppView<?> appView) {
     return outValue().getTypeLattice();
   }
 
   @Override
-  public boolean verifyTypes(AppView<? extends AppInfo> appView) {
+  public boolean verifyTypes(AppView<?> appView) {
     assert super.verifyTypes(appView);
     assert !isZero()
         || outValue().getTypeLattice().isPrimitive()

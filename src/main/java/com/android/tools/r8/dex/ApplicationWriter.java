@@ -16,7 +16,6 @@ import com.android.tools.r8.ProgramConsumer;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.dex.FileWriter.ByteBufferResult;
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationDirectory;
@@ -60,7 +59,7 @@ import java.util.concurrent.Future;
 public class ApplicationWriter {
 
   public final DexApplication application;
-  public final AppView<? extends AppInfo> appView;
+  public final AppView<?> appView;
   public final String deadCode;
   public final GraphLense graphLense;
   public final NamingLens namingLens;
@@ -130,7 +129,7 @@ public class ApplicationWriter {
 
   public ApplicationWriter(
       DexApplication application,
-      AppView<? extends AppInfo> appView,
+      AppView<?> appView,
       InternalOptions options,
       List<Marker> markers,
       String deadCode,
@@ -153,7 +152,7 @@ public class ApplicationWriter {
 
   public ApplicationWriter(
       DexApplication application,
-      AppView<? extends AppInfo> appView,
+      AppView<?> appView,
       InternalOptions options,
       List<Marker> markers,
       String deadCode,
@@ -298,7 +297,7 @@ public class ApplicationWriter {
 
   public static void supplyAdditionalConsumers(
       DexApplication application,
-      AppView<? extends AppInfo> appView,
+      AppView<?> appView,
       GraphLense graphLense,
       NamingLens namingLens,
       InternalOptions options,

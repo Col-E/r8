@@ -5,7 +5,6 @@
 package com.android.tools.r8.ir.synthetic;
 
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -35,8 +34,7 @@ public abstract class AbstractSynthesizedCode extends Code {
   }
 
   @Override
-  public final IRCode buildIR(
-      DexEncodedMethod encodedMethod, AppView<? extends AppInfo> appView, Origin origin) {
+  public final IRCode buildIR(DexEncodedMethod encodedMethod, AppView<?> appView, Origin origin) {
     assert getOwner() == encodedMethod;
     IRBuilder builder =
         new IRBuilder(
@@ -52,7 +50,7 @@ public abstract class AbstractSynthesizedCode extends Code {
   public IRCode buildInliningIR(
       DexEncodedMethod context,
       DexEncodedMethod encodedMethod,
-      AppView<? extends AppInfo> appView,
+      AppView<?> appView,
       ValueNumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin) {

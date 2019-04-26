@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexClass;
@@ -21,9 +20,9 @@ import java.util.Arrays;
  */
 public class SourceFileRewriter {
 
-  private final AppView<? extends AppInfo> appView;
+  private final AppView<?> appView;
 
-  public SourceFileRewriter(AppView<? extends AppInfo> appView) {
+  public SourceFileRewriter(AppView<?> appView) {
     this.appView = appView;
   }
 

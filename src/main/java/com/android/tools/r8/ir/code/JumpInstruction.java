@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -33,7 +32,7 @@ public abstract class JumpInstruction extends Instruction {
   }
 
   @Override
-  public boolean canBeDeadCode(AppView<? extends AppInfo> appView, IRCode code) {
+  public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
     return false;
   }
 

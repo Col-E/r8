@@ -56,7 +56,7 @@ public class LambdaRewriter {
   static final String LAMBDA_INSTANCE_FIELD_NAME = "INSTANCE";
   static final String LAMBDA_CREATE_INSTANCE_METHOD_NAME = "$$createInstance";
 
-  private final AppView<? extends AppInfo> appView;
+  private final AppView<?> appView;
   final IRConverter converter;
   final DexItemFactory factory;
 
@@ -85,7 +85,7 @@ public class LambdaRewriter {
     return clazz.getName().startsWith(LAMBDA_CLASS_NAME_PREFIX);
   }
 
-  public LambdaRewriter(AppView<? extends AppInfo> appView, IRConverter converter) {
+  public LambdaRewriter(AppView<?> appView, IRConverter converter) {
     assert converter != null;
     this.appView = appView;
     this.converter = converter;

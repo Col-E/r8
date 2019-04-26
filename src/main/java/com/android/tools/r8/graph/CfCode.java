@@ -214,8 +214,7 @@ public class CfCode extends Code {
   }
 
   @Override
-  public IRCode buildIR(
-      DexEncodedMethod encodedMethod, AppView<? extends AppInfo> appView, Origin origin) {
+  public IRCode buildIR(DexEncodedMethod encodedMethod, AppView<?> appView, Origin origin) {
     assert getOwner() == encodedMethod;
     return internalBuild(encodedMethod, encodedMethod, appView, null, null, origin);
   }
@@ -224,7 +223,7 @@ public class CfCode extends Code {
   public IRCode buildInliningIR(
       DexEncodedMethod context,
       DexEncodedMethod encodedMethod,
-      AppView<? extends AppInfo> appView,
+      AppView<?> appView,
       ValueNumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin) {
@@ -238,7 +237,7 @@ public class CfCode extends Code {
   private IRCode internalBuild(
       DexEncodedMethod context,
       DexEncodedMethod encodedMethod,
-      AppView<? extends AppInfo> appView,
+      AppView<?> appView,
       ValueNumberGenerator generator,
       Position callerPosition,
       Origin origin) {

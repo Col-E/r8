@@ -175,8 +175,7 @@ public class LazyCfCode extends Code {
   }
 
   @Override
-  public IRCode buildIR(
-      DexEncodedMethod encodedMethod, AppView<? extends AppInfo> appView, Origin origin) {
+  public IRCode buildIR(DexEncodedMethod encodedMethod, AppView<?> appView, Origin origin) {
     assert getOwner() == encodedMethod;
     return asCfCode().buildIR(encodedMethod, appView, origin);
   }
@@ -185,7 +184,7 @@ public class LazyCfCode extends Code {
   public IRCode buildInliningIR(
       DexEncodedMethod context,
       DexEncodedMethod encodedMethod,
-      AppView<? extends AppInfo> appView,
+      AppView<?> appView,
       ValueNumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin) {

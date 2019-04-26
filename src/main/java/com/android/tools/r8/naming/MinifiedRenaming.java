@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.naming;
 
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
@@ -31,12 +30,12 @@ import java.util.function.Predicate;
 
 class MinifiedRenaming extends NamingLens {
 
-  private final AppView<? extends AppInfo> appView;
+  private final AppView<?> appView;
   private final Map<String, String> packageRenaming;
   private final Map<DexItem, DexString> renaming = new IdentityHashMap<>();
 
   MinifiedRenaming(
-      AppView<? extends AppInfo> appView,
+      AppView<?> appView,
       ClassRenaming classRenaming,
       MethodRenaming methodRenaming,
       FieldRenaming fieldRenaming) {

@@ -9,7 +9,6 @@ import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfNew;
 import com.android.tools.r8.dex.Constants;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
@@ -108,13 +107,12 @@ public class NewInstance extends Instruction {
   }
 
   @Override
-  public DexType computeVerificationType(
-      AppView<? extends AppInfo> appView, TypeVerificationHelper helper) {
+  public DexType computeVerificationType(AppView<?> appView, TypeVerificationHelper helper) {
     return clazz;
   }
 
   @Override
-  public TypeLatticeElement evaluate(AppView<? extends AppInfo> appView) {
+  public TypeLatticeElement evaluate(AppView<?> appView) {
     return TypeLatticeElement.fromDexType(clazz, Nullability.definitelyNotNull(), appView);
   }
 
@@ -122,7 +120,7 @@ public class NewInstance extends Instruction {
   public boolean definitelyTriggersClassInitialization(
       DexType clazz,
       DexType context,
-      AppView<? extends AppInfo> appView,
+      AppView<?> appView,
       Query mode,
       AnalysisAssumption assumption) {
     return ClassInitializationAnalysis.InstructionUtils.forNewInstance(
@@ -130,8 +128,7 @@ public class NewInstance extends Instruction {
   }
 
   @Override
-  public boolean instructionMayHaveSideEffects(
-      AppView<? extends AppInfo> appView, DexType context) {
+  public boolean instructionMayHaveSideEffects(AppView<?> appView, DexType context) {
     if (!appView.enableWholeProgramOptimizations()) {
       return true;
     }
@@ -170,7 +167,7 @@ public class NewInstance extends Instruction {
   }
 
   @Override
-  public boolean canBeDeadCode(AppView<? extends AppInfo> appView, IRCode code) {
+  public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
     return !instructionMayHaveSideEffects(appView, code.method.method.holder);
   }
 

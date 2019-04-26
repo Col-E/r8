@@ -10,7 +10,6 @@ import com.android.tools.r8.cf.code.CfCheckCast;
 import com.android.tools.r8.code.MoveObject;
 import com.android.tools.r8.code.MoveObjectFrom16;
 import com.android.tools.r8.dex.Constants;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
@@ -111,12 +110,12 @@ public class CheckCast extends Instruction {
   }
 
   @Override
-  public TypeLatticeElement evaluate(AppView<? extends AppInfo> appView) {
+  public TypeLatticeElement evaluate(AppView<?> appView) {
     return object().getTypeLattice().checkCast(appView, type);
   }
 
   @Override
-  public boolean verifyTypes(AppView<? extends AppInfo> appView) {
+  public boolean verifyTypes(AppView<?> appView) {
     assert super.verifyTypes(appView);
 
     TypeLatticeElement inType = object().getTypeLattice();
@@ -168,8 +167,7 @@ public class CheckCast extends Instruction {
   }
 
   @Override
-  public DexType computeVerificationType(
-      AppView<? extends AppInfo> appView, TypeVerificationHelper helper) {
+  public DexType computeVerificationType(AppView<?> appView, TypeVerificationHelper helper) {
     return type;
   }
 

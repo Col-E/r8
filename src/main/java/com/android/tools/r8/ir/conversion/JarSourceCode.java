@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.conversion;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexCallSite;
@@ -2845,7 +2844,7 @@ public class JarSourceCode implements SourceCode {
     for (int i = 0; i < insn.dims; i++) {
       dimensions[i] = slots[i].register;
     }
-    AppView<? extends AppInfo> appView = builder.appView;
+    AppView<?> appView = builder.appView;
     if (appView.options().isGeneratingClassFiles()) {
       int result = state.push(arrayType);
       builder.addMultiNewArray(dexArrayType, result, dimensions);

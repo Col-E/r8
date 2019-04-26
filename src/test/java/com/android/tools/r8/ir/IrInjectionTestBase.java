@@ -5,7 +5,6 @@ package com.android.tools.r8.ir;
 
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -75,7 +74,7 @@ public class IrInjectionTestBase extends SmaliTestBase {
   public class TestApplication {
 
     public final DexApplication application;
-    public final AppView<? extends AppInfo> appView;
+    public final AppView<?> appView;
 
     public final DexEncodedMethod method;
     public final IRCode code;
@@ -84,14 +83,11 @@ public class IrInjectionTestBase extends SmaliTestBase {
 
     public final ValueNumberGenerator valueNumberGenerator = new ValueNumberGenerator();
 
-    public TestApplication(AppView<? extends AppInfo> appView, MethodSubject method) {
+    public TestApplication(AppView<?> appView, MethodSubject method) {
       this(appView, method, null);
     }
 
-    public TestApplication(
-        AppView<? extends AppInfo> appView,
-        MethodSubject method,
-        List<IRCode> additionalCode) {
+    public TestApplication(AppView<?> appView, MethodSubject method, List<IRCode> additionalCode) {
       this.application = appView.appInfo().app();
       this.appView = appView;
       this.method = method.getMethod();

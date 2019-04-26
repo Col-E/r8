@@ -5,7 +5,6 @@ package com.android.tools.r8.ir.code;
 
 import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isMemberVisibleFromOriginalContext;
 
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
@@ -49,8 +48,7 @@ public abstract class FieldInstruction extends Instruction {
   }
 
   @Override
-  public AbstractError instructionInstanceCanThrow(
-      AppView<? extends AppInfo> appView, DexType context) {
+  public AbstractError instructionInstanceCanThrow(AppView<?> appView, DexType context) {
     // Not applicable for D8.
     if (!appView.enableWholeProgramOptimizations()) {
       return AbstractError.top();

@@ -10,7 +10,6 @@ import static com.android.tools.r8.ir.regalloc.LiveIntervals.NO_REGISTER;
 import com.android.tools.r8.cf.FixedLocalValue;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
@@ -124,7 +123,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   }
 
   // App view to be able to create types and access the options.
-  private final AppView<? extends AppInfo> appView;
+  private final AppView<?> appView;
   // The code for which to allocate registers.
   private final IRCode code;
   // Number of registers used for arguments.
@@ -184,7 +183,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     return numberOfArgumentRegisters;
   }
 
-  public LinearScanRegisterAllocator(AppView<? extends AppInfo> appView, IRCode code) {
+  public LinearScanRegisterAllocator(AppView<?> appView, IRCode code) {
     this.appView = appView;
     this.code = code;
     int argumentRegisters = 0;

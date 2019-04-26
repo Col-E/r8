@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.code;
 import static com.android.tools.r8.ir.code.IRCode.INSTRUCTION_NUMBER_DELTA;
 
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DebugLocalInfo.PrintLevel;
@@ -80,7 +79,7 @@ public class BasicBlock {
     return true;
   }
 
-  public boolean verifyTypes(AppView<? extends AppInfo> appView) {
+  public boolean verifyTypes(AppView<?> appView) {
     assert instructions.stream().allMatch(instruction -> instruction.verifyTypes(appView));
     return true;
   }
@@ -1305,7 +1304,7 @@ public class BasicBlock {
   }
 
   public static BasicBlock createRethrowBlock(
-      IRCode code, Position position, DexType guard, AppView<? extends AppInfo> appView) {
+      IRCode code, Position position, DexType guard, AppView<?> appView) {
     TypeLatticeElement guardTypeLattice =
         TypeLatticeElement.fromDexType(guard, Nullability.definitelyNotNull(), appView);
     BasicBlock block = new BasicBlock();

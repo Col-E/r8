@@ -7,7 +7,6 @@ import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNul
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.fromDexType;
 
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -36,19 +35,17 @@ public class TypeAnalysis {
 
   private Mode mode = Mode.UNSET;
 
-  private final AppView<? extends AppInfo> appView;
+  private final AppView<?> appView;
   private final DexEncodedMethod context;
 
   private final Deque<Value> worklist = new ArrayDeque<>();
 
-  public TypeAnalysis(AppView<? extends AppInfo> appView, DexEncodedMethod encodedMethod) {
+  public TypeAnalysis(AppView<?> appView, DexEncodedMethod encodedMethod) {
     this(appView, encodedMethod, false);
   }
 
   public TypeAnalysis(
-      AppView<? extends AppInfo> appView,
-      DexEncodedMethod encodedMethod,
-      boolean mayHaveImpreciseTypes) {
+      AppView<?> appView, DexEncodedMethod encodedMethod, boolean mayHaveImpreciseTypes) {
     this.appView = appView;
     this.context = encodedMethod;
     this.mayHaveImpreciseTypes = mayHaveImpreciseTypes;

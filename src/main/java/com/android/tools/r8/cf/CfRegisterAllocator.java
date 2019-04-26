@@ -7,7 +7,6 @@ import static com.android.tools.r8.ir.regalloc.LiveIntervals.NO_REGISTER;
 
 import com.android.tools.r8.cf.TypeVerificationHelper.TypeInfo;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.DebugLocalWrite;
@@ -58,7 +57,7 @@ import java.util.TreeSet;
  */
 public class CfRegisterAllocator implements RegisterAllocator {
 
-  private final AppView<? extends AppInfo> appView;
+  private final AppView<?> appView;
   private final IRCode code;
   private final TypeVerificationHelper typeHelper;
 
@@ -113,8 +112,7 @@ public class CfRegisterAllocator implements RegisterAllocator {
 
   private int maxArgumentRegisterNumber = -1;
 
-  public CfRegisterAllocator(
-      AppView<? extends AppInfo> appView, IRCode code, TypeVerificationHelper typeHelper) {
+  public CfRegisterAllocator(AppView<?> appView, IRCode code, TypeVerificationHelper typeHelper) {
     this.appView = appView;
     this.code = code;
     this.typeHelper = typeHelper;

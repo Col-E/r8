@@ -32,12 +32,12 @@ public class AppServices {
 
   public static final String SERVICE_DIRECTORY_NAME = "META-INF/services/";
 
-  private final AppView<? extends AppInfo> appView;
+  private final AppView<?> appView;
 
   // Mapping from service types to service implementation types.
   private final Map<DexType, List<DexType>> services;
 
-  private AppServices(AppView<? extends AppInfo> appView, Map<DexType, List<DexType>> services) {
+  private AppServices(AppView<?> appView, Map<DexType, List<DexType>> services) {
     this.appView = appView;
     this.services = services;
   }
@@ -84,16 +84,16 @@ public class AppServices {
     return true;
   }
 
-  public static Builder builder(AppView<? extends AppInfo> appView) {
+  public static Builder builder(AppView<?> appView) {
     return new Builder(appView);
   }
 
   public static class Builder {
 
-    private final AppView<? extends AppInfo> appView;
+    private final AppView<?> appView;
     private final Map<DexType, List<DexType>> services = new IdentityHashMap<>();
 
-    private Builder(AppView<? extends AppInfo> appView) {
+    private Builder(AppView<?> appView) {
       this.appView = appView;
     }
 

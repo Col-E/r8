@@ -11,7 +11,6 @@ import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
@@ -190,7 +189,7 @@ public class R8 {
   static void writeApplication(
       ExecutorService executorService,
       DexApplication application,
-      AppView<? extends AppInfo> appView,
+      AppView<?> appView,
       String deadCode,
       GraphLense graphLense,
       NamingLens namingLens,
@@ -727,8 +726,7 @@ public class R8 {
     }
   }
 
-  private void computeKotlinInfoForProgramClasses(
-      DexApplication application, AppView<? extends AppInfo> appView) {
+  private void computeKotlinInfoForProgramClasses(DexApplication application, AppView<?> appView) {
     Kotlin kotlin = appView.dexItemFactory().kotlin;
     Reporter reporter = options.reporter;
     for (DexProgramClass programClass : application.classes()) {

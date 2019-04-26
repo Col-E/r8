@@ -6,7 +6,6 @@ package com.android.tools.r8.naming;
 
 import static com.android.tools.r8.naming.Minifier.MinifierMemberNamingStrategy.EMPTY_CHAR_ARRAY;
 
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -24,19 +23,17 @@ public class FieldNamingState extends FieldNamingStateBase<InternalState> implem
   private final ReservedFieldNamingState reservedNames;
   private final MemberNamingStrategy strategy;
 
-  public FieldNamingState(AppView<? extends AppInfo> appView, MemberNamingStrategy strategy) {
+  public FieldNamingState(AppView<?> appView, MemberNamingStrategy strategy) {
     this(appView, strategy, new ReservedFieldNamingState(appView));
   }
 
   public FieldNamingState(
-      AppView<? extends AppInfo> appView,
-      MemberNamingStrategy strategy,
-      ReservedFieldNamingState reservedNames) {
+      AppView<?> appView, MemberNamingStrategy strategy, ReservedFieldNamingState reservedNames) {
     this(appView, strategy, reservedNames, new IdentityHashMap<>());
   }
 
   private FieldNamingState(
-      AppView<? extends AppInfo> appView,
+      AppView<?> appView,
       MemberNamingStrategy strategy,
       ReservedFieldNamingState reservedNames,
       Map<DexType, InternalState> internalStates) {

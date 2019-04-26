@@ -11,7 +11,6 @@ import com.android.tools.r8.code.CmplDouble;
 import com.android.tools.r8.code.CmplFloat;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.analysis.constant.Bottom;
 import com.android.tools.r8.ir.analysis.constant.ConstLatticeElement;
@@ -231,7 +230,7 @@ public class Cmp extends Binop {
   }
 
   @Override
-  public TypeLatticeElement evaluate(AppView<? extends AppInfo> appView) {
+  public TypeLatticeElement evaluate(AppView<?> appView) {
     return TypeLatticeElement.INT;
   }
 

@@ -4,7 +4,6 @@
 package com.android.tools.r8.cf;
 
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -32,15 +31,14 @@ import java.util.Map;
 
 public class LoadStoreHelper {
 
-  private final AppView<? extends AppInfo> appView;
+  private final AppView<?> appView;
   private final IRCode code;
   private final TypeVerificationHelper typesHelper;
 
   private Map<Value, ConstInstruction> clonableConstants = null;
   private ListIterator<BasicBlock> blockIterator = null;
 
-  public LoadStoreHelper(
-      AppView<? extends AppInfo> appView, IRCode code, TypeVerificationHelper typesHelper) {
+  public LoadStoreHelper(AppView<?> appView, IRCode code, TypeVerificationHelper typesHelper) {
     this.appView = appView;
     this.code = code;
     this.typesHelper = typesHelper;

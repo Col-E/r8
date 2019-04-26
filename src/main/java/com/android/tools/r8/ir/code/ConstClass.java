@@ -8,7 +8,6 @@ import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfConstClass;
 import com.android.tools.r8.dex.Constants;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
@@ -88,8 +87,7 @@ public class ConstClass extends ConstInstruction {
   }
 
   @Override
-  public boolean instructionMayHaveSideEffects(
-      AppView<? extends AppInfo> appView, DexType context) {
+  public boolean instructionMayHaveSideEffects(AppView<?> appView, DexType context) {
     DexType baseType = getValue().toBaseType(appView.dexItemFactory());
     if (baseType.isPrimitiveType()) {
       return false;
@@ -110,7 +108,7 @@ public class ConstClass extends ConstInstruction {
   }
 
   @Override
-  public boolean canBeDeadCode(AppView<? extends AppInfo> appView, IRCode code) {
+  public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
     return !instructionMayHaveSideEffects(appView, code.method.method.holder);
   }
 
@@ -141,13 +139,12 @@ public class ConstClass extends ConstInstruction {
   }
 
   @Override
-  public TypeLatticeElement evaluate(AppView<? extends AppInfo> appView) {
+  public TypeLatticeElement evaluate(AppView<?> appView) {
     return TypeLatticeElement.classClassType(appView, Nullability.definitelyNotNull());
   }
 
   @Override
-  public DexType computeVerificationType(
-      AppView<? extends AppInfo> appView, TypeVerificationHelper helper) {
+  public DexType computeVerificationType(AppView<?> appView, TypeVerificationHelper helper) {
     return appView.dexItemFactory().classType;
   }
 

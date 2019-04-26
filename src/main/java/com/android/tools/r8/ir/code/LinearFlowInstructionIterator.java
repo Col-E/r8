@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.code;
 
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
@@ -65,7 +64,7 @@ public class LinearFlowInstructionIterator implements InstructionIterator, Instr
 
   @Override
   public BasicBlock inlineInvoke(
-      AppView<? extends AppInfo> appView,
+      AppView<?> appView,
       IRCode code,
       IRCode inlinee,
       ListIterator<BasicBlock> blockIterator,

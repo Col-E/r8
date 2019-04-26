@@ -7,7 +7,6 @@ import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isMemberVisi
 
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.InvokeStaticRange;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -133,7 +132,7 @@ public class InvokeStatic extends InvokeMethod {
   public boolean definitelyTriggersClassInitialization(
       DexType clazz,
       DexType context,
-      AppView<? extends AppInfo> appView,
+      AppView<?> appView,
       Query mode,
       AnalysisAssumption assumption) {
     return ClassInitializationAnalysis.InstructionUtils.forInvokeStatic(
@@ -141,8 +140,7 @@ public class InvokeStatic extends InvokeMethod {
   }
 
   @Override
-  public boolean instructionMayHaveSideEffects(
-      AppView<? extends AppInfo> appView, DexType context) {
+  public boolean instructionMayHaveSideEffects(AppView<?> appView, DexType context) {
     if (!appView.enableWholeProgramOptimizations()) {
       return true;
     }
@@ -184,7 +182,7 @@ public class InvokeStatic extends InvokeMethod {
   }
 
   @Override
-  public boolean canBeDeadCode(AppView<? extends AppInfo> appView, IRCode code) {
+  public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
     return !instructionMayHaveSideEffects(appView, code.method.method.holder);
   }
 }

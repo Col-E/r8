@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.naming;
 
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexString;
@@ -17,7 +16,7 @@ import java.util.Set;
 
 public class ReservedFieldNamingState extends FieldNamingStateBase<InternalState> {
 
-  public ReservedFieldNamingState(AppView<? extends AppInfo> appView) {
+  public ReservedFieldNamingState(AppView<?> appView) {
     super(appView, new IdentityHashMap<>());
   }
 

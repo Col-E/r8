@@ -27,13 +27,12 @@ public abstract class Code extends CachedHashValueDexItem {
     return owner;
   }
 
-  public abstract IRCode buildIR(
-      DexEncodedMethod encodedMethod, AppView<? extends AppInfo> appView, Origin origin);
+  public abstract IRCode buildIR(DexEncodedMethod encodedMethod, AppView<?> appView, Origin origin);
 
   public IRCode buildInliningIR(
       DexEncodedMethod context,
       DexEncodedMethod encodedMethod,
-      AppView<? extends AppInfo> appView,
+      AppView<?> appView,
       ValueNumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin) {

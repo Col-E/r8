@@ -30,7 +30,7 @@ import org.junit.Test;
 public class ConstantRemovalTest {
 
   private static class MockLinearScanRegisterAllocator extends LinearScanRegisterAllocator {
-    public MockLinearScanRegisterAllocator(AppView<? extends AppInfo> appView, IRCode code) {
+    public MockLinearScanRegisterAllocator(AppView<?> appView, IRCode code) {
       super(appView, code);
     }
 
@@ -131,7 +131,7 @@ public class ConstantRemovalTest {
     InternalOptions options = new InternalOptions();
     options.debug = true;
     AppInfo appInfo = new AppInfo(DexApplication.builder(options.itemFactory, null).build());
-    AppView<? extends AppInfo> appView = AppView.createForD8(appInfo, options);
+    AppView<?> appView = AppView.createForD8(appInfo, options);
     IRCode code =
         new IRCode(
             options,

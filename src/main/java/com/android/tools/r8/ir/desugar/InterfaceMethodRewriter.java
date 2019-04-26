@@ -78,7 +78,7 @@ public final class InterfaceMethodRewriter {
   public static final String DEFAULT_METHOD_PREFIX = "$default$";
   public static final String PRIVATE_METHOD_PREFIX = "$private$";
 
-  private final AppView<? extends AppInfo> appView;
+  private final AppView<?> appView;
   private final IRConverter converter;
   private final InternalOptions options;
   final DexItemFactory factory;
@@ -113,7 +113,7 @@ public final class InterfaceMethodRewriter {
     ExcludeDexResources
   }
 
-  public InterfaceMethodRewriter(AppView<? extends AppInfo> appView, IRConverter converter) {
+  public InterfaceMethodRewriter(AppView<?> appView, IRConverter converter) {
     assert converter != null;
     this.appView = appView;
     this.converter = converter;

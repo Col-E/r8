@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.optimize;
 
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -30,7 +29,7 @@ import java.util.List;
 // TODO(ager): Evaluate speed/size for computing active field sets in a fixed-point computation.
 public class RedundantFieldLoadElimination {
 
-  private final AppView<? extends AppInfo> appView;
+  private final AppView<?> appView;
   private final DexEncodedMethod method;
   private final IRCode code;
   private final DominatorTree dominatorTree;
@@ -46,7 +45,7 @@ public class RedundantFieldLoadElimination {
   private HashMap<FieldAndObject, Instruction> activeInstanceFields;
   private HashMap<DexField, Instruction> activeStaticFields;
 
-  public RedundantFieldLoadElimination(AppView<? extends AppInfo> appView, IRCode code) {
+  public RedundantFieldLoadElimination(AppView<?> appView, IRCode code) {
     this.appView = appView;
     this.method = code.method;
     this.code = code;

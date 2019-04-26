@@ -123,8 +123,7 @@ public class JarCode extends Code {
   }
 
   @Override
-  public IRCode buildIR(
-      DexEncodedMethod encodedMethod, AppView<? extends AppInfo> appView, Origin origin) {
+  public IRCode buildIR(DexEncodedMethod encodedMethod, AppView<?> appView, Origin origin) {
     return internalBuildPossiblyWithLocals(encodedMethod, encodedMethod, appView, null, null);
   }
 
@@ -132,7 +131,7 @@ public class JarCode extends Code {
   public IRCode buildInliningIR(
       DexEncodedMethod context,
       DexEncodedMethod encodedMethod,
-      AppView<? extends AppInfo> appView,
+      AppView<?> appView,
       ValueNumberGenerator generator,
       Position callerPosition,
       Origin origin) {
@@ -144,7 +143,7 @@ public class JarCode extends Code {
   private IRCode internalBuildPossiblyWithLocals(
       DexEncodedMethod context,
       DexEncodedMethod encodedMethod,
-      AppView<? extends AppInfo> appView,
+      AppView<?> appView,
       ValueNumberGenerator generator,
       Position callerPosition) {
     assert getOwner() == encodedMethod;
@@ -161,7 +160,7 @@ public class JarCode extends Code {
   private IRCode internalBuildWithLocals(
       DexEncodedMethod context,
       DexEncodedMethod encodedMethod,
-      AppView<? extends AppInfo> appView,
+      AppView<?> appView,
       ValueNumberGenerator generator,
       Position callerPosition) {
     try {
@@ -186,7 +185,7 @@ public class JarCode extends Code {
   private IRCode internalBuild(
       DexEncodedMethod context,
       DexEncodedMethod encodedMethod,
-      AppView<? extends AppInfo> appView,
+      AppView<?> appView,
       ValueNumberGenerator generator,
       Position callerPosition) {
     assert node.localVariables.isEmpty() || keepLocals(encodedMethod, appView.options());

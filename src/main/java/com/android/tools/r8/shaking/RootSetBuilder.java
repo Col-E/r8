@@ -60,7 +60,7 @@ import java.util.stream.Collectors;
 
 public class RootSetBuilder {
 
-  private final AppView<? extends AppInfo> appView;
+  private final AppView<?> appView;
   private final DirectMappedDexApplication application;
   private final Iterable<? extends ProguardConfigurationRule> rules;
   private final Map<DexReference, Set<ProguardKeepRule>> noShrinking = new IdentityHashMap<>();
@@ -90,7 +90,7 @@ public class RootSetBuilder {
   private final Set<ProguardIfRule> ifRules = Sets.newIdentityHashSet();
 
   public RootSetBuilder(
-      AppView<? extends AppInfo> appView,
+      AppView<?> appView,
       DexApplication application,
       Iterable<? extends ProguardConfigurationRule> rules) {
     this.appView = appView;
@@ -99,7 +99,7 @@ public class RootSetBuilder {
     this.options = appView.options();
   }
 
-  RootSetBuilder(AppView<? extends AppInfo> appView, Collection<ProguardIfRule> ifRules) {
+  RootSetBuilder(AppView<?> appView, Collection<ProguardIfRule> ifRules) {
     this(appView, appView.appInfo().app(), ifRules);
   }
 

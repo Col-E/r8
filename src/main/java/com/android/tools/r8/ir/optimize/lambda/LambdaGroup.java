@@ -5,7 +5,6 @@
 package com.android.tools.r8.ir.optimize.lambda;
 
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
@@ -90,7 +89,7 @@ public abstract class LambdaGroup {
     return false;
   }
 
-  final boolean shouldAddToMainDex(AppView<? extends AppInfo> appView) {
+  final boolean shouldAddToMainDex(AppView<?> appView) {
     // We add the group class to main index if any of the
     // lambda classes it replaces is added to main index.
     for (DexType type : lambdas.keySet()) {

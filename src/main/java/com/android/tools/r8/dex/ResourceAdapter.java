@@ -8,7 +8,6 @@ import com.android.tools.r8.DataDirectoryResource;
 import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -31,14 +30,14 @@ import java.nio.charset.Charset;
 
 public class ResourceAdapter {
 
-  private final AppView<? extends AppInfo> appView;
+  private final AppView<?> appView;
   private final DexItemFactory dexItemFactory;
   private final GraphLense graphLense;
   private final NamingLens namingLense;
   private final InternalOptions options;
 
   public ResourceAdapter(
-      AppView<? extends AppInfo> appView,
+      AppView<?> appView,
       DexItemFactory dexItemFactory,
       GraphLense graphLense,
       NamingLens namingLense,

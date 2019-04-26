@@ -8,7 +8,6 @@ import com.android.tools.r8.code.FillArrayData;
 import com.android.tools.r8.code.FillArrayDataPayload;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
@@ -80,7 +79,7 @@ public class NewArrayFilledData extends Instruction {
   }
 
   @Override
-  public boolean canBeDeadCode(AppView<? extends AppInfo> appView, IRCode code) {
+  public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
     if (!src().getTypeLattice().isNullable() && src().numberOfAllUsers() == 1) {
       // The NewArrayFilledData instruction is only inserted by an R8 optimization following
       // a NewArrayEmpty when there are more than one entry.

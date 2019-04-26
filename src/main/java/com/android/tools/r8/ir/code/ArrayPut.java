@@ -14,7 +14,6 @@ import com.android.tools.r8.code.AputShort;
 import com.android.tools.r8.code.AputWide;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
@@ -134,7 +133,7 @@ public class ArrayPut extends Instruction implements ImpreciseMemberTypeInstruct
   }
 
   @Override
-  public boolean canBeDeadCode(AppView<? extends AppInfo> appView, IRCode code) {
+  public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
     // ArrayPut has side-effects on input values.
     return false;
   }

@@ -8,7 +8,6 @@ import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isMemberVisi
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.InvokeDirectRange;
 import com.android.tools.r8.dex.Constants;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
@@ -140,7 +139,7 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
   public boolean definitelyTriggersClassInitialization(
       DexType clazz,
       DexType context,
-      AppView<? extends AppInfo> appView,
+      AppView<?> appView,
       Query mode,
       AnalysisAssumption assumption) {
     return ClassInitializationAnalysis.InstructionUtils.forInvokeDirect(
@@ -148,8 +147,7 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
   }
 
   @Override
-  public boolean instructionMayHaveSideEffects(
-      AppView<? extends AppInfo> appView, DexType context) {
+  public boolean instructionMayHaveSideEffects(AppView<?> appView, DexType context) {
     if (!appView.enableWholeProgramOptimizations()) {
       return true;
     }
@@ -208,7 +206,7 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
   }
 
   @Override
-  public boolean canBeDeadCode(AppView<? extends AppInfo> appView, IRCode code) {
+  public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
     DexEncodedMethod method = code.method;
     if (instructionMayHaveSideEffects(appView, method.method.holder)) {
       return false;

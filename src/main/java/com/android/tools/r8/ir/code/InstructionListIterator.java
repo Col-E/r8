@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.code;
 
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
@@ -156,7 +155,7 @@ public interface InstructionListIterator
   // TODO(sgjesse): Maybe find a better place for this method.
   // TODO(sgjesse): Support inlinee with throwing instructions for invokes with existing handlers.
   BasicBlock inlineInvoke(
-      AppView<? extends AppInfo> appView,
+      AppView<?> appView,
       IRCode code,
       IRCode inlinee,
       ListIterator<BasicBlock> blockIterator,
@@ -164,7 +163,7 @@ public interface InstructionListIterator
       DexType downcast);
 
   /** See {@link #inlineInvoke(AppView, IRCode, IRCode, ListIterator, List, DexType)}. */
-  default BasicBlock inlineInvoke(AppView<? extends AppInfo> appView, IRCode code, IRCode inlinee) {
+  default BasicBlock inlineInvoke(AppView<?> appView, IRCode code, IRCode inlinee) {
     List<BasicBlock> blocksToRemove = new ArrayList<>();
     BasicBlock result = inlineInvoke(appView, code, inlinee, null, blocksToRemove, null);
     code.removeBlocks(blocksToRemove);

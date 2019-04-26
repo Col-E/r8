@@ -5,7 +5,6 @@
 package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -29,7 +28,7 @@ import java.util.Set;
 // Adds default interface methods into the class when needed.
 final class ClassProcessor {
 
-  private final AppView<? extends AppInfo> appView;
+  private final AppView<?> appView;
   private final DexItemFactory dexItemFactory;
   private final InterfaceMethodRewriter rewriter;
   // Set of already processed classes.
@@ -37,7 +36,7 @@ final class ClassProcessor {
   // Maps already created methods into default methods they were generated based on.
   private final Map<DexEncodedMethod, DexEncodedMethod> createdMethods = new IdentityHashMap<>();
 
-  ClassProcessor(AppView<? extends AppInfo> appView, InterfaceMethodRewriter rewriter) {
+  ClassProcessor(AppView<?> appView, InterfaceMethodRewriter rewriter) {
     this.appView = appView;
     this.dexItemFactory = appView.dexItemFactory();
     this.rewriter = rewriter;

@@ -11,7 +11,6 @@ import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotation;
@@ -69,7 +68,7 @@ public class CfApplicationWriter {
   public static final int MARKER_STRING_CONSTANT_POOL_INDEX = 2;
 
   private final DexApplication application;
-  private final AppView<? extends AppInfo> appView;
+  private final AppView<?> appView;
   private final GraphLense graphLense;
   private final NamingLens namingLens;
   private final InternalOptions options;
@@ -81,7 +80,7 @@ public class CfApplicationWriter {
 
   public CfApplicationWriter(
       DexApplication application,
-      AppView<? extends AppInfo> appView,
+      AppView<?> appView,
       InternalOptions options,
       Marker marker,
       String deadCode,

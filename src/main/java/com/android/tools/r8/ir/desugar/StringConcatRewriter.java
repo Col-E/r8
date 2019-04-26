@@ -8,7 +8,6 @@ import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNul
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -48,7 +47,7 @@ public class StringConcatRewriter {
   private static final String TO_STRING = "toString";
   private static final String APPEND = "append";
 
-  private final AppView<? extends AppInfo> appView;
+  private final AppView<?> appView;
   private final DexItemFactory factory;
 
   private final DexMethod makeConcat;
@@ -60,7 +59,7 @@ public class StringConcatRewriter {
   private final Map<DexType, DexMethod> paramTypeToAppendMethod = new IdentityHashMap<>();
   private final DexMethod defaultAppendMethod;
 
-  public StringConcatRewriter(AppView<? extends AppInfo> appView) {
+  public StringConcatRewriter(AppView<?> appView) {
     this.appView = appView;
     this.factory = appView.dexItemFactory();
 
@@ -282,7 +281,7 @@ public class StringConcatRewriter {
   }
 
   private final class ConcatBuilder {
-    private final AppView<? extends AppInfo> appView;
+    private final AppView<?> appView;
     private final IRCode code;
     private final ListIterator<BasicBlock> blocks;
     private final InstructionListIterator instructions;
@@ -291,7 +290,7 @@ public class StringConcatRewriter {
     private final List<Chunk> chunks = new ArrayList<>();
 
     private ConcatBuilder(
-        AppView<? extends AppInfo> appView,
+        AppView<?> appView,
         IRCode code,
         ListIterator<BasicBlock> blocks,
         InstructionListIterator instructions) {

@@ -5,7 +5,6 @@ package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.utils.DescriptorUtils.javaTypeToDescriptor;
 
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
@@ -38,7 +37,7 @@ public abstract class ProguardTypeMatcher {
 
   // Evaluates this matcher on the given type, and on all types that have been merged into the given
   // type, if any.
-  public final boolean matches(DexType type, AppView<? extends AppInfo> appView) {
+  public final boolean matches(DexType type, AppView<?> appView) {
     if (matches(type)) {
       return true;
     }

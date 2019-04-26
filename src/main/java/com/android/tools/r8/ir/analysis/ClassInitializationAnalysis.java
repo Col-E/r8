@@ -5,7 +5,6 @@
 package com.android.tools.r8.ir.analysis;
 
 import com.android.tools.r8.OptionalBool;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfo.ResolutionResult;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
@@ -256,7 +255,7 @@ public class ClassInitializationAnalysis {
     public static boolean forInstanceGet(
         InstanceGet instruction,
         DexType type,
-        AppView<? extends AppInfo> appView,
+        AppView<?> appView,
         Query mode,
         AnalysisAssumption assumption) {
       return forInstanceGetOrPut(instruction, type, appView, mode, assumption);
@@ -265,7 +264,7 @@ public class ClassInitializationAnalysis {
     public static boolean forInstancePut(
         InstancePut instruction,
         DexType type,
-        AppView<? extends AppInfo> appView,
+        AppView<?> appView,
         Query mode,
         AnalysisAssumption assumption) {
       return forInstanceGetOrPut(instruction, type, appView, mode, assumption);
@@ -274,7 +273,7 @@ public class ClassInitializationAnalysis {
     private static boolean forInstanceGetOrPut(
         FieldInstruction instruction,
         DexType type,
-        AppView<? extends AppInfo> appView,
+        AppView<?> appView,
         Query mode,
         AnalysisAssumption assumption) {
       assert instruction.isInstanceGet() || instruction.isInstancePut();
@@ -295,7 +294,7 @@ public class ClassInitializationAnalysis {
     public static boolean forInvokeDirect(
         InvokeDirect instruction,
         DexType type,
-        AppView<? extends AppInfo> appView,
+        AppView<?> appView,
         Query mode,
         AnalysisAssumption assumption) {
       if (assumption == AnalysisAssumption.NONE) {
@@ -312,7 +311,7 @@ public class ClassInitializationAnalysis {
         InvokeInterface instruction,
         DexType type,
         DexType context,
-        AppView<? extends AppInfo> appView,
+        AppView<?> appView,
         Query mode,
         AnalysisAssumption assumption) {
       if (assumption == AnalysisAssumption.NONE) {
@@ -347,7 +346,7 @@ public class ClassInitializationAnalysis {
     public static boolean forInvokeStatic(
         InvokeStatic instruction,
         DexType type,
-        AppView<? extends AppInfo> appView,
+        AppView<?> appView,
         Query mode,
         AnalysisAssumption assumption) {
       if (assumption == AnalysisAssumption.NONE) {
@@ -362,7 +361,7 @@ public class ClassInitializationAnalysis {
         InvokeSuper instruction,
         DexType type,
         DexType context,
-        AppView<? extends AppInfo> appView,
+        AppView<?> appView,
         Query mode,
         AnalysisAssumption assumption) {
       if (assumption == AnalysisAssumption.NONE) {
@@ -406,7 +405,7 @@ public class ClassInitializationAnalysis {
         InvokeVirtual instruction,
         DexType type,
         DexType context,
-        AppView<? extends AppInfo> appView,
+        AppView<?> appView,
         Query mode,
         AnalysisAssumption assumption) {
       if (assumption == AnalysisAssumption.NONE) {
@@ -441,7 +440,7 @@ public class ClassInitializationAnalysis {
     public static boolean forNewInstance(
         NewInstance instruction,
         DexType type,
-        AppView<? extends AppInfo> appView,
+        AppView<?> appView,
         Query mode,
         AnalysisAssumption assumption) {
       if (assumption == AnalysisAssumption.NONE) {
@@ -455,7 +454,7 @@ public class ClassInitializationAnalysis {
     public static boolean forStaticGet(
         StaticGet instruction,
         DexType type,
-        AppView<? extends AppInfo> appView,
+        AppView<?> appView,
         Query mode,
         AnalysisAssumption assumption) {
       return forStaticGetOrPut(instruction, type, appView, mode, assumption);
@@ -464,7 +463,7 @@ public class ClassInitializationAnalysis {
     public static boolean forStaticPut(
         StaticPut instruction,
         DexType type,
-        AppView<? extends AppInfo> appView,
+        AppView<?> appView,
         Query mode,
         AnalysisAssumption assumption) {
       return forStaticGetOrPut(instruction, type, appView, mode, assumption);
@@ -473,7 +472,7 @@ public class ClassInitializationAnalysis {
     private static boolean forStaticGetOrPut(
         FieldInstruction instruction,
         DexType type,
-        AppView<? extends AppInfo> appView,
+        AppView<?> appView,
         Query mode,
         AnalysisAssumption assumption) {
       assert instruction.isStaticGet() || instruction.isStaticPut();
@@ -486,10 +485,7 @@ public class ClassInitializationAnalysis {
     }
 
     private static boolean isTypeInitializedBy(
-        DexType typeToBeInitialized,
-        DexDefinition definition,
-        AppView<? extends AppInfo> appView,
-        Query mode) {
+        DexType typeToBeInitialized, DexDefinition definition, AppView<?> appView, Query mode) {
       if (mode == Query.DIRECTLY) {
         if (definition.isDexClass()) {
           return definition.asDexClass().type == typeToBeInitialized;

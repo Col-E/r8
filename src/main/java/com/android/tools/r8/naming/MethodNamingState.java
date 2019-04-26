@@ -5,7 +5,6 @@ package com.android.tools.r8.naming;
 
 import static com.android.tools.r8.naming.Minifier.MinifierMemberNamingStrategy.EMPTY_CHAR_ARRAY;
 
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -26,22 +25,20 @@ import java.util.function.Function;
 
 class MethodNamingState<KeyType> {
 
-  private final AppView<? extends AppInfo> appView;
+  private final AppView<?> appView;
   private final MethodNamingState<KeyType> parent;
   private final Map<KeyType, InternalState> usedNames = new HashMap<>();
   private final Function<DexProto, KeyType> keyTransform;
   private final MemberNamingStrategy strategy;
 
   static <S> MethodNamingState<S> createRoot(
-      AppView<? extends AppInfo> appView,
-      Function<DexProto, S> keyTransform,
-      MemberNamingStrategy strategy) {
+      AppView<?> appView, Function<DexProto, S> keyTransform, MemberNamingStrategy strategy) {
     return new MethodNamingState<>(null, appView, keyTransform, strategy);
   }
 
   private MethodNamingState(
       MethodNamingState<KeyType> parent,
-      AppView<? extends AppInfo> appView,
+      AppView<?> appView,
       Function<DexProto, KeyType> keyTransform,
       MemberNamingStrategy strategy) {
     this.appView = appView;
@@ -166,7 +163,7 @@ class MethodNamingState<KeyType> {
       this.dictionaryIterator = dictionaryIterator;
     }
 
-    private InternalState(AppView<? extends AppInfo> appView, InternalState parentInternalState) {
+    private InternalState(AppView<?> appView, InternalState parentInternalState) {
       this(
           appView.dexItemFactory(),
           parentInternalState,

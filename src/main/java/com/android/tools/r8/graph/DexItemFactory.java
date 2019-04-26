@@ -1202,7 +1202,7 @@ public class DexItemFactory {
   }
 
   public ReferenceTypeLatticeElement createReferenceTypeLatticeElement(
-      DexType type, Nullability nullability, AppView<? extends AppInfo> appView) {
+      DexType type, Nullability nullability, AppView<?> appView) {
     // Class case:
     // If two concurrent threads will try to create the same class-type the concurrent hash map will
     // synchronize on the type in .computeIfAbsent and only a single class type is created.

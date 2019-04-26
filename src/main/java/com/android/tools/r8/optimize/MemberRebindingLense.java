@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.optimize;
 
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
@@ -18,9 +17,9 @@ public class MemberRebindingLense extends NestedGraphLense {
 
   public static class Builder extends NestedGraphLense.Builder {
 
-    private final AppView<? extends AppInfo> appView;
+    private final AppView<?> appView;
 
-    protected Builder(AppView<? extends AppInfo> appView) {
+    protected Builder(AppView<?> appView) {
       this.appView = appView;
     }
 
@@ -33,10 +32,10 @@ public class MemberRebindingLense extends NestedGraphLense {
     }
   }
 
-  private final AppView<? extends AppInfo> appView;
+  private final AppView<?> appView;
 
   public MemberRebindingLense(
-      AppView<? extends AppInfo> appView,
+      AppView<?> appView,
       Map<DexMethod, DexMethod> methodMap,
       Map<DexField, DexField> fieldMap,
       GraphLense previousLense) {
@@ -51,7 +50,7 @@ public class MemberRebindingLense extends NestedGraphLense {
     this.appView = appView;
   }
 
-  public static Builder builder(AppView<? extends AppInfo> appView) {
+  public static Builder builder(AppView<?> appView) {
     return new Builder(appView);
   }
 

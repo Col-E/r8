@@ -40,11 +40,11 @@ import java.util.function.Function;
 
 public class StringOptimizer {
 
-  private final AppView<? extends AppInfo> appView;
+  private final AppView<?> appView;
   private final DexItemFactory factory;
   private final ThrowingInfo throwingInfo;
 
-  public StringOptimizer(AppView<? extends AppInfo> appView) {
+  public StringOptimizer(AppView<?> appView) {
     this.appView = appView;
     this.factory = appView.dexItemFactory();
     this.throwingInfo = ThrowingInfo.defaultForConstString(appView.options());
@@ -205,7 +205,7 @@ public class StringOptimizer {
   }
 
   // Find Class#get*Name() with a constant-class and replace it with a const-string if possible.
-  public void rewriteClassGetName(AppView<? extends AppInfo> appView, IRCode code) {
+  public void rewriteClassGetName(AppView<?> appView, IRCode code) {
     // Conflict with {@link CodeRewriter#collectClassInitializerDefaults}.
     if (code.method.isClassInitializer()) {
       return;

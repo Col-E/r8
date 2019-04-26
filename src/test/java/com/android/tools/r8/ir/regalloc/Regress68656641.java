@@ -22,7 +22,7 @@ import org.junit.Test;
 public class Regress68656641 extends SmaliTestBase {
 
   private static class MyRegisterAllocator extends LinearScanRegisterAllocator {
-    public MyRegisterAllocator(AppView<? extends AppInfo> appView, IRCode code) {
+    public MyRegisterAllocator(AppView<?> appView, IRCode code) {
       super(appView, code);
     }
 
@@ -57,7 +57,7 @@ public class Regress68656641 extends SmaliTestBase {
   public void splitOverlappingInactiveIntervalWithNoNextUse() {
     InternalOptions options = new InternalOptions();
     AppInfo appInfo = new AppInfo(DexApplication.builder(options.itemFactory, null).build());
-    AppView<? extends AppInfo> appView = AppView.createForD8(appInfo, options);
+    AppView<?> appView = AppView.createForD8(appInfo, options);
     IRCode code = simpleCode();
     MyRegisterAllocator allocator = new MyRegisterAllocator(appView, code);
     // Setup live an inactive live interval with ranges [0, 10[ and [20, 30[ with only

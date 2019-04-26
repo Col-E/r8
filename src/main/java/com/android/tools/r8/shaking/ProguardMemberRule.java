@@ -4,7 +4,6 @@
 package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -169,8 +168,7 @@ public class ProguardMemberRule {
     return type;
   }
 
-  public boolean matches(
-      DexEncodedField field, AppView<? extends AppInfo> appView, DexStringCache stringCache) {
+  public boolean matches(DexEncodedField field, AppView<?> appView, DexStringCache stringCache) {
     DexField originalSignature = appView.graphLense().getOriginalFieldSignature(field.field);
     switch (getRuleType()) {
       case ALL:
@@ -211,8 +209,7 @@ public class ProguardMemberRule {
     return false;
   }
 
-  public boolean matches(
-      DexEncodedMethod method, AppView<? extends AppInfo> appView, DexStringCache stringCache) {
+  public boolean matches(DexEncodedMethod method, AppView<?> appView, DexStringCache stringCache) {
     DexMethod originalSignature = appView.graphLense().getOriginalMethodSignature(method.method);
     switch (getRuleType()) {
       case ALL_METHODS:

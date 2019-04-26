@@ -7,7 +7,6 @@ import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
@@ -32,7 +31,7 @@ public class Argument extends Instruction {
   }
 
   @Override
-  public boolean canBeDeadCode(AppView<? extends AppInfo> appview, IRCode code) {
+  public boolean canBeDeadCode(AppView<?> appview, IRCode code) {
     // Never remove argument instructions. That would change the signature of the method.
     // TODO(b/65810338): If we can tell that a method never uses an argument we might be able to
     // rewrite the signature and call-sites.
@@ -82,8 +81,7 @@ public class Argument extends Instruction {
   }
 
   @Override
-  public DexType computeVerificationType(
-      AppView<? extends AppInfo> appView, TypeVerificationHelper helper) {
+  public DexType computeVerificationType(AppView<?> appView, TypeVerificationHelper helper) {
     throw new Unreachable();
   }
 
@@ -93,7 +91,7 @@ public class Argument extends Instruction {
   }
 
   @Override
-  public TypeLatticeElement evaluate(AppView<? extends AppInfo> appView) {
+  public TypeLatticeElement evaluate(AppView<?> appView) {
     return outValue.getTypeLattice();
   }
 

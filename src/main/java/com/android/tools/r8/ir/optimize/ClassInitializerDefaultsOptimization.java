@@ -10,7 +10,6 @@ import static com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComp
 import static com.android.tools.r8.ir.optimize.ReflectionOptimizer.computeClassName;
 
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -91,14 +90,13 @@ public class ClassInitializerDefaultsOptimization {
     }
   }
 
-  private final AppView<? extends AppInfo> appView;
+  private final AppView<?> appView;
   private final IRConverter converter;
   private final DexItemFactory dexItemFactory;
 
   private WaveDoneAction waveDoneAction = null;
 
-  public ClassInitializerDefaultsOptimization(
-      AppView<? extends AppInfo> appView, IRConverter converter) {
+  public ClassInitializerDefaultsOptimization(AppView<?> appView, IRConverter converter) {
     this.appView = appView;
     this.converter = converter;
     this.dexItemFactory = appView.dexItemFactory();

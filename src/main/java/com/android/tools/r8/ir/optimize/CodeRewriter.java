@@ -153,11 +153,11 @@ public class CodeRewriter {
 
   public final IRConverter converter;
 
-  private final AppView<? extends AppInfo> appView;
+  private final AppView<?> appView;
   private final DexItemFactory dexItemFactory;
   private final InternalOptions options;
 
-  public CodeRewriter(AppView<? extends AppInfo> appView, IRConverter converter) {
+  public CodeRewriter(AppView<?> appView, IRConverter converter) {
     this.appView = appView;
     this.converter = converter;
     this.options = appView.options();
@@ -288,7 +288,7 @@ public class CodeRewriter {
   // For method with many self-recursive calls, insert a try-catch to disable inlining.
   // Marshmallow dex2oat aggressively inlines and eats up all the memory on devices.
   public static void disableDex2OatInliningForSelfRecursiveMethods(
-      AppView<? extends AppInfo> appView, IRCode code) {
+      AppView<?> appView, IRCode code) {
     if (!appView.options().canHaveDex2OatInliningIssue() || code.hasCatchHandlers()) {
       // Catch handlers disables inlining, so if the method already has catch handlers
       // there is nothing to do.
@@ -1005,10 +1005,7 @@ public class CodeRewriter {
   }
 
   public void identifyInvokeSemanticsForInlining(
-      DexEncodedMethod method,
-      IRCode code,
-      AppView<? extends AppInfo> appView,
-      OptimizationFeedback feedback) {
+      DexEncodedMethod method, IRCode code, AppView<?> appView, OptimizationFeedback feedback) {
     if (method.isStatic()) {
       // Identifies if the method preserves class initialization after inlining.
       feedback.markTriggerClassInitBeforeAnySideEffect(
@@ -1364,8 +1361,7 @@ public class CodeRewriter {
    *
    * <p>Note: we do not track phis so we may return false negative. This is a conservative approach.
    */
-  public static boolean checksNullBeforeSideEffect(
-      IRCode code, Value value, AppView<? extends AppInfo> appView) {
+  public static boolean checksNullBeforeSideEffect(IRCode code, Value value, AppView<?> appView) {
     return alwaysTriggerExpectedEffectBeforeAnythingElse(
         code,
         (instr, it) -> {
@@ -1429,8 +1425,7 @@ public class CodeRewriter {
   // Note that this method may have false positives, since the application could in principle
   // declare a method called checkParameterIsNotNull(parameter, message) or
   // throwParameterIsNullException(parameterName) in a package that starts with "kotlin".
-  private static boolean isKotlinNullCheck(
-      Instruction instr, Value value, AppView<? extends AppInfo> appView) {
+  private static boolean isKotlinNullCheck(Instruction instr, Value value, AppView<?> appView) {
     if (!instr.isInvokeStatic()) {
       return false;
     }
@@ -1485,7 +1480,7 @@ public class CodeRewriter {
    * <p>Note: we do not track phis so we may return false negative. This is a conservative approach.
    */
   private static boolean triggersClassInitializationBeforeSideEffect(
-      DexType clazz, IRCode code, AppView<? extends AppInfo> appView) {
+      DexType clazz, IRCode code, AppView<?> appView) {
     return alwaysTriggerExpectedEffectBeforeAnythingElse(
         code,
         (instruction, it) -> {
@@ -1744,10 +1739,7 @@ public class CodeRewriter {
    * </pre>
    */
   public void disableAssertions(
-      AppView<? extends AppInfo> appView,
-      DexEncodedMethod method,
-      IRCode code,
-      OptimizationFeedback feedback) {
+      AppView<?> appView, DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
     if (method.isClassInitializer()) {
       if (!hasJavacClinitAssertionCode(code)) {
         return;

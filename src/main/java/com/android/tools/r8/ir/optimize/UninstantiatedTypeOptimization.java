@@ -7,7 +7,6 @@ package com.android.tools.r8.ir.optimize;
 import static com.android.tools.r8.ir.optimize.UninstantiatedTypeOptimization.Strategy.ALLOW_ARGUMENT_REMOVAL;
 import static com.android.tools.r8.ir.optimize.UninstantiatedTypeOptimization.Strategy.DISALLOW_ARGUMENT_REMOVAL;
 
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
@@ -69,7 +68,7 @@ public class UninstantiatedTypeOptimization {
     UninstantiatedTypeOptimizationGraphLense(
         BiMap<DexMethod, DexMethod> methodMap,
         Map<DexMethod, RemovedArgumentsInfo> removedArgumentsInfoPerMethod,
-        AppView<? extends AppInfo> appView) {
+        AppView<?> appView) {
       super(
           ImmutableMap.of(),
           methodMap,

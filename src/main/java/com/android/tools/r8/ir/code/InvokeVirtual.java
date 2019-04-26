@@ -5,7 +5,6 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.InvokeVirtualRange;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -113,7 +112,7 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
   public boolean definitelyTriggersClassInitialization(
       DexType clazz,
       DexType context,
-      AppView<? extends AppInfo> appView,
+      AppView<?> appView,
       Query mode,
       AnalysisAssumption assumption) {
     return ClassInitializationAnalysis.InstructionUtils.forInvokeVirtual(
@@ -121,8 +120,7 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
   }
 
   @Override
-  public boolean instructionMayHaveSideEffects(
-      AppView<? extends AppInfo> appView, DexType context) {
+  public boolean instructionMayHaveSideEffects(AppView<?> appView, DexType context) {
     if (appView.options().debug) {
       return true;
     }
@@ -142,7 +140,7 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
   }
 
   @Override
-  public boolean canBeDeadCode(AppView<? extends AppInfo> appView, IRCode code) {
+  public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
     return !instructionMayHaveSideEffects(appView, code.method.method.holder);
   }
 }

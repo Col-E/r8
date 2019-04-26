@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.regalloc;
 
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
@@ -43,8 +42,7 @@ class SpillMoveSet {
   // The number of temporary registers used for parallel moves when scheduling the moves.
   private int usedTempRegisters = 0;
 
-  public SpillMoveSet(
-      LinearScanRegisterAllocator allocator, IRCode code, AppView<? extends AppInfo> appView) {
+  public SpillMoveSet(LinearScanRegisterAllocator allocator, IRCode code, AppView<?> appView) {
     this.allocator = allocator;
     this.code = code;
     this.objectType = TypeLatticeElement.objectClassType(appView, Nullability.maybeNull());

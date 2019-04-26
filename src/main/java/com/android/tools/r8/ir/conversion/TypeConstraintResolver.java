@@ -5,7 +5,6 @@ package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.analysis.type.ArrayTypeLatticeElement;
@@ -52,11 +51,11 @@ import java.util.function.Consumer;
  */
 public class TypeConstraintResolver {
 
-  private final AppView<? extends AppInfo> appView;
+  private final AppView<?> appView;
   private final IRBuilder builder;
   private final Map<Value, Value> unificationParents = new HashMap<>();
 
-  public TypeConstraintResolver(AppView<? extends AppInfo> appView, IRBuilder builder) {
+  public TypeConstraintResolver(AppView<?> appView, IRBuilder builder) {
     this.appView = appView;
     this.builder = builder;
   }

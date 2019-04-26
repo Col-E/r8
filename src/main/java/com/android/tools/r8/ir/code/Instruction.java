@@ -7,7 +7,6 @@ import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -510,18 +509,16 @@ public abstract class Instruction implements InstructionOrPhi {
     return instructionTypeCanThrow();
   }
 
-  public boolean instructionMayHaveSideEffects(
-      AppView<? extends AppInfo> appView, DexType context) {
+  public boolean instructionMayHaveSideEffects(AppView<?> appView, DexType context) {
     return instructionInstanceCanThrow();
   }
 
-  public AbstractError instructionInstanceCanThrow(
-      AppView<? extends AppInfo> appView, DexType context) {
+  public AbstractError instructionInstanceCanThrow(AppView<?> appView, DexType context) {
     return instructionInstanceCanThrow() ? AbstractError.top() : AbstractError.bottom();
   }
 
   /** Returns true is this instruction can be treated as dead code if its outputs are not used. */
-  public boolean canBeDeadCode(AppView<? extends AppInfo> appView, IRCode code) {
+  public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
     // TODO(b/129530569): instructions with fine-grained side effect analysis may use:
     // return !instructionMayHaveSideEffects(appView, code.method.method.holder);
     return !instructionInstanceCanThrow();
@@ -1218,8 +1215,7 @@ public abstract class Instruction implements InstructionOrPhi {
 
   public abstract void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper);
 
-  public DexType computeVerificationType(
-      AppView<? extends AppInfo> appView, TypeVerificationHelper helper) {
+  public DexType computeVerificationType(AppView<?> appView, TypeVerificationHelper helper) {
     assert outValue == null || !outValue.getTypeLattice().isReference();
     throw new Unreachable("Instruction without object outValue cannot compute verification type");
   }
@@ -1234,13 +1230,13 @@ public abstract class Instruction implements InstructionOrPhi {
   }
 
   // TODO(b/72693244): maybe rename to computeOutType once TypeVerificationHelper is gone?
-  public TypeLatticeElement evaluate(AppView<? extends AppInfo> appView) {
+  public TypeLatticeElement evaluate(AppView<?> appView) {
     assert outValue == null;
     throw new Unimplemented(
         "Implement type lattice evaluation for: " + getInstructionName());
   }
 
-  public boolean verifyTypes(AppView<? extends AppInfo> appView) {
+  public boolean verifyTypes(AppView<?> appView) {
     // TODO(b/72693244): for instructions with invariant out type, we can verify type directly here.
     if (outValue != null) {
       TypeLatticeElement outTypeLatticeElement = outValue.getTypeLattice();
@@ -1297,7 +1293,7 @@ public abstract class Instruction implements InstructionOrPhi {
   public boolean definitelyTriggersClassInitialization(
       DexType clazz,
       DexType context,
-      AppView<? extends AppInfo> appView,
+      AppView<?> appView,
       Query mode,
       AnalysisAssumption assumption) {
     return false;

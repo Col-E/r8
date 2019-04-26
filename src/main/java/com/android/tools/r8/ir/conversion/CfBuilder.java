@@ -18,7 +18,6 @@ import com.android.tools.r8.cf.code.CfLabel;
 import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.cf.code.CfTryCatch;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.CfCode.LocalVariableInfo;
@@ -74,7 +73,7 @@ public class CfBuilder {
   private static final int SUFFIX_SHARING_OVERHEAD = 30;
   private static final int IINC_PATTERN_SIZE = 4;
 
-  public final AppView<? extends AppInfo> appView;
+  public final AppView<?> appView;
   private final DexEncodedMethod method;
   private final IRCode code;
 
@@ -124,7 +123,7 @@ public class CfBuilder {
     }
   }
 
-  public CfBuilder(AppView<? extends AppInfo> appView, DexEncodedMethod method, IRCode code) {
+  public CfBuilder(AppView<?> appView, DexEncodedMethod method, IRCode code) {
     this.appView = appView;
     this.method = method;
     this.code = code;

@@ -20,7 +20,6 @@ import com.android.tools.r8.code.LongToDouble;
 import com.android.tools.r8.code.LongToFloat;
 import com.android.tools.r8.code.LongToInt;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.analysis.type.PrimitiveTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
@@ -148,7 +147,7 @@ public class NumberConversion extends Unop {
   }
 
   @Override
-  public TypeLatticeElement evaluate(AppView<? extends AppInfo> appView) {
+  public TypeLatticeElement evaluate(AppView<?> appView) {
     return PrimitiveTypeLatticeElement.fromNumericType(to);
   }
 

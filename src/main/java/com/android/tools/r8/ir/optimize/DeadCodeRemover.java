@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
@@ -24,10 +23,10 @@ import java.util.Queue;
 
 public class DeadCodeRemover {
 
-  private final AppView<? extends AppInfo> appView;
+  private final AppView<?> appView;
   private final CodeRewriter codeRewriter;
 
-  public DeadCodeRemover(AppView<? extends AppInfo> appView, CodeRewriter codeRewriter) {
+  public DeadCodeRemover(AppView<?> appView, CodeRewriter codeRewriter) {
     this.appView = appView;
     this.codeRewriter = codeRewriter;
   }

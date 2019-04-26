@@ -53,14 +53,14 @@ public final class TwrCloseResourceRewriter {
   public static final String UTILITY_CLASS_NAME = "$r8$twr$utility";
   public static final String UTILITY_CLASS_DESCRIPTOR = "L$r8$twr$utility;";
 
-  private final AppView<? extends AppInfo> appView;
+  private final AppView<?> appView;
   private final IRConverter converter;
 
   private final DexMethod twrCloseResourceMethod;
 
   private final Set<DexProgramClass> referencingClasses = Sets.newConcurrentHashSet();
 
-  public TwrCloseResourceRewriter(AppView<? extends AppInfo> appView, IRConverter converter) {
+  public TwrCloseResourceRewriter(AppView<?> appView, IRConverter converter) {
     this.appView = appView;
     this.converter = converter;
 
@@ -100,8 +100,7 @@ public final class TwrCloseResourceRewriter {
     }
   }
 
-  public static boolean isSynthesizedCloseResourceMethod(
-      DexMethod method, AppView<? extends AppInfo> appView) {
+  public static boolean isSynthesizedCloseResourceMethod(DexMethod method, AppView<?> appView) {
     DexMethod original = appView.graphLense().getOriginalMethodSignature(method);
     assert original != null;
     // We consider all methods of *any* class with expected name and signature

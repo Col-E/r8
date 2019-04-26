@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.naming;
 
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
@@ -13,10 +12,10 @@ import java.util.Map;
 
 abstract class FieldNamingStateBase<T> {
 
-  final AppView<? extends AppInfo> appView;
+  final AppView<?> appView;
   final Map<DexType, T> internalStates;
 
-  FieldNamingStateBase(AppView<? extends AppInfo> appView, Map<DexType, T> internalStates) {
+  FieldNamingStateBase(AppView<?> appView, Map<DexType, T> internalStates) {
     this.appView = appView;
     this.internalStates = internalStates;
   }

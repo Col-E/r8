@@ -347,14 +347,14 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     compilationState = CompilationState.NOT_PROCESSED;
   }
 
-  public IRCode buildIR(AppView<? extends AppInfo> appView, Origin origin) {
+  public IRCode buildIR(AppView<?> appView, Origin origin) {
     checkIfObsolete();
     return code == null ? null : code.buildIR(this, appView, origin);
   }
 
   public IRCode buildInliningIR(
       DexEncodedMethod context,
-      AppView<? extends AppInfo> appView,
+      AppView<?> appView,
       ValueNumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin) {
@@ -517,7 +517,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     return this;
   }
 
-  public IRCode buildEmptyThrowingIRCode(AppView<? extends AppInfo> appView, Origin origin) {
+  public IRCode buildEmptyThrowingIRCode(AppView<?> appView, Origin origin) {
     DexCode emptyThrowingDexCode = buildEmptyThrowingDexCode();
     emptyThrowingDexCode.setOwner(this);
     return emptyThrowingDexCode.buildIR(this, appView, origin);

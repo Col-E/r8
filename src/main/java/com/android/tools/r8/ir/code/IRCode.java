@@ -4,7 +4,6 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -485,7 +484,7 @@ public class IRCode {
     return true;
   }
 
-  public boolean verifyTypes(AppView<? extends AppInfo> appView) {
+  public boolean verifyTypes(AppView<?> appView) {
     // We can only type check the program if we have subtyping information. Therefore, we do not
     // require that the program type checks in D8.
     if (appView.enableWholeProgramOptimizations()) {

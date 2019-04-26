@@ -5,7 +5,6 @@ package com.android.tools.r8.cf;
 
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
@@ -104,7 +103,7 @@ public class TypeVerificationHelper {
   private final TypeInfo LONG;
   private final TypeInfo DOUBLE;
 
-  private final AppView<? extends AppInfo> appView;
+  private final AppView<?> appView;
   private final IRCode code;
 
   private Map<Value, TypeInfo> types;
@@ -113,7 +112,7 @@ public class TypeVerificationHelper {
   // Flag to indicate that we are computing types in the fixed point.
   private boolean computingVerificationTypes = false;
 
-  public TypeVerificationHelper(AppView<? extends AppInfo> appView, IRCode code) {
+  public TypeVerificationHelper(AppView<?> appView, IRCode code) {
     this.appView = appView;
     this.code = code;
 

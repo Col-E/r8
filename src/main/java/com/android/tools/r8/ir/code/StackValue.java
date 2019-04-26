@@ -4,7 +4,6 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.TypeVerificationHelper.TypeInfo;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
@@ -21,8 +20,7 @@ public class StackValue extends Value {
     assert height >= 0;
   }
 
-  public static StackValue create(
-      TypeInfo typeInfo, int height, AppView<? extends AppInfo> appView) {
+  public static StackValue create(TypeInfo typeInfo, int height, AppView<?> appView) {
     return new StackValue(
         typeInfo,
         TypeLatticeElement.fromDexType(typeInfo.getDexType(), Nullability.maybeNull(), appView),

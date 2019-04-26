@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -58,7 +57,7 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
   }
 
   @Override
-  public boolean verifyTypes(AppView<? extends AppInfo> appView) {
+  public boolean verifyTypes(AppView<?> appView) {
     assert super.verifyTypes(appView);
 
     TypeLatticeElement receiverType = getReceiver().getTypeLattice();

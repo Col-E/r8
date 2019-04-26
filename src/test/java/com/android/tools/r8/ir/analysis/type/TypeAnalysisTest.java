@@ -67,10 +67,9 @@ public class TypeAnalysisTest extends SmaliTestBase {
 
   private final String dirName;
   private final String smaliFileName;
-  private final BiConsumer<AppView<? extends AppInfo>, CodeInspector> inspection;
+  private final BiConsumer<AppView<?>, CodeInspector> inspection;
 
-  public TypeAnalysisTest(
-      String test, BiConsumer<AppView<? extends AppInfo>, CodeInspector> inspection) {
+  public TypeAnalysisTest(String test, BiConsumer<AppView<?>, CodeInspector> inspection) {
     dirName = test.substring(0, test.lastIndexOf('/'));
     smaliFileName = test.substring(test.lastIndexOf('/') + 1) + ".smali";
     this.inspection = inspection;
@@ -89,8 +88,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
         "type-confusion-regression5/TestObject"
     );
 
-    Map<String, BiConsumer<AppView<? extends AppInfo>, CodeInspector>> inspections =
-        new HashMap<>();
+    Map<String, BiConsumer<AppView<?>, CodeInspector>> inspections = new HashMap<>();
     inspections.put("arithmetic/Arithmetic", TypeAnalysisTest::arithmetic);
     inspections.put("fibonacci/Fibonacci", TypeAnalysisTest::fibonacci);
     inspections.put("fill-array-data/FillArrayData", TypeAnalysisTest::fillArrayData);
@@ -102,7 +100,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
 
     List<Object[]> testCases = new ArrayList<>();
     for (String test : tests) {
-      BiConsumer<AppView<? extends AppInfo>, CodeInspector> inspection = inspections.get(test);
+      BiConsumer<AppView<?>, CodeInspector> inspection = inspections.get(test);
       testCases.add(new Object[]{test, inspection});
     }
     return testCases;
@@ -136,7 +134,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
   }
 
   // Simple one path with a lot of arithmetic operations.
-  private static void arithmetic(AppView<? extends AppInfo> appView, CodeInspector inspector) {
+  private static void arithmetic(AppView<?> appView, CodeInspector inspector) {
     MethodSubject subtractSubject =
         inspector
             .clazz("Test")
@@ -153,7 +151,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
   }
 
   // A couple branches, along with some recursive calls.
-  private static void fibonacci(AppView<? extends AppInfo> appView, CodeInspector inspector) {
+  private static void fibonacci(AppView<?> appView, CodeInspector inspector) {
     MethodSubject fibSubject =
         inspector
             .clazz("Test")
@@ -166,7 +164,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
   }
 
   // fill-array-data
-  private static void fillArrayData(AppView<? extends AppInfo> appView, CodeInspector inspector) {
+  private static void fillArrayData(AppView<?> appView, CodeInspector inspector) {
     MethodSubject test1Subject =
         inspector.clazz("Test").method(new MethodSignature("test1", "int[]", ImmutableList.of()));
     DexEncodedMethod test1 = test1Subject.getMethod();
@@ -196,7 +194,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
   }
 
   // filled-new-array
-  private static void filledNewArray(AppView<? extends AppInfo> appView, CodeInspector inspector) {
+  private static void filledNewArray(AppView<?> appView, CodeInspector inspector) {
     MethodSubject test4Subject =
         inspector.clazz("Test").method(new MethodSignature("test4", "int[]", ImmutableList.of()));
     DexEncodedMethod test4 = test4Subject.getMethod();
@@ -226,7 +224,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
   }
 
   // Make sure the analysis does not hang.
-  private static void infiniteLoop(AppView<? extends AppInfo> appView, CodeInspector inspector) {
+  private static void infiniteLoop(AppView<?> appView, CodeInspector inspector) {
     MethodSubject loop2Subject =
         inspector.clazz("Test").method(new MethodSignature("loop2", "void", ImmutableList.of()));
     DexEncodedMethod loop2 = loop2Subject.getMethod();
@@ -244,7 +242,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
   }
 
   // move-exception
-  private static void tryCatch(AppView<? extends AppInfo> appView, CodeInspector inspector) {
+  private static void tryCatch(AppView<?> appView, CodeInspector inspector) {
     MethodSubject test2Subject =
         inspector
             .clazz("Test")
@@ -263,7 +261,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
   }
 
   // One very complicated example.
-  private static void typeConfusion(AppView<? extends AppInfo> appView, CodeInspector inspector) {
+  private static void typeConfusion(AppView<?> appView, CodeInspector inspector) {
     MethodSubject methodSubject =
         inspector
             .clazz("TestObject")
@@ -295,7 +293,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
   }
 
   // One more complicated example.
-  private static void typeConfusion5(AppView<? extends AppInfo> appView, CodeInspector inspector) {
+  private static void typeConfusion5(AppView<?> appView, CodeInspector inspector) {
     MethodSubject methodSubject =
         inspector
             .clazz("TestObject")

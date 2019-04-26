@@ -48,14 +48,14 @@ public final class Java8MethodRewriter {
   private static final String UTILITY_CLASS_DESCRIPTOR_PREFIX = "L$r8$java8methods$utility";
   private final Set<DexType> holders = Sets.newConcurrentHashSet();
 
-  private final AppView<? extends AppInfo> appView;
+  private final AppView<?> appView;
   private final IRConverter converter;
   private final DexItemFactory factory;
   private final RewritableMethods rewritableMethods;
 
   private Map<DexMethod, MethodGenerator> methodGenerators = new ConcurrentHashMap<>();
 
-  public Java8MethodRewriter(AppView<? extends AppInfo> appView, IRConverter converter) {
+  public Java8MethodRewriter(AppView<?> appView, IRConverter converter) {
     this.appView = appView;
     this.converter = converter;
     this.factory = appView.dexItemFactory();

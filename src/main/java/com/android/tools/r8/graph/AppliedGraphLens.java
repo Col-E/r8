@@ -20,7 +20,7 @@ import java.util.Map;
  */
 public class AppliedGraphLens extends GraphLense {
 
-  private final AppView<? extends AppInfo> appView;
+  private final AppView<?> appView;
 
   private final BiMap<DexType, DexType> originalTypeNames = HashBiMap.create();
   private final BiMap<DexField, DexField> originalFieldSignatures = HashBiMap.create();

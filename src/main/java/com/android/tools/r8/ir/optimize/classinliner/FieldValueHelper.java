@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.optimize.classinliner;
 
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
@@ -30,14 +29,13 @@ final class FieldValueHelper {
   private final DexField field;
   private final IRCode code;
   private final Instruction root;
-  private final AppView<? extends AppInfo> appView;
+  private final AppView<?> appView;
 
   private Value defaultValue = null;
   private final Map<BasicBlock, Value> ins = new IdentityHashMap<>();
   private final Map<BasicBlock, Value> outs = new IdentityHashMap<>();
 
-  FieldValueHelper(
-      DexField field, IRCode code, Instruction root, AppView<? extends AppInfo> appView) {
+  FieldValueHelper(DexField field, IRCode code, Instruction root, AppView<?> appView) {
     this.field = field;
     this.code = code;
     this.root = root;

@@ -213,8 +213,7 @@ public class DexCode extends Code {
   }
 
   @Override
-  public IRCode buildIR(
-      DexEncodedMethod encodedMethod, AppView<? extends AppInfo> appView, Origin origin) {
+  public IRCode buildIR(DexEncodedMethod encodedMethod, AppView<?> appView, Origin origin) {
     assert getOwner() == encodedMethod;
     DexSourceCode source =
         new DexSourceCode(
@@ -231,7 +230,7 @@ public class DexCode extends Code {
   public IRCode buildInliningIR(
       DexEncodedMethod context,
       DexEncodedMethod encodedMethod,
-      AppView<? extends AppInfo> appView,
+      AppView<?> appView,
       ValueNumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin) {

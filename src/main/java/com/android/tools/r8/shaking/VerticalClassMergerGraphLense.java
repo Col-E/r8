@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.shaking;
 
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -49,7 +48,7 @@ import java.util.Set;
 // For the invocation "invoke-virtual A.m()" in B.m2, this graph lense will return the method B.m.
 public class VerticalClassMergerGraphLense extends NestedGraphLense {
 
-  private final AppView<? extends AppInfo> appView;
+  private final AppView<?> appView;
 
   private final Map<DexType, Map<DexMethod, GraphLenseLookupResult>>
       contextualVirtualToDirectMethodMaps;
@@ -57,7 +56,7 @@ public class VerticalClassMergerGraphLense extends NestedGraphLense {
   private final Map<DexMethod, DexMethod> originalMethodSignaturesForBridges;
 
   public VerticalClassMergerGraphLense(
-      AppView<? extends AppInfo> appView,
+      AppView<?> appView,
       Map<DexField, DexField> fieldMap,
       Map<DexMethod, DexMethod> methodMap,
       Set<DexMethod> mergedMethods,
@@ -174,9 +173,7 @@ public class VerticalClassMergerGraphLense extends NestedGraphLense {
         new IdentityHashMap<>();
 
     public GraphLense build(
-        GraphLense previousLense,
-        Map<DexType, DexType> mergedClasses,
-        AppView<? extends AppInfo> appView) {
+        GraphLense previousLense, Map<DexType, DexType> mergedClasses, AppView<?> appView) {
       if (fieldMap.isEmpty()
           && methodMap.isEmpty()
           && contextualVirtualToDirectMethodMaps.isEmpty()) {

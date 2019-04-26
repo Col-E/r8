@@ -5,7 +5,6 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexMethod;
@@ -446,7 +445,7 @@ public class Value {
     return !users.isEmpty() || !phiUsers.isEmpty() || numberOfDebugUsers() > 0;
   }
 
-  public boolean isAlwaysNull(AppView<? extends AppInfo> appView) {
+  public boolean isAlwaysNull(AppView<?> appView) {
     if (hasLocalInfo()) {
       // Not always null as the value can be changed via the debugger.
       return false;
@@ -867,13 +866,12 @@ public class Value {
     }
   }
 
-  public boolean isDead(AppView<? extends AppInfo> appView, IRCode code) {
+  public boolean isDead(AppView<?> appView, IRCode code) {
     // Totally unused values are trivially dead.
     return !isUsed() || isDead(appView, code, Predicates.alwaysFalse());
   }
 
-  public boolean isDead(
-      AppView<? extends AppInfo> appView, IRCode code, Predicate<Instruction> ignoreUser) {
+  public boolean isDead(AppView<?> appView, IRCode code, Predicate<Instruction> ignoreUser) {
     // Totally unused values are trivially dead.
     return !isUsed() || isDead(appView, code, ignoreUser, new HashSet<>());
   }
@@ -889,10 +887,7 @@ public class Value {
    * constructor call.
    */
   protected boolean isDead(
-      AppView<? extends AppInfo> appView,
-      IRCode code,
-      Predicate<Instruction> ignoreUser,
-      Set<Value> active) {
+      AppView<?> appView, IRCode code, Predicate<Instruction> ignoreUser, Set<Value> active) {
     // Give up when the dependent set of values reach a given threshold (otherwise this fails with
     // a StackOverflowError on Art003_omnibus_opcodesTest).
     if (active.size() > 100) {
@@ -935,7 +930,7 @@ public class Value {
         && getConstInstruction().asConstNumber().isZero();
   }
 
-  public void widening(AppView<? extends AppInfo> appView, TypeLatticeElement newType) {
+  public void widening(AppView<?> appView, TypeLatticeElement newType) {
     // TODO(b/72693244): Enable assertion.
     // During WIDENING (due to fix-point iteration), type update is monotonically upwards,
     //   i.e., towards something wider.
@@ -945,7 +940,7 @@ public class Value {
     typeLattice = newType;
   }
 
-  public void narrowing(AppView<? extends AppInfo> appView, TypeLatticeElement newType) {
+  public void narrowing(AppView<?> appView, TypeLatticeElement newType) {
     // TODO(b/72693244): Enable assertion.
     // During NARROWING (e.g., after inlining), type update is monotonically downwards,
     //   i.e., towards something narrower, with more specific type info.
