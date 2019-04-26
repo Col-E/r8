@@ -15,7 +15,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.FieldNamingState.InternalState;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.IdentityHashMap;
-import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 public class FieldNamingState extends FieldNamingStateBase<InternalState> implements Cloneable {
@@ -84,15 +84,15 @@ public class FieldNamingState extends FieldNamingStateBase<InternalState> implem
 
   class InternalState implements Cloneable {
 
-    private final Iterator<String> dictionaryIterator;
+    private int dictionaryIndex;
     private int nextNameIndex;
 
     public InternalState() {
-      this(1, appView.options().getProguardConfiguration().getObfuscationDictionary().iterator());
+      this(1, 0);
     }
 
-    public InternalState(int nextNameIndex, Iterator<String> dictionaryIterator) {
-      this.dictionaryIterator = dictionaryIterator;
+    public InternalState(int nextNameIndex, int dictionaryIndex) {
+      this.dictionaryIndex = dictionaryIndex;
       this.nextNameIndex = nextNameIndex;
     }
 
@@ -106,8 +106,10 @@ public class FieldNamingState extends FieldNamingStateBase<InternalState> implem
     }
 
     private DexString nextNameAccordingToStrategy(DexField field) {
-      if (!strategy.bypassDictionary() && dictionaryIterator.hasNext()) {
-        return appView.dexItemFactory().createString(dictionaryIterator.next());
+      List<String> dictionary =
+          appView.options().getProguardConfiguration().getObfuscationDictionary();
+      if (!strategy.bypassDictionary() && dictionaryIndex < dictionary.size()) {
+        return appView.dexItemFactory().createString(dictionary.get(dictionaryIndex++));
       } else {
         return strategy.next(field, this);
       }
@@ -121,7 +123,7 @@ public class FieldNamingState extends FieldNamingStateBase<InternalState> implem
 
     @Override
     public InternalState clone() {
-      return new InternalState(nextNameIndex, dictionaryIterator);
+      return new InternalState(nextNameIndex, dictionaryIndex);
     }
   }
 }

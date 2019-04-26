@@ -86,7 +86,6 @@ public class FieldNamingObfuscationDictionaryTest extends TestBase {
   }
 
   @Test
-  @Ignore("b/131382276")
   public void testInheritedNamingState()
       throws IOException, CompilationFailedException, ExecutionException {
     Path dictionary = temp.getRoot().toPath().resolve("dictionary.txt");
