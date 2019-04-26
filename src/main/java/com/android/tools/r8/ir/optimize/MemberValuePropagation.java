@@ -20,6 +20,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.code.Assume;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.ConstInstruction;
@@ -31,6 +32,7 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -230,15 +232,6 @@ public class MemberValuePropagation {
     if (target == null || !mayPropagateValueFor(target)) {
       return;
     }
-    if (target.getOptimizationInfo().neverReturnsNull()
-        && current.outValue().getTypeLattice().isReference()
-        && current.outValue().canBeNull()) {
-      Value knownToBeNonNullValue = current.outValue();
-      TypeLatticeElement typeLattice = knownToBeNonNullValue.getTypeLattice();
-      knownToBeNonNullValue.narrowing(
-          appView, typeLattice.asReferenceTypeLatticeElement().asNotNull());
-      affectedValues.addAll(knownToBeNonNullValue.affectedValues());
-    }
     if (target.getOptimizationInfo().returnsConstant()) {
       ConstInstruction replacement;
       if (target.getOptimizationInfo().returnsConstantNumber()) {
@@ -264,6 +257,12 @@ public class MemberValuePropagation {
       } else {
         iterator.add(replacement);
       }
+      return;
+    }
+    if (target.getOptimizationInfo().neverReturnsNull()
+        && current.outValue().getTypeLattice().isReference()
+        && current.outValue().canBeNull()) {
+      insertAssumeNotNull(code, affectedValues, blocks, iterator, current);
     }
   }
 
@@ -325,9 +324,7 @@ public class MemberValuePropagation {
               && !appView.appInfo().isPinned(field)
               && outValue.getTypeLattice().isReference()
               && outValue.canBeNull()) {
-            TypeLatticeElement typeLattice = outValue.getTypeLattice();
-            outValue.narrowing(appView, typeLattice.asReferenceTypeLatticeElement().asNotNull());
-            affectedValues.addAll(outValue.affectedValues());
+            insertAssumeNotNull(code, affectedValues, blocks, iterator, current);
           }
         }
       }
@@ -356,6 +353,31 @@ public class MemberValuePropagation {
       // Remove writes to dead (i.e. never read) fields.
       iterator.removeOrReplaceByDebugLocalRead();
     }
+  }
+
+  private void insertAssumeNotNull(
+      IRCode code,
+      Set<Value> affectedValues,
+      ListIterator<BasicBlock> blocks,
+      InstructionListIterator iterator,
+      Instruction current) {
+    Value knownToBeNonNullValue = current.outValue();
+    Set<Value> affectedUsers = knownToBeNonNullValue.affectedValues();
+    TypeLatticeElement typeLattice = knownToBeNonNullValue.getTypeLattice();
+    Value nonNullValue =
+        code.createValue(
+            typeLattice.asReferenceTypeLatticeElement().asNotNull(),
+            knownToBeNonNullValue.getLocalInfo());
+    knownToBeNonNullValue.replaceUsers(nonNullValue);
+    Assume nonNull = Assume.createAssumeNonNullInstruction(
+        nonNullValue, knownToBeNonNullValue, current);
+    nonNull.setPosition(appView.options().debug ? current.getPosition() : Position.none());
+    if (current.getBlock().hasCatchHandlers()) {
+      iterator.split(code, blocks).listIterator().add(nonNull);
+    } else {
+      iterator.add(nonNull);
+    }
+    affectedValues.addAll(affectedUsers);
   }
 
   /**

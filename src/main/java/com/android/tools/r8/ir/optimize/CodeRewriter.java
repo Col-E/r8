@@ -1986,14 +1986,15 @@ public class CodeRewriter {
     TypeLatticeElement inType = inValue.getTypeLattice();
     TypeLatticeElement instanceOfType =
         TypeLatticeElement.fromDexType(instanceOf.type(), inType.nullability(), appView);
+    Value aliasValue = inValue.getAliasedValue();
 
     InstanceOfResult result = InstanceOfResult.UNKNOWN;
     if (inType.isDefinitelyNull()) {
       result = InstanceOfResult.FALSE;
     } else if (inType.lessThanOrEqual(instanceOfType, appView) && !inType.isNullable()) {
       result = InstanceOfResult.TRUE;
-    } else if (!inValue.isPhi()
-        && inValue.definition.isCreatingInstanceOrArray()
+    } else if (!aliasValue.isPhi()
+        && aliasValue.definition.isCreatingInstanceOrArray()
         && instanceOfType.strictlyLessThan(inType, appView)) {
       result = InstanceOfResult.FALSE;
     } else if (appView.appInfo().hasLiveness()) {
