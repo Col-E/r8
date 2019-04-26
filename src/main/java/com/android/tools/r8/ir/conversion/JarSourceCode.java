@@ -378,8 +378,9 @@ public class JarSourceCode implements SourceCode {
       builder.addThisArgument(slot.register);
     }
     for (Type type : parameterTypes) {
-      TypeLatticeElement typeLattice =
-          builder.getTypeLattice(application.getType(type), Nullability.maybeNull());
+      DexType appType = application.getType(type);
+      DexType newType = builder.appView.graphLense().lookupType(appType);
+      TypeLatticeElement typeLattice = builder.getTypeLattice(newType, Nullability.maybeNull());
       Slot slot = state.readLocal(argumentRegister, type);
       if (type == Type.BOOLEAN_TYPE) {
         builder.addBooleanNonThisArgument(slot.register);
