@@ -17,12 +17,10 @@ import com.android.tools.r8.utils.MethodJavaSignatureEquivalence;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.base.Equivalence;
-import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableMap;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -76,9 +74,7 @@ import java.util.function.Function;
  *
  * <p>In the final stage, we assign names to methods by traversing the subtype tree, now allocating
  * separate naming states for each class starting from the frontier. In the first swoop, we allocate
- * all non-private methods, updating naming states accordingly. In a second swoop, we then allocate
- * private methods, as those may safely use names that are used by a public method further down in
- * the subtyping tree.
+ * all non-private methods, updating naming states accordingly.
  *
  * <p>Finally, the computed renamings are returned as a map from {@link DexMethod} to {@link
  * DexString}. The MethodNameMinifier object should not be retained to ensure all intermediate state
@@ -183,7 +179,7 @@ class MethodNameMinifier {
     timing.end();
     // Phase 2: Reserve all the names that are required for interfaces, and then assign names to
     //          interface methods. These are assigned by finding a name that is free in all naming
-    //          states that may hold an implementation
+    //          states that may hold an implementation.
     timing.begin("Phase 2");
     InterfaceMethodNameMinifier interfaceMethodNameMinifier =
         new InterfaceMethodNameMinifier(
@@ -192,57 +188,50 @@ class MethodNameMinifier {
     timing.end();
     // Phase 3: Assign names top-down by traversing the subtype hierarchy.
     timing.begin("Phase 3");
-    assignNamesToClassesMethods(appView.dexItemFactory().objectType, false);
-    timing.end();
-    // Phase 4: Do the same for private methods.
-    timing.begin("Phase 4");
-    assignNamesToClassesMethods(appView.dexItemFactory().objectType, true);
+    assignNamesToClassesMethods(appView.dexItemFactory().objectType);
     timing.end();
 
     return new MethodRenaming(renaming, interfaceMethodNameMinifier.getCallSiteRenamings());
   }
 
-  private void assignNamesToClassesMethods(DexType type, boolean doPrivates) {
+  private void assignNamesToClassesMethods(DexType type) {
+    // The names for direct methods should not contribute to the naming of methods in sub-types:
+    // class A {
+    //   public int foo() { ... }   --> a
+    //   private int bar() { ... }  --> b
+    // }
+    //
+    // class B extends A {
+    //   public int baz() { ... }   --> b
+    // }
+    //
+    // A simple way to ensure this is to process virtual methods first and then direct methods.
     DexClass holder = appView.definitionFor(type);
     boolean shouldAssignName = holder != null && !alwaysReserveMemberNames(holder);
     if (shouldAssignName) {
-      Map<Wrapper<DexMethod>, DexString> renamingAtThisLevel = new HashMap<>();
       MethodNamingState<?> state =
           computeStateIfAbsent(type, k -> minifierState.getState(holder.superType).createChild());
-      for (DexEncodedMethod method : holder.allMethodsSorted()) {
-        assignNameToMethod(method, state, renamingAtThisLevel, doPrivates);
+      for (DexEncodedMethod method : holder.virtualMethodsSorted()) {
+        assignNameToMethod(method, state);
       }
-      if (!doPrivates) {
-        renamingAtThisLevel.forEach(
-            (key, candidate) -> {
-              DexMethod method = key.get();
-              state.addRenaming(method.name, method.proto, candidate);
-            });
+      for (DexEncodedMethod method : holder.directMethodsSorted()) {
+        assignNameToMethod(method, state);
       }
     }
-    appView
-        .appInfo()
-        .forAllExtendsSubtypes(type, subtype -> assignNamesToClassesMethods(subtype, doPrivates));
+    appView.appInfo().forAllExtendsSubtypes(type, subtype -> assignNamesToClassesMethods(subtype));
   }
 
-  private void assignNameToMethod(
-      DexEncodedMethod encodedMethod,
-      MethodNamingState<?> state,
-      Map<Wrapper<DexMethod>, DexString> renamingAtThisLevel,
-      boolean doPrivates) {
-    if (encodedMethod.accessFlags.isPrivate() != doPrivates) {
-      return;
-    }
+  private void assignNameToMethod(DexEncodedMethod encodedMethod, MethodNamingState<?> state) {
     if (encodedMethod.accessFlags.isConstructor()) {
       return;
     }
     DexMethod method = encodedMethod.method;
     if (!state.isReserved(method.name, method.proto)) {
-      DexString renamedName =
-          renamingAtThisLevel.computeIfAbsent(
-              equivalence.wrap(method),
-              key -> state.assignNewNameFor(method, method.name, method.proto));
+      DexString renamedName = state.assignNewNameFor(method, method.name, method.proto);
       renaming.put(method, renamedName);
+      if (!encodedMethod.accessFlags.isPrivate()) {
+        state.addRenaming(method.name, method.proto, renamedName);
+      }
     }
   }
 

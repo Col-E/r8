@@ -149,7 +149,8 @@ class MethodNamingState<KeyType> {
     private final InternalState parentInternalState;
     private Set<DexString> reservedNames = null;
     private Table<DexString, KeyType, DexString> renamings = null;
-    private int nameCount;
+    private int virtualNameCount;
+    private int directNameCount = 0;
     private final Iterator<String> dictionaryIterator;
 
     private InternalState(
@@ -158,8 +159,8 @@ class MethodNamingState<KeyType> {
         Iterator<String> dictionaryIterator) {
       this.itemFactory = itemFactory;
       this.parentInternalState = parentInternalState;
-      this.nameCount =
-          parentInternalState == null ? INITIAL_NAME_COUNT : parentInternalState.nameCount;
+      this.virtualNameCount =
+          parentInternalState == null ? INITIAL_NAME_COUNT : parentInternalState.virtualNameCount;
       this.dictionaryIterator = dictionaryIterator;
     }
 
@@ -188,19 +189,25 @@ class MethodNamingState<KeyType> {
       reservedNames.add(name);
     }
 
-    public int incrementAndGet() {
-      int parentNameCount = 0;
+    private boolean checkParentPublicNameCountIsLessThanOrEqual() {
+      int maxParentCount = 0;
       InternalState tmp = parentInternalState;
       while (tmp != null) {
-        if (tmp.nameCount > parentNameCount) {
-          parentNameCount = tmp.nameCount;
-        }
+        maxParentCount = Math.max(tmp.virtualNameCount, maxParentCount);
         tmp = tmp.parentInternalState;
       }
-      if (parentNameCount > nameCount) {
-        nameCount = parentNameCount;
+      assert maxParentCount <= virtualNameCount;
+      return true;
+    }
+
+    public int incrementAndGet(boolean isDirect) {
+      assert checkParentPublicNameCountIsLessThanOrEqual();
+      if (isDirect) {
+        return virtualNameCount + (directNameCount++);
+      } else {
+        assert directNameCount == 0;
+        return virtualNameCount++;
       }
-      return nameCount++;
     }
 
     DexString getAssignedNameFor(DexString original, KeyType proto) {
@@ -263,10 +270,14 @@ class MethodNamingState<KeyType> {
     void printLastName(String indentation, PrintStream out) {
       out.print(indentation);
       out.print("Last name: ");
-      if (nameCount > 1) {
-        out.print(StringUtils.numberToIdentifier(EMPTY_CHAR_ARRAY, nameCount - 1, false));
-        out.print(" (name count: ");
-        out.print(nameCount);
+      int index = virtualNameCount + directNameCount;
+      if (index > 1) {
+        out.print(StringUtils.numberToIdentifier(EMPTY_CHAR_ARRAY, index - 1, false));
+        out.print(" (public name count: ");
+        out.print(virtualNameCount);
+        out.print(")");
+        out.print(" (direct name count: ");
+        out.print(directNameCount);
         out.print(")");
       } else {
         out.print("<NONE>");

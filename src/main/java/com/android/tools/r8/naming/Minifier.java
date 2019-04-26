@@ -6,6 +6,7 @@ package com.android.tools.r8.naming;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
@@ -146,7 +147,9 @@ public class Minifier {
 
     @Override
     public DexString next(DexMethod method, MethodNamingState.InternalState internalState) {
-      int counter = internalState.incrementAndGet();
+      DexEncodedMethod encodedMethod = appView.definitionFor(method);
+      boolean isDirectOrStatic = encodedMethod.isDirectMethod() || encodedMethod.isStatic();
+      int counter = internalState.incrementAndGet(isDirectOrStatic);
       return appView.dexItemFactory()
           .createString(StringUtils.numberToIdentifier(EMPTY_CHAR_ARRAY, counter, false));
     }

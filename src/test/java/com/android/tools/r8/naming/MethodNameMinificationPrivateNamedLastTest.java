@@ -26,8 +26,8 @@ import org.junit.runners.Parameterized;
 
 /**
  * MethodNameMinificationPrivateNamedLastTest tests that private methods are named after public
- * methods. Public virtual methods may be overridden and used in the sub-class hierarchy and
- * therefore it is preferable to have their names as small as possible.
+ * methods. Private methods can be named freely and should not influence how public methods are
+ * named.
  */
 @RunWith(Parameterized.class)
 public class MethodNameMinificationPrivateNamedLastTest extends TestBase {
@@ -146,9 +146,7 @@ public class MethodNameMinificationPrivateNamedLastTest extends TestBase {
               assertEquals("b", cSubject.uniqueMethodWithName("m3").getFinalName());
               AnyOf<String> cPrivateNamesP = anyOf(is("c"), is("d"));
               assertThat(cSubject.uniqueMethodWithName("m2").getFinalName(), cPrivateNamesP);
-              // TODO(mkroghj) This is not working currently. See if it gets fixed by removing the
-              //  extra pass for private methods.
-              // assertThat(cSubject.uniqueMethodWithName("m4").getFinalName(), cPrivateNamesP);
+              assertThat(cSubject.uniqueMethodWithName("m4").getFinalName(), cPrivateNamesP);
             });
   }
 }

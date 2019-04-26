@@ -292,6 +292,22 @@ public abstract class DexClass extends DexDefinition {
     return result;
   }
 
+  public DexEncodedMethod[] directMethodsSorted() {
+    DexEncodedMethod[] result = new DexEncodedMethod[directMethods.length];
+    System.arraycopy(directMethods, 0, result, 0, directMethods.length);
+    Arrays.sort(
+        result, (DexEncodedMethod a, DexEncodedMethod b) -> a.method.slowCompareTo(b.method));
+    return result;
+  }
+
+  public DexEncodedMethod[] virtualMethodsSorted() {
+    DexEncodedMethod[] result = new DexEncodedMethod[virtualMethods.length];
+    System.arraycopy(virtualMethods, 0, result, 0, virtualMethods.length);
+    Arrays.sort(
+        result, (DexEncodedMethod a, DexEncodedMethod b) -> a.method.slowCompareTo(b.method));
+    return result;
+  }
+
   public void virtualizeMethods(Set<DexEncodedMethod> privateInstanceMethods) {
     int vLen = virtualMethods.length;
     int dLen = directMethods.length;
