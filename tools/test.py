@@ -263,7 +263,7 @@ def Main():
     runtimes = ['dex-' + art_vm]
     # Only append the "none" runtime and JVMs if running on the "default" DEX VM.
     if art_vm == "default":
-      runtimes.extend(['jdk8', 'jdk9', 'none'])
+      runtimes.extend(['jdk8', 'jdk9', 'jdk11', 'none'])
     return_code = gradle.RunGradle(
         gradle_args + [
           '-Pdex_vm=%s' % art_vm + vm_suffix,
