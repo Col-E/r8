@@ -59,6 +59,13 @@ public class JarArgumentUseVisitor extends MethodVisitor {
   }
 
   @Override
+  public void visitIincInsn(final int var, final int increment) {
+    if (var < arguments) {
+      registry.register(slotToArgument == null ? var : slotToArgument.get(var));
+    }
+  }
+
+  @Override
   public void visitVarInsn(final int opcode, final int var) {
     switch (opcode) {
       case ILOAD:
