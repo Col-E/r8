@@ -116,7 +116,9 @@ def git_checkout(git_hash):
   ensure_git_clean()
   # Ensure that we are up to date to get the commit.
   git_pull()
-  subprocess.check_call(['git', 'checkout', git_hash])
+  exitcode = subprocess.call(['git', 'checkout', git_hash])
+  if exitcode != 0:
+    return None
   return utils.get_HEAD_sha1()
 
 def get_test_result_dir():
@@ -237,6 +239,12 @@ def run_continuously():
     if get_magic_file_exists(READY_FOR_TESTING):
       git_hash = get_magic_file_content(READY_FOR_TESTING)
       checked_out = git_checkout(git_hash)
+      if not checked_out:
+        # Gerrit change, we don't run these on internal.
+        archive_status(0)
+        put_magic_file(TESTING_COMPLETE, git_hash)
+        delete_magic_file(READY_FOR_TESTING)
+        continue
       # If the script changed, we need to restart now to get correct commands
       # Note that we have not removed the READY_FOR_TESTING yet, so if we
       # execv we will pick up the same version.
