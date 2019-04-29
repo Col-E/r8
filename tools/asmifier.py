@@ -15,8 +15,8 @@ def run(args, build=True):
     gradle.RunGradle(['copyMavenDeps'])
   cmd = []
   cmd.append(jdk.GetJavaExecutable())
-  cp = ":".join([os.path.join(utils.REPO_ROOT, 'build/deps/asm-6.2.1.jar'),
-                 os.path.join(utils.REPO_ROOT, 'build/deps/asm-util-6.2.1.jar')])
+  cp = ":".join([os.path.join(utils.REPO_ROOT, 'build/deps/asm-7.1.jar'),
+                 os.path.join(utils.REPO_ROOT, 'build/deps/asm-util-7.1.jar')])
   cmd.extend(['-cp', cp])
   cmd.append('org.objectweb.asm.util.ASMifier')
   cmd.extend(args)
