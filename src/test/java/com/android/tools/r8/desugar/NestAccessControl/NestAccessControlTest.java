@@ -13,6 +13,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8TestCompileResult;
+import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
@@ -20,12 +21,13 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.function.BiFunction;
@@ -38,26 +40,42 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class NestAccessControlTest extends TestBase {
 
-  private static final Path EXAMPLE_DIR = Paths.get(ToolHelper.EXAMPLES_JAVA11_BUILD_DIR);
-  private static final Path JAR = EXAMPLE_DIR.resolve("nestHostExample" + JAR_EXTENSION);
+  private static final Path JAR =
+      Paths.get(ToolHelper.EXAMPLES_JAVA11_BUILD_DIR).resolve("nestHostExample" + JAR_EXTENSION);
+  private static final String PACKAGE_NAME = "nestHostExample.";
+  private static final int NUMBER_OF_TEST_CLASSES = 15;
 
-  private static final String EXPECTED = StringUtils.lines(
-      "fieldstaticFieldstaticFieldhostMethodstaticHostMethodstaticHostMethodnest1SFieldstaticNest1SFieldstaticNest1SFieldnest1SMethodstaticNest1SMethodstaticNest1SMethodnest2SFieldstaticNest2SFieldstaticNest2SFieldnest2SMethodstaticNest2SMethodstaticNest2SMethodnest1Fieldnest1Methodnest2Fieldnest2Method",
-      "fieldstaticFieldstaticFieldhostMethodstaticHostMethodstaticHostMethodnest1SFieldstaticNest1SFieldstaticNest1SFieldnest1SMethodstaticNest1SMethodstaticNest1SMethodnest2SFieldstaticNest2SFieldstaticNest2SFieldnest2SMethodstaticNest2SMethodstaticNest2SMethodnest1Fieldnest1Methodnest2Fieldnest2Method",
-      "fieldstaticFieldstaticFieldhostMethodstaticHostMethodstaticHostMethodnest1SFieldstaticNest1SFieldstaticNest1SFieldnest1SMethodstaticNest1SMethodstaticNest1SMethodnest2SFieldstaticNest2SFieldstaticNest2SFieldnest2SMethodstaticNest2SMethodstaticNest2SMethodnest1Fieldnest1Methodnest2Fieldnest2Method",
-      "fieldstaticFieldstaticFieldhostMethodstaticHostMethodstaticHostMethodnest1SFieldstaticNest1SFieldstaticNest1SFieldnest1SMethodstaticNest1SMethodstaticNest1SMethodnest2SFieldstaticNest2SFieldstaticNest2SFieldnest2SMethodstaticNest2SMethodstaticNest2SMethodnest1Fieldnest1Methodnest2Fieldnest2Method",
-      "staticInterfaceMethodstaticStaticInterfaceMethod",
-      "staticInterfaceMethodstaticStaticInterfaceMethod",
-      "staticInterfaceMethodstaticStaticInterfaceMethod",
-      "staticInterfaceMethodstaticStaticInterfaceMethod");
-  private static final ImmutableMap<String, String> MAIN_CLASSES_AND_EXPECTED_RESULTS = ImmutableMap
-      .of(
-          "BasicNestHostWithInnerClass", StringUtils.lines(
-              "nest1SFieldstaticNestFieldstaticNestFieldnestMethodstaticNestMethodstaticNestMethod",
-              "fieldstaticFieldstaticNestFieldhostMethodstaticHostMethodstaticNestMethod"),
-          "BasicNestHostWithAnonymousInnerClass", StringUtils
-              .lines("fieldstaticFieldstaticFieldhostMethodstaticHostMethodstaticHostMethod"),
-          "NestHostExample", EXPECTED);
+  private static final ImmutableMap<String, String> MAIN_CLASSES =
+      ImmutableMap.of(
+          "fields", "BasicNestHostWithInnerClassFields",
+          "methods", "BasicNestHostWithInnerClassMethods",
+          "constructors", "BasicNestHostWithInnerClassConstructors",
+          "anonymous", "BasicNestHostWithAnonymousInnerClass",
+          "all", "NestHostExample");
+  private static final String ALL_EXPECTED_RESULT =
+      StringUtils.lines(
+          "fieldstaticFieldstaticFieldhostMethodstaticHostMethodstaticHostMethodnest1SFieldstaticNest1SFieldstaticNest1SFieldnest1SMethodstaticNest1SMethodstaticNest1SMethodnest2SFieldstaticNest2SFieldstaticNest2SFieldnest2SMethodstaticNest2SMethodstaticNest2SMethodnest1Fieldnest1Methodnest2Fieldnest2Method",
+          "fieldstaticFieldstaticFieldhostMethodstaticHostMethodstaticHostMethodnest1SFieldstaticNest1SFieldstaticNest1SFieldnest1SMethodstaticNest1SMethodstaticNest1SMethodnest2SFieldstaticNest2SFieldstaticNest2SFieldnest2SMethodstaticNest2SMethodstaticNest2SMethodnest1Fieldnest1Methodnest2Fieldnest2Method",
+          "fieldstaticFieldstaticFieldhostMethodstaticHostMethodstaticHostMethodnest1SFieldstaticNest1SFieldstaticNest1SFieldnest1SMethodstaticNest1SMethodstaticNest1SMethodnest2SFieldstaticNest2SFieldstaticNest2SFieldnest2SMethodstaticNest2SMethodstaticNest2SMethodnest1Fieldnest1Methodnest2Fieldnest2Method",
+          "fieldstaticFieldstaticFieldhostMethodstaticHostMethodstaticHostMethodnest1SFieldstaticNest1SFieldstaticNest1SFieldnest1SMethodstaticNest1SMethodstaticNest1SMethodnest2SFieldstaticNest2SFieldstaticNest2SFieldnest2SMethodstaticNest2SMethodstaticNest2SMethodnest1Fieldnest1Methodnest2Fieldnest2Method",
+          "staticInterfaceMethodstaticStaticInterfaceMethod",
+          "staticInterfaceMethodstaticStaticInterfaceMethod",
+          "staticInterfaceMethodstaticStaticInterfaceMethod",
+          "staticInterfaceMethodstaticStaticInterfaceMethod");
+  private static final ImmutableMap<String, String> EXPECTED_RESULTS =
+      ImmutableMap.of(
+          "fields",
+              StringUtils.lines(
+                  "nestFieldstaticNestFieldstaticNestField", "fieldstaticFieldstaticNestField"),
+          "methods",
+              StringUtils.lines(
+                  "nestMethodstaticNestMethodstaticNestMethod",
+                  "hostMethodstaticHostMethodstaticNestMethod"),
+          "constructors", StringUtils.lines("field", "nest1SField"),
+          "anonymous",
+              StringUtils.lines(
+                  "fieldstaticFieldstaticFieldhostMethodstaticHostMethodstaticHostMethod"),
+          "all", ALL_EXPECTED_RESULT);
 
   private static Function<AndroidApiLevel, D8TestCompileResult> d8CompilationResult =
       memoizeFunction(NestAccessControlTest::compileD8);
@@ -92,53 +110,87 @@ public class NestAccessControlTest extends TestBase {
         .build();
   }
 
+  private static String getMainClass(String id){
+    return PACKAGE_NAME + MAIN_CLASSES.get(id);
+  }
+
+  private static String getExpectedResult(String id){
+    return EXPECTED_RESULTS.get(id);
+  }
+
+
   public NestAccessControlTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
-  @Test
-  public void testJavaAndD8() throws Exception {
-    for (ImmutableMap.Entry<String,String> entry : MAIN_CLASSES_AND_EXPECTED_RESULTS.entrySet()) {
-      if (parameters.isCfRuntime()) {
-        testForJvm()
-            .addProgramFiles(JAR)
-            .run(parameters.getRuntime(), "nestHostExample."+ entry.getKey())
-            .assertSuccessWithOutput(entry.getValue());
+  public void testJavaAndD8(String id, boolean d8Success) throws Exception {
+    if (parameters.isCfRuntime()) {
+      testForJvm()
+          .addProgramFiles(JAR)
+          .run(parameters.getRuntime(), getMainClass(id))
+          .assertSuccessWithOutput(getExpectedResult(id));
+    } else {
+      assert parameters.isDexRuntime();
+      D8TestRunResult run =
+          d8CompilationResult
+              .apply(parameters.getApiLevel())
+              .run(parameters.getRuntime(), getMainClass(id));
+      if (d8Success) {
+        run.assertSuccessWithOutput(getExpectedResult(id));
       } else {
-        assert parameters.isDexRuntime();
-        d8CompilationResult
-            .apply(parameters.getApiLevel())
-            .run(parameters.getRuntime(), "nestHostExample."+ entry.getKey())
-            // TODO(b/130529390): Assert expected once fixed.
-            .assertFailureWithErrorThatMatches(containsString("IllegalAccessError"));
+        if (parameters.isDexRuntime() &&
+            (parameters.getRuntime().asDex().getVm().getVersion() == Version.V6_0_1 ||
+                parameters.getRuntime().asDex().getVm().getVersion() == Version.V5_1_1)) {
+          run.assertFailure(); // different message, same error
+        } else {
+          run.assertFailureWithErrorThatMatches(containsString("IllegalAccessError"));
+        }
       }
     }
   }
 
   @Test
-  public void testR8() throws Exception {
-    for (ImmutableMap.Entry<String,String> entry : MAIN_CLASSES_AND_EXPECTED_RESULTS.entrySet()) {
-      R8TestRunResult result =
-          r8CompilationResult
-              .apply(parameters.getBackend(), parameters.getApiLevel())
-              .run(parameters.getRuntime(), "nestHostExample."+ entry.getKey());
-      if (parameters.isCfRuntime()) {
-        result.assertSuccessWithOutput(entry.getValue());
-        result.inspect(NestAccessControlTest::checkNestMateAttributes);
+  public void testJavaAndD8() throws Exception {
+    // TODO(b/130529390): As features are implemented, set success to true in each line.
+    testJavaAndD8("methods", false);
+    testJavaAndD8("fields", false);
+    testJavaAndD8("constructors", false);
+    testJavaAndD8("anonymous", false);
+    testJavaAndD8("all", false);
+  }
+
+  public void testR8(String id, boolean r8Success) throws Exception {
+    R8TestRunResult result =
+        r8CompilationResult
+            .apply(parameters.getBackend(), parameters.getApiLevel())
+            .run(parameters.getRuntime(), getMainClass(id));
+    if (r8Success) {
+      result.assertSuccessWithOutput(getExpectedResult(id));
+      result.inspect(NestAccessControlTest::checkNestMateAttributes);
+    } else {
+      if (parameters.isDexRuntime() &&
+          (parameters.getRuntime().asDex().getVm().getVersion() == Version.V6_0_1 ||
+              parameters.getRuntime().asDex().getVm().getVersion() == Version.V5_1_1)) {
+        result.assertFailure(); // different message, same error
       } else {
-        // TODO(b/130529390): Assert expected once fixed.
         result.assertFailureWithErrorThatMatches(containsString("IllegalAccessError"));
       }
     }
   }
 
+  @Test
+  public void testMethodsAccessR8() throws Exception {
+    // TODO(b/130529390): As features are implemented, set success to true in each line.
+    testR8("methods", parameters.isCfRuntime());
+    testR8("fields", parameters.isCfRuntime());
+    testR8("constructors", parameters.isCfRuntime());
+    testR8("anonymous", parameters.isCfRuntime());
+    testR8("all", parameters.isCfRuntime());
+  }
+
   private static void checkNestMateAttributes(CodeInspector inspector) {
-    assertEquals(11, inspector.allClasses().size());
-    ImmutableSet<String> outerClassNames =
-        ImmutableSet.of(
-            "NestHostExample",
-            "BasicNestHostWithInnerClass",
-            "BasicNestHostWithAnonymousInnerClass");
+    assertEquals(NUMBER_OF_TEST_CLASSES, inspector.allClasses().size());
+    ImmutableList<String> outerClassNames = MAIN_CLASSES.values().asList();
     inspector.forAllClasses(
         classSubject -> {
           DexClass dexClass = classSubject.getDexClass();
