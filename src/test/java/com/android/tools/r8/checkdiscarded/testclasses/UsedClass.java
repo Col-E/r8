@@ -8,6 +8,7 @@ public class UsedClass {
 
   @WillStay
   public String hello() {
+    System.out.println("side-effect!");
     return "hello";
   }
 

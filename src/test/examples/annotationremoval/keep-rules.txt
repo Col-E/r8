@@ -8,5 +8,5 @@
   public static void main(...);
 }
 
-# allow access modification to enable minification
--allowaccessmodification
+# Examples are too simple and side-effects free, and thus can be easily inlined/pruned.
+-dontoptimize

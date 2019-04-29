@@ -3,16 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.rewrite.staticvalues;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.code.IfEqz;
-import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.SgetBoolean;
-import com.android.tools.r8.code.Sput;
-import com.android.tools.r8.code.SputObject;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueBoolean;
@@ -105,7 +103,7 @@ public class StaticValuesTest extends SmaliTestBase {
     assertTrue(inspector.clazz("Test").field("boolean", "booleanField").hasExplicitStaticValue());
     value = inspector.clazz("Test").field("boolean", "booleanField").getStaticValue();
     assertTrue(value instanceof DexValueBoolean);
-    assertEquals(true, ((DexValueBoolean) value).getValue());
+    assertTrue(((DexValueBoolean) value).getValue());
 
     assertTrue(inspector.clazz("Test").field("byte", "byteField").hasExplicitStaticValue());
     value = inspector.clazz("Test").field("byte", "byteField").getStaticValue();
@@ -387,7 +385,7 @@ public class StaticValuesTest extends SmaliTestBase {
     AndroidApp processedApplication = processApplication(originalApplication);
 
     CodeInspector inspector = new CodeInspector(processedApplication);
-    assertTrue(inspector.clazz("Test").clinit().isPresent());
+    assertThat(inspector.clazz("Test").clinit(), isPresent());
 
     assertTrue(inspector.clazz("Test").field("int", "intField").hasExplicitStaticValue());
     DexValue value = inspector.clazz("Test").field("int", "intField").getStaticValue();
@@ -466,7 +464,7 @@ public class StaticValuesTest extends SmaliTestBase {
     AndroidApp processedApplication = processApplication(originalApplication);
 
     CodeInspector inspector = new CodeInspector(processedApplication);
-    assertTrue(inspector.clazz(className).isPresent());
+    assertThat(inspector.clazz(className), isPresent());
     // Test is running without tree-shaking, so the empty <clinit> is not removed.
     assertTrue(
         inspector.clazz(className).clinit().getMethod().getCode().asDexCode().isEmptyVoidMethod());
@@ -515,8 +513,8 @@ public class StaticValuesTest extends SmaliTestBase {
     AndroidApp processedApplication = processApplication(originalApplication);
 
     CodeInspector inspector = new CodeInspector(processedApplication);
-    assertTrue(inspector.clazz(className).isPresent());
-    assertTrue(inspector.clazz(className).clinit().isPresent());
+    assertThat(inspector.clazz(className), isPresent());
+    assertThat(inspector.clazz(className).clinit(), isPresent());
 
     String result = runArt(processedApplication, className);
 

@@ -164,18 +164,21 @@ public class InvokeStatic extends InvokeMethod {
       }
 
       // Verify that the target method does not have side-effects.
-      boolean targetMayHaveSideEffects =
-          target.getOptimizationInfo().mayHaveSideEffects()
-              && !appViewWithLiveness.appInfo().noSideEffects.containsKey(target.method);
-      if (targetMayHaveSideEffects) {
-        return true;
+      boolean targetMayHaveSideEffects;
+      if (appViewWithLiveness.appInfo().noSideEffects.containsKey(target.method)) {
+        targetMayHaveSideEffects = false;
+      } else {
+        targetMayHaveSideEffects =
+            target.getOptimizationInfo().mayHaveSideEffects()
+                // Verify that calling the target method won't lead to class initialization.
+                || target.method.holder.classInitializationMayHaveSideEffects(
+                    appView.appInfo(),
+                    // Types that are a super type of `context` are guaranteed to be initialized
+                    // already.
+                    type -> appView.isSubtype(context, type).isTrue());
       }
 
-      // Verify that calling the target method won't lead to class initialization.
-      return target.method.holder.classInitializationMayHaveSideEffects(
-          appView.appInfo(),
-          // Types that are a super type of `context` are guaranteed to be initialized already.
-          type -> appView.isSubtype(context, type).isTrue());
+      return targetMayHaveSideEffects;
     }
 
     return true;

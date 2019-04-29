@@ -38,9 +38,9 @@ public class CheckDiscardedTest extends TestBase {
 
   private String checkDiscardRule(boolean member, Class annotation) {
     if (member) {
-      return "-checkdiscard class * { @" + annotation.getCanonicalName() + " *; }";
+      return "-checkdiscard class * { @" + annotation.getName() + " *; }";
     } else {
-      return "-checkdiscard @" + annotation.getCanonicalName() + " class *";
+      return "-checkdiscard @" + annotation.getName() + " class *";
     }
   }
 

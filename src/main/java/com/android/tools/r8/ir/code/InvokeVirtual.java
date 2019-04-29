@@ -121,6 +121,10 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
 
   @Override
   public boolean instructionMayHaveSideEffects(AppView<?> appView, DexType context) {
+    if (!appView.enableWholeProgramOptimizations()) {
+      return true;
+    }
+
     if (appView.options().debug) {
       return true;
     }
@@ -134,6 +138,25 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
     // Check if it is a call to one of java.lang.Class.get*Name().
     if (appView.dexItemFactory().classMethods.isReflectiveNameLookup(getInvokedMethod())) {
       return false;
+    }
+
+    // Find the target and check if the invoke may have side effects.
+    if (appView.appInfo().hasLiveness()) {
+      AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+      DexEncodedMethod target = lookupSingleTarget(appViewWithLiveness, context);
+      if (target == null) {
+        return true;
+      }
+
+      // Verify that the target method does not have side-effects.
+      boolean targetMayHaveSideEffects;
+      if (appViewWithLiveness.appInfo().noSideEffects.containsKey(target.method)) {
+        targetMayHaveSideEffects = false;
+      } else {
+        targetMayHaveSideEffects = target.getOptimizationInfo().mayHaveSideEffects();
+      }
+
+      return targetMayHaveSideEffects;
     }
 
     return true;

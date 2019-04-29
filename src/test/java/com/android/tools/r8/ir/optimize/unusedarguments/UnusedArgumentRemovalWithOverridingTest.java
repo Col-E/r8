@@ -90,7 +90,8 @@ public class UnusedArgumentRemovalWithOverridingTest extends TestBase {
     @NeverInline
     @Override
     public String greeting(String unused) {
-      return "Hello world!";
+      System.out.print("Hello ");
+      return "world!";
     }
   }
 }

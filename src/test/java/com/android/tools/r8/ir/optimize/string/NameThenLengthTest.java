@@ -154,7 +154,7 @@ public class NameThenLengthTest extends TestBase {
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     // TODO(b/125303292): NAME_LENGTH is still not computed at compile time.
-    test(result, 1, 0, 0, 1);
+    test(result, 1, 1, 0, 1);
   }
 
   @Test

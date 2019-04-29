@@ -9,4 +9,8 @@
   public void keep();
 }
 
+-keep,allowobfuscation class naming001.E {
+  <methods>;
+}
+
 -applymapping mapping-105.txt

@@ -8,6 +8,8 @@ import static org.hamcrest.CoreMatchers.startsWith;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
@@ -18,15 +20,15 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class Regress69825683Test extends TestBase {
-  private Backend backend;
+  private final TestParameters parameters;
 
-  @Parameterized.Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimes().build();
   }
 
-  public Regress69825683Test(Backend backend) {
-    this.backend = backend;
+  public Regress69825683Test(TestParameters parameters) {
+    this.parameters = parameters;
   }
 
   @Test
@@ -39,17 +41,18 @@ public class Regress69825683Test extends TestBase {
     innerName = innerName.substring(0, index) + "$" + innerName.substring(index + 1);
 
     CodeInspector inspector =
-        testForR8(backend)
+        testForR8(parameters.getBackend())
             .addProgramFiles(ToolHelper.getClassFilesForTestPackage(outer.getPackage()))
             .addKeepMainRule(outer)
             .enableSideEffectAnnotations()
             .addKeepRules(
-                "-assumemayhavesideeffects class " + inner.getTypeName() + " {",
+                "-assumemayhavesideeffects class " + inner.getName() + " {",
                 "  synthetic void <init>(...);",
                 "}")
             .addOptionsModification(options -> options.enableClassInlining = false)
             .noMinification()
-            .run(outer)
+            .setMinApi(parameters.getRuntime())
+            .run(parameters.getRuntime(), outer)
             // Run code to check that the constructor with synthetic class as argument is present.
             .assertSuccessWithOutputThatMatches(startsWith(innerName))
             .inspector();
@@ -69,15 +72,21 @@ public class Regress69825683Test extends TestBase {
   public void innerConstructsOuter() throws Exception {
     Class<?> clazz = com.android.tools.r8.regress.b69825683.innerconstructsouter.Outer.class;
     CodeInspector inspector =
-        testForR8(backend)
+        testForR8(parameters.getBackend())
             .addProgramFiles(ToolHelper.getClassFilesForTestPackage(clazz.getPackage()))
             .addKeepMainRule(clazz)
             .enableInliningAnnotations()
+            .enableSideEffectAnnotations()
+            .addKeepRules(
+                "-assumemayhavesideeffects class " + clazz.getName() + " {",
+                "  void <init>(...);",
+                "}")
             .noMinification()
             .addOptionsModification(o -> o.enableClassInlining = false)
+            .setMinApi(parameters.getRuntime())
             // Run code to check that the constructor with synthetic class as argument is present.
-            .run(clazz)
-            .assertSuccessWithOutputThatMatches(startsWith(clazz.getTypeName()))
+            .run(parameters.getRuntime(), clazz)
+            .assertSuccessWithOutputThatMatches(startsWith(clazz.getName()))
             .inspector();
 
     List<FoundClassSubject> classes = inspector.allClasses();

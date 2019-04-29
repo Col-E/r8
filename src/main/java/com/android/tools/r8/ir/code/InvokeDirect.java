@@ -183,23 +183,18 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
         assert false : "Expected to be able to find the enclosing class of a method definition";
         return true;
       }
-
       boolean targetMayHaveSideEffects;
-      if (clazz.isProgramClass()) {
-        targetMayHaveSideEffects =
-            target.getOptimizationInfo().mayHaveSideEffects()
-                && !appViewWithLiveness.appInfo().noSideEffects.containsKey(target.method);
+      if (appViewWithLiveness.appInfo().noSideEffects.containsKey(target.method)) {
+        targetMayHaveSideEffects = false;
+      } else if (clazz.isProgramClass()) {
+        targetMayHaveSideEffects = target.getOptimizationInfo().mayHaveSideEffects();
       } else {
+        assert clazz.isLibraryClass();
         targetMayHaveSideEffects =
             !appView.dexItemFactory().libraryMethodsWithoutSideEffects.contains(target.method);
       }
 
-      if (targetMayHaveSideEffects) {
-        return true;
-      }
-
-      // Success, the instruction does not have any side effects.
-      return false;
+      return targetMayHaveSideEffects;
     }
 
     return true;

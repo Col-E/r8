@@ -39,6 +39,9 @@ public class DeadFieldAfterAssumevaluesTest extends TestBase {
   private static final String RULES = StringUtils.lines(
       "-assumevalues class **.TestClass {",
       "  static boolean HAS_R8 return true;",
+      "}",
+      "-assumenosideeffects class java.lang.Boolean {",
+      "  static boolean parseBoolean(java.lang.String);",
       "}"
   );
 
@@ -79,7 +82,6 @@ public class DeadFieldAfterAssumevaluesTest extends TestBase {
     assertThat(hasR8, not(isPresent()));
 
     MethodSubject clinit = main.clinit();
-    // TODO(b/130561746): need to model that Boolean.parseBoolean doesn't have side-effects.
-    assertThat(clinit, isPresent());
+    assertThat(clinit, not(isPresent()));
   }
 }

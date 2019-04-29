@@ -84,7 +84,8 @@ public class CollisionWithLibraryMethodsTest extends TestBase {
 
     @NeverInline
     public String toString(Object unused) {
-      return "Hello world!";
+      System.out.print("Hello ");
+      return "world!";
     }
   }
 }
