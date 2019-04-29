@@ -4,8 +4,9 @@
 
 package com.android.tools.r8.ir.desugar.annotations.version2;
 
-import static com.android.tools.r8.ir.desugar.annotations.CovariantReturnTypeAnnotationTransformerTest.CRTS_SIMPLE_NAME;
-import static com.android.tools.r8.ir.desugar.annotations.CovariantReturnTypeAnnotationTransformerTest.CRT_NAME;
+import static com.android.tools.r8.ir.desugar.annotations.CovariantReturnTypeAnnotationTransformerTest.CRTS_BINARY_NAME;
+import static com.android.tools.r8.ir.desugar.annotations.CovariantReturnTypeAnnotationTransformerTest.CRTS_INNER_NAME;
+import static com.android.tools.r8.ir.desugar.annotations.CovariantReturnTypeAnnotationTransformerTest.CRT_BINARY_NAME;
 import static com.android.tools.r8.ir.desugar.annotations.CovariantReturnTypeAnnotationTransformerTest.PACKAGE_NAME;
 
 import org.objectweb.asm.AnnotationVisitor;
@@ -31,9 +32,9 @@ public class CDump implements Opcodes {
     cw.visit(V1_8, ACC_PUBLIC + ACC_SUPER, PACKAGE_NAME + "/C", null, PACKAGE_NAME + "/B", null);
 
     cw.visitInnerClass(
-        CRT_NAME + "$" + CRTS_SIMPLE_NAME,
-        CRT_NAME,
-        CRTS_SIMPLE_NAME,
+        CRTS_BINARY_NAME,
+        CRT_BINARY_NAME,
+        CRTS_INNER_NAME,
         ACC_PUBLIC + ACC_STATIC + ACC_ANNOTATION + ACC_ABSTRACT + ACC_INTERFACE);
 
     {
@@ -48,17 +49,17 @@ public class CDump implements Opcodes {
     {
       mv = cw.visitMethod(ACC_PUBLIC, "method", "()L" + PACKAGE_NAME + "/A;", null, null);
       {
-        av0 = mv.visitAnnotation("L" + CRT_NAME + "$" + CRTS_SIMPLE_NAME + ";", false);
+        av0 = mv.visitAnnotation("L" + CRTS_BINARY_NAME + ";", false);
         {
           AnnotationVisitor av1 = av0.visitArray("value");
           {
-            AnnotationVisitor av2 = av1.visitAnnotation(null, "L" + CRT_NAME + ";");
+            AnnotationVisitor av2 = av1.visitAnnotation(null, "L" + CRT_BINARY_NAME + ";");
             av2.visit("returnType", Type.getType("L" + PACKAGE_NAME + "/B;"));
             av2.visit("presentAfter", new Integer(25));
             av2.visitEnd();
           }
           {
-            AnnotationVisitor av2 = av1.visitAnnotation(null, "L" + CRT_NAME + ";");
+            AnnotationVisitor av2 = av1.visitAnnotation(null, "L" + CRT_BINARY_NAME + ";");
             av2.visit("returnType", Type.getType("L" + PACKAGE_NAME + "/C;"));
             av2.visit("presentAfter", new Integer(28));
             av2.visitEnd();

@@ -262,6 +262,7 @@ public class InternalOptions {
   // Skipping min_api check and compiling an intermediate result intended for later merging.
   // Intermediate builds also emits or update synthesized classes mapping.
   public boolean intermediate = false;
+  public boolean readCompileTimeAnnotations = true;
   public List<String> logArgumentsFilter = ImmutableList.of();
 
   // Flag to turn on/off lambda class merging in R8.

@@ -248,8 +248,12 @@ public final class CovariantReturnTypeAnnotationTransformer {
   }
 
   private boolean isCovariantReturnTypeAnnotation(DexEncodedAnnotation annotation) {
-    return annotation.type == factory.annotationCovariantReturnType
-        || annotation.type == factory.annotationCovariantReturnTypes;
+    return isCovariantReturnTypeAnnotation(annotation.type, factory);
+  }
+
+  public static boolean isCovariantReturnTypeAnnotation(DexType type, DexItemFactory factory) {
+    return type == factory.annotationCovariantReturnType
+        || type == factory.annotationCovariantReturnTypes;
   }
 
   private static boolean hasVirtualMethodWithSignature(DexClass clazz, DexEncodedMethod method) {

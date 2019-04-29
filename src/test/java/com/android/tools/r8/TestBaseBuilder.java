@@ -9,9 +9,11 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public abstract class TestBaseBuilder<
         C extends BaseCommand,
@@ -64,6 +66,16 @@ public abstract class TestBaseBuilder<
   @Override
   public T addLibraryClasses(Collection<Class<?>> classes) {
     builder.addLibraryResourceProvider(ClassFileResourceProviderFromClasses(classes));
+    return self();
+  }
+
+  public T addMainDexListClasses(Class<?>... classes) {
+    return addMainDexListClasses(Arrays.asList(classes));
+  }
+
+  public T addMainDexListClasses(Collection<Class<?>> classes) {
+    builder.addMainDexClasses(
+        classes.stream().map(Class::getTypeName).collect(Collectors.toList()));
     return self();
   }
 

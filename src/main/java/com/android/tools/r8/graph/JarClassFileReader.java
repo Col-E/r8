@@ -27,6 +27,7 @@ import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.DexValue.DexValueShort;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.DexValue.DexValueType;
+import com.android.tools.r8.ir.desugar.CovariantReturnTypeAnnotationTransformer;
 import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
@@ -151,10 +152,31 @@ public class JarClassFileReader {
       List<DexAnnotation> annotations,
       JarApplicationReader application) {
     assert annotations != null;
-    int visiblity = visible ? DexAnnotation.VISIBILITY_RUNTIME : DexAnnotation.VISIBILITY_BUILD;
-    return new CreateAnnotationVisitor(application, (names, values) ->
-        annotations.add(new DexAnnotation(visiblity,
-            createEncodedAnnotation(desc, names, values, application))));
+    if (visible || retainCompileTimeAnnotation(desc, application)) {
+      int visiblity = visible ? DexAnnotation.VISIBILITY_RUNTIME : DexAnnotation.VISIBILITY_BUILD;
+      return new CreateAnnotationVisitor(
+          application,
+          (names, values) ->
+              annotations.add(
+                  new DexAnnotation(
+                      visiblity, createEncodedAnnotation(desc, names, values, application))));
+    }
+    return null;
+  }
+
+  private static boolean retainCompileTimeAnnotation(
+      String desc, JarApplicationReader application) {
+    if (application.options.readCompileTimeAnnotations) {
+      return true;
+    }
+    if (application.options.processCovariantReturnTypeAnnotations) {
+      // @CovariantReturnType annotations are processed by CovariantReturnTypeAnnotationTransformer,
+      // they thus need to be read here and will then be removed as part of the processing.
+      DexType type = application.getTypeFromDescriptor(desc);
+      return CovariantReturnTypeAnnotationTransformer.isCovariantReturnTypeAnnotation(
+          type, application.options.itemFactory);
+    }
+    return false;
   }
 
   private static DexEncodedAnnotation createEncodedAnnotation(String desc,
