@@ -663,6 +663,47 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     return builder.build();
   }
 
+  public DexEncodedMethod toStaticForwardingBridge(
+      DexClass holder, DexDefinitionSupplier definitions, int id) {
+    assert accessFlags.isPrivate()
+        : "Expected to create bridge for private method as part of nest-based access desugaring";
+    DexString newName =
+        definitions.dexItemFactory().createString("access$" + String.format("%03d", id));
+    DexProto proto =
+        accessFlags.isStatic()
+            ? method.proto
+            : definitions.dexItemFactory().createExtendedProto(holder.type, method.proto);
+    DexMethod newMethod = definitions.dexItemFactory().createMethod(holder.type, proto, newName);
+    Builder builder = builder(this);
+    builder.setMethod(newMethod);
+    builder.setCode(
+        new SynthesizedCode(
+            callerPosition ->
+                new ForwardMethodSourceCode(
+                    null,
+                    newMethod,
+                    newMethod,
+                    accessFlags.isStatic() ? null : method.holder,
+                    method,
+                    accessFlags.isStatic() ? Invoke.Type.STATIC : Invoke.Type.DIRECT,
+                    callerPosition,
+                    holder.isInterface()),
+            registry -> {
+              if (accessFlags.isStatic()) {
+                registry.registerInvokeStatic(method);
+              } else {
+                registry.registerInvokeDirect(method);
+              }
+            }));
+    builder.accessFlags.setSynthetic();
+    builder.accessFlags.setStatic();
+    builder.accessFlags.unsetPrivate();
+    if (holder.isInterface()) {
+      builder.accessFlags.setPublic();
+    }
+    return builder.build();
+  }
+
   public DexEncodedMethod toForwardingMethod(DexClass holder, DexDefinitionSupplier definitions) {
     checkIfObsolete();
     // Clear the final flag, as this method is now overwritten. Do this before creating the builder

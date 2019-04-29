@@ -949,7 +949,10 @@ public class VerticalClassMerger {
                           && !methodPoolForTarget.hasSeen(
                               MethodSignatureEquivalence.get().wrap(method)),
                   Rename.ALWAYS,
-                  getStaticProto(virtualMethod.method.holder, virtualMethod.method.proto));
+                  appView
+                      .dexItemFactory()
+                      .createExtendedProto(
+                          virtualMethod.method.holder, virtualMethod.method.proto));
           makeStatic(resultingDirectMethod);
 
           // Update method pool collection now that we are adding a new public method.
@@ -1400,13 +1403,6 @@ public class VerticalClassMerger {
     method.accessFlags.unsetPublic();
     method.accessFlags.unsetProtected();
     method.accessFlags.setPrivate();
-  }
-
-  private DexProto getStaticProto(DexType receiverType, DexProto proto) {
-    DexType[] parameterTypes = new DexType[proto.parameters.size() + 1];
-    parameterTypes[0] = receiverType;
-    System.arraycopy(proto.parameters.values, 0, parameterTypes, 1, proto.parameters.size());
-    return appView.dexItemFactory().createProto(proto.returnType, parameterTypes);
   }
 
   private class TreeFixer {

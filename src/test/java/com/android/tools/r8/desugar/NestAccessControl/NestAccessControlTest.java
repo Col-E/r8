@@ -6,7 +6,6 @@ package com.android.tools.r8.desugar.NestAccessControl;
 
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static org.hamcrest.core.StringContains.containsString;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -85,7 +84,14 @@ public class NestAccessControlTest extends TestBase {
 
   private static D8TestCompileResult compileD8(AndroidApiLevel minApi)
       throws CompilationFailedException {
-    return testForD8(getStaticTemp()).addProgramFiles(JAR).setMinApi(minApi).compile();
+    return testForD8(getStaticTemp())
+        .addProgramFiles(JAR)
+        .addOptionsModification(
+            options -> {
+              options.enableNestBasedAccessDesugaring = true;
+            })
+        .setMinApi(minApi)
+        .compile();
   }
 
   private static R8TestCompileResult compileR8(Backend backend, AndroidApiLevel minApi)
@@ -94,6 +100,10 @@ public class NestAccessControlTest extends TestBase {
         .noTreeShaking()
         .noMinification()
         .addKeepAllAttributes()
+        .addOptionsModification(
+            options -> {
+              options.enableNestBasedAccessDesugaring = true;
+            })
         .addProgramFiles(JAR)
         .setMinApi(minApi)
         .compile();
@@ -110,11 +120,11 @@ public class NestAccessControlTest extends TestBase {
         .build();
   }
 
-  private static String getMainClass(String id){
+  private static String getMainClass(String id) {
     return PACKAGE_NAME + MAIN_CLASSES.get(id);
   }
 
-  private static String getExpectedResult(String id){
+  private static String getExpectedResult(String id) {
     return EXPECTED_RESULTS.get(id);
   }
 
@@ -138,9 +148,9 @@ public class NestAccessControlTest extends TestBase {
       if (d8Success) {
         run.assertSuccessWithOutput(getExpectedResult(id));
       } else {
-        if (parameters.isDexRuntime() &&
-            (parameters.getRuntime().asDex().getVm().getVersion() == Version.V6_0_1 ||
-                parameters.getRuntime().asDex().getVm().getVersion() == Version.V5_1_1)) {
+        if (parameters.isDexRuntime()
+            && (parameters.getRuntime().asDex().getVm().getVersion() == Version.V6_0_1
+                || parameters.getRuntime().asDex().getVm().getVersion() == Version.V5_1_1)) {
           run.assertFailure(); // different message, same error
         } else {
           run.assertFailureWithErrorThatMatches(containsString("IllegalAccessError"));
@@ -166,11 +176,13 @@ public class NestAccessControlTest extends TestBase {
             .run(parameters.getRuntime(), getMainClass(id));
     if (r8Success) {
       result.assertSuccessWithOutput(getExpectedResult(id));
-      result.inspect(NestAccessControlTest::checkNestMateAttributes);
+      if (parameters.isCfRuntime()) {
+        result.inspect(NestAccessControlTest::checkNestMateAttributes);
+      }
     } else {
-      if (parameters.isDexRuntime() &&
-          (parameters.getRuntime().asDex().getVm().getVersion() == Version.V6_0_1 ||
-              parameters.getRuntime().asDex().getVm().getVersion() == Version.V5_1_1)) {
+      if (parameters.isDexRuntime()
+          && (parameters.getRuntime().asDex().getVm().getVersion() == Version.V6_0_1
+              || parameters.getRuntime().asDex().getVm().getVersion() == Version.V5_1_1)) {
         result.assertFailure(); // different message, same error
       } else {
         result.assertFailureWithErrorThatMatches(containsString("IllegalAccessError"));
@@ -181,7 +193,7 @@ public class NestAccessControlTest extends TestBase {
   @Test
   public void testMethodsAccessR8() throws Exception {
     // TODO(b/130529390): As features are implemented, set success to true in each line.
-    testR8("methods", parameters.isCfRuntime());
+    testR8("methods", true);
     testR8("fields", parameters.isCfRuntime());
     testR8("constructors", parameters.isCfRuntime());
     testR8("anonymous", parameters.isCfRuntime());
@@ -189,7 +201,8 @@ public class NestAccessControlTest extends TestBase {
   }
 
   private static void checkNestMateAttributes(CodeInspector inspector) {
-    assertEquals(NUMBER_OF_TEST_CLASSES, inspector.allClasses().size());
+    // Interface method desugaring may add extra classes
+    assertTrue(NUMBER_OF_TEST_CLASSES <= inspector.allClasses().size());
     ImmutableList<String> outerClassNames = MAIN_CLASSES.values().asList();
     inspector.forAllClasses(
         classSubject -> {

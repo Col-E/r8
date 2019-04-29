@@ -24,6 +24,7 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.optimize.EnumOrdinalMapCollector;
 import com.android.tools.r8.ir.optimize.MethodPoolCollection;
 import com.android.tools.r8.ir.optimize.SwitchMapCollector;
@@ -419,6 +420,18 @@ public class R8 {
 
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
       appView.setGraphLense(new MemberRebindingAnalysis(appViewWithLiveness).run());
+      if (options.enableNestBasedAccessDesugaring) {
+        timing.begin("NestBasedAccessDesugaring");
+        NestBasedAccessDesugaring analyzer = new NestBasedAccessDesugaring(appViewWithLiveness);
+        boolean changed = appView.setGraphLense(analyzer.run());
+        if (changed) {
+          appViewWithLiveness.setAppInfo(
+              appViewWithLiveness
+                  .appInfo()
+                  .rewrittenWithLense(application.asDirect(), appView.graphLense()));
+        }
+        timing.end();
+      }
       if (options.enableHorizontalClassMerging) {
         timing.begin("HorizontalStaticClassMerger");
         StaticClassMerger staticClassMerger =

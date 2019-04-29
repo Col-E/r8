@@ -269,6 +269,8 @@ public class InternalOptions {
   public boolean enableLambdaMerging = false;
   // Flag to turn on/off desugaring in D8/R8.
   public boolean enableDesugaring = true;
+  // Flag to turn on/off JDK11+ nest-access control
+  public boolean enableNestBasedAccessDesugaring = false;
   // Defines interface method rewriter behavior.
   public OffOrAuto interfaceMethodDesugaring = OffOrAuto.Auto;
   // Defines try-with-resources rewriter behavior.
@@ -657,6 +659,10 @@ public class InternalOptions {
 
   public boolean canUseDefaultAndStaticInterfaceMethods() {
     return isGeneratingClassFiles() || hasMinApi(AndroidApiLevel.N);
+  }
+
+  public boolean canUseNestBasedAccess() {
+    return isGeneratingClassFiles();
   }
 
   public boolean canLeaveStaticInterfaceMethodInvokes() {
