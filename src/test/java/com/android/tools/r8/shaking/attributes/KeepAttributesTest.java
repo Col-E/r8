@@ -1,7 +1,7 @@
 // Copyright (c) 2018, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package com.android.tools.r8.shaking;
+package com.android.tools.r8.shaking.attributes;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -10,7 +10,9 @@ import static org.junit.Assert.fail;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.shaking.forceproguardcompatibility.keepattributes.TestKeepAttributes;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
@@ -28,14 +30,14 @@ public class KeepAttributesTest extends TestBase {
   private static final Class CLASS = TestKeepAttributes.class;
 
   @Parameters(name = "{0}")
-  public static Backend[] parameters() {
-    return ToolHelper.getBackends();
+  public static TestParametersCollection parameters() {
+    return getTestParameters().withAllRuntimes().build();
   }
 
-  private final Backend backend;
+  private final TestParameters parameters;
 
-  public KeepAttributesTest(Backend backend) {
-    this.backend = backend;
+  public KeepAttributesTest(TestParameters parameters) {
+    this.parameters = parameters;
   }
 
   @Test
@@ -104,12 +106,13 @@ public class KeepAttributesTest extends TestBase {
 
   private MethodSubject compileRunAndGetMain(List<String> keepRules, CompilationMode mode)
       throws CompilationFailedException, IOException, ExecutionException {
-    return testForR8(backend)
+    return testForR8(parameters.getBackend())
         .setMode(mode)
         .addProgramClassesAndInnerClasses(CLASS)
         .addKeepAllClassesRule()
         .addKeepRules(keepRules)
-        .run(CLASS)
+        .setMinApi(parameters.getRuntime())
+        .run(parameters.getRuntime(), CLASS)
         .inspector()
         .clazz(CLASS)
         .mainMethod();

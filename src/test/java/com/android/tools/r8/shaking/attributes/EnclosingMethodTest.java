@@ -1,7 +1,7 @@
 // Copyright (c) 2018, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package com.android.tools.r8.shaking;
+package com.android.tools.r8.shaking.attributes;
 
 import static org.junit.Assume.assumeTrue;
 
@@ -47,7 +47,7 @@ public class EnclosingMethodTest extends TestBase {
   private Collection<Path> classPaths;
   private static final String JAVA_OUTPUT = "-Returned-null-" + System.lineSeparator();
   private static final String OUTPUT_WITH_SHRUNK_ATTRIBUTES =
-      "com.android.tools.r8.shaking.GetNameClass$1" + System.lineSeparator();
+      GetNameClass.class.getName() + "$1" + System.lineSeparator();
   private static final Class<?> MAIN = GetNameMain.class;
 
   @Parameterized.Parameters(name = "{0} minification: {1}")

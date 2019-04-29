@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.shaking.innerclassesenclosingmethod;
+package com.android.tools.r8.shaking.attributes;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isMemberClass;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
@@ -13,7 +13,7 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestRunResult;
-import com.android.tools.r8.shaking.innerclassesenclosingmethod.testclasses.Outer;
+import com.android.tools.r8.shaking.attributes.testclasses.Outer;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
