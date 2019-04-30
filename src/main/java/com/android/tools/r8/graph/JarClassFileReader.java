@@ -169,10 +169,14 @@ public class JarClassFileReader {
     if (application.options.readCompileTimeAnnotations) {
       return true;
     }
+    DexType type = application.getTypeFromDescriptor(desc);
+    if (type == application.options.itemFactory.dalvikFastNativeAnnotation
+        || type == application.options.itemFactory.dalvikCriticalNativeAnnotation) {
+      return true;
+    }
     if (application.options.processCovariantReturnTypeAnnotations) {
       // @CovariantReturnType annotations are processed by CovariantReturnTypeAnnotationTransformer,
       // they thus need to be read here and will then be removed as part of the processing.
-      DexType type = application.getTypeFromDescriptor(desc);
       return CovariantReturnTypeAnnotationTransformer.isCovariantReturnTypeAnnotation(
           type, application.options.itemFactory);
     }

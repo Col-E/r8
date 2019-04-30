@@ -326,6 +326,12 @@ public class DexItemFactory {
   public final DexType annotationReachabilitySensitive =
       createType("Ldalvik/annotation/optimization/ReachabilitySensitive;");
 
+  // Runtime affecting yet class-retained annotations.
+  public final DexType dalvikFastNativeAnnotation =
+      createType("Ldalvik/annotation/optimization/FastNative;");
+  public final DexType dalvikCriticalNativeAnnotation =
+      createType("Ldalvik/annotation/optimization/CriticalNative;");
+
   private static final String METAFACTORY_METHOD_NAME = "metafactory";
   private static final String METAFACTORY_ALT_METHOD_NAME = "altMetafactory";
 
