@@ -69,7 +69,7 @@ public class RootSetBuilder {
   private final LinkedHashMap<DexReference, DexReference> reasonAsked = new LinkedHashMap<>();
   private final Set<ProguardConfigurationRule> rulesThatUseExtendsOrImplementsWrong =
       Sets.newIdentityHashSet();
-  private final Set<DexReference> checkDiscarded = Sets.newIdentityHashSet();
+  private final LinkedHashMap<DexReference, DexReference> checkDiscarded = new LinkedHashMap<>();
   private final Set<DexMethod> alwaysInline = Sets.newIdentityHashSet();
   private final Set<DexMethod> forceInline = Sets.newIdentityHashSet();
   private final Set<DexMethod> neverInline = Sets.newIdentityHashSet();
@@ -264,7 +264,7 @@ public class RootSetBuilder {
         noOptimization,
         noObfuscation,
         ImmutableList.copyOf(reasonAsked.values()),
-        checkDiscarded,
+        ImmutableList.copyOf(checkDiscarded.values()),
         alwaysInline,
         forceInline,
         neverInline,
@@ -952,7 +952,7 @@ public class RootSetBuilder {
     } else if (context instanceof ProguardAssumeValuesRule) {
       assumedValues.put(item.toReference(), rule);
     } else if (context instanceof ProguardCheckDiscardRule) {
-      checkDiscarded.add(item.toReference());
+      checkDiscarded.computeIfAbsent(item.toReference(), i -> i);
     } else if (context instanceof InlineRule) {
       if (item.isDexEncodedMethod()) {
         switch (((InlineRule) context).getType()) {
@@ -1032,7 +1032,7 @@ public class RootSetBuilder {
     public final Set<DexReference> noOptimization;
     private final Set<DexReference> noObfuscation;
     public final ImmutableList<DexReference> reasonAsked;
-    public final Set<DexReference> checkDiscarded;
+    public final ImmutableList<DexReference> checkDiscarded;
     public final Set<DexMethod> alwaysInline;
     public final Set<DexMethod> forceInline;
     public final Set<DexMethod> neverInline;
@@ -1054,7 +1054,7 @@ public class RootSetBuilder {
         Set<DexReference> noOptimization,
         Set<DexReference> noObfuscation,
         ImmutableList<DexReference> reasonAsked,
-        Set<DexReference> checkDiscarded,
+        ImmutableList<DexReference> checkDiscarded,
         Set<DexMethod> alwaysInline,
         Set<DexMethod> forceInline,
         Set<DexMethod> neverInline,
@@ -1073,7 +1073,7 @@ public class RootSetBuilder {
       this.noOptimization = noOptimization;
       this.noObfuscation = noObfuscation;
       this.reasonAsked = reasonAsked;
-      this.checkDiscarded = Collections.unmodifiableSet(checkDiscarded);
+      this.checkDiscarded = checkDiscarded;
       this.alwaysInline = Collections.unmodifiableSet(alwaysInline);
       this.forceInline = Collections.unmodifiableSet(forceInline);
       this.neverInline = neverInline;

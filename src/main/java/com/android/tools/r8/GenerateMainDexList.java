@@ -9,9 +9,9 @@ import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
-import com.android.tools.r8.graph.DexReference;
+import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.shaking.DiscardedChecker;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.shaking.MainDexListBuilder;
@@ -24,6 +24,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -73,16 +74,28 @@ public class GenerateMainDexList {
         options.mainDexListConsumer.accept(String.join("\n", result), options.reporter);
       }
 
-      if (!mainDexRootSet.checkDiscarded.isEmpty()) {
-        new DiscardedChecker(mainDexRootSet, mainDexClasses.getClasses(), appView).run();
-      }
-      // Print -whyareyoukeeping results if any.
-      if (whyAreYouKeepingConsumer != null) {
-        for (DexReference reference : mainDexRootSet.reasonAsked) {
-          whyAreYouKeepingConsumer.printWhyAreYouKeeping(
-              enqueuer.getGraphNode(reference), System.out);
-        }
-      }
+      R8.processWhyAreYouKeepingAndCheckDiscarded(
+          mainDexRootSet,
+          () -> {
+            ArrayList<DexProgramClass> classes = new ArrayList<>();
+            // TODO(b/131668850): This is not a deterministic order!
+            mainDexClasses
+                .getClasses()
+                .forEach(
+                    type -> {
+                      DexClass clazz = appView.definitionFor(type);
+                      assert clazz.isProgramClass();
+                      classes.add(clazz.asProgramClass());
+                    });
+            return classes;
+          },
+          whyAreYouKeepingConsumer,
+          appView,
+          enqueuer,
+          true,
+          options,
+          timing,
+          executor);
 
       return result;
     } catch (ExecutionException e) {

@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.AppliedGraphLens;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
@@ -94,6 +95,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Supplier;
 
 /**
  * The R8 compiler.
@@ -564,15 +566,30 @@ public class R8 {
             enqueuer.traceMainDex(mainDexRootSet, executorService, timing);
         // Calculate the automatic main dex list according to legacy multidex constraints.
         mainDexClasses = new MainDexListBuilder(mainDexBaseClasses, application).run();
-        if (!mainDexRootSet.checkDiscarded.isEmpty()) {
-          new DiscardedChecker(mainDexRootSet, mainDexClasses.getClasses(), appView).run();
-        }
-        if (whyAreYouKeepingConsumer != null) {
-          for (DexReference reference : mainDexRootSet.reasonAsked) {
-            whyAreYouKeepingConsumer.printWhyAreYouKeeping(
-                enqueuer.getGraphNode(reference), System.out);
-          }
-        }
+        final MainDexClasses finalMainDexClasses = mainDexClasses;
+
+        processWhyAreYouKeepingAndCheckDiscarded(
+            mainDexRootSet,
+            () -> {
+              ArrayList<DexProgramClass> classes = new ArrayList<>();
+              // TODO(b/131668850): This is not a deterministic order!
+              finalMainDexClasses
+                  .getClasses()
+                  .forEach(
+                      type -> {
+                        DexClass clazz = appView.definitionFor(type);
+                        assert clazz.isProgramClass();
+                        classes.add(clazz.asProgramClass());
+                      });
+              return classes;
+            },
+            whyAreYouKeepingConsumer,
+            appView,
+            enqueuer,
+            true,
+            options,
+            timing,
+            executorService);
       }
 
       appView.setAppInfo(new AppInfoWithSubtyping(application));
@@ -610,13 +627,17 @@ public class R8 {
                         application,
                         CollectionUtils.mergeSets(prunedTypes, pruner.getRemovedClasses())));
 
-            // Print reasons on the application after pruning, so that we reflect the actual result.
-            if (whyAreYouKeepingConsumer != null) {
-              for (DexReference reference : appView.rootSet().reasonAsked) {
-                whyAreYouKeepingConsumer.printWhyAreYouKeeping(
-                    enqueuer.getGraphNode(reference), System.out);
-              }
-            }
+            processWhyAreYouKeepingAndCheckDiscarded(
+                appView.rootSet(),
+                () -> appView.appInfo().app().classesWithDeterministicOrder(),
+                whyAreYouKeepingConsumer,
+                appView,
+                enqueuer,
+                false,
+                options,
+                timing,
+                executorService);
+
             // Remove annotations that refer to types that no longer exist.
             assert classesToRetainInnerClassAttributeFor != null;
             new AnnotationRemover(appView.withLiveness(), classesToRetainInnerClassAttributeFor)
@@ -634,11 +655,6 @@ public class R8 {
       // Add automatic main dex classes to an eventual manual list of classes.
       if (!options.mainDexKeepRules.isEmpty()) {
         application = application.builder().addToMainDexList(mainDexClasses.getClasses()).build();
-      }
-
-      // Only perform discard-checking if tree-shaking is turned on.
-      if (options.isShrinking() && !appView.rootSet().checkDiscarded.isEmpty()) {
-        new DiscardedChecker(appView.rootSet(), application, options).run();
       }
 
       // Perform minification.
@@ -738,6 +754,57 @@ public class R8 {
         timing.report();
       }
     }
+  }
+
+  static void processWhyAreYouKeepingAndCheckDiscarded(
+      RootSet rootSet,
+      Supplier<Iterable<DexProgramClass>> classes,
+      WhyAreYouKeepingConsumer whyAreYouKeepingConsumer,
+      AppView<? extends AppInfoWithSubtyping> appView,
+      Enqueuer enqueuer,
+      boolean forMainDex,
+      InternalOptions options,
+      Timing timing,
+      ExecutorService executorService)
+      throws ExecutionException {
+    if (whyAreYouKeepingConsumer != null) {
+      for (DexReference reference : rootSet.reasonAsked) {
+        whyAreYouKeepingConsumer.printWhyAreYouKeeping(
+            enqueuer.getGraphNode(reference), System.out);
+      }
+    }
+    if (rootSet.checkDiscarded.isEmpty()) {
+      return;
+    }
+    List<DexDefinition> failed = new DiscardedChecker(rootSet, classes.get()).run();
+    if (failed.isEmpty()) {
+      return;
+    }
+    // If there is no kept-graph info, re-run the enqueueing to compute it.
+    if (whyAreYouKeepingConsumer == null) {
+      whyAreYouKeepingConsumer = new WhyAreYouKeepingConsumer(null);
+      enqueuer = new Enqueuer(appView, options, whyAreYouKeepingConsumer);
+      if (forMainDex) {
+        enqueuer.traceMainDex(rootSet, executorService, timing);
+      } else {
+        enqueuer.traceApplication(
+            rootSet,
+            options.getProguardConfiguration().getDontWarnPatterns(),
+            executorService,
+            timing);
+      }
+    }
+    for (DexDefinition definition : failed) {
+      if (!failed.isEmpty()) {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        whyAreYouKeepingConsumer.printWhyAreYouKeeping(
+            enqueuer.getGraphNode(definition.toReference()), new PrintStream(baos));
+        options.reporter.info(
+            new StringDiagnostic(
+                "Item " + definition.toSourceString() + " was not discarded.\n" + baos.toString()));
+      }
+    }
+    throw new CompilationError("Discard checks failed.");
   }
 
   private void computeKotlinInfoForProgramClasses(DexApplication application, AppView<?> appView) {

@@ -3,62 +3,40 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
-import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexApplication;
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
-import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.StringDiagnostic;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 public class DiscardedChecker {
 
   private final Set<DexReference> checkDiscarded;
-  private final List<DexProgramClass> classes;
-  private boolean fail = false;
-  private final InternalOptions options;
+  private final Iterable<DexProgramClass> classes;
 
-  public DiscardedChecker(RootSet rootSet, DexApplication application, InternalOptions options) {
-    this.checkDiscarded = rootSet.checkDiscarded;
-    this.classes = application.classes();
-    this.options = options;
+  public DiscardedChecker(RootSet rootSet, Iterable<DexProgramClass> classes) {
+    this.checkDiscarded = new HashSet<>(rootSet.checkDiscarded);
+    this.classes = classes;
   }
 
-  public DiscardedChecker(RootSet rootSet, Set<DexType> types, AppView<?> appView) {
-    this.checkDiscarded = rootSet.checkDiscarded;
-    this.classes = new ArrayList<>();
-    types.forEach(
-        type -> {
-          DexClass clazz = appView.definitionFor(type);
-          assert clazz.isProgramClass();
-          this.classes.add(clazz.asProgramClass());
-        });
-    this.options = appView.options();
-  }
-
-  public void run() {
+  public List<DexDefinition> run() {
+    List<DexDefinition> failed = new ArrayList<>(checkDiscarded.size());
+    // TODO(b/131668850): Lookup the definition based on the reference.
     for (DexProgramClass clazz : classes) {
-      checkItem(clazz);
-      clazz.forEachMethod(this::checkItem);
-      clazz.forEachField(this::checkItem);
+      checkItem(clazz, failed);
+      clazz.forEachMethod(method -> checkItem(method, failed));
+      clazz.forEachField(field -> checkItem(field, failed));
     }
-    if (fail) {
-      throw new CompilationError("Discard checks failed.");
-    }
+    return failed;
   }
 
-  private void checkItem(DexDefinition item) {
-    if (checkDiscarded.contains(item.toReference())) {
-      options.reporter.info(
-          new StringDiagnostic("Item " + item.toSourceString() + " was not discarded."));
-      fail = true;
+  private void checkItem(DexDefinition item, List<DexDefinition> failed) {
+    DexReference reference = item.toReference();
+    if (checkDiscarded.contains(reference)) {
+      failed.add(item);
     }
   }
 }
