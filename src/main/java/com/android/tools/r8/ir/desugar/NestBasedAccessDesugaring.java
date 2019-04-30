@@ -8,10 +8,8 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.graph.UseRegistry;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -20,28 +18,26 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class NestBasedAccessDesugaring {
+public abstract class NestBasedAccessDesugaring {
 
-  private final AppView<AppInfoWithLiveness> appView;
-  private final NestedPrivateMethodLense.Builder builder;
+  private final AppView<?> appView;
   private final HashMap<DexEncodedMethod, DexEncodedMethod> bridges = new HashMap<>();
   private final HashMap<DexEncodedMethod, DexProgramClass> deferredBridgesToAdd = new HashMap<>();
 
-  public NestBasedAccessDesugaring(AppView<AppInfoWithLiveness> appView) {
+  public NestBasedAccessDesugaring(AppView<?> appView) {
     this.appView = appView;
-    this.builder = NestedPrivateMethodLense.builder(appView);
   }
 
-  public GraphLense run() {
-    if (appView.options().canUseNestBasedAccess()) {
-      return appView.graphLense();
-    }
+  public AppView<?> getAppView() {
+    return appView;
+  }
+
+  public void analyzeNests() {
     // TODO(b/130529338) we don't need to compute a list with all live nests.
     // we just need to iterate all live nests.
     List<List<DexType>> liveNests = computeLiveNests();
     processLiveNests(liveNests);
     addDeferredBridges();
-    return builder.build(appView.graphLense());
   }
 
   private void addDeferredBridges() {
@@ -142,6 +138,8 @@ public class NestBasedAccessDesugaring {
             + " to be on program or class path for compilation to succeed.");
   }
 
+  protected abstract void shouldRewriteCalls(DexMethod method, DexMethod bridge);
+
   private RuntimeException abortCompilationDueToBridgeRequiredOnLibraryClass(
       DexClass compiledClass, DexClass libraryClass) {
     throw new CompilationError(
@@ -193,7 +191,7 @@ public class NestBasedAccessDesugaring {
               });
       // In program classes, any access to nest mate private member needs to be rewritten.
       if (currentClass.isProgramClass()) {
-        builder.map(method, bridge.method);
+        shouldRewriteCalls(method, bridge.method);
       }
       return true;
     }

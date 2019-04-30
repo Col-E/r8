@@ -43,6 +43,7 @@ import com.android.tools.r8.ir.desugar.CovariantReturnTypeAnnotationTransformer;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.Java8MethodRewriter;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
+import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaringRewriter;
 import com.android.tools.r8.ir.desugar.StringConcatRewriter;
 import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
 import com.android.tools.r8.ir.optimize.ClassInitializerDefaultsOptimization;
@@ -116,6 +117,7 @@ public class IRConverter {
   private final ClassInitializerDefaultsOptimization classInitializerDefaultsOptimization;
   private final StringConcatRewriter stringConcatRewriter;
   private final LambdaRewriter lambdaRewriter;
+  private final NestBasedAccessDesugaringRewriter nestBasedAccessDesugaringRewriter;
   private final InterfaceMethodRewriter interfaceMethodRewriter;
   private final TwrCloseResourceRewriter twrCloseResourceRewriter;
   private final Java8MethodRewriter java8MethodRewriter;
@@ -216,6 +218,7 @@ public class IRConverter {
       this.typeChecker = new TypeChecker(appView.withLiveness());
       this.serviceLoaderRewriter =
           options.enableServiceLoaderRewriting ? new ServiceLoaderRewriter() : null;
+      this.nestBasedAccessDesugaringRewriter = null;
     } else {
       this.classInliner = null;
       this.classStaticizer = null;
@@ -228,6 +231,10 @@ public class IRConverter {
       this.uninstantiatedTypeOptimization = null;
       this.typeChecker = null;
       this.serviceLoaderRewriter = null;
+      this.nestBasedAccessDesugaringRewriter =
+          options.enableNestBasedAccessDesugaring
+              ? new NestBasedAccessDesugaringRewriter(appView)
+              : null;
     }
     this.deadCodeRemover = new DeadCodeRemover(appView, codeRewriter);
     this.idempotentFunctionCallCanonicalizer =
@@ -273,6 +280,12 @@ public class IRConverter {
       return lambdaRewriter.removeLambdaDeserializationMethods(appView.appInfo().classes());
     }
     return false;
+  }
+
+  private void analyzeNests() {
+    if (nestBasedAccessDesugaringRewriter != null) {
+      nestBasedAccessDesugaringRewriter.analyzeNests();
+    }
   }
 
   private void synthesizeLambdaClasses(Builder<?> builder, ExecutorService executorService)
@@ -331,6 +344,7 @@ public class IRConverter {
   public DexApplication convertToDex(DexApplication application, ExecutorService executor)
       throws ExecutionException {
     removeLambdaDeserializationMethods();
+    analyzeNests();
 
     timing.begin("IR conversion");
     convertClassesToDex(application.classes(), executor);
@@ -1021,6 +1035,13 @@ public class IRConverter {
     }
 
     previous = printMethod(code, "IR after class inlining (SSA)", previous);
+
+    if (nestBasedAccessDesugaringRewriter != null) {
+      nestBasedAccessDesugaringRewriter.rewriteNestBasedAccesses(method, code);
+      assert code.isConsistentSSA();
+    }
+
+    previous = printMethod(code, "IR after nest based access desugaring (SSA)", previous);
 
     if (interfaceMethodRewriter != null) {
       interfaceMethodRewriter.rewriteMethodReferences(method, code);

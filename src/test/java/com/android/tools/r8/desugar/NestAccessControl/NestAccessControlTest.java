@@ -162,7 +162,7 @@ public class NestAccessControlTest extends TestBase {
   @Test
   public void testJavaAndD8() throws Exception {
     // TODO(b/130529390): As features are implemented, set success to true in each line.
-    testJavaAndD8("methods", false);
+    testJavaAndD8("methods", true);
     testJavaAndD8("fields", false);
     testJavaAndD8("constructors", false);
     testJavaAndD8("anonymous", false);
