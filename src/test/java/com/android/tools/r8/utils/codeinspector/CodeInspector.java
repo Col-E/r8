@@ -95,7 +95,11 @@ public class CodeInspector {
       obfuscatedToOriginalMapping = null;
     }
     Timing timing = new Timing("CodeInspector");
-    InternalOptions options = runOptionsConsumer(optionsConsumer);
+    InternalOptions options = new InternalOptions();
+    options.enableCfFrontend = true;
+    if (optionsConsumer != null) {
+      optionsConsumer.accept(options);
+    }
     dexItemFactory = options.itemFactory;
     AndroidApp input = AndroidApp.builder().addProgramFiles(files).build();
     application = new ApplicationReader(input, options, timing).read();

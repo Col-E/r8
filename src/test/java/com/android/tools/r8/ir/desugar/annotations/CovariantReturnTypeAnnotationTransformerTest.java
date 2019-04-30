@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.desugar.annotations;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.AsmTestBase;
@@ -21,12 +20,8 @@ import org.junit.Test;
 
 public class CovariantReturnTypeAnnotationTransformerTest extends AsmTestBase {
   public static final String PACKAGE_NAME = "com/android/tools/r8/ir/desugar/annotations";
-  public static final String CRT_BINARY_NAME = "dalvik/annotation/codegen/CovariantReturnType";
-  public static final String CRTS_INNER_NAME = "CovariantReturnTypes";
-  public static final String CRTS_BINARY_NAME = CRT_BINARY_NAME + "$" + CRTS_INNER_NAME;
-
-  public static final String CRT_TYPE_NAME = CRT_BINARY_NAME.replace('/', '.');
-  public static final String CRTS_TYPE_NAME = CRT_BINARY_NAME.replace('/', '.');
+  public static final String CRT_NAME = "dalvik/annotation/codegen/CovariantReturnType";
+  public static final String CRTS_SIMPLE_NAME = "CovariantReturnTypes";
 
   @Test
   public void testVersion1WithClient1And2() throws Exception {
@@ -36,9 +31,6 @@ public class CovariantReturnTypeAnnotationTransformerTest extends AsmTestBase {
             ToolHelper.getClassAsBytes(A.class),
             ToolHelper.getClassAsBytes(B.class),
             ToolHelper.getClassAsBytes(C.class));
-
-    // Version 1 does not contain annotations.
-    checkPresenceOfCovariantAnnotations(input, false);
 
     // Version 1 of the library should always work.
     succeedsIndependentOfFlag(input, false);
@@ -52,9 +44,6 @@ public class CovariantReturnTypeAnnotationTransformerTest extends AsmTestBase {
             ToolHelper.getClassAsBytes(A.class),
             ToolHelper.getClassAsBytes(B.class),
             ToolHelper.getClassAsBytes(C.class));
-
-    // Version 1 does not contain annotations.
-    checkPresenceOfCovariantAnnotations(input, false);
 
     // There will be no methods with the signature "L.../B;->method()L.../B;" and
     // "L.../C;->method()L.../C;".
@@ -70,9 +59,6 @@ public class CovariantReturnTypeAnnotationTransformerTest extends AsmTestBase {
             com.android.tools.r8.ir.desugar.annotations.version2.BDump.dump(),
             com.android.tools.r8.ir.desugar.annotations.version2.CDump.dump());
 
-    // Version 2 contains annotations.
-    checkPresenceOfCovariantAnnotations(input, true);
-
     // Version 2 of the library should always work.
     succeedsIndependentOfFlag(input, true);
   }
@@ -85,9 +71,6 @@ public class CovariantReturnTypeAnnotationTransformerTest extends AsmTestBase {
             ToolHelper.getClassAsBytes(A.class),
             com.android.tools.r8.ir.desugar.annotations.version2.BDump.dump(),
             com.android.tools.r8.ir.desugar.annotations.version2.CDump.dump());
-
-    // Version 2 contains annotations.
-    checkPresenceOfCovariantAnnotations(input, true);
 
     // If CovariantReturnType annotations are processed, then synthetic methods with the signatures
     // "L.../B;->method()L.../B;" and "L.../C;->method()L.../C;" will be added by D8.
@@ -107,9 +90,6 @@ public class CovariantReturnTypeAnnotationTransformerTest extends AsmTestBase {
             com.android.tools.r8.ir.desugar.annotations.version3.BDump.dump(),
             com.android.tools.r8.ir.desugar.annotations.version3.CDump.dump());
 
-    // Version 3 does not contain annotations.
-    checkPresenceOfCovariantAnnotations(input, false);
-
     // Version 3 of the library should always work.
     succeedsIndependentOfFlag(input, false);
   }
@@ -122,9 +102,6 @@ public class CovariantReturnTypeAnnotationTransformerTest extends AsmTestBase {
             ToolHelper.getClassAsBytes(A.class),
             com.android.tools.r8.ir.desugar.annotations.version3.BDump.dump(),
             com.android.tools.r8.ir.desugar.annotations.version3.CDump.dump());
-
-    // Version 3 does not contain annotations.
-    checkPresenceOfCovariantAnnotations(input, false);
 
     // Version 3 of the library should always work with client 1.
     succeedsIndependentOfFlag(input, false);
@@ -139,14 +116,8 @@ public class CovariantReturnTypeAnnotationTransformerTest extends AsmTestBase {
             com.android.tools.r8.ir.desugar.annotations.version2.BDump.dump(),
             com.android.tools.r8.ir.desugar.annotations.version2.CDump.dump());
 
-    // Version 2 contains annotations.
-    checkPresenceOfCovariantAnnotations(input, true);
-
     AndroidApp output =
         compileWithD8(input, options -> options.processCovariantReturnTypeAnnotations = true);
-
-    // Compilation output does not contain annotations.
-    checkPresenceOfCovariantAnnotations(output, false);
 
     // Compilation will fail with a compilation error the second time if the implementation does
     // not remove the CovariantReturnType annotations properly during the first compilation.
@@ -158,8 +129,8 @@ public class CovariantReturnTypeAnnotationTransformerTest extends AsmTestBase {
     AndroidApp output =
         compileWithD8(input, options -> options.processCovariantReturnTypeAnnotations = option);
     String stdout = runOnArt(output, Client.class.getCanonicalName());
-    assertEquals(getExpectedOutput(), stdout);
-    checkPresenceOfCovariantAnnotations(output, false);
+    Assert.assertEquals(getExpectedOutput(), stdout);
+
     if (option && checkPresenceOfSyntheticMethods) {
       checkPresenceOfSyntheticMethods(output);
     }
@@ -168,7 +139,6 @@ public class CovariantReturnTypeAnnotationTransformerTest extends AsmTestBase {
   private void failsWithOption(AndroidApp input, boolean option) throws Exception {
     AndroidApp output =
         compileWithD8(input, options -> options.processCovariantReturnTypeAnnotations = option);
-    checkPresenceOfCovariantAnnotations(output, false);
     ToolHelper.ProcessResult result = runOnArtRaw(output, Client.class.getCanonicalName());
     assertThat(result.stderr, containsString("java.lang.NoSuchMethodError"));
   }
@@ -182,18 +152,6 @@ public class CovariantReturnTypeAnnotationTransformerTest extends AsmTestBase {
   private void failsIndependentOfFlag(AndroidApp input) throws Exception {
     failsWithOption(input, true);
     failsWithOption(input, false);
-  }
-
-  private void checkPresenceOfCovariantAnnotations(AndroidApp app, boolean expected)
-      throws Exception {
-    CodeInspector inspector = new CodeInspector(app);
-    assertEquals(
-        expected,
-        inspector.allClasses().stream()
-            .anyMatch(
-                clazz ->
-                    clazz.allMethods().stream()
-                        .anyMatch(method -> method.annotation(CRTS_TYPE_NAME).isPresent())));
   }
 
   private void checkPresenceOfSyntheticMethods(AndroidApp output) throws Exception {

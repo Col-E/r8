@@ -23,7 +23,7 @@ public class TestParametersBuilder {
       getAvailableRuntimes().collect(Collectors.toList());
 
   // Predicate describing which test parameters are applicable to the test.
-  // Built via the methods found below. Defaults to no applicable parameters, i.e., the emtpy set.
+  // Built via the methods found below. Default to no applicable parameters, i.e., the emtpy set.
   private Predicate<TestParameters> filter = param -> false;
 
   private TestParametersBuilder() {}
@@ -142,34 +142,11 @@ public class TestParametersBuilder {
    */
   private static final AndroidApiLevel lowestCompilerApiLevel = AndroidApiLevel.B;
 
-  private boolean enableApiLevels = false;
-
-  private Predicate<AndroidApiLevel> apiLevelFilter = param -> false;
-
-  private TestParametersBuilder withApiFilter(Predicate<AndroidApiLevel> filter) {
-    enableApiLevels = true;
-    apiLevelFilter = apiLevelFilter.or(filter);
-    return this;
-  }
+  private boolean enableAllApiLevels = false;
 
   public TestParametersBuilder withAllApiLevels() {
-    return withApiFilter(api -> true);
-  }
-
-  public TestParametersBuilder withApiLevelsStartingAtIncluding(AndroidApiLevel startInclusive) {
-    return withApiFilter(api -> startInclusive.getLevel() <= api.getLevel());
-  }
-
-  public TestParametersBuilder withApiLevelsStartingAtExcluding(AndroidApiLevel startExclusive) {
-    return withApiFilter(api -> startExclusive.getLevel() < api.getLevel());
-  }
-
-  public TestParametersBuilder withApiLevelsEndingAtInclusive(AndroidApiLevel endInclusive) {
-    return withApiFilter(api -> api.getLevel() <= endInclusive.getLevel());
-  }
-
-  public TestParametersBuilder withApiLevelsEndingAtExcluding(AndroidApiLevel endExclusive) {
-    return withApiFilter(api -> api.getLevel() < endExclusive.getLevel());
+    enableAllApiLevels = true;
+    return this;
   }
 
   public TestParametersCollection build() {
@@ -181,31 +158,15 @@ public class TestParametersBuilder {
   }
 
   public Stream<TestParameters> createParameters(TestRuntime runtime) {
-    if (!enableApiLevels || !runtime.isDex()) {
-      return Stream.of(new TestParameters(runtime));
-    }
-    List<AndroidApiLevel> sortedApiLevels =
-        Arrays.stream(AndroidApiLevel.values()).filter(apiLevelFilter).collect(Collectors.toList());
-    if (sortedApiLevels.isEmpty()) {
-      return Stream.of();
-    }
-    AndroidApiLevel vmLevel = runtime.asDex().getMinApiLevel();
-    AndroidApiLevel lowestApplicable = sortedApiLevels.get(sortedApiLevels.size() - 1);
-    if (vmLevel.getLevel() < lowestApplicable.getLevel()) {
-      return Stream.of();
-    }
-    if (sortedApiLevels.size() > 1) {
-      for (int i = 0; i < sortedApiLevels.size(); i++) {
-        AndroidApiLevel highestApplicable = sortedApiLevels.get(i);
-        if (highestApplicable.getLevel() <= vmLevel.getLevel()
-            && lowestApplicable != highestApplicable) {
-          return Stream.of(
-              new TestParameters(runtime, lowestApplicable),
-              new TestParameters(runtime, highestApplicable));
-        }
+    if (enableAllApiLevels && runtime.isDex()) {
+      AndroidApiLevel vmLevel = runtime.asDex().getMinApiLevel();
+      if (vmLevel != lowestCompilerApiLevel) {
+        return Stream.of(
+            new TestParameters(runtime, vmLevel),
+            new TestParameters(runtime, lowestCompilerApiLevel));
       }
     }
-    return Stream.of(new TestParameters(runtime, lowestApplicable));
+    return Stream.of(new TestParameters(runtime));
   }
 
   // Public method to check that the CF runtime coincides with the system runtime.

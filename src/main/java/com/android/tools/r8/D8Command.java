@@ -249,7 +249,6 @@ public final class D8Command extends BaseCompilerCommand {
     internal.minimalMainDex = internal.debug;
     internal.minApiLevel = getMinApiLevel();
     internal.intermediate = intermediate;
-    internal.readCompileTimeAnnotations = intermediate;
     // Assert and fixup defaults.
     assert !internal.isShrinking();
     assert !internal.isMinifying();
