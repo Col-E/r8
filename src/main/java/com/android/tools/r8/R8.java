@@ -659,7 +659,13 @@ public class R8 {
 
       // Perform minification.
       NamingLens namingLens;
-      if (options.getProguardConfiguration().hasApplyMappingFile()) {
+      if (options.configurationDebugging) {
+        if (options.getProguardConfiguration().hasApplyMappingFile() || options.isMinifying()) {
+          options.reporter.info(new StringDiagnostic(
+              "Build is not being obfuscated due to the use of -addconfigurationdebugging"));
+        }
+        namingLens = NamingLens.getIdentityLens();
+      } else if (options.getProguardConfiguration().hasApplyMappingFile()) {
         SeedMapper seedMapper =
             SeedMapper.seedMapperFromFile(
                 options.reporter, options.getProguardConfiguration().getApplyMappingFile());
@@ -697,7 +703,7 @@ public class R8 {
         return;
       }
 
-      // Remove unneeeded visibility bridges that have been inserted for member rebinding.
+      // Remove unneeded visibility bridges that have been inserted for member rebinding.
       // This can only be done if we have AppInfoWithLiveness.
       if (appView.appInfo().hasLiveness()) {
         ImmutableSet.Builder<DexMethod> unneededVisibilityBridgeMethods = ImmutableSet.builder();

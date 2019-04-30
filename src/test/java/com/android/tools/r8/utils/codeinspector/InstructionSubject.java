@@ -48,6 +48,8 @@ public interface InstructionSubject {
 
   boolean isConstString(String value, JumboStringMode jumboStringMode);
 
+  boolean isJumboString();
+
   String getConstString();
 
   boolean isConstClass();

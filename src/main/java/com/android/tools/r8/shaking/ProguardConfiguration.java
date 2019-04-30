@@ -68,6 +68,7 @@ public class ProguardConfiguration {
     private boolean forceProguardCompatibility = false;
     private boolean overloadAggressively;
     private boolean keepRuleSynthesisForRecompilation = false;
+    private boolean configurationDebugging = false;
 
     private Builder(DexItemFactory dexItemFactory, Reporter reporter) {
       this.dexItemFactory = dexItemFactory;
@@ -270,6 +271,10 @@ public class ProguardConfiguration {
       this.keepRuleSynthesisForRecompilation = true;
     }
 
+    public void setConfigurationDebugging(boolean configurationDebugging) {
+      this.configurationDebugging = configurationDebugging;
+    }
+
     /**
      * This synthesizes a set of keep rules that are necessary in order to be able to successfully
      * recompile the generated dex files with the same keep rules.
@@ -326,7 +331,8 @@ public class ProguardConfiguration {
               adaptClassStrings.build(),
               adaptResourceFilenames.build(),
               adaptResourceFileContents.build(),
-              keepDirectories.build());
+              keepDirectories.build(),
+              configurationDebugging);
 
       reporter.failIfPendingErrors();
 
@@ -393,6 +399,7 @@ public class ProguardConfiguration {
   private final ProguardPathFilter adaptResourceFilenames;
   private final ProguardPathFilter adaptResourceFileContents;
   private final ProguardPathFilter keepDirectories;
+  private final boolean configurationDebugging;
 
   private ProguardConfiguration(
       String parsedConfiguration,
@@ -430,7 +437,8 @@ public class ProguardConfiguration {
       ProguardClassFilter adaptClassStrings,
       ProguardPathFilter adaptResourceFilenames,
       ProguardPathFilter adaptResourceFileContents,
-      ProguardPathFilter keepDirectories) {
+      ProguardPathFilter keepDirectories,
+      boolean configurationDebugging) {
     this.parsedConfiguration = parsedConfiguration;
     this.dexItemFactory = factory;
     this.injars = ImmutableList.copyOf(injars);
@@ -467,6 +475,7 @@ public class ProguardConfiguration {
     this.adaptResourceFilenames = adaptResourceFilenames;
     this.adaptResourceFileContents = adaptResourceFileContents;
     this.keepDirectories = keepDirectories;
+    this.configurationDebugging = configurationDebugging;
   }
 
   /**
@@ -623,6 +632,10 @@ public class ProguardConfiguration {
 
   public Path getSeedFile() {
     return seedFile;
+  }
+
+  public boolean isConfigurationDebugging() {
+    return configurationDebugging;
   }
 
   @Override

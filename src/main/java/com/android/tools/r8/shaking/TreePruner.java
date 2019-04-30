@@ -17,7 +17,6 @@ import com.android.tools.r8.graph.KeyedDexItem;
 import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -47,14 +46,6 @@ public class TreePruner {
 
   public DexApplication run() {
     application.timing.begin("Pruning application...");
-    InternalOptions options = appView.options();
-    if (options.debugKeepRules && options.isShrinking()) {
-      options.reporter.info(
-          new StringDiagnostic(
-              "Debugging keep rules on a minified build might yield broken builds, as "
-                  + "minification also depends on the used keep rules. We recommend using "
-                  + "--skip-minification."));
-    }
     DexApplication result;
     try {
       result = removeUnused(application).appendDeadCode(usagePrinter.toStringContent()).build();
@@ -74,6 +65,11 @@ public class TreePruner {
     InternalOptions options = appView.options();
     List<DexProgramClass> newClasses = new ArrayList<>();
     for (DexProgramClass clazz : classes) {
+      if (options.configurationDebugging) {
+        newClasses.add(clazz);
+        pruneMembersAndAttributes(clazz);
+        continue;
+      }
       if (!appInfo.liveTypes.contains(clazz.type)) {
         // The class is completely unused and we can remove it.
         if (Log.ENABLED) {
@@ -84,8 +80,7 @@ public class TreePruner {
       } else {
         newClasses.add(clazz);
         if (!appInfo.instantiatedTypes.contains(clazz.type)
-            && !options.forceProguardCompatibility
-            && (!options.debugKeepRules || !clazz.hasDefaultInitializer())) {
+            && !options.forceProguardCompatibility) {
           // The class is only needed as a type but never instantiated. Make it abstract to reflect
           // this.
           if (clazz.accessFlags.isFinal()) {
@@ -98,44 +93,47 @@ public class TreePruner {
           }
           clazz.accessFlags.setAbstract();
         }
-        // The class is used and must be kept. Remove the unused fields and methods from
-        // the class.
-        usagePrinter.visiting(clazz);
-        DexEncodedMethod[] reachableDirectMethods = reachableMethods(clazz.directMethods(), clazz);
-        if (reachableDirectMethods != null) {
-          clazz.setDirectMethods(reachableDirectMethods);
-        }
-        DexEncodedMethod[] reachableVirtualMethods =
-            reachableMethods(clazz.virtualMethods(), clazz);
-        if (reachableVirtualMethods != null) {
-          clazz.setVirtualMethods(reachableVirtualMethods);
-        }
-        DexEncodedField[] reachableInstanceFields = reachableFields(clazz.instanceFields());
-        if (reachableInstanceFields != null) {
-          clazz.setInstanceFields(reachableInstanceFields);
-        }
-        DexEncodedField[] reachableStaticFields = reachableFields(clazz.staticFields());
-        if (reachableStaticFields != null) {
-          clazz.setStaticFields(reachableStaticFields);
-        }
-        // If the class is a local class, it'll become an ordinary class by renaming.
-        // Invalidate its inner-class / enclosing-method attributes early.
-        if (appView.options().isMinifying()
-            && appView.rootSet().mayBeMinified(clazz.type, appView)
-            && clazz.isLocalClass()) {
-          assert clazz.getEnclosingMethod() != null;
-          assert clazz.getInnerClassAttributeForThisClass() != null;
-          clazz.removeEnclosingMethod(Predicates.alwaysTrue());
-          InnerClassAttribute innerClassAttribute =
-              clazz.getInnerClassAttributeForThisClass();
-          clazz.removeInnerClasses(attr -> attr == innerClassAttribute);
-        }
-        clazz.removeInnerClasses(this::isAttributeReferencingPrunedType);
-        clazz.removeEnclosingMethod(this::isAttributeReferencingPrunedItem);
-        usagePrinter.visited();
+        // The class is used and must be kept. Remove the unused fields and methods from the class.
+        pruneMembersAndAttributes(clazz);
       }
     }
     return newClasses;
+  }
+
+  private void pruneMembersAndAttributes(DexProgramClass clazz) {
+    usagePrinter.visiting(clazz);
+    DexEncodedMethod[] reachableDirectMethods = reachableMethods(clazz.directMethods(), clazz);
+    if (reachableDirectMethods != null) {
+      clazz.setDirectMethods(reachableDirectMethods);
+    }
+    DexEncodedMethod[] reachableVirtualMethods =
+        reachableMethods(clazz.virtualMethods(), clazz);
+    if (reachableVirtualMethods != null) {
+      clazz.setVirtualMethods(reachableVirtualMethods);
+    }
+    DexEncodedField[] reachableInstanceFields = reachableFields(clazz.instanceFields());
+    if (reachableInstanceFields != null) {
+      clazz.setInstanceFields(reachableInstanceFields);
+    }
+    DexEncodedField[] reachableStaticFields = reachableFields(clazz.staticFields());
+    if (reachableStaticFields != null) {
+      clazz.setStaticFields(reachableStaticFields);
+    }
+    // If the class is a local class, it'll become an ordinary class by renaming.
+    // Invalidate its inner-class / enclosing-method attributes early.
+    if (appView.options().isMinifying()
+        && appView.rootSet().mayBeMinified(clazz.type, appView)
+        && clazz.isLocalClass()) {
+      assert clazz.getEnclosingMethod() != null;
+      assert clazz.getInnerClassAttributeForThisClass() != null;
+      clazz.removeEnclosingMethod(Predicates.alwaysTrue());
+      InnerClassAttribute innerClassAttribute =
+          clazz.getInnerClassAttributeForThisClass();
+      clazz.removeInnerClasses(attr -> attr == innerClassAttribute);
+    }
+    clazz.removeInnerClasses(this::isAttributeReferencingPrunedType);
+    clazz.removeEnclosingMethod(this::isAttributeReferencingPrunedItem);
+    usagePrinter.visited();
   }
 
   private boolean isAttributeReferencingPrunedItem(EnclosingMethodAttribute attr) {
@@ -166,11 +164,6 @@ public class TreePruner {
     return -1;
   }
 
-  private boolean isDefaultConstructor(DexEncodedMethod method) {
-    return method.isInstanceInitializer()
-        && method.method.proto.parameters.isEmpty();
-  }
-
   private DexEncodedMethod[] reachableMethods(List<DexEncodedMethod> methods, DexClass clazz) {
     AppInfoWithLiveness appInfo = appView.appInfo();
     InternalOptions options = appView.options();
@@ -187,12 +180,12 @@ public class TreePruner {
       DexEncodedMethod method = methods.get(i);
       if (appInfo.liveMethods.contains(method.getKey())) {
         reachableMethods.add(method);
-      } else if (options.debugKeepRules && isDefaultConstructor(method)) {
+      } else if (options.configurationDebugging) {
         // Keep the method but rewrite its body, if it has one.
         reachableMethods.add(
             method.shouldNotHaveCode() && !method.hasCode()
                 ? method
-                : method.toMethodThatLogsError(application.dexItemFactory));
+                : method.toMethodThatLogsError(appView));
       } else if (appInfo.targetedMethods.contains(method.getKey())) {
         // If the method is already abstract, and doesn't have code, let it be.
         if (method.shouldNotHaveCode() && !method.hasCode()) {

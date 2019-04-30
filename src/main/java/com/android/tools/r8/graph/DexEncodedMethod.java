@@ -10,11 +10,17 @@ import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCE
 import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCESSED_NOT_INLINING_CANDIDATE;
 
 import com.android.tools.r8.cf.code.CfConstNull;
+import com.android.tools.r8.cf.code.CfConstString;
 import com.android.tools.r8.cf.code.CfInstruction;
+import com.android.tools.r8.cf.code.CfInvoke;
+import com.android.tools.r8.cf.code.CfLoad;
+import com.android.tools.r8.cf.code.CfNew;
+import com.android.tools.r8.cf.code.CfStackInstruction;
+import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
+import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.code.Const;
 import com.android.tools.r8.code.ConstString;
-import com.android.tools.r8.code.ConstStringJumbo;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.InvokeDirect;
 import com.android.tools.r8.code.InvokeStatic;
@@ -47,6 +53,7 @@ import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -54,8 +61,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
+import org.objectweb.asm.Opcodes;
 
 public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements ResolutionResult {
+  public static final String CONFIGURATION_DEBUGGING_PREFIX = "Shaking error: Missing method in ";
 
   /**
    * Encodes the processing state of a method.
@@ -525,16 +534,11 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
   /**
    * Generates a {@link DexCode} object for the given instructions.
-   * <p>
-   * As the code object is produced outside of the normal compilation cycle, it has to use {@link
-   * ConstStringJumbo} to reference string constants. Hence, code produced form these templates
-   * might incur a size overhead.
    */
   private DexCode generateCodeFromTemplate(
       int numberOfRegisters, int outRegisters, Instruction... instructions) {
     int offset = 0;
     for (Instruction instruction : instructions) {
-      assert !(instruction instanceof ConstString);
       instruction.setOffset(offset);
       offset += instruction.getSize();
     }
@@ -591,47 +595,93 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     return builder.build();
   }
 
-  public DexEncodedMethod toMethodThatLogsError(DexItemFactory itemFactory) {
+  public DexEncodedMethod toMethodThatLogsError(AppView<?> appView) {
+    if (appView.options().isGeneratingDex()) {
+      return toMethodThatLogsErrorDexCode(appView.dexItemFactory());
+    } else {
+      return toMethodThatLogsErrorCfCode(appView.dexItemFactory());
+    }
+  }
+
+  private DexEncodedMethod toMethodThatLogsErrorDexCode(DexItemFactory itemFactory) {
     checkIfObsolete();
     Signature signature = MethodSignature.fromDexMethod(method);
-    // TODO(herhut): Construct this out of parts to enable reuse, maybe even using descriptors.
     DexString message = itemFactory.createString(
-        "Shaking error: Missing method in " + method.holder.toSourceString() + ": "
-            + signature);
-    DexString tag = itemFactory.createString("TOIGHTNESS");
+        CONFIGURATION_DEBUGGING_PREFIX + method.holder.toSourceString() + ": " + signature);
+    DexString tag = itemFactory.createString("[R8]");
     DexType[] args = {itemFactory.stringType, itemFactory.stringType};
     DexProto proto = itemFactory.createProto(itemFactory.intType, args);
-    DexMethod logMethod = itemFactory
-        .createMethod(itemFactory.createType("Landroid/util/Log;"), proto,
-            itemFactory.createString("e"));
+    DexMethod logMethod =
+        itemFactory.createMethod(
+            itemFactory.createType("Landroid/util/Log;"), proto, itemFactory.createString("e"));
     DexType exceptionType = itemFactory.createType("Ljava/lang/RuntimeException;");
-    DexMethod exceptionInitMethod = itemFactory
-        .createMethod(exceptionType, itemFactory.createProto(itemFactory.voidType,
-            itemFactory.stringType),
+    DexMethod exceptionInitMethod =
+        itemFactory.createMethod(
+            exceptionType,
+            itemFactory.createProto(itemFactory.voidType, itemFactory.stringType),
             itemFactory.constructorMethodName);
-    DexCode code;
-    if (isInstanceInitializer()) {
-      // The Java VM Spec requires that a constructor calls an initializer from the super class
-      // or another constructor from the current class. For simplicity we do the latter by just
-      // calling ourself. This is ok, as the constructor always throws before the recursive call.
-      code = generateCodeFromTemplate(3, 2, new ConstStringJumbo(0, tag),
-          new ConstStringJumbo(1, message),
-          new InvokeStatic(2, logMethod, 0, 1, 0, 0, 0),
-          new NewInstance(0, exceptionType),
-          new InvokeDirect(2, exceptionInitMethod, 0, 1, 0, 0, 0),
-          new Throw(0),
-          new InvokeDirect(1, method, 2, 0, 0, 0, 0));
+    DexCode code =
+        generateCodeFromTemplate(2, 2,
+            new ConstString(0, tag),
+            new ConstString(1, message),
+            new InvokeStatic(2, logMethod, 0, 1, 0, 0, 0),
+            new NewInstance(0, exceptionType),
+            new InvokeDirect(2, exceptionInitMethod, 0, 1, 0, 0, 0),
+            new Throw(0));
+    Builder builder = builder(this);
+    builder.setCode(code);
+    setObsolete();
+    return builder.build();
+  }
 
-    } else {
-      // These methods might not get registered for jumbo string processing, therefore we always
-      // use the jumbo string encoding for the const string instruction.
-      code = generateCodeFromTemplate(2, 2, new ConstStringJumbo(0, tag),
-          new ConstStringJumbo(1, message),
-          new InvokeStatic(2, logMethod, 0, 1, 0, 0, 0),
-          new NewInstance(0, exceptionType),
-          new InvokeDirect(2, exceptionInitMethod, 0, 1, 0, 0, 0),
-          new Throw(0));
+  private DexEncodedMethod toMethodThatLogsErrorCfCode(DexItemFactory itemFactory) {
+    checkIfObsolete();
+    Signature signature = MethodSignature.fromDexMethod(method);
+    DexString message = itemFactory.createString(
+        CONFIGURATION_DEBUGGING_PREFIX + method.holder.toSourceString() + ": " + signature);
+    DexString tag = itemFactory.createString("[R8]");
+    DexType logger = itemFactory.createType("Ljava/util/logging/Logger;");
+    DexMethod getLogger =
+        itemFactory.createMethod(
+            logger,
+            itemFactory.createProto(logger, itemFactory.stringType),
+            itemFactory.createString("getLogger"));
+    DexMethod severe =
+        itemFactory.createMethod(
+            logger,
+            itemFactory.createProto(itemFactory.voidType, itemFactory.stringType),
+            itemFactory.createString("severe"));
+    DexType exceptionType = itemFactory.createType("Ljava/lang/RuntimeException;");
+    DexMethod exceptionInitMethod =
+        itemFactory.createMethod(
+            exceptionType,
+            itemFactory.createProto(itemFactory.voidType, itemFactory.stringType),
+            itemFactory.constructorMethodName);
+    int locals = method.proto.parameters.size() + 1;
+    if (!isStaticMember()) {
+      // Consider `this` pointer
+      locals++;
     }
+    ImmutableList.Builder<CfInstruction> instructionBuilder = ImmutableList.builder();
+    instructionBuilder
+        .add(new CfConstString(tag))
+        .add(new CfInvoke(Opcodes.INVOKESTATIC, getLogger, false))
+        .add(new CfStore(ValueType.OBJECT, locals - 1))
+        .add(new CfLoad(ValueType.OBJECT, locals - 1))
+        .add(new CfConstString(message))
+        .add(new CfInvoke(Opcodes.INVOKEVIRTUAL, severe, false))
+        .add(new CfNew(exceptionType))
+        .add(new CfStackInstruction(Opcode.Dup))
+        .add(new CfConstString(message))
+        .add(new CfInvoke(Opcodes.INVOKESPECIAL, exceptionInitMethod, false))
+        .add(new CfThrow());
+    CfCode code = new CfCode(
+        method,
+        3,
+        locals,
+        instructionBuilder.build(),
+        Collections.emptyList(),
+        Collections.emptyList());
     Builder builder = builder(this);
     builder.setCode(code);
     setObsolete();

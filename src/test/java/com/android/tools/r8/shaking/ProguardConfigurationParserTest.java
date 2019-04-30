@@ -2032,8 +2032,8 @@ public class ProguardConfigurationParserTest extends TestBase {
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(new DexItemFactory(), reporter);
     parser.parse(proguardConfig);
-    checkDiagnostics(handler.warnings, proguardConfig, 1, 1,
-        "Ignoring", "-addconfigurationdebugging");
+    verifyParserEndsCleanly();
+    assertTrue(parser.getConfig().isConfigurationDebugging());
   }
 
   @Test

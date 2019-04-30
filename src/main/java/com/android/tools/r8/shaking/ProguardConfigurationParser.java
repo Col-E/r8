@@ -87,9 +87,7 @@ public class ProguardConfigurationParser {
       "dump");
 
   private static final List<String> WARNED_FLAG_OPTIONS =
-      ImmutableList.of(
-          // TODO(b/73707846): add support -addconfigurationdebugging
-          "addconfigurationdebugging", "useuniqueclassmembernames");
+      ImmutableList.of("useuniqueclassmembernames");
 
   private static final List<String> WARNED_CLASS_DESCRIPTOR_OPTIONS = ImmutableList.of(
       // TODO(b/73708157): add support -assumenoexternalsideeffects <class_spec>
@@ -398,6 +396,8 @@ public class ProguardConfigurationParser {
         configurationBuilder.addRule(parseIdentifierNameStringRule(optionStart));
       } else if (acceptString("if")) {
         configurationBuilder.addRule(parseIfRule(optionStart));
+      } else if (acceptString("addconfigurationdebugging")) {
+        configurationBuilder.setConfigurationDebugging(true);
       } else {
         String unknownOption = acceptString();
         String devMessage = "";

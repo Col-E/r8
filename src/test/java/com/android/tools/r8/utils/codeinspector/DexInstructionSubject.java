@@ -259,6 +259,11 @@ public class DexInstructionSubject implements InstructionSubject {
   }
 
   @Override
+  public boolean isJumboString() {
+    return instruction instanceof ConstStringJumbo;
+  }
+
+  @Override
   public String getConstString() {
     if (instruction instanceof ConstString) {
       return ((ConstString) instruction).BBBB.toSourceString();

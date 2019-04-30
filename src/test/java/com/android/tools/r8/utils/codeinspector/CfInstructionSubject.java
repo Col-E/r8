@@ -143,6 +143,11 @@ public class CfInstructionSubject implements InstructionSubject {
   }
 
   @Override
+  public boolean isJumboString() {
+    return false;
+  }
+
+  @Override
   public String getConstString() {
     if (instruction instanceof CfConstString) {
       return ((CfConstString) instruction).getString().toSourceString();

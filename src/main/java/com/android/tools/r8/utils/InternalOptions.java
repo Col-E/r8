@@ -103,6 +103,7 @@ public class InternalOptions {
     if (!proguardConfiguration.isOptimizing()) {
       disableAllOptimizations();
     }
+    configurationDebugging = proguardConfiguration.isConfigurationDebugging();
   }
 
   void disableAllOptimizations() {
@@ -303,7 +304,7 @@ public class InternalOptions {
   // EXPERIMENTAL flag to get behaviour as close to Proguard as possible.
   public boolean forceProguardCompatibility = false;
   public boolean disableAssertions = true;
-  public boolean debugKeepRules = false;
+  public boolean configurationDebugging = false;
   // Read input classes into CfCode format (instead of JarCode).
   public boolean enableCfFrontend = false;
   // Don't convert Code objects to IRCode.
