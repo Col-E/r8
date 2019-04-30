@@ -114,7 +114,7 @@ class FieldNameMinifier {
       return true;
     }
     if (!appView.options().getProguardConfiguration().hasApplyMappingFile()
-        && appView.rootSet().mayBeMinified(field.field, appView)) {
+        && appView.rootSet().mayNotBeMinified(field.field, appView)) {
       return true;
     }
     return false;

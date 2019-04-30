@@ -1192,6 +1192,10 @@ public class RootSetBuilder {
     }
 
     public boolean mayBeMinified(DexReference reference, AppView<?> appView) {
+      return !mayNotBeMinified(reference, appView);
+    }
+
+    public boolean mayNotBeMinified(DexReference reference, AppView<?> appView) {
       if (reference.isDexType()) {
         return noObfuscation.contains(
             appView.graphLense().getOriginalType(reference.asDexType()));

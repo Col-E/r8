@@ -57,7 +57,7 @@ public class FieldNamingState extends FieldNamingStateBase<InternalState> implem
         return field.name;
       }
       if (!appView.options().getProguardConfiguration().hasApplyMappingFile()
-          && appView.rootSet().mayBeMinified(encodedField.field, appView)) {
+          && appView.rootSet().mayNotBeMinified(encodedField.field, appView)) {
         return field.name;
       }
     }

@@ -107,7 +107,7 @@ public class Minifier {
 
     @Override
     public boolean noObfuscation(DexType type) {
-      return appView.rootSet().mayBeMinified(type, appView);
+      return appView.rootSet().mayNotBeMinified(type, appView);
     }
   }
 
@@ -171,7 +171,7 @@ public class Minifier {
 
     @Override
     public boolean noObfuscation(DexReference reference) {
-      return appView.rootSet().mayBeMinified(reference, appView);
+      return appView.rootSet().mayNotBeMinified(reference, appView);
     }
   }
 }
