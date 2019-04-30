@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.ir.desugar.annotations.version2;
 
-import static com.android.tools.r8.ir.desugar.annotations.CovariantReturnTypeAnnotationTransformerTest.CRT_NAME;
+import static com.android.tools.r8.ir.desugar.annotations.CovariantReturnTypeAnnotationTransformerTest.CRT_BINARY_NAME;
 import static com.android.tools.r8.ir.desugar.annotations.CovariantReturnTypeAnnotationTransformerTest.PACKAGE_NAME;
 
 import org.objectweb.asm.AnnotationVisitor;
@@ -40,7 +40,7 @@ public class BDump implements Opcodes {
     {
       mv = cw.visitMethod(ACC_PUBLIC, "method", "()L" + PACKAGE_NAME + "/A;", null, null);
       {
-        av0 = mv.visitAnnotation("L" + CRT_NAME + ";", false);
+        av0 = mv.visitAnnotation("L" + CRT_BINARY_NAME + ";", false);
         av0.visit("returnType", Type.getType("L" + PACKAGE_NAME + "/B;"));
         av0.visit("presentAfter", new Integer(25));
         av0.visitEnd();

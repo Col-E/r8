@@ -734,6 +734,14 @@ public abstract class R8RunArtTestsTest {
   // checked into the Art repo.
   private static final Multimap<String, TestCondition> failingRunWithArtOutput =
       new ImmutableListMultimap.Builder<String, TestCondition>()
+          // This test assumes that class-retention annotations are preserved by the compiler and
+          // then checks for backwards compatibility with M where they could incorrectly be observed
+          // by the program at runtime.
+          .put(
+              "005-annotations",
+              TestCondition.match(
+                  TestCondition.tools(DexTool.NONE),
+                  TestCondition.compilers(CompilerUnderTest.D8, CompilerUnderTest.D8_AFTER_R8CF)))
           // On Art 4.4.4 we have fewer refs than expected (except for d8 when compiled with dx).
           .put("072-precise-gc",
               TestCondition.match(
