@@ -20,6 +20,7 @@ public class NestBasedAccessDesugaringRewriter extends NestBasedAccessDesugaring
     super(appView);
   }
 
+  @Override
   protected void shouldRewriteCalls(DexMethod method, DexMethod bridge) {
     methodToRewrite.put(method, bridge);
   }

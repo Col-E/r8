@@ -22,6 +22,7 @@ public class NestBasedAccessDesugaringAnalysis extends NestBasedAccessDesugaring
     return builder.build(appView.graphLense());
   }
 
+  @Override
   protected void shouldRewriteCalls(DexMethod method, DexMethod bridge) {
     builder.map(method, bridge);
   }
