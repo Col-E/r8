@@ -137,8 +137,8 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
       return true;
     }
 
-    // Check if it is a call to one of java.lang.Class.get*Name().
-    if (appView.dexItemFactory().classMethods.isReflectiveNameLookup(getInvokedMethod())) {
+    // Check if it is a call to one of library methods that are known to be side-effect free.
+    if (appView.dexItemFactory().libraryMethodsWithoutSideEffects.contains(getInvokedMethod())) {
       return false;
     }
 

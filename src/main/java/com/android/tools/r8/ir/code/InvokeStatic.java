@@ -149,6 +149,11 @@ public class InvokeStatic extends InvokeMethod {
       return true;
     }
 
+    // Check if it is a call to one of library methods that are known to be side-effect free.
+    if (appView.dexItemFactory().libraryMethodsWithoutSideEffects.contains(getInvokedMethod())) {
+      return false;
+    }
+
     // Find the target and check if the invoke may have side effects.
     if (appView.appInfo().hasLiveness()) {
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();

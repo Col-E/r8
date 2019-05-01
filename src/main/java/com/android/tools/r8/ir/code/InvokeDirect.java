@@ -162,6 +162,11 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
       return true;
     }
 
+    // Check if it is a call to one of library methods that are known to be side-effect free.
+    if (appView.dexItemFactory().libraryMethodsWithoutSideEffects.contains(getInvokedMethod())) {
+      return false;
+    }
+
     // Find the target and check if the invoke may have side effects.
     if (appView.appInfo().hasLiveness()) {
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
@@ -176,8 +181,7 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
         return true;
       }
 
-      // Verify that the target method does not have side-effects. For program methods, we use
-      // optimization info, and for library methods, we use modeling.
+      // Verify that the target method does not have side-effects.
       DexClass clazz = appView.definitionFor(target.method.holder);
       if (clazz == null) {
         assert false : "Expected to be able to find the enclosing class of a method definition";
@@ -186,12 +190,8 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
       boolean targetMayHaveSideEffects;
       if (appViewWithLiveness.appInfo().noSideEffects.containsKey(target.method)) {
         targetMayHaveSideEffects = false;
-      } else if (clazz.isProgramClass()) {
-        targetMayHaveSideEffects = target.getOptimizationInfo().mayHaveSideEffects();
       } else {
-        assert clazz.isLibraryClass();
-        targetMayHaveSideEffects =
-            !appView.dexItemFactory().libraryMethodsWithoutSideEffects.contains(target.method);
+        targetMayHaveSideEffects = target.getOptimizationInfo().mayHaveSideEffects();
       }
 
       return targetMayHaveSideEffects;

@@ -402,9 +402,12 @@ public class DexItemFactory {
   public final Set<DexMethod> libraryMethodsReturningNonNull =
       ImmutableSet.of(classMethods.getName, classMethods.getSimpleName, stringMethods.valueOf);
 
+  // We assume library methods listed here are `public`, i.e., free from visibility side effects.
+  // If not, that library method should not be added here because it literally has side effects.
   public Set<DexMethod> libraryMethodsWithoutSideEffects =
       ImmutableSet.<DexMethod>builder()
           .add(objectMethods.constructor)
+          .addAll(classMethods.getNames)
           .addAll(stringBufferMethods.constructorMethods)
           .addAll(stringBuilderMethods.constructorMethods)
           .build();
