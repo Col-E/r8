@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import static com.android.tools.r8.utils.ExceptionUtils.unwrapExecutionException;
+
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
@@ -99,7 +101,7 @@ public class GenerateMainDexList {
 
       return result;
     } catch (ExecutionException e) {
-      throw R8.unwrapExecutionException(e);
+      throw unwrapExecutionException(e);
     }
   }
 

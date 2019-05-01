@@ -6,6 +6,7 @@ package com.android.tools.r8.dex;
 import static com.android.tools.r8.graph.ClassKind.CLASSPATH;
 import static com.android.tools.r8.graph.ClassKind.LIBRARY;
 import static com.android.tools.r8.graph.ClassKind.PROGRAM;
+import static com.android.tools.r8.utils.ExceptionUtils.unwrapExecutionException;
 
 import com.android.tools.r8.ClassFileResourceProvider;
 import com.android.tools.r8.DataResourceProvider;
@@ -123,6 +124,8 @@ public class ApplicationReader {
           builder.addDataResourceProvider(dataResourceProvider);
         }
       }
+    } catch (ExecutionException e) {
+      throw unwrapExecutionException(e);
     } catch (ResourceException e) {
       throw options.reporter.fatalError(new StringDiagnostic(e.getMessage(), e.getOrigin()));
     } finally {

@@ -4,6 +4,7 @@
 package com.android.tools.r8;
 
 import static com.android.tools.r8.R8Command.USAGE_MESSAGE;
+import static com.android.tools.r8.utils.ExceptionUtils.unwrapExecutionException;
 
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.ApplicationWriter;
@@ -818,20 +819,6 @@ public class R8 {
     Reporter reporter = options.reporter;
     for (DexProgramClass programClass : application.classes()) {
       programClass.setKotlinInfo(kotlin.getKotlinInfo(programClass, reporter));
-    }
-  }
-
-  static RuntimeException unwrapExecutionException(ExecutionException executionException) {
-    Throwable cause = executionException.getCause();
-    if (cause instanceof Error) {
-      // add original exception as suppressed exception to provide the original stack trace
-      cause.addSuppressed(executionException);
-      throw (Error) cause;
-    } else if (cause instanceof RuntimeException) {
-      cause.addSuppressed(executionException);
-      throw (RuntimeException) cause;
-    } else {
-      throw new RuntimeException(executionException.getMessage(), cause);
     }
   }
 

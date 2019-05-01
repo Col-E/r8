@@ -4,6 +4,8 @@
 
 package com.android.tools.r8;
 
+import static com.android.tools.r8.utils.ExceptionUtils.unwrapExecutionException;
+
 import com.android.tools.r8.DexIndexedConsumer.DirectoryConsumer;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.ApplicationWriter;
@@ -112,7 +114,7 @@ public final class DexSplitterHelper {
         }
       }
     } catch (ExecutionException e) {
-      throw R8.unwrapExecutionException(e);
+      throw unwrapExecutionException(e);
     } catch (FeatureMappingException e) {
       options.reporter.error(e.getMessage());
     } finally {

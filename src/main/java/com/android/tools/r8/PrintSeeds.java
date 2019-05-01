@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import static com.android.tools.r8.utils.ExceptionUtils.unwrapExecutionException;
+
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppServices;
@@ -96,7 +98,7 @@ public class PrintSeeds {
       RootSetBuilder.writeSeeds(
           appInfo, System.out, type -> descriptors.contains(type.toDescriptorString()));
     } catch (ExecutionException e) {
-      throw R8.unwrapExecutionException(e);
+      throw unwrapExecutionException(e);
     }
   }
 }

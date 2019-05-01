@@ -232,10 +232,18 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
   }
 
   public T enableUnusedArgumentAnnotations() {
-    if (!enableUnusedArgumentAnnotations) {
-      enableUnusedArgumentAnnotations = true;
-      addInternalKeepRules(
-          "-keepunusedarguments class * { @com.android.tools.r8.KeepUnusedArguments *; }");
+    return enableUnusedArgumentAnnotations(true);
+  }
+
+  public T enableUnusedArgumentAnnotations(boolean value) {
+    if (value) {
+      if (!enableUnusedArgumentAnnotations) {
+        enableUnusedArgumentAnnotations = true;
+        addInternalKeepRules(
+            "-keepunusedarguments class * { @com.android.tools.r8.KeepUnusedArguments *; }");
+      }
+    } else {
+      assert !enableUnusedArgumentAnnotations;
     }
     return self();
   }

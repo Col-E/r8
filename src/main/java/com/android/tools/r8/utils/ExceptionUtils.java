@@ -13,6 +13,7 @@ import com.android.tools.r8.origin.PathOrigin;
 import java.io.IOException;
 import java.nio.file.FileSystemException;
 import java.nio.file.Paths;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 
 public abstract class ExceptionUtils {
@@ -105,4 +106,17 @@ public abstract class ExceptionUtils {
     return Origin.unknown();
   }
 
+  public static RuntimeException unwrapExecutionException(ExecutionException executionException) {
+    Throwable cause = executionException.getCause();
+    if (cause instanceof Error) {
+      // add original exception as suppressed exception to provide the original stack trace
+      cause.addSuppressed(executionException);
+      throw (Error) cause;
+    } else if (cause instanceof RuntimeException) {
+      cause.addSuppressed(executionException);
+      throw (RuntimeException) cause;
+    } else {
+      throw new RuntimeException(executionException.getMessage(), cause);
+    }
+  }
 }

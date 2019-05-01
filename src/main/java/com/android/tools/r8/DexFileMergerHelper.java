@@ -4,6 +4,8 @@
 
 package com.android.tools.r8;
 
+import static com.android.tools.r8.utils.ExceptionUtils.unwrapExecutionException;
+
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.dex.Marker;
@@ -106,7 +108,7 @@ public class DexFileMergerHelper {
         writer.write(executor);
         options.printWarnings();
       } catch (ExecutionException e) {
-        throw R8.unwrapExecutionException(e);
+        throw unwrapExecutionException(e);
       } finally {
         options.signalFinishedToConsumers();
       }
