@@ -15,6 +15,7 @@ import com.android.tools.r8.code.SputWide;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
@@ -107,7 +108,9 @@ public class StaticPut extends FieldInstruction {
         return true;
       }
 
-      if (appInfoWithLiveness.isFieldRead(getField())) {
+      DexEncodedField resolveField = appInfoWithLiveness.resolveField(getField());
+      assert resolveField != null : "NoSuchFieldError (resolution failure) should be caught.";
+      if (appInfoWithLiveness.isFieldRead(resolveField.field)) {
         return true;
       }
 

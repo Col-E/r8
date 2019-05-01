@@ -26,10 +26,8 @@ import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
-import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Position;
@@ -104,8 +102,10 @@ public class MemberValuePropagation {
       replacement = createConstNumberReplacement(
           code, rule.getReturnValue().getSingleValue(), typeLattice, instruction.getLocalInfo());
     }
-    if (replacement == null && rule != null
-        && rule.hasReturnValue() && rule.getReturnValue().isField()) {
+    if (replacement == null
+        && rule != null
+        && rule.hasReturnValue()
+        && rule.getReturnValue().isField()) {
       DexField field = rule.getReturnValue().getField();
       assert typeLattice
           == TypeLatticeElement.fromDexType(field.type, Nullability.maybeNull(), appView);
@@ -329,30 +329,6 @@ public class MemberValuePropagation {
     }
   }
 
-  private void rewritePutWithConstantValues(
-      InstructionIterator iterator, FieldInstruction current, DexType context) {
-    DexField field = current.getField();
-    // TODO(b/123857022): Should be possible to use definitionFor().
-    DexEncodedField target =
-        current.isInstancePut()
-            ? appView.appInfo().lookupInstanceTarget(field.holder, field)
-            : appView.appInfo().lookupStaticTarget(field.holder, field);
-    if (target == null) {
-      return;
-    }
-
-    if (target.field.holder.classInitializationMayHaveSideEffects(
-        appView, type -> appView.appInfo().isSubtype(context, type))) {
-      return;
-    }
-
-    // TODO(b/123857022): Should be possible to use `!isFieldRead(field)`.
-    if (!appView.appInfo().isFieldRead(target.field)) {
-      // Remove writes to dead (i.e. never read) fields.
-      iterator.removeOrReplaceByDebugLocalRead();
-    }
-  }
-
   private void insertAssumeNotNull(
       IRCode code,
       Set<Value> affectedValues,
@@ -395,8 +371,6 @@ public class MemberValuePropagation {
         if (current.isInvokeMethod()) {
           rewriteInvokeMethodWithConstantValues(
               code, callingContext, affectedValues, blocks, iterator, current.asInvokeMethod());
-        } else if (current.isInstancePut()) {
-          rewritePutWithConstantValues(iterator, current.asFieldInstruction(), callingContext);
         } else if (current.isStaticGet()) {
           rewriteStaticGetWithConstantValues(
               code,

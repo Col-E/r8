@@ -16,6 +16,7 @@ import com.android.tools.r8.code.IputWide;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
@@ -27,6 +28,7 @@ import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Arrays;
 import org.objectweb.asm.Opcodes;
 
@@ -93,6 +95,43 @@ public class InstancePut extends FieldInstruction {
   @Override
   public boolean instructionTypeCanThrow() {
     return true;
+  }
+
+  @Override
+  public boolean instructionMayHaveSideEffects(AppView<?> appView, DexType context) {
+    if (appView.appInfo().hasLiveness()) {
+      AppInfoWithLiveness appInfoWithLiveness = appView.appInfo().withLiveness();
+
+      if (instructionInstanceCanThrow(appView, context).isThrowing()) {
+        return true;
+      }
+
+      DexEncodedField resolveField = appInfoWithLiveness.resolveField(getField());
+      assert resolveField != null : "NoSuchFieldError (resolution failure) should be caught.";
+      if (appInfoWithLiveness.isFieldRead(resolveField.field)) {
+        return true;
+      }
+
+      return false;
+    }
+
+    // In D8, we always have to assume that the field can be read, and thus have side effects.
+    assert instructionInstanceCanThrow(appView, context).isThrowing();
+    return true;
+  }
+
+  @Override
+  public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
+    // instance-put can be dead as long as it cannot have any of the following:
+    // * NoSuchFieldError (resolution failure)
+    // * IncompatibleClassChangeError (static-* instruction for instance fields)
+    // * IllegalAccessError (not visible from the access context)
+    // * NullPointerException (null receiver)
+    // * not read at all
+    boolean haveSideEffects = instructionMayHaveSideEffects(appView, code.method.method.holder);
+    assert appView.enableWholeProgramOptimizations() || haveSideEffects
+        : "Expected instance-put instruction to have side effects in D8";
+    return !haveSideEffects;
   }
 
   @Override

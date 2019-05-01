@@ -3,18 +3,15 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Iterator;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -49,11 +46,9 @@ public class MemberValuePropagationTest extends TestBase {
     ClassSubject clazz = inspector.clazz(QUALIFIED_CLASS_NAME);
     clazz.forAllMethods(
         methodSubject -> {
-          Iterator<InstructionSubject> iterator = methodSubject.iterateInstructions();
-          while (iterator.hasNext()) {
-            InstructionSubject instruction = iterator.next();
-            assertFalse(instruction.isInstancePut() || instruction.isStaticPut());
-          }
+          assertTrue(
+              methodSubject.streamInstructions().noneMatch(
+                  i -> i.isInstancePut() || i.isStaticPut()));
         });
   }
 
@@ -63,26 +58,11 @@ public class MemberValuePropagationTest extends TestBase {
     ClassSubject clazz = inspector.clazz(QUALIFIED_CLASS_NAME);
     clazz.forAllMethods(
         methodSubject -> {
-          Iterator<InstructionSubject> iterator = methodSubject.iterateInstructions();
-          if (methodSubject.isClassInitializer()) {
-            int numPuts = 0;
-            while (iterator.hasNext()) {
-              if (iterator.next().isStaticPut()) {
-                ++numPuts;
-              }
-            }
-            // dead code removal is not part of -dontoptimize.
-            assertEquals(0, numPuts);
-          }
-          if (methodSubject.isInstanceInitializer()) {
-            int numPuts = 0;
-            while (iterator.hasNext()) {
-              if (iterator.next().isInstancePut()) {
-                ++numPuts;
-              }
-            }
-            assertEquals(1, numPuts);
-          }
+          // Dead code removal is not part of -dontoptimize. That is, even with -dontoptimize,
+          // field put instructions are gone with better dead code removal.
+          assertTrue(
+              methodSubject.streamInstructions().noneMatch(
+                  i -> i.isInstancePut() || i.isStaticPut()));
         });
   }
 
