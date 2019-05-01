@@ -8,6 +8,8 @@ import static org.objectweb.asm.ClassReader.SKIP_CODE;
 import static org.objectweb.asm.ClassReader.SKIP_DEBUG;
 import static org.objectweb.asm.ClassReader.SKIP_FRAMES;
 import static org.objectweb.asm.Opcodes.ACC_DEPRECATED;
+import static org.objectweb.asm.Opcodes.V1_6;
+import static org.objectweb.asm.Opcodes.V9;
 
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.dex.Constants;
@@ -240,10 +242,10 @@ public class JarClassFileReader {
     @Override
     public void visitInnerClass(String name, String outerName, String innerName, int access) {
       if (outerName != null && innerName != null) {
-        String separator =
-            DescriptorUtils.computeInnerClassSeparator(
-                outerName, name, innerName, application.options.isMinifying());
-        if (separator == null) {
+        String separator = DescriptorUtils.computeInnerClassSeparator(outerName, name, innerName);
+        if (separator == null
+            && !application.options.isMinifying()
+            && getMajorVersion() < V9) {
           application.options.reporter.info(
               new StringDiagnostic(
                   StringUtils.lines(
@@ -419,6 +421,11 @@ public class JarClassFileReader {
               directMethods.toArray(DexEncodedMethod.EMPTY_ARRAY),
               virtualMethods.toArray(DexEncodedMethod.EMPTY_ARRAY),
               application.getFactory().getSkipNameValidationForTesting());
+      if (enclosingMember == null
+          && (clazz.isLocalClass() || clazz.isAnonymousClass())
+          && getMajorVersion() > V1_6) {
+        application.options.warningMissingEnclosingMember(clazz.type, clazz.origin, version);
+      }
       if (clazz.isProgramClass()) {
         context.owner = clazz.asProgramClass();
         clazz.asProgramClass().setInitialClassFileVersion(version);

@@ -64,7 +64,6 @@ class MinifiedRenaming extends NamingLens {
     }
     DexType innerType = attribute.getInner();
     String inner = DescriptorUtils.descriptorToInternalName(innerType.descriptor.toString());
-    String innerName = attribute.getInnerName().toString();
     // At this point we assume the input was of the form: <OuterType>$<index><InnerName>
     // Find the mapped type and if it remains the same return that, otherwise split at
     // either the input separator ($, $$, or anything that starts with $) or $ (that we recover
@@ -74,10 +73,12 @@ class MinifiedRenaming extends NamingLens {
     if (inner.equals(innerTypeMapped)) {
       return attribute.getInnerName();
     }
-    String separator =
-        DescriptorUtils.computeInnerClassSeparator(
-            attribute.getOuter(), innerType, innerName, options.isMinifying());
-    assert separator != null;
+    String separator = DescriptorUtils.computeInnerClassSeparator(
+        attribute.getOuter(), innerType, attribute.getInnerName());
+    if (separator == null) {
+      separator = String.valueOf(DescriptorUtils.INNER_CLASS_SEPARATOR);
+
+    }
     int index = innerTypeMapped.lastIndexOf(separator);
     if (index < 0) {
       assert false : innerType + " -> " + innerTypeMapped;

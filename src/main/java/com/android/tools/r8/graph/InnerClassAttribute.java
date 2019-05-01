@@ -102,4 +102,13 @@ public class InnerClassAttribute {
     }
     return context;
   }
+
+  @Override
+  public String toString() {
+    return "[access : " + Integer.toHexString(access)
+        + ", inner: " + inner.toDescriptorString()
+        + ", outer: " + (outer == null ? "null" : outer.toDescriptorString())
+        + ", innerName: " + (innerName == null ? "(anonymous)" : innerName.toString())
+        + "]";
+  }
 }

@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
 
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.google.common.collect.ImmutableMap;
@@ -309,19 +310,18 @@ public class DescriptorUtils {
   }
 
   public static String computeInnerClassSeparator(
-      DexType outerClass, DexType innerClass, String innerName, boolean isMinifying) {
+      DexType outerClass, DexType innerClass, DexString innerName) {
+    if (innerName == null) {
+      return String.valueOf(INNER_CLASS_SEPARATOR);
+    }
     return computeInnerClassSeparator(
-        outerClass.getInternalName(), innerClass.getInternalName(), innerName, isMinifying);
+        outerClass.getInternalName(), innerClass.getInternalName(), innerName.toString());
   }
 
   public static String computeInnerClassSeparator(
-      String outerDescriptor, String innerDescriptor, String innerName, boolean isMinifying) {
+      String outerDescriptor, String innerDescriptor, String innerName) {
     // outer-internal<separator>inner-name == inner-internal
     if (outerDescriptor.length() + innerName.length() > innerDescriptor.length()) {
-      // But, if the minification is enabled, we can choose $ separator.
-      if (isMinifying) {
-        return String.valueOf(INNER_CLASS_SEPARATOR);
-      }
       return null;
     }
     String separator =
@@ -329,10 +329,6 @@ public class DescriptorUtils {
             outerDescriptor.length(), innerDescriptor.length() - innerName.length());
     // Any non-$ separator results in a runtime exception in getCanonicalName.
     if (!separator.startsWith(String.valueOf(INNER_CLASS_SEPARATOR))) {
-      // Again, if the minification is enabled, we can choose $ separator.
-      if (isMinifying) {
-        return String.valueOf(INNER_CLASS_SEPARATOR);
-      }
       return null;
     }
     return separator;

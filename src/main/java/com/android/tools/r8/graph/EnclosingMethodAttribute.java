@@ -72,4 +72,13 @@ public final class EnclosingMethodAttribute {
       enclosingMethod.collectIndexedItems(indexedItems);
     }
   }
+
+  @Override
+  public String toString() {
+    return "[enclosingClass: "
+        + (enclosingClass == null ? "null" : enclosingClass.toDescriptorString())
+        + ", enclosingMethod: "
+        + (enclosingMethod == null ? "null" : enclosingMethod.toSourceString())
+        + "]";
+  }
 }

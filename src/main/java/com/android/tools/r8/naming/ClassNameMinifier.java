@@ -249,14 +249,14 @@ class ClassNameMinifier {
     return attribute.getOuter();
   }
 
-  private String getInnerNameForType(DexType type) {
+  private DexString getInnerNameForType(DexType type) {
     // This util is used only after the corresponding outer-class is recognized.
     // Therefore, the definition for the type and its inner-class attribute should be found.
     DexClass clazz = appView.definitionFor(type);
     assert clazz != null;
     InnerClassAttribute attribute = clazz.getInnerClassAttributeForThisClass();
     assert attribute != null;
-    return attribute.getInnerName().toString();
+    return attribute.getInnerName();
   }
 
   private DexString computeName(DexType type) {
@@ -266,11 +266,11 @@ class ClassNameMinifier {
       // of the outer class for the $ prefix.
       DexType outerClass = getOutClassForType(type);
       if (outerClass != null) {
-        String innerClassSeparator =
-            computeInnerClassSeparator(
-                outerClass, type, getInnerNameForType(type), appView.options().isMinifying());
-        assert innerClassSeparator != null;
-        state = getStateForOuterClass(outerClass, innerClassSeparator);
+        String separator = computeInnerClassSeparator(outerClass, type, getInnerNameForType(type));
+        if (separator == null) {
+          separator = String.valueOf(INNER_CLASS_SEPARATOR);
+        }
+        state = getStateForOuterClass(outerClass, separator);
       }
     }
     if (state == null) {
