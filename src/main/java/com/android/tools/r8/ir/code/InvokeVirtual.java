@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isMemberVisibleFromOriginalContext;
+
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.InvokeVirtualRange;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
@@ -145,6 +147,12 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
       DexEncodedMethod target = lookupSingleTarget(appViewWithLiveness, context);
       if (target == null) {
+        return true;
+      }
+
+      // Verify that the target method is accessible in the current context.
+      if (!isMemberVisibleFromOriginalContext(
+          appView, context, target.method.holder, target.accessFlags)) {
         return true;
       }
 
