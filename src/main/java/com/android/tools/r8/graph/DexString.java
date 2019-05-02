@@ -13,7 +13,7 @@ import java.util.Arrays;
 
 public class DexString extends IndexedDexItem implements PresortedComparable<DexString> {
 
-  public static final DexString[] EMPTY_ARRAY = new DexString[]{};
+  public static final DexString[] EMPTY_ARRAY = {};
 
   public final int size;  // size of this string, in UTF-16
   public final byte[] content;

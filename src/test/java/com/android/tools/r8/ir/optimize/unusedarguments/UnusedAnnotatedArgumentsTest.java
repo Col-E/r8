@@ -7,17 +7,21 @@ package com.android.tools.r8.ir.optimize.unusedarguments;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.KeepUnusedArguments;
+import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.DexAnnotation;
+import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import com.google.common.collect.ImmutableList;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -46,58 +50,157 @@ public class UnusedAnnotatedArgumentsTest extends TestBase {
 
   @Test
   public void test() throws Exception {
-    try {
-      testForR8(parameters.getBackend())
-          .addInnerClasses(UnusedAnnotatedArgumentsTest.class)
-          .addKeepMainRule(TestClass.class)
-          .addKeepClassRules(Unused.class)
-          .addKeepAttributes("RuntimeVisibleParameterAnnotations")
-          .enableInliningAnnotations()
-          .enableUnusedArgumentAnnotations(keepUnusedArguments)
-          .setMinApi(parameters.getRuntime())
-          .compile()
-          .inspect(this::verifyOutput)
-          .run(parameters.getRuntime(), TestClass.class)
-          .assertSuccessWithOutputLines("Hello world!");
-      assertTrue(keepUnusedArguments);
-    } catch (ArrayIndexOutOfBoundsException | AssertionError e) {
-      // TODO(b/131663970): Fix unused argument removal.
-      assertFalse(keepUnusedArguments);
-    }
+    testForR8(parameters.getBackend())
+        .addInnerClasses(UnusedAnnotatedArgumentsTest.class)
+        .addKeepMainRule(TestClass.class)
+        .addKeepClassRules(Used.class, Unused.class)
+        .addKeepAttributes("RuntimeVisibleParameterAnnotations")
+        .enableClassInliningAnnotations()
+        .enableInliningAnnotations()
+        .enableUnusedArgumentAnnotations(keepUnusedArguments)
+        // TODO(b/123060011): Mapping not working in presence of unused argument removal.
+        .minification(keepUnusedArguments)
+        .setMinApi(parameters.getRuntime())
+        .compile()
+        .inspect(this::verifyOutput)
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(StringUtils.times(StringUtils.lines("Hello world!"), 6));
   }
 
   private void verifyOutput(CodeInspector inspector) {
-    ClassSubject classSubject = inspector.clazz(TestClass.class);
-    assertThat(classSubject, isPresent());
+    ClassSubject testClassSubject = inspector.clazz(TestClass.class);
+    assertThat(testClassSubject, isPresent());
 
-    MethodSubject methodSubject =
-        // TODO(b/123060011): Mapping not working in presence of unused argument removal.
-        classSubject.uniqueMethodWithName(keepUnusedArguments ? "test" : "a");
-    assertThat(methodSubject, isPresent());
+    ClassSubject usedClassSubject = inspector.clazz(Used.class);
+    assertThat(usedClassSubject, isPresent());
 
-    if (keepUnusedArguments) {
-      assertEquals(1, methodSubject.getMethod().method.proto.parameters.size());
-      assertEquals(1, methodSubject.getMethod().parameterAnnotationsList.size());
-    } else {
-      assertEquals(0, methodSubject.getMethod().method.proto.parameters.size());
-      assertEquals(0, methodSubject.getMethod().parameterAnnotationsList.size());
+    ClassSubject unusedClassSubject = inspector.clazz(Unused.class);
+    assertThat(unusedClassSubject, isPresent());
+
+    List<MethodSubject> methodSubjects =
+        ImmutableList.of(
+            testClassSubject.uniqueMethodWithName("testRemoveStaticFromStart"),
+            testClassSubject.uniqueMethodWithName("testRemoveStaticFromMiddle"),
+            testClassSubject.uniqueMethodWithName("testRemoveStaticFromEnd"),
+            testClassSubject.uniqueMethodWithName("testRemoveVirtualFromStart"),
+            testClassSubject.uniqueMethodWithName("testRemoveVirtualFromMiddle"),
+            testClassSubject.uniqueMethodWithName("testRemoveVirtualFromEnd"));
+
+    for (MethodSubject methodSubject : methodSubjects) {
+      assertThat(methodSubject, isPresent());
+
+      if (keepUnusedArguments) {
+        assertEquals(3, methodSubject.getMethod().method.proto.parameters.size());
+        assertEquals(3, methodSubject.getMethod().parameterAnnotationsList.size());
+
+        for (int i = 0; i < 3; ++i) {
+          DexAnnotationSet annotationSet =
+              methodSubject.getMethod().parameterAnnotationsList.get(i);
+          assertEquals(1, annotationSet.annotations.length);
+
+          DexAnnotation annotation = annotationSet.annotations[0];
+          if (i == getPositionOfUnusedArgument(methodSubject)) {
+            assertEquals(
+                unusedClassSubject.getFinalName(), annotation.annotation.type.toSourceString());
+          } else {
+            assertEquals(
+                usedClassSubject.getFinalName(), annotation.annotation.type.toSourceString());
+          }
+        }
+      } else {
+        assertEquals(2, methodSubject.getMethod().method.proto.parameters.size());
+        assertEquals(2, methodSubject.getMethod().parameterAnnotationsList.size());
+
+        for (int i = 0; i < 2; ++i) {
+          DexAnnotationSet annotationSet =
+              methodSubject.getMethod().parameterAnnotationsList.get(i);
+          assertEquals(1, annotationSet.annotations.length);
+
+          DexAnnotation annotation = annotationSet.annotations[0];
+          assertEquals(
+              usedClassSubject.getFinalName(), annotation.annotation.type.toSourceString());
+        }
+      }
     }
-
-    System.out.println();
   }
 
+  private static int getPositionOfUnusedArgument(MethodSubject methodSubject) {
+    switch (methodSubject.getOriginalName(false)) {
+      case "testRemoveStaticFromStart":
+      case "testRemoveVirtualFromStart":
+        return 0;
+
+      case "testRemoveStaticFromMiddle":
+      case "testRemoveVirtualFromMiddle":
+        return 1;
+
+      case "testRemoveStaticFromEnd":
+      case "testRemoveVirtualFromEnd":
+        return 2;
+
+      default:
+        throw new Unreachable();
+    }
+  }
+
+  @NeverClassInline
   static class TestClass {
 
     public static void main(String[] args) {
-      test(null);
+      testRemoveStaticFromStart(null, "Hello", " world!");
+      testRemoveStaticFromMiddle("Hello", null, " world!");
+      testRemoveStaticFromEnd("Hello", " world!", null);
+      new TestClass().testRemoveVirtualFromStart(null, "Hello", " world!");
+      new TestClass().testRemoveVirtualFromMiddle("Hello", null, " world!");
+      new TestClass().testRemoveVirtualFromEnd("Hello", " world!", null);
     }
 
     @KeepUnusedArguments
     @NeverInline
-    static void test(@Unused Object unused) {
-      System.out.println("Hello world!");
+    static void testRemoveStaticFromStart(
+        @Unused String unused, @Used String used, @Used String otherUsed) {
+      System.out.println(used + otherUsed);
+    }
+
+    @KeepUnusedArguments
+    @NeverInline
+    static void testRemoveStaticFromMiddle(
+        @Used String used, @Unused String unused, @Used String otherUsed) {
+      System.out.println(used + otherUsed);
+    }
+
+    @KeepUnusedArguments
+    @NeverInline
+    static void testRemoveStaticFromEnd(
+        @Used String used, @Used String otherUsed, @Unused String unused) {
+      System.out.println(used + otherUsed);
+    }
+
+    @KeepUnusedArguments
+    @NeverInline
+    void testRemoveVirtualFromStart(
+        @Unused String unused, @Used String used, @Used String otherUsed) {
+      System.out.println(used + otherUsed);
+    }
+
+    @KeepUnusedArguments
+    @NeverInline
+    void testRemoveVirtualFromMiddle(
+        @Used String used, @Unused String unused, @Used String otherUsed) {
+      System.out.println(used + otherUsed);
+    }
+
+    @KeepUnusedArguments
+    @NeverInline
+    void testRemoveVirtualFromEnd(
+        @Used String used, @Used String otherUsed, @Unused String unused) {
+      System.out.println(used + otherUsed);
     }
   }
+
+  @Retention(RetentionPolicy.RUNTIME)
+  @Target(ElementType.PARAMETER)
+  @interface Used {}
 
   @Retention(RetentionPolicy.RUNTIME)
   @Target(ElementType.PARAMETER)

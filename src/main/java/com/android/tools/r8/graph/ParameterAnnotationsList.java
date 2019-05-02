@@ -46,7 +46,7 @@ public class ParameterAnnotationsList extends DexItem {
   }
 
   private ParameterAnnotationsList() {
-    this.values = new DexAnnotationSet[0];
+    this.values = DexAnnotationSet.EMPTY_ARRAY;
     this.missingParameterAnnotations = 0;
   }
 

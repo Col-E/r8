@@ -7,6 +7,10 @@ public class BooleanUtils {
 
   private static final Boolean[] VALUES = new Boolean[] { Boolean.TRUE, Boolean.FALSE };
 
+  public static int intValue(boolean value) {
+    return value ? 1 : 0;
+  }
+
   public static Boolean[] values() {
     return VALUES;
   }
