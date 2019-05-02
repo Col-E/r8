@@ -1025,4 +1025,19 @@ public class InternalOptions {
   public boolean canHaveIncorrectJoinForArrayOfInterfacesBug() {
     return true;
   }
+
+  // The dalvik verifier will crash the program if there is a try catch block with an exception
+  // type that does not exist.
+  // We don't do anything special about this, except that we don't inline methods that have a
+  // catch handler with the ReflectiveOperationException type, i.e., if the program did not crash
+  // in the non R8 case it should not in the R8 case.
+  // Currently we handle only the ReflectiveOperationException, but there could be other exceptions.
+  // We do this for all pre art version, in case we add more Exception types later on. The
+  // problem is there for all dalvik vms, but the exception was added in api level 19
+  // so we don't see it there.
+  //
+  // See b/131349148
+  public boolean canHaveDalvikCatchHandlerVerificationBug() {
+    return minApiLevel < AndroidApiLevel.L.getLevel();
+  }
 }

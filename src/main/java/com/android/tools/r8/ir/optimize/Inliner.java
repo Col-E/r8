@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.CatchHandlers.CatchHandler;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.Instruction;
@@ -90,6 +91,11 @@ public class Inliner {
   }
 
   public ConstraintWithTarget computeInliningConstraint(IRCode code, DexEncodedMethod method) {
+    if (appView.options().canHaveDalvikCatchHandlerVerificationBug()
+        && useReflectiveOperationExceptionOrUnknownClassInCatch(code)) {
+      return ConstraintWithTarget.NEVER;
+    }
+
     ConstraintWithTarget result = ConstraintWithTarget.ALWAYS;
     InliningConstraints inliningConstraints =
         new InliningConstraints(appView, GraphLense.getIdentityLense());
@@ -740,6 +746,20 @@ public class Inliner {
     code.removeBlocks(blocksToRemove);
     code.removeAllTrivialPhis();
     assert code.isConsistentSSA();
+  }
+
+  private boolean useReflectiveOperationExceptionOrUnknownClassInCatch(IRCode code) {
+    for (BasicBlock block : code.blocks) {
+      for (CatchHandler<BasicBlock> catchHandler : block.getCatchHandlers()) {
+        if (catchHandler.guard == appView.dexItemFactory().reflectiveOperationExceptionType) {
+          return true;
+        }
+        if (appView.definitionFor(catchHandler.guard) == null) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   private static DexType getDowncastTypeIfNeeded(

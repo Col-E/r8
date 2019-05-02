@@ -203,6 +203,8 @@ public class DexItemFactory {
       createString("Ljava/lang/ExceptionInInitializerError;");
   public final DexString noSuchFieldErrorDescriptor = createString("Ljava/lang/NoSuchFieldError");
   public final DexString npeDescriptor = createString("Ljava/lang/NullPointerException;");
+  public final DexString reflectiveOperationExceptionDescriptor =
+      createString("Ljava/lang/ReflectiveOperationException;");
 
   public final DexString intFieldUpdaterDescriptor =
       createString("Ljava/util/concurrent/atomic/AtomicIntegerFieldUpdater;");
@@ -272,6 +274,8 @@ public class DexItemFactory {
       createType(exceptionInInitializerErrorDescriptor);
   public final DexType noSuchFieldErrorType = createType(noSuchFieldErrorDescriptor);
   public final DexType npeType = createType(npeDescriptor);
+  public final DexType reflectiveOperationExceptionType =
+      createType(reflectiveOperationExceptionDescriptor);
 
   public final StringBuildingMethods stringBuilderMethods =
       new StringBuildingMethods(stringBuilderType);
