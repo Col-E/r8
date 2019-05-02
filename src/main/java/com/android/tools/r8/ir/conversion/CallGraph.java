@@ -163,7 +163,7 @@ public class CallGraph extends CallSiteInformation {
         method.registerCodeReferences(extractor);
       }
     }
-    assert allMethodsExists(application, graph);
+    assert verifyAllMethodsWithCodeExists(application, graph);
 
     timing.begin("Cycle elimination");
     CycleEliminator cycleEliminator = new CycleEliminator(graph.nodes.values(), options);
@@ -205,11 +205,12 @@ public class CallGraph extends CallSiteInformation {
     }
   }
 
-  private static boolean allMethodsExists(DexApplication application, CallGraph graph) {
+  private static boolean verifyAllMethodsWithCodeExists(
+      DexApplication application, CallGraph graph) {
     for (DexProgramClass clazz : application.classes()) {
-      clazz.forEachMethod(method -> {
-        assert graph.nodes.get(method) != null;
-      });
+      for (DexEncodedMethod method : clazz.methods()) {
+        assert !method.hasCode() || graph.nodes.get(method) != null;
+      }
     }
     return true;
   }
@@ -512,8 +513,10 @@ public class CallGraph extends CallSiteInformation {
     }
 
     private void addTarget(DexEncodedMethod target) {
-      Node callee = graph.ensureMethodNode(target);
-      graph.addCall(caller, callee);
+      if (!target.accessFlags.isAbstract()) {
+        Node callee = graph.ensureMethodNode(target);
+        graph.addCall(caller, callee);
+      }
     }
 
     private void addPossibleTarget(DexEncodedMethod possibleTarget) {
