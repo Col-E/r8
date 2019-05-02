@@ -18,14 +18,20 @@ LINKED_THIRD_PARTY_DIRECTORIES = [
     'gradle-plugin',
     'openjdk',
     'opensource_apps',
+    'proguard',
     'proguardsettings',
     'r8',
     'sample_libraries',
     'youtube',
 ]
 
+LINKED_TOOL_DIRECTORIES = [
+  'linux/dx',
+]
+
 # Path to our internally updated third party
 THIRD_PARTY_SOURCE = "/usr/local/google/home/golem/r8/third_party"
+TOOLS_SOURCE = "/usr/local/google/home/golem/r8/tools"
 
 def link_third_party():
   assert os.path.exists('third_party')
@@ -36,6 +42,16 @@ def link_third_party():
       raise Exception('Destination "{}" already exists, are you running with'
                       ' --golem locally'.format(dest))
     print('Symlinking {} to {}'.format(src, dest))
+    os.symlink(src, dest)
+  for dir in LINKED_TOOL_DIRECTORIES:
+    src = os.path.join(TOOLS_SOURCE, dir)
+    dest = os.path.join('tools', dir)
+    if os.path.exists(dest):
+      raise Exception('Destination "{}" already exists, are you running with'
+                      ' --golem locally'.format(dest))
+    print('Symlinking {} to {}'.format(src, dest))
+    if '/' in dir:
+      os.makedirs(os.path.dirname(dir))
     os.symlink(src, dest)
 
 if __name__ == '__main__':

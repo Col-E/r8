@@ -16,6 +16,10 @@ def Main():
   gradle.RunGradle(BUILD_TARGETS)
   utils.DownloadFromX20(
       os.path.join(utils.THIRD_PARTY, 'gradle-plugin') + '.tar.gz.sha1')
+  utils.DownloadFromX20(
+      os.path.join(
+          utils.THIRD_PARTY, 'benchmarks', 'android-sdk') + '.tar.gz.sha1')
+  utils.DownloadFromGoogleCloudStorage(utils.SAMPLE_LIBRARIES_SHA_FILE)
   utils.DownloadFromGoogleCloudStorage(utils.OPENSOURCE_APPS_SHA_FILE)
   utils.DownloadFromGoogleCloudStorage(utils.ANDROID_SDK + '.tar.gz.sha1',
                                        bucket='r8-deps-internal',
