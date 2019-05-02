@@ -16,10 +16,12 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense.GraphLenseLookupResult;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.Invoke;
+import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.conversion.CallGraph.Node;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
@@ -34,6 +36,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 public class CallGraphBuilder {
 
@@ -44,26 +49,36 @@ public class CallGraphBuilder {
     this.appView = appView;
   }
 
-  public CallGraph build(Timing timing) {
-    for (DexProgramClass clazz : appView.appInfo().classesWithDeterministicOrder()) {
-      processClass(clazz);
+  public CallGraph build(ExecutorService executorService, Timing timing) throws ExecutionException {
+    List<Future<?>> futures = new ArrayList<>();
+    for (DexProgramClass clazz : appView.appInfo().classes()) {
+      if (clazz.hasMethods()) {
+        futures.add(
+            executorService.submit(
+                () -> {
+                  processClass(clazz);
+                  return null; // we want a Callable not a Runnable to be able to throw
+                }));
+      }
     }
+    ThreadUtils.awaitFutures(futures);
 
     assert verifyAllMethodsWithCodeExists();
 
     timing.begin("Cycle elimination");
-    CycleEliminator cycleEliminator = new CycleEliminator(nodes.values(), appView.options());
+    // Sort the nodes for deterministic cycle elimination.
+    Set<Node> nodesWithDeterministicOrder = Sets.newTreeSet(nodes.values());
+    CycleEliminator cycleEliminator =
+        new CycleEliminator(nodesWithDeterministicOrder, appView.options());
     cycleEliminator.breakCycles();
     timing.end();
     assert cycleEliminator.breakCycles() == 0; // This time the cycles should be gone.
 
-    return new CallGraph(appView, Sets.newHashSet(nodes.values()));
+    return new CallGraph(appView, nodesWithDeterministicOrder);
   }
 
   private void processClass(DexProgramClass clazz) {
-    for (DexEncodedMethod method : clazz.allMethodsSorted()) {
-      processMethod(method);
-    }
+    clazz.forEachMethod(this::processMethod);
   }
 
   private void processMethod(DexEncodedMethod method) {
@@ -73,7 +88,9 @@ public class CallGraphBuilder {
   }
 
   private Node getOrCreateNode(DexEncodedMethod method) {
-    return nodes.computeIfAbsent(method.method, ignore -> new Node(method));
+    synchronized (nodes) {
+      return nodes.computeIfAbsent(method.method, ignore -> new Node(method));
+    }
   }
 
   private boolean verifyAllMethodsWithCodeExists() {
@@ -111,7 +128,7 @@ public class CallGraphBuilder {
 
     private void addTarget(DexEncodedMethod callee) {
       if (!callee.accessFlags.isAbstract()) {
-        getOrCreateNode(callee).addCaller(caller);
+        getOrCreateNode(callee).addCallerConcurrently(caller);
       }
     }
 
@@ -131,7 +148,7 @@ public class CallGraphBuilder {
       }
     }
 
-    private void processInvoke(Invoke.Type type, DexMethod method) {
+    private void processInvoke(Type type, DexMethod method) {
       DexEncodedMethod source = caller.method;
       GraphLenseLookupResult result =
           appView.graphLense().lookupMethod(method, source.method, type);
@@ -176,31 +193,31 @@ public class CallGraphBuilder {
 
     @Override
     public boolean registerInvokeVirtual(DexMethod method) {
-      processInvoke(Invoke.Type.VIRTUAL, method);
+      processInvoke(Type.VIRTUAL, method);
       return false;
     }
 
     @Override
     public boolean registerInvokeDirect(DexMethod method) {
-      processInvoke(Invoke.Type.DIRECT, method);
+      processInvoke(Type.DIRECT, method);
       return false;
     }
 
     @Override
     public boolean registerInvokeStatic(DexMethod method) {
-      processInvoke(Invoke.Type.STATIC, method);
+      processInvoke(Type.STATIC, method);
       return false;
     }
 
     @Override
     public boolean registerInvokeInterface(DexMethod method) {
-      processInvoke(Invoke.Type.INTERFACE, method);
+      processInvoke(Type.INTERFACE, method);
       return false;
     }
 
     @Override
     public boolean registerInvokeSuper(DexMethod method) {
-      processInvoke(Invoke.Type.SUPER, method);
+      processInvoke(Type.SUPER, method);
       return false;
     }
 
@@ -311,8 +328,8 @@ public class CallGraphBuilder {
 
       push(node);
 
-      // Sort the callees before calling traverse recursively. This will ensure cycles are broken
-      // the same way across multiple invocations of the R8 compiler.
+      // The callees must be sorted before calling traverse recursively. This ensures that cycles
+      // are broken the same way across multiple compilations.
       Node[] callees = node.getCalleesWithDeterministicOrder();
 
       if (options.testing.nondeterministicCycleElimination) {

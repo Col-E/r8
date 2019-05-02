@@ -57,8 +57,8 @@ public class CycleEliminationTest extends TestBase {
 
     for (Collection<Node> nodes : orderings) {
       // Create a cycle between the two nodes.
-      forceInlinedMethod.addCaller(method);
-      method.addCaller(forceInlinedMethod);
+      forceInlinedMethod.addCallerConcurrently(method);
+      method.addCallerConcurrently(forceInlinedMethod);
 
       // Check that the cycle eliminator finds the cycle.
       CycleEliminator cycleEliminator = new CycleEliminator(nodes, new InternalOptions());
@@ -79,8 +79,8 @@ public class CycleEliminationTest extends TestBase {
     Node forceInlinedMethod = createForceInlinedNode("n2");
 
     // Create a cycle between the two nodes.
-    forceInlinedMethod.addCaller(method);
-    method.addCaller(forceInlinedMethod);
+    forceInlinedMethod.addCallerConcurrently(method);
+    method.addCallerConcurrently(forceInlinedMethod);
 
     CycleEliminator cycleEliminator =
         new CycleEliminator(ImmutableList.of(method, forceInlinedMethod), new InternalOptions());
@@ -160,12 +160,12 @@ public class CycleEliminationTest extends TestBase {
 
     for (Configuration configuration : configurations) {
       // Create a cycle between the three nodes.
-      n2.addCaller(n1);
-      n3.addCaller(n2);
-      n1.addCaller(n3);
+      n2.addCallerConcurrently(n1);
+      n3.addCallerConcurrently(n2);
+      n1.addCallerConcurrently(n3);
 
       // Create a cycle in the graph between node n1 and n2.
-      n1.addCaller(n2);
+      n1.addCallerConcurrently(n2);
 
       for (Node node : configuration.nodes) {
         if (configuration.forceInline.contains(node)) {

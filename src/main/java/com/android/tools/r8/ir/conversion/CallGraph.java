@@ -15,12 +15,12 @@ import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.ThrowingBiConsumer;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -52,23 +52,29 @@ public class CallGraph extends CallSiteInformation {
     private int numberOfCallSites = 0;
 
     // Outgoing calls from this method.
-    private final Set<Node> callees = new LinkedHashSet<>();
+    private final Set<Node> callees = new TreeSet<>();
 
     // Incoming calls to this method.
-    private final Set<Node> callers = new LinkedHashSet<>();
+    private final Set<Node> callers = new TreeSet<>();
 
     public Node(DexEncodedMethod method) {
       this.method = method;
     }
 
-    public boolean isBridge() {
-      return method.accessFlags.isBridge();
-    }
-
-    public void addCaller(Node caller) {
-      callers.add(caller);
-      caller.callees.add(this);
-      numberOfCallSites++;
+    public void addCallerConcurrently(Node caller) {
+      if (caller != this) {
+        synchronized (callers) {
+          callers.add(caller);
+          numberOfCallSites++;
+        }
+        synchronized (caller.callees) {
+          caller.callees.add(this);
+        }
+      } else {
+        synchronized (callers) {
+          numberOfCallSites++;
+        }
+      }
     }
 
     public void removeCaller(Node caller) {
@@ -77,9 +83,7 @@ public class CallGraph extends CallSiteInformation {
     }
 
     public Node[] getCalleesWithDeterministicOrder() {
-      Node[] sorted = callees.toArray(Node.EMPTY_ARRAY);
-      Arrays.sort(sorted);
-      return sorted;
+      return callees.toArray(Node.EMPTY_ARRAY);
     }
 
     public boolean hasCallee(Node method) {
@@ -109,9 +113,6 @@ public class CallGraph extends CallSiteInformation {
       builder.append(" callees, ");
       builder.append(callers.size());
       builder.append(" callers");
-      if (isBridge()) {
-        builder.append(", bridge");
-      }
       builder.append(", invoke count ").append(numberOfCallSites);
       builder.append(").\n");
       if (callees.size() > 0) {

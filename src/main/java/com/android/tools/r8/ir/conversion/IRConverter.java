@@ -510,7 +510,8 @@ public class IRConverter {
     OptimizationFeedbackDelayed feedback = delayedOptimizationFeedback;
     {
       timing.begin("Build call graph");
-      CallGraph callGraph = CallGraph.builder(appView.withLiveness()).build(timing);
+      CallGraph callGraph =
+          CallGraph.builder(appView.withLiveness()).build(executorService, timing);
       timing.end();
       timing.begin("IR conversion phase 1");
       BiConsumer<IRCode, DexEncodedMethod> outlineHandler =

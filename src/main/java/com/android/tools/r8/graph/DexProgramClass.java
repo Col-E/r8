@@ -238,10 +238,16 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
     this.kotlinInfo = kotlinInfo;
   }
 
+  public boolean hasFields() {
+    return instanceFields.length + staticFields.length > 0;
+  }
+
+  public boolean hasMethods() {
+    return directMethods.length + virtualMethods.length > 0;
+  }
+
   public boolean hasMethodsOrFields() {
-    int numberOfFields = staticFields().size() + instanceFields().size();
-    int numberOfMethods = directMethods().size() + virtualMethods().size();
-    return numberOfFields + numberOfMethods > 0;
+    return hasMethods() || hasFields();
   }
 
   public boolean hasAnnotations() {
