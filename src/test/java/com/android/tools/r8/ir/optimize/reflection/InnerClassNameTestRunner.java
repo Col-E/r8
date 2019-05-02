@@ -170,14 +170,10 @@ public class InnerClassNameTestRunner extends TestBase {
       case UNDERBAR_SEPARATOR:
       case NON_NESTED_INNER:
       case WRONG_REPACKAGE:
-        if (!minify) {
-          result
-              .assertInfoMessageThatMatches(containsString("Malformed inner-class attribute"))
-              .assertInfoMessageThatMatches(containsString(config.getOuterTypeRaw()))
-              .assertInfoMessageThatMatches(containsString(config.getInnerTypeRaw()));
-        } else {
-          result.assertNoMessages();
-        }
+        result
+            .assertInfoMessageThatMatches(containsString("Malformed inner-class attribute"))
+            .assertInfoMessageThatMatches(containsString(config.getOuterTypeRaw()))
+            .assertInfoMessageThatMatches(containsString(config.getInnerTypeRaw()));
         break;
       default:
         throw new Unreachable("Unexpected test configuration: " + config);

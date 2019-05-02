@@ -320,6 +320,7 @@ public class DescriptorUtils {
 
   public static String computeInnerClassSeparator(
       String outerDescriptor, String innerDescriptor, String innerName) {
+    assert innerName != null && !innerName.isEmpty();
     // outer-internal<separator>inner-name == inner-internal
     if (outerDescriptor.length() + innerName.length() > innerDescriptor.length()) {
       return null;

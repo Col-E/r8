@@ -243,9 +243,7 @@ public class JarClassFileReader {
     public void visitInnerClass(String name, String outerName, String innerName, int access) {
       if (outerName != null && innerName != null) {
         String separator = DescriptorUtils.computeInnerClassSeparator(outerName, name, innerName);
-        if (separator == null
-            && !application.options.isMinifying()
-            && getMajorVersion() < V9) {
+        if (separator == null && getMajorVersion() < V9) {
           application.options.reporter.info(
               new StringDiagnostic(
                   StringUtils.lines(

@@ -806,21 +806,20 @@ public abstract class DexClass extends DexDefinition {
   public boolean isLocalClass() {
     InnerClassAttribute innerClass = getInnerClassAttributeForThisClass();
     // The corresponding enclosing-method attribute might be not available, e.g., CF version 50.
-    return innerClass != null
-        && innerClass.getOuter() == null
-        && innerClass.isNamed();
+    return innerClass != null && innerClass.getOuter() == null && innerClass.isNamed();
   }
 
   public boolean isMemberClass() {
     InnerClassAttribute innerClass = getInnerClassAttributeForThisClass();
-    return innerClass != null
-        && innerClass.getOuter() != null
-        && innerClass.isNamed();
+    boolean isMember = innerClass != null && innerClass.getOuter() != null && innerClass.isNamed();
+    assert !isMember || getEnclosingMethod() == null;
+    return isMember;
   }
 
   public boolean isAnonymousClass() {
     InnerClassAttribute innerClass = getInnerClassAttributeForThisClass();
     // The corresponding enclosing-method attribute might be not available, e.g., CF version 50.
+    // We can't rely on outer type either because it's not null prior to 51 and null since 51.
     return innerClass != null && innerClass.isAnonymous();
   }
 
