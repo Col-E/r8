@@ -25,7 +25,6 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 public abstract class DexClass extends DexDefinition {
-  public static final DexClass[] EMPTY_ARRAY = {};
 
   public interface FieldSetter {
     void setField(int index, DexEncodedField field);

@@ -4,17 +4,20 @@
 
 package com.android.tools.r8.ir.callgraph;
 
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.ir.conversion.CallGraph.CycleEliminator;
 import com.android.tools.r8.ir.conversion.CallGraph.Node;
+import com.android.tools.r8.ir.conversion.CallGraphBuilder.CycleEliminator;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -23,9 +26,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.function.BooleanSupplier;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class CycleEliminationTest extends TestBase {
 
@@ -44,8 +45,6 @@ public class CycleEliminationTest extends TestBase {
 
   private DexItemFactory dexItemFactory = new DexItemFactory();
 
-  @Rule public final ExpectedException exception = ExpectedException.none();
-
   @Test
   public void testSimpleCycle() {
     Node method = createNode("n1");
@@ -58,8 +57,8 @@ public class CycleEliminationTest extends TestBase {
 
     for (Collection<Node> nodes : orderings) {
       // Create a cycle between the two nodes.
-      method.addCallee(forceInlinedMethod);
-      forceInlinedMethod.addCallee(method);
+      forceInlinedMethod.addCaller(method);
+      method.addCaller(forceInlinedMethod);
 
       // Check that the cycle eliminator finds the cycle.
       CycleEliminator cycleEliminator = new CycleEliminator(nodes, new InternalOptions());
@@ -80,17 +79,18 @@ public class CycleEliminationTest extends TestBase {
     Node forceInlinedMethod = createForceInlinedNode("n2");
 
     // Create a cycle between the two nodes.
-    method.addCallee(forceInlinedMethod);
-    forceInlinedMethod.addCallee(method);
+    forceInlinedMethod.addCaller(method);
+    method.addCaller(forceInlinedMethod);
 
     CycleEliminator cycleEliminator =
         new CycleEliminator(ImmutableList.of(method, forceInlinedMethod), new InternalOptions());
 
-    exception.expect(CompilationError.class);
-    exception.expectMessage(CycleEliminator.CYCLIC_FORCE_INLINING_MESSAGE);
-
-    // Should throw because force inlining will fail.
-    cycleEliminator.breakCycles();
+    try {
+      cycleEliminator.breakCycles();
+      fail("Force inlining should fail");
+    } catch (CompilationError e) {
+      assertThat(e.toString(), containsString(CycleEliminator.CYCLIC_FORCE_INLINING_MESSAGE));
+    }
   }
 
   @Test
@@ -160,12 +160,12 @@ public class CycleEliminationTest extends TestBase {
 
     for (Configuration configuration : configurations) {
       // Create a cycle between the three nodes.
-      n1.addCallee(n2);
-      n2.addCallee(n3);
-      n3.addCallee(n1);
+      n2.addCaller(n1);
+      n3.addCaller(n2);
+      n1.addCaller(n3);
 
       // Create a cycle in the graph between node n1 and n2.
-      n2.addCallee(n1);
+      n1.addCaller(n2);
 
       for (Node node : configuration.nodes) {
         if (configuration.forceInline.contains(node)) {
