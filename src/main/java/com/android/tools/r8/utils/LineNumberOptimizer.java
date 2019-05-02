@@ -168,7 +168,7 @@ public class LineNumberOptimizer {
     // Collect which files contain which classes that need to have their line numbers optimized.
     for (DexProgramClass clazz : application.classes()) {
       IdentityHashMap<DexString, List<DexEncodedMethod>> methodsByRenamedName =
-          groupMethodsByRenamedName(namingLens, clazz);
+          groupMethodsByRenamedName(appView.graphLense(), namingLens, clazz);
 
       // At this point we don't know if we really need to add this class to the builder.
       // It depends on whether any methods/fields are renamed or some methods contain positions.
@@ -366,14 +366,19 @@ public class LineNumberOptimizer {
   }
 
   private static IdentityHashMap<DexString, List<DexEncodedMethod>> groupMethodsByRenamedName(
-      NamingLens namingLens, DexProgramClass clazz) {
+      GraphLense graphLens, NamingLens namingLens, DexProgramClass clazz) {
     IdentityHashMap<DexString, List<DexEncodedMethod>> methodsByRenamedName =
         new IdentityHashMap<>(clazz.directMethods().size() + clazz.virtualMethods().size());
-    for (DexEncodedMethod method : clazz.methods()) {
-      // Add method only if renamed or contains positions.
-      DexString renamedName = namingLens.lookupName(method.method);
-      if (renamedName != method.method.name || doesContainPositions(method)) {
-        methodsByRenamedName.computeIfAbsent(renamedName, key -> new ArrayList<>()).add(method);
+    for (DexEncodedMethod encodedMethod : clazz.methods()) {
+      // Add method only if renamed, moved, or contains positions.
+      DexMethod method = encodedMethod.method;
+      DexString renamedName = namingLens.lookupName(method);
+      if (renamedName != method.name
+          || graphLens.getOriginalMethodSignature(method) != method
+          || doesContainPositions(encodedMethod)) {
+        methodsByRenamedName
+            .computeIfAbsent(renamedName, key -> new ArrayList<>())
+            .add(encodedMethod);
       }
     }
     return methodsByRenamedName;
