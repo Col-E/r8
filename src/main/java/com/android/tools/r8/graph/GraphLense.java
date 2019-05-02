@@ -7,7 +7,6 @@ import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.code.Position;
-import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaring.DexFieldWithAccess;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.google.common.collect.BiMap;
