@@ -8,9 +8,13 @@ import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.BaseCompilerCommand;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.TestRunResult;
+import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.compatproguard.CompatKeepClassMemberNamesTest.Bar;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -19,6 +23,7 @@ import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -52,6 +57,8 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
     this.parameters = parameters;
   }
 
+  // Test reference implementation.
+
   @Test
   public void testJvm() throws Exception {
     testForJvm()
@@ -60,17 +67,14 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
         .assertSuccessWithOutput(EXPECTED);
   }
 
-  @Test
-  public void testWithoutRulesPG() throws Exception {
-    testForProguard()
-        .addProgramClasses(CLASSES)
-        .addKeepMainRule(MAIN_CLASS)
-        .noMinification()
-        .compile()
+  // Helpers to check that the Bar is absent or the Bar.instance() call has not been inlined.
+
+  private <CR extends TestCompileResult<CR, RR>, RR extends TestRunResult<RR>>
+      void assertBarIsAbsent(CR compileResult) throws Exception {
+    compileResult
         .inspect(
             inspector -> {
               assertTrue(inspector.clazz(MAIN_CLASS).isPresent());
-              // Bar.instance() is inlined away allowing Bar to be removed fully.
               assertFalse(inspector.clazz(BAR_CLASS).isPresent());
             })
         .run(parameters.getRuntime(), MAIN_CLASS)
@@ -79,14 +83,59 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
                 containsString("ClassNotFoundException"), containsString(BAR_CLASS.getTypeName())));
   }
 
+  private static void assertBarGetInstanceIsNotInlined(CodeInspector inspector) {
+    assertTrue(
+        inspector
+            .clazz(MAIN_CLASS)
+            .uniqueMethodWithName("main")
+            .streamInstructions()
+            .anyMatch(i -> i.isInvoke() && i.getMethod().qualifiedName().contains("instance")));
+  }
+
+  // Tests with just keep main and no additional rules.
+
+  private <
+          C extends BaseCompilerCommand,
+          B extends BaseCompilerCommand.Builder<C, B>,
+          CR extends TestCompileResult<CR, RR>,
+          RR extends TestRunResult<RR>,
+          T extends TestShrinkerBuilder<C, B, CR, RR, T>>
+      void testWithoutRules(TestShrinkerBuilder<C, B, CR, RR, T> builder) throws Exception {
+    assertBarIsAbsent(
+        builder.addProgramClasses(CLASSES).addKeepMainRule(MAIN_CLASS).noMinification().compile());
+  }
+
   @Test
-  public void testWithMembersRulePG() throws Exception {
-    testForProguard()
-        .addProgramClasses(CLASSES)
-        .addKeepMainRule(MAIN_CLASS)
-        .noMinification()
-        .addKeepRules("-keepclassmembers " + EXPLICIT_RULE)
-        .compile()
+  public void testWithoutRulesPG() throws Exception {
+    testWithoutRules(testForProguard());
+  }
+
+  @Test
+  public void testWithoutRulesCompatR8() throws Exception {
+    testWithoutRules(testForR8Compat(parameters.getBackend()));
+  }
+
+  @Test
+  public void testWithoutRulesFullR8() throws Exception {
+    // Running without rules is the same in full mode as for compat mode. The class is removed.
+    testWithoutRules(testForR8(parameters.getBackend()));
+  }
+
+  // Tests for -keepclassmembers and *no* minification.
+
+  private <
+          C extends BaseCompilerCommand,
+          B extends BaseCompilerCommand.Builder<C, B>,
+          CR extends TestCompileResult<CR, RR>,
+          RR extends TestRunResult<RR>,
+          T extends TestShrinkerBuilder<C, B, CR, RR, T>>
+      T buildWithMembersRule(TestShrinkerBuilder<C, B, CR, RR, T> builder) {
+    return buildWithMembersRuleAllowRenaming(builder).noMinification();
+  }
+
+  private <CR extends TestCompileResult<CR, RR>, RR extends TestRunResult<RR>>
+      void assertMembersRuleCompatResult(CR compileResult) throws Exception {
+    compileResult
         .inspect(
             inspector -> {
               assertTrue(inspector.clazz(MAIN_CLASS).isPresent());
@@ -99,12 +148,40 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
   }
 
   @Test
-  public void testWithMembersRuleAllowRenamingPG() throws Exception {
-    testForProguard()
+  public void testWithMembersRulePG() throws Exception {
+    assertMembersRuleCompatResult(buildWithMembersRule(testForProguard()).compile());
+  }
+
+  @Test
+  public void testWithMembersRuleCompatR8() throws Exception {
+    assertMembersRuleCompatResult(
+        buildWithMembersRule(testForR8Compat(parameters.getBackend())).compile());
+  }
+
+  @Test
+  public void testWithMembersRuleFullR8() throws Exception {
+    // In full mode for R8 we do *not* expect a -keepclassmembers to cause retention of the class.
+    assertBarIsAbsent(buildWithMembersRule(testForR8(parameters.getBackend())).compile());
+  }
+
+  // Tests for -keepclassmembers and minification.
+
+  private <
+          C extends BaseCompilerCommand,
+          B extends BaseCompilerCommand.Builder<C, B>,
+          CR extends TestCompileResult<CR, RR>,
+          RR extends TestRunResult<RR>,
+          T extends TestShrinkerBuilder<C, B, CR, RR, T>>
+      T buildWithMembersRuleAllowRenaming(TestShrinkerBuilder<C, B, CR, RR, T> builder) {
+    return builder
         .addProgramClasses(CLASSES)
         .addKeepMainRule(MAIN_CLASS)
-        .addKeepRules("-keepclassmembers " + EXPLICIT_RULE)
-        .compile()
+        .addKeepRules("-keepclassmembers " + EXPLICIT_RULE);
+  }
+
+  private <CR extends TestCompileResult<CR, RR>, RR extends TestRunResult<RR>>
+      void assertMembersRuleAllowRenamingCompatResult(CR compileResult) throws Exception {
+    compileResult
         .inspect(
             inspector -> {
               assertTrue(inspector.clazz(MAIN_CLASS).isPresent());
@@ -130,33 +207,73 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
   }
 
   @Test
-  public void testWithMembersStarRulePG() throws Exception {
-    testForProguard()
-        .addProgramClasses(CLASSES)
-        .addKeepMainRule(MAIN_CLASS)
-        .noMinification()
-        .addKeepRules("-keepclassmembers class " + Bar.class.getTypeName())
-        .compile()
-        .inspect(
-            inspector -> {
-              assertTrue(inspector.clazz(MAIN_CLASS).isPresent());
-              // A rule without body does not imply { *; }, thus Bar is removed.
-              assertFalse(inspector.clazz(BAR_CLASS).isPresent());
-            })
-        .run(parameters.getRuntime(), MAIN_CLASS)
-        .assertFailureWithErrorThatMatches(
-            allOf(
-                containsString("ClassNotFoundException"), containsString(BAR_CLASS.getTypeName())));
+  public void testWithMembersRuleAllowRenamingPG() throws Exception {
+    assertMembersRuleAllowRenamingCompatResult(
+        buildWithMembersRuleAllowRenaming(testForProguard()).compile());
   }
 
   @Test
-  public void testWithMemberNamesRulePG() throws Exception {
-    testForProguard()
-        .addProgramClasses(CLASSES)
-        .addKeepMainRule(MAIN_CLASS)
-        .noMinification()
-        .addKeepRules("-keepclassmembernames " + EXPLICIT_RULE)
-        .compile()
+  @Ignore("b/119076934")
+  // TODO(b/119076934): This fails the Bar.instance() is not inlined check.
+  public void testWithMembersRuleAllowRenamingCompatR8() throws Exception {
+    assertMembersRuleAllowRenamingCompatResult(
+        buildWithMembersRuleAllowRenaming(testForR8Compat(parameters.getBackend())).compile());
+  }
+
+  @Test
+  public void testWithMembersRuleAllowRenamingFullR8() throws Exception {
+    assertBarIsAbsent(
+        buildWithMembersRuleAllowRenaming(testForR8(parameters.getBackend())).compile());
+  }
+
+  // Tests for "-keepclassmembers class Bar", i.e, with no members specified.
+
+  private <
+          C extends BaseCompilerCommand,
+          B extends BaseCompilerCommand.Builder<C, B>,
+          CR extends TestCompileResult<CR, RR>,
+          RR extends TestRunResult<RR>,
+          T extends TestShrinkerBuilder<C, B, CR, RR, T>>
+      void testWithMembersStarRule(TestShrinkerBuilder<C, B, CR, RR, T> builder) throws Exception {
+    assertBarIsAbsent(
+        builder
+            .addProgramClasses(CLASSES)
+            .addKeepMainRule(MAIN_CLASS)
+            .noMinification()
+            .addKeepRules("-keepclassmembers class " + Bar.class.getTypeName())
+            .compile());
+  }
+
+  @Test
+  public void testWithMembersStarRulePG() throws Exception {
+    testWithMembersStarRule(testForProguard());
+  }
+
+  @Test
+  public void testWithMembersStarRuleCompatR8() throws Exception {
+    testWithMembersStarRule(testForR8Compat(parameters.getBackend()));
+  }
+
+  @Test
+  public void testWithMembersStarRuleFullR8() throws Exception {
+    testWithMembersStarRule(testForR8(parameters.getBackend()));
+  }
+
+  // Tests for "-keepclassmembernames" and *no* minification.
+
+  private <
+          C extends BaseCompilerCommand,
+          B extends BaseCompilerCommand.Builder<C, B>,
+          CR extends TestCompileResult<CR, RR>,
+          RR extends TestRunResult<RR>,
+          T extends TestShrinkerBuilder<C, B, CR, RR, T>>
+      T buildWithMemberNamesRule(TestShrinkerBuilder<C, B, CR, RR, T> builder) {
+    return buildWithMemberNamesRuleAllowRenaming(builder).noMinification();
+  }
+
+  private <CR extends TestCompileResult<CR, RR>, RR extends TestRunResult<RR>>
+      void assertMemberNamesRuleCompatResult(CR compileResult) throws Exception {
+    compileResult
         .inspect(
             inspector -> {
               assertTrue(inspector.clazz(MAIN_CLASS).isPresent());
@@ -177,12 +294,41 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
   }
 
   @Test
-  public void testWithMemberNamesRuleAllowRenamingPG() throws Exception {
-    testForProguard()
+  public void testWithMemberNamesRulePG() throws Exception {
+    assertMemberNamesRuleCompatResult(buildWithMemberNamesRule(testForProguard()).compile());
+  }
+
+  @Test
+  @Ignore("b/119076934")
+  // TODO(b/119076934): This fails the Bar.instance() is not inlined check.
+  public void testWithMemberNamesRuleCompatR8() throws Exception {
+    assertMemberNamesRuleCompatResult(
+        buildWithMemberNamesRule(testForR8Compat(parameters.getBackend())).compile());
+  }
+
+  @Test
+  public void testWithMemberNamesRuleFullR8() throws Exception {
+    assertBarIsAbsent(buildWithMemberNamesRule(testForR8Compat(parameters.getBackend())).compile());
+  }
+
+  // Tests for "-keepclassmembernames" and *no* minification.
+
+  private <
+          C extends BaseCompilerCommand,
+          B extends BaseCompilerCommand.Builder<C, B>,
+          CR extends TestCompileResult<CR, RR>,
+          RR extends TestRunResult<RR>,
+          T extends TestShrinkerBuilder<C, B, CR, RR, T>>
+      T buildWithMemberNamesRuleAllowRenaming(TestShrinkerBuilder<C, B, CR, RR, T> builder) {
+    return builder
         .addProgramClasses(CLASSES)
         .addKeepMainRule(MAIN_CLASS)
-        .addKeepRules("-keepclassmembernames " + EXPLICIT_RULE)
-        .compile()
+        .addKeepRules("-keepclassmembernames " + EXPLICIT_RULE);
+  }
+
+  private <CR extends TestCompileResult<CR, RR>, RR extends TestRunResult<RR>>
+      void assertMemberNamesRuleAllowRenamingCompatResult(CR compileResult) throws Exception {
+    compileResult
         .inspect(
             inspector -> {
               assertTrue(inspector.clazz(MAIN_CLASS).isPresent());
@@ -203,12 +349,23 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
                 containsString("ClassNotFoundException"), containsString(BAR_CLASS.getTypeName())));
   }
 
-  private static void assertBarGetInstanceIsNotInlined(CodeInspector inspector) {
-    assertTrue(
-        inspector
-            .clazz(MAIN_CLASS)
-            .uniqueMethodWithName("main")
-            .streamInstructions()
-            .anyMatch(i -> i.isInvoke() && i.getMethod().qualifiedName().contains("instance")));
+  @Test
+  public void testWithMemberNamesRuleAllowRenamingPG() throws Exception {
+    assertMemberNamesRuleAllowRenamingCompatResult(
+        buildWithMemberNamesRuleAllowRenaming(testForProguard()).compile());
+  }
+
+  @Test
+  @Ignore("b/119076934")
+  // TODO(b/119076934): This fails the Bar.instance() is not inlined check.
+  public void testWithMemberNamesRuleAllowRenamingCompatR8() throws Exception {
+    assertMemberNamesRuleAllowRenamingCompatResult(
+        buildWithMemberNamesRuleAllowRenaming(testForR8Compat(parameters.getBackend())).compile());
+  }
+
+  @Test
+  public void testWithMemberNamesRuleAllowRenamingFullR8() throws Exception {
+    assertBarIsAbsent(
+        buildWithMemberNamesRuleAllowRenaming(testForR8(parameters.getBackend())).compile());
   }
 }
