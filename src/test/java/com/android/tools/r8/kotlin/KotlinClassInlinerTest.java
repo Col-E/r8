@@ -4,8 +4,10 @@
 
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
@@ -65,139 +67,180 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
   public void testJStyleLambdas() throws Exception {
     assumeTrue("Only work with -allowaccessmodification", allowAccessModification);
     final String mainClassName = "class_inliner_lambda_j_style.MainKt";
-    runTest("class_inliner_lambda_j_style", mainClassName, false, (app) -> {
-      CodeInspector inspector = new CodeInspector(app);
-      assertTrue(
-          inspector.clazz("class_inliner_lambda_j_style.MainKt$testStateful$1").isPresent());
-      assertTrue(
-          inspector.clazz("class_inliner_lambda_j_style.MainKt$testStateful2$1").isPresent());
-      assertTrue(
-          inspector.clazz("class_inliner_lambda_j_style.MainKt$testStateful3$1").isPresent());
-    });
+    runTest(
+        "class_inliner_lambda_j_style",
+        mainClassName,
+        false,
+        app -> {
+          CodeInspector inspector = new CodeInspector(app);
+          assertThat(
+              inspector.clazz("class_inliner_lambda_j_style.MainKt$testStateful$1"), isPresent());
+          assertThat(
+              inspector.clazz("class_inliner_lambda_j_style.MainKt$testStateful2$1"), isPresent());
+          assertThat(
+              inspector.clazz("class_inliner_lambda_j_style.MainKt$testStateful3$1"), isPresent());
+        });
 
-    runTest("class_inliner_lambda_j_style", mainClassName, true, (app) -> {
-      CodeInspector inspector = new CodeInspector(app);
-      Predicate<DexType> lambdaCheck = createLambdaCheck(inspector);
-      ClassSubject clazz = inspector.clazz(mainClassName);
+    runTest(
+        "class_inliner_lambda_j_style",
+        mainClassName,
+        true,
+        app -> {
+          CodeInspector inspector = new CodeInspector(app);
+          Predicate<DexType> lambdaCheck = createLambdaCheck(inspector);
+          ClassSubject clazz = inspector.clazz(mainClassName);
 
-      assertEquals(
-          Sets.newHashSet(),
-          collectAccessedTypes(lambdaCheck, clazz, "testStateless"));
+          assertEquals(
+              Sets.newHashSet(), collectAccessedTypes(lambdaCheck, clazz, "testStateless"));
 
-      assertEquals(
-          Sets.newHashSet(),
-          collectAccessedTypes(lambdaCheck, clazz, "testStateful"));
+          assertEquals(Sets.newHashSet(), collectAccessedTypes(lambdaCheck, clazz, "testStateful"));
 
-      assertFalse(
-          inspector.clazz("class_inliner_lambda_j_style.MainKt$testStateful$1").isPresent());
+          assertThat(
+              inspector.clazz("class_inliner_lambda_j_style.MainKt$testStateful$1"),
+              not(isPresent()));
 
-      assertEquals(
-          Sets.newHashSet(),
-          collectAccessedTypes(lambdaCheck, clazz, "testStateful2"));
+          assertEquals(
+              Sets.newHashSet(), collectAccessedTypes(lambdaCheck, clazz, "testStateful2"));
 
-      assertFalse(
-          inspector.clazz("class_inliner_lambda_j_style.MainKt$testStateful2$1").isPresent());
+          assertThat(
+              inspector.clazz("class_inliner_lambda_j_style.MainKt$testStateful2$1"),
+              not(isPresent()));
 
-      assertEquals(
-          Sets.newHashSet(),
-          collectAccessedTypes(lambdaCheck, clazz, "testStateful3"));
+          assertEquals(
+              Sets.newHashSet(), collectAccessedTypes(lambdaCheck, clazz, "testStateful3"));
 
-      assertFalse(
-          inspector.clazz("class_inliner_lambda_j_style.MainKt$testStateful3$1").isPresent());
-    });
+          assertThat(
+              inspector.clazz("class_inliner_lambda_j_style.MainKt$testStateful3$1"),
+              not(isPresent()));
+        });
   }
 
   @Test
   public void testKStyleLambdas() throws Exception {
     assumeTrue("Only work with -allowaccessmodification", allowAccessModification);
     final String mainClassName = "class_inliner_lambda_k_style.MainKt";
-    runTest("class_inliner_lambda_k_style", mainClassName, false, (app) -> {
-      CodeInspector inspector = new CodeInspector(app);
-      assertTrue(inspector.clazz(
-          "class_inliner_lambda_k_style.MainKt$testKotlinSequencesStateless$1").isPresent());
-      assertTrue(inspector.clazz(
-          "class_inliner_lambda_k_style.MainKt$testKotlinSequencesStateful$1").isPresent());
-      assertTrue(inspector.clazz(
-          "class_inliner_lambda_k_style.MainKt$testBigExtraMethod$1").isPresent());
-      assertTrue(inspector.clazz(
-          "class_inliner_lambda_k_style.MainKt$testBigExtraMethod2$1").isPresent());
-      assertTrue(inspector.clazz(
-          "class_inliner_lambda_k_style.MainKt$testBigExtraMethod3$1").isPresent());
-      assertTrue(inspector.clazz(
-          "class_inliner_lambda_k_style.MainKt$testBigExtraMethodReturningLambda$1")
-          .isPresent());
-      assertTrue(inspector.clazz(
-          "class_inliner_lambda_k_style.MainKt$testBigExtraMethodReturningLambda2$1")
-          .isPresent());
-      assertTrue(inspector.clazz(
-          "class_inliner_lambda_k_style.MainKt$testBigExtraMethodReturningLambda3$1")
-          .isPresent());
-    });
+    runTest(
+        "class_inliner_lambda_k_style",
+        mainClassName,
+        false,
+        app -> {
+          CodeInspector inspector = new CodeInspector(app);
+          assertThat(
+              inspector.clazz("class_inliner_lambda_k_style.MainKt$testKotlinSequencesStateless$1"),
+              isPresent());
+          assertThat(
+              inspector.clazz("class_inliner_lambda_k_style.MainKt$testKotlinSequencesStateful$1"),
+              isPresent());
+          assertThat(
+              inspector.clazz("class_inliner_lambda_k_style.MainKt$testBigExtraMethod$1"),
+              isPresent());
+          assertThat(
+              inspector.clazz("class_inliner_lambda_k_style.MainKt$testBigExtraMethod2$1"),
+              isPresent());
+          assertThat(
+              inspector.clazz("class_inliner_lambda_k_style.MainKt$testBigExtraMethod3$1"),
+              isPresent());
+          assertThat(
+              inspector.clazz(
+                  "class_inliner_lambda_k_style.MainKt$testBigExtraMethodReturningLambda$1"),
+              isPresent());
+          assertThat(
+              inspector.clazz(
+                  "class_inliner_lambda_k_style.MainKt$testBigExtraMethodReturningLambda2$1"),
+              isPresent());
+          assertThat(
+              inspector.clazz(
+                  "class_inliner_lambda_k_style.MainKt$testBigExtraMethodReturningLambda3$1"),
+              isPresent());
+        });
 
-    runTest("class_inliner_lambda_k_style", mainClassName, true, (app) -> {
-      CodeInspector inspector = new CodeInspector(app);
-      Predicate<DexType> lambdaCheck = createLambdaCheck(inspector);
-      ClassSubject clazz = inspector.clazz(mainClassName);
+    runTest(
+        "class_inliner_lambda_k_style",
+        mainClassName,
+        true,
+        app -> {
+          CodeInspector inspector = new CodeInspector(app);
+          Predicate<DexType> lambdaCheck = createLambdaCheck(inspector);
+          ClassSubject clazz = inspector.clazz(mainClassName);
 
-      assertEquals(
-          Sets.newHashSet(),
-          collectAccessedTypes(lambdaCheck, clazz,
-              "testKotlinSequencesStateless", "kotlin.sequences.Sequence"));
+          assertEquals(
+              Sets.newHashSet(),
+              collectAccessedTypes(
+                  lambdaCheck, clazz, "testKotlinSequencesStateless", "kotlin.sequences.Sequence"));
 
-      assertFalse(inspector.clazz(
-          "class_inliner_lambda_k_style.MainKt$testKotlinSequencesStateless$1").isPresent());
+          assertThat(
+              inspector.clazz("class_inliner_lambda_k_style.MainKt$testKotlinSequencesStateless$1"),
+              not(isPresent()));
 
-      assertEquals(
-          Sets.newHashSet(),
-          collectAccessedTypes(lambdaCheck, clazz,
-              "testKotlinSequencesStateful", "int", "int", "kotlin.sequences.Sequence"));
+          assertEquals(
+              Sets.newHashSet(),
+              collectAccessedTypes(
+                  lambdaCheck,
+                  clazz,
+                  "testKotlinSequencesStateful",
+                  "int",
+                  "int",
+                  "kotlin.sequences.Sequence"));
 
-      assertFalse(inspector.clazz(
-          "class_inliner_lambda_k_style.MainKt$testKotlinSequencesStateful$1").isPresent());
+          assertThat(
+              inspector.clazz("class_inliner_lambda_k_style.MainKt$testKotlinSequencesStateful$1"),
+              not(isPresent()));
 
-      assertEquals(
-          Sets.newHashSet(),
-          collectAccessedTypes(lambdaCheck, clazz, "testBigExtraMethod"));
+          assertEquals(
+              Sets.newHashSet(), collectAccessedTypes(lambdaCheck, clazz, "testBigExtraMethod"));
 
-      assertFalse(inspector.clazz(
-          "class_inliner_lambda_k_style.MainKt$testBigExtraMethod$1").isPresent());
-      assertFalse(inspector.clazz(
-          "class_inliner_lambda_k_style.MainKt$testBigExtraMethod2$1").isPresent());
-      assertFalse(inspector.clazz(
-          "class_inliner_lambda_k_style.MainKt$testBigExtraMethod3$1").isPresent());
+          assertThat(
+              inspector.clazz("class_inliner_lambda_k_style.MainKt$testBigExtraMethod$1"),
+              not(isPresent()));
+          assertThat(
+              inspector.clazz("class_inliner_lambda_k_style.MainKt$testBigExtraMethod2$1"),
+              not(isPresent()));
+          assertThat(
+              inspector.clazz("class_inliner_lambda_k_style.MainKt$testBigExtraMethod3$1"),
+              not(isPresent()));
 
-      assertEquals(
-          Sets.newHashSet(),
-          collectAccessedTypes(lambdaCheck, clazz, "testBigExtraMethodReturningLambda"));
+          assertEquals(
+              Sets.newHashSet(),
+              collectAccessedTypes(lambdaCheck, clazz, "testBigExtraMethodReturningLambda"));
 
-      assertFalse(inspector.clazz(
-          "class_inliner_lambda_k_style.MainKt$testBigExtraMethodReturningLambda$1")
-          .isPresent());
-      assertFalse(inspector.clazz(
-          "class_inliner_lambda_k_style.MainKt$testBigExtraMethodReturningLambda2$1")
-          .isPresent());
-      assertFalse(inspector.clazz(
-          "class_inliner_lambda_k_style.MainKt$testBigExtraMethodReturningLambda3$1")
-          .isPresent());
-    });
+          assertThat(
+              inspector.clazz(
+                  "class_inliner_lambda_k_style.MainKt$testBigExtraMethodReturningLambda$1"),
+              not(isPresent()));
+          assertThat(
+              inspector.clazz(
+                  "class_inliner_lambda_k_style.MainKt$testBigExtraMethodReturningLambda2$1"),
+              not(isPresent()));
+          assertThat(
+              inspector.clazz(
+                  "class_inliner_lambda_k_style.MainKt$testBigExtraMethodReturningLambda3$1"),
+              not(isPresent()));
+        });
   }
 
   @Test
   public void testDataClass() throws Exception {
     assumeTrue("Only work with -allowaccessmodification", allowAccessModification);
     final String mainClassName = "class_inliner_data_class.MainKt";
-    runTest("class_inliner_data_class", mainClassName, true, (app) -> {
-      CodeInspector inspector = new CodeInspector(app);
-      ClassSubject clazz = inspector.clazz(mainClassName);
-      assertTrue(collectAccessedTypes(
-          type -> !type.toSourceString().startsWith("java."),
-          clazz, "main", String[].class.getCanonicalName()).isEmpty());
-      assertEquals(
-          Lists.newArrayList(
-              "void kotlin.jvm.internal.Intrinsics.throwParameterIsNullException(java.lang.String)"
-          ),
-          collectStaticCalls(clazz, "main", String[].class.getCanonicalName()));
-    });
+    runTest(
+        "class_inliner_data_class",
+        mainClassName,
+        true,
+        app -> {
+          CodeInspector inspector = new CodeInspector(app);
+          ClassSubject clazz = inspector.clazz(mainClassName);
+          assertTrue(
+              collectAccessedTypes(
+                      type -> !type.toSourceString().startsWith("java."),
+                      clazz,
+                      "main",
+                      String[].class.getCanonicalName())
+                  .isEmpty());
+          assertEquals(
+              Lists.newArrayList(
+                  "void kotlin.jvm.internal.Intrinsics.throwParameterIsNullException(java.lang.String)"),
+              collectStaticCalls(clazz, "main", String[].class.getCanonicalName()));
+        });
   }
 
   private Set<String> collectAccessedTypes(Predicate<DexType> isTypeOfInterest,
@@ -219,21 +262,27 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
   protected void runTest(String folder, String mainClass,
       boolean enabled, AndroidAppInspector inspector) throws Exception {
     runTest(
-        folder, mainClass,
+        folder,
+        mainClass,
         // TODO(jsjeon): Introduce @NeverInline to kotlinR8TestResources
         StringUtils.lines(
             "-neverinline class * { void test*State*(...); }",
             "-neverinline class * { void testBigExtraMethod(...); }",
-            "-neverinline class * { void testBigExtraMethodReturningLambda(...); }"
-        ),
+            "-neverinline class * { void testBigExtraMethodReturningLambda(...); }"),
         options -> {
           options.enableInlining = true;
           options.enableClassInlining = enabled;
           options.enableLambdaMerging = false;
+
           // Tests check if specific lambdas are inlined or not, where some of target lambdas have
           // at least 4 instructions.
           options.inliningInstructionLimit = 4;
-        }, inspector);
+
+          // Class inlining depends on the processing order. We therefore insert all call graph
+          // edges and verify that we can class inline everything under this condition.
+          options.testing.addCallEdgesForLibraryInvokes = true;
+        },
+        inspector);
   }
 
   private List<String> collectStaticCalls(ClassSubject clazz, String methodName, String... params) {

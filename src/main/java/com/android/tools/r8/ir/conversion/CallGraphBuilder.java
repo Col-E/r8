@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.graph.AppInfo.ResolutionResult;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -15,7 +16,6 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense.GraphLenseLookupResult;
 import com.android.tools.r8.graph.UseRegistry;
-import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.conversion.CallGraph.Node;
 import com.android.tools.r8.logging.Log;
@@ -36,6 +36,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -44,6 +45,8 @@ public class CallGraphBuilder {
 
   private final AppView<AppInfoWithLiveness> appView;
   private final Map<DexMethod, Node> nodes = new IdentityHashMap<>();
+  private final Map<DexMethod, Set<DexEncodedMethod>> possibleTargetsCache =
+      new ConcurrentHashMap<>();
 
   CallGraphBuilder(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
@@ -128,54 +131,66 @@ public class CallGraphBuilder {
 
     private void addTarget(DexEncodedMethod callee) {
       if (!callee.accessFlags.isAbstract()) {
+        assert callee.isProgramMethod(appView);
         getOrCreateNode(callee).addCallerConcurrently(caller);
       }
     }
 
-    private void addPossibleTarget(DexEncodedMethod possibleTarget) {
-      DexClass possibleTargetClass = appView.definitionFor(possibleTarget.method.holder);
-      if (possibleTargetClass != null && possibleTargetClass.isProgramClass()) {
-        addTarget(possibleTarget);
-      }
-    }
-
-    private void addPossibleTargets(
-        DexEncodedMethod definition, Set<DexEncodedMethod> possibleTargets) {
-      for (DexEncodedMethod possibleTarget : possibleTargets) {
-        if (possibleTarget != definition) {
-          addPossibleTarget(possibleTarget);
+    private void processInvoke(Type originalType, DexMethod originalMethod) {
+      DexEncodedMethod source = caller.method;
+      DexMethod context = source.method;
+      GraphLenseLookupResult result =
+          appView.graphLense().lookupMethod(originalMethod, context, originalType);
+      DexMethod method = result.getMethod();
+      Type type = result.getType();
+      if (type == Type.INTERFACE || type == Type.VIRTUAL) {
+        // For virtual and interface calls add all potential targets that could be called.
+        ResolutionResult resolutionResult = appView.appInfo().resolveMethod(method.holder, method);
+        resolutionResult.forEachTarget(target -> processInvokeWithDynamicDispatch(type, target));
+      } else {
+        DexEncodedMethod singleTarget =
+            appView.appInfo().lookupSingleTarget(type, method, context.holder);
+        if (singleTarget != null) {
+          assert !source.accessFlags.isBridge() || singleTarget != caller.method;
+          DexClass clazz = appView.definitionFor(singleTarget.method.holder);
+          assert clazz != null;
+          if (clazz.isProgramClass()) {
+            // For static invokes, the class could be initialized.
+            if (type == Type.STATIC) {
+              addClassInitializerTarget(clazz);
+            }
+            addTarget(singleTarget);
+          }
         }
       }
     }
 
-    private void processInvoke(Type type, DexMethod method) {
-      DexEncodedMethod source = caller.method;
-      GraphLenseLookupResult result =
-          appView.graphLense().lookupMethod(method, source.method, type);
-      method = result.getMethod();
-      type = result.getType();
-      DexEncodedMethod definition =
-          appView.appInfo().lookupSingleTarget(type, method, source.method.holder);
-      if (definition != null) {
-        assert !source.accessFlags.isBridge() || definition != caller.method;
-        DexClass clazz = appView.definitionFor(definition.method.holder);
-        assert clazz != null;
-        if (clazz.isProgramClass()) {
-          // For static invokes, the class could be initialized.
-          if (type == Invoke.Type.STATIC) {
-            addClassInitializerTarget(clazz);
-          }
+    private void processInvokeWithDynamicDispatch(Type type, DexEncodedMethod encodedTarget) {
+      DexMethod target = encodedTarget.method;
+      DexClass clazz = appView.definitionFor(target.holder);
+      if (clazz == null) {
+        assert false : "Unable to lookup holder of `" + target.toSourceString() + "`";
+        return;
+      }
 
-          addTarget(definition);
-          // For virtual and interface calls add all potential targets that could be called.
-          if (type == Invoke.Type.VIRTUAL || type == Invoke.Type.INTERFACE) {
-            Set<DexEncodedMethod> possibleTargets;
-            if (clazz.isInterface()) {
-              possibleTargets = appView.appInfo().lookupInterfaceTargets(definition.method);
-            } else {
-              possibleTargets = appView.appInfo().lookupVirtualTargets(definition.method);
-            }
-            addPossibleTargets(definition, possibleTargets);
+      if (!appView.options().testing.addCallEdgesForLibraryInvokes) {
+        if (clazz.isLibraryClass()) {
+          // Likely to have many possible targets.
+          return;
+        }
+      }
+
+      Set<DexEncodedMethod> possibleTargets =
+          possibleTargetsCache.computeIfAbsent(
+              target,
+              method ->
+                  type == Type.INTERFACE
+                      ? appView.appInfo().lookupInterfaceTargets(method)
+                      : appView.appInfo().lookupVirtualTargets(method));
+      if (possibleTargets != null) {
+        for (DexEncodedMethod possibleTarget : possibleTargets) {
+          if (possibleTarget.isProgramMethod(appView)) {
+            addTarget(possibleTarget);
           }
         }
       }

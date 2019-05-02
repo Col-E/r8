@@ -5,7 +5,6 @@
 package com.android.tools.r8.ir.optimize.inliner;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
@@ -68,43 +67,24 @@ public class MultipleIndirectCallSitesTest extends TestBase {
     assertThat(testClassSubject.mainMethod(), isPresent());
 
     ClassSubject aClassSubject = inspector.clazz(A.class);
-    if (invokeMethodOnA) {
-      // TODO(b/131572881): Should not inline A.m() since it has many call sites.
-      assertThat(aClassSubject, not(isPresent()));
-    } else {
-      assertThat(aClassSubject, isPresent());
-    }
+    assertThat(aClassSubject, isPresent());
 
-    if (invokeMethodOnA) {
-      // TODO(b/131572881): Should not inline A.m() since it has many call sites.
-      assertEquals(
-          5,
-          testClassSubject
-              .mainMethod()
-              .streamInstructions()
-              .filter(
-                  instruction ->
-                      instruction.isInvokeVirtual()
-                          && instruction.getMethod().name.toSourceString().equals("println"))
-              .count());
-    } else {
-      MethodSubject methodSubject = aClassSubject.uniqueMethodWithName("m");
-      assertThat(methodSubject, isPresent());
-      assertEquals(
-          5,
-          testClassSubject
-              .mainMethod()
-              .streamInstructions()
-              .filter(
-                  instruction ->
-                      instruction.isInvokeVirtual()
-                          && instruction
-                              .getMethod()
-                              .name
-                              .toSourceString()
-                              .equals(methodSubject.getFinalName()))
-              .count());
-    }
+    MethodSubject methodSubject = aClassSubject.uniqueMethodWithName("m");
+    assertThat(methodSubject, isPresent());
+    assertEquals(
+        5,
+        testClassSubject
+            .mainMethod()
+            .streamInstructions()
+            .filter(
+                instruction ->
+                    instruction.isInvokeVirtual()
+                        && instruction
+                            .getMethod()
+                            .name
+                            .toSourceString()
+                            .equals(methodSubject.getFinalName()))
+            .count());
   }
 
   static class TestClass {

@@ -599,6 +599,21 @@ public class InternalOptions {
             ? NondeterministicIROrdering.getInstance()
             : IdentityIROrdering.getInstance();
 
+    /**
+     * If this flag is enabled, we will also compute the set of possible targets for invoke-
+     * interface and invoke-virtual instructions that target a library method, and add the
+     * corresponding edges to the call graph.
+     *
+     * <p>Setting this flag leads to more call graph edges, which can be good for size (e.g., it
+     * increases the likelihood that virtual methods have been processed by the time their call
+     * sites are processed, which allows more inlining).
+     *
+     * <p>However, the set of possible targets for such invokes can be very large. As an example,
+     * consider the instruction {@code invoke-virtual {v0, v1}, `void Object.equals(Object)`}).
+     * Therefore, tracing such invokes comes at a considerable performance penalty.
+     */
+    public boolean addCallEdgesForLibraryInvokes = false;
+
     public boolean allowProguardRulesThatUseExtendsOrImplementsWrong = true;
     public boolean allowTypeErrors =
         !Version.isDev() || System.getProperty("com.android.tools.r8.allowTypeErrors") != null;
