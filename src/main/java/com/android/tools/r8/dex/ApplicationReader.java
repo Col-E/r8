@@ -228,7 +228,7 @@ public class ApplicationReader {
           if (options.passthroughDexCode) {
             computedMinApiLevel = validateOrComputeMinApiLevel(computedMinApiLevel, dexReader);
           }
-          dexParsers.add(new DexParser(dexReader, classKind, options));
+          dexParsers.add(new DexParser(dexReader, classKind, itemFactory, options.reporter));
         }
         options.minApiLevel = computedMinApiLevel;
         for (DexParser dexParser : dexParsers) {

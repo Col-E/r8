@@ -29,6 +29,7 @@ import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.DexValue.DexValueShort;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.DexValue.DexValueType;
+import com.android.tools.r8.ir.desugar.CovariantReturnTypeAnnotationTransformer;
 import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
@@ -167,9 +168,21 @@ public class JarClassFileReader {
 
   private static boolean retainCompileTimeAnnotation(
       String desc, JarApplicationReader application) {
-    return application.options.readCompileTimeAnnotations
-        || DexAnnotation.retainCompileTimeAnnotation(
-            application.getTypeFromDescriptor(desc), application.options);
+    if (application.options.readCompileTimeAnnotations) {
+      return true;
+    }
+    DexType type = application.getTypeFromDescriptor(desc);
+    if (type == application.options.itemFactory.dalvikFastNativeAnnotation
+        || type == application.options.itemFactory.dalvikCriticalNativeAnnotation) {
+      return true;
+    }
+    if (application.options.processCovariantReturnTypeAnnotations) {
+      // @CovariantReturnType annotations are processed by CovariantReturnTypeAnnotationTransformer,
+      // they thus need to be read here and will then be removed as part of the processing.
+      return CovariantReturnTypeAnnotationTransformer.isCovariantReturnTypeAnnotation(
+          type, application.options.itemFactory);
+    }
+    return false;
   }
 
   private static DexEncodedAnnotation createEncodedAnnotation(String desc,
