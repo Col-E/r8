@@ -194,9 +194,9 @@ public class NestAccessControlTest extends TestBase {
   public void testMethodsAccessR8() throws Exception {
     // TODO(b/130529390): As features are implemented, set success to true in each line.
     testR8("methods", true);
-    testR8("fields", parameters.isCfRuntime());
+    testR8("fields", true);
     testR8("constructors", parameters.isCfRuntime());
-    testR8("anonymous", parameters.isCfRuntime());
+    testR8("anonymous", true);
     testR8("all", parameters.isCfRuntime());
   }
 

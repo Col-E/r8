@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
@@ -49,6 +50,7 @@ import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeMultiNewArray;
 import com.android.tools.r8.ir.code.InvokeNewArray;
+import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.MoveException;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.NewInstance;
@@ -260,7 +262,12 @@ public class LensCodeRewriter {
           InstanceGet instanceGet = current.asInstanceGet();
           DexField field = instanceGet.getField();
           DexField actualField = graphLense.lookupField(field);
-          if (actualField != field) {
+          DexMethod replacementMethod =
+              graphLense.lookupInstanceGetFieldForMethod(actualField);
+          if (replacementMethod != null && method.method != replacementMethod) {
+            iterator.replaceCurrentInstruction(
+                new InvokeStatic(replacementMethod, current.outValue(), current.inValues()));
+          } else if (actualField != field) {
             InstanceGet newInstanceGet =
                 new InstanceGet(
                     makeOutValue(instanceGet, code, newSSAValues),
@@ -272,7 +279,12 @@ public class LensCodeRewriter {
           InstancePut instancePut = current.asInstancePut();
           DexField field = instancePut.getField();
           DexField actualField = graphLense.lookupField(field);
-          if (actualField != field) {
+          DexMethod replacementMethod =
+              graphLense.lookupInstancePutFieldForMethod(actualField);
+          if (replacementMethod != null && method.method != replacementMethod) {
+            iterator.replaceCurrentInstruction(
+                new InvokeStatic(replacementMethod, current.outValue(), current.inValues()));
+          } else if (actualField != field) {
             InstancePut newInstancePut =
                 new InstancePut(actualField, instancePut.object(), instancePut.value());
             iterator.replaceCurrentInstruction(newInstancePut);
@@ -281,7 +293,12 @@ public class LensCodeRewriter {
           StaticGet staticGet = current.asStaticGet();
           DexField field = staticGet.getField();
           DexField actualField = graphLense.lookupField(field);
-          if (actualField != field) {
+          DexMethod replacementMethod =
+              graphLense.lookupStaticGetFieldForMethod(actualField);
+          if (replacementMethod != null && method.method != replacementMethod) {
+            iterator.replaceCurrentInstruction(
+                new InvokeStatic(replacementMethod, current.outValue(), current.inValues()));
+          } else if (actualField != field) {
             StaticGet newStaticGet =
                 new StaticGet(makeOutValue(staticGet, code, newSSAValues), actualField);
             iterator.replaceCurrentInstruction(newStaticGet);
@@ -290,7 +307,12 @@ public class LensCodeRewriter {
           StaticPut staticPut = current.asStaticPut();
           DexField field = staticPut.getField();
           DexField actualField = graphLense.lookupField(field);
-          if (actualField != field) {
+          DexMethod replacementMethod =
+              graphLense.lookupStaticPutFieldForMethod(actualField);
+          if (replacementMethod != null && method.method != replacementMethod) {
+            iterator.replaceCurrentInstruction(
+                new InvokeStatic(replacementMethod, current.outValue(), current.inValues()));
+          } else if (actualField != field) {
             StaticPut newStaticPut = new StaticPut(staticPut.inValue(), actualField);
             iterator.replaceCurrentInstruction(newStaticPut);
           }

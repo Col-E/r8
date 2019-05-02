@@ -1,6 +1,7 @@
 package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.GraphLense;
 
@@ -28,8 +29,22 @@ public class NestBasedAccessDesugaringAnalysis extends NestBasedAccessDesugaring
   }
 
   @Override
-  protected void shouldRewriteFields(DexFieldWithAccess field, DexMethod bridge) {
-    // TODO(b/130529338): support fields in r8 (uncomment following line)
-    // builder.map(field, bridge);
+  protected void shouldRewriteStaticGetFields(DexField field, DexMethod bridge) {
+    builder.mapStaticGet(field,bridge);
+  }
+
+  @Override
+  protected void shouldRewriteStaticPutFields(DexField field, DexMethod bridge) {
+    builder.mapStaticPut(field,bridge);
+  }
+
+  @Override
+  protected void shouldRewriteInstanceGetFields(DexField field, DexMethod bridge) {
+    builder.mapInstanceGet(field,bridge);
+  }
+
+  @Override
+  protected void shouldRewriteInstancePutFields(DexField field, DexMethod bridge) {
+    builder.mapInstancePut(field,bridge);
   }
 }

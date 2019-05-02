@@ -152,7 +152,13 @@ public abstract class NestBasedAccessDesugaring {
 
   protected abstract void shouldRewriteCalls(DexMethod method, DexMethod bridge);
 
-  protected abstract void shouldRewriteFields(DexFieldWithAccess fieldKey, DexMethod bridge);
+  protected abstract void shouldRewriteStaticGetFields(DexField field, DexMethod bridge);
+
+  protected abstract void shouldRewriteStaticPutFields(DexField field, DexMethod bridge);
+
+  protected abstract void shouldRewriteInstanceGetFields(DexField field, DexMethod bridge);
+
+  protected abstract void shouldRewriteInstancePutFields(DexField field, DexMethod bridge);
 
   private RuntimeException abortCompilationDueToBridgeRequiredOnLibraryClass(
       DexClass compiledClass, DexClass libraryClass) {
@@ -263,7 +269,19 @@ public abstract class NestBasedAccessDesugaring {
               });
       // In program classes, any access to nest mate private member needs to be rewritten.
       if (currentClass.isProgramClass()) {
-        shouldRewriteFields(key, bridge.method);
+        if (isGet){
+          if (target.isStatic()){
+            shouldRewriteStaticGetFields(field, bridge.method);
+          } else {
+            shouldRewriteInstanceGetFields(field, bridge.method);
+          }
+        } else {
+          if (target.isStatic()){
+            shouldRewriteStaticPutFields(field, bridge.method);
+          } else {
+            shouldRewriteInstancePutFields(field, bridge.method);
+          }
+        }
       }
       return true;
     }
@@ -336,7 +354,7 @@ public abstract class NestBasedAccessDesugaring {
     private final DexEncodedField field;
     private final boolean isGet;
 
-    DexFieldWithAccess(DexEncodedField field, boolean isGet) {
+    public DexFieldWithAccess(DexEncodedField field, boolean isGet) {
       this.field = field;
       this.isGet = isGet;
     }
