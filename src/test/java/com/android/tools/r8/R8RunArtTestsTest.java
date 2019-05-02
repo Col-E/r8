@@ -934,19 +934,18 @@ public abstract class R8RunArtTestsTest {
           // also contains an iput on a static field.
           .put("600-verifier-fails", TestCondition.match(TestCondition.R8DEX_COMPILER))
           // Contains a method that falls off the end without a return.
-          .put("606-erroneous-class", TestCondition.match(
-              TestCondition.tools(DexTool.DX),
-              TestCondition.R8_NOT_AFTER_D8_COMPILER,
-              LEGACY_RUNTIME))
+          .put(
+              "606-erroneous-class",
+              TestCondition.match(
+                  TestCondition.tools(DexTool.DX),
+                  TestCondition.R8_NOT_AFTER_D8_COMPILER,
+                  LEGACY_RUNTIME))
           // Dex input contains an illegal InvokeSuper in Z.foo() to Y.foo()
           // that R8 will fail to compile.
           .put("594-invoke-super", TestCondition.match(TestCondition.R8DEX_COMPILER))
           .put("974-verify-interface-super", TestCondition.match(TestCondition.R8DEX_COMPILER))
           // R8 generates too large code in Goto.bigGoto(). b/74327727
           .put("003-omnibus-opcodes", TestCondition.match(TestCondition.D8_AFTER_R8CF_COMPILER))
-          // Contains a subset of JUnit which collides with library definitions of JUnit.
-          .put("021-string2", TestCondition.match(TestCondition.D8_AFTER_R8CF_COMPILER))
-          .put("082-inline-execute", TestCondition.match(TestCondition.D8_AFTER_R8CF_COMPILER))
           .build();
 
   // Tests that are invalid dex files and on which R8/D8 fails and that is OK.

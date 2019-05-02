@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.errors.Unreachable;
+
 public class TopDownClassHierarchyTraversal<T extends DexClass>
     extends ClassHierarchyTraversal<T, TopDownClassHierarchyTraversal<T>> {
 
@@ -25,6 +27,15 @@ public class TopDownClassHierarchyTraversal<T extends DexClass>
    * Returns a visitor that can be used to visit all the program classes that are reachable from a
    * given set of sources.
    */
+  public static TopDownClassHierarchyTraversal<DexLibraryClass> forLibraryClasses(
+      AppView<? extends AppInfoWithSubtyping> appView) {
+    return new TopDownClassHierarchyTraversal<>(appView, Scope.ONLY_LIBRARY_CLASSES);
+  }
+
+  /**
+   * Returns a visitor that can be used to visit all the program classes that are reachable from a
+   * given set of sources.
+   */
   public static TopDownClassHierarchyTraversal<DexProgramClass> forProgramClasses(
       AppView<? extends AppInfoWithSubtyping> appView) {
     return new TopDownClassHierarchyTraversal<>(appView, Scope.ONLY_PROGRAM_CLASSES);
@@ -37,26 +48,26 @@ public class TopDownClassHierarchyTraversal<T extends DexClass>
 
   @Override
   void addDependentsToWorklist(DexClass clazz) {
-    @SuppressWarnings("unchecked")
-    T clazzWithTypeT = (T) clazz;
 
-    if (excludeInterfaces && clazzWithTypeT.isInterface()) {
+    if (excludeInterfaces && clazz.isInterface()) {
       return;
     }
 
-    if (visited.contains(clazzWithTypeT)) {
+    if (visited.contains(clazz)) {
       return;
     }
 
-    worklist.addFirst(clazzWithTypeT);
+    if (scope.shouldBePassedToVisitor(clazz)) {
+      @SuppressWarnings("unchecked")
+      T clazzWithTypeT = (T) clazz;
+      worklist.addFirst(clazzWithTypeT);
+    }
 
     // Add super classes to worklist.
     if (clazz.superType != null) {
       DexClass definition = appView.definitionFor(clazz.superType);
-      if (definition != null) {
-        if (scope != Scope.ONLY_PROGRAM_CLASSES || definition.isProgramClass()) {
-          addDependentsToWorklist(definition);
-        }
+      if (definition != null && shouldTraverseUpwardsFrom(definition)) {
+        addDependentsToWorklist(definition);
       }
     }
 
@@ -64,12 +75,24 @@ public class TopDownClassHierarchyTraversal<T extends DexClass>
     if (!excludeInterfaces) {
       for (DexType interfaceType : clazz.interfaces.values) {
         DexClass definition = appView.definitionFor(interfaceType);
-        if (definition != null) {
-          if (scope != Scope.ONLY_PROGRAM_CLASSES || definition.isProgramClass()) {
-            addDependentsToWorklist(definition);
-          }
+        if (definition != null && shouldTraverseUpwardsFrom(definition)) {
+          addDependentsToWorklist(definition);
         }
       }
+    }
+  }
+
+  private boolean shouldTraverseUpwardsFrom(DexClass clazz) {
+    switch (scope) {
+      case ALL_CLASSES:
+      case ONLY_LIBRARY_CLASSES:
+        return true;
+
+      case ONLY_PROGRAM_CLASSES:
+        return clazz.isProgramClass();
+
+      default:
+        throw new Unreachable();
     }
   }
 }

@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.errors.Unreachable;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
@@ -16,13 +17,30 @@ abstract class ClassHierarchyTraversal<
 
   enum Scope {
     ALL_CLASSES,
-    ONLY_PROGRAM_CLASSES
+    ONLY_LIBRARY_CLASSES,
+    ONLY_PROGRAM_CLASSES;
+
+    public boolean shouldBePassedToVisitor(DexClass clazz) {
+      switch (this) {
+        case ALL_CLASSES:
+          return true;
+
+        case ONLY_LIBRARY_CLASSES:
+          return clazz.isLibraryClass();
+
+        case ONLY_PROGRAM_CLASSES:
+          return clazz.isProgramClass();
+
+        default:
+          throw new Unreachable();
+      }
+    }
   }
 
   final AppView<? extends AppInfoWithSubtyping> appView;
   final Scope scope;
 
-  final Set<T> visited = new HashSet<>();
+  final Set<DexClass> visited = new HashSet<>();
   final Deque<T> worklist = new ArrayDeque<>();
 
   boolean excludeInterfaces = false;

@@ -34,6 +34,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -43,6 +44,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.KeyedDexItem;
 import com.android.tools.r8.graph.PresortedComparable;
+import com.android.tools.r8.graph.TopDownClassHierarchyTraversal;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.ConstantValueUtils;
 import com.android.tools.r8.ir.code.IRCode;
@@ -1503,7 +1505,9 @@ public class Enqueuer {
     this.dontWarnPatterns = dontWarnPatterns;
     // Translate the result of root-set computation into enqueuer actions.
     enqueueRootItems(rootSet.noShrinking);
-    appInfo.libraryClasses().forEach(this::markAllLibraryVirtualMethodsReachable);
+    TopDownClassHierarchyTraversal.forLibraryClasses(appView)
+        // TODO(b/131813793): Would be beneficial to have `appView.appInfo().rootClasses()`.
+        .visit(appView.appInfo().classes(), this::markAllLibraryVirtualMethodsReachable);
     trace(executorService, timing);
     options.reporter.failIfPendingErrors();
     return createAppInfo(appInfo, this);
@@ -1769,16 +1773,15 @@ public class Enqueuer {
     }
   }
 
-  private void markAllLibraryVirtualMethodsReachable(DexClass clazz) {
-    assert clazz.isNotProgramClass();
+  private void markAllLibraryVirtualMethodsReachable(DexLibraryClass clazz) {
     if (Log.ENABLED) {
-      Log.verbose(getClass(), "Marking all methods of library class `%s` as reachable.",
-          clazz.type);
+      Log.verbose(
+          getClass(), "Marking all methods of library class `%s` as reachable.", clazz.type);
     }
     for (DexEncodedMethod encodedMethod : clazz.virtualMethods()) {
       markMethodAsTargeted(encodedMethod, KeepReason.isLibraryMethod());
-      markVirtualMethodAsReachable(encodedMethod.method, clazz.isInterface(),
-          KeepReason.isLibraryMethod());
+      markVirtualMethodAsReachable(
+          encodedMethod.method, clazz.isInterface(), KeepReason.isLibraryMethod());
     }
   }
 

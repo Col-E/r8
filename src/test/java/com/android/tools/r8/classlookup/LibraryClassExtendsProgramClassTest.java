@@ -5,7 +5,6 @@
 package com.android.tools.r8.classlookup;
 
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.android.tools.r8.CompilationFailedException;
@@ -33,23 +32,26 @@ public class LibraryClassExtendsProgramClassTest extends TestBase {
     try {
       testForR8(Backend.DEX)
           .setMinApi(AndroidApiLevel.O)
+          .addProgramClasses(TestClass.class)
           .addProgramClassFileData(junitClasses)
           .addKeepAllClassesRule()
           .compile();
       fail("Succeeded in full mode");
-    } catch (Throwable t) {
-      assertTrue(t instanceof CompilationFailedException);
+    } catch (CompilationFailedException e) {
+      // Ignore.
     }
   }
 
   @Test
   public void testCompatibilityModeWarning() throws Exception {
-    R8TestCompileResult result = testForR8Compat(Backend.DEX)
-        .setMinApi(AndroidApiLevel.O)
-        .addProgramClassFileData(junitClasses)
-        .addKeepAllClassesRule()
-        .compile()
-        .assertOnlyWarnings();
+    R8TestCompileResult result =
+        testForR8Compat(Backend.DEX)
+            .setMinApi(AndroidApiLevel.O)
+            .addProgramClasses(TestClass.class)
+            .addProgramClassFileData(junitClasses)
+            .addKeepAllClassesRule()
+            .compile()
+            .assertOnlyWarnings();
 
     String[] libraryClassesExtendingTestCase = new String[]{
         "android.test.InstrumentationTestCase",
@@ -69,10 +71,23 @@ public class LibraryClassExtendsProgramClassTest extends TestBase {
   public void testWithDontWarn() throws Exception {
     testForR8(Backend.DEX)
         .setMinApi(AndroidApiLevel.O)
+        .addProgramClasses(TestClass.class)
         .addProgramClassFileData(junitClasses)
         .addKeepAllClassesRule()
         .addKeepRules("-dontwarn android.test.**")
         .compile()
         .assertNoMessages();
+  }
+
+  static class TestClass {
+
+    public static void main(String[] args) throws Exception {
+      // Ensure that the problematic library types are actually live.
+      Class.forName("android.test.InstrumentationTestCase").getDeclaredConstructor().newInstance();
+      Class.forName("android.test.AndroidTestCase").getDeclaredConstructor().newInstance();
+      Class.forName("android.test.suitebuilder.TestSuiteBuilder$FailedToCreateTests")
+          .getDeclaredConstructor()
+          .newInstance();
+    }
   }
 }

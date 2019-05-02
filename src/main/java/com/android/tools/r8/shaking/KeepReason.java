@@ -51,7 +51,7 @@ public abstract class KeepReason {
   }
 
   public static KeepReason isLibraryMethod() {
-    return new IsLibraryMethod();
+    return IsLibraryMethod.getInstance();
   }
 
   public static KeepReason fieldReferencedIn(DexEncodedMethod method) {
@@ -274,7 +274,12 @@ public abstract class KeepReason {
 
   private static class IsLibraryMethod extends KeepReason {
 
-    private IsLibraryMethod() {
+    private static final IsLibraryMethod instance = new IsLibraryMethod();
+
+    private IsLibraryMethod() {}
+
+    public static IsLibraryMethod getInstance() {
+      return instance;
     }
 
     @Override
