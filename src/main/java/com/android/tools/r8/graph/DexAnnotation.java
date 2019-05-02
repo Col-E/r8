@@ -13,6 +13,8 @@ import com.android.tools.r8.graph.DexValue.DexValueMethod;
 import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.DexValue.DexValueType;
+import com.android.tools.r8.ir.desugar.CovariantReturnTypeAnnotationTransformer;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Pair;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -65,6 +67,24 @@ public class DexAnnotation extends DexItem {
   @Override
   void collectMixedSectionItems(MixedSectionCollection mixedItems) {
     mixedItems.add(this);
+  }
+
+  public static boolean retainCompileTimeAnnotation(DexType annotation, InternalOptions options) {
+    if (options.readCompileTimeAnnotations) {
+      return true;
+    }
+    if (annotation == options.itemFactory.dalvikFastNativeAnnotation
+        || annotation == options.itemFactory.dalvikCriticalNativeAnnotation
+        || annotation == options.itemFactory.annotationSynthesizedClassMap) {
+      return true;
+    }
+    if (options.processCovariantReturnTypeAnnotations) {
+      // @CovariantReturnType annotations are processed by CovariantReturnTypeAnnotationTransformer,
+      // they thus need to be read here and will then be removed as part of the processing.
+      return CovariantReturnTypeAnnotationTransformer.isCovariantReturnTypeAnnotation(
+          annotation, options.itemFactory);
+    }
+    return false;
   }
 
   public static DexAnnotation createEnclosingClassAnnotation(DexType enclosingClass,
