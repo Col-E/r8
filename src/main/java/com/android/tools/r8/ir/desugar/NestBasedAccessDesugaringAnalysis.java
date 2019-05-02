@@ -26,4 +26,10 @@ public class NestBasedAccessDesugaringAnalysis extends NestBasedAccessDesugaring
   protected void shouldRewriteCalls(DexMethod method, DexMethod bridge) {
     builder.map(method, bridge);
   }
+
+  @Override
+  protected void shouldRewriteFields(DexFieldWithAccess field, DexMethod bridge) {
+    // TODO(b/130529338): support fields in r8 (uncomment following line)
+    // builder.map(field, bridge);
+  }
 }

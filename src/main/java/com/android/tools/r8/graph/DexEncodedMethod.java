@@ -41,9 +41,11 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaring.FieldAccess;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
+import com.android.tools.r8.ir.synthetic.FieldAccessorSourceCode;
 import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.logging.Log;
@@ -608,8 +610,9 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   private DexEncodedMethod toMethodThatLogsErrorDexCode(DexItemFactory itemFactory) {
     checkIfObsolete();
     Signature signature = MethodSignature.fromDexMethod(method);
-    DexString message = itemFactory.createString(
-        CONFIGURATION_DEBUGGING_PREFIX + method.holder.toSourceString() + ": " + signature);
+    DexString message =
+        itemFactory.createString(
+            CONFIGURATION_DEBUGGING_PREFIX + method.holder.toSourceString() + ": " + signature);
     DexString tag = itemFactory.createString("[R8]");
     DexType[] args = {itemFactory.stringType, itemFactory.stringType};
     DexProto proto = itemFactory.createProto(itemFactory.intType, args);
@@ -623,7 +626,9 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
             itemFactory.createProto(itemFactory.voidType, itemFactory.stringType),
             itemFactory.constructorMethodName);
     DexCode code =
-        generateCodeFromTemplate(2, 2,
+        generateCodeFromTemplate(
+            2,
+            2,
             new ConstString(0, tag),
             new ConstString(1, message),
             new InvokeStatic(2, logMethod, 0, 1, 0, 0, 0),
@@ -639,8 +644,9 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   private DexEncodedMethod toMethodThatLogsErrorCfCode(DexItemFactory itemFactory) {
     checkIfObsolete();
     Signature signature = MethodSignature.fromDexMethod(method);
-    DexString message = itemFactory.createString(
-        CONFIGURATION_DEBUGGING_PREFIX + method.holder.toSourceString() + ": " + signature);
+    DexString message =
+        itemFactory.createString(
+            CONFIGURATION_DEBUGGING_PREFIX + method.holder.toSourceString() + ": " + signature);
     DexString tag = itemFactory.createString("[R8]");
     DexType logger = itemFactory.createType("Ljava/util/logging/Logger;");
     DexMethod getLogger =
@@ -677,13 +683,14 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
         .add(new CfConstString(message))
         .add(new CfInvoke(Opcodes.INVOKESPECIAL, exceptionInitMethod, false))
         .add(new CfThrow());
-    CfCode code = new CfCode(
-        method,
-        3,
-        locals,
-        instructionBuilder.build(),
-        Collections.emptyList(),
-        Collections.emptyList());
+    CfCode code =
+        new CfCode(
+            method,
+            3,
+            locals,
+            instructionBuilder.build(),
+            Collections.emptyList(),
+            Collections.emptyList());
     Builder builder = builder(this);
     builder.setCode(code);
     setObsolete();
@@ -725,12 +732,55 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     return builder.build();
   }
 
+  public static DexEncodedMethod createFieldAccessorBridge(
+      DexField field,
+      DexClass holder,
+      DexDefinitionSupplier definitions,
+      FieldAccess access,
+      DexString newName) {
+    assert holder.type == field.holder;
+    DexItemFactory dexItemFactory = definitions.dexItemFactory();
+    DexType[] parameters = new DexType[access.bridgeParameterCount()];
+    if (access.isPut()) {
+      parameters[parameters.length - 1] = field.type;
+    }
+    if (access.isInstance()) {
+      parameters[0] = holder.type;
+    }
+    DexType returnType = access.isGet() ? field.type : dexItemFactory.voidType;
+    DexProto proto = dexItemFactory.createProto(returnType, parameters);
+    DexMethod newMethod = dexItemFactory.createMethod(holder.type, proto, newName);
+    MethodAccessFlags accessFlags =
+        MethodAccessFlags.fromSharedAccessFlags(
+            Constants.ACC_SYNTHETIC
+                | Constants.ACC_STATIC
+                | (holder.isInterface() ? Constants.ACC_PUBLIC : 0),
+            false);
+    Code code =
+        new SynthesizedCode(
+            callerPosition ->
+                new FieldAccessorSourceCode(
+                    null, newMethod, callerPosition, newMethod, field, access),
+            registry -> {
+              if (access == FieldAccess.INSTANCE_GET) {
+                registry.registerInstanceFieldRead(field);
+              } else if (access == FieldAccess.STATIC_GET) {
+                registry.registerStaticFieldRead(field);
+              } else if (access == FieldAccess.INSTANCE_PUT) {
+                registry.registerInstanceFieldWrite(field);
+              } else {
+                assert access == FieldAccess.STATIC_PUT;
+                registry.registerStaticFieldWrite(field);
+              }
+            });
+    return new DexEncodedMethod(
+        newMethod, accessFlags, DexAnnotationSet.empty(), ParameterAnnotationsList.empty(), code);
+  }
+
   public DexEncodedMethod toStaticForwardingBridge(
-      DexClass holder, DexDefinitionSupplier definitions, int id) {
+      DexClass holder, DexDefinitionSupplier definitions, DexString newName) {
     assert accessFlags.isPrivate()
         : "Expected to create bridge for private method as part of nest-based access desugaring";
-    DexString newName =
-        definitions.dexItemFactory().createString("access$" + String.format("%03d", id));
     DexProto proto =
         accessFlags.isStatic()
             ? method.proto

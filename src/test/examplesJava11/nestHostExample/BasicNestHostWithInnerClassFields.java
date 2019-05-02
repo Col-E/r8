@@ -11,6 +11,8 @@ public class BasicNestHostWithInnerClassFields {
 
   @SuppressWarnings("static-access") // we want to test that too.
   public String accessNested(BasicNestedClass o) {
+    o.field = "RW" + o.field;
+    o.staticField = "RW" + o.field;
     return o.field + o.staticField + BasicNestedClass.staticField;
   }
 
@@ -21,6 +23,8 @@ public class BasicNestHostWithInnerClassFields {
 
     @SuppressWarnings("static-access") // we want to test that too.
     public String accessOuter(BasicNestHostWithInnerClassFields o) {
+      o.field = "RW" + o.field;
+      o.staticField = "RW" + o.field;
       return o.field + o.staticField + BasicNestedClass.staticField;
     }
   }

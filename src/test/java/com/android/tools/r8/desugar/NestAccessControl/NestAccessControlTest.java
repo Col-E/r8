@@ -65,7 +65,7 @@ public class NestAccessControlTest extends TestBase {
       ImmutableMap.of(
           "fields",
               StringUtils.lines(
-                  "nestFieldstaticNestFieldstaticNestField", "fieldstaticFieldstaticNestField"),
+                  "RWnestFieldRWRWnestFieldRWRWnestField", "RWfieldRWRWfieldRWRWnestField"),
           "methods",
               StringUtils.lines(
                   "nestMethodstaticNestMethodstaticNestMethod",
@@ -163,9 +163,9 @@ public class NestAccessControlTest extends TestBase {
   public void testJavaAndD8() throws Exception {
     // TODO(b/130529390): As features are implemented, set success to true in each line.
     testJavaAndD8("methods", true);
-    testJavaAndD8("fields", false);
+    testJavaAndD8("fields", true);
     testJavaAndD8("constructors", false);
-    testJavaAndD8("anonymous", false);
+    testJavaAndD8("anonymous", true);
     testJavaAndD8("all", false);
   }
 

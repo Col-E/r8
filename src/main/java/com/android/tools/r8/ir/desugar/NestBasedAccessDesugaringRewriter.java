@@ -2,6 +2,7 @@ package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
@@ -14,7 +15,8 @@ import java.util.ListIterator;
 
 public class NestBasedAccessDesugaringRewriter extends NestBasedAccessDesugaring {
 
-  private HashMap<DexMethod, DexMethod> methodToRewrite = new HashMap<DexMethod, DexMethod>();
+  private HashMap<DexMethod, DexMethod> methodToRewrite = new HashMap<>();
+  private HashMap<DexFieldWithAccess, DexMethod> fieldToRewrite = new HashMap<>();
 
   public NestBasedAccessDesugaringRewriter(AppView<?> appView) {
     super(appView);
@@ -23,6 +25,11 @@ public class NestBasedAccessDesugaringRewriter extends NestBasedAccessDesugaring
   @Override
   protected void shouldRewriteCalls(DexMethod method, DexMethod bridge) {
     methodToRewrite.put(method, bridge);
+  }
+
+  @Override
+  protected void shouldRewriteFields(DexFieldWithAccess fieldKey, DexMethod bridge) {
+    fieldToRewrite.put(fieldKey, bridge);
   }
 
   public void rewriteNestBasedAccesses(DexEncodedMethod encodedMethod, IRCode code) {
@@ -43,9 +50,19 @@ public class NestBasedAccessDesugaringRewriter extends NestBasedAccessDesugaring
             instructions.replaceCurrentInstruction(
                 new InvokeStatic(newTarget, invokeMethod.outValue(), invokeMethod.arguments()));
           }
+        } else if (instruction.isFieldInstruction()) {
+          DexField field = instruction.asFieldInstruction().getField();
+          DexMethod newTarget =
+              fieldToRewrite.get(new DexFieldWithAccess(field, FieldAccess.from(instruction)));
+          if (newTarget != null && encodedMethod.method != newTarget) {
+            instructions.replaceCurrentInstruction(
+                new InvokeStatic(newTarget, instruction.outValue(), instruction.inValues()));
+          }
         }
-        // TODO(b/130529338): support fields and initializers
+        // TODO(b/130529338): support initializers
       }
     }
   }
+
+
 }
