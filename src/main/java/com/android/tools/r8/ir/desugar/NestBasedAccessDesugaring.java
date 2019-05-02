@@ -12,7 +12,6 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.graph.UseRegistry;
-import com.android.tools.r8.ir.code.Instruction;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -176,17 +175,17 @@ public abstract class NestBasedAccessDesugaring {
     return appView.dexItemFactory().createString(fullName);
   }
 
-  private DexString fieldBridgeName(DexField field, FieldAccess access) {
-    String fieldName = field.name.toString();
+  private DexString fieldBridgeName(DexFieldWithAccess access) {
+    String fieldName = access.field.field.name.toString();
     String fullName;
-    if (access == FieldAccess.INSTANCE_GET) {
+    if (access.isInstanceGet()) {
       fullName = NEST_ACCESS_FIELD_GET_NAME_PREFIX + fieldName;
-    } else if (access == FieldAccess.STATIC_GET) {
+    } else if (access.isStaticGet()) {
       fullName = NEST_ACCESS_STATIC_GET_FIELD_NAME_PREFIX + fieldName;
-    } else if (access == FieldAccess.INSTANCE_PUT) {
+    } else if (access.isInstancePut()) {
       fullName = NEST_ACCESS_FIELD_PUT_NAME_PREFIX + fieldName;
     } else {
-      assert access == FieldAccess.STATIC_PUT;
+      assert access.isStaticPut();
       fullName = NEST_ACCESS_STATIC_PUT_FIELD_NAME_PREFIX + fieldName;
     }
     return appView.dexItemFactory().createString(fullName);
@@ -237,7 +236,7 @@ public abstract class NestBasedAccessDesugaring {
       return true;
     }
 
-    private boolean registerFieldAccess(DexField field, FieldAccess access) {
+    private boolean registerFieldAccess(DexField field, boolean isGet) {
       if (field.holder == currentClass.type || !nest.contains(field.holder)) {
         return false;
       }
@@ -245,7 +244,7 @@ public abstract class NestBasedAccessDesugaring {
       if (target == null || !target.accessFlags.isPrivate()) {
         return false;
       }
-      DexFieldWithAccess key = new DexFieldWithAccess(field, access);
+      DexFieldWithAccess key = new DexFieldWithAccess(target, isGet);
       DexEncodedMethod bridge =
           fieldBridges.computeIfAbsent(
               key,
@@ -253,7 +252,7 @@ public abstract class NestBasedAccessDesugaring {
                 DexClass holder = appView.definitionFor(field.holder);
                 DexEncodedMethod localBridge =
                     DexEncodedMethod.createFieldAccessorBridge(
-                        field, holder, appView, access, fieldBridgeName(field, access));
+                        key, holder, appView, fieldBridgeName(key));
                 // Accesses to program classes private members require bridge insertion.
                 if (holder.isProgramClass()) {
                   deferredBridgesToAdd.put(localBridge, holder.asProgramClass());
@@ -301,12 +300,12 @@ public abstract class NestBasedAccessDesugaring {
 
     @Override
     public boolean registerInstanceFieldWrite(DexField field) {
-      return registerFieldAccess(field, FieldAccess.INSTANCE_PUT);
+      return registerFieldAccess(field, false);
     }
 
     @Override
     public boolean registerInstanceFieldRead(DexField field) {
-      return registerFieldAccess(field, FieldAccess.INSTANCE_GET);
+      return registerFieldAccess(field, true);
     }
 
     @Override
@@ -317,12 +316,12 @@ public abstract class NestBasedAccessDesugaring {
 
     @Override
     public boolean registerStaticFieldRead(DexField field) {
-      return registerFieldAccess(field, FieldAccess.STATIC_GET);
+      return registerFieldAccess(field, true);
     }
 
     @Override
     public boolean registerStaticFieldWrite(DexField field) {
-      return registerFieldAccess(field, FieldAccess.STATIC_PUT);
+      return registerFieldAccess(field, false);
     }
 
     @Override
@@ -332,18 +331,19 @@ public abstract class NestBasedAccessDesugaring {
     }
   }
 
-  protected static final class DexFieldWithAccess {
-    private final DexField field;
-    private final FieldAccess access;
+  public static final class DexFieldWithAccess {
 
-    DexFieldWithAccess(DexField field, FieldAccess access) {
+    private final DexEncodedField field;
+    private final boolean isGet;
+
+    DexFieldWithAccess(DexEncodedField field, boolean isGet) {
       this.field = field;
-      this.access = access;
+      this.isGet = isGet;
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(field, access);
+      return Objects.hash(field, isGet);
     }
 
     @Override
@@ -355,35 +355,15 @@ public abstract class NestBasedAccessDesugaring {
         return false;
       }
       DexFieldWithAccess other = (DexFieldWithAccess) o;
-      return access == other.access && field == other.field;
-    }
-  }
-
-  public enum FieldAccess {
-    INSTANCE_GET,
-    INSTANCE_PUT,
-    STATIC_GET,
-    STATIC_PUT;
-
-    public static FieldAccess from(Instruction instruction) {
-      if (instruction.isInstanceGet()) {
-        return INSTANCE_GET;
-      } else if (instruction.isStaticGet()) {
-        return STATIC_GET;
-      } else if (instruction.isInstancePut()) {
-        return INSTANCE_PUT;
-      } else {
-        assert instruction.isStaticPut();
-        return STATIC_PUT;
-      }
+      return isGet == other.isGet && field == other.field;
     }
 
     public boolean isGet() {
-      return this == INSTANCE_GET || this == STATIC_GET;
+      return isGet;
     }
 
     public boolean isStatic() {
-      return this == STATIC_PUT || this == STATIC_GET;
+      return field.accessFlags.isStatic();
     }
 
     public boolean isPut() {
@@ -394,11 +374,39 @@ public abstract class NestBasedAccessDesugaring {
       return !isStatic();
     }
 
+    public boolean isStaticGet() {
+      return isStatic() && isGet();
+    }
+
+    public boolean isStaticPut() {
+      return isStatic() && isPut();
+    }
+
+    public boolean isInstanceGet() {
+      return isInstance() && isGet();
+    }
+
+    public boolean isInstancePut() {
+      return isInstance() && isPut();
+    }
+
+    public DexType getType() {
+      return field.field.type;
+    }
+
+    public DexType getHolder() {
+      return field.field.holder;
+    }
+
+    public DexField getField() {
+      return field.field;
+    }
+
     public int bridgeParameterCount() {
-      if (this == STATIC_GET) {
+      if (isGet() && isStatic()) {
         return 0;
       }
-      if (this == INSTANCE_PUT) {
+      if (isPut() && isInstance()) {
         return 2;
       }
       return 1;

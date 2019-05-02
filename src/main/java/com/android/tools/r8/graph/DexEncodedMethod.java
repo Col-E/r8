@@ -41,7 +41,7 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.DexBuilder;
-import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaring.FieldAccess;
+import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaring.DexFieldWithAccess;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
@@ -733,21 +733,21 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   }
 
   public static DexEncodedMethod createFieldAccessorBridge(
-      DexField field,
+      DexFieldWithAccess fieldWithAccess,
       DexClass holder,
       DexDefinitionSupplier definitions,
-      FieldAccess access,
       DexString newName) {
-    assert holder.type == field.holder;
+    assert holder.type == fieldWithAccess.getHolder();
     DexItemFactory dexItemFactory = definitions.dexItemFactory();
-    DexType[] parameters = new DexType[access.bridgeParameterCount()];
-    if (access.isPut()) {
-      parameters[parameters.length - 1] = field.type;
+    DexType[] parameters = new DexType[fieldWithAccess.bridgeParameterCount()];
+    if (fieldWithAccess.isPut()) {
+      parameters[parameters.length - 1] = fieldWithAccess.getType();
     }
-    if (access.isInstance()) {
+    if (fieldWithAccess.isInstance()) {
       parameters[0] = holder.type;
     }
-    DexType returnType = access.isGet() ? field.type : dexItemFactory.voidType;
+    DexType returnType =
+        fieldWithAccess.isGet() ? fieldWithAccess.getType() : dexItemFactory.voidType;
     DexProto proto = dexItemFactory.createProto(returnType, parameters);
     DexMethod newMethod = dexItemFactory.createMethod(holder.type, proto, newName);
     MethodAccessFlags accessFlags =
@@ -760,17 +760,17 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
         new SynthesizedCode(
             callerPosition ->
                 new FieldAccessorSourceCode(
-                    null, newMethod, callerPosition, newMethod, field, access),
+                    null, newMethod, callerPosition, newMethod, fieldWithAccess),
             registry -> {
-              if (access == FieldAccess.INSTANCE_GET) {
-                registry.registerInstanceFieldRead(field);
-              } else if (access == FieldAccess.STATIC_GET) {
-                registry.registerStaticFieldRead(field);
-              } else if (access == FieldAccess.INSTANCE_PUT) {
-                registry.registerInstanceFieldWrite(field);
+              if (fieldWithAccess.isInstanceGet()) {
+                registry.registerInstanceFieldRead(fieldWithAccess.getField());
+              } else if (fieldWithAccess.isStaticGet()) {
+                registry.registerStaticFieldRead(fieldWithAccess.getField());
+              } else if (fieldWithAccess.isInstancePut()) {
+                registry.registerInstanceFieldWrite(fieldWithAccess.getField());
               } else {
-                assert access == FieldAccess.STATIC_PUT;
-                registry.registerStaticFieldWrite(field);
+                assert fieldWithAccess.isStaticPut();
+                registry.registerStaticFieldWrite(fieldWithAccess.getField());
               }
             });
     return new DexEncodedMethod(

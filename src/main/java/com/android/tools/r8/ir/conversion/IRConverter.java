@@ -1038,7 +1038,7 @@ public class IRConverter {
     previous = printMethod(code, "IR after class inlining (SSA)", previous);
 
     if (nestBasedAccessDesugaringRewriter != null) {
-      nestBasedAccessDesugaringRewriter.rewriteNestBasedAccesses(method, code);
+      nestBasedAccessDesugaringRewriter.rewriteNestBasedAccesses(method, code, appView);
       assert code.isConsistentSSA();
     }
 

@@ -4,55 +4,51 @@
 
 package com.android.tools.r8.ir.synthetic;
 
-import com.android.tools.r8.ir.conversion.IRBuilder;
-import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueType;
-import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaring.FieldAccess;
+import com.android.tools.r8.ir.conversion.IRBuilder;
+import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaring.DexFieldWithAccess;
 
 // Source code representing simple forwarding method.
 public final class FieldAccessorSourceCode extends SyntheticSourceCode {
 
-  private final DexField field;
-  private final FieldAccess access;
+  private final DexFieldWithAccess fieldWithAccess;
 
   public FieldAccessorSourceCode(
       DexType receiver,
       DexMethod method,
       Position callerPosition,
       DexMethod originalMethod,
-      DexField field,
-      FieldAccess access) {
+      DexFieldWithAccess field) {
     super(receiver, method, callerPosition, originalMethod);
-    this.field = field;
-    this.access = access;
-    assert method.proto.returnType == field.type || access.isPut();
+    this.fieldWithAccess = field;
+    assert method.proto.returnType == fieldWithAccess.getType() || fieldWithAccess.isPut();
   }
 
   @Override
   protected void prepareInstructions() {
-    if (access == FieldAccess.INSTANCE_GET) {
+    if (fieldWithAccess.isInstanceGet()) {
       ValueType valueType = ValueType.fromDexType(proto.returnType);
       int objReg = getParamRegister(0);
       int returnReg = nextRegister(valueType);
-      add(builder -> builder.addInstanceGet(returnReg, objReg, field));
+      add(builder -> builder.addInstanceGet(returnReg, objReg, fieldWithAccess.getField()));
       add(builder -> builder.addReturn(returnReg));
-    } else if (access == FieldAccess.STATIC_GET) {
+    } else if (fieldWithAccess.isStaticGet()) {
       ValueType valueType = ValueType.fromDexType(proto.returnType);
       int returnReg = nextRegister(valueType);
-      add(builder -> builder.addStaticGet(returnReg, field));
+      add(builder -> builder.addStaticGet(returnReg, fieldWithAccess.getField()));
       add(builder -> builder.addReturn(returnReg));
-    } else if (access == FieldAccess.INSTANCE_PUT) {
+    } else if (fieldWithAccess.isInstancePut()) {
       int objReg = getParamRegister(0);
       int putValueReg = getParamRegister(1);
-      add(builder -> builder.addInstancePut(putValueReg, objReg, field));
+      add(builder -> builder.addInstancePut(putValueReg, objReg, fieldWithAccess.getField()));
       add(IRBuilder::addReturn);
     } else {
-      assert access == FieldAccess.STATIC_PUT;
+      assert fieldWithAccess.isStaticPut();
       int putValueReg = getParamRegister(0);
-      add(builder -> builder.addStaticPut(putValueReg, field));
+      add(builder -> builder.addStaticPut(putValueReg, fieldWithAccess.getField()));
       add(IRBuilder::addReturn);
     }
   }
