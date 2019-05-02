@@ -223,10 +223,18 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
   }
 
   public T enableConstantArgumentAnnotations() {
-    if (!enableConstantArgumentAnnotations) {
-      enableConstantArgumentAnnotations = true;
-      addInternalKeepRules(
-          "-keepconstantarguments class * { @com.android.tools.r8.KeepConstantArguments *; }");
+    return enableConstantArgumentAnnotations(true);
+  }
+
+  public T enableConstantArgumentAnnotations(boolean value) {
+    if (value) {
+      if (!enableConstantArgumentAnnotations) {
+        enableConstantArgumentAnnotations = true;
+        addInternalKeepRules(
+            "-keepconstantarguments class * { @com.android.tools.r8.KeepConstantArguments *; }");
+      }
+    } else {
+      assert !enableConstantArgumentAnnotations;
     }
     return self();
   }

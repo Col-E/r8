@@ -20,7 +20,6 @@ import com.android.tools.r8.graph.GraphLense.RewrittenPrototypeDescription.Remov
 import com.android.tools.r8.graph.GraphLense.RewrittenPrototypeDescription.RemovedArgumentsInfo;
 import com.android.tools.r8.ir.optimize.MemberPoolCollection.MemberPool;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -40,7 +39,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class UnusedArgumentsCollector {
@@ -125,18 +123,6 @@ public class UnusedArgumentsCollector {
     return appView.graphLense();
   }
 
-  public static Consumer<DexEncodedMethod.Builder> createParameterAnnotationsRemover(
-      DexEncodedMethod method, RemovedArgumentsInfo unused) {
-    if (unused.numberOfRemovedArguments() > 0 && !method.parameterAnnotationsList.isEmpty()) {
-      return builder -> {
-        int firstArgumentIndex = BooleanUtils.intValue(!method.isStatic());
-        builder.removeParameterAnnotations(
-            oldIndex -> unused.isArgumentRemoved(oldIndex + firstArgumentIndex));
-      };
-    }
-    return null;
-  }
-
   private class UsedSignatures {
 
     private final MethodSignatureEquivalence equivalence = MethodSignatureEquivalence.get();
@@ -183,7 +169,7 @@ public class UnusedArgumentsCollector {
       markSignatureAsUsed(newSignature);
 
       return method.toTypeSubstitutedMethod(
-          newSignature, createParameterAnnotationsRemover(method, unused));
+          newSignature, unused.createParameterAnnotationsRemover(method));
     }
   }
 
@@ -220,7 +206,7 @@ public class UnusedArgumentsCollector {
         DexEncodedMethod method, DexMethod newSignature, RemovedArgumentsInfo unused) {
       methodPool.seen(equivalence.wrap(newSignature));
       return method.toTypeSubstitutedMethod(
-          newSignature, createParameterAnnotationsRemover(method, unused));
+          newSignature, unused.createParameterAnnotationsRemover(method));
     }
   }
 

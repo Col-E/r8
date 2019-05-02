@@ -7,6 +7,7 @@ import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -29,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -216,6 +218,18 @@ public abstract class GraphLense {
           iterator.add(pending.withArgumentIndex(pending.getArgumentIndex() + offset));
         }
         return new RemovedArgumentsInfo(newRemovedArguments);
+      }
+
+      public Consumer<DexEncodedMethod.Builder> createParameterAnnotationsRemover(
+          DexEncodedMethod method) {
+        if (numberOfRemovedArguments() > 0 && !method.parameterAnnotationsList.isEmpty()) {
+          return builder -> {
+            int firstArgumentIndex = BooleanUtils.intValue(!method.isStatic());
+            builder.removeParameterAnnotations(
+                oldIndex -> isArgumentRemoved(oldIndex + firstArgumentIndex));
+          };
+        }
+        return null;
       }
     }
 

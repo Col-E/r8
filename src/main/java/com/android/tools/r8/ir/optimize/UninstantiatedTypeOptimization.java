@@ -207,7 +207,11 @@ public class UninstantiatedTypeOptimization {
         // TODO(b/110806787): Can be extended to handle collisions by renaming the given
         // method.
         if (usedSignatures.add(wrapper)) {
-          clazz.setDirectMethod(i, encodedMethod.toTypeSubstitutedMethod(newMethod));
+          clazz.setDirectMethod(
+              i,
+              encodedMethod.toTypeSubstitutedMethod(
+                  newMethod,
+                  removedArgumentsInfo.createParameterAnnotationsRemover(encodedMethod)));
           methodMapping.put(method, newMethod);
           if (removedArgumentsInfo.hasRemovedArguments()) {
             removedArgumentsInfoPerMethod.put(newMethod, removedArgumentsInfo);
@@ -228,6 +232,7 @@ public class UninstantiatedTypeOptimization {
       DexMethod method = encodedMethod.method;
       RewrittenPrototypeDescription prototypeChanges =
           getPrototypeChanges(encodedMethod, DISALLOW_ARGUMENT_REMOVAL);
+      RemovedArgumentsInfo removedArgumentsInfo = prototypeChanges.getRemovedArgumentsInfo();
       DexMethod newMethod = getNewMethodSignature(encodedMethod, prototypeChanges);
       if (newMethod != method) {
         Wrapper<DexMethod> wrapper = equivalence.wrap(newMethod);
@@ -241,7 +246,11 @@ public class UninstantiatedTypeOptimization {
           boolean signatureIsAvailable = usedSignatures.add(wrapper);
           assert signatureIsAvailable;
 
-          clazz.setVirtualMethod(i, encodedMethod.toTypeSubstitutedMethod(newMethod));
+          clazz.setVirtualMethod(
+              i,
+              encodedMethod.toTypeSubstitutedMethod(
+                  newMethod,
+                  removedArgumentsInfo.createParameterAnnotationsRemover(encodedMethod)));
           methodMapping.put(method, newMethod);
         }
       }
@@ -251,6 +260,7 @@ public class UninstantiatedTypeOptimization {
       DexMethod method = encodedMethod.method;
       RewrittenPrototypeDescription prototypeChanges =
           getPrototypeChanges(encodedMethod, DISALLOW_ARGUMENT_REMOVAL);
+      RemovedArgumentsInfo removedArgumentsInfo = prototypeChanges.getRemovedArgumentsInfo();
       DexMethod newMethod = getNewMethodSignature(encodedMethod, prototypeChanges);
       if (newMethod != method) {
         Wrapper<DexMethod> wrapper = equivalence.wrap(newMethod);
@@ -261,7 +271,11 @@ public class UninstantiatedTypeOptimization {
         if (!methodPool.hasSeen(wrapper) && usedSignatures.add(wrapper)) {
           methodPool.seen(wrapper);
 
-          clazz.setVirtualMethod(i, encodedMethod.toTypeSubstitutedMethod(newMethod));
+          clazz.setVirtualMethod(
+              i,
+              encodedMethod.toTypeSubstitutedMethod(
+                  newMethod,
+                  removedArgumentsInfo.createParameterAnnotationsRemover(encodedMethod)));
           methodMapping.put(method, newMethod);
 
           boolean added =
