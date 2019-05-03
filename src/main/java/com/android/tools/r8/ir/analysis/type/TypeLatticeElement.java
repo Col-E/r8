@@ -128,6 +128,29 @@ public abstract class TypeLatticeElement {
   }
 
   /**
+   * Determines if this {@link TypeLatticeElement} is less than or equal to the given {@link
+   * TypeLatticeElement} up to nullability.
+   *
+   * @param other to check for equality with this
+   * @return {@code true} if {@param this} is equal up to nullability with {@param other}.
+   */
+  public boolean lessThanOrEqualUpToNullability(TypeLatticeElement other, AppView<?> appView) {
+    if (this == other) {
+      return true;
+    }
+    if (isPrimitive()) {
+      // Primitives cannot be nullable.
+      return lessThanOrEqual(other, appView);
+    }
+    assert isReference() && other.isReference();
+    ReferenceTypeLatticeElement otherAsNullable =
+        other.isNullable()
+            ? other.asReferenceTypeLatticeElement()
+            : other.asReferenceTypeLatticeElement().getOrCreateVariant(Nullability.maybeNull());
+    return lessThanOrEqual(otherAsNullable, appView);
+  }
+
+  /**
    * Determines if the {@link TypeLatticeElement}s are equal up to nullability.
    *
    * @param other to check for equality with this

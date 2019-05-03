@@ -343,8 +343,9 @@ public class MemberValuePropagation {
             typeLattice.asReferenceTypeLatticeElement().asNotNull(),
             knownToBeNonNullValue.getLocalInfo());
     knownToBeNonNullValue.replaceUsers(nonNullValue);
-    Assume nonNull = Assume.createAssumeNonNullInstruction(
-        nonNullValue, knownToBeNonNullValue, current);
+    Assume nonNull =
+        Assume.createAssumeNonNullInstruction(
+            nonNullValue, knownToBeNonNullValue, current, appView);
     nonNull.setPosition(appView.options().debug ? current.getPosition() : Position.none());
     if (current.getBlock().hasCatchHandlers()) {
       iterator.split(code, blocks).listIterator().add(nonNull);

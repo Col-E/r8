@@ -227,6 +227,12 @@ public class DexType extends DexReference implements PresortedComparable<DexType
     return firstChar == 'L';
   }
 
+  public boolean isReferenceType() {
+    boolean isReferenceType = isArrayType() || isClassType();
+    assert isReferenceType != isPrimitiveType() || isVoidType();
+    return isReferenceType;
+  }
+
   public boolean isPrimitiveArrayType() {
     if (!isArrayType()) {
       return false;

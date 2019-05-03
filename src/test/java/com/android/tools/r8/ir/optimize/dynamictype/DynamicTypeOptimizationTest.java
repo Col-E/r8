@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.optimize.dynamictype;
 import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethod;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverInline;
@@ -80,30 +81,38 @@ public class DynamicTypeOptimizationTest extends TestBase {
     MethodSubject testInstanceOfRemovalMethod =
         mainClassSubject.uniqueMethodWithName("testInstanceOfRemoval");
     assertThat(testInstanceOfRemovalMethod, isPresent());
-    // TODO(b/127461806): Update expectation.
-    assertTrue(
+    assertEquals(
+        enableDynamicTypeOptimization,
         testInstanceOfRemovalMethod
             .streamInstructions()
-            .anyMatch(instruction -> instruction.isInstanceOf(aClassSubject.getFinalName())));
+            .noneMatch(instruction -> instruction.isInstanceOf(aClassSubject.getFinalName())));
 
     // Verify that world() has been inlined() into testMethodInlining() unless the dynamic type
     // optimization is disabled.
     MethodSubject testMethodInliningMethod =
         mainClassSubject.uniqueMethodWithName("testMethodInlining");
     assertThat(testMethodInliningMethod, isPresent());
-    // TODO(b/127461806): Update expectation.
-    assertThat(
-        testMethodInliningMethod, invokesMethod(interfaceSubject.uniqueMethodWithName("world")));
+    assertEquals(
+        enableDynamicTypeOptimization, interfaceSubject.uniqueMethodWithName("world").isAbsent());
+    if (!enableDynamicTypeOptimization) {
+      assertThat(
+          testMethodInliningMethod, invokesMethod(interfaceSubject.uniqueMethodWithName("world")));
+    }
 
     // Verify that exclamationMark() has been rebound in testMethodRebinding() unless the dynamic
     // type optimization is disabled.
     MethodSubject testMethodRebindingMethod =
         mainClassSubject.uniqueMethodWithName("testMethodRebinding");
     assertThat(testMethodRebindingMethod, isPresent());
-    // TODO(b/127461806): Update expectation.
-    assertThat(
-        testMethodRebindingMethod,
-        invokesMethod(interfaceSubject.uniqueMethodWithName("exclamationMark")));
+    if (enableDynamicTypeOptimization) {
+      assertThat(
+          testMethodRebindingMethod,
+          invokesMethod(aClassSubject.uniqueMethodWithName("exclamationMark")));
+    } else {
+      assertThat(
+          testMethodRebindingMethod,
+          invokesMethod(interfaceSubject.uniqueMethodWithName("exclamationMark")));
+    }
   }
 
   static class TestClass {

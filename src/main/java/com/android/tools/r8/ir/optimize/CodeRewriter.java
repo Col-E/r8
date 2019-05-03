@@ -37,6 +37,7 @@ import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.AlwaysMaterializingNop;
 import com.android.tools.r8.ir.code.ArrayPut;
+import com.android.tools.r8.ir.code.Assume;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.Binop;
@@ -99,6 +100,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Sets;
+import com.google.common.collect.Streams;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
@@ -161,6 +163,66 @@ public class CodeRewriter {
     this.converter = converter;
     this.options = appView.options();
     this.dexItemFactory = appView.dexItemFactory();
+  }
+
+  public void removeAssumeInstructions(IRCode code) {
+    // We need to update the types of all values whose definitions depend on a non-null value.
+    // This is needed to preserve soundness of the types after the Assume<NonNullAssumption>
+    // instructions have been removed.
+    //
+    // As an example, consider a check-cast instruction on the form "z = (T) y". If y used to be
+    // defined by a NonNull instruction, then the type analysis could have used this information
+    // to mark z as non-null. However, cleanupNonNull() have now replaced y by a nullable value x.
+    // Since z is defined as "z = (T) x", and x is nullable, it is no longer sound to have that z
+    // is not nullable. This is fixed by rerunning the type analysis for the affected values.
+    Set<Value> valuesThatRequireWidening = Sets.newIdentityHashSet();
+
+    InstructionIterator it = code.instructionIterator();
+    boolean needToCheckTrivialPhis = false;
+    while (it.hasNext()) {
+      Instruction instruction = it.next();
+
+      // The following deletes Assume instructions and replaces any specialized value by its
+      // original value:
+      //   y <- Assume(x)
+      //   ...
+      //   y.foo()
+      //
+      // becomes:
+      //
+      //   x.foo()
+      if (instruction.isAssume()) {
+        Assume<?> assumeInstruction = instruction.asAssume();
+        Value src = assumeInstruction.src();
+        Value dest = assumeInstruction.outValue();
+
+        if (assumeInstruction.isAssumeNonNull()) {
+          valuesThatRequireWidening.addAll(dest.affectedValues());
+        }
+
+        // Replace `dest` by `src`.
+        needToCheckTrivialPhis |= dest.numberOfPhiUsers() > 0;
+        dest.replaceUsers(src);
+        it.remove();
+      }
+    }
+
+    // Assume insertion may introduce phis, e.g.,
+    //   y <- Assume(x)
+    //   ...
+    //   z <- phi(x, y)
+    //
+    // Therefore, Assume elimination may result in a trivial phi:
+    //   z <- phi(x, x)
+    if (needToCheckTrivialPhis) {
+      code.removeAllTrivialPhis();
+    }
+
+    if (!valuesThatRequireWidening.isEmpty()) {
+      new TypeAnalysis(appView, code.method).widening(valuesThatRequireWidening);
+    }
+
+    assert Streams.stream(code.instructions()).noneMatch(Instruction::isAssume);
   }
 
   private static boolean removedTrivialGotos(IRCode code) {
@@ -1602,6 +1664,8 @@ public class CodeRewriter {
     if (options.isGeneratingClassFiles()) {
       return;
     }
+    AssumeDynamicTypeRemover assumeDynamicTypeRemover = new AssumeDynamicTypeRemover(appView, code);
+    boolean mayHaveRemovedTrivialPhi = false;
     Set<Value> needToWidenValues = Sets.newIdentityHashSet();
     Set<Value> needToNarrowValues = Sets.newIdentityHashSet();
     Set<BasicBlock> blocksToBeRemoved = Sets.newIdentityHashSet();
@@ -1627,6 +1691,7 @@ public class CodeRewriter {
             Nullability nullability = obj.getTypeLattice().nullability();
             if (nullability.isDefinitelyNotNull()) {
               if (outValue != null) {
+                mayHaveRemovedTrivialPhi |= outValue.numberOfPhiUsers() > 0;
                 outValue.replaceUsers(obj);
                 needToNarrowValues.addAll(outValue.affectedValues());
               }
@@ -1641,6 +1706,8 @@ public class CodeRewriter {
                 .libraryMethodsReturningReceiver
                 .contains(invoke.getInvokedMethod())) {
               if (checkArgumentType(invoke, 0)) {
+                assumeDynamicTypeRemover.markUsersForRemoval(invoke.outValue());
+                mayHaveRemovedTrivialPhi |= outValue.numberOfPhiUsers() > 0;
                 outValue.replaceUsers(invoke.arguments().get(0));
                 invoke.setOutValue(null);
               }
@@ -1664,6 +1731,8 @@ public class CodeRewriter {
                     } else {
                       needToWidenValues.addAll(outValue.affectedValues());
                     }
+                    assumeDynamicTypeRemover.markUsersForRemoval(outValue);
+                    mayHaveRemovedTrivialPhi |= outValue.numberOfPhiUsers() > 0;
                     outValue.replaceUsers(argument);
                     invoke.setOutValue(null);
                   }
@@ -1674,10 +1743,14 @@ public class CodeRewriter {
         }
       }
     }
+    assumeDynamicTypeRemover.removeMarkedInstructions();
+    assumeDynamicTypeRemover.finish();
     if (!blocksToBeRemoved.isEmpty()) {
       code.removeBlocks(blocksToBeRemoved);
       code.removeAllTrivialPhis();
       assert code.getUnreachableBlocks().isEmpty();
+    } else if (mayHaveRemovedTrivialPhi || assumeDynamicTypeRemover.mayHaveIntroducedTrivialPhi()) {
+      code.removeAllTrivialPhis();
     }
     if (!needToWidenValues.isEmpty() || !needToNarrowValues.isEmpty()) {
       TypeAnalysis analysis = new TypeAnalysis(appView, code.method);
@@ -1853,9 +1926,8 @@ public class CodeRewriter {
         && storeValue.asPhi().getOperands().contains(falseValue);
   }
 
-  public void removeTrivialCheckCastAndInstanceOfInstructions(
-      IRCode code, boolean enableWholeProgramOptimizations) {
-    if (!enableWholeProgramOptimizations) {
+  public void removeTrivialCheckCastAndInstanceOfInstructions(IRCode code) {
+    if (!appView.enableWholeProgramOptimizations()) {
       return;
     }
 
@@ -2012,6 +2084,20 @@ public class CodeRewriter {
           // indirectly. This, the in-value must be null, meaning that the instance-of instruction
           // will always evaluate to false.
           result = InstanceOfResult.FALSE;
+        }
+      }
+
+      if (result == InstanceOfResult.UNKNOWN) {
+        Value aliasedValue =
+            inValue.getSpecificAliasedValue(
+                value -> !value.isPhi() && value.definition.isAssumeDynamicType());
+        if (aliasedValue != null) {
+          TypeLatticeElement dynamicType =
+              aliasedValue.definition.asAssumeDynamicType().getAssumption().getType();
+          if (dynamicType.lessThanOrEqual(instanceOfType, appView)
+              && (!inType.isNullable() || !dynamicType.isNullable())) {
+            result = InstanceOfResult.TRUE;
+          }
         }
       }
     }

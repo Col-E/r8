@@ -29,6 +29,7 @@ import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.analysis.InitializedClassesOnNormalExitAnalysis;
 import com.android.tools.r8.ir.analysis.TypeChecker;
 import com.android.tools.r8.ir.analysis.constant.SparseConditionalConstantPropagation;
+import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.AlwaysMaterializingDefinition;
 import com.android.tools.r8.ir.code.AlwaysMaterializingUser;
@@ -51,6 +52,7 @@ import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.ConstantCanonicalizer;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover;
 import com.android.tools.r8.ir.optimize.Devirtualizer;
+import com.android.tools.r8.ir.optimize.DynamicTypeOptimization;
 import com.android.tools.r8.ir.optimize.IdempotentFunctionCallCanonicalizer;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -115,6 +117,7 @@ public class IRConverter {
   private final Timing timing;
   private final Outliner outliner;
   private final ClassInitializerDefaultsOptimization classInitializerDefaultsOptimization;
+  private final DynamicTypeOptimization dynamicTypeOptimization;
   private final StringConcatRewriter stringConcatRewriter;
   private final LambdaRewriter lambdaRewriter;
   private final NestBasedAccessDesugaringRewriter nestBasedAccessDesugaringRewriter;
@@ -199,6 +202,10 @@ public class IRConverter {
               : null;
       this.classStaticizer =
           options.enableClassStaticizer ? new ClassStaticizer(appViewWithLiveness, this) : null;
+      this.dynamicTypeOptimization =
+          options.enableDynamicTypeOptimization
+              ? new DynamicTypeOptimization(appViewWithLiveness)
+              : null;
       this.lensCodeRewriter = new LensCodeRewriter(appViewWithLiveness, lambdaRewriter);
       this.inliner = new Inliner(appViewWithLiveness, mainDexClasses, lensCodeRewriter);
       this.outliner = new Outliner(appViewWithLiveness, this);
@@ -222,6 +229,7 @@ public class IRConverter {
     } else {
       this.classInliner = null;
       this.classStaticizer = null;
+      this.dynamicTypeOptimization = null;
       this.inliner = null;
       this.outliner = null;
       this.memberValuePropagation = null;
@@ -921,6 +929,11 @@ public class IRConverter {
       assert code.isConsistentSSA();
     }
 
+    if (dynamicTypeOptimization != null) {
+      assert appView.enableWholeProgramOptimizations();
+      dynamicTypeOptimization.insertAssumeDynamicTypeInstructions(code);
+    }
+
     previous = printMethod(code, "IR after null tracking (SSA)", previous);
 
     if (!isDebugMode && options.enableInlining && inliner != null) {
@@ -955,8 +968,7 @@ public class IRConverter {
     }
 
     assert code.verifyTypes(appView);
-    codeRewriter.removeTrivialCheckCastAndInstanceOfInstructions(
-        code, appView.enableWholeProgramOptimizations());
+    codeRewriter.removeTrivialCheckCastAndInstanceOfInstructions(code);
 
     codeRewriter.rewriteLongCompareAndRequireNonNull(code, options);
     codeRewriter.commonSubexpressionElimination(code);
@@ -978,8 +990,10 @@ public class IRConverter {
     if (nonNullTracker != null) {
       // Computation of non-null parameters on normal exits rely on the existence of non-null IRs.
       nonNullTracker.computeNonNullParamOnNormalExits(feedback, code);
-      nonNullTracker.cleanupNonNull(code);
       assert code.isConsistentSSA();
+    }
+    if (nonNullTracker != null || dynamicTypeOptimization != null) {
+      codeRewriter.removeAssumeInstructions(code);
     }
 
     if (classInitializerDefaultsOptimization != null && !isDebugMode) {
@@ -1092,12 +1106,13 @@ public class IRConverter {
       codeRewriter.identifyInvokeSemanticsForInlining(method, code, appView, feedback);
     }
 
-    // Track usage of parameters and compute their nullability and possibility of NPE.
     if (appView.enableWholeProgramOptimizations()) {
+      // Track usage of parameters and compute their nullability and possibility of NPE.
       if (method.getOptimizationInfo().getNonNullParamOrThrow() == null) {
         computeNonNullParamHints(feedback, method, code);
       }
 
+      computeDynamicReturnType(feedback, method, code);
       computeInitializedClassesOnNormalExit(feedback, method, code);
       computeMayHaveSideEffects(feedback, method, code);
     }
@@ -1188,6 +1203,32 @@ public class IRConverter {
         }
       }
       feedback.setNonNullParamOrThrow(method, paramsCheckedForNull);
+    }
+  }
+
+  private void computeDynamicReturnType(
+      OptimizationFeedback feedback, DexEncodedMethod method, IRCode code) {
+    if (dynamicTypeOptimization != null) {
+      DexType staticReturnTypeRaw = method.method.proto.returnType;
+      if (!staticReturnTypeRaw.isReferenceType()) {
+        return;
+      }
+
+      TypeLatticeElement dynamicReturnType =
+          dynamicTypeOptimization.computeDynamicReturnType(method, code);
+      if (dynamicReturnType == null) {
+        // No normal exits.
+        return;
+      }
+
+      TypeLatticeElement staticReturnType =
+          TypeLatticeElement.fromDexType(staticReturnTypeRaw, Nullability.maybeNull(), appView);
+
+      // If the dynamic return type is not more precise than the static return type there is no need
+      // to record it.
+      if (dynamicReturnType.strictlyLessThan(staticReturnType, appView)) {
+        feedback.methodReturnsObjectOfType(method, dynamicReturnType);
+      }
     }
   }
 

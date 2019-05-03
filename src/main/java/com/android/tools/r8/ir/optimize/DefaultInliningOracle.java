@@ -26,9 +26,12 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.MainDexDirectReferenceTracer;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IteratorUtils;
+import com.google.common.collect.Sets;
 import java.util.BitSet;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 public final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
@@ -464,8 +467,24 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       }
       assert IteratorUtils.peekNext(blockIterator) == block;
 
+      Set<BasicBlock> inlineeBlocks = Sets.newIdentityHashSet();
+      inlineeBlocks.addAll(inlinee.blocks);
+
       // Kick off the tracker to add non-null IRs only to the inlinee blocks.
-      new NonNullTracker(appView).addNonNullInPart(code, blockIterator, inlinee.blocks::contains);
+      Consumer<BasicBlock> splitBlockConsumer = inlineeBlocks::add;
+      new NonNullTracker(appView, splitBlockConsumer)
+          .addNonNullInPart(code, blockIterator, inlineeBlocks::contains);
+      assert !blockIterator.hasNext();
+
+      // Restore the old state of the iterator.
+      while (blockIterator.hasPrevious() && blockIterator.previous() != state) {
+        // Do nothing.
+      }
+      assert IteratorUtils.peekNext(blockIterator) == state;
+
+      new DynamicTypeOptimization(appView)
+          .insertAssumeDynamicTypeInstructionsInBlocks(
+              code, blockIterator, inlineeBlocks::contains);
       assert !blockIterator.hasNext();
 
       // Restore the old state of the iterator.

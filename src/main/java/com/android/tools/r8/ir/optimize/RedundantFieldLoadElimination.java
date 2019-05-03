@@ -112,7 +112,7 @@ public class RedundantFieldLoadElimination {
               Value object = instruction.asInstanceGet().object();
               // Values from Assume instructions will always be replaced with their original value
               // before code is generated.
-              if (!object.isPhi() && object.definition.isAssume()) {
+              while (!object.isPhi() && object.definition.isAssume()) {
                 object = object.definition.asAssume().src();
               }
               FieldAndObject fieldAndObject = new FieldAndObject(field, object);

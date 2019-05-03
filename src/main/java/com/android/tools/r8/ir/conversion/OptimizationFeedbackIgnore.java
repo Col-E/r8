@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ParameterUsagesInfo;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import java.util.BitSet;
 import java.util.Set;
@@ -28,6 +29,9 @@ public class OptimizationFeedbackIgnore implements OptimizationFeedback {
 
   @Override
   public void methodReturnsConstantString(DexEncodedMethod method, DexString value) {}
+
+  @Override
+  public void methodReturnsObjectOfType(DexEncodedMethod method, TypeLatticeElement type) {}
 
   @Override
   public void methodMayNotHaveSideEffects(DexEncodedMethod method) {}

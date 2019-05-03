@@ -8,6 +8,7 @@ import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCE
 import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCESSED_INLINING_CANDIDATE_SAME_PACKAGE;
 import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCESSED_INLINING_CANDIDATE_SUBCLASS;
 import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCESSED_NOT_INLINING_CANDIDATE;
+import static com.android.tools.r8.graph.DexEncodedMethod.DefaultOptimizationInfoImpl.UNKNOWN_TYPE;
 
 import com.android.tools.r8.OptionalBool;
 import com.android.tools.r8.cf.code.CfConstNull;
@@ -36,6 +37,7 @@ import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo.ResolutionResult;
 import com.android.tools.r8.graph.ParameterUsagesInfo.ParameterUsage;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.Position;
@@ -987,6 +989,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     public static boolean UNKNOWN_RETURNS_CONSTANT = false;
     public static long UNKNOWN_RETURNED_CONSTANT_NUMBER = 0;
     public static DexString UNKNOWN_RETURNED_CONSTANT_STRING = null;
+    public static TypeLatticeElement UNKNOWN_TYPE = null;
     public static boolean DOES_NOT_USE_IDNETIFIER_NAME_STRING = false;
     public static boolean UNKNOWN_CHECKS_NULL_RECEIVER_BEFORE_ANY_SIDE_EFFECT = false;
     public static boolean UNKNOWN_TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT = false;
@@ -999,6 +1002,11 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     public static BitSet NO_NULL_PARAMETER_ON_NORMAL_EXITS_FACTS = null;
 
     private DefaultOptimizationInfoImpl() {}
+
+    @Override
+    public TypeLatticeElement getDynamicReturnType() {
+      return UNKNOWN_TYPE;
+    }
 
     @Override
     public Set<DexType> getInitializedClassesOnNormalExit() {
@@ -1140,6 +1148,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     private boolean returnsConstantString = DefaultOptimizationInfoImpl.UNKNOWN_RETURNS_CONSTANT;
     private DexString returnedConstantString =
         DefaultOptimizationInfoImpl.UNKNOWN_RETURNED_CONSTANT_STRING;
+    private TypeLatticeElement returnsObjectOfType = UNKNOWN_TYPE;
     private InlinePreference inlining = InlinePreference.Default;
     private boolean useIdentifierNameString =
         DefaultOptimizationInfoImpl.DOES_NOT_USE_IDNETIFIER_NAME_STRING;
@@ -1198,6 +1207,11 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       nonNullParamOrThrow = template.nonNullParamOrThrow;
       nonNullParamOnNormalExits = template.nonNullParamOnNormalExits;
       reachabilitySensitive = template.reachabilitySensitive;
+    }
+
+    @Override
+    public TypeLatticeElement getDynamicReturnType() {
+      return returnsObjectOfType;
     }
 
     @Override
@@ -1395,6 +1409,13 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       assert !returnsConstantString || returnedConstantString == value;
       returnsConstantString = true;
       returnedConstantString = value;
+    }
+
+    @Override
+    public void markReturnsObjectOfType(TypeLatticeElement type) {
+      assert type != null;
+      assert returnsObjectOfType == UNKNOWN_TYPE || returnsObjectOfType == type;
+      returnsObjectOfType = type;
     }
 
     @Override

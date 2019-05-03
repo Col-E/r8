@@ -18,7 +18,6 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.If.Type;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
@@ -36,14 +35,21 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 public class NonNullTracker {
 
   private final AppView<?> appView;
+  private final Consumer<BasicBlock> splitBlockConsumer;
 
   public NonNullTracker(AppView<?> appView) {
+    this(appView, null);
+  }
+
+  public NonNullTracker(AppView<?> appView, Consumer<BasicBlock> splitBlockConsumer) {
     this.appView = appView;
+    this.splitBlockConsumer = splitBlockConsumer;
   }
 
   public void addNonNull(IRCode code) {
@@ -194,7 +200,7 @@ public class NonNullTracker {
                 affectedValues.addAll(knownToBeNonNullValue.affectedValues());
                 Assume<NonNullAssumption> nonNull =
                     Assume.createAssumeNonNullInstruction(
-                        nonNullValue, knownToBeNonNullValue, theIf);
+                        nonNullValue, knownToBeNonNullValue, theIf, appView);
                 InstructionListIterator targetIterator = target.listIterator();
                 nonNull.setPosition(targetIterator.next().getPosition());
                 targetIterator.previous();
@@ -234,9 +240,17 @@ public class NonNullTracker {
     //
     // A: ...y // blockWithNonNullInstruction
     boolean split = block.hasCatchHandlers();
-    BasicBlock blockWithNonNullInstruction = split ? iterator.split(code, blockIterator) : block;
-    DominatorTree dominatorTree = new DominatorTree(code, MAY_HAVE_UNREACHABLE_BLOCKS);
+    BasicBlock blockWithNonNullInstruction;
+    if (split) {
+      blockWithNonNullInstruction = iterator.split(code, blockIterator);
+      if (splitBlockConsumer != null) {
+        splitBlockConsumer.accept(blockWithNonNullInstruction);
+      }
+    } else {
+      blockWithNonNullInstruction = block;
+    }
 
+    DominatorTree dominatorTree = new DominatorTree(code, MAY_HAVE_UNREACHABLE_BLOCKS);
     for (Value knownToBeNonNullValue : knownToBeNonNullValues) {
       // Find all users of the original value that are dominated by either the current block
       // or the new split-off block. Since NPE can be explicitly caught, nullness should be
@@ -288,7 +302,8 @@ public class NonNullTracker {
                 knownToBeNonNullValue.getLocalInfo());
         affectedValues.addAll(knownToBeNonNullValue.affectedValues());
         Assume<NonNullAssumption> nonNull =
-            Assume.createAssumeNonNullInstruction(nonNullValue, knownToBeNonNullValue, current);
+            Assume.createAssumeNonNullInstruction(
+                nonNullValue, knownToBeNonNullValue, current, appView);
         nonNull.setPosition(current.getPosition());
         if (blockWithNonNullInstruction != block) {
           // If we split, add non-null IR on top of the new split block.
@@ -438,56 +453,4 @@ public class NonNullTracker {
     assert uncoveredPaths.isEmpty();
     return true;
   }
-
-  public void cleanupNonNull(IRCode code) {
-    Set<Value> affectedValues = Sets.newIdentityHashSet();
-
-    InstructionIterator it = code.instructionIterator();
-    boolean needToCheckTrivialPhis = false;
-    while (it.hasNext()) {
-      Instruction instruction = it.next();
-      // non_null_rcv <- non-null(rcv)  // deleted
-      // ...
-      // non_null_rcv#foo
-      //
-      //  ~>
-      //
-      // rcv#foo
-      if (instruction.isAssumeNonNull()) {
-        Assume<NonNullAssumption> nonNull = instruction.asAssumeNonNull();
-        Value src = nonNull.src();
-        Value dest = nonNull.dest();
-        affectedValues.addAll(dest.affectedValues());
-
-        // Replace `dest` by `src`.
-        needToCheckTrivialPhis = needToCheckTrivialPhis || dest.uniquePhiUsers().size() != 0;
-        dest.replaceUsers(src);
-        it.remove();
-      }
-    }
-    // non-null might introduce a phi, e.g.,
-    // non_null_rcv <- non-null(rcv)
-    // ...
-    // v <- phi(rcv, non_null_rcv)
-    //
-    // Cleaning up that non-null may result in a trivial phi:
-    // v <- phi(rcv, rcv)
-    if (needToCheckTrivialPhis) {
-      code.removeAllTrivialPhis();
-    }
-
-    // We need to update the types of all values whose definitions depend on a non-null value.
-    // This is needed to preserve soundness of the types after the NonNull instructions have been
-    // removed.
-    //
-    // As an example, consider a check-cast instruction on the form "z = (T) y". If y used to be
-    // defined by a NonNull instruction, then the type analysis could have used this information
-    // to mark z as non-null. However, cleanupNonNull() have now replaced y by a nullable value x.
-    // Since z is defined as "z = (T) x", and x is nullable, it is no longer sound to have that z
-    // is not nullable. This is fixed by rerunning the type analysis for the affected values.
-    if (!affectedValues.isEmpty()) {
-      new TypeAnalysis(appView, code.method).widening(affectedValues);
-    }
-  }
-
 }

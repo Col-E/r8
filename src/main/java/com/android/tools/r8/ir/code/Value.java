@@ -244,10 +244,18 @@ public class Value {
    * <p>This method is useful to find the "true" definition of a value inside the current method.
    */
   public Value getAliasedValue() {
+    return getAliasedValue(Predicates.alwaysFalse());
+  }
+
+  public Value getAliasedValue(Predicate<Value> stoppingCriterion) {
+    assert stoppingCriterion != null;
     Set<Value> visited = Sets.newIdentityHashSet();
     Value lastAliasedValue;
     Value aliasedValue = this;
     do {
+      if (stoppingCriterion.test(aliasedValue)) {
+        return aliasedValue;
+      }
       lastAliasedValue = aliasedValue;
       if (aliasedValue.isPhi()) {
         return aliasedValue;
@@ -262,6 +270,11 @@ public class Value {
     } while (aliasedValue != lastAliasedValue);
     assert aliasedValue.isPhi() || !aliasedValue.definition.isAssume();
     return aliasedValue;
+  }
+
+  public Value getSpecificAliasedValue(Predicate<Value> stoppingCriterion) {
+    Value aliasedValue = getAliasedValue(stoppingCriterion);
+    return stoppingCriterion.test(aliasedValue) ? aliasedValue : null;
   }
 
   public int getNumber() {

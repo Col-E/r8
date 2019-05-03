@@ -4,6 +4,7 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.LoadStoreHelper;
+import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
@@ -23,17 +24,29 @@ public class Assume<An extends Assumption> extends Instruction {
   private final An assumption;
   private final Instruction origin;
 
-  private Assume(An assumption, Value dest, Value src, Instruction origin) {
+  private Assume(An assumption, Value dest, Value src, Instruction origin, AppView<?> appView) {
     super(dest, src);
     assert assumption != null;
-    assert assumption.verifyCorrectnessOfValues(dest, src);
+    assert assumption.verifyCorrectnessOfValues(dest, src, appView);
     this.assumption = assumption;
     this.origin = origin;
   }
 
   public static Assume<NonNullAssumption> createAssumeNonNullInstruction(
-      Value dest, Value src, Instruction origin) {
-    return new Assume<>(NonNullAssumption.get(), dest, src, origin);
+      Value dest, Value src, Instruction origin, AppView<?> appView) {
+    return new Assume<>(NonNullAssumption.get(), dest, src, origin, appView);
+  }
+
+  public static Assume<DynamicTypeAssumption> createAssumeDynamicTypeInstruction(
+      TypeLatticeElement type, Value dest, Value src, Instruction origin, AppView<?> appView) {
+    return new Assume<>(new DynamicTypeAssumption(type), dest, src, origin, appView);
+  }
+
+  public boolean verifyInstructionIsNeeded(AppView<?> appView) {
+    if (isAssumeDynamicType()) {
+      assert assumption.verifyCorrectnessOfValues(outValue(), src(), appView);
+    }
+    return true;
   }
 
   @Override
@@ -41,8 +54,8 @@ public class Assume<An extends Assumption> extends Instruction {
     return visitor.visit(this);
   }
 
-  public Value dest() {
-    return outValue;
+  public An getAssumption() {
+    return assumption;
   }
 
   public Value src() {
@@ -54,6 +67,17 @@ public class Assume<An extends Assumption> extends Instruction {
   }
 
   @Override
+  public String getInstructionName() {
+    if (isAssumeDynamicType()) {
+      return "AssumeDynamicType";
+    }
+    if (isAssumeNonNull()) {
+      return "AssumeNonNull";
+    }
+    throw new Unimplemented();
+  }
+
+  @Override
   public boolean isAssume() {
     return true;
   }
@@ -61,6 +85,19 @@ public class Assume<An extends Assumption> extends Instruction {
   @Override
   public Assume<An> asAssume() {
     return this;
+  }
+
+  @Override
+  public boolean isAssumeDynamicType() {
+    return assumption.isAssumeDynamicType();
+  }
+
+  @Override
+  public Assume<DynamicTypeAssumption> asAssumeDynamicType() {
+    assert isAssumeDynamicType();
+    @SuppressWarnings("unchecked")
+    Assume<DynamicTypeAssumption> self = (Assume<DynamicTypeAssumption>) this;
+    return self;
   }
 
   @Override
@@ -133,11 +170,19 @@ public class Assume<An extends Assumption> extends Instruction {
 
   @Override
   public TypeLatticeElement evaluate(AppView<?> appView) {
+    if (assumption.isAssumeDynamicType()) {
+      return src().getTypeLattice();
+    }
     if (assumption.isAssumeNonNull()) {
       assert src().getTypeLattice().isReference();
       return src().getTypeLattice().asReferenceTypeLatticeElement().asNotNull();
     }
     throw new Unimplemented();
+  }
+
+  @Override
+  public DexType computeVerificationType(AppView<?> appView, TypeVerificationHelper helper) {
+    return helper.getDexType(src());
   }
 
   @Override
@@ -150,14 +195,70 @@ public class Assume<An extends Assumption> extends Instruction {
     throw new Unreachable(ERROR_MESSAGE);
   }
 
+  @Override
+  public String toString() {
+    if (isAssumeDynamicType()) {
+      return super.toString() + "; type: " + asAssumeDynamicType().getAssumption().type;
+    }
+    if (isAssumeNonNull()) {
+      return super.toString() + "; not null";
+    }
+    return super.toString();
+  }
+
   abstract static class Assumption {
+
+    public boolean isAssumeDynamicType() {
+      return false;
+    }
 
     public boolean isAssumeNonNull() {
       return false;
     }
 
-    public boolean verifyCorrectnessOfValues(Value dest, Value src) {
+    public boolean verifyCorrectnessOfValues(Value dest, Value src, AppView<?> appView) {
       return true;
+    }
+  }
+
+  public static class DynamicTypeAssumption extends Assumption {
+
+    private final TypeLatticeElement type;
+
+    private DynamicTypeAssumption(TypeLatticeElement type) {
+      this.type = type;
+    }
+
+    public TypeLatticeElement getType() {
+      return type;
+    }
+
+    @Override
+    public boolean isAssumeDynamicType() {
+      return true;
+    }
+
+    @Override
+    public boolean verifyCorrectnessOfValues(Value dest, Value src, AppView<?> appView) {
+      assert type.lessThanOrEqualUpToNullability(src.getTypeLattice(), appView);
+      return true;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+      if (other == null) {
+        return false;
+      }
+      if (getClass() != other.getClass()) {
+        return false;
+      }
+      DynamicTypeAssumption assumption = (DynamicTypeAssumption) other;
+      return type == assumption.type;
+    }
+
+    @Override
+    public int hashCode() {
+      return type.hashCode();
     }
   }
 
@@ -177,7 +278,7 @@ public class Assume<An extends Assumption> extends Instruction {
     }
 
     @Override
-    public boolean verifyCorrectnessOfValues(Value dest, Value src) {
+    public boolean verifyCorrectnessOfValues(Value dest, Value src, AppView<?> appView) {
       assert !src.isNeverNull();
       return true;
     }

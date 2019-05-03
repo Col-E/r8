@@ -10,28 +10,47 @@ import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ParameterUsagesInfo;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import java.util.BitSet;
 import java.util.Set;
 
 public interface OptimizationFeedback {
+
   void methodInitializesClassesOnNormalExit(
       DexEncodedMethod method, Set<DexType> initializedClasses);
 
   void methodReturnsArgument(DexEncodedMethod method, int argument);
+
   void methodReturnsConstantNumber(DexEncodedMethod method, long value);
+
   void methodReturnsConstantString(DexEncodedMethod method, DexString value);
+
+  void methodReturnsObjectOfType(DexEncodedMethod method, TypeLatticeElement type);
+
   void methodMayNotHaveSideEffects(DexEncodedMethod method);
+
   void methodNeverReturnsNull(DexEncodedMethod method);
+
   void methodNeverReturnsNormally(DexEncodedMethod method);
+
   void markProcessed(DexEncodedMethod method, ConstraintWithTarget state);
+
   void markUseIdentifierNameString(DexEncodedMethod method);
+
   void markCheckNullReceiverBeforeAnySideEffect(DexEncodedMethod method, boolean mark);
+
   void markTriggerClassInitBeforeAnySideEffect(DexEncodedMethod method, boolean mark);
+
   void setClassInlinerEligibility(DexEncodedMethod method, ClassInlinerEligibility eligibility);
+
   void setTrivialInitializer(DexEncodedMethod method, TrivialInitializer info);
+
   void setInitializerEnablingJavaAssertions(DexEncodedMethod method);
+
   void setParameterUsages(DexEncodedMethod method, ParameterUsagesInfo parameterUsagesInfo);
+
   void setNonNullParamOrThrow(DexEncodedMethod method, BitSet facts);
+
   void setNonNullParamOnNormalExits(DexEncodedMethod method, BitSet facts);
 }

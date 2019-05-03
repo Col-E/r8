@@ -677,6 +677,7 @@ public class Inliner {
 
   private void performInliningImpl(
       InliningStrategy strategy, InliningOracle oracle, DexEncodedMethod context, IRCode code) {
+    AssumeDynamicTypeRemover assumeDynamicTypeRemover = new AssumeDynamicTypeRemover(appView, code);
     List<BasicBlock> blocksToRemove = new ArrayList<>();
     ListIterator<BasicBlock> blockIterator = code.listIterator();
     ClassInitializationAnalysis classInitializationAnalysis =
@@ -724,13 +725,24 @@ public class Inliner {
               if (!strategy.isValidTarget(invoke, target, inlinee.code, appView.appInfo())) {
                 continue;
               }
-              DexType downcast = getDowncastTypeIfNeeded(strategy, invoke, target);
+
+              // Mark AssumeDynamicType instruction for the out-value for removal, if any.
+              Value outValue = invoke.outValue();
+              if (outValue != null) {
+                assumeDynamicTypeRemover.markUsersForRemoval(outValue);
+              }
+
               // Inline the inlinee code in place of the invoke instruction
               // Back up before the invoke instruction.
               iterator.previous();
               strategy.markInlined(inlinee);
               iterator.inlineInvoke(
-                  appView, code, inlinee.code, blockIterator, blocksToRemove, downcast);
+                  appView,
+                  code,
+                  inlinee.code,
+                  blockIterator,
+                  blocksToRemove,
+                  getDowncastTypeIfNeeded(strategy, invoke, target));
 
               classInitializationAnalysis.notifyCodeHasChanged();
               strategy.updateTypeInformationIfNeeded(inlinee.code, blockIterator, block);
@@ -745,9 +757,13 @@ public class Inliner {
               code.copyMetadataFromInlinee(inlinee.code);
             }
           }
+        } else if (current.isAssumeDynamicType()) {
+          assumeDynamicTypeRemover.removeIfMarked(current.asAssumeDynamicType(), iterator);
         }
       }
     }
+    assumeDynamicTypeRemover.removeMarkedInstructions();
+    assumeDynamicTypeRemover.finish();
     classInitializationAnalysis.finish();
     oracle.finish();
     code.removeBlocks(blocksToRemove);

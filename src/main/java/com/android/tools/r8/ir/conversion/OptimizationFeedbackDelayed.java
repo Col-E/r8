@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ParameterUsagesInfo;
 import com.android.tools.r8.graph.UpdatableOptimizationInfo;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.utils.IteratorUtils;
 import java.util.BitSet;
@@ -55,6 +56,12 @@ public class OptimizationFeedbackDelayed implements OptimizationFeedback {
   @Override
   public synchronized void methodReturnsConstantString(DexEncodedMethod method, DexString value) {
     getOptimizationInfoForUpdating(method).markReturnsConstantString(value);
+  }
+
+  @Override
+  public synchronized void methodReturnsObjectOfType(
+      DexEncodedMethod method, TypeLatticeElement type) {
+    getOptimizationInfoForUpdating(method).markReturnsObjectOfType(type);
   }
 
   @Override

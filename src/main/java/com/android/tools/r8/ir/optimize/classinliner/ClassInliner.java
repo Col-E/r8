@@ -185,7 +185,7 @@ public final class ClassInliner {
       // If a method was inlined we may be able to remove check-cast instructions because we may
       // have more information about the types of the arguments at the call site. This is
       // particularly important for bridge methods.
-      codeRewriter.removeTrivialCheckCastAndInstanceOfInstructions(code, true);
+      codeRewriter.removeTrivialCheckCastAndInstanceOfInstructions(code);
       // If a method was inlined we may be able to prune additional branches.
       codeRewriter.simplifyIf(code);
       // If a method was inlined we may see more trivial computation/conversion of String.
