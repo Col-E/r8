@@ -35,7 +35,6 @@ public abstract class AbstractSynthesizedCode extends Code {
 
   @Override
   public final IRCode buildIR(DexEncodedMethod encodedMethod, AppView<?> appView, Origin origin) {
-    assert getOwner() == encodedMethod;
     IRBuilder builder =
         new IRBuilder(
             encodedMethod,
@@ -54,7 +53,6 @@ public abstract class AbstractSynthesizedCode extends Code {
       ValueNumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin) {
-    assert getOwner() == encodedMethod;
     IRBuilder builder =
         new IRBuilder(
             encodedMethod,
@@ -71,7 +69,7 @@ public abstract class AbstractSynthesizedCode extends Code {
   }
 
   @Override
-  public void registerCodeReferences(UseRegistry registry) {
+  public void registerCodeReferences(DexEncodedMethod method, UseRegistry registry) {
     getRegistryCallback().accept(registry);
   }
 

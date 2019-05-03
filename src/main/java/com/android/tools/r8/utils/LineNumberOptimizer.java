@@ -563,7 +563,6 @@ public class LineNumberOptimizer {
     }
     method.setCode(
         new CfCode(
-            oldCode.getMethod(),
             oldCode.getMaxStack(),
             oldCode.getMaxLocals(),
             newInstructions,

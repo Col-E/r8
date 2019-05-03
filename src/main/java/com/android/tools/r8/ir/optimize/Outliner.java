@@ -1514,7 +1514,6 @@ public class Outliner {
 
     @Override
     public IRCode buildIR(DexEncodedMethod encodedMethod, AppView<?> appView, Origin origin) {
-      assert getOwner() == encodedMethod;
       OutlineSourceCode source = new OutlineSourceCode(outline, encodedMethod.method);
       return new IRBuilder(encodedMethod, appView, source, origin).build(encodedMethod);
     }
@@ -1525,7 +1524,7 @@ public class Outliner {
     }
 
     @Override
-    public void registerCodeReferences(UseRegistry registry) {
+    public void registerCodeReferences(DexEncodedMethod method, UseRegistry registry) {
       throw new Unreachable();
     }
 

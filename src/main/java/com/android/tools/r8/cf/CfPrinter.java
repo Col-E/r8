@@ -50,6 +50,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.CfCode.LocalVariableInfo;
 import com.android.tools.r8.graph.DebugLocalInfo;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -115,7 +116,12 @@ public class CfPrinter {
   }
 
   /** Entry for printing a complete code object. */
-  public CfPrinter(CfCode code, ClassNameMapper mapper) {
+  public CfPrinter(CfCode code) {
+    this(code, null, null);
+  }
+
+  /** Entry for printing a complete method object. */
+  public CfPrinter(CfCode code, DexEncodedMethod method, ClassNameMapper mapper) {
     this.mapper = mapper;
     indent = "  ";
     instructionIndexSpace = ("" + code.getInstructions().size()).length();
@@ -127,9 +133,11 @@ public class CfPrinter {
         sortedLabels.add((CfLabel) instruction);
       }
     }
-    builder.append(".method ");
-    appendMethod(code.getMethod());
-    newline();
+    if (method != null) {
+      builder.append(".method ");
+      appendMethod(method.method);
+      newline();
+    }
     builder.append(".limit stack ").append(code.getMaxStack());
     newline();
     builder.append(".limit locals ").append(code.getMaxLocals());
@@ -175,8 +183,10 @@ public class CfPrinter {
       instruction.print(this);
     }
     newline();
-    builder.append(".end method");
-    newline();
+    if (method != null) {
+      builder.append(".end method");
+      newline();
+    }
   }
 
   private List<List<LocalVariableInfo>> computeLocalsAtLabels(

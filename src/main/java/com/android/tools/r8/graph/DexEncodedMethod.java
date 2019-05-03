@@ -157,11 +157,8 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     assert implementation != null;
     assert code != null;
     assert code == implementation.getCode();
-    assert code.getOwner() == implementation;
     accessFlags.setAbstract();
     removeCode();
-    // Reset the code ownership to the implementation method as the above removeCode cleared it.
-    implementation.setCodeOwnership();
     defaultInterfaceMethodImplementation = implementation;
   }
 
@@ -190,7 +187,6 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     this.parameterAnnotationsList = parameterAnnotationsList;
     this.code = code;
     assert code == null || !shouldNotHaveCode();
-    setCodeOwnership();
   }
 
   public DexEncodedMethod(
@@ -265,6 +261,11 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   public boolean isNonAbstractVirtualMethod() {
     checkIfObsolete();
     return isVirtualMethod() && !accessFlags.isAbstract();
+  }
+
+  public boolean isNonAbstractNonNativeMethod() {
+    checkIfObsolete();
+    return !accessFlags.isAbstract() && !accessFlags.isNative();
   }
 
   public boolean isPublicized() {
@@ -393,9 +394,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
   public void setCode(Code code) {
     checkIfObsolete();
-    voidCodeOwnership();
     this.code = code;
-    setCodeOwnership();
   }
 
   public void setCode(IRCode ir, RegisterAllocator registerAllocator, InternalOptions options) {
@@ -452,20 +451,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
   public void removeCode() {
     checkIfObsolete();
-    voidCodeOwnership();
     code = null;
-  }
-
-  private void setCodeOwnership() {
-    if (code != null) {
-      code.setOwner(this);
-    }
-  }
-
-  public void voidCodeOwnership() {
-    if (code != null) {
-      code.setOwner(null);
-    }
   }
 
   public int getClassFileVersion() {
@@ -540,14 +526,12 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     // a subtype, i.e., self contradict.
     assert !accessFlags.isFinal();
     accessFlags.setAbstract();
-    voidCodeOwnership();
     this.code = null;
     return this;
   }
 
   public IRCode buildEmptyThrowingIRCode(AppView<?> appView, Origin origin) {
     DexCode emptyThrowingDexCode = buildEmptyThrowingDexCode();
-    emptyThrowingDexCode.setOwner(this);
     return emptyThrowingDexCode.buildIR(this, appView, origin);
   }
 
@@ -596,7 +580,6 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   public CfCode buildEmptyThrowingCfCode() {
     CfInstruction insn[] = {new CfConstNull(), new CfThrow()};
     return new CfCode(
-        method,
         1,
         method.proto.parameters.size() + 1,
         Arrays.asList(insn),
@@ -700,7 +683,6 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
         .add(new CfThrow());
     CfCode code =
         new CfCode(
-            method,
             3,
             locals,
             instructionBuilder.build(),
@@ -957,7 +939,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       if (Log.ENABLED) {
         Log.verbose(getClass(), "Registering definitions reachable from `%s`.", method);
       }
-      code.registerCodeReferences(registry);
+      code.registerCodeReferences(this, registry);
     }
   }
 

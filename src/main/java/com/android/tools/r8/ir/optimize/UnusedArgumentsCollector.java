@@ -292,7 +292,6 @@ public class UnusedArgumentsCollector {
         return null;
       }
     }
-    assert method.getCode().getOwner() == method;
     int offset = method.accessFlags.isStatic() ? 0 : 1;
     int argumentCount = method.method.proto.parameters.size() + offset;
     CollectUsedArguments collector = new CollectUsedArguments();
@@ -301,7 +300,7 @@ public class UnusedArgumentsCollector {
       // static.
       collector.register(0);
     }
-    method.getCode().registerArgumentReferences(collector);
+    method.getCode().registerArgumentReferences(method, collector);
     BitSet used = collector.getUsedArguments();
     if (used.cardinality() < argumentCount) {
       List<RemovedArgumentInfo> unused = new ArrayList<>();

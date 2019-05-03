@@ -15,18 +15,6 @@ import com.android.tools.r8.origin.Origin;
 
 public abstract class Code extends CachedHashValueDexItem {
 
-  private DexEncodedMethod owner;
-
-  public void setOwner(DexEncodedMethod encodedMethod) {
-    // When this Code is un/linked to DexEncodedMethod, the ownership should be updated accordingly.
-    owner = encodedMethod;
-  }
-
-  public DexEncodedMethod getOwner() {
-    // build*IR() will check if the current Code belongs to the given DexEncodedMethod.
-    return owner;
-  }
-
   public abstract IRCode buildIR(DexEncodedMethod encodedMethod, AppView<?> appView, Origin origin);
 
   public IRCode buildInliningIR(
@@ -40,9 +28,9 @@ public abstract class Code extends CachedHashValueDexItem {
         + getClass().getCanonicalName());
   }
 
-  public abstract void registerCodeReferences(UseRegistry registry);
+  public abstract void registerCodeReferences(DexEncodedMethod method, UseRegistry registry);
 
-  public void registerArgumentReferences(ArgumentUse registry) {
+  public void registerArgumentReferences(DexEncodedMethod method, ArgumentUse registry) {
     throw new Unreachable();
   }
 

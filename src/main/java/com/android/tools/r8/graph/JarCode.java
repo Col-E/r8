@@ -146,7 +146,6 @@ public class JarCode extends Code {
       AppView<?> appView,
       ValueNumberGenerator generator,
       Position callerPosition) {
-    assert getOwner() == encodedMethod;
     triggerDelayedParsingIfNeccessary();
     if (!keepLocals(encodedMethod, appView.options())) {
       // We strip locals here because we will not be able to recover from invalid info.
@@ -201,10 +200,10 @@ public class JarCode extends Code {
   }
 
   @Override
-  public void registerCodeReferences(UseRegistry registry) {
+  public void registerCodeReferences(DexEncodedMethod method, UseRegistry registry) {
     triggerDelayedParsingIfNeccessary();
     node.instructions.accept(
-        new JarRegisterEffectsVisitor(method.holder, registry, application));
+        new JarRegisterEffectsVisitor(method.method.holder, registry, application));
     for (TryCatchBlockNode tryCatchBlockNode : node.tryCatchBlocks) {
       // Exception type can be null for "catch all" used for try/finally.
       if (tryCatchBlockNode.type != null) {
@@ -215,9 +214,9 @@ public class JarCode extends Code {
   }
 
   @Override
-  public void registerArgumentReferences(ArgumentUse registry) {
+  public void registerArgumentReferences(DexEncodedMethod method, ArgumentUse registry) {
     triggerDelayedParsingIfNeccessary();
-    node.instructions.accept(new JarArgumentUseVisitor(getOwner(), registry));
+    node.instructions.accept(new JarArgumentUseVisitor(method, registry));
   }
 
   public ConstraintWithTarget computeInliningConstraint(

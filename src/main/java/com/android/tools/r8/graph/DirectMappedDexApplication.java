@@ -21,6 +21,10 @@ import java.util.Map;
 
 public class DirectMappedDexApplication extends DexApplication {
 
+  // Mapping from code objects to their encoded-method owner. Used for asserting unique ownership
+  // and debugging purposes.
+  private final Map<Code, DexEncodedMethod> codeOwners = new IdentityHashMap<>();
+
   // Unmodifiable mapping of all types to their definitions.
   private final Map<DexType, DexClass> allClasses;
   // Collections of the three different types for iteration.
@@ -103,6 +107,7 @@ public class DirectMappedDexApplication extends DexApplication {
     // As a side effect, this will rebuild the program classes and library classes maps.
     DirectMappedDexApplication rewrittenApplication = this.builder().build().asDirect();
     assert rewrittenApplication.mappingIsValid(graphLense, allClasses.keySet());
+    assert rewrittenApplication.verifyCodeObjectsOwners();
     return rewrittenApplication;
   }
 
@@ -117,6 +122,36 @@ public class DirectMappedDexApplication extends DexApplication {
           continue;
         }
         assert definitionFor(type).type == renamed || definitionFor(renamed) != null;
+      }
+    }
+    return true;
+  }
+
+  // Debugging helper to compute the code-object owner map.
+  public Map<Code, DexEncodedMethod> computeCodeObjectOwnersForDebugging() {
+    // Call the verification method without assert to ensure owners are computed.
+    verifyCodeObjectsOwners();
+    return codeOwners;
+  }
+
+  // Debugging helper to find the method a code object belongs to.
+  public DexEncodedMethod getCodeOwnerForDebugging(Code code) {
+    return computeCodeObjectOwnersForDebugging().get(code);
+  }
+
+  private boolean verifyCodeObjectsOwners() {
+    codeOwners.clear();
+    for (DexProgramClass clazz : programClasses) {
+      for (DexEncodedMethod method :
+          clazz.methods(DexEncodedMethod::isNonAbstractNonNativeMethod)) {
+        Code code = method.getCode();
+        assert code != null;
+        // If code is (lazy) CF code, then use the CF code object rather than the lazy wrapper.
+        if (code.isCfCode()) {
+          code = code.asCfCode();
+        }
+        DexEncodedMethod otherMethod = codeOwners.put(code, method);
+        assert otherMethod == null;
       }
     }
     return true;

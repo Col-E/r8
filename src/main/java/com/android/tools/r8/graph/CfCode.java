@@ -72,7 +72,6 @@ public class CfCode extends Code {
     }
   }
 
-  private final DexMethod method;
   private final int maxStack;
   private final int maxLocals;
   public final List<CfInstruction> instructions;
@@ -80,22 +79,16 @@ public class CfCode extends Code {
   private final List<LocalVariableInfo> localVariables;
 
   public CfCode(
-      DexMethod method,
       int maxStack,
       int maxLocals,
       List<CfInstruction> instructions,
       List<CfTryCatch> tryCatchRanges,
       List<LocalVariableInfo> localVariables) {
-    this.method = method;
     this.maxStack = maxStack;
     this.maxLocals = maxLocals;
     this.instructions = instructions;
     this.tryCatchRanges = tryCatchRanges;
     this.localVariables = localVariables;
-  }
-
-  public DexMethod getMethod() {
-    return method;
   }
 
   public int getMaxStack() {
@@ -215,7 +208,6 @@ public class CfCode extends Code {
 
   @Override
   public IRCode buildIR(DexEncodedMethod encodedMethod, AppView<?> appView, Origin origin) {
-    assert getOwner() == encodedMethod;
     return internalBuild(encodedMethod, encodedMethod, appView, null, null, origin);
   }
 
@@ -227,7 +219,6 @@ public class CfCode extends Code {
       ValueNumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin) {
-    assert getOwner() == encodedMethod;
     assert valueNumberGenerator != null;
     assert callerPosition != null;
     return internalBuild(
@@ -258,9 +249,9 @@ public class CfCode extends Code {
   }
 
   @Override
-  public void registerCodeReferences(UseRegistry registry) {
+  public void registerCodeReferences(DexEncodedMethod method, UseRegistry registry) {
     for (CfInstruction instruction : instructions) {
-      instruction.registerUse(registry, method.holder);
+      instruction.registerUse(registry, method.method.holder);
     }
     for (CfTryCatch tryCatch : tryCatchRanges) {
       for (DexType guard : tryCatch.guards) {
@@ -271,11 +262,11 @@ public class CfCode extends Code {
 
   @Override
   public String toString() {
-    return new CfPrinter(this, null).toString();
+    return new CfPrinter(this).toString();
   }
 
   @Override
   public String toString(DexEncodedMethod method, ClassNameMapper naming) {
-    return new CfPrinter(this, naming).toString();
+    return new CfPrinter(this, method, naming).toString();
   }
 }

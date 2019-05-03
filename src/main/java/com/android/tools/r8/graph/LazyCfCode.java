@@ -86,14 +86,12 @@ public class LazyCfCode extends Code {
 
   public LazyCfCode(
       DexMethod method, Origin origin, ReparseContext context, JarApplicationReader application) {
-    this.method = method;
     this.origin = origin;
     this.context = context;
     this.application = application;
     context.codeList.add(this);
   }
 
-  private final DexMethod method;
   private final Origin origin;
   private final JarApplicationReader application;
   private CfCode code;
@@ -145,8 +143,6 @@ public class LazyCfCode extends Code {
     assert this.context != null;
     this.code = code;
     this.context = null;
-    // Propagate the ownership of LazyCfCode to CfCode.
-    code.setOwner(this.getOwner());
   }
 
   @Override
@@ -176,7 +172,6 @@ public class LazyCfCode extends Code {
 
   @Override
   public IRCode buildIR(DexEncodedMethod encodedMethod, AppView<?> appView, Origin origin) {
-    assert getOwner() == encodedMethod;
     return asCfCode().buildIR(encodedMethod, appView, origin);
   }
 
@@ -188,15 +183,14 @@ public class LazyCfCode extends Code {
       ValueNumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin) {
-    assert getOwner() == encodedMethod;
     return asCfCode()
         .buildInliningIR(
             context, encodedMethod, appView, valueNumberGenerator, callerPosition, origin);
   }
 
   @Override
-  public void registerCodeReferences(UseRegistry registry) {
-    asCfCode().registerCodeReferences(registry);
+  public void registerCodeReferences(DexEncodedMethod method, UseRegistry registry) {
+    asCfCode().registerCodeReferences(method, registry);
   }
 
   @Override
@@ -231,8 +225,7 @@ public class LazyCfCode extends Code {
       if (!flags.isAbstract() && !flags.isNative()) {
         LazyCfCode code = context.codeList.get(methodIndex++).asLazyCfCode();
         DexMethod method = application.getMethod(context.owner.type, name, desc);
-        assert code.method == method;
-        MethodCodeVisitor methodVisitor = new MethodCodeVisitor(application, code);
+        MethodCodeVisitor methodVisitor = new MethodCodeVisitor(application, method, code);
         if (!usrJsrInliner) {
           return methodVisitor;
         }
@@ -253,14 +246,14 @@ public class LazyCfCode extends Code {
     private final Map<DebugLocalInfo, DebugLocalInfo> canonicalDebugLocalInfo = new HashMap<>();
     private Map<Label, CfLabel> labelMap;
     private final LazyCfCode code;
-    private DexMethod method;
+    private final DexMethod method;
 
-    MethodCodeVisitor(JarApplicationReader application, LazyCfCode code) {
+    MethodCodeVisitor(JarApplicationReader application, DexMethod method, LazyCfCode code) {
       super(InternalOptions.ASM_VERSION);
       this.application = application;
       this.factory = application.getFactory();
-      this.method = code.method;
       this.code = code;
+      this.method = method;
     }
 
     @Override
@@ -275,8 +268,7 @@ public class LazyCfCode extends Code {
 
     @Override
     public void visitEnd() {
-      code.setCode(
-          new CfCode(method, maxStack, maxLocals, instructions, tryCatchRanges, localVariables));
+      code.setCode(new CfCode(maxStack, maxLocals, instructions, tryCatchRanges, localVariables));
     }
 
     @Override

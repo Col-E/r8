@@ -214,7 +214,6 @@ public class DexCode extends Code {
 
   @Override
   public IRCode buildIR(DexEncodedMethod encodedMethod, AppView<?> appView, Origin origin) {
-    assert getOwner() == encodedMethod;
     DexSourceCode source =
         new DexSourceCode(
             this,
@@ -234,7 +233,6 @@ public class DexCode extends Code {
       ValueNumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin) {
-    assert getOwner() == encodedMethod;
     DexSourceCode source =
         new DexSourceCode(
             this,
@@ -246,7 +244,7 @@ public class DexCode extends Code {
   }
 
   @Override
-  public void registerCodeReferences(UseRegistry registry) {
+  public void registerCodeReferences(DexEncodedMethod method, UseRegistry registry) {
     for (Instruction insn : instructions) {
       insn.registerUse(registry);
     }
