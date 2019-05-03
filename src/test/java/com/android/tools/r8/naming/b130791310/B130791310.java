@@ -7,17 +7,20 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assume.assumeFalse;
 
 import com.android.tools.r8.ProguardTestBuilder;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -86,14 +89,16 @@ public class B130791310 extends TestBase {
   );
 
   private final boolean enableClassMerging;
+  private final boolean onlyForceInlining;
 
-  @Parameterized.Parameters(name = "enable class merging: {0}")
-  public static Boolean[] data() {
-    return BooleanUtils.values();
+  @Parameterized.Parameters(name = "enable class merging: {0}, only force inlining: {1}")
+  public static List<Object[]> data() {
+    return buildParameters(BooleanUtils.values(), BooleanUtils.values());
   }
 
-  public B130791310(boolean enableClassMerging) {
+  public B130791310(boolean enableClassMerging, boolean onlyForceInlining) {
     this.enableClassMerging = enableClassMerging;
+    this.onlyForceInlining = onlyForceInlining;
   }
 
   private void inspect(CodeInspector inspector, boolean isR8) {
@@ -101,18 +106,28 @@ public class B130791310 extends TestBase {
     assertThat(holder, isPresent());
     assertThat(holder, not(isRenamed()));
     MethodSubject someMethod = holder.uniqueMethodWithName("someMethod");
-    if (enableClassMerging && !isR8) {
-      // Note that the method is not entirely gone, but merged to the implementer, along with some
-      // method signature modification.
-      assertThat(someMethod, not(isPresent()));
+    if (isR8) {
+      if (onlyForceInlining) {
+        assertThat(someMethod, isPresent());
+        assertThat(someMethod, not(isRenamed()));
+      } else {
+        assertThat(someMethod, not(isPresent()));
+      }
     } else {
-      assertThat(someMethod, isPresent());
-      assertThat(someMethod, not(isRenamed()));
+      if (enableClassMerging) {
+        // Note that the method is not entirely gone, but merged to the implementer, along with some
+        // method signature modification.
+        assertThat(someMethod, not(isPresent()));
+      } else {
+        assertThat(someMethod, isPresent());
+        assertThat(someMethod, not(isRenamed()));
+      }
     }
   }
 
   @Test
   public void testProguard() throws Exception {
+    assumeFalse(onlyForceInlining);
     ProguardTestBuilder builder =
         testForProguard()
             .addProgramClasses(CLASSES)
@@ -137,6 +152,10 @@ public class B130791310 extends TestBase {
             .addKeepRules(RULES);
     if (!enableClassMerging) {
       builder.addOptionsModification(o -> o.enableVerticalClassMerging = false);
+    }
+    if (onlyForceInlining) {
+      builder.addOptionsModification(
+          o -> o.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE));
     }
     builder
         .compile()
