@@ -91,6 +91,7 @@ import java.util.TreeMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -1331,8 +1332,16 @@ public class Enqueuer {
     }
   }
 
-  private void markVirtualMethodAsReachable(DexMethod method, boolean interfaceInvoke,
-      KeepReason reason) {
+  private void markVirtualMethodAsReachable(
+      DexMethod method, boolean interfaceInvoke, KeepReason reason) {
+    markVirtualMethodAsReachable(method, interfaceInvoke, reason, null);
+  }
+
+  private void markVirtualMethodAsReachable(
+      DexMethod method,
+      boolean interfaceInvoke,
+      KeepReason reason,
+      Consumer<DexEncodedMethod> possibleTargetsConsumer) {
     if (!virtualTargetsMarkedAsReachable.add(method)) {
       return;
     }
@@ -1352,9 +1361,10 @@ public class Enqueuer {
       reportMissingClass(method.holder);
       return;
     }
-    DexEncodedMethod topTarget = interfaceInvoke
-        ? appInfo.resolveMethodOnInterface(method.holder, method).asResultOfResolve()
-        : appInfo.resolveMethodOnClass(method.holder, method).asResultOfResolve();
+    DexEncodedMethod topTarget =
+        interfaceInvoke
+            ? appInfo.resolveMethodOnInterface(method.holder, method).asResultOfResolve()
+            : appInfo.resolveMethodOnClass(method.holder, method).asResultOfResolve();
     if (topTarget == null) {
       reportMissingMethod(method);
       return;
@@ -1363,10 +1373,11 @@ public class Enqueuer {
     // need at least an abstract version of it so that we have a target for the corresponding
     // invoke.
     markMethodAsTargeted(topTarget, reason);
-    Set<DexEncodedMethod> targets = interfaceInvoke
-        ? appInfo.lookupInterfaceTargets(method)
-        : appInfo.lookupVirtualTargets(method);
-    for (DexEncodedMethod encodedMethod : targets) {
+    Set<DexEncodedMethod> possibleTargets =
+        interfaceInvoke
+            ? appInfo.lookupInterfaceTargets(method)
+            : appInfo.lookupVirtualTargets(method);
+    for (DexEncodedMethod encodedMethod : possibleTargets) {
       // TODO(b/120959039): The reachable.add test might be hiding other paths to the method.
       SetWithReason<DexEncodedMethod> reachable =
           reachableVirtualMethods.computeIfAbsent(
@@ -1404,6 +1415,10 @@ public class Enqueuer {
           }
         }
       }
+    }
+
+    if (possibleTargetsConsumer != null) {
+      possibleTargets.forEach(possibleTargetsConsumer);
     }
   }
 
@@ -1781,7 +1796,10 @@ public class Enqueuer {
     for (DexEncodedMethod encodedMethod : clazz.virtualMethods()) {
       markMethodAsTargeted(encodedMethod, KeepReason.isLibraryMethod());
       markVirtualMethodAsReachable(
-          encodedMethod.method, clazz.isInterface(), KeepReason.isLibraryMethod());
+          encodedMethod.method,
+          clazz.isInterface(),
+          KeepReason.isLibraryMethod(),
+          DexEncodedMethod::setLibraryMethodOverride);
     }
   }
 

@@ -9,6 +9,7 @@ import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCE
 import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCESSED_INLINING_CANDIDATE_SUBCLASS;
 import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCESSED_NOT_INLINING_CANDIDATE;
 
+import com.android.tools.r8.OptionalBool;
 import com.android.tools.r8.cf.code.CfConstNull;
 import com.android.tools.r8.cf.code.CfConstString;
 import com.android.tools.r8.cf.code.CfInstruction;
@@ -123,6 +124,8 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
   private DexEncodedMethod defaultInterfaceMethodImplementation = null;
 
+  private OptionalBool isLibraryMethodOverride = OptionalBool.unknown();
+
   // This flag indicates the current instance is no longer up-to-date as another instance was
   // created based on this. Any further (public) operations on this instance will raise an error
   // to catch potential bugs due to the inconsistency (e.g., http://b/111893131)
@@ -199,6 +202,18 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       int classFileVersion) {
     this(method, flags, annotationSet, annotationsList, code);
     this.classFileVersion = classFileVersion;
+  }
+
+  public OptionalBool isLibraryMethodOverride() {
+    return isLibraryMethodOverride;
+  }
+
+  public void setLibraryMethodOverride() {
+    assert isLibraryMethodOverride.isUnknown() || isLibraryMethodOverride.isTrue()
+        : "Method `"
+            + method.toSourceString()
+            + "` went from not overriding a library method to overriding a library method";
+    isLibraryMethodOverride = OptionalBool.of(true);
   }
 
   public boolean isProgramMethod(DexDefinitionSupplier definitions) {

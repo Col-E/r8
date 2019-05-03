@@ -103,6 +103,12 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
         && inliner.appView.withLiveness().appInfo().alwaysInline.contains(target.method)) {
       return Reason.ALWAYS;
     }
+    if (target.isLibraryMethodOverride().isTrue()) {
+      // This method will always have an implicit call site from the library, so we won't be able to
+      // remove it after inlining even if we have single or dual call site information from the
+      // program.
+      return Reason.SIMPLE;
+    }
     if (callSiteInformation.hasSingleCallSite(target.method)) {
       return Reason.SINGLE_CALLER;
     }
