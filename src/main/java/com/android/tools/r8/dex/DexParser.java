@@ -8,7 +8,6 @@ import static com.android.tools.r8.utils.EncodedValueUtils.parseFloat;
 import static com.android.tools.r8.utils.EncodedValueUtils.parseSigned;
 import static com.android.tools.r8.utils.EncodedValueUtils.parseUnsigned;
 
-import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.InstructionFactory;
@@ -59,6 +58,7 @@ import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Pair;
 import com.google.common.io.ByteStreams;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
@@ -85,7 +85,7 @@ public class DexParser {
   private final DexSection[] dexSections;
   private int[] stringIDs;
   private final ClassKind classKind;
-  private final DiagnosticsHandler reporter;
+  private final InternalOptions options;
 
   public static DexSection[] parseMapFrom(Path file) throws IOException {
     return parseMapFrom(Files.newInputStream(file), new PathOrigin(file));
@@ -96,9 +96,7 @@ public class DexParser {
   }
 
   private static DexSection[] parseMapFrom(DexReader dexReader) {
-    DexParser dexParser =
-        new DexParser(
-            dexReader, ClassKind.PROGRAM, new DexItemFactory(), new DiagnosticsHandler() {});
+    DexParser dexParser = new DexParser(dexReader, ClassKind.PROGRAM, new InternalOptions());
     return dexParser.dexSections;
   }
 
@@ -123,17 +121,16 @@ public class DexParser {
   // Factory to canonicalize certain dexitems.
   private final DexItemFactory dexItemFactory;
 
-  public DexParser(DexReader dexReader,
-      ClassKind classKind, DexItemFactory dexItemFactory, DiagnosticsHandler reporter) {
+  public DexParser(DexReader dexReader, ClassKind classKind, InternalOptions options) {
     assert dexReader.getOrigin() != null;
     this.origin = dexReader.getOrigin();
     this.dexReader = dexReader;
-    this.dexItemFactory = dexItemFactory;
+    this.dexItemFactory = options.itemFactory;
     dexReader.setByteOrder();
     dexSections = parseMap();
     parseStringIDs();
     this.classKind = classKind;
-    this.reporter = reporter;
+    this.options = options;
   }
 
   private void ensureCodesInited() {
@@ -426,8 +423,17 @@ public class DexParser {
       annotationOffsets[i] = dexReader.getUint();
     }
     DexAnnotation[] result = new DexAnnotation[size];
+    int actualSize = 0;
     for (int i = 0; i < size; i++) {
-      result[i] = annotationAt(annotationOffsets[i]);
+      DexAnnotation dexAnnotation = annotationAt(annotationOffsets[i]);
+      if (retainAnnotation(dexAnnotation)) {
+        result[actualSize++] = dexAnnotation;
+      }
+    }
+    if (actualSize < size) {
+      DexAnnotation[] temp = new DexAnnotation[actualSize];
+      System.arraycopy(result, 0, temp, 0, actualSize);
+      result = temp;
     }
     DexType dupType = DexAnnotationSet.findDuplicateEntryType(result);
     if (dupType != null) {
@@ -435,6 +441,11 @@ public class DexParser {
           "Multiple annotations of type `" + dupType.toSourceString() + "`");
     }
     return new DexAnnotationSet(result);
+  }
+
+  private boolean retainAnnotation(DexAnnotation annotation) {
+    return annotation.visibility != DexAnnotation.VISIBILITY_BUILD
+        || DexAnnotation.retainCompileTimeAnnotation(annotation.annotation.type, options);
   }
 
   private DexAnnotationSet annotationSetAt(int offset) {
@@ -691,7 +702,7 @@ public class DexParser {
       }
 
       AttributesAndAnnotations attrs =
-          new AttributesAndAnnotations(type, annotationsDirectory.clazz, dexItemFactory);
+          new AttributesAndAnnotations(type, annotationsDirectory.clazz, options.itemFactory);
 
       DexClass clazz =
           classKind.create(
