@@ -951,8 +951,7 @@ public class VerticalClassMerger {
                   Rename.ALWAYS,
                   appView
                       .dexItemFactory()
-                      .createExtendedProto(
-                          virtualMethod.method.holder, virtualMethod.method.proto));
+                      .prependTypeToProto(virtualMethod.method.holder, virtualMethod.method.proto));
           makeStatic(resultingDirectMethod);
 
           // Update method pool collection now that we are adding a new public method.

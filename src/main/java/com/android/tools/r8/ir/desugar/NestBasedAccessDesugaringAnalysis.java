@@ -15,12 +15,17 @@ public class NestBasedAccessDesugaringAnalysis extends NestBasedAccessDesugaring
   }
 
   public GraphLense run() {
-    AppView<?> appView = this.getAppView();
     if (appView.options().canUseNestBasedAccess()) {
       return appView.graphLense();
     }
     analyzeNests();
     return builder.build(appView.graphLense());
+  }
+
+  @Override
+  protected void shouldRewriteInitializers(DexMethod method, DexMethod bridge) {
+    // TODO(b/130529338): support initializer in r8
+    // initializerMap.put(method, bridge);
   }
 
   @Override
@@ -30,21 +35,21 @@ public class NestBasedAccessDesugaringAnalysis extends NestBasedAccessDesugaring
 
   @Override
   protected void shouldRewriteStaticGetFields(DexField field, DexMethod bridge) {
-    builder.mapStaticGet(field,bridge);
+    builder.mapStaticGet(field, bridge);
   }
 
   @Override
   protected void shouldRewriteStaticPutFields(DexField field, DexMethod bridge) {
-    builder.mapStaticPut(field,bridge);
+    builder.mapStaticPut(field, bridge);
   }
 
   @Override
   protected void shouldRewriteInstanceGetFields(DexField field, DexMethod bridge) {
-    builder.mapInstanceGet(field,bridge);
+    builder.mapInstanceGet(field, bridge);
   }
 
   @Override
   protected void shouldRewriteInstancePutFields(DexField field, DexMethod bridge) {
-    builder.mapInstancePut(field,bridge);
+    builder.mapInstancePut(field, bridge);
   }
 }

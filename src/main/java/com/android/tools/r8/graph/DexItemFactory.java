@@ -1054,11 +1054,19 @@ public class DexItemFactory {
         parameters.length == 0 ? DexTypeList.empty() : new DexTypeList(parameters));
   }
 
-  public DexProto createExtendedProto(DexType extraFirstType, DexProto initialProto) {
+  public DexProto prependTypeToProto(DexType extraFirstType, DexProto initialProto) {
     DexType[] parameterTypes = new DexType[initialProto.parameters.size() + 1];
     parameterTypes[0] = extraFirstType;
     System.arraycopy(
         initialProto.parameters.values, 0, parameterTypes, 1, initialProto.parameters.size());
+    return createProto(initialProto.returnType, parameterTypes);
+  }
+
+  public DexProto appendTypeToProto(DexProto initialProto, DexType extraLastType) {
+    DexType[] parameterTypes = new DexType[initialProto.parameters.size() + 1];
+    System.arraycopy(
+        initialProto.parameters.values, 0, parameterTypes, 0, initialProto.parameters.size());
+    parameterTypes[parameterTypes.length - 1] = extraLastType;
     return createProto(initialProto.returnType, parameterTypes);
   }
 

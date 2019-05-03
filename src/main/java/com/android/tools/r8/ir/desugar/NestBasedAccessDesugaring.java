@@ -1,7 +1,11 @@
 package com.android.tools.r8.ir.desugar;
 
+import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.ClassAccessFlags;
+import com.android.tools.r8.graph.DexAnnotationSet;
+import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -10,9 +14,12 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.graph.UseRegistry;
+import com.android.tools.r8.origin.SynthesizedOrigin;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -33,18 +40,17 @@ public abstract class NestBasedAccessDesugaring {
   private static final String NEST_ACCESS_FIELD_PUT_NAME_PREFIX = NEST_ACCESS_NAME_PREFIX + "fput";
   private static final String NEST_ACCESS_STATIC_PUT_FIELD_NAME_PREFIX =
       NEST_ACCESS_NAME_PREFIX + "sfput";
+  public static final String NEST_CONSTRUCTOR_NAME = NEST_ACCESS_NAME_PREFIX + "Constructor";
+  private static final String FULL_NEST_CONTRUCTOR_NAME = "L" + NEST_CONSTRUCTOR_NAME + ";";
 
-  private final AppView<?> appView;
+  protected final AppView<?> appView;
   private final HashMap<DexEncodedMethod, DexEncodedMethod> bridges = new HashMap<>();
   private final HashMap<DexFieldWithAccess, DexEncodedMethod> fieldBridges = new HashMap<>();
   private final HashMap<DexEncodedMethod, DexProgramClass> deferredBridgesToAdd = new HashMap<>();
+  private DexProgramClass nestConstructor;
 
   public NestBasedAccessDesugaring(AppView<?> appView) {
     this.appView = appView;
-  }
-
-  public AppView<?> getAppView() {
-    return appView;
   }
 
   public void analyzeNests() {
@@ -53,6 +59,13 @@ public abstract class NestBasedAccessDesugaring {
     List<List<DexType>> liveNests = computeLiveNests();
     processLiveNests(liveNests);
     addDeferredBridges();
+  }
+
+  public void synthetizeNestConstructor(DexApplication.Builder<?> builder) {
+    if (nestConstructor != null) {
+      appView.appInfo().addSynthesizedClass(nestConstructor);
+      builder.addSynthesizedClass(nestConstructor, true);
+    }
   }
 
   private void addDeferredBridges() {
@@ -152,6 +165,8 @@ public abstract class NestBasedAccessDesugaring {
 
   protected abstract void shouldRewriteCalls(DexMethod method, DexMethod bridge);
 
+  protected abstract void shouldRewriteInitializers(DexMethod method, DexMethod bridge);
+
   protected abstract void shouldRewriteStaticGetFields(DexField field, DexMethod bridge);
 
   protected abstract void shouldRewriteStaticPutFields(DexField field, DexMethod bridge);
@@ -197,6 +212,34 @@ public abstract class NestBasedAccessDesugaring {
     return appView.dexItemFactory().createString(fullName);
   }
 
+  private DexProgramClass ensureNestConstructorClass() {
+    if (nestConstructor != null) {
+      return nestConstructor;
+    }
+    nestConstructor =
+        new DexProgramClass(
+            appView.dexItemFactory().createType(FULL_NEST_CONTRUCTOR_NAME),
+            null,
+            new SynthesizedOrigin("Nest based access desugaring", getClass()),
+            // Make the synthesized class public since shared in the whole program.
+            ClassAccessFlags.fromDexAccessFlags(
+                Constants.ACC_FINAL | Constants.ACC_SYNTHETIC | Constants.ACC_PUBLIC),
+            appView.dexItemFactory().objectType,
+            DexTypeList.empty(),
+            appView.dexItemFactory().createString("nest"),
+            null,
+            Collections.emptyList(),
+            null,
+            Collections.emptyList(),
+            DexAnnotationSet.empty(),
+            DexEncodedField.EMPTY_ARRAY,
+            DexEncodedField.EMPTY_ARRAY,
+            DexEncodedMethod.EMPTY_ARRAY,
+            DexEncodedMethod.EMPTY_ARRAY,
+            appView.dexItemFactory().getSkipNameValidationForTesting());
+    return nestConstructor;
+  }
+
   private class NestBasedAccessDesugaringUseRegistry extends UseRegistry {
 
     private final List<DexType> nest;
@@ -216,17 +259,17 @@ public abstract class NestBasedAccessDesugaring {
       if (target == null || !target.accessFlags.isPrivate()) {
         return false;
       }
-      if (target.isInstanceInitializer()) {
-        // TODO(b/130529338): support initializer
-        return false;
-      }
       DexEncodedMethod bridge =
           bridges.computeIfAbsent(
               target,
               k -> {
                 DexClass holder = appView.definitionFor(method.holder);
                 DexEncodedMethod localBridge =
-                    target.toStaticForwardingBridge(holder, appView, methodBridgeName(target));
+                    target.isInstanceInitializer()
+                        ? target.toInitializerForwardingBridge(
+                            holder, appView, ensureNestConstructorClass())
+                        : target.toStaticForwardingBridge(
+                            holder, appView, methodBridgeName(target));
                 // Accesses to program classes private members require bridge insertion.
                 if (holder.isProgramClass()) {
                   deferredBridgesToAdd.put(localBridge, holder.asProgramClass());
@@ -237,7 +280,11 @@ public abstract class NestBasedAccessDesugaring {
               });
       // In program classes, any access to nest mate private member needs to be rewritten.
       if (currentClass.isProgramClass()) {
-        shouldRewriteCalls(method, bridge.method);
+        if (target.isInstanceInitializer()) {
+          shouldRewriteInitializers(method, bridge.method);
+        } else {
+          shouldRewriteCalls(method, bridge.method);
+        }
       }
       return true;
     }
@@ -269,14 +316,14 @@ public abstract class NestBasedAccessDesugaring {
               });
       // In program classes, any access to nest mate private member needs to be rewritten.
       if (currentClass.isProgramClass()) {
-        if (isGet){
-          if (target.isStatic()){
+        if (isGet) {
+          if (target.isStatic()) {
             shouldRewriteStaticGetFields(field, bridge.method);
           } else {
             shouldRewriteInstanceGetFields(field, bridge.method);
           }
         } else {
-          if (target.isStatic()){
+          if (target.isStatic()) {
             shouldRewriteStaticPutFields(field, bridge.method);
           } else {
             shouldRewriteInstancePutFields(field, bridge.method);
@@ -328,7 +375,9 @@ public abstract class NestBasedAccessDesugaring {
 
     @Override
     public boolean registerNewInstance(DexType type) {
-      // TODO(b/130529338): support initializer
+      // Unrelated to access based control.
+      // The <init> method has to be rewritten instead
+      // and <init> is called through registerInvoke.
       return false;
     }
 

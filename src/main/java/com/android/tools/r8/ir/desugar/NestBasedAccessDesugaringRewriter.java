@@ -8,16 +8,20 @@ import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
+import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeStatic;
-import java.util.HashMap;
+import com.android.tools.r8.ir.code.Value;
+import java.util.ArrayList;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 
 public class NestBasedAccessDesugaringRewriter extends NestBasedAccessDesugaring {
 
-  private HashMap<DexMethod, DexMethod> methodToRewrite = new HashMap<>();
+  private Map<DexMethod, DexMethod> methodMap = new IdentityHashMap<>();
+  private Map<DexMethod, DexMethod> initializerMap = new IdentityHashMap<>();
   private final Map<DexField, DexMethod> staticGetToMethodMap = new IdentityHashMap<>();
   private final Map<DexField, DexMethod> staticPutToMethodMap = new IdentityHashMap<>();
   private final Map<DexField, DexMethod> instanceGetToMethodMap = new IdentityHashMap<>();
@@ -29,7 +33,12 @@ public class NestBasedAccessDesugaringRewriter extends NestBasedAccessDesugaring
 
   @Override
   protected void shouldRewriteCalls(DexMethod method, DexMethod bridge) {
-    methodToRewrite.put(method, bridge);
+    methodMap.put(method, bridge);
+  }
+
+  @Override
+  protected void shouldRewriteInitializers(DexMethod method, DexMethod bridge) {
+    initializerMap.put(method, bridge);
   }
 
   @Override
@@ -67,9 +76,6 @@ public class NestBasedAccessDesugaringRewriter extends NestBasedAccessDesugaring
 
   public void rewriteNestBasedAccesses(
       DexEncodedMethod encodedMethod, IRCode code, AppView<?> appView) {
-    if (methodToRewrite.isEmpty()) {
-      return;
-    }
     ListIterator<BasicBlock> blocks = code.listIterator();
     while (blocks.hasNext()) {
       BasicBlock block = blocks.next();
@@ -79,10 +85,23 @@ public class NestBasedAccessDesugaringRewriter extends NestBasedAccessDesugaring
         if (instruction.isInvokeMethod() && !instruction.isInvokeSuper()) {
           InvokeMethod invokeMethod = instruction.asInvokeMethod();
           DexMethod methodCalled = invokeMethod.getInvokedMethod();
-          DexMethod newTarget = methodToRewrite.get(methodCalled);
+          DexMethod newTarget = methodMap.get(methodCalled);
           if (newTarget != null && encodedMethod.method != newTarget) {
             instructions.replaceCurrentInstruction(
                 new InvokeStatic(newTarget, invokeMethod.outValue(), invokeMethod.arguments()));
+          } else {
+            newTarget = initializerMap.get(methodCalled);
+            if (newTarget != null && encodedMethod.method != newTarget) {
+              // insert extra null value and replace call.
+              instructions.previous();
+              Value extraNullValue =
+                  instructions.insertConstNullInstruction(code, appView.options());
+              instructions.next();
+              List<Value> parameters = new ArrayList<>(invokeMethod.arguments());
+              parameters.add(extraNullValue);
+              instructions.replaceCurrentInstruction(
+                  new InvokeDirect(newTarget, invokeMethod.outValue(), parameters));
+            }
           }
         } else if (instruction.isInstanceGet()) {
           rewriteFieldAccess(
@@ -95,7 +114,6 @@ public class NestBasedAccessDesugaringRewriter extends NestBasedAccessDesugaring
         } else if (instruction.isStaticPut()) {
           rewriteFieldAccess(instruction, instructions, encodedMethod.method, staticPutToMethodMap);
         }
-        // TODO(b/130529338): support initializers
       }
     }
   }

@@ -731,6 +731,39 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     return builder.build();
   }
 
+  public DexEncodedMethod toInitializerForwardingBridge(
+      DexClass holder, DexDefinitionSupplier definitions, DexProgramClass nestConstructor) {
+    assert accessFlags.isPrivate()
+        : "Expected to create bridge for private constructor as part of nest-based access"
+            + " desugaring";
+    DexProto newProto =
+        definitions.dexItemFactory().appendTypeToProto(method.proto, nestConstructor.type);
+    DexMethod newMethod =
+        definitions.dexItemFactory().createMethod(method.holder, newProto, method.name);
+    Builder builder = builder(this);
+    builder.setMethod(newMethod);
+    builder.setCode(
+        new SynthesizedCode(
+            callerPosition ->
+                new ForwardMethodSourceCode(
+                    holder.type,
+                    newMethod,
+                    newMethod,
+                    holder.type,
+                    method,
+                    Invoke.Type.DIRECT,
+                    callerPosition,
+                    holder.isInterface(),
+                    false,
+                    true),
+            registry -> registry.registerInvokeDirect(method)));
+    assert !builder.accessFlags.isStatic();
+    builder.accessFlags.unsetPrivate();
+    builder.accessFlags.setSynthetic();
+    builder.accessFlags.setConstructor();
+    return builder.build();
+  }
+
   public static DexEncodedMethod createFieldAccessorBridge(
       DexFieldWithAccess fieldWithAccess,
       DexClass holder,
@@ -783,7 +816,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     DexProto proto =
         accessFlags.isStatic()
             ? method.proto
-            : definitions.dexItemFactory().createExtendedProto(holder.type, method.proto);
+            : definitions.dexItemFactory().prependTypeToProto(holder.type, method.proto);
     DexMethod newMethod = definitions.dexItemFactory().createMethod(holder.type, proto, newName);
     Builder builder = builder(this);
     builder.setMethod(newMethod);

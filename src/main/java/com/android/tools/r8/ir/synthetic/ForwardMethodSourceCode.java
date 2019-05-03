@@ -12,6 +12,7 @@ import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,6 +25,7 @@ public final class ForwardMethodSourceCode extends SyntheticSourceCode {
   private final Invoke.Type invokeType;
   private final boolean castResult;
   private final boolean isInterface;
+  private final boolean extraNullParameter;
 
   public ForwardMethodSourceCode(
       DexType receiver,
@@ -56,6 +58,30 @@ public final class ForwardMethodSourceCode extends SyntheticSourceCode {
       Position callerPosition,
       boolean isInterface,
       boolean castResult) {
+    this(
+        receiver,
+        method,
+        originalMethod,
+        targetReceiver,
+        target,
+        invokeType,
+        callerPosition,
+        isInterface,
+        castResult,
+        false);
+  }
+
+  public ForwardMethodSourceCode(
+      DexType receiver,
+      DexMethod method,
+      DexMethod originalMethod,
+      DexType targetReceiver,
+      DexMethod target,
+      Type invokeType,
+      Position callerPosition,
+      boolean isInterface,
+      boolean castResult,
+      boolean extraNullParameter) {
     super(receiver, method, callerPosition, originalMethod);
     assert (targetReceiver == null) == (invokeType == Invoke.Type.STATIC);
 
@@ -64,6 +90,7 @@ public final class ForwardMethodSourceCode extends SyntheticSourceCode {
     this.invokeType = invokeType;
     this.isInterface = isInterface;
     this.castResult = castResult;
+    this.extraNullParameter = extraNullParameter;
     assert checkSignatures();
 
     switch (invokeType) {
@@ -84,6 +111,9 @@ public final class ForwardMethodSourceCode extends SyntheticSourceCode {
       sourceParams.add(receiver);
     }
     sourceParams.addAll(Lists.newArrayList(proto.parameters.values));
+    if (extraNullParameter) {
+      sourceParams.remove(sourceParams.size() - 1);
+    }
 
     List<DexType> targetParams = new ArrayList<>();
     if (targetReceiver != null) {
@@ -118,7 +148,7 @@ public final class ForwardMethodSourceCode extends SyntheticSourceCode {
     }
 
     DexType[] accessorParams = proto.parameters.values;
-    for (int i = 0; i < accessorParams.length; i++) {
+    for (int i = 0; i < accessorParams.length - BooleanUtils.intValue(extraNullParameter); i++) {
       argValueTypes.add(ValueType.fromDexType(accessorParams[i]));
       argRegisters.add(getParamRegister(i));
     }

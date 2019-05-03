@@ -12,7 +12,6 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8TestCompileResult;
-import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
@@ -133,7 +132,7 @@ public class NestAccessControlTest extends TestBase {
     this.parameters = parameters;
   }
 
-  public void testJavaAndD8(String id, boolean d8Success) throws Exception {
+  public void testJavaAndD8(String id) throws Exception {
     if (parameters.isCfRuntime()) {
       testForJvm()
           .addProgramFiles(JAR)
@@ -141,32 +140,20 @@ public class NestAccessControlTest extends TestBase {
           .assertSuccessWithOutput(getExpectedResult(id));
     } else {
       assert parameters.isDexRuntime();
-      D8TestRunResult run =
-          d8CompilationResult
-              .apply(parameters.getApiLevel())
-              .run(parameters.getRuntime(), getMainClass(id));
-      if (d8Success) {
-        run.assertSuccessWithOutput(getExpectedResult(id));
-      } else {
-        if (parameters.isDexRuntime()
-            && (parameters.getRuntime().asDex().getVm().getVersion() == Version.V6_0_1
-                || parameters.getRuntime().asDex().getVm().getVersion() == Version.V5_1_1)) {
-          run.assertFailure(); // different message, same error
-        } else {
-          run.assertFailureWithErrorThatMatches(containsString("IllegalAccessError"));
-        }
-      }
+      d8CompilationResult
+          .apply(parameters.getApiLevel())
+          .run(parameters.getRuntime(), getMainClass(id))
+          .assertSuccessWithOutput(getExpectedResult(id));
     }
   }
 
   @Test
   public void testJavaAndD8() throws Exception {
-    // TODO(b/130529390): As features are implemented, set success to true in each line.
-    testJavaAndD8("methods", true);
-    testJavaAndD8("fields", true);
-    testJavaAndD8("constructors", false);
-    testJavaAndD8("anonymous", true);
-    testJavaAndD8("all", false);
+    testJavaAndD8("methods");
+    testJavaAndD8("fields");
+    testJavaAndD8("constructors");
+    testJavaAndD8("anonymous");
+    testJavaAndD8("all");
   }
 
   public void testR8(String id, boolean r8Success) throws Exception {

@@ -296,6 +296,12 @@ public class IRConverter {
     }
   }
 
+  private void synthetizeNestConstructor(Builder<?> builder) {
+    if (nestBasedAccessDesugaringRewriter != null) {
+      nestBasedAccessDesugaringRewriter.synthetizeNestConstructor(builder);
+    }
+  }
+
   private void synthesizeLambdaClasses(Builder<?> builder, ExecutorService executorService)
       throws ExecutionException {
     if (lambdaRewriter != null) {
@@ -361,6 +367,7 @@ public class IRConverter {
     Builder<?> builder = application.builder();
     builder.setHighestSortingString(highestSortingString);
 
+    synthetizeNestConstructor(builder);
     synthesizeLambdaClasses(builder, executor);
     desugarInterfaceMethods(builder, ExcludeDexResources, executor);
     synthesizeTwrCloseResourceUtilityClass(builder, executor);
