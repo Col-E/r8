@@ -51,7 +51,7 @@ def link_third_party():
                       ' --golem locally'.format(dest))
     print('Symlinking {} to {}'.format(src, dest))
     if '/' in dir:
-      os.makedirs(os.path.dirname(dir))
+      os.makedirs(os.path.dirname(dest))
     os.symlink(src, dest)
 
 if __name__ == '__main__':
