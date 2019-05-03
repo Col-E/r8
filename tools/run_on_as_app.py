@@ -373,7 +373,28 @@ def ExtractMarker(apk, temp_dir, options):
   return lines[-1]
 
 def CheckIsBuiltWithExpectedR8(apk, temp_dir, shrinker, options):
-  marker = ExtractMarker(apk, temp_dir, options)
+  marker_raw = ExtractMarker(apk, temp_dir, options)
+
+  # Marker should be a string on the following format (no whitespace):
+  #   ~~R8{"compilation-mode":"release",
+  #        "min-api":16,
+  #        "pg-map-id":"767707e",
+  #        "sha-1":"7111a35bae6d5185dcfb338d61074aca8426c006",
+  #        "version":"1.5.14-dev"}
+  if not marker_raw.startswith('~~R8'):
+    raise Exception(
+        'Expected marker to start with \'~~R8\' (was: {})'.format(marker_raw))
+
+  marker = json.loads(marker_raw[4:])
+
+  if options.hash:
+    actual_hash = marker.get('sha-1')
+    if actual_hash != options.hash:
+      raise Exception(
+          'Expected APK to be built with R8 version {} (was: {})'.format(
+              expected_hash, marker_raw))
+    return True
+
   expected_version = (
       options.version
       if options.version
@@ -381,13 +402,12 @@ def CheckIsBuiltWithExpectedR8(apk, temp_dir, shrinker, options):
           os.path.join(
               temp_dir,
               'r8lib.jar' if IsMinifiedR8(shrinker) else 'r8.jar')))
-  if marker.startswith('~~R8'):
-    actual_version = json.loads(marker[4:]).get('version')
-    if actual_version == expected_version:
-      return True
-  raise Exception(
-      'Expected APK to be built with R8 version {} (was: {})'.format(
-          expected_version, marker))
+  actual_version = marker.get('version')
+  if actual_version != expected_version:
+    raise Exception(
+        'Expected APK to be built with R8 version {} (was: {})'.format(
+            expected_version, marker_raw))
+  return True
 
 def IsR8(shrinker):
   return 'r8' in shrinker
@@ -984,6 +1004,10 @@ def ParseOptions(argv):
   result.add_option('--app',
                     help='What app to run on',
                     choices=GetAllAppNames())
+  result.add_option('--bot',
+                    help='Running on bot, use third_party dependency.',
+                    default=False,
+                    action='store_true')
   result.add_option('--disable-assertions',
                     help='Disable assertions when compiling',
                     default=False,
@@ -999,16 +1023,14 @@ def ParseOptions(argv):
                     help='Running on golem, do not download',
                     default=False,
                     action='store_true')
-  result.add_option('--bot',
-                    help='Running on bot, use third_party dependency.',
-                    default=False,
-                    action='store_true')
   result.add_option('--gradle-flags', '--gradle_flags',
                     help='Flags to pass in to gradle')
   result.add_option('--gradle-pre-runs', '--gradle_pre_runs',
                     help='Do rounds of compilations to warm up gradle',
                     default=0,
                     type=int)
+  result.add_option('--hash',
+                    help='The version of R8 to use')
   result.add_option('--ignore-versions', '--ignore_versions',
                     help='Allow checked-out app to differ in revision from '
                          'pinned',
@@ -1083,15 +1105,15 @@ def ParseOptions(argv):
       assert shrinker in SHRINKERS
   else:
     options.shrinker = [shrinker for shrinker in SHRINKERS]
-  if options.version:
-    # No need to build R8 if a specific release version should be used.
+  if options.hash or options.version:
+    # No need to build R8 if a specific version should be used.
     options.no_build = True
     if 'r8-nolib' in options.shrinker:
-      warn('Skipping shrinker r8-nolib because a specific release version '
+      warn('Skipping shrinker r8-nolib because a specific version '
           + 'of r8 was specified')
       options.shrinker.remove('r8-nolib')
     if 'r8-nolib-full' in options.shrinker:
-      warn('Skipping shrinker r8-nolib-full because a specific release version '
+      warn('Skipping shrinker r8-nolib-full because a specific version '
           + 'of r8 was specified')
       options.shrinker.remove('r8-nolib-full')
   return (options, args)
@@ -1151,7 +1173,16 @@ def main(argv):
     if not (options.no_build or options.golem):
       gradle.RunGradle(['r8', 'r8lib', '-Pno_internal'])
 
-    if options.version:
+    if options.hash:
+      # Download r8-<hash>.jar from
+      # http://storage.googleapis.com/r8-releases/raw/.
+      target = 'r8-{}.jar'.format(options.hash)
+      update_prebuilds_in_android.download_hash(
+          temp_dir, 'com/android/tools/r8/' + options.hash, target)
+      as_utils.MoveFile(
+          os.path.join(temp_dir, target), os.path.join(temp_dir, 'r8lib.jar'),
+          quiet=options.quiet)
+    elif options.version:
       # Download r8-<version>.jar from
       # http://storage.googleapis.com/r8-releases/raw/.
       target = 'r8-{}.jar'.format(options.version)
