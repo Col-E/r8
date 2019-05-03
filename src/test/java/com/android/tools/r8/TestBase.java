@@ -9,6 +9,7 @@ import static com.google.common.collect.Lists.cartesianProduct;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
 import com.android.tools.r8.DataResourceProvider.Visitor;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.DexVm;
@@ -34,7 +35,6 @@ import com.android.tools.r8.utils.PreloadedClassFileProvider;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.TestDescriptionWatcher;
 import com.android.tools.r8.utils.Timing;
-import com.android.tools.r8.utils.ZipUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -54,7 +54,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -70,7 +69,6 @@ import java.util.jar.JarOutputStream;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -974,31 +972,40 @@ public class TestBase {
     return extractor.getClassInternalType();
   }
 
-  protected static void writeToJar(Path output, List<byte[]> classes) throws IOException {
-    try (ZipOutputStream out =
-        new ZipOutputStream(
-            Files.newOutputStream(
-                output, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING))) {
-      for (byte[] clazz : classes) {
-        String name = extractClassName(clazz);
-        ZipUtils.writeToZipStream(
-            out, DescriptorUtils.getPathFromJavaType(name), clazz, ZipEntry.STORED);
-      }
+  protected static void writeClassesToJar(Path output, Collection<Class<?>> classes)
+      throws IOException {
+    ClassFileConsumer consumer = new ArchiveConsumer(output);
+    for (Class<?> clazz : classes) {
+      consumer.accept(
+          ByteDataView.of(Files.readAllBytes(ToolHelper.getClassFileForTestClass(clazz))),
+          DescriptorUtils.javaTypeToDescriptor(clazz.getTypeName()),
+          null);
     }
+    consumer.finished(null);
   }
 
-  protected static void writeToJar(Path output, Collection<Path> classes) throws IOException {
+  protected static void writeClassFileDataToJar(Path output, Collection<byte[]> classes)
+      throws IOException {
+    ClassFileConsumer consumer = new ArchiveConsumer(output);
+    for (byte[] clazz : classes) {
+      consumer.accept(ByteDataView.of(clazz), extractClassDescriptor(clazz), null);
+    }
+    consumer.finished(null);
+  }
+
+  protected static void writeClassFilesToJar(Path output, Collection<Path> classes)
+      throws IOException {
     List<byte[]> bytes = new LinkedList<>();
     for (Path classPath : classes) {
       byte[] classBytes = Files.readAllBytes(Paths.get(classPath.toString()));
       bytes.add(classBytes);
     }
-    writeToJar(output, bytes);
+    writeClassFileDataToJar(output, bytes);
   }
 
   protected Path writeToJar(List<byte[]> classes) throws IOException {
     Path result = File.createTempFile("junit", ".jar", temp.getRoot()).toPath();
-    writeToJar(result, classes);
+    writeClassFileDataToJar(result, classes);
     return result;
   }
 

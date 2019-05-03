@@ -29,6 +29,11 @@ public class D8TestBuilder
     return this;
   }
 
+  public D8TestBuilder addProgramResourceProvider(ProgramResourceProvider provider) {
+    builder.addProgramResourceProvider(provider);
+    return self();
+  }
+
   @Override
   public D8TestBuilder addClasspathClasses(Collection<Class<?>> classes) {
     builder.addClasspathResourceProvider(ClassFileResourceProviderFromClasses(classes));

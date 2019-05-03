@@ -101,6 +101,11 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
         graphConsumer);
   }
 
+  public R8TestBuilder addProgramResourceProvider(ProgramResourceProvider provider) {
+    builder.addProgramResourceProvider(provider);
+    return self();
+  }
+
   @Override
   public T addClasspathClasses(Collection<Class<?>> classes) {
     builder.addClasspathResourceProvider(ClassFileResourceProviderFromClasses(classes));

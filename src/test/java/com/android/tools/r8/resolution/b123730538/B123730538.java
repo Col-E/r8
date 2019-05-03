@@ -54,7 +54,7 @@ public class B123730538 extends TestBase {
   @Test
   public void testProguard() throws Exception {
     Path inJar = temp.newFile("input.jar").toPath().toAbsolutePath();
-    writeToJar(inJar, CLASSES);
+    writeClassFilesToJar(inJar, CLASSES);
     testForProguard()
         .addProgramFiles(inJar)
         .addKeepMainRule(MAIN)

@@ -43,17 +43,16 @@ public class NameClashTest extends TestBase {
   public static void setUpJars() throws Exception {
     prgJarThatUsesOriginalLib =
         temporaryFolder.newFile("prgOrginalLib.jar").toPath().toAbsolutePath();
-    writeToJar(prgJarThatUsesOriginalLib, ImmutableList.of(ToolHelper.getClassAsBytes(MAIN)));
+    writeClassFileDataToJar(
+        prgJarThatUsesOriginalLib, ImmutableList.of(ToolHelper.getClassAsBytes(MAIN)));
     prgJarThatUsesMinifiedLib =
         temporaryFolder.newFile("prgMinifiedLib.jar").toPath().toAbsolutePath();
-    writeToJar(prgJarThatUsesMinifiedLib, ImmutableList.of(ProgramClassDump.dump()));
+    writeClassFileDataToJar(prgJarThatUsesMinifiedLib, ImmutableList.of(ProgramClassDump.dump()));
     libJar = temporaryFolder.newFile("lib.jar").toPath().toAbsolutePath();
-    writeToJar(
+    writeClassesToJar(
         libJar,
         ImmutableList.of(
-            ToolHelper.getClassAsBytes(ProgramWithLibraryClasses.class),
-            ToolHelper.getClassAsBytes(LibraryClass.class),
-            ToolHelper.getClassAsBytes(AnotherLibraryClass.class)));
+            ProgramWithLibraryClasses.class, LibraryClass.class, AnotherLibraryClass.class));
   }
 
   @Before
