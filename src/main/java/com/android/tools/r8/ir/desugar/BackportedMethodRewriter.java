@@ -27,7 +27,7 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.conversion.IRConverter;
-import com.android.tools.r8.ir.desugar.Java8MethodRewriter.RewritableMethods.MethodGenerator;
+import com.android.tools.r8.ir.desugar.BackportedMethodRewriter.RewritableMethods.MethodGenerator;
 import com.android.tools.r8.ir.synthetic.TemplateMethodCode;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -43,9 +43,9 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.BiFunction;
 
-public final class Java8MethodRewriter {
-  public static final String UTILITY_CLASS_NAME_PREFIX = "$r8$java8methods$utility";
-  private static final String UTILITY_CLASS_DESCRIPTOR_PREFIX = "L$r8$java8methods$utility";
+public final class BackportedMethodRewriter {
+  public static final String UTILITY_CLASS_NAME_PREFIX = "$r8$backportedMethods$utility";
+  private static final String UTILITY_CLASS_DESCRIPTOR_PREFIX = "L" + UTILITY_CLASS_NAME_PREFIX;
   private final Set<DexType> holders = Sets.newConcurrentHashSet();
 
   private final AppView<?> appView;
@@ -55,7 +55,7 @@ public final class Java8MethodRewriter {
 
   private Map<DexMethod, MethodGenerator> methodGenerators = new ConcurrentHashMap<>();
 
-  public Java8MethodRewriter(AppView<?> appView, IRConverter converter) {
+  public BackportedMethodRewriter(AppView<?> appView, IRConverter converter) {
     this.appView = appView;
     this.converter = converter;
     this.factory = appView.dexItemFactory();
@@ -96,7 +96,7 @@ public final class Java8MethodRewriter {
     return null;
   }
 
-  public static boolean hasJava8MethodRewritePrefix(DexType clazz) {
+  public static boolean hasRewrittenMethodPrefix(DexType clazz) {
     return clazz.descriptor.toString().startsWith(UTILITY_CLASS_DESCRIPTOR_PREFIX);
   }
 
@@ -173,8 +173,16 @@ public final class Java8MethodRewriter {
       return new ByteMethods(options, method, "hashCodeImpl");
     }
 
+    public static ByteMethods compareCode(InternalOptions options, DexMethod method) {
+      return new ByteMethods(options, method, "compareImpl");
+    }
+
     public static int hashCodeImpl(byte i) {
       return Byte.valueOf(i).hashCode();
+    }
+
+    public static int compareImpl(byte a, byte b) {
+      return Byte.valueOf(a).compareTo(Byte.valueOf(b));
     }
   }
 
@@ -188,8 +196,16 @@ public final class Java8MethodRewriter {
       return new ShortMethods(options, method, "hashCodeImpl");
     }
 
+    public static ShortMethods compareCode(InternalOptions options, DexMethod method) {
+      return new ShortMethods(options, method, "compareImpl");
+    }
+
     public static int hashCodeImpl(short i) {
       return Short.valueOf(i).hashCode();
+    }
+
+    public static int compareImpl(short a, short b) {
+      return Short.valueOf(a).compareTo(Short.valueOf(b));
     }
   }
 
@@ -200,6 +216,10 @@ public final class Java8MethodRewriter {
 
     public static IntegerMethods hashCodeCode(InternalOptions options, DexMethod method) {
       return new IntegerMethods(options, method, "hashCodeImpl");
+    }
+
+    public static IntegerMethods compareCode(InternalOptions options, DexMethod method) {
+      return new IntegerMethods(options, method, "compareImpl");
     }
 
     public static IntegerMethods maxCode(InternalOptions options, DexMethod method) {
@@ -228,6 +248,10 @@ public final class Java8MethodRewriter {
 
     public static int hashCodeImpl(int i) {
       return Integer.valueOf(i).hashCode();
+    }
+
+    public static int compareImpl(int a, int b) {
+      return Integer.valueOf(a).compareTo(Integer.valueOf(b));
     }
 
     public static int maxImpl(int a, int b) {
@@ -364,6 +388,10 @@ public final class Java8MethodRewriter {
       return new BooleanMethods(options, method, "hashCodeImpl");
     }
 
+    public static BooleanMethods compareCode(InternalOptions options, DexMethod method) {
+      return new BooleanMethods(options, method, "compareImpl");
+    }
+
     public static BooleanMethods logicalAndCode(InternalOptions options, DexMethod method) {
       return new BooleanMethods(options, method, "logicalAndImpl");
     }
@@ -378,6 +406,10 @@ public final class Java8MethodRewriter {
 
     public static int hashCodeImpl(boolean b) {
       return Boolean.valueOf(b).hashCode();
+    }
+
+    public static int compareImpl(boolean a, boolean b) {
+      return Boolean.valueOf(a).compareTo(Boolean.valueOf(b));
     }
 
     public static boolean logicalAndImpl(boolean a, boolean b) {
@@ -400,6 +432,10 @@ public final class Java8MethodRewriter {
 
     public static LongMethods hashCodeCode(InternalOptions options, DexMethod method) {
       return new LongMethods(options, method, "hashCodeImpl");
+    }
+
+    public static LongMethods compareCode(InternalOptions options, DexMethod method) {
+      return new LongMethods(options, method, "compareImpl");
     }
 
     public static LongMethods maxCode(InternalOptions options, DexMethod method) {
@@ -428,6 +464,10 @@ public final class Java8MethodRewriter {
 
     public static int hashCodeImpl(long i) {
       return Long.valueOf(i).hashCode();
+    }
+
+    public static int compareImpl(long a, long b) {
+      return Long.valueOf(a).compareTo(Long.valueOf(b));
     }
 
     public static long maxImpl(long a, long b) {
@@ -530,8 +570,33 @@ public final class Java8MethodRewriter {
       return new CharacterMethods(options, method, "hashCodeImpl");
     }
 
+    public static CharacterMethods compareCode(InternalOptions options, DexMethod method) {
+      return new CharacterMethods(options, method, "compareImpl");
+    }
+
     public static int hashCodeImpl(char i) {
       return Character.valueOf(i).hashCode();
+    }
+
+    public static int compareImpl(char a, char b) {
+      return Character.valueOf(a).compareTo(Character.valueOf(b));
+    }
+  }
+
+  private static final class ObjectMethods extends TemplateMethodCode {
+    ObjectMethods(InternalOptions options, DexMethod method, String methodName) {
+      super(options, method, methodName, method.proto.toDescriptorString());
+    }
+
+    public static ObjectMethods requireNonNullCode(InternalOptions options, DexMethod method) {
+      // Rewrite calls to Objects.requireNonNull(Object) because Javac 9 started to use it for
+      // synthesized null checks.
+      return new ObjectMethods(options, method, "requireNonNullImpl");
+    }
+
+    public static Object requireNonNullImpl(Object a) {
+      a.getClass();
+      return a;
     }
   }
 
@@ -541,6 +606,9 @@ public final class Java8MethodRewriter {
         new HashMap<>();
 
     public RewritableMethods(DexItemFactory factory, InternalOptions options) {
+      if (!options.canUseJava7CompareAndObjectsOperations()) {
+        initializeJava7CompareOperations(factory);
+      }
       if (!options.canUseJava8SignedOperations()) {
         initializeJava8SignedOperations(factory);
       }
@@ -551,6 +619,64 @@ public final class Java8MethodRewriter {
 
     boolean isEmpty() {
       return rewritable.isEmpty();
+    }
+
+    private void initializeJava7CompareOperations(DexItemFactory factory) {
+      // Byte
+      DexString clazz = factory.boxedByteDescriptor;
+      // int Byte.compare(byte a, byte b)
+      DexString method = factory.createString("compare");
+      DexProto proto = factory.createProto(factory.intType, factory.byteType, factory.byteType);
+      addOrGetMethod(clazz, method)
+          .put(proto, new MethodGenerator(ByteMethods::compareCode, clazz, method, proto));
+
+      // Short
+      clazz = factory.boxedShortDescriptor;
+      // int Short.compare(short a, short b)
+      method = factory.createString("compare");
+      proto = factory.createProto(factory.intType, factory.shortType, factory.shortType);
+      addOrGetMethod(clazz, method)
+          .put(proto, new MethodGenerator(ShortMethods::compareCode, clazz, method, proto));
+
+      // Integer
+      clazz = factory.boxedIntDescriptor;
+      // int Integer.compare(int a, int b)
+      method = factory.createString("compare");
+      proto = factory.createProto(factory.intType, factory.intType, factory.intType);
+      addOrGetMethod(clazz, method)
+          .put(proto, new MethodGenerator(IntegerMethods::compareCode, clazz, method, proto));
+
+      // Boolean
+      clazz = factory.boxedBooleanDescriptor;
+      // int Boolean.compare(boolean a, boolean b)
+      method = factory.createString("compare");
+      proto = factory.createProto(factory.intType, factory.booleanType, factory.booleanType);
+      addOrGetMethod(clazz, method)
+          .put(proto, new MethodGenerator(BooleanMethods::compareCode, clazz, method, proto));
+
+      // Long
+      clazz = factory.boxedLongDescriptor;
+      // int Long.compare(long a, long b)
+      method = factory.createString("compare");
+      proto = factory.createProto(factory.intType, factory.longType, factory.longType);
+      addOrGetMethod(clazz, method)
+          .put(proto, new MethodGenerator(LongMethods::compareCode, clazz, method, proto));
+
+      // Character
+      clazz = factory.boxedCharDescriptor;
+      // int Character.compare(char a, char b)
+      method = factory.createString("compare");
+      proto = factory.createProto(factory.intType, factory.charType, factory.charType);
+      addOrGetMethod(clazz, method)
+          .put(proto, new MethodGenerator(CharacterMethods::compareCode, clazz, method, proto));
+
+      // Object
+      clazz = factory.objectsDescriptor;
+      // Object Objects.requireNonNull(Object a)
+      method = factory.createString("requireNonNull");
+      proto = factory.createProto(factory.objectType, factory.objectType);
+      addOrGetMethod(clazz, method)
+          .put(proto, new MethodGenerator(ObjectMethods::requireNonNullCode, clazz, method, proto));
     }
 
     private void initializeJava8SignedOperations(DexItemFactory factory) {

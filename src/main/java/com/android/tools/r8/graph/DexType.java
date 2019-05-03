@@ -10,7 +10,7 @@ import static com.android.tools.r8.ir.desugar.LambdaRewriter.LAMBDA_GROUP_CLASS_
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.ir.desugar.Java8MethodRewriter;
+import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
 import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
 import com.android.tools.r8.naming.NamingLens;
@@ -250,7 +250,7 @@ public class DexType extends DexReference implements PresortedComparable<DexType
         || name.contains(OutlineOptions.CLASS_NAME)
         || name.contains(TwrCloseResourceRewriter.UTILITY_CLASS_NAME)
         || name.contains(NestBasedAccessDesugaring.NEST_CONSTRUCTOR_NAME)
-        || name.contains(Java8MethodRewriter.UTILITY_CLASS_NAME_PREFIX);
+        || name.contains(BackportedMethodRewriter.UTILITY_CLASS_NAME_PREFIX);
   }
 
   public boolean isProgramType(DexDefinitionSupplier definitions) {
