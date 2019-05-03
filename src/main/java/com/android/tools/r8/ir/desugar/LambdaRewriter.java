@@ -102,7 +102,7 @@ public class LambdaRewriter {
   /**
    * Detect and desugar lambdas and method references found in the code.
    *
-   * NOTE: this method can be called concurrently for several different methods.
+   * <p>NOTE: this method can be called concurrently for several different methods.
    */
   public void desugarLambdas(DexEncodedMethod encodedMethod, IRCode code) {
     DexType currentType = encodedMethod.method.holder;
@@ -130,6 +130,34 @@ public class LambdaRewriter {
         }
       }
     }
+  }
+
+  public void desugarLambda(
+      DexType currentType,
+      InstructionListIterator instructions,
+      InvokeCustom lenseRewrittenInvokeCustom,
+      IRCode code) {
+    LambdaDescriptor descriptor = inferLambdaDescriptor(lenseRewrittenInvokeCustom.getCallSite());
+    if (descriptor == LambdaDescriptor.MATCH_FAILED) {
+      return;
+    }
+
+    // We have a descriptor, get or create lambda class.
+    LambdaClass lambdaClass = getOrCreateLambdaClass(descriptor, currentType);
+    assert lambdaClass != null;
+
+    // We rely on patch performing its work in a way which
+    // keeps `instructions` iterator in valid state so that we can continue iteration.
+    patchInstructionSimple(lambdaClass, code, instructions, lenseRewrittenInvokeCustom);
+  }
+
+  public boolean verifyNoLambdasToDesugar(IRCode code) {
+    for (Instruction instruction : code.instructions()) {
+      assert !instruction.isInvokeCustom()
+          || inferLambdaDescriptor(instruction.asInvokeCustom().getCallSite())
+              == LambdaDescriptor.MATCH_FAILED;
+    }
+    return true;
   }
 
   /** Remove lambda deserialization methods. */
@@ -288,7 +316,7 @@ public class LambdaRewriter {
     // reading the value of INSTANCE field created for singleton lambda class.
     if (lambdaClass.isStateless()) {
       instructions.replaceCurrentInstruction(
-          new StaticGet(lambdaInstanceValue, lambdaClass.instanceField));
+          new StaticGet(lambdaInstanceValue, lambdaClass.lambdaField));
       // Note that since we replace one throwing operation with another we don't need
       // to have any special handling for catch handlers.
       return;
@@ -346,5 +374,51 @@ public class LambdaRewriter {
               lambdaClass.getCreateInstanceMethod(), lambdaInstanceValue, invoke.arguments());
       instructions.replaceCurrentInstruction(invokeStatic);
     }
+  }
+
+  // Patches invoke-custom instruction to create or get an instance
+  // of the generated lambda class. Assumes that for stateful lambdas the createInstance method
+  // is enabled so invokeCustom is always replaced by a single instruction.
+  private void patchInstructionSimple(
+      LambdaClass lambdaClass,
+      IRCode code,
+      InstructionListIterator instructions,
+      InvokeCustom invoke) {
+    assert lambdaClass != null;
+    assert instructions != null;
+
+    // The value representing new lambda instance: we reuse the value from the original
+    // invoke-custom instruction, and thus all its usages.
+    Value lambdaInstanceValue = invoke.outValue();
+    if (lambdaInstanceValue == null) {
+      // The out value might be empty in case it was optimized out.
+      lambdaInstanceValue =
+          code.createValue(
+              TypeLatticeElement.fromDexType(lambdaClass.type, Nullability.maybeNull(), appView));
+    }
+
+    // For stateless lambdas we replace InvokeCustom instruction with StaticGet reading the value of
+    // INSTANCE field created for singleton lambda class.
+    if (lambdaClass.isStateless()) {
+      instructions.replaceCurrentInstruction(
+          new StaticGet(lambdaInstanceValue, lambdaClass.lambdaField));
+      // Note that since we replace one throwing operation with another we don't need
+      // to have any special handling for catch handlers.
+      return;
+    }
+
+    assert appView.options().testing.enableStatefulLambdaCreateInstanceMethod;
+    // For stateful lambdas we call the createInstance method.
+    //
+    //    original:
+    //      Invoke-Custom rResult <- { rArg0, rArg1, ... }; call site: ...
+    //
+    //    result:
+    //      Invoke-Static rResult <- { rArg0, rArg1, ... }; method void
+    // LambdaClass.createInstance(...)
+    InvokeStatic invokeStatic =
+        new InvokeStatic(
+            lambdaClass.getCreateInstanceMethod(), lambdaInstanceValue, invoke.arguments());
+    instructions.replaceCurrentInstruction(invokeStatic);
   }
 }

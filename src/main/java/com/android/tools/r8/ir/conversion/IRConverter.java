@@ -199,11 +199,11 @@ public class IRConverter {
               : null;
       this.classStaticizer =
           options.enableClassStaticizer ? new ClassStaticizer(appViewWithLiveness, this) : null;
-      this.inliner = new Inliner(appViewWithLiveness, mainDexClasses);
+      this.lensCodeRewriter = new LensCodeRewriter(appViewWithLiveness, lambdaRewriter);
+      this.inliner = new Inliner(appViewWithLiveness, mainDexClasses, lensCodeRewriter);
       this.outliner = new Outliner(appViewWithLiveness, this);
       this.memberValuePropagation =
           options.enableValuePropagation ? new MemberValuePropagation(appViewWithLiveness) : null;
-      this.lensCodeRewriter = new LensCodeRewriter(appViewWithLiveness);
       if (!appInfoWithLiveness.identifierNameStrings.isEmpty() && options.isMinifying()) {
         this.identifierNameStringMarker = new IdentifierNameStringMarker(appViewWithLiveness);
       } else {
@@ -859,6 +859,10 @@ public class IRConverter {
         lensCodeRewriter.rewrite(code, method);
       } else {
         assert appView.graphLense().isIdentityLense();
+        if (lambdaRewriter != null && options.testing.desugarLambdasThroughLensCodeRewriter()) {
+          lambdaRewriter.desugarLambdas(method, code);
+          assert code.isConsistentSSA();
+        }
       }
     }
 
@@ -1000,11 +1004,12 @@ public class IRConverter {
 
     stringConcatRewriter.desugarStringConcats(method.method, code);
 
-    if (lambdaRewriter != null) {
+    if (options.testing.desugarLambdasThroughLensCodeRewriter()) {
+      assert !options.enableDesugaring || lambdaRewriter.verifyNoLambdasToDesugar(code);
+    } else if (lambdaRewriter != null) {
       lambdaRewriter.desugarLambdas(method, code);
       assert code.isConsistentSSA();
     }
-
     previous = printMethod(code, "IR after lambda desugaring (SSA)", previous);
 
     assert code.verifyTypes(appView);

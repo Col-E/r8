@@ -16,7 +16,7 @@ final class LambdaClassConstructorSourceCode extends SynthesizedLambdaSourceCode
 
   LambdaClassConstructorSourceCode(LambdaClass lambda, Position callerPosition) {
     super(lambda, lambda.classConstructor, callerPosition, null /* Class initializer is static */);
-    assert lambda.instanceField != null;
+    assert lambda.lambdaField != null;
   }
 
   @Override
@@ -35,7 +35,7 @@ final class LambdaClassConstructorSourceCode extends SynthesizedLambdaSourceCode
                 false /* isInterface */));
 
     // Assign to a field.
-    add(builder -> builder.addStaticPut(instance, lambda.instanceField));
+    add(builder -> builder.addStaticPut(instance, lambda.lambdaField));
 
     // Final return.
     add(IRBuilder::addReturn);

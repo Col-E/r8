@@ -631,6 +631,10 @@ public class InternalOptions {
     // TODO(b/129458850) When fixed, remove this and change all usages to "true".
     public boolean enableStatefulLambdaCreateInstanceMethod = false;
 
+    public boolean desugarLambdasThroughLensCodeRewriter() {
+      return enableStatefulLambdaCreateInstanceMethod;
+    }
+
     public MinifierTestingOptions minifier = new MinifierTestingOptions();
 
     public static class MinifierTestingOptions {

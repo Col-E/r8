@@ -64,7 +64,7 @@ final class LambdaClass {
   final DexMethod constructor;
   final DexMethod classConstructor;
   final DexMethod createInstanceMethod;
-  final DexField instanceField;
+  final DexField lambdaField;
   final Target target;
   final AtomicBoolean addToMainDexList = new AtomicBoolean(false);
   private final Collection<DexProgramClass> synthesizedFrom = new ArrayList<>(1);
@@ -95,8 +95,10 @@ final class LambdaClass {
     boolean stateless = isStateless();
     this.classConstructor = !stateless ? null
         : factory.createMethod(lambdaClassType, constructorProto, rewriter.classConstructorName);
-    this.instanceField = !stateless ? null
-        : factory.createField(lambdaClassType, lambdaClassType, rewriter.instanceFieldName);
+    this.lambdaField =
+        !stateless
+            ? null
+            : factory.createField(lambdaClassType, lambdaClassType, rewriter.instanceFieldName);
     this.createInstanceMethod =
         stateless
             ? null
@@ -309,11 +311,11 @@ final class LambdaClass {
     }
 
     // Create instance field for stateless lambda.
-    assert this.instanceField != null;
+    assert this.lambdaField != null;
     DexEncodedField[] fields = new DexEncodedField[1];
     fields[0] =
         new DexEncodedField(
-            this.instanceField,
+            this.lambdaField,
             FieldAccessFlags.fromSharedAccessFlags(
                 Constants.ACC_PUBLIC
                     | Constants.ACC_FINAL

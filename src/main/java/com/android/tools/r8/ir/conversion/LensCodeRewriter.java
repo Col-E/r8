@@ -56,6 +56,7 @@ import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.VerticalClassMerger.VerticallyMergedClasses;
 import com.google.common.collect.Sets;
@@ -72,9 +73,12 @@ public class LensCodeRewriter {
   private final AppView<? extends AppInfoWithSubtyping> appView;
 
   private final Map<DexProto, DexProto> protoFixupCache = new ConcurrentHashMap<>();
+  private final LambdaRewriter lambdaRewriter;
 
-  public LensCodeRewriter(AppView<? extends AppInfoWithSubtyping> appView) {
+  public LensCodeRewriter(
+      AppView<? extends AppInfoWithSubtyping> appView, LambdaRewriter lambdaRewriter) {
     this.appView = appView;
+    this.lambdaRewriter = lambdaRewriter;
   }
 
   private Value makeOutValue(Instruction insn, IRCode code, Set<Value> collector) {
@@ -87,9 +91,7 @@ public class LensCodeRewriter {
     }
   }
 
-  /**
-   * Replace type appearances, invoke targets and field accesses with actual definitions.
-   */
+  /** Replace type appearances, invoke targets and field accesses with actual definitions. */
   public void rewrite(IRCode code, DexEncodedMethod method) {
     GraphLense graphLense = appView.graphLense();
 
@@ -137,6 +139,13 @@ public class LensCodeRewriter {
             InvokeCustom newInvokeCustom = new InvokeCustom(newCallSite, invokeCustom.outValue(),
                 invokeCustom.inValues());
             iterator.replaceCurrentInstruction(newInvokeCustom);
+          }
+          if (lambdaRewriter != null
+              && appView.options().testing.desugarLambdasThroughLensCodeRewriter()) {
+            Instruction previous = iterator.peekPrevious();
+            assert previous.isInvokeCustom();
+            lambdaRewriter.desugarLambda(
+                method.method.holder, iterator, previous.asInvokeCustom(), code);
           }
         } else if (current.isConstMethodHandle()) {
           DexMethodHandle handle = current.asConstMethodHandle().getValue();

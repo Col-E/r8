@@ -62,10 +62,15 @@ public class Inliner {
   private final Map<DexEncodedMethod, DexEncodedMethod> doubleInlineeCandidates = new HashMap<>();
 
   private final Set<DexMethod> blackList = Sets.newIdentityHashSet();
+  private final LensCodeRewriter lensCodeRewriter;
 
-  public Inliner(AppView<AppInfoWithLiveness> appView, MainDexClasses mainDexClasses) {
+  public Inliner(
+      AppView<AppInfoWithLiveness> appView,
+      MainDexClasses mainDexClasses,
+      LensCodeRewriter lensCodeRewriter) {
     this.appView = appView;
     this.mainDexClasses = mainDexClasses;
+    this.lensCodeRewriter = lensCodeRewriter;
     fillInBlackList();
   }
 
@@ -436,7 +441,8 @@ public class Inliner {
         DexEncodedMethod context,
         ValueNumberGenerator generator,
         AppView<? extends AppInfoWithSubtyping> appView,
-        Position callerPosition) {
+        Position callerPosition,
+        LensCodeRewriter lensCodeRewriter) {
       Origin origin = appView.appInfo().originFor(target.method.holder);
 
       IRCode code;
@@ -483,7 +489,7 @@ public class Inliner {
           }
         }
         if (!target.isProcessed()) {
-          new LensCodeRewriter(appView).rewrite(code, target);
+          lensCodeRewriter.rewrite(code, target);
         }
       }
       return new InlineeWithReason(code, reason);
@@ -702,7 +708,8 @@ public class Inliner {
                     == appView.graphLense().getOriginalMethodSignature(context.method);
 
             InlineeWithReason inlinee =
-                result.buildInliningIR(context, code.valueNumberGenerator, appView, invokePosition);
+                result.buildInliningIR(
+                    context, code.valueNumberGenerator, appView, invokePosition, lensCodeRewriter);
             if (inlinee != null) {
               if (strategy.willExceedBudget(inlinee, block)) {
                 continue;
