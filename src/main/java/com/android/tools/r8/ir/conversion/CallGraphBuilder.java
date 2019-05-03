@@ -77,7 +77,7 @@ public class CallGraphBuilder {
     timing.end();
     assert cycleEliminator.breakCycles() == 0; // This time the cycles should be gone.
 
-    return new CallGraph(appView, nodesWithDeterministicOrder);
+    return new CallGraph(nodesWithDeterministicOrder);
   }
 
   private void processClass(DexProgramClass clazz) {

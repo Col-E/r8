@@ -502,6 +502,8 @@ public class IRConverter {
 
   public DexApplication optimize(DexApplication application, ExecutorService executorService)
       throws ExecutionException {
+    AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+
     if (options.isShrinking()) {
       assert !removeLambdaDeserializationMethods();
     } else {
@@ -527,13 +529,17 @@ public class IRConverter {
       timing.begin("Build call graph");
       CallGraph callGraph =
           CallGraph.builder(appView.withLiveness()).build(executorService, timing);
+      CallSiteInformation callSiteInformation =
+          callGraph.createCallSiteInformation(appViewWithLiveness);
+      MethodProcessingOrder methodProcessingOrder = callGraph.createMethodProcessingOrder(appView);
       timing.end();
       timing.begin("IR conversion phase 1");
       BiConsumer<IRCode, DexEncodedMethod> outlineHandler =
           outliner == null ? Outliner::noProcessing : outliner.identifyCandidateMethods();
-      callGraph.forEachMethod(
+      methodProcessingOrder.forEachMethod(
           (method, isProcessedConcurrently) ->
-              processMethod(method, feedback, isProcessedConcurrently, callGraph, outlineHandler),
+              processMethod(
+                  method, feedback, isProcessedConcurrently, callSiteInformation, outlineHandler),
           this::waveStart,
           this::waveDone,
           executorService);

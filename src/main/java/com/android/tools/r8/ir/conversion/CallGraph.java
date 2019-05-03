@@ -6,43 +6,29 @@ package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.conversion.CallGraphBuilder.CycleEliminator;
+import com.android.tools.r8.ir.conversion.CallSiteInformation.CallGraphBasedCallSiteInformation;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.Action;
-import com.android.tools.r8.utils.IROrdering;
-import com.android.tools.r8.utils.ThreadUtils;
-import com.android.tools.r8.utils.ThrowingBiConsumer;
-import com.google.common.collect.Sets;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 /**
  * Call graph representation.
- * <p>
- * Each node in the graph contain the methods called and the calling methods. For virtual and
+ *
+ * <p>Each node in the graph contain the methods called and the calling methods. For virtual and
  * interface calls all potential calls from subtypes are recorded.
- * <p>
- * Only methods in the program - not library methods - are represented.
- * <p>
- * The directional edges are represented as sets of nodes in each node (called methods and callees).
- * <p>
- * A call from method <code>a</code> to method <code>b</code> is only present once no matter how
+ *
+ * <p>Only methods in the program - not library methods - are represented.
+ *
+ * <p>The directional edges are represented as sets of nodes in each node (called methods and
+ * callees).
+ *
+ * <p>A call from method <code>a</code> to method <code>b</code> is only present once no matter how
  * many calls of <code>a</code> there are in <code>a</code>.
- * <p>
- * Recursive calls are not present.
+ *
+ * <p>Recursive calls are not present.
  */
-public class CallGraph extends CallSiteInformation {
+public class CallGraph {
 
   public static class Node implements Comparable<Node> {
 
@@ -82,8 +68,19 @@ public class CallGraph extends CallSiteInformation {
       caller.callees.remove(this);
     }
 
+    public void cleanForRemoval() {
+      assert callees.isEmpty();
+      for (Node caller : callers) {
+        caller.callees.remove(this);
+      }
+    }
+
     public Node[] getCalleesWithDeterministicOrder() {
       return callees.toArray(Node.EMPTY_ARRAY);
+    }
+
+    public int getNumberOfCallSites() {
+      return numberOfCallSites;
     }
 
     public boolean hasCallee(Node method) {
@@ -135,46 +132,18 @@ public class CallGraph extends CallSiteInformation {
     }
   }
 
-  private final Set<Node> nodes;
-  private final IROrdering shuffle;
+  final Set<Node> nodes;
 
-  private final Set<DexMethod> singleCallSite = Sets.newIdentityHashSet();
-  private final Set<DexMethod> doubleCallSite = Sets.newIdentityHashSet();
-
-  CallGraph(AppView<AppInfoWithLiveness> appView, Set<Node> nodes) {
+  CallGraph(Set<Node> nodes) {
     this.nodes = nodes;
-    this.shuffle = appView.options().testing.irOrdering;
-
-    for (Node node : nodes) {
-      // For non-pinned methods we know the exact number of call sites.
-      if (!appView.appInfo().isPinned(node.method.method)) {
-        if (node.numberOfCallSites == 1) {
-          singleCallSite.add(node.method.method);
-        } else if (node.numberOfCallSites == 2) {
-          doubleCallSite.add(node.method.method);
-        }
-      }
-    }
   }
 
   public static CallGraphBuilder builder(AppView<AppInfoWithLiveness> appView) {
     return new CallGraphBuilder(appView);
   }
 
-  /**
-   * Check if the <code>method</code> is guaranteed to only have a single call site.
-   * <p>
-   * For pinned methods (methods kept through Proguard keep rules) this will always answer
-   * <code>false</code>.
-   */
-  @Override
-  public boolean hasSingleCallSite(DexMethod method) {
-    return singleCallSite.contains(method);
-  }
-
-  @Override
-  public boolean hasDoubleCallSite(DexMethod method) {
-    return doubleCallSite.contains(method);
+  CallSiteInformation createCallSiteInformation(AppView<AppInfoWithLiveness> appView) {
+    return new CallGraphBasedCallSiteInformation(appView, this);
   }
 
   /**
@@ -185,50 +154,7 @@ public class CallGraph extends CallSiteInformation {
    *
    * <p>
    */
-  private Collection<DexEncodedMethod> extractLeaves() {
-    if (isEmpty()) {
-      return Collections.emptySet();
-    }
-    // First identify all leaves before removing them from the graph.
-    List<Node> leaves = nodes.stream().filter(Node::isLeaf).collect(Collectors.toList());
-    for (Node leaf : leaves) {
-      leaf.callers.forEach(caller -> caller.callees.remove(leaf));
-      nodes.remove(leaf);
-    }
-    Set<DexEncodedMethod> methods =
-        leaves.stream().map(x -> x.method).collect(Collectors.toCollection(LinkedHashSet::new));
-    return shuffle.order(methods);
-  }
-
-  public boolean isEmpty() {
-    return nodes.isEmpty();
-  }
-
-  /**
-   * Applies the given method to all leaf nodes of the graph.
-   *
-   * <p>As second parameter, a predicate that can be used to decide whether another method is
-   * processed at the same time is passed. This can be used to avoid races in concurrent processing.
-   */
-  public <E extends Exception> void forEachMethod(
-      ThrowingBiConsumer<DexEncodedMethod, Predicate<DexEncodedMethod>, E> consumer,
-      Action waveStart,
-      Action waveDone,
-      ExecutorService executorService)
-      throws ExecutionException {
-    while (!isEmpty()) {
-      Collection<DexEncodedMethod> methods = extractLeaves();
-      assert methods.size() > 0;
-      List<Future<?>> futures = new ArrayList<>();
-      waveStart.execute();
-      for (DexEncodedMethod method : methods) {
-        futures.add(executorService.submit(() -> {
-          consumer.accept(method, methods::contains);
-          return null; // we want a Callable not a Runnable to be able to throw
-        }));
-      }
-      ThreadUtils.awaitFutures(futures);
-      waveDone.execute();
-    }
+  MethodProcessingOrder createMethodProcessingOrder(AppView<?> appView) {
+    return new MethodProcessingOrder(appView, this);
   }
 }
