@@ -143,7 +143,10 @@ public class CallGraph {
   }
 
   CallSiteInformation createCallSiteInformation(AppView<AppInfoWithLiveness> appView) {
-    return new CallGraphBasedCallSiteInformation(appView, this);
+    // Don't leverage single/dual call site information when we are not tree shaking.
+    return appView.options().isShrinking()
+        ? new CallGraphBasedCallSiteInformation(appView, this)
+        : CallSiteInformation.empty();
   }
 
   /**
