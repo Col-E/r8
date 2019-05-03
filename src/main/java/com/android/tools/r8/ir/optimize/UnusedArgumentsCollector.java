@@ -149,7 +149,7 @@ public class UnusedArgumentsCollector {
                   .dexItemFactory()
                   .createString(
                       StringUtils.numberToIdentifier(
-                          method.method.name.toSourceString().toCharArray(), count));
+                          count, method.method.name.toSourceString().toCharArray()));
         } else {
           // Constructors must be named `<init>`.
           return null;

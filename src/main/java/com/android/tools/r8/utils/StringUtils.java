@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.function.Function;
 
 public class StringUtils {
+  public static char[] EMPTY_CHAR_ARRAY = {};
   public static final String[] EMPTY_ARRAY = {};
   public static final String LINE_SEPARATOR = System.getProperty("line.separator");
 
@@ -256,11 +257,15 @@ public class StringUtils {
     return Arrays.toString(digest);
   }
 
-  public static String numberToIdentifier(char[] prefix, int nameCount) {
-    return numberToIdentifier(prefix, nameCount, false);
+  public static String numberToIdentifier(int nameCount) {
+    return numberToIdentifier(nameCount, EMPTY_CHAR_ARRAY, false);
   }
 
-  public static String numberToIdentifier(char[] prefix, int nameCount, boolean addSemicolon) {
+  public static String numberToIdentifier(int nameCount, char[] prefix) {
+    return numberToIdentifier(nameCount, prefix, false);
+  }
+
+  public static String numberToIdentifier(int nameCount, char[] prefix, boolean addSemicolon) {
     // TODO(herhut): Add support for using numbers.
     int size = addSemicolon ? 1 : 0;
     int number = nameCount;

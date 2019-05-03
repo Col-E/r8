@@ -130,7 +130,7 @@ class MethodNameMinifier {
         appView.options().getProguardConfiguration().isOverloadAggressively()
             ? MethodSignatureEquivalence.get()
             : MethodJavaSignatureEquivalence.get();
-    this.globalState = MethodNamingState.createRoot(appView, getKeyTransform(), strategy);
+    this.globalState = MethodNamingState.createRoot(getKeyTransform(), strategy);
     this.strategy = strategy;
   }
 
@@ -271,7 +271,7 @@ class MethodNameMinifier {
               frontier,
               ignore ->
                   parent == null
-                      ? MethodNamingState.createRoot(appView, getKeyTransform(), strategy)
+                      ? MethodNamingState.createRoot(getKeyTransform(), strategy)
                       : parent.createChild());
 
       DexClass holder = appView.definitionFor(type);

@@ -235,12 +235,12 @@ public class ProguardMapMinifier {
     }
 
     @Override
-    public DexString next(DexMethod method, MethodNamingState.InternalState internalState) {
+    public DexString next(DexMethod method, MemberNamingInternalState internalState) {
       return next(method);
     }
 
     @Override
-    public DexString next(DexField field, FieldNamingState.InternalState internalState) {
+    public DexString next(DexField field, MemberNamingInternalState internalState) {
       return next(field);
     }
 
@@ -253,11 +253,6 @@ public class ProguardMapMinifier {
         assert reference.isDexField();
         return reference.asDexField().name;
       }
-    }
-
-    @Override
-    public boolean bypassDictionary() {
-      return true;
     }
 
     @Override

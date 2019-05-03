@@ -11,13 +11,20 @@ import com.android.tools.r8.graph.DexString;
 
 public interface MemberNamingStrategy {
 
-  DexString next(DexMethod method, MethodNamingState.InternalState internalState);
+  DexString next(DexMethod method, MemberNamingInternalState internalState);
 
-  DexString next(DexField field, FieldNamingState.InternalState internalState);
-
-  boolean bypassDictionary();
+  DexString next(DexField field, MemberNamingInternalState internalState);
 
   boolean breakOnNotAvailable(DexReference source, DexString name);
 
   boolean noObfuscation(DexReference reference);
+
+  interface MemberNamingInternalState {
+
+    int getDictionaryIndex();
+
+    int incrementDictionaryIndex();
+
+    int incrementNameIndex(boolean isDirectMethodCall);
+  }
 }

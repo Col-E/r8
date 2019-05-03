@@ -3,49 +3,42 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
-import static com.android.tools.r8.naming.Minifier.MinifierMemberNamingStrategy.EMPTY_CHAR_ARRAY;
-
-import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.naming.MemberNamingStrategy.MemberNamingInternalState;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
 class MethodNamingState<KeyType> {
 
-  private final AppView<?> appView;
   private final MethodNamingState<KeyType> parent;
   private final Map<KeyType, InternalState> usedNames = new HashMap<>();
   private final Function<DexProto, KeyType> keyTransform;
   private final MemberNamingStrategy strategy;
 
   static <S> MethodNamingState<S> createRoot(
-      AppView<?> appView, Function<DexProto, S> keyTransform, MemberNamingStrategy strategy) {
-    return new MethodNamingState<>(null, appView, keyTransform, strategy);
+      Function<DexProto, S> keyTransform, MemberNamingStrategy strategy) {
+    return new MethodNamingState<>(null, keyTransform, strategy);
   }
 
   private MethodNamingState(
       MethodNamingState<KeyType> parent,
-      AppView<?> appView,
       Function<DexProto, KeyType> keyTransform,
       MemberNamingStrategy strategy) {
-    this.appView = appView;
     this.parent = parent;
     this.keyTransform = keyTransform;
     this.strategy = strategy;
   }
 
   public MethodNamingState<KeyType> createChild() {
-    return new MethodNamingState<>(this, appView, keyTransform, strategy);
+    return new MethodNamingState<>(this, keyTransform, strategy);
   }
 
   private InternalState findInternalStateFor(KeyType key) {
@@ -61,7 +54,7 @@ class MethodNamingState<KeyType> {
     InternalState result = usedNames.get(key);
     if (result == null) {
       InternalState parentState = parent != null ? parent.getOrCreateInternalStateFor(key) : null;
-      result = new InternalState(appView, parentState);
+      result = new InternalState(parentState);
       usedNames.put(key, result);
     }
     return result;
@@ -138,34 +131,26 @@ class MethodNamingState<KeyType> {
     }
   }
 
-  class InternalState {
+  class InternalState implements MemberNamingInternalState {
 
     private static final int INITIAL_NAME_COUNT = 1;
+    private static final int INITIAL_DICTIONARY_INDEX = 0;
 
-    protected final DexItemFactory itemFactory;
     private final InternalState parentInternalState;
     private Set<DexString> reservedNames = null;
     private Map<DexString, DexString> renamings = null;
     private int virtualNameCount;
     private int directNameCount = 0;
-    private final Iterator<String> dictionaryIterator;
+    private int dictionaryIndex;
 
-    private InternalState(
-        DexItemFactory itemFactory,
-        InternalState parentInternalState,
-        Iterator<String> dictionaryIterator) {
-      this.itemFactory = itemFactory;
+    private InternalState(InternalState parentInternalState) {
       this.parentInternalState = parentInternalState;
+      this.dictionaryIndex =
+          parentInternalState == null
+              ? INITIAL_DICTIONARY_INDEX
+              : parentInternalState.dictionaryIndex;
       this.virtualNameCount =
           parentInternalState == null ? INITIAL_NAME_COUNT : parentInternalState.virtualNameCount;
-      this.dictionaryIterator = dictionaryIterator;
-    }
-
-    private InternalState(AppView<?> appView, InternalState parentInternalState) {
-      this(
-          appView.dexItemFactory(),
-          parentInternalState,
-          appView.options().getProguardConfiguration().getObfuscationDictionary().iterator());
     }
 
     private boolean isReserved(DexString name) {
@@ -186,6 +171,16 @@ class MethodNamingState<KeyType> {
       reservedNames.add(name);
     }
 
+    @Override
+    public int getDictionaryIndex() {
+      return dictionaryIndex;
+    }
+
+    @Override
+    public int incrementDictionaryIndex() {
+      return dictionaryIndex++;
+    }
+
     private boolean checkParentPublicNameCountIsLessThanOrEqual() {
       int maxParentCount = 0;
       InternalState tmp = parentInternalState;
@@ -197,10 +192,11 @@ class MethodNamingState<KeyType> {
       return true;
     }
 
-    public int incrementAndGet(boolean isDirect) {
+    @Override
+    public int incrementNameIndex(boolean isDirectMethodCall) {
       assert checkParentPublicNameCountIsLessThanOrEqual();
-      if (isDirect) {
-        return virtualNameCount + (directNameCount++);
+      if (isDirectMethodCall) {
+        return virtualNameCount + directNameCount++;
       } else {
         assert directNameCount == 0;
         return virtualNameCount++;
@@ -221,7 +217,7 @@ class MethodNamingState<KeyType> {
     private DexString getNewNameFor(DexMethod source) {
       DexString name;
       do {
-        name = nextSuggestedName(source);
+        name = strategy.next(source, this);
       } while (!isAvailable(name) && !strategy.breakOnNotAvailable(source, name));
       return name;
     }
@@ -231,14 +227,6 @@ class MethodNamingState<KeyType> {
         renamings = new HashMap<>();
       }
       renamings.put(original, newName);
-    }
-
-    DexString nextSuggestedName(DexMethod source) {
-      if (!strategy.bypassDictionary() && dictionaryIterator.hasNext()) {
-        return itemFactory.createString(dictionaryIterator.next());
-      } else {
-        return strategy.next(source, this);
-      }
     }
 
     void printInternalState(
@@ -269,7 +257,7 @@ class MethodNamingState<KeyType> {
       out.print("Last name: ");
       int index = virtualNameCount + directNameCount;
       if (index > 1) {
-        out.print(StringUtils.numberToIdentifier(EMPTY_CHAR_ARRAY, index - 1, false));
+        out.print(StringUtils.numberToIdentifier(index - 1));
         out.print(" (public name count: ");
         out.print(virtualNameCount);
         out.print(")");

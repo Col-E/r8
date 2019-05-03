@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.naming;
 
-import static com.android.tools.r8.naming.Minifier.MinifierMemberNamingStrategy.EMPTY_CHAR_ARRAY;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
@@ -13,9 +12,8 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.FieldNamingState.InternalState;
-import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.naming.MemberNamingStrategy.MemberNamingInternalState;
 import java.util.IdentityHashMap;
-import java.util.List;
 import java.util.Map;
 
 public class FieldNamingState extends FieldNamingStateBase<InternalState> implements Cloneable {
@@ -82,7 +80,7 @@ public class FieldNamingState extends FieldNamingStateBase<InternalState> implem
     return new FieldNamingState(appView, strategy, reservedNames, internalStatesClone);
   }
 
-  class InternalState implements Cloneable {
+  class InternalState implements MemberNamingInternalState, Cloneable {
 
     private int dictionaryIndex;
     private int nextNameIndex;
@@ -99,31 +97,31 @@ public class FieldNamingState extends FieldNamingStateBase<InternalState> implem
     public DexString createNewName(DexField field) {
       DexString name;
       do {
-        name = nextNameAccordingToStrategy(field);
+        name = strategy.next(field, this);
       } while (reservedNames.isReserved(name, field.type)
           && !strategy.breakOnNotAvailable(field, name));
       return name;
     }
 
-    private DexString nextNameAccordingToStrategy(DexField field) {
-      List<String> dictionary =
-          appView.options().getProguardConfiguration().getObfuscationDictionary();
-      if (!strategy.bypassDictionary() && dictionaryIndex < dictionary.size()) {
-        return appView.dexItemFactory().createString(dictionary.get(dictionaryIndex++));
-      } else {
-        return strategy.next(field, this);
-      }
-    }
-
-    public DexString nextNameAccordingToState() {
-      return appView
-          .dexItemFactory()
-          .createString(StringUtils.numberToIdentifier(EMPTY_CHAR_ARRAY, nextNameIndex++, false));
-    }
-
     @Override
     public InternalState clone() {
       return new InternalState(nextNameIndex, dictionaryIndex);
+    }
+
+    @Override
+    public int getDictionaryIndex() {
+      return dictionaryIndex;
+    }
+
+    @Override
+    public int incrementDictionaryIndex() {
+      return dictionaryIndex++;
+    }
+
+    @Override
+    public int incrementNameIndex(boolean isDirectMethodCall) {
+      assert !isDirectMethodCall;
+      return nextNameIndex++;
     }
   }
 }

@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
@@ -23,6 +24,7 @@ import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.Timing;
 import it.unimi.dsi.fastutil.objects.Object2IntLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -95,8 +97,9 @@ public class Minifier {
     public DexString next(Namespace namespace, DexType type, char[] packagePrefix) {
       int counter = namespaceCounters.put(namespace, namespaceCounters.getInt(namespace) + 1);
       DexString string =
-          appView.dexItemFactory()
-              .createString(StringUtils.numberToIdentifier(packagePrefix, counter, true));
+          appView
+              .dexItemFactory()
+              .createString(StringUtils.numberToIdentifier(counter, packagePrefix, true));
       return string;
     }
 
@@ -126,7 +129,7 @@ public class Minifier {
       // 2) this one does not append ';' at the end, and
       // 3) this one removes 'L' at the beginning to make the return value a binary form.
       int counter = namespaceCounters.put(namespace, namespaceCounters.getInt(namespace) + 1);
-      return StringUtils.numberToIdentifier(packagePrefix, counter, false).substring(1);
+      return StringUtils.numberToIdentifier(counter, packagePrefix, false).substring(1);
     }
 
     @Override
@@ -137,31 +140,40 @@ public class Minifier {
 
   static class MinifierMemberNamingStrategy implements MemberNamingStrategy {
 
-    public static char[] EMPTY_CHAR_ARRAY = new char[0];
+    private final DexItemFactory factory;
+    private final List<String> obfuscationDictionary;
 
     private final AppView<?> appView;
 
     public MinifierMemberNamingStrategy(AppView<?> appView) {
       this.appView = appView;
+      this.factory = appView.dexItemFactory();
+      this.obfuscationDictionary =
+          appView.options().getProguardConfiguration().getObfuscationDictionary();
+      assert this.obfuscationDictionary != null;
     }
 
     @Override
-    public DexString next(DexMethod method, MethodNamingState.InternalState internalState) {
+    public DexString next(DexMethod method, MemberNamingInternalState internalState) {
       DexEncodedMethod encodedMethod = appView.definitionFor(method);
       boolean isDirectOrStatic = encodedMethod.isDirectMethod() || encodedMethod.isStatic();
-      int counter = internalState.incrementAndGet(isDirectOrStatic);
-      return appView.dexItemFactory()
-          .createString(StringUtils.numberToIdentifier(EMPTY_CHAR_ARRAY, counter, false));
+      return getNextName(internalState, isDirectOrStatic);
     }
 
     @Override
-    public DexString next(DexField field, FieldNamingState.InternalState internalState) {
-      return internalState.nextNameAccordingToState();
+    public DexString next(DexField field, MemberNamingInternalState internalState) {
+      return getNextName(internalState, false);
     }
 
-    @Override
-    public boolean bypassDictionary() {
-      return false;
+    private DexString getNextName(
+        MemberNamingInternalState internalState, boolean isDirectOrStatic) {
+      if (internalState.getDictionaryIndex() < obfuscationDictionary.size()) {
+        return factory.createString(
+            obfuscationDictionary.get(internalState.incrementDictionaryIndex()));
+      } else {
+        int counter = internalState.incrementNameIndex(isDirectOrStatic);
+        return factory.createString(StringUtils.numberToIdentifier(counter));
+      }
     }
 
     @Override
