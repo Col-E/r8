@@ -26,7 +26,6 @@ import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
@@ -345,20 +344,30 @@ public class CallGraphBuilder {
 
       // The callees must be sorted before calling traverse recursively. This ensures that cycles
       // are broken the same way across multiple compilations.
-      Node[] callees = node.getCalleesWithDeterministicOrder();
+      Collection<Node> callees = node.getCalleesWithDeterministicOrder();
 
       if (options.testing.nondeterministicCycleElimination) {
-        reorderNodes(Arrays.asList(callees));
+        callees = reorderNodes(new ArrayList<>(callees));
       }
 
-      for (Node callee : callees) {
+      Iterator<Node> calleeIterator = callees.iterator();
+      while (calleeIterator.hasNext()) {
+        Node callee = calleeIterator.next();
         if (stackSet.contains(callee)) {
           // Found a cycle that needs to be eliminated.
           numberOfCycles++;
 
           if (edgeRemovalIsSafe(node, callee)) {
             // Break the cycle by removing the edge node->callee.
-            callee.removeCaller(node);
+            if (options.testing.nondeterministicCycleElimination) {
+              callee.removeCaller(node);
+            } else {
+              // Need to remove `callee` from `node.callees` using the iterator to prevent a
+              // ConcurrentModificationException. This is not needed when nondeterministic cycle
+              // elimination is enabled, because we iterate a copy of `node.callees` in that case.
+              calleeIterator.remove();
+              callee.getCallersWithDeterministicOrder().remove(node);
+            }
 
             if (Log.ENABLED) {
               Log.info(

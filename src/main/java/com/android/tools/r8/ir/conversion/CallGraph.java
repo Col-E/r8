@@ -75,8 +75,12 @@ public class CallGraph {
       }
     }
 
-    public Node[] getCalleesWithDeterministicOrder() {
-      return callees.toArray(Node.EMPTY_ARRAY);
+    public Set<Node> getCallersWithDeterministicOrder() {
+      return callers;
+    }
+
+    public Set<Node> getCalleesWithDeterministicOrder() {
+      return callees;
     }
 
     public int getNumberOfCallSites() {
