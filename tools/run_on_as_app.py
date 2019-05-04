@@ -1003,12 +1003,13 @@ def ParseOptions(argv):
   result = optparse.OptionParser()
   result.add_option('--app',
                     help='What app to run on',
-                    choices=GetAllAppNames())
+                    choices=GetAllAppNames(),
+                    action='append')
   result.add_option('--bot',
                     help='Running on bot, use third_party dependency.',
                     default=False,
                     action='store_true')
-  result.add_option('--disable-assertions',
+  result.add_option('--disable-assertions', '--disable_assertions',
                     help='Disable assertions when compiling',
                     default=False,
                     action='store_true')
@@ -1093,7 +1094,8 @@ def ParseOptions(argv):
                     help='The version of R8 to use (e.g., 1.4.51)')
   (options, args) = result.parse_args(argv)
   if options.app:
-    options.apps = [GetAppWithName(options.app)]
+    options.apps = [(app, repo) for (app, repo) in GetAllApps()
+                    if app.name in options.app]
     del options.app
   else:
     options.apps = GetAllApps()
