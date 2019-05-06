@@ -157,17 +157,9 @@ class StackTrace {
     // \tat com.android.tools.r8.naming.retrace.Main.a(:150)
     // \tat com.android.tools.r8.naming.retrace.Main.a(:156)
     // \tat com.android.tools.r8.naming.retrace.Main.main(:162)
-    int last = stderrLines.size();
-    // Skip the bottom frame "dalvik.system.NativeStart.main" if present.
-    if (ToolHelper.getDexVm().isOlderThanOrEqual(DexVm.ART_4_4_4_HOST)
-        && stderrLines.get(last - 1).contains("dalvik.system.NativeStart.main")) {
-      last--;
-    }
-    // Take all lines from the bottom starting with "\tat ".
-    int first = last;
     // TODO(122940268): Remove test code when fixed.
     System.out.println("TOTAL STDERR LINES: " + stderrLines.size());
-    for (int i = 0; i < last; i++) {
+    for (int i = 0; i < stderrLines.size(); i++) {
       System.out.print("LINE " + i + ": " + stderrLines.get(i));
       if (stderrLines.get(i).length() > 3) {
         System.out.print(" (" + ((int) stderrLines.get(i).charAt(0)));
@@ -176,18 +168,21 @@ class StackTrace {
       } else {
         System.out.print(" (less than three chars)");
       }
-     if (stderrLines.get(i).startsWith(TAB_AT_PREFIX)) {
+      if (stderrLines.get(i).startsWith(TAB_AT_PREFIX)) {
         System.out.println(" IS STACKTRACE LINE");
       } else {
         System.out.println(" IS NOT STACKTRACE LINE");
       }
     }
-    while (first - 1 >= 0 && stderrLines.get(first - 1).startsWith(TAB_AT_PREFIX)) {
-      first--;
-    }
-    System.out.println("STACKTRACE LINES ARE " + first + " to " + (last - 1));
-    for (int i = first; i < last; i++) {
-      stackTraceLines.add(StackTraceLine.parse(stderrLines.get(i)));
+    for (int i = 0; i < stderrLines.size(); i++) {
+      String line = stderrLines.get(i);
+      // Find all lines starting with "\tat" except "dalvik.system.NativeStart.main" frame
+      // if present.
+      if (line.startsWith(TAB_AT_PREFIX)
+          && !(ToolHelper.getDexVm().isOlderThanOrEqual(DexVm.ART_4_4_4_HOST)
+              && line.contains("dalvik.system.NativeStart.main"))) {
+        stackTraceLines.add(StackTraceLine.parse(stderrLines.get(i)));
+      }
     }
     return new StackTrace(stackTraceLines, stderr);
   }

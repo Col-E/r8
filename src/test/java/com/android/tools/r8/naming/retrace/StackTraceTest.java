@@ -13,11 +13,18 @@ import org.junit.Test;
 
 public class StackTraceTest {
 
-  private static String oneLineStackTrace =
+  private static String lineOne =
       TAB_AT_PREFIX + "Test.main(Test.java:10)" + System.lineSeparator();
-  private static String twoLineStackTrace =
-      TAB_AT_PREFIX + "Test.a(Test.java:6)" + System.lineSeparator()
-          + TAB_AT_PREFIX + "Test.main(Test.java:10)" + System.lineSeparator();
+
+  private static String lineTwo = TAB_AT_PREFIX + "Test.a(Test.java:6)" + System.lineSeparator();
+
+  private static String randomArtLine =
+      "art W 26343 26343 art/runtime/base/mutex.cc:694] ConditionVariable::~ConditionVariable "
+          + "for Thread resumption condition variable called with 1 waiters."
+          + System.lineSeparator();
+
+  private static String oneLineStackTrace = lineOne;
+  private static String twoLineStackTrace = lineTwo + lineOne;
 
   private void testEquals(String stderr) {
     StackTrace stackTrace = StackTrace.extractFromJvm(stderr);
@@ -25,9 +32,7 @@ public class StackTraceTest {
     assertEquals(stackTrace, StackTrace.extractFromJvm(stderr));
   }
 
-  @Test
-  public void testOneLine() {
-    StackTrace stackTrace = StackTrace.extractFromJvm(oneLineStackTrace);
+  private void checkOneLine(StackTrace stackTrace) {
     assertEquals(1, stackTrace.size());
     StackTraceLine stackTraceLine = stackTrace.get(0);
     assertEquals("Test", stackTraceLine.className);
@@ -38,9 +43,7 @@ public class StackTraceTest {
     assertEquals(oneLineStackTrace, stackTrace.toStringWithPrefix(TAB_AT_PREFIX));
   }
 
-  @Test
-  public void testTwoLine() {
-    StackTrace stackTrace = StackTrace.extractFromJvm(twoLineStackTrace);
+  private void checkTwoLines(StackTrace stackTrace) {
     StackTraceLine stackTraceLine = stackTrace.get(0);
     assertEquals("Test", stackTraceLine.className);
     assertEquals("a", stackTraceLine.methodName);
@@ -57,8 +60,33 @@ public class StackTraceTest {
   }
 
   @Test
+  public void testOneLineJvm() {
+    checkOneLine(StackTrace.extractFromJvm(oneLineStackTrace));
+  }
+
+  @Test
+  public void testOneLineArt() {
+    checkOneLine(StackTrace.extractFromArt(oneLineStackTrace));
+    checkOneLine(StackTrace.extractFromArt(oneLineStackTrace + randomArtLine));
+    checkOneLine(StackTrace.extractFromArt(randomArtLine + oneLineStackTrace));
+  }
+
+  @Test
+  public void testTwoLinesJvm() {
+    checkTwoLines(StackTrace.extractFromJvm(twoLineStackTrace));
+  }
+
+  @Test
+  public void testTwoLinesArt() {
+    checkTwoLines(StackTrace.extractFromJvm(twoLineStackTrace));
+    checkTwoLines(StackTrace.extractFromJvm(twoLineStackTrace + randomArtLine));
+    checkTwoLines(StackTrace.extractFromJvm(randomArtLine + twoLineStackTrace));
+    checkTwoLines(StackTrace.extractFromJvm(lineTwo + randomArtLine + lineOne));
+  }
+
+  @Test
   public void testEqualsOneLine() {
-    testEquals(oneLineStackTrace);
+    testEquals(lineOne);
   }
 
   @Test
