@@ -10,7 +10,11 @@ import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersBuilder;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.naming.retrace.StackTrace.StackTraceLine;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
@@ -27,11 +31,14 @@ public class VerticalClassMergingRetraceTest extends RetraceTestBase {
 
   @Parameters(name = "Backend: {0}, mode: {1}")
   public static Collection<Object[]> data() {
-    return buildParameters(ToolHelper.getBackends(), CompilationMode.values());
+    return buildParameters(TestParametersBuilder.builder()
+            .withDexRuntimesEndingAtExcluding(Version.V5_1_1)
+            .withDexRuntimesStartingFromExcluding(Version.V5_1_1).build(),
+        CompilationMode.values());
   }
 
-  public VerticalClassMergingRetraceTest(Backend backend, CompilationMode mode) {
-    super(backend, mode);
+  public VerticalClassMergingRetraceTest(TestParameters parameters, CompilationMode mode) {
+    super(parameters.getBackend(), mode);
   }
 
   @Override
