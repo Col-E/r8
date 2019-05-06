@@ -42,7 +42,7 @@ import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.desugar.CovariantReturnTypeAnnotationTransformer;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
-import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
+import com.android.tools.r8.ir.desugar.Java8MethodRewriter;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaringRewriter;
 import com.android.tools.r8.ir.desugar.StringConcatRewriter;
@@ -123,7 +123,7 @@ public class IRConverter {
   private final NestBasedAccessDesugaringRewriter nestBasedAccessDesugaringRewriter;
   private final InterfaceMethodRewriter interfaceMethodRewriter;
   private final TwrCloseResourceRewriter twrCloseResourceRewriter;
-  private final BackportedMethodRewriter backportedMethodRewriter;
+  private final Java8MethodRewriter java8MethodRewriter;
   private final LambdaMerger lambdaMerger;
   private final ClassInliner classInliner;
   private final ClassStaticizer classStaticizer;
@@ -180,9 +180,9 @@ public class IRConverter {
         (options.enableDesugaring && enableTwrCloseResourceDesugaring())
             ? new TwrCloseResourceRewriter(appView, this)
             : null;
-    this.backportedMethodRewriter =
+    this.java8MethodRewriter =
         options.enableDesugaring
-            ? new BackportedMethodRewriter(appView, this)
+            ? new Java8MethodRewriter(appView, this)
             : null;
     this.lambdaMerger = options.enableLambdaMerging ? new LambdaMerger(appView) : null;
     this.covariantReturnTypeAnnotationTransformer =
@@ -344,8 +344,8 @@ public class IRConverter {
 
   private void synthesizeJava8UtilityClass(
       Builder<?> builder, ExecutorService executorService) throws ExecutionException {
-    if (backportedMethodRewriter != null) {
-      backportedMethodRewriter.synthesizeUtilityClass(builder, executorService, options);
+    if (java8MethodRewriter != null) {
+      java8MethodRewriter.synthesizeUtilityClass(builder, executorService, options);
     }
   }
 
@@ -983,6 +983,7 @@ public class IRConverter {
     assert code.verifyTypes(appView);
     codeRewriter.removeTrivialCheckCastAndInstanceOfInstructions(code);
 
+    codeRewriter.rewriteLongCompareAndRequireNonNull(code, options);
     codeRewriter.commonSubexpressionElimination(code);
     codeRewriter.simplifyArrayConstruction(code);
     codeRewriter.rewriteMoveResult(code);
@@ -1024,8 +1025,8 @@ public class IRConverter {
     if (options.enableDesugaring && enableTryWithResourcesDesugaring()) {
       codeRewriter.rewriteThrowableAddAndGetSuppressed(code);
     }
-    if (backportedMethodRewriter != null) {
-      backportedMethodRewriter.desugar(code);
+    if (java8MethodRewriter != null) {
+      java8MethodRewriter.desugar(code);
     }
 
     stringConcatRewriter.desugarStringConcats(method.method, code);

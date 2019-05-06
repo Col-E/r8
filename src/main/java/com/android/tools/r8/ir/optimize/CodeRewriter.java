@@ -43,6 +43,8 @@ import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.Binop;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.CheckCast;
+import com.android.tools.r8.ir.code.Cmp;
+import com.android.tools.r8.ir.code.Cmp.Bias;
 import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
@@ -3505,6 +3507,39 @@ public class CodeRewriter {
     block.replaceLastInstruction(newIf);
     block.swapSuccessors(trueTarget, fallthrough);
     return true;
+  }
+
+  public void rewriteLongCompareAndRequireNonNull(IRCode code, InternalOptions options) {
+    if (options.canUseLongCompareAndObjectsNonNull()) {
+      return;
+    }
+
+    InstructionIterator iterator = code.instructionIterator();
+    while (iterator.hasNext()) {
+      Instruction current = iterator.next();
+      if (current.isInvokeMethod()) {
+        DexMethod invokedMethod = current.asInvokeMethod().getInvokedMethod();
+        if (invokedMethod == dexItemFactory.longMethods.compare) {
+          // Rewrite calls to Long.compare for sdk versions that do not have that method.
+          List<Value> inValues = current.inValues();
+          assert inValues.size() == 2;
+          iterator.replaceCurrentInstruction(
+              new Cmp(NumericType.LONG, Bias.NONE, current.outValue(), inValues.get(0),
+                  inValues.get(1)));
+        } else if (invokedMethod == dexItemFactory.objectsMethods.requireNonNull) {
+          // Rewrite calls to Objects.requireNonNull(Object) because Javac 9 start to use it for
+          // synthesized null checks.
+          InvokeVirtual callToGetClass = new InvokeVirtual(dexItemFactory.objectMethods.getClass,
+              null, current.inValues());
+          if (current.outValue() != null) {
+            current.outValue().replaceUsers(current.inValues().get(0));
+            current.setOutValue(null);
+          }
+          iterator.replaceCurrentInstruction(callToGetClass);
+        }
+      }
+    }
+    assert code.isConsistentSSA();
   }
 
   /**

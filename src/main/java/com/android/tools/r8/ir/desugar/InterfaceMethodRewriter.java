@@ -154,7 +154,7 @@ public final class InterfaceMethodRewriter {
           InvokeStatic invokeStatic = instruction.asInvokeStatic();
           DexMethod method = invokeStatic.getInvokedMethod();
           DexClass clazz = appInfo.definitionFor(method.holder);
-          if (BackportedMethodRewriter.hasRewrittenMethodPrefix(method.holder)) {
+          if (Java8MethodRewriter.hasJava8MethodRewritePrefix(method.holder)) {
             // We did not create this code yet, but it will not require rewriting.
             continue;
           }

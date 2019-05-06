@@ -16,58 +16,56 @@ import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Objects;
 import org.junit.Before;
 import org.junit.Test;
 
-public class BackportedMethodRewriterTest extends TestBase {
+public class Java8MethodsTest extends TestBase {
   static String expectedOutput = "";
 
   @Before
   public void testJvm() throws Exception {
     expectedOutput = testForJvm()
         .addTestClasspath()
-        .run(TestMethods.class).getStdOut();
+        .run(Java8Methods.class).getStdOut();
   }
 
   @Test
   public void testD8() throws Exception {
     testForD8()
-        .addProgramClasses(TestMethods.class)
-        .run(TestMethods.class)
+        .addProgramClasses(Java8Methods.class)
+        .run(Java8Methods.class)
         .assertSuccessWithOutput(expectedOutput);
 
-    assertDesugaring(AndroidApiLevel.O, 39);
-    assertDesugaring(AndroidApiLevel.N, 33);
-    assertDesugaring(AndroidApiLevel.K, 8);
-    assertDesugaring(AndroidApiLevel.J_MR2, 0);
+    assertDesugaring(AndroidApiLevel.O, 31);
+    assertDesugaring(AndroidApiLevel.N, 25);
+    assertDesugaring(AndroidApiLevel.M, 0);
   }
 
-  private void assertDesugaring(AndroidApiLevel apiLevel, int expectedJavaInvokeStatics)
+  private void assertDesugaring(AndroidApiLevel apilevel, int expectedJavaLangInvokeStatics)
       throws Exception {
     D8TestCompileResult runResult = testForD8()
-        .addProgramClasses(TestMethods.class)
-        .setMinApi(apiLevel)
+        .addProgramClasses(Java8Methods.class)
+        .setMinApi(apilevel)
         .compile();
 
     MethodSubject mainMethod = runResult.inspector()
-        .clazz(TestMethods.class)
+        .clazz(Java8Methods.class)
         .mainMethod();
     assertThat(mainMethod, isPresent());
 
-    List<InstructionSubject> javaInvokeStatics = mainMethod
+    List<InstructionSubject> javaLangInvokeStatics = mainMethod
         .streamInstructions()
         .filter(InstructionSubject::isInvokeStatic)
-        .filter(is -> is.getMethod().holder.toDescriptorString().startsWith("Ljava/"))
+        .filter(is -> is.getMethod().holder.toDescriptorString().startsWith("Ljava/lang/"))
         .collect(toList());
 
-    int actualJavaInvokeStatics = javaInvokeStatics.size();
+    int actualJavaLangInvokeStatics = javaLangInvokeStatics.size();
     assertEquals("Expected "
-        + expectedJavaInvokeStatics
-        + " invoke-static on java/*/<Type> but found "
-        + actualJavaInvokeStatics
+        + expectedJavaLangInvokeStatics
+        + " invoke-static on java/lang/<Type> but found "
+        + actualJavaLangInvokeStatics
         + ": "
-        + javaInvokeStatics, expectedJavaInvokeStatics, actualJavaInvokeStatics);
+        + javaLangInvokeStatics, expectedJavaLangInvokeStatics, actualJavaLangInvokeStatics);
   }
 
   @Test
@@ -124,29 +122,16 @@ public class BackportedMethodRewriterTest extends TestBase {
     }
   }
 
-  static class TestMethods {
-    // Defined as a static method on this class to avoid affecting invoke-static counts in main().
-    private static int signum(int value) {
-      return (int) Math.signum(value);
-    }
-
+  static class Java8Methods {
     public static void main(String[] args) {
       byte[] aBytes = new byte[]{42, 1, -1, Byte.MAX_VALUE, Byte.MIN_VALUE};
       for (byte aByte : aBytes) {
         System.out.println(Byte.hashCode(aByte));
-        for (byte bByte : aBytes) {
-          // Normalize comparison to [-1, 1] since the values differ across versions but signs match
-          System.out.println(signum(Byte.compare(aByte, bByte)));
-        }
       }
 
       short[] aShorts = new short[]{42, 1, -1, Short.MAX_VALUE, Short.MIN_VALUE};
       for (short aShort : aShorts) {
         System.out.println(Short.hashCode(aShort));
-        for (short bShort : aShorts) {
-          // Normalize comparison to [-1, 1] since the values differ across versions but signs match
-          System.out.println(signum(Short.compare(aShort, bShort)));
-        }
       }
 
       int[] aInts = new int[]{42, 1, -1, Integer.MAX_VALUE, Integer.MIN_VALUE};
@@ -154,7 +139,6 @@ public class BackportedMethodRewriterTest extends TestBase {
       for (int aInt : aInts) {
         System.out.println(Integer.hashCode(aInt));
         for (int bInt : bInts) {
-          System.out.println(Integer.compare(aInt, bInt));
           System.out.println(Integer.max(aInt, bInt));
           System.out.println(Integer.min(aInt, bInt));
           System.out.println(Integer.sum(aInt, bInt));
@@ -199,7 +183,6 @@ public class BackportedMethodRewriterTest extends TestBase {
       for (boolean aBoolean : new boolean[]{true, false}) {
         System.out.println(Boolean.hashCode(aBoolean));
         for (boolean bBoolean : new boolean[]{true, false}) {
-          System.out.println(Boolean.compare(aBoolean, bBoolean));
           System.out.println(Boolean.logicalAnd(aBoolean, bBoolean));
           System.out.println(Boolean.logicalOr(aBoolean, bBoolean));
           System.out.println(Boolean.logicalXor(aBoolean, bBoolean));
@@ -213,7 +196,6 @@ public class BackportedMethodRewriterTest extends TestBase {
       for (long aLong : aLongs) {
         System.out.println(Long.hashCode(aLong));
         for (long bLong : bLongs) {
-          System.out.println(Long.compare(aLong, bLong));
           System.out.println(Long.max(aLong, bLong));
           System.out.println(Long.min(aLong, bLong));
           System.out.println(Long.sum(aLong, bLong));
@@ -226,21 +208,6 @@ public class BackportedMethodRewriterTest extends TestBase {
       char[] aChars = new char[]{'s', 'u', 'p', Character.MAX_VALUE, Character.MIN_VALUE};
       for (char aChar : aChars) {
         System.out.println(Character.hashCode(aChar));
-        for (char bChar : aChars) {
-          System.out.println(Character.compare(aChar, bChar));
-        }
-      }
-
-      // Use a runtime conditional so nullability analysis doesn't remove the requireNonNull call.
-      String nonNullString = args.length < Integer.MAX_VALUE ? "non-null string" : null;
-      System.out.println(Objects.requireNonNull(nonNullString));
-
-      try {
-        // Use a runtime conditional so nullability analysis doesn't remove the requireNonNull call.
-        String nullString = args.length == 0 ? null : "non-null string";
-        throw new AssertionError(Objects.requireNonNull(nullString));
-      } catch (NullPointerException expected) {
-        System.out.println("null");
       }
     }
   }
