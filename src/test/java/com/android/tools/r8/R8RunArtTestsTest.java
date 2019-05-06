@@ -695,6 +695,7 @@ public abstract class R8RunArtTestsTest {
           .put("551-implicit-null-checks",
               TestCondition.match(
                   TestCondition.tools(DexTool.NONE, DexTool.DX),
+                  TestCondition.compilers(CompilerUnderTest.R8_AFTER_D8),
                   TestCondition.runtimes(DexVm.Version.V5_1_1)))
           // Contains a method (B.<init>) which pass too few arguments to invoke. Also, contains an
           // iput on a static field.
