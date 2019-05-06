@@ -5,7 +5,6 @@
 package com.android.tools.r8.desugar.NestAccessControl;
 
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
-import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -19,7 +18,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
@@ -156,35 +154,25 @@ public class NestAccessControlTest extends TestBase {
     testJavaAndD8("all");
   }
 
-  public void testR8(String id, boolean r8Success) throws Exception {
+  public void testR8(String id) throws Exception {
     R8TestRunResult result =
         r8CompilationResult
             .apply(parameters.getBackend(), parameters.getApiLevel())
             .run(parameters.getRuntime(), getMainClass(id));
-    if (r8Success) {
-      result.assertSuccessWithOutput(getExpectedResult(id));
-      if (parameters.isCfRuntime()) {
-        result.inspect(NestAccessControlTest::checkNestMateAttributes);
-      }
-    } else {
-      if (parameters.isDexRuntime()
-          && (parameters.getRuntime().asDex().getVm().getVersion() == Version.V6_0_1
-              || parameters.getRuntime().asDex().getVm().getVersion() == Version.V5_1_1)) {
-        result.assertFailure(); // different message, same error
-      } else {
-        result.assertFailureWithErrorThatMatches(containsString("IllegalAccessError"));
-      }
+    result.assertSuccessWithOutput(getExpectedResult(id));
+    if (parameters.isCfRuntime()) {
+      result.inspect(NestAccessControlTest::checkNestMateAttributes);
     }
   }
 
   @Test
   public void testMethodsAccessR8() throws Exception {
     // TODO(b/130529390): As features are implemented, set success to true in each line.
-    testR8("methods", true);
-    testR8("fields", true);
-    testR8("constructors", parameters.isCfRuntime());
-    testR8("anonymous", true);
-    testR8("all", parameters.isCfRuntime());
+    testR8("methods");
+    testR8("fields");
+    testR8("constructors");
+    testR8("anonymous");
+    testR8("all");
   }
 
   private static void checkNestMateAttributes(CodeInspector inspector) {

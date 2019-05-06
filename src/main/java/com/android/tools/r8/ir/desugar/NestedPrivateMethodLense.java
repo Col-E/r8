@@ -4,6 +4,7 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
 import com.android.tools.r8.ir.code.Invoke;
@@ -20,6 +21,7 @@ public class NestedPrivateMethodLense extends NestedGraphLense {
     private final Map<DexField, DexMethod> staticPutToMethodMap = new IdentityHashMap<>();
     private final Map<DexField, DexMethod> instanceGetToMethodMap = new IdentityHashMap<>();
     private final Map<DexField, DexMethod> instancePutToMethodMap = new IdentityHashMap<>();
+    private final Map<DexMethod, DexMethod> initializerMap = new IdentityHashMap<>();
 
     protected Builder(AppView<? extends AppInfo> appView) {
       this.appView = appView;
@@ -27,6 +29,10 @@ public class NestedPrivateMethodLense extends NestedGraphLense {
 
     public void mapInstanceGet(DexField field, DexMethod method) {
       instanceGetToMethodMap.put(field, method);
+    }
+
+    public void mapInitializer(DexMethod initializer, DexMethod method) {
+      initializerMap.put(initializer, method);
     }
 
     public void mapInstancePut(DexField field, DexMethod method) {
@@ -41,7 +47,7 @@ public class NestedPrivateMethodLense extends NestedGraphLense {
       staticPutToMethodMap.put(field, method);
     }
 
-    public GraphLense build(GraphLense previousLense) {
+    public GraphLense build(GraphLense previousLense, DexType nestConstructorType) {
       if (methodMap.isEmpty() && fieldMap.isEmpty()) {
         return previousLense;
       }
@@ -53,6 +59,8 @@ public class NestedPrivateMethodLense extends NestedGraphLense {
           staticPutToMethodMap,
           instanceGetToMethodMap,
           instancePutToMethodMap,
+          initializerMap,
+          nestConstructorType,
           previousLense);
     }
   }
@@ -63,6 +71,8 @@ public class NestedPrivateMethodLense extends NestedGraphLense {
   private final Map<DexField, DexMethod> staticPutToMethodMap;
   private final Map<DexField, DexMethod> instanceGetToMethodMap;
   private final Map<DexField, DexMethod> instancePutToMethodMap;
+  private final Map<DexMethod, DexMethod> initializerMap;
+  private final DexType nestConstructorType;
 
   public NestedPrivateMethodLense(
       AppView<?> appView,
@@ -72,6 +82,8 @@ public class NestedPrivateMethodLense extends NestedGraphLense {
       Map<DexField, DexMethod> staticPutToMethodMap,
       Map<DexField, DexMethod> instanceGetToMethodMap,
       Map<DexField, DexMethod> instancePutToMethodMap,
+      Map<DexMethod, DexMethod> initializerMap,
+      DexType nestConstructorType,
       GraphLense previousLense) {
     super(
         ImmutableMap.of(),
@@ -86,6 +98,8 @@ public class NestedPrivateMethodLense extends NestedGraphLense {
     this.staticPutToMethodMap = staticPutToMethodMap;
     this.instanceGetToMethodMap = instanceGetToMethodMap;
     this.instancePutToMethodMap = instancePutToMethodMap;
+    this.initializerMap = initializerMap;
+    this.nestConstructorType = nestConstructorType;
   }
 
   @Override
@@ -114,6 +128,20 @@ public class NestedPrivateMethodLense extends NestedGraphLense {
   }
 
   @Override
+  public RewrittenPrototypeDescription lookupPrototypeChanges(DexMethod method) {
+    RewrittenPrototypeDescription previous = previousLense.lookupPrototypeChanges(method);
+    DexType[] parameters = method.proto.parameters.values;
+    if (parameters.length == 0) {
+      return previous;
+    }
+    DexType lastParameterType = parameters[parameters.length - 1];
+    if (lastParameterType == nestConstructorType) {
+      return previous.withExtraNullParameter();
+    }
+    return previous;
+  }
+
+  @Override
   public GraphLenseLookupResult lookupMethod(
       DexMethod method, DexMethod context, Invoke.Type type) {
     DexMethod previousContext =
@@ -122,8 +150,17 @@ public class NestedPrivateMethodLense extends NestedGraphLense {
             : context;
     GraphLenseLookupResult previous = previousLense.lookupMethod(method, previousContext, type);
     DexMethod newMethod = methodMap.get(previous.getMethod());
-    if (newMethod == null) {
-      return previous;
+    Invoke.Type newType;
+    if (newMethod != null) {
+      // All generated non-initializer bridges are static.
+      newType = Invoke.Type.STATIC;
+    } else {
+      newMethod = initializerMap.get(previous.getMethod());
+      if (newMethod == null) {
+        return previous;
+      }
+      // All generated initializer bridges are direct.
+      newType = Invoke.Type.DIRECT;
     }
     if (newMethod == context) {
       // Bridges should not rewrite themselves.
@@ -131,8 +168,7 @@ public class NestedPrivateMethodLense extends NestedGraphLense {
       // A private method, we do not rewrite it.
       return previous;
     }
-    // Use invokeStatic since all generated bridges are always static.
-    return new GraphLenseLookupResult(newMethod, Invoke.Type.STATIC);
+    return new GraphLenseLookupResult(newMethod, newType);
   }
 
   public static Builder builder(AppView<?> appView) {

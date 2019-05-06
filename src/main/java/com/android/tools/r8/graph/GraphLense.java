@@ -236,15 +236,19 @@ public abstract class GraphLense {
     private static final RewrittenPrototypeDescription none = new RewrittenPrototypeDescription();
 
     private final boolean hasBeenChangedToReturnVoid;
+    private final boolean extraNullParameter;
     private final RemovedArgumentsInfo removedArgumentsInfo;
 
     private RewrittenPrototypeDescription() {
-      this(false, RemovedArgumentsInfo.empty());
+      this(false, false, RemovedArgumentsInfo.empty());
     }
 
     public RewrittenPrototypeDescription(
-        boolean hasBeenChangedToReturnVoid, RemovedArgumentsInfo removedArgumentsInfo) {
+        boolean hasBeenChangedToReturnVoid,
+        boolean extraNullParameter,
+        RemovedArgumentsInfo removedArgumentsInfo) {
       assert removedArgumentsInfo != null;
+      this.extraNullParameter = extraNullParameter;
       this.hasBeenChangedToReturnVoid = hasBeenChangedToReturnVoid;
       this.removedArgumentsInfo = removedArgumentsInfo;
     }
@@ -254,7 +258,13 @@ public abstract class GraphLense {
     }
 
     public boolean isEmpty() {
-      return !hasBeenChangedToReturnVoid && !getRemovedArgumentsInfo().hasRemovedArguments();
+      return !extraNullParameter
+          && !hasBeenChangedToReturnVoid
+          && !getRemovedArgumentsInfo().hasRemovedArguments();
+    }
+
+    public boolean hasExtraNullParameter() {
+      return extraNullParameter;
     }
 
     public boolean hasBeenChangedToReturnVoid() {
@@ -310,13 +320,20 @@ public abstract class GraphLense {
 
     public RewrittenPrototypeDescription withConstantReturn() {
       return !hasBeenChangedToReturnVoid
-          ? new RewrittenPrototypeDescription(true, removedArgumentsInfo)
+          ? new RewrittenPrototypeDescription(true, extraNullParameter, removedArgumentsInfo)
           : this;
     }
 
     public RewrittenPrototypeDescription withRemovedArguments(RemovedArgumentsInfo other) {
       return new RewrittenPrototypeDescription(
-          hasBeenChangedToReturnVoid, removedArgumentsInfo.combine(other));
+          hasBeenChangedToReturnVoid, extraNullParameter, removedArgumentsInfo.combine(other));
+    }
+
+    public RewrittenPrototypeDescription withExtraNullParameter() {
+      return !extraNullParameter
+          ? new RewrittenPrototypeDescription(
+              hasBeenChangedToReturnVoid, true, removedArgumentsInfo)
+          : this;
     }
   }
 

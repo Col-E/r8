@@ -161,6 +161,7 @@ public class UninstantiatedTypeOptimization {
         RewrittenPrototypeDescription prototypeChanges =
             new RewrittenPrototypeDescription(
                 virtualMethod.method.proto.returnType.isAlwaysNull(appView),
+                false,
                 getRemovedArgumentsInfo(virtualMethod, ALLOW_ARGUMENT_REMOVAL));
         if (!prototypeChanges.isEmpty()) {
           DexMethod newMethod = getNewMethodSignature(virtualMethod, prototypeChanges);
@@ -296,6 +297,7 @@ public class UninstantiatedTypeOptimization {
     }
     return new RewrittenPrototypeDescription(
         encodedMethod.method.proto.returnType.isAlwaysNull(appView),
+        false,
         getRemovedArgumentsInfo(encodedMethod, strategy));
   }
 

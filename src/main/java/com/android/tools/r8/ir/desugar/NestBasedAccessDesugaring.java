@@ -53,6 +53,13 @@ public abstract class NestBasedAccessDesugaring {
     this.appView = appView;
   }
 
+  protected DexType getConstructorType() {
+    if (nestConstructor == null) {
+      return null;
+    }
+    return nestConstructor.type;
+  }
+
   public void analyzeNests() {
     // TODO(b/130529338) we don't need to compute a list with all live nests.
     // we just need to iterate all live nests.

@@ -19,13 +19,12 @@ public class NestBasedAccessDesugaringAnalysis extends NestBasedAccessDesugaring
       return appView.graphLense();
     }
     analyzeNests();
-    return builder.build(appView.graphLense());
+    return builder.build(appView.graphLense(), getConstructorType());
   }
 
   @Override
   protected void shouldRewriteInitializers(DexMethod method, DexMethod bridge) {
-    // TODO(b/130529338): support initializer in r8
-    // initializerMap.put(method, bridge);
+    builder.mapInitializer(method, bridge);
   }
 
   @Override

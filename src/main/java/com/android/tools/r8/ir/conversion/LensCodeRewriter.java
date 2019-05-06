@@ -240,6 +240,13 @@ public class LensCodeRewriter {
               newInValues = invoke.inValues();
             }
 
+            if (prototypeChanges.hasExtraNullParameter()) {
+              iterator.previous();
+              Value extraNullValue = iterator.insertConstNullInstruction(code, appView.options());
+              iterator.next();
+              newInValues.add(extraNullValue);
+            }
+
             Invoke newInvoke =
                 Invoke.create(actualInvokeType, actualTarget, null, newOutValue, newInValues);
             iterator.replaceCurrentInstruction(newInvoke);
