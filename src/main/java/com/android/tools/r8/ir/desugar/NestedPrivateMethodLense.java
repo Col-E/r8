@@ -129,16 +129,18 @@ public class NestedPrivateMethodLense extends NestedGraphLense {
 
   @Override
   public RewrittenPrototypeDescription lookupPrototypeChanges(DexMethod method) {
-    RewrittenPrototypeDescription previous = previousLense.lookupPrototypeChanges(method);
     DexType[] parameters = method.proto.parameters.values;
     if (parameters.length == 0) {
-      return previous;
+      return previousLense.lookupPrototypeChanges(method);
     }
     DexType lastParameterType = parameters[parameters.length - 1];
     if (lastParameterType == nestConstructorType) {
-      return previous.withExtraNullParameter();
+      // This is an access bridge for a constructor that has been synthesized during
+      // nest-based access desugaring.
+      assert previousLense.lookupPrototypeChanges(method).isEmpty();
+      return RewrittenPrototypeDescription.none().withExtraNullParameter();
     }
-    return previous;
+    return previousLense.lookupPrototypeChanges(method);
   }
 
   @Override
