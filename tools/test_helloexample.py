@@ -144,8 +144,12 @@ def Compile(tool, output_mode, lib, extra, output_dir, noopt, temp_dir):
   if tool == 'd8':
     if output_mode != 'dex':
       raise ValueError('Invalid output mode for D8')
+    classpath = []
+    for cp_entry in extra:
+      classpath.extend(['--classpath', cp_entry])
     return [
-      GetCompilerPrefix(tool, output_mode, output, HELLO_JAR, lib, extra, noopt)
+      GetCompilerPrefix(
+        tool, output_mode, output, HELLO_JAR, lib, classpath, noopt)
     ]
   # The compilation is either R8 or PG.
   # Write keep rules to a temporary file.
