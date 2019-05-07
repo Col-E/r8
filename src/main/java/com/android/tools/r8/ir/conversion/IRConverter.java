@@ -290,15 +290,10 @@ public class IRConverter {
     return false;
   }
 
-  private void analyzeNests() {
+  private void desugarNestBasedAccess(Builder<?> builder, ExecutorService executorService)
+      throws ExecutionException {
     if (nestBasedAccessDesugaringRewriter != null) {
-      nestBasedAccessDesugaringRewriter.analyzeNests();
-    }
-  }
-
-  private void synthetizeNestConstructor(Builder<?> builder) {
-    if (nestBasedAccessDesugaringRewriter != null) {
-      nestBasedAccessDesugaringRewriter.synthetizeNestConstructor(builder);
+      nestBasedAccessDesugaringRewriter.desugarNestBasedAccess(builder, executorService, this);
     }
   }
 
@@ -358,7 +353,6 @@ public class IRConverter {
   public DexApplication convertToDex(DexApplication application, ExecutorService executor)
       throws ExecutionException {
     removeLambdaDeserializationMethods();
-    analyzeNests();
 
     timing.begin("IR conversion");
     convertClassesToDex(application.classes(), executor);
@@ -367,7 +361,7 @@ public class IRConverter {
     Builder<?> builder = application.builder();
     builder.setHighestSortingString(highestSortingString);
 
-    synthetizeNestConstructor(builder);
+    desugarNestBasedAccess(builder, executor);
     synthesizeLambdaClasses(builder, executor);
     desugarInterfaceMethods(builder, ExcludeDexResources, executor);
     synthesizeTwrCloseResourceUtilityClass(builder, executor);

@@ -1,10 +1,15 @@
 package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
@@ -12,20 +17,33 @@ import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.IRConverter;
 import java.util.ArrayList;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 
+// D8 specific nest based access desugaring.
+// Summary:
+// - Process all methods compiled rewriting nest based access (Methods processed concurrently).
+// - Process classes on class path in reachable nests to find bridges to add
+//    in Program classes (Nests processed concurrently).
+// - Add bridges and nest constructor class (Sequential).
+// - Optimize bridges (Bridges processed concurrently).
 public class NestBasedAccessDesugaringRewriter extends NestBasedAccessDesugaring {
 
-  private Map<DexMethod, DexMethod> methodMap = new IdentityHashMap<>();
-  private Map<DexMethod, DexMethod> initializerMap = new IdentityHashMap<>();
-  private final Map<DexField, DexMethod> staticGetToMethodMap = new IdentityHashMap<>();
-  private final Map<DexField, DexMethod> staticPutToMethodMap = new IdentityHashMap<>();
-  private final Map<DexField, DexMethod> instanceGetToMethodMap = new IdentityHashMap<>();
-  private final Map<DexField, DexMethod> instancePutToMethodMap = new IdentityHashMap<>();
+  private final Map<DexMethod, DexMethod> methodMap = new ConcurrentHashMap<>();
+  private final Map<DexMethod, DexMethod> initializerMap = new ConcurrentHashMap<>();
+  private final Map<DexField, DexMethod> staticGetToMethodMap = new ConcurrentHashMap<>();
+  private final Map<DexField, DexMethod> staticPutToMethodMap = new ConcurrentHashMap<>();
+  private final Map<DexField, DexMethod> instanceGetToMethodMap = new ConcurrentHashMap<>();
+  private final Map<DexField, DexMethod> instancePutToMethodMap = new ConcurrentHashMap<>();
+
+  // Map the nest host to its nest members, including the nest host itself.
+  private final Map<DexType, List<DexType>> metNests = new ConcurrentHashMap<>();
 
   public NestBasedAccessDesugaringRewriter(AppView<?> appView) {
     super(appView);
@@ -61,21 +79,37 @@ public class NestBasedAccessDesugaringRewriter extends NestBasedAccessDesugaring
     instancePutToMethodMap.put(field, bridge);
   }
 
+  private List<DexType> getNestFor(DexProgramClass programClass) {
+    if (!programClass.isInANest()) {
+      return null;
+    }
+    DexType nestHost = programClass.isNestHost() ? programClass.type : programClass.getNestHost();
+    return metNests.computeIfAbsent(
+        nestHost, host -> extractNest(appView.definitionFor(nestHost), programClass));
+  }
+
   private void rewriteFieldAccess(
-      Instruction instruction,
+      FieldInstruction fieldInstruction,
       InstructionListIterator instructions,
       DexMethod method,
       Map<DexField, DexMethod> fieldToMethodMap) {
-    DexField field = instruction.asFieldInstruction().getField();
-    DexMethod newTarget = fieldToMethodMap.get(field);
+    DexMethod newTarget = fieldToMethodMap.get(fieldInstruction.getField());
     if (newTarget != null && method != newTarget) {
       instructions.replaceCurrentInstruction(
-          new InvokeStatic(newTarget, instruction.outValue(), instruction.inValues()));
+          new InvokeStatic(newTarget, fieldInstruction.outValue(), fieldInstruction.inValues()));
     }
   }
 
   public void rewriteNestBasedAccesses(
       DexEncodedMethod encodedMethod, IRCode code, AppView<?> appView) {
+    // We are compiling its code so it has to be a non-null program class.
+    DexProgramClass currentClass =
+        appView.definitionFor(encodedMethod.method.holder).asProgramClass();
+    List<DexType> nest = getNestFor(currentClass);
+    if (nest == null) {
+      return;
+    }
+
     ListIterator<BasicBlock> blocks = code.listIterator();
     while (blocks.hasNext()) {
       BasicBlock block = blocks.next();
@@ -85,6 +119,7 @@ public class NestBasedAccessDesugaringRewriter extends NestBasedAccessDesugaring
         if (instruction.isInvokeMethod() && !instruction.isInvokeSuper()) {
           InvokeMethod invokeMethod = instruction.asInvokeMethod();
           DexMethod methodCalled = invokeMethod.getInvokedMethod();
+          registerInvoke(methodCalled, nest, currentClass);
           DexMethod newTarget = methodMap.get(methodCalled);
           if (newTarget != null && encodedMethod.method != newTarget) {
             instructions.replaceCurrentInstruction(
@@ -103,20 +138,44 @@ public class NestBasedAccessDesugaringRewriter extends NestBasedAccessDesugaring
                   new InvokeDirect(newTarget, invokeMethod.outValue(), parameters));
             }
           }
-        } else if (instruction.isInstanceGet()) {
-          rewriteFieldAccess(
-              instruction, instructions, encodedMethod.method, instanceGetToMethodMap);
-        } else if (instruction.isInstancePut()) {
-          rewriteFieldAccess(
-              instruction, instructions, encodedMethod.method, instancePutToMethodMap);
-        } else if (instruction.isStaticGet()) {
-          rewriteFieldAccess(instruction, instructions, encodedMethod.method, staticGetToMethodMap);
-        } else if (instruction.isStaticPut()) {
-          rewriteFieldAccess(instruction, instructions, encodedMethod.method, staticPutToMethodMap);
+        } else if (instruction.isFieldInstruction()) {
+          FieldInstruction fieldInstruction = instruction.asFieldInstruction();
+          if (instruction.isInstanceGet()) {
+            registerFieldAccess(fieldInstruction.getField(), true, nest, currentClass);
+            rewriteFieldAccess(
+                fieldInstruction, instructions, encodedMethod.method, instanceGetToMethodMap);
+          } else if (instruction.isInstancePut()) {
+            registerFieldAccess(fieldInstruction.getField(), false, nest, currentClass);
+            rewriteFieldAccess(
+                fieldInstruction, instructions, encodedMethod.method, instancePutToMethodMap);
+          } else if (instruction.isStaticGet()) {
+            registerFieldAccess(fieldInstruction.getField(), true, nest, currentClass);
+            rewriteFieldAccess(
+                fieldInstruction, instructions, encodedMethod.method, staticGetToMethodMap);
+          } else if (instruction.isStaticPut()) {
+            registerFieldAccess(fieldInstruction.getField(), false, nest, currentClass);
+            rewriteFieldAccess(
+                fieldInstruction, instructions, encodedMethod.method, staticPutToMethodMap);
+          }
         }
       }
     }
   }
 
+  public void desugarNestBasedAccess(
+      DexApplication.Builder<?> builder, ExecutorService executorService, IRConverter converter)
+      throws ExecutionException {
+    List<List<DexType>> metNests = new ArrayList<>(this.metNests.values());
+    processNestsConcurrently(metNests, executorService);
+    addDeferredBridges();
+    synthetizeNestConstructor(builder);
+    converter.optimizeSynthesizedMethodsConcurrently(
+        deferredBridgesToAdd.keySet(), executorService);
+  }
 
+  // In D8, programClass are processed on the fly so they do not need to be processed again here.
+  @Override
+  protected boolean shouldProcessClassInNest(DexClass clazz, List<DexType> nest) {
+    return clazz.isNotProgramClass();
+  }
 }
