@@ -241,7 +241,7 @@ def Main():
     for cmd in cmds:
       fullcmd = cmd_prefix + cmd
       utils.PrintCmd(fullcmd)
-      subprocess.check_call(fullcmd)
+      subprocess.check_output(fullcmd)
     dt = time.time() - t0
 
     if args.print_memoryuse:
