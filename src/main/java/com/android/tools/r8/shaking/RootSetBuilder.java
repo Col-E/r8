@@ -9,6 +9,7 @@ import static com.android.tools.r8.graph.GraphLense.rewriteReferenceKeys;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationSet;
@@ -38,11 +39,13 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import java.io.PrintStream;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -181,6 +184,10 @@ public class RootSetBuilder {
       } else if (rule instanceof ProguardAssumeMayHaveSideEffectsRule
           || rule instanceof ProguardAssumeNoSideEffectRule) {
         markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true);
+        if (appView.appInfo().hasSubtyping()) {
+          markMatchingOverriddenMethods(
+              appView.appInfo().withSubtyping(), clazz, memberKeepRules, rule, null, true);
+        }
         markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true);
       } else if (rule instanceof ClassMergingRule) {
         if (allRulesSatisfied(memberKeepRules, clazz)) {
@@ -488,7 +495,8 @@ public class RootSetBuilder {
       Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier,
       boolean includeLibraryClasses) {
     Set<Wrapper<DexMethod>> methodsMarked =
-        options.forceProguardCompatibility ? null : new HashSet<>();
+        options.forceProguardCompatibility || rule instanceof ProguardAssumeNoSideEffectRule
+            ? null : new HashSet<>();
     DexClass startingClass = clazz;
     while (clazz != null) {
       if (!includeLibraryClasses && clazz.isNotProgramClass()) {
@@ -512,6 +520,41 @@ public class RootSetBuilder {
                 markMethod(method, memberKeepRules, methodsMarked, rule, precondition);
               });
       clazz = clazz.superType == null ? null : application.definitionFor(clazz.superType);
+    }
+  }
+
+  private void markMatchingOverriddenMethods(
+      AppInfoWithSubtyping appInfoWithSubtyping,
+      DexClass clazz,
+      Collection<ProguardMemberRule> memberKeepRules,
+      ProguardConfigurationRule rule,
+      Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier,
+      boolean onlyIncludeProgramClasses) {
+    Set<DexType> visited = new HashSet<>();
+    Deque<DexType> worklist = new ArrayDeque<>();
+    // Intentionally skip the current `clazz`, assuming it's covered by markMatchingVisibleMethods.
+    worklist.addAll(appInfoWithSubtyping.allImmediateSubtypes(clazz.type));
+
+    while (!worklist.isEmpty()) {
+      DexType currentType = worklist.poll();
+      if (!visited.add(currentType)) {
+        continue;
+      }
+      DexClass currentClazz = appView.definitionFor(currentType);
+      if (currentClazz == null) {
+        continue;
+      }
+      if (!onlyIncludeProgramClasses && currentClazz.isNotProgramClass()) {
+        continue;
+      }
+      currentClazz
+          .virtualMethods()
+          .forEach(
+              method -> {
+                DexDefinition precondition = testAndGetPrecondition(method, preconditionSupplier);
+                markMethod(method, memberKeepRules, null, rule, precondition);
+              });
+      worklist.addAll(appInfoWithSubtyping.allImmediateSubtypes(currentClazz.type));
     }
   }
 

@@ -100,12 +100,6 @@ public class AssumenosideeffectsWithMultipleTargetsTest extends TestBase {
       throw new Unreachable();
     }
 
-    private static final String OUTPUT_WITH_INFO = StringUtils.lines(
-        "TestClass: message1",
-        "TestClass: message2",
-        "[TestClass] message3",
-        "The end"
-    );
     private static final String OUTPUT_WITH_PARTIAL_INFO = StringUtils.lines(
         "TestClass: message2",
         "The end"
@@ -121,8 +115,7 @@ public class AssumenosideeffectsWithMultipleTargetsTest extends TestBase {
       switch (this) {
         case RULE_THAT_DIRECTLY_REFERS_CLASS:
         case RULE_THAT_DIRECTLY_REFERS_INTERFACE:
-          // TODO(b/130804193): implicitly mark all call targets?
-          return OUTPUT_WITH_INFO;
+          return OUTPUT_WITHOUT_INFO;
         case RULE_WITH_IMPLEMENTS:
           return OUTPUT_WITH_PARTIAL_INFO;
         default:
@@ -136,37 +129,31 @@ public class AssumenosideeffectsWithMultipleTargetsTest extends TestBase {
 
       MethodSubject mainMethod = main.mainMethod();
       assertThat(mainMethod, isPresent());
-      int expectedInfoCallsInMainMethod = 0;
-      // TODO(b/130804193): implicitly mark all call targets?
-      if (isR8) {
-        switch (this) {
-          case RULE_THAT_DIRECTLY_REFERS_CLASS:
-          case RULE_THAT_DIRECTLY_REFERS_INTERFACE:
-            expectedInfoCallsInMainMethod = 2;
-            break;
-          case RULE_WITH_IMPLEMENTS:
-            expectedInfoCallsInMainMethod = 0;
-            break;
-          default:
-            throw new Unreachable();
-        }
-      }
       assertEquals(
-          expectedInfoCallsInMainMethod,
+          0,
           Streams.stream(mainMethod.iterateInstructions(
               i -> i.isInvoke() && i.getMethod().name.toString().equals("info"))).count());
 
       MethodSubject testInvokeInterface = main.uniqueMethodWithName("testInvokeInterface");
-      int expectedInfoCallsInInvokeInterfaceMethod = 0;
-      // Inlining of testInvokeInterface is out of control if !isR8.
       if (isR8) {
-        assertThat(testInvokeInterface, isPresent());
-        // TODO(b/130804193): implicitly mark all call targets?
-        expectedInfoCallsInInvokeInterfaceMethod = 1;
-        assertEquals(
-            expectedInfoCallsInInvokeInterfaceMethod,
-            Streams.stream(testInvokeInterface.iterateInstructions(
-                i -> i.isInvoke() && i.getMethod().name.toString().equals("info"))).count());
+        switch (this) {
+          case RULE_THAT_DIRECTLY_REFERS_CLASS:
+          case RULE_THAT_DIRECTLY_REFERS_INTERFACE:
+            assertThat(testInvokeInterface, not(isPresent()));
+            break;
+          case RULE_WITH_IMPLEMENTS:
+            assertThat(testInvokeInterface, isPresent());
+            // TODO(b/130804193): upwards propagation of member rules.
+            assertEquals(
+                1,
+                Streams.stream(testInvokeInterface.iterateInstructions(
+                    i -> i.isInvoke() && i.getMethod().name.toString().equals("info"))).count());
+            break;
+          default:
+            throw new Unreachable();
+        }
+      } else {
+        assertThat(testInvokeInterface, not(isPresent()));
       }
 
       FieldSubject tag = main.uniqueFieldWithName("TAG");

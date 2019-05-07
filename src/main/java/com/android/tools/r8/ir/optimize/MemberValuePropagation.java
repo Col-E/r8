@@ -59,6 +59,20 @@ public class MemberValuePropagation {
       this.type = type;
       this.rule = rule;
     }
+
+    @Override
+    public boolean equals(Object other) {
+      if (!(other instanceof ProguardMemberRuleLookup)) {
+        return false;
+      }
+      ProguardMemberRuleLookup otherLookup = (ProguardMemberRuleLookup) other;
+      return type == otherLookup.type && rule == otherLookup.rule;
+    }
+
+    @Override
+    public int hashCode() {
+      return type.ordinal() * 31 + rule.hashCode();
+    }
   }
 
   public MemberValuePropagation(AppView<AppInfoWithLiveness> appView) {
@@ -204,10 +218,15 @@ public class MemberValuePropagation {
     if (!invokedHolder.isClassType()) {
       return;
     }
-    // TODO(b/130804193): search for all call targets and apply -assumenosideeffects if one of
-    //   call targets has a matching rule?
     DexEncodedMethod definition = current.lookupSingleTarget(appView, callingContext);
     ProguardMemberRuleLookup lookup = lookupMemberRule(definition);
+    if (lookup == null) {
+      // Since -assumenosideeffects rules are always applied to all overriding methods, we can
+      // simply check the target method, although this may be different from the dynamically
+      // targeted method.
+      DexEncodedMethod target = appView.definitionFor(invokedMethod);
+      lookup = lookupMemberRule(target);
+    }
     boolean invokeReplaced = false;
     if (lookup != null) {
       boolean outValueNullOrNotUsed = current.outValue() == null || !current.outValue().isUsed();
