@@ -253,6 +253,10 @@ public class TestBase {
     return writeTextToTempFile(System.lineSeparator(), Arrays.asList(lines));
   }
 
+  protected void writeTextToTempFile(Path file, String... lines) throws IOException {
+    writeTextToTempFile(file, System.lineSeparator(), Arrays.asList(lines));
+  }
+
   /**
    * Write lines of text to a temporary file, along with the specified line separator.
    *
@@ -261,6 +265,11 @@ public class TestBase {
   protected Path writeTextToTempFile(String lineSeparator, List<String> lines)
       throws IOException {
     return writeTextToTempFile(lineSeparator, lines, true);
+  }
+
+  protected void writeTextToTempFile(Path file, String lineSeparator, List<String> lines)
+      throws IOException {
+    writeTextToTempFile(file, lineSeparator, lines, true);
   }
 
   /**
@@ -273,12 +282,21 @@ public class TestBase {
       String lineSeparator, List<String> lines, boolean includeTerminatingLineSeparator)
       throws IOException {
     Path file = temp.newFile().toPath();
+    writeTextToTempFile(file, lineSeparator, lines, includeTerminatingLineSeparator);
+    return file;
+  }
+
+  protected void writeTextToTempFile(
+      Path file,
+      String lineSeparator,
+      List<String> lines,
+      boolean includeTerminatingLineSeparator)
+      throws IOException {
     String contents = String.join(lineSeparator, lines);
     if (includeTerminatingLineSeparator) {
       contents += lineSeparator;
     }
     Files.write(file, contents.getBytes(StandardCharsets.UTF_8));
-    return file;
   }
 
   /** Build an AndroidApp with the specified test classes as byte array. */
