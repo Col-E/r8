@@ -227,6 +227,12 @@ final class InterfaceProcessor {
 
       DexMethod origMethod = direct.method;
       DexMethod newMethod = rewriter.staticAsMethodOfDispatchClass(origMethod);
+      ForwardMethodSourceCode.Builder forwardSourceCodeBuilder =
+          ForwardMethodSourceCode.builder(newMethod);
+      forwardSourceCodeBuilder
+          .setTarget(origMethod)
+          .setInvokeType(Type.STATIC)
+          .setIsInterface(true);
       DexEncodedMethod newEncodedMethod =
           new DexEncodedMethod(
               newMethod,
@@ -234,17 +240,7 @@ final class InterfaceProcessor {
                   Constants.ACC_PUBLIC | Constants.ACC_STATIC | Constants.ACC_SYNTHETIC, false),
               DexAnnotationSet.empty(),
               ParameterAnnotationsList.empty(),
-              new SynthesizedCode(
-                  callerPosition ->
-                      new ForwardMethodSourceCode(
-                          null,
-                          newMethod,
-                          newMethod,
-                          null,
-                          origMethod,
-                          Type.STATIC,
-                          callerPosition,
-                          true /* isInterface */)));
+              new SynthesizedCode(forwardSourceCodeBuilder::build));
       newEncodedMethod.getMutableOptimizationInfo().markNeverInline();
       dispatchMethods.add(newEncodedMethod);
     }

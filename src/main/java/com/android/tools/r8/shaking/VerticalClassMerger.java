@@ -1886,16 +1886,16 @@ public class VerticalClassMerger {
 
     @Override
     public SourceCodeProvider getSourceCodeProvider() {
-      return callerPosition ->
-          new ForwardMethodSourceCode(
-              method.holder,
-              method,
-              originalMethod,
-              type == DIRECT ? method.holder : null,
-              invocationTarget,
-              type,
-              callerPosition,
-              isInterface);
+      ForwardMethodSourceCode.Builder forwardSourceCodeBuilder =
+          ForwardMethodSourceCode.builder(method);
+      forwardSourceCodeBuilder
+          .setReceiver(method.holder)
+          .setOriginalMethod(originalMethod)
+          .setTargetReceiver(type == DIRECT ? method.holder : null)
+          .setTarget(invocationTarget)
+          .setInvokeType(type)
+          .setIsInterface(isInterface);
+      return forwardSourceCodeBuilder::build;
     }
 
     @Override

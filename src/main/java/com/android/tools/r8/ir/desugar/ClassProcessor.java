@@ -112,22 +112,19 @@ final class ClassProcessor {
     MethodAccessFlags newFlags = defaultMethod.accessFlags.copy();
     // Some debuggers (like IntelliJ) automatically skip synthetic methods on single step.
     newFlags.setSynthetic();
+    ForwardMethodSourceCode.Builder forwardSourceCodeBuilder =
+        ForwardMethodSourceCode.builder(newMethod);
+    forwardSourceCodeBuilder
+        .setReceiver(clazz.type)
+        .setTarget(rewriter.defaultAsMethodOfCompanionClass(method))
+        .setInvokeType(Invoke.Type.STATIC)
+        .setIsInterface(target.isInterface());
     return new DexEncodedMethod(
         newMethod,
         newFlags,
         defaultMethod.annotations,
         defaultMethod.parameterAnnotationsList,
-        new SynthesizedCode(
-            callerPosition ->
-                new ForwardMethodSourceCode(
-                    clazz.type,
-                    newMethod,
-                    newMethod,
-                    null /* static method */,
-                    rewriter.defaultAsMethodOfCompanionClass(method),
-                    Invoke.Type.STATIC,
-                    callerPosition,
-                    target.isInterface())));
+        new SynthesizedCode(forwardSourceCodeBuilder::build));
   }
 
   // For a given class `clazz` inspects all interfaces it implements directly or

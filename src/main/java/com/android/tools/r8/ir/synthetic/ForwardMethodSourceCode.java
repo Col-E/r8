@@ -20,6 +20,87 @@ import java.util.List;
 // Source code representing simple forwarding method.
 public final class ForwardMethodSourceCode extends SyntheticSourceCode {
 
+  public static Builder builder(DexMethod method) {
+    return new Builder(method);
+  }
+
+  public static class Builder {
+
+    private DexType receiver;
+    private DexMethod method;
+    private DexMethod originalMethod;
+    private DexType targetReceiver;
+    private DexMethod target;
+    private Invoke.Type invokeType;
+    private boolean castResult;
+    private boolean isInterface;
+    private boolean extraNullParameter;
+
+    public Builder(DexMethod method) {
+      this.method = method;
+      this.originalMethod = method;
+    }
+
+    public Builder setReceiver(DexType receiver) {
+      this.receiver = receiver;
+      return this;
+    }
+
+    public Builder setMethod(DexMethod method) {
+      this.method = method;
+      return this;
+    }
+
+    public Builder setOriginalMethod(DexMethod originalMethod) {
+      this.originalMethod = originalMethod;
+      return this;
+    }
+
+    public Builder setTargetReceiver(DexType targetReceiver) {
+      this.targetReceiver = targetReceiver;
+      return this;
+    }
+
+    public Builder setTarget(DexMethod target) {
+      this.target = target;
+      return this;
+    }
+
+    public Builder setInvokeType(Type invokeType) {
+      this.invokeType = invokeType;
+      return this;
+    }
+
+    public Builder setCastResult() {
+      this.castResult = true;
+      return this;
+    }
+
+    public Builder setIsInterface(boolean isInterface) {
+      this.isInterface = isInterface;
+      return this;
+    }
+
+    public Builder setExtraNullParameter() {
+      this.extraNullParameter = true;
+      return this;
+    }
+
+    public ForwardMethodSourceCode build(Position callerPosition) {
+      return new ForwardMethodSourceCode(
+          receiver,
+          method,
+          originalMethod,
+          targetReceiver,
+          target,
+          invokeType,
+          callerPosition,
+          isInterface,
+          castResult,
+          extraNullParameter);
+    }
+  }
+
   private final DexType targetReceiver;
   private final DexMethod target;
   private final Invoke.Type invokeType;
@@ -27,51 +108,7 @@ public final class ForwardMethodSourceCode extends SyntheticSourceCode {
   private final boolean isInterface;
   private final boolean extraNullParameter;
 
-  public ForwardMethodSourceCode(
-      DexType receiver,
-      DexMethod method,
-      DexMethod originalMethod,
-      DexType targetReceiver,
-      DexMethod target,
-      Type invokeType,
-      Position callerPosition,
-      boolean isInterface) {
-    this(
-        receiver,
-        method,
-        originalMethod,
-        targetReceiver,
-        target,
-        invokeType,
-        callerPosition,
-        isInterface,
-        false);
-  }
-
-  public ForwardMethodSourceCode(
-      DexType receiver,
-      DexMethod method,
-      DexMethod originalMethod,
-      DexType targetReceiver,
-      DexMethod target,
-      Type invokeType,
-      Position callerPosition,
-      boolean isInterface,
-      boolean castResult) {
-    this(
-        receiver,
-        method,
-        originalMethod,
-        targetReceiver,
-        target,
-        invokeType,
-        callerPosition,
-        isInterface,
-        castResult,
-        false);
-  }
-
-  public ForwardMethodSourceCode(
+  protected ForwardMethodSourceCode(
       DexType receiver,
       DexMethod method,
       DexMethod originalMethod,

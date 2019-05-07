@@ -742,22 +742,19 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
         definitions.dexItemFactory().createMethod(method.holder, newProto, method.name);
     Builder builder = builder(this);
     builder.setMethod(newMethod);
+    ForwardMethodSourceCode.Builder forwardSourceCodeBuilder =
+        ForwardMethodSourceCode.builder(newMethod);
+    forwardSourceCodeBuilder
+        .setReceiver(holder.type)
+        .setTargetReceiver(holder.type)
+        .setTarget(method)
+        .setInvokeType(Invoke.Type.DIRECT)
+        .setExtraNullParameter();
     builder.setCode(
         new SynthesizedCode(
-            callerPosition ->
-                new ForwardMethodSourceCode(
-                    holder.type,
-                    newMethod,
-                    newMethod,
-                    holder.type,
-                    method,
-                    Invoke.Type.DIRECT,
-                    callerPosition,
-                    holder.isInterface(),
-                    false,
-                    true),
-            registry -> registry.registerInvokeDirect(method)));
+            forwardSourceCodeBuilder::build, registry -> registry.registerInvokeDirect(method)));
     assert !builder.accessFlags.isStatic();
+    assert !holder.isInterface();
     builder.accessFlags.unsetPrivate();
     builder.accessFlags.setSynthetic();
     builder.accessFlags.setConstructor();
@@ -820,18 +817,16 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     DexMethod newMethod = definitions.dexItemFactory().createMethod(holder.type, proto, newName);
     Builder builder = builder(this);
     builder.setMethod(newMethod);
+    ForwardMethodSourceCode.Builder forwardSourceCodeBuilder =
+        ForwardMethodSourceCode.builder(newMethod);
+    forwardSourceCodeBuilder
+        .setTargetReceiver(accessFlags.isStatic() ? null : method.holder)
+        .setTarget(method)
+        .setInvokeType(accessFlags.isStatic() ? Invoke.Type.STATIC : Invoke.Type.DIRECT)
+        .setIsInterface(holder.isInterface());
     builder.setCode(
         new SynthesizedCode(
-            callerPosition ->
-                new ForwardMethodSourceCode(
-                    null,
-                    newMethod,
-                    newMethod,
-                    accessFlags.isStatic() ? null : method.holder,
-                    method,
-                    accessFlags.isStatic() ? Invoke.Type.STATIC : Invoke.Type.DIRECT,
-                    callerPosition,
-                    holder.isInterface()),
+            forwardSourceCodeBuilder::build,
             registry -> {
               if (accessFlags.isStatic()) {
                 registry.registerInvokeStatic(method);
@@ -867,18 +862,17 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     } else {
       // Create code that forwards the call to the target.
       DexClass target = definitions.definitionFor(method.holder);
+      ForwardMethodSourceCode.Builder forwardSourceCodeBuilder =
+          ForwardMethodSourceCode.builder(newMethod);
+      forwardSourceCodeBuilder
+          .setReceiver(accessFlags.isStatic() ? null : holder.type)
+          .setTargetReceiver(accessFlags.isStatic() ? null : method.holder)
+          .setTarget(method)
+          .setInvokeType(type)
+          .setIsInterface(target.isInterface());
       builder.setCode(
           new SynthesizedCode(
-              callerPosition ->
-                  new ForwardMethodSourceCode(
-                      accessFlags.isStatic() ? null : holder.type,
-                      newMethod,
-                      newMethod,
-                      accessFlags.isStatic() ? null : method.holder,
-                      method,
-                      type,
-                      callerPosition,
-                      target.isInterface()),
+              forwardSourceCodeBuilder::build,
               registry -> {
                 if (accessFlags.isStatic()) {
                   registry.registerInvokeStatic(method);

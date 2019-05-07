@@ -150,24 +150,21 @@ public final class CovariantReturnTypeAnnotationTransformer {
     newAccessFlags.setBridge();
     newAccessFlags.setSynthetic();
     DexMethod newMethod = factory.createMethod(method.method.holder, newProto, method.method.name);
+    ForwardMethodSourceCode.Builder forwardSourceCodeBuilder =
+        ForwardMethodSourceCode.builder(newMethod);
+    forwardSourceCodeBuilder
+        .setReceiver(clazz.type)
+        .setTargetReceiver(method.method.holder)
+        .setTarget(method.method)
+        .setInvokeType(Invoke.Type.VIRTUAL)
+        .setCastResult();
     DexEncodedMethod newVirtualMethod =
         new DexEncodedMethod(
             newMethod,
             newAccessFlags,
             method.annotations.keepIf(x -> !isCovariantReturnTypeAnnotation(x.annotation)),
             method.parameterAnnotationsList.keepIf(Predicates.alwaysTrue()),
-            new SynthesizedCode(
-                callerPosition ->
-                    new ForwardMethodSourceCode(
-                        clazz.type,
-                        newMethod,
-                        newMethod,
-                        method.method.holder,
-                        method.method,
-                        Invoke.Type.VIRTUAL,
-                        callerPosition,
-                        false /* isInterface */,
-                        true /* castResult */)));
+            new SynthesizedCode(forwardSourceCodeBuilder::build));
     // Optimize to generate DexCode instead of SynthesizedCode.
     converter.optimizeSynthesizedMethod(newVirtualMethod);
     return newVirtualMethod;
