@@ -81,6 +81,7 @@ public class Inliner {
 
   public boolean isBlackListed(DexMethod method) {
     return blackList.contains(appView.graphLense().getOriginalMethodSignature(method))
+        || appView.appInfo().isPinned(method)
         || appView.appInfo().neverInline.contains(method)
         || TwrCloseResourceRewriter.isSynthesizedCloseResourceMethod(method, appView);
   }

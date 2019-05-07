@@ -152,7 +152,6 @@ public class InstanceOfRemovalTest extends TestBase {
         testForR8(backend)
             .addProgramClasses(A.class, B.class, TestClass.class)
             .addKeepMainRule(TestClass.class)
-            .addKeepAllClassesRule()
             .enableInliningAnnotations()
             .run(TestClass.class)
             .assertSuccessWithOutput(expected)

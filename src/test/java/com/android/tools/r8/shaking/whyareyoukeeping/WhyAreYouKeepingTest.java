@@ -46,7 +46,7 @@ public class WhyAreYouKeepingTest extends TestBase {
       StringUtils.lines(
           "com.android.tools.r8.shaking.whyareyoukeeping.A",
           "|- is referenced in keep rule:",
-          "|  -keep class com.android.tools.r8.shaking.whyareyoukeeping.A { foo(); }");
+          "|  -keep class com.android.tools.r8.shaking.whyareyoukeeping.A { void foo(); }");
 
   // TODO(b/120959039): This should be "- is invoked from:\n  com.android.....A.bar()" etc.
   public static final String expectedPathToBaz =
@@ -55,7 +55,7 @@ public class WhyAreYouKeepingTest extends TestBase {
           "|- is reachable from:",
           "|  com.android.tools.r8.shaking.whyareyoukeeping.A",
           "|- is referenced in keep rule:",
-          "|  -keep class com.android.tools.r8.shaking.whyareyoukeeping.A { foo(); }");
+          "|  -keep class com.android.tools.r8.shaking.whyareyoukeeping.A { void foo(); }");
 
   @Parameters(name = "{0}")
   public static Backend[] parameters() {

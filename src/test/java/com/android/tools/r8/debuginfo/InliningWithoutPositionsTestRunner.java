@@ -48,6 +48,7 @@ public class InliningWithoutPositionsTestRunner {
 
   private static final String TEST_CLASS = "InliningWithoutPositionsTestSource";
   private static final String TEST_PACKAGE = "com.android.tools.r8.debuginfo";
+  private static final String MAIN_CLASS = TEST_PACKAGE + "." + TEST_CLASS;
 
   @ClassRule public static TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
@@ -123,7 +124,10 @@ public class InliningWithoutPositionsTestRunner {
           .setOutput(outputPath, OutputMode.ClassFile);
     }
     builder
-        .setDisableTreeShaking(true)
+        .addProguardConfiguration(
+            ImmutableList.of(
+                "-keep class " + MAIN_CLASS + " { public static void main(java.lang.String[]); }"),
+            Origin.unknown())
         .setDisableMinification(true)
         .addProguardConfiguration(
             ImmutableList.of("-keepattributes SourceFile,LineNumberTable"), Origin.unknown());
@@ -134,11 +138,11 @@ public class InliningWithoutPositionsTestRunner {
     if (backend == Backend.DEX) {
       ArtCommandBuilder artCommandBuilder = new ArtCommandBuilder();
       artCommandBuilder.appendClasspath(outputPath.resolve("classes.dex").toString());
-      artCommandBuilder.setMainClass(TEST_PACKAGE + "." + TEST_CLASS);
+      artCommandBuilder.setMainClass(MAIN_CLASS);
 
       result = ToolHelper.runArtRaw(artCommandBuilder);
     } else {
-      result = ToolHelper.runJava(outputPath, TEST_PACKAGE + "." + TEST_CLASS);
+      result = ToolHelper.runJava(outputPath, MAIN_CLASS);
     }
     assertNotEquals(result.exitCode, 0);
 

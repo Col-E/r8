@@ -130,7 +130,7 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
           RR extends TestRunResult<RR>,
           T extends TestShrinkerBuilder<C, B, CR, RR, T>>
       T buildWithMembersRule(TestShrinkerBuilder<C, B, CR, RR, T> builder) {
-    return buildWithMembersRuleAllowRenaming(builder).noMinification();
+    return buildWithMembersRuleEnableMinification(builder).noMinification();
   }
 
   private <CR extends TestCompileResult<CR, RR>, RR extends TestRunResult<RR>>
@@ -159,6 +159,8 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
   }
 
   @Test
+  @Ignore("b/119076934")
+  // TODO(b/119076934): Fails because the compat rule is applied regardless of mode, keeping Bar.
   public void testWithMembersRuleFullR8() throws Exception {
     // In full mode for R8 we do *not* expect a -keepclassmembers to cause retention of the class.
     assertBarIsAbsent(buildWithMembersRule(testForR8(parameters.getBackend())).compile());
@@ -172,7 +174,7 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
           CR extends TestCompileResult<CR, RR>,
           RR extends TestRunResult<RR>,
           T extends TestShrinkerBuilder<C, B, CR, RR, T>>
-      T buildWithMembersRuleAllowRenaming(TestShrinkerBuilder<C, B, CR, RR, T> builder) {
+      T buildWithMembersRuleEnableMinification(TestShrinkerBuilder<C, B, CR, RR, T> builder) {
     return builder
         .addProgramClasses(CLASSES)
         .addKeepMainRule(MAIN_CLASS)
@@ -180,7 +182,7 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
   }
 
   private <CR extends TestCompileResult<CR, RR>, RR extends TestRunResult<RR>>
-      void assertMembersRuleAllowRenamingCompatResult(CR compileResult) throws Exception {
+      void assertMembersRuleEnableMinificationCompatResult(CR compileResult) throws Exception {
     compileResult
         .inspect(
             inspector -> {
@@ -207,23 +209,23 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
   }
 
   @Test
-  public void testWithMembersRuleAllowRenamingPG() throws Exception {
-    assertMembersRuleAllowRenamingCompatResult(
-        buildWithMembersRuleAllowRenaming(testForProguard()).compile());
+  public void testWithMembersRuleEnableMinificationPG() throws Exception {
+    assertMembersRuleEnableMinificationCompatResult(
+        buildWithMembersRuleEnableMinification(testForProguard()).compile());
+  }
+
+  @Test
+  public void testWithMembersRuleEnableMinificationCompatR8() throws Exception {
+    assertMembersRuleEnableMinificationCompatResult(
+        buildWithMembersRuleEnableMinification(testForR8Compat(parameters.getBackend())).compile());
   }
 
   @Test
   @Ignore("b/119076934")
-  // TODO(b/119076934): This fails the Bar.instance() is not inlined check.
-  public void testWithMembersRuleAllowRenamingCompatR8() throws Exception {
-    assertMembersRuleAllowRenamingCompatResult(
-        buildWithMembersRuleAllowRenaming(testForR8Compat(parameters.getBackend())).compile());
-  }
-
-  @Test
-  public void testWithMembersRuleAllowRenamingFullR8() throws Exception {
+  // TODO(b/119076934): Fails because the compat rule is applied regardless of mode, keeping Bar.
+  public void testWithMembersRuleEnableMinificationFullR8() throws Exception {
     assertBarIsAbsent(
-        buildWithMembersRuleAllowRenaming(testForR8(parameters.getBackend())).compile());
+        buildWithMembersRuleEnableMinification(testForR8(parameters.getBackend())).compile());
   }
 
   // Tests for "-keepclassmembers class Bar", i.e, with no members specified.
@@ -268,7 +270,7 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
           RR extends TestRunResult<RR>,
           T extends TestShrinkerBuilder<C, B, CR, RR, T>>
       T buildWithMemberNamesRule(TestShrinkerBuilder<C, B, CR, RR, T> builder) {
-    return buildWithMemberNamesRuleAllowRenaming(builder).noMinification();
+    return buildWithMemberNamesRuleEnableMinification(builder).noMinification();
   }
 
   private <CR extends TestCompileResult<CR, RR>, RR extends TestRunResult<RR>>
@@ -319,7 +321,7 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
           CR extends TestCompileResult<CR, RR>,
           RR extends TestRunResult<RR>,
           T extends TestShrinkerBuilder<C, B, CR, RR, T>>
-      T buildWithMemberNamesRuleAllowRenaming(TestShrinkerBuilder<C, B, CR, RR, T> builder) {
+      T buildWithMemberNamesRuleEnableMinification(TestShrinkerBuilder<C, B, CR, RR, T> builder) {
     return builder
         .addProgramClasses(CLASSES)
         .addKeepMainRule(MAIN_CLASS)
@@ -327,7 +329,7 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
   }
 
   private <CR extends TestCompileResult<CR, RR>, RR extends TestRunResult<RR>>
-      void assertMemberNamesRuleAllowRenamingCompatResult(CR compileResult) throws Exception {
+      void assertMemberNamesRuleEnableMinificationCompatResult(CR compileResult) throws Exception {
     compileResult
         .inspect(
             inspector -> {
@@ -350,22 +352,23 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
   }
 
   @Test
-  public void testWithMemberNamesRuleAllowRenamingPG() throws Exception {
-    assertMemberNamesRuleAllowRenamingCompatResult(
-        buildWithMemberNamesRuleAllowRenaming(testForProguard()).compile());
+  public void testWithMemberNamesRuleEnableMinificationPG() throws Exception {
+    assertMemberNamesRuleEnableMinificationCompatResult(
+        buildWithMemberNamesRuleEnableMinification(testForProguard()).compile());
   }
 
   @Test
   @Ignore("b/119076934")
   // TODO(b/119076934): This fails the Bar.instance() is not inlined check.
-  public void testWithMemberNamesRuleAllowRenamingCompatR8() throws Exception {
-    assertMemberNamesRuleAllowRenamingCompatResult(
-        buildWithMemberNamesRuleAllowRenaming(testForR8Compat(parameters.getBackend())).compile());
+  public void testWithMemberNamesRuleEnableMinificationCompatR8() throws Exception {
+    assertMemberNamesRuleEnableMinificationCompatResult(
+        buildWithMemberNamesRuleEnableMinification(testForR8Compat(parameters.getBackend()))
+            .compile());
   }
 
   @Test
-  public void testWithMemberNamesRuleAllowRenamingFullR8() throws Exception {
+  public void testWithMemberNamesRuleEnableMinificationFullR8() throws Exception {
     assertBarIsAbsent(
-        buildWithMemberNamesRuleAllowRenaming(testForR8(parameters.getBackend())).compile());
+        buildWithMemberNamesRuleEnableMinification(testForR8(parameters.getBackend())).compile());
   }
 }

@@ -145,7 +145,11 @@ public abstract class TestShrinkerBuilder<
   private static String getMethodLine(MethodReference method) {
     // Should we encode modifiers in method references?
     StringBuilder builder = new StringBuilder();
-    builder.append(method.getMethodName()).append("(");
+    builder
+        .append(method.getReturnType() == null ? "void" : method.getReturnType().getTypeName())
+        .append(' ')
+        .append(method.getMethodName())
+        .append("(");
     boolean first = true;
     for (TypeReference parameterType : method.getFormalTypes()) {
       if (!first) {

@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.neverreturnsnormally;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -60,7 +61,6 @@ public class NeverReturnsNormallyTest extends TestBase {
             "-keep class " + TestClass.class.getCanonicalName() + "{",
             "  public static void main(java.lang.String[]);",
             "  *** test*(...);",
-            "  *** throwToBeInlined(...);",
             "  *** outerTrivial(...);",
             "}",
             "",
@@ -103,23 +103,27 @@ public class NeverReturnsNormallyTest extends TestBase {
     // Check the instruction used for testInlinedIntoVoidMethod
     MethodSubject methodThrowToBeInlined =
         clazz.method("int", "throwToBeInlined", ImmutableList.of());
-    assertTrue(methodThrowToBeInlined.isPresent());
-    Iterator<InstructionSubject> instructions = methodThrowToBeInlined.iterateInstructions();
-    // Call, followed by throw null.
-    InstructionSubject insn = nextInstructionSkippingCfPositionAndLabel(instructions);
-    assertTrue(insn != null && insn.isConstString(JumboStringMode.ALLOW));
-    insn = nextInstruction(instructions);
-    assertTrue(insn.isInvoke());
-    assertTrue(((InvokeInstructionSubject) insn)
-        .invokedMethod().name.toString().equals("throwNpe"));
-    verifyTrailingPattern(instructions);
+    boolean expectedToBePresent = mode == CompilationMode.DEBUG;
+    assertEquals(expectedToBePresent, methodThrowToBeInlined.isPresent());
+    if (expectedToBePresent) {
+      Iterator<InstructionSubject> instructions = methodThrowToBeInlined.iterateInstructions();
+      // Call, followed by throw null.
+      InstructionSubject insn = nextInstructionSkippingCfPositionAndLabel(instructions);
+      assertTrue(insn != null && insn.isConstString(JumboStringMode.ALLOW));
+      insn = nextInstruction(instructions);
+      assertTrue(insn.isInvoke());
+      assertTrue(((InvokeInstructionSubject) insn)
+          .invokedMethod().name.toString().equals("throwNpe"));
+      verifyTrailingPattern(instructions);
+    }
 
     // Check the instruction used for testInlinedIntoVoidMethod
     MethodSubject methodTestInlinedIntoVoidMethod =
         clazz.method("void", "testInlinedIntoVoidMethod", ImmutableList.of());
     assertTrue(methodTestInlinedIntoVoidMethod.isPresent());
-    instructions = methodTestInlinedIntoVoidMethod.iterateInstructions();
-    insn = nextInstructionSkippingCfPositionAndLabel(instructions);
+    Iterator<InstructionSubject> instructions =
+        methodTestInlinedIntoVoidMethod.iterateInstructions();
+    InstructionSubject insn = nextInstructionSkippingCfPositionAndLabel(instructions);
     if (mode == CompilationMode.DEBUG) {
       // Not inlined call to throwToBeInlined.
       assertTrue(insn.isInvoke());

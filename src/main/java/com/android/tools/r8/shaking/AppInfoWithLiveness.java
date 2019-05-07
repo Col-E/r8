@@ -690,7 +690,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
 
   public boolean mayPropagateValueFor(DexReference reference) {
     assert checkIfObsolete();
-    return !neverPropagateValue.contains(reference);
+    return !isPinned(reference) && !neverPropagateValue.contains(reference);
   }
 
   private boolean isLibraryOrClasspathField(DexField field) {

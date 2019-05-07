@@ -36,6 +36,7 @@ public class DebugInfoWhenInliningTest extends DebugTestBase {
     DEX_FORCE_JUMBO
   };
 
+  private static final String CLASS_NAME = "Inlining1";
   private static final String SOURCE_FILE = "Inlining1.java";
 
   private DebugTestConfig makeConfig(
@@ -50,7 +51,12 @@ public class DebugInfoWhenInliningTest extends DebugTestBase {
         R8Command.builder()
             .addProgramFiles(DEBUGGEE_JAR)
             .setMode(CompilationMode.RELEASE)
-            .setDisableTreeShaking(true)
+            .addProguardConfiguration(
+                ImmutableList.of(
+                    "-keep class "
+                        + CLASS_NAME
+                        + " { public static void main(java.lang.String[]); }"),
+                Origin.unknown())
             .setDisableMinification(true)
             .addProguardConfiguration(
                 ImmutableList.of("-keepattributes SourceFile,LineNumberTable"), Origin.unknown());
@@ -175,11 +181,10 @@ public class DebugInfoWhenInliningTest extends DebugTestBase {
   private void testEachLine(
       DebugTestConfig config, int[] lineNumbers, List<List<SignatureAndLine>> inlineFramesList)
       throws Throwable {
-    final String className = "Inlining1";
     final String mainSignature = "([Ljava/lang/String;)V";
 
     List<Command> commands = new ArrayList<Command>();
-    commands.add(breakpoint(className, "main", mainSignature));
+    commands.add(breakpoint(CLASS_NAME, "main", mainSignature));
     commands.add(run());
     boolean first = true;
     assert inlineFramesList == null || inlineFramesList.size() == lineNumbers.length;
@@ -189,13 +194,13 @@ public class DebugInfoWhenInliningTest extends DebugTestBase {
       } else {
         commands.add(stepOver());
       }
-      commands.add(checkMethod(className, "main", mainSignature));
+      commands.add(checkMethod(CLASS_NAME, "main", mainSignature));
       commands.add(checkLine(SOURCE_FILE, lineNumbers[idx]));
       if (inlineFramesList != null) {
         commands.add(checkInlineFrames(inlineFramesList.get(idx)));
       }
     }
     commands.add(run());
-    runDebugTest(config, className, commands);
+    runDebugTest(config, CLASS_NAME, commands);
   }
 }
