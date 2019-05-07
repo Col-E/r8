@@ -135,12 +135,12 @@ public class GetSimpleNameTest extends GetNameTestBase {
       "Outer$Inner"
   );
   private static final String RENAMED_OUTPUT = StringUtils.lines(
-      "c",
+      "d",
       "a",
       "a",
       "a",
+      "c[][][]",
       "b[][][]",
-      "[][][]",
       "a",
       "a"
   );
@@ -215,7 +215,7 @@ public class GetSimpleNameTest extends GetNameTestBase {
             .addKeepMainRule(MAIN)
             .addKeepRules("-keep class **.ClassGetSimpleName*")
             .addKeepRules("-keep class **.Outer*")
-            .addKeepRules("-keepattributes InnerClasses,EnclosingMethod")
+            .addKeepAttributes("InnerClasses", "EnclosingMethod")
             .addKeepRules("-printmapping " + createNewMappingPath().toAbsolutePath().toString())
             .minification(enableMinification)
             .setMinApi(parameters.getRuntime())
@@ -238,7 +238,7 @@ public class GetSimpleNameTest extends GetNameTestBase {
             // Comment out the following line to reproduce b/120130435
             // then use OUTPUT_WITH_SHRUNK_ATTRIBUTES
             .addKeepRules("-keep,allowobfuscation class **.Outer*")
-            .addKeepRules("-keepattributes InnerClasses,EnclosingMethod")
+            .addKeepAttributes("InnerClasses", "EnclosingMethod")
             .addKeepRules("-printmapping " + createNewMappingPath().toAbsolutePath().toString())
             .minification(enableMinification)
             .setMinApi(parameters.getRuntime())

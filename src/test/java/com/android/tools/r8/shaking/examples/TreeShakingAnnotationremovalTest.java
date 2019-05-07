@@ -96,7 +96,7 @@ public class TreeShakingAnnotationremovalTest extends TreeShakingTest {
     Assert.assertFalse(inner.isLocalClass());
     ClassSubject anonymous = inspector.clazz("annotationremoval.OuterClass$1");
     Assert.assertTrue(anonymous.isPresent());
-    Assert.assertTrue(anonymous.isAnonymousClass());
+    Assert.assertEquals(!getMinify().isMinify(), anonymous.isAnonymousClass());
     Assert.assertFalse(anonymous.isMemberClass());
     Assert.assertFalse(anonymous.isLocalClass());
     ClassSubject local = inspector.clazz("annotationremoval.OuterClass$1LocalMagic");

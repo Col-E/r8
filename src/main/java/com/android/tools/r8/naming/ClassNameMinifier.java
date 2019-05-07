@@ -25,6 +25,7 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
 import com.android.tools.r8.utils.Timing;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -113,16 +114,19 @@ class ClassNameMinifier {
 
     timing.begin("rename-classes");
     for (DexClass clazz : classes) {
-      // Let anonymous classes be as-is.
-      if (clazz.isAnonymousClass()) {
-        continue;
-      }
       if (!renaming.containsKey(clazz.type)) {
+        boolean wasAnonymous = clazz.isAnonymousClass();
         // TreePruner already removed inner-class / enclosing-method attributes for local classes.
         assert !clazz.isLocalClass();
         clazz.annotations = clazz.annotations.keepIf(this::isNotKotlinMetadata);
         DexString renamed = computeName(clazz.type);
         renaming.put(clazz.type, renamed);
+        // Then-anonymous class is no longer anonymous after minification. Remaining attributes
+        // may make the computation of simple name fail on JVM prior to JDK 9.
+        if (wasAnonymous) {
+          clazz.removeEnclosingMethod(Predicates.alwaysTrue());
+          clazz.removeInnerClasses(attr -> attr.getInner() == clazz.type);
+        }
         // If the class is a member class and it has used $ separator, its renamed name should have
         // the same separator (as long as inner-class attribute is honored).
         assert !keepInnerClassStructure

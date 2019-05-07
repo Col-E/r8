@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking.attributes;
 
-import com.android.tools.r8.R8FullTestBuilder;
+import com.android.tools.r8.R8CompatTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.errors.Unreachable;
@@ -74,7 +74,7 @@ public class MissingEnclosingMethodTest extends TestBase {
     DUMP_18,
     DUMP_16;
 
-    public void addInnerClasses(R8FullTestBuilder builder) throws IOException {
+    public void addInnerClasses(R8CompatTestBuilder builder) throws IOException {
       switch (this) {
         case CLASS:
           builder.addInnerClasses(DataClass.class);
@@ -101,7 +101,8 @@ public class MissingEnclosingMethodTest extends TestBase {
         BooleanUtils.values());
   }
 
-  public MissingEnclosingMethodTest(TestParameters parameters, TestConfig config, boolean enableMinification) {
+  public MissingEnclosingMethodTest(
+      TestParameters parameters, TestConfig config, boolean enableMinification) {
     this.parameters = parameters;
     this.config = config;
     this.enableMinification = enableMinification;
@@ -109,14 +110,13 @@ public class MissingEnclosingMethodTest extends TestBase {
 
   @Test
   public void b131210377() throws Exception {
-    R8FullTestBuilder builder =
-        testForR8(parameters.getBackend())
+    R8CompatTestBuilder builder =
+        testForR8Compat(parameters.getBackend())
             .addProgramClasses(DataClass.class, DataClassUser.class);
     config.addInnerClasses(builder);
     builder
         .addKeepMainRule(DataClassUser.class)
-        .addKeepRules("-keepattributes Signature,InnerClasses,EnclosingMethod")
-        .addOptionsModification(o -> o.forceProguardCompatibility = true)
+        .addKeepAttributes("Signature", "InnerClasses", "EnclosingMethod")
         .minification(enableMinification)
         .setMinApi(parameters.getRuntime())
         .run(parameters.getRuntime(), DataClassUser.class)

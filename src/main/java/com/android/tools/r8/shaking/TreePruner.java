@@ -119,12 +119,11 @@ public class TreePruner {
     if (reachableStaticFields != null) {
       clazz.setStaticFields(reachableStaticFields);
     }
-    // If the class is a local class, it'll become an ordinary class by renaming.
+    // If the class is local, it'll become an ordinary class by renaming.
     // Invalidate its inner-class / enclosing-method attributes early.
     if (appView.options().isMinifying()
         && appView.rootSet().mayBeMinified(clazz.type, appView)
         && clazz.isLocalClass()) {
-      assert clazz.getEnclosingMethod() != null;
       assert clazz.getInnerClassAttributeForThisClass() != null;
       clazz.removeEnclosingMethod(Predicates.alwaysTrue());
       InnerClassAttribute innerClassAttribute =
