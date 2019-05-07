@@ -2,12 +2,17 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.desugar.NestAccessControl;
+package com.android.tools.r8.desugar.nestaccesscontrol;
 
+import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
+import static java.util.stream.Collectors.toList;
+import static org.hamcrest.core.StringContains.containsString;
+import static org.hamcrest.core.StringEndsWith.endsWith;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8TestCompileResult;
@@ -26,8 +31,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import org.hamcrest.Matcher;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -37,9 +45,29 @@ import org.junit.runners.Parameterized.Parameters;
 public class NestAccessControlTest extends TestBase {
 
   private static final Path JAR =
-      Paths.get(ToolHelper.EXAMPLES_JAVA11_BUILD_DIR).resolve("nestHostExample" + JAR_EXTENSION);
+      Paths.get(ToolHelper.EXAMPLES_JAVA11_JAR_DIR).resolve("nestHostExample" + JAR_EXTENSION);
+  private static final Path CLASSES_PATH =
+      Paths.get(ToolHelper.EXAMPLES_JAVA11_BUILD_DIR).resolve("nestHostExample/");
   private static final String PACKAGE_NAME = "nestHostExample.";
   private static final int NUMBER_OF_TEST_CLASSES = 15;
+
+  private static final List<String> CLASS_NAMES =
+      ImmutableList.of(
+          "BasicNestHostWithInnerClassFields",
+          "BasicNestHostWithInnerClassFields$BasicNestedClass",
+          "BasicNestHostWithInnerClassMethods",
+          "BasicNestHostWithInnerClassMethods$BasicNestedClass",
+          "BasicNestHostWithInnerClassConstructors",
+          "BasicNestHostWithInnerClassConstructors$BasicNestedClass",
+          "BasicNestHostWithAnonymousInnerClass",
+          "BasicNestHostWithAnonymousInnerClass$1",
+          "BasicNestHostWithAnonymousInnerClass$InterfaceForAnonymousClass",
+          "NestHostExample",
+          "NestHostExample$NestMemberInner",
+          "NestHostExample$NestMemberInner$NestMemberInnerInner",
+          "NestHostExample$StaticNestMemberInner",
+          "NestHostExample$StaticNestMemberInner$StaticNestMemberInnerInner",
+          "NestHostExample$StaticNestInterfaceInner");
 
   private static final ImmutableMap<String, String> MAIN_CLASSES =
       ImmutableMap.of(
@@ -193,5 +221,66 @@ public class NestAccessControlTest extends TestBase {
                     dexClass.getNestHostClassAttribute().getNestHost().getName()));
           }
         });
+  }
+
+  private void compileClassesMatching(Matcher<String> matcher, boolean d8) throws Exception {
+    List<Path> matchingClasses =
+        CLASS_NAMES.stream()
+            .filter(matcher::matches)
+            .map(name -> CLASSES_PATH.resolve(name + CLASS_EXTENSION))
+            .collect(toList());
+    if (d8) {
+      testForD8()
+          .setMinApi(parameters.getApiLevel())
+          .addProgramFiles(matchingClasses)
+          .addOptionsModification(options -> options.enableNestBasedAccessDesugaring = true)
+          .compile();
+    } else {
+      testForR8(parameters.getBackend())
+          .noTreeShaking()
+          .noMinification()
+          .addKeepAllAttributes()
+          .setMinApi(parameters.getApiLevel())
+          .addProgramFiles(matchingClasses)
+          .addOptionsModification(options -> options.enableNestBasedAccessDesugaring = true)
+          .compile();
+    }
+  }
+
+  private void testMissingNestHostError(boolean d8) {
+    try {
+      Matcher<String> innerClassMatcher =
+          containsString("BasicNestHostWithInnerClassMethods$BasicNestedClass");
+      compileClassesMatching(innerClassMatcher, d8);
+      fail("Should have raised an exception for missing nest host");
+    } catch (Exception e) {
+      assertTrue(e.getCause().getMessage().contains("requires its nest host"));
+    }
+  }
+
+  private void testIncompleteNestError(boolean d8) {
+    try {
+      Matcher<String> innerClassMatcher = endsWith("BasicNestHostWithInnerClassMethods");
+      compileClassesMatching(innerClassMatcher, d8);
+      fail("Should have raised an exception for incomplete nest");
+    } catch (Exception e) {
+      assertTrue(e.getCause().getMessage().contains("requires its nest mates"));
+    }
+  }
+
+  @Test
+  public void testErrorD8() {
+    // TODO (b/132147492): use diagnosis handler
+    Assume.assumeTrue(parameters.isDexRuntime());
+    testMissingNestHostError(true);
+    testIncompleteNestError(true);
+  }
+
+  @Test
+  public void testErrorR8() {
+    // TODO (b/132147492): use diagnosis handler
+    Assume.assumeTrue(parameters.isDexRuntime());
+    testMissingNestHostError(false);
+    testIncompleteNestError(false);
   }
 }
