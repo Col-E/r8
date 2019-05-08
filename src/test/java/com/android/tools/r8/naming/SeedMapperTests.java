@@ -16,6 +16,7 @@ import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.Reporter;
 import java.io.IOException;
 import java.nio.file.Path;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class SeedMapperTests extends TestBase {
@@ -161,5 +162,33 @@ public class SeedMapperTests extends TestBase {
           diagnostic.getDiagnosticMessage());
       assertEquals(2, ((TextPosition) diagnostic.getPosition()).getLine());
     }
+  }
+
+  @Ignore("b/131349062")
+  @Test
+  public void testInliningFrames() throws IOException {
+    Path applyMappingFile =
+        getApplyMappingFile(
+            "A.B.C -> a:",
+            "  int foo(A) -> a",
+            "  1:2:int bar(A):3 -> a");
+    TestDiagnosticMessagesImpl testDiagnosticMessages = new TestDiagnosticMessagesImpl();
+    Reporter reporter = new Reporter(testDiagnosticMessages);
+    SeedMapper.seedMapperFromFile(reporter, applyMappingFile);
+  }
+
+  @Ignore("b/131349062")
+  @Test
+  public void testDuplicateInliningFrames() throws IOException {
+    Path applyMappingFile =
+        getApplyMappingFile(
+            "A.B.C -> a:",
+            "  int foo(Z) -> a",
+            "  1:1:int bar(A):3 -> a",
+            "  2:2:int baz(B):4 -> a",
+            "  3:3:int bar(A):5 -> a");
+    TestDiagnosticMessagesImpl testDiagnosticMessages = new TestDiagnosticMessagesImpl();
+    Reporter reporter = new Reporter(testDiagnosticMessages);
+    SeedMapper.seedMapperFromFile(reporter, applyMappingFile);
   }
 }
