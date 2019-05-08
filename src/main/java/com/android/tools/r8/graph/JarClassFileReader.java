@@ -484,6 +484,10 @@ public class JarClassFileReader {
     private int getMinorVersion() {
       return ((version >> 16) & 0xFFFF);
     }
+
+    public boolean isInANest() {
+      return !nestMembers.isEmpty() || nestHost != null;
+    }
   }
 
   private static DexAnnotationSet createAnnotationSet(
@@ -731,9 +735,10 @@ public class JarClassFileReader {
 
     private boolean classRequiresCode() {
       return parent.classKind == ClassKind.PROGRAM
-          || parent.application.options.enableNestBasedAccessDesugaring
+          || (parent.application.options.enableNestBasedAccessDesugaring
+              && !parent.application.options.canUseNestBasedAccess()
               && parent.classKind == ClassKind.CLASSPATH
-              && (!parent.nestMembers.isEmpty() || parent.nestHost != null);
+              && parent.isInANest());
     }
 
     @Override
