@@ -143,7 +143,7 @@ public class AssumenosideeffectsWithMultipleTargetsTest extends TestBase {
             break;
           case RULE_WITH_IMPLEMENTS:
             assertThat(testInvokeInterface, isPresent());
-            // TODO(b/130804193): upwards propagation of member rules.
+            // TODO(b/132216744): upwards propagation of member rules.
             assertEquals(
                 1,
                 Streams.stream(testInvokeInterface.iterateInstructions(
