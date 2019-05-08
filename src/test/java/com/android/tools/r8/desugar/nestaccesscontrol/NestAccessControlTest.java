@@ -94,10 +94,10 @@ public class NestAccessControlTest extends TestBase {
       ImmutableMap.of(
           "fields",
               StringUtils.lines(
-                  "RWnestFieldRWRWnestFieldRWRWnestField", "RWfieldRWRWfieldRWRWnestField"),
+                  "RWnestFieldRWRWnestFieldRWRWnestFieldnoBridge", "RWfieldRWRWfieldRWRWnestField"),
           "methods",
               StringUtils.lines(
-                  "nestMethodstaticNestMethodstaticNestMethod",
+                  "nestMethodstaticNestMethodstaticNestMethodnoBridge",
                   "hostMethodstaticHostMethodstaticNestMethod"),
           "constructors", StringUtils.lines("field", "nest1SField"),
           "anonymous",
