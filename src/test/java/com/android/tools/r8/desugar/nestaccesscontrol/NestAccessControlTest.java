@@ -27,6 +27,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
@@ -204,6 +205,32 @@ public class NestAccessControlTest extends TestBase {
     testR8("constructors");
     testR8("anonymous");
     testR8("all");
+  }
+
+  private void assertOnlyRequiredBridges(CodeInspector inspector) {
+    // The following 2 classes have an extra private member which does not require a bridge.
+
+    // Two bridges for method and staticMethod.
+    int methodNumBridges = parameters.isCfRuntime() ? 0 : 2;
+    ClassSubject methodMainClass = inspector.clazz(getMainClass("methods"));
+    assertEquals(
+        methodNumBridges, methodMainClass.allMethods(FoundMethodSubject::isSynthetic).size());
+
+    // Four bridges for field and staticField, both get & set.
+    int fieldNumBridges = parameters.isCfRuntime() ? 0 : 4;
+    ClassSubject fieldMainClass = inspector.clazz(getMainClass("fields"));
+    assertEquals(
+        fieldNumBridges, fieldMainClass.allMethods(FoundMethodSubject::isSynthetic).size());
+  }
+
+  @Test
+  public void testOnlyRequiredBridges() throws Exception {
+    if (parameters.isDexRuntime()) {
+      d8CompilationResult.apply(parameters.getApiLevel()).inspect(this::assertOnlyRequiredBridges);
+    }
+    r8CompilationResult
+        .apply(parameters.getBackend(), parameters.getApiLevel())
+        .inspect(this::assertOnlyRequiredBridges);
   }
 
   private static void checkNestMateAttributes(CodeInspector inspector) {

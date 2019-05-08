@@ -6,6 +6,7 @@ package nestHostExample;
 
 public class BasicNestHostWithInnerClassFields {
 
+  private String fieldWithoutBridge = "noBridge";
   private String field = "field";
   private static String staticField = "staticField";
 
@@ -13,7 +14,7 @@ public class BasicNestHostWithInnerClassFields {
   public String accessNested(BasicNestedClass o) {
     o.field = "RW" + o.field;
     o.staticField = "RW" + o.field;
-    return o.field + o.staticField + BasicNestedClass.staticField;
+    return o.field + o.staticField + BasicNestedClass.staticField + fieldWithoutBridge;
   }
 
   public static class BasicNestedClass {

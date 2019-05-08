@@ -94,7 +94,7 @@ public class NestBasedAccessDesugaringRewriter extends NestBasedAccessDesugaring
       DexMethod method,
       Map<DexField, DexMethod> fieldToMethodMap) {
     DexMethod newTarget = fieldToMethodMap.get(fieldInstruction.getField());
-    if (newTarget != null && method != newTarget) {
+    if (newTarget != null && method.holder != newTarget.holder) {
       instructions.replaceCurrentInstruction(
           new InvokeStatic(newTarget, fieldInstruction.outValue(), fieldInstruction.inValues()));
     }
@@ -126,7 +126,7 @@ public class NestBasedAccessDesugaringRewriter extends NestBasedAccessDesugaring
                 new InvokeStatic(newTarget, invokeMethod.outValue(), invokeMethod.arguments()));
           } else {
             newTarget = initializerMap.get(methodCalled);
-            if (newTarget != null && encodedMethod.method != newTarget) {
+            if (newTarget != null && encodedMethod.method.holder != newTarget.holder) {
               // insert extra null value and replace call.
               instructions.previous();
               Value extraNullValue =

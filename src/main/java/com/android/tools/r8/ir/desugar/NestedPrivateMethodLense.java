@@ -164,10 +164,9 @@ public class NestedPrivateMethodLense extends NestedGraphLense {
       // All generated initializer bridges are direct.
       newType = Invoke.Type.DIRECT;
     }
-    if (newMethod == context) {
-      // Bridges should not rewrite themselves.
-      // TODO(b/130529338): Best would be that if we are in Class A and targeting class
-      // A private method, we do not rewrite it.
+    if (context != null && newMethod.holder == context.holder) {
+      // Without context we conservatively rewrite the method.
+      // Private calls inside a class do not need to be rewritten.
       return previous;
     }
     return new GraphLenseLookupResult(newMethod, newType);

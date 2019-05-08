@@ -6,6 +6,10 @@ package nestHostExample;
 
 public class BasicNestHostWithInnerClassMethods {
 
+  private String methodWithoutBridge() {
+    return "noBridge";
+  }
+
   private String method() {
     return "hostMethod";
   }
@@ -16,7 +20,7 @@ public class BasicNestHostWithInnerClassMethods {
 
   @SuppressWarnings("static-access") // we want to test that too.
   public String accessNested(BasicNestedClass o) {
-    return o.method() + o.staticMethod() + BasicNestedClass.staticMethod();
+    return o.method() + o.staticMethod() + BasicNestedClass.staticMethod() + methodWithoutBridge();
   }
 
   public static class BasicNestedClass {
