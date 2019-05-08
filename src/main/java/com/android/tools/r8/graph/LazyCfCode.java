@@ -828,7 +828,7 @@ public class LazyCfCode extends Code {
     }
   }
 
-  private static boolean verifyNoReparseContext(DexProgramClass owner) {
+  private static boolean verifyNoReparseContext(DexClass owner) {
     for (DexEncodedMethod method : owner.virtualMethods()) {
       Code code = method.getCode();
       assert code == null || !(code instanceof LazyCfCode) || ((LazyCfCode) code).context == null;

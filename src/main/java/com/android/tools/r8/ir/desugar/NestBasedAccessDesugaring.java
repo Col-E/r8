@@ -245,6 +245,10 @@ public abstract class NestBasedAccessDesugaring {
     }
   }
 
+  public static boolean isNestConstructor(DexType type) {
+    return type.getName().equals(NEST_CONSTRUCTOR_NAME);
+  }
+
   boolean registerFieldAccess(
       DexField field, boolean isGet, List<DexType> nest, DexClass currentClass) {
     if (field.holder == currentClass.type || !nest.contains(field.holder)) {

@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.Java8MethodRewriter;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
+import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -56,7 +57,7 @@ public class ProgramClassCollection extends ClassMap<DexProgramClass> {
 
   public static DexProgramClass resolveClassConflictImpl(DexProgramClass a, DexProgramClass b) {
     assert a.type == b.type;
-    // Currently only allow collapsing synthetic lambda, dispatch and twr-utility classes.
+    // Only allow collapsing synthetic lambda, nest constructor, dispatch and twr-utility classes.
     if (a.originatesFromDexResource()
         && b.originatesFromDexResource()
         && a.accessFlags.isSynthetic()
@@ -71,6 +72,7 @@ public class ProgramClassCollection extends ClassMap<DexProgramClass> {
     return LambdaRewriter.hasLambdaClassPrefix(a.type)
         || Java8MethodRewriter.hasJava8MethodRewritePrefix(a.type)
         || InterfaceMethodRewriter.hasDispatchClassSuffix(a.type)
+        || NestBasedAccessDesugaring.isNestConstructor(a.type)
         || a.type.descriptor.toString().equals(TwrCloseResourceRewriter.UTILITY_CLASS_DESCRIPTOR);
   }
 }

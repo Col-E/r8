@@ -411,8 +411,10 @@ public class JarClassFileReader {
           && getMajorVersion() > V1_6) {
         application.options.warningMissingEnclosingMember(clazz.type, clazz.origin, version);
       }
+      if (!clazz.isLibraryClass()) {
+        context.owner = clazz;
+      }
       if (clazz.isProgramClass()) {
-        context.owner = clazz.asProgramClass();
         clazz.asProgramClass().setInitialClassFileVersion(version);
       }
       classConsumer.accept(clazz);
@@ -727,9 +729,16 @@ public class JarClassFileReader {
       throw new Unreachable("visitCode() should not be called when SKIP_CODE is set");
     }
 
+    private boolean classRequiresCode() {
+      return parent.classKind == ClassKind.PROGRAM
+          || parent.application.options.enableNestBasedAccessDesugaring
+              && parent.classKind == ClassKind.CLASSPATH
+              && (!parent.nestMembers.isEmpty() || parent.nestHost != null);
+    }
+
     @Override
     public void visitEnd() {
-      if (!flags.isAbstract() && !flags.isNative() && parent.classKind == ClassKind.PROGRAM) {
+      if (!flags.isAbstract() && !flags.isNative() && classRequiresCode()) {
         if (parent.application.options.enableCfFrontend) {
           code = new LazyCfCode(method, parent.origin, parent.context, parent.application);
         } else {
@@ -962,7 +971,7 @@ public class JarClassFileReader {
     // from this to the actual JarCode, no other references would be left and the content can be
     // GC'd.
     public byte[] classCache;
-    public DexProgramClass owner;
+    public DexClass owner;
     public final List<Code> codeList = new ArrayList<>();
   }
 }

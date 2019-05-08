@@ -9,6 +9,7 @@ import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static java.util.stream.Collectors.toList;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.hamcrest.core.StringEndsWith.endsWith;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -27,6 +28,8 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
+import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;
@@ -223,7 +226,7 @@ public class NestAccessControlTest extends TestBase {
         });
   }
 
-  private void compileClassesMatching(Matcher<String> matcher, boolean d8) throws Exception {
+  private void compileOnlyClassesMatching(Matcher<String> matcher, boolean d8) throws Exception {
     List<Path> matchingClasses =
         CLASS_NAMES.stream()
             .filter(matcher::matches)
@@ -251,7 +254,7 @@ public class NestAccessControlTest extends TestBase {
     try {
       Matcher<String> innerClassMatcher =
           containsString("BasicNestHostWithInnerClassMethods$BasicNestedClass");
-      compileClassesMatching(innerClassMatcher, d8);
+      compileOnlyClassesMatching(innerClassMatcher, d8);
       fail("Should have raised an exception for missing nest host");
     } catch (Exception e) {
       assertTrue(e.getCause().getMessage().contains("requires its nest host"));
@@ -261,7 +264,7 @@ public class NestAccessControlTest extends TestBase {
   private void testIncompleteNestError(boolean d8) {
     try {
       Matcher<String> innerClassMatcher = endsWith("BasicNestHostWithInnerClassMethods");
-      compileClassesMatching(innerClassMatcher, d8);
+      compileOnlyClassesMatching(innerClassMatcher, d8);
       fail("Should have raised an exception for incomplete nest");
     } catch (Exception e) {
       assertTrue(e.getCause().getMessage().contains("requires its nest mates"));
@@ -282,5 +285,92 @@ public class NestAccessControlTest extends TestBase {
     Assume.assumeTrue(parameters.isDexRuntime());
     testMissingNestHostError(false);
     testIncompleteNestError(false);
+  }
+
+  private D8TestCompileResult compileClassesWithD8ProgramClassesMatching(Matcher<String> matcher)
+      throws Exception {
+    List<Path> matchingClasses =
+        CLASS_NAMES.stream()
+            .filter(matcher::matches)
+            .map(name -> CLASSES_PATH.resolve(name + CLASS_EXTENSION))
+            .collect(toList());
+    return testForD8()
+        .setMinApi(parameters.getApiLevel())
+        .addProgramFiles(matchingClasses)
+        .addClasspathFiles(JAR)
+        .addOptionsModification(options -> options.enableNestBasedAccessDesugaring = true)
+        .compile();
+  }
+
+  private static void assertBridges(CodeInspector inspector, int numBridges) {
+    for (FoundClassSubject clazz : inspector.allClasses()) {
+      if (!clazz.isSynthetic()) {
+        assertEquals(numBridges, clazz.allMethods(FoundMethodSubject::isSynthetic).size());
+      }
+    }
+  }
+
+  @Test
+  public void testD8NestPartiallyOnClassPath() throws Exception {
+    Assume.assumeTrue(parameters.isDexRuntime());
+    // 1 inner class.
+    D8TestCompileResult singleInner =
+        compileClassesWithD8ProgramClassesMatching(
+            containsString("BasicNestHostWithInnerClassMethods$BasicNestedClass"));
+    singleInner.inspect(inspector -> assertBridges(inspector, 2));
+    // Outer class.
+    D8TestCompileResult host =
+        compileClassesWithD8ProgramClassesMatching(endsWith("BasicNestHostWithInnerClassMethods"));
+    host.inspect(inspector -> assertBridges(inspector, 2));
+    // 2 inner classes.
+    D8TestCompileResult multipleInner =
+        compileClassesWithD8ProgramClassesMatching(
+            containsString("NestHostExample$StaticNestMemberInner"));
+    multipleInner.inspect(inspector -> assertBridges(inspector, 5));
+  }
+
+  private static void assertNestConstructor(CodeInspector inspector) {
+    assertTrue(inspector.allClasses().stream().anyMatch(FoundClassSubject::isSynthetic));
+  }
+
+  @Test
+  public void testD8NestPartiallyOnClassPathConstructor() throws Exception {
+    Assume.assumeTrue(parameters.isDexRuntime());
+    D8TestCompileResult inner =
+        compileClassesWithD8ProgramClassesMatching(
+            containsString("BasicNestHostWithInnerClassConstructors$BasicNestedClass"));
+    inner.inspect(
+        inspector -> {
+          assertBridges(inspector, 1);
+          assertNestConstructor(inspector);
+        });
+    D8TestCompileResult host =
+        compileClassesWithD8ProgramClassesMatching(
+            endsWith("BasicNestHostWithInnerClassConstructors"));
+    host.inspect(
+        inspector -> {
+          assertBridges(inspector, 1);
+          assertNestConstructor(inspector);
+        });
+  }
+
+  @Test
+  public void testD8NestPartiallyOnClassPathMerge() throws Exception {
+    // Multiple Nest Constructor classes have to be merged here.
+    Assume.assumeTrue(parameters.isDexRuntime());
+    D8TestCompileResult inner =
+        compileClassesWithD8ProgramClassesMatching(
+            containsString("BasicNestHostWithInnerClassConstructors$BasicNestedClass"));
+    D8TestCompileResult host =
+        compileClassesWithD8ProgramClassesMatching(
+            endsWith("BasicNestHostWithInnerClassConstructors"));
+    testForD8()
+        .addProgramFiles(inner.writeToZip(), host.writeToZip())
+        .setMinApi(parameters.getApiLevel())
+        .addOptionsModification(options -> options.enableNestBasedAccessDesugaring = true)
+        .compile()
+        .inspect(inspector -> assertEquals(3, inspector.allClasses().size()))
+        .run(parameters.getRuntime(), getMainClass("constructors"))
+        .assertSuccessWithOutput(getExpectedResult("constructors"));
   }
 }

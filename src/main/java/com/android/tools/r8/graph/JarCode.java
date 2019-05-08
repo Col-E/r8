@@ -388,7 +388,7 @@ public class JarCode extends Code {
     }
   }
 
-  private static boolean verifyNoReparseContext(DexProgramClass owner) {
+  private static boolean verifyNoReparseContext(DexClass owner) {
     for (DexEncodedMethod method : owner.virtualMethods()) {
       Code code = method.getCode();
       if (code != null && code.isJarCode()) {
