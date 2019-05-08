@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.conversion;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppInfo.ResolutionResult;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -270,6 +271,12 @@ public class CallGraphBuilder {
     @Override
     public boolean registerTypeReference(DexType type) {
       return false;
+    }
+
+    @Override
+    public void registerCallSite(DexCallSite callSite) {
+      registerMethodHandle(
+          callSite.bootstrapMethod, MethodHandleUse.NOT_ARGUMENT_TO_LAMBDA_METAFACTORY);
     }
   }
 
