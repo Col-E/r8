@@ -12,6 +12,10 @@ public class BasicNestHostWithInnerClassConstructors {
     this.field = field;
   }
 
+  private BasicNestHostWithInnerClassConstructors(int intVal) {
+    this.field = String.valueOf(intVal);
+  }
+
   public static BasicNestedClass createNestedInstance(String field) {
     return new BasicNestedClass(field);
   }
@@ -33,8 +37,11 @@ public class BasicNestHostWithInnerClassConstructors {
     BasicNestHostWithInnerClassConstructors outer = BasicNestedClass.createOuterInstance("field");
     BasicNestedClass inner =
         BasicNestHostWithInnerClassConstructors.createNestedInstance("nest1SField");
+    BasicNestHostWithInnerClassConstructors noBridge =
+        new BasicNestHostWithInnerClassConstructors(1);
 
     System.out.println(outer.field);
     System.out.println(inner.field);
+    System.out.println(noBridge.field);
   }
 }

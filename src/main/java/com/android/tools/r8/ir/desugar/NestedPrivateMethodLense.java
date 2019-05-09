@@ -48,7 +48,12 @@ public class NestedPrivateMethodLense extends NestedGraphLense {
     }
 
     public GraphLense build(GraphLense previousLense, DexType nestConstructorType) {
-      if (methodMap.isEmpty() && fieldMap.isEmpty()) {
+      if (methodMap.isEmpty()
+          && staticGetToMethodMap.isEmpty()
+          && staticPutToMethodMap.isEmpty()
+          && instanceGetToMethodMap.isEmpty()
+          && instancePutToMethodMap.isEmpty()
+          && initializerMap.isEmpty()) {
         return previousLense;
       }
       return new NestedPrivateMethodLense(
@@ -103,28 +108,44 @@ public class NestedPrivateMethodLense extends NestedGraphLense {
   }
 
   @Override
-  public DexMethod lookupStaticGetFieldForMethod(DexField field) {
-    return staticGetToMethodMap.get(field);
+  public DexMethod lookupStaticGetFieldForMethod(DexField field, DexMethod context) {
+    return lookupFieldAccessForMethod(field, context, staticGetToMethodMap);
   }
 
   @Override
-  public DexMethod lookupStaticPutFieldForMethod(DexField field) {
-    return staticPutToMethodMap.get(field);
+  public DexMethod lookupStaticPutFieldForMethod(DexField field, DexMethod context) {
+    return lookupFieldAccessForMethod(field, context, staticPutToMethodMap);
   }
 
   @Override
-  public DexMethod lookupInstanceGetFieldForMethod(DexField field) {
-    return instanceGetToMethodMap.get(field);
+  public DexMethod lookupInstanceGetFieldForMethod(DexField field, DexMethod context) {
+    return lookupFieldAccessForMethod(field, context, instanceGetToMethodMap);
   }
 
   @Override
-  public DexMethod lookupInstancePutFieldForMethod(DexField field) {
-    return instancePutToMethodMap.get(field);
+  public DexMethod lookupInstancePutFieldForMethod(DexField field, DexMethod context) {
+    return lookupFieldAccessForMethod(field, context, instancePutToMethodMap);
+  }
+
+  private DexMethod lookupFieldAccessForMethod(
+      DexField field, DexMethod context, Map<DexField, DexMethod> map) {
+    DexMethod replacementMethod = map.get(field);
+    // We replace the field access by the bridge only if on a different class than context.
+    if (replacementMethod != null && context.holder != replacementMethod.holder) {
+      return replacementMethod;
+    }
+    return null;
   }
 
   @Override
   public boolean isContextFreeForMethods() {
     return false;
+  }
+
+  // This is true because mappings specific to this class can be filled.
+  @Override
+  protected boolean isLegitimateToHaveEmptyMappings() {
+    return true;
   }
 
   @Override

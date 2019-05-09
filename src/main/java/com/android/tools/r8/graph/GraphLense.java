@@ -458,19 +458,19 @@ public abstract class GraphLense {
 
   public abstract DexField lookupField(DexField field);
 
-  public DexMethod lookupStaticGetFieldForMethod(DexField field) {
+  public DexMethod lookupStaticGetFieldForMethod(DexField field, DexMethod context) {
     return null;
   }
 
-  public DexMethod lookupStaticPutFieldForMethod(DexField field) {
+  public DexMethod lookupStaticPutFieldForMethod(DexField field, DexMethod context) {
     return null;
   }
 
-  public DexMethod lookupInstanceGetFieldForMethod(DexField field) {
+  public DexMethod lookupInstanceGetFieldForMethod(DexField field, DexMethod context) {
     return null;
   }
 
-  public DexMethod lookupInstancePutFieldForMethod(DexField field) {
+  public DexMethod lookupInstancePutFieldForMethod(DexField field, DexMethod context) {
     return null;
   }
 
@@ -968,6 +968,26 @@ public abstract class GraphLense {
     @Override
     public RewrittenPrototypeDescription lookupPrototypeChanges(DexMethod method) {
       return previousLense.lookupPrototypeChanges(method);
+    }
+
+    @Override
+    public DexMethod lookupStaticGetFieldForMethod(DexField field, DexMethod context) {
+      return previousLense.lookupStaticGetFieldForMethod(field, context);
+    }
+
+    @Override
+    public DexMethod lookupStaticPutFieldForMethod(DexField field, DexMethod context) {
+      return previousLense.lookupStaticPutFieldForMethod(field, context);
+    }
+
+    @Override
+    public DexMethod lookupInstanceGetFieldForMethod(DexField field, DexMethod context) {
+      return previousLense.lookupInstanceGetFieldForMethod(field, context);
+    }
+
+    @Override
+    public DexMethod lookupInstancePutFieldForMethod(DexField field, DexMethod context) {
+      return previousLense.lookupInstancePutFieldForMethod(field, context);
     }
 
     /**

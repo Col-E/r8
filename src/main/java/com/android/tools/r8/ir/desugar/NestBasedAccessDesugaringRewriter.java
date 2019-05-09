@@ -123,7 +123,7 @@ public class NestBasedAccessDesugaringRewriter extends NestBasedAccessDesugaring
           DexMethod methodCalled = invokeMethod.getInvokedMethod();
           registerInvoke(methodCalled, nest, currentClass);
           DexMethod newTarget = methodMap.get(methodCalled);
-          if (newTarget != null && encodedMethod.method != newTarget) {
+          if (newTarget != null && encodedMethod.method.holder != newTarget.holder) {
             instructions.replaceCurrentInstruction(
                 new InvokeStatic(newTarget, invokeMethod.outValue(), invokeMethod.arguments()));
           } else {

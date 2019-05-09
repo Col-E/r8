@@ -36,6 +36,7 @@ import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.hamcrest.Matcher;
@@ -99,7 +100,7 @@ public class NestAccessControlTest extends TestBase {
               StringUtils.lines(
                   "nestMethodstaticNestMethodstaticNestMethodnoBridge",
                   "hostMethodstaticHostMethodstaticNestMethod"),
-          "constructors", StringUtils.lines("field", "nest1SField"),
+          "constructors", StringUtils.lines("field", "nest1SField", "1"),
           "anonymous",
               StringUtils.lines(
                   "fieldstaticFieldstaticFieldhostMethodstaticHostMethodstaticHostMethod"),
@@ -216,6 +217,13 @@ public class NestAccessControlTest extends TestBase {
     assertEquals(
         methodNumBridges, methodMainClass.allMethods(FoundMethodSubject::isSynthetic).size());
 
+    // Two bridges for method and staticMethod.
+    int constructorNumBridges = parameters.isCfRuntime() ? 0 : 1;
+    ClassSubject constructorMainClass = inspector.clazz(getMainClass("constructors"));
+    assertEquals(
+        constructorNumBridges,
+        constructorMainClass.allMethods(FoundMethodSubject::isSynthetic).size());
+
     // Four bridges for field and staticField, both get & set.
     int fieldNumBridges = parameters.isCfRuntime() ? 0 : 4;
     ClassSubject fieldMainClass = inspector.clazz(getMainClass("fields"));
@@ -312,6 +320,27 @@ public class NestAccessControlTest extends TestBase {
     Assume.assumeTrue(parameters.isDexRuntime());
     testMissingNestHostError(false);
     testIncompleteNestError(false);
+  }
+
+  @Test
+  public void testR8SingleNest() throws Exception {
+    for (Map.Entry<String, String> entry : MAIN_CLASSES.entrySet()) {
+      List<Path> matchingClasses =
+          CLASS_NAMES.stream()
+              .filter(name -> containsString(entry.getValue()).matches(name))
+              .map(name -> CLASSES_PATH.resolve(name + CLASS_EXTENSION))
+              .collect(toList());
+      testForR8(parameters.getBackend())
+          .noTreeShaking()
+          .noMinification()
+          .addKeepAllAttributes()
+          .setMinApi(parameters.getApiLevel())
+          .addProgramFiles(matchingClasses)
+          .addOptionsModification(options -> options.enableNestBasedAccessDesugaring = true)
+          .compile()
+          .run(parameters.getRuntime(), getMainClass(entry.getKey()))
+          .assertSuccessWithOutput(getExpectedResult(entry.getKey()));
+    }
   }
 
   private D8TestCompileResult compileClassesWithD8ProgramClassesMatching(Matcher<String> matcher)
