@@ -7,12 +7,14 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.utils.ThreadUtils;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 // R8 specific desugaring of nest based access.
 // Summary:
@@ -32,30 +34,30 @@ public class NestBasedAccessDesugaringAnalysis extends NestBasedAccessDesugaring
     if (appView.options().canUseNestBasedAccess()) {
       return appView.graphLense();
     }
-    List<List<DexType>> liveNests = computeLiveNests();
-    processNestsConcurrently(liveNests, executorService);
+    computeAndProcessNestsConcurrently(executorService);
     addDeferredBridges();
     return builder.build(appView.graphLense(), getNestConstructorType());
   }
 
-  private List<List<DexType>> computeLiveNests() {
-    List<List<DexType>> liveNests = new ArrayList<>();
+  private void computeAndProcessNestsConcurrently(ExecutorService executorService)
+      throws ExecutionException {
+    List<Future<?>> futures = new ArrayList<>();
     // It is possible that a nest member is on the program path but its nest host
-    // is only in the class path. Nests are therefore computed the first time a
-    // nest member is met, host or not. The computedNestHosts list is there to
-    // avoid processing multiple times the same nest.
+    // is only in the class path (or missing, raising an error).
+    // Nests are therefore computed the first time a nest member is met, host or not.
+    // The computedNestHosts list is there to avoid processing multiple times the same nest.
     Set<DexType> computedNestHosts = new HashSet<>();
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       if (clazz.isInANest()) {
-        DexType hostType = clazz.isNestHost() ? clazz.type : clazz.getNestHost();
+        DexType hostType = clazz.getNestHost();
         if (!computedNestHosts.contains(hostType)) {
           computedNestHosts.add(hostType);
           DexClass host = clazz.isNestHost() ? clazz : appView.definitionFor(clazz.getNestHost());
-          liveNests.add(extractNest(host, clazz));
+          futures.add(asyncProcessNest(extractNest(host, clazz), executorService));
         }
       }
     }
-    return liveNests;
+    ThreadUtils.awaitFutures(futures);
   }
 
   // In R8, all classes are processed ahead of time.

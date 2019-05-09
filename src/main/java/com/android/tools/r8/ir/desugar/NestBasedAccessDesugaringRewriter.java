@@ -18,6 +18,7 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.utils.ThreadUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
@@ -25,6 +26,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 // D8 specific nest based access desugaring.
 // Summary:
@@ -83,7 +85,7 @@ public class NestBasedAccessDesugaringRewriter extends NestBasedAccessDesugaring
     if (!programClass.isInANest()) {
       return null;
     }
-    DexType nestHost = programClass.isNestHost() ? programClass.type : programClass.getNestHost();
+    DexType nestHost = programClass.getNestHost();
     return metNests.computeIfAbsent(
         nestHost, host -> extractNest(appView.definitionFor(nestHost), programClass));
   }
@@ -105,10 +107,10 @@ public class NestBasedAccessDesugaringRewriter extends NestBasedAccessDesugaring
     // We are compiling its code so it has to be a non-null program class.
     DexProgramClass currentClass =
         appView.definitionFor(encodedMethod.method.holder).asProgramClass();
-    List<DexType> nest = getNestFor(currentClass);
-    if (nest == null) {
+    if (!currentClass.isInANest()) {
       return;
     }
+    List<DexType> nest = getNestFor(currentClass);
 
     ListIterator<BasicBlock> blocks = code.listIterator();
     while (blocks.hasNext()) {
@@ -160,6 +162,15 @@ public class NestBasedAccessDesugaringRewriter extends NestBasedAccessDesugaring
         }
       }
     }
+  }
+
+  private void processNestsConcurrently(
+      List<List<DexType>> liveNests, ExecutorService executorService) throws ExecutionException {
+    List<Future<?>> futures = new ArrayList<>();
+    for (List<DexType> nest : liveNests) {
+      futures.add(asyncProcessNest(nest, executorService));
+    }
+    ThreadUtils.awaitFutures(futures);
   }
 
   public void desugarNestBasedAccess(

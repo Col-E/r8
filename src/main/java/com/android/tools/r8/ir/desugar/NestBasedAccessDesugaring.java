@@ -18,14 +18,12 @@ import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.origin.SynthesizedOrigin;
-import com.android.tools.r8.utils.ThreadUtils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
@@ -82,18 +80,12 @@ public abstract class NestBasedAccessDesugaring {
     return classesInNest;
   }
 
-  void processNestsConcurrently(List<List<DexType>> liveNests, ExecutorService executorService)
-      throws ExecutionException {
-    List<Future<?>> futures = new ArrayList<>();
-    for (List<DexType> nest : liveNests) {
-      futures.add(
-          executorService.submit(
-              () -> {
-                processNest(nest);
-                return null; // we want a Callable not a Runnable to be able to throw
-              }));
-    }
-    ThreadUtils.awaitFutures(futures);
+  Future<?> asyncProcessNest(List<DexType> nest, ExecutorService executorService) {
+    return executorService.submit(
+        () -> {
+          processNest(nest);
+          return null; // we want a Callable not a Runnable to be able to throw
+        });
   }
 
   private void processNest(List<DexType> nest) {
