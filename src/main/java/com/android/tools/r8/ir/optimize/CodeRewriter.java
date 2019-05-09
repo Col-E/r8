@@ -2094,7 +2094,9 @@ public class CodeRewriter {
         if (aliasedValue != null) {
           TypeLatticeElement dynamicType =
               aliasedValue.definition.asAssumeDynamicType().getAssumption().getType();
-          if (dynamicType.lessThanOrEqual(instanceOfType, appView)
+          if (dynamicType.isDefinitelyNull()) {
+            result = InstanceOfResult.FALSE;
+          } else if (dynamicType.lessThanOrEqual(instanceOfType, appView)
               && (!inType.isNullable() || !dynamicType.isNullable())) {
             result = InstanceOfResult.TRUE;
           }

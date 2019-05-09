@@ -136,7 +136,7 @@ public class InternalOptions {
   public boolean passthroughDexCode = false;
 
   // Optimization-related flags. These should conform to -dontoptimize and disableAllOptimizations.
-  public boolean enableDynamicTypeOptimization = false;
+  public boolean enableDynamicTypeOptimization = true;
   public boolean enableHorizontalClassMerging = true;
   public boolean enableVerticalClassMerging = true;
   public boolean enableArgumentRemoval = true;
