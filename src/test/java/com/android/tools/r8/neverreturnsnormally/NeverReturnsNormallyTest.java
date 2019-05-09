@@ -12,20 +12,24 @@ import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.CfInstructionSubject;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.DexInstructionSubject;
+import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject.JumboStringMode;
 import com.android.tools.r8.utils.codeinspector.InvokeInstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.function.BiConsumer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -35,15 +39,17 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class NeverReturnsNormallyTest extends TestBase {
 
-  private Backend backend;
+  private boolean keepOuterTrivial;
+  private TestParameters parameters;
 
-  @Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
+  @Parameters(name = "{1}, keep outerTrivial: {0}")
+  public static List<Object[]> data() {
+    return buildParameters(BooleanUtils.values(), getTestParameters().withAllRuntimes().build());
   }
 
-  public NeverReturnsNormallyTest(Backend backend) {
-    this.backend = backend;
+  public NeverReturnsNormallyTest(boolean keepOuterTrivial, TestParameters parameters) {
+    this.keepOuterTrivial = keepOuterTrivial;
+    this.parameters = parameters;
   }
 
   private void runTest(
@@ -52,53 +58,65 @@ public class NeverReturnsNormallyTest extends TestBase {
     R8Command.Builder builder = R8Command.builder();
     builder.addProgramFiles(ToolHelper.getClassFileForTestClass(ForceInline.class));
     builder.addProgramFiles(ToolHelper.getClassFileForTestClass(TestClass.class));
-    builder.setProgramConsumer(emptyConsumer(backend));
-    builder.addLibraryFiles(runtimeJar(backend));
+    builder.setProgramConsumer(emptyConsumer(parameters.getBackend()));
+    builder.addLibraryFiles(runtimeJar(parameters.getBackend()));
     builder.setMode(mode);
     builder.addProguardConfiguration(
         ImmutableList.of(
             "-forceinline class * { @com.android.tools.r8.ForceInline *; }",
-            "-keep class " + TestClass.class.getCanonicalName() + "{",
+            "-keep class " + TestClass.class.getTypeName() + " {",
             "  public static void main(java.lang.String[]);",
             "  *** test*(...);",
-            "  *** outerTrivial(...);",
-            "}",
-            "",
-            "-checkdiscard class " + TestClass.class.getCanonicalName() + "{",
-            "  *** assertRemoved(...);",
             "}",
             "",
             "-dontobfuscate",
             "-allowaccessmodification"),
         Origin.unknown());
+    if (keepOuterTrivial) {
+      builder.addProguardConfiguration(
+          ImmutableList.of(
+              "-keep class " + TestClass.class.getTypeName() + " {",
+              "  *** outerTrivial(...);",
+              "}"),
+          Origin.unknown());
+    } else {
+      builder.addProguardConfiguration(
+          ImmutableList.of(
+              "-checkdiscard class " + TestClass.class.getTypeName() + " {",
+              "  *** assertRemoved(...);",
+              "}"),
+          Origin.unknown());
+    }
     ToolHelper.allowTestProguardOptions(builder);
     AndroidApp app =
         ToolHelper.runR8(builder.build(), opts -> opts.enableClassInlining = enableClassInliner);
     inspection.accept(new CodeInspector(app), mode);
 
-    if (backend == Backend.DEX) {
+    if (parameters.isDexRuntime()) {
       // Run on Art to check generated code against verifier.
       runOnArt(app, TestClass.class);
     } else {
-      assert backend == Backend.CF;
+      assert parameters.isCfRuntime();
       runOnJava(app, TestClass.class);
     }
   }
 
   private void validate(CodeInspector inspector, CompilationMode mode) {
-    assert (backend == Backend.DEX || backend == Backend.CF);
+    assert parameters.isCfRuntime() || parameters.isDexRuntime();
     ClassSubject clazz = inspector.clazz(TestClass.class);
     assertTrue(clazz.isPresent());
 
     // All calls to 'assertRemoved' are to be removed.
-    clazz.forAllMethods(method -> {
-      Iterator<InstructionSubject> instructions =
-          method.iterateInstructions(InstructionSubject::isInvoke);
-      while (instructions.hasNext()) {
-        InvokeInstructionSubject invoke = (InvokeInstructionSubject) instructions.next();
-        assertFalse(invoke.invokedMethod().name.toString().equals("assertRemoved"));
-      }
-    });
+    int numberOfCallsToAssertRemoved = 0;
+    for (FoundMethodSubject method : clazz.allMethods()) {
+      numberOfCallsToAssertRemoved +=
+          method
+              .streamInstructions()
+              .filter(InstructionSubject::isInvoke)
+              .filter(invoke -> invoke.getMethod().name.toString().equals("assertRemoved"))
+              .count();
+    }
+    assertEquals(keepOuterTrivial ? 2 : 0, numberOfCallsToAssertRemoved);
 
     // Check the instruction used for testInlinedIntoVoidMethod
     MethodSubject methodThrowToBeInlined =
@@ -140,16 +158,17 @@ public class NeverReturnsNormallyTest extends TestBase {
     verifyTrailingPattern(instructions);
 
     // Check the instruction used for outerTrivial
-    MethodSubject methodOuterTrivial =
-        clazz.method("int", "outerTrivial", ImmutableList.of());
-    assertTrue(methodOuterTrivial.isPresent());
-    instructions = methodOuterTrivial.iterateInstructions();
-    // Call, followed by [nop, goto]
-    insn = nextInstructionSkippingCfPositionAndLabel(instructions);
-    assertTrue(insn.isInvoke());
-    assertTrue(((InvokeInstructionSubject) insn)
-        .invokedMethod().name.toString().equals("innerNotReachable"));
-    verifyTrailingPattern(instructions);
+    MethodSubject methodOuterTrivial = clazz.method("int", "outerTrivial", ImmutableList.of());
+    assertEquals(keepOuterTrivial || mode == CompilationMode.DEBUG, methodOuterTrivial.isPresent());
+
+    if (methodOuterTrivial.isPresent()) {
+      instructions = methodOuterTrivial.iterateInstructions();
+      // Call, followed by [nop, goto]
+      insn = nextInstructionSkippingCfPositionAndLabel(instructions);
+      assertTrue(insn.isInvoke());
+      assertEquals("innerNotReachable", insn.getMethod().name.toString());
+      verifyTrailingPattern(instructions);
+    }
   }
 
   private InstructionSubject nextInstruction(Iterator<InstructionSubject> instructions) {
@@ -175,7 +194,7 @@ public class NeverReturnsNormallyTest extends TestBase {
 
   private void verifyTrailingPattern(Iterator<InstructionSubject> instructions) {
     InstructionSubject insn = nextInstruction(instructions);
-    if (backend == Backend.DEX) {
+    if (parameters.isDexRuntime()) {
       assertTrue(
           insn instanceof DexInstructionSubject && ((DexInstructionSubject) insn).isConst4());
     } else {

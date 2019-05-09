@@ -11,7 +11,6 @@ import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexClass;
@@ -1169,22 +1168,23 @@ public class CodeRewriter {
 
   public void identifyTrivialInitializer(
       DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
-    boolean isInstanceInitializer = method.isInstanceInitializer();
-    boolean isClassInitializer = method.isClassInitializer();
-    assert isInstanceInitializer || isClassInitializer;
+    if (!method.isInstanceInitializer() && !method.isClassInitializer()) {
+      return;
+    }
+
     if (method.accessFlags.isNative()) {
       return;
     }
 
-    AppInfo appInfo = appView.appInfo();
-    DexClass clazz = appInfo.definitionFor(method.method.holder);
+    DexClass clazz = appView.appInfo().definitionFor(method.method.holder);
     if (clazz == null) {
       return;
     }
 
-    feedback.setTrivialInitializer(method,
-        isInstanceInitializer
-            ? computeInstanceInitializerInfo(code, clazz, appInfo::definitionFor)
+    feedback.setTrivialInitializer(
+        method,
+        method.isInstanceInitializer()
+            ? computeInstanceInitializerInfo(code, clazz, appView::definitionFor)
             : computeClassInitializerInfo(code, clazz));
   }
 

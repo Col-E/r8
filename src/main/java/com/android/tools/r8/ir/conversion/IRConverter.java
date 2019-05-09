@@ -1115,22 +1115,6 @@ public class IRConverter {
     previous =
         printMethod(code, "IR after idempotent function call canonicalization (SSA)", previous);
 
-    codeRewriter.identifyReturnsArgument(method, code, feedback);
-    if (options.enableInlining && inliner != null) {
-      codeRewriter.identifyInvokeSemanticsForInlining(method, code, appView, feedback);
-    }
-
-    if (appView.enableWholeProgramOptimizations()) {
-      // Track usage of parameters and compute their nullability and possibility of NPE.
-      if (method.getOptimizationInfo().getNonNullParamOrThrow() == null) {
-        computeNonNullParamHints(feedback, method, code);
-      }
-
-      computeDynamicReturnType(feedback, method, code);
-      computeInitializedClassesOnNormalExit(feedback, method, code);
-      computeMayHaveSideEffects(feedback, method, code);
-    }
-
     // Insert code to log arguments if requested.
     if (options.methodMatchesLogArgumentsFilter(method)) {
       codeRewriter.logArgumentTypes(method, code);
@@ -1139,18 +1123,31 @@ public class IRConverter {
 
     previous = printMethod(code, "IR after argument type logging (SSA)", previous);
 
-    // Analysis must be done after method is rewritten by logArgumentTypes()
-    codeRewriter.identifyClassInlinerEligibility(method, code, feedback);
-
-    previous = printMethod(code, "IR after class inliner eligibility (SSA)", previous);
-
-    if (method.isInstanceInitializer() || method.isClassInitializer()) {
-      codeRewriter.identifyTrivialInitializer(method, code, feedback);
-    }
-    codeRewriter.identifyParameterUsages(method, code, feedback);
     if (classStaticizer != null) {
       classStaticizer.examineMethodCode(method, code);
     }
+
+    // Compute optimization info summary for the current method unless it is pinned (in that case,
+    // we should not be making any assumptions about the behavior of the method).
+    if (appView.enableWholeProgramOptimizations()
+        && !appView.appInfo().withLiveness().isPinned(method.method)) {
+      codeRewriter.identifyClassInlinerEligibility(method, code, feedback);
+      codeRewriter.identifyParameterUsages(method, code, feedback);
+      codeRewriter.identifyReturnsArgument(method, code, feedback);
+      codeRewriter.identifyTrivialInitializer(method, code, feedback);
+
+      if (options.enableInlining && inliner != null) {
+        codeRewriter.identifyInvokeSemanticsForInlining(method, code, appView, feedback);
+      }
+
+      computeDynamicReturnType(feedback, method, code);
+      computeInitializedClassesOnNormalExit(feedback, method, code);
+      computeMayHaveSideEffects(feedback, method, code);
+      computeNonNullParamOrThrow(feedback, method, code);
+    }
+
+    previous =
+        printMethod(code, "IR after computation of optimization info summary (SSA)", previous);
 
     if (options.canHaveNumberConversionRegisterAllocationBug()) {
       codeRewriter.workaroundNumberConversionRegisterAllocationBug(code);
@@ -1171,8 +1168,13 @@ public class IRConverter {
     finalizeIR(method, code, feedback);
   }
 
-  private void computeNonNullParamHints(
-    OptimizationFeedback feedback, DexEncodedMethod method, IRCode code) {
+  // Track usage of parameters and compute their nullability and possibility of NPE.
+  private void computeNonNullParamOrThrow(
+      OptimizationFeedback feedback, DexEncodedMethod method, IRCode code) {
+    if (method.getOptimizationInfo().getNonNullParamOrThrow() != null) {
+      return;
+    }
+
     List<Value> arguments = code.collectArguments();
     BitSet paramsCheckedForNull = new BitSet();
     for (int index = 0; index < arguments.size(); index++) {
