@@ -267,6 +267,7 @@ public final class D8Command extends BaseCompilerCommand {
     assert !internal.outline.enabled;
     assert !internal.enableValuePropagation;
     assert !internal.enableLambdaMerging;
+    assert !internal.enableTreeShakingOfLibraryMethodOverrides;
 
     internal.enableDesugaring = getEnableDesugaring();
     internal.enableInheritanceClassInDexDistributor = isOptimizeMultidexForLinearAlloc();

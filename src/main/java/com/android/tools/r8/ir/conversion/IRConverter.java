@@ -74,6 +74,7 @@ import com.android.tools.r8.kotlin.KotlinInfo;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.IdentifierNameStringMarker;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.LibraryMethodOverrideAnalysis;
 import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.CfgPrinter;
@@ -118,6 +119,7 @@ public class IRConverter {
   private final Outliner outliner;
   private final ClassInitializerDefaultsOptimization classInitializerDefaultsOptimization;
   private final DynamicTypeOptimization dynamicTypeOptimization;
+  private final LibraryMethodOverrideAnalysis libraryMethodOverrideAnalysis;
   private final StringConcatRewriter stringConcatRewriter;
   private final LambdaRewriter lambdaRewriter;
   private final NestBasedAccessDesugaringRewriter nestBasedAccessDesugaringRewriter;
@@ -206,6 +208,10 @@ public class IRConverter {
           options.enableDynamicTypeOptimization
               ? new DynamicTypeOptimization(appViewWithLiveness)
               : null;
+      this.libraryMethodOverrideAnalysis =
+          options.enableTreeShakingOfLibraryMethodOverrides
+              ? new LibraryMethodOverrideAnalysis(appViewWithLiveness)
+              : null;
       this.lensCodeRewriter = new LensCodeRewriter(appViewWithLiveness, lambdaRewriter);
       this.inliner = new Inliner(appViewWithLiveness, mainDexClasses, lensCodeRewriter);
       this.outliner = new Outliner(appViewWithLiveness, this);
@@ -230,6 +236,7 @@ public class IRConverter {
       this.classInliner = null;
       this.classStaticizer = null;
       this.dynamicTypeOptimization = null;
+      this.libraryMethodOverrideAnalysis = null;
       this.inliner = null;
       this.outliner = null;
       this.memberValuePropagation = null;

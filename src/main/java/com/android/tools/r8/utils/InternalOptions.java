@@ -127,6 +127,7 @@ public class InternalOptions {
     enableSwitchMapRemoval = false;
     enableValuePropagation = false;
     enableSideEffectAnalysis = false;
+    enableTreeShakingOfLibraryMethodOverrides = false;
   }
 
   public boolean printTimes = System.getProperty("com.android.tools.r8.printtimes") != null;
@@ -152,6 +153,7 @@ public class InternalOptions {
   public boolean enableServiceLoaderRewriting = true;
   // TODO(b/120138731): Enable this when it is worthwhile, e.g., combined with Class#forName.
   public boolean enableNameReflectionOptimization = false;
+  public boolean enableTreeShakingOfLibraryMethodOverrides = false;
   public int classInliningInstructionLimit = 50;
   // This defines the limit of instructions in the inlinee
   public int inliningInstructionLimit = 3;
