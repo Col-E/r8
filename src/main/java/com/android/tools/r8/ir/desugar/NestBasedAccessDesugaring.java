@@ -55,14 +55,17 @@ public abstract class NestBasedAccessDesugaring {
   // if come classes are on the classpath and not the program path.
   final Map<DexEncodedMethod, DexProgramClass> deferredBridgesToAdd = new ConcurrentHashMap<>();
   // Common single empty class for nest based private constructors
-  private DexProgramClass nestConstructor;
+  private final DexProgramClass nestConstructor;
+  private boolean nestConstructorUsed = false;
 
   NestBasedAccessDesugaring(AppView<?> appView) {
     this.appView = appView;
+    this.nestConstructor = createNestAccessConstructor();
   }
 
   DexType getNestConstructorType() {
-    return nestConstructor == null ? null : nestConstructor.type;
+    assert nestConstructor != null;
+    return nestConstructor.type;
   }
 
   // Extract the list of types in the programClass' nest, of host hostClass
@@ -202,36 +205,36 @@ public abstract class NestBasedAccessDesugaring {
     return appView.dexItemFactory().createString(fullName);
   }
 
+  private DexProgramClass createNestAccessConstructor() {
+    return new DexProgramClass(
+        appView.dexItemFactory().createType(FULL_NEST_CONTRUCTOR_NAME),
+        null,
+        new SynthesizedOrigin("Nest based access desugaring", getClass()),
+        // Make the synthesized class public since shared in the whole program.
+        ClassAccessFlags.fromDexAccessFlags(
+            Constants.ACC_FINAL | Constants.ACC_SYNTHETIC | Constants.ACC_PUBLIC),
+        appView.dexItemFactory().objectType,
+        DexTypeList.empty(),
+        appView.dexItemFactory().createString("nest"),
+        null,
+        Collections.emptyList(),
+        null,
+        Collections.emptyList(),
+        DexAnnotationSet.empty(),
+        DexEncodedField.EMPTY_ARRAY,
+        DexEncodedField.EMPTY_ARRAY,
+        DexEncodedMethod.EMPTY_ARRAY,
+        DexEncodedMethod.EMPTY_ARRAY,
+        appView.dexItemFactory().getSkipNameValidationForTesting());
+  }
+
   private DexProgramClass ensureNestConstructorClass() {
-    if (nestConstructor != null) {
-      return nestConstructor;
-    }
-    nestConstructor =
-        new DexProgramClass(
-            appView.dexItemFactory().createType(FULL_NEST_CONTRUCTOR_NAME),
-            null,
-            new SynthesizedOrigin("Nest based access desugaring", getClass()),
-            // Make the synthesized class public since shared in the whole program.
-            ClassAccessFlags.fromDexAccessFlags(
-                Constants.ACC_FINAL | Constants.ACC_SYNTHETIC | Constants.ACC_PUBLIC),
-            appView.dexItemFactory().objectType,
-            DexTypeList.empty(),
-            appView.dexItemFactory().createString("nest"),
-            null,
-            Collections.emptyList(),
-            null,
-            Collections.emptyList(),
-            DexAnnotationSet.empty(),
-            DexEncodedField.EMPTY_ARRAY,
-            DexEncodedField.EMPTY_ARRAY,
-            DexEncodedMethod.EMPTY_ARRAY,
-            DexEncodedMethod.EMPTY_ARRAY,
-            appView.dexItemFactory().getSkipNameValidationForTesting());
+    nestConstructorUsed = true;
     return nestConstructor;
   }
 
   void synthetizeNestConstructor(DexApplication.Builder<?> builder) {
-    if (nestConstructor != null) {
+    if (nestConstructorUsed) {
       appView.appInfo().addSynthesizedClass(nestConstructor);
       builder.addSynthesizedClass(nestConstructor, true);
     }
