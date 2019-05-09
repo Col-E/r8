@@ -16,16 +16,15 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
-// R8 specific desugaring of nest based access.
 // Summary:
 // - Computes all the live nests reachable from Program Classes (Sequential).
 // - Process all live nests finding nest based access (Nests processes concurrently).
 // - Add bridges to be processed by further passes (Sequential).
-public class NestBasedAccessDesugaringAnalysis extends NestBasedAccessDesugaring {
+public class R8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
 
   private final NestedPrivateMethodLense.Builder builder;
 
-  public NestBasedAccessDesugaringAnalysis(AppView<?> appView, ExecutorService executorService) {
+  public R8NestBasedAccessDesugaring(AppView<?> appView, ExecutorService executorService) {
     super(appView);
     this.builder = NestedPrivateMethodLense.builder(appView);
   }

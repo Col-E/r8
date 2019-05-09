@@ -26,7 +26,7 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.conversion.IRConverter;
-import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaringAnalysis;
+import com.android.tools.r8.ir.desugar.R8NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.optimize.EnumOrdinalMapCollector;
 import com.android.tools.r8.ir.optimize.MethodPoolCollection;
 import com.android.tools.r8.ir.optimize.SwitchMapCollector;
@@ -425,8 +425,8 @@ public class R8 {
       appView.setGraphLense(new MemberRebindingAnalysis(appViewWithLiveness).run());
       if (options.enableNestBasedAccessDesugaring) {
         timing.begin("NestBasedAccessDesugaring");
-        NestBasedAccessDesugaringAnalysis analyzer =
-            new NestBasedAccessDesugaringAnalysis(appViewWithLiveness, executorService);
+        R8NestBasedAccessDesugaring analyzer =
+            new R8NestBasedAccessDesugaring(appViewWithLiveness, executorService);
         boolean changed = appView.setGraphLense(analyzer.run(executorService));
         if (changed) {
           appViewWithLiveness.setAppInfo(

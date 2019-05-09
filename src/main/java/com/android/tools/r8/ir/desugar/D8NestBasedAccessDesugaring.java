@@ -28,14 +28,13 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
-// D8 specific nest based access desugaring.
 // Summary:
 // - Process all methods compiled rewriting nest based access (Methods processed concurrently).
 // - Process classes on class path in reachable nests to find bridges to add
 //    in Program classes (Nests processed concurrently).
 // - Add bridges and nest constructor class (Sequential).
 // - Optimize bridges (Bridges processed concurrently).
-public class NestBasedAccessDesugaringRewriter extends NestBasedAccessDesugaring {
+public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
 
   private final Map<DexMethod, DexMethod> methodMap = new ConcurrentHashMap<>();
   private final Map<DexMethod, DexMethod> initializerMap = new ConcurrentHashMap<>();
@@ -47,7 +46,7 @@ public class NestBasedAccessDesugaringRewriter extends NestBasedAccessDesugaring
   // Map the nest host to its nest members, including the nest host itself.
   private final Map<DexType, List<DexType>> metNests = new ConcurrentHashMap<>();
 
-  public NestBasedAccessDesugaringRewriter(AppView<?> appView) {
+  public D8NestBasedAccessDesugaring(AppView<?> appView) {
     super(appView);
   }
 

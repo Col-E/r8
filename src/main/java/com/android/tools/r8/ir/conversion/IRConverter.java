@@ -41,10 +41,10 @@ import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.desugar.CovariantReturnTypeAnnotationTransformer;
+import com.android.tools.r8.ir.desugar.D8NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.Java8MethodRewriter;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
-import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaringRewriter;
 import com.android.tools.r8.ir.desugar.StringConcatRewriter;
 import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
 import com.android.tools.r8.ir.optimize.ClassInitializerDefaultsOptimization;
@@ -122,7 +122,7 @@ public class IRConverter {
   private final LibraryMethodOverrideAnalysis libraryMethodOverrideAnalysis;
   private final StringConcatRewriter stringConcatRewriter;
   private final LambdaRewriter lambdaRewriter;
-  private final NestBasedAccessDesugaringRewriter nestBasedAccessDesugaringRewriter;
+  private final D8NestBasedAccessDesugaring d8NestBasedAccessDesugaring;
   private final InterfaceMethodRewriter interfaceMethodRewriter;
   private final TwrCloseResourceRewriter twrCloseResourceRewriter;
   private final Java8MethodRewriter java8MethodRewriter;
@@ -231,7 +231,7 @@ public class IRConverter {
       this.typeChecker = new TypeChecker(appView.withLiveness());
       this.serviceLoaderRewriter =
           options.enableServiceLoaderRewriting ? new ServiceLoaderRewriter() : null;
-      this.nestBasedAccessDesugaringRewriter = null;
+      this.d8NestBasedAccessDesugaring = null;
     } else {
       this.classInliner = null;
       this.classStaticizer = null;
@@ -246,10 +246,8 @@ public class IRConverter {
       this.uninstantiatedTypeOptimization = null;
       this.typeChecker = null;
       this.serviceLoaderRewriter = null;
-      this.nestBasedAccessDesugaringRewriter =
-          options.enableNestBasedAccessDesugaring
-              ? new NestBasedAccessDesugaringRewriter(appView)
-              : null;
+      this.d8NestBasedAccessDesugaring =
+          options.enableNestBasedAccessDesugaring ? new D8NestBasedAccessDesugaring(appView) : null;
     }
     this.deadCodeRemover = new DeadCodeRemover(appView, codeRewriter);
     this.idempotentFunctionCallCanonicalizer =
@@ -299,8 +297,8 @@ public class IRConverter {
 
   private void desugarNestBasedAccess(Builder<?> builder, ExecutorService executorService)
       throws ExecutionException {
-    if (nestBasedAccessDesugaringRewriter != null) {
-      nestBasedAccessDesugaringRewriter.desugarNestBasedAccess(builder, executorService, this);
+    if (d8NestBasedAccessDesugaring != null) {
+      d8NestBasedAccessDesugaring.desugarNestBasedAccess(builder, executorService, this);
     }
   }
 
@@ -1070,8 +1068,8 @@ public class IRConverter {
 
     previous = printMethod(code, "IR after class inlining (SSA)", previous);
 
-    if (nestBasedAccessDesugaringRewriter != null) {
-      nestBasedAccessDesugaringRewriter.rewriteNestBasedAccesses(method, code, appView);
+    if (d8NestBasedAccessDesugaring != null) {
+      d8NestBasedAccessDesugaring.rewriteNestBasedAccesses(method, code, appView);
       assert code.isConsistentSSA();
     }
 
