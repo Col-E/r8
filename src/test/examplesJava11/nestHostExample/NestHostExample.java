@@ -4,6 +4,7 @@
 
 package nestHostExample;
 
+
 // Warning: This requires Java 9+ to be compiled (private interface methods)
 // This file builds all the possible combinations of private members:
 // - static VS non-static
@@ -278,21 +279,20 @@ public class NestHostExample {
 
     StaticNestInterfaceInner i1 = o2;
 
-    System.out.println(o0.accessPrivate(o0, o1, o2, o3, o4));
-    System.out.println(o2.accessPrivate(o0, o1, o2, o3, o4));
-    System.out.println(o4.accessPrivate(o0, o1, o2, o3, o4));
-    System.out.println(i1.accessPrivate(o0, o1, o2, o3, o4));
-
-    System.out.println(o0.accessPrivateInterface(i1));
-    System.out.println(o2.accessPrivateInterface(i1));
-    System.out.println(o4.accessPrivateInterface(i1));
-    System.out.println(i1.accessPrivateInterface(i1));
-
-    // Expected results: 4x
+    // comment out the hashCode() for explicit results, expectation: 4x
     // fieldstaticFieldstaticFieldhostMethodstaticHostMethodstaticHostMethodnest1SField
     //  staticNest1SFieldstaticNest1SFieldnest1SMethodstaticNest1SMethodstaticNest1SMethod
     //  nest2SFieldstaticNest2SFieldstaticNest2SFieldnest2SMethodstaticNest2SMethod
     //  staticNest2SMethodnest1Fieldnest1Methodnest2Fieldnest2Method
     // staticInterfaceMethodstaticStaticInterfaceMethod
+    System.out.println(o0.accessPrivate(o0, o1, o2, o3, o4).hashCode());
+    System.out.println(o2.accessPrivate(o0, o1, o2, o3, o4).hashCode());
+    System.out.println(o4.accessPrivate(o0, o1, o2, o3, o4).hashCode());
+    System.out.println(i1.accessPrivate(o0, o1, o2, o3, o4).hashCode());
+
+    System.out.println(o0.accessPrivateInterface(i1));
+    System.out.println(o2.accessPrivateInterface(i1));
+    System.out.println(o4.accessPrivateInterface(i1));
+    System.out.println(i1.accessPrivateInterface(i1));
   }
 }
