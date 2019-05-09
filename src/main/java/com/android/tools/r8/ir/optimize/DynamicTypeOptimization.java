@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.optimize;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.OptimizationInfo;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Assume;
 import com.android.tools.r8.ir.code.Assume.DynamicTypeAssumption;
@@ -72,8 +73,12 @@ public class DynamicTypeOptimization {
           continue;
         }
 
-        TypeLatticeElement dynamicReturnType =
-            singleTarget.getOptimizationInfo().getDynamicReturnType();
+        OptimizationInfo optimizationInfo = singleTarget.getOptimizationInfo();
+        if (optimizationInfo.returnsArgument()) {
+          continue;
+        }
+
+        TypeLatticeElement dynamicReturnType = optimizationInfo.getDynamicReturnType();
         if (dynamicReturnType == null
             || !dynamicReturnType.strictlyLessThan(outValue.getTypeLattice(), appView)) {
           continue;
