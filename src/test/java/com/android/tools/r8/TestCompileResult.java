@@ -257,8 +257,13 @@ public abstract class TestCompileResult<
     return createRunResult(result);
   }
 
+  @Deprecated
   public Dex2OatTestRunResult runDex2Oat() throws IOException {
     return runDex2Oat(ToolHelper.getDexVm());
+  }
+
+  public Dex2OatTestRunResult runDex2Oat(TestRuntime runtime) throws IOException {
+    return runDex2Oat(runtime.asDex().getVm());
   }
 
   public Dex2OatTestRunResult runDex2Oat(DexVm vm) throws IOException {

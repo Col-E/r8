@@ -3,63 +3,71 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking.b113138046;
 
-import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
 import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.DexIndexedConsumer;
-import com.android.tools.r8.OutputMode;
-import com.android.tools.r8.R8Command;
+import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
-import java.nio.file.Path;
 import java.util.List;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class NativeMethodTest extends TestBase {
 
-  private void test(List<String> config) throws Exception {
-    R8Command.Builder builder = R8Command.builder();
-    List<Path> classes = ToolHelper.getClassFilesForTestDirectory(
-        ToolHelper.getPackageDirectoryForTestPackage(Outer.class.getPackage()),
-        p -> !p.getFileName().toString().startsWith(this.getClass().getSimpleName()));
-    builder.addProgramFiles(classes);
-    builder.addLibraryFiles(ToolHelper.getDefaultAndroidJar());
-    builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
-    builder.setMinApiLevel(ToolHelper.getMinApiLevelForDexVm().getLevel());
-    builder.addProguardConfiguration(config, Origin.unknown());
-    Path appOut = temp.newFile("out.zip").toPath();
-    builder.setOutput(appOut, OutputMode.DexIndexed);
-    AndroidApp processedApp = ToolHelper.runR8(builder.build(), options -> {
-      options.enableInlining = false;
-    });
-    Path oatOut = temp.newFile("out.oat").toPath();
-    ToolHelper.runDex2Oat(appOut, oatOut);
+  @Parameters(name = "{0}, compat:{1}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withDexRuntimes().withAllApiLevels().build(),
+        BooleanUtils.values());
+  }
 
-    CodeInspector inspector = new CodeInspector(processedApp);
+  private final TestParameters parameters;
+  private final boolean compatMode;
+
+  public NativeMethodTest(TestParameters parameters, boolean compatMode) {
+    this.parameters = parameters;
+    this.compatMode = compatMode;
+  }
+
+  private void test(List<String> config, boolean expectedFooPresence) throws Exception {
+    R8TestCompileResult compileResult =
+        (compatMode ? testForR8Compat(parameters.getBackend()) : testForR8(parameters.getBackend()))
+            .setMinApi(parameters.getApiLevel())
+            .addProgramClassesAndInnerClasses(Keep.class, Data.class, Handler.class, Outer.class)
+            .addKeepRules(config)
+            .addOptionsModification(options -> options.enableInlining = false)
+            .compile();
+    compileResult.runDex2Oat(parameters.getRuntime()).assertNoVerificationErrors();
+    CodeInspector inspector = compileResult.inspector();
     boolean innerFound = false;
     for (ClassSubject clazz : inspector.allClasses()) {
       innerFound = clazz.getOriginalName().endsWith("Inner");
       if (!innerFound) {
         continue;
       }
-      MethodSubject nativeFoo = clazz.method("void", "foo",
-          ImmutableList.of(Handler.class.getCanonicalName()));
-      assertThat(nativeFoo, isPresent());
-      assertThat(nativeFoo, not(isRenamed()));
-      DexEncodedMethod method = nativeFoo.getMethod();
-      assertTrue(method.accessFlags.isNative());
-      assertNull(method.getCode());
+      MethodSubject nativeFoo = clazz.method(
+          "void", "foo", ImmutableList.of(Handler.class.getCanonicalName()));
+      assertEquals(expectedFooPresence, nativeFoo.isPresent());
+      if (expectedFooPresence) {
+        assertThat(nativeFoo, not(isRenamed()));
+        DexEncodedMethod method = nativeFoo.getMethod();
+        assertTrue(method.accessFlags.isNative());
+        assertNull(method.getCode());
+      }
       break;
     }
     assertTrue(innerFound);
@@ -80,7 +88,7 @@ public class NativeMethodTest extends TestBase {
         "-printmapping",
         "-keepattributes InnerClasses,EnclosingMethod,Signature",
         "-allowaccessmodification");
-    test(config);
+    test(config, compatMode);
   }
 
   @Test
@@ -101,6 +109,6 @@ public class NativeMethodTest extends TestBase {
         "-printmapping",
         "-keepattributes InnerClasses,EnclosingMethod,Signature",
         "-allowaccessmodification");
-    test(config);
+    test(config, true);
   }
 }

@@ -44,9 +44,12 @@ public class B126592786 extends TestBase {
     Class<?> mainClass = genericTypeLive ? MainGenericTypeLive.class : MainGenericTypeNotLive.class;
     testForR8(backend)
         .minification(minify)
-        .addProgramClasses(A.class, GenericType.class, mainClass)
+        .addProgramClasses(GetClassUtil.class, A.class, GenericType.class, mainClass)
         .addKeepMainRule(mainClass)
         .addKeepRules(
+            "-keep class " + GetClassUtil.class.getTypeName() + " {",
+            "  static java.lang.Class getClass(java.lang.Object);",
+            "}",
             "-keepclassmembers @" + Marker.class.getTypeName() + " class * {",
             "  <fields>;",
             "}",
@@ -96,17 +99,25 @@ class GenericType {
 
 }
 
+// GetClassUtil is used below to ensure that the types remain instantiated.
+class GetClassUtil {
+
+  public static Class<?> getClass(Object o) {
+    return o.getClass();
+  }
+}
+
 class MainGenericTypeNotLive {
 
   public static void main(String[] args) {
-    System.out.println(A.class);
+    System.out.println(GetClassUtil.getClass(new A()));
   }
 }
 
 class MainGenericTypeLive {
 
   public static void main(String[] args) {
-    System.out.println(A.class);
-    System.out.println(GenericType.class);
+    System.out.println(GetClassUtil.getClass(new A()));
+    System.out.println(GetClassUtil.getClass(new GenericType()));
   }
 }

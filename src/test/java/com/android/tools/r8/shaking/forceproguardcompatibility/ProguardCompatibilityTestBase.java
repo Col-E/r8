@@ -13,6 +13,7 @@ import com.android.tools.r8.CompatProguardCommandBuilder;
 import com.android.tools.r8.DataResource;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.R8Command;
+import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
@@ -46,6 +47,11 @@ public class ProguardCompatibilityTestBase extends TestBase {
       return this == R8_COMPAT
           || this == R8_COMPAT_CF
           || this == R8
+          || this == R8_CF;
+    }
+
+    public boolean isFullModeR8() {
+      return this == R8
           || this == R8_CF;
     }
 
@@ -192,6 +198,7 @@ public class ProguardCompatibilityTestBase extends TestBase {
       Backend backend)
       throws Exception {
     CompatProguardCommandBuilder builder = new CompatProguardCommandBuilder(true);
+    builder.setProguardMapConsumer(StringConsumer.emptyConsumer());
     ToolHelper.allowTestProguardOptions(builder);
     builder.addProguardConfiguration(
         ImmutableList.of(proguardConfig, toPrintMappingRule(proguardMap)), Origin.unknown());

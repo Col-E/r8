@@ -888,11 +888,10 @@ public class Enqueuer {
       } else {
         assert !deferredAnnotations.containsKey(holder.type);
       }
-
-      Map<DexReference, Set<ProguardKeepRule>> dependentItems = rootSet.getDependentItems(holder);
-      enqueueHolderIfDependentNonStaticMember(holder, dependentItems);
-      // Add all dependent members to the workqueue.
-      enqueueRootItems(dependentItems);
+      rootSet.forEachDependentStaticMember(holder, appView, this::enqueueRootItem);
+      if (forceProguardCompatibility) {
+        enqueueHolderIfDependentNonStaticMember(holder, rootSet.getDependentItems(holder));
+      }
     }
   }
 
@@ -1052,8 +1051,8 @@ public class Enqueuer {
     transitionMethodsForInstantiatedClass(clazz.type);
     // For all instance fields visible from the class, mark them live if we have seen a read.
     transitionFieldsForInstantiatedClass(clazz.type);
-    // Add all dependent members to the workqueue.
-    enqueueRootItems(rootSet.getDependentItems(clazz));
+    // Add all dependent instance members to the workqueue.
+    rootSet.forEachDependentNonStaticMember(clazz, appView, this::enqueueRootItem);
   }
 
   /**
@@ -1686,7 +1685,7 @@ public class Enqueuer {
           // and enqueue it as well. This is -if version of workaround for b/115867670.
           consequentRootSet.dependentNoShrinking.forEach(
               (precondition, dependentItems) -> {
-                if (precondition.isDexType()) {
+                if (precondition.isDexType() && forceProguardCompatibility) {
                   DexClass preconditionHolder = appView.definitionFor(precondition.asDexType());
                   enqueueHolderIfDependentNonStaticMember(preconditionHolder, dependentItems);
                 }

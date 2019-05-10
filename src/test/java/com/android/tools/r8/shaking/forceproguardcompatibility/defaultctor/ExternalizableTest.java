@@ -287,6 +287,18 @@ public class ExternalizableTest extends ProguardCompatibilityTestBase {
         "  java.lang.Object readResolve();",
         "}");
 
+    if (shrinker.isFullModeR8()) {
+      // R8 full mode does not keep the default constructor unless explicitly specified.
+      config = ImmutableList.<String>builder()
+          .addAll(config)
+          .addAll(ImmutableList.of(
+              "-keepclassmembers class * implements java.io.Externalizable {",
+              "  public void <init>();",
+              "}"
+          ))
+          .build();
+    }
+
     AndroidApp processedApp = runShrinker(shrinker, CLASSES_FOR_EXTERNALIZABLE, config);
 
     // TODO(b/117302947): Need to update ART binary.

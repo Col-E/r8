@@ -37,12 +37,15 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
   private static Class<?> BAR_CLASS = CompatKeepClassMemberNamesTest.Bar.class;
   private static Collection<Class<?>> CLASSES = ImmutableList.of(MAIN_CLASS, BAR_CLASS);
 
-  private static String EXPLICIT_RULE =
+  private static String KEEP_RULE =
       "class "
           + Bar.class.getTypeName()
           + " { static "
           + Bar.class.getTypeName()
           + " instance(); void <init>(); int i; }";
+
+  private static String KEEP_RULE_NON_STATIC =
+      "class " + Bar.class.getTypeName() + " { void <init>(); int i; }";
 
   private static String EXPECTED = StringUtils.lines("42", "null");
 
@@ -84,6 +87,7 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
   }
 
   private static void assertBarGetInstanceIsNotInlined(CodeInspector inspector) {
+    assertTrue(inspector.clazz(BAR_CLASS).uniqueMethodWithName("instance").isPresent());
     assertTrue(
         inspector
             .clazz(MAIN_CLASS)
@@ -142,6 +146,7 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
               assertTrue(inspector.clazz(BAR_CLASS).isPresent());
               assertBarGetInstanceIsNotInlined(inspector);
               assertTrue(inspector.clazz(BAR_CLASS).uniqueFieldWithName("i").isPresent());
+              assertTrue(inspector.clazz(BAR_CLASS).uniqueMethodWithName("<init>").isPresent());
             })
         .run(parameters.getRuntime(), MAIN_CLASS)
         .assertSuccessWithOutput(EXPECTED);
@@ -159,11 +164,60 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
   }
 
   @Test
-  @Ignore("b/119076934")
-  // TODO(b/119076934): Fails because the compat rule is applied regardless of mode, keeping Bar.
   public void testWithMembersRuleFullR8() throws Exception {
-    // In full mode for R8 we do *not* expect a -keepclassmembers to cause retention of the class.
-    assertBarIsAbsent(buildWithMembersRule(testForR8(parameters.getBackend())).compile());
+    // When a class is only referenced (not instantiated), full mode R8 will only keep the static
+    // members specified by the -keepclassmembers rule.
+    buildWithMembersRule(testForR8(parameters.getBackend()))
+        .compile()
+        .inspect(
+            inspector -> {
+              assertTrue(inspector.clazz(MAIN_CLASS).isPresent());
+              assertTrue(inspector.clazz(BAR_CLASS).isPresent());
+              assertBarGetInstanceIsNotInlined(inspector);
+              assertFalse(inspector.clazz(BAR_CLASS).uniqueFieldWithName("i").isPresent());
+              assertFalse(inspector.clazz(BAR_CLASS).uniqueMethodWithName("<init>").isPresent());
+            });
+  }
+
+  @Test
+  public void testWithMembersRuleAndKeepBarRuleFullR8() throws Exception {
+    // If we keep the Bar class too, we get the same behavior in full as in PG/Compat.
+    assertMembersRuleCompatResult(
+        buildWithMembersRule(testForR8(parameters.getBackend()))
+            .addKeepClassRules(BAR_CLASS)
+            .compile());
+  }
+
+  // Tests for non-static -keepclassmembers and *no* minification.
+
+  private <
+          C extends BaseCompilerCommand,
+          B extends BaseCompilerCommand.Builder<C, B>,
+          CR extends TestCompileResult<CR, RR>,
+          RR extends TestRunResult<RR>,
+          T extends TestShrinkerBuilder<C, B, CR, RR, T>>
+      T buildWithNonStaticMembersRule(TestShrinkerBuilder<C, B, CR, RR, T> builder) {
+    return builder
+        .addProgramClasses(CLASSES)
+        .addKeepMainRule(MAIN_CLASS)
+        .addKeepRules("-keepclassmembers " + KEEP_RULE_NON_STATIC)
+        .noMinification();
+  }
+
+  @Test
+  public void testWithNonStaticMembersRulePG() throws Exception {
+    assertBarIsAbsent(buildWithNonStaticMembersRule(testForProguard()).compile());
+  }
+
+  @Test
+  public void testWithNonStaticMembersRuleCompatR8() throws Exception {
+    assertBarIsAbsent(
+        buildWithNonStaticMembersRule(testForR8Compat(parameters.getBackend())).compile());
+  }
+
+  @Test
+  public void testWithNonStaticMembersRuleFullR8() throws Exception {
+    assertBarIsAbsent(buildWithNonStaticMembersRule(testForR8(parameters.getBackend())).compile());
   }
 
   // Tests for -keepclassmembers and minification.
@@ -178,7 +232,7 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
     return builder
         .addProgramClasses(CLASSES)
         .addKeepMainRule(MAIN_CLASS)
-        .addKeepRules("-keepclassmembers " + EXPLICIT_RULE);
+        .addKeepRules("-keepclassmembers " + KEEP_RULE);
   }
 
   private <CR extends TestCompileResult<CR, RR>, RR extends TestRunResult<RR>>
@@ -221,11 +275,19 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
   }
 
   @Test
-  @Ignore("b/119076934")
-  // TODO(b/119076934): Fails because the compat rule is applied regardless of mode, keeping Bar.
   public void testWithMembersRuleEnableMinificationFullR8() throws Exception {
-    assertBarIsAbsent(
-        buildWithMembersRuleEnableMinification(testForR8(parameters.getBackend())).compile());
+    // When a class is only referenced (not instantiated), full mode R8 will only keep the static
+    // members specified by the -keepclassmembers rule.
+    buildWithMembersRuleEnableMinification(testForR8(parameters.getBackend()))
+        .compile()
+        .inspect(
+            inspector -> {
+              assertTrue(inspector.clazz(MAIN_CLASS).isPresent());
+              assertTrue(inspector.clazz(BAR_CLASS).isPresent());
+              assertBarGetInstanceIsNotInlined(inspector);
+              assertFalse(inspector.clazz(BAR_CLASS).uniqueFieldWithName("i").isPresent());
+              assertFalse(inspector.clazz(BAR_CLASS).uniqueMethodWithName("<init>").isPresent());
+            });
   }
 
   // Tests for "-keepclassmembers class Bar", i.e, with no members specified.
@@ -325,7 +387,7 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
     return builder
         .addProgramClasses(CLASSES)
         .addKeepMainRule(MAIN_CLASS)
-        .addKeepRules("-keepclassmembernames " + EXPLICIT_RULE);
+        .addKeepRules("-keepclassmembernames " + KEEP_RULE);
   }
 
   private <CR extends TestCompileResult<CR, RR>, RR extends TestRunResult<RR>>
