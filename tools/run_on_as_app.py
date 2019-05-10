@@ -167,6 +167,19 @@ APP_REPOSITORIES = [
       ]
   }),
   Repo({
+      'name': 'googlesamples',
+      'url': 'https://github.com/christofferqa/android-sunflower.git',
+      'revision': 'df0a082a0bcbeae253817e13daca3c7a7c54f67a',
+      'apps': [
+          App({
+              'id': 'com.google.samples.apps.sunflower',
+              'name': 'android-sunflower',
+              'min_sdk': 19,
+              'compile_sdk': 28
+          })
+      ]
+  }),
+  Repo({
       'name': 'Instabug-Android',
       'url': 'https://github.com/christofferqa/Instabug-Android.git',
       'revision': 'b8df78c96630a6537fbc07787b4990afc030cc0f',
