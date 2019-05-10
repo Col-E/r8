@@ -53,7 +53,8 @@ public class ProguardConfigurationParser {
 
   private static final List<String> IGNORED_SINGLE_ARG_OPTIONS = ImmutableList.of(
       "protomapping",
-      "target");
+      "target",
+      "maximuminlinedcodelength");
 
   private static final List<String> IGNORED_OPTIONAL_SINGLE_ARG_OPTIONS = ImmutableList.of(
       "runtype",
@@ -72,7 +73,9 @@ public class ProguardConfigurationParser {
       "mergeinterfacesaggressively",
       "android",
       "shrinkunusedprotofields",
-      "allowruntypeandignoreoptimizationpasses");
+      "allowruntypeandignoreoptimizationpasses",
+      "dontshrinkduringoptimization",
+      "convert_proto_enum_to_string");
 
   private static final List<String> IGNORED_CLASS_DESCRIPTOR_OPTIONS = ImmutableList.of(
       "isclassnamestring",
