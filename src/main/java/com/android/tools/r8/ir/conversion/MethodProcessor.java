@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.conversion;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.conversion.CallGraph.Node;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.IROrdering;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -24,12 +25,18 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.function.Predicate;
 
-public class MethodProcessingOrder {
+public class MethodProcessor {
 
+  private final CallSiteInformation callSiteInformation;
   private final Deque<Collection<DexEncodedMethod>> waves;
 
-  MethodProcessingOrder(AppView<?> appView, CallGraph callGraph) {
+  MethodProcessor(AppView<AppInfoWithLiveness> appView, CallGraph callGraph) {
+    this.callSiteInformation = callGraph.createCallSiteInformation(appView);
     this.waves = createWaves(appView, callGraph);
+  }
+
+  public CallSiteInformation getCallSiteInformation() {
+    return callSiteInformation;
   }
 
   public static Deque<Collection<DexEncodedMethod>> createWaves(

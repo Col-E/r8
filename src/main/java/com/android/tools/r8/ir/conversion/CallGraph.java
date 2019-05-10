@@ -9,8 +9,11 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.conversion.CallGraphBuilder.CycleEliminator;
 import com.android.tools.r8.ir.conversion.CallSiteInformation.CallGraphBasedCallSiteInformation;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.Timing;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 
 /**
  * Call graph representation.
@@ -142,15 +145,8 @@ public class CallGraph {
     this.nodes = nodes;
   }
 
-  public static CallGraphBuilder builder(AppView<AppInfoWithLiveness> appView) {
+  static CallGraphBuilder builder(AppView<AppInfoWithLiveness> appView) {
     return new CallGraphBuilder(appView);
-  }
-
-  CallSiteInformation createCallSiteInformation(AppView<AppInfoWithLiveness> appView) {
-    // Don't leverage single/dual call site information when we are not tree shaking.
-    return appView.options().isShrinking()
-        ? new CallGraphBasedCallSiteInformation(appView, this)
-        : CallSiteInformation.empty();
   }
 
   /**
@@ -161,7 +157,17 @@ public class CallGraph {
    *
    * <p>
    */
-  MethodProcessingOrder createMethodProcessingOrder(AppView<?> appView) {
-    return new MethodProcessingOrder(appView, this);
+  static MethodProcessor createMethodProcessor(
+      AppView<AppInfoWithLiveness> appView, ExecutorService executorService, Timing timing)
+      throws ExecutionException {
+    CallGraph callGraph = CallGraph.builder(appView).build(executorService, timing);
+    return new MethodProcessor(appView, callGraph);
+  }
+
+  CallSiteInformation createCallSiteInformation(AppView<AppInfoWithLiveness> appView) {
+    // Don't leverage single/dual call site information when we are not tree shaking.
+    return appView.options().isShrinking()
+        ? new CallGraphBasedCallSiteInformation(appView, this)
+        : CallSiteInformation.empty();
   }
 }

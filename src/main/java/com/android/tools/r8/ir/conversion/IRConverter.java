@@ -526,19 +526,20 @@ public class IRConverter {
     OptimizationFeedbackDelayed feedback = delayedOptimizationFeedback;
     {
       timing.begin("Build call graph");
-      CallGraph callGraph =
-          CallGraph.builder(appView.withLiveness()).build(executorService, timing);
-      CallSiteInformation callSiteInformation =
-          callGraph.createCallSiteInformation(appViewWithLiveness);
-      MethodProcessingOrder methodProcessingOrder = callGraph.createMethodProcessingOrder(appView);
+      MethodProcessor methodProcessor =
+          CallGraph.createMethodProcessor(appView.withLiveness(), executorService, timing);
       timing.end();
       timing.begin("IR conversion phase 1");
       BiConsumer<IRCode, DexEncodedMethod> outlineHandler =
           outliner == null ? Outliner::noProcessing : outliner.identifyCandidateMethods();
-      methodProcessingOrder.forEachMethod(
+      methodProcessor.forEachMethod(
           (method, isProcessedConcurrently) ->
               processMethod(
-                  method, feedback, isProcessedConcurrently, callSiteInformation, outlineHandler),
+                  method,
+                  feedback,
+                  isProcessedConcurrently,
+                  methodProcessor.getCallSiteInformation(),
+                  outlineHandler),
           this::waveStart,
           this::waveDone,
           executorService);
