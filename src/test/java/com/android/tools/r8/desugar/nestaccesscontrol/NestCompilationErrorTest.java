@@ -29,6 +29,21 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class NestCompilationErrorTest extends TestBase {
 
+  public NestCompilationErrorTest(TestParameters parameters) {
+    this.parameters = parameters;
+  }
+
+  private final TestParameters parameters;
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters()
+        .withDexRuntime(DexVm.Version.first())
+        .withDexRuntime(DexVm.Version.last())
+        .withAllApiLevels()
+        .build();
+  }
+
   @Test
   public void testErrorD8() {
     // TODO (b/132147492): use diagnosis handler
@@ -43,21 +58,6 @@ public class NestCompilationErrorTest extends TestBase {
     Assume.assumeTrue(parameters.isDexRuntime());
     testMissingNestHostError(false);
     testIncompleteNestError(false);
-  }
-
-  public NestCompilationErrorTest(TestParameters parameters) {
-    this.parameters = parameters;
-  }
-
-  private final TestParameters parameters;
-
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters()
-        .withDexRuntime(DexVm.Version.first())
-        .withDexRuntime(DexVm.Version.last())
-        .withAllApiLevels()
-        .build();
   }
 
   private void compileOnlyClassesMatching(Matcher<String> matcher, boolean d8) throws Exception {

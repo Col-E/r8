@@ -47,28 +47,32 @@ public class NestHostExample {
       StaticNestMemberInner.StaticNestMemberInnerInner o2,
       NestMemberInner o3,
       NestMemberInner.NestMemberInnerInner o4) {
-    return o0.field
-        + o0.staticField
-        + NestHostExample.staticField
-        + o0.method()
-        + o0.staticMethod()
-        + NestHostExample.staticMethod()
-        + o1.field
-        + o1.staticField
-        + StaticNestMemberInner.staticField
-        + o1.method()
-        + o1.staticMethod()
-        + StaticNestMemberInner.staticMethod()
-        + o2.field
-        + o2.staticField
-        + StaticNestMemberInner.StaticNestMemberInnerInner.staticField
-        + o2.method()
-        + o2.staticMethod()
-        + StaticNestMemberInner.StaticNestMemberInnerInner.staticMethod()
-        + o3.field
-        + o3.method()
-        + o4.field
-        + o4.method();
+    return join(
+        ", ",
+        new String[] {
+          o0.field,
+          o0.staticField,
+          NestHostExample.staticField,
+          o0.method(),
+          o0.staticMethod(),
+          NestHostExample.staticMethod(),
+          o1.field,
+          o1.staticField,
+          StaticNestMemberInner.staticField,
+          o1.method(),
+          o1.staticMethod(),
+          StaticNestMemberInner.staticMethod(),
+          o2.field,
+          o2.staticField,
+          StaticNestMemberInner.StaticNestMemberInnerInner.staticField,
+          o2.method(),
+          o2.staticMethod(),
+          StaticNestMemberInner.StaticNestMemberInnerInner.staticMethod(),
+          o3.field,
+          o3.method(),
+          o4.field,
+          o4.method()
+        });
   }
 
   public String accessPrivateInterface(StaticNestInterfaceInner i1) {
@@ -97,28 +101,32 @@ public class NestHostExample {
         StaticNestMemberInner.StaticNestMemberInnerInner o2,
         NestMemberInner o3,
         NestMemberInner.NestMemberInnerInner o4) {
-      return o0.field
-          + o0.staticField
-          + NestHostExample.staticField
-          + o0.method()
-          + o0.staticMethod()
-          + NestHostExample.staticMethod()
-          + o1.field
-          + o1.staticField
-          + StaticNestMemberInner.staticField
-          + o1.method()
-          + o1.staticMethod()
-          + StaticNestMemberInner.staticMethod()
-          + o2.field
-          + o2.staticField
-          + StaticNestMemberInner.StaticNestMemberInnerInner.staticField
-          + o2.method()
-          + o2.staticMethod()
-          + StaticNestMemberInner.StaticNestMemberInnerInner.staticMethod()
-          + o3.field
-          + o3.method()
-          + o4.field
-          + o4.method();
+      return join(
+          ", ",
+          new String[] {
+            o0.field,
+            o0.staticField,
+            NestHostExample.staticField,
+            o0.method(),
+            o0.staticMethod(),
+            NestHostExample.staticMethod(),
+            o1.field,
+            o1.staticField,
+            StaticNestMemberInner.staticField,
+            o1.method(),
+            o1.staticMethod(),
+            StaticNestMemberInner.staticMethod(),
+            o2.field,
+            o2.staticField,
+            StaticNestMemberInner.StaticNestMemberInnerInner.staticField,
+            o2.method(),
+            o2.staticMethod(),
+            StaticNestMemberInner.StaticNestMemberInnerInner.staticMethod(),
+            o3.field,
+            o3.method(),
+            o4.field,
+            o4.method()
+          });
     }
 
     default String accessPrivateInterface(StaticNestInterfaceInner i1) {
@@ -172,28 +180,32 @@ public class NestHostExample {
           StaticNestMemberInner.StaticNestMemberInnerInner o2,
           NestMemberInner o3,
           NestMemberInner.NestMemberInnerInner o4) {
-        return o0.field
-            + o0.staticField
-            + NestHostExample.staticField
-            + o0.method()
-            + o0.staticMethod()
-            + NestHostExample.staticMethod()
-            + o1.field
-            + o1.staticField
-            + StaticNestMemberInner.staticField
-            + o1.method()
-            + o1.staticMethod()
-            + StaticNestMemberInner.staticMethod()
-            + o2.field
-            + o2.staticField
-            + StaticNestMemberInner.StaticNestMemberInnerInner.staticField
-            + o2.method()
-            + o2.staticMethod()
-            + StaticNestMemberInner.StaticNestMemberInnerInner.staticMethod()
-            + o3.field
-            + o3.method()
-            + o4.field
-            + o4.method();
+        return join(
+            ", ",
+            new String[] {
+              o0.field,
+              o0.staticField,
+              NestHostExample.staticField,
+              o0.method(),
+              o0.staticMethod(),
+              NestHostExample.staticMethod(),
+              o1.field,
+              o1.staticField,
+              StaticNestMemberInner.staticField,
+              o1.method(),
+              o1.staticMethod(),
+              StaticNestMemberInner.staticMethod(),
+              o2.field,
+              o2.staticField,
+              StaticNestMemberInner.StaticNestMemberInnerInner.staticField,
+              o2.method(),
+              o2.staticMethod(),
+              StaticNestMemberInner.StaticNestMemberInnerInner.staticMethod(),
+              o3.field,
+              o3.method(),
+              o4.field,
+              o4.method()
+            });
       }
 
       public String accessPrivateInterface(StaticNestInterfaceInner i1) {
@@ -238,34 +250,46 @@ public class NestHostExample {
           StaticNestMemberInner.StaticNestMemberInnerInner o2,
           NestMemberInner o3,
           NestMemberInner.NestMemberInnerInner o4) {
-        return o0.field
-            + o0.staticField
-            + NestHostExample.staticField
-            + o0.method()
-            + o0.staticMethod()
-            + NestHostExample.staticMethod()
-            + o1.field
-            + o1.staticField
-            + StaticNestMemberInner.staticField
-            + o1.method()
-            + o1.staticMethod()
-            + StaticNestMemberInner.staticMethod()
-            + o2.field
-            + o2.staticField
-            + StaticNestMemberInner.StaticNestMemberInnerInner.staticField
-            + o2.method()
-            + o2.staticMethod()
-            + StaticNestMemberInner.StaticNestMemberInnerInner.staticMethod()
-            + o3.field
-            + o3.method()
-            + o4.field
-            + o4.method();
+        return join(
+            ", ",
+            new String[] {
+              o0.field,
+              o0.staticField,
+              NestHostExample.staticField,
+              o0.method(),
+              o0.staticMethod(),
+              NestHostExample.staticMethod(),
+              o1.field,
+              o1.staticField,
+              StaticNestMemberInner.staticField,
+              o1.method(),
+              o1.staticMethod(),
+              StaticNestMemberInner.staticMethod(),
+              o2.field,
+              o2.staticField,
+              StaticNestMemberInner.StaticNestMemberInnerInner.staticField,
+              o2.method(),
+              o2.staticMethod(),
+              StaticNestMemberInner.StaticNestMemberInnerInner.staticMethod(),
+              o3.field,
+              o3.method(),
+              o4.field,
+              o4.method()
+            });
       }
 
       public String accessPrivateInterface(StaticNestInterfaceInner i1) {
         return i1.interfaceMethod() + StaticNestInterfaceInner.staticInterfaceMethod();
       }
     }
+  }
+
+  public static String join(String separator, String[] strings) {
+    StringBuilder sb = new StringBuilder(strings[0]);
+    for (int i = 1; i < strings.length; i++) {
+      sb.append(separator).append(strings[i]);
+    }
+    return sb.toString();
   }
 
   @SuppressWarnings("all") // do not know how to remove the redundant i1 variable
@@ -279,16 +303,10 @@ public class NestHostExample {
 
     StaticNestInterfaceInner i1 = o2;
 
-    // comment out the hashCode() for explicit results, expectation: 4x
-    // fieldstaticFieldstaticFieldhostMethodstaticHostMethodstaticHostMethodnest1SField
-    //  staticNest1SFieldstaticNest1SFieldnest1SMethodstaticNest1SMethodstaticNest1SMethod
-    //  nest2SFieldstaticNest2SFieldstaticNest2SFieldnest2SMethodstaticNest2SMethod
-    //  staticNest2SMethodnest1Fieldnest1Methodnest2Fieldnest2Method
-    // staticInterfaceMethodstaticStaticInterfaceMethod
-    System.out.println(o0.accessPrivate(o0, o1, o2, o3, o4).hashCode());
-    System.out.println(o2.accessPrivate(o0, o1, o2, o3, o4).hashCode());
-    System.out.println(o4.accessPrivate(o0, o1, o2, o3, o4).hashCode());
-    System.out.println(i1.accessPrivate(o0, o1, o2, o3, o4).hashCode());
+    System.out.println(o0.accessPrivate(o0, o1, o2, o3, o4));
+    System.out.println(o2.accessPrivate(o0, o1, o2, o3, o4));
+    System.out.println(o4.accessPrivate(o0, o1, o2, o3, o4));
+    System.out.println(i1.accessPrivate(o0, o1, o2, o3, o4));
 
     System.out.println(o0.accessPrivateInterface(i1));
     System.out.println(o2.accessPrivateInterface(i1));

@@ -38,6 +38,27 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class FullNestOnProgramPathTest extends TestBase {
 
+  public FullNestOnProgramPathTest(TestParameters parameters) {
+    this.parameters = parameters;
+  }
+
+  private final TestParameters parameters;
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters()
+        .withCfRuntimesStartingFromIncluding(CfVm.JDK11)
+        .withDexRuntimes()
+        .withAllApiLevels()
+        .build();
+  }
+
+  public static Function<AndroidApiLevel, D8TestCompileResult> d8CompilationResult =
+      memoizeFunction(FullNestOnProgramPathTest::compileAllNestsD8);
+
+  public static BiFunction<Backend, AndroidApiLevel, R8TestCompileResult> r8CompilationResult =
+      memoizeBiFunction(FullNestOnProgramPathTest::compileAllNestsR8);
+
   // All Nests tests compile all the nests into dex,
   // and run the main class from this dex
   @Test
@@ -104,27 +125,6 @@ public class FullNestOnProgramPathTest extends TestBase {
     }
   }
 
-  public FullNestOnProgramPathTest(TestParameters parameters) {
-    this.parameters = parameters;
-  }
-
-  private final TestParameters parameters;
-
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters()
-        .withCfRuntimesStartingFromIncluding(CfVm.JDK11)
-        .withDexRuntimes()
-        .withAllApiLevels()
-        .build();
-  }
-
-  private static Function<AndroidApiLevel, D8TestCompileResult> d8CompilationResult =
-      memoizeFunction(FullNestOnProgramPathTest::compileAllNestsD8);
-
-  private static BiFunction<Backend, AndroidApiLevel, R8TestCompileResult> r8CompilationResult =
-      memoizeBiFunction(FullNestOnProgramPathTest::compileAllNestsR8);
-
   private static D8TestCompileResult compileAllNestsD8(AndroidApiLevel minApi)
       throws CompilationFailedException {
     return testForD8(getStaticTemp())
@@ -159,6 +159,9 @@ public class FullNestOnProgramPathTest extends TestBase {
     inspector.forAllClasses(
         classSubject -> {
           DexClass dexClass = classSubject.getDexClass();
+          if (dexClass.type.getName().contains("GeneratedOutlineSupport")) {
+            return;
+          }
           assertTrue(dexClass.isInANest());
           if (outerClassNames.contains(dexClass.type.getName())) {
             assertNull(dexClass.getNestHostClassAttribute());

@@ -35,6 +35,17 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class NestOnProgramAndClassPathTest extends TestBase {
 
+  public NestOnProgramAndClassPathTest(TestParameters parameters) {
+    this.parameters = parameters;
+  }
+
+  private final TestParameters parameters;
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
+  }
+
   @Test
   public void testD8MethodBridgesPresent() throws Exception {
     Assume.assumeTrue(parameters.isDexRuntime());
@@ -93,17 +104,6 @@ public class NestOnProgramAndClassPathTest extends TestBase {
         .inspect(inspector -> assertEquals(3, inspector.allClasses().size()))
         .run(parameters.getRuntime(), getMainClass("constructors"))
         .assertSuccessWithOutput(getExpectedResult("constructors"));
-  }
-
-  public NestOnProgramAndClassPathTest(TestParameters parameters) {
-    this.parameters = parameters;
-  }
-
-  private final TestParameters parameters;
-
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
   }
 
   private D8TestCompileResult compileClassesWithD8ProgramClassesMatching(Matcher<String> matcher)
