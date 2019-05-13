@@ -12,12 +12,14 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.origin.SynthesizedOrigin;
+import com.android.tools.r8.utils.BooleanUtils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -47,12 +49,12 @@ public abstract class NestBasedAccessDesugaring {
 
   protected final AppView<?> appView;
   // Following maps are there to avoid creating the bridges multiple times.
-  private final Map<DexEncodedMethod, DexEncodedMethod> bridges = new ConcurrentHashMap<>();
-  private final Map<DexEncodedField, DexEncodedMethod> getFieldBridges = new ConcurrentHashMap<>();
-  private final Map<DexEncodedField, DexEncodedMethod> putFieldBridges = new ConcurrentHashMap<>();
+  private final Map<DexEncodedMethod, DexMethod> bridges = new ConcurrentHashMap<>();
+  private final Map<DexEncodedField, DexMethod> getFieldBridges = new ConcurrentHashMap<>();
+  private final Map<DexEncodedField, DexMethod> putFieldBridges = new ConcurrentHashMap<>();
   // The following map records the bridges to add in the program.
   // It may differ from the values of the previous maps
-  // if come classes are on the classpath and not the program path.
+  // if some classes are on the classpath and not the program path.
   final Map<DexEncodedMethod, DexProgramClass> deferredBridgesToAdd = new ConcurrentHashMap<>();
   // Common single empty class for nest based private constructors
   private final DexProgramClass nestConstructor;
@@ -64,15 +66,14 @@ public abstract class NestBasedAccessDesugaring {
   }
 
   DexType getNestConstructorType() {
-    assert nestConstructor != null;
     return nestConstructor.type;
   }
 
   // Extract the list of types in the programClass' nest, of host hostClass
-  List<DexType> extractNest(DexClass hostClass, DexProgramClass programClass) {
-    assert programClass != null;
+  List<DexType> extractNest(DexClass hostClass, DexClass clazz) {
+    assert clazz != null;
     if (hostClass == null) {
-      throw abortCompilationDueToMissingNestHost(programClass);
+      throw abortCompilationDueToMissingNestHost(clazz);
     }
     List<DexType> classesInNest =
         new ArrayList<>(hostClass.getNestMembersClassAttributes().size() + 1);
@@ -119,34 +120,42 @@ public abstract class NestBasedAccessDesugaring {
   private RuntimeException abortCompilationDueToIncompleteNest(List<DexType> nest) {
     List<String> programClassesFromNest = new ArrayList<>();
     List<String> unavailableClasses = new ArrayList<>();
-    List<String> otherClasses = new ArrayList<>();
+    List<String> classPathClasses = new ArrayList<>();
+    List<String> libraryClasses = new ArrayList<>();
     for (DexType type : nest) {
       DexClass clazz = appView.definitionFor(type);
       if (clazz == null) {
         unavailableClasses.add(type.getName());
+      } else if (clazz.isLibraryClass()) {
+        libraryClasses.add(type.getName());
       } else if (clazz.isProgramClass()) {
         programClassesFromNest.add(type.getName());
       } else {
-        assert clazz.isLibraryClass() || clazz.isClasspathClass();
-        otherClasses.add(type.getName());
+        assert clazz.isClasspathClass();
+        classPathClasses.add(type.getName());
       }
     }
     StringBuilder stringBuilder =
-        new StringBuilder("Classes ")
+        new StringBuilder("Compilation of classes ")
             .append(String.join(", ", programClassesFromNest))
-            .append(" requires its nest mates ")
-            .append(String.join(", ", unavailableClasses))
-            .append(" to be on program or class path for compilation to succeed)");
-    if (!otherClasses.isEmpty()) {
+            .append(" requires its nest mates ");
+    if (!unavailableClasses.isEmpty()) {
+      stringBuilder.append(String.join(", ", unavailableClasses)).append(" (unavailable) ");
+    }
+    if (!libraryClasses.isEmpty()) {
+      stringBuilder.append(String.join(", ", unavailableClasses)).append(" (on library path) ");
+    }
+    stringBuilder.append("to be on program or class path for compilation to succeed)");
+    if (!classPathClasses.isEmpty()) {
       stringBuilder
           .append("(Classes ")
-          .append(String.join(", ", otherClasses))
-          .append(" from the same nest were available).");
+          .append(String.join(", ", classPathClasses))
+          .append(" from the same nest are on class path).");
     }
     throw new CompilationError(stringBuilder.toString());
   }
 
-  private RuntimeException abortCompilationDueToMissingNestHost(DexProgramClass compiledClass) {
+  private RuntimeException abortCompilationDueToMissingNestHost(DexClass compiledClass) {
     String nestHostName = compiledClass.getNestHostClassAttribute().getNestHost().getName();
     throw new CompilationError(
         "Class "
@@ -154,55 +163,6 @@ public abstract class NestBasedAccessDesugaring {
             + " requires its nest host "
             + nestHostName
             + " to be on program or class path for compilation to succeed.");
-  }
-
-  private RuntimeException abortCompilationDueToBridgeRequiredOnLibraryClass(
-      DexClass compiledClass, DexClass libraryClass) {
-    throw new CompilationError(
-        "Class "
-            + compiledClass.type.getName()
-            + " requires the insertion of a bridge on the library class "
-            + libraryClass.type.getName()
-            + " which is impossible.");
-  }
-
-  protected abstract void shouldRewriteCalls(DexMethod method, DexMethod bridge);
-
-  protected abstract void shouldRewriteInitializers(DexMethod method, DexMethod bridge);
-
-  protected abstract void shouldRewriteStaticGetFields(DexField field, DexMethod bridge);
-
-  protected abstract void shouldRewriteStaticPutFields(DexField field, DexMethod bridge);
-
-  protected abstract void shouldRewriteInstanceGetFields(DexField field, DexMethod bridge);
-
-  protected abstract void shouldRewriteInstancePutFields(DexField field, DexMethod bridge);
-
-  private DexString methodBridgeName(DexEncodedMethod method) {
-    String methodName = method.method.name.toString();
-    String fullName;
-    if (method.isStatic()) {
-      fullName = NEST_ACCESS_STATIC_METHOD_NAME_PREFIX + methodName;
-    } else {
-      fullName = NEST_ACCESS_METHOD_NAME_PREFIX + methodName;
-    }
-    return appView.dexItemFactory().createString(fullName);
-  }
-
-  private DexString fieldBridgeName(DexFieldWithAccess access) {
-    String fieldName = access.field.field.name.toString();
-    String fullName;
-    if (access.isInstanceGet()) {
-      fullName = NEST_ACCESS_FIELD_GET_NAME_PREFIX + fieldName;
-    } else if (access.isStaticGet()) {
-      fullName = NEST_ACCESS_STATIC_GET_FIELD_NAME_PREFIX + fieldName;
-    } else if (access.isInstancePut()) {
-      fullName = NEST_ACCESS_FIELD_PUT_NAME_PREFIX + fieldName;
-    } else {
-      assert access.isStaticPut();
-      fullName = NEST_ACCESS_STATIC_PUT_FIELD_NAME_PREFIX + fieldName;
-    }
-    return appView.dexItemFactory().createString(fullName);
   }
 
   private DexProgramClass createNestAccessConstructor() {
@@ -228,11 +188,6 @@ public abstract class NestBasedAccessDesugaring {
         appView.dexItemFactory().getSkipNameValidationForTesting());
   }
 
-  private DexProgramClass ensureNestConstructorClass() {
-    nestConstructorUsed = true;
-    return nestConstructor;
-  }
-
   void synthetizeNestConstructor(DexApplication.Builder<?> builder) {
     if (nestConstructorUsed) {
       appView.appInfo().addSynthesizedClass(nestConstructor);
@@ -244,87 +199,144 @@ public abstract class NestBasedAccessDesugaring {
     return type.getName().equals(NEST_CONSTRUCTOR_NAME);
   }
 
-  boolean registerFieldAccess(
-      DexField field, boolean isGet, List<DexType> nest, DexClass currentClass) {
-    if (field.holder == currentClass.type || !nest.contains(field.holder)) {
-      return false;
+  private static DexString computeMethodBridgeName(DexEncodedMethod method, AppView<?> appView) {
+    String methodName = method.method.name.toString();
+    String fullName;
+    if (method.isStatic()) {
+      fullName = NEST_ACCESS_STATIC_METHOD_NAME_PREFIX + methodName;
+    } else {
+      fullName = NEST_ACCESS_METHOD_NAME_PREFIX + methodName;
     }
-    DexEncodedField target = appView.definitionFor(field);
-    if (target == null || !target.accessFlags.isPrivate()) {
-      return false;
-    }
-    Map<DexEncodedField, DexEncodedMethod> fieldMap = isGet ? getFieldBridges : putFieldBridges;
-    DexEncodedMethod bridge =
-        fieldMap.computeIfAbsent(
-            target,
-            k -> {
-              DexFieldWithAccess fieldWithAccess = new DexFieldWithAccess(target, isGet);
-              DexClass holder = appView.definitionFor(field.holder);
-              DexEncodedMethod localBridge =
-                  DexEncodedMethod.createFieldAccessorBridge(
-                      fieldWithAccess, holder, appView, fieldBridgeName(fieldWithAccess));
-              // Accesses to program classes private members require bridge insertion.
-              if (holder.isProgramClass()) {
-                deferredBridgesToAdd.put(localBridge, holder.asProgramClass());
-              } else if (holder.isLibraryClass()) {
-                throw abortCompilationDueToBridgeRequiredOnLibraryClass(currentClass, holder);
-              }
-              return localBridge;
-            });
-    // In program classes, any access to nest mate private member needs to be rewritten.
-    if (currentClass.isProgramClass()) {
-      if (isGet) {
-        if (target.isStatic()) {
-          shouldRewriteStaticGetFields(field, bridge.method);
-        } else {
-          shouldRewriteInstanceGetFields(field, bridge.method);
-        }
-      } else {
-        if (target.isStatic()) {
-          shouldRewriteStaticPutFields(field, bridge.method);
-        } else {
-          shouldRewriteInstancePutFields(field, bridge.method);
-        }
-      }
-    }
-    return true;
+    return appView.dexItemFactory().createString(fullName);
   }
 
-  boolean registerInvoke(DexMethod method, List<DexType> nest, DexClass currentClass) {
-    if (method.holder == currentClass.type || !nest.contains(method.holder)) {
+  private static DexString computeFieldBridgeName(
+      DexEncodedField field, boolean isGet, AppView<?> appView) {
+    String fieldName = field.field.name.toString();
+    String fullName;
+    if (isGet && !field.isStatic()) {
+      fullName = NEST_ACCESS_FIELD_GET_NAME_PREFIX + fieldName;
+    } else if (isGet) {
+      fullName = NEST_ACCESS_STATIC_GET_FIELD_NAME_PREFIX + fieldName;
+    } else if (!field.isStatic()) {
+      fullName = NEST_ACCESS_FIELD_PUT_NAME_PREFIX + fieldName;
+    } else {
+      fullName = NEST_ACCESS_STATIC_PUT_FIELD_NAME_PREFIX + fieldName;
+    }
+    return appView.dexItemFactory().createString(fullName);
+  }
+
+  static DexMethod computeMethodBridge(DexEncodedMethod encodedMethod, AppView<?> appView) {
+    DexMethod method = encodedMethod.method;
+    DexProto proto =
+        encodedMethod.accessFlags.isStatic()
+            ? method.proto
+            : appView.dexItemFactory().prependTypeToProto(method.holder, method.proto);
+    return appView
+        .dexItemFactory()
+        .createMethod(method.holder, proto, computeMethodBridgeName(encodedMethod, appView));
+  }
+
+  static DexMethod computeInitializerBridge(
+      DexMethod method, AppView<?> appView, DexType nestConstructorType) {
+    DexProto newProto =
+        appView.dexItemFactory().appendTypeToProto(method.proto, nestConstructorType);
+    return appView.dexItemFactory().createMethod(method.holder, newProto, method.name);
+  }
+
+  static DexMethod computeFieldBridge(DexEncodedField field, boolean isGet, AppView<?> appView) {
+    DexType holderType = field.field.holder;
+    DexType fieldType = field.field.type;
+    int bridgeParameterCount =
+        BooleanUtils.intValue(!field.isStatic()) + BooleanUtils.intValue(!isGet);
+    DexType[] parameters = new DexType[bridgeParameterCount];
+    if (!isGet) {
+      parameters[parameters.length - 1] = fieldType;
+    }
+    if (!field.isStatic()) {
+      parameters[0] = holderType;
+    }
+    DexType returnType = isGet ? fieldType : appView.dexItemFactory().voidType;
+    DexProto proto = appView.dexItemFactory().createProto(returnType, parameters);
+    return appView
+        .dexItemFactory()
+        .createMethod(holderType, proto, computeFieldBridgeName(field, isGet, appView));
+  }
+
+  static boolean invokeRequiresRewriting(
+      DexEncodedMethod method, List<DexType> contextNest, DexType contextType) {
+    // Rewrite only when targeting other nest members private fields.
+    return method.accessFlags.isPrivate()
+        && method.method.holder != contextType
+        && contextNest.contains(method.method.holder);
+  }
+
+  static boolean fieldAccessRequiresRewriting(
+      DexEncodedField field, List<DexType> contextNest, DexType contextType) {
+    // Rewrite only when targeting other nest members private fields.
+    return field.accessFlags.isPrivate()
+        && field.field.holder != contextType
+        && contextNest.contains(field.field.holder);
+  }
+
+  private boolean holderRequiresBridge(DexClass holder) {
+    // Bridges are added on program classes only.
+    // Bridges on class paths are added in different compilation units.
+    if (holder.isProgramClass()) {
       return false;
+    } else if (holder.isClasspathClass()) {
+      return true;
     }
-    DexEncodedMethod target = appView.definitionFor(method);
-    if (target == null || !target.accessFlags.isPrivate()) {
-      return false;
+    assert holder.isLibraryClass();
+    DexClass host = appView.definitionFor(holder.getNestHost());
+    throw abortCompilationDueToIncompleteNest(extractNest(host, holder));
+  }
+
+  DexMethod ensureFieldAccessBridge(DexEncodedField field, boolean isGet) {
+    DexClass holder = appView.definitionFor(field.field.holder);
+    assert holder != null;
+    DexMethod bridgeMethod = computeFieldBridge(field, isGet, appView);
+    if (holderRequiresBridge(holder)) {
+      return bridgeMethod;
     }
-    DexEncodedMethod bridge =
-        bridges.computeIfAbsent(
-            target,
-            k -> {
-              DexClass holder = appView.definitionFor(method.holder);
-              DexEncodedMethod localBridge =
-                  target.isInstanceInitializer()
-                      ? target.toInitializerForwardingBridge(
-                          holder, appView, ensureNestConstructorClass())
-                      : target.toStaticForwardingBridge(holder, appView, methodBridgeName(target));
-              // Accesses to program classes private members require bridge insertion.
-              if (holder.isProgramClass()) {
-                deferredBridgesToAdd.put(localBridge, holder.asProgramClass());
-              } else if (holder.isLibraryClass()) {
-                throw abortCompilationDueToBridgeRequiredOnLibraryClass(currentClass, holder);
-              }
-              return localBridge;
-            });
-    // In program classes, any access to nest mate private member needs to be rewritten.
-    if (currentClass.isProgramClass()) {
-      if (target.isInstanceInitializer()) {
-        shouldRewriteInitializers(method, bridge.method);
-      } else {
-        shouldRewriteCalls(method, bridge.method);
-      }
+    // The map is used to avoid creating multiple times the bridge.
+    Map<DexEncodedField, DexMethod> fieldMap = isGet ? getFieldBridges : putFieldBridges;
+    return fieldMap.computeIfAbsent(
+        field,
+        k -> {
+          DexEncodedMethod localBridge =
+              DexEncodedMethod.createFieldAccessorBridge(
+                  new DexFieldWithAccess(field, isGet), holder, bridgeMethod);
+          deferredBridgesToAdd.put(localBridge, holder.asProgramClass());
+          return bridgeMethod;
+        });
+  }
+
+  DexMethod ensureInvokeBridge(DexEncodedMethod method) {
+    // We add bridges only when targeting other nest members.
+    DexClass holder = appView.definitionFor(method.method.holder);
+    assert holder != null;
+    DexMethod bridgeMethod;
+    if (method.isInstanceInitializer()) {
+      nestConstructorUsed = true;
+      bridgeMethod = computeInitializerBridge(method.method, appView, nestConstructor.type);
+    } else {
+      bridgeMethod = computeMethodBridge(method, appView);
     }
-    return true;
+    if (holderRequiresBridge(holder)) {
+      return bridgeMethod;
+    }
+    // The map is used to avoid creating multiple times the bridge.
+    return bridges.computeIfAbsent(
+        method,
+        k -> {
+          DexEncodedMethod localBridge =
+              method.isInstanceInitializer()
+                  ? method.toInitializerForwardingBridge(holder, bridgeMethod)
+                  : method.toStaticForwardingBridge(holder, computeMethodBridge(method, appView));
+          deferredBridgesToAdd.put(localBridge, holder.asProgramClass());
+          return bridgeMethod;
+        });
   }
 
   protected class NestBasedAccessDesugaringUseRegistry extends UseRegistry {
@@ -338,28 +350,48 @@ public abstract class NestBasedAccessDesugaring {
       this.currentClass = currentClass;
     }
 
+    private boolean registerInvoke(DexMethod method) {
+      DexEncodedMethod encodedMethod = appView.definitionFor(method);
+      if (encodedMethod != null
+          && invokeRequiresRewriting(encodedMethod, nest, currentClass.type)) {
+        ensureInvokeBridge(encodedMethod);
+        return true;
+      }
+      return false;
+    }
+
+    private boolean registerFieldAccess(DexField field, boolean isGet) {
+      DexEncodedField encodedField = appView.definitionFor(field);
+      if (encodedField != null
+          && fieldAccessRequiresRewriting(encodedField, nest, currentClass.type)) {
+        ensureFieldAccessBridge(encodedField, isGet);
+        return true;
+      }
+      return false;
+    }
+
     @Override
     public boolean registerInvokeVirtual(DexMethod method) {
       // Calls to class nest mate private methods are targeted by invokeVirtual in jdk11.
       // The spec recommends to do so, but do not enforce it, hence invokeDirect is also registered.
-      return registerInvoke(method, nest, currentClass);
+      return registerInvoke(method);
     }
 
     @Override
     public boolean registerInvokeDirect(DexMethod method) {
-      return registerInvoke(method, nest, currentClass);
+      return registerInvoke(method);
     }
 
     @Override
     public boolean registerInvokeStatic(DexMethod method) {
-      return registerInvoke(method, nest, currentClass);
+      return registerInvoke(method);
     }
 
     @Override
     public boolean registerInvokeInterface(DexMethod method) {
       // Calls to interface nest mate private methods are targeted by invokeInterface in jdk11.
       // The spec recommends to do so, but do not enforce it, hence invokeDirect is also registered.
-      return registerInvoke(method, nest, currentClass);
+      return registerInvoke(method);
     }
 
     @Override
@@ -370,12 +402,12 @@ public abstract class NestBasedAccessDesugaring {
 
     @Override
     public boolean registerInstanceFieldWrite(DexField field) {
-      return registerFieldAccess(field, false, nest, currentClass);
+      return registerFieldAccess(field, false);
     }
 
     @Override
     public boolean registerInstanceFieldRead(DexField field) {
-      return registerFieldAccess(field, true, nest, currentClass);
+      return registerFieldAccess(field, true);
     }
 
     @Override
@@ -388,12 +420,12 @@ public abstract class NestBasedAccessDesugaring {
 
     @Override
     public boolean registerStaticFieldRead(DexField field) {
-      return registerFieldAccess(field, true, nest, currentClass);
+      return registerFieldAccess(field, true);
     }
 
     @Override
     public boolean registerStaticFieldWrite(DexField field) {
-      return registerFieldAccess(field, false, nest, currentClass);
+      return registerFieldAccess(field, false);
     }
 
     @Override
@@ -472,16 +504,6 @@ public abstract class NestBasedAccessDesugaring {
 
     public DexField getField() {
       return field.field;
-    }
-
-    public int bridgeParameterCount() {
-      if (isGet() && isStatic()) {
-        return 0;
-      }
-      if (isPut() && isInstance()) {
-        return 2;
-      }
-      return 1;
     }
   }
 }

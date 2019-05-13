@@ -731,15 +731,10 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     return builder.build();
   }
 
-  public DexEncodedMethod toInitializerForwardingBridge(
-      DexClass holder, DexDefinitionSupplier definitions, DexProgramClass nestConstructor) {
+  public DexEncodedMethod toInitializerForwardingBridge(DexClass holder, DexMethod newMethod) {
     assert accessFlags.isPrivate()
         : "Expected to create bridge for private constructor as part of nest-based access"
             + " desugaring";
-    DexProto newProto =
-        definitions.dexItemFactory().appendTypeToProto(method.proto, nestConstructor.type);
-    DexMethod newMethod =
-        definitions.dexItemFactory().createMethod(method.holder, newProto, method.name);
     Builder builder = builder(this);
     builder.setMethod(newMethod);
     ForwardMethodSourceCode.Builder forwardSourceCodeBuilder =
@@ -762,23 +757,8 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   }
 
   public static DexEncodedMethod createFieldAccessorBridge(
-      DexFieldWithAccess fieldWithAccess,
-      DexClass holder,
-      DexDefinitionSupplier definitions,
-      DexString newName) {
+      DexFieldWithAccess fieldWithAccess, DexClass holder, DexMethod newMethod) {
     assert holder.type == fieldWithAccess.getHolder();
-    DexItemFactory dexItemFactory = definitions.dexItemFactory();
-    DexType[] parameters = new DexType[fieldWithAccess.bridgeParameterCount()];
-    if (fieldWithAccess.isPut()) {
-      parameters[parameters.length - 1] = fieldWithAccess.getType();
-    }
-    if (fieldWithAccess.isInstance()) {
-      parameters[0] = holder.type;
-    }
-    DexType returnType =
-        fieldWithAccess.isGet() ? fieldWithAccess.getType() : dexItemFactory.voidType;
-    DexProto proto = dexItemFactory.createProto(returnType, parameters);
-    DexMethod newMethod = dexItemFactory.createMethod(holder.type, proto, newName);
     MethodAccessFlags accessFlags =
         MethodAccessFlags.fromSharedAccessFlags(
             Constants.ACC_SYNTHETIC
@@ -806,15 +786,9 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
         newMethod, accessFlags, DexAnnotationSet.empty(), ParameterAnnotationsList.empty(), code);
   }
 
-  public DexEncodedMethod toStaticForwardingBridge(
-      DexClass holder, DexDefinitionSupplier definitions, DexString newName) {
+  public DexEncodedMethod toStaticForwardingBridge(DexClass holder, DexMethod newMethod) {
     assert accessFlags.isPrivate()
         : "Expected to create bridge for private method as part of nest-based access desugaring";
-    DexProto proto =
-        accessFlags.isStatic()
-            ? method.proto
-            : definitions.dexItemFactory().prependTypeToProto(holder.type, method.proto);
-    DexMethod newMethod = definitions.dexItemFactory().createMethod(holder.type, proto, newName);
     Builder builder = builder(this);
     builder.setMethod(newMethod);
     ForwardMethodSourceCode.Builder forwardSourceCodeBuilder =

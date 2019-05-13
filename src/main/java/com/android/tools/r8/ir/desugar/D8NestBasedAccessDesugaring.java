@@ -3,13 +3,11 @@ package com.android.tools.r8.ir.desugar;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.BasicBlock;
-import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
@@ -36,13 +34,6 @@ import java.util.concurrent.Future;
 // - Optimize bridges (Bridges processed concurrently).
 public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
 
-  private final Map<DexMethod, DexMethod> methodMap = new ConcurrentHashMap<>();
-  private final Map<DexMethod, DexMethod> initializerMap = new ConcurrentHashMap<>();
-  private final Map<DexField, DexMethod> staticGetToMethodMap = new ConcurrentHashMap<>();
-  private final Map<DexField, DexMethod> staticPutToMethodMap = new ConcurrentHashMap<>();
-  private final Map<DexField, DexMethod> instanceGetToMethodMap = new ConcurrentHashMap<>();
-  private final Map<DexField, DexMethod> instancePutToMethodMap = new ConcurrentHashMap<>();
-
   // Map the nest host to its nest members, including the nest host itself.
   private final Map<DexType, List<DexType>> metNests = new ConcurrentHashMap<>();
 
@@ -50,62 +41,16 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
     super(appView);
   }
 
-  @Override
-  protected void shouldRewriteCalls(DexMethod method, DexMethod bridge) {
-    methodMap.put(method, bridge);
-  }
-
-  @Override
-  protected void shouldRewriteInitializers(DexMethod method, DexMethod bridge) {
-    initializerMap.put(method, bridge);
-  }
-
-  @Override
-  protected void shouldRewriteStaticGetFields(DexField field, DexMethod bridge) {
-    staticGetToMethodMap.put(field, bridge);
-  }
-
-  @Override
-  protected void shouldRewriteStaticPutFields(DexField field, DexMethod bridge) {
-    staticPutToMethodMap.put(field, bridge);
-  }
-
-  @Override
-  protected void shouldRewriteInstanceGetFields(DexField field, DexMethod bridge) {
-    instanceGetToMethodMap.put(field, bridge);
-  }
-
-  @Override
-  protected void shouldRewriteInstancePutFields(DexField field, DexMethod bridge) {
-    instancePutToMethodMap.put(field, bridge);
-  }
-
-  private List<DexType> getNestFor(DexProgramClass programClass) {
-    if (!programClass.isInANest()) {
-      return null;
-    }
-    DexType nestHost = programClass.getNestHost();
-    return metNests.computeIfAbsent(
-        nestHost, host -> extractNest(appView.definitionFor(nestHost), programClass));
-  }
-
-  private void rewriteFieldAccess(
-      FieldInstruction fieldInstruction,
-      InstructionListIterator instructions,
-      DexMethod method,
-      Map<DexField, DexMethod> fieldToMethodMap) {
-    DexMethod newTarget = fieldToMethodMap.get(fieldInstruction.getField());
-    if (newTarget != null && method.holder != newTarget.holder) {
-      instructions.replaceCurrentInstruction(
-          new InvokeStatic(newTarget, fieldInstruction.outValue(), fieldInstruction.inValues()));
-    }
+  private List<DexType> getNestFor(DexClass clazz) {
+    DexType nestHostType = clazz.getNestHost();
+    DexClass nestHost = clazz.isNestHost() ? clazz : appView.definitionFor(nestHostType);
+    return metNests.computeIfAbsent(nestHostType, host -> extractNest(nestHost, clazz));
   }
 
   public void rewriteNestBasedAccesses(
       DexEncodedMethod encodedMethod, IRCode code, AppView<?> appView) {
-    // We are compiling its code so it has to be a non-null program class.
-    DexProgramClass currentClass =
-        appView.definitionFor(encodedMethod.method.holder).asProgramClass();
+    DexClass currentClass = appView.definitionFor(encodedMethod.method.holder);
+    assert currentClass != null;
     if (!currentClass.isInANest()) {
       return;
     }
@@ -120,15 +65,11 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
         if (instruction.isInvokeMethod() && !instruction.isInvokeSuper()) {
           InvokeMethod invokeMethod = instruction.asInvokeMethod();
           DexMethod methodCalled = invokeMethod.getInvokedMethod();
-          registerInvoke(methodCalled, nest, currentClass);
-          DexMethod newTarget = methodMap.get(methodCalled);
-          if (newTarget != null && encodedMethod.method.holder != newTarget.holder) {
-            instructions.replaceCurrentInstruction(
-                new InvokeStatic(newTarget, invokeMethod.outValue(), invokeMethod.arguments()));
-          } else {
-            newTarget = initializerMap.get(methodCalled);
-            if (newTarget != null && encodedMethod.method.holder != newTarget.holder) {
-              // insert extra null value and replace call.
+          DexEncodedMethod encodedMethodCalled = appView.definitionFor(methodCalled);
+          if (encodedMethodCalled != null
+              && invokeRequiresRewriting(encodedMethodCalled, nest, encodedMethod.method.holder)) {
+            DexMethod bridge = ensureInvokeBridge(encodedMethodCalled);
+            if (encodedMethodCalled.isInstanceInitializer()) {
               instructions.previous();
               Value extraNullValue =
                   instructions.insertConstNullInstruction(code, appView.options());
@@ -136,27 +77,28 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
               List<Value> parameters = new ArrayList<>(invokeMethod.arguments());
               parameters.add(extraNullValue);
               instructions.replaceCurrentInstruction(
-                  new InvokeDirect(newTarget, invokeMethod.outValue(), parameters));
+                  new InvokeDirect(bridge, invokeMethod.outValue(), parameters));
+            } else {
+              instructions.replaceCurrentInstruction(
+                  new InvokeStatic(bridge, invokeMethod.outValue(), invokeMethod.arguments()));
             }
           }
+
         } else if (instruction.isFieldInstruction()) {
-          FieldInstruction fieldInstruction = instruction.asFieldInstruction();
-          if (instruction.isInstanceGet()) {
-            registerFieldAccess(fieldInstruction.getField(), true, nest, currentClass);
-            rewriteFieldAccess(
-                fieldInstruction, instructions, encodedMethod.method, instanceGetToMethodMap);
-          } else if (instruction.isInstancePut()) {
-            registerFieldAccess(fieldInstruction.getField(), false, nest, currentClass);
-            rewriteFieldAccess(
-                fieldInstruction, instructions, encodedMethod.method, instancePutToMethodMap);
-          } else if (instruction.isStaticGet()) {
-            registerFieldAccess(fieldInstruction.getField(), true, nest, currentClass);
-            rewriteFieldAccess(
-                fieldInstruction, instructions, encodedMethod.method, staticGetToMethodMap);
-          } else if (instruction.isStaticPut()) {
-            registerFieldAccess(fieldInstruction.getField(), false, nest, currentClass);
-            rewriteFieldAccess(
-                fieldInstruction, instructions, encodedMethod.method, staticPutToMethodMap);
+          DexEncodedField encodedField =
+              appView.definitionFor(instruction.asFieldInstruction().getField());
+          if (encodedField != null
+              && fieldAccessRequiresRewriting(encodedField, nest, encodedMethod.method.holder)) {
+            if (instruction.isInstanceGet() || instruction.isStaticGet()) {
+              DexMethod bridge = ensureFieldAccessBridge(encodedField, true);
+              instructions.replaceCurrentInstruction(
+                  new InvokeStatic(bridge, instruction.outValue(), instruction.inValues()));
+            } else {
+              assert instruction.isInstancePut() || instruction.isStaticPut();
+              DexMethod bridge = ensureFieldAccessBridge(encodedField, false);
+              instructions.replaceCurrentInstruction(
+                  new InvokeStatic(bridge, instruction.outValue(), instruction.inValues()));
+            }
           }
         }
       }
