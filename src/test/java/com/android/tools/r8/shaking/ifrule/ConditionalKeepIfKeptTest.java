@@ -62,9 +62,9 @@ public class ConditionalKeepIfKeptTest extends TestBase {
               ClassSubject classSubject = inspector.clazz(StaticallyReferenced.class);
               assertThat(classSubject, isPresent());
               assertEquals(0, classSubject.allFields().size());
-              // TODO(b/132318799): Full mode should not keep <init>() when not specified.
-              assertEquals(1, classSubject.allMethods().size());
-              assertThat(classSubject.init(Collections.emptyList()), isPresent());
+              // TODO(b/132318799): Full mode no-marker should not keep <init>() when not specified.
+              assertEquals(useMarker ? 0 : 1, classSubject.allMethods().size());
+              assertEquals(!useMarker, classSubject.init(Collections.emptyList()).isPresent());
             });
   }
 
@@ -108,6 +108,7 @@ public class ConditionalKeepIfKeptTest extends TestBase {
 
   @Test
   public void testIfKeepNonStaticMembers() throws Exception {
+    Assume.assumeFalse("b/132318609", useMarker);
     testForR8(parameters.getBackend())
         .addInnerClasses(ConditionalKeepIfKeptTest.class)
         .addKeepRules(getConditionalRulePrefix() + " { !static *; }")
