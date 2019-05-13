@@ -1376,42 +1376,60 @@ public class Enqueuer {
         interfaceInvoke
             ? appInfo.lookupInterfaceTargets(method)
             : appInfo.lookupVirtualTargets(method);
-    for (DexEncodedMethod encodedMethod : possibleTargets) {
+    for (DexEncodedMethod encodedPossibleTarget : possibleTargets) {
+      DexMethod possibleTarget = encodedPossibleTarget.method;
+      DexClass clazz = appView.definitionFor(possibleTarget.holder);
+      if (clazz == null) {
+        assert false;
+        continue;
+      }
+
+      if (!clazz.isProgramClass()) {
+        // Should only be tracing the program.
+        continue;
+      }
+
       // TODO(b/120959039): The reachable.add test might be hiding other paths to the method.
       SetWithReason<DexEncodedMethod> reachable =
           reachableVirtualMethods.computeIfAbsent(
-              encodedMethod.method.holder, ignore -> newSetWithoutReasonReporter());
-      if (reachable.add(encodedMethod, reason)) {
-        // Abstract methods cannot be live.
-        if (!encodedMethod.accessFlags.isAbstract()) {
-          // If the holder type is instantiated, the method is live. Otherwise check whether we find
-          // a subtype that does not shadow this methods but is instantiated.
-          // Note that library classes are always considered instantiated, as we do not know where
-          // they are instantiated.
-          if (isInstantiatedOrHasInstantiatedSubtype(encodedMethod.method.holder)) {
-            if (instantiatedTypes.contains(encodedMethod.method.holder)) {
-              markVirtualMethodAsLive(encodedMethod,
-                  KeepReason.reachableFromLiveType(encodedMethod.method.holder));
-            } else {
-              Deque<DexType> worklist = new ArrayDeque<>();
-              fillWorkList(worklist, encodedMethod.method.holder);
-              while (!worklist.isEmpty()) {
-                DexType current = worklist.pollFirst();
-                DexClass currentHolder = appView.definitionFor(current);
-                // If this class overrides the virtual, abort the search. Note that, according to
-                // the JVM spec, private methods cannot override a virtual method.
-                if (currentHolder == null
-                    || currentHolder.lookupVirtualMethod(encodedMethod.method) != null) {
-                  continue;
-                }
-                if (instantiatedTypes.contains(current)) {
-                  markVirtualMethodAsLive(encodedMethod, KeepReason.reachableFromLiveType(current));
-                  break;
-                }
-                fillWorkList(worklist, current);
-              }
-            }
+              possibleTarget.holder, ignore -> newSetWithoutReasonReporter());
+      if (!reachable.add(encodedPossibleTarget, reason)) {
+        continue;
+      }
+
+      // Abstract methods cannot be live.
+      if (encodedPossibleTarget.accessFlags.isAbstract()) {
+        continue;
+      }
+
+      // If the holder type is instantiated, the method is live. Otherwise check whether we find
+      // a subtype that does not shadow this methods but is instantiated.
+      // Note that library classes are always considered instantiated, as we do not know where
+      // they are instantiated.
+      if (!isInstantiatedOrHasInstantiatedSubtype(possibleTarget.holder)) {
+        continue;
+      }
+
+      if (instantiatedTypes.contains(possibleTarget.holder)) {
+        markVirtualMethodAsLive(
+            encodedPossibleTarget, KeepReason.reachableFromLiveType(possibleTarget.holder));
+      } else {
+        Deque<DexType> worklist =
+            new ArrayDeque<>(appInfo.allImmediateSubtypes(possibleTarget.holder));
+        while (!worklist.isEmpty()) {
+          DexType current = worklist.pollFirst();
+          DexClass currentHolder = appView.definitionFor(current);
+          // If this class overrides the virtual, abort the search. Note that, according to
+          // the JVM spec, private methods cannot override a virtual method.
+          if (currentHolder == null || currentHolder.lookupVirtualMethod(possibleTarget) != null) {
+            continue;
           }
+          if (instantiatedTypes.contains(current)) {
+            markVirtualMethodAsLive(
+                encodedPossibleTarget, KeepReason.reachableFromLiveType(current));
+            break;
+          }
+          appInfo.allImmediateSubtypes(current).forEach(worklist::addLast);
         }
       }
     }
@@ -1440,18 +1458,6 @@ public class Enqueuer {
       // marking of not renaming it in the root set.
       enqueueRootItem(valuesMethod, reason);
       rootSet.shouldNotBeMinified(valuesMethod.toReference());
-    }
-  }
-
-  private void fillWorkList(Deque<DexType> worklist, DexType type) {
-    if (appInfo.isMarkedAsInterface(type)) {
-      // We need to check if the method is shadowed by a class that directly implements
-      // the interface and go recursively down to the sub interfaces to reach class
-      // implementing the interface
-      appInfo.forAllImplementsSubtypes(type, worklist::addLast);
-      appInfo.forAllExtendsSubtypes(type, worklist::addLast);
-    } else {
-      appInfo.forAllExtendsSubtypes(type, worklist::addLast);
     }
   }
 
