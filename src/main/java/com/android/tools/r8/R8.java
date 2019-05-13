@@ -627,6 +627,9 @@ public class R8 {
                         application,
                         CollectionUtils.mergeSets(prunedTypes, pruner.getRemovedClasses())));
 
+            assert appView.verticallyMergedClasses() == null
+                || appView.verticallyMergedClasses().verifyAllSourcesPruned(appViewWithLiveness);
+
             processWhyAreYouKeepingAndCheckDiscarded(
                 appView.rootSet(),
                 () -> appView.appInfo().app().classesWithDeterministicOrder(),

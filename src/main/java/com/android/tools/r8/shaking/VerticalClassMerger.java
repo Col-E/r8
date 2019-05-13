@@ -115,6 +115,15 @@ public class VerticalClassMerger {
     public boolean hasBeenMergedIntoSubtype(DexType type) {
       return mergedClasses.containsKey(type);
     }
+
+    public boolean verifyAllSourcesPruned(AppView<AppInfoWithLiveness> appView) {
+      for (List<DexType> sourcesForTarget : sources.values()) {
+        for (DexType source : sourcesForTarget) {
+          assert appView.appInfo().wasPruned(source);
+        }
+      }
+      return true;
+    }
   }
 
   private enum AbortReason {
