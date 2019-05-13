@@ -317,7 +317,7 @@ public class Enqueuer {
         pinnedItems.stream()
             .filter(DexReference::isDexField)
             .map(DexReference::asDexField)
-            .collect(Collectors.toList()));
+            .collect(Collectors.toSet()));
     return result;
   }
 
