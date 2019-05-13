@@ -116,7 +116,6 @@ public class LazyCfCode extends Code {
       try {
         parseCode(context, false);
       } catch (JsrEncountered e) {
-        System.out.println("LazyCfCode: JSR encountered; reparse using JSRInlinerAdapter");
         for (Code code : context.codeList) {
           code.asLazyCfCode().code = null;
           code.asLazyCfCode().context = context;
