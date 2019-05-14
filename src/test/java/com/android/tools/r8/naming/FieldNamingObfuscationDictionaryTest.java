@@ -15,7 +15,6 @@ import com.android.tools.r8.utils.FileUtils;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.concurrent.ExecutionException;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -95,7 +94,6 @@ public class FieldNamingObfuscationDictionaryTest extends TestBase {
         .addInnerClasses(FieldNamingObfuscationDictionaryTest.class)
         .enableInliningAnnotations()
         .addKeepRules("-overloadaggressively", "-obfuscationdictionary " + dictionary.toString())
-        .addKeepRules()
         .addKeepMainRule(Runner.class)
         .setMinApi(parameters.getRuntime())
         .compile()
