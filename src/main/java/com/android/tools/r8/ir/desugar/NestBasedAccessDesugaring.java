@@ -18,14 +18,18 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.graph.UseRegistry;
+import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.ThreadUtils;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
@@ -48,14 +52,11 @@ public abstract class NestBasedAccessDesugaring {
   private static final String FULL_NEST_CONTRUCTOR_NAME = "L" + NEST_CONSTRUCTOR_NAME + ";";
 
   protected final AppView<?> appView;
-  // Following maps are there to avoid creating the bridges multiple times.
-  private final Map<DexEncodedMethod, DexMethod> bridges = new ConcurrentHashMap<>();
-  private final Map<DexEncodedField, DexMethod> getFieldBridges = new ConcurrentHashMap<>();
-  private final Map<DexEncodedField, DexMethod> putFieldBridges = new ConcurrentHashMap<>();
-  // The following map records the bridges to add in the program.
-  // It may differ from the values of the previous maps
-  // if some classes are on the classpath and not the program path.
-  final Map<DexEncodedMethod, DexProgramClass> deferredBridgesToAdd = new ConcurrentHashMap<>();
+  // Following maps are there to avoid creating the bridges multiple times
+  // and remember the bridges to add once the nests are processed.
+  private final Map<DexEncodedMethod, DexEncodedMethod> bridges = new ConcurrentHashMap<>();
+  private final Map<DexEncodedField, DexEncodedMethod> getFieldBridges = new ConcurrentHashMap<>();
+  private final Map<DexEncodedField, DexEncodedMethod> putFieldBridges = new ConcurrentHashMap<>();
   // Common single empty class for nest based private constructors
   private final DexProgramClass nestConstructor;
   private boolean nestConstructorUsed = false;
@@ -70,8 +71,9 @@ public abstract class NestBasedAccessDesugaring {
   }
 
   // Extract the list of types in the programClass' nest, of host hostClass
-  List<DexType> extractNest(DexClass hostClass, DexClass clazz) {
+  List<DexType> extractNest(DexClass clazz) {
     assert clazz != null;
+    DexClass hostClass = clazz.isNestHost() ? clazz : appView.definitionFor(clazz.getNestHost());
     if (hostClass == null) {
       throw abortCompilationDueToMissingNestHost(clazz);
     }
@@ -112,9 +114,29 @@ public abstract class NestBasedAccessDesugaring {
   protected abstract boolean shouldProcessClassInNest(DexClass clazz, List<DexType> nest);
 
   void addDeferredBridges() {
-    for (Map.Entry<DexEncodedMethod, DexProgramClass> entry : deferredBridgesToAdd.entrySet()) {
-      entry.getValue().addMethod(entry.getKey());
+    addDeferredBridges(bridges.values());
+    addDeferredBridges(getFieldBridges.values());
+    addDeferredBridges(putFieldBridges.values());
+  }
+
+  private void addDeferredBridges(Collection<DexEncodedMethod> bridges) {
+    for (DexEncodedMethod bridge : bridges) {
+      DexClass holder = appView.definitionFor(bridge.method.holder);
+      assert holder != null && holder.isProgramClass();
+      holder.asProgramClass().addMethod(bridge);
     }
+  }
+
+  void optimizeDeferredBridgesConcurrently(ExecutorService executorService, IRConverter converter)
+      throws ExecutionException {
+    List<Future<?>> futures =
+        new ArrayList<>(bridges.size() + getFieldBridges.size() + putFieldBridges.size());
+    converter.optimizeSynthesizedMethodsConcurrently(bridges.values(), executorService, futures);
+    converter.optimizeSynthesizedMethodsConcurrently(
+        getFieldBridges.values(), executorService, futures);
+    converter.optimizeSynthesizedMethodsConcurrently(
+        putFieldBridges.values(), executorService, futures);
+    ThreadUtils.awaitFutures(futures);
   }
 
   private RuntimeException abortCompilationDueToIncompleteNest(List<DexType> nest) {
@@ -288,8 +310,7 @@ public abstract class NestBasedAccessDesugaring {
       return true;
     }
     assert holder.isLibraryClass();
-    DexClass host = appView.definitionFor(holder.getNestHost());
-    throw abortCompilationDueToIncompleteNest(extractNest(host, holder));
+    throw abortCompilationDueToIncompleteNest(extractNest(holder));
   }
 
   DexMethod ensureFieldAccessBridge(DexEncodedField field, boolean isGet) {
@@ -299,17 +320,15 @@ public abstract class NestBasedAccessDesugaring {
     if (holderRequiresBridge(holder)) {
       return bridgeMethod;
     }
-    // The map is used to avoid creating multiple times the bridge.
-    Map<DexEncodedField, DexMethod> fieldMap = isGet ? getFieldBridges : putFieldBridges;
-    return fieldMap.computeIfAbsent(
+    // The map is used to avoid creating multiple times the bridge
+    // and remembers the bridges to add.
+    Map<DexEncodedField, DexEncodedMethod> fieldMap = isGet ? getFieldBridges : putFieldBridges;
+    fieldMap.computeIfAbsent(
         field,
-        k -> {
-          DexEncodedMethod localBridge =
-              DexEncodedMethod.createFieldAccessorBridge(
-                  new DexFieldWithAccess(field, isGet), holder, bridgeMethod);
-          deferredBridgesToAdd.put(localBridge, holder.asProgramClass());
-          return bridgeMethod;
-        });
+        k ->
+            DexEncodedMethod.createFieldAccessorBridge(
+                new DexFieldWithAccess(field, isGet), holder, bridgeMethod));
+    return bridgeMethod;
   }
 
   DexMethod ensureInvokeBridge(DexEncodedMethod method) {
@@ -326,17 +345,15 @@ public abstract class NestBasedAccessDesugaring {
     if (holderRequiresBridge(holder)) {
       return bridgeMethod;
     }
-    // The map is used to avoid creating multiple times the bridge.
-    return bridges.computeIfAbsent(
+    // The map is used to avoid creating multiple times the bridge
+    // and remembers the bridges to add.
+    bridges.computeIfAbsent(
         method,
-        k -> {
-          DexEncodedMethod localBridge =
-              method.isInstanceInitializer()
-                  ? method.toInitializerForwardingBridge(holder, bridgeMethod)
-                  : method.toStaticForwardingBridge(holder, computeMethodBridge(method, appView));
-          deferredBridgesToAdd.put(localBridge, holder.asProgramClass());
-          return bridgeMethod;
-        });
+        k ->
+            method.isInstanceInitializer()
+                ? method.toInitializerForwardingBridge(holder, bridgeMethod)
+                : method.toStaticForwardingBridge(holder, computeMethodBridge(method, appView)));
+    return bridgeMethod;
   }
 
   protected class NestBasedAccessDesugaringUseRegistry extends UseRegistry {

@@ -43,8 +43,7 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
 
   private List<DexType> getNestFor(DexClass clazz) {
     DexType nestHostType = clazz.getNestHost();
-    DexClass nestHost = clazz.isNestHost() ? clazz : appView.definitionFor(nestHostType);
-    return metNests.computeIfAbsent(nestHostType, host -> extractNest(nestHost, clazz));
+    return metNests.computeIfAbsent(nestHostType, host -> extractNest(clazz));
   }
 
   public void rewriteNestBasedAccesses(
@@ -121,8 +120,7 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
     processNestsConcurrently(metNests, executorService);
     addDeferredBridges();
     synthetizeNestConstructor(builder);
-    converter.optimizeSynthesizedMethodsConcurrently(
-        deferredBridgesToAdd.keySet(), executorService);
+    optimizeDeferredBridgesConcurrently(executorService, converter);
   }
 
   // In D8, programClass are processed on the fly so they do not need to be processed again here.

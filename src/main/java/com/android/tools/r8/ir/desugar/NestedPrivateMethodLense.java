@@ -59,22 +59,12 @@ public class NestedPrivateMethodLense extends NestedGraphLense {
   }
 
   @Override
-  public DexMethod lookupStaticGetFieldForMethod(DexField field, DexMethod context) {
+  public DexMethod lookupGetFieldForMethod(DexField field, DexMethod context) {
     return lookupFieldForMethod(field, context, true);
   }
 
   @Override
-  public DexMethod lookupStaticPutFieldForMethod(DexField field, DexMethod context) {
-    return lookupFieldForMethod(field, context, false);
-  }
-
-  @Override
-  public DexMethod lookupInstanceGetFieldForMethod(DexField field, DexMethod context) {
-    return lookupFieldForMethod(field, context, true);
-  }
-
-  @Override
-  public DexMethod lookupInstancePutFieldForMethod(DexField field, DexMethod context) {
+  public DexMethod lookupPutFieldForMethod(DexField field, DexMethod context) {
     return lookupFieldForMethod(field, context, false);
   }
 

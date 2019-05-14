@@ -278,7 +278,7 @@ public class LensCodeRewriter {
           DexField field = instanceGet.getField();
           DexField actualField = graphLense.lookupField(field);
           DexMethod replacementMethod =
-              graphLense.lookupInstanceGetFieldForMethod(actualField, method.method);
+              graphLense.lookupGetFieldForMethod(actualField, method.method);
           if (replacementMethod != null) {
             iterator.replaceCurrentInstruction(
                 new InvokeStatic(replacementMethod, current.outValue(), current.inValues()));
@@ -295,7 +295,7 @@ public class LensCodeRewriter {
           DexField field = instancePut.getField();
           DexField actualField = graphLense.lookupField(field);
           DexMethod replacementMethod =
-              graphLense.lookupInstancePutFieldForMethod(actualField, method.method);
+              graphLense.lookupPutFieldForMethod(actualField, method.method);
           if (replacementMethod != null) {
             iterator.replaceCurrentInstruction(
                 new InvokeStatic(replacementMethod, current.outValue(), current.inValues()));
@@ -309,7 +309,7 @@ public class LensCodeRewriter {
           DexField field = staticGet.getField();
           DexField actualField = graphLense.lookupField(field);
           DexMethod replacementMethod =
-              graphLense.lookupStaticGetFieldForMethod(actualField, method.method);
+              graphLense.lookupGetFieldForMethod(actualField, method.method);
           if (replacementMethod != null) {
             iterator.replaceCurrentInstruction(
                 new InvokeStatic(replacementMethod, current.outValue(), current.inValues()));
@@ -323,7 +323,7 @@ public class LensCodeRewriter {
           DexField field = staticPut.getField();
           DexField actualField = graphLense.lookupField(field);
           DexMethod replacementMethod =
-              graphLense.lookupStaticPutFieldForMethod(actualField, method.method);
+              graphLense.lookupPutFieldForMethod(actualField, method.method);
           if (replacementMethod != null) {
             iterator.replaceCurrentInstruction(
                 new InvokeStatic(replacementMethod, current.outValue(), current.inValues()));

@@ -786,7 +786,15 @@ public class IRConverter {
   public void optimizeSynthesizedMethodsConcurrently(
       Collection<DexEncodedMethod> methods, ExecutorService executorService)
       throws ExecutionException {
-    List<Future<?>> futures = new ArrayList<>();
+    List<Future<?>> futures = new ArrayList<>(methods.size());
+    optimizeSynthesizedMethodsConcurrently(methods, executorService, futures);
+    ThreadUtils.awaitFutures(futures);
+  }
+
+  public void optimizeSynthesizedMethodsConcurrently(
+      Collection<DexEncodedMethod> methods,
+      ExecutorService executorService,
+      List<Future<?>> futures) {
     for (DexEncodedMethod method : methods) {
       futures.add(
           executorService.submit(
@@ -800,7 +808,6 @@ public class IRConverter {
                 return null; // we want a Callable not a Runnable to be able to throw
               }));
     }
-    ThreadUtils.awaitFutures(futures);
   }
 
   private String logCode(InternalOptions options, DexEncodedMethod method) {

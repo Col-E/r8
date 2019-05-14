@@ -50,8 +50,7 @@ public class R8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
       if (clazz.isInANest()) {
         DexType hostType = clazz.getNestHost();
         if (!nestMap.containsKey(hostType)) {
-          DexClass host = clazz.isNestHost() ? clazz : appView.definitionFor(clazz.getNestHost());
-          List<DexType> nest = extractNest(host, clazz);
+          List<DexType> nest = extractNest(clazz);
           nestMap.put(hostType, nest);
           futures.add(asyncProcessNest(nest, executorService));
         }
