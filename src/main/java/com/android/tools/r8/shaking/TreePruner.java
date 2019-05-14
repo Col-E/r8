@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.KeyedDexItem;
+import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.utils.InternalOptions;
@@ -132,7 +133,46 @@ public class TreePruner {
     }
     clazz.removeInnerClasses(this::isAttributeReferencingPrunedType);
     clazz.removeEnclosingMethod(this::isAttributeReferencingPrunedItem);
+    rewriteNestAttributes(clazz);
     usagePrinter.visited();
+  }
+
+  private void rewriteNestAttributes(DexProgramClass clazz) {
+    if (!clazz.isInANest() || !isTypeLive(clazz.type)) {
+      return;
+    }
+    if (clazz.isNestHost()) {
+      clearDeadNestMembers(clazz);
+    } else {
+      assert clazz.isNestMember();
+      if (!isTypeLive(clazz.getNestHost())) {
+        claimNestOwnership(clazz);
+      }
+    }
+  }
+
+  private boolean isTypeLive(DexType type) {
+    return appView.appInfo().liveTypes.contains(type);
+  }
+
+  private void clearDeadNestMembers(DexClass nestHost) {
+    nestHost
+        .getNestMembersClassAttributes()
+        .removeIf(nestMemberAttr -> !isTypeLive(nestMemberAttr.getNestMember()));
+  }
+
+  private void claimNestOwnership(DexClass newHost) {
+    DexClass previousHost = appView.definitionFor(newHost.getNestHost());
+    assert previousHost != null;
+    newHost.clearNestHost();
+    for (NestMemberClassAttribute attr : previousHost.getNestMembersClassAttributes()) {
+      if (attr.getNestMember() != newHost.type && isTypeLive(attr.getNestMember())) {
+        DexClass nestMember = appView.definitionFor(attr.getNestMember());
+        assert nestMember != null;
+        nestMember.setNestHost(newHost.type);
+        newHost.getNestMembersClassAttributes().add(new NestMemberClassAttribute(nestMember.type));
+      }
+    }
   }
 
   private boolean isAttributeReferencingPrunedItem(EnclosingMethodAttribute attr) {

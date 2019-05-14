@@ -263,7 +263,6 @@ public class JarClassFileReader {
     public void visitNestHost(String nestHost) {
       assert this.nestHost == null && nestMembers.isEmpty();
       DexType nestHostType = application.getTypeFromName(nestHost);
-      // TODO anonymous classes b/130716158
       this.nestHost = new NestHostClassAttribute(nestHostType);
     }
 
@@ -271,7 +270,6 @@ public class JarClassFileReader {
     public void visitNestMember(String nestMember) {
       assert nestHost == null;
       DexType nestMemberType = application.getTypeFromName(nestMember);
-      // TODO anonymous classes b/130716158
       nestMembers.add(new NestMemberClassAttribute(nestMemberType));
     }
 

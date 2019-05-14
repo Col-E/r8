@@ -36,6 +36,13 @@ public class NestAccessControlTestUtils {
           "BasicNestHostWithAnonymousInnerClass",
           "BasicNestHostWithAnonymousInnerClass$1",
           "BasicNestHostWithAnonymousInnerClass$InterfaceForAnonymousClass",
+          "BasicNestHostClassMerging",
+          "BasicNestHostClassMerging$MiddleInner",
+          "BasicNestHostClassMerging$MiddleOuter",
+          "BasicNestHostClassMerging$InnerMost",
+          "BasicNestHostTreePruning",
+          "BasicNestHostTreePruning$Pruned",
+          "BasicNestHostTreePruning$NotPruned",
           "NestHostExample",
           "NestHostExample$NestMemberInner",
           "NestHostExample$NestMemberInner$NestMemberInnerInner",
@@ -50,12 +57,13 @@ public class NestAccessControlTestUtils {
   public static final ImmutableList<String> NEST_IDS =
       ImmutableList.of("fields", "methods", "constructors", "anonymous", "all");
   public static final ImmutableMap<String, String> MAIN_CLASSES =
-      ImmutableMap.of(
-          "fields", "BasicNestHostWithInnerClassFields",
-          "methods", "BasicNestHostWithInnerClassMethods",
-          "constructors", "BasicNestHostWithInnerClassConstructors",
-          "anonymous", "BasicNestHostWithAnonymousInnerClass",
-          "all", "NestHostExample");
+      ImmutableMap.<String, String>builder()
+          .put("fields", "BasicNestHostWithInnerClassFields")
+          .put("methods", "BasicNestHostWithInnerClassMethods")
+          .put("constructors", "BasicNestHostWithInnerClassConstructors")
+          .put("anonymous", "BasicNestHostWithAnonymousInnerClass")
+          .put("all", "NestHostExample")
+          .build();
   public static final String ALL_RESULT_LINE =
       String.join(
           ", ",
@@ -84,19 +92,23 @@ public class NestAccessControlTestUtils {
             "nest2Method"
           });
   public static final ImmutableMap<String, String> EXPECTED_RESULTS =
-      ImmutableMap.of(
-          "fields",
+      ImmutableMap.<String, String>builder()
+          .put(
+              "fields",
               StringUtils.lines(
-                  "RWnestFieldRWRWnestFieldRWRWnestFieldnoBridge", "RWfieldRWRWfieldRWRWnestField"),
-          "methods",
+                  "RWnestFieldRWRWnestFieldRWRWnestFieldnoBridge", "RWfieldRWRWfieldRWRWnestField"))
+          .put(
+              "methods",
               StringUtils.lines(
                   "nestMethodstaticNestMethodstaticNestMethodnoBridge",
-                  "hostMethodstaticHostMethodstaticNestMethod"),
-          "constructors", StringUtils.lines("field", "nest1SField", "1"),
-          "anonymous",
+                  "hostMethodstaticHostMethodstaticNestMethod"))
+          .put("constructors", StringUtils.lines("field", "nest1SField", "1"))
+          .put(
+              "anonymous",
               StringUtils.lines(
-                  "fieldstaticFieldstaticFieldhostMethodstaticHostMethodstaticHostMethod"),
-          "all",
+                  "fieldstaticFieldstaticFieldhostMethodstaticHostMethodstaticHostMethod"))
+          .put(
+              "all",
               StringUtils.lines(
                   ALL_RESULT_LINE,
                   ALL_RESULT_LINE,
@@ -105,7 +117,8 @@ public class NestAccessControlTestUtils {
                   "staticInterfaceMethodstaticStaticInterfaceMethod",
                   "staticInterfaceMethodstaticStaticInterfaceMethod",
                   "staticInterfaceMethodstaticStaticInterfaceMethod",
-                  "staticInterfaceMethodstaticStaticInterfaceMethod"));
+                  "staticInterfaceMethodstaticStaticInterfaceMethod"))
+          .build();
 
   public static String getMainClass(String id) {
     return PACKAGE_NAME + MAIN_CLASSES.get(id);
@@ -116,8 +129,12 @@ public class NestAccessControlTestUtils {
   }
 
   public static List<Path> classesOfNest(String nestID) {
+    return classesMatching(MAIN_CLASSES.get(nestID));
+  }
+
+  public static List<Path> classesMatching(String matcher) {
     return CLASS_NAMES.stream()
-        .filter(name -> containsString(MAIN_CLASSES.get(nestID)).matches(name))
+        .filter(name -> containsString(matcher).matches(name))
         .map(name -> CLASSES_PATH.resolve(name + CLASS_EXTENSION))
         .collect(toList());
   }

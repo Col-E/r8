@@ -61,7 +61,7 @@ public abstract class DexClass extends DexDefinition {
   /** InnerClasses table. If this class is an inner class, it will have an entry here. */
   private final List<InnerClassAttribute> innerClasses;
 
-  private final NestHostClassAttribute nestHost;
+  private NestHostClassAttribute nestHost;
   private final List<NestMemberClassAttribute> nestMembers;
 
   public DexAnnotationSet annotations;
@@ -824,19 +824,31 @@ public abstract class DexClass extends DexDefinition {
   }
 
   public boolean isInANest() {
-    assert nestMembers != null;
-    return !(nestMembers.isEmpty()) || (nestHost != null);
+    return isNestHost() || isNestMember();
+  }
+
+  public void clearNestHost() {
+    nestHost = null;
+  }
+
+  public void setNestHost(DexType type) {
+    assert type != null;
+    this.nestHost = new NestHostClassAttribute(type);
   }
 
   public boolean isNestHost() {
     return !nestMembers.isEmpty();
   }
 
+  public boolean isNestMember() {
+    return nestHost != null;
+  }
+
   public DexType getNestHost() {
-    assert isInANest();
-    if (nestHost != null) {
+    if (isNestMember()) {
       return nestHost.getNestHost();
     }
+    assert isNestHost();
     return type;
   }
 

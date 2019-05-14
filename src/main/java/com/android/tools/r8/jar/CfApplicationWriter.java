@@ -168,6 +168,8 @@ public class CfApplicationWriter {
 
     for (NestMemberClassAttribute entry : clazz.getNestMembersClassAttributes()) {
       entry.write(writer, namingLens);
+      assert clazz.getNestHostClassAttribute() == null
+          : "A nest host cannot also be a nest member.";
     }
 
     for (InnerClassAttribute entry : clazz.getInnerClasses()) {
