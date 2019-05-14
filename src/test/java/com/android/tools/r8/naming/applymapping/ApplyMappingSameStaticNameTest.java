@@ -21,19 +21,25 @@ public class ApplyMappingSameStaticNameTest extends TestBase {
       StringUtils.lines(
           A.class.getTypeName() + " -> " + A.class.getTypeName() + ":",
           "  boolean[] jacocoInit() -> a",
+          "  int f1 -> c",
           B.class.getTypeName() + " -> " + B.class.getTypeName() + ":",
-          "  boolean[] jacocoInit() -> b");
+          "  boolean[] jacocoInit() -> b",
+          "  int f1 -> d");
 
   public static class A {
     public static boolean[] a() {
       return null;
     }
+
+    public static int c = 1;
   }
 
   public static class B extends A {
     public static boolean[] b() {
       return null;
     }
+
+    public static int d = 2;
   }
 
   public static class C {}
