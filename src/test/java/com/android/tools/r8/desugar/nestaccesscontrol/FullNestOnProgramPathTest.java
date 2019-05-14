@@ -159,9 +159,6 @@ public class FullNestOnProgramPathTest extends TestBase {
     inspector.forAllClasses(
         classSubject -> {
           DexClass dexClass = classSubject.getDexClass();
-          if (dexClass.type.getName().contains("GeneratedOutlineSupport")) {
-            return;
-          }
           assertTrue(dexClass.isInANest());
           if (outerClassNames.contains(dexClass.type.getName())) {
             assertNull(dexClass.getNestHostClassAttribute());

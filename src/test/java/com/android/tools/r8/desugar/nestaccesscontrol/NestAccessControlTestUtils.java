@@ -63,6 +63,8 @@ public class NestAccessControlTestUtils {
           .put("constructors", "BasicNestHostWithInnerClassConstructors")
           .put("anonymous", "BasicNestHostWithAnonymousInnerClass")
           .put("all", "NestHostExample")
+          .put("merge", "BasicNestHostClassMerging")
+          .put("prune", "BasicNestHostTreePruning")
           .build();
   public static final String ALL_RESULT_LINE =
       String.join(
