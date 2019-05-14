@@ -117,6 +117,7 @@ public abstract class TestCompileResult<
   }
 
   public CR addRunClasspathClasses(List<Class<?>> classpath) {
+    assert getBackend() == Backend.CF;
     try {
       Path path = state.getNewTempFolder().resolve("runtime-classes.jar");
       ArchiveConsumer consumer = new ArchiveConsumer(path);

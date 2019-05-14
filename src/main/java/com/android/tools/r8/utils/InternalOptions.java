@@ -13,9 +13,12 @@ import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.Version;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.errors.InterfaceDesugarMissingTypeDiagnostic;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -23,6 +26,8 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.naming.InterfaceMethodNameMinifier;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.position.Position;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.utils.IROrdering.IdentityIROrdering;
@@ -30,6 +35,7 @@ import com.android.tools.r8.utils.IROrdering.NondeterministicIROrdering;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -444,6 +450,37 @@ public class InternalOptions {
     boolean assertionsEnabled = false;
     assert assertionsEnabled = true; // Intentional side-effect.
     return assertionsEnabled;
+  }
+
+  /** A set of dexitems we have reported missing to dedupe warnings. */
+  private final Set<DexItem> reportedMissingForDesugaring = Sets.newConcurrentHashSet();
+
+  public void warningMissingTypeForDesugar(
+      Origin origin, Position position, DexType missingType, DexType contextType) {
+    if (reportedMissingForDesugaring.add(missingType)) {
+      reporter.warning(
+          new InterfaceDesugarMissingTypeDiagnostic(
+              origin,
+              position,
+              Reference.classFromDescriptor(missingType.toDescriptorString()),
+              Reference.classFromDescriptor(contextType.toDescriptorString()),
+              null));
+    }
+  }
+
+  public void warningMissingInterfaceForDesugar(
+      DexClass classToDesugar, DexClass implementing, DexType missing) {
+    if (reportedMissingForDesugaring.add(missing)) {
+      reporter.warning(
+          new InterfaceDesugarMissingTypeDiagnostic(
+              classToDesugar.getOrigin(),
+              Position.UNKNOWN,
+              Reference.classFromDescriptor(missing.toDescriptorString()),
+              Reference.classFromDescriptor(classToDesugar.getType().toDescriptorString()),
+              classToDesugar == implementing
+                  ? null
+                  : Reference.classFromDescriptor(implementing.getType().toDescriptorString())));
+    }
   }
 
   public void warningMissingEnclosingMember(DexType clazz, Origin origin, int version) {

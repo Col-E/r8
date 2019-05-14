@@ -12,7 +12,6 @@ import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexMethod;
@@ -32,8 +31,8 @@ import com.android.tools.r8.ir.code.InvokeSuper;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.DefaultMethodsHelper.Collection;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.Sets;
 import java.util.ListIterator;
 import java.util.Map;
@@ -93,11 +92,6 @@ public final class InterfaceMethodRewriter {
   /** Interfaces requiring dispatch classes to be created, and appropriate callers. */
   private final ConcurrentMap<DexLibraryClass, Set<DexProgramClass>> requiredDispatchClasses =
       new ConcurrentHashMap<>();
-
-  /**
-   * A set of dexitems we have reported missing to dedupe warnings.
-   */
-  private final Set<DexItem> reportedMissing = Sets.newConcurrentHashSet();
 
   /**
    * Defines a minor variation in desugaring.
@@ -490,44 +484,14 @@ public final class InterfaceMethodRewriter {
 
   public void warnMissingInterface(
       DexClass classToDesugar, DexClass implementing, DexType missing) {
-    // TODO think about using a common deduplicating mechanic with Enqueuer
-    if (!reportedMissing.add(missing)) {
-      return;
-    }
-    StringBuilder builder = new StringBuilder();
-    builder
-        .append("Interface `")
-        .append(missing.toSourceString())
-        .append("` not found. It's needed to make sure desugaring of `")
-        .append(classToDesugar.toSourceString())
-        .append("` is correct. Desugaring will assume that this interface has no default method.");
-    if (classToDesugar != implementing) {
-      builder
-          .append(" This missing interface is declared in the direct hierarchy of `")
-          .append(implementing)
-          .append("`");
-    }
-    options.reporter.warning(
-        new StringDiagnostic(builder.toString(), classToDesugar.getOrigin()));
+    options.warningMissingInterfaceForDesugar(classToDesugar, implementing, missing);
   }
 
   private void warnMissingType(DexMethod referencedFrom, DexType missing) {
-    // TODO think about using a common deduplicating mechanic with Enqueuer
-    if (!reportedMissing.add(missing)) {
-      return;
-    }
-    DexMethod originalReferencedFrom =
-        appView.graphLense().getOriginalMethodSignature(referencedFrom);
-    StringBuilder builder = new StringBuilder();
-    builder
-        .append("Type `")
-        .append(missing.toSourceString())
-        .append("` was not found, ")
-        .append("it is required for default or static interface methods desugaring of `")
-        .append(originalReferencedFrom.toSourceString())
-        .append("`");
-    options.reporter.warning(
-        new StringDiagnostic(builder.toString(), getMethodOrigin(originalReferencedFrom)));
+    DexMethod method = appView.graphLense().getOriginalMethodSignature(referencedFrom);
+    Origin origin = getMethodOrigin(method);
+    MethodPosition position = new MethodPosition(method);
+    options.warningMissingTypeForDesugar(origin, position, missing, method.holder);
   }
 
   private Origin getMethodOrigin(DexMethod method) {
