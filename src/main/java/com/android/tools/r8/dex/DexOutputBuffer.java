@@ -35,6 +35,7 @@ public class DexOutputBuffer {
   }
 
   private void ensureSpaceFor(int bytes) {
+    assert bytes >= 0;
     if (byteBuffer.remaining() < bytes) {
       int newSize = byteBuffer.capacity() + Math.max(byteBuffer.capacity(), bytes * 2);
       CompatByteBuffer newBuffer = allocateByteBuffer(newSize);
