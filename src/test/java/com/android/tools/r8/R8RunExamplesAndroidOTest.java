@@ -12,8 +12,11 @@ import com.android.tools.r8.VmTestRunner.IgnoreIfVmOlderThan;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.OffOrAuto;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -114,7 +117,19 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
         // TODO(b/120814598): Should be 24. Some lambdas are not class inlined because parameter
         // usages for lambda methods are not present for the class inliner.
-        .withDexCheck(inspector -> checkLambdaCount(inspector, 46, "lambdadesugaring"))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 44, "lambdadesugaring"))
+        .run();
+  }
+
+  @Test
+  public void testMultipleInterfacesLambdaOutValue() throws Throwable {
+    // We can only remove trivial check casts for the lambda objects if we keep track all the
+    // multiple interfaces we additionally specified for the lambdas
+    test("lambdadesugaring", "lambdadesugaring", "LambdaDesugaring")
+        .withMinApiLevel(ToolHelper.getMinApiLevelForDexVmNoHigherThan(AndroidApiLevel.K))
+        .withBuilderTransformation(
+            b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
+        .withDexCheck(inspector -> checkTestMultipleInterfacesCheckCastCount(inspector, 0))
         .run();
   }
 
@@ -144,7 +159,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
         // TODO(b/120814598): Should be 24. Some lambdas are not class inlined because parameter
         // usages for lambda methods are not present for the class inliner.
-        .withDexCheck(inspector -> checkLambdaCount(inspector, 46, "lambdadesugaring"))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 44, "lambdadesugaring"))
         .run();
   }
 
@@ -166,7 +181,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
         // TODO(b/120814598): Should be 24. Some lambdas are not class inlined because parameter
         // usages for lambda methods are not present for the class inliner.
-        .withDexCheck(inspector -> checkLambdaCount(inspector, 46, "lambdadesugaring"))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 44, "lambdadesugaring"))
         .run();
   }
 
@@ -227,6 +242,25 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
       }
     }
     assertEquals(expectedCount, count);
+  }
+
+  private void checkTestMultipleInterfacesCheckCastCount(
+      CodeInspector inspector, int expectedCount) {
+    ClassSubject clazz = inspector.clazz("lambdadesugaring.LambdaDesugaring");
+    assert clazz.isPresent();
+    MethodSubject method = clazz.method("void", "testMultipleInterfaces");
+    assert method.isPresent();
+    class Count {
+      int i = 0;
+    }
+    final Count count = new Count();
+    method
+        .iterateInstructions(InstructionSubject::isCheckCast)
+        .forEachRemaining(
+            instruction -> {
+              ++count.i;
+            });
+    assertEquals(expectedCount, count.i);
   }
 
   class R8TestRunner extends TestRunner<R8TestRunner> {
