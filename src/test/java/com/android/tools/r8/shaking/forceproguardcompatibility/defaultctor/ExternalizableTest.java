@@ -317,7 +317,7 @@ public class ExternalizableTest extends ProguardCompatibilityTestBase {
     CodeInspector codeInspector = new CodeInspector(processedApp, proguardMap);
     ClassSubject classSubject = codeInspector.clazz(ExternalizableDataClass.class);
     assertThat(classSubject, isPresent());
-    MethodSubject init = classSubject.init(ImmutableList.of());
+    MethodSubject init = classSubject.init();
     assertThat(init, isPresent());
   }
 

@@ -14,7 +14,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
-import java.util.Collections;
 import java.util.List;
 import org.junit.Assume;
 import org.junit.Test;
@@ -64,7 +63,7 @@ public class ConditionalKeepIfKeptTest extends TestBase {
               assertEquals(0, classSubject.allFields().size());
               // TODO(b/132318799): Full mode no-marker should not keep <init>() when not specified.
               assertEquals(useMarker ? 0 : 1, classSubject.allMethods().size());
-              assertEquals(!useMarker, classSubject.init(Collections.emptyList()).isPresent());
+              assertEquals(!useMarker, classSubject.init().isPresent());
             });
   }
 

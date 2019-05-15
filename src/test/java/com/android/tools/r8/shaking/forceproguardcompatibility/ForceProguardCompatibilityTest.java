@@ -152,8 +152,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
     CodeInspector inspector = new CodeInspector(ToolHelper.runR8(builder.build()));
     ClassSubject clazz = inspector.clazz(getJavacGeneratedClassName(testClass));
     assertTrue(clazz.isPresent());
-    assertEquals(forceProguardCompatibility && hasDefaultConstructor,
-        clazz.init(ImmutableList.of()).isPresent());
+    assertEquals(forceProguardCompatibility && hasDefaultConstructor, clazz.init().isPresent());
 
     // Check the Proguard compatibility rules generated.
     ProguardConfigurationParser parser =

@@ -14,6 +14,7 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -70,6 +71,10 @@ public abstract class ClassSubject extends Subject {
 
   public MethodSubject init(List<String> parameters) {
     return method("void", "<init>", parameters);
+  }
+
+  public MethodSubject init(String... parameters) {
+    return init(Arrays.asList(parameters));
   }
 
   public MethodSubject method(MethodSignature signature) {

@@ -133,7 +133,7 @@ public class B76025099 extends TestBase {
     CodeInspector inspector = new CodeInspector(processedApp);
     ClassSubject impl = inspector.clazz(Impl.class);
     assertThat(impl, isPresent());
-    MethodSubject init = impl.init(ImmutableList.of("java.lang.String"));
+    MethodSubject init = impl.init("java.lang.String");
     assertThat(init, isPresent());
     Iterator<InstructionSubject> iterator = init.iterateInstructions();
 
