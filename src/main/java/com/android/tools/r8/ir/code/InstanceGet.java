@@ -53,7 +53,7 @@ public class InstanceGet extends FieldInstruction {
 
   @Override
   public boolean couldIntroduceAnAlias() {
-    return true;
+    return outValue != null && outValue.getTypeLattice().isReference();
   }
 
   @Override

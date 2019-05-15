@@ -182,7 +182,7 @@ public abstract class Invoke extends Instruction {
 
   @Override
   public boolean couldIntroduceAnAlias() {
-    return outValue() != null;
+    return outValue != null && outValue.getTypeLattice().isReference();
   }
 
   @Override

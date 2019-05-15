@@ -120,7 +120,7 @@ public class Assume<An extends Assumption> extends Instruction {
 
   @Override
   public boolean couldIntroduceAnAlias() {
-    return true;
+    return outValue != null && outValue.getTypeLattice().isReference();
   }
 
   @Override
