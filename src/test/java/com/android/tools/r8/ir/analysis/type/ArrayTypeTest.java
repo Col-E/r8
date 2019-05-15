@@ -9,7 +9,6 @@ import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.INT;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.ir.analysis.AnalysisTestBase;
 import com.android.tools.r8.ir.code.ArrayGet;
 import com.android.tools.r8.ir.code.ArrayPut;
@@ -47,8 +46,7 @@ public class ArrayTypeTest extends AnalysisTestBase {
 
   private static Consumer<IRCode> arrayTestInspector() {
     return code -> {
-      Iterable<Instruction> instructions = code::instructionIterator;
-      for (Instruction instruction : instructions) {
+      for (Instruction instruction : code.instructions()) {
         if (instruction.isArrayGet() || instruction.isArrayPut()) {
           Value array, value;
           if (instruction.isArrayGet()) {

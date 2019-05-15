@@ -3,12 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.analysis.escape;
 
-import static junit.framework.TestCase.assertFalse;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.analysis.AnalysisTestBase;
 import com.android.tools.r8.ir.code.IRCode;
@@ -28,145 +28,141 @@ import org.junit.Test;
 public class EscapeAnalysisForNameReflectionTest extends AnalysisTestBase {
 
   public EscapeAnalysisForNameReflectionTest() throws Exception {
-    super(TestClass.class.getTypeName(),
-        TestClass.class, Helper.class, NamingInterface.class);
+    super(TestClass.class.getTypeName(), TestClass.class, Helper.class, NamingInterface.class);
+  }
+
+  private static Predicate<Instruction> invokesMethodWithName(String name) {
+    return instruction ->
+        instruction.isInvokeMethod()
+            && instruction.asInvokeMethod().getInvokedMethod().name.toString().equals(name);
   }
 
   @Test
   public void testEscapeViaReturn() throws Exception {
-    buildAndCheckIR("escapeViaReturn", checkEscapingName(appInfo, true, instr -> {
-      return instr.isReturn();
-    }));
+    buildAndCheckIR("escapeViaReturn", checkEscapingName(true, Instruction::isReturn));
   }
 
   @Test
   public void testEscapeViaThrow() throws Exception {
-    buildAndCheckIR("escapeViaThrow", code -> {
-      NewInstance e = getMatchingInstruction(code, Instruction::isNewInstance);
-      assertNotNull(e);
-      Value v = e.outValue();
-      assertNotNull(v);
-      Set<Instruction> escapingInstructions = EscapeAnalysis.escape(code, v);
-      assertTrue(
-          StringOptimizer.hasPotentialReadOutside(appInfo, code.method, escapingInstructions));
-      assertTrue(escapingInstructions.stream().allMatch(instr -> {
-        return instr.isThrow()
-            || (instr.isInvokeDirect()
-                && instr.asInvokeDirect().getInvokedMethod().name.toString().equals("<init>"));
-      }));
-    });
+    buildAndCheckIR(
+        "escapeViaThrow",
+        code -> {
+          NewInstance e = getMatchingInstruction(code, Instruction::isNewInstance);
+          assertNotNull(e);
+          Value v = e.outValue();
+          assertNotNull(v);
+          EscapeAnalysis escapeAnalysis =
+              new EscapeAnalysis(
+                  appView,
+                  StringOptimizer.StringOptimizerEscapeAnalysisConfiguration.getInstance());
+          Set<Instruction> escapeRoutes = escapeAnalysis.computeEscapeRoutes(code, v);
+          assertEquals(1, escapeRoutes.size());
+          assertTrue(
+              escapeRoutes.stream()
+                  .allMatch(
+                      instr ->
+                          instr.isThrow()
+                              || (instr.isInvokeDirect()
+                                  && instr
+                                      .asInvokeDirect()
+                                      .getInvokedMethod()
+                                      .name
+                                      .toString()
+                                      .equals("<init>"))));
+        });
   }
 
   @Test
   public void testEscapeViaStaticPut() throws Exception {
-    buildAndCheckIR("escapeViaStaticPut", checkEscapingName(appInfo, true, instr -> {
-      return instr.isStaticPut();
-    }));
+    buildAndCheckIR("escapeViaStaticPut", checkEscapingName(true, Instruction::isStaticPut));
   }
 
   @Test
   public void testEscapeViaInstancePut() throws Exception {
-    buildAndCheckIR("escapeViaInstancePut", checkEscapingName(appInfo, true, instr -> {
-      return instr.isInvokeMethod()
-          && instr.asInvokeMethod().getInvokedMethod().name.toString()
-              .equals("namingInterfaceConsumer");
-    }));
+    buildAndCheckIR(
+        "escapeViaInstancePut",
+        checkEscapingName(true, invokesMethodWithName("namingInterfaceConsumer")));
   }
 
   @Test
   public void testEscapeViaArrayPut() throws Exception {
-    buildAndCheckIR("escapeViaArrayPut", checkEscapingName(appInfo, true, instr -> {
-      return instr.isInvokeMethod()
-          && instr.asInvokeMethod().getInvokedMethod().name.toString()
-              .equals("namingInterfacesConsumer");
-    }));
+    buildAndCheckIR(
+        "escapeViaArrayPut",
+        checkEscapingName(true, invokesMethodWithName("namingInterfacesConsumer")));
   }
 
   @Test
   public void testEscapeViaArrayArgumentPut() throws Exception {
-    buildAndCheckIR("escapeViaArrayArgumentPut", checkEscapingName(appInfo, true, instr -> {
-      return instr.isArrayPut();
-    }));
+    buildAndCheckIR("escapeViaArrayArgumentPut", checkEscapingName(true, Instruction::isArrayPut));
   }
 
   @Test
   public void testEscapeViaListPut() throws Exception {
-    buildAndCheckIR("escapeViaListPut", checkEscapingName(appInfo, false, instr -> {
-      return instr.isInvokeMethod()
-          && instr.asInvokeMethod().getInvokedMethod().name.toString().equals("add");
-    }));
+    buildAndCheckIR(
+        "escapeViaListPut",
+        checkEscapingName(
+            false,
+            instr -> {
+              throw new Unreachable();
+            }));
   }
 
   @Test
   public void testEscapeViaListArgumentPut() throws Exception {
-    buildAndCheckIR("escapeViaListArgumentPut", checkEscapingName(appInfo, false, instr -> {
-      return instr.isInvokeMethod()
-          && instr.asInvokeMethod().getInvokedMethod().name.toString().equals("add");
-    }));
+    buildAndCheckIR(
+        "escapeViaListArgumentPut",
+        checkEscapingName(
+            false,
+            instr -> {
+              throw new Unreachable();
+            }));
   }
 
   @Test
   public void testEscapeViaArrayGet() throws Exception {
-    buildAndCheckIR("escapeViaArrayGet", checkEscapingName(appInfo, true, instr -> {
-      return instr.isInvokeMethod()
-          && instr.asInvokeMethod().getInvokedMethod().name.toString()
-              .equals("namingInterfaceConsumer");
-    }));
+    buildAndCheckIR(
+        "escapeViaArrayGet",
+        checkEscapingName(true, invokesMethodWithName("namingInterfaceConsumer")));
   }
 
   @Test
   public void testHandlePhiAndAlias() throws Exception {
-    buildAndCheckIR("handlePhiAndAlias", checkEscapingName(appInfo, true, instr -> {
-      return instr.isInvokeMethod()
-          && instr.asInvokeMethod().getInvokedMethod().name.toString().equals("stringConsumer");
-    }));
+    buildAndCheckIR(
+        "handlePhiAndAlias", checkEscapingName(true, invokesMethodWithName("stringConsumer")));
   }
 
   @Test
   public void testToString() throws Exception {
-    buildAndCheckIR("toString", checkEscapingName(appInfo, false, instr -> {
-      return instr.isInvokeMethod()
-          && instr.asInvokeMethod().getInvokedMethod().name.toString().equals("toString");
-    }));
+    buildAndCheckIR("toString", checkEscapingName(true, Instruction::isReturn));
   }
 
   @Test
   public void testEscapeViaRecursion() throws Exception {
-    buildAndCheckIR("escapeViaRecursion", checkEscapingName(appInfo, false, instr -> {
-      return instr.isInvokeStatic();
-    }));
+    buildAndCheckIR("escapeViaRecursion", checkEscapingName(true, Instruction::isReturn));
   }
 
   @Test
   public void testEscapeViaLoopAndBoxing() throws Exception {
-    buildAndCheckIR("escapeViaLoopAndBoxing", checkEscapingName(appInfo, true, instr -> {
-      return instr.isReturn()
-          || (instr.isInvokeMethod()
-              && instr.asInvokeMethod().getInvokedMethod().name.toString().equals("toString"));
-    }));
+    buildAndCheckIR(
+        "escapeViaLoopAndBoxing",
+        checkEscapingName(
+            true, instr -> instr.isReturn() || invokesMethodWithName("toString").test(instr)));
   }
 
-  private static Consumer<IRCode> checkEscapingName(
-      AppInfo appInfo,
-      boolean expectedHeuristicResult,
-      Predicate<Instruction> instructionTester) {
+  private Consumer<IRCode> checkEscapingName(
+      boolean expectedHeuristicResult, Predicate<Instruction> instructionTester) {
+    assert instructionTester != null;
     return code -> {
       InvokeVirtual simpleNameCall = getSimpleNameCall(code);
       assertNotNull(simpleNameCall);
       Value v = simpleNameCall.outValue();
       assertNotNull(v);
-      Set<Instruction> escapingInstructions = EscapeAnalysis.escape(code, v);
-      assertEquals(
-          expectedHeuristicResult,
-          StringOptimizer.hasPotentialReadOutside(appInfo, code.method, escapingInstructions));
-      if (instructionTester == null) {
-        // Implicitly expecting the absence of escaping points.
-        assertTrue(escapingInstructions.isEmpty());
-      } else {
-        // Otherwise, test all escaping instructions.
-        assertFalse(escapingInstructions.isEmpty());
-        assertTrue(escapingInstructions.stream().allMatch(instructionTester));
-      }
+      EscapeAnalysis escapeAnalysis =
+          new EscapeAnalysis(
+              appView, StringOptimizer.StringOptimizerEscapeAnalysisConfiguration.getInstance());
+      Set<Instruction> escapeRoutes = escapeAnalysis.computeEscapeRoutes(code, v);
+      assertNotEquals(expectedHeuristicResult, escapeRoutes.isEmpty());
+      assertTrue(escapeRoutes.stream().allMatch(instructionTester));
     };
   }
 

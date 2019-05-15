@@ -11,15 +11,14 @@ import static com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComp
 import static com.android.tools.r8.ir.optimize.ReflectionOptimizer.computeClassName;
 import static com.android.tools.r8.utils.DescriptorUtils.INNER_CLASS_SEPARATOR;
 
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.escape.EscapeAnalysis;
+import com.android.tools.r8.ir.analysis.escape.EscapeAnalysisConfiguration;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.ConstClass;
@@ -33,8 +32,6 @@ import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo;
-import com.google.common.annotations.VisibleForTesting;
-import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -231,10 +228,12 @@ public class StringOptimizer {
       // b/120138731: Filter out local uses, which are likely one-time name computation. In such
       // case, the result of this optimization can lead to a regression if the corresponding class
       // is in a deep package hierarchy.
-      if (!appView.options().testing.forceNameReflectionOptimization
-          && !hasPotentialReadOutside(
-              appView.appInfo(), code.method, EscapeAnalysis.escape(code, out))) {
-        continue;
+      if (!appView.options().testing.forceNameReflectionOptimization) {
+        EscapeAnalysis escapeAnalysis =
+            new EscapeAnalysis(appView, StringOptimizerEscapeAnalysisConfiguration.getInstance());
+        if (escapeAnalysis.isEscaping(code, out)) {
+          continue;
+        }
       }
 
       assert invoke.inValues().size() == 1;
@@ -351,36 +350,6 @@ public class StringOptimizer {
     }
   }
 
-  @VisibleForTesting
-  public static boolean hasPotentialReadOutside(
-      AppInfo appInfo, DexEncodedMethod invocationContext, Set<Instruction> escapingInstructions) {
-    for (Instruction instr : escapingInstructions) {
-      if (instr.isReturn() || instr.isThrow() || instr.isStaticPut()) {
-        return true;
-      }
-      if (instr.isInvokeMethod()) {
-        DexMethod invokedMethod = instr.asInvokeMethod().getInvokedMethod();
-        DexClass holder = appInfo.definitionFor(invokedMethod.holder);
-        // For most cases, library call is not interesting, e.g.,
-        // System.out.println(...), String.valueOf(...), etc.
-        // If it's too broad, we can introduce black-list.
-        if (holder == null || holder.isNotProgramClass()) {
-          continue;
-        }
-        // Heuristic: if the call target has the same method name, it could be still local.
-        if (invokedMethod.name == invocationContext.method.name) {
-          continue;
-        }
-        // Add more cases to filter out, if any.
-        return true;
-      }
-      if (instr.isArrayPut()) {
-        return instr.asArrayPut().array().isArgument();
-      }
-    }
-    return false;
-  }
-
   // String#valueOf(null) -> "null"
   // String#valueOf(String s) -> s
   // str.toString() -> str
@@ -441,4 +410,44 @@ public class StringOptimizer {
     }
   }
 
+  public static class StringOptimizerEscapeAnalysisConfiguration
+      implements EscapeAnalysisConfiguration {
+
+    private static final StringOptimizerEscapeAnalysisConfiguration INSTANCE =
+        new StringOptimizerEscapeAnalysisConfiguration();
+
+    private StringOptimizerEscapeAnalysisConfiguration() {}
+
+    public static StringOptimizerEscapeAnalysisConfiguration getInstance() {
+      return INSTANCE;
+    }
+
+    @Override
+    public boolean isLegitimateEscapeRoute(
+        AppView<?> appView, Instruction escapeRoute, DexMethod context) {
+      if (escapeRoute.isReturn() || escapeRoute.isThrow() || escapeRoute.isStaticPut()) {
+        return false;
+      }
+      if (escapeRoute.isInvokeMethod()) {
+        DexMethod invokedMethod = escapeRoute.asInvokeMethod().getInvokedMethod();
+        DexClass holder = appView.definitionFor(invokedMethod.holder);
+        // For most cases, library call is not interesting, e.g.,
+        // System.out.println(...), String.valueOf(...), etc.
+        // If it's too broad, we can introduce black-list.
+        if (holder == null || holder.isNotProgramClass()) {
+          return true;
+        }
+        // Heuristic: if the call target has the same method name, it could be still local.
+        if (invokedMethod.name == context.name) {
+          return true;
+        }
+        // Add more cases to filter out, if any.
+        return false;
+      }
+      if (escapeRoute.isArrayPut()) {
+        return !escapeRoute.asArrayPut().array().isArgument();
+      }
+      return true;
+    }
+  }
 }

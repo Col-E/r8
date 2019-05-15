@@ -104,8 +104,7 @@ public class UnconstrainedPrimitiveTypeTest extends AnalysisTestBase {
   private static Consumer<IRCode> testInspector(
       TypeLatticeElement expectedType, int expectedNumberOfConstNumberInstructions) {
     return code -> {
-      Iterable<Instruction> instructions = code::instructionIterator;
-      for (Instruction instruction : instructions) {
+      for (Instruction instruction : code.instructions()) {
         if (instruction.isConstNumber()) {
           ConstNumber constNumberInstruction = instruction.asConstNumber();
           assertEquals(expectedType, constNumberInstruction.outValue().getTypeLattice());

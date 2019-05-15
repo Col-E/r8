@@ -3157,8 +3157,7 @@ public class CodeRewriter {
     Long2ReferenceMap<List<ConstNumber>> constantsByValue = new Long2ReferenceOpenHashMap<>();
 
     // Initialize `constantsByValue`.
-    Iterable<Instruction> instructions = code::instructionIterator;
-    for (Instruction instruction : instructions) {
+    for (Instruction instruction : code.instructions()) {
       if (instruction.isConstNumber()) {
         ConstNumber constNumber = instruction.asConstNumber();
         if (constNumber.outValue().hasLocalInfo()) {
