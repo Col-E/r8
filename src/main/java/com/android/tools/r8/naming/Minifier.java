@@ -24,6 +24,7 @@ import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.Timing;
 import it.unimi.dsi.fastutil.objects.Object2IntLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -141,7 +142,10 @@ public class Minifier {
   static class MinifierMemberNamingStrategy implements MemberNamingStrategy {
 
     private final DexItemFactory factory;
+    // We have to ensure that the names proposed by the minifier is not used in the obfuscation
+    // dictionary. We use a list for direct indexing based on a number and a set for looking up.
     private final List<String> obfuscationDictionary;
+    private final Set<String> obfuscationDictionaryForLookup;
 
     private final AppView<?> appView;
 
@@ -150,6 +154,7 @@ public class Minifier {
       this.factory = appView.dexItemFactory();
       this.obfuscationDictionary =
           appView.options().getProguardConfiguration().getObfuscationDictionary();
+      this.obfuscationDictionaryForLookup = new HashSet<>(this.obfuscationDictionary);
       assert this.obfuscationDictionary != null;
     }
 
@@ -171,8 +176,12 @@ public class Minifier {
         return factory.createString(
             obfuscationDictionary.get(internalState.incrementDictionaryIndex()));
       } else {
-        int counter = internalState.incrementNameIndex(isDirectOrStatic);
-        return factory.createString(StringUtils.numberToIdentifier(counter));
+        String nextString;
+        do {
+          int counter = internalState.incrementNameIndex(isDirectOrStatic);
+          nextString = StringUtils.numberToIdentifier(counter);
+        } while (obfuscationDictionaryForLookup.contains(nextString));
+        return factory.createString(nextString);
       }
     }
 

@@ -12,7 +12,6 @@ import com.android.tools.r8.utils.FileUtils;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.concurrent.ExecutionException;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -42,7 +41,6 @@ public class FieldMinificationObfuscationDictionaryDuplicateTest extends TestBas
   }
 
   @Test
-  @Ignore("b/132612059")
   public void test() throws IOException, CompilationFailedException, ExecutionException {
     Path dictionary = temp.getRoot().toPath().resolve("dictionary.txt");
     FileUtils.writeTextFile(dictionary, "a");
