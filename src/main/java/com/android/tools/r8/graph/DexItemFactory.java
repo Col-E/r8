@@ -419,9 +419,8 @@ public class DexItemFactory {
   public Set<DexType> libraryTypesAssumedToBePresent =
       ImmutableSet.of(objectType, stringBufferType, stringBuilderType);
 
-  public final Set<DexType> libraryTypesWithoutStaticInitialization =
-      ImmutableSet.of(
-          iteratorType, objectType, serializableType, stringBufferType, stringBuilderType);
+  public final Set<DexType> libraryClassesWithoutStaticInitialization =
+      ImmutableSet.of(objectType, stringBufferType, stringBuilderType);
 
   private boolean skipNameValidationForTesting = false;
 

@@ -113,6 +113,8 @@ public class NonMemberClassTest extends TestBase {
         .addKeepAttributes("InnerClasses", "EnclosingMethod")
         .enableInliningAnnotations()
         .setMinApi(parameters.getRuntime())
+        .addOptionsModification(options -> options.enableClassInlining = false)
+        .compile()
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(EXPECTED_OUTPUT)
         .inspect(this::inspect);

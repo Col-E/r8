@@ -141,6 +141,8 @@ public class InternalOptions {
   // Flag to toggle if DEX code objects should pass-through without IR processing.
   public boolean passthroughDexCode = false;
 
+  public boolean libraryInterfacesMayHaveStaticInitialization = false;
+
   // Optimization-related flags. These should conform to -dontoptimize and disableAllOptimizations.
   public boolean enableDynamicTypeOptimization = true;
   public boolean enableHorizontalClassMerging = true;

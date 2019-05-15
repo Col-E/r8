@@ -284,7 +284,7 @@ public class StaticClassMerger {
                     || appView.appInfo().noSideEffects.keySet().contains(method.method))) {
       return MergeGroup.DONT_MERGE;
     }
-    if (clazz.classInitializationMayHaveSideEffects(appView.appInfo())) {
+    if (clazz.classInitializationMayHaveSideEffects(appView)) {
       // This could have a negative impact on inlining.
       //
       // See {@link com.android.tools.r8.ir.optimize.DefaultInliningOracle#canInlineStaticInvoke}

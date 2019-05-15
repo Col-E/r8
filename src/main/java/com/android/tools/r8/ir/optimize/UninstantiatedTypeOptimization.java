@@ -493,7 +493,7 @@ public class UninstantiatedTypeOptimization {
       if (field.field.holder != code.method.method.holder) {
         DexClass enclosingClass = appView.definitionFor(code.method.method.holder);
         if (enclosingClass == null
-            || enclosingClass.classInitializationMayHaveSideEffects(appView.appInfo())) {
+            || enclosingClass.classInitializationMayHaveSideEffects(appView)) {
           return;
         }
       }

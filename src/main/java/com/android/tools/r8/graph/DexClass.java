@@ -718,15 +718,22 @@ public abstract class DexClass extends DexDefinition {
     return appView.appInfo().isExternalizable(type);
   }
 
-  public boolean classInitializationMayHaveSideEffects(DexDefinitionSupplier definitions) {
-    return classInitializationMayHaveSideEffects(definitions, Predicates.alwaysFalse());
+  public boolean classInitializationMayHaveSideEffects(AppView<?> appView) {
+    return classInitializationMayHaveSideEffects(appView, Predicates.alwaysFalse());
   }
 
   public boolean classInitializationMayHaveSideEffects(
-      DexDefinitionSupplier definitions, Predicate<DexType> ignore) {
-    if (ignore.test(type)
-        || definitions.dexItemFactory().libraryTypesWithoutStaticInitialization.contains(type)) {
+      AppView<?> appView, Predicate<DexType> ignore) {
+    if (ignore.test(type)) {
       return false;
+    }
+    if (isLibraryClass()) {
+      if (isInterface()) {
+        return appView.options().libraryInterfacesMayHaveStaticInitialization;
+      }
+      if (appView.dexItemFactory().libraryClassesWithoutStaticInitialization.contains(type)) {
+        return false;
+      }
     }
     if (hasNonTrivialClassInitializer()) {
       return true;
@@ -734,7 +741,7 @@ public abstract class DexClass extends DexDefinition {
     if (defaultValuesForStaticFieldsMayTriggerAllocation()) {
       return true;
     }
-    return initializationOfParentTypesMayHaveSideEffects(definitions, ignore);
+    return initializationOfParentTypesMayHaveSideEffects(appView, ignore);
   }
 
   public Iterable<DexType> allImmediateSupertypes() {
@@ -746,18 +753,18 @@ public abstract class DexClass extends DexDefinition {
     return () -> iterator;
   }
 
-  public boolean initializationOfParentTypesMayHaveSideEffects(DexDefinitionSupplier definitions) {
-    return initializationOfParentTypesMayHaveSideEffects(definitions, Predicates.alwaysFalse());
+  public boolean initializationOfParentTypesMayHaveSideEffects(AppView<?> appView) {
+    return initializationOfParentTypesMayHaveSideEffects(appView, Predicates.alwaysFalse());
   }
 
   public boolean initializationOfParentTypesMayHaveSideEffects(
-      DexDefinitionSupplier definitions, Predicate<DexType> ignore) {
+      AppView<?> appView, Predicate<DexType> ignore) {
     for (DexType iface : interfaces.values) {
-      if (iface.classInitializationMayHaveSideEffects(definitions, ignore)) {
+      if (iface.classInitializationMayHaveSideEffects(appView, ignore)) {
         return true;
       }
     }
-    if (superType != null && superType.classInitializationMayHaveSideEffects(definitions, ignore)) {
+    if (superType != null && superType.classInitializationMayHaveSideEffects(appView, ignore)) {
       return true;
     }
     return false;

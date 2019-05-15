@@ -429,8 +429,8 @@ public class VerticalClassMerger {
     // We basically can't move the clinit, since it is not called when implementing classes have
     // their clinit called - except when the interface has a default method.
     if ((clazz.hasClassInitializer() && targetClass.hasClassInitializer())
-        || targetClass.classInitializationMayHaveSideEffects(appInfo, type -> type == clazz.type)
-        || (clazz.isInterface() && clazz.classInitializationMayHaveSideEffects(appInfo))) {
+        || targetClass.classInitializationMayHaveSideEffects(appView, type -> type == clazz.type)
+        || (clazz.isInterface() && clazz.classInitializationMayHaveSideEffects(appView))) {
       // TODO(herhut): Handle class initializers.
       if (Log.ENABLED) {
         AbortReason.STATIC_INITIALIZERS.printLogMessageForClass(clazz);

@@ -330,7 +330,7 @@ public class MemberValuePropagation {
       DexClass holderDefinition = appView.definitionFor(field.holder);
       if (holderDefinition != null
           && holderDefinition.accessFlags.isFinal()
-          && !field.holder.initializationOfParentTypesMayHaveSideEffects(appView.appInfo())) {
+          && !field.holder.initializationOfParentTypesMayHaveSideEffects(appView)) {
         Value outValue = current.dest();
         DexEncodedMethod classInitializer = holderDefinition.getClassInitializer();
         if (classInitializer != null && !isProcessedConcurrently.test(classInitializer)) {

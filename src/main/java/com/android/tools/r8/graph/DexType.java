@@ -45,24 +45,24 @@ public class DexType extends DexReference implements PresortedComparable<DexType
     return false;
   }
 
-  public boolean classInitializationMayHaveSideEffects(DexDefinitionSupplier definitions) {
-    return classInitializationMayHaveSideEffects(definitions, Predicates.alwaysFalse());
+  public boolean classInitializationMayHaveSideEffects(AppView<?> appView) {
+    return classInitializationMayHaveSideEffects(appView, Predicates.alwaysFalse());
   }
 
   public boolean classInitializationMayHaveSideEffects(
-      DexDefinitionSupplier definitions, Predicate<DexType> ignore) {
-    DexClass clazz = definitions.definitionFor(this);
-    return clazz == null || clazz.classInitializationMayHaveSideEffects(definitions, ignore);
+      AppView<?> appView, Predicate<DexType> ignore) {
+    DexClass clazz = appView.definitionFor(this);
+    return clazz == null || clazz.classInitializationMayHaveSideEffects(appView, ignore);
   }
 
-  public boolean initializationOfParentTypesMayHaveSideEffects(AppInfo appInfo) {
-    return initializationOfParentTypesMayHaveSideEffects(appInfo, Predicates.alwaysFalse());
+  public boolean initializationOfParentTypesMayHaveSideEffects(AppView<?> appView) {
+    return initializationOfParentTypesMayHaveSideEffects(appView, Predicates.alwaysFalse());
   }
 
   public boolean initializationOfParentTypesMayHaveSideEffects(
-      AppInfo appInfo, Predicate<DexType> ignore) {
-    DexClass clazz = appInfo.definitionFor(this);
-    return clazz == null || clazz.initializationOfParentTypesMayHaveSideEffects(appInfo, ignore);
+      AppView<?> appView, Predicate<DexType> ignore) {
+    DexClass clazz = appView.definitionFor(this);
+    return clazz == null || clazz.initializationOfParentTypesMayHaveSideEffects(appView, ignore);
   }
 
   public boolean isAlwaysNull(AppView<AppInfoWithLiveness> appView) {

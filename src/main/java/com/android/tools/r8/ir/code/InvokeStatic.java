@@ -177,7 +177,7 @@ public class InvokeStatic extends InvokeMethod {
             target.getOptimizationInfo().mayHaveSideEffects()
                 // Verify that calling the target method won't lead to class initialization.
                 || target.method.holder.classInitializationMayHaveSideEffects(
-                    appView.appInfo(),
+                    appView,
                     // Types that are a super type of `context` are guaranteed to be initialized
                     // already.
                     type -> appView.isSubtype(context, type).isTrue());

@@ -153,7 +153,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     //
     // For simplicity, we are conservative and consider all interfaces, not only the ones with
     // default methods.
-    return !clazz.classInitializationMayHaveSideEffects(appView.appInfo());
+    return !clazz.classInitializationMayHaveSideEffects(appView);
   }
 
   private synchronized boolean isDoubleInliningTarget(DexEncodedMethod candidate) {

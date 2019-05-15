@@ -233,6 +233,6 @@ public final class ClassInliner {
     }
 
     // Check for static initializers in this class or any of interfaces it implements.
-    return !clazz.initializationOfParentTypesMayHaveSideEffects(appView.appInfo());
+    return !clazz.initializationOfParentTypesMayHaveSideEffects(appView);
   }
 }

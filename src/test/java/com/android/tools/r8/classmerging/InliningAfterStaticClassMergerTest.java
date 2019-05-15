@@ -78,11 +78,12 @@ public class InliningAfterStaticClassMergerTest extends TestBase {
     CodeInspector inspector =
         testForR8(parameters.getBackend())
             .addProgramClasses(
-                TestClass.class,
-                StaticMergeCandidateA.class,
-                StaticMergeCandidateB.class)
+                TestClass.class, StaticMergeCandidateA.class, StaticMergeCandidateB.class)
             .addKeepMainRule(TestClass.class)
+            .addOptionsModification(
+                options -> options.libraryInterfacesMayHaveStaticInitialization = true)
             .noMinification()
+            .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput(expected)
             .inspector();
