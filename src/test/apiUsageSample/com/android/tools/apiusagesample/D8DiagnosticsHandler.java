@@ -6,6 +6,7 @@ package com.android.tools.apiusagesample;
 
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.errors.InterfaceDesugarMissingTypeDiagnostic;
 import com.android.tools.r8.origin.ArchiveEntryOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
@@ -35,11 +36,21 @@ class D8DiagnosticsHandler implements DiagnosticsHandler {
 
   @Override
   public void warning(Diagnostic warning) {
-    convertToMessage(warning);
+    if (warning instanceof InterfaceDesugarMissingTypeDiagnostic) {
+      desugarInterfaceMethodInfo((InterfaceDesugarMissingTypeDiagnostic) warning);
+    } else {
+      convertToMessage(warning);
+    }
   }
 
   @Override
   public void info(Diagnostic info) {
+    convertToMessage(info);
+  }
+
+  void desugarInterfaceMethodInfo(InterfaceDesugarMissingTypeDiagnostic info) {
+    System.out.println("desugar is missing: " + info.getMissingType().toString());
+    System.out.println("  used from: " + info.getContextType().toString());
     convertToMessage(info);
   }
 
