@@ -71,10 +71,17 @@ public class NestAttributesUpdateTest extends TestBase {
 
   public void testNestAttributesCorrect(
       String mainClassName, String outerNestName, String expectedResult) throws Exception {
+    testNestAttributesCorrect(mainClassName, outerNestName, expectedResult, true);
+    testNestAttributesCorrect(mainClassName, outerNestName, expectedResult, false);
+  }
+
+  public void testNestAttributesCorrect(
+      String mainClassName, String outerNestName, String expectedResult, boolean minification)
+      throws Exception {
     String actualMainClassName = PACKAGE_NAME + mainClassName;
     testForR8(parameters.getBackend())
-        .noMinification()
         .addKeepMainRule(actualMainClassName)
+        .minification(minification)
         .setMinApi(parameters.getApiLevel())
         .addProgramFiles(classesMatching(outerNestName))
         .addOptionsModification(options -> options.enableNestBasedAccessDesugaring = true)
@@ -85,6 +92,7 @@ public class NestAttributesUpdateTest extends TestBase {
   }
 
   private void assertNestAttributesCorrect(CodeInspector inspector) {
+    assertTrue(inspector.allClasses().size() > 0);
     for (FoundClassSubject classSubject : inspector.allClasses()) {
       DexClass clazz = classSubject.getDexClass();
       if (clazz.isInANest()) {
