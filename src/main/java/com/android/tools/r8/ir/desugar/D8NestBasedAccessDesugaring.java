@@ -18,6 +18,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.utils.ThreadUtils;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -62,7 +63,7 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
           DexMethod methodCalled = invokeMethod.getInvokedMethod();
           DexEncodedMethod encodedMethodCalled = appView.definitionFor(methodCalled);
           if (encodedMethodCalled != null
-              && invokeRequiresRewriting(encodedMethodCalled, currentClass, appView)) {
+              && invokeRequiresRewriting(encodedMethodCalled, currentClass)) {
             DexMethod bridge = ensureInvokeBridge(encodedMethodCalled);
             if (encodedMethodCalled.isInstanceInitializer()) {
               instructions.previous();
@@ -82,8 +83,7 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
         } else if (instruction.isFieldInstruction()) {
           DexEncodedField encodedField =
               appView.definitionFor(instruction.asFieldInstruction().getField());
-          if (encodedField != null
-              && fieldAccessRequiresRewriting(encodedField, currentClass, appView)) {
+          if (encodedField != null && fieldAccessRequiresRewriting(encodedField, currentClass)) {
             if (instruction.isInstanceGet() || instruction.isStaticGet()) {
               DexMethod bridge = ensureFieldAccessBridge(encodedField, true);
               instructions.replaceCurrentInstruction(
@@ -105,6 +105,32 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
     for (DexClass clazz : metNestHosts.values()) {
       futures.add(asyncProcessNest(clazz, executorService));
     }
+    ThreadUtils.awaitFutures(futures);
+  }
+
+  private void addDeferredBridges() {
+    addDeferredBridges(bridges.values());
+    addDeferredBridges(getFieldBridges.values());
+    addDeferredBridges(putFieldBridges.values());
+  }
+
+  private void addDeferredBridges(Collection<DexEncodedMethod> bridges) {
+    for (DexEncodedMethod bridge : bridges) {
+      DexClass holder = definitionFor(bridge.method.holder);
+      assert holder != null && holder.isProgramClass();
+      holder.asProgramClass().addMethod(bridge);
+    }
+  }
+
+  private void optimizeDeferredBridgesConcurrently(
+      ExecutorService executorService, IRConverter converter) throws ExecutionException {
+    List<Future<?>> futures =
+        new ArrayList<>(bridges.size() + getFieldBridges.size() + putFieldBridges.size());
+    converter.optimizeSynthesizedMethodsConcurrently(bridges.values(), executorService, futures);
+    converter.optimizeSynthesizedMethodsConcurrently(
+        getFieldBridges.values(), executorService, futures);
+    converter.optimizeSynthesizedMethodsConcurrently(
+        putFieldBridges.values(), executorService, futures);
     ThreadUtils.awaitFutures(futures);
   }
 

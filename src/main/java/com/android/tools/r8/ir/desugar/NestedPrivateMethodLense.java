@@ -1,9 +1,6 @@
 package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexEncodedField;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -11,54 +8,74 @@ import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
 import com.android.tools.r8.ir.code.Invoke;
 import com.google.common.collect.ImmutableMap;
+import java.util.IdentityHashMap;
+import java.util.Map;
 
 public class NestedPrivateMethodLense extends NestedGraphLense {
 
-  private final AppView<?> appView;
   // Map from nestHost to nest members including nest hosts
   private final DexType nestConstructorType;
+  private final Map<DexField, DexMethod> getFieldMap;
+  private final Map<DexField, DexMethod> putFieldMap;
 
-  public NestedPrivateMethodLense(
+  NestedPrivateMethodLense(
       AppView<?> appView,
       DexType nestConstructorType,
+      Map<DexMethod, DexMethod> methodMap,
+      Map<DexField, DexMethod> getFieldMap,
+      Map<DexField, DexMethod> putFieldMap,
       GraphLense previousLense) {
     super(
         ImmutableMap.of(),
-        ImmutableMap.of(),
+        methodMap,
         ImmutableMap.of(),
         null,
         null,
         previousLense,
         appView.dexItemFactory());
-    this.appView = appView;
+    // No concurrent maps here, we do not want synchronization overhead.
+    assert methodMap instanceof IdentityHashMap;
+    assert getFieldMap instanceof IdentityHashMap;
+    assert putFieldMap instanceof IdentityHashMap;
+    this.getFieldMap = getFieldMap;
+    this.putFieldMap = putFieldMap;
     this.nestConstructorType = nestConstructorType;
   }
 
-  private DexMethod lookupFieldForMethod(DexField field, DexMethod context, boolean isGet) {
-    DexEncodedField encodedField = appView.definitionFor(field);
-    DexClass contextClass = appView.definitionFor(context.holder);
-    assert contextClass != null;
-    if (encodedField != null
-        && NestBasedAccessDesugaring.fieldAccessRequiresRewriting(
-            encodedField, contextClass, appView)) {
-      return NestBasedAccessDesugaring.computeFieldBridge(encodedField, isGet, appView);
+  private DexMethod lookupFieldForMethod(
+      DexField field, DexMethod context, Map<DexField, DexMethod> map) {
+    assert context != null;
+    DexMethod bridge = map.get(field);
+    if (bridge != null && bridge.holder != context.holder) {
+      return bridge;
     }
     return null;
   }
 
   @Override
   public DexMethod lookupGetFieldForMethod(DexField field, DexMethod context) {
-    return lookupFieldForMethod(field, context, true);
+    assert previousLense.lookupGetFieldForMethod(field, context) == null;
+    return lookupFieldForMethod(field, context, getFieldMap);
   }
 
   @Override
   public DexMethod lookupPutFieldForMethod(DexField field, DexMethod context) {
-    return lookupFieldForMethod(field, context, false);
+    assert previousLense.lookupPutFieldForMethod(field, context) == null;
+    return lookupFieldForMethod(field, context, putFieldMap);
   }
 
   @Override
   public boolean isContextFreeForMethods() {
-    return false;
+    return methodMap.isEmpty();
+  }
+
+  @Override
+  public boolean isContextFreeForMethod(DexMethod method) {
+    if (!previousLense.isContextFreeForMethod(method)) {
+      return false;
+    }
+    DexMethod previous = previousLense.lookupMethod(method);
+    return !methodMap.containsKey(previous);
   }
 
   // This is true because mappings specific to this class can be filled.
@@ -67,20 +84,24 @@ public class NestedPrivateMethodLense extends NestedGraphLense {
     return true;
   }
 
-  @Override
-  public RewrittenPrototypeDescription lookupPrototypeChanges(DexMethod method) {
+  private boolean isConstructorBridge(DexMethod method) {
     DexType[] parameters = method.proto.parameters.values;
     if (parameters.length == 0) {
-      return previousLense.lookupPrototypeChanges(method);
+      return false;
     }
     DexType lastParameterType = parameters[parameters.length - 1];
-    if (lastParameterType == nestConstructorType) {
-      // This is an access bridge for a constructor that has been synthesized during
-      // nest-based access desugaring.
+    return lastParameterType == nestConstructorType;
+  }
+
+  @Override
+  public RewrittenPrototypeDescription lookupPrototypeChanges(DexMethod method) {
+    if (isConstructorBridge(method)) {
+      // TODO (b/132767654): Try to write a test which breaks that assertion.
       assert previousLense.lookupPrototypeChanges(method).isEmpty();
       return RewrittenPrototypeDescription.none().withExtraNullParameter();
+    } else {
+      return previousLense.lookupPrototypeChanges(method);
     }
-    return previousLense.lookupPrototypeChanges(method);
   }
 
   @Override
@@ -91,29 +112,18 @@ public class NestedPrivateMethodLense extends NestedGraphLense {
             ? originalMethodSignatures.getOrDefault(context, context)
             : context;
     GraphLenseLookupResult previous = previousLense.lookupMethod(method, previousContext, type);
-    if (context == null) {
+    DexMethod bridge = methodMap.get(previous.getMethod());
+    if (bridge == null) {
       return previous;
     }
-    DexEncodedMethod encodedMethod = appView.definitionFor(method);
-    DexClass contextClass = appView.definitionFor(context.holder);
-    assert contextClass != null;
-    if (encodedMethod == null
-        || !NestBasedAccessDesugaring.invokeRequiresRewriting(
-            encodedMethod, contextClass, appView)) {
+    assert context != null : "Guaranteed by isContextFreeForMethod";
+    if (bridge.holder == context.holder) {
       return previous;
     }
-    DexMethod bridge;
-    Invoke.Type invokeType;
-    if (encodedMethod.isInstanceInitializer()) {
-      bridge =
-          NestBasedAccessDesugaring.computeInitializerBridge(method, appView, nestConstructorType);
-      invokeType = Invoke.Type.DIRECT;
-    } else {
-      bridge = NestBasedAccessDesugaring.computeMethodBridge(encodedMethod, appView);
-      invokeType = Invoke.Type.STATIC;
+    if (isConstructorBridge(bridge)) {
+      return new GraphLenseLookupResult(bridge, Invoke.Type.DIRECT);
     }
-
-    return new GraphLenseLookupResult(bridge, invokeType);
+    return new GraphLenseLookupResult(bridge, Invoke.Type.STATIC);
   }
 
 }
