@@ -424,7 +424,10 @@ public class StringOptimizer {
 
     @Override
     public boolean isLegitimateEscapeRoute(
-        AppView<?> appView, Instruction escapeRoute, DexMethod context) {
+        AppView<?> appView,
+        EscapeAnalysis escapeAnalysis,
+        Instruction escapeRoute,
+        DexMethod context) {
       if (escapeRoute.isReturn() || escapeRoute.isThrow() || escapeRoute.isStaticPut()) {
         return false;
       }

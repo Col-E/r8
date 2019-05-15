@@ -10,5 +10,9 @@ import com.android.tools.r8.ir.code.Instruction;
 
 public interface EscapeAnalysisConfiguration {
 
-  boolean isLegitimateEscapeRoute(AppView<?> appView, Instruction escapeRoute, DexMethod context);
+  boolean isLegitimateEscapeRoute(
+      AppView<?> appView,
+      EscapeAnalysis escapeAnalysis,
+      Instruction escapeRoute,
+      DexMethod context);
 }

@@ -137,7 +137,7 @@ public class EscapeAnalysis {
           }
         }
       }
-      if (!configuration.isLegitimateEscapeRoute(appView, user, code.method.method)
+      if (!configuration.isLegitimateEscapeRoute(appView, this, user, code.method.method)
           && isDirectlyEscaping(user, code.method.method, arguments)) {
         if (stoppingCriterion.test(user)) {
           return true;
@@ -194,7 +194,7 @@ public class EscapeAnalysis {
     return false;
   }
 
-  protected boolean isValueOfInterestOrAlias(Value value) {
+  public boolean isValueOfInterestOrAlias(Value value) {
     return trackedValues.contains(value);
   }
 

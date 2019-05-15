@@ -91,6 +91,7 @@ import java.util.TreeMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.BiConsumer;
+import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -1333,13 +1334,14 @@ public class Enqueuer {
 
   private void markVirtualMethodAsReachable(
       DexMethod method, boolean interfaceInvoke, KeepReason reason) {
-    markVirtualMethodAsReachable(method, interfaceInvoke, reason, null);
+    markVirtualMethodAsReachable(method, interfaceInvoke, reason, (x, y) -> true, null);
   }
 
   private void markVirtualMethodAsReachable(
       DexMethod method,
       boolean interfaceInvoke,
       KeepReason reason,
+      BiPredicate<DexProgramClass, DexEncodedMethod> possibleTargetsFilter,
       Consumer<DexEncodedMethod> possibleTargetsConsumer) {
     if (!virtualTargetsMarkedAsReachable.add(method)) {
       return;
@@ -1386,6 +1388,10 @@ public class Enqueuer {
 
       if (!clazz.isProgramClass()) {
         // Should only be tracing the program.
+        continue;
+      }
+
+      if (!possibleTargetsFilter.test(clazz.asProgramClass(), encodedPossibleTarget)) {
         continue;
       }
 
@@ -1804,8 +1810,50 @@ public class Enqueuer {
           encodedMethod.method,
           clazz.isInterface(),
           KeepReason.isLibraryMethod(),
+          this::shouldMarkLibraryMethodOverrideAsReachable,
           DexEncodedMethod::setLibraryMethodOverride);
     }
+  }
+
+  private boolean shouldMarkLibraryMethodOverrideAsReachable(
+      DexProgramClass clazz, DexEncodedMethod method) {
+    assert method.isVirtualMethod();
+
+    if (appView.isClassEscapingIntoLibrary(clazz.type)) {
+      return true;
+    }
+
+    // If there is a subtype of `clazz` that escapes into the library and does not override `method`
+    // then we need to mark the method as being reachable.
+    Deque<DexType> worklist = new ArrayDeque<>(appView.appInfo().allImmediateSubtypes(clazz.type));
+
+    Set<DexType> visited = Sets.newIdentityHashSet();
+    visited.addAll(worklist);
+
+    while (!worklist.isEmpty()) {
+      DexClass current = appView.definitionFor(worklist.removeFirst());
+      if (current == null) {
+        continue;
+      }
+
+      assert visited.contains(current.type);
+
+      if (current.lookupVirtualMethod(method.method) != null) {
+        continue;
+      }
+
+      if (appView.isClassEscapingIntoLibrary(current.type)) {
+        return true;
+      }
+
+      for (DexType subtype : appView.appInfo().allImmediateSubtypes(current.type)) {
+        if (visited.add(subtype)) {
+          worklist.add(subtype);
+        }
+      }
+    }
+
+    return false;
   }
 
   private void processNewlyLiveMethod(DexEncodedMethod method, KeepReason reason) {

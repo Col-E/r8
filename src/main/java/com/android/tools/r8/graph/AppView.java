@@ -9,8 +9,10 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.shaking.VerticalClassMerger.VerticallyMergedClasses;
 import com.android.tools.r8.utils.InternalOptions;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 import java.util.Set;
+import java.util.function.Predicate;
 
 public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
 
@@ -26,6 +28,8 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
   private GraphLense graphLense;
   private final InternalOptions options;
   private RootSet rootSet;
+
+  private Predicate<DexType> classesEscapingIntoLibrary = Predicates.alwaysTrue();
   private Set<DexMethod> unneededVisibilityBridgeMethods = ImmutableSet.of();
   private VerticallyMergedClasses verticallyMergedClasses;
 
@@ -68,6 +72,15 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
 
   public void setAppServices(AppServices appServices) {
     this.appServices = appServices;
+  }
+
+  public boolean isClassEscapingIntoLibrary(DexType type) {
+    assert type.isClassType();
+    return classesEscapingIntoLibrary.test(type);
+  }
+
+  public void setClassesEscapingIntoLibrary(Predicate<DexType> classesEscapingIntoLibrary) {
+    this.classesEscapingIntoLibrary = classesEscapingIntoLibrary;
   }
 
   @Override

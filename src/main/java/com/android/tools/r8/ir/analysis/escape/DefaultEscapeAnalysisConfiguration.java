@@ -21,7 +21,10 @@ public class DefaultEscapeAnalysisConfiguration implements EscapeAnalysisConfigu
 
   @Override
   public boolean isLegitimateEscapeRoute(
-      AppView<?> appView, Instruction escapeRoute, DexMethod context) {
+      AppView<?> appView,
+      EscapeAnalysis escapeAnalysis,
+      Instruction escapeRoute,
+      DexMethod context) {
     return false;
   }
 }

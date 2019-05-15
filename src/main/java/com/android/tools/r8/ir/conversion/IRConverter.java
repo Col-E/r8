@@ -547,6 +547,10 @@ public class IRConverter {
       assert graphLenseForIR == appView.graphLense();
     }
 
+    if (libraryMethodOverrideAnalysis != null) {
+      libraryMethodOverrideAnalysis.finish();
+    }
+
     // Second inlining pass for dealing with double inline callers.
     if (inliner != null) {
       printPhase("Double caller inlining");
@@ -612,8 +616,13 @@ public class IRConverter {
       identifierNameStringMarker.decoupleIdentifierNameStringsInFields();
     }
 
-    if (Log.ENABLED && uninstantiatedTypeOptimization != null) {
-      uninstantiatedTypeOptimization.logResults();
+    if (Log.ENABLED) {
+      if (libraryMethodOverrideAnalysis != null) {
+        libraryMethodOverrideAnalysis.logResults();
+      }
+      if (uninstantiatedTypeOptimization != null) {
+        uninstantiatedTypeOptimization.logResults();
+      }
     }
 
     // Check if what we've added to the application builder as synthesized classes are same as
@@ -1133,23 +1142,28 @@ public class IRConverter {
       classStaticizer.examineMethodCode(method, code);
     }
 
-    // Compute optimization info summary for the current method unless it is pinned (in that case,
-    // we should not be making any assumptions about the behavior of the method).
-    if (appView.enableWholeProgramOptimizations()
-        && !appView.appInfo().withLiveness().isPinned(method.method)) {
-      codeRewriter.identifyClassInlinerEligibility(method, code, feedback);
-      codeRewriter.identifyParameterUsages(method, code, feedback);
-      codeRewriter.identifyReturnsArgument(method, code, feedback);
-      codeRewriter.identifyTrivialInitializer(method, code, feedback);
-
-      if (options.enableInlining && inliner != null) {
-        codeRewriter.identifyInvokeSemanticsForInlining(method, code, appView, feedback);
+    if (appView.enableWholeProgramOptimizations()) {
+      if (libraryMethodOverrideAnalysis != null) {
+        libraryMethodOverrideAnalysis.analyze(code);
       }
 
-      computeDynamicReturnType(feedback, method, code);
-      computeInitializedClassesOnNormalExit(feedback, method, code);
-      computeMayHaveSideEffects(feedback, method, code);
-      computeNonNullParamOrThrow(feedback, method, code);
+      // Compute optimization info summary for the current method unless it is pinned
+      // (in that case we should not be making any assumptions about the behavior of the method).
+      if (!appView.appInfo().withLiveness().isPinned(method.method)) {
+        codeRewriter.identifyClassInlinerEligibility(method, code, feedback);
+        codeRewriter.identifyParameterUsages(method, code, feedback);
+        codeRewriter.identifyReturnsArgument(method, code, feedback);
+        codeRewriter.identifyTrivialInitializer(method, code, feedback);
+
+        if (options.enableInlining && inliner != null) {
+          codeRewriter.identifyInvokeSemanticsForInlining(method, code, appView, feedback);
+        }
+
+        computeDynamicReturnType(feedback, method, code);
+        computeInitializedClassesOnNormalExit(feedback, method, code);
+        computeMayHaveSideEffects(feedback, method, code);
+        computeNonNullParamOrThrow(feedback, method, code);
+      }
     }
 
     previous =
