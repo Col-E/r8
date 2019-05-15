@@ -37,41 +37,58 @@ public final class InvokeCustom extends Invoke {
     return visitor.visit(this);
   }
 
+  private static boolean verifyLambdaInterfaces(
+      TypeLatticeElement returnTypeLattice, Set<DexType> lambdaInterfaceSet, DexType objectType) {
+    Set<DexType> primaryInterfaces = returnTypeLattice.asClassTypeLatticeElement().getInterfaces();
+    if (returnTypeLattice.asClassTypeLatticeElement().getClassType() == objectType) {
+      assert primaryInterfaces.size() == 1;
+      // The interfaces returned by the LambdaDescriptor assumed to already contain the primary
+      // interface. If they're both singleton lists they must be identical and we can return the
+      // primary return type.
+      assert lambdaInterfaceSet.contains(primaryInterfaces.iterator().next());
+    } else {
+      // We arrive here if the primary interface is a missing class. In that case the
+      // returnTypeLattice will be the missing type as the class type.
+      assert primaryInterfaces.isEmpty();
+      assert lambdaInterfaceSet.contains(
+          returnTypeLattice.asClassTypeLatticeElement().getClassType());
+    }
+    return true;
+  }
+
   @Override
   public TypeLatticeElement evaluate(AppView<?> appView) {
     TypeLatticeElement returnTypeLattice = super.evaluate(appView);
     if (!appView.appInfo().hasSubtyping()) {
       return returnTypeLattice;
     }
+
     List<DexType> lambdaInterfaces = LambdaDescriptor.getInterfaces(callSite, appView.appInfo());
     if (lambdaInterfaces == null || lambdaInterfaces.isEmpty()) {
       return returnTypeLattice;
     }
 
-    // If we have interfaces from LambdaDescriptor then it must be a lambda where we expect
-    // an object with a single interface as the primary return type.
+    // The primary return type is either an interface or a missing type.
     assert returnTypeLattice instanceof ClassTypeLatticeElement;
-    assert returnTypeLattice.asClassTypeLatticeElement().getClassType()
-        == appView.dexItemFactory().objectType;
 
-    Set<DexType> existingInterfaces = returnTypeLattice.asClassTypeLatticeElement().getInterfaces();
-    assert existingInterfaces.size() == 1;
+    Set<DexType> primaryInterfaces = returnTypeLattice.asClassTypeLatticeElement().getInterfaces();
+    DexType objectType = appView.dexItemFactory().objectType;
 
-    // The interfaces returned by the LambdaDescripter assumed to already contain the primary
-    // interface. If they're both singleton lists they must be identical and we can return the
-    // primary return type.
-    if (lambdaInterfaces.size() == 1) {
-      assert lambdaInterfaces.get(0) == existingInterfaces.iterator().next();
-      return returnTypeLattice;
+    if (returnTypeLattice.asClassTypeLatticeElement().getClassType() == objectType) {
+      assert primaryInterfaces.size() == 1;
+      // Shortcut for the common case: single interface. Save creating a new lattice type.
+      if (lambdaInterfaces.size() == 1) {
+        assert lambdaInterfaces.get(0) == primaryInterfaces.iterator().next();
+        return returnTypeLattice;
+      }
     }
 
-    // It's allowed to add duplicates to ImmutableSet builder.
-    Set<DexType> newInterfaces = ImmutableSet.<DexType>builder().addAll(lambdaInterfaces).build();
+    Set<DexType> lambdaInterfaceSet =
+        ImmutableSet.<DexType>builder().addAll(lambdaInterfaces).build();
 
-    assert newInterfaces.contains(existingInterfaces.iterator().next());
+    assert verifyLambdaInterfaces(returnTypeLattice, lambdaInterfaceSet, objectType);
 
-    return ClassTypeLatticeElement.create(
-        appView.dexItemFactory().objectType, Nullability.maybeNull(), newInterfaces);
+    return ClassTypeLatticeElement.create(objectType, Nullability.maybeNull(), lambdaInterfaceSet);
   }
 
   @Override
