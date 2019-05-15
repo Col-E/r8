@@ -424,8 +424,13 @@ public class VerticalClassMerger {
       return false;
     }
     DexClass targetClass = appInfo.definitionFor(appInfo.getSingleSubtype(clazz.type));
+    // For interface types, this is more complicated, see:
+    // https://docs.oracle.com/javase/specs/jvms/se9/html/jvms-5.html#jvms-5.5
+    // We basically can't move the clinit, since it is not called when implementing classes have
+    // their clinit called - except when the interface has a default method.
     if ((clazz.hasClassInitializer() && targetClass.hasClassInitializer())
-        || targetClass.classInitializationMayHaveSideEffects(appInfo, type -> type == clazz.type)) {
+        || targetClass.classInitializationMayHaveSideEffects(appInfo, type -> type == clazz.type)
+        || (clazz.isInterface() && clazz.classInitializationMayHaveSideEffects(appInfo))) {
       // TODO(herhut): Handle class initializers.
       if (Log.ENABLED) {
         AbortReason.STATIC_INITIALIZERS.printLogMessageForClass(clazz);

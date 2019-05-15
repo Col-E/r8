@@ -19,23 +19,21 @@ public class InterfaceClInit extends TestBase {
   static String EXPECTED= "i = 42";
   private final TestParameters parameters;
 
-
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimes().withAllApiLevels().build();
   }
-
 
   public InterfaceClInit(TestParameters parameters) {
     this.parameters = parameters;
   }
 
-  @Ignore("b/132676467")
   @Test
   public void test() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramClasses(TestClass.class, InterfaceWithStaticBlock.class, UsedFromStatic.class)
         .addKeepMainRule(TestClass.class)
+        .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines(EXPECTED);
   }
