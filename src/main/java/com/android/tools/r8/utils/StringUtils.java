@@ -266,7 +266,7 @@ public class StringUtils {
   }
 
   public static String numberToIdentifier(int nameCount, char[] prefix, boolean addSemicolon) {
-    // TODO(herhut): Add support for using numbers.
+    // TODO(b132812927): Add support for using numbers.
     int size = addSemicolon ? 1 : 0;
     int number = nameCount;
     while (number >= NUMBER_OF_LETTERS) {
