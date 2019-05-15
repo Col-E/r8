@@ -2,6 +2,7 @@ package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexAnnotationSet;
@@ -21,6 +22,7 @@ import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -71,11 +73,12 @@ public abstract class NestBasedAccessDesugaring {
   }
 
   // Extract the list of types in the programClass' nest, of host hostClass
-  List<DexType> extractNest(DexClass clazz) {
+  private List<DexType> extractNest(DexClass clazz) {
     assert clazz != null;
     DexClass hostClass = clazz.isNestHost() ? clazz : appView.definitionFor(clazz.getNestHost());
     if (hostClass == null) {
-      throw abortCompilationDueToMissingNestHost(clazz);
+      reportMissingNestHost(clazz);
+      return null;
     }
     List<DexType> classesInNest =
         new ArrayList<>(hostClass.getNestMembersClassAttributes().size() + 1);
@@ -86,26 +89,33 @@ public abstract class NestBasedAccessDesugaring {
     return classesInNest;
   }
 
-  Future<?> asyncProcessNest(List<DexType> nest, ExecutorService executorService) {
+  Future<?> asyncProcessNest(DexClass clazz, ExecutorService executorService) {
     return executorService.submit(
         () -> {
-          processNest(nest);
+          List<DexType> nest = extractNest(clazz);
+          if (nest != null) {
+            processNest(nest);
+          }
           return null; // we want a Callable not a Runnable to be able to throw
         });
   }
 
   private void processNest(List<DexType> nest) {
+    boolean reported = false;
     for (DexType type : nest) {
       DexClass clazz = appView.definitionFor(type);
       if (clazz == null) {
-        // TODO(b/130529338) We could throw only a warning if a class is missing.
-        throw abortCompilationDueToIncompleteNest(nest);
-      }
-      if (shouldProcessClassInNest(clazz, nest)) {
-        NestBasedAccessDesugaringUseRegistry registry =
-            new NestBasedAccessDesugaringUseRegistry(nest, clazz);
-        for (DexEncodedMethod method : clazz.methods()) {
-          method.registerCodeReferences(registry);
+        if (!reported) {
+          reportIncompleteNest(nest);
+          reported = true;
+        }
+      } else {
+        if (shouldProcessClassInNest(clazz, nest)) {
+          NestBasedAccessDesugaringUseRegistry registry =
+              new NestBasedAccessDesugaringUseRegistry(clazz);
+          for (DexEncodedMethod method : clazz.methods()) {
+            method.registerCodeReferences(registry);
+          }
         }
       }
     }
@@ -139,7 +149,7 @@ public abstract class NestBasedAccessDesugaring {
     ThreadUtils.awaitFutures(futures);
   }
 
-  private RuntimeException abortCompilationDueToIncompleteNest(List<DexType> nest) {
+  private void reportIncompleteNest(List<DexType> nest) {
     List<String> programClassesFromNest = new ArrayList<>();
     List<String> unavailableClasses = new ArrayList<>();
     List<String> classPathClasses = new ArrayList<>();
@@ -174,17 +184,26 @@ public abstract class NestBasedAccessDesugaring {
           .append(String.join(", ", classPathClasses))
           .append(" from the same nest are on class path).");
     }
-    throw new CompilationError(stringBuilder.toString());
+    if (!libraryClasses.isEmpty()) {
+      throw new CompilationError(stringBuilder.toString());
+    }
+    // TODO (b/132676197): Use desugaring warning
+    appView.options().reporter.warning(new StringDiagnostic(stringBuilder.toString()));
   }
 
-  private RuntimeException abortCompilationDueToMissingNestHost(DexClass compiledClass) {
-    String nestHostName = compiledClass.getNestHostClassAttribute().getNestHost().getName();
-    throw new CompilationError(
+  private void reportMissingNestHost(DexClass compiledClass) {
+    String nestHostName = compiledClass.getNestHost().getName();
+    String message =
         "Class "
             + compiledClass.type.getName()
             + " requires its nest host "
             + nestHostName
-            + " to be on program or class path for compilation to succeed.");
+            + " to be on program or class path for compilation to succeed.";
+    if (compiledClass.isLibraryClass()) {
+      throw new CompilationError(message);
+    }
+    // TODO (b/132676197): Use desugaring warning
+    appView.options().reporter.warning(new StringDiagnostic(message));
   }
 
   private DexProgramClass createNestAccessConstructor() {
@@ -286,19 +305,27 @@ public abstract class NestBasedAccessDesugaring {
   }
 
   static boolean invokeRequiresRewriting(
-      DexEncodedMethod method, List<DexType> contextNest, DexType contextType) {
+      DexEncodedMethod method, DexClass contextClass, AppView<?> appView) {
+    assert method != null;
     // Rewrite only when targeting other nest members private fields.
-    return method.accessFlags.isPrivate()
-        && method.method.holder != contextType
-        && contextNest.contains(method.method.holder);
+    if (!method.accessFlags.isPrivate() || method.method.holder == contextClass.type) {
+      return false;
+    }
+    DexClass methodHolder = appView.definitionFor(method.method.holder);
+    assert methodHolder != null; // from encodedMethod
+    return methodHolder.getNestHost() == contextClass.getNestHost();
   }
 
   static boolean fieldAccessRequiresRewriting(
-      DexEncodedField field, List<DexType> contextNest, DexType contextType) {
+      DexEncodedField field, DexClass contextClass, AppView<?> appView) {
+    assert field != null;
     // Rewrite only when targeting other nest members private fields.
-    return field.accessFlags.isPrivate()
-        && field.field.holder != contextType
-        && contextNest.contains(field.field.holder);
+    if (!field.accessFlags.isPrivate() || field.field.holder == contextClass.type) {
+      return false;
+    }
+    DexClass fieldHolder = appView.definitionFor(field.field.holder);
+    assert fieldHolder != null; // from encodedField
+    return fieldHolder.getNestHost() == contextClass.getNestHost();
   }
 
   private boolean holderRequiresBridge(DexClass holder) {
@@ -310,7 +337,11 @@ public abstract class NestBasedAccessDesugaring {
       return true;
     }
     assert holder.isLibraryClass();
-    throw abortCompilationDueToIncompleteNest(extractNest(holder));
+    List<DexType> nest = extractNest(holder);
+    assert nest != null : "Should be a compilation error if missing nest host on library class.";
+    reportIncompleteNest(nest);
+    throw new Unreachable(
+        "Incomplete nest due to missing library class should raise a compilation error.");
   }
 
   DexMethod ensureFieldAccessBridge(DexEncodedField field, boolean isGet) {
@@ -358,19 +389,16 @@ public abstract class NestBasedAccessDesugaring {
 
   protected class NestBasedAccessDesugaringUseRegistry extends UseRegistry {
 
-    private final List<DexType> nest;
     private final DexClass currentClass;
 
-    NestBasedAccessDesugaringUseRegistry(List<DexType> nest, DexClass currentClass) {
+    NestBasedAccessDesugaringUseRegistry(DexClass currentClass) {
       super(appView.options().itemFactory);
-      this.nest = nest;
       this.currentClass = currentClass;
     }
 
     private boolean registerInvoke(DexMethod method) {
       DexEncodedMethod encodedMethod = appView.definitionFor(method);
-      if (encodedMethod != null
-          && invokeRequiresRewriting(encodedMethod, nest, currentClass.type)) {
+      if (encodedMethod != null && invokeRequiresRewriting(encodedMethod, currentClass, appView)) {
         ensureInvokeBridge(encodedMethod);
         return true;
       }
@@ -380,7 +408,7 @@ public abstract class NestBasedAccessDesugaring {
     private boolean registerFieldAccess(DexField field, boolean isGet) {
       DexEncodedField encodedField = appView.definitionFor(field);
       if (encodedField != null
-          && fieldAccessRequiresRewriting(encodedField, nest, currentClass.type)) {
+          && fieldAccessRequiresRewriting(encodedField, currentClass, appView)) {
         ensureFieldAccessBridge(encodedField, isGet);
         return true;
       }

@@ -11,20 +11,15 @@ import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
 import com.android.tools.r8.ir.code.Invoke;
 import com.google.common.collect.ImmutableMap;
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Map;
 
 public class NestedPrivateMethodLense extends NestedGraphLense {
 
   private final AppView<?> appView;
   // Map from nestHost to nest members including nest hosts
-  private final Map<DexType, List<DexType>> nestMap;
   private final DexType nestConstructorType;
 
   public NestedPrivateMethodLense(
       AppView<?> appView,
-      Map<DexType, List<DexType>> nestMap,
       DexType nestConstructorType,
       GraphLense previousLense) {
     super(
@@ -36,23 +31,16 @@ public class NestedPrivateMethodLense extends NestedGraphLense {
         previousLense,
         appView.dexItemFactory());
     this.appView = appView;
-    // We do not want a concurrent Map here.
-    assert nestMap instanceof IdentityHashMap;
-    this.nestMap = nestMap;
     this.nestConstructorType = nestConstructorType;
-  }
-
-  private List<DexType> getNestFor(DexType type) {
-    DexClass clazz = appView.definitionFor(type);
-    DexType hostType = clazz.isNestHost() ? clazz.type : clazz.getNestHost();
-    return nestMap.get(hostType);
   }
 
   private DexMethod lookupFieldForMethod(DexField field, DexMethod context, boolean isGet) {
     DexEncodedField encodedField = appView.definitionFor(field);
+    DexClass contextClass = appView.definitionFor(context.holder);
+    assert contextClass != null;
     if (encodedField != null
         && NestBasedAccessDesugaring.fieldAccessRequiresRewriting(
-            encodedField, getNestFor(context.holder), context.holder)) {
+            encodedField, contextClass, appView)) {
       return NestBasedAccessDesugaring.computeFieldBridge(encodedField, isGet, appView);
     }
     return null;
@@ -107,9 +95,11 @@ public class NestedPrivateMethodLense extends NestedGraphLense {
       return previous;
     }
     DexEncodedMethod encodedMethod = appView.definitionFor(method);
+    DexClass contextClass = appView.definitionFor(context.holder);
+    assert contextClass != null;
     if (encodedMethod == null
         || !NestBasedAccessDesugaring.invokeRequiresRewriting(
-            encodedMethod, getNestFor(context.holder), context.holder)) {
+            encodedMethod, contextClass, appView)) {
       return previous;
     }
     DexMethod bridge;
