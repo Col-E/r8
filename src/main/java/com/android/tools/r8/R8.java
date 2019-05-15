@@ -130,11 +130,15 @@ import java.util.function.Supplier;
 @Keep
 public class R8 {
 
-  private final Timing timing = new Timing("R8");
+  private final Timing timing;
   private final InternalOptions options;
 
   private R8(InternalOptions options) {
     this.options = options;
+    if (options.printMemory) {
+      System.gc();
+    }
+    this.timing = new Timing("R8", options.printMemory);
     options.itemFactory.resetSortedIndices();
   }
 

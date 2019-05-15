@@ -137,6 +137,8 @@ public class InternalOptions {
   }
 
   public boolean printTimes = System.getProperty("com.android.tools.r8.printtimes") != null;
+  // To print memory one also have to enable printtimes.
+  public boolean printMemory = System.getProperty("com.android.tools.r8.printmemory") != null;
 
   // Flag to toggle if DEX code objects should pass-through without IR processing.
   public boolean passthroughDexCode = false;
