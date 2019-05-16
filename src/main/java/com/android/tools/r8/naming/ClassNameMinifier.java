@@ -25,7 +25,6 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
 import com.android.tools.r8.utils.Timing;
-import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -115,18 +114,9 @@ class ClassNameMinifier {
     timing.begin("rename-classes");
     for (DexClass clazz : classes) {
       if (!renaming.containsKey(clazz.type)) {
-        boolean wasAnonymous = clazz.isAnonymousClass();
-        // TreePruner already removed inner-class / enclosing-method attributes for local classes.
-        assert !clazz.isLocalClass();
         clazz.annotations = clazz.annotations.keepIf(this::isNotKotlinMetadata);
         DexString renamed = computeName(clazz.type);
         renaming.put(clazz.type, renamed);
-        // Then-anonymous class is no longer anonymous after minification. Remaining attributes
-        // may make the computation of simple name fail on JVM prior to JDK 9.
-        if (wasAnonymous) {
-          clazz.removeEnclosingMethod(Predicates.alwaysTrue());
-          clazz.removeInnerClasses(attr -> attr.getInner() == clazz.type);
-        }
         // If the class is a member class and it has used $ separator, its renamed name should have
         // the same separator (as long as inner-class attribute is honored).
         assert !keepInnerClassStructure
@@ -234,13 +224,6 @@ class ClassNameMinifier {
     if (clazz == null) {
       return null;
     }
-    // We do not need to preserve the names for local or anonymous classes, as they do not result
-    // in a member type declaration and hence cannot be referenced as nested classes in
-    // method signatures.
-    // See https://docs.oracle.com/javase/specs/jls/se7/html/jls-8.html#jls-8.5.
-    if (clazz.getEnclosingMethod() != null) {
-      return null;
-    }
     // For DEX inputs this could result in returning the outer class of a local class since we
     // can't distinguish it from a member class based on just the enclosing-class annotation.
     // We could filter out the local classes by looking for a corresponding entry in the
@@ -250,27 +233,25 @@ class ClassNameMinifier {
     if (attribute == null) {
       return null;
     }
-    return attribute.getOuter();
-  }
-
-  private DexString getInnerNameForType(DexType type) {
-    // This util is used only after the corresponding outer-class is recognized.
-    // Therefore, the definition for the type and its inner-class attribute should be found.
-    DexClass clazz = appView.definitionFor(type);
-    assert clazz != null;
-    InnerClassAttribute attribute = clazz.getInnerClassAttributeForThisClass();
-    assert attribute != null;
-    return attribute.getInnerName();
+    return attribute.getLiveContext(appView.appInfo());
   }
 
   private DexString computeName(DexType type) {
     Namespace state = null;
     if (keepInnerClassStructure) {
-      // When keeping the nesting structure of inner classes, we have to insert the name
-      // of the outer class for the $ prefix.
+      // When keeping the nesting structure of inner classes, bind this type to the live context.
+      // Note that such live context might not be always the enclosing class. E.g., a local class
+      // does not have a direct enclosing class, but we use the holder of the enclosing method here.
       DexType outerClass = getOutClassForType(type);
       if (outerClass != null) {
-        String separator = computeInnerClassSeparator(outerClass, type, getInnerNameForType(type));
+        DexClass clazz = appView.definitionFor(type);
+        assert clazz != null;
+        InnerClassAttribute attribute = clazz.getInnerClassAttributeForThisClass();
+        assert attribute != null;
+        // Note that, to be consistent with the way inner-class attribute is written via minifier
+        // lense, we are using attribute's outer-class, not the live context.
+        String separator =
+            computeInnerClassSeparator(attribute.getOuter(), type, attribute.getInnerName());
         if (separator == null) {
           separator = String.valueOf(INNER_CLASS_SEPARATOR);
         }

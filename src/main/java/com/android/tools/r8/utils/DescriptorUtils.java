@@ -311,7 +311,9 @@ public class DescriptorUtils {
 
   public static String computeInnerClassSeparator(
       DexType outerClass, DexType innerClass, DexString innerName) {
-    if (innerName == null) {
+    assert innerClass != null;
+    // Filter out non-member classes ahead.
+    if (outerClass == null || innerName == null) {
       return String.valueOf(INNER_CLASS_SEPARATOR);
     }
     return computeInnerClassSeparator(

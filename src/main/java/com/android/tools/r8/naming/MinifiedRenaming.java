@@ -77,7 +77,6 @@ class MinifiedRenaming extends NamingLens {
         attribute.getOuter(), innerType, attribute.getInnerName());
     if (separator == null) {
       separator = String.valueOf(DescriptorUtils.INNER_CLASS_SEPARATOR);
-
     }
     int index = innerTypeMapped.lastIndexOf(separator);
     if (index < 0) {

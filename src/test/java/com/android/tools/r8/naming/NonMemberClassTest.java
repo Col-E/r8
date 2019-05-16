@@ -9,11 +9,11 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.util.Collection;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -34,6 +34,7 @@ public class NonMemberClassTest extends TestBase {
       new Local();
 
       Runnable r = new Runnable() {
+        @NeverInline
         @Override
         public void run() {
           if (this.getClass().isAnonymousClass()) {
@@ -71,10 +72,70 @@ public class NonMemberClassTest extends TestBase {
           throw new Unreachable();
       }
     }
+
+    public String getExpectedOutput(TestParameters parameters, boolean isFullMode) {
+      switch (this) {
+        case KEEP_INNER_CLASSES:
+          return JVM_OUTPUT;
+        case KEEP_ALLOW_MINIFICATION:
+          if (parameters.isCfRuntime()
+              && parameters.getRuntime().asCf().getVm().lessThanOrEqual(CfVm.JDK8)) {
+            return MINIFIED_OUTPUT_JDK8;
+          }
+          return JVM_OUTPUT;
+        case NO_KEEP_NO_MINIFICATION:
+          // In full mode, we remove all attributes since nothing pinned, i.e., no reflection uses.
+          return isFullMode ? "" : JVM_OUTPUT;
+        case NO_KEEP_MINIFICATION:
+          // In full mode, we remove all attributes since nothing pinned, i.e., no reflection uses.
+          if (isFullMode) {
+            return "";
+          }
+          if (parameters.isCfRuntime()
+              && parameters.getRuntime().asCf().getVm().lessThanOrEqual(CfVm.JDK8)) {
+            return MINIFIED_OUTPUT_JDK8;
+          }
+          return JVM_OUTPUT;
+        default:
+          throw new Unreachable();
+      }
+    }
+
+    public void inspect(boolean isFullMode, CodeInspector inspector) {
+      int expectedNumberOfNonMemberInnerClasses;
+      switch (this) {
+        case KEEP_INNER_CLASSES:
+        case KEEP_ALLOW_MINIFICATION:
+          expectedNumberOfNonMemberInnerClasses = 2;
+          break;
+        case NO_KEEP_NO_MINIFICATION:
+        case NO_KEEP_MINIFICATION:
+          expectedNumberOfNonMemberInnerClasses = isFullMode ? 0 : 2;
+          break;
+        default:
+          throw new Unreachable();
+      }
+      assertEquals(
+          expectedNumberOfNonMemberInnerClasses,
+          inspector.allClasses().stream().filter(classSubject ->
+              classSubject.getDexClass().isLocalClass()
+                  || classSubject.getDexClass().isAnonymousClass()).count());
+    }
   }
 
   private static final Class<?> MAIN = TestMain.class;
-  private static final String EXPECTED_OUTPUT = StringUtils.lines(
+
+  // Since JDK9, a class is determined as anonymous if the inner-name in the associated inner-class
+  // attribute is empty.
+  // JDK8 determines an anonymous class differently: checking if a simple name is empty.
+  // Moreover, it computes the simple name differently: some assumptions about non-member classes,
+  // e.g., 1 or more digits (followed by the simple name if it's local).
+  // Since JDK9, the simple name is computed by stripping off the package name.
+  // See b/132808897 for more details.
+  private static final String MINIFIED_OUTPUT_JDK8 = StringUtils.lines(
+      "I'm local."
+  );
+  private static final String JVM_OUTPUT = StringUtils.lines(
       "I'm local.",
       "I'm anonymous."
   );
@@ -84,7 +145,8 @@ public class NonMemberClassTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0} {1}")
   public static Collection<Object[]> data() {
-    return buildParameters(getTestParameters().withAllRuntimes().build(), TestConfig.values());
+    return buildParameters(
+        getTestParameters().withAllRuntimes().withAllApiLevels().build(), TestConfig.values());
   }
 
   public NonMemberClassTest(TestParameters parameters, TestConfig config) {
@@ -100,46 +162,38 @@ public class NonMemberClassTest extends TestBase {
     testForJvm()
         .addTestClasspath()
         .run(parameters.getRuntime(), MAIN)
-        .assertSuccessWithOutput(EXPECTED_OUTPUT);
+        .assertSuccessWithOutput(JVM_OUTPUT);
   }
 
   @Test
   public void testR8Compat() throws Exception {
-    assumeTrue("b/132128436", config == TestConfig.NO_KEEP_NO_MINIFICATION);
     testForR8Compat(parameters.getBackend())
         .addInnerClasses(NonMemberClassTest.class)
         .addKeepMainRule(MAIN)
         .addKeepRules(config.getKeepRules())
-        .addKeepAttributes("InnerClasses", "EnclosingMethod")
+        .addKeepAttributes("Signature", "InnerClasses", "EnclosingMethod")
         .enableInliningAnnotations()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .addOptionsModification(options -> options.enableClassInlining = false)
         .compile()
+        .inspect(inspector -> config.inspect(false, inspector))
         .run(parameters.getRuntime(), MAIN)
-        .assertSuccessWithOutput(EXPECTED_OUTPUT)
-        .inspect(this::inspect);
+        .assertSuccessWithOutput(config.getExpectedOutput(parameters, false));
   }
 
-  @Ignore("b/132128436")
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addInnerClasses(NonMemberClassTest.class)
         .addKeepMainRule(MAIN)
         .addKeepRules(config.getKeepRules())
-        .addKeepAttributes("InnerClasses", "EnclosingMethod")
+        .addKeepAttributes("Signature", "InnerClasses", "EnclosingMethod")
         .enableInliningAnnotations()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
+        .addOptionsModification(options -> options.enableClassInlining = false)
+        .compile()
+        .inspect(inspector -> config.inspect(true, inspector))
         .run(parameters.getRuntime(), MAIN)
-        .assertSuccessWithOutput(EXPECTED_OUTPUT)
-        .inspect(this::inspect);
-  }
-
-  private void inspect(CodeInspector inspector) {
-    assertEquals(2,
-        inspector.allClasses().stream()
-            .filter(classSubject ->
-                classSubject.getDexClass().isLocalClass()
-                    || classSubject.getDexClass().isAnonymousClass()).count());
+        .assertSuccessWithOutput(config.getExpectedOutput(parameters, true));
   }
 }
