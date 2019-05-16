@@ -3,12 +3,15 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.compatproguard;
 
+import com.android.tools.r8.NeverInline;
+
 public class CompatKeepClassMemberNamesTest {
 
   public static class Bar {
 
     public int i = 42;
 
+    @NeverInline
     public static Bar instance() {
       throw new RuntimeException();
     }

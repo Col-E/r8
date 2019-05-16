@@ -398,27 +398,12 @@ public class Enqueuer {
     }
   }
 
-  private void enqueueHolderIfDependentNonStaticMember(
-      DexClass holder, Map<DexReference, Set<ProguardKeepRule>> dependentItems) {
-    // Check if any dependent members are not static, and in that case enqueue the class as well.
-    // Having a dependent rule like -keepclassmembers with non static items indicates that class
-    // instances will be present even if tracing do not find any instantiation. See b/115867670.
-    for (Entry<DexReference, Set<ProguardKeepRule>> entry : dependentItems.entrySet()) {
-      DexReference dependentItem = entry.getKey();
-      if (dependentItem.isDexType()) {
-        continue;
-      }
-      DexDefinition dependentDefinition = appView.definitionFor(dependentItem);
-      if (dependentDefinition == null) {
-        assert false;
-        continue;
-      }
-      if (!dependentDefinition.isStaticMember()) {
-        enqueueRootItem(holder, entry.getValue());
-        // Enough to enqueue the known holder once.
-        break;
-      }
+  private void compatEnqueueHolderIfDependentNonStaticMember(
+      DexClass holder, Set<ProguardKeepRule> compatRules) {
+    if (!forceProguardCompatibility || compatRules == null) {
+      return;
     }
+    enqueueRootItem(holder, compatRules);
   }
 
   //
@@ -890,9 +875,8 @@ public class Enqueuer {
         assert !deferredAnnotations.containsKey(holder.type);
       }
       rootSet.forEachDependentStaticMember(holder, appView, this::enqueueRootItem);
-      if (forceProguardCompatibility) {
-        enqueueHolderIfDependentNonStaticMember(holder, rootSet.getDependentItems(holder));
-      }
+      compatEnqueueHolderIfDependentNonStaticMember(
+          holder, rootSet.getDependentKeepClassCompatRule(holder.getType()));
     }
   }
 
@@ -1691,19 +1675,21 @@ public class Enqueuer {
                   targetedMethods.getItems(),
                   executorService);
           ConsequentRootSet consequentRootSet = ifRuleEvaluator.run(liveTypes);
+          // TODO(b/132600955): This modifies the root set. Should the consequent be persistent?
           rootSet.addConsequentRootSet(consequentRootSet);
           enqueueRootItems(consequentRootSet.noShrinking);
-          // Check if any newly dependent members are not static, and in that case find the holder
-          // and enqueue it as well. This is -if version of workaround for b/115867670.
+          // TODO(b/132828740): Seems incorrect that the precondition is not always met here.
           consequentRootSet.dependentNoShrinking.forEach(
-              (precondition, dependentItems) -> {
-                if (precondition.isDexType() && forceProguardCompatibility) {
+              (precondition, dependentItems) -> enqueueRootItems(dependentItems));
+          // Check for compatibility rules indicating that the holder must be implicitly kept.
+          if (forceProguardCompatibility) {
+            consequentRootSet.dependentKeepClassCompatRule.forEach(
+                (precondition, compatRules) -> {
+                  assert precondition.isDexType();
                   DexClass preconditionHolder = appView.definitionFor(precondition.asDexType());
-                  enqueueHolderIfDependentNonStaticMember(preconditionHolder, dependentItems);
-                }
-                // Add all dependent members to the workqueue.
-                enqueueRootItems(dependentItems);
-              });
+                  compatEnqueueHolderIfDependentNonStaticMember(preconditionHolder, compatRules);
+                });
+          }
           if (!workList.isEmpty()) {
             continue;
           }

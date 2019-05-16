@@ -9,6 +9,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.BaseCompilerCommand;
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.TestParameters;
@@ -23,7 +24,6 @@ import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -35,7 +35,8 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
 
   private static Class<?> MAIN_CLASS = CompatKeepClassMemberNamesTest.class;
   private static Class<?> BAR_CLASS = CompatKeepClassMemberNamesTest.Bar.class;
-  private static Collection<Class<?>> CLASSES = ImmutableList.of(MAIN_CLASS, BAR_CLASS);
+  private static Collection<Class<?>> CLASSES =
+      ImmutableList.of(MAIN_CLASS, BAR_CLASS, NeverInline.class);
 
   private static String KEEP_RULE =
       "class "
@@ -363,11 +364,11 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
   }
 
   @Test
-  @Ignore("b/119076934")
-  // TODO(b/119076934): This fails the Bar.instance() is not inlined check.
   public void testWithMemberNamesRuleCompatR8() throws Exception {
     assertMemberNamesRuleCompatResult(
-        buildWithMemberNamesRule(testForR8Compat(parameters.getBackend())).compile());
+        buildWithMemberNamesRule(testForR8Compat(parameters.getBackend()))
+            .enableInliningAnnotations()
+            .compile());
   }
 
   @Test
@@ -420,11 +421,10 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
   }
 
   @Test
-  @Ignore("b/119076934")
-  // TODO(b/119076934): This fails the Bar.instance() is not inlined check.
   public void testWithMemberNamesRuleEnableMinificationCompatR8() throws Exception {
     assertMemberNamesRuleEnableMinificationCompatResult(
         buildWithMemberNamesRuleEnableMinification(testForR8Compat(parameters.getBackend()))
+            .enableInliningAnnotations()
             .compile());
   }
 

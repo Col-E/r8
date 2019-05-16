@@ -84,6 +84,8 @@ public class RootSetBuilder {
   private final Set<DexReference> neverPropagateValue = Sets.newIdentityHashSet();
   private final Map<DexReference, Map<DexReference, Set<ProguardKeepRule>>> dependentNoShrinking =
       new IdentityHashMap<>();
+  private final Map<DexType, Set<ProguardKeepRule>> dependentKeepClassCompatRule =
+      new IdentityHashMap<>();
   private final Map<DexReference, ProguardMemberRule> mayHaveSideEffects = new IdentityHashMap<>();
   private final Map<DexReference, ProguardMemberRule> noSideEffects = new IdentityHashMap<>();
   private final Map<DexReference, ProguardMemberRule> assumedValues = new IdentityHashMap<>();
@@ -285,6 +287,7 @@ public class RootSetBuilder {
         noSideEffects,
         assumedValues,
         dependentNoShrinking,
+        dependentKeepClassCompatRule,
         identifierNameStrings,
         ifRules);
   }
@@ -362,7 +365,8 @@ public class RootSetBuilder {
           noShrinking,
           noOptimization,
           noObfuscation,
-          dependentNoShrinking);
+          dependentNoShrinking,
+          dependentKeepClassCompatRule);
     }
 
     /**
@@ -968,6 +972,17 @@ public class RootSetBuilder {
 
       ProguardKeepRule keepRule = (ProguardKeepRule) context;
       ProguardKeepRuleModifiers modifiers = keepRule.getModifiers();
+      // In compatibility mode, for a match on instance members a referenced class becomes live.
+      if (options.forceProguardCompatibility
+          && !modifiers.allowsShrinking
+          && precondition != null
+          && precondition.isDexClass()) {
+        if (!item.isDexClass() && !item.isStaticMember()) {
+          dependentKeepClassCompatRule
+              .computeIfAbsent(precondition.asDexClass().getType(), i -> new HashSet<>())
+              .add(keepRule);
+        }
+      }
       if (!modifiers.allowsShrinking) {
         if (precondition != null) {
           dependentNoShrinking
@@ -1090,6 +1105,7 @@ public class RootSetBuilder {
     public final Map<DexReference, ProguardMemberRule> assumedValues;
     private final Map<DexReference, Map<DexReference, Set<ProguardKeepRule>>>
         dependentNoShrinking;
+    private final Map<DexType, Set<ProguardKeepRule>> dependentKeepClassCompatRule;
     public final Set<DexReference> identifierNameStrings;
     public final Set<ProguardIfRule> ifRules;
 
@@ -1111,6 +1127,7 @@ public class RootSetBuilder {
         Map<DexReference, ProguardMemberRule> noSideEffects,
         Map<DexReference, ProguardMemberRule> assumedValues,
         Map<DexReference, Map<DexReference, Set<ProguardKeepRule>>> dependentNoShrinking,
+        Map<DexType, Set<ProguardKeepRule>> dependentKeepClassCompatRule,
         Set<DexReference> identifierNameStrings,
         Set<ProguardIfRule> ifRules) {
       this.noShrinking = noShrinking;
@@ -1130,6 +1147,7 @@ public class RootSetBuilder {
       this.noSideEffects = noSideEffects;
       this.assumedValues = assumedValues;
       this.dependentNoShrinking = dependentNoShrinking;
+      this.dependentKeepClassCompatRule = dependentKeepClassCompatRule;
       this.identifierNameStrings = Collections.unmodifiableSet(identifierNameStrings);
       this.ifRules = Collections.unmodifiableSet(ifRules);
     }
@@ -1159,6 +1177,8 @@ public class RootSetBuilder {
           rewriteMutableReferenceKeys(previous.assumedValues, lense::lookupReference);
       this.dependentNoShrinking =
           rewriteDependentReferenceKeys(previous.dependentNoShrinking, lense::lookupReference);
+      this.dependentKeepClassCompatRule =
+          rewriteReferenceKeys(previous.dependentKeepClassCompatRule, lense::lookupType);
       this.identifierNameStrings =
           lense.rewriteReferencesConservatively(previous.identifierNameStrings);
       this.ifRules = Collections.unmodifiableSet(previous.ifRules);
@@ -1183,6 +1203,10 @@ public class RootSetBuilder {
       noOptimization.addAll(consequentRootSet.noOptimization);
       noObfuscation.addAll(consequentRootSet.noObfuscation);
       addDependentItems(consequentRootSet.dependentNoShrinking);
+      consequentRootSet.dependentKeepClassCompatRule.forEach(
+          (type, rules) ->
+              dependentKeepClassCompatRule.computeIfAbsent(
+                  type, k -> new HashSet<>()).addAll(rules));
     }
 
     // Add dependent items that depend on -if rules.
@@ -1193,6 +1217,10 @@ public class RootSetBuilder {
               dependentNoShrinking
                   .computeIfAbsent(reference, x -> new IdentityHashMap<>())
                   .putAll(dependence));
+    }
+
+    Set<ProguardKeepRule> getDependentKeepClassCompatRule(DexType type) {
+      return dependentKeepClassCompatRule.get(type);
     }
 
     Map<DexReference, Set<ProguardKeepRule>> getDependentItems(DexDefinition item) {
@@ -1452,6 +1480,7 @@ public class RootSetBuilder {
     final Set<DexReference> noOptimization;
     final Set<DexReference> noObfuscation;
     final Map<DexReference, Map<DexReference, Set<ProguardKeepRule>>> dependentNoShrinking;
+    final Map<DexType, Set<ProguardKeepRule>> dependentKeepClassCompatRule;
 
     private ConsequentRootSet(
         Set<DexMethod> neverInline,
@@ -1459,13 +1488,15 @@ public class RootSetBuilder {
         Map<DexReference, Set<ProguardKeepRule>> noShrinking,
         Set<DexReference> noOptimization,
         Set<DexReference> noObfuscation,
-        Map<DexReference, Map<DexReference, Set<ProguardKeepRule>>> dependentNoShrinking) {
+        Map<DexReference, Map<DexReference, Set<ProguardKeepRule>>> dependentNoShrinking,
+        Map<DexType, Set<ProguardKeepRule>> dependentKeepClassCompatRule) {
       this.neverInline = Collections.unmodifiableSet(neverInline);
       this.neverClassInline = Collections.unmodifiableSet(neverClassInline);
       this.noShrinking = Collections.unmodifiableMap(noShrinking);
       this.noOptimization = Collections.unmodifiableSet(noOptimization);
       this.noObfuscation = Collections.unmodifiableSet(noObfuscation);
       this.dependentNoShrinking = Collections.unmodifiableMap(dependentNoShrinking);
+      this.dependentKeepClassCompatRule = Collections.unmodifiableMap(dependentKeepClassCompatRule);
     }
   }
 }
