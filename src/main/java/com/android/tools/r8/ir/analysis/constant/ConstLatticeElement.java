@@ -20,8 +20,10 @@ public class ConstLatticeElement extends LatticeElement {
     if (other.isBottom()) {
       return other;
     }
-    if (value.identicalNonValueNonPositionParts(other.asConst().value)) {
-      return this;
+    if (other.isConst()) {
+      if (value.identicalNonValueNonPositionParts(other.asConst().value)) {
+        return this;
+      }
     }
     return Bottom.getInstance();
   }
