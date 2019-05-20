@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
+import static com.android.tools.r8.utils.FileUtils.isAarFile;
 import static com.android.tools.r8.utils.FileUtils.isArchive;
 import static com.android.tools.r8.utils.FileUtils.isClassFile;
 import static com.android.tools.r8.utils.FileUtils.isDexFile;
@@ -711,6 +712,8 @@ public class AndroidApp {
         addProgramResources(ProgramResource.fromFile(Kind.DEX, file));
       } else if (isClassFile(file)) {
         addProgramResources(ProgramResource.fromFile(Kind.CF, file));
+      } else if (isAarFile(file)) {
+        addProgramResourceProvider(AarArchiveResourceProvider.fromArchive(file));
       } else if (isArchive(file)) {
         addProgramResourceProvider(ArchiveResourceProvider.fromArchive(file, ignoreDexInArchive));
       } else {

@@ -18,6 +18,7 @@ import java.util.List;
 
 public class FileUtils {
 
+  public static final String AAR_EXTENSION = ".aar";
   public static final String APK_EXTENSION = ".apk";
   public static final String CLASS_EXTENSION = ".class";
   public static final String DEX_EXTENSION = ".dex";
@@ -61,11 +62,17 @@ public class FileUtils {
     return name.endsWith(APK_EXTENSION);
   }
 
+  public static boolean isAarFile(Path path) {
+    String name = path.getFileName().toString().toLowerCase();
+    return name.endsWith(AAR_EXTENSION);
+  }
+
   public static boolean isArchive(Path path) {
     String name = path.getFileName().toString().toLowerCase();
     return name.endsWith(APK_EXTENSION)
         || name.endsWith(JAR_EXTENSION)
-        || name.endsWith(ZIP_EXTENSION);
+        || name.endsWith(ZIP_EXTENSION)
+        || name.endsWith(AAR_EXTENSION);
   }
 
   public static String readTextFile(Path file, Charset charset) throws IOException {
