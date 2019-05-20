@@ -10,7 +10,7 @@ import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import java.util.BitSet;
 import java.util.Set;
 
-public interface UpdatableOptimizationInfo extends OptimizationInfo {
+public interface UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
 
   void markInitializesClassesOnNormalExit(Set<DexType> initializedClasses);
 

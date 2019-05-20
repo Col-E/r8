@@ -295,15 +295,19 @@ public class RootSetBuilder {
   IfRuleEvaluator getIfRuleEvaluator(
       Set<DexEncodedField> liveFields,
       Set<DexEncodedMethod> liveMethods,
+      Set<DexType> liveTypes,
       Set<DexEncodedMethod> targetedMethods,
       ExecutorService executorService) {
-    return new IfRuleEvaluator(liveFields, liveMethods, targetedMethods, executorService);
+    return new IfRuleEvaluator(
+        liveFields, liveMethods, liveTypes, targetedMethods, executorService);
   }
 
   class IfRuleEvaluator {
 
     private final Set<DexEncodedField> liveFields;
     private final Set<DexEncodedMethod> liveMethods;
+    private final Set<DexType> liveTypes;
+
     private final Set<DexEncodedMethod> targetedMethods;
 
     private final ExecutorService executorService;
@@ -313,15 +317,17 @@ public class RootSetBuilder {
     public IfRuleEvaluator(
         Set<DexEncodedField> liveFields,
         Set<DexEncodedMethod> liveMethods,
+        Set<DexType> liveTypes,
         Set<DexEncodedMethod> targetedMethods,
         ExecutorService executorService) {
       this.liveFields = liveFields;
       this.liveMethods = liveMethods;
+      this.liveTypes = liveTypes;
       this.targetedMethods = targetedMethods;
       this.executorService = executorService;
     }
 
-    public ConsequentRootSet run(Set<DexType> liveTypes) throws ExecutionException {
+    public ConsequentRootSet run() throws ExecutionException {
       application.timing.begin("Find consequent items for -if rules...");
       try {
         if (rules != null) {
@@ -331,9 +337,8 @@ public class RootSetBuilder {
             // Depending on which types that trigger the -if rule, the application of the subsequent
             // -keep rule may vary (due to back references). So, we need to try all pairs of -if
             // rule and live types.
-            for (DexType type : liveTypes) {
-              DexClass clazz = appView.definitionFor(type);
-              if (clazz == null) {
+            for (DexProgramClass clazz : appView.appInfo().classes()) {
+              if (!isEffectivelyLive(clazz)) {
                 continue;
               }
 
@@ -342,7 +347,9 @@ public class RootSetBuilder {
 
               // Check if one of the types that have been merged into `clazz` satisfies the if-rule.
               if (options.enableVerticalClassMerging && appView.verticallyMergedClasses() != null) {
-                for (DexType sourceType : appView.verticallyMergedClasses().getSourcesFor(type)) {
+                Iterable<DexType> sources =
+                    appView.verticallyMergedClasses().getSourcesFor(clazz.type);
+                for (DexType sourceType : sources) {
                   // Note that, although `sourceType` has been merged into `type`, the dex class for
                   // `sourceType` is still available until the second round of tree shaking. This
                   // way
@@ -367,6 +374,20 @@ public class RootSetBuilder {
           noObfuscation,
           dependentNoShrinking,
           dependentKeepClassCompatRule);
+    }
+
+    private boolean isEffectivelyLive(DexProgramClass clazz) {
+      // A type is effectively live if it is truly live, or if the value of one of its fields has
+      // been inlined by the member value propagation.
+      if (liveTypes.contains(clazz.type)) {
+        return true;
+      }
+      for (DexEncodedField field : clazz.fields()) {
+        if (field.getOptimizationInfo().valueHasBeenPropagated()) {
+          return true;
+        }
+      }
+      return false;
     }
 
     /**
@@ -406,7 +427,7 @@ public class RootSetBuilder {
           filteredMembers,
           targetClass.fields(
               f ->
-                  liveFields.contains(f)
+                  (liveFields.contains(f) || f.getOptimizationInfo().valueHasBeenPropagated())
                       && appView.graphLense().getOriginalFieldSignature(f.field).holder
                           == sourceClass.type));
       Iterables.addAll(

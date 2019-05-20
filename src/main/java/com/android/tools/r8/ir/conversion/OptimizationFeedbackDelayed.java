@@ -10,7 +10,7 @@ import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ParameterUsagesInfo;
-import com.android.tools.r8.graph.UpdatableOptimizationInfo;
+import com.android.tools.r8.graph.UpdatableMethodOptimizationInfo;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.utils.IteratorUtils;
@@ -22,13 +22,13 @@ import java.util.Set;
 public class OptimizationFeedbackDelayed implements OptimizationFeedback {
 
   // Caching of updated optimization info and processed status.
-  private final Map<DexEncodedMethod, UpdatableOptimizationInfo> optimizationInfos =
+  private final Map<DexEncodedMethod, UpdatableMethodOptimizationInfo> optimizationInfos =
       new IdentityHashMap<>();
   private final Map<DexEncodedMethod, ConstraintWithTarget> processed = new IdentityHashMap<>();
 
-  private synchronized UpdatableOptimizationInfo getOptimizationInfoForUpdating(
+  private synchronized UpdatableMethodOptimizationInfo getOptimizationInfoForUpdating(
       DexEncodedMethod method) {
-    UpdatableOptimizationInfo info = optimizationInfos.get(method);
+    UpdatableMethodOptimizationInfo info = optimizationInfos.get(method);
     if (info != null) {
       return info;
     }

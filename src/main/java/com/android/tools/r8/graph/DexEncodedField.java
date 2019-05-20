@@ -18,6 +18,8 @@ public class DexEncodedField extends KeyedDexItem<DexField> {
   public DexAnnotationSet annotations;
   private DexValue staticValue;
 
+  private FieldOptimizationInfo optimizationInfo = DefaultFieldOptimizationInfo.getInstance();
+
   public DexEncodedField(
       DexField field,
       FieldAccessFlags accessFlags,
@@ -35,6 +37,24 @@ public class DexEncodedField extends KeyedDexItem<DexField> {
       return clazz != null && clazz.isProgramClass();
     }
     return false;
+  }
+
+  public FieldOptimizationInfo getOptimizationInfo() {
+    return optimizationInfo;
+  }
+
+  public synchronized MutableFieldOptimizationInfo getMutableOptimizationInfo() {
+    if (optimizationInfo.isDefaultFieldOptimizationInfo()) {
+      MutableFieldOptimizationInfo mutableOptimizationInfo = new MutableFieldOptimizationInfo();
+      optimizationInfo = mutableOptimizationInfo;
+      return mutableOptimizationInfo;
+    }
+    assert optimizationInfo.isMutableFieldOptimizationInfo();
+    return optimizationInfo.asMutableFieldOptimizationInfo();
+  }
+
+  public void setOptimizationInfo(MutableFieldOptimizationInfo info) {
+    optimizationInfo = info;
   }
 
   @Override

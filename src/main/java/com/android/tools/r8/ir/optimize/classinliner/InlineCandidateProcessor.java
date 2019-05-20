@@ -16,7 +16,7 @@ import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer.TrivialIns
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.OptimizationInfo;
+import com.android.tools.r8.graph.MethodOptimizationInfo;
 import com.android.tools.r8.graph.ParameterUsagesInfo.ParameterUsage;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
@@ -667,7 +667,7 @@ final class InlineCandidateProcessor {
       return new InliningInfo(singleTarget, eligibleClass);
     }
 
-    OptimizationInfo optimizationInfo = singleTarget.getOptimizationInfo();
+    MethodOptimizationInfo optimizationInfo = singleTarget.getOptimizationInfo();
 
     ClassInlinerEligibility eligibility = optimizationInfo.getClassInlinerEligibility();
     if (eligibility == null) {
@@ -743,7 +743,7 @@ final class InlineCandidateProcessor {
       }
     }
 
-    OptimizationInfo optimizationInfo = singleTarget.getOptimizationInfo();
+    MethodOptimizationInfo optimizationInfo = singleTarget.getOptimizationInfo();
 
     // Go through all arguments, see if all usages of eligibleInstance are good.
     if (!isEligibleParameterUsages(invoke, arguments, singleTarget, defaultOracle)) {
@@ -778,7 +778,7 @@ final class InlineCandidateProcessor {
       }
 
       // Have parameter usage info?
-      OptimizationInfo optimizationInfo = singleTarget.getOptimizationInfo();
+      MethodOptimizationInfo optimizationInfo = singleTarget.getOptimizationInfo();
       ParameterUsage parameterUsage = optimizationInfo.getParameterUsages(argIndex);
       if (!isEligibleParameterUsage(parameterUsage, invoke, defaultOracle)) {
         return false;

@@ -7,7 +7,7 @@ package com.android.tools.r8.ir.optimize;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.OptimizationInfo;
+import com.android.tools.r8.graph.MethodOptimizationInfo;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Assume;
 import com.android.tools.r8.ir.code.Assume.DynamicTypeAssumption;
@@ -73,7 +73,7 @@ public class DynamicTypeOptimization {
           continue;
         }
 
-        OptimizationInfo optimizationInfo = singleTarget.getOptimizationInfo();
+        MethodOptimizationInfo optimizationInfo = singleTarget.getOptimizationInfo();
         if (optimizationInfo.returnsArgument()) {
           continue;
         }

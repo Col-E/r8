@@ -11,7 +11,7 @@ import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import java.util.BitSet;
 import java.util.Set;
 
-public interface OptimizationInfo {
+public interface MethodOptimizationInfo {
 
   enum InlinePreference {
     NeverInline,
@@ -67,5 +67,5 @@ public interface OptimizationInfo {
 
   boolean mayHaveSideEffects();
 
-  UpdatableOptimizationInfo mutableCopy();
+  UpdatableMethodOptimizationInfo mutableCopy();
 }

@@ -8,7 +8,7 @@ import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCE
 import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCESSED_INLINING_CANDIDATE_SAME_PACKAGE;
 import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCESSED_INLINING_CANDIDATE_SUBCLASS;
 import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCESSED_NOT_INLINING_CANDIDATE;
-import static com.android.tools.r8.graph.DexEncodedMethod.DefaultOptimizationInfoImpl.UNKNOWN_TYPE;
+import static com.android.tools.r8.graph.DexEncodedMethod.DefaultMethodOptimizationInfoImpl.UNKNOWN_TYPE;
 
 import com.android.tools.r8.OptionalBool;
 import com.android.tools.r8.cf.code.CfConstNull;
@@ -121,7 +121,8 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   // TODO(b/128967328): towards finer-grained inlining constraints,
   //   we need to maintain a set of states with (potentially different) contexts.
   private CompilationState compilationState = CompilationState.NOT_PROCESSED;
-  private OptimizationInfo optimizationInfo = DefaultOptimizationInfoImpl.DEFAULT_INSTANCE;
+  private MethodOptimizationInfo optimizationInfo =
+      DefaultMethodOptimizationInfoImpl.DEFAULT_INSTANCE;
   private int classFileVersion = -1;
 
   private DexEncodedMethod defaultInterfaceMethodImplementation = null;
@@ -980,8 +981,9 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     }
   }
 
-  public static class DefaultOptimizationInfoImpl implements OptimizationInfo {
-    public static final OptimizationInfo DEFAULT_INSTANCE = new DefaultOptimizationInfoImpl();
+  public static class DefaultMethodOptimizationInfoImpl implements MethodOptimizationInfo {
+    public static final MethodOptimizationInfo DEFAULT_INSTANCE =
+        new DefaultMethodOptimizationInfoImpl();
 
     public static Set<DexType> UNKNOWN_INITIALIZED_CLASSES_ON_NORMAL_EXIT = ImmutableSet.of();
     public static int UNKNOWN_RETURNED_ARGUMENT = -1;
@@ -1002,7 +1004,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     public static BitSet NO_NULL_PARAMETER_OR_THROW_FACTS = null;
     public static BitSet NO_NULL_PARAMETER_ON_NORMAL_EXITS_FACTS = null;
 
-    private DefaultOptimizationInfoImpl() {}
+    private DefaultMethodOptimizationInfoImpl() {}
 
     @Override
     public TypeLatticeElement getDynamicReturnType() {
@@ -1129,44 +1131,47 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     }
 
     @Override
-    public UpdatableOptimizationInfo mutableCopy() {
-      return new OptimizationInfoImpl();
+    public UpdatableMethodOptimizationInfo mutableCopy() {
+      return new MethodOptimizationInfoImpl();
     }
   }
 
-  public static class OptimizationInfoImpl implements UpdatableOptimizationInfo {
+  public static class MethodOptimizationInfoImpl implements UpdatableMethodOptimizationInfo {
 
     private Set<DexType> initializedClassesOnNormalExit =
-        DefaultOptimizationInfoImpl.UNKNOWN_INITIALIZED_CLASSES_ON_NORMAL_EXIT;
-    private int returnedArgument = DefaultOptimizationInfoImpl.UNKNOWN_RETURNED_ARGUMENT;
-    private boolean mayHaveSideEffects = DefaultOptimizationInfoImpl.UNKNOWN_MAY_HAVE_SIDE_EFFECTS;
-    private boolean neverReturnsNull = DefaultOptimizationInfoImpl.UNKNOWN_NEVER_RETURNS_NULL;
+        DefaultMethodOptimizationInfoImpl.UNKNOWN_INITIALIZED_CLASSES_ON_NORMAL_EXIT;
+    private int returnedArgument = DefaultMethodOptimizationInfoImpl.UNKNOWN_RETURNED_ARGUMENT;
+    private boolean mayHaveSideEffects =
+        DefaultMethodOptimizationInfoImpl.UNKNOWN_MAY_HAVE_SIDE_EFFECTS;
+    private boolean neverReturnsNull = DefaultMethodOptimizationInfoImpl.UNKNOWN_NEVER_RETURNS_NULL;
     private boolean neverReturnsNormally =
-        DefaultOptimizationInfoImpl.UNKNOWN_NEVER_RETURNS_NORMALLY;
-    private boolean returnsConstantNumber = DefaultOptimizationInfoImpl.UNKNOWN_RETURNS_CONSTANT;
+        DefaultMethodOptimizationInfoImpl.UNKNOWN_NEVER_RETURNS_NORMALLY;
+    private boolean returnsConstantNumber =
+        DefaultMethodOptimizationInfoImpl.UNKNOWN_RETURNS_CONSTANT;
     private long returnedConstantNumber =
-        DefaultOptimizationInfoImpl.UNKNOWN_RETURNED_CONSTANT_NUMBER;
-    private boolean returnsConstantString = DefaultOptimizationInfoImpl.UNKNOWN_RETURNS_CONSTANT;
+        DefaultMethodOptimizationInfoImpl.UNKNOWN_RETURNED_CONSTANT_NUMBER;
+    private boolean returnsConstantString =
+        DefaultMethodOptimizationInfoImpl.UNKNOWN_RETURNS_CONSTANT;
     private DexString returnedConstantString =
-        DefaultOptimizationInfoImpl.UNKNOWN_RETURNED_CONSTANT_STRING;
+        DefaultMethodOptimizationInfoImpl.UNKNOWN_RETURNED_CONSTANT_STRING;
     private TypeLatticeElement returnsObjectOfType = UNKNOWN_TYPE;
     private InlinePreference inlining = InlinePreference.Default;
     private boolean useIdentifierNameString =
-        DefaultOptimizationInfoImpl.DOES_NOT_USE_IDNETIFIER_NAME_STRING;
+        DefaultMethodOptimizationInfoImpl.DOES_NOT_USE_IDNETIFIER_NAME_STRING;
     private boolean checksNullReceiverBeforeAnySideEffect =
-        DefaultOptimizationInfoImpl.UNKNOWN_CHECKS_NULL_RECEIVER_BEFORE_ANY_SIDE_EFFECT;
+        DefaultMethodOptimizationInfoImpl.UNKNOWN_CHECKS_NULL_RECEIVER_BEFORE_ANY_SIDE_EFFECT;
     private boolean triggersClassInitBeforeAnySideEffect =
-        DefaultOptimizationInfoImpl.UNKNOWN_TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT;
+        DefaultMethodOptimizationInfoImpl.UNKNOWN_TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT;
     // Stores information about instance methods and constructors for
     // class inliner, null value indicates that the method is not eligible.
     private ClassInlinerEligibility classInlinerEligibility =
-        DefaultOptimizationInfoImpl.UNKNOWN_CLASS_INLINER_ELIGIBILITY;
+        DefaultMethodOptimizationInfoImpl.UNKNOWN_CLASS_INLINER_ELIGIBILITY;
     private TrivialInitializer trivialInitializerInfo =
-        DefaultOptimizationInfoImpl.UNKNOWN_TRIVIAL_INITIALIZER;
+        DefaultMethodOptimizationInfoImpl.UNKNOWN_TRIVIAL_INITIALIZER;
     private boolean initializerEnablingJavaAssertions =
-        DefaultOptimizationInfoImpl.UNKNOWN_INITIALIZER_ENABLING_JAVA_ASSERTIONS;
+        DefaultMethodOptimizationInfoImpl.UNKNOWN_INITIALIZER_ENABLING_JAVA_ASSERTIONS;
     private ParameterUsagesInfo parametersUsages =
-        DefaultOptimizationInfoImpl.UNKNOWN_PARAMETER_USAGE_INFO;
+        DefaultMethodOptimizationInfoImpl.UNKNOWN_PARAMETER_USAGE_INFO;
     // Stores information about nullability hint per parameter. If set, that means, the method
     // somehow (e.g., null check, such as arg != null, or using checkParameterIsNotNull) ensures
     // the corresponding parameter is not null, or throws NPE before any other side effects.
@@ -1185,11 +1190,11 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     private BitSet nonNullParamOnNormalExits = null;
     private boolean reachabilitySensitive = false;
 
-    private OptimizationInfoImpl() {
+    private MethodOptimizationInfoImpl() {
       // Intentionally left empty, just use the default values.
     }
 
-    private OptimizationInfoImpl(OptimizationInfoImpl template) {
+    private MethodOptimizationInfoImpl(MethodOptimizationInfoImpl template) {
       returnedArgument = template.returnedArgument;
       neverReturnsNull = template.neverReturnsNull;
       neverReturnsNormally = template.neverReturnsNormally;
@@ -1456,26 +1461,26 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     }
 
     @Override
-    public UpdatableOptimizationInfo mutableCopy() {
-      assert this != DefaultOptimizationInfoImpl.DEFAULT_INSTANCE;
-      return new OptimizationInfoImpl(this);
+    public UpdatableMethodOptimizationInfo mutableCopy() {
+      assert this != DefaultMethodOptimizationInfoImpl.DEFAULT_INSTANCE;
+      return new MethodOptimizationInfoImpl(this);
     }
   }
 
-  public OptimizationInfo getOptimizationInfo() {
+  public MethodOptimizationInfo getOptimizationInfo() {
     checkIfObsolete();
     return optimizationInfo;
   }
 
-  public synchronized UpdatableOptimizationInfo getMutableOptimizationInfo() {
+  public synchronized UpdatableMethodOptimizationInfo getMutableOptimizationInfo() {
     checkIfObsolete();
-    if (optimizationInfo == DefaultOptimizationInfoImpl.DEFAULT_INSTANCE) {
+    if (optimizationInfo == DefaultMethodOptimizationInfoImpl.DEFAULT_INSTANCE) {
       optimizationInfo = optimizationInfo.mutableCopy();
     }
-    return (UpdatableOptimizationInfo) optimizationInfo;
+    return (UpdatableMethodOptimizationInfo) optimizationInfo;
   }
 
-  public void setOptimizationInfo(UpdatableOptimizationInfo info) {
+  public void setOptimizationInfo(UpdatableMethodOptimizationInfo info) {
     checkIfObsolete();
     optimizationInfo = info;
   }
@@ -1503,7 +1508,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     private ParameterAnnotationsList parameterAnnotations;
     private Code code;
     private CompilationState compilationState;
-    private OptimizationInfo optimizationInfo;
+    private MethodOptimizationInfo optimizationInfo;
     private final int classFileVersion;
 
     private Builder(DexEncodedMethod from) {
@@ -1574,7 +1579,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     }
 
     public Builder unsetOptimizationInfo() {
-      optimizationInfo = DefaultOptimizationInfoImpl.DEFAULT_INSTANCE;
+      optimizationInfo = DefaultMethodOptimizationInfoImpl.DEFAULT_INSTANCE;
       return this;
     }
 

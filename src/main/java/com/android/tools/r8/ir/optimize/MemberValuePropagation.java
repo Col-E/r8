@@ -35,6 +35,7 @@ import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardMemberRule;
+import com.android.tools.r8.shaking.ProguardMemberRuleReturnValue;
 import com.google.common.collect.Sets;
 import java.util.ListIterator;
 import java.util.Set;
@@ -109,34 +110,40 @@ public class MemberValuePropagation {
 
   private Instruction constantReplacementFromProguardRule(
       ProguardMemberRule rule, IRCode code, Instruction instruction) {
-    // Check if this value can be assumed constant.
-    Instruction replacement = null;
-    TypeLatticeElement typeLattice = instruction.outValue().getTypeLattice();
-    if (rule != null && rule.hasReturnValue() && rule.getReturnValue().isSingleValue()) {
-      replacement = createConstNumberReplacement(
-          code, rule.getReturnValue().getSingleValue(), typeLattice, instruction.getLocalInfo());
+    if (rule == null || !rule.hasReturnValue()) {
+      return null;
     }
-    if (replacement == null
-        && rule != null
-        && rule.hasReturnValue()
-        && rule.getReturnValue().isField()) {
-      DexField field = rule.getReturnValue().getField();
+
+    ProguardMemberRuleReturnValue returnValueRule = rule.getReturnValue();
+    TypeLatticeElement typeLattice = instruction.outValue().getTypeLattice();
+
+    // Check if this value can be assumed constant.
+    if (returnValueRule.isSingleValue()) {
+      return createConstNumberReplacement(
+          code, returnValueRule.getSingleValue(), typeLattice, instruction.getLocalInfo());
+    }
+
+    if (returnValueRule.isField()) {
+      DexField field = returnValueRule.getField();
       assert typeLattice
           == TypeLatticeElement.fromDexType(field.type, Nullability.maybeNull(), appView);
+
       DexEncodedField staticField = appView.appInfo().lookupStaticTarget(field.holder, field);
-      if (staticField != null) {
-        Value value = code.createValue(typeLattice, instruction.getLocalInfo());
-        replacement =
-            staticField.getStaticValue().asConstInstruction(false, value, appView.options());
-        if (replacement.isDexItemBasedConstString()) {
-          code.method.getMutableOptimizationInfo().markUseIdentifierNameString();
-        }
-      } else {
+      if (staticField == null) {
         throw new CompilationError(field.holder.toSourceString() + "." + field.name.toString()
             + " used in assumevalues rule does not exist.");
       }
+
+      Value value = code.createValue(typeLattice, instruction.getLocalInfo());
+      ConstInstruction replacement =
+          staticField.getStaticValue().asConstInstruction(false, value, appView.options());
+      if (replacement.isDexItemBasedConstString()) {
+        code.method.getMutableOptimizationInfo().markUseIdentifierNameString();
+      }
+      return replacement;
     }
-    return replacement;
+
+    return null;
   }
 
   private static ConstNumber createConstNumberReplacement(
@@ -306,6 +313,7 @@ public class MemberValuePropagation {
       if (replacement.isDexItemBasedConstString()) {
         code.method.getMutableOptimizationInfo().markUseIdentifierNameString();
       }
+      target.getMutableOptimizationInfo().markAsPropagated();
       return;
     }
     ProguardMemberRuleLookup lookup = lookupMemberRule(target);
