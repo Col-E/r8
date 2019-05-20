@@ -1,6 +1,7 @@
 package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -34,7 +35,8 @@ public class R8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
     super(appView);
   }
 
-  public GraphLense run(ExecutorService executorService) throws ExecutionException {
+  public GraphLense run(ExecutorService executorService, DexApplication.Builder<?> appBuilder)
+      throws ExecutionException {
     if (appView.options().canUseNestBasedAccess()) {
       return appView.graphLense();
     }
@@ -43,6 +45,7 @@ public class R8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
     if (nothingToMap()) {
       return appView.graphLense();
     }
+    synthetizeNestConstructor(appBuilder);
     return new NestedPrivateMethodLense(
         appView,
         getNestConstructorType(),

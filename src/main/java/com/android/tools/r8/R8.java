@@ -430,7 +430,8 @@ public class R8 {
       if (options.enableNestBasedAccessDesugaring) {
         timing.begin("NestBasedAccessDesugaring");
         R8NestBasedAccessDesugaring analyzer = new R8NestBasedAccessDesugaring(appViewWithLiveness);
-        boolean changed = appView.setGraphLense(analyzer.run(executorService));
+        boolean changed =
+            appView.setGraphLense(analyzer.run(executorService, application.builder()));
         if (changed) {
           appViewWithLiveness.setAppInfo(
               appViewWithLiveness
