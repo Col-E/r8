@@ -59,6 +59,11 @@ public class OptimizationFeedbackSimple implements OptimizationFeedback {
   }
 
   @Override
+  public void markAsPropagated(DexEncodedMethod method) {
+    // Ignored.
+  }
+
+  @Override
   public void markProcessed(DexEncodedMethod method, ConstraintWithTarget state) {
     // Just as processed, don't provide any inlining constraints.
     method.markProcessed(ConstraintWithTarget.NEVER);

@@ -67,5 +67,7 @@ public interface MethodOptimizationInfo {
 
   boolean mayHaveSideEffects();
 
+  boolean returnValueHasBeenPropagated();
+
   UpdatableMethodOptimizationInfo mutableCopy();
 }

@@ -377,13 +377,19 @@ public class RootSetBuilder {
     }
 
     private boolean isEffectivelyLive(DexProgramClass clazz) {
-      // A type is effectively live if it is truly live, or if the value of one of its fields has
-      // been inlined by the member value propagation.
+      // A type is effectively live if (1) it is truly live, (2) the value of one of its fields has
+      // been inlined by the member value propagation, or (3) the return value of one of its methods
+      // has been forwarded by the member value propagation.
       if (liveTypes.contains(clazz.type)) {
         return true;
       }
       for (DexEncodedField field : clazz.fields()) {
         if (field.getOptimizationInfo().valueHasBeenPropagated()) {
+          return true;
+        }
+      }
+      for (DexEncodedMethod method : clazz.methods()) {
+        if (method.getOptimizationInfo().returnValueHasBeenPropagated()) {
           return true;
         }
       }
@@ -434,7 +440,9 @@ public class RootSetBuilder {
           filteredMembers,
           targetClass.methods(
               m ->
-                  (liveMethods.contains(m) || targetedMethods.contains(m))
+                  (liveMethods.contains(m)
+                          || targetedMethods.contains(m)
+                          || m.getOptimizationInfo().returnValueHasBeenPropagated())
                       && appView.graphLense().getOriginalMethodSignature(m.method).holder
                           == sourceClass.type));
 

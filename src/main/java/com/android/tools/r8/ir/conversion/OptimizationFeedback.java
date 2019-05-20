@@ -36,6 +36,8 @@ public interface OptimizationFeedback {
 
   void markProcessed(DexEncodedMethod method, ConstraintWithTarget state);
 
+  void markAsPropagated(DexEncodedMethod method);
+
   void markUseIdentifierNameString(DexEncodedMethod method);
 
   void markCheckNullReceiverBeforeAnySideEffect(DexEncodedMethod method, boolean mark);

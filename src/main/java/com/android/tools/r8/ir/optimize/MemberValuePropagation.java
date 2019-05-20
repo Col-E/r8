@@ -281,6 +281,7 @@ public class MemberValuePropagation {
       } else {
         iterator.add(replacement);
       }
+      target.getMutableOptimizationInfo().markAsPropagated();
       return;
     }
     if (target.getOptimizationInfo().neverReturnsNull()

@@ -1131,6 +1131,11 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     }
 
     @Override
+    public boolean returnValueHasBeenPropagated() {
+      return false;
+    }
+
+    @Override
     public UpdatableMethodOptimizationInfo mutableCopy() {
       return new MethodOptimizationInfoImpl();
     }
@@ -1189,6 +1194,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     // Note that this bit set takes into account the receiver for instance methods.
     private BitSet nonNullParamOnNormalExits = null;
     private boolean reachabilitySensitive = false;
+    private boolean returnValueHasBeenPropagated = false;
 
     private MethodOptimizationInfoImpl() {
       // Intentionally left empty, just use the default values.
@@ -1458,6 +1464,16 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     @Override
     public void markTriggerClassInitBeforeAnySideEffect(boolean mark) {
       triggersClassInitBeforeAnySideEffect = mark;
+    }
+
+    @Override
+    public void markAsPropagated() {
+      returnValueHasBeenPropagated = true;
+    }
+
+    @Override
+    public boolean returnValueHasBeenPropagated() {
+      return returnValueHasBeenPropagated;
     }
 
     @Override

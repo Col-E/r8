@@ -43,6 +43,9 @@ public class OptimizationFeedbackIgnore implements OptimizationFeedback {
   public void methodNeverReturnsNormally(DexEncodedMethod method) {}
 
   @Override
+  public void markAsPropagated(DexEncodedMethod method) {}
+
+  @Override
   public void markProcessed(DexEncodedMethod method, ConstraintWithTarget state) {}
 
   @Override

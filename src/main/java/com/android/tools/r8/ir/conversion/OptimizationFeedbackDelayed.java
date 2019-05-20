@@ -80,6 +80,11 @@ public class OptimizationFeedbackDelayed implements OptimizationFeedback {
   }
 
   @Override
+  public synchronized void markAsPropagated(DexEncodedMethod method) {
+    getOptimizationInfoForUpdating(method).markAsPropagated();
+  }
+
+  @Override
   public synchronized void markProcessed(DexEncodedMethod method, ConstraintWithTarget state) {
     processed.put(method, state);
   }

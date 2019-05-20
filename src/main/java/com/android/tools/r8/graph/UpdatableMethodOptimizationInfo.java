@@ -22,6 +22,8 @@ public interface UpdatableMethodOptimizationInfo extends MethodOptimizationInfo 
 
   void markReturnsObjectOfType(TypeLatticeElement type);
 
+  void markAsPropagated();
+
   void markMayNotHaveSideEffects();
 
   void markNeverReturnsNull();
