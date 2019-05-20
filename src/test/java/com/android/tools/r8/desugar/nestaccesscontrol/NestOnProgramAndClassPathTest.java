@@ -73,7 +73,7 @@ public class NestOnProgramAndClassPathTest extends TestBase {
             containsString("BasicNestHostWithInnerClassConstructors$BasicNestedClass"));
     inner.inspect(
         inspector -> {
-          assertThisNumberOfBridges(inspector, 1);
+          assertThisNumberOfBridges(inspector, 2);
           assertNestConstructor(inspector);
         });
     D8TestCompileResult host =

@@ -28,6 +28,10 @@ public class BasicNestHostWithInnerClassConstructors {
       this.field = field;
     }
 
+    private BasicNestedClass(String unused, String field, String alsoUnused) {
+      this.field = field + "UnusedConstructor";
+    }
+
     public static BasicNestHostWithInnerClassConstructors createOuterInstance(String field) {
       return new BasicNestHostWithInnerClassConstructors(field);
     }
@@ -39,9 +43,12 @@ public class BasicNestHostWithInnerClassConstructors {
         BasicNestHostWithInnerClassConstructors.createNestedInstance("nest1SField");
     BasicNestHostWithInnerClassConstructors noBridge =
         new BasicNestHostWithInnerClassConstructors(1);
+    BasicNestedClass unusedParamConstructor =
+        new BasicNestedClass("unused", "innerField", "alsoUnused");
 
     System.out.println(outer.field);
     System.out.println(inner.field);
     System.out.println(noBridge.field);
+    System.out.println(unusedParamConstructor.field);
   }
 }

@@ -104,7 +104,9 @@ public class NestAccessControlTestUtils {
               StringUtils.lines(
                   "nestMethodstaticNestMethodstaticNestMethodnoBridge",
                   "hostMethodstaticHostMethodstaticNestMethod"))
-          .put("constructors", StringUtils.lines("field", "nest1SField", "1"))
+          .put(
+              "constructors",
+              StringUtils.lines("field", "nest1SField", "1", "innerFieldUnusedConstructor"))
           .put(
               "anonymous",
               StringUtils.lines(
