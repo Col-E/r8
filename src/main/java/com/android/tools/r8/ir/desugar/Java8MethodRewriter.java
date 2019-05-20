@@ -257,7 +257,7 @@ public final class Java8MethodRewriter {
     public static int compareUnsignedImpl(int a, int b) {
       int aFlipped = a ^ Integer.MIN_VALUE;
       int bFlipped = b ^ Integer.MIN_VALUE;
-      return (aFlipped < bFlipped) ? -1 : ((aFlipped > bFlipped) ? 1 : 0);
+      return Integer.compare(aFlipped, bFlipped);
     }
   }
 
@@ -517,7 +517,7 @@ public final class Java8MethodRewriter {
     public static int compareUnsignedImpl(long a, long b) {
       long aFlipped = a ^ Long.MIN_VALUE;
       long bFlipped = b ^ Long.MIN_VALUE;
-      return (aFlipped < bFlipped) ? -1 : ((aFlipped > bFlipped) ? 1 : 0);
+      return Long.compare(aFlipped, bFlipped);
     }
   }
 
