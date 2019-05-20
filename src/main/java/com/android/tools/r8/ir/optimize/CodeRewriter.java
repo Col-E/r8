@@ -4067,7 +4067,7 @@ public class CodeRewriter {
           // The loop is conditional if it has at least two normal successors.
           BasicBlock target = handler.endOfGotoChain();
           if (target != null
-              && target.getPredecessors().size() > 2
+              && target.getPredecessors().size() > 1
               && target.getNormalPredecessors().size() > 1
               && target.getNormalSuccessors().size() > 1) {
             Instruction fixit = new AlwaysMaterializingNop();
