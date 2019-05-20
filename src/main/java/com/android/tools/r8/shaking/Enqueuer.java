@@ -839,9 +839,9 @@ public class Enqueuer {
         markTypeAsLive(holder.superType);
         if (holder.isNotProgramClass()) {
           // Library classes may only extend other implement library classes.
-          ensureFromLibraryOrThrow(holder.superType, type);
+          ensureNotFromProgramOrThrow(holder.superType, type);
           for (DexType iface : holder.interfaces.values) {
-            ensureFromLibraryOrThrow(iface, type);
+            ensureNotFromProgramOrThrow(iface, type);
           }
         }
       }
@@ -948,7 +948,7 @@ public class Enqueuer {
     }
   }
 
-  private void ensureFromLibraryOrThrow(DexType type, DexType context) {
+  private void ensureNotFromProgramOrThrow(DexType type, DexType context) {
     if (tracingMainDex) {
       // b/72312389: android.jar contains parts of JUnit and most developers include JUnit in
       // their programs. This leads to library classes extending program classes. When tracing
@@ -956,14 +956,14 @@ public class Enqueuer {
       return;
     }
 
-    DexClass holder = appView.definitionFor(type);
-    if (holder != null && !holder.isLibraryClass()) {
+    DexClass clazz = appView.definitionFor(type);
+    if (clazz != null && clazz.isProgramClass()) {
       if (!dontWarnPatterns.matches(context)) {
         Diagnostic message =
             new StringDiagnostic(
                 "Library class "
                     + context.toSourceString()
-                    + (holder.isInterface() ? " implements " : " extends ")
+                    + (clazz.isInterface() ? " implements " : " extends ")
                     + "program class "
                     + type.toSourceString());
         if (tracingMainDex || forceProguardCompatibility) {
