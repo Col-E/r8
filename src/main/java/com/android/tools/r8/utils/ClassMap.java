@@ -163,10 +163,10 @@ public abstract class ClassMap<T extends DexClass> {
     ClassProvider<T> classProvider;
 
     // Cache value of class provider, as it might change concurrently.
-    classProvider = this.classProvider.get();
-    if (classProvider == null) {
+    if (isFullyLoaded()) {
       return;
     }
+    classProvider = this.classProvider.get();
 
     // Collects the types which might be represented in fully loaded class map.
     knownClasses = Sets.newIdentityHashSet();
@@ -222,6 +222,10 @@ public abstract class ClassMap<T extends DexClass> {
       // classes by blocking on 'this' and hence wait for the loading operation to finish.
       this.classProvider.set(null);
     }
+  }
+
+  public boolean isFullyLoaded() {
+    return this.classProvider.get() == null;
   }
 
   // Supplier implementing a thread-safe loader for a class loaded from a

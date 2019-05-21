@@ -4,6 +4,7 @@
 package com.android.tools.r8.maindexlist.b72312389;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -33,6 +34,9 @@ import org.junit.runner.RunWith;
 
 @RunWith(VmTestRunner.class)
 public class B72312389 extends TestBase {
+  // TODO(120884788): Remove this when default is true.
+  private static boolean lookupLibraryBeforeProgram = false;
+
   // Build a app with a class extending InstrumentationTestCase and including both the junit
   // and the Android library.
   private void buildInstrumentationTestCaseApplication(BaseCommand.Builder builder) {
@@ -58,7 +62,11 @@ public class B72312389 extends TestBase {
         .addMainDexRules(keepInstrumentationTestCaseRules, Origin.unknown())
         .build();
     List<String> mainDexList = GenerateMainDexList.run(command);
-    assertTrue(mainDexList.contains("junit/framework/TestCase.class"));
+    if (lookupLibraryBeforeProgram) {
+      assertFalse(mainDexList.contains("junit/framework/TestCase.class"));
+    } else {
+      assertTrue(mainDexList.contains("junit/framework/TestCase.class"));
+    }
     diagnostics.assertEmpty();
   }
 
@@ -86,9 +94,11 @@ public class B72312389 extends TestBase {
         .build();
     CodeInspector inspector = new CodeInspector(ToolHelper.runR8(command));
     assertTrue(inspector.clazz("instrumentationtest.InstrumentationTest").isPresent());
-    assertTrue(mainDexList.content.contains("junit/framework/TestCase.class"));
-    // TODO(72794301): Two copies of this message is a bit over the top.
-    assertEquals(2,
+    assertEquals(
+        !lookupLibraryBeforeProgram,
+        mainDexList.content.contains("junit/framework/TestCase.class"));
+    assertEquals(
+        lookupLibraryBeforeProgram ? 0 : 2,
         diagnostics.countLibraryClassExtensdProgramClassWarnings(
             "android.test.InstrumentationTestCase", "junit.framework.TestCase"));
   }
@@ -102,11 +112,16 @@ public class B72312389 extends TestBase {
         .addMainDexRules(keepInstrumentationTestCaseRules, Origin.unknown())
         .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
         .build();
-    try {
+    if (lookupLibraryBeforeProgram) {
       R8.run(command);
-      fail();
-    } catch (CompilationFailedException e) {
-      // Expected, as library class extending program class is an error for R8.
+      diagnostics.assertEmpty();
+    } else {
+      try {
+        R8.run(command);
+        fail();
+      } catch (CompilationFailedException e) {
+        // Expected, as library class extending program class is an error for R8.
+      }
     }
   }
 

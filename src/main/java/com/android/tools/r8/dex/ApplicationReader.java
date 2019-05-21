@@ -102,7 +102,7 @@ public class ApplicationReader {
     assert verifyMainDexOptionsCompatible(inputApp, options);
     timing.begin("DexApplication.read");
     final LazyLoadedDexApplication.Builder builder =
-        DexApplication.builder(itemFactory, timing, resolver);
+        DexApplication.builder(options, timing, resolver);
     try {
       List<Future<?>> futures = new ArrayList<>();
       // Still preload some of the classes, primarily for two reasons:

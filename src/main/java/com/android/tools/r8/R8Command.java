@@ -603,8 +603,15 @@ public final class R8Command extends BaseCompilerCommand {
       GraphConsumer mainDexKeptGraphConsumer,
       Consumer<List<ProguardConfigurationRule>> syntheticProguardRulesConsumer,
       boolean optimizeMultidexForLinearAlloc) {
-    super(inputApp, mode, programConsumer, mainDexListConsumer, minApiLevel, reporter,
-        enableDesugaring, optimizeMultidexForLinearAlloc);
+    super(
+        inputApp,
+        mode,
+        programConsumer,
+        mainDexListConsumer,
+        minApiLevel,
+        reporter,
+        enableDesugaring,
+        optimizeMultidexForLinearAlloc);
     assert proguardConfiguration != null;
     assert mainDexKeepRules != null;
     this.mainDexKeepRules = mainDexKeepRules;

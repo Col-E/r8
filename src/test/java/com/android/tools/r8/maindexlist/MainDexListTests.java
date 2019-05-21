@@ -744,8 +744,8 @@ public class MainDexListTests extends TestBase {
     options.minApiLevel = minApi;
     options.intermediate = intermediate;
     DexItemFactory factory = options.itemFactory;
-    AppInfo appInfo = new AppInfo(DexApplication.builder(factory, timing).build());
-    DexApplication.Builder builder = DexApplication.builder(factory, timing);
+    AppInfo appInfo = new AppInfo(DexApplication.builder(options, timing).build());
+    DexApplication.Builder builder = DexApplication.builder(options, timing);
     for (String clazz : classes) {
       DexString desc = factory.createString(DescriptorUtils.javaTypeToDescriptor(clazz));
       DexType type = factory.createType(desc);

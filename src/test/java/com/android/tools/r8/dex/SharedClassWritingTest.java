@@ -129,14 +129,14 @@ public class SharedClassWritingTest {
         Constants.MAX_NON_JUMBO_INDEX - 1,
         classes);
 
-    DexApplication.Builder builder = DirectMappedDexApplication
-        .builder(dexItemFactory, new Timing("SharedClassWritingTest"));
+    InternalOptions options = new InternalOptions(dexItemFactory, new Reporter());
+    DexApplication.Builder builder =
+        DirectMappedDexApplication.builder(options, new Timing("SharedClassWritingTest"));
     builder.addSynthesizedClass(sharedSynthesizedClass, false);
     classes.forEach(builder::addProgramClass);
     DexApplication application = builder.build();
 
     CollectInfoConsumer consumer = new CollectInfoConsumer();
-    InternalOptions options = new InternalOptions(dexItemFactory, new Reporter());
     options.programConsumer = consumer;
     ApplicationWriter writer =
         new ApplicationWriter(

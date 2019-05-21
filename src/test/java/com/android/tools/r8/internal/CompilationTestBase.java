@@ -19,6 +19,7 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -35,6 +36,7 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.android.tools.r8.utils.codeinspector.FoundFieldSubject;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
+import com.google.common.collect.ImmutableList;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Closer;
 import java.io.File;
@@ -137,6 +139,19 @@ public abstract class CompilationTestBase {
       R8Command.Builder builder = R8Command.builder(reporter);
       builder.addProgramFiles(ListUtils.map(inputs, Paths::get));
       if (pgConfs != null) {
+        // Sanitize libraries for apps relying on the Proguard behaviour of lookup in program
+        // classes before library classes. See tools/sanitize_libraries.py for more information.
+        Path sanitizedLibrary = temp.getRoot().toPath().resolve("sanitized_lib.jar");
+        Path sanitizedPgConf = temp.getRoot().toPath().resolve("sanitized.config");
+        List<String> command =
+            new ImmutableList.Builder<String>()
+                .add("tools/sanitize_libraries.py")
+                .add(sanitizedLibrary.toString())
+                .add(sanitizedPgConf.toString())
+                .addAll(pgConfs)
+                .build();
+        ProcessResult result = ToolHelper.runProcess(new ProcessBuilder(command));
+        assert result.exitCode == 0;
         builder.addProguardConfigurationFiles(
             pgConfs.stream().map(Paths::get).collect(Collectors.toList()));
       } else {

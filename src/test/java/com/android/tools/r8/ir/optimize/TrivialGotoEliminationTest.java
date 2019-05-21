@@ -9,7 +9,6 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Argument;
@@ -93,7 +92,7 @@ public class TrivialGotoEliminationTest {
   @Test
   public void trivialGotoLoopAsFallthrough() {
     InternalOptions options = new InternalOptions();
-    DexApplication app = DexApplication.builder(new DexItemFactory(), new Timing("")).build();
+    DexApplication app = DexApplication.builder(new InternalOptions(), new Timing("")).build();
     AppView<AppInfo> appView = AppView.createForD8(new AppInfo(app), options);
     // Setup block structure:
     // block0:

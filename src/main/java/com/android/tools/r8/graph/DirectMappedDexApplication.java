@@ -9,7 +9,7 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.DataResourceProvider;
 import com.android.tools.r8.graph.LazyLoadedDexApplication.AllClasses;
 import com.android.tools.r8.naming.ClassNameMapper;
-import com.android.tools.r8.utils.ProgramClassCollection;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -41,7 +41,7 @@ public class DirectMappedDexApplication extends DexApplication {
       ImmutableList<DataResourceProvider> dataResourceProviders,
       ImmutableSet<DexType> mainDexList,
       String deadCode,
-      DexItemFactory dexItemFactory,
+      InternalOptions options,
       DexString highestSortingString,
       Timing timing) {
     super(
@@ -49,7 +49,7 @@ public class DirectMappedDexApplication extends DexApplication {
         dataResourceProviders,
         mainDexList,
         deadCode,
-        dexItemFactory,
+        options,
         highestSortingString,
         timing);
     this.allClasses = Collections.unmodifiableMap(allClasses);
@@ -166,9 +166,9 @@ public class DirectMappedDexApplication extends DexApplication {
       super(application);
       // As a side-effect, this will force-load all classes.
       AllClasses allClasses = application.loadAllClasses();
-      assert application.programClasses().equals(allClasses.getProgramClasses());
       libraryClasses = allClasses.getLibraryClasses();
       classpathClasses = allClasses.getClasspathClasses();
+      replaceProgramClasses(allClasses.getProgramClasses());
     }
 
     private Builder(DirectMappedDexApplication application) {
@@ -185,15 +185,10 @@ public class DirectMappedDexApplication extends DexApplication {
     @Override
     public DexApplication build() {
       // Rebuild the map. This will fail if keys are not unique.
-      // TODO(zerny): It seems weird that we have conflict resolution here.
-      ImmutableList<DexProgramClass> newProgramClasses =
-          ImmutableList.copyOf(
-              ProgramClassCollection.create(
-                      programClasses, ProgramClassCollection::resolveClassConflictImpl)
-                  .getAllClasses());
       // TODO(zerny): Consider not rebuilding the map if no program classes are added.
-      Map<DexType, DexClass> allClasses = new IdentityHashMap<>(
-          newProgramClasses.size() + classpathClasses.size() + libraryClasses.size());
+      Map<DexType, DexClass> allClasses =
+          new IdentityHashMap<>(
+              programClasses.size() + classpathClasses.size() + libraryClasses.size());
       // Note: writing classes in reverse priority order, so a duplicate will be correctly ordered.
       // There should never be duplicates and that is asserted in the addAll subroutine.
       addAll(allClasses, libraryClasses);
@@ -202,13 +197,13 @@ public class DirectMappedDexApplication extends DexApplication {
       return new DirectMappedDexApplication(
           proguardMap,
           allClasses,
-          newProgramClasses,
+          ImmutableList.copyOf(programClasses),
           classpathClasses,
           libraryClasses,
           ImmutableList.copyOf(dataResourceProviders),
           ImmutableSet.copyOf(mainDexList),
           deadCode,
-          dexItemFactory,
+          options,
           highestSortingString,
           timing);
     }

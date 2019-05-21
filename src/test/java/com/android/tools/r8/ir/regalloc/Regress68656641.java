@@ -56,7 +56,7 @@ public class Regress68656641 extends SmaliTestBase {
   @Test
   public void splitOverlappingInactiveIntervalWithNoNextUse() {
     InternalOptions options = new InternalOptions();
-    AppInfo appInfo = new AppInfo(DexApplication.builder(options.itemFactory, null).build());
+    AppInfo appInfo = new AppInfo(DexApplication.builder(options, null).build());
     AppView<?> appView = AppView.createForD8(appInfo, options);
     IRCode code = simpleCode();
     MyRegisterAllocator allocator = new MyRegisterAllocator(appView, code);

@@ -128,6 +128,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     private CompilationMode mode;
     private int minApiLevel = 0;
     private boolean disableDesugaring = false;
+    private boolean lookupLibraryBeforeProgram = true;
     private boolean optimizeMultidexForLinearAlloc = false;
 
     abstract CompilationMode defaultCompilationMode();

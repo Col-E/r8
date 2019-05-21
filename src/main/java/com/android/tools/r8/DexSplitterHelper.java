@@ -132,7 +132,7 @@ public final class DexSplitterHelper {
       String feature = featureClassMapping.featureForClass(clazzName);
       LazyLoadedDexApplication.Builder featureApplication = applications.get(feature);
       if (featureApplication == null) {
-        featureApplication = DexApplication.builder(app.dexItemFactory, app.timing);
+        featureApplication = DexApplication.builder(app.options, app.timing);
         // If this is the base, we add the main dex list.
         if (feature.equals(featureClassMapping.getBaseName())) {
           featureApplication.addToMainDexList(app.mainDexList);

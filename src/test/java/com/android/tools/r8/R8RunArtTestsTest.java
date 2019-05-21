@@ -771,6 +771,7 @@ public abstract class R8RunArtTestsTest {
           .match(TestCondition
               .runtimes(DexVm.Version.V4_0_4, DexVm.Version.V4_4_4, DexVm.Version.V5_1_1,
                   DexVm.Version.V6_0_1));
+  // TODO(herhut): Change to V8_0_0 once we have a new art VM.
   private static final TestCondition beforeAndroidO =
       TestCondition.match(TestCondition.runtimesUpTo(DexVm.Version.V7_0_0));
   // TODO(herhut): Change to V8_0_0 once we have a new art VM.
@@ -919,6 +920,32 @@ public abstract class R8RunArtTestsTest {
                           CompilerUnderTest.D8_AFTER_R8CF),
                       TestCondition.runtimes(DexVm.Version.V4_0_4, DexVm.Version.V4_4_4))))
           .put("979-const-method-handle", beforeAndroidP)
+          // Missing class junit.framework.Assert (see JunitAvailabilityInHostArtTest).
+          // TODO(120884788): Add this again.
+          /*
+          .put(
+              "021-string2",
+              TestCondition.or(
+                  TestCondition.match(
+                      TestCondition.compilers(CompilerUnderTest.D8_AFTER_R8CF),
+                      TestCondition.runtimesFrom(DexVm.Version.V7_0_0)),
+                  TestCondition.match(
+                      TestCondition.compilers(CompilerUnderTest.D8_AFTER_R8CF),
+                      TestCondition.runtimes(DexVm.Version.V4_0_4, DexVm.Version.V4_4_4))))
+          */
+          // Missing class junit.framework.Assert (see JunitAvailabilityInHostArtTest).
+          // TODO(120884788): Add this again.
+          /*
+          .put(
+              "082-inline-execute",
+              TestCondition.or(
+                  TestCondition.match(
+                      TestCondition.compilers(CompilerUnderTest.D8_AFTER_R8CF),
+                      TestCondition.runtimesFrom(DexVm.Version.V7_0_0)),
+                  TestCondition.match(
+                      TestCondition.compilers(CompilerUnderTest.D8_AFTER_R8CF),
+                      TestCondition.runtimes(DexVm.Version.V4_0_4, DexVm.Version.V4_4_4))))
+          */
           .build();
 
   // Tests where code generation fails.
