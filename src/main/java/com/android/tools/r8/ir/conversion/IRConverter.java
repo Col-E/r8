@@ -143,7 +143,6 @@ public class IRConverter {
   private final UninstantiatedTypeOptimization uninstantiatedTypeOptimization;
   private final TypeChecker typeChecker;
   private final IdempotentFunctionCallCanonicalizer idempotentFunctionCallCanonicalizer;
-  private final ServiceLoaderRewriter serviceLoaderRewriter;
 
   final DeadCodeRemover deadCodeRemover;
 
@@ -229,8 +228,6 @@ public class IRConverter {
               ? new UninstantiatedTypeOptimization(appViewWithLiveness)
               : null;
       this.typeChecker = new TypeChecker(appView.withLiveness());
-      this.serviceLoaderRewriter =
-          options.enableServiceLoaderRewriting ? new ServiceLoaderRewriter() : null;
       this.d8NestBasedAccessDesugaring = null;
     } else {
       this.classInliner = null;
@@ -245,7 +242,6 @@ public class IRConverter {
       this.devirtualizer = null;
       this.uninstantiatedTypeOptimization = null;
       this.typeChecker = null;
-      this.serviceLoaderRewriter = null;
       this.d8NestBasedAccessDesugaring =
           options.enableNestBasedAccessDesugaring ? new D8NestBasedAccessDesugaring(appView) : null;
     }
@@ -922,9 +918,9 @@ public class IRConverter {
     // we will return with finalizeEmptyThrowingCode() above.
     assert code.verifyTypes(appView);
 
-    if (serviceLoaderRewriter != null) {
+    if (options.enableServiceLoaderRewriting) {
       assert appView.appInfo().hasLiveness();
-      serviceLoaderRewriter.rewrite(code, appView.withLiveness());
+      ServiceLoaderRewriter.rewrite(code, appView.withLiveness());
     }
 
     if (classStaticizer != null) {
