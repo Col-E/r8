@@ -76,6 +76,13 @@ public class TestDiagnosticMessagesImpl implements DiagnosticsHandler, TestDiagn
     return this;
   }
 
+  public TestDiagnosticMessages assertOnlyErrors() {
+    assertEmpty("info", getInfos());
+    assertEmpty("warning", getWarnings());
+    assertNotEquals(0, getErrors().size());
+    return this;
+  }
+
   public TestDiagnosticMessages assertInfosCount(int count) {
     assertEquals(count, getInfos().size());
     return this;

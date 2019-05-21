@@ -86,6 +86,19 @@ public abstract class TestCompilerBuilder<
     }
   }
 
+  public CR compileWithExpectedDiagnostics(
+      Consumer<TestDiagnosticMessages> diagnosticsConsumer) throws CompilationFailedException {
+    TestDiagnosticMessages diagnosticsHandler = getState().getDiagnosticsMessages();
+    try {
+      CR result = compile();
+      diagnosticsConsumer.accept(diagnosticsHandler);
+      return result;
+    } catch (CompilationFailedException e) {
+      diagnosticsConsumer.accept(diagnosticsHandler);
+      throw e;
+    }
+  }
+
   @Override
   public RR run(String mainClass)
       throws CompilationFailedException, ExecutionException, IOException {
