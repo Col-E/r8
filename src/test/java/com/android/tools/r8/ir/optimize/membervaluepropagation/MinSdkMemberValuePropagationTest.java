@@ -24,17 +24,20 @@ public class MinSdkMemberValuePropagationTest extends TestBase {
 
   private final TestParameters parameters;
   private final String rule;
+  private final String value;
 
-  @Parameterized.Parameters(name = "{0}, rule: {1}")
+  @Parameterized.Parameters(name = "{0}, rule: {1}, value: {2}")
   public static List<Object[]> data() {
     return buildParameters(
         getTestParameters().withAllRuntimes().build(),
-        ImmutableList.of("assumenosideeffects", "assumevalues"));
+        ImmutableList.of("assumenosideeffects", "assumevalues"),
+        ImmutableList.of("42", "42..43"));
   }
 
-  public MinSdkMemberValuePropagationTest(TestParameters parameters, String rule) {
+  public MinSdkMemberValuePropagationTest(TestParameters parameters, String rule, String value) {
     this.parameters = parameters;
     this.rule = rule;
+    this.value = value;
   }
 
   @Test
@@ -44,7 +47,7 @@ public class MinSdkMemberValuePropagationTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .addKeepRules(
             "-" + rule + " class " + Library.class.getTypeName() + " {",
-            "  static int MIN_SDK return 42;",
+            "  static int MIN_SDK return " + value + ";",
             "}")
         .addLibraryClasses(Library.class)
         .addLibraryFiles(runtimeJar(parameters))
@@ -79,7 +82,7 @@ public class MinSdkMemberValuePropagationTest extends TestBase {
   static class TestClass {
 
     public static void main(String[] args) {
-      if (Library.MIN_SDK == 42) {
+      if (Library.MIN_SDK >= 42) {
         System.out.println("Hello world!");
       }
     }
