@@ -29,7 +29,7 @@ class TestMap<K, V> {
     this.map = new HashMap<>();
   }
 
-  public static <K, V> TestMap of(K k, V v) {
+  public static <K, V> TestMap<K, V> of(K k, V v) {
     TestMap<K, V> m = new TestMap<>();
     m.map.put(k, v);
     return m;
