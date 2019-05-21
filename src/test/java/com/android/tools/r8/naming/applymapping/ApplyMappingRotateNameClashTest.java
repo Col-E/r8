@@ -11,7 +11,6 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.StringUtils;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -41,7 +40,6 @@ public class ApplyMappingRotateNameClashTest extends TestBase {
   }
 
   @Test
-  @Ignore("b/131532229")
   public void test_b131532229() throws ExecutionException, CompilationFailedException, IOException {
     testForR8(parameters.getBackend())
         .addLibraryClasses(A.class, B.class)

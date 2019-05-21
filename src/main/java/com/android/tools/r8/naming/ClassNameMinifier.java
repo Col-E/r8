@@ -128,7 +128,7 @@ class ClassNameMinifier {
     timing.end();
 
     timing.begin("rename-generic");
-    new GenericSignatureRewriter(appView, renaming).run();
+    new GenericSignatureRewriter(appView, renaming).run(classes);
     timing.end();
 
     timing.begin("rename-arrays");

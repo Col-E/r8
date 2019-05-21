@@ -686,8 +686,8 @@ public class R8 {
         timing.end();
       } else {
         if (appView.appInfo().hasLiveness()) {
-          // TODO(124726014): Rewrite signature annotations in lens rewriting instead of here?
-          new GenericSignatureRewriter(appView.withLiveness()).run();
+          // TODO(b/124726014): Rewrite signature annotations in lens rewriting instead of here?
+          new GenericSignatureRewriter(appView.withLiveness()).run(appView.appInfo().classes());
         }
         namingLens = NamingLens.getIdentityLens();
       }

@@ -289,7 +289,7 @@ public class InterfaceMethodNameMinifier {
 
       for (MethodNamingState<?> namingState : globalStateMap.get(wrapper)) {
         if (!namingState.isReserved(unifiedMethod.name, unifiedMethod.proto)) {
-          namingState.reserveName(unifiedMethod.name, unifiedMethod.proto);
+          namingState.reserveName(unifiedMethod.name, unifiedMethod.proto, unifiedMethod.name);
           changed = true;
         }
       }

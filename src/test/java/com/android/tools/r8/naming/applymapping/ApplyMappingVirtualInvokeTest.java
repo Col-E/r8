@@ -12,6 +12,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.naming.applymapping.ApplyMappingVirtualInvokeTest.TestClasses.LibraryBase;
+import com.android.tools.r8.naming.applymapping.ApplyMappingVirtualInvokeTest.TestClasses.LibraryInterface;
 import com.android.tools.r8.naming.applymapping.ApplyMappingVirtualInvokeTest.TestClasses.LibrarySubclass;
 import com.android.tools.r8.naming.applymapping.ApplyMappingVirtualInvokeTest.TestClasses.ProgramClass;
 import com.android.tools.r8.naming.applymapping.ApplyMappingVirtualInvokeTest.TestClasses.ProgramSubclass;
@@ -20,7 +21,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -28,16 +28,27 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class ApplyMappingVirtualInvokeTest extends TestBase {
 
-  public static final String EXPECTED_PROGRAM = StringUtils.lines("LibraryBase.foo");
+  public static final String EXPECTED_PROGRAM =
+      StringUtils.lines("LibraryBase.foo", "LibraryBase.bar");
   public static final String EXPECTED_PROGRAM_SUBCLASS =
-      StringUtils.lines("ProgramSubclass.foo", "LibraryBase.foo");
+      StringUtils.lines(
+          "ProgramSubclass.foo", "LibraryBase.foo", "ProgramSubclass.bar", "LibraryBase.bar");
 
   public static class TestClasses {
 
-    public static class LibraryBase {
+    public interface LibraryInterface {
+      void bar();
+    }
 
-      void foo() {
+    public static class LibraryBase implements LibraryInterface {
+
+      public void foo() {
         System.out.println("LibraryBase.foo");
+      }
+
+      @Override
+      public void bar() {
+        System.out.println("LibraryBase.bar");
       }
     }
 
@@ -47,6 +58,7 @@ public class ApplyMappingVirtualInvokeTest extends TestBase {
 
       public static void main(String[] args) {
         new LibrarySubclass().foo();
+        new LibrarySubclass().bar();
       }
     }
 
@@ -54,17 +66,26 @@ public class ApplyMappingVirtualInvokeTest extends TestBase {
 
       public static void main(String[] args) {
         new ProgramSubclass().foo();
+        new ProgramSubclass().bar();
       }
 
       @Override
-      void foo() {
+      public void foo() {
         System.out.println("ProgramSubclass.foo");
         super.foo();
+      }
+
+      @Override
+      public void bar() {
+        System.out.println("ProgramSubclass.bar");
+        super.bar();
       }
     }
   }
 
-  private static final Class<?>[] LIBRARY_CLASSES = {LibraryBase.class, LibrarySubclass.class};
+  private static final Class<?>[] LIBRARY_CLASSES = {
+    LibraryInterface.class, LibraryBase.class, LibrarySubclass.class
+  };
   private static final Class<?>[] PROGRAM_CLASSES = {ProgramClass.class, ProgramSubclass.class};
   private final TestParameters parameters;
 
@@ -77,13 +98,15 @@ public class ApplyMappingVirtualInvokeTest extends TestBase {
     this.parameters = parameters;
   }
 
-  private static Function<Backend, R8TestCompileResult> compilationResults =
+  private static Function<TestParameters, R8TestCompileResult> compilationResults =
       memoizeFunction(ApplyMappingVirtualInvokeTest::compile);
 
-  private static R8TestCompileResult compile(Backend backend) throws CompilationFailedException {
-    return testForR8(getStaticTemp(), backend)
+  private static R8TestCompileResult compile(TestParameters parameters)
+      throws CompilationFailedException {
+    return testForR8(getStaticTemp(), parameters.getBackend())
         .addProgramClasses(LIBRARY_CLASSES)
         .addKeepClassAndMembersRulesWithAllowObfuscation(LIBRARY_CLASSES)
+        .setMinApi(parameters.getRuntime())
         .addOptionsModification(
             options -> {
               options.enableInlining = false;
@@ -116,14 +139,12 @@ public class ApplyMappingVirtualInvokeTest extends TestBase {
         .assertSuccessWithOutput(EXPECTED_PROGRAM_SUBCLASS);
   }
 
-  @Ignore("b/128868424")
   @Test
   public void testProgramClass()
       throws ExecutionException, CompilationFailedException, IOException {
     runTest(ProgramClass.class, EXPECTED_PROGRAM);
   }
 
-  @Ignore("b/128868424")
   @Test
   public void testProgramSubClass()
       throws ExecutionException, IOException, CompilationFailedException {
@@ -132,7 +153,7 @@ public class ApplyMappingVirtualInvokeTest extends TestBase {
 
   private void runTest(Class<?> main, String expected)
       throws ExecutionException, IOException, CompilationFailedException {
-    R8TestCompileResult libraryCompileResult = compilationResults.apply(parameters.getBackend());
+    R8TestCompileResult libraryCompileResult = compilationResults.apply(parameters);
     Path outPath = temp.newFile("out.zip").toPath();
     libraryCompileResult.writeToZip(outPath);
     testForR8(parameters.getBackend())
@@ -140,7 +161,7 @@ public class ApplyMappingVirtualInvokeTest extends TestBase {
         .noMinification()
         .addProgramClasses(PROGRAM_CLASSES)
         .addApplyMapping(libraryCompileResult.getProguardMap())
-        .addLibraryClasses(LIBRARY_CLASSES)
+        .addClasspathClasses(LIBRARY_CLASSES)
         .addLibraryFiles(runtimeJar(parameters.getBackend()))
         .setMinApi(parameters.getRuntime())
         .compile()

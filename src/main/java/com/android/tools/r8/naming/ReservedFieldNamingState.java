@@ -5,7 +5,6 @@
 package com.android.tools.r8.naming;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.ReservedFieldNamingState.InternalState;
@@ -23,10 +22,6 @@ public class ReservedFieldNamingState extends FieldNamingStateBase<InternalState
   public boolean isReserved(DexString name, DexType type) {
     InternalState internalState = getInternalState(type);
     return internalState != null && internalState.isReserved(name);
-  }
-
-  public void markReservedDirectly(DexField field) {
-    markReservedDirectly(field.name, field.type);
   }
 
   public void markReservedDirectly(DexString name, DexType type) {

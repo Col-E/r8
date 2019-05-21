@@ -50,10 +50,15 @@ public class FieldNamingState extends FieldNamingStateBase<InternalState> implem
     DexEncodedField encodedField = appView.appInfo().resolveField(field);
     if (encodedField != null) {
       DexClass clazz = appView.definitionFor(encodedField.field.holder);
-      if (clazz == null || strategy.isReserved(encodedField, clazz)) {
+      if (clazz == null) {
         return field.name;
       }
+      DexString reservedName = strategy.getReservedNameOrDefault(encodedField, clazz, null);
+      if (reservedName != null) {
+        return reservedName;
+      }
     }
+    // TODO(b/133208730) If we cannot resolve the field, are we then allowed to rename it?
     return getOrCreateInternalState(field).createNewName(field);
   }
 
@@ -93,8 +98,7 @@ public class FieldNamingState extends FieldNamingStateBase<InternalState> implem
       DexString name;
       do {
         name = strategy.next(field, this);
-      } while (reservedNames.isReserved(name, field.type)
-          && !strategy.breakOnNotAvailable(field, name));
+      } while (reservedNames.isReserved(name, field.type));
       return name;
     }
 

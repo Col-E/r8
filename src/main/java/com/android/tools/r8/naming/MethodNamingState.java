@@ -8,11 +8,9 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.StringUtils;
-import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Function;
 
 class MethodNamingState<KeyType> {
@@ -36,7 +34,7 @@ class MethodNamingState<KeyType> {
     this.strategy = strategy;
   }
 
-  public MethodNamingState<KeyType> createChild() {
+  MethodNamingState<KeyType> createChild() {
     return new MethodNamingState<>(this, keyTransform, strategy);
   }
 
@@ -67,7 +65,7 @@ class MethodNamingState<KeyType> {
     return state.getAssignedNameFor(name);
   }
 
-  public DexString assignNewNameFor(DexMethod source, DexString original, DexProto proto) {
+  DexString assignNewNameFor(DexMethod source, DexString original, DexProto proto) {
     KeyType key = keyTransform.apply(proto);
     DexString result = getAssignedNameFor(original, key);
     if (result == null) {
@@ -77,13 +75,13 @@ class MethodNamingState<KeyType> {
     return result;
   }
 
-  public void reserveName(DexString name, DexProto proto) {
+  void reserveName(DexString name, DexProto proto, DexString originalName) {
     KeyType key = keyTransform.apply(proto);
     InternalState state = getOrCreateInternalStateFor(key);
-    state.reserveName(name);
+    state.reserveName(name, originalName);
   }
 
-  public boolean isReserved(DexString name, DexProto proto) {
+  boolean isReserved(DexString name, DexProto proto) {
     KeyType key = keyTransform.apply(proto);
     InternalState state = findInternalStateFor(key);
     if (state == null) {
@@ -92,7 +90,16 @@ class MethodNamingState<KeyType> {
     return state.isReserved(name);
   }
 
-  public boolean isAvailable(DexProto proto, DexString candidate) {
+  DexString getReservedOriginalName(DexString name, DexProto proto) {
+    KeyType key = keyTransform.apply(proto);
+    InternalState state = findInternalStateFor(key);
+    if (state == null) {
+      return null;
+    }
+    return state.getReservedOriginalName(name);
+  }
+
+  boolean isAvailable(DexProto proto, DexString candidate) {
     KeyType key = keyTransform.apply(proto);
     InternalState state = findInternalStateFor(key);
     if (state == null) {
@@ -101,7 +108,7 @@ class MethodNamingState<KeyType> {
     return state.isAvailable(candidate);
   }
 
-  public void addRenaming(DexString original, DexProto proto, DexString newName) {
+  void addRenaming(DexString original, DexProto proto, DexString newName) {
     KeyType key = keyTransform.apply(proto);
     InternalState state = getOrCreateInternalStateFor(key);
     state.addRenaming(original, newName);
@@ -136,7 +143,7 @@ class MethodNamingState<KeyType> {
     private static final int INITIAL_DICTIONARY_INDEX = 0;
 
     private final InternalState parentInternalState;
-    private Set<DexString> reservedNames = null;
+    private Map<DexString, DexString> reservedNames = null;
     private Map<DexString, DexString> renamings = null;
     private int virtualNameCount;
     private int directNameCount = 0;
@@ -153,21 +160,32 @@ class MethodNamingState<KeyType> {
     }
 
     private boolean isReserved(DexString name) {
-      return (reservedNames != null && reservedNames.contains(name))
+      return (reservedNames != null && reservedNames.containsKey(name))
           || (parentInternalState != null && parentInternalState.isReserved(name));
+    }
+
+    private DexString getReservedOriginalName(DexString name) {
+      DexString result = null;
+      if (reservedNames != null) {
+        result = reservedNames.get(name);
+      }
+      if (result == null && parentInternalState != null) {
+        result = parentInternalState.getReservedOriginalName(name);
+      }
+      return result;
     }
 
     private boolean isAvailable(DexString name) {
       return !(renamings != null && renamings.containsValue(name))
-          && !(reservedNames != null && reservedNames.contains(name))
+          && !(reservedNames != null && reservedNames.containsKey(name))
           && (parentInternalState == null || parentInternalState.isAvailable(name));
     }
 
-    void reserveName(DexString name) {
+    void reserveName(DexString name, DexString originalName) {
       if (reservedNames == null) {
-        reservedNames = Sets.newIdentityHashSet();
+        reservedNames = new HashMap<>();
       }
-      reservedNames.add(name);
+      reservedNames.put(name, originalName);
     }
 
     @Override
@@ -217,7 +235,7 @@ class MethodNamingState<KeyType> {
       DexString name;
       do {
         name = strategy.next(source, this);
-      } while (!isAvailable(name) && !strategy.breakOnNotAvailable(source, name));
+      } while (!isAvailable(name));
       return name;
     }
 
@@ -275,11 +293,11 @@ class MethodNamingState<KeyType> {
       if (reservedNames == null || reservedNames.isEmpty()) {
         out.print(" <NO RESERVED NAMES>");
       } else {
-        for (DexString reservedName : reservedNames) {
+        for (DexString reservedName : reservedNames.keySet()) {
           out.print(System.lineSeparator());
           out.print(indentation);
           out.print("  ");
-          out.print(reservedName.toSourceString());
+          out.print(reservedName.toSourceString() + "(by " + reservedNames.get(reservedName) + ")");
         }
       }
       out.println();

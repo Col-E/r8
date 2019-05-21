@@ -185,23 +185,24 @@ public class Minifier {
     }
 
     @Override
-    public boolean breakOnNotAvailable(DexReference source, DexString name) {
-      return false;
-    }
-
-    @Override
-    public boolean isReserved(DexEncodedMethod method, DexClass holder) {
+    public DexString getReservedNameOrDefault(
+        DexEncodedMethod method, DexClass holder, DexString defaultValue) {
       if (!allowMemberRenaming(holder)
           || holder.accessFlags.isAnnotation()
-          || method.accessFlags.isConstructor()) {
-        return true;
+          || method.accessFlags.isConstructor()
+          || appView.rootSet().mayNotBeMinified(method.method, appView)) {
+        return method.method.name;
       }
-      return appView.rootSet().mayNotBeMinified(method.method, appView);
+      return defaultValue;
     }
 
     @Override
-    public boolean isReserved(DexEncodedField field, DexClass holder) {
-      return holder.isLibraryClass() || appView.rootSet().mayNotBeMinified(field.field, appView);
+    public DexString getReservedNameOrDefault(
+        DexEncodedField field, DexClass holder, DexString defaultValue) {
+      if (holder.isLibraryClass() || appView.rootSet().mayNotBeMinified(field.field, appView)) {
+        return field.field.name;
+      }
+      return defaultValue;
     }
 
     @Override
@@ -213,6 +214,12 @@ public class Minifier {
       DexClass clazz = appView.definitionFor(holder);
       assert clazz != null && allowMemberRenaming(clazz);
       return true;
+    }
+
+    @Override
+    public void reportReservationError(DexReference source, DexString name) {
+      assert false;
+      // This should only happen when applymapping is used and will be caught in that strategy.
     }
   }
 }

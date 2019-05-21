@@ -29,7 +29,6 @@ import java.nio.file.Paths;
 import java.util.Iterator;
 import java.util.concurrent.ExecutionException;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -70,7 +69,6 @@ public class ApplyMappingTest extends TestBase {
     out = temp.newFolder("out").toPath();
   }
 
-  @Ignore("b/128516926")
   @Test
   public void test044_apply() throws Exception {
     Path flag =

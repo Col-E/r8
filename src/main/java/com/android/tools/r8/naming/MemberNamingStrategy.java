@@ -18,11 +18,13 @@ public interface MemberNamingStrategy {
 
   DexString next(DexField field, InternalNamingState internalState);
 
-  boolean breakOnNotAvailable(DexReference source, DexString name);
+  DexString getReservedNameOrDefault(
+      DexEncodedMethod method, DexClass holder, DexString defaultValue);
 
-  boolean isReserved(DexEncodedMethod method, DexClass holder);
-
-  boolean isReserved(DexEncodedField field, DexClass holder);
+  DexString getReservedNameOrDefault(
+      DexEncodedField field, DexClass holder, DexString defaultValue);
 
   boolean allowMemberRenaming(DexClass holder);
+
+  void reportReservationError(DexReference source, DexString name);
 }

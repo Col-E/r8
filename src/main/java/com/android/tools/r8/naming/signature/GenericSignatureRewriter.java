@@ -43,12 +43,15 @@ public class GenericSignatureRewriter {
     this.reporter = appView.options().reporter;
   }
 
-  public void run() {
+  public void run(Iterable<? extends DexClass> classes) {
     final GenericSignatureCollector genericSignatureCollector = new GenericSignatureCollector();
     final GenericSignatureParser<DexType> genericSignatureParser =
         new GenericSignatureParser<>(genericSignatureCollector);
-
-    for (DexClass clazz : appView.appInfo().classes()) {
+    // classes may not be the same as appInfo().classes() if applymapping is used on classpath
+    // arguments. If that is the case, the ProguardMapMinifier will pass in all classes that is
+    // either ProgramClass or has a mapping. This is then transitively called inside the
+    // ClassNameMinifier.
+    for (DexClass clazz : classes) {
       clazz.annotations =
           rewriteGenericSignatures(
               clazz.annotations,

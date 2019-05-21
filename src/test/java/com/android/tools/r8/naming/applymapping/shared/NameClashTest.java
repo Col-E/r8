@@ -20,7 +20,6 @@ import java.nio.file.Path;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
@@ -139,6 +138,7 @@ public class NameClashTest extends TestBase {
         .addKeepMainRule(MAIN)
         .addKeepRules("-applymapping " + mappingFile)
         .noTreeShaking()
+        .noMinification()
         .compile()
         .run(MAIN)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);
@@ -171,18 +171,6 @@ public class NameClashTest extends TestBase {
   private void testProguard_minifiedLibraryJar(Path mappingFile) throws Exception {
     testForProguard()
         .addLibraryFiles(ToolHelper.getJava8RuntimeJar(), libJar)
-        .addProgramFiles(prgJarThatUsesMinifiedLib)
-        .addKeepMainRule(MAIN)
-        .addKeepRules("-applymapping " + mappingFile)
-        .noTreeShaking()
-        .compile()
-        .run(MAIN)
-        .assertSuccessWithOutput(EXPECTED_OUTPUT);
-  }
-
-  private void testR8_minifiedLibraryJar(Path mappingFile) throws Exception {
-    testForR8(Backend.DEX)
-        .addLibraryFiles(ToolHelper.getDefaultAndroidJar(), libJar)
         .addProgramFiles(prgJarThatUsesMinifiedLib)
         .addKeepMainRule(MAIN)
         .addKeepRules("-applymapping " + mappingFile)
@@ -430,12 +418,5 @@ public class NameClashTest extends TestBase {
     } catch (CompilationFailedException e) {
       assertThat(e.getMessage(), containsString("can't find superclass or interface A"));
     }
-  }
-
-  @Ignore("b/121305642")
-  @Test
-  public void testR8_minifiedLib() throws Exception {
-    FileUtils.writeTextFile(mappingFile, invertedMapping());
-    testR8_minifiedLibraryJar(mappingFile);
   }
 }
