@@ -7,6 +7,8 @@ package com.android.tools.r8.naming;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -269,9 +271,18 @@ public class ProguardMapMinifier {
     }
 
     @Override
-    public boolean noObfuscation(DexReference reference) {
-      // We have an explicit mapping from the proguard map thus everything might have to be renamed.
+    public boolean isReserved(DexEncodedMethod method, DexClass holder) {
       return false;
+    }
+
+    @Override
+    public boolean isReserved(DexEncodedField field, DexClass holder) {
+      return false;
+    }
+
+    @Override
+    public boolean allowMemberRenaming(DexClass holder) {
+      return true;
     }
   }
 }

@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.naming;
 
+import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
@@ -17,5 +20,9 @@ public interface MemberNamingStrategy {
 
   boolean breakOnNotAvailable(DexReference source, DexString name);
 
-  boolean noObfuscation(DexReference reference);
+  boolean isReserved(DexEncodedMethod method, DexClass holder);
+
+  boolean isReserved(DexEncodedField field, DexClass holder);
+
+  boolean allowMemberRenaming(DexClass holder);
 }

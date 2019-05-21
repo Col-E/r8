@@ -139,11 +139,6 @@ class MethodNameMinifier {
     return states.computeIfAbsent(type, f);
   }
 
-  private boolean alwaysReserveMemberNames(DexClass holder) {
-    return !appView.options().getProguardConfiguration().hasApplyMappingFile()
-        && holder.isNotProgramClass();
-  }
-
   private Function<DexProto, ?> getKeyTransform() {
     if (appView.options().getProguardConfiguration().isOverloadAggressively()) {
       // Use the full proto as key, hence reuse names based on full signature.
@@ -207,7 +202,7 @@ class MethodNameMinifier {
     //
     // A simple way to ensure this is to process virtual methods first and then direct methods.
     DexClass holder = appView.definitionFor(type);
-    boolean shouldAssignName = holder != null && !alwaysReserveMemberNames(holder);
+    boolean shouldAssignName = holder != null && strategy.allowMemberRenaming(holder);
     if (shouldAssignName) {
       MethodNamingState<?> state =
           computeStateIfAbsent(type, k -> minifierState.getState(holder.superType).createChild());
@@ -218,7 +213,7 @@ class MethodNameMinifier {
         assignNameToMethod(method, state);
       }
     }
-    appView.appInfo().forAllExtendsSubtypes(type, subtype -> assignNamesToClassesMethods(subtype));
+    appView.appInfo().forAllExtendsSubtypes(type, this::assignNamesToClassesMethods);
   }
 
   private void assignNameToMethod(DexEncodedMethod encodedMethod, MethodNamingState<?> state) {
@@ -276,13 +271,8 @@ class MethodNameMinifier {
 
       DexClass holder = appView.definitionFor(type);
       if (holder != null) {
-        boolean keepAll = alwaysReserveMemberNames(holder) || holder.accessFlags.isAnnotation();
         for (DexEncodedMethod method : shuffleMethods(holder.methods(), appView.options())) {
-          // TODO(christofferqa): Wouldn't it be sufficient only to reserve names for non-private
-          //  methods?
-          if (keepAll
-              || method.accessFlags.isConstructor()
-              || strategy.noObfuscation(method.method)) {
+          if (strategy.isReserved(method, holder)) {
             reserveNamesForMethod(method.method, state);
           }
         }

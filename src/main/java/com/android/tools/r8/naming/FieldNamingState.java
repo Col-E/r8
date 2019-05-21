@@ -50,11 +50,7 @@ public class FieldNamingState extends FieldNamingStateBase<InternalState> implem
     DexEncodedField encodedField = appView.appInfo().resolveField(field);
     if (encodedField != null) {
       DexClass clazz = appView.definitionFor(encodedField.field.holder);
-      if (clazz == null || clazz.isLibraryClass()) {
-        return field.name;
-      }
-      if (!appView.options().getProguardConfiguration().hasApplyMappingFile()
-          && appView.rootSet().mayNotBeMinified(encodedField.field, appView)) {
+      if (clazz == null || strategy.isReserved(encodedField, clazz)) {
         return field.name;
       }
     }

@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.StringUtils.EMPTY_CHAR_ARRAY;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -167,6 +168,7 @@ public class Minifier {
 
     @Override
     public DexString next(DexMethod method, InternalNamingState internalState) {
+      assert checkAllowMemberRenaming(method.holder);
       DexEncodedMethod encodedMethod = appView.definitionFor(method);
       boolean isDirectOrStatic = encodedMethod.isDirectMethod() || encodedMethod.isStatic();
       return getNextName(internalState, isDirectOrStatic);
@@ -174,6 +176,7 @@ public class Minifier {
 
     @Override
     public DexString next(DexField field, InternalNamingState internalState) {
+      assert checkAllowMemberRenaming(field.holder);
       return getNextName(internalState, false);
     }
 
@@ -187,8 +190,29 @@ public class Minifier {
     }
 
     @Override
-    public boolean noObfuscation(DexReference reference) {
-      return appView.rootSet().mayNotBeMinified(reference, appView);
+    public boolean isReserved(DexEncodedMethod method, DexClass holder) {
+      if (!allowMemberRenaming(holder)
+          || holder.accessFlags.isAnnotation()
+          || method.accessFlags.isConstructor()) {
+        return true;
+      }
+      return appView.rootSet().mayNotBeMinified(method.method, appView);
+    }
+
+    @Override
+    public boolean isReserved(DexEncodedField field, DexClass holder) {
+      return holder.isLibraryClass() || appView.rootSet().mayNotBeMinified(field.field, appView);
+    }
+
+    @Override
+    public boolean allowMemberRenaming(DexClass holder) {
+      return holder.isProgramClass();
+    }
+
+    public boolean checkAllowMemberRenaming(DexType holder) {
+      DexClass clazz = appView.definitionFor(holder);
+      assert clazz != null && allowMemberRenaming(clazz);
+      return true;
     }
   }
 }
