@@ -309,13 +309,11 @@ public class R8 {
 
         // Add synthesized -assumevalues from min api if relevant.
         if (options.isGeneratingDex()) {
-          if (!ProguardConfigurationUtils.hasExplicitAssumeValuesRuleForMinSdk(
-              options.itemFactory,
-              options.getProguardConfiguration().getRules())) {
+          if (!ProguardConfigurationUtils.hasExplicitAssumeValuesOrAssumeNoSideEffectsRuleForMinSdk(
+              options.itemFactory, options.getProguardConfiguration().getRules())) {
             synthesizedProguardRules.add(
-                ProguardConfigurationUtils.buildAssumeValuesForApiLevel(
-                    options.itemFactory,
-                    AndroidApiLevel.getAndroidApiLevel(options.minApiLevel)));
+                ProguardConfigurationUtils.buildAssumeNoSideEffectsRuleForApiLevel(
+                    options.itemFactory, AndroidApiLevel.getAndroidApiLevel(options.minApiLevel)));
           }
         }
 

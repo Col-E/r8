@@ -81,15 +81,19 @@ public class MemberValuePropagation {
   }
 
   private boolean mayPropagateValueFor(DexEncodedField field) {
-    return field.isProgramField(appView)
-        ? appView.appInfo().mayPropagateValueFor(field.field)
-        : appView.appInfo().assumedValues.containsKey(field.field);
+    if (field.isProgramField(appView)) {
+      return appView.appInfo().mayPropagateValueFor(field.field);
+    }
+    return appView.appInfo().assumedValues.containsKey(field.field)
+        || appView.appInfo().noSideEffects.containsKey(field.field);
   }
 
   private boolean mayPropagateValueFor(DexEncodedMethod method) {
-    return method.isProgramMethod(appView)
-        ? appView.appInfo().mayPropagateValueFor(method.method)
-        : appView.appInfo().assumedValues.containsKey(method.method);
+    if (method.isProgramMethod(appView)) {
+      return appView.appInfo().mayPropagateValueFor(method.method);
+    }
+    return appView.appInfo().assumedValues.containsKey(method.method)
+        || appView.appInfo().noSideEffects.containsKey(method.method);
   }
 
   private ProguardMemberRuleLookup lookupMemberRule(DexDefinition definition) {
@@ -319,7 +323,6 @@ public class MemberValuePropagation {
     }
     ProguardMemberRuleLookup lookup = lookupMemberRule(target);
     if (lookup != null
-        && lookup.type == RuleType.ASSUME_VALUES
         && tryConstantReplacementFromProguard(
             code, affectedValues, blocks, iterator, current, lookup)) {
       return;

@@ -85,7 +85,7 @@ public class ProguardConfigurationUtils {
     return builder.build();
   }
 
-  public static ProguardAssumeValuesRule buildAssumeValuesForApiLevel(
+  public static ProguardAssumeNoSideEffectRule buildAssumeNoSideEffectsRuleForApiLevel(
       DexItemFactory factory, AndroidApiLevel apiLevel) {
     Origin synthesizedFromApiLevel =
         new Origin(Origin.root()) {
@@ -100,36 +100,35 @@ public class ProguardConfigurationUtils {
     publicStaticFinalFlags.setStatic();
     publicStaticFinalFlags.setFinal();
 
-    return ProguardAssumeValuesRule
-        .builder()
+    return ProguardAssumeNoSideEffectRule.builder()
         .setOrigin(synthesizedFromApiLevel)
         .setClassType(ProguardClassType.CLASS)
         .setClassNames(
             ProguardClassNameList.singletonList(
                 ProguardTypeMatcher.create(factory.createType("Landroid/os/Build$VERSION;"))))
-        .setMemberRules(ImmutableList.of(
-            ProguardMemberRule.builder()
-                .setAccessFlags(publicStaticFinalFlags)
-                .setRuleType(ProguardMemberType.FIELD)
-                .setTypeMatcher(ProguardTypeMatcher.create(factory.intType))
-                .setName(IdentifierPatternWithWildcards.withoutWildcards("SDK_INT"))
-                .setReturnValue(
-                    new ProguardMemberRuleReturnValue(
-                        new LongInterval(apiLevel.getLevel(), Integer.MAX_VALUE)))
-                .build()
-        ))
+        .setMemberRules(
+            ImmutableList.of(
+                ProguardMemberRule.builder()
+                    .setAccessFlags(publicStaticFinalFlags)
+                    .setRuleType(ProguardMemberType.FIELD)
+                    .setTypeMatcher(ProguardTypeMatcher.create(factory.intType))
+                    .setName(IdentifierPatternWithWildcards.withoutWildcards("SDK_INT"))
+                    .setReturnValue(
+                        new ProguardMemberRuleReturnValue(
+                            new LongInterval(apiLevel.getLevel(), Integer.MAX_VALUE)))
+                    .build()))
         .build();
   }
 
   /**
-   * Check if an explicit rule matching the field
-   *   public static final int android.os.Build$VERSION.SDK_INT
-   * is present.
+   * Check if an explicit rule matching the field public static final int
+   * android.os.Build$VERSION.SDK_INT is present.
    */
-  public static boolean hasExplicitAssumeValuesRuleForMinSdk(
+  public static boolean hasExplicitAssumeValuesOrAssumeNoSideEffectsRuleForMinSdk(
       DexItemFactory factory, List<ProguardConfigurationRule> rules) {
     for (ProguardConfigurationRule rule : rules) {
-      if (!(rule instanceof ProguardAssumeValuesRule)) {
+      if (!(rule instanceof ProguardAssumeValuesRule
+          || rule instanceof ProguardAssumeNoSideEffectRule)) {
         continue;
       }
       if (rule.getClassType() != ProguardClassType.CLASS) {

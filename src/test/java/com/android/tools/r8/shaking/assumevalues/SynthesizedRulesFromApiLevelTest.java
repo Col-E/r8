@@ -7,7 +7,6 @@ package com.android.tools.r8.shaking.assumevalues;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -19,8 +18,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
-import com.android.tools.r8.shaking.ProguardAssumeValuesRule;
-import com.android.tools.r8.shaking.ProguardConfiguration;
+import com.android.tools.r8.shaking.ProguardAssumeNoSideEffectRule;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -138,7 +136,7 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
   private void checkSynthesizedRuleExpectation(
       List<ProguardConfigurationRule> synthesizedRules, SynthesizedRule expected) {
     for (ProguardConfigurationRule rule : synthesizedRules) {
-      if (rule instanceof ProguardAssumeValuesRule
+      if (rule instanceof ProguardAssumeNoSideEffectRule
           && rule.getOrigin().part().contains("SYNTHESIZED_FROM_API_LEVEL")) {
         assertEquals(expected, SynthesizedRule.PRESENT);
         return;
@@ -147,12 +145,8 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
     assertEquals(expected, SynthesizedRule.NOT_PRESENT);
   }
 
-  private void noSynthesizedRules(ProguardConfiguration proguardConfiguration) {
-    for (ProguardConfigurationRule rule : proguardConfiguration.getRules()) {
-      if (rule instanceof ProguardAssumeValuesRule) {
-        assertFalse(rule.getOrigin().part().contains("SYNTHESIZED_FROM_API_LEVEL"));
-      }
-    }
+  private void noSynthesizedRules(List<ProguardConfigurationRule> synthesizedRules) {
+    assertTrue(synthesizedRules.isEmpty());
   }
 
   private void runTest(
@@ -187,7 +181,7 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
           .addKeepMainRule(mainClassName)
           .addKeepRules(additionalKeepRules)
           .compile()
-          .inspectProguardConfiguration(this::noSynthesizedRules)
+          .inspectSyntheticProguardRules(this::noSynthesizedRules)
           .addRunClasspathFiles(
               ImmutableList.of(mockAndroidRuntimeLibrary(AndroidApiLevel.D.getLevel())))
           .run(mainClassName)
