@@ -16,6 +16,7 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.ir.conversion.CallGraph.Node;
 import com.android.tools.r8.ir.conversion.CallGraphBuilder.CycleEliminator;
 import com.android.tools.r8.utils.InternalOptions;
@@ -203,7 +204,8 @@ public class CycleEliminationTest extends TestBase {
             dexItemFactory.objectType,
             dexItemFactory.createProto(dexItemFactory.voidType),
             methodName);
-    return new Node(new DexEncodedMethod(signature, null, null, null, null));
+    return new Node(
+        new DexEncodedMethod(signature, null, null, ParameterAnnotationsList.empty(), null));
   }
 
   private Node createForceInlinedNode(String methodName) {

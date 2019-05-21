@@ -748,16 +748,16 @@ public class JarClassFileReader {
           code = new JarCode(method, parent.origin, parent.context, parent.application);
         }
       }
-      ParameterAnnotationsList annotationsList;
+      ParameterAnnotationsList parameterAnnotationsList;
       if (parameterAnnotationsLists == null) {
-        annotationsList = ParameterAnnotationsList.empty();
+        parameterAnnotationsList = ParameterAnnotationsList.empty();
       } else {
         DexAnnotationSet[] sets = new DexAnnotationSet[parameterAnnotationsLists.size()];
         for (int i = 0; i < parameterAnnotationsLists.size(); i++) {
           sets[i] =
               createAnnotationSet(parameterAnnotationsLists.get(i), parent.application.options);
         }
-        annotationsList = new ParameterAnnotationsList(sets);
+        parameterAnnotationsList = new ParameterAnnotationsList(sets);
       }
       InternalOptions internalOptions = parent.application.options;
       if (parameterNames != null && internalOptions.canUseParameterNameAnnotations()) {
@@ -776,7 +776,7 @@ public class JarClassFileReader {
               method,
               flags,
               createAnnotationSet(annotations, parent.application.options),
-              annotationsList,
+              parameterAnnotationsList,
               code,
               parent.version);
       Wrapper<DexMethod> signature = MethodSignatureEquivalence.get().wrap(method);

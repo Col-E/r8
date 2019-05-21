@@ -111,7 +111,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
   public static final DexEncodedMethod[] EMPTY_ARRAY = {};
   public static final DexEncodedMethod SENTINEL =
-      new DexEncodedMethod(null, null, null, null, null);
+      new DexEncodedMethod(null, null, null, ParameterAnnotationsList.empty(), null);
 
   public final DexMethod method;
   public final MethodAccessFlags accessFlags;
@@ -190,6 +190,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     this.parameterAnnotationsList = parameterAnnotationsList;
     this.code = code;
     assert code == null || !shouldNotHaveCode();
+    assert parameterAnnotationsList != null;
   }
 
   public DexEncodedMethod(
@@ -1541,13 +1542,9 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
           || from.parameterAnnotationsList.size() == method.proto.parameters.size()) {
         parameterAnnotations = from.parameterAnnotationsList;
       } else {
-        assert false
-            : "Parameter annotations does not match proto of method `"
-                + method.toSourceString()
-                + "` (was: "
-                + parameterAnnotations
-                + ")";
-        parameterAnnotations = ParameterAnnotationsList.empty();
+        // If the there are missing parameter annotations populate these when creating the builder.
+        parameterAnnotations =
+            from.parameterAnnotationsList.withParameterCount(method.proto.parameters.size());
       }
     }
 

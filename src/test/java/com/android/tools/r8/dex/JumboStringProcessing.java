@@ -23,6 +23,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
@@ -158,7 +159,8 @@ public class JumboStringProcessing extends TestBase {
         null,
         null);
     MethodAccessFlags flags = MethodAccessFlags.fromSharedAccessFlags(Constants.ACC_PUBLIC, false);
-    DexEncodedMethod method = new DexEncodedMethod(null, flags, null, null, code);
+    DexEncodedMethod method =
+        new DexEncodedMethod(null, flags, null, ParameterAnnotationsList.empty(), code);
     return new JumboStringRewriter(method, string, factory).rewrite();
   }
 }
