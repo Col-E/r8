@@ -101,6 +101,10 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
         graphConsumer);
   }
 
+  public Builder getBuilder() {
+    return builder;
+  }
+
   public T addProgramResourceProvider(ProgramResourceProvider provider) {
     builder.addProgramResourceProvider(provider);
     return self();

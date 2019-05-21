@@ -20,6 +20,8 @@ import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.position.Position;
 import com.android.tools.r8.shaking.FilteredClassPath;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationParser;
@@ -1030,9 +1032,13 @@ public class ToolHelper {
   }
 
   public static void addFilteredAndroidJar(AndroidApp.Builder builder, AndroidApiLevel apiLevel) {
-    builder.addFilteredLibraryArchives(Collections.singletonList(
-        new FilteredClassPath(getAndroidJar(apiLevel),
-            ImmutableList.of("!junit/**", "!android/test/**"))));
+    builder.addFilteredLibraryArchives(
+        Collections.singletonList(
+            new FilteredClassPath(
+                getAndroidJar(apiLevel),
+                ImmutableList.of("!junit/**", "!android/test/**"),
+                Origin.unknown(),
+                Position.UNKNOWN)));
   }
 
   public static AndroidApp runD8(AndroidApp app) throws CompilationFailedException {

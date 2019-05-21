@@ -9,6 +9,8 @@ import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.ThrowingBiFunction;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.position.Position;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidApp.Builder;
 import com.android.tools.r8.utils.ListUtils;
@@ -42,7 +44,8 @@ public class FilteredClassPathTest {
   }
 
   private static FilteredClassPath makeFilteredClassPath(Path path, List<String> filters) {
-    return new FilteredClassPath(path, ImmutableList.copyOf(filters));
+    return new FilteredClassPath(
+        path, ImmutableList.copyOf(filters), Origin.unknown(), Position.UNKNOWN);
   }
 
   @Test

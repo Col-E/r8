@@ -440,10 +440,17 @@ public class AndroidApp {
     /** Add filtered archives of program resources. */
     public Builder addFilteredProgramArchives(Collection<FilteredClassPath> filteredArchives) {
       for (FilteredClassPath archive : filteredArchives) {
-        assert isArchive(archive.getPath());
-        ArchiveResourceProvider archiveResourceProvider =
-            new ArchiveResourceProvider(archive, ignoreDexInArchive);
-        addProgramResourceProvider(archiveResourceProvider);
+        if (isArchive(archive.getPath())) {
+          ArchiveResourceProvider archiveResourceProvider =
+              new ArchiveResourceProvider(archive, ignoreDexInArchive);
+          addProgramResourceProvider(archiveResourceProvider);
+        } else {
+          reporter.error(
+              new StringDiagnostic(
+                  "Unexpected input type. Only archive types are supported, e.g., .jar, .zip, etc.",
+                  archive.getOrigin(),
+                  archive.getPosition()));
+        }
       }
       return this;
     }
@@ -503,13 +510,21 @@ public class AndroidApp {
     /** Add library file resources. */
     public Builder addFilteredLibraryArchives(Collection<FilteredClassPath> filteredArchives) {
       for (FilteredClassPath archive : filteredArchives) {
-        assert isArchive(archive.getPath());
-        try {
-          FilteredArchiveClassFileProvider provider = new FilteredArchiveClassFileProvider(archive);
-          archiveProvidersToClose.add(provider);
-          libraryResourceProviders.add(provider);
-        } catch (IOException e) {
-          reporter.error(new ExceptionDiagnostic(e, new PathOrigin(archive.getPath())));
+        if (isArchive(archive.getPath())) {
+          try {
+            FilteredArchiveClassFileProvider provider =
+                new FilteredArchiveClassFileProvider(archive);
+            archiveProvidersToClose.add(provider);
+            libraryResourceProviders.add(provider);
+          } catch (IOException e) {
+            reporter.error(new ExceptionDiagnostic(e, new PathOrigin(archive.getPath())));
+          }
+        } else {
+          reporter.error(
+              new StringDiagnostic(
+                  "Unexpected input type. Only archive types are supported, e.g., .jar, .zip, etc.",
+                  archive.getOrigin(),
+                  archive.getPosition()));
         }
       }
       return this;

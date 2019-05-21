@@ -1238,13 +1238,14 @@ public class ProguardConfigurationParser {
     private List<FilteredClassPath> parseClassPath() throws ProguardRuleParserException {
       List<FilteredClassPath> classPath = new ArrayList<>();
       skipWhitespace();
+      TextPosition position = getPosition();
       Path file = parseFileName(true);
       ImmutableList<String> filters = parseClassPathFilters();
-      classPath.add(new FilteredClassPath(file, filters));
+      classPath.add(new FilteredClassPath(file, filters, origin, position));
       while (acceptChar(File.pathSeparatorChar)) {
         file = parseFileName(true);
         filters = parseClassPathFilters();
-        classPath.add(new FilteredClassPath(file, filters));
+        classPath.add(new FilteredClassPath(file, filters, origin, position));
       }
       return classPath;
     }

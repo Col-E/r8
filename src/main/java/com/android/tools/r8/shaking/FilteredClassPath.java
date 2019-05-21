@@ -3,10 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.position.Position;
 import com.google.common.collect.ImmutableList;
-import java.io.File;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 
 /**
@@ -21,30 +21,34 @@ public class FilteredClassPath {
 
   private final Path path;
   private final ImmutableList<String> pattern;
+  private final Origin origin;
+  private final Position position;
 
-  public FilteredClassPath(Path path, List<String> pattern) {
+  public FilteredClassPath(Path path, List<String> pattern, Origin origin, Position position) {
     this.path = path;
     this.pattern = ImmutableList.copyOf(pattern);
+    this.origin = origin;
+    this.position = position;
   }
 
   private FilteredClassPath(Path path) {
-    this(path, ImmutableList.of());
-  }
-
-  public static FilteredClassPath unfiltered(File file) {
-    return new FilteredClassPath(file.toPath());
+    this(path, ImmutableList.of(), Origin.unknown(), Position.UNKNOWN);
   }
 
   public static FilteredClassPath unfiltered(Path path) {
     return new FilteredClassPath(path);
   }
 
-  public static FilteredClassPath unfiltered(String path) {
-    return new FilteredClassPath(Paths.get(path));
-  }
-
   public Path getPath() {
     return path;
+  }
+
+  public Origin getOrigin() {
+    return origin;
+  }
+
+  public Position getPosition() {
+    return position;
   }
 
   public boolean matchesFile(String name) {
