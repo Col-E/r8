@@ -16,7 +16,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.naming.ClassNameMinifier.ClassNamingStrategy;
 import com.android.tools.r8.naming.ClassNameMinifier.ClassRenaming;
-import com.android.tools.r8.naming.ClassNameMinifier.Namespace;
 import com.android.tools.r8.naming.FieldNameMinifier.FieldRenaming;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
@@ -122,7 +121,7 @@ public class ProguardMapMinifier {
             // will be output with identity name if not found in mapping. However, there is a check
             // in the ClassNameMinifier that the strategy should produce a "fresh" name so we just
             // use the existing strategy.
-            new MinificationPackageNamingStrategy(),
+            new MinificationPackageNamingStrategy(appView),
             mappedClasses);
     ClassRenaming classRenaming =
         classNameMinifier.computeRenaming(timing, syntheticCompanionClasses);
@@ -205,13 +204,8 @@ public class ProguardMapMinifier {
     }
 
     @Override
-    public DexString next(Namespace namespace, DexType type, char[] packagePrefix) {
+    public DexString next(DexType type, char[] packagePrefix, InternalNamingState state) {
       return mappings.getOrDefault(type, type.descriptor);
-    }
-
-    @Override
-    public boolean bypassDictionary() {
-      return true;
     }
 
     @Override
@@ -235,12 +229,12 @@ public class ProguardMapMinifier {
     }
 
     @Override
-    public DexString next(DexMethod method, MemberNamingInternalState internalState) {
+    public DexString next(DexMethod method, InternalNamingState internalState) {
       return next(method);
     }
 
     @Override
-    public DexString next(DexField field, MemberNamingInternalState internalState) {
+    public DexString next(DexField field, InternalNamingState internalState) {
       return next(field);
     }
 

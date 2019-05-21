@@ -12,7 +12,6 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.FieldNamingState.InternalState;
-import com.android.tools.r8.naming.MemberNamingStrategy.MemberNamingInternalState;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
@@ -80,7 +79,7 @@ public class FieldNamingState extends FieldNamingStateBase<InternalState> implem
     return new FieldNamingState(appView, strategy, reservedNames, internalStatesClone);
   }
 
-  class InternalState implements MemberNamingInternalState, Cloneable {
+  class InternalState implements InternalNamingState, Cloneable {
 
     private int dictionaryIndex;
     private int nextNameIndex;

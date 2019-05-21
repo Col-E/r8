@@ -30,8 +30,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -50,8 +48,6 @@ class ClassNameMinifier {
 
   private final Map<DexType, DexString> renaming = Maps.newIdentityHashMap();
   private final Map<String, Namespace> states = new HashMap<>();
-  private final List<String> packageDictionary;
-  private final List<String> classDictionary;
   private final boolean keepInnerClassStructure;
 
   private final Namespace topLevelState;
@@ -69,8 +65,6 @@ class ClassNameMinifier {
     this.packageObfuscationMode = options.getProguardConfiguration().getPackageObfuscationMode();
     this.isAccessModificationAllowed =
         options.getProguardConfiguration().isAccessModificationAllowed();
-    this.packageDictionary = options.getProguardConfiguration().getPackageObfuscationDictionary();
-    this.classDictionary = options.getProguardConfiguration().getClassObfuscationDictionary();
     this.keepInnerClassStructure =
         options.getProguardConfiguration().getKeepAttributes().signature
             || options.getProguardConfiguration().getKeepAttributes().innerClasses;
@@ -356,12 +350,12 @@ class ClassNameMinifier {
     }
   }
 
-  protected class Namespace {
+  protected class Namespace implements InternalNamingState {
 
     private final String packageName;
     private final char[] packagePrefix;
-    private final Iterator<String> packageDictionaryIterator;
-    private final Iterator<String> classDictionaryIterator;
+    private int dictionaryIndex = 0;
+    private int nameIndex = 1;
 
     Namespace(String packageName) {
       this(packageName, String.valueOf(DESCRIPTOR_PACKAGE_SEPARATOR));
@@ -373,8 +367,6 @@ class ClassNameMinifier {
           // L or La/b/ (or La/b/C$)
           + (packageName.isEmpty() ? "" : separator))
           .toCharArray();
-      this.packageDictionaryIterator = packageDictionary.iterator();
-      this.classDictionaryIterator = classDictionary.iterator();
 
       // R.class in Android, which contains constant IDs to assets, can be bundled at any time.
       // Insert `R` immediately so that the class name minifier can skip that name by default.
@@ -386,63 +378,49 @@ class ClassNameMinifier {
       return packageName;
     }
 
-    private DexString nextSuggestedNameForClass(DexType type) {
-      StringBuilder nextName = new StringBuilder();
-      if (!classNamingStrategy.bypassDictionary() && classDictionaryIterator.hasNext()) {
-        nextName.append(packagePrefix).append(classDictionaryIterator.next()).append(';');
-        return appView.dexItemFactory().createString(nextName.toString());
-      } else {
-        return classNamingStrategy.next(this, type, packagePrefix);
-      }
-    }
-
     DexString nextTypeName(DexType type) {
       DexString candidate;
       do {
-        candidate = nextSuggestedNameForClass(type);
+        candidate = classNamingStrategy.next(type, packagePrefix, this);
       } while (usedTypeNames.contains(candidate));
       usedTypeNames.add(candidate);
       return candidate;
     }
 
-    private String nextSuggestedNameForSubpackage() {
-      // Note that the differences between this method and the other variant for class renaming are
-      // 1) this one uses the different dictionary and counter,
-      // 2) this one does not append ';' at the end, and
-      // 3) this one removes 'L' at the beginning to make the return value a binary form.
-      if (!packageNamingStrategy.bypassDictionary() && packageDictionaryIterator.hasNext()) {
-        StringBuilder nextName = new StringBuilder();
-        nextName.append(packagePrefix).append(packageDictionaryIterator.next());
-        return nextName.toString().substring(1);
-      } else {
-        return packageNamingStrategy.next(this, packagePrefix);
-      }
-    }
-
     String nextPackagePrefix() {
       String candidate;
       do {
-        candidate = nextSuggestedNameForSubpackage();
+        candidate = packageNamingStrategy.next(packagePrefix, this);
       } while (usedPackagePrefixes.contains(candidate));
       usedPackagePrefixes.add(candidate);
       return candidate;
     }
+
+    @Override
+    public int getDictionaryIndex() {
+      return dictionaryIndex;
+    }
+
+    @Override
+    public int incrementDictionaryIndex() {
+      return dictionaryIndex++;
+    }
+
+    @Override
+    public int incrementNameIndex(boolean isDirectMethodCall) {
+      assert !isDirectMethodCall;
+      return nameIndex++;
+    }
   }
 
   protected interface ClassNamingStrategy {
-
-    DexString next(Namespace namespace, DexType type, char[] packagePrefix);
-
-    boolean bypassDictionary();
+    DexString next(DexType type, char[] packagePrefix, InternalNamingState state);
 
     boolean noObfuscation(DexType type);
   }
 
   protected interface PackageNamingStrategy {
-
-    String next(Namespace namespace, char[] packagePrefix);
-
-    boolean bypassDictionary();
+    String next(char[] packagePrefix, InternalNamingState state);
   }
 
   /**

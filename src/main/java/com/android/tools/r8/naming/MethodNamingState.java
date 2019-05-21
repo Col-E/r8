@@ -7,7 +7,6 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.naming.MemberNamingStrategy.MemberNamingInternalState;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
@@ -131,7 +130,7 @@ class MethodNamingState<KeyType> {
     }
   }
 
-  class InternalState implements MemberNamingInternalState {
+  class InternalState implements InternalNamingState {
 
     private static final int INITIAL_NAME_COUNT = 1;
     private static final int INITIAL_DICTIONARY_INDEX = 0;
