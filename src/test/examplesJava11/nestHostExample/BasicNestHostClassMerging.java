@@ -19,6 +19,7 @@ public class BasicNestHostClassMerging {
 
   public static class InnerMost extends MiddleInner {
 
+    @NeverInline
     public String getFields() {
       return ((BasicNestHostClassMerging) this).field
           + ((MiddleOuter) this).field

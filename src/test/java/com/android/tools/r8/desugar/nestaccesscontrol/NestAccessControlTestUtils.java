@@ -43,6 +43,16 @@ public class NestAccessControlTestUtils {
           "BasicNestHostTreePruning",
           "BasicNestHostTreePruning$Pruned",
           "BasicNestHostTreePruning$NotPruned",
+          "NestHostInlining",
+          "NestHostInlining$InnerWithPrivAccess",
+          "NestHostInlining$InnerNoPrivAccess",
+          "NestHostInlining$EmptyNoPrivAccess",
+          "NestHostInlining$EmptyWithPrivAccess",
+          "NestHostInliningSubclasses",
+          "NestHostInliningSubclasses$InnerWithPrivAccess",
+          "NestHostInliningSubclasses$InnerNoPrivAccess",
+          "OutsideInliningNoAccess",
+          "OutsideInliningWithAccess",
           "NestHostExample",
           "NestHostExample$NestMemberInner",
           "NestHostExample$NestMemberInner$NestMemberInnerInner",
@@ -65,6 +75,8 @@ public class NestAccessControlTestUtils {
           .put("all", "NestHostExample")
           .put("merge", "BasicNestHostClassMerging")
           .put("prune", "BasicNestHostTreePruning")
+          .put("inlining", "NestHostInlining")
+          .put("inliningSub", "NestHostInliningSubclasses")
           .build();
   public static final String ALL_RESULT_LINE =
       String.join(

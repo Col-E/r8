@@ -174,11 +174,15 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
   }
 
   public T enableInliningAnnotations() {
+    return enableInliningAnnotations(NeverInline.class.getPackage().getName());
+  }
+
+  public T enableInliningAnnotations(String annotationPackageName) {
     if (!enableInliningAnnotations) {
       enableInliningAnnotations = true;
       addInternalKeepRules(
-          "-forceinline class * { @com.android.tools.r8.ForceInline *; }",
-          "-neverinline class * { @com.android.tools.r8.NeverInline *; }");
+          "-forceinline class * { @" + annotationPackageName + ".ForceInline *; }",
+          "-neverinline class * { @" + annotationPackageName + ".NeverInline *; }");
     }
     return self();
   }

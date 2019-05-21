@@ -156,18 +156,22 @@ public class FullNestOnProgramPathTest extends TestBase {
     // Interface method desugaring may add extra classes
     assertTrue(NUMBER_OF_TEST_CLASSES <= inspector.allClasses().size());
     ImmutableList<String> outerClassNames = MAIN_CLASSES.values().asList();
+    ImmutableList<String> nonNestClasses =
+        ImmutableList.of("NeverInline", "OutsideInliningNoAccess", "OutsideInliningWithAccess");
     inspector.forAllClasses(
         classSubject -> {
           DexClass dexClass = classSubject.getDexClass();
-          assertTrue(dexClass.isInANest());
-          if (outerClassNames.contains(dexClass.type.getName())) {
-            assertNull(dexClass.getNestHostClassAttribute());
-            assertFalse(dexClass.getNestMembersClassAttributes().isEmpty());
-          } else {
-            assertTrue(dexClass.getNestMembersClassAttributes().isEmpty());
-            assertTrue(
-                outerClassNames.contains(
-                    dexClass.getNestHostClassAttribute().getNestHost().getName()));
+          if (!nonNestClasses.contains(dexClass.type.getName())) {
+            assertTrue(dexClass.isInANest());
+            if (outerClassNames.contains(dexClass.type.getName())) {
+              assertNull(dexClass.getNestHostClassAttribute());
+              assertFalse(dexClass.getNestMembersClassAttributes().isEmpty());
+            } else {
+              assertTrue(dexClass.getNestMembersClassAttributes().isEmpty());
+              assertTrue(
+                  outerClassNames.contains(
+                      dexClass.getNestHostClassAttribute().getNestHost().getName()));
+            }
           }
         });
   }

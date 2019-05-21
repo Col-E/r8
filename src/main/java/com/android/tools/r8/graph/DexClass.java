@@ -855,8 +855,10 @@ public abstract class DexClass extends DexDefinition {
     if (isNestMember()) {
       return nestHost.getNestHost();
     }
-    assert isNestHost();
-    return type;
+    if (isNestHost()) {
+      return type;
+    }
+    return null;
   }
 
   public NestHostClassAttribute getNestHostClassAttribute() {

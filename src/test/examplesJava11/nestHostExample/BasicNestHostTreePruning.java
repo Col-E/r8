@@ -6,6 +6,7 @@ public class BasicNestHostTreePruning {
 
   public static class NotPruned extends BasicNestHostTreePruning {
 
+    @NeverInline
     public String getFields() {
       return ((BasicNestHostTreePruning) this).field;
     }

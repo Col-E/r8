@@ -6,6 +6,7 @@ package com.android.tools.r8.desugar.nestaccesscontrol;
 
 import static com.android.tools.r8.desugar.nestaccesscontrol.NestAccessControlTestUtils.PACKAGE_NAME;
 import static com.android.tools.r8.desugar.nestaccesscontrol.NestAccessControlTestUtils.classesMatching;
+import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertNotNull;
 import static junit.framework.TestCase.assertSame;
 import static junit.framework.TestCase.assertTrue;
@@ -49,49 +50,65 @@ public class NestAttributesUpdateTest extends TestBase {
 
   @Test
   public void testClassMergingNestMemberRemoval() throws Exception {
-    testNestAttributesCorrect(MERGING_OUTER_CLASS, MERGING_OUTER_CLASS, MERGING_EXPECTED_RESULT);
+    testNestAttributesCorrect(MERGING_OUTER_CLASS, MERGING_OUTER_CLASS, MERGING_EXPECTED_RESULT, 3);
   }
 
   @Test
   public void testClassMergingNestHostRemoval() throws Exception {
     testNestAttributesCorrect(
-        MERGING_OUTER_CLASS + "$MiddleOuter", MERGING_OUTER_CLASS, MERGING_EXPECTED_RESULT);
+        MERGING_OUTER_CLASS + "$MiddleOuter", MERGING_OUTER_CLASS, MERGING_EXPECTED_RESULT, 2);
   }
 
   @Test
   public void testTreePruningNestMemberRemoval() throws Exception {
-    testNestAttributesCorrect(PRUNING_OUTER_CLASS, PRUNING_OUTER_CLASS, PRUNING_EXPECTED_RESULT);
+    testNestAttributesCorrect(PRUNING_OUTER_CLASS, PRUNING_OUTER_CLASS, PRUNING_EXPECTED_RESULT, 2);
   }
 
   @Test
   public void testTreePruningNestHostRemoval() throws Exception {
     testNestAttributesCorrect(
-        PRUNING_OUTER_CLASS + "$Pruned", PRUNING_OUTER_CLASS, PRUNING_EXPECTED_RESULT);
+        PRUNING_OUTER_CLASS + "$Pruned", PRUNING_OUTER_CLASS, PRUNING_EXPECTED_RESULT, 1);
   }
 
   public void testNestAttributesCorrect(
-      String mainClassName, String outerNestName, String expectedResult) throws Exception {
-    testNestAttributesCorrect(mainClassName, outerNestName, expectedResult, true);
-    testNestAttributesCorrect(mainClassName, outerNestName, expectedResult, false);
+      String mainClassName, String outerNestName, String expectedResult, int expectedNumClassesLeft)
+      throws Exception {
+    testNestAttributesCorrect(
+        mainClassName, outerNestName, expectedResult, true, expectedNumClassesLeft);
+    testNestAttributesCorrect(
+        mainClassName, outerNestName, expectedResult, false, expectedNumClassesLeft);
   }
 
   public void testNestAttributesCorrect(
-      String mainClassName, String outerNestName, String expectedResult, boolean minification)
+      String mainClassName,
+      String outerNestName,
+      String expectedResult,
+      boolean minification,
+      int expectedNumClassesLeft)
       throws Exception {
     String actualMainClassName = PACKAGE_NAME + mainClassName;
     testForR8(parameters.getBackend())
         .addKeepMainRule(actualMainClassName)
         .minification(minification)
         .setMinApi(parameters.getApiLevel())
+        .addOptionsModification(
+            options -> {
+              // Disable optimizations else additional classes are removed since they become unused.
+              options.enableValuePropagation = false;
+              options.enableClassInlining = false;
+            })
         .addProgramFiles(classesMatching(outerNestName))
-        .addOptionsModification(options -> options.enableNestBasedAccessDesugaring = true)
         .compile()
-        .inspect(this::assertNestAttributesCorrect)
+        .inspect(
+            inspector -> {
+              assertEquals(expectedNumClassesLeft, inspector.allClasses().size());
+              assertNestAttributesCorrect(inspector);
+            })
         .run(parameters.getRuntime(), actualMainClassName)
         .assertSuccessWithOutput(expectedResult);
   }
 
-  private void assertNestAttributesCorrect(CodeInspector inspector) {
+  public static void assertNestAttributesCorrect(CodeInspector inspector) {
     assertTrue(inspector.allClasses().size() > 0);
     for (FoundClassSubject classSubject : inspector.allClasses()) {
       DexClass clazz = classSubject.getDexClass();

@@ -131,6 +131,7 @@ public class VerticalClassMerger {
     ALWAYS_INLINE,
     CONFLICT,
     ILLEGAL_ACCESS,
+    MERGE_ACROSS_NESTS,
     NATIVE_METHOD,
     NO_SIDE_EFFECTS,
     PINNED_SOURCE,
@@ -160,6 +161,9 @@ public class VerticalClassMerger {
           break;
         case ILLEGAL_ACCESS:
           message = "it could lead to illegal accesses";
+          break;
+        case MERGE_ACROSS_NESTS:
+          message = "cannot merge across nests, or from nest to non-nest";
           break;
         case NATIVE_METHOD:
           message = "it has a native method";
@@ -404,6 +408,15 @@ public class VerticalClassMerger {
       // TODO(herhut): Consider supporting merging of enclosing-method and inner-class attributes.
       if (Log.ENABLED) {
         AbortReason.UNSUPPORTED_ATTRIBUTES.printLogMessageForClass(clazz);
+      }
+      return false;
+    }
+    DexClass targetClass = appView.definitionFor(singleSubtype);
+    // We abort class merging when merging across nests or from a nest to non-nest.
+    // Without nest this checks null == null.
+    if (targetClass.getNestHost() != clazz.getNestHost()) {
+      if (Log.ENABLED) {
+        AbortReason.MERGE_ACROSS_NESTS.printLogMessageForClass(clazz);
       }
       return false;
     }

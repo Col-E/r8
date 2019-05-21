@@ -273,6 +273,10 @@ public class StaticClassMerger {
     if (!clazz.virtualMethods().stream().allMatch(DexEncodedMethod::isPrivateMethod)) {
       return MergeGroup.DONT_MERGE;
     }
+    if (clazz.isInANest()) {
+      // Breaks nest access control, abort merging.
+      return MergeGroup.DONT_MERGE;
+    }
     if (Streams.stream(clazz.methods())
         .anyMatch(
             method ->
