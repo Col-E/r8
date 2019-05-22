@@ -457,8 +457,8 @@ public class ProguardConfigurationParser {
 
     private boolean parseIgnoredOption(TextPosition optionStart) {
       return Iterables.any(IGNORED_SINGLE_ARG_OPTIONS, this::skipOptionWithSingleArg)
-          || Iterables.any(IGNORED_OPTIONAL_SINGLE_ARG_OPTIONS,
-                           this::skipOptionWithOptionalSingleArg)
+          || Iterables.any(
+              IGNORED_OPTIONAL_SINGLE_ARG_OPTIONS, this::skipOptionWithOptionalSingleArg)
           || Iterables.any(IGNORED_FLAG_OPTIONS, this::skipFlag)
           || Iterables.any(IGNORED_CLASS_DESCRIPTOR_OPTIONS, this::skipOptionWithClassSpec)
           || parseOptimizationOption(optionStart);
@@ -822,9 +822,7 @@ public class ProguardConfigurationParser {
       }
     }
 
-    private ProguardTypeMatcher parseAnnotation()
-      throws ProguardRuleParserException {
-
+    private ProguardTypeMatcher parseAnnotation() throws ProguardRuleParserException {
       skipWhitespace();
       int startPosition = position;
       if (acceptChar('@')) {
@@ -1038,6 +1036,10 @@ public class ProguardConfigurationParser {
         ruleBuilder.setRuleType(ProguardMemberType.INIT);
         ruleBuilder.setName(IdentifierPatternWithWildcards.withoutWildcards("<init>"));
         ruleBuilder.setArguments(parseArgumentList());
+      } else if (acceptString("<clinit>")) {
+        ruleBuilder.setRuleType(ProguardMemberType.CLINIT);
+        ruleBuilder.setName(IdentifierPatternWithWildcards.withoutWildcards("<clinit>"));
+        ruleBuilder.setArguments(parseArgumentList());
       } else {
         TextPosition firstStart = getPosition();
         IdentifierPatternWithWildcards first =
@@ -1047,90 +1049,122 @@ public class ProguardConfigurationParser {
           if (first.pattern.equals("*") && hasNextChar(';')) {
             ruleBuilder.setRuleType(ProguardMemberType.ALL);
           } else {
+            // No return type present, only method name, most likely constructors.
             if (hasNextChar('(')) {
+              // "<init>" and "<clinit>" are explicitly checked, so angular brackets can't appear.
+              checkConstructorPattern(first, firstStart);
               ruleBuilder.setRuleType(ProguardMemberType.CONSTRUCTOR);
               ruleBuilder.setName(first);
               ruleBuilder.setArguments(parseArgumentList());
             } else {
-              TextPosition secondStart = getPosition();
-              IdentifierPatternWithWildcards second =
-                  acceptIdentifierWithBackreference(IdentifierType.ANY);
-              if (second != null) {
-                skipWhitespace();
-                if (hasNextChar('(')) {
-                  ruleBuilder.setRuleType(ProguardMemberType.METHOD);
-                  ruleBuilder.setName(second);
-                  ruleBuilder
-                      .setTypeMatcher(
-                          ProguardTypeMatcher.create(first, ClassOrType.TYPE, dexItemFactory));
-                  ruleBuilder.setArguments(parseArgumentList());
-                } else {
-                  if (first.hasUnusualCharacters()) {
-                    warnUnusualCharacters("type", first.pattern, "field", firstStart);
-                  }
-                  if (second.hasUnusualCharacters()) {
-                    warnUnusualCharacters("field name", second.pattern, "field", secondStart);
-                  }
-                  ruleBuilder.setRuleType(ProguardMemberType.FIELD);
-                  ruleBuilder.setName(second);
-                  ruleBuilder
-                      .setTypeMatcher(
-                          ProguardTypeMatcher.create(first, ClassOrType.TYPE, dexItemFactory));
+              if (acceptString("<init>")) {
+                ProguardTypeMatcher typeMatcher =
+                    ProguardTypeMatcher.create(first, ClassOrType.TYPE, dexItemFactory);
+                if (!typeMatcher.matchesSpecificType()
+                    || !typeMatcher.getSpecificType().isVoidType()) {
+                  throw parseError("Expected [access-flag]* void <init>");
                 }
-                skipWhitespace();
-                // Parse "return ..." if present.
-                if (acceptString("return")) {
+                ruleBuilder.setRuleType(ProguardMemberType.INIT);
+                ruleBuilder.setName(IdentifierPatternWithWildcards.withoutWildcards("<init>"));
+                ruleBuilder.setTypeMatcher(typeMatcher);
+                ruleBuilder.setArguments(parseArgumentList());
+              } else if (acceptString("<clinit>")) {
+                ProguardTypeMatcher typeMatcher =
+                    ProguardTypeMatcher.create(first, ClassOrType.TYPE, dexItemFactory);
+                if (!typeMatcher.matchesSpecificType()
+                    || !typeMatcher.getSpecificType().isVoidType()) {
+                  throw parseError("Expected [access-flag]* void <clinit>");
+                }
+                ruleBuilder.setRuleType(ProguardMemberType.CLINIT);
+                ruleBuilder.setName(IdentifierPatternWithWildcards.withoutWildcards("<clinit>"));
+                ruleBuilder.setTypeMatcher(typeMatcher);
+                ruleBuilder.setArguments(parseArgumentList());
+              } else {
+                TextPosition secondStart = getPosition();
+                IdentifierPatternWithWildcards second =
+                    acceptIdentifierWithBackreference(IdentifierType.ANY);
+                if (second != null) {
                   skipWhitespace();
-                  if (acceptString("true")) {
-                    ruleBuilder.setReturnValue(new ProguardMemberRuleReturnValue(true));
-                  } else if (acceptString("false")) {
-                    ruleBuilder.setReturnValue(new ProguardMemberRuleReturnValue(false));
-                  } else if (acceptString("null")) {
-                    ruleBuilder.setReturnValue(new ProguardMemberRuleReturnValue());
+                  if (hasNextChar('(')) {
+                    // Parsing legitimate constructor patters is already done, so angular brackets
+                    // can't appear, except for legitimate back references.
+                    if (!second.hasBackreference() || second.hasUnusualCharacters()) {
+                      checkConstructorPattern(second, secondStart);
+                    }
+                    ruleBuilder.setRuleType(ProguardMemberType.METHOD);
+                    ruleBuilder.setName(second);
+                    ruleBuilder
+                        .setTypeMatcher(
+                            ProguardTypeMatcher.create(first, ClassOrType.TYPE, dexItemFactory));
+                    ruleBuilder.setArguments(parseArgumentList());
                   } else {
-                    TextPosition fieldOrValueStart = getPosition();
-                    String qualifiedFieldNameOrInteger = acceptFieldNameOrIntegerForReturn();
-                    if (qualifiedFieldNameOrInteger != null) {
-                      if (isInteger(qualifiedFieldNameOrInteger)) {
-                        Integer min = Integer.parseInt(qualifiedFieldNameOrInteger);
-                        Integer max = min;
-                        skipWhitespace();
-                        if (acceptString("..")) {
+                    if (first.hasUnusualCharacters()) {
+                      warnUnusualCharacters("type", first.pattern, "field", firstStart);
+                    }
+                    if (second.hasUnusualCharacters()) {
+                      warnUnusualCharacters("field name", second.pattern, "field", secondStart);
+                    }
+                    ruleBuilder.setRuleType(ProguardMemberType.FIELD);
+                    ruleBuilder.setName(second);
+                    ruleBuilder
+                        .setTypeMatcher(
+                            ProguardTypeMatcher.create(first, ClassOrType.TYPE, dexItemFactory));
+                  }
+                  skipWhitespace();
+                  // Parse "return ..." if present.
+                  if (acceptString("return")) {
+                    skipWhitespace();
+                    if (acceptString("true")) {
+                      ruleBuilder.setReturnValue(new ProguardMemberRuleReturnValue(true));
+                    } else if (acceptString("false")) {
+                      ruleBuilder.setReturnValue(new ProguardMemberRuleReturnValue(false));
+                    } else if (acceptString("null")) {
+                      ruleBuilder.setReturnValue(new ProguardMemberRuleReturnValue());
+                    } else {
+                      TextPosition fieldOrValueStart = getPosition();
+                      String qualifiedFieldNameOrInteger = acceptFieldNameOrIntegerForReturn();
+                      if (qualifiedFieldNameOrInteger != null) {
+                        if (isInteger(qualifiedFieldNameOrInteger)) {
+                          Integer min = Integer.parseInt(qualifiedFieldNameOrInteger);
+                          Integer max = min;
                           skipWhitespace();
-                          max = acceptInteger();
-                          if (max == null) {
-                            throw parseError("Expected integer value");
+                          if (acceptString("..")) {
+                            skipWhitespace();
+                            max = acceptInteger();
+                            if (max == null) {
+                              throw parseError("Expected integer value");
+                            }
                           }
-                        }
-                        if (!allowValueSpecification) {
-                          throw parseError("Unexpected value specification", fieldOrValueStart);
-                        }
-                        ruleBuilder.setReturnValue(
-                            new ProguardMemberRuleReturnValue(new LongInterval(min, max)));
-                      } else {
-                        if (ruleBuilder.getTypeMatcher() instanceof MatchSpecificType) {
-                          int lastDotIndex = qualifiedFieldNameOrInteger.lastIndexOf(".");
-                          DexType fieldType = ((MatchSpecificType) ruleBuilder
-                              .getTypeMatcher()).type;
-                          DexType fieldClass =
-                              dexItemFactory.createType(
-                                  javaTypeToDescriptor(
-                                      qualifiedFieldNameOrInteger.substring(0, lastDotIndex)));
-                          DexString fieldName =
-                              dexItemFactory.createString(
-                                  qualifiedFieldNameOrInteger.substring(lastDotIndex + 1));
-                          DexField field = dexItemFactory
-                              .createField(fieldClass, fieldType, fieldName);
-                          ruleBuilder.setReturnValue(new ProguardMemberRuleReturnValue(field));
+                          if (!allowValueSpecification) {
+                            throw parseError("Unexpected value specification", fieldOrValueStart);
+                          }
+                          ruleBuilder.setReturnValue(
+                              new ProguardMemberRuleReturnValue(new LongInterval(min, max)));
                         } else {
-                          throw parseError("Expected specific type", fieldOrValueStart);
+                          if (ruleBuilder.getTypeMatcher() instanceof MatchSpecificType) {
+                            int lastDotIndex = qualifiedFieldNameOrInteger.lastIndexOf(".");
+                            DexType fieldType = ((MatchSpecificType) ruleBuilder
+                                .getTypeMatcher()).type;
+                            DexType fieldClass =
+                                dexItemFactory.createType(
+                                    javaTypeToDescriptor(
+                                        qualifiedFieldNameOrInteger.substring(0, lastDotIndex)));
+                            DexString fieldName =
+                                dexItemFactory.createString(
+                                    qualifiedFieldNameOrInteger.substring(lastDotIndex + 1));
+                            DexField field = dexItemFactory
+                                .createField(fieldClass, fieldType, fieldName);
+                            ruleBuilder.setReturnValue(new ProguardMemberRuleReturnValue(field));
+                          } else {
+                            throw parseError("Expected specific type", fieldOrValueStart);
+                          }
                         }
                       }
                     }
                   }
+                } else {
+                  throw parseError("Expected field or method name");
                 }
-              } else {
-                throw parseError("Expected field or method name");
               }
             }
           }
@@ -1140,6 +1174,23 @@ public class ProguardConfigurationParser {
       if (ruleBuilder.isValid()) {
         skipWhitespace();
         expectChar(';');
+      }
+    }
+
+    private void checkConstructorPattern(
+        IdentifierPatternWithWildcards pattern, TextPosition position)
+        throws ProguardRuleParserException {
+      if (pattern.pattern.equals("<clinit>")) {
+        reporter.warning(
+            new StringDiagnostic("Member rule for <clinit> has no effect.", origin, position));
+        return;
+      }
+      if (pattern.pattern.contains("<")) {
+        throw parseError("Unexpected character '<' in method name. "
+            + "The character '<' is only allowed in the method name '<init>'.", position);
+      } else if (pattern.pattern.contains(">")) {
+        throw parseError("Unexpected character '>' in method name. "
+            + "The character '>' is only allowed in the method name '<init>'.", position);
       }
     }
 
@@ -1887,19 +1938,19 @@ public class ProguardConfigurationParser {
       return start instanceof TextPosition && end instanceof TextPosition
           ? getTextSourceSnippet(source, (TextPosition) start, (TextPosition) end)
           : null;
-      }
     }
+  }
 
-    private String getTextSourceSnippet(String source, TextPosition start, TextPosition end) {
-      long length = end.getOffset() - start.getOffset();
-      if (start.getOffset() < 0 || end.getOffset() < 0
-          || start.getOffset() >= source.length() || end.getOffset() > source.length()
-          || length <= 0) {
-        return null;
-      } else {
-        return source.substring((int) start.getOffset(), (int) end.getOffset());
-      }
+  private String getTextSourceSnippet(String source, TextPosition start, TextPosition end) {
+    long length = end.getOffset() - start.getOffset();
+    if (start.getOffset() < 0 || end.getOffset() < 0
+        || start.getOffset() >= source.length() || end.getOffset() > source.length()
+        || length <= 0) {
+      return null;
+    } else {
+      return source.substring((int) start.getOffset(), (int) end.getOffset());
     }
+  }
 
   static class IdentifierPatternWithWildcards {
     final String pattern;
@@ -1916,6 +1967,11 @@ public class ProguardConfigurationParser {
 
     boolean isMatchAllNames() {
       return pattern.equals("*");
+    }
+
+    boolean hasBackreference() {
+      return !wildcards.isEmpty()
+          && wildcards.stream().anyMatch(ProguardWildcard::isBackReference);
     }
 
     boolean hasUnusualCharacters() {

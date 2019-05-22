@@ -9,6 +9,7 @@ public enum ProguardMemberType {
   ALL_FIELDS,
   ALL,
   ALL_METHODS,
+  CLINIT,
   INIT,
   CONSTRUCTOR,
   METHOD;

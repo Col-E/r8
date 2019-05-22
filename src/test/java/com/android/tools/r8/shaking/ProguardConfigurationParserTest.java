@@ -5,6 +5,7 @@ package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.DiagnosticsChecker.checkDiagnostics;
 import static com.android.tools.r8.shaking.ProguardConfigurationSourceStrings.createConfigurationForTesting;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -12,7 +13,6 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -27,6 +27,7 @@ import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.position.TextRange;
 import com.android.tools.r8.shaking.ProguardConfigurationParser.IdentifierPatternWithWildcards;
+import com.android.tools.r8.shaking.constructor.InitMatchingTest;
 import com.android.tools.r8.utils.AbortException;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
@@ -616,16 +617,16 @@ public class ProguardConfigurationParserTest extends TestBase {
         new ProguardConfigurationParser(new DexItemFactory(), reporter);
     String config1 =
         "-identifiernamestring class a.b.c.*GeneratedClass {\n"
-        + "  static java.lang.String CONTAINING_TYPE_*;\n"
-        + "}";
+            + "  static java.lang.String CONTAINING_TYPE_*;\n"
+            + "}";
     String config2 =
         "-identifiernamestring class x.y.z.ReflectionBasedFactory {\n"
-        + "  private static java.lang.reflect.Field field(java.lang.Class,java.lang.String);\n"
-        + "}";
+            + "  private static java.lang.reflect.Field field(java.lang.Class,java.lang.String);\n"
+            + "}";
     String config3 =
         "-identifiernamestring class * {\n"
-        + "  @my.annotations.IdentifierNameString *;\n"
-        + "}";
+            + "  @my.annotations.IdentifierNameString *;\n"
+            + "}";
     parser.parse(createConfigurationForTesting(ImmutableList.of(config1, config2, config3)));
     verifyParserEndsCleanly();
     ProguardConfiguration config = parser.getConfig();
@@ -1694,6 +1695,157 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
+  public void parse_if_fieldType() throws Exception {
+    Path proguardConfig = writeTextToTempFile(
+        "-if class **.R*",
+        "-keep class **.D<2> {",
+        "  <1>.F<2> fld;",
+        "}"
+    );
+    ProguardConfigurationParser parser =
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
+    parser.parse(proguardConfig);
+    verifyParserEndsCleanly();
+    ProguardConfiguration config = parser.getConfig();
+    assertEquals(1, config.getRules().size());
+    ProguardIfRule if0 = (ProguardIfRule) config.getRules().get(0);
+    assertEquals("**.R*", if0.getClassNames().toString());
+    assertEquals(ProguardKeepRuleType.KEEP, if0.subsequentRule.getType());
+    assertEquals("**.D<2>", if0.subsequentRule.getClassNames().toString());
+    assertEquals(1, if0.subsequentRule.getMemberRules().size());
+    ProguardMemberRule fieldRule = if0.subsequentRule.getMemberRules().get(0);
+    assertEquals("<1>.F<2>", fieldRule.getType().toString());
+
+    verifyWithProguard6(proguardConfig);
+  }
+
+  @Test
+  public void parse_if_fieldName() throws Exception {
+    Path proguardConfig = writeTextToTempFile(
+        "-if class **.R*",
+        "-keep class **.D<2> {",
+        "  java.lang.String fld<2>;",
+        "}"
+    );
+    ProguardConfigurationParser parser =
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
+    parser.parse(proguardConfig);
+    verifyParserEndsCleanly();
+    ProguardConfiguration config = parser.getConfig();
+    assertEquals(1, config.getRules().size());
+    ProguardIfRule if0 = (ProguardIfRule) config.getRules().get(0);
+    assertEquals("**.R*", if0.getClassNames().toString());
+    assertEquals(ProguardKeepRuleType.KEEP, if0.subsequentRule.getType());
+    assertEquals("**.D<2>", if0.subsequentRule.getClassNames().toString());
+    assertEquals(1, if0.subsequentRule.getMemberRules().size());
+    ProguardMemberRule fieldRule = if0.subsequentRule.getMemberRules().get(0);
+    assertEquals("fld<2>", fieldRule.getName().toString());
+
+    verifyWithProguard6(proguardConfig);
+  }
+
+  @Test
+  public void parse_if_returnType() throws Exception {
+    Path proguardConfig = writeTextToTempFile(
+        "-if class **.R*",
+        "-keep class **.D<2> {",
+        "  <1>.M<2> mtd(...);",
+        "}"
+    );
+    ProguardConfigurationParser parser =
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
+    parser.parse(proguardConfig);
+    verifyParserEndsCleanly();
+    ProguardConfiguration config = parser.getConfig();
+    assertEquals(1, config.getRules().size());
+    ProguardIfRule if0 = (ProguardIfRule) config.getRules().get(0);
+    assertEquals("**.R*", if0.getClassNames().toString());
+    assertEquals(ProguardKeepRuleType.KEEP, if0.subsequentRule.getType());
+    assertEquals("**.D<2>", if0.subsequentRule.getClassNames().toString());
+    assertEquals(1, if0.subsequentRule.getMemberRules().size());
+    ProguardMemberRule methodRule = if0.subsequentRule.getMemberRules().get(0);
+    assertEquals("<1>.M<2>", methodRule.getType().toString());
+
+    verifyWithProguard6(proguardConfig);
+  }
+
+  @Test
+  public void parse_if_init() throws Exception {
+    Path proguardConfig = writeTextToTempFile(
+        "-if class **.R* {",
+        "  void *(...);",
+        "}",
+        "-keep class **.D<2> {",
+        "  <3>(...);",
+        "}"
+    );
+    try {
+      parser.parse(proguardConfig);
+      fail("Expect to fail due to unsupported constructor name pattern.");
+    } catch (AbortException e) {
+      checkDiagnostics(
+          handler.errors, proguardConfig, 5, 3, "Unexpected character", "method name");
+    }
+
+    verifyFailWithProguard6(proguardConfig, "Expecting type and name instead of just '<3>'");
+  }
+
+  @Test
+  public void parse_if_methodName_void() throws Exception {
+    Path proguardConfig = writeTextToTempFile(
+        "-if class **.R* {",
+        "  void *(...);",
+        "}",
+        "-keep class **.D<2> {",
+        "  void <3>_delegate(...);",
+        "}"
+    );
+    ProguardConfigurationParser parser =
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
+    parser.parse(proguardConfig);
+    verifyParserEndsCleanly();
+    ProguardConfiguration config = parser.getConfig();
+    assertEquals(1, config.getRules().size());
+    ProguardIfRule if0 = (ProguardIfRule) config.getRules().get(0);
+    assertEquals("**.R*", if0.getClassNames().toString());
+    assertEquals(ProguardKeepRuleType.KEEP, if0.subsequentRule.getType());
+    assertEquals("**.D<2>", if0.subsequentRule.getClassNames().toString());
+    assertEquals(1, if0.subsequentRule.getMemberRules().size());
+    ProguardMemberRule methodRule = if0.subsequentRule.getMemberRules().get(0);
+    assertEquals("<3>_delegate", methodRule.getName().toString());
+
+    verifyWithProguard6(proguardConfig);
+  }
+
+  @Test
+  public void parse_if_methodName_class() throws Exception {
+    Path proguardConfig = writeTextToTempFile(
+        "-if class **.R* {",
+        "  ** *(...);",
+        "}",
+        "-keep class **.D<2> {",
+        "  <3> <4>(...);",
+        "}"
+    );
+    ProguardConfigurationParser parser =
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
+    parser.parse(proguardConfig);
+    verifyParserEndsCleanly();
+    ProguardConfiguration config = parser.getConfig();
+    assertEquals(1, config.getRules().size());
+    ProguardIfRule if0 = (ProguardIfRule) config.getRules().get(0);
+    assertEquals("**.R*", if0.getClassNames().toString());
+    assertEquals(ProguardKeepRuleType.KEEP, if0.subsequentRule.getType());
+    assertEquals("**.D<2>", if0.subsequentRule.getClassNames().toString());
+    assertEquals(1, if0.subsequentRule.getMemberRules().size());
+    ProguardMemberRule methodRule = if0.subsequentRule.getMemberRules().get(0);
+    assertEquals("<3>", methodRule.getType().toString());
+    assertEquals("<4>", methodRule.getName().toString());
+
+    verifyWithProguard6(proguardConfig);
+  }
+
+  @Test
   public void parse_if_nthWildcard_notNumber_literalN() throws Exception {
     Path proguardConfig = writeTextToTempFile(
         "-if class **$R**",
@@ -1874,7 +2026,8 @@ public class ProguardConfigurationParserTest extends TestBase {
       checkDiagnostics(handler.errors, proguardConfig, 5, 1,
           "Wildcard", "<3>", "invalid");
     }
-    verifyFailWithProguard6(proguardConfig, "Invalid reference to wildcard (3,");
+    verifyFailWithProguard6(
+        proguardConfig, "Use of generics not allowed for java type at '<1>.<3><2>'");
   }
 
   @Test
@@ -2415,6 +2568,12 @@ public class ProguardConfigurationParserTest extends TestBase {
     return parser.getConfig();
   }
 
+  private ProguardConfiguration parseAndVerifyParserEndsCleanly(Path config) {
+    parser.parse(config);
+    verifyParserEndsCleanly();
+    return parser.getConfig();
+  }
+
   private void verifyParserEndsCleanly() {
     assertEquals(0, handler.infos.size());
     assertEquals(0, handler.warnings.size());
@@ -2570,6 +2729,52 @@ public class ProguardConfigurationParserTest extends TestBase {
           30,
           "Unexpected character '!': "
               + "The negation character can only be used to negate access flags");
+    }
+  }
+
+  @Test
+  public void parseInits() throws Exception {
+    for (String initName : InitMatchingTest.ALLOWED_INIT_NAMES) {
+      reset();
+      Path initConfig = writeTextToTempFile(
+          "-keep class **.MyClass {",
+          "  " + initName + "(...);",
+          "}");
+      parseAndVerifyParserEndsCleanly(initConfig);
+    }
+
+    for (String initName : InitMatchingTest.INIT_NAMES) {
+      // Tested above.
+      if (InitMatchingTest.ALLOWED_INIT_NAMES.contains(initName)) {
+        continue;
+      }
+      reset();
+      Path proguardConfig = writeTextToTempFile(
+          "-keep class **.MyClass {",
+          "  " + initName + "(...);",
+          "}");
+      try {
+        parser.parse(proguardConfig);
+        fail("Expect to fail due to unsupported constructor name pattern.");
+      } catch (AbortException e) {
+        int column = initName.contains("void") ? initName.indexOf("void") + 8
+            : (initName.contains("XYZ") ? initName.indexOf(">") + 4 : 3);
+        if (initName.contains("XYZ")) {
+          checkDiagnostics(
+              handler.errors, proguardConfig, 2, column, "Expected [access-flag]* void ");
+        } else {
+          checkDiagnostics(
+              handler.errors, proguardConfig, 2, column, "Unexpected character", "method name");
+        }
+      }
+      // For some exceptional cases, Proguard accepts the rules but fails with an empty jar message.
+      if (initName.contains("<init>")
+          || initName.contains("<clinit>")
+          || initName.contains("void")) {
+        continue;
+      }
+      verifyFailWithProguard6(
+          proguardConfig, "Expecting type and name instead of just '" + initName + "'");
     }
   }
 }

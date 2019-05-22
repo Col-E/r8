@@ -201,6 +201,7 @@ public class ProguardMemberRule {
         }
         return true;
       case ALL_METHODS:
+      case CLINIT:
       case INIT:
       case CONSTRUCTOR:
       case METHOD:
@@ -233,6 +234,7 @@ public class ProguardMemberRule {
         // Fall through for access flags, name and arguments.
       case CONSTRUCTOR:
       case INIT:
+      case CLINIT:
         // Name check.
         String name = stringCache.lookupString(originalSignature.name);
         if (!getName().matches(name)) {
@@ -371,6 +373,7 @@ public class ProguardMemberRule {
         result.append(' ');
         // Fall through for rest of method signature.
       case CONSTRUCTOR:
+      case CLINIT:
       case INIT: {
         result.append(getName());
         result.append('(');
