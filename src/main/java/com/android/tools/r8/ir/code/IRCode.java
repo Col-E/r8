@@ -665,6 +665,7 @@ public class IRCode {
   private boolean validThrowingInstructions() {
     for (BasicBlock block : blocks) {
       if (block.hasCatchHandlers()) {
+        assert block != entryBlock();
         for (BasicBlock handler : block.getCatchHandlers().getUniqueTargets()) {
           // Ensure that catch handlers are always split edges for a well-formed SSA graph.
           assert handler.getPredecessors().size() == 1;
