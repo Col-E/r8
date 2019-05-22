@@ -148,7 +148,6 @@ public class IRConverter {
 
   private final OptimizationFeedbackDelayed delayedOptimizationFeedback =
       new OptimizationFeedbackDelayed();
-  private final OptimizationFeedback ignoreOptimizationFeedback = new OptimizationFeedbackIgnore();
   private final OptimizationFeedback simpleOptimizationFeedback = new OptimizationFeedbackSimple();
   private DexString highestSortingString;
 
@@ -598,7 +597,7 @@ public class IRConverter {
             (code, method) -> {
               outliner.applyOutliningCandidate(code, method);
               printMethod(code, "IR after outlining (SSA)", null);
-              finalizeIR(method, code, ignoreOptimizationFeedback);
+              finalizeIR(method, code, OptimizationFeedbackIgnore.getInstance());
             });
         assert outliner.checkAllOutlineSitesFoundAgain();
         builder.addSynthesizedClass(outlineClass, true);
@@ -962,7 +961,7 @@ public class IRConverter {
     previous = printMethod(code, "IR after null tracking (SSA)", previous);
 
     if (!isDebugMode && options.enableInlining && inliner != null) {
-      inliner.performInlining(method, code, isProcessedConcurrently, callSiteInformation);
+      inliner.performInlining(method, code, feedback, isProcessedConcurrently, callSiteInformation);
     }
 
     previous = printMethod(code, "IR after inlining (SSA)", previous);

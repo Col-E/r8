@@ -27,6 +27,8 @@ public interface MethodOptimizationInfo {
 
   BitSet getNonNullParamOnNormalExits();
 
+  boolean hasBeenInlinedIntoSingleCallSite();
+
   boolean isReachabilitySensitive();
 
   boolean returnsArgument();

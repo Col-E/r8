@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
@@ -34,6 +35,7 @@ import com.android.tools.r8.ir.conversion.CallSiteInformation;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.LensCodeRewriter;
 import com.android.tools.r8.ir.conversion.OptimizationFeedback;
+import com.android.tools.r8.ir.conversion.OptimizationFeedbackIgnore;
 import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -745,12 +747,13 @@ public class Inliner {
       Map<InvokeMethod, InliningInfo> invokesToInline) {
 
     ForcedInliningOracle oracle = new ForcedInliningOracle(method, invokesToInline);
-    performInliningImpl(oracle, oracle, method, code);
+    performInliningImpl(oracle, oracle, method, code, OptimizationFeedbackIgnore.getInstance());
   }
 
   public void performInlining(
       DexEncodedMethod method,
       IRCode code,
+      OptimizationFeedback feedback,
       Predicate<DexEncodedMethod> isProcessedConcurrently,
       CallSiteInformation callSiteInformation) {
     InternalOptions options = appView.options();
@@ -762,7 +765,7 @@ public class Inliner {
             callSiteInformation,
             options.inliningInstructionLimit,
             options.inliningInstructionAllowance - numberOfInstructions(code));
-    performInliningImpl(oracle, oracle, method, code);
+    performInliningImpl(oracle, oracle, method, code, feedback);
   }
 
   public DefaultInliningOracle createDefaultOracle(
@@ -784,7 +787,11 @@ public class Inliner {
   }
 
   private void performInliningImpl(
-      InliningStrategy strategy, InliningOracle oracle, DexEncodedMethod context, IRCode code) {
+      InliningStrategy strategy,
+      InliningOracle oracle,
+      DexEncodedMethod context,
+      IRCode code,
+      OptimizationFeedback feedback) {
     AssumeDynamicTypeRemover assumeDynamicTypeRemover = new AssumeDynamicTypeRemover(appView, code);
     List<BasicBlock> blocksToRemove = new ArrayList<>();
     ListIterator<BasicBlock> blockIterator = code.listIterator();
@@ -826,7 +833,7 @@ public class Inliner {
 
               // If this code did not go through the full pipeline, apply inlining to make sure
               // that force inline targets get processed.
-              strategy.ensureMethodProcessed(target, inlinee.code);
+              strategy.ensureMethodProcessed(target, inlinee.code, feedback);
 
               // Make sure constructor inlining is legal.
               assert !target.isClassInitializer();
@@ -851,6 +858,10 @@ public class Inliner {
                   blockIterator,
                   blocksToRemove,
                   getDowncastTypeIfNeeded(strategy, invoke, target));
+
+              if (inlinee.reason == Reason.SINGLE_CALLER) {
+                feedback.markInlinedIntoSingleCallSite(target);
+              }
 
               classInitializationAnalysis.notifyCodeHasChanged();
               strategy.updateTypeInformationIfNeeded(inlinee.code, blockIterator, block);
@@ -909,5 +920,14 @@ public class Inliner {
       }
     }
     return null;
+  }
+
+  public static boolean verifyNoMethodsInlinedDueToSingleCallSite(AppView<?> appView) {
+    for (DexProgramClass clazz : appView.appInfo().classes()) {
+      for (DexEncodedMethod method : clazz.methods()) {
+        assert !method.getOptimizationInfo().hasBeenInlinedIntoSingleCallSite();
+      }
+    }
+    return true;
   }
 }

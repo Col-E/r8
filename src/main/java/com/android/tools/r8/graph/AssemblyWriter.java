@@ -5,7 +5,6 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.ir.conversion.IRConverter;
-import com.android.tools.r8.ir.conversion.OptimizationFeedback;
 import com.android.tools.r8.ir.conversion.OptimizationFeedbackIgnore;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
@@ -22,7 +21,6 @@ public class AssemblyWriter extends DexByteCodeWriter {
   private final boolean writeIR;
   private final AppInfoWithSubtyping appInfo;
   private final Timing timing = new Timing("AssemblyWriter");
-  private final OptimizationFeedback ignoreOptimizationFeedback = new OptimizationFeedbackIgnore();
 
   public AssemblyWriter(
       DexApplication application, InternalOptions options, boolean allInfo, boolean writeIR) {
@@ -122,7 +120,7 @@ public class AssemblyWriter extends DexByteCodeWriter {
   private void writeIR(DexEncodedMethod method, PrintStream ps) {
     CfgPrinter printer = new CfgPrinter();
     new IRConverter(appInfo, options, timing, printer)
-        .processMethod(method, ignoreOptimizationFeedback, null, null, null);
+        .processMethod(method, OptimizationFeedbackIgnore.getInstance(), null, null, null);
     ps.println(printer.toString());
   }
 

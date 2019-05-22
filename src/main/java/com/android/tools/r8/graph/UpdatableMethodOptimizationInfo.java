@@ -14,6 +14,8 @@ public interface UpdatableMethodOptimizationInfo extends MethodOptimizationInfo 
 
   void markInitializesClassesOnNormalExit(Set<DexType> initializedClasses);
 
+  void markInlinedIntoSingleCallSite();
+
   void markReturnsArgument(int argument);
 
   void markReturnsConstantNumber(long value);

@@ -17,6 +17,8 @@ import java.util.Set;
 
 public interface OptimizationFeedback {
 
+  void markInlinedIntoSingleCallSite(DexEncodedMethod method);
+
   void methodInitializesClassesOnNormalExit(
       DexEncodedMethod method, Set<DexType> initializedClasses);
 

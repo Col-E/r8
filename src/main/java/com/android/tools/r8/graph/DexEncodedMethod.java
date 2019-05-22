@@ -1045,6 +1045,11 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     }
 
     @Override
+    public boolean hasBeenInlinedIntoSingleCallSite() {
+      return false;
+    }
+
+    @Override
     public boolean isReachabilitySensitive() {
       return false;
     }
@@ -1150,6 +1155,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
   public static class MethodOptimizationInfoImpl implements UpdatableMethodOptimizationInfo {
 
+    private boolean hasBeenInlinedIntoSingleCallSite = false;
     private Set<DexType> initializedClassesOnNormalExit =
         DefaultMethodOptimizationInfoImpl.UNKNOWN_INITIALIZED_CLASSES_ON_NORMAL_EXIT;
     private int returnedArgument = DefaultMethodOptimizationInfoImpl.UNKNOWN_RETURNED_ARGUMENT;
@@ -1256,6 +1262,16 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     @Override
     public BitSet getNonNullParamOnNormalExits() {
       return nonNullParamOnNormalExits;
+    }
+
+    @Override
+    public boolean hasBeenInlinedIntoSingleCallSite() {
+      return hasBeenInlinedIntoSingleCallSite;
+    }
+
+    @Override
+    public void markInlinedIntoSingleCallSite() {
+      hasBeenInlinedIntoSingleCallSite = true;
     }
 
     @Override

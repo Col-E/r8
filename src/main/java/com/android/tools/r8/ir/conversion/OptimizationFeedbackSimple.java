@@ -18,6 +18,11 @@ import java.util.Set;
 public class OptimizationFeedbackSimple implements OptimizationFeedback {
 
   @Override
+  public synchronized void markInlinedIntoSingleCallSite(DexEncodedMethod method) {
+    // Ignored.
+  }
+
+  @Override
   public void methodInitializesClassesOnNormalExit(
       DexEncodedMethod method, Set<DexType> initializedClasses) {
     // Ignored.

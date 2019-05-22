@@ -38,6 +38,11 @@ public class OptimizationFeedbackDelayed implements OptimizationFeedback {
   }
 
   @Override
+  public synchronized void markInlinedIntoSingleCallSite(DexEncodedMethod method) {
+    getOptimizationInfoForUpdating(method).markInlinedIntoSingleCallSite();
+  }
+
+  @Override
   public synchronized void methodInitializesClassesOnNormalExit(
       DexEncodedMethod method, Set<DexType> initializedClasses) {
     getOptimizationInfoForUpdating(method).markInitializesClassesOnNormalExit(initializedClasses);

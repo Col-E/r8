@@ -639,6 +639,9 @@ public class R8 {
                         application,
                         CollectionUtils.mergeSets(prunedTypes, pruner.getRemovedClasses())));
 
+            // TODO(b/130721661): Enable this assert.
+            // assert Inliner.verifyNoMethodsInlinedDueToSingleCallSite(appView);
+
             assert appView.verticallyMergedClasses() == null
                 || appView.verticallyMergedClasses().verifyAllSourcesPruned(appViewWithLiveness);
 

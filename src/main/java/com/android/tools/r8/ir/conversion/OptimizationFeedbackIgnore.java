@@ -17,6 +17,17 @@ import java.util.Set;
 
 public class OptimizationFeedbackIgnore implements OptimizationFeedback {
 
+  private static final OptimizationFeedbackIgnore INSTANCE = new OptimizationFeedbackIgnore();
+
+  private OptimizationFeedbackIgnore() {}
+
+  public static OptimizationFeedbackIgnore getInstance() {
+    return INSTANCE;
+  }
+
+  @Override
+  public void markInlinedIntoSingleCallSite(DexEncodedMethod method) {}
+
   @Override
   public void methodInitializesClassesOnNormalExit(
       DexEncodedMethod method, Set<DexType> initializedClasses) {}
