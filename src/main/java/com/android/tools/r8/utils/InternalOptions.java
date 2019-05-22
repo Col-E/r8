@@ -164,6 +164,13 @@ public class InternalOptions {
   // TODO(b/120138731): Enable this when it is worthwhile, e.g., combined with Class#forName.
   public boolean enableNameReflectionOptimization = false;
   public boolean enableTreeShakingOfLibraryMethodOverrides = false;
+
+  // This defines the max depth threshold for the cycle eliminator. If the length of a call chain
+  // exceeds the threshold, we treat it as if we have found a cycle. This ensures that we won't run
+  // into stack overflows when the call graph contains large call chains. This should have a
+  // negligible impact on code size as long as the threshold is large enough.
+  public int callGraphCycleEliminatorMaxDepthThreshold = 256;
+
   public int classInliningInstructionLimit = 50;
   // This defines the limit of instructions in the inlinee
   public int inliningInstructionLimit = 3;

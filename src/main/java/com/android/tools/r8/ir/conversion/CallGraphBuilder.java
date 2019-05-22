@@ -312,6 +312,7 @@ public class CallGraphBuilder {
     // Set of nodes that have been visited entirely.
     private Set<Node> marked = Sets.newIdentityHashSet();
 
+    private int currentDepth = 0;
     private int maxDepth = 0;
     private int numberOfCycles = 0;
 
@@ -328,7 +329,8 @@ public class CallGraphBuilder {
     public int breakCycles() {
       // Break cycles in this call graph by removing edges causing cycles.
       for (Node node : nodes) {
-        traverse(node, 0);
+        assert currentDepth == 0;
+        traverse(node);
       }
       int result = numberOfCycles;
       if (Log.ENABLED) {
@@ -340,6 +342,7 @@ public class CallGraphBuilder {
     }
 
     private void reset() {
+      assert currentDepth == 0;
       assert stack.isEmpty();
       assert stackSet.isEmpty();
       marked.clear();
@@ -347,10 +350,10 @@ public class CallGraphBuilder {
       numberOfCycles = 0;
     }
 
-    private void traverse(Node node, int depth) {
+    private void traverse(Node node) {
       if (Log.ENABLED) {
-        if (depth > maxDepth) {
-          maxDepth = depth;
+        if (currentDepth > maxDepth) {
+          maxDepth = currentDepth;
         }
       }
 
@@ -372,7 +375,16 @@ public class CallGraphBuilder {
       Iterator<Node> calleeIterator = callees.iterator();
       while (calleeIterator.hasNext()) {
         Node callee = calleeIterator.next();
-        if (stackSet.contains(callee)) {
+
+        // If we've exceeded the depth threshold, then treat it as if we have found a cycle. This
+        // ensures that we won't run into stack overflows when the call graph contains large call
+        // chains. This should have a negligible impact on code size as long as the threshold is
+        // large enough.
+        boolean foundCycle = stackSet.contains(callee);
+        boolean thresholdExceeded =
+            currentDepth >= options.callGraphCycleEliminatorMaxDepthThreshold
+                && edgeRemovalIsSafe(node, callee);
+        if (foundCycle || thresholdExceeded) {
           // Found a cycle that needs to be eliminated.
           numberOfCycles++;
 
@@ -396,6 +408,8 @@ public class CallGraphBuilder {
                   callee.method.toSourceString());
             }
           } else {
+            assert foundCycle;
+
             // The cycle has a method that is marked as force inline.
             LinkedList<Node> cycle = extractCycle(callee);
 
@@ -430,7 +444,9 @@ public class CallGraphBuilder {
             recoverStack(cycle);
           }
         } else {
-          traverse(callee, depth + 1);
+          currentDepth++;
+          traverse(callee);
+          currentDepth--;
         }
       }
       pop(node);
