@@ -120,4 +120,5 @@ public class R8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
   protected boolean shouldProcessClassInNest(DexClass clazz, List<DexType> nest) {
     return true;
   }
+
 }

@@ -6,6 +6,8 @@ package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.errors.IncompleteNestNestDesugarDiagnosic;
+import com.android.tools.r8.errors.MissingNestHostNestDesugarDiagnostic;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassAccessFlags;
@@ -24,9 +26,10 @@ import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.Invoke;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.SynthesizedOrigin;
+import com.android.tools.r8.position.Position;
 import com.android.tools.r8.utils.BooleanUtils;
-import com.android.tools.r8.utils.StringDiagnostic;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -93,6 +96,8 @@ public abstract class NestBasedAccessDesugaring {
     DexClass hostClass = clazz.isNestHost() ? clazz : definitionFor(clazz.getNestHost());
     if (hostClass == null) {
       reportMissingNestHost(clazz);
+      // Missing nest host means the class is considered as not being part of a nest.
+      clazz.clearNestHost();
       return null;
     }
     List<DexType> classesInNest =
@@ -145,6 +150,7 @@ public abstract class NestBasedAccessDesugaring {
     List<String> unavailableClasses = new ArrayList<>();
     List<String> classPathClasses = new ArrayList<>();
     List<String> libraryClasses = new ArrayList<>();
+    DexClass availableProgramClass = null;
     for (DexType type : nest) {
       DexClass clazz = definitionFor(type);
       if (clazz == null) {
@@ -153,6 +159,7 @@ public abstract class NestBasedAccessDesugaring {
         libraryClasses.add(type.getName());
       } else if (clazz.isProgramClass()) {
         programClassesFromNest.add(type.getName());
+        availableProgramClass = clazz;
       } else {
         assert clazz.isClasspathClass();
         classPathClasses.add(type.getName());
@@ -178,8 +185,18 @@ public abstract class NestBasedAccessDesugaring {
     if (!libraryClasses.isEmpty()) {
       throw new CompilationError(stringBuilder.toString());
     }
-    // TODO (b/132676197): Use desugaring warning
-    appView.options().reporter.warning(new StringDiagnostic(stringBuilder.toString()));
+    Origin origin;
+    if (availableProgramClass == null) {
+      origin = Origin.unknown();
+    } else {
+      origin = availableProgramClass.getOrigin();
+    }
+    appView
+        .options()
+        .reporter
+        .warning(
+            new IncompleteNestNestDesugarDiagnosic(
+                origin, Position.UNKNOWN, stringBuilder.toString()));
   }
 
   private void reportMissingNestHost(DexClass compiledClass) {
@@ -193,8 +210,12 @@ public abstract class NestBasedAccessDesugaring {
     if (compiledClass.isLibraryClass()) {
       throw new CompilationError(message);
     }
-    // TODO (b/132676197): Use desugaring warning
-    appView.options().reporter.warning(new StringDiagnostic(message));
+    appView
+        .options()
+        .reporter
+        .warning(
+            new MissingNestHostNestDesugarDiagnostic(
+                compiledClass.getOrigin(), Position.UNKNOWN, message));
   }
 
   private DexProgramClass createNestAccessConstructor() {
