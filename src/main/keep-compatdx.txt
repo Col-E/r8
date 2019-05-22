@@ -2,5 +2,9 @@
 # for details. All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
--keep public class com.android.tools.r8.compatdx.CompatDx { public static void main(java.lang.String[]); }
--keepattributes LineNumberTable
+# This entry must remain a proper extension of R8 to ensure all required parts are kept.
+-include keep.txt
+
+-keep public class com.android.tools.r8.compatdx.CompatDx {
+  public static void main(java.lang.String[]);
+}
