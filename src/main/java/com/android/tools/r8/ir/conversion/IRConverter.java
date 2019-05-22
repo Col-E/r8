@@ -918,7 +918,7 @@ public class IRConverter {
     // we will return with finalizeEmptyThrowingCode() above.
     assert code.verifyTypes(appView);
 
-    if (options.enableServiceLoaderRewriting) {
+    if (appView.enableWholeProgramOptimizations() && options.enableServiceLoaderRewriting) {
       assert appView.appInfo().hasLiveness();
       ServiceLoaderRewriter.rewrite(code, appView.withLiveness());
     }
