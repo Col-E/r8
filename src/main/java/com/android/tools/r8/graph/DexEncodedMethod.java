@@ -5,6 +5,7 @@ package com.android.tools.r8.graph;
 
 import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCESSED_INLINING_CANDIDATE_ANY;
 import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCESSED_INLINING_CANDIDATE_SAME_CLASS;
+import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCESSED_INLINING_CANDIDATE_SAME_NEST;
 import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCESSED_INLINING_CANDIDATE_SAME_PACKAGE;
 import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCESSED_INLINING_CANDIDATE_SUBCLASS;
 import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCESSED_NOT_INLINING_CANDIDATE;
@@ -103,10 +104,10 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
      * the same package.
      */
     PROCESSED_INLINING_CANDIDATE_SAME_PACKAGE,
-    /**
-     * Code contains instructions that reference private entities.
-     */
-    PROCESSED_INLINING_CANDIDATE_SAME_CLASS,
+    /** Code contains instructions that reference private entities. */
+    PROCESSED_INLINING_CANDIDATE_SAME_NEST,
+    /** Code contains invoke super */
+    PROCESSED_INLINING_CANDIDATE_SAME_CLASS
   }
 
   public static final DexEncodedMethod[] EMPTY_ARRAY = {};
@@ -345,6 +346,8 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
         return appInfo.isSubtype(containerType, method.holder);
       case PROCESSED_INLINING_CANDIDATE_SAME_PACKAGE:
         return containerType.isSamePackage(method.holder);
+      case PROCESSED_INLINING_CANDIDATE_SAME_NEST:
+        return ConstraintWithTarget.sameNest(containerType, method.holder, appInfo);
       case PROCESSED_INLINING_CANDIDATE_SAME_CLASS:
         return containerType == method.holder;
       default:
@@ -364,6 +367,9 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
         break;
       case PACKAGE:
         compilationState = PROCESSED_INLINING_CANDIDATE_SAME_PACKAGE;
+        break;
+      case SAMENEST:
+        compilationState = PROCESSED_INLINING_CANDIDATE_SAME_NEST;
         break;
       case SAMECLASS:
         compilationState = PROCESSED_INLINING_CANDIDATE_SAME_CLASS;

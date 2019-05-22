@@ -8,12 +8,14 @@ import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassHierarchy;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers.CatchHandler;
@@ -206,11 +208,21 @@ public class Inliner {
    */
   public enum Constraint {
     // The ordinal values are important so please do not reorder.
-    NEVER(1),     // Never inline this.
-    SAMECLASS(2), // Inlineable into methods with same holder.
-    PACKAGE(4),   // Inlineable into methods with holders from the same package.
-    SUBCLASS(8),  // Inlineable into methods with holders from a subclass in a different package.
-    ALWAYS(16);   // No restrictions for inlining this.
+    // Each constraint includes all constraints <= to it.
+    // For example, SAMENEST with class X means:
+    // - the target is in the same nest as X, or
+    // - the target has the same class as X (SAMECLASS <= SAMENEST).
+    // SUBCLASS with class X means:
+    // - the target is a subclass of X in different package, or
+    // - the target is in the same package (PACKAGE <= SUBCLASS), or
+    // ...
+    // - the target is the same class as X (SAMECLASS <= SUBCLASS).
+    NEVER(1), // Never inline this.
+    SAMECLASS(2), // Inlineable into methods in the same holder.
+    SAMENEST(4), // Inlineable into methods with same nest.
+    PACKAGE(8), // Inlineable into methods with holders from the same package.
+    SUBCLASS(16), // Inlineable into methods with holders from a subclass in a different package.
+    ALWAYS(32); // No restrictions for inlining this.
 
     int value;
 
@@ -220,7 +232,8 @@ public class Inliner {
 
     static {
       assert NEVER.ordinal() < SAMECLASS.ordinal();
-      assert SAMECLASS.ordinal() < PACKAGE.ordinal();
+      assert SAMECLASS.ordinal() < SAMENEST.ordinal();
+      assert SAMENEST.ordinal() < PACKAGE.ordinal();
       assert PACKAGE.ordinal() < SUBCLASS.ordinal();
       assert SUBCLASS.ordinal() < ALWAYS.ordinal();
     }
@@ -285,11 +298,36 @@ public class Inliner {
           && this.targetHolder == o.targetHolder;
     }
 
+    public static boolean sameNest(
+        DexType contextHolder, DexType targetHolder, DexDefinitionSupplier definitions) {
+      if (contextHolder == targetHolder) {
+        return true;
+      }
+      DexClass contextHolderClass = definitions.definitionFor(contextHolder);
+      assert contextHolderClass != null;
+      if (!contextHolderClass.isInANest()) {
+        return false;
+      }
+      DexClass targetHolderClass = definitions.definitionFor(targetHolder);
+      if (targetHolderClass == null) {
+        // Conservatively return false
+        return false;
+      }
+      return contextHolderClass.getNestHost() == targetHolderClass.getNestHost();
+    }
+
     public static ConstraintWithTarget deriveConstraint(
         DexType contextHolder, DexType targetHolder, AccessFlags flags, AppView<?> appView) {
       if (flags.isPublic()) {
         return ALWAYS;
       } else if (flags.isPrivate()) {
+        DexClass contextHolderClass = appView.definitionFor(contextHolder);
+        assert contextHolderClass != null;
+        if (contextHolderClass.isInANest()) {
+          return sameNest(contextHolder, targetHolder, appView)
+              ? new ConstraintWithTarget(Constraint.SAMENEST, targetHolder)
+              : NEVER;
+        }
         return targetHolder == contextHolder
             ? new ConstraintWithTarget(Constraint.SAMECLASS, targetHolder) : NEVER;
       } else if (flags.isProtected()) {
@@ -341,11 +379,17 @@ public class Inliner {
       int constraint = one.constraint.value | other.constraint.value;
       assert !Constraint.NEVER.isSet(constraint);
       assert !Constraint.ALWAYS.isSet(constraint);
-      // SAMECLASS <= SAMECLASS, PACKAGE, SUBCLASS
+      // SAMECLASS <= SAMECLASS, SAMENEST, PACKAGE, SUBCLASS
       if (Constraint.SAMECLASS.isSet(constraint)) {
         assert one.constraint == Constraint.SAMECLASS;
         if (other.constraint == Constraint.SAMECLASS) {
           assert one.targetHolder != other.targetHolder;
+          return NEVER;
+        }
+        if (other.constraint == Constraint.SAMENEST) {
+          if (sameNest(one.targetHolder, other.targetHolder, appView)) {
+            return one;
+          }
           return NEVER;
         }
         if (other.constraint == Constraint.PACKAGE) {
@@ -356,6 +400,29 @@ public class Inliner {
         }
         assert other.constraint == Constraint.SUBCLASS;
         if (appView.isSubtype(one.targetHolder, other.targetHolder).isTrue()) {
+          return one;
+        }
+        return NEVER;
+      }
+      // SAMENEST <= SAMENEST, PACKAGE, SUBCLASS
+      if (Constraint.SAMENEST.isSet(constraint)) {
+        assert one.constraint == Constraint.SAMENEST;
+        if (other.constraint == Constraint.SAMENEST) {
+          if (sameNest(one.targetHolder, other.targetHolder, appView)) {
+            return one;
+          }
+          return NEVER;
+        }
+        assert verifyAllNestInSamePackage(one.targetHolder, appView);
+        if (other.constraint == Constraint.PACKAGE) {
+          if (one.targetHolder.isSamePackage(other.targetHolder)) {
+            return one;
+          }
+          return NEVER;
+        }
+        assert other.constraint == Constraint.SUBCLASS;
+        if (allNestMembersSubtypeOf(one.targetHolder, other.targetHolder, appView)) {
+          // Then, SAMENEST is a more restrictive constraint.
           return one;
         }
         return NEVER;
@@ -393,6 +460,46 @@ public class Inliner {
       }
       // SUBCLASS of x and SUBCLASS of y while x and y are not a subtype of each other.
       return NEVER;
+    }
+
+    private static boolean allNestMembersSubtypeOf(
+        DexType nestType, DexType superType, AppView<?> appView) {
+      DexClass dexClass = appView.definitionFor(nestType);
+      if (dexClass == null) {
+        assert false;
+        return false;
+      }
+      if (!dexClass.isInANest()) {
+        return appView.isSubtype(dexClass.type, superType).isTrue();
+      }
+      DexClass nestHost =
+          dexClass.isNestHost() ? dexClass : appView.definitionFor(dexClass.getNestHost());
+      if (nestHost == null) {
+        assert false;
+        return false;
+      }
+      for (NestMemberClassAttribute member : nestHost.getNestMembersClassAttributes()) {
+        if (!appView.isSubtype(member.getNestMember(), superType).isTrue()) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    private static boolean verifyAllNestInSamePackage(DexType type, AppView<?> appView) {
+      String descr = type.getPackageDescriptor();
+      DexClass dexClass = appView.definitionFor(type);
+      assert dexClass != null;
+      if (!dexClass.isInANest()) {
+        return true;
+      }
+      DexClass nestHost =
+          dexClass.isNestHost() ? dexClass : appView.definitionFor(dexClass.getNestHost());
+      assert nestHost != null;
+      for (NestMemberClassAttribute member : nestHost.getNestMembersClassAttributes()) {
+        assert member.getNestMember().getPackageDescriptor().equals(descr);
+      }
+      return true;
     }
   }
 

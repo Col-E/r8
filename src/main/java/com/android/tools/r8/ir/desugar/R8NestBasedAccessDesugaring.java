@@ -46,6 +46,7 @@ public class R8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
     }
     computeAndProcessNestsConcurrently(executorService);
     addDeferredBridgesAndMapMethods();
+    clearNestAttributes();
     if (nothingToMap()) {
       return appView.graphLense();
     }
@@ -83,6 +84,15 @@ public class R8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
       map.put(entry.getKey(), entry.getValue().method);
     }
     bridges.clear();
+  }
+
+  private void clearNestAttributes() {
+    // Clearing nest attributes is required to allow class merging to be performed across nests
+    // and to forbid other optimizations to introduce nest based accesses.
+    for (DexClass clazz : appView.appInfo().classes()) {
+      clazz.clearNestHost();
+      clazz.getNestMembersClassAttributes().clear();
+    }
   }
 
   private void computeAndProcessNestsConcurrently(ExecutorService executorService)
