@@ -51,7 +51,11 @@ public class CallGraph {
     }
 
     public void addCallerConcurrently(Node caller) {
-      if (caller != this) {
+      addCallerConcurrently(caller, false);
+    }
+
+    public void addCallerConcurrently(Node caller, boolean likelySpuriousCallEdge) {
+      if (caller != this && !likelySpuriousCallEdge) {
         synchronized (callers) {
           callers.add(caller);
           numberOfCallSites++;

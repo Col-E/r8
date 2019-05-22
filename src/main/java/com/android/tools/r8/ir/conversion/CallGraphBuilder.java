@@ -116,8 +116,8 @@ public class CallGraphBuilder {
 
     private void addClassInitializerTarget(DexClass clazz) {
       assert clazz != null;
-      if (clazz.hasClassInitializer() && clazz.isProgramClass()) {
-        addTarget(clazz.getClassInitializer());
+      if (clazz.isProgramClass() && clazz.hasClassInitializer()) {
+        addTarget(clazz.getClassInitializer(), false);
       }
     }
 
@@ -129,10 +129,10 @@ public class CallGraphBuilder {
       }
     }
 
-    private void addTarget(DexEncodedMethod callee) {
+    private void addTarget(DexEncodedMethod callee, boolean likelySpuriousCallEdge) {
       if (!callee.accessFlags.isAbstract()) {
         assert callee.isProgramMethod(appView);
-        getOrCreateNode(callee).addCallerConcurrently(caller);
+        getOrCreateNode(callee).addCallerConcurrently(caller, likelySpuriousCallEdge);
       }
     }
 
@@ -159,7 +159,7 @@ public class CallGraphBuilder {
             if (type == Type.STATIC) {
               addClassInitializerTarget(clazz);
             }
-            addTarget(singleTarget);
+            addTarget(singleTarget, false);
           }
         }
       }
@@ -188,9 +188,11 @@ public class CallGraphBuilder {
                       ? appView.appInfo().lookupInterfaceTargets(method)
                       : appView.appInfo().lookupVirtualTargets(method));
       if (possibleTargets != null) {
+        boolean likelySpuriousCallEdge =
+            possibleTargets.size() >= appView.options().callGraphLikelySpuriousCallEdgeThreshold;
         for (DexEncodedMethod possibleTarget : possibleTargets) {
           if (possibleTarget.isProgramMethod(appView)) {
-            addTarget(possibleTarget);
+            addTarget(possibleTarget, likelySpuriousCallEdge);
           }
         }
       }

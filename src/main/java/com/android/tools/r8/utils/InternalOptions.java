@@ -170,6 +170,7 @@ public class InternalOptions {
   // into stack overflows when the call graph contains large call chains. This should have a
   // negligible impact on code size as long as the threshold is large enough.
   public int callGraphCycleEliminatorMaxDepthThreshold = 256;
+  public int callGraphLikelySpuriousCallEdgeThreshold = 50;
 
   public int classInliningInstructionLimit = 50;
   // This defines the limit of instructions in the inlinee
