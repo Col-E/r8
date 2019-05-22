@@ -16,7 +16,6 @@ import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.Reporter;
 import java.io.IOException;
 import java.nio.file.Path;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class SeedMapperTests extends TestBase {
@@ -164,29 +163,31 @@ public class SeedMapperTests extends TestBase {
     }
   }
 
-  @Ignore("b/131349062")
   @Test
   public void testInliningFrames() throws IOException {
     Path applyMappingFile =
         getApplyMappingFile(
             "A.B.C -> a:",
             "  int foo(A) -> a",
-            "  1:2:int bar(A):3 -> a");
+            "  1:2:int bar(A):3:4 -> a",
+            "  1:2:int baz(B):3 -> a");
     TestDiagnosticMessagesImpl testDiagnosticMessages = new TestDiagnosticMessagesImpl();
     Reporter reporter = new Reporter(testDiagnosticMessages);
     SeedMapper.seedMapperFromFile(reporter, applyMappingFile);
   }
 
-  @Ignore("b/131349062")
   @Test
   public void testDuplicateInliningFrames() throws IOException {
     Path applyMappingFile =
         getApplyMappingFile(
             "A.B.C -> a:",
             "  int foo(Z) -> a",
+            "  1:1:int qux(A):3:3 -> a",
             "  1:1:int bar(A):3 -> a",
-            "  2:2:int baz(B):4 -> a",
-            "  3:3:int bar(A):5 -> a");
+            "  2:2:int qux(A):3:3 -> a",
+            "  2:2:int bar(A):4 -> a",
+            "  3:3:int bar(A):5:5 -> a",
+            "  int qux(C) -> a");
     TestDiagnosticMessagesImpl testDiagnosticMessages = new TestDiagnosticMessagesImpl();
     Reporter reporter = new Reporter(testDiagnosticMessages);
     SeedMapper.seedMapperFromFile(reporter, applyMappingFile);
