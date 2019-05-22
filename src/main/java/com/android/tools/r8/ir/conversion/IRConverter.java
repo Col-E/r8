@@ -1174,7 +1174,12 @@ public class IRConverter {
     // Note that we place this at the end of IR processing because inlinee can be inlined by
     // Inliner, ClassInliner, or future optimizations that use the inlining machinery.
     if (method.getOptimizationInfo().useIdentifierNameString()) {
-      feedback.markUseIdentifierNameString(method);
+      // If it is optimized, e.g., moved to default values of static fields or even removed by dead
+      // code remover, we can save future computation in IdentifierMinifier.
+      if (Streams.stream(code.instructionIterator())
+          .anyMatch(Instruction::isDexItemBasedConstString)) {
+        feedback.markUseIdentifierNameString(method);
+      }
     } else {
       assert Streams.stream(code.instructionIterator())
           .noneMatch(Instruction::isDexItemBasedConstString);

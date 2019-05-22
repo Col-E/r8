@@ -282,10 +282,7 @@ public class IdentifierNameStringMarker {
   }
 
   private void warnUndeterminedIdentifierIfNecessary(
-      DexReference member,
-      DexType originHolder,
-      Instruction instruction,
-      DexString original) {
+      DexReference member, DexType originHolder, Instruction instruction, DexString original) {
     assert member.isDexField() || member.isDexMethod();
     // Only issue warnings for -identifiernamestring rules explicitly added by the user.
     boolean matchedByExplicitRule = identifierNameStrings.getBoolean(member);
@@ -298,11 +295,11 @@ public class IdentifierNameStringMarker {
       return;
     }
     // Undetermined identifiers matter only if minification is enabled.
-    if (!appView.options().getProguardConfiguration().isObfuscating()) {
+    if (!appView.options().isMinifying()) {
       return;
     }
     Origin origin = appView.appInfo().originFor(originHolder);
-    String kind = member instanceof DexField ? "field" : "method";
+    String kind = member.isDexField() ? "field" : "method";
     String originalMessage = original == null ? "what identifier string flows to "
         : "what '" + original.toString() + "' refers to, which flows to ";
     String message =
@@ -312,8 +309,8 @@ public class IdentifierNameStringMarker {
             + " are renamed, which can cause resolution failures at runtime.";
     StringDiagnostic diagnostic =
         instruction.getPosition().line >= 1
-            ? new StringDiagnostic(message, origin,
-            new TextPosition(0L, instruction.getPosition().line, 1))
+            ? new StringDiagnostic(
+                message, origin, new TextPosition(0L, instruction.getPosition().line, 1))
             : new StringDiagnostic(message, origin);
     appView.options().reporter.warning(diagnostic);
   }

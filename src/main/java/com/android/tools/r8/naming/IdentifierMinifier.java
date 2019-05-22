@@ -25,6 +25,7 @@ import com.android.tools.r8.graph.DexValue.DexItemBasedValueString;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardClassFilter;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -122,7 +123,9 @@ class IdentifierMinifier {
       for (DexEncodedField field : clazz.staticFields()) {
         replaceDexItemBasedConstStringInStaticField(field);
       }
-      clazz.forEachMethod(this::replaceDexItemBasedConstStringInMethod);
+      clazz
+          .methods(DexEncodedMethod::hasCode)
+          .forEach(this::replaceDexItemBasedConstStringInMethod);
     }
   }
 
@@ -146,21 +149,21 @@ class IdentifierMinifier {
 
   private void replaceDexItemBasedConstStringInMethod(DexEncodedMethod encodedMethod) {
     if (!encodedMethod.getOptimizationInfo().useIdentifierNameString()) {
-      return;
-    }
-    // Abstract methods do not have code_item.
-    if (encodedMethod.shouldNotHaveCode()) {
+      assert (encodedMethod.getCode().isDexCode()
+              && Arrays.stream(encodedMethod.getCode().asDexCode().instructions)
+                  .noneMatch(Instruction::isDexItemBasedConstString))
+          || (encodedMethod.getCode().isCfCode()
+              && encodedMethod.getCode().asCfCode().instructions.stream()
+                  .noneMatch(CfInstruction::isDexItemBasedConstString));
       return;
     }
     Code code = encodedMethod.getCode();
-    if (code == null) {
-      return;
-    }
+    assert code != null;
     if (code.isDexCode()) {
       Instruction[] instructions = code.asDexCode().instructions;
       for (int i = 0; i < instructions.length; ++i) {
         Instruction instruction = instructions[i];
-        if (instruction instanceof DexItemBasedConstString) {
+        if (instruction.isDexItemBasedConstString()) {
           DexItemBasedConstString cnst = instruction.asDexItemBasedConstString();
           DexString replacement =
               cnst.getClassNameComputationInfo().needsToComputeClassName()
