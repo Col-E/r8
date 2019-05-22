@@ -116,7 +116,7 @@ public class Minifier {
   static class MinificationClassNamingStrategy extends BaseMinificationNamingStrategy
       implements ClassNamingStrategy {
 
-    private final AppView<?> appView;
+    final AppView<?> appView;
     private final DexItemFactory factory;
 
     MinificationClassNamingStrategy(AppView<?> appView) {
@@ -156,9 +156,8 @@ public class Minifier {
   static class MinifierMemberNamingStrategy extends BaseMinificationNamingStrategy
       implements MemberNamingStrategy {
 
+    final AppView<?> appView;
     private final DexItemFactory factory;
-
-    private final AppView<?> appView;
 
     public MinifierMemberNamingStrategy(AppView<?> appView) {
       super(appView.options().getProguardConfiguration().getObfuscationDictionary());

@@ -16,14 +16,15 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
-import com.android.tools.r8.naming.ClassNameMinifier.ClassNamingStrategy;
 import com.android.tools.r8.naming.ClassNameMinifier.ClassRenaming;
 import com.android.tools.r8.naming.FieldNameMinifier.FieldRenaming;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.MethodNameMinifier.MethodRenaming;
+import com.android.tools.r8.naming.Minifier.MinificationClassNamingStrategy;
 import com.android.tools.r8.naming.Minifier.MinificationPackageNamingStrategy;
+import com.android.tools.r8.naming.Minifier.MinifierMemberNamingStrategy;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Reporter;
@@ -110,7 +111,7 @@ public class ProguardMapMinifier {
     ClassNameMinifier classNameMinifier =
         new ClassNameMinifier(
             appView,
-            new ApplyMappingClassNamingStrategy(mappedNames),
+            new ApplyMappingClassNamingStrategy(appView, mappedNames),
             // The package naming strategy will actually not be used since all classes and methods
             // will be output with identity name if not found in mapping. However, there is a check
             // in the ClassNameMinifier that the strategy should produce a "fresh" name so we just
@@ -322,27 +323,41 @@ public class ProguardMapMinifier {
     }
   }
 
-  static class ApplyMappingClassNamingStrategy implements ClassNamingStrategy {
+  static class ApplyMappingClassNamingStrategy extends MinificationClassNamingStrategy {
 
     private final Map<DexType, DexString> mappings;
+    private final boolean isMinifying;
 
-    ApplyMappingClassNamingStrategy(Map<DexType, DexString> mappings) {
+    ApplyMappingClassNamingStrategy(AppView<?> appView, Map<DexType, DexString> mappings) {
+      super(appView);
       this.mappings = mappings;
+      this.isMinifying = appView.options().isMinifying();
     }
 
     @Override
     public DexString next(DexType type, char[] packagePrefix, InternalNamingState state) {
-      return mappings.getOrDefault(type, type.descriptor);
+      DexString nextName = mappings.get(type);
+      if (nextName != null) {
+        return nextName;
+      }
+      assert !(isMinifying && noObfuscation(type));
+      return isMinifying ? super.next(type, packagePrefix, state) : type.descriptor;
     }
 
     @Override
     public boolean noObfuscation(DexType type) {
-      // We have an explicit mapping from the proguard map thus everything might have to be renamed.
-      return false;
+      if (mappings.containsKey(type)) {
+        return false;
+      }
+      DexClass dexClass = appView.definitionFor(type);
+      if (dexClass == null || dexClass.isNotProgramClass()) {
+        return true;
+      }
+      return super.noObfuscation(type);
     }
   }
 
-  static class ApplyMappingMemberNamingStrategy implements MemberNamingStrategy {
+  static class ApplyMappingMemberNamingStrategy extends MinifierMemberNamingStrategy {
 
     private final Map<DexReference, MemberNaming> mappedNames;
     private final DexItemFactory factory;
@@ -350,6 +365,7 @@ public class ProguardMapMinifier {
 
     public ApplyMappingMemberNamingStrategy(
         AppView<?> appView, Map<DexReference, MemberNaming> mappedNames) {
+      super(appView);
       this.mappedNames = mappedNames;
       this.factory = appView.dexItemFactory();
       this.reporter = appView.options().reporter;
@@ -358,13 +374,24 @@ public class ProguardMapMinifier {
     @Override
     public DexString next(DexMethod method, InternalNamingState internalState) {
       assert !mappedNames.containsKey(method);
-      return method.name;
+      return canMinify(method, method.holder) ? super.next(method, internalState) : method.name;
     }
 
     @Override
     public DexString next(DexField field, InternalNamingState internalState) {
       assert !mappedNames.containsKey(field);
-      return field.name;
+      return canMinify(field, field.holder) ? super.next(field, internalState) : field.name;
+    }
+
+    private boolean canMinify(DexReference reference, DexType type) {
+      if (!appView.options().isMinifying()) {
+        return false;
+      }
+      DexClass dexClass = appView.definitionFor(type);
+      if (dexClass == null || dexClass.isNotProgramClass()) {
+        return false;
+      }
+      return appView.rootSet().mayBeMinified(reference, appView);
     }
 
     @Override

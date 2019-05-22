@@ -37,7 +37,8 @@ import java.util.function.Function;
  * <p>As in the Dalvik VM method dispatch takes argument and return types of methods into account,
  * we can further reuse names if the prototypes of two methods differ. For this, we store the above
  * state separately for each proto using a map from protos to {@link
- * MethodNamingState.InternalState} objects. These internal state objects are also linked.
+ * MethodNamingState.InternalReservationState} objects. These internal state objects are also
+ * linked.
  *
  * <p>Name assignment happens in 4 stages. In the first stage, we record all names that are used by
  * library classes or are flagged using a keep rule as reserved. This step also allocates the {@link

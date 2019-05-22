@@ -99,6 +99,7 @@ public class DefaultInterfaceMethodTest extends TestBase {
         .addProgramClasses(ProgramClass.class)
         .addClasspathClasses(LibraryInterface.class)
         .addApplyMapping(libraryResult.getProguardMap())
+        .addKeepMainRule(ProgramClass.class)
         .setMinApi(parameters.getRuntime())
         .compile()
         .addRunClasspathFiles(libraryResult.writeToZip())

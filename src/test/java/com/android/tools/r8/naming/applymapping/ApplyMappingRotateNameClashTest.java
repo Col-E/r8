@@ -45,6 +45,7 @@ public class ApplyMappingRotateNameClashTest extends TestBase {
         .addLibraryClasses(A.class, B.class)
         .addLibraryFiles(TestBase.runtimeJar(parameters.getBackend()))
         .addProgramClasses(C.class)
+        .addKeepMainRule(C.class)
         .noTreeShaking()
         .addApplyMapping(
             StringUtils.lines(
