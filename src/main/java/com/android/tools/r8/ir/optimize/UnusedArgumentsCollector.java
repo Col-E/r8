@@ -21,7 +21,8 @@ import com.android.tools.r8.graph.GraphLense.RewrittenPrototypeDescription.Remov
 import com.android.tools.r8.ir.optimize.MemberPoolCollection.MemberPool;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
-import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.SymbolGenerationUtils;
+import com.android.tools.r8.utils.SymbolGenerationUtils.MixedCasing;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.base.Equivalence.Wrapper;
@@ -148,8 +149,10 @@ public class UnusedArgumentsCollector {
               appView
                   .dexItemFactory()
                   .createString(
-                      StringUtils.numberToIdentifier(
-                          count, method.method.name.toSourceString().toCharArray()));
+                      SymbolGenerationUtils.numberToIdentifier(
+                          count,
+                          MixedCasing.USE_MIXED_CASE,
+                          method.method.name.toSourceString().toCharArray()));
         } else {
           // Constructors must be named `<init>`.
           return null;

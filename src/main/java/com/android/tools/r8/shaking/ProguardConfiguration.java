@@ -69,6 +69,7 @@ public class ProguardConfiguration {
     private boolean overloadAggressively;
     private boolean keepRuleSynthesisForRecompilation = false;
     private boolean configurationDebugging = false;
+    private boolean dontUseMixedCaseClassnames = false;
 
     private Builder(DexItemFactory dexItemFactory, Reporter reporter) {
       this.dexItemFactory = dexItemFactory;
@@ -275,6 +276,10 @@ public class ProguardConfiguration {
       this.configurationDebugging = configurationDebugging;
     }
 
+    public void setDontUseMixedCaseClassnames(boolean dontUseMixedCaseClassnames) {
+      this.dontUseMixedCaseClassnames = dontUseMixedCaseClassnames;
+    }
+
     /**
      * This synthesizes a set of keep rules that are necessary in order to be able to successfully
      * recompile the generated dex files with the same keep rules.
@@ -332,7 +337,8 @@ public class ProguardConfiguration {
               adaptResourceFilenames.build(),
               adaptResourceFileContents.build(),
               keepDirectories.build(),
-              configurationDebugging);
+              configurationDebugging,
+              dontUseMixedCaseClassnames);
 
       reporter.failIfPendingErrors();
 
@@ -400,6 +406,7 @@ public class ProguardConfiguration {
   private final ProguardPathFilter adaptResourceFileContents;
   private final ProguardPathFilter keepDirectories;
   private final boolean configurationDebugging;
+  private final boolean dontUseMixedCaseClassnames;
 
   private ProguardConfiguration(
       String parsedConfiguration,
@@ -438,7 +445,8 @@ public class ProguardConfiguration {
       ProguardPathFilter adaptResourceFilenames,
       ProguardPathFilter adaptResourceFileContents,
       ProguardPathFilter keepDirectories,
-      boolean configurationDebugging) {
+      boolean configurationDebugging,
+      boolean dontUseMixedCaseClassnames) {
     this.parsedConfiguration = parsedConfiguration;
     this.dexItemFactory = factory;
     this.injars = ImmutableList.copyOf(injars);
@@ -476,6 +484,7 @@ public class ProguardConfiguration {
     this.adaptResourceFileContents = adaptResourceFileContents;
     this.keepDirectories = keepDirectories;
     this.configurationDebugging = configurationDebugging;
+    this.dontUseMixedCaseClassnames = dontUseMixedCaseClassnames;
   }
 
   /**
@@ -636,6 +645,10 @@ public class ProguardConfiguration {
 
   public boolean isConfigurationDebugging() {
     return configurationDebugging;
+  }
+
+  public boolean hasDontUseMixedCaseClassnames() {
+    return dontUseMixedCaseClassnames;
   }
 
   @Override

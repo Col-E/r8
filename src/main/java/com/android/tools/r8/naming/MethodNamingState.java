@@ -7,7 +7,6 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.utils.StringUtils;
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Map;
@@ -340,20 +339,11 @@ class MethodNamingState<KeyType> {
 
     void printLastName(String indentation, PrintStream out) {
       out.print(indentation);
-      out.print("Last name: ");
-      int index = virtualNameCount + directNameCount;
-      if (index > 1) {
-        out.print(StringUtils.numberToIdentifier(index - 1));
-        out.print(" (public name count: ");
-        out.print(virtualNameCount);
-        out.print(")");
-        out.print(" (direct name count: ");
-        out.print(directNameCount);
-        out.print(")");
-      } else {
-        out.print("<NONE>");
-      }
-      out.println();
+      out.print("public name count: ");
+      out.print(virtualNameCount);
+      out.print(", ");
+      out.print("direct name count: ");
+      out.println(directNameCount);
     }
   }
 }

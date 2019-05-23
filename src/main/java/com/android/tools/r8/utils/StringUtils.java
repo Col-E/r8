@@ -17,10 +17,6 @@ public class StringUtils {
   public static final String[] EMPTY_ARRAY = {};
   public static final String LINE_SEPARATOR = System.getProperty("line.separator");
 
-  private static final char[] IDENTIFIER_LETTERS
-      = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_".toCharArray();
-  private static final int NUMBER_OF_LETTERS = IDENTIFIER_LETTERS.length;
-
   public enum BraceType {
     PARENS,
     SQUARE,
@@ -257,39 +253,6 @@ public class StringUtils {
     return Arrays.toString(digest);
   }
 
-  public static String numberToIdentifier(int nameCount) {
-    return numberToIdentifier(nameCount, EMPTY_CHAR_ARRAY, false);
-  }
-
-  public static String numberToIdentifier(int nameCount, char[] prefix) {
-    return numberToIdentifier(nameCount, prefix, false);
-  }
-
-  public static String numberToIdentifier(int nameCount, char[] prefix, boolean addSemicolon) {
-    // TODO(b132812927): Add support for using numbers.
-    int size = addSemicolon ? 1 : 0;
-    int number = nameCount;
-    while (number >= NUMBER_OF_LETTERS) {
-      number /= NUMBER_OF_LETTERS;
-      size++;
-    }
-    size++;
-    char characters[] = Arrays.copyOfRange(prefix, 0, prefix.length + size);
-    number = nameCount;
-
-    int i = prefix.length;
-    while (number >= NUMBER_OF_LETTERS) {
-      characters[i++] = IDENTIFIER_LETTERS[number % NUMBER_OF_LETTERS];
-      number /= NUMBER_OF_LETTERS;
-    }
-    characters[i++] = IDENTIFIER_LETTERS[number - 1];
-    if (addSemicolon) {
-      characters[i++] = ';';
-    }
-    assert i == characters.length;
-
-    return new String(characters);
-  }
 
   public static String times(String string, int count) {
     StringBuilder builder = new StringBuilder();

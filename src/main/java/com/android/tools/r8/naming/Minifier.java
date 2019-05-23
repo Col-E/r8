@@ -22,7 +22,8 @@ import com.android.tools.r8.naming.ClassNameMinifier.PackageNamingStrategy;
 import com.android.tools.r8.naming.FieldNameMinifier.FieldRenaming;
 import com.android.tools.r8.naming.MethodNameMinifier.MethodRenaming;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.SymbolGenerationUtils;
+import com.android.tools.r8.utils.SymbolGenerationUtils.MixedCasing;
 import com.android.tools.r8.utils.Timing;
 import java.util.HashSet;
 import java.util.List;
@@ -90,10 +91,13 @@ public class Minifier {
     // dictionary. We use a list for direct indexing based on a number and a set for looking up.
     private final List<String> obfuscationDictionary;
     private final Set<String> obfuscationDictionaryForLookup;
+    private final MixedCasing mixedCasing;
 
-    BaseMinificationNamingStrategy(List<String> obfuscationDictionary) {
+    BaseMinificationNamingStrategy(List<String> obfuscationDictionary, boolean dontUseMixedCasing) {
       this.obfuscationDictionary = obfuscationDictionary;
       this.obfuscationDictionaryForLookup = new HashSet<>(this.obfuscationDictionary);
+      this.mixedCasing =
+          dontUseMixedCasing ? MixedCasing.DONT_USE_MIXED_CASE : MixedCasing.USE_MIXED_CASE;
       assert obfuscationDictionary != null;
     }
 
@@ -105,7 +109,9 @@ public class Minifier {
       } else {
         String nextString;
         do {
-          nextString = StringUtils.numberToIdentifier(state.incrementNameIndex(isDirectMethodCall));
+          nextString =
+              SymbolGenerationUtils.numberToIdentifier(
+                  state.incrementNameIndex(isDirectMethodCall), mixedCasing);
         } while (obfuscationDictionaryForLookup.contains(nextString));
         nextName.append(nextString);
       }
@@ -120,7 +126,9 @@ public class Minifier {
     private final DexItemFactory factory;
 
     MinificationClassNamingStrategy(AppView<?> appView) {
-      super(appView.options().getProguardConfiguration().getClassObfuscationDictionary());
+      super(
+          appView.options().getProguardConfiguration().getClassObfuscationDictionary(),
+          appView.options().getProguardConfiguration().hasDontUseMixedCaseClassnames());
       this.appView = appView;
       factory = appView.dexItemFactory();
     }
@@ -140,7 +148,9 @@ public class Minifier {
       implements PackageNamingStrategy {
 
     MinificationPackageNamingStrategy(AppView<?> appView) {
-      super(appView.options().getProguardConfiguration().getPackageObfuscationDictionary());
+      super(
+          appView.options().getProguardConfiguration().getPackageObfuscationDictionary(),
+          appView.options().getProguardConfiguration().hasDontUseMixedCaseClassnames());
     }
 
     @Override
@@ -160,7 +170,7 @@ public class Minifier {
     private final DexItemFactory factory;
 
     public MinifierMemberNamingStrategy(AppView<?> appView) {
-      super(appView.options().getProguardConfiguration().getObfuscationDictionary());
+      super(appView.options().getProguardConfiguration().getObfuscationDictionary(), false);
       this.appView = appView;
       this.factory = appView.dexItemFactory();
     }
