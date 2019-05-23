@@ -20,10 +20,10 @@ import java.util.List;
 public class NestAccessControlTestUtils {
 
   public static final Path JAR =
-      Paths.get(ToolHelper.EXAMPLES_JAVA11_JAR_DIR).resolve("nestHostExample" + JAR_EXTENSION);
+      Paths.get(ToolHelper.EXAMPLES_JAVA11_JAR_DIR).resolve("nesthostexample" + JAR_EXTENSION);
   public static final Path CLASSES_PATH =
-      Paths.get(ToolHelper.EXAMPLES_JAVA11_BUILD_DIR).resolve("nestHostExample/");
-  public static final String PACKAGE_NAME = "nestHostExample.";
+      Paths.get(ToolHelper.EXAMPLES_JAVA11_BUILD_DIR).resolve("nesthostexample/");
+  public static final String PACKAGE_NAME = "nesthostexample.";
 
   public static final List<String> CLASS_NAMES =
       ImmutableList.of(
