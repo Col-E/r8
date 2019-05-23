@@ -131,6 +131,20 @@ public class ProguardConfigurationParser {
           configurationBuilder.getKeepParameterNamesOptionOrigin(),
           configurationBuilder.getKeepParameterNamesOptionPosition()));
     }
+    if (configurationBuilder.isConfigurationDebugging()) {
+      String suffix = "due to the use of -addconfigurationdebugging";
+      if (configurationBuilder.isObfuscating()) {
+        reporter.info(
+            new StringDiagnostic("Build is not being obfuscated " + suffix));
+        configurationBuilder.disableObfuscation();
+      }
+      if (configurationBuilder.hasApplyMappingFile()) {
+        reporter.info(
+            new StringDiagnostic(
+                "Applying the obfuscation map (-applymapping) is disabled " + suffix));
+        configurationBuilder.setApplyMappingFile(null);
+      }
+    }
   }
 
   /**

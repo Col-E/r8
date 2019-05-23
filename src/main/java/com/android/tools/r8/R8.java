@@ -677,13 +677,7 @@ public class R8 {
 
       // Perform minification.
       NamingLens namingLens;
-      if (options.configurationDebugging) {
-        if (options.getProguardConfiguration().hasApplyMappingFile() || options.isMinifying()) {
-          options.reporter.info(new StringDiagnostic(
-              "Build is not being obfuscated due to the use of -addconfigurationdebugging"));
-        }
-        namingLens = NamingLens.getIdentityLens();
-      } else if (options.getProguardConfiguration().hasApplyMappingFile()) {
+      if (options.getProguardConfiguration().hasApplyMappingFile()) {
         SeedMapper seedMapper =
             SeedMapper.seedMapperFromFile(
                 options.reporter, options.getProguardConfiguration().getApplyMappingFile());
@@ -697,6 +691,7 @@ public class R8 {
         namingLens = new Minifier(appView.withLiveness(), desugaredCallSites).run(timing);
         timing.end();
       } else {
+        // Rewrite signature annotations for applications that are not minified.
         if (appView.appInfo().hasLiveness()) {
           // TODO(b/124726014): Rewrite signature annotations in lens rewriting instead of here?
           new GenericSignatureRewriter(appView.withLiveness()).run(appView.appInfo().classes());

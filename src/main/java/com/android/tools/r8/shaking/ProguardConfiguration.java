@@ -167,6 +167,10 @@ public class ProguardConfiguration {
       this.applyMappingFile = file;
     }
 
+    public boolean hasApplyMappingFile() {
+      return applyMappingFile != null;
+    }
+
     public void setVerbose(boolean verbose) {
       this.verbose = verbose;
     }
@@ -274,6 +278,10 @@ public class ProguardConfiguration {
 
     public void setConfigurationDebugging(boolean configurationDebugging) {
       this.configurationDebugging = configurationDebugging;
+    }
+
+    boolean isConfigurationDebugging() {
+      return configurationDebugging;
     }
 
     public void setDontUseMixedCaseClassnames(boolean dontUseMixedCaseClassnames) {
