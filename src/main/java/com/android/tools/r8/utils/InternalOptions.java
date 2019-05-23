@@ -293,7 +293,7 @@ public class InternalOptions {
   // Flag to turn on/off desugaring in D8/R8.
   public boolean enableDesugaring = true;
   // Flag to turn on/off JDK11+ nest-access control
-  public boolean enableNestBasedAccessDesugaring = false;
+  public boolean enableNestBasedAccessDesugaring = true;
   // Flag to turn on/off reduction of nest to improve class merging optimizations.
   public boolean enableNestReduction = true;
   // Defines interface method rewriter behavior.
