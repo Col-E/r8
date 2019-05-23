@@ -19,6 +19,8 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.errors.IncompleteNestNestDesugarDiagnosic;
+import com.android.tools.r8.errors.MissingNestHostNestDesugarDiagnostic;
 import java.nio.file.Path;
 import java.util.List;
 import org.hamcrest.Matcher;
@@ -49,28 +51,19 @@ public class NestCompilationExceptionTest extends TestBase {
 
   @Test
   public void testWarningD8() throws Exception {
-    // TODO (b/132676197): use desugaring handling
     Assume.assumeTrue(parameters.isDexRuntime());
-    testIncompleteNestWarning(true);
-    testMissingNestHostWarning(true);
+    testIncompleteNestWarning(true, true);
+    testMissingNestHostWarning(true, true);
   }
 
   @Test
   public void testWarningR8() throws Exception {
-    // TODO (b/132676197): use desugaring handling
-    // TODO (b/132676197): Cf backend should raise a warning
-    // Remove Assume when fixed.
-    Assume.assumeTrue(parameters.isDexRuntime());
-    testIncompleteNestWarning(false);
-    testMissingNestHostWarning(false);
+    testIncompleteNestWarning(false, parameters.isDexRuntime());
+    testMissingNestHostWarning(false, parameters.isDexRuntime());
   }
 
   @Test
   public void testErrorR8() {
-    // TODO (b/132676197): Cf back should raise an error
-    // TODO (b/132676197): Dex back-end should raise an error
-    // Remove Assume when fixed.
-    Assume.assumeTrue(false);
     testMissingNestHostError();
     testIncompleteNestError();
   }
@@ -111,7 +104,7 @@ public class NestCompilationExceptionTest extends TestBase {
       compileOnlyClassesMatching(innerClassMatcher, false, false);
       fail("Should have raised an exception for missing nest host");
     } catch (Exception e) {
-      assertTrue(e.getCause().getMessage().contains("requires its nest host"));
+      assertTrue(e.getCause().getCause().getMessage().contains("requires its nest host"));
     }
   }
 
@@ -121,28 +114,40 @@ public class NestCompilationExceptionTest extends TestBase {
       compileOnlyClassesMatching(innerClassMatcher, false, false);
       fail("Should have raised an exception for incomplete nest");
     } catch (Exception e) {
-      assertTrue(e.getCause().getMessage().contains("requires its nest mates"));
+      assertTrue(e.getCause().getCause().getMessage().contains("requires its nest mates"));
     }
   }
 
-  private void testMissingNestHostWarning(boolean d8) throws Exception {
+  private void testMissingNestHostWarning(boolean d8, boolean desugarWarning) throws Exception {
     Matcher<String> innerClassMatcher =
         containsString("BasicNestHostWithInnerClassMethods$BasicNestedClass");
     TestCompileResult compileResult = compileOnlyClassesMatching(innerClassMatcher, d8, true);
     assertTrue(compileResult.getDiagnosticMessages().getWarnings().size() >= 1);
-    assertTrue(
-        compileResult.getDiagnosticMessages().getWarnings().stream()
-            .anyMatch(
-                warning -> warning.getDiagnosticMessage().contains("requires its nest host")));
+    if (desugarWarning) {
+      assertTrue(
+          compileResult.getDiagnosticMessages().getWarnings().stream()
+              .anyMatch(warn -> warn instanceof MissingNestHostNestDesugarDiagnostic));
+    } else if (!d8) {
+      // R8 should raise extra warning when cleaning the nest.
+      assertTrue(
+          compileResult.getDiagnosticMessages().getWarnings().stream()
+              .anyMatch(warn -> warn.getDiagnosticMessage().contains("requires its nest host")));
+    }
   }
 
-  private void testIncompleteNestWarning(boolean d8) throws Exception {
+  private void testIncompleteNestWarning(boolean d8, boolean desugarWarning) throws Exception {
     Matcher<String> innerClassMatcher = endsWith("BasicNestHostWithInnerClassMethods");
     TestCompileResult compileResult = compileOnlyClassesMatching(innerClassMatcher, d8, true);
     assertTrue(compileResult.getDiagnosticMessages().getWarnings().size() >= 1);
-    assertTrue(
-        compileResult.getDiagnosticMessages().getWarnings().stream()
-            .anyMatch(
-                warning -> warning.getDiagnosticMessage().contains("requires its nest mates")));
+    if (desugarWarning) {
+      assertTrue(
+          compileResult.getDiagnosticMessages().getWarnings().stream()
+              .anyMatch(warn -> warn instanceof IncompleteNestNestDesugarDiagnosic));
+    } else if (!d8) {
+      // R8 should raise extra warning when cleaning the nest.
+      assertTrue(
+          compileResult.getDiagnosticMessages().getWarnings().stream()
+              .anyMatch(warn -> warn.getDiagnosticMessage().contains("requires its nest mates")));
+    }
   }
 }

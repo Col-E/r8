@@ -104,7 +104,11 @@ public class FullNestOnProgramPathTest extends TestBase {
           .addKeepAllAttributes()
           .setMinApi(parameters.getApiLevel())
           .addProgramFiles(classesOfNest(nestID))
-          .addOptionsModification(options -> options.enableNestBasedAccessDesugaring = true)
+          .addOptionsModification(
+              options -> {
+                options.enableNestBasedAccessDesugaring = true;
+                options.enableNestReduction = false;
+              })
           .compile()
           .run(parameters.getRuntime(), getMainClass(nestID))
           .assertSuccessWithOutput(getExpectedResult(nestID));
@@ -146,6 +150,7 @@ public class FullNestOnProgramPathTest extends TestBase {
         .addOptionsModification(
             options -> {
               options.enableNestBasedAccessDesugaring = true;
+              options.enableNestReduction = false;
             })
         .addProgramFiles(JAR)
         .setMinApi(minApi)

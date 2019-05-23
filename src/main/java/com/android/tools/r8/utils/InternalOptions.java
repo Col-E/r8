@@ -13,9 +13,12 @@ import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.Version;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.errors.IncompleteNestNestDesugarDiagnosic;
 import com.android.tools.r8.errors.InterfaceDesugarMissingTypeDiagnostic;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
+import com.android.tools.r8.errors.MissingNestHostNestDesugarDiagnostic;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItem;
@@ -291,6 +294,8 @@ public class InternalOptions {
   public boolean enableDesugaring = true;
   // Flag to turn on/off JDK11+ nest-access control
   public boolean enableNestBasedAccessDesugaring = false;
+  // Flag to turn on/off reduction of nest to improve class merging optimizations.
+  public boolean enableNestReduction = true;
   // Defines interface method rewriter behavior.
   public OffOrAuto interfaceMethodDesugaring = OffOrAuto.Auto;
   // Defines try-with-resources rewriter behavior.
@@ -472,6 +477,127 @@ public class InternalOptions {
 
   /** A set of dexitems we have reported missing to dedupe warnings. */
   private final Set<DexItem> reportedMissingForDesugaring = Sets.newConcurrentHashSet();
+
+  public enum NestReportType {
+    FATAL_ERROR,
+    DESUGAR_WARNING,
+    WARNING
+  }
+
+  public void errorMissingClassMissingNestHost(DexClass compiledClass) {
+    throw reporter.fatalError(messageErrorMissingNestHost(compiledClass));
+  }
+
+  public void warningMissingClassMissingNestHost(DexClass compiledClass) {
+    if (compiledClass.isLibraryClass()) {
+      errorMissingClassMissingNestHost(compiledClass);
+    }
+    reporter.warning(new StringDiagnostic(messageWarningMissingNestHost(compiledClass)));
+  }
+
+  public void nestDesugaringWarningMissingNestHost(DexClass compiledClass) {
+    if (compiledClass.isLibraryClass()) {
+      errorMissingClassMissingNestHost(compiledClass);
+    }
+    reporter.warning(
+        new MissingNestHostNestDesugarDiagnostic(
+            compiledClass.getOrigin(),
+            Position.UNKNOWN,
+            messageWarningMissingNestHost(compiledClass)));
+  }
+
+  public void errorMissingClassIncompleteNest(List<DexType> nest, AppView<?> appView) {
+    throw reporter.fatalError(messageErrorIncompleteNest(nest, appView));
+  }
+
+  public void warningMissingClassIncompleteNest(List<DexType> nest, AppView<?> appView) {
+    for (DexType type : nest) {
+      DexClass clazz = appView.definitionFor(type);
+      if (clazz != null && clazz.isLibraryClass()) {
+        errorMissingClassIncompleteNest(nest, appView);
+        return;
+      }
+    }
+    reporter.warning(new StringDiagnostic(messageWarningIncompleteNest(nest, appView)));
+  }
+
+  public void nestDesugaringWarningIncompleteNest(List<DexType> nest, AppView<?> appView) {
+    DexClass availableClass = null;
+    for (DexType type : nest) {
+      DexClass clazz = appView.definitionFor(type);
+      if (clazz != null && clazz.isProgramClass()) {
+        availableClass = clazz;
+      } else if (clazz != null && clazz.isLibraryClass()) {
+        errorMissingClassIncompleteNest(nest, appView);
+        return;
+      }
+    }
+    assert availableClass != null;
+    reporter.warning(
+        new IncompleteNestNestDesugarDiagnosic(
+            availableClass.getOrigin(),
+            Position.UNKNOWN,
+            messageWarningIncompleteNest(nest, appView)));
+  }
+
+  private String messageErrorMissingNestHost(DexClass compiledClass) {
+    String nestHostName = compiledClass.getNestHost().getName();
+    return "Class "
+        + compiledClass.type.getName()
+        + " requires its nest host "
+        + nestHostName
+        + " to be on program or class path. ";
+  }
+
+  private String messageWarningMissingNestHost(DexClass compiledClass) {
+    return messageErrorMissingNestHost(compiledClass)
+        + "Class"
+        + compiledClass.type.getName()
+        + " is considered as not being part of any nest.";
+  }
+
+  private String messageErrorIncompleteNest(List<DexType> nest, AppView<?> appView) {
+    List<String> programClassesFromNest = new ArrayList<>();
+    List<String> unavailableClasses = new ArrayList<>();
+    List<String> classPathClasses = new ArrayList<>();
+    List<String> libraryClasses = new ArrayList<>();
+    for (DexType type : nest) {
+      DexClass clazz = appView.definitionFor(appView.graphLense().lookupType(type));
+      if (clazz == null) {
+        unavailableClasses.add(type.getName());
+      } else if (clazz.isLibraryClass()) {
+        libraryClasses.add(type.getName());
+      } else if (clazz.isProgramClass()) {
+        programClassesFromNest.add(type.getName());
+      } else {
+        assert clazz.isClasspathClass();
+        classPathClasses.add(type.getName());
+      }
+    }
+    StringBuilder stringBuilder =
+        new StringBuilder("Compilation of classes ")
+            .append(String.join(", ", programClassesFromNest))
+            .append(" requires its nest mates ");
+    if (!unavailableClasses.isEmpty()) {
+      stringBuilder.append(String.join(", ", unavailableClasses)).append(" (unavailable) ");
+    }
+    if (!libraryClasses.isEmpty()) {
+      stringBuilder.append(String.join(", ", unavailableClasses)).append(" (on library path) ");
+    }
+    stringBuilder.append("to be on program or class path.");
+    if (!classPathClasses.isEmpty()) {
+      stringBuilder
+          .append("(Classes ")
+          .append(String.join(", ", classPathClasses))
+          .append(" from the same nest are on class path).");
+    }
+    return stringBuilder.toString();
+  }
+
+  private String messageWarningIncompleteNest(List<DexType> nest, AppView<?> appView) {
+    return messageErrorIncompleteNest(nest, appView)
+        + " Unavailable classes are considered as not being part of the nest.";
+  }
 
   public void warningMissingTypeForDesugar(
       Origin origin, Position position, DexType missingType, DexType contextType) {

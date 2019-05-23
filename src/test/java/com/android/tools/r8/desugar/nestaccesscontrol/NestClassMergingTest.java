@@ -94,6 +94,7 @@ public class NestClassMergingTest extends TestBase {
                   // unused.
                   options.enableValuePropagation = false;
                   options.enableClassInlining = false;
+                  options.enableNestReduction = false;
                 })
             .enableInliningAnnotations("nestHostExample")
             .setMinApi(parameters.getApiLevel())

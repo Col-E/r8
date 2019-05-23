@@ -144,21 +144,33 @@ public class TreePruner {
   }
 
   private void clearDeadNestMembers(DexClass nestHost) {
+    // null definition should raise a warning which is raised later on in Nest specific passes.
     nestHost
         .getNestMembersClassAttributes()
-        .removeIf(nestMemberAttr -> !isTypeLive(nestMemberAttr.getNestMember()));
+        .removeIf(
+            nestMemberAttr ->
+                appView.definitionFor(nestMemberAttr.getNestMember()) != null
+                    && !isTypeLive(nestMemberAttr.getNestMember()));
   }
 
   private void claimNestOwnership(DexClass newHost) {
     DexClass previousHost = appView.definitionFor(newHost.getNestHost());
-    assert previousHost != null;
+    if (previousHost == null) {
+      // Nest host will be cleared from all nest members in Nest specific passes.
+      return;
+    }
     newHost.clearNestHost();
     for (NestMemberClassAttribute attr : previousHost.getNestMembersClassAttributes()) {
       if (attr.getNestMember() != newHost.type && isTypeLive(attr.getNestMember())) {
         DexClass nestMember = appView.definitionFor(attr.getNestMember());
-        assert nestMember != null;
-        nestMember.setNestHost(newHost.type);
-        newHost.getNestMembersClassAttributes().add(new NestMemberClassAttribute(nestMember.type));
+        if (nestMember != null) {
+          nestMember.setNestHost(newHost.type);
+        }
+        // We still need to add it, even if the definition is null,
+        // so the warning / error are correctly raised in Nest specific passes.
+        newHost
+            .getNestMembersClassAttributes()
+            .add(new NestMemberClassAttribute(attr.getNestMember()));
       }
     }
   }

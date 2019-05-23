@@ -5,9 +5,6 @@
 package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.dex.Constants;
-import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.errors.IncompleteNestNestDesugarDiagnosic;
-import com.android.tools.r8.errors.MissingNestHostNestDesugarDiagnostic;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassAccessFlags;
@@ -26,9 +23,7 @@ import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.Invoke;
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.SynthesizedOrigin;
-import com.android.tools.r8.position.Position;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -76,7 +71,11 @@ public abstract class NestBasedAccessDesugaring {
     return nestConstructor.type;
   }
 
-  protected DexClass definitionFor(DexType type) {
+  abstract void reportMissingNestHost(DexClass clazz);
+
+  abstract void reportIncompleteNest(List<DexType> nest);
+
+  DexClass definitionFor(DexType type) {
     return appView.definitionFor(appView.graphLense().lookupType(type));
   }
 
@@ -144,79 +143,6 @@ public abstract class NestBasedAccessDesugaring {
   }
 
   protected abstract boolean shouldProcessClassInNest(DexClass clazz, List<DexType> nest);
-
-  private void reportIncompleteNest(List<DexType> nest) {
-    List<String> programClassesFromNest = new ArrayList<>();
-    List<String> unavailableClasses = new ArrayList<>();
-    List<String> classPathClasses = new ArrayList<>();
-    List<String> libraryClasses = new ArrayList<>();
-    DexClass availableProgramClass = null;
-    for (DexType type : nest) {
-      DexClass clazz = definitionFor(type);
-      if (clazz == null) {
-        unavailableClasses.add(type.getName());
-      } else if (clazz.isLibraryClass()) {
-        libraryClasses.add(type.getName());
-      } else if (clazz.isProgramClass()) {
-        programClassesFromNest.add(type.getName());
-        availableProgramClass = clazz;
-      } else {
-        assert clazz.isClasspathClass();
-        classPathClasses.add(type.getName());
-      }
-    }
-    StringBuilder stringBuilder =
-        new StringBuilder("Compilation of classes ")
-            .append(String.join(", ", programClassesFromNest))
-            .append(" requires its nest mates ");
-    if (!unavailableClasses.isEmpty()) {
-      stringBuilder.append(String.join(", ", unavailableClasses)).append(" (unavailable) ");
-    }
-    if (!libraryClasses.isEmpty()) {
-      stringBuilder.append(String.join(", ", unavailableClasses)).append(" (on library path) ");
-    }
-    stringBuilder.append("to be on program or class path for compilation to succeed)");
-    if (!classPathClasses.isEmpty()) {
-      stringBuilder
-          .append("(Classes ")
-          .append(String.join(", ", classPathClasses))
-          .append(" from the same nest are on class path).");
-    }
-    if (!libraryClasses.isEmpty()) {
-      throw new CompilationError(stringBuilder.toString());
-    }
-    Origin origin;
-    if (availableProgramClass == null) {
-      origin = Origin.unknown();
-    } else {
-      origin = availableProgramClass.getOrigin();
-    }
-    appView
-        .options()
-        .reporter
-        .warning(
-            new IncompleteNestNestDesugarDiagnosic(
-                origin, Position.UNKNOWN, stringBuilder.toString()));
-  }
-
-  private void reportMissingNestHost(DexClass compiledClass) {
-    String nestHostName = compiledClass.getNestHost().getName();
-    String message =
-        "Class "
-            + compiledClass.type.getName()
-            + " requires its nest host "
-            + nestHostName
-            + " to be on program or class path for compilation to succeed.";
-    if (compiledClass.isLibraryClass()) {
-      throw new CompilationError(message);
-    }
-    appView
-        .options()
-        .reporter
-        .warning(
-            new MissingNestHostNestDesugarDiagnostic(
-                compiledClass.getOrigin(), Position.UNKNOWN, message));
-  }
 
   private DexProgramClass createNestAccessConstructor() {
     return new DexProgramClass(

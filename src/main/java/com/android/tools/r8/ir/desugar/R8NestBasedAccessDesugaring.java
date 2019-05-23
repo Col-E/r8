@@ -14,8 +14,8 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.utils.ThreadUtils;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,9 +41,7 @@ public class R8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
 
   public GraphLense run(ExecutorService executorService, DexApplication.Builder<?> appBuilder)
       throws ExecutionException {
-    if (appView.options().canUseNestBasedAccess()) {
-      return appView.graphLense();
-    }
+    assert !appView.options().canUseNestBasedAccess();
     computeAndProcessNestsConcurrently(executorService);
     addDeferredBridgesAndMapMethods();
     clearNestAttributes();
@@ -97,7 +95,8 @@ public class R8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
 
   private void computeAndProcessNestsConcurrently(ExecutorService executorService)
       throws ExecutionException {
-    Set<DexType> nestHosts = Collections.newSetFromMap(new IdentityHashMap<>());
+    Set<DexType> nestHosts = Sets.newIdentityHashSet();
+    ;
     List<Future<?>> futures = new ArrayList<>();
     // It is possible that a nest member is on the program path but its nest host
     // is only in the class path (or missing, raising an error).
@@ -121,4 +120,21 @@ public class R8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
     return true;
   }
 
+  @Override
+  void reportMissingNestHost(DexClass clazz) {
+    if (appView.options().ignoreMissingClasses) {
+      appView.options().nestDesugaringWarningMissingNestHost(clazz);
+    } else {
+      appView.options().errorMissingClassMissingNestHost(clazz);
+    }
+  }
+
+  @Override
+  void reportIncompleteNest(List<DexType> nest) {
+    if (appView.options().ignoreMissingClasses) {
+      appView.options().nestDesugaringWarningIncompleteNest(nest, appView);
+    } else {
+      appView.options().errorMissingClassIncompleteNest(nest, appView);
+    }
+  }
 }

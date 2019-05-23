@@ -152,4 +152,14 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
   protected boolean shouldProcessClassInNest(DexClass clazz, List<DexType> nest) {
     return clazz.isNotProgramClass();
   }
+
+  @Override
+  void reportMissingNestHost(DexClass clazz) {
+    appView.options().nestDesugaringWarningMissingNestHost(clazz);
+  }
+
+  @Override
+  void reportIncompleteNest(List<DexType> nest) {
+    appView.options().nestDesugaringWarningIncompleteNest(nest, appView);
+  }
 }

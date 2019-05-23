@@ -29,6 +29,7 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.R8NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.optimize.EnumOrdinalMapCollector;
 import com.android.tools.r8.ir.optimize.MethodPoolCollection;
+import com.android.tools.r8.ir.optimize.NestReducer;
 import com.android.tools.r8.ir.optimize.SwitchMapCollector;
 import com.android.tools.r8.ir.optimize.UninstantiatedTypeOptimization;
 import com.android.tools.r8.ir.optimize.UnusedArgumentsCollector;
@@ -425,7 +426,7 @@ public class R8 {
 
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
       appView.setGraphLense(new MemberRebindingAnalysis(appViewWithLiveness).run());
-      if (options.enableNestBasedAccessDesugaring) {
+      if (options.enableNestBasedAccessDesugaring && !options.canUseNestBasedAccess()) {
         timing.begin("NestBasedAccessDesugaring");
         R8NestBasedAccessDesugaring analyzer = new R8NestBasedAccessDesugaring(appViewWithLiveness);
         boolean changed =
@@ -436,6 +437,14 @@ public class R8 {
                   .appInfo()
                   .rewrittenWithLense(application.asDirect(), appView.graphLense()));
         }
+        timing.end();
+      } else {
+        timing.begin("NestReduction");
+        // This pass attempts to reduce the number of nests and nest size
+        // to allow further passes, specifically the class mergers, to do
+        // a better job. This pass is better run before the class merger
+        // but after the publicizer (cannot be run as part of the Enqueuer).
+        new NestReducer(appViewWithLiveness).run(executorService);
         timing.end();
       }
       if (options.enableHorizontalClassMerging) {
