@@ -44,7 +44,7 @@ public class MinificationMixedCaseAndNumbersTest extends TestBase {
   @Test
   public void testNaming() throws ExecutionException, CompilationFailedException, IOException {
     Set<String> allowedNames = new HashSet<>();
-    allowedNames.add("com.android.tools.r8.naming.MinificationMixedCaseAndNumbersTest$Main");
+    allowedNames.add(Main.class.getTypeName());
     for (int i = 1; i < NUMBER_OF_MINIFIED_CLASSES; i++) {
       String newString =
           SymbolGenerationUtils.numberToIdentifier(i, MixedCasing.DONT_USE_MIXED_CASE);
@@ -129,58 +129,6 @@ public class MinificationMixedCaseAndNumbersTest extends TestBase {
 
   public static class Z {}
 
-  public static class a {}
-
-  public static class b {}
-
-  public static class c {}
-
-  public static class d {}
-
-  public static class e {}
-
-  public static class f {}
-
-  public static class g {}
-
-  public static class h {}
-
-  public static class i {}
-
-  public static class j {}
-
-  public static class k {}
-
-  public static class l {}
-
-  public static class m {}
-
-  public static class n {}
-
-  public static class o {}
-
-  public static class p {}
-
-  public static class q {}
-
-  public static class r {}
-
-  public static class s {}
-
-  public static class t {}
-
-  public static class u {}
-
-  public static class v {}
-
-  public static class w {}
-
-  public static class x {}
-
-  public static class y {}
-
-  public static class z {}
-
   public static class AA {}
 
   public static class AB {}
@@ -194,6 +142,58 @@ public class MinificationMixedCaseAndNumbersTest extends TestBase {
   public static class AF {}
 
   public static class AG {}
+
+  public static class AH {}
+
+  public static class AI {}
+
+  public static class AJ {}
+
+  public static class AK {}
+
+  public static class AL {}
+
+  public static class AM {}
+
+  public static class AN {}
+
+  public static class AO {}
+
+  public static class AP {}
+
+  public static class AQ {}
+
+  public static class AR {}
+
+  public static class AS {}
+
+  public static class AT {}
+
+  public static class AU {}
+
+  public static class AV {}
+
+  public static class AW {}
+
+  public static class AX {}
+
+  public static class AY {}
+
+  public static class AZ {}
+
+  public static class AAA {}
+
+  public static class AAB {}
+
+  public static class AAC {}
+
+  public static class AAD {}
+
+  public static class AAE {}
+
+  public static class AAF {}
+
+  public static class AAG {}
 
   public static class Main {
 
