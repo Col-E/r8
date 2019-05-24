@@ -3,13 +3,18 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.experimental.graphinfo.GraphEdgeInfo;
 import com.android.tools.r8.experimental.graphinfo.GraphEdgeInfo.EdgeKind;
 import com.android.tools.r8.experimental.graphinfo.GraphNode;
 import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItem;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Set;
 
 // TODO(herhut): Canonicalize reason objects.
 public abstract class KeepReason {
@@ -24,6 +29,10 @@ public abstract class KeepReason {
 
   static KeepReason dueToKeepRule(ProguardKeepRule rule) {
     return new DueToKeepRule(rule);
+  }
+
+  static KeepReason dueToConditionalKeepRule(ProguardKeepRule rule, DexReference reference) {
+    return new DueToConditionalKeepRule(rule, reference);
   }
 
   static KeepReason dueToProguardCompatibilityKeepRule(ProguardKeepRule rule) {
@@ -74,6 +83,10 @@ public abstract class KeepReason {
     return false;
   }
 
+  public boolean isDueToConditionalKeepRule() {
+    return false;
+  }
+
   public ProguardKeepRule getProguardKeepRule() {
     return null;
   }
@@ -88,6 +101,10 @@ public abstract class KeepReason {
 
   public static KeepReason methodHandleReferencedIn(DexEncodedMethod method) {
     return new MethodHandleReferencedFrom(method);
+  }
+
+  public Collection<DexReference> getPreconditions() {
+    throw new Unreachable();
   }
 
   private static class DueToKeepRule extends KeepReason {
@@ -132,6 +149,32 @@ public abstract class KeepReason {
     @Override
     public boolean isDueToProguardCompatibility() {
       return true;
+    }
+  }
+
+  private static class DueToConditionalKeepRule extends DueToKeepRule {
+
+    private final DexReference condition;
+
+    public DueToConditionalKeepRule(ProguardKeepRule rule, DexReference condition) {
+      super(rule);
+      assert condition != null;
+      this.condition = condition;
+    }
+
+    @Override
+    public Set<DexReference> getPreconditions() {
+      return Collections.singleton(condition);
+    }
+
+    @Override
+    public boolean isDueToConditionalKeepRule() {
+      return true;
+    }
+
+    @Override
+    public EdgeKind edgeKind() {
+      return EdgeKind.ConditionalKeepRule;
     }
   }
 

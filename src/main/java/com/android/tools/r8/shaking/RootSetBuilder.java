@@ -27,6 +27,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.logging.Log;
+import com.android.tools.r8.utils.Consumer3;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -1260,13 +1261,15 @@ public class RootSetBuilder {
     public void forEachDependentStaticMember(
         DexDefinition item,
         AppView<?> appView,
-        BiConsumer<DexDefinition, Set<ProguardKeepRule>> fn) {
-      getDependentItems(item).forEach((reference, reasons) -> {
-        DexDefinition definition = appView.definitionFor(reference);
-        if (definition != null && !definition.isDexClass() && definition.isStaticMember()) {
-          fn.accept(definition, reasons);
-        }
-      });
+        Consumer3<DexDefinition, DexDefinition, Set<ProguardKeepRule>> fn) {
+      getDependentItems(item)
+          .forEach(
+              (reference, reasons) -> {
+                DexDefinition definition = appView.definitionFor(reference);
+                if (definition != null && !definition.isDexClass() && definition.isStaticMember()) {
+                  fn.accept(item, definition, reasons);
+                }
+              });
     }
 
     public void forEachDependentNonStaticMember(

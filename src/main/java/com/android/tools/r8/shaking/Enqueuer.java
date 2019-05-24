@@ -874,10 +874,26 @@ public class Enqueuer {
       } else {
         assert !deferredAnnotations.containsKey(holder.type);
       }
-      rootSet.forEachDependentStaticMember(holder, appView, this::enqueueRootItem);
+      rootSet.forEachDependentStaticMember(holder, appView, this::enqueueDependentItem);
       compatEnqueueHolderIfDependentNonStaticMember(
           holder, rootSet.getDependentKeepClassCompatRule(holder.getType()));
     }
+  }
+
+  private void enqueueDependentItem(
+      DexDefinition precondition, DexDefinition consequent, Set<ProguardKeepRule> reasons) {
+    DexReference preconditionReference = precondition.toReference();
+    if (keptGraphConsumer != null) {
+      GraphNode consequentNode = getGraphNode(consequent.toReference());
+      for (ProguardKeepRule rule : reasons) {
+        registerEdge(
+            consequentNode, KeepReason.dueToConditionalKeepRule(rule, preconditionReference));
+      }
+    }
+    // Note: the reason for keeping is reproted above, so this just uses the first.
+    ProguardKeepRule reason = reasons.iterator().next();
+    internalEnqueueRootItem(
+        consequent, KeepReason.dueToConditionalKeepRule(reason, preconditionReference));
   }
 
   private void processAnnotations(DexDefinition holder, DexAnnotation[] annotations) {
@@ -2498,7 +2514,15 @@ public class Enqueuer {
     GraphNode sourceNode = getSourceNode(reason);
     // TODO(b/120959039): Make sure we do have edges to nodes deriving library nodes!
     if (!sourceNode.isLibraryNode()) {
-      keptGraphConsumer.acceptEdge(sourceNode, target, getEdgeInfo(reason));
+      GraphEdgeInfo edgeInfo = getEdgeInfo(reason);
+      keptGraphConsumer.acceptEdge(sourceNode, target, edgeInfo);
+      if (reason.isDueToConditionalKeepRule()) {
+        GraphEdgeInfo conditionEdge = new GraphEdgeInfo(EdgeKind.KeepRulePrecondition);
+        for (DexReference precondition : reason.getPreconditions()) {
+          GraphNode preconditionNode = getGraphNode(precondition);
+          keptGraphConsumer.acceptEdge(preconditionNode, sourceNode, conditionEdge);
+        }
+      }
     }
   }
 

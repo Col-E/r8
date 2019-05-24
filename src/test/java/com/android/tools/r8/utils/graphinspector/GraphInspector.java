@@ -4,6 +4,7 @@
 package com.android.tools.r8.utils.graphinspector;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -75,6 +76,8 @@ public class GraphInspector {
 
     abstract boolean isKeptBy(QueryNode node);
 
+    abstract boolean isSatisfiedBy(QueryNode node);
+
     abstract String getNodeDescription();
 
     protected String errorMessage(String expected, String actual) {
@@ -98,6 +101,11 @@ public class GraphInspector {
 
     public QueryNode assertRoot() {
       assertTrue(errorMessage("root", "non-root"), isRoot());
+      return this;
+    }
+
+    public QueryNode assertNotRoot() {
+      assertFalse(errorMessage("non-root", "root"), isRoot());
       return this;
     }
 
@@ -153,6 +161,15 @@ public class GraphInspector {
           isKeptBy(node));
       return this;
     }
+
+    public QueryNode assertSatisfiedBy(QueryNode node) {
+      assertTrue(
+          "Invalid call to assertSatisfiedBy with: " + node.getNodeDescription(), node.isPresent());
+      assertTrue(
+          errorMessage("satisfied by " + node.getNodeDescription(), "was not satisfied by it"),
+          isSatisfiedBy(node));
+      return this;
+    }
   }
 
   private static class AbsentQueryNode extends QueryNode {
@@ -199,6 +216,12 @@ public class GraphInspector {
     @Override
     public boolean isKeptBy(QueryNode node) {
       fail("Invalid call to isKeptBy on " + getNodeDescription());
+      throw new Unreachable();
+    }
+
+    @Override
+    public boolean isSatisfiedBy(QueryNode node) {
+      fail("Invalid call to isTriggeredBy on " + getNodeDescription());
       throw new Unreachable();
     }
   }
@@ -281,9 +304,22 @@ public class GraphInspector {
       return filterSources((source, infos) -> impl.graphNode == source).findFirst().isPresent();
     }
 
+    @Override
+    public boolean isSatisfiedBy(QueryNode node) {
+      assertTrue(
+          "Invalid call to isTriggeredBy on non-keep rule node: " + graphNode,
+          graphNode instanceof KeepRuleGraphNode);
+      if (!(node instanceof QueryNodeImpl)) {
+        return false;
+      }
+      QueryNodeImpl impl = (QueryNodeImpl) node;
+      return filterSources((source, infos) -> impl.graphNode == source).findFirst().isPresent();
+    }
+
     private Stream<GraphNode> filterSources(BiPredicate<GraphNode, Set<GraphEdgeInfo>> test) {
       Map<GraphNode, Set<GraphEdgeInfo>> sources =
           inspector.consumer.getSourcesTargeting(graphNode);
+      assertNotNull("Attempt to iterate sources of apparent root node: " + graphNode, sources);
       return sources.entrySet().stream()
           .filter(e -> test.test(e.getKey(), e.getValue()))
           .map(Entry::getKey);

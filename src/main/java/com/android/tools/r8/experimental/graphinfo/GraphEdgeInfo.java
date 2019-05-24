@@ -16,6 +16,8 @@ public class GraphEdgeInfo {
     // Prioritized list of edge types.
     KeepRule,
     CompatibilityRule,
+    ConditionalKeepRule,
+    KeepRulePrecondition,
     InstantiatedIn,
     InvokedViaSuper,
     TargetedBySuper,
@@ -45,7 +47,10 @@ public class GraphEdgeInfo {
     switch (edgeKind()) {
       case KeepRule:
       case CompatibilityRule:
+      case ConditionalKeepRule:
         return "referenced in keep rule";
+      case KeepRulePrecondition:
+        return "satisfied with precondition";
       case InstantiatedIn:
         return "instantiated in";
       case InvokedViaSuper:
