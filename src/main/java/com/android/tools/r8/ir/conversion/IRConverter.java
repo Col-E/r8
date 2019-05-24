@@ -485,24 +485,24 @@ public class IRConverter {
     }
   }
 
-  public DexApplication optimize(DexApplication application) throws ExecutionException {
+  public DexApplication optimize() throws ExecutionException {
     ExecutorService executor = Executors.newSingleThreadExecutor();
     try {
-      return optimize(application, executor);
+      return optimize(executor);
     } finally {
       executor.shutdown();
     }
   }
 
-  public DexApplication optimize(DexApplication application, ExecutorService executorService)
-      throws ExecutionException {
-    AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+  public DexApplication optimize(ExecutorService executorService) throws ExecutionException {
 
     if (options.isShrinking()) {
       assert !removeLambdaDeserializationMethods();
     } else {
       removeLambdaDeserializationMethods();
     }
+
+    DexApplication application = appView.appInfo().app();
 
     computeReachabilitySensitivity(application);
     collectLambdaMergingCandidates(application);

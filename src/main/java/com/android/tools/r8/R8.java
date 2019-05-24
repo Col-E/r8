@@ -524,7 +524,7 @@ public class R8 {
       CfgPrinter printer = options.printCfg ? new CfgPrinter() : null;
       try {
         IRConverter converter = new IRConverter(appView, timing, printer, mainDexClasses);
-        application = converter.optimize(application, executorService);
+        application = converter.optimize(executorService);
         desugaredCallSites = converter.getDesugaredCallSites();
       } finally {
         timing.end();
