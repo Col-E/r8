@@ -410,6 +410,7 @@ public class LensCodeRewriter {
       new TypeAnalysis(appView, method).widening(newSSAValues);
     }
     assert code.isConsistentSSA();
+    assert code.hasNoVerticallyMergedClasses(appView);
   }
 
   // If the given invoke is on the form "invoke-direct A.<init>, v0, ..." and the definition of

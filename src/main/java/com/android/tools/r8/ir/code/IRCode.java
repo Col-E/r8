@@ -4,13 +4,17 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.TypeChecker;
+import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.shaking.VerticalClassMerger.VerticallyMergedClasses;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
@@ -471,6 +475,24 @@ public class IRCode {
     assert validThrowingInstructions();
     assert noCriticalEdges();
     assert verifyNoImpreciseOrBottomTypes();
+    return true;
+  }
+
+  public boolean hasNoVerticallyMergedClasses(AppView<? extends AppInfoWithSubtyping> appView) {
+    VerticallyMergedClasses verticallyMergedClasses = appView.verticallyMergedClasses();
+    if (verticallyMergedClasses == null) {
+      return true;
+    }
+    for (Instruction instruction : instructions()) {
+      if (instruction.outValue != null && instruction.outValue.getTypeLattice().isClassType()) {
+        ClassTypeLatticeElement classTypeLattice =
+            instruction.outValue.getTypeLattice().asClassTypeLatticeElement();
+        assert !verticallyMergedClasses.hasBeenMergedIntoSubtype(classTypeLattice.getClassType());
+        for (DexType itf : classTypeLattice.getInterfaces()) {
+          assert !verticallyMergedClasses.hasBeenMergedIntoSubtype(itf);
+        }
+      }
+    }
     return true;
   }
 
