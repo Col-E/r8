@@ -253,7 +253,7 @@ def Main():
   if options.only_jctf:
     # Note: not setting -Pruntimes will run with all available runtimes.
     return_code = gradle.RunGradle(gradle_args, throw_on_failure=False)
-    return archive_and_return(return_code)
+    return archive_and_return(return_code, options)
 
   # Now run tests on selected runtime(s).
   vms_to_test = [options.dex_vm] if options.dex_vm != "all" else ALL_ART_VMS
@@ -278,12 +278,12 @@ def Main():
                                            'gs://r8-test-results/golden-files/' + archive)
 
     if return_code != 0:
-      return archive_and_return(return_code)
+      return archive_and_return(return_code, options)
 
   return 0
 
 
-def archive_and_return(return_code):
+def archive_and_return(return_code, options):
   if return_code != 0:
     if options.archive_failures and os.name != 'nt':
       archive_failures()

@@ -68,9 +68,9 @@ public class KeptByAnnotatedMethodTestRunner extends TestBase {
             .assertSuccessWithOutput(EXPECTED)
             .graphInspector();
 
-    assertEquals(3, inspector.getRoots().size());
+    assertEquals(2, inspector.getRoots().size());
     QueryNode keepMain = inspector.rule(ruleOrigin, 1, 1).assertRoot();
-    QueryNode keepAnnotatedMethods = inspector.rule(keepAnnotatedMethodsRule).assertRoot();
+    QueryNode keepAnnotatedMethods = inspector.rule(keepAnnotatedMethodsRule).assertNotRoot();
     QueryNode keepClassesOfAnnotatedMethods =
         inspector.rule(keepClassesOfAnnotatedMethodsRule).assertRoot();
 
