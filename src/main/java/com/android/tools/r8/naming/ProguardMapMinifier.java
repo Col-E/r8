@@ -361,6 +361,11 @@ public class ProguardMapMinifier {
       }
       return super.noObfuscation(type);
     }
+
+    @Override
+    public boolean isRenamedByApplyMapping(DexType type) {
+      return mappings.containsKey(type);
+    }
   }
 
   static class ApplyMappingMemberNamingStrategy extends MinifierMemberNamingStrategy {

@@ -117,7 +117,8 @@ class ClassNameMinifier {
         assert !keepInnerClassStructure
             || !clazz.isMemberClass()
             || !clazz.type.getInternalName().contains(String.valueOf(INNER_CLASS_SEPARATOR))
-            || renamed.toString().contains(String.valueOf(INNER_CLASS_SEPARATOR));
+            || renamed.toString().contains(String.valueOf(INNER_CLASS_SEPARATOR))
+            || classNamingStrategy.isRenamedByApplyMapping(clazz.type);
       }
     }
     timing.end();
@@ -411,6 +412,8 @@ class ClassNameMinifier {
         DexType type, char[] packagePrefix, InternalNamingState state, Predicate<DexString> isUsed);
 
     boolean noObfuscation(DexType type);
+
+    boolean isRenamedByApplyMapping(DexType type);
   }
 
   protected interface PackageNamingStrategy {

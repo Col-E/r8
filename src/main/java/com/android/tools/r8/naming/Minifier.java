@@ -169,6 +169,11 @@ public class Minifier {
     public boolean noObfuscation(DexType type) {
       return appView.rootSet().mayNotBeMinified(type, appView);
     }
+
+    @Override
+    public boolean isRenamedByApplyMapping(DexType type) {
+      return false;
+    }
   }
 
   static class MinificationPackageNamingStrategy extends BaseMinificationNamingStrategy
