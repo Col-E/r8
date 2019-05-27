@@ -39,6 +39,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.BiPredicate;
+import java.util.function.Predicate;
 
 /**
  * The ProguardMapMinifier will assign names to classes and members following the initial naming
@@ -335,13 +337,17 @@ public class ProguardMapMinifier {
     }
 
     @Override
-    public DexString next(DexType type, char[] packagePrefix, InternalNamingState state) {
+    public DexString next(
+        DexType type,
+        char[] packagePrefix,
+        InternalNamingState state,
+        Predicate<DexString> isUsed) {
       DexString nextName = mappings.get(type);
       if (nextName != null) {
         return nextName;
       }
       assert !(isMinifying && noObfuscation(type));
-      return isMinifying ? super.next(type, packagePrefix, state) : type.descriptor;
+      return isMinifying ? super.next(type, packagePrefix, state, isUsed) : type.descriptor;
     }
 
     @Override
@@ -372,15 +378,19 @@ public class ProguardMapMinifier {
     }
 
     @Override
-    public DexString next(DexMethod method, InternalNamingState internalState) {
+    public DexString next(
+        DexMethod method, InternalNamingState internalState, Predicate<DexString> isUsed) {
       assert !mappedNames.containsKey(method);
-      return canMinify(method, method.holder) ? super.next(method, internalState) : method.name;
+      return canMinify(method, method.holder)
+          ? super.next(method, internalState, isUsed)
+          : method.name;
     }
 
     @Override
-    public DexString next(DexField field, InternalNamingState internalState) {
+    public DexString next(
+        DexField field, InternalNamingState internalState, BiPredicate<DexString, DexType> isUsed) {
       assert !mappedNames.containsKey(field);
-      return canMinify(field, field.holder) ? super.next(field, internalState) : field.name;
+      return canMinify(field, field.holder) ? super.next(field, internalState, isUsed) : field.name;
     }
 
     private boolean canMinify(DexReference reference, DexType type) {

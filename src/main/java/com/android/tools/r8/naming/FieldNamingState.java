@@ -14,11 +14,13 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.FieldNamingState.InternalState;
 import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.function.BiPredicate;
 
 public class FieldNamingState extends FieldNamingStateBase<InternalState> implements Cloneable {
 
   private final ReservedFieldNamingState reservedNames;
   private final MemberNamingStrategy strategy;
+  private final BiPredicate<DexString, DexType> isUsed;
 
   public FieldNamingState(AppView<?> appView, MemberNamingStrategy strategy) {
     this(appView, strategy, new ReservedFieldNamingState(appView));
@@ -37,6 +39,7 @@ public class FieldNamingState extends FieldNamingStateBase<InternalState> implem
     super(appView, internalStates);
     this.reservedNames = reservedNames;
     this.strategy = strategy;
+    this.isUsed = (newName, fieldType) -> reservedNames.isReserved(newName, fieldType);
   }
 
   public FieldNamingState createChildState(ReservedFieldNamingState reservedNames) {
@@ -95,10 +98,8 @@ public class FieldNamingState extends FieldNamingStateBase<InternalState> implem
     }
 
     public DexString createNewName(DexField field) {
-      DexString name;
-      do {
-        name = strategy.next(field, this);
-      } while (reservedNames.isReserved(name, field.type));
+      DexString name = strategy.next(field, this, isUsed);
+      assert !reservedNames.isReserved(name, field.type);
       return name;
     }
 

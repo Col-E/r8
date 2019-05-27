@@ -5,6 +5,7 @@ package com.android.tools.r8.naming;
 
 import static com.android.tools.r8.utils.StringUtils.EMPTY_CHAR_ARRAY;
 
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
@@ -29,6 +30,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.BiPredicate;
+import java.util.function.Predicate;
 
 public class Minifier {
 
@@ -123,19 +126,43 @@ public class Minifier {
       implements ClassNamingStrategy {
 
     final AppView<?> appView;
-    private final DexItemFactory factory;
+    final DexItemFactory factory;
 
     MinificationClassNamingStrategy(AppView<?> appView) {
       super(
           appView.options().getProguardConfiguration().getClassObfuscationDictionary(),
           appView.options().getProguardConfiguration().hasDontUseMixedCaseClassnames());
       this.appView = appView;
-      factory = appView.dexItemFactory();
+      this.factory = appView.dexItemFactory();
     }
 
     @Override
-    public DexString next(DexType type, char[] packagePrefix, InternalNamingState state) {
-      return factory.createString(nextName(packagePrefix, state, false) + ";");
+    public DexString next(
+        DexType type,
+        char[] packagePrefix,
+        InternalNamingState state,
+        Predicate<DexString> isUsed) {
+      DexString candidate = null;
+      String lastName = null;
+      do {
+        String newName = nextName(packagePrefix, state, false) + ";";
+        if (newName.equals(lastName)) {
+          throw new CompilationError(
+              "Generating same name '"
+                  + newName
+                  + "' when given a new minified name to '"
+                  + type.toString()
+                  + "'.");
+        }
+        lastName = newName;
+        // R.class in Android, which contains constant IDs to assets, can be bundled at any time.
+        // Insert `R` immediately so that the class name minifier can skip that name by default.
+        if (newName.endsWith("LR;") || newName.endsWith("/R;")) {
+          continue;
+        }
+        candidate = factory.createString(newName);
+      } while (candidate == null || isUsed.test(candidate));
+      return candidate;
     }
 
     @Override
@@ -154,12 +181,16 @@ public class Minifier {
     }
 
     @Override
-    public String next(char[] packagePrefix, InternalNamingState state) {
+    public String next(char[] packagePrefix, InternalNamingState state, Predicate<String> isUsed) {
       // Note that the differences between this method and the other variant for class renaming are
       // 1) this one uses the different dictionary and counter,
       // 2) this one does not append ';' at the end, and
       // 3) this one removes 'L' at the beginning to make the return value a binary form.
-      return nextName(packagePrefix, state, false).substring(1);
+      String nextPackageName;
+      do {
+        nextPackageName = nextName(packagePrefix, state, false).substring(1);
+      } while (isUsed.test(nextPackageName));
+      return nextPackageName;
     }
   }
 
@@ -176,17 +207,27 @@ public class Minifier {
     }
 
     @Override
-    public DexString next(DexMethod method, InternalNamingState internalState) {
+    public DexString next(
+        DexMethod method, InternalNamingState internalState, Predicate<DexString> isUsed) {
       assert checkAllowMemberRenaming(method.holder);
       DexEncodedMethod encodedMethod = appView.definitionFor(method);
       boolean isDirectOrStatic = encodedMethod.isDirectMethod() || encodedMethod.isStatic();
-      return getNextName(internalState, isDirectOrStatic);
+      DexString candidate;
+      do {
+        candidate = getNextName(internalState, isDirectOrStatic);
+      } while (isUsed.test(candidate));
+      return candidate;
     }
 
     @Override
-    public DexString next(DexField field, InternalNamingState internalState) {
+    public DexString next(
+        DexField field, InternalNamingState internalState, BiPredicate<DexString, DexType> isUsed) {
       assert checkAllowMemberRenaming(field.holder);
-      return getNextName(internalState, false);
+      DexString candidate;
+      do {
+        candidate = getNextName(internalState, false);
+      } while (isUsed.test(candidate, field.type));
+      return candidate;
     }
 
     private DexString getNextName(InternalNamingState internalState, boolean isDirectOrStatic) {

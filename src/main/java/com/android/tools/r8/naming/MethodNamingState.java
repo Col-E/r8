@@ -11,6 +11,7 @@ import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 class MethodNamingState<KeyType> {
 
@@ -253,6 +254,7 @@ class MethodNamingState<KeyType> {
 
     private final InternalNewNameState parentInternalState;
     private final InternalReservationState reservationState;
+    private final Predicate<DexString> isUsed;
 
     private static final int INITIAL_NAME_COUNT = 1;
     private static final int INITIAL_DICTIONARY_INDEX = 0;
@@ -272,6 +274,7 @@ class MethodNamingState<KeyType> {
       this.virtualNameCount =
           parentInternalState == null ? INITIAL_NAME_COUNT : parentInternalState.virtualNameCount;
       assert reservationState != null;
+      isUsed = newName -> !reservationState.isAvailable(newName);
     }
 
     @Override
@@ -307,11 +310,9 @@ class MethodNamingState<KeyType> {
     }
 
     private DexString getNewNameFor(DexMethod source) {
-      DexString name;
-      do {
-        name = strategy.next(source, this);
-      } while (!reservationState.isAvailable(name));
-      return name;
+      DexString next = strategy.next(source, this, isUsed);
+      assert reservationState.isAvailable(next);
+      return next;
     }
 
     void printInternalState(

@@ -11,12 +11,16 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.DexType;
+import java.util.function.BiPredicate;
+import java.util.function.Predicate;
 
 public interface MemberNamingStrategy {
 
-  DexString next(DexMethod method, InternalNamingState internalState);
+  DexString next(DexMethod method, InternalNamingState internalState, Predicate<DexString> isUsed);
 
-  DexString next(DexField field, InternalNamingState internalState);
+  DexString next(
+      DexField field, InternalNamingState internalState, BiPredicate<DexString, DexType> isUsed);
 
   DexString getReservedNameOrDefault(
       DexEncodedMethod method, DexClass holder, DexString defaultValue);

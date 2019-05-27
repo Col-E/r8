@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.function.Predicate;
 
 class ClassNameMinifier {
 
@@ -367,11 +368,6 @@ class ClassNameMinifier {
           // L or La/b/ (or La/b/C$)
           + (packageName.isEmpty() ? "" : separator))
           .toCharArray();
-
-      // R.class in Android, which contains constant IDs to assets, can be bundled at any time.
-      // Insert `R` immediately so that the class name minifier can skip that name by default.
-      StringBuilder rBuilder = new StringBuilder().append(packagePrefix).append("R;");
-      usedTypeNames.add(appView.dexItemFactory().createString(rBuilder.toString()));
     }
 
     public String getPackageName() {
@@ -379,21 +375,18 @@ class ClassNameMinifier {
     }
 
     DexString nextTypeName(DexType type) {
-      DexString candidate;
-      do {
-        candidate = classNamingStrategy.next(type, packagePrefix, this);
-      } while (usedTypeNames.contains(candidate));
+      DexString candidate =
+          classNamingStrategy.next(type, packagePrefix, this, usedTypeNames::contains);
+      assert !usedTypeNames.contains(candidate);
       usedTypeNames.add(candidate);
       return candidate;
     }
 
     String nextPackagePrefix() {
-      String candidate;
-      do {
-        candidate = packageNamingStrategy.next(packagePrefix, this);
-      } while (usedPackagePrefixes.contains(candidate));
-      usedPackagePrefixes.add(candidate);
-      return candidate;
+      String next = packageNamingStrategy.next(packagePrefix, this, usedPackagePrefixes::contains);
+      assert !usedPackagePrefixes.contains(next);
+      usedPackagePrefixes.add(next);
+      return next;
     }
 
     @Override
@@ -414,13 +407,14 @@ class ClassNameMinifier {
   }
 
   protected interface ClassNamingStrategy {
-    DexString next(DexType type, char[] packagePrefix, InternalNamingState state);
+    DexString next(
+        DexType type, char[] packagePrefix, InternalNamingState state, Predicate<DexString> isUsed);
 
     boolean noObfuscation(DexType type);
   }
 
   protected interface PackageNamingStrategy {
-    String next(char[] packagePrefix, InternalNamingState state);
+    String next(char[] packagePrefix, InternalNamingState state, Predicate<String> isUsed);
   }
 
   /**
