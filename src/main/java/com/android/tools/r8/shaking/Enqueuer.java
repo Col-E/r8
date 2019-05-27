@@ -7,6 +7,7 @@ import static com.android.tools.r8.naming.IdentifierNameStringUtils.identifyIden
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.isReflectionMethod;
 import static com.android.tools.r8.shaking.AnnotationRemover.shouldKeepAnnotation;
 import static com.android.tools.r8.shaking.EnqueuerUtils.extractProgramFieldDefinitions;
+import static com.android.tools.r8.shaking.EnqueuerUtils.toImmutableSortedMap;
 
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.dex.IndexedItemCollection;
@@ -116,16 +117,11 @@ public class Enqueuer {
   private RootSet rootSet;
   private ProguardClassFilter dontWarnPatterns;
 
-  private final Map<DexType, Set<TargetWithContext<DexMethod>>> virtualInvokes =
-      Maps.newIdentityHashMap();
-  private final Map<DexType, Set<TargetWithContext<DexMethod>>> interfaceInvokes =
-      Maps.newIdentityHashMap();
-  private final Map<DexType, Set<TargetWithContext<DexMethod>>> superInvokes =
-      Maps.newIdentityHashMap();
-  private final Map<DexType, Set<TargetWithContext<DexMethod>>> directInvokes =
-      Maps.newIdentityHashMap();
-  private final Map<DexType, Set<TargetWithContext<DexMethod>>> staticInvokes =
-      Maps.newIdentityHashMap();
+  private final Map<DexMethod, Set<DexEncodedMethod>> virtualInvokes = new IdentityHashMap<>();
+  private final Map<DexMethod, Set<DexEncodedMethod>> interfaceInvokes = new IdentityHashMap<>();
+  private final Map<DexMethod, Set<DexEncodedMethod>> superInvokes = new IdentityHashMap<>();
+  private final Map<DexMethod, Set<DexEncodedMethod>> directInvokes = new IdentityHashMap<>();
+  private final Map<DexMethod, Set<DexEncodedMethod>> staticInvokes = new IdentityHashMap<>();
   private final Map<DexType, Set<TargetWithContext<DexField>>> instanceFieldsWritten =
       Maps.newIdentityHashMap();
   private final Map<DexType, Set<TargetWithContext<DexField>>> instanceFieldsRead =
@@ -411,36 +407,27 @@ public class Enqueuer {
   // traversals.
   //
 
-  private <S extends DexItem, T extends Descriptor<S, T>> boolean registerItemWithTarget(
-      Map<DexType, Set<T>> seen, T item) {
-    assert item.isDexField() || item.isDexMethod();
-    DexType itemHolder =
-        item.isDexField()
-            ? item.asDexField().holder
-            : item.asDexMethod().holder;
-    DexType holder = itemHolder.toBaseType(appView.dexItemFactory());
-    if (!holder.isClassType()) {
-      return false;
+  private boolean registerFieldWithTargetAndContext(
+      Map<DexType, Set<TargetWithContext<DexField>>> seen,
+      DexField field,
+      DexEncodedMethod context) {
+    DexType baseHolder = field.holder.toBaseType(appView.dexItemFactory());
+    if (baseHolder.isClassType()) {
+      markTypeAsLive(baseHolder);
+      return seen.computeIfAbsent(field.holder, ignore -> new HashSet<>())
+          .add(new TargetWithContext<>(field, context));
     }
-    markTypeAsLive(holder);
-    return seen.computeIfAbsent(itemHolder, (ignore) -> Sets.newIdentityHashSet()).add(item);
+    return false;
   }
 
-  private <S extends DexItem, T extends Descriptor<S, T>> boolean registerItemWithTargetAndContext(
-      Map<DexType, Set<TargetWithContext<T>>> seen, T item, DexEncodedMethod context) {
-    assert item.isDexField() || item.isDexMethod();
-    DexType itemHolder =
-        item.isDexField()
-            ? item.asDexField().holder
-            : item.asDexMethod().holder;
-    DexType holder = itemHolder.toBaseType(appView.dexItemFactory());
-    if (!holder.isClassType()) {
-      return false;
+  private boolean registerMethodWithTargetAndContext(
+      Map<DexMethod, Set<DexEncodedMethod>> seen, DexMethod method, DexEncodedMethod context) {
+    DexType baseHolder = method.holder.toBaseType(appView.dexItemFactory());
+    if (baseHolder.isClassType()) {
+      markTypeAsLive(baseHolder);
+      return seen.computeIfAbsent(method, ignore -> Sets.newIdentityHashSet()).add(context);
     }
-    markTypeAsLive(holder);
-    return seen
-        .computeIfAbsent(itemHolder, (ignore) -> new HashSet<>())
-        .add(new TargetWithContext<>(item, context));
+    return false;
   }
 
   private class UseRegistry extends com.android.tools.r8.graph.UseRegistry {
@@ -467,7 +454,7 @@ public class Enqueuer {
         // Revisit the current method to implicitly add -keep rule for items with reflective access.
         pendingReflectiveUses.add(currentMethod);
       }
-      if (!registerItemWithTargetAndContext(virtualInvokes, method, currentMethod)) {
+      if (!registerMethodWithTargetAndContext(virtualInvokes, method, currentMethod)) {
         return false;
       }
       if (Log.ENABLED) {
@@ -483,7 +470,7 @@ public class Enqueuer {
     }
 
     boolean registerInvokeDirect(DexMethod method, KeepReason keepReason) {
-      if (!registerItemWithTargetAndContext(directInvokes, method, currentMethod)) {
+      if (!registerMethodWithTargetAndContext(directInvokes, method, currentMethod)) {
         return false;
       }
       if (Log.ENABLED) {
@@ -518,7 +505,7 @@ public class Enqueuer {
       if (method == dexItemFactory.proxyMethods.newProxyInstance) {
         pendingReflectiveUses.add(currentMethod);
       }
-      if (!registerItemWithTargetAndContext(staticInvokes, method, currentMethod)) {
+      if (!registerMethodWithTargetAndContext(staticInvokes, method, currentMethod)) {
         return false;
       }
       if (Log.ENABLED) {
@@ -534,7 +521,7 @@ public class Enqueuer {
     }
 
     boolean registerInvokeInterface(DexMethod method, KeepReason keepReason) {
-      if (!registerItemWithTargetAndContext(interfaceInvokes, method, currentMethod)) {
+      if (!registerMethodWithTargetAndContext(interfaceInvokes, method, currentMethod)) {
         return false;
       }
       if (Log.ENABLED) {
@@ -549,7 +536,7 @@ public class Enqueuer {
       // We have to revisit super invokes based on the context they are found in. The same
       // method descriptor will hit different targets, depending on the context it is used in.
       DexMethod actualTarget = getInvokeSuperTarget(method, currentMethod);
-      if (!registerItemWithTargetAndContext(superInvokes, method, currentMethod)) {
+      if (!registerMethodWithTargetAndContext(superInvokes, method, currentMethod)) {
         return false;
       }
       if (Log.ENABLED) {
@@ -561,7 +548,7 @@ public class Enqueuer {
 
     @Override
     public boolean registerInstanceFieldWrite(DexField field) {
-      if (!registerItemWithTargetAndContext(instanceFieldsWritten, field, currentMethod)) {
+      if (!registerFieldWithTargetAndContext(instanceFieldsWritten, field, currentMethod)) {
         return false;
       }
       if (Log.ENABLED) {
@@ -574,7 +561,7 @@ public class Enqueuer {
 
     @Override
     public boolean registerInstanceFieldRead(DexField field) {
-      if (!registerItemWithTargetAndContext(instanceFieldsRead, field, currentMethod)) {
+      if (!registerFieldWithTargetAndContext(instanceFieldsRead, field, currentMethod)) {
         return false;
       }
       if (Log.ENABLED) {
@@ -596,7 +583,7 @@ public class Enqueuer {
 
     @Override
     public boolean registerStaticFieldRead(DexField field) {
-      if (!registerItemWithTargetAndContext(staticFieldsRead, field, currentMethod)) {
+      if (!registerFieldWithTargetAndContext(staticFieldsRead, field, currentMethod)) {
         return false;
       }
       if (Log.ENABLED) {
@@ -608,7 +595,7 @@ public class Enqueuer {
 
     @Override
     public boolean registerStaticFieldWrite(DexField field) {
-      if (!registerItemWithTargetAndContext(staticFieldsWritten, field, currentMethod)) {
+      if (!registerFieldWithTargetAndContext(staticFieldsWritten, field, currentMethod)) {
         return false;
       }
       if (Log.ENABLED) {
@@ -1586,11 +1573,12 @@ public class Enqueuer {
             instanceFieldWrites,
             staticFieldReads,
             staticFieldWrites,
-            enqueuer.collectDescriptors(enqueuer.virtualInvokes),
-            enqueuer.collectDescriptors(enqueuer.interfaceInvokes),
-            enqueuer.collectDescriptors(enqueuer.superInvokes),
-            enqueuer.collectDescriptors(enqueuer.directInvokes),
-            enqueuer.collectDescriptors(enqueuer.staticInvokes),
+            // TODO(b/132593519): Do we require these sets to be sorted for determinism?
+            toImmutableSortedMap(enqueuer.virtualInvokes, PresortedComparable::slowCompare),
+            toImmutableSortedMap(enqueuer.interfaceInvokes, PresortedComparable::slowCompare),
+            toImmutableSortedMap(enqueuer.superInvokes, PresortedComparable::slowCompare),
+            toImmutableSortedMap(enqueuer.directInvokes, PresortedComparable::slowCompare),
+            toImmutableSortedMap(enqueuer.staticInvokes, PresortedComparable::slowCompare),
             enqueuer.callSites,
             ImmutableSortedSet.copyOf(DexMethod::slowCompareTo, enqueuer.brokenSuperInvokes),
             enqueuer.pinnedItems,
@@ -2017,11 +2005,11 @@ public class Enqueuer {
         markFieldAsKept(encodedField, KeepReason.reflectiveUseIn(method));
         // Fields accessed by reflection is marked as both read and written.
         if (encodedField.isStatic()) {
-          registerItemWithTargetAndContext(staticFieldsRead, encodedField.field, method);
-          registerItemWithTargetAndContext(staticFieldsWritten, encodedField.field, method);
+          registerFieldWithTargetAndContext(staticFieldsRead, encodedField.field, method);
+          registerFieldWithTargetAndContext(staticFieldsWritten, encodedField.field, method);
         } else {
-          registerItemWithTargetAndContext(instanceFieldsRead, encodedField.field, method);
-          registerItemWithTargetAndContext(instanceFieldsWritten, encodedField.field, method);
+          registerFieldWithTargetAndContext(instanceFieldsRead, encodedField.field, method);
+          registerFieldWithTargetAndContext(instanceFieldsWritten, encodedField.field, method);
         }
       }
     } else {

@@ -8,7 +8,10 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.PresortedComparable;
+import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
+import java.util.Comparator;
+import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.function.Predicate;
@@ -46,6 +49,13 @@ class EnqueuerUtils {
         builder.add(encodedField.field);
       }
     }
+    return builder.build();
+  }
+
+  static <T, U> ImmutableSortedMap<T, U> toImmutableSortedMap(
+      Map<T, U> map, Comparator<T> comparator) {
+    ImmutableSortedMap.Builder<T, U> builder = new ImmutableSortedMap.Builder<>(comparator);
+    map.forEach(builder::put);
     return builder.build();
   }
 }
