@@ -1040,7 +1040,7 @@ public class Enqueuer {
     // For all instance fields visible from the class, mark them live if we have seen a read.
     transitionFieldsForInstantiatedClass(clazz.type);
     // Add all dependent instance members to the workqueue.
-    rootSet.forEachDependentNonStaticMember(clazz, appView, this::enqueueRootItem);
+    rootSet.forEachDependentNonStaticMember(clazz, appView, this::enqueueDependentItem);
   }
 
   /**

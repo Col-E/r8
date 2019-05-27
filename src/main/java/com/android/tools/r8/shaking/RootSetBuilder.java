@@ -58,7 +58,6 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -1275,13 +1274,17 @@ public class RootSetBuilder {
     public void forEachDependentNonStaticMember(
         DexDefinition item,
         AppView<?> appView,
-        BiConsumer<DexDefinition, Set<ProguardKeepRule>> fn) {
-      getDependentItems(item).forEach((reference, reasons) -> {
-        DexDefinition definition = appView.definitionFor(reference);
-        if (definition != null && !definition.isDexClass() && !definition.isStaticMember()) {
-          fn.accept(definition, reasons);
-        }
-      });
+        Consumer3<DexDefinition, DexDefinition, Set<ProguardKeepRule>> fn) {
+      getDependentItems(item)
+          .forEach(
+              (reference, reasons) -> {
+                DexDefinition definition = appView.definitionFor(reference);
+                if (definition != null
+                    && !definition.isDexClass()
+                    && !definition.isStaticMember()) {
+                  fn.accept(item, definition, reasons);
+                }
+              });
     }
 
     public void copy(DexReference original, DexReference rewritten) {
