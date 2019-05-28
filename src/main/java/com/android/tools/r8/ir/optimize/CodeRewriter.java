@@ -3511,7 +3511,7 @@ public class CodeRewriter {
   }
 
   public void rewriteLongCompareAndRequireNonNull(IRCode code, InternalOptions options) {
-    if (options.canUseLongCompareAndObjectsNonNull()) {
+    if (options.canUseJava7CompareAndObjectsOperations()) {
       return;
     }
 

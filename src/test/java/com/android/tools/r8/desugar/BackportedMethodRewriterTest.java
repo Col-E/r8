@@ -19,53 +19,54 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 
-public class Java8MethodsTest extends TestBase {
+public class BackportedMethodRewriterTest extends TestBase {
   static String expectedOutput = "";
 
   @Before
   public void testJvm() throws Exception {
     expectedOutput = testForJvm()
         .addTestClasspath()
-        .run(Java8Methods.class).getStdOut();
+        .run(TestMethods.class).getStdOut();
   }
 
   @Test
   public void testD8() throws Exception {
     testForD8()
-        .addProgramClasses(Java8Methods.class)
-        .run(Java8Methods.class)
+        .addProgramClasses(TestMethods.class)
+        .run(TestMethods.class)
         .assertSuccessWithOutput(expectedOutput);
 
-    assertDesugaring(AndroidApiLevel.O, 31);
-    assertDesugaring(AndroidApiLevel.N, 25);
-    assertDesugaring(AndroidApiLevel.M, 0);
+    assertDesugaring(AndroidApiLevel.O, 37);
+    assertDesugaring(AndroidApiLevel.N, 31);
+    assertDesugaring(AndroidApiLevel.K, 6);
+    assertDesugaring(AndroidApiLevel.J_MR2, 0);
   }
 
-  private void assertDesugaring(AndroidApiLevel apilevel, int expectedJavaLangInvokeStatics)
+  private void assertDesugaring(AndroidApiLevel apiLevel, int expectedJavaInvokeStatics)
       throws Exception {
     D8TestCompileResult runResult = testForD8()
-        .addProgramClasses(Java8Methods.class)
-        .setMinApi(apilevel)
+        .addProgramClasses(TestMethods.class)
+        .setMinApi(apiLevel)
         .compile();
 
     MethodSubject mainMethod = runResult.inspector()
-        .clazz(Java8Methods.class)
+        .clazz(TestMethods.class)
         .mainMethod();
     assertThat(mainMethod, isPresent());
 
-    List<InstructionSubject> javaLangInvokeStatics = mainMethod
+    List<InstructionSubject> javaInvokeStatics = mainMethod
         .streamInstructions()
         .filter(InstructionSubject::isInvokeStatic)
-        .filter(is -> is.getMethod().holder.toDescriptorString().startsWith("Ljava/lang/"))
+        .filter(is -> is.getMethod().holder.toDescriptorString().startsWith("Ljava/"))
         .collect(toList());
 
-    int actualJavaLangInvokeStatics = javaLangInvokeStatics.size();
+    int actualJavaInvokeStatics = javaInvokeStatics.size();
     assertEquals("Expected "
-        + expectedJavaLangInvokeStatics
-        + " invoke-static on java/lang/<Type> but found "
-        + actualJavaLangInvokeStatics
+        + expectedJavaInvokeStatics
+        + " invoke-static on java/*/<Type> but found "
+        + actualJavaInvokeStatics
         + ": "
-        + javaLangInvokeStatics, expectedJavaLangInvokeStatics, actualJavaLangInvokeStatics);
+        + javaInvokeStatics, expectedJavaInvokeStatics, actualJavaInvokeStatics);
   }
 
   @Test
@@ -122,16 +123,29 @@ public class Java8MethodsTest extends TestBase {
     }
   }
 
-  static class Java8Methods {
+  static class TestMethods {
+    // Defined as a static method on this class to avoid affecting invoke-static counts in main().
+    private static int signum(int value) {
+      return (int) Math.signum(value);
+    }
+
     public static void main(String[] args) {
       byte[] aBytes = new byte[]{42, 1, -1, Byte.MAX_VALUE, Byte.MIN_VALUE};
       for (byte aByte : aBytes) {
         System.out.println(Byte.hashCode(aByte));
+        for (byte bByte : aBytes) {
+          // Normalize comparison to [-1, 1] since the values differ across versions but signs match
+          System.out.println(signum(Byte.compare(aByte, bByte)));
+        }
       }
 
       short[] aShorts = new short[]{42, 1, -1, Short.MAX_VALUE, Short.MIN_VALUE};
       for (short aShort : aShorts) {
         System.out.println(Short.hashCode(aShort));
+        for (short bShort : aShorts) {
+          // Normalize comparison to [-1, 1] since the values differ across versions but signs match
+          System.out.println(signum(Short.compare(aShort, bShort)));
+        }
       }
 
       int[] aInts = new int[]{42, 1, -1, Integer.MAX_VALUE, Integer.MIN_VALUE};
@@ -139,6 +153,7 @@ public class Java8MethodsTest extends TestBase {
       for (int aInt : aInts) {
         System.out.println(Integer.hashCode(aInt));
         for (int bInt : bInts) {
+          System.out.println(Integer.compare(aInt, bInt));
           System.out.println(Integer.max(aInt, bInt));
           System.out.println(Integer.min(aInt, bInt));
           System.out.println(Integer.sum(aInt, bInt));
@@ -183,6 +198,7 @@ public class Java8MethodsTest extends TestBase {
       for (boolean aBoolean : new boolean[]{true, false}) {
         System.out.println(Boolean.hashCode(aBoolean));
         for (boolean bBoolean : new boolean[]{true, false}) {
+          System.out.println(Boolean.compare(aBoolean, bBoolean));
           System.out.println(Boolean.logicalAnd(aBoolean, bBoolean));
           System.out.println(Boolean.logicalOr(aBoolean, bBoolean));
           System.out.println(Boolean.logicalXor(aBoolean, bBoolean));
@@ -196,6 +212,7 @@ public class Java8MethodsTest extends TestBase {
       for (long aLong : aLongs) {
         System.out.println(Long.hashCode(aLong));
         for (long bLong : bLongs) {
+          System.out.println(Long.compare(aLong, bLong));
           System.out.println(Long.max(aLong, bLong));
           System.out.println(Long.min(aLong, bLong));
           System.out.println(Long.sum(aLong, bLong));
@@ -208,6 +225,9 @@ public class Java8MethodsTest extends TestBase {
       char[] aChars = new char[]{'s', 'u', 'p', Character.MAX_VALUE, Character.MIN_VALUE};
       for (char aChar : aChars) {
         System.out.println(Character.hashCode(aChar));
+        for (char bChar : aChars) {
+          System.out.println(Character.compare(aChar, bChar));
+        }
       }
     }
   }
