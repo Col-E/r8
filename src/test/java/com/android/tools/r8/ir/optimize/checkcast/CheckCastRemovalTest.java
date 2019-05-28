@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -217,6 +218,7 @@ public class CheckCastRemovalTest extends JasminTestBase {
   }
 
   @Test
+  @Ignore("b/133739171")
   public void bothUpAndDowncast() throws Exception {
     JasminBuilder builder = new JasminBuilder();
     ClassBuilder classBuilder = builder.addClass(CLASS_NAME);

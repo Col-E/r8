@@ -81,7 +81,7 @@ public class CheckCastDebugTestRunner extends DebugTestBase {
     assertThat(method, isPresent());
     long count =
         Streams.stream(method.iterateInstructions(InstructionSubject::isCheckCast)).count();
-    assertEquals(0, count);
+    assertEquals(1, count);
 
     DebugTestConfig config = backend == Backend.CF
         ? new CfDebugTestConfig()
