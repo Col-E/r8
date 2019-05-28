@@ -128,7 +128,7 @@ public class RegisterMoveSchedulerTest {
         IRCode code,
         IRCode inlinee,
         ListIterator<BasicBlock> blockIterator,
-        List<BasicBlock> blocksToRemove,
+        Set<BasicBlock> blocksToRemove,
         DexType downcast) {
       throw new Unimplemented();
     }

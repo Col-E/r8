@@ -84,9 +84,12 @@ public class AssumeDynamicTypeRemover {
     }
   }
 
-  public void removeMarkedInstructions() {
+  public void removeMarkedInstructions(Set<BasicBlock> blocksToBeRemoved) {
     if (!assumeDynamicTypeInstructionsToRemove.isEmpty()) {
       for (BasicBlock block : code.blocks) {
+        if (blocksToBeRemoved.contains(block)) {
+          continue;
+        }
         InstructionListIterator instructionIterator = block.listIterator();
         while (instructionIterator.hasNext()) {
           Instruction instruction = instructionIterator.next();

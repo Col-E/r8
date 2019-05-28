@@ -8,7 +8,6 @@ import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.InternalOptions;
-import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
 
@@ -68,7 +67,7 @@ public class LinearFlowInstructionIterator implements InstructionIterator, Instr
       IRCode code,
       IRCode inlinee,
       ListIterator<BasicBlock> blockIterator,
-      List<BasicBlock> blocksToRemove,
+      Set<BasicBlock> blocksToRemove,
       DexType downcast) {
     return currentBlockIterator.inlineInvoke(
         appView, code, inlinee, blockIterator, blocksToRemove, downcast);

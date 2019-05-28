@@ -1743,7 +1743,7 @@ public class CodeRewriter {
         }
       }
     }
-    assumeDynamicTypeRemover.removeMarkedInstructions();
+    assumeDynamicTypeRemover.removeMarkedInstructions(blocksToBeRemoved);
     assumeDynamicTypeRemover.finish();
     if (!blocksToBeRemoved.isEmpty()) {
       code.removeBlocks(blocksToBeRemoved);

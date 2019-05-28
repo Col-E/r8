@@ -25,10 +25,12 @@ import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import org.junit.Test;
@@ -299,7 +301,7 @@ public class InlineTest extends IrInjectionTestBase {
     test = codeForMultipleMethodReplaceTest(a, b);
     ListIterator<BasicBlock> blocksIterator = test.code.listIterator();
     Iterator<IRCode> inlinee = test.additionalCode.listIterator();  // IR code for a's
-    List<BasicBlock> blocksToRemove = new ArrayList<>();
+    Set<BasicBlock> blocksToRemove = Sets.newIdentityHashSet();
     while (blocksIterator.hasNext()) {
       BasicBlock block = blocksIterator.next();
       iterator = block.listIterator();
@@ -770,7 +772,7 @@ public class InlineTest extends IrInjectionTestBase {
       TestApplication test = codeForInlineAlwaysThrowsMultiple(twoGuards);
       ListIterator<BasicBlock> blocksIterator = test.code.listIterator();
       Iterator<IRCode> inlinee = test.additionalCode.listIterator(); // IR code for a's.
-      List<BasicBlock> blocksToRemove = new ArrayList<>();
+      Set<BasicBlock> blocksToRemove = Sets.newIdentityHashSet();
       InstructionListIterator iterator;
       while (blocksIterator.hasNext()) {
         BasicBlock block = blocksIterator.next();
@@ -794,7 +796,7 @@ public class InlineTest extends IrInjectionTestBase {
       TestApplication test = codeForInlineAlwaysThrowsMultiple(twoGuards);
       ListIterator<BasicBlock> blocksIterator = test.code.listIterator();
       Iterator<IRCode> inlinee = test.additionalCode.listIterator(3); // IR code for b's.
-      List<BasicBlock> blocksToRemove = new ArrayList<>();
+      Set<BasicBlock> blocksToRemove = Sets.newIdentityHashSet();
       InstructionListIterator iterator;
       while (blocksIterator.hasNext()) {
         BasicBlock block = blocksIterator.next();
@@ -926,7 +928,7 @@ public class InlineTest extends IrInjectionTestBase {
       TestApplication test = codeForInlineAlwaysThrowsMultipleWithControlFlow(a, twoGuards);
       ListIterator<BasicBlock> blocksIterator = test.code.listIterator();
       Iterator<IRCode> inlinee = test.additionalCode.listIterator(); // IR code for a's.
-      List<BasicBlock> blocksToRemove = new ArrayList<>();
+      Set<BasicBlock> blocksToRemove = Sets.newIdentityHashSet();
       InstructionListIterator iterator;
       while (blocksIterator.hasNext()) {
         BasicBlock block = blocksIterator.next();
@@ -950,7 +952,7 @@ public class InlineTest extends IrInjectionTestBase {
       TestApplication test = codeForInlineAlwaysThrowsMultipleWithControlFlow(a, twoGuards);
       ListIterator<BasicBlock> blocksIterator = test.code.listIterator();
       Iterator<IRCode> inlinee = test.additionalCode.listIterator(3); // IR code for b's.
-      List<BasicBlock> blocksToRemove = new ArrayList<>();
+      Set<BasicBlock> blocksToRemove = Sets.newIdentityHashSet();
       InstructionListIterator iterator;
       while (blocksIterator.hasNext()) {
         BasicBlock block = blocksIterator.next();

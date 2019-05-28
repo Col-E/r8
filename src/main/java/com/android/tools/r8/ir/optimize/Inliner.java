@@ -793,7 +793,7 @@ public class Inliner {
       IRCode code,
       OptimizationFeedback feedback) {
     AssumeDynamicTypeRemover assumeDynamicTypeRemover = new AssumeDynamicTypeRemover(appView, code);
-    List<BasicBlock> blocksToRemove = new ArrayList<>();
+    Set<BasicBlock> blocksToRemove = Sets.newIdentityHashSet();
     ListIterator<BasicBlock> blockIterator = code.listIterator();
     ClassInitializationAnalysis classInitializationAnalysis =
         new ClassInitializationAnalysis(appView, code);
@@ -881,7 +881,7 @@ public class Inliner {
         }
       }
     }
-    assumeDynamicTypeRemover.removeMarkedInstructions();
+    assumeDynamicTypeRemover.removeMarkedInstructions(blocksToRemove);
     assumeDynamicTypeRemover.finish();
     classInitializationAnalysis.finish();
     oracle.finish();

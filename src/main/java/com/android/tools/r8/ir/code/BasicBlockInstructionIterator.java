@@ -414,7 +414,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
       IRCode code,
       IRCode inlinee,
       ListIterator<BasicBlock> blocksIterator,
-      List<BasicBlock> blocksToRemove,
+      Set<BasicBlock> blocksToRemove,
       DexType downcast) {
     assert blocksToRemove != null;
     boolean inlineeCanThrow = canThrow(inlinee);
