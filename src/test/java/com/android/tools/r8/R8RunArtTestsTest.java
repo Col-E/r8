@@ -2133,7 +2133,9 @@ public abstract class R8RunArtTestsTest {
       try {
         runJctfTestDoRunOnArt(fileNames, specification, fullClassName, vmSpec.vm.asDex().getVm());
       } catch (AssertionError e) {
-        vmErrors.addFailedOnRunError(CompilerUnderTest.R8, vmSpec.vm, e);
+        if (!specification.failsOnRun) {
+          vmErrors.addFailedOnRunError(CompilerUnderTest.R8, vmSpec.vm, e);
+        }
       }
     }
     return vmErrors;

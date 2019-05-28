@@ -1740,6 +1740,25 @@ public class JctfTestSpecifications {
           .put("lang.reflect.Field.toGenericString.Field_toGenericString_A01", cf())
           .build(); // end of failuresToTriage
 
+
+  public static final Multimap<String, TestCondition> bugs =
+      new ImmutableListMultimap.Builder<String, TestCondition>()
+          // The following StringBuffer/StringBuilder tests fails because we remove, e.g.,
+          // new StringBuffer(-5) if it is dead code (but it should trow), see b/133745205
+          .put("lang.StringBuffer.ConstructorLjava_lang_String.StringBuffer_Constructor_A02",
+              match(R8_COMPILER))
+          .put("lang.StringBuffer.ConstructorLjava_lang_CharSequence.StringBuffer_Constructor_A02",
+              match(R8_COMPILER))
+          .put("lang.StringBuffer.ConstructorI.StringBuffer_Constructor_A02",
+              match(R8_COMPILER))
+          .put("lang.StringBuilder.ConstructorI.StringBuilder_Constructor_A02",
+                match(R8_COMPILER))
+          .put("lang.StringBuilder.ConstructorLjava_lang_CharSequence.StringBuilder_Constructor_A02",
+              match(R8_COMPILER))
+          .put("lang.StringBuilder.ConstructorLjava_lang_String.StringBuilder_Constructor_A02 ",
+              match(R8_COMPILER))
+          .build();
+
   public static final Multimap<String, TestCondition> flakyWhenRun =
       new ImmutableListMultimap.Builder<String, TestCondition>()
           .put("lang.Object.notifyAll.Object_notifyAll_A03", anyDexVm())
@@ -1943,6 +1962,9 @@ public class JctfTestSpecifications {
     Outcome outcome = null;
 
     if (testMatch(failuresToTriage, name, compilerUnderTest, runtime, compilationMode)) {
+      outcome = Outcome.FAILS_WHEN_RUN;
+    }
+    if (testMatch(bugs, name, compilerUnderTest, runtime, compilationMode)) {
       outcome = Outcome.FAILS_WHEN_RUN;
     }
     if (testMatch(timeoutsWhenRun, name, compilerUnderTest, runtime, compilationMode)) {
