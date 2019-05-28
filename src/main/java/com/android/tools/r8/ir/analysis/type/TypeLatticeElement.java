@@ -367,14 +367,6 @@ public abstract class TypeLatticeElement {
         || (isWide() && other.isWide());
   }
 
-  public TypeLatticeElement checkCast(AppView<?> appView, DexType castType) {
-    TypeLatticeElement castTypeLattice = fromDexType(castType, nullability(), appView);
-    if (lessThanOrEqual(castTypeLattice, appView)) {
-      return this;
-    }
-    return castTypeLattice;
-  }
-
   @Override
   public abstract String toString();
 

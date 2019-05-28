@@ -3,9 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.analysis.type;
 
-import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexType;
-
 public class TopTypeLatticeElement extends TypeLatticeElement {
   private static final TopTypeLatticeElement INSTANCE = new TopTypeLatticeElement();
 
@@ -21,11 +18,6 @@ public class TopTypeLatticeElement extends TypeLatticeElement {
   @Override
   public boolean isTop() {
     return true;
-  }
-
-  @Override
-  public TypeLatticeElement checkCast(AppView<?> appView, DexType castType) {
-    return this;
   }
 
   @Override

@@ -111,7 +111,7 @@ public class CheckCast extends Instruction {
 
   @Override
   public TypeLatticeElement evaluate(AppView<?> appView) {
-    return object().getTypeLattice().checkCast(appView, type);
+    return TypeLatticeElement.fromDexType(type, object().getTypeLattice().nullability(), appView);
   }
 
   @Override
