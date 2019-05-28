@@ -119,7 +119,8 @@ public class VerticalClassMerger {
     public boolean verifyAllSourcesPruned(AppView<AppInfoWithLiveness> appView) {
       for (List<DexType> sourcesForTarget : sources.values()) {
         for (DexType source : sourcesForTarget) {
-          assert appView.appInfo().wasPruned(source);
+          assert appView.appInfo().wasPruned(source)
+              : "Expected vertically merged class `" + source.toSourceString() + "` to be absent";
         }
       }
       return true;

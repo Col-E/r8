@@ -3,10 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import static com.android.tools.r8.graph.FieldAccessInfoImpl.MISSING_FIELD_ACCESS_INFO;
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.identifyIdentifier;
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.isReflectionMethod;
 import static com.android.tools.r8.shaking.AnnotationRemover.shouldKeepAnnotation;
-import static com.android.tools.r8.shaking.EnqueuerUtils.extractProgramFieldDefinitions;
 import static com.android.tools.r8.shaking.EnqueuerUtils.toImmutableSortedMap;
 
 import com.android.tools.r8.Diagnostic;
@@ -43,6 +43,8 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.FieldAccessInfoCollectionImpl;
+import com.android.tools.r8.graph.FieldAccessInfoImpl;
 import com.android.tools.r8.graph.KeyedDexItem;
 import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.graph.TopDownClassHierarchyTraversal;
@@ -86,9 +88,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.SortedSet;
-import java.util.TreeMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.BiConsumer;
@@ -122,14 +122,8 @@ public class Enqueuer {
   private final Map<DexMethod, Set<DexEncodedMethod>> superInvokes = new IdentityHashMap<>();
   private final Map<DexMethod, Set<DexEncodedMethod>> directInvokes = new IdentityHashMap<>();
   private final Map<DexMethod, Set<DexEncodedMethod>> staticInvokes = new IdentityHashMap<>();
-  private final Map<DexType, Set<TargetWithContext<DexField>>> instanceFieldsWritten =
-      Maps.newIdentityHashMap();
-  private final Map<DexType, Set<TargetWithContext<DexField>>> instanceFieldsRead =
-      Maps.newIdentityHashMap();
-  private final Map<DexType, Set<TargetWithContext<DexField>>> staticFieldsRead =
-      Maps.newIdentityHashMap();
-  private final Map<DexType, Set<TargetWithContext<DexField>>> staticFieldsWritten =
-      Maps.newIdentityHashMap();
+  private final FieldAccessInfoCollectionImpl fieldAccessInfoCollection =
+      new FieldAccessInfoCollectionImpl();
   private final Set<DexField> staticFieldsWrittenOutsideEnclosingStaticInitializer =
       Sets.newIdentityHashSet();
   private final Set<DexCallSite> callSites = Sets.newIdentityHashSet();
@@ -295,20 +289,22 @@ public class Enqueuer {
 
   private Set<DexField> staticFieldsWrittenOnlyInEnclosingStaticInitializer() {
     Set<DexField> result = Sets.newIdentityHashSet();
-    Set<DexField> visited = Sets.newIdentityHashSet();
-    for (Set<TargetWithContext<DexField>> targetsWithContext : staticFieldsWritten.values()) {
-      for (TargetWithContext<DexField> targetWithContext : targetsWithContext) {
-        DexField staticFieldWritten = targetWithContext.target;
-        if (!visited.add(staticFieldWritten)) {
-          continue;
-        }
-        DexEncodedField encodedStaticFieldWritten = appInfo.resolveField(staticFieldWritten);
-        if (encodedStaticFieldWritten != null
-            && encodedStaticFieldWritten.isProgramField(appInfo)) {
-          result.add(encodedStaticFieldWritten.field);
-        }
-      }
-    }
+    fieldAccessInfoCollection.forEach(
+        info -> {
+          if (info == MISSING_FIELD_ACCESS_INFO) {
+            return;
+          }
+          // Note that it is safe to use definitionFor() here, and not lookupField(), since the
+          // field held by `info` is a direct reference to the definition of the field.
+          DexEncodedField encodedField = appView.definitionFor(info.getField());
+          if (encodedField == null) {
+            assert false;
+            return;
+          }
+          if (encodedField.isProgramField(appInfo) && encodedField.isStatic() && info.isWritten()) {
+            result.add(encodedField.field);
+          }
+        });
     result.removeAll(staticFieldsWrittenOutsideEnclosingStaticInitializer);
     result.removeAll(
         pinnedItems.stream()
@@ -407,19 +403,6 @@ public class Enqueuer {
   // traversals.
   //
 
-  private boolean registerFieldWithTargetAndContext(
-      Map<DexType, Set<TargetWithContext<DexField>>> seen,
-      DexField field,
-      DexEncodedMethod context) {
-    DexType baseHolder = field.holder.toBaseType(appView.dexItemFactory());
-    if (baseHolder.isClassType()) {
-      markTypeAsLive(baseHolder);
-      return seen.computeIfAbsent(field.holder, ignore -> new HashSet<>())
-          .add(new TargetWithContext<>(field, context));
-    }
-    return false;
-  }
-
   private boolean registerMethodWithTargetAndContext(
       Map<DexMethod, Set<DexEncodedMethod>> seen, DexMethod method, DexEncodedMethod context) {
     DexType baseHolder = method.holder.toBaseType(appView.dexItemFactory());
@@ -428,6 +411,46 @@ public class Enqueuer {
       return seen.computeIfAbsent(method, ignore -> Sets.newIdentityHashSet()).add(context);
     }
     return false;
+  }
+
+  private boolean registerFieldRead(DexField field, DexEncodedMethod context) {
+    return registerFieldAccess(field, context, true);
+  }
+
+  private boolean registerFieldWrite(DexField field, DexEncodedMethod context) {
+    return registerFieldAccess(field, context, false);
+  }
+
+  private boolean registerFieldAccess(DexField field, DexEncodedMethod context, boolean isRead) {
+    FieldAccessInfoImpl info = fieldAccessInfoCollection.get(field);
+    if (info == null) {
+      DexEncodedField encodedField = appInfo.resolveField(field);
+
+      // If the field does not exist, then record this in the mapping, such that we don't have to
+      // resolve the field the next time.
+      if (encodedField == null) {
+        fieldAccessInfoCollection.extend(field, MISSING_FIELD_ACCESS_INFO);
+        return true;
+      }
+
+      // Check if we have previously created a FieldAccessInfo object for the field definition.
+      info = fieldAccessInfoCollection.get(encodedField.field);
+
+      // If not, we must create one.
+      if (info == null) {
+        info = new FieldAccessInfoImpl(encodedField.field);
+        fieldAccessInfoCollection.extend(encodedField.field, info);
+      }
+
+      // If `field` is an indirect reference, then create a mapping for it, such that we don't have
+      // to resolve the field the next time we see the reference.
+      if (field != encodedField.field) {
+        fieldAccessInfoCollection.extend(field, info);
+      }
+    } else if (info == MISSING_FIELD_ACCESS_INFO) {
+      return false;
+    }
+    return isRead ? info.recordRead(field, context) : info.recordWrite(field, context);
   }
 
   private class UseRegistry extends com.android.tools.r8.graph.UseRegistry {
@@ -548,7 +571,7 @@ public class Enqueuer {
 
     @Override
     public boolean registerInstanceFieldWrite(DexField field) {
-      if (!registerFieldWithTargetAndContext(instanceFieldsWritten, field, currentMethod)) {
+      if (!registerFieldWrite(field, currentMethod)) {
         return false;
       }
       if (Log.ENABLED) {
@@ -561,7 +584,7 @@ public class Enqueuer {
 
     @Override
     public boolean registerInstanceFieldRead(DexField field) {
-      if (!registerFieldWithTargetAndContext(instanceFieldsRead, field, currentMethod)) {
+      if (!registerFieldRead(field, currentMethod)) {
         return false;
       }
       if (Log.ENABLED) {
@@ -583,7 +606,7 @@ public class Enqueuer {
 
     @Override
     public boolean registerStaticFieldRead(DexField field) {
-      if (!registerFieldWithTargetAndContext(staticFieldsRead, field, currentMethod)) {
+      if (!registerFieldRead(field, currentMethod)) {
         return false;
       }
       if (Log.ENABLED) {
@@ -595,7 +618,7 @@ public class Enqueuer {
 
     @Override
     public boolean registerStaticFieldWrite(DexField field) {
-      if (!registerFieldWithTargetAndContext(staticFieldsWritten, field, currentMethod)) {
+      if (!registerFieldWrite(field, currentMethod)) {
         return false;
       }
       if (Log.ENABLED) {
@@ -1292,6 +1315,10 @@ public class Enqueuer {
     if (Log.ENABLED) {
       Log.verbose(getClass(), "Marking instance field `%s` as reachable.", field);
     }
+
+    markTypeAsLive(field.holder);
+    markTypeAsLive(field.type);
+
     DexEncodedField encodedField = appInfo.resolveField(field);
     if (encodedField == null) {
       reportMissingField(field);
@@ -1531,14 +1558,13 @@ public class Enqueuer {
     ImmutableSortedSet.Builder<DexType> builder =
         ImmutableSortedSet.orderedBy(PresortedComparable::slowCompareTo);
     enqueuer.liveAnnotations.items.forEach(annotation -> builder.add(annotation.annotation.type));
-    SortedMap<DexField, Set<DexEncodedMethod>> instanceFieldReads =
-        enqueuer.collectDescriptors(enqueuer.instanceFieldsRead);
-    SortedMap<DexField, Set<DexEncodedMethod>> instanceFieldWrites =
-        enqueuer.collectDescriptors(enqueuer.instanceFieldsWritten);
-    SortedMap<DexField, Set<DexEncodedMethod>> staticFieldReads =
-        enqueuer.collectDescriptors(enqueuer.staticFieldsRead);
-    SortedMap<DexField, Set<DexEncodedMethod>> staticFieldWrites =
-        enqueuer.collectDescriptors(enqueuer.staticFieldsWritten);
+
+    // Remove the temporary mappings that have been inserted into the field access info collection
+    // and verify that the mapping is then one-to-one.
+    enqueuer.fieldAccessInfoCollection.removeIf(
+        (field, info) -> field != info.getField() || info == MISSING_FIELD_ACCESS_INFO);
+    assert enqueuer.fieldAccessInfoCollection.verifyMappingIsOneToOne();
+
     AppInfoWithLiveness appInfoWithLiveness =
         new AppInfoWithLiveness(
             appInfo,
@@ -1555,24 +1581,10 @@ public class Enqueuer {
             ImmutableSortedSet.copyOf(
                 DexMethod::slowCompareTo, enqueuer.virtualMethodsTargetedByInvokeDirect),
             toSortedDescriptorSet(enqueuer.liveMethods.getItems()),
-            // Filter out library fields and pinned fields, because these are read by default.
-            extractProgramFieldDefinitions(
-                instanceFieldReads.keySet(),
-                staticFieldReads.keySet(),
-                appInfo,
-                field -> !enqueuer.pinnedItems.contains(field.field)),
-            extractProgramFieldDefinitions(
-                instanceFieldWrites.keySet(),
-                staticFieldWrites.keySet(),
-                appInfo,
-                field -> !enqueuer.pinnedItems.contains(field.field)),
+            enqueuer.fieldAccessInfoCollection,
             ImmutableSortedSet.copyOf(
                 DexField::slowCompareTo,
                 enqueuer.staticFieldsWrittenOnlyInEnclosingStaticInitializer()),
-            instanceFieldReads,
-            instanceFieldWrites,
-            staticFieldReads,
-            staticFieldWrites,
             // TODO(b/132593519): Do we require these sets to be sorted for determinism?
             toImmutableSortedMap(enqueuer.virtualInvokes, PresortedComparable::slowCompare),
             toImmutableSortedMap(enqueuer.interfaceInvokes, PresortedComparable::slowCompare),
@@ -1892,20 +1904,6 @@ public class Enqueuer {
     }
   }
 
-  private <T extends Descriptor<?, T>> SortedMap<T, Set<DexEncodedMethod>> collectDescriptors(
-      Map<DexType, Set<TargetWithContext<T>>> map) {
-    SortedMap<T, Set<DexEncodedMethod>> result = new TreeMap<>(PresortedComparable::slowCompare);
-    for (Entry<DexType, Set<TargetWithContext<T>>> entry : map.entrySet()) {
-      for (TargetWithContext<T> descriptorWithContext : entry.getValue()) {
-        T descriptor = descriptorWithContext.getTarget();
-        DexEncodedMethod context = descriptorWithContext.getContext();
-        result.computeIfAbsent(descriptor, k -> Sets.newIdentityHashSet())
-            .add(context);
-      }
-    }
-    return Collections.unmodifiableSortedMap(result);
-  }
-
   private void markClassAsInstantiatedWithReason(DexClass clazz, KeepReason reason) {
     assert clazz.isProgramClass();
     workList.add(Action.markInstantiated(clazz, reason));
@@ -2004,13 +2002,8 @@ public class Enqueuer {
         }
         markFieldAsKept(encodedField, KeepReason.reflectiveUseIn(method));
         // Fields accessed by reflection is marked as both read and written.
-        if (encodedField.isStatic()) {
-          registerFieldWithTargetAndContext(staticFieldsRead, encodedField.field, method);
-          registerFieldWithTargetAndContext(staticFieldsWritten, encodedField.field, method);
-        } else {
-          registerFieldWithTargetAndContext(instanceFieldsRead, encodedField.field, method);
-          registerFieldWithTargetAndContext(instanceFieldsWritten, encodedField.field, method);
-        }
+        registerFieldRead(encodedField.field, method);
+        registerFieldWrite(encodedField.field, method);
       }
     } else {
       assert identifierItem.isDexMethod();

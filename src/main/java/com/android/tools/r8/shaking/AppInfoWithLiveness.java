@@ -4,6 +4,7 @@
 package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.graph.GraphLense.rewriteReferenceKeys;
+import static com.google.common.base.Predicates.not;
 
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexApplication;
@@ -17,6 +18,10 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
+import com.android.tools.r8.graph.FieldAccessInfo;
+import com.android.tools.r8.graph.FieldAccessInfoCollection;
+import com.android.tools.r8.graph.FieldAccessInfoCollectionImpl;
+import com.android.tools.r8.graph.FieldAccessInfoImpl;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.ir.code.Invoke.Type;
@@ -53,7 +58,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
    */
   public final SortedSet<DexType> liveTypes;
   /** Set of annotation types that are instantiated. */
-  final SortedSet<DexType> instantiatedAnnotationTypes;
+  private final SortedSet<DexType> instantiatedAnnotationTypes;
   /**
    * Set of service types (from META-INF/services/) that may have been instantiated reflectively via
    * ServiceLoader.load() or ServiceLoader.loadInstalled().
@@ -85,28 +90,16 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
    */
   public final SortedSet<DexMethod> liveMethods;
   /**
-   * Set of all fields which may be touched by a get operation. This is actual field definitions.
-   * The set does not include kept fields nor library fields, since these are read by definition.
+   * Information about all fields that are accessed by the program. The information includes whether
+   * a given field is read/written by the program, and it also includes all indirect accesses to
+   * each field. The latter is used, for example, during member rebinding.
    */
-  private final SortedSet<DexField> fieldsRead;
-  /**
-   * Set of all fields which may be touched by a put operation. This is actual field definitions.
-   * The set does not include kept fields nor library fields, since these are written by definition.
-   */
-  private SortedSet<DexField> fieldsWritten;
+  private final FieldAccessInfoCollectionImpl fieldAccessInfoCollection;
   /**
    * Set of all static fields that are only written inside the <clinit>() method of their enclosing
    * class.
    */
   private SortedSet<DexField> staticFieldsWrittenOnlyInEnclosingStaticInitializer;
-  /** Set of all field ids used in instance field reads, along with access context. */
-  public final SortedMap<DexField, Set<DexEncodedMethod>> instanceFieldReads;
-  /** Set of all field ids used in instance field writes, along with access context. */
-  public final SortedMap<DexField, Set<DexEncodedMethod>> instanceFieldWrites;
-  /** Set of all field ids used in static field reads, along with access context. */
-  public final SortedMap<DexField, Set<DexEncodedMethod>> staticFieldReads;
-  /** Set of all field ids used in static field writes, along with access context. */
-  public final SortedMap<DexField, Set<DexEncodedMethod>> staticFieldWrites;
   /** Set of all methods referenced in virtual invokes, along with calling context. */
   public final SortedMap<DexMethod, Set<DexEncodedMethod>> virtualInvokes;
   /** Set of all methods referenced in interface invokes, along with calling context. */
@@ -181,13 +174,8 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       SortedSet<DexMethod> methodsTargetedByInvokeDynamic,
       SortedSet<DexMethod> virtualMethodsTargetedByInvokeDirect,
       SortedSet<DexMethod> liveMethods,
-      SortedSet<DexField> fieldsRead,
-      SortedSet<DexField> fieldsWritten,
+      FieldAccessInfoCollectionImpl fieldAccessInfoCollection,
       SortedSet<DexField> staticFieldsWrittenOnlyInEnclosingStaticInitializer,
-      SortedMap<DexField, Set<DexEncodedMethod>> instanceFieldReads,
-      SortedMap<DexField, Set<DexEncodedMethod>> instanceFieldWrites,
-      SortedMap<DexField, Set<DexEncodedMethod>> staticFieldReads,
-      SortedMap<DexField, Set<DexEncodedMethod>> staticFieldWrites,
       SortedMap<DexMethod, Set<DexEncodedMethod>> virtualInvokes,
       SortedMap<DexMethod, Set<DexEncodedMethod>> interfaceInvokes,
       SortedMap<DexMethod, Set<DexEncodedMethod>> superInvokes,
@@ -222,12 +210,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.methodsTargetedByInvokeDynamic = methodsTargetedByInvokeDynamic;
     this.virtualMethodsTargetedByInvokeDirect = virtualMethodsTargetedByInvokeDirect;
     this.liveMethods = liveMethods;
-    this.instanceFieldReads = instanceFieldReads;
-    this.instanceFieldWrites = instanceFieldWrites;
-    this.staticFieldReads = staticFieldReads;
-    this.staticFieldWrites = staticFieldWrites;
-    this.fieldsRead = fieldsRead;
-    this.fieldsWritten = fieldsWritten;
+    this.fieldAccessInfoCollection = fieldAccessInfoCollection;
     this.staticFieldsWrittenOnlyInEnclosingStaticInitializer =
         staticFieldsWrittenOnlyInEnclosingStaticInitializer;
     this.pinnedItems = pinnedItems;
@@ -254,8 +237,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.switchMaps = switchMaps;
     this.ordinalsMaps = ordinalsMaps;
     this.instantiatedLambdas = instantiatedLambdas;
-    assert Sets.intersection(instanceFieldReads.keySet(), staticFieldReads.keySet()).isEmpty();
-    assert Sets.intersection(instanceFieldWrites.keySet(), staticFieldWrites.keySet()).isEmpty();
   }
 
   public AppInfoWithLiveness(
@@ -269,13 +250,8 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       SortedSet<DexMethod> methodsTargetedByInvokeDynamic,
       SortedSet<DexMethod> virtualMethodsTargetedByInvokeDirect,
       SortedSet<DexMethod> liveMethods,
-      SortedSet<DexField> fieldsRead,
-      SortedSet<DexField> fieldsWritten,
+      FieldAccessInfoCollectionImpl fieldAccessInfoCollection,
       SortedSet<DexField> staticFieldsWrittenOnlyInEnclosingStaticInitializer,
-      SortedMap<DexField, Set<DexEncodedMethod>> instanceFieldReads,
-      SortedMap<DexField, Set<DexEncodedMethod>> instanceFieldWrites,
-      SortedMap<DexField, Set<DexEncodedMethod>> staticFieldReads,
-      SortedMap<DexField, Set<DexEncodedMethod>> staticFieldWrites,
       SortedMap<DexMethod, Set<DexEncodedMethod>> virtualInvokes,
       SortedMap<DexMethod, Set<DexEncodedMethod>> interfaceInvokes,
       SortedMap<DexMethod, Set<DexEncodedMethod>> superInvokes,
@@ -310,12 +286,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.methodsTargetedByInvokeDynamic = methodsTargetedByInvokeDynamic;
     this.virtualMethodsTargetedByInvokeDirect = virtualMethodsTargetedByInvokeDirect;
     this.liveMethods = liveMethods;
-    this.instanceFieldReads = instanceFieldReads;
-    this.instanceFieldWrites = instanceFieldWrites;
-    this.staticFieldReads = staticFieldReads;
-    this.staticFieldWrites = staticFieldWrites;
-    this.fieldsRead = fieldsRead;
-    this.fieldsWritten = fieldsWritten;
+    this.fieldAccessInfoCollection = fieldAccessInfoCollection;
     this.staticFieldsWrittenOnlyInEnclosingStaticInitializer =
         staticFieldsWrittenOnlyInEnclosingStaticInitializer;
     this.pinnedItems = pinnedItems;
@@ -342,8 +313,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.switchMaps = switchMaps;
     this.ordinalsMaps = ordinalsMaps;
     this.instantiatedLambdas = instantiatedLambdas;
-    assert Sets.intersection(instanceFieldReads.keySet(), staticFieldReads.keySet()).isEmpty();
-    assert Sets.intersection(instanceFieldWrites.keySet(), staticFieldWrites.keySet()).isEmpty();
   }
 
   private AppInfoWithLiveness(AppInfoWithLiveness previous) {
@@ -365,13 +334,8 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
         previous.methodsTargetedByInvokeDynamic,
         previous.virtualMethodsTargetedByInvokeDirect,
         previous.liveMethods,
-        previous.fieldsRead,
-        previous.fieldsWritten,
+        previous.fieldAccessInfoCollection,
         previous.staticFieldsWrittenOnlyInEnclosingStaticInitializer,
-        previous.instanceFieldReads,
-        previous.instanceFieldWrites,
-        previous.staticFieldReads,
-        previous.staticFieldWrites,
         previous.virtualInvokes,
         previous.interfaceInvokes,
         previous.superInvokes,
@@ -400,8 +364,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
         previous.instantiatedLambdas);
     copyMetadataFromPrevious(previous);
     assert removedClasses == null || assertNoItemRemoved(previous.pinnedItems, removedClasses);
-    assert Sets.intersection(instanceFieldReads.keySet(), staticFieldReads.keySet()).isEmpty();
-    assert Sets.intersection(instanceFieldWrites.keySet(), staticFieldWrites.keySet()).isEmpty();
   }
 
   private AppInfoWithLiveness(
@@ -421,16 +383,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.virtualMethodsTargetedByInvokeDirect =
         lense.rewriteMethodsConservatively(previous.virtualMethodsTargetedByInvokeDirect);
     this.liveMethods = lense.rewriteMethodsConservatively(previous.liveMethods);
-    this.instanceFieldReads =
-        rewriteKeysWhileMergingValues(previous.instanceFieldReads, lense::lookupField);
-    this.instanceFieldWrites =
-        rewriteKeysWhileMergingValues(previous.instanceFieldWrites, lense::lookupField);
-    this.staticFieldReads =
-        rewriteKeysWhileMergingValues(previous.staticFieldReads, lense::lookupField);
-    this.staticFieldWrites =
-        rewriteKeysWhileMergingValues(previous.staticFieldWrites, lense::lookupField);
-    this.fieldsRead = rewriteItems(previous.fieldsRead, lense::lookupField);
-    this.fieldsWritten = rewriteItems(previous.fieldsWritten, lense::lookupField);
+    this.fieldAccessInfoCollection = previous.fieldAccessInfoCollection.rewrittenWithLens(lense);
     this.staticFieldsWrittenOnlyInEnclosingStaticInitializer =
         rewriteItems(
             previous.staticFieldsWrittenOnlyInEnclosingStaticInitializer, lense::lookupField);
@@ -490,9 +443,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
             .collect(Collectors.toList()));
     this.switchMaps = rewriteReferenceKeys(previous.switchMaps, lense::lookupField);
     this.ordinalsMaps = rewriteReferenceKeys(previous.ordinalsMaps, lense::lookupType);
-    // Sanity check sets after rewriting.
-    assert Sets.intersection(instanceFieldReads.keySet(), staticFieldReads.keySet()).isEmpty();
-    assert Sets.intersection(instanceFieldWrites.keySet(), staticFieldWrites.keySet()).isEmpty();
   }
 
   public AppInfoWithLiveness(
@@ -510,12 +460,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.methodsTargetedByInvokeDynamic = previous.methodsTargetedByInvokeDynamic;
     this.virtualMethodsTargetedByInvokeDirect = previous.virtualMethodsTargetedByInvokeDirect;
     this.liveMethods = previous.liveMethods;
-    this.instanceFieldReads = previous.instanceFieldReads;
-    this.instanceFieldWrites = previous.instanceFieldWrites;
-    this.staticFieldReads = previous.staticFieldReads;
-    this.staticFieldWrites = previous.staticFieldWrites;
-    this.fieldsRead = previous.fieldsRead;
-    this.fieldsWritten = previous.fieldsWritten;
+    this.fieldAccessInfoCollection = previous.fieldAccessInfoCollection;
     this.staticFieldsWrittenOnlyInEnclosingStaticInitializer =
         previous.staticFieldsWrittenOnlyInEnclosingStaticInitializer;
     this.pinnedItems = previous.pinnedItems;
@@ -588,10 +533,20 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       return this;
     }
     AppInfoWithLiveness result = new AppInfoWithLiveness(this);
-    Predicate<DexField> isFieldWritten = field -> !noLongerWrittenFields.contains(field);
-    result.fieldsWritten = filter(fieldsWritten, isFieldWritten);
+    result.fieldAccessInfoCollection.forEach(
+        info -> {
+          if (noLongerWrittenFields.contains(info.getField())) {
+            // Note that this implicitly mutates the current AppInfoWithLiveness, since the `info`
+            // instance is shared between the old and the new AppInfoWithLiveness. This should not
+            // lead to any problems, though, since the new AppInfo replaces the old AppInfo (we
+            // never use an obsolete AppInfo).
+            info.clearWrites();
+          }
+        });
     result.staticFieldsWrittenOnlyInEnclosingStaticInitializer =
-        filter(staticFieldsWrittenOnlyInEnclosingStaticInitializer, isFieldWritten);
+        filter(
+            staticFieldsWrittenOnlyInEnclosingStaticInitializer,
+            not(noLongerWrittenFields::contains));
     return result;
   }
 
@@ -610,6 +565,11 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
   public Int2ReferenceMap<DexField> getSwitchMapFor(DexField field) {
     assert checkIfObsolete();
     return switchMaps.get(field);
+  }
+
+  /** This method provides immutable access to `fieldAccessInfoCollection`. */
+  public FieldAccessInfoCollection<? extends FieldAccessInfo> getFieldAccessInfoCollection() {
+    return fieldAccessInfoCollection;
   }
 
   private boolean assertNoItemRemoved(Collection<DexReference> items, Collection<DexType> types) {
@@ -664,8 +624,11 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
 
   public boolean isFieldRead(DexField field) {
     assert checkIfObsolete();
-    return fieldsRead.contains(field)
-        || isPinned(field)
+    FieldAccessInfoImpl info = fieldAccessInfoCollection.get(field);
+    if (info != null && info.isRead()) {
+      return true;
+    }
+    return isPinned(field)
         // Fields in the class that is synthesized by D8/R8 would be used soon.
         || field.holder.isD8R8SynthesizedClassType()
         // For library classes we don't know whether a field is read.
@@ -674,8 +637,11 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
 
   public boolean isFieldWritten(DexField field) {
     assert checkIfObsolete();
-    return fieldsWritten.contains(field)
-        || isPinned(field)
+    FieldAccessInfoImpl info = fieldAccessInfoCollection.get(field);
+    if (info != null && info.isWritten()) {
+      return true;
+    }
+    return isPinned(field)
         // Fields in the class that is synthesized by D8/R8 would be used soon.
         || field.holder.isD8R8SynthesizedClassType()
         // For library classes we don't know whether a field is rewritten.
@@ -684,7 +650,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
 
   public boolean isStaticFieldWrittenOnlyInEnclosingStaticInitializer(DexField field) {
     assert checkIfObsolete();
-    assert isFieldWritten(field);
+    assert isFieldWritten(field) : "Expected field `" + field.toSourceString() + "` to be written";
     return staticFieldsWrittenOnlyInEnclosingStaticInitializer.contains(field);
   }
 
@@ -706,19 +672,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       builder.add(rewrite.apply(item));
     }
     return builder.build();
-  }
-
-  private static <T extends PresortedComparable<T>, S>
-      SortedMap<T, Set<S>> rewriteKeysWhileMergingValues(
-          Map<T, Set<S>> original, Function<T, T> rewrite) {
-    SortedMap<T, Set<S>> result = new TreeMap<>(PresortedComparable::slowCompare);
-    for (T item : original.keySet()) {
-      T rewrittenKey = rewrite.apply(item);
-      result
-          .computeIfAbsent(rewrittenKey, k -> Sets.newIdentityHashSet())
-          .addAll(original.get(item));
-    }
-    return Collections.unmodifiableSortedMap(result);
   }
 
   private static <T extends PresortedComparable<T>, S>

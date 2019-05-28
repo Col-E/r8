@@ -10,6 +10,8 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.FieldAccessInfo;
+import com.android.tools.r8.graph.FieldAccessInfoCollection;
 import com.android.tools.r8.graph.TopDownClassHierarchyTraversal;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Timing;
@@ -218,15 +220,16 @@ class FieldNameMinifier {
   }
 
   private void renameNonReboundReferences() {
-    // TODO(b/123068484): Collect non-rebound references instead of visiting all references.
-    AppInfoWithLiveness appInfo = appView.appInfo();
-    Sets.union(
-        Sets.union(appInfo.staticFieldReads.keySet(), appInfo.staticFieldWrites.keySet()),
-        Sets.union(appInfo.instanceFieldReads.keySet(), appInfo.instanceFieldWrites.keySet()))
-        .forEach(this::renameNonReboundReference);
+    FieldAccessInfoCollection<?> fieldAccessInfoCollection =
+        appView.appInfo().getFieldAccessInfoCollection();
+    fieldAccessInfoCollection.forEach(this::renameNonReboundAccessesToField);
   }
 
-  private void renameNonReboundReference(DexField field) {
+  private void renameNonReboundAccessesToField(FieldAccessInfo fieldAccessInfo) {
+    fieldAccessInfo.forEachIndirectAccess(this::renameNonReboundAccessToField);
+  }
+
+  private void renameNonReboundAccessToField(DexField field) {
     // Already renamed
     if (renaming.containsKey(field)) {
       return;

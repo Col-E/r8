@@ -12,15 +12,13 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.FieldAccessInfo;
+import com.android.tools.r8.graph.FieldAccessInfoCollection;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
-import java.util.Collections;
-import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
@@ -280,28 +278,39 @@ public class MemberRebindingAnalysis {
     return null;
   }
 
-  private void computeFieldRebinding(
-      Map<DexField, Set<DexEncodedMethod>> fieldsWithContexts,
-      BiFunction<DexType, DexField, DexEncodedField> lookup,
-      BiFunction<DexClass, DexField, DexEncodedField> lookupTargetOnClass) {
-    for (DexField field : fieldsWithContexts.keySet()) {
-      DexEncodedField target = lookup.apply(field.holder, field);
-      // Rebind to the lowest library class or program class. Do not rebind accesses to fields that
-      // are not visible from the access context.
-      Set<DexEncodedMethod> contexts = fieldsWithContexts.get(field);
-      if (target != null
-          && target.field != field
-          && contexts.stream()
-              .allMatch(
-                  context ->
-                      isMemberVisibleFromOriginalContext(
-                          appView,
-                          context.method.holder,
-                          target.field.holder,
-                          target.accessFlags))) {
-        builder.map(field,
-            lense.lookupField(validTargetFor(target.field, field, lookupTargetOnClass)));
-      }
+  private void computeFieldRebinding() {
+    FieldAccessInfoCollection<?> fieldAccessInfoCollection =
+        appView.appInfo().getFieldAccessInfoCollection();
+    fieldAccessInfoCollection.forEach(this::computeFieldRebindingForIndirectAccesses);
+  }
+
+  private void computeFieldRebindingForIndirectAccesses(FieldAccessInfo fieldAccessInfo) {
+    fieldAccessInfo.forEachIndirectAccessWithContexts(
+        this::computeFieldRebindingForIndirectAccessWithContexts);
+  }
+
+  private void computeFieldRebindingForIndirectAccessWithContexts(
+      DexField field, Set<DexEncodedMethod> contexts) {
+    DexEncodedField target = appView.appInfo().resolveField(field);
+    if (target == null) {
+      assert false;
+      return;
+    }
+
+    if (target.field == field) {
+      assert false;
+      return;
+    }
+
+    // Rebind to the lowest library class or program class. Do not rebind accesses to fields that
+    // are not visible from the access context.
+    if (contexts.stream()
+        .allMatch(
+            context ->
+                isMemberVisibleFromOriginalContext(
+                    appView, context.method.holder, target.field.holder, target.accessFlags))) {
+      builder.map(
+          field, lense.lookupField(validTargetFor(target.field, field, DexClass::lookupField)));
     }
   }
 
@@ -321,20 +330,6 @@ public class MemberRebindingAnalysis {
     return memberVisibility != ConstraintWithTarget.NEVER;
   }
 
-  private Map<DexField, Set<DexEncodedMethod>> mergeFieldAccessContexts(
-      Map<DexField, Set<DexEncodedMethod>> reads,
-      Map<DexField, Set<DexEncodedMethod>> writes) {
-    Map<DexField, Set<DexEncodedMethod>> result = new IdentityHashMap<>();
-    Set<DexField> fields = Sets.union(reads.keySet(), writes.keySet());
-    for (DexField field : fields) {
-      Set<DexEncodedMethod> contexts = Sets.newIdentityHashSet();
-      contexts.addAll(reads.getOrDefault(field, ImmutableSet.of()));
-      contexts.addAll(writes.getOrDefault(field, ImmutableSet.of()));
-      result.put(field, contexts);
-    }
-    return Collections.unmodifiableMap(result);
-  }
-
   public GraphLense run() {
     AppInfoWithLiveness appInfo = appView.appInfo();
     // Virtual invokes are on classes, so use class resolution.
@@ -348,12 +343,7 @@ public class MemberRebindingAnalysis {
     // Likewise static invokes.
     computeMethodRebinding(appInfo.staticInvokes, this::anyLookup, Type.STATIC);
 
-    computeFieldRebinding(
-        mergeFieldAccessContexts(appInfo.staticFieldReads, appInfo.staticFieldWrites),
-        appInfo::resolveFieldOn, DexClass::lookupField);
-    computeFieldRebinding(
-        mergeFieldAccessContexts(appInfo.instanceFieldReads, appInfo.instanceFieldWrites),
-        appInfo::resolveFieldOn, DexClass::lookupField);
+    computeFieldRebinding();
 
     return builder.build(lense);
   }
