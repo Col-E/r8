@@ -163,6 +163,7 @@ public class InternalOptions {
   public boolean enableClassStaticizer = true;
   public boolean enableInitializedClassesAnalysis = true;
   public boolean enableSideEffectAnalysis = true;
+  public boolean enableDeterminismAnalysis = true;
   public boolean enableServiceLoaderRewriting = true;
   // TODO(b/120138731): Enable this when it is worthwhile, e.g., combined with Class#forName.
   public boolean enableNameReflectionOptimization = false;

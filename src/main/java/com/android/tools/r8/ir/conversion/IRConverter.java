@@ -26,6 +26,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.ir.analysis.DeterminismAnalysis;
 import com.android.tools.r8.ir.analysis.InitializedClassesOnNormalExitAnalysis;
 import com.android.tools.r8.ir.analysis.TypeChecker;
 import com.android.tools.r8.ir.analysis.constant.SparseConditionalConstantPropagation;
@@ -245,8 +246,7 @@ public class IRConverter {
           options.enableNestBasedAccessDesugaring ? new D8NestBasedAccessDesugaring(appView) : null;
     }
     this.deadCodeRemover = new DeadCodeRemover(appView, codeRewriter);
-    this.idempotentFunctionCallCanonicalizer =
-        new IdempotentFunctionCallCanonicalizer(appView.dexItemFactory());
+    this.idempotentFunctionCallCanonicalizer = new IdempotentFunctionCallCanonicalizer(appView);
   }
 
   public Set<DexCallSite> getDesugaredCallSites() {
@@ -612,6 +612,9 @@ public class IRConverter {
     }
 
     if (Log.ENABLED) {
+      if (idempotentFunctionCallCanonicalizer != null) {
+        idempotentFunctionCallCanonicalizer.logResults();
+      }
       if (libraryMethodOverrideAnalysis != null) {
         libraryMethodOverrideAnalysis.logResults();
       }
@@ -1157,6 +1160,7 @@ public class IRConverter {
         computeDynamicReturnType(feedback, method, code);
         computeInitializedClassesOnNormalExit(feedback, method, code);
         computeMayHaveSideEffects(feedback, method, code);
+        computeReturnValueOnlyDependsOnArguments(feedback, method, code);
         computeNonNullParamOrThrow(feedback, method, code);
       }
     }
@@ -1295,8 +1299,22 @@ public class IRConverter {
                       instruction ->
                           instruction.instructionMayHaveSideEffects(appView, method.method.holder));
       if (!mayHaveSideEffects) {
+        // If the method is native, we don't know what could happen.
+        assert !method.accessFlags.isNative();
         feedback.methodMayNotHaveSideEffects(method);
       }
+    }
+  }
+
+  private void computeReturnValueOnlyDependsOnArguments(
+      OptimizationFeedback feedback, DexEncodedMethod method, IRCode code) {
+    if (!options.enableDeterminismAnalysis) {
+      return;
+    }
+    boolean returnValueOnlyDependsOnArguments =
+        DeterminismAnalysis.returnValueOnlyDependsOnArguments(appView.withLiveness(), code);
+    if (returnValueOnlyDependsOnArguments) {
+      feedback.methodReturnValueOnlyDependsOnArguments(method);
     }
   }
 

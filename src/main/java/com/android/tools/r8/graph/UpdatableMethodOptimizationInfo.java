@@ -28,6 +28,8 @@ public interface UpdatableMethodOptimizationInfo extends MethodOptimizationInfo 
 
   void markMayNotHaveSideEffects();
 
+  void markReturnValueOnlyDependsOnArguments();
+
   void markNeverReturnsNull();
 
   void markNeverReturnsNormally();

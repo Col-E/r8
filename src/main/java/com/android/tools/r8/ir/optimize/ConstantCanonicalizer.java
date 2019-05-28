@@ -18,15 +18,13 @@ import it.unimi.dsi.fastutil.Hash.Strategy;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenCustomHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectSortedMap.FastSortedEntrySet;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Canonicalize constants.
  */
 public class ConstantCanonicalizer {
-
+  // Threshold to limit the number of constant canonicalization.
   private static final int MAX_CANONICALIZED_CONSTANT = 15;
 
   public static void canonicalize(AppView<?> appView, IRCode code) {
@@ -104,7 +102,7 @@ public class ConstantCanonicalizer {
     // Double-check the entry block does not have catch handlers.
     // Otherwise, we need to split it before moving canonicalized const-string, which may throw.
     assert !code.entryBlock().hasCatchHandlers();
-    Position firstNonNonePosition = findFirstNonNonePosition(code);
+    final Position firstNonNonePosition = code.findFirstNonNonePosition();
     FastSortedEntrySet<ConstInstruction, List<Value>> entries =
         valuesDefinedByConstant.object2ObjectEntrySet();
     // Sort the most frequently used constant first and exclude constant use only one time, such
@@ -154,30 +152,6 @@ public class ConstantCanonicalizer {
       }
     }
     it.add(canonicalizedConstant);
-  }
-
-  private static Position findFirstNonNonePosition(IRCode code) {
-    BasicBlock entryBlock = code.entryBlock();
-    Instruction rightAfterArguments =
-        entryBlock.listIterator().nextUntil(instr -> !instr.isArgument());
-    Position firstNonArgumentPosition = rightAfterArguments.getPosition();
-    Set<BasicBlock> visitedBlocks = new HashSet<>();
-    while (rightAfterArguments != null) {
-      // Make sure we are not looping.
-      if (visitedBlocks.contains(rightAfterArguments.getBlock())) {
-        break;
-      }
-      visitedBlocks.add(rightAfterArguments.getBlock());
-      // The very first non-argument instruction can be chained via goto.
-      if (rightAfterArguments.isGoto()) {
-        rightAfterArguments = rightAfterArguments.asGoto().getTarget().getInstructions().getFirst();
-      } else if (rightAfterArguments.getPosition().isSome()) {
-        return rightAfterArguments.getPosition();
-      } else {
-        break;
-      }
-    }
-    return firstNonArgumentPosition;
   }
 
   private static boolean constantUsedByInvokeRange(ConstInstruction constant) {

@@ -1008,6 +1008,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     public static boolean UNKNOWN_INITIALIZER_ENABLING_JAVA_ASSERTIONS = false;
     public static ParameterUsagesInfo UNKNOWN_PARAMETER_USAGE_INFO = null;
     public static boolean UNKNOWN_MAY_HAVE_SIDE_EFFECTS = true;
+    public static boolean UNKNOWN_RETURN_VALUE_ONLY_DEPENDS_ON_ARGUMENTS = false;
     public static BitSet NO_NULL_PARAMETER_OR_THROW_FACTS = null;
     public static BitSet NO_NULL_PARAMETER_ON_NORMAL_EXITS_FACTS = null;
 
@@ -1143,6 +1144,11 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     }
 
     @Override
+    public boolean returnValueOnlyDependsOnArguments() {
+      return UNKNOWN_RETURN_VALUE_ONLY_DEPENDS_ON_ARGUMENTS;
+    }
+
+    @Override
     public boolean returnValueHasBeenPropagated() {
       return false;
     }
@@ -1161,6 +1167,8 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     private int returnedArgument = DefaultMethodOptimizationInfoImpl.UNKNOWN_RETURNED_ARGUMENT;
     private boolean mayHaveSideEffects =
         DefaultMethodOptimizationInfoImpl.UNKNOWN_MAY_HAVE_SIDE_EFFECTS;
+    private boolean returnValueOnlyDependsOnArguments =
+        DefaultMethodOptimizationInfoImpl.UNKNOWN_RETURN_VALUE_ONLY_DEPENDS_ON_ARGUMENTS;
     private boolean neverReturnsNull = DefaultMethodOptimizationInfoImpl.UNKNOWN_NEVER_RETURNS_NULL;
     private boolean neverReturnsNormally =
         DefaultMethodOptimizationInfoImpl.UNKNOWN_NEVER_RETURNS_NORMALLY;
@@ -1369,6 +1377,11 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     }
 
     @Override
+    public boolean returnValueOnlyDependsOnArguments() {
+      return returnValueOnlyDependsOnArguments;
+    }
+
+    @Override
     public void setParameterUsages(ParameterUsagesInfo parametersUsages) {
       this.parametersUsages = parametersUsages;
     }
@@ -1418,6 +1431,11 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     @Override
     public void markMayNotHaveSideEffects() {
       mayHaveSideEffects = false;
+    }
+
+    @Override
+    public void markReturnValueOnlyDependsOnArguments() {
+      returnValueOnlyDependsOnArguments = true;
     }
 
     @Override

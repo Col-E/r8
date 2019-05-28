@@ -1014,4 +1014,27 @@ public class IRCode {
       }
     }
   }
+
+  public Position findFirstNonNonePosition() {
+    Instruction rightAfterArguments =
+        entryBlock().listIterator().nextUntil(instr -> !instr.isArgument());
+    Position firstNonArgumentPosition = rightAfterArguments.getPosition();
+    Set<BasicBlock> visitedBlocks = new HashSet<>();
+    while (rightAfterArguments != null) {
+      // Make sure we are not looping.
+      if (visitedBlocks.contains(rightAfterArguments.getBlock())) {
+        break;
+      }
+      visitedBlocks.add(rightAfterArguments.getBlock());
+      // The very first non-argument instruction can be chained via goto.
+      if (rightAfterArguments.isGoto()) {
+        rightAfterArguments = rightAfterArguments.asGoto().getTarget().getInstructions().getFirst();
+      } else if (rightAfterArguments.getPosition().isSome()) {
+        return rightAfterArguments.getPosition();
+      } else {
+        break;
+      }
+    }
+    return firstNonArgumentPosition;
+  }
 }

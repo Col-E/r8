@@ -48,6 +48,9 @@ public class OptimizationFeedbackIgnore implements OptimizationFeedback {
   public void methodMayNotHaveSideEffects(DexEncodedMethod method) {}
 
   @Override
+  public void methodReturnValueOnlyDependsOnArguments(DexEncodedMethod method) {}
+
+  @Override
   public void methodNeverReturnsNull(DexEncodedMethod method) {}
 
   @Override

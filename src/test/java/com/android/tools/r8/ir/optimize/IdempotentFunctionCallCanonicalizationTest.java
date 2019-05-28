@@ -9,6 +9,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.D8TestRunResult;
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -29,7 +30,40 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 class IdempotentFunctionMain {
+  static int SEED;
+
+  @NeverInline
+  static int random(int arg) {
+    return SEED * arg;
+  }
+
+  @NeverInline
+  static int max(int x, int y) {
+    return x > y ? x : y;
+  }
+
   public static void main(String[] args) {
+    {
+      SEED = 0;
+      System.out.print(random(2));
+      SEED = 1;
+      // Should not be canonicalized.
+      System.out.print(random(2));
+
+      System.out.print(max(1, 2));
+
+      System.out.print(max(3, 2));
+      // Different order of arguments. Not canonicalized.
+      System.out.print(max(2, 3));
+      // Canonicalized.
+      System.out.print(max(3, 2));
+
+      // Canonicalized.
+      System.out.print(max(1, 2));
+
+      System.out.println();
+    }
+
     // Primitive will be boxed automatically.
     {
       Map<String, Boolean> map = new HashMap<>();
@@ -82,6 +116,7 @@ class IdempotentFunctionMain {
 public class IdempotentFunctionCallCanonicalizationTest extends TestBase {
   private static final Class<?> MAIN = IdempotentFunctionMain.class;
   private static final String JAVA_OUTPUT = StringUtils.lines(
+      "0223332",
       "true",
       "false",
       "8",
@@ -94,6 +129,8 @@ public class IdempotentFunctionCallCanonicalizationTest extends TestBase {
   private static final int EXPECTED_BOOLEAN_VALUE_OF = 2;
   private static final int EXPECTED_INTEGER_VALUE_OF = 2;
   private static final int EXPECTED_LONG_VALUE_OF = 7;
+  private static final int EXPECTED_MAX_CALLS = 3;
+  private static final int TOTAL_MAX_CALLS = 5;
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
@@ -122,7 +159,7 @@ public class IdempotentFunctionCallCanonicalizationTest extends TestBase {
         && method.name.toString().equals("valueOf");
   }
 
-  private long countValueOf(MethodSubject method, String descriptor) {
+  private static long countValueOf(MethodSubject method, String descriptor) {
     return Streams.stream(method.iterateInstructions(instructionSubject -> {
       if (instructionSubject.isInvoke()) {
         return isValueOf(instructionSubject.getMethod(), descriptor);
@@ -131,8 +168,18 @@ public class IdempotentFunctionCallCanonicalizationTest extends TestBase {
     })).count();
   }
 
+  private static long countMaxCall(MethodSubject method) {
+    return Streams.stream(method.iterateInstructions(instructionSubject -> {
+      if (instructionSubject.isInvoke()) {
+        return instructionSubject.getMethod().name.toString().equals("max");
+      }
+      return false;
+    })).count();
+  }
+
   private void test(
       TestRunResult result,
+      int expectedMaxCount,
       int expectedBooleanValueOfCount,
       int expectedIntValueOfCount,
       int expectedLongValueOfCount) throws Exception {
@@ -140,6 +187,7 @@ public class IdempotentFunctionCallCanonicalizationTest extends TestBase {
     ClassSubject mainClass = codeInspector.clazz(MAIN);
     MethodSubject mainMethod = mainClass.mainMethod();
     assertThat(mainMethod, isPresent());
+    assertEquals(expectedMaxCount, countMaxCall(mainMethod));
     assertEquals(expectedBooleanValueOfCount, countValueOf(mainMethod, BOOLEAN_DESCRIPTOR));
     assertEquals(expectedIntValueOfCount, countValueOf(mainMethod, INTEGER_DESCRIPTOR));
     assertEquals(expectedLongValueOfCount, countValueOf(mainMethod, LONG_DESCRIPTOR));
@@ -156,7 +204,12 @@ public class IdempotentFunctionCallCanonicalizationTest extends TestBase {
             .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, EXPECTED_BOOLEAN_VALUE_OF, EXPECTED_INTEGER_VALUE_OF, EXPECTED_LONG_VALUE_OF);
+    test(
+        result,
+        TOTAL_MAX_CALLS,
+        EXPECTED_BOOLEAN_VALUE_OF,
+        EXPECTED_INTEGER_VALUE_OF,
+        EXPECTED_LONG_VALUE_OF);
 
     result =
         testForD8()
@@ -165,7 +218,12 @@ public class IdempotentFunctionCallCanonicalizationTest extends TestBase {
             .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, EXPECTED_BOOLEAN_VALUE_OF, EXPECTED_INTEGER_VALUE_OF, EXPECTED_LONG_VALUE_OF);
+    test(
+        result,
+        TOTAL_MAX_CALLS,
+        EXPECTED_BOOLEAN_VALUE_OF,
+        EXPECTED_INTEGER_VALUE_OF,
+        EXPECTED_LONG_VALUE_OF);
   }
 
   @Test
@@ -175,12 +233,19 @@ public class IdempotentFunctionCallCanonicalizationTest extends TestBase {
             .addProgramClasses(MAIN)
             .enableInliningAnnotations()
             .addKeepMainRule(MAIN)
+            .noMinification()
             .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
+    int expectedMaxCount = parameters.isCfRuntime() ? TOTAL_MAX_CALLS : EXPECTED_MAX_CALLS;
     int expectedBooleanValueOfCount = parameters.isCfRuntime() ? 6 : EXPECTED_BOOLEAN_VALUE_OF;
     int expectedIntValueOfCount = parameters.isCfRuntime() ? 5 : EXPECTED_INTEGER_VALUE_OF;
     int expectedLongValueOfCount = parameters.isCfRuntime() ? 10 : EXPECTED_LONG_VALUE_OF;
-    test(result, expectedBooleanValueOfCount, expectedIntValueOfCount, expectedLongValueOfCount);
+    test(
+        result,
+        expectedMaxCount,
+        expectedBooleanValueOfCount,
+        expectedIntValueOfCount,
+        expectedLongValueOfCount);
   }
 }

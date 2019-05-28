@@ -85,6 +85,11 @@ public class OptimizationFeedbackDelayed implements OptimizationFeedback {
   }
 
   @Override
+  public synchronized void methodReturnValueOnlyDependsOnArguments(DexEncodedMethod method) {
+    getOptimizationInfoForUpdating(method).markReturnValueOnlyDependsOnArguments();
+  }
+
+  @Override
   public synchronized void markAsPropagated(DexEncodedMethod method) {
     getOptimizationInfoForUpdating(method).markAsPropagated();
   }

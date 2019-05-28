@@ -54,6 +54,11 @@ public class OptimizationFeedbackSimple implements OptimizationFeedback {
   }
 
   @Override
+  public void methodReturnValueOnlyDependsOnArguments(DexEncodedMethod method) {
+    // Ignored.
+  }
+
+  @Override
   public void methodNeverReturnsNull(DexEncodedMethod method) {
     // Ignored.
   }

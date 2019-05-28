@@ -32,6 +32,8 @@ public interface OptimizationFeedback {
 
   void methodMayNotHaveSideEffects(DexEncodedMethod method);
 
+  void methodReturnValueOnlyDependsOnArguments(DexEncodedMethod method);
+
   void methodNeverReturnsNull(DexEncodedMethod method);
 
   void methodNeverReturnsNormally(DexEncodedMethod method);

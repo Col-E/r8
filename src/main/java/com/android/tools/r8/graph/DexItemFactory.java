@@ -47,6 +47,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class DexItemFactory {
 
@@ -94,6 +95,8 @@ public class DexItemFactory {
 
   public DexItemFactory() {
     this.kotlin = new Kotlin(this);
+    assert libraryMethodsWithoutSideEffects
+        .containsAll(libraryMethodsWithReturnValueDependingOnlyOnArguments);
   }
 
   public static boolean isInternalSentinel(DexItem item) {
@@ -349,6 +352,43 @@ public class DexItemFactory {
 
   public final ServiceLoaderMethods serviceLoaderMethods = new ServiceLoaderMethods();
 
+  public final BiMap<DexType, DexType> primitiveToBoxed = HashBiMap.create(
+      ImmutableMap.<DexType, DexType>builder()
+          .put(booleanType, boxedBooleanType)
+          .put(byteType, boxedByteType)
+          .put(charType, boxedCharType)
+          .put(shortType, boxedShortType)
+          .put(intType, boxedIntType)
+          .put(longType, boxedLongType)
+          .put(floatType, boxedFloatType)
+          .put(doubleType, boxedDoubleType)
+          .build());
+
+  public DexType getBoxedForPrimitiveType(DexType primitive) {
+    assert primitive.isPrimitiveType();
+    return primitiveToBoxed.get(primitive);
+  }
+
+  public DexType getPrimitiveFromBoxed(DexType boxedPrimitive) {
+    return primitiveToBoxed.inverse().get(boxedPrimitive);
+  }
+
+  // Boxed Boxed#valueOf(Primitive), e.g., Boolean Boolean#valueOf(B)
+  private Set<DexMethod> boxedValueOfMethods() {
+    return primitiveToBoxed.entrySet().stream()
+        .map(
+            entry -> {
+              DexType primitive = entry.getKey();
+              DexType boxed = entry.getValue();
+              return createMethod(
+                  boxed.descriptor,
+                  valueOfMethodName,
+                  boxed.descriptor,
+                  new DexString[] {primitive.descriptor});
+            })
+        .collect(Collectors.toSet());
+  }
+
   public final DexMethod metafactoryMethod =
       createMethod(
           metafactoryType,
@@ -414,6 +454,18 @@ public class DexItemFactory {
           .addAll(classMethods.getNames)
           .addAll(stringBufferMethods.constructorMethods)
           .addAll(stringBuilderMethods.constructorMethods)
+          .addAll(boxedValueOfMethods())
+          .build();
+
+  // TODO(b/119596718): More idempotent methods? Any singleton accessors? E.g.,
+  // java.util.Calendar#getInstance(...) // 4 variants
+  // java.util.Locale#getDefault() // returns JVM default locale.
+  // android.os.Looper#myLooper() // returns the associated Looper instance.
+  // Note that this set is used for canonicalization of method invocations, together with a set of
+  // library methods that do not have side effects.
+  public Set<DexMethod> libraryMethodsWithReturnValueDependingOnlyOnArguments =
+      ImmutableSet.<DexMethod>builder()
+          .addAll(boxedValueOfMethods())
           .build();
 
   public Set<DexType> libraryTypesAssumedToBePresent =
@@ -434,27 +486,6 @@ public class DexItemFactory {
 
   public boolean isLambdaMetafactoryMethod(DexMethod dexMethod) {
     return dexMethod == metafactoryMethod || dexMethod == metafactoryAltMethod;
-  }
-
-  public final BiMap<DexType, DexType> primitiveToBoxed = HashBiMap.create(
-      ImmutableMap.<DexType, DexType>builder()
-          .put(booleanType, boxedBooleanType)
-          .put(byteType, boxedByteType)
-          .put(charType, boxedCharType)
-          .put(shortType, boxedShortType)
-          .put(intType, boxedIntType)
-          .put(longType, boxedLongType)
-          .put(floatType, boxedFloatType)
-          .put(doubleType, boxedDoubleType)
-          .build());
-
-  public DexType getBoxedForPrimitiveType(DexType primitive) {
-    assert primitive.isPrimitiveType();
-    return primitiveToBoxed.get(primitive);
-  }
-
-  public DexType getPrimitiveFromBoxed(DexType boxedPrimitive) {
-    return primitiveToBoxed.inverse().get(boxedPrimitive);
   }
 
   public class LongMethods {
