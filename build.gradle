@@ -287,6 +287,7 @@ def cloudDependencies = [
                 "jdwp-tests",
                 "kotlin",
                 "openjdk/openjdk-rt-1.8",
+                "openjdk/desugar_jdk_libs",
                 "proguard/proguard5.2.1",
                 "proguard/proguard6.0.1",
                 "r8",
