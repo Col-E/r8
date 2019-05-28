@@ -818,6 +818,9 @@ public class InternalOptions {
       return enableStatefulLambdaCreateInstanceMethod;
     }
 
+    // Option for testing outlining with interface array arguments, see b/132420510.
+    public boolean allowOutlinerInterfaceArrayArguments = false;
+
     public MinifierTestingOptions minifier = new MinifierTestingOptions();
 
     public static class MinifierTestingOptions {

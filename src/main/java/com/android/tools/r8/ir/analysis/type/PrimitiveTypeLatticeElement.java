@@ -34,7 +34,7 @@ public abstract class PrimitiveTypeLatticeElement extends TypeLatticeElement {
     return fromTypeDescriptorChar((char) type.descriptor.content[0], asArrayElementType);
   }
 
-  DexType toDexType(DexItemFactory factory) {
+  public DexType toDexType(DexItemFactory factory) {
     if (isBoolean()) {
       return factory.booleanType;
     }
@@ -60,6 +60,17 @@ public abstract class PrimitiveTypeLatticeElement extends TypeLatticeElement {
       return factory.doubleType;
     }
     throw new Unreachable("Imprecise primitive type '" + toString() + "'");
+  }
+
+  public boolean hasDexType() {
+    return isBoolean()
+        || isByte()
+        || isShort()
+        || isChar()
+        || isInt()
+        || isFloat()
+        || isLong()
+        || isDouble();
   }
 
   private static PrimitiveTypeLatticeElement fromTypeDescriptorChar(

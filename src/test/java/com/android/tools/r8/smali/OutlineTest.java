@@ -1785,7 +1785,7 @@ public class OutlineTest extends SmaliTestBase {
     assertThat(
         new CodeInspector(processedApplication)
             .clazz(OutlineOptions.CLASS_NAME)
-            .method("boolean", "outline0", ImmutableList.of("java.util.Collection")),
+            .method("boolean", "outline0", ImmutableList.of("java.util.List")),
         isPresent());
 
     // Run code and check result.

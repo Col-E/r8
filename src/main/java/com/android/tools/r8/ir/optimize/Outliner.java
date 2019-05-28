@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
@@ -26,6 +27,8 @@ import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.UseRegistry;
+import com.android.tools.r8.ir.analysis.type.ArrayTypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.PrimitiveTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Add;
@@ -581,8 +584,9 @@ public class Outliner {
       if (!(other instanceof Outline)) {
         return false;
       }
+      Outline otherOutline = (Outline) other;
       List<OutlineInstruction> instructions0 = this.templateInstructions;
-      List<OutlineInstruction> instructions1 = ((Outline) other).templateInstructions;
+      List<OutlineInstruction> instructions1 = otherOutline.templateInstructions;
       if (instructions0.size() != instructions1.size()) {
         return false;
       }
@@ -593,8 +597,9 @@ public class Outliner {
           return false;
         }
       }
-      return argumentMap.equals(((Outline) other).argumentMap)
-          && returnType == ((Outline) other).returnType;
+      return argumentTypes.equals(otherOutline.argumentTypes)
+          && argumentMap.equals(otherOutline.argumentMap)
+          && returnType == otherOutline.returnType;
     }
 
     @Override
@@ -861,6 +866,9 @@ public class Outliner {
           if (value == returnValue) {
             continue;
           }
+          if (!supportedArgumentType(value)) {
+            return false;
+          }
           if (invoke.isInvokeStatic()) {
             newArgumentRegisters += value.requiredRegisters();
           } else {
@@ -898,20 +906,57 @@ public class Outliner {
       return true;
     }
 
-    private DexType argumentTypeFromInvoke(InvokeMethod invoke, int index) {
-      assert invoke.isInvokeMethodWithReceiver() || invoke.isInvokePolymorphic();
-      if (index == 0) {
-        return invoke.getInvokedMethod().holder;
+    private boolean supportedArgumentType(Value value) {
+      // All non array types are supported.
+      if (!value.getTypeLattice().isArrayType()) {
+        return true;
       }
-      DexProto methodProto;
-      if (invoke.isInvokePolymorphic()) {
-        // Type of argument of a polymorphic call must be taken from the call site.
-        methodProto = invoke.asInvokePolymorphic().getProto();
+      // Avoid array type elements which have interfaces, as Art does not have the same semantics
+      // for array types as the Java VM, see b/132420510.
+      if (appView.options().testing.allowOutlinerInterfaceArrayArguments
+          && appView.options().isGeneratingClassFiles()) {
+        return true;
+      }
+      ArrayTypeLatticeElement arrayTypeLatticeElement =
+          value.getTypeLattice().asArrayTypeLatticeElement();
+      TypeLatticeElement arrayBaseType = arrayTypeLatticeElement.getArrayBaseTypeLattice();
+      if (arrayBaseType.isPrimitive()) {
+        return true;
+      }
+      if (arrayBaseType.isClassType()) {
+        return arrayBaseType.asClassTypeLatticeElement().getInterfaces().size() == 0;
+      }
+      return false;
+    }
+
+    private DexType argumentTypeFromValue(Value value) {
+      assert supportedArgumentType(value);
+      DexItemFactory itemFactory = appView.options().itemFactory;
+      DexType objectType = itemFactory.objectType;
+      TypeLatticeElement valueLatticeElement = value.getTypeLattice();
+      if (valueLatticeElement.isClassType()) {
+        ClassTypeLatticeElement valueClassTypeLatticeElement =
+            value.getTypeLattice().asClassTypeLatticeElement();
+        // For values of lattice type java.lang.Object and only one interface use the interface as
+        // the type of the outline argument. If there are several interfaces these interfaces don't
+        // have a common super interface nor are they implemented by a common superclass so the
+        // argument type of the ouline will be java.lang.Object.
+        if (valueClassTypeLatticeElement.getClassType() == objectType
+            && valueClassTypeLatticeElement.getInterfaces().size() == 1) {
+          return valueClassTypeLatticeElement.getInterfaces().iterator().next();
+        } else {
+          return valueClassTypeLatticeElement.getClassType();
+        }
+      } else if (valueLatticeElement.isArrayType()) {
+        return value.getTypeLattice().asArrayTypeLatticeElement().getArrayType(itemFactory);
+      } else if (valueLatticeElement.isNullType()) {
+        // For values which are always null use java.lang.Object as the outline argument type.
+        return objectType;
       } else {
-        methodProto = invoke.getInvokedMethod().proto;
+        assert valueLatticeElement.isPrimitive();
+        assert valueLatticeElement.asPrimitiveTypeLatticeElement().hasDexType();
+        return valueLatticeElement.asPrimitiveTypeLatticeElement().toDexType(itemFactory);
       }
-      // -1 due to receiver.
-      return methodProto.parameters.values[index - 1];
     }
 
     // Add the current instruction to the outline.
@@ -953,25 +998,17 @@ public class Outliner {
             int argumentIndex = arguments.indexOf(value);
             // For virtual calls only re-use the receiver argument.
             if (i == 0 && argumentIndex != -1) {
-              DexType receiverType = argumentTypeFromInvoke(invoke, i);
-              // Ensure that the outline argument type is specific enough.
-              if (receiverType.isClassType()) {
-                if (appView.appInfo().isSubtype(receiverType, argumentTypes.get(argumentIndex))) {
-                  argumentTypes.set(argumentIndex, receiverType);
-                }
-              }
               argumentsMap.add(argumentIndex);
             } else {
               arguments.add(value);
               argumentRegisters += value.requiredRegisters();
-              argumentTypes.add(argumentTypeFromInvoke(invoke, i));
+              argumentTypes.add(argumentTypeFromValue(value));
               argumentsMap.add(argumentTypes.size() - 1);
             }
           } else {
             arguments.add(value);
             if (instruction.isInvokeMethod()) {
-              argumentTypes
-                  .add(instruction.asInvokeMethod().getInvokedMethod().proto.parameters.values[i]);
+              argumentTypes.add(argumentTypeFromValue(value));
             } else {
               argumentTypes.add(
                   instruction.asBinop().getNumericType().dexTypeFor(appView.dexItemFactory()));

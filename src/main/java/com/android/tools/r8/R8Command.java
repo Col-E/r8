@@ -655,6 +655,7 @@ public final class R8Command extends BaseCompilerCommand {
   @Override
   InternalOptions getInternalOptions() {
     InternalOptions internal = new InternalOptions(proguardConfiguration, getReporter());
+    assert !internal.testing.allowOutlinerInterfaceArrayArguments;  // Only allow in tests.
     assert !internal.debug;
     internal.debug = getMode() == CompilationMode.DEBUG;
     internal.programConsumer = getProgramConsumer();
