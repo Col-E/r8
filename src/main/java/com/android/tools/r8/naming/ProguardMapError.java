@@ -13,10 +13,6 @@ public class ProguardMapError extends CompilationError {
   protected static final String DUPLICATE_TARGET_MESSAGE = "'%s' and '%s' map to same name: '%s'";
   protected static final String DUPLICATE_SOURCE_MESSAGE = "'%s' already has a mapping";
 
-  private ProguardMapError(String message) {
-    super(message);
-  }
-
   private ProguardMapError(String message, Position position) {
     super(message, null, Origin.unknown(), position);
   }

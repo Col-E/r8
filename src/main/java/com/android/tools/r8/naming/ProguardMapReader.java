@@ -248,12 +248,12 @@ public class ProguardMapReader implements AutoCloseable {
       if (activeMemberNaming != null) {
         boolean changedName = !activeMemberNaming.getRenamedName().equals(renamedName);
         boolean changedMappedRange = !Objects.equals(previousMappedRange, mappedRange);
-        boolean notAdded =
-            lastAddedNaming == null
-                || !lastAddedNaming.getOriginalSignature().equals(activeMemberNaming.signature);
-        if (changedName || previousMappedRange == null || (changedMappedRange && notAdded)) {
-          classNamingBuilder.addMemberEntry(activeMemberNaming);
-          lastAddedNaming = activeMemberNaming;
+        if (changedName || previousMappedRange == null || changedMappedRange) {
+          if (lastAddedNaming == null
+              || !lastAddedNaming.getOriginalSignature().equals(activeMemberNaming.signature)) {
+            classNamingBuilder.addMemberEntry(activeMemberNaming);
+            lastAddedNaming = activeMemberNaming;
+          }
         }
       }
       activeMemberNaming = new MemberNaming(signature, renamedName, getPosition());

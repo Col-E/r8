@@ -192,4 +192,18 @@ public class SeedMapperTests extends TestBase {
     Reporter reporter = new Reporter(testDiagnosticMessages);
     SeedMapper.seedMapperFromFile(reporter, applyMappingFile);
   }
+
+  @Test
+  public void testMultipleInitRanges() throws IOException {
+    Path applyMappingFile =
+        getApplyMappingFile(
+            "com.android.tools.r8.ArchiveClassFileProvider ->"
+                + " com.android.tools.r8.ArchiveClassFileProvider:",
+            "    1:1:void <init>(java.nio.file.Path):50:50 -> <init>",
+            "    2:2:void <init>(java.nio.file.Path):59:59 -> <init>",
+            "    boolean lambda$new$0(java.lang.String) -> a");
+    TestDiagnosticMessagesImpl testDiagnosticMessages = new TestDiagnosticMessagesImpl();
+    Reporter reporter = new Reporter(testDiagnosticMessages);
+    SeedMapper.seedMapperFromFile(reporter, applyMappingFile);
+  }
 }
