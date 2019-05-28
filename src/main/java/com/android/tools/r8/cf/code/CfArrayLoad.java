@@ -32,8 +32,7 @@ public class CfArrayLoad extends CfInstruction {
     switch (type) {
       case OBJECT:
         return Opcodes.AALOAD;
-      case BYTE:
-      case BOOLEAN:
+      case BOOLEAN_OR_BYTE:
         return Opcodes.BALOAD;
       case CHAR:
         return Opcodes.CALOAD;

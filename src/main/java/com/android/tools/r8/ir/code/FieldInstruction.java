@@ -16,7 +16,6 @@ import java.util.List;
 
 public abstract class FieldInstruction extends Instruction {
 
-  private MemberType type;
   private final DexField field;
 
   protected FieldInstruction(DexField field, Value dest, Value value) {
@@ -27,11 +26,10 @@ public abstract class FieldInstruction extends Instruction {
     super(dest, inValues);
     assert field != null;
     this.field = field;
-    this.type = MemberType.fromDexType(field.type);
   }
 
-  public MemberType getType() {
-    return type;
+  public FieldMemberType getType() {
+    return FieldMemberType.fromDexType(field.type);
   }
 
   public DexField getField() {

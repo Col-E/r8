@@ -527,8 +527,7 @@ public class LazyCfCode extends Code {
           return MemberType.OBJECT;
         case Opcodes.BALOAD:
         case Opcodes.BASTORE:
-          // TODO(b/109788783): Distinguish byte and boolean.
-          return MemberType.BOOLEAN;
+          return MemberType.BOOLEAN_OR_BYTE;
         case Opcodes.CALOAD:
         case Opcodes.CASTORE:
           return MemberType.CHAR;

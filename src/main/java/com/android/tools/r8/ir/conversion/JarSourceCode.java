@@ -954,9 +954,8 @@ public class JarSourceCode implements SourceCode {
       case Type.OBJECT:
         return MemberType.OBJECT;
       case Type.BOOLEAN:
-        return MemberType.BOOLEAN;
       case Type.BYTE:
-        return MemberType.BYTE;
+        return MemberType.BOOLEAN_OR_BYTE;
       case Type.SHORT:
         return MemberType.SHORT;
       case Type.CHAR:
@@ -974,10 +973,6 @@ public class JarSourceCode implements SourceCode {
       default:
         throw new Unreachable("Invalid type in memberType: " + type);
     }
-  }
-
-  private MemberType memberType(String fieldDesc) {
-    return memberType(application.getAsmType(fieldDesc));
   }
 
   private static NumericType numericType(Type type) {

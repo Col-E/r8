@@ -10,8 +10,7 @@ import com.android.tools.r8.graph.DexType;
 
 public enum MemberType {
   OBJECT,
-  BOOLEAN,
-  BYTE,
+  BOOLEAN_OR_BYTE,
   CHAR,
   SHORT,
   INT,
@@ -79,9 +78,8 @@ public enum MemberType {
       case '[':
         return MemberType.OBJECT;
       case 'Z':
-        return MemberType.BOOLEAN;
       case 'B':
-        return MemberType.BYTE;
+        return MemberType.BOOLEAN_OR_BYTE;
       case 'S':
         return MemberType.SHORT;
       case 'C':

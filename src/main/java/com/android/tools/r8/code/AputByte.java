@@ -37,7 +37,7 @@ public class AputByte extends Format23x {
 
   @Override
   public void buildIR(IRBuilder builder) {
-    builder.addArrayPut(MemberType.BYTE, AA, BB, CC);
+    builder.addArrayPut(MemberType.BOOLEAN_OR_BYTE, AA, BB, CC);
   }
 
   @Override

@@ -57,7 +57,7 @@ public class ArrayTypeLatticeElement extends ReferenceTypeLatticeElement {
     return nesting;
   }
 
-  TypeLatticeElement getArrayMemberTypeAsMemberType() {
+  public TypeLatticeElement getArrayMemberTypeAsMemberType() {
     return memberTypeLattice;
   }
 

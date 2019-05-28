@@ -145,8 +145,7 @@ public class IRBuilder {
 
   private static TypeLatticeElement fromMemberType(MemberType type) {
     switch (type) {
-      case BOOLEAN:
-      case BYTE:
+      case BOOLEAN_OR_BYTE:
       case CHAR:
       case SHORT:
       case INT:
@@ -1005,7 +1004,6 @@ public class IRBuilder {
     Value in2 = readRegister(index, ValueTypeConstraint.INT);
     TypeLatticeElement typeLattice = fromMemberType(type);
     Value out = writeRegister(dest, typeLattice, ThrowingInfo.CAN_THROW);
-    out.setKnownToBeBoolean(type == MemberType.BOOLEAN);
     ArrayGet instruction = new ArrayGet(type, out, in1, in2);
     assert instruction.instructionTypeCanThrow();
     if (!type.isPrecise()) {

@@ -80,11 +80,16 @@ public class ArrayGet extends Instruction implements ImpreciseMemberTypeInstruct
       case OBJECT:
         instruction = new AgetObject(dest, array, index);
         break;
-      case BOOLEAN:
-        instruction = new AgetBoolean(dest, array, index);
-        break;
-      case BYTE:
-        instruction = new AgetByte(dest, array, index);
+      case BOOLEAN_OR_BYTE:
+        ArrayTypeLatticeElement arrayType = array().getTypeLattice().asArrayTypeLatticeElement();
+        if (arrayType != null
+            && arrayType.getArrayMemberTypeAsMemberType() == TypeLatticeElement.BOOLEAN) {
+          instruction = new AgetBoolean(dest, array, index);
+        } else {
+          assert array().getTypeLattice().isDefinitelyNull()
+              || arrayType.getArrayMemberTypeAsMemberType() == TypeLatticeElement.BYTE;
+          instruction = new AgetByte(dest, array, index);
+        }
         break;
       case CHAR:
         instruction = new AgetChar(dest, array, index);
@@ -190,8 +195,7 @@ public class ArrayGet extends Instruction implements ImpreciseMemberTypeInstruct
             : arrayTypeLattice.getArrayMemberTypeAsValueType();
         assert valueType.isReference();
         return valueType;
-      case BOOLEAN:
-      case BYTE:
+      case BOOLEAN_OR_BYTE:
       case CHAR:
       case SHORT:
       case INT:

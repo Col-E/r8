@@ -75,9 +75,6 @@ public class StaticPut extends FieldInstruction {
       case SHORT:
         instruction = new SputShort(src, field);
         break;
-      case INT_OR_FLOAT:
-      case LONG_OR_DOUBLE:
-        throw new Unreachable("Unexpected imprecise type: " + getType());
       default:
         throw new Unreachable("Unexpected type: " + getType());
     }

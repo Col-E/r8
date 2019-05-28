@@ -605,8 +605,7 @@ public class CfPrinter {
     switch (type) {
       case OBJECT:
         return 'a';
-      case BOOLEAN:
-      case BYTE:
+      case BOOLEAN_OR_BYTE:
         return 'b';
       case CHAR:
         return 'c';

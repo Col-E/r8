@@ -17,6 +17,8 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.ArrayTypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.conversion.TypeConstraintResolver;
@@ -82,11 +84,16 @@ public class ArrayPut extends Instruction implements ImpreciseMemberTypeInstruct
       case OBJECT:
         instruction = new AputObject(value, array, index);
         break;
-      case BOOLEAN:
-        instruction = new AputBoolean(value, array, index);
-        break;
-      case BYTE:
-        instruction = new AputByte(value, array, index);
+      case BOOLEAN_OR_BYTE:
+        ArrayTypeLatticeElement arrayType = array().getTypeLattice().asArrayTypeLatticeElement();
+        if (arrayType != null
+            && arrayType.getArrayMemberTypeAsMemberType() == TypeLatticeElement.BOOLEAN) {
+          instruction = new AputBoolean(value, array, index);
+        } else {
+          assert array().getTypeLattice().isDefinitelyNull()
+              || arrayType.getArrayMemberTypeAsMemberType() == TypeLatticeElement.BYTE;
+          instruction = new AputByte(value, array, index);
+        }
         break;
       case CHAR:
         instruction = new AputChar(value, array, index);

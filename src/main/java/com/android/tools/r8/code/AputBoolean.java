@@ -37,7 +37,7 @@ public class AputBoolean extends Format23x {
 
   @Override
   public void buildIR(IRBuilder builder) {
-    builder.addArrayPut(MemberType.BOOLEAN, AA, BB, CC);
+    builder.addArrayPut(MemberType.BOOLEAN_OR_BYTE, AA, BB, CC);
   }
 
   @Override

@@ -17,8 +17,8 @@ import com.android.tools.r8.ir.code.Value;
 public abstract class TypeLatticeElement {
   public static final BottomTypeLatticeElement BOTTOM = BottomTypeLatticeElement.getInstance();
   public static final TopTypeLatticeElement TOP = TopTypeLatticeElement.getInstance();
-  static final BooleanTypeLatticeElement BOOLEAN = BooleanTypeLatticeElement.getInstance();
-  static final ByteTypeLatticeElement BYTE = ByteTypeLatticeElement.getInstance();
+  public static final BooleanTypeLatticeElement BOOLEAN = BooleanTypeLatticeElement.getInstance();
+  public static final ByteTypeLatticeElement BYTE = ByteTypeLatticeElement.getInstance();
   static final ShortTypeLatticeElement SHORT = ShortTypeLatticeElement.getInstance();
   static final CharTypeLatticeElement CHAR = CharTypeLatticeElement.getInstance();
   public static final IntTypeLatticeElement INT = IntTypeLatticeElement.getInstance();

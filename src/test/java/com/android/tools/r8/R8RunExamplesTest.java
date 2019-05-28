@@ -156,10 +156,6 @@ public class R8RunExamplesTest extends R8RunExamplesCommon {
   @Override
   protected Set<String> getFailingRunCfToDex() {
     return new ImmutableSet.Builder<String>()
-        // TODO(b/109788783): Implement byte/boolean distinction for array load/store.
-        .add("arrayaccess.ArrayAccess")
-        .add("barray.BArray")
-        .add("filledarray.FilledArray")
         .build();
   }
 

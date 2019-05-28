@@ -35,8 +35,7 @@ public enum ValueType {
 
   public static ValueType fromMemberType(MemberType type) {
     switch (type) {
-      case BOOLEAN:
-      case BYTE:
+      case BOOLEAN_OR_BYTE:
       case CHAR:
       case SHORT:
       case INT:

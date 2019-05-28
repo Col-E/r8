@@ -30,8 +30,7 @@ public class CfArrayStore extends CfInstruction {
     switch (type) {
       case OBJECT:
         return Opcodes.AASTORE;
-      case BYTE:
-      case BOOLEAN:
+      case BOOLEAN_OR_BYTE:
         return Opcodes.BASTORE;
       case CHAR:
         return Opcodes.CASTORE;
