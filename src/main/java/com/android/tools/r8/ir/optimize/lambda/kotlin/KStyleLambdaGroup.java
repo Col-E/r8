@@ -41,7 +41,7 @@ import java.util.function.IntFunction;
 //      -----------------------------------------------------------------------
 //
 // Regular stateless k-style lambda class structure looks like below:
-// NOTE: stateless j-style lambdas do not always have INSTANCE field.
+// NOTE: stateless k-style lambdas do not always have INSTANCE field.
 //
 // -----------------------------------------------------------------------------------------------
 // // signature Lkotlin/jvm/internal/Lambda;Lkotlin/jvm/functions/Function2<
@@ -205,7 +205,7 @@ final class KStyleLambdaGroup extends KotlinLambdaGroup {
           group.getLambdaIdField(factory),
           id -> group.getCaptureField(factory, id),
           initializerMethod,
-          id.mainMethodProto.parameters.size(),
+          factory.kotlin.functional.getArity(id.iface),
           callerPosition);
     }
   }

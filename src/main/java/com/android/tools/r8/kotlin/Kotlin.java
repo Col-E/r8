@@ -11,8 +11,11 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Sets;
-import java.util.Set;
+import it.unimi.dsi.fastutil.objects.Object2IntArrayMap;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /** Class provides basic information about symbols related to Kotlin support. */
 public final class Kotlin {
@@ -43,22 +46,24 @@ public final class Kotlin {
   }
 
   public final class Functional {
-    private final Set<DexType> functions = Sets.newIdentityHashSet();
+    // NOTE: Kotlin stdlib defines interface Function0 till Function22 explicitly, see:
+    //    https://github.com/JetBrains/kotlin/blob/master/libraries/
+    //                    stdlib/jvm/runtime/kotlin/jvm/functions/Functions.kt
+    //
+    // For functions with arity bigger that 22 it is supposed to use FunctionN as described
+    // in https://github.com/JetBrains/kotlin/blob/master/spec-docs/function-types.md,
+    // but in current implementation (v1.2.21) defining such a lambda results in:
+    //   > "Error: A JNI error has occurred, please check your installation and try again"
+    //
+    // This implementation just ignores lambdas with arity > 22.
+    private final Object2IntMap<DexType> functions = new Object2IntArrayMap<>(
+        IntStream.rangeClosed(0, 22).boxed().collect(
+            Collectors.toMap(
+                i -> factory.createType(addKotlinPrefix("jvm/functions/Function") + i + ";"),
+                Function.identity()))
+    );
 
     private Functional() {
-      // NOTE: Kotlin stdlib defines interface Function0 till Function22 explicitly, see:
-      //    https://github.com/JetBrains/kotlin/blob/master/libraries/
-      //                    stdlib/jvm/runtime/kotlin/jvm/functions/Functions.kt
-      //
-      // For functions with arity bigger that 22 it is supposed to use FunctionN as described
-      // in https://github.com/JetBrains/kotlin/blob/master/spec-docs/function-types.md,
-      // but in current implementation (v1.2.21) defining such a lambda results in:
-      //   > "Error: A JNI error has occurred, please check your installation and try again"
-      //
-      // This implementation just ignores lambdas with arity > 22.
-      for (int i = 0; i <= 22; i++) {
-        functions.add(factory.createType(addKotlinPrefix("jvm/functions/Function") + i + ";"));
-      }
     }
 
     public final DexString kotlinStyleLambdaInstanceName = factory.createString("INSTANCE");
@@ -73,7 +78,13 @@ public final class Kotlin {
         factory.constructorMethodName);
 
     public boolean isFunctionInterface(DexType type) {
-      return functions.contains(type);
+      return functions.containsKey(type);
+    }
+
+    public int getArity(DexType type) {
+      assert isFunctionInterface(type)
+          : "Request to retrieve the arity from non-Kotlin-Function: " + type.toSourceString();
+      return functions.getInt(type);
     }
   }
 

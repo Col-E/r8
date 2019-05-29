@@ -4,7 +4,6 @@
 
 package lambdas_jstyle_trivial
 
-import lambdas_jstyle_trivial.Lambdas
 import lambdas_jstyle_trivial.inner.testInner
 
 private var COUNT = 0
