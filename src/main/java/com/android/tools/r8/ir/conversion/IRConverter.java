@@ -1620,7 +1620,8 @@ public class IRConverter {
       code.print(printer);
       printer.end("cfg");
     }
-    if (options.extensiveLoggingFilter.contains(code.method.method.toSourceString())) {
+    if (options.extensiveLoggingFilter.size() > 0
+        && options.extensiveLoggingFilter.contains(code.method.method.toSourceString())) {
       String current = code.toString();
       System.out.println();
       System.out.println("-----------------------------------------------------------------------");
