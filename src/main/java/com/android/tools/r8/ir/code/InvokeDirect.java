@@ -163,7 +163,9 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
     }
 
     // Check if it is a call to one of library methods that are known to be side-effect free.
-    if (appView.dexItemFactory().libraryMethodsWithoutSideEffects.contains(getInvokedMethod())) {
+    Predicate<InvokeMethod> noSideEffectsPredicate =
+        appView.dexItemFactory().libraryMethodsWithoutSideEffects.get(getInvokedMethod());
+    if (noSideEffectsPredicate != null && noSideEffectsPredicate.test(this)) {
       return false;
     }
 

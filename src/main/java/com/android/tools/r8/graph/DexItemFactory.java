@@ -4,6 +4,7 @@
 package com.android.tools.r8.graph;
 
 import static com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement.computeLeastUpperBoundOfInterfaces;
+import static com.google.common.base.Predicates.alwaysTrue;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.Marker;
@@ -22,16 +23,19 @@ import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.ReferenceTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.LRUCacheTable;
+import com.android.tools.r8.utils.Pair;
 import com.google.common.base.Strings;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Streams;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
@@ -47,7 +51,9 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class DexItemFactory {
 
@@ -448,14 +454,19 @@ public class DexItemFactory {
 
   // We assume library methods listed here are `public`, i.e., free from visibility side effects.
   // If not, that library method should not be added here because it literally has side effects.
-  public Set<DexMethod> libraryMethodsWithoutSideEffects =
-      ImmutableSet.<DexMethod>builder()
-          .add(objectMethods.constructor)
-          .addAll(classMethods.getNames)
-          .addAll(stringBufferMethods.constructorMethods)
-          .addAll(stringBuilderMethods.constructorMethods)
-          .addAll(boxedValueOfMethods())
-          .build();
+  public Map<DexMethod, Predicate<InvokeMethod>> libraryMethodsWithoutSideEffects =
+      Streams.<Pair<DexMethod, Predicate<InvokeMethod>>>concat(
+              Stream.of(new Pair<>(objectMethods.constructor, alwaysTrue())),
+              mapToPredicate(classMethods.getNames, alwaysTrue()),
+              mapToPredicate(stringBufferMethods.constructorMethods, alwaysTrue()),
+              mapToPredicate(stringBuilderMethods.constructorMethods, alwaysTrue()),
+              mapToPredicate(boxedValueOfMethods(), alwaysTrue()))
+          .collect(Collectors.toMap(Pair::getFirst, Pair::getSecond));
+
+  private static Stream<Pair<DexMethod, Predicate<InvokeMethod>>> mapToPredicate(
+      Set<DexMethod> methods, Predicate<InvokeMethod> predicate) {
+    return methods.stream().map(method -> new Pair<>(method, predicate));
+  }
 
   // TODO(b/119596718): More idempotent methods? Any singleton accessors? E.g.,
   // java.util.Calendar#getInstance(...) // 4 variants

@@ -29,6 +29,7 @@ import it.unimi.dsi.fastutil.objects.Object2ObjectSortedMap.FastSortedEntrySet;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
 /**
  * Canonicalize idempotent function calls.
@@ -122,8 +123,7 @@ public class IdempotentFunctionCallCanonicalizer {
         }
         DexMethod invokedMethod = invoke.getInvokedMethod();
         // Interested in known-to-be idempotent methods.
-        if (!factory.libraryMethodsWithReturnValueDependingOnlyOnArguments.contains(invokedMethod)
-            || !factory.libraryMethodsWithoutSideEffects.contains(invokedMethod)) {
+        if (!isIdempotentLibraryMethodInvoke(invoke)) {
           if (!appView.enableWholeProgramOptimizations()) {
             // Give up in D8
             continue;
@@ -244,6 +244,16 @@ public class IdempotentFunctionCallCanonicalizer {
 
     code.removeAllTrivialPhis();
     assert code.isConsistentSSA();
+  }
+
+  private boolean isIdempotentLibraryMethodInvoke(InvokeMethod invoke) {
+    DexMethod invokedMethod = invoke.getInvokedMethod();
+    Predicate<InvokeMethod> noSideEffectPredicate =
+        factory.libraryMethodsWithoutSideEffects.get(invokedMethod);
+    if (noSideEffectPredicate == null || !noSideEffectPredicate.test(invoke)) {
+      return false;
+    }
+    return factory.libraryMethodsWithReturnValueDependingOnlyOnArguments.contains(invokedMethod);
   }
 
   private static void insertCanonicalizedInvokeWithInValues(

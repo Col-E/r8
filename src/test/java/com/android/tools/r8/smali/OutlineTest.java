@@ -42,6 +42,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.function.Consumer;
 import org.junit.Assert;
@@ -1331,7 +1332,7 @@ public class OutlineTest extends SmaliTestBase {
                   dexItemFactory.stringBuilderType);
               // ... and not assuming that StringBuilder.<init>() cannot have side effects.
               dexItemFactory.libraryMethodsWithoutSideEffects =
-                  new HashSet<>(dexItemFactory.libraryMethodsWithoutSideEffects);
+                  new IdentityHashMap<>(dexItemFactory.libraryMethodsWithoutSideEffects);
               dexItemFactory.libraryMethodsWithoutSideEffects.remove(
                   dexItemFactory.stringBuilderMethods.defaultConstructor);
             });

@@ -23,6 +23,7 @@ import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Predicate;
 import org.objectweb.asm.Opcodes;
 
 public class InvokeVirtual extends InvokeMethodWithReceiver {
@@ -138,7 +139,9 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
     }
 
     // Check if it is a call to one of library methods that are known to be side-effect free.
-    if (appView.dexItemFactory().libraryMethodsWithoutSideEffects.contains(getInvokedMethod())) {
+    Predicate<InvokeMethod> noSideEffectsPredicate =
+        appView.dexItemFactory().libraryMethodsWithoutSideEffects.get(getInvokedMethod());
+    if (noSideEffectsPredicate != null && noSideEffectsPredicate.test(this)) {
       return false;
     }
 
