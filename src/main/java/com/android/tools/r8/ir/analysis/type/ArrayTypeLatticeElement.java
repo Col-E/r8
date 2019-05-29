@@ -65,7 +65,7 @@ public class ArrayTypeLatticeElement extends ReferenceTypeLatticeElement {
     return memberTypeLattice.isFineGrainedType() ? INT : memberTypeLattice;
   }
 
-  public TypeLatticeElement getArrayBaseTypeLattice() {
+  private TypeLatticeElement getArrayBaseTypeLattice() {
     TypeLatticeElement base = getArrayMemberTypeAsMemberType();
     while (base.isArrayType()) {
       base = base.asArrayTypeLatticeElement().getArrayMemberTypeAsMemberType();
