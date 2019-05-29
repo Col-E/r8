@@ -40,6 +40,10 @@ public class TypeSubject extends Subject {
     return dexType == type.dexType;
   }
 
+  public boolean is(ClassSubject type) {
+    return dexType == type.getDexClass().type;
+  }
+
   public String toString() {
     return dexType.toSourceString();
   }
