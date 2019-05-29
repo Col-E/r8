@@ -168,7 +168,8 @@ public class DexEncodedField extends KeyedDexItem<DexField> {
     boolean isWritten = appView.appInfo().isFieldWrittenByFieldPutInstruction(this);
     if (!isWritten) {
       // Since the field is not written, we can simply return the default value for the type.
-      return getStaticValue().asConstInstruction(code, dest, appView.options());
+      DexValue value = isStatic() ? getStaticValue() : DexValue.defaultForType(field.type);
+      return value.asConstInstruction(code, dest, appView.options());
     }
 
     // The only way to figure out whether the DexValue contains the final value is ensure the value

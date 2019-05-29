@@ -26,6 +26,7 @@ import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
@@ -386,6 +387,35 @@ public class MemberValuePropagation {
     }
   }
 
+  private void rewriteInstanceGetWithConstantValues(
+      IRCode code,
+      Set<Value> affectedValues,
+      InstructionListIterator iterator,
+      InstanceGet current) {
+    if (current.object().getTypeLattice().isNullable()) {
+      return;
+    }
+
+    DexField field = current.getField();
+
+    // TODO(b/123857022): Should be able to use definitionFor().
+    DexEncodedField target = appView.appInfo().lookupInstanceTarget(field.holder, field);
+    if (target == null || !mayPropagateValueFor(target)) {
+      return;
+    }
+
+    // Check if a this value is known const.
+    ConstInstruction replacement = target.valueAsConstInstruction(code, current.dest(), appView);
+    if (replacement != null) {
+      affectedValues.add(replacement.outValue());
+      iterator.replaceCurrentInstruction(replacement);
+      if (replacement.isDexItemBasedConstString()) {
+        code.method.getMutableOptimizationInfo().markUseIdentifierNameString();
+      }
+      target.getMutableOptimizationInfo().markAsPropagated();
+    }
+  }
+
   private void insertAssumeNotNull(
       IRCode code,
       Set<Value> affectedValues,
@@ -437,6 +467,9 @@ public class MemberValuePropagation {
               blocks,
               iterator,
               current.asStaticGet());
+        } else if (current.isInstanceGet()) {
+          rewriteInstanceGetWithConstantValues(
+              code, affectedValues, iterator, current.asInstanceGet());
         }
       }
     }
