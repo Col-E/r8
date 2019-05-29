@@ -8,7 +8,6 @@ import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
@@ -194,9 +193,9 @@ public class TreePruner {
   }
 
   private <S extends PresortedComparable<S>, T extends KeyedDexItem<S>> int firstUnreachableIndex(
-      List<T> items, Predicate<S> live) {
+      List<T> items, Predicate<T> live) {
     for (int i = 0; i < items.size(); i++) {
-      if (!live.test(items.get(i).getKey())) {
+      if (!live.test(items.get(i))) {
         return i;
       }
     }
@@ -206,7 +205,8 @@ public class TreePruner {
   private DexEncodedMethod[] reachableMethods(List<DexEncodedMethod> methods, DexClass clazz) {
     AppInfoWithLiveness appInfo = appView.appInfo();
     InternalOptions options = appView.options();
-    int firstUnreachable = firstUnreachableIndex(methods, appInfo.liveMethods::contains);
+    int firstUnreachable =
+        firstUnreachableIndex(methods, method -> appInfo.liveMethods.contains(method.method));
     // Return the original array if all methods are used.
     if (firstUnreachable == -1) {
       return null;
@@ -266,7 +266,7 @@ public class TreePruner {
 
   private DexEncodedField[] reachableFields(List<DexEncodedField> fields) {
     AppInfoWithLiveness appInfo = appView.appInfo();
-    Predicate<DexField> isReachableOrReferencedField =
+    Predicate<DexEncodedField> isReachableOrReferencedField =
         field -> appInfo.isFieldRead(field) || appInfo.isFieldWritten(field);
     int firstUnreachable = firstUnreachableIndex(fields, isReachableOrReferencedField);
     // Return the original array if all fields are used.
@@ -283,7 +283,7 @@ public class TreePruner {
     }
     for (int i = firstUnreachable + 1; i < fields.size(); i++) {
       DexEncodedField field = fields.get(i);
-      if (isReachableOrReferencedField.test(field.field)) {
+      if (isReachableOrReferencedField.test(field)) {
         reachableOrReferencedFields.add(field);
       } else {
         if (Log.ENABLED) {

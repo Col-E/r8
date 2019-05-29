@@ -147,8 +147,7 @@ public class DexEncodedField extends KeyedDexItem<DexField> {
     // The only way to figure out whether the DexValue contains the final value
     // is ensure the value is not the default or check <clinit> is not present.
     boolean isEffectivelyFinal =
-        (accessFlags.isFinal() || !appInfo.isFieldWritten(field))
-            && !appInfo.isPinned(field);
+        (accessFlags.isFinal() || !appInfo.isFieldWritten(this)) && !appInfo.isPinned(field);
     if (!isEffectivelyFinal) {
       return null;
     }

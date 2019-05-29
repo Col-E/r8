@@ -105,13 +105,9 @@ public class StaticPut extends FieldInstruction {
         return true;
       }
 
-      DexEncodedField resolveField = appInfoWithLiveness.resolveField(getField());
-      assert resolveField != null : "NoSuchFieldError (resolution failure) should be caught.";
-      if (appInfoWithLiveness.isFieldRead(resolveField.field)) {
-        return true;
-      }
-
-      return false;
+      DexEncodedField encodedField = appInfoWithLiveness.resolveField(getField());
+      assert encodedField != null : "NoSuchFieldError (resolution failure) should be caught.";
+      return appInfoWithLiveness.isFieldRead(encodedField);
     }
 
     // In D8, we always have to assume that the field can be read, and thus have side effects.

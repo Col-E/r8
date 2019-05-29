@@ -210,8 +210,9 @@ public class ClassInitializerDefaultsOptimization {
         Set<DexField> candidates =
             finalFieldPuts.stream()
                 .map(FieldInstruction::getField)
-                .map(field -> appInfoWithLiveness.resolveField(field).field)
+                .map(appInfoWithLiveness::resolveField)
                 .filter(appInfoWithLiveness::isStaticFieldWrittenOnlyInEnclosingStaticInitializer)
+                .map(field -> field.field)
                 .collect(Collectors.toSet());
 
         // Then retain only these fields that are actually no longer being written to.

@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
@@ -622,8 +623,9 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     return isInstantiatedDirectly(type) || isInstantiatedIndirectly(type);
   }
 
-  public boolean isFieldRead(DexField field) {
+  public boolean isFieldRead(DexEncodedField encodedField) {
     assert checkIfObsolete();
+    DexField field = encodedField.field;
     FieldAccessInfoImpl info = fieldAccessInfoCollection.get(field);
     if (info != null && info.isRead()) {
       return true;
@@ -632,11 +634,12 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
         // Fields in the class that is synthesized by D8/R8 would be used soon.
         || field.holder.isD8R8SynthesizedClassType()
         // For library classes we don't know whether a field is read.
-        || isLibraryOrClasspathField(field);
+        || isLibraryOrClasspathField(encodedField);
   }
 
-  public boolean isFieldWritten(DexField field) {
+  public boolean isFieldWritten(DexEncodedField encodedField) {
     assert checkIfObsolete();
+    DexField field = encodedField.field;
     FieldAccessInfoImpl info = fieldAccessInfoCollection.get(field);
     if (info != null && info.isWritten()) {
       return true;
@@ -645,13 +648,13 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
         // Fields in the class that is synthesized by D8/R8 would be used soon.
         || field.holder.isD8R8SynthesizedClassType()
         // For library classes we don't know whether a field is rewritten.
-        || isLibraryOrClasspathField(field);
+        || isLibraryOrClasspathField(encodedField);
   }
 
-  public boolean isStaticFieldWrittenOnlyInEnclosingStaticInitializer(DexField field) {
+  public boolean isStaticFieldWrittenOnlyInEnclosingStaticInitializer(DexEncodedField field) {
     assert checkIfObsolete();
     assert isFieldWritten(field) : "Expected field `" + field.toSourceString() + "` to be written";
-    return staticFieldsWrittenOnlyInEnclosingStaticInitializer.contains(field);
+    return staticFieldsWrittenOnlyInEnclosingStaticInitializer.contains(field.field);
   }
 
   public boolean mayPropagateValueFor(DexReference reference) {
@@ -659,8 +662,8 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     return !isPinned(reference) && !neverPropagateValue.contains(reference);
   }
 
-  private boolean isLibraryOrClasspathField(DexField field) {
-    DexClass holder = definitionFor(field.holder);
+  private boolean isLibraryOrClasspathField(DexEncodedField field) {
+    DexClass holder = definitionFor(field.field.holder);
     return holder == null || holder.isLibraryClass() || holder.isClasspathClass();
   }
 
