@@ -5,10 +5,10 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
-import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.ConstInstruction;
+import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.InternalOptions;
 
 public class DexEncodedField extends KeyedDexItem<DexField> {
   public static final DexEncodedField[] EMPTY_ARRAY = {};
@@ -141,21 +141,49 @@ public class DexEncodedField extends KeyedDexItem<DexField> {
     return staticValue == null ? DexValue.defaultForType(field.type) : staticValue;
   }
 
-  // Returns a const instructions if this field is a compile time final const.
-  public Instruction valueAsConstInstruction(
-      AppInfoWithLiveness appInfo, Value dest, InternalOptions options) {
-    // The only way to figure out whether the DexValue contains the final value
-    // is ensure the value is not the default or check <clinit> is not present.
-    boolean isEffectivelyFinal =
-        (accessFlags.isFinal() || !appInfo.isFieldWritten(this)) && !appInfo.isPinned(field);
-    if (!isEffectivelyFinal) {
-      return null;
+  /**
+   * Returns a const instructions if this field is a compile time final const.
+   *
+   * <p>NOTE: It is the responsibility of the caller to check if this field is pinned or not.
+   */
+  public ConstInstruction valueAsConstInstruction(
+      IRCode code, Value dest, AppView<AppInfoWithLiveness> appView) {
+    // If it is a static field, we can only propagate the value if class initialization does not
+    // have side effects.
+    if (isStatic()) {
+      DexClass clazz = appView.definitionFor(field.holder);
+      if (clazz == null) {
+        return null;
+      }
+      DexType context = code.method.method.holder;
+      if (clazz.classInitializationMayHaveSideEffects(
+          appView,
+          // Types that are a super type of the current context are guaranteed to be initialized
+          // already.
+          type -> appView.isSubtype(context, type).isTrue())) {
+        return null;
+      }
     }
-    if (accessFlags.isStatic()) {
-      DexClass clazz = appInfo.definitionFor(field.holder);
-      assert clazz != null : "Class for the field must be present";
-      return getStaticValue().asConstInstruction(clazz.hasClassInitializer(), dest, options);
+
+    boolean isWritten = appView.appInfo().isFieldWrittenByFieldPutInstruction(this);
+    if (!isWritten) {
+      // Since the field is not written, we can simply return the default value for the type.
+      return getStaticValue().asConstInstruction(code, dest, appView.options());
     }
+
+    // The only way to figure out whether the DexValue contains the final value is ensure the value
+    // is not the default or check that <clinit> is not present.
+    if (accessFlags.isFinal() && isStatic()) {
+      DexClass clazz = appView.definitionFor(field.holder);
+      if (clazz == null || clazz.hasClassInitializer()) {
+        return null;
+      }
+      DexValue staticValue = getStaticValue();
+      if (!staticValue.isDefault(field.type)) {
+        return staticValue.asConstInstruction(code, dest, appView.options());
+      }
+    }
+
     return null;
   }
 

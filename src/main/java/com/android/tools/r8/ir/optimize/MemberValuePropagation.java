@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexClass;
@@ -36,6 +35,8 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardMemberRule;
 import com.android.tools.r8.shaking.ProguardMemberRuleReturnValue;
+import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.Sets;
 import java.util.ListIterator;
 import java.util.Set;
@@ -44,6 +45,10 @@ import java.util.function.Predicate;
 public class MemberValuePropagation {
 
   private final AppView<AppInfoWithLiveness> appView;
+  private final Reporter reporter;
+
+  // Fields for which we have reported warnings to due Proguard configuration rules.
+  private final Set<DexField> warnedFields = Sets.newIdentityHashSet();
 
   private enum RuleType {
     NONE,
@@ -78,6 +83,7 @@ public class MemberValuePropagation {
 
   public MemberValuePropagation(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
+    this.reporter = appView.options().reporter;
   }
 
   private boolean mayPropagateValueFor(DexEncodedField field) {
@@ -134,13 +140,30 @@ public class MemberValuePropagation {
 
       DexEncodedField staticField = appView.appInfo().lookupStaticTarget(field.holder, field);
       if (staticField == null) {
-        throw new CompilationError(field.holder.toSourceString() + "." + field.name.toString()
-            + " used in assumevalues rule does not exist.");
+        if (warnedFields.add(field)) {
+          reporter.warning(
+              new StringDiagnostic(
+                  "Field `"
+                      + field.toSourceString()
+                      + "` is used in an -assumevalues rule but does not exist.",
+                  code.origin));
+        }
+        return null;
       }
 
       Value value = code.createValue(typeLattice, instruction.getLocalInfo());
-      ConstInstruction replacement =
-          staticField.getStaticValue().asConstInstruction(false, value, appView.options());
+      ConstInstruction replacement = staticField.valueAsConstInstruction(code, value, appView);
+      if (replacement == null) {
+        reporter.warning(
+            new StringDiagnostic(
+                "Unable to apply the rule `"
+                    + returnValueRule.toString()
+                    + "`: Could not determine the value of field `"
+                    + field.toSourceString()
+                    + "`",
+                code.origin));
+        return null;
+      }
       if (replacement.isDexItemBasedConstString()) {
         code.method.getMutableOptimizationInfo().markUseIdentifierNameString();
       }
@@ -309,18 +332,21 @@ public class MemberValuePropagation {
     if (target == null || !mayPropagateValueFor(target)) {
       return;
     }
+
     // Check if a this value is known const.
-    Instruction replacement =
-        target.valueAsConstInstruction(appView.appInfo(), current.dest(), appView.options());
-    if (replacement != null) {
-      affectedValues.add(replacement.outValue());
-      iterator.replaceCurrentInstruction(replacement);
-      if (replacement.isDexItemBasedConstString()) {
-        code.method.getMutableOptimizationInfo().markUseIdentifierNameString();
+    if (!appView.appInfo().isPinned(target.field)) {
+      ConstInstruction replacement = target.valueAsConstInstruction(code, current.dest(), appView);
+      if (replacement != null) {
+        affectedValues.add(replacement.outValue());
+        iterator.replaceCurrentInstruction(replacement);
+        if (replacement.isDexItemBasedConstString()) {
+          code.method.getMutableOptimizationInfo().markUseIdentifierNameString();
+        }
+        target.getMutableOptimizationInfo().markAsPropagated();
+        return;
       }
-      target.getMutableOptimizationInfo().markAsPropagated();
-      return;
     }
+
     ProguardMemberRuleLookup lookup = lookupMemberRule(target);
     if (lookup != null
         && tryConstantReplacementFromProguard(

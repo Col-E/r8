@@ -13,6 +13,7 @@ import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.DexItemBasedConstString;
+import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo;
 import com.android.tools.r8.utils.EncodedValueUtils;
@@ -137,9 +138,8 @@ public abstract class DexValue extends DexItem {
 
   public abstract Object getBoxedValue();
 
-  // Returns a const instruction for the non default value.
-  public ConstInstruction asConstInstruction(
-      boolean hasClassInitializer, Value dest, InternalOptions options) {
+  /** Returns an instruction that can be used to materialize this {@link DexValue} (or null). */
+  public ConstInstruction asConstInstruction(IRCode code, Value dest, InternalOptions options) {
     return null;
   }
 
@@ -214,8 +214,7 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
-    public ConstInstruction asConstInstruction(
-        boolean hasClassInitializer, Value dest, InternalOptions options) {
+    public ConstInstruction asConstInstruction(IRCode code, Value dest, InternalOptions options) {
       return null;
     }
   }
@@ -302,9 +301,8 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
-    public ConstInstruction asConstInstruction(
-        boolean hasClassInitializer, Value dest, InternalOptions options) {
-      return (this == DEFAULT && hasClassInitializer) ? null : new ConstNumber(dest, value);
+    public ConstInstruction asConstInstruction(IRCode code, Value dest, InternalOptions options) {
+      return new ConstNumber(dest, value);
     }
   }
 
@@ -359,9 +357,8 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
-    public ConstInstruction asConstInstruction(
-        boolean hasClassInitializer, Value dest, InternalOptions options) {
-      return (this == DEFAULT && hasClassInitializer) ? null : new ConstNumber(dest, value);
+    public ConstInstruction asConstInstruction(IRCode code, Value dest, InternalOptions options) {
+      return new ConstNumber(dest, value);
     }
   }
 
@@ -420,9 +417,8 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
-    public ConstInstruction asConstInstruction(
-        boolean hasClassInitializer, Value dest, InternalOptions options) {
-      return (this == DEFAULT && hasClassInitializer) ? null : new ConstNumber(dest, value);
+    public ConstInstruction asConstInstruction(IRCode code, Value dest, InternalOptions options) {
+      return new ConstNumber(dest, value);
     }
   }
 
@@ -477,9 +473,8 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
-    public ConstInstruction asConstInstruction(
-        boolean hasClassInitializer, Value dest, InternalOptions options) {
-      return (this == DEFAULT && hasClassInitializer) ? null : new ConstNumber(dest, value);
+    public ConstInstruction asConstInstruction(IRCode code, Value dest, InternalOptions options) {
+      return new ConstNumber(dest, value);
     }
   }
 
@@ -534,9 +529,8 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
-    public ConstInstruction asConstInstruction(
-        boolean hasClassInitializer, Value dest, InternalOptions options) {
-      return (this == DEFAULT && hasClassInitializer) ? null : new ConstNumber(dest, value);
+    public ConstInstruction asConstInstruction(IRCode code, Value dest, InternalOptions options) {
+      return new ConstNumber(dest, value);
     }
   }
 
@@ -739,8 +733,7 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
-    public ConstInstruction asConstInstruction(
-        boolean hasClassInitializer, Value dest, InternalOptions options) {
+    public ConstInstruction asConstInstruction(IRCode code, Value dest, InternalOptions options) {
       ConstString instruction =
           new ConstString(dest, value, ThrowingInfo.defaultForConstString(options));
       if (!instruction.instructionInstanceCanThrow()) {
@@ -784,8 +777,7 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
-    public ConstInstruction asConstInstruction(
-        boolean hasClassInitializer, Value dest, InternalOptions options) {
+    public ConstInstruction asConstInstruction(IRCode code, Value dest, InternalOptions options) {
       DexItemBasedConstString instruction =
           new DexItemBasedConstString(
               dest, value, ThrowingInfo.defaultForConstString(options), classNameComputationInfo);
@@ -1122,9 +1114,8 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
-    public ConstInstruction asConstInstruction(
-        boolean hasClassInitializer, Value dest, InternalOptions options) {
-      return (this == DEFAULT && hasClassInitializer) ? null : new ConstNumber(dest, value ? 1 : 0);
+    public ConstInstruction asConstInstruction(IRCode code, Value dest, InternalOptions options) {
+      return new ConstNumber(dest, value ? 1 : 0);
     }
   }
 

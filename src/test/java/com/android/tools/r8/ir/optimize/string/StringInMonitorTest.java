@@ -11,6 +11,7 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NeverPropagateValue;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -34,7 +35,7 @@ import org.junit.runners.Parameterized;
 class StringInMonitorTestMain {
   static final Object lock = new Object();
 
-  private static int foo = 0;
+  @NeverPropagateValue private static int foo = 0;
 
   @NeverInline
   private static synchronized void sync() throws OutOfMemoryError {
@@ -140,10 +141,27 @@ public class StringInMonitorTest extends TestBase {
     }
 
     MethodSubject sync = mainClass.uniqueMethodWithName("sync");
+    System.out.println(sync.getMethod().getCode());
     assertThat(sync, isPresent());
     count = Streams.stream(sync.iterateInstructions(
         i -> i.isConstString("", JumboStringMode.ALLOW))).count();
     assertEquals(expectedConstStringCount2, count);
+
+    /*.limit stack 2
+    .limit locals 1
+     0:   ldc bar
+     1:   ldc
+     2:   if_acmpeq L0
+     3:   return
+     4: L0: ; locals:
+     5:   ; frame: [] []
+     6:   getstatic java/lang/System/out Ljava/io/PrintStream;
+     7:   ldc bar
+     8:   invokevirtual java.io.PrintStream.println(Ljava/lang/String;)V
+     9:   new java/lang/OutOfMemoryError
+    10:   dup
+    11:   invokespecial java.lang.OutOfMemoryError.<init>()V
+    12:   athrow*/
 
     // In CF, we don't explicitly add monitor-{enter|exit} and catch-all for synchronized methods.
     if (parameters.isDexRuntime()) {
@@ -203,6 +221,7 @@ public class StringInMonitorTest extends TestBase {
         testForR8(parameters.getBackend())
             .addProgramClasses(MAIN)
             .enableInliningAnnotations()
+            .enableMemberValuePropagationAnnotations()
             .addKeepMainRule(MAIN)
             .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), MAIN)

@@ -639,16 +639,26 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
 
   public boolean isFieldWritten(DexEncodedField encodedField) {
     assert checkIfObsolete();
+    return isFieldWrittenByFieldPutInstruction(encodedField) || isPinned(encodedField.field);
+  }
+
+  public boolean isFieldWrittenByFieldPutInstruction(DexEncodedField encodedField) {
+    assert checkIfObsolete();
     DexField field = encodedField.field;
     FieldAccessInfoImpl info = fieldAccessInfoCollection.get(field);
     if (info != null && info.isWritten()) {
+      // The field is written directly by the program itself.
       return true;
     }
-    return isPinned(field)
-        // Fields in the class that is synthesized by D8/R8 would be used soon.
-        || field.holder.isD8R8SynthesizedClassType()
-        // For library classes we don't know whether a field is rewritten.
-        || isLibraryOrClasspathField(encodedField);
+    if (field.holder.isD8R8SynthesizedClassType()) {
+      // Fields in the class that is synthesized by D8/R8 would be used soon.
+      return true;
+    }
+    if (isLibraryOrClasspathField(encodedField)) {
+      // For library classes we don't know whether a field is rewritten.
+      return true;
+    }
+    return false;
   }
 
   public boolean isStaticFieldWrittenOnlyInEnclosingStaticInitializer(DexEncodedField field) {
