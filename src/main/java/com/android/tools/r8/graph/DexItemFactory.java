@@ -101,8 +101,8 @@ public class DexItemFactory {
 
   public DexItemFactory() {
     this.kotlin = new Kotlin(this);
-    assert libraryMethodsWithoutSideEffects
-        .containsAll(libraryMethodsWithReturnValueDependingOnlyOnArguments);
+    assert libraryMethodsWithReturnValueDependingOnlyOnArguments.stream()
+        .allMatch(libraryMethodsWithoutSideEffects::containsKey);
   }
 
   public static boolean isInternalSentinel(DexItem item) {
