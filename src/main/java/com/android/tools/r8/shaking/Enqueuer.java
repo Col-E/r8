@@ -1550,68 +1550,63 @@ public class Enqueuer {
         .visit(appView.appInfo().classes(), this::markAllLibraryVirtualMethodsReachable);
     trace(executorService, timing);
     options.reporter.failIfPendingErrors();
-    return createAppInfo(appInfo, this);
+    return createAppInfo(appInfo);
   }
 
-  private static AppInfoWithLiveness createAppInfo(
-      AppInfoWithSubtyping appInfo, Enqueuer enqueuer) {
+  private AppInfoWithLiveness createAppInfo(AppInfoWithSubtyping appInfo) {
     ImmutableSortedSet.Builder<DexType> builder =
         ImmutableSortedSet.orderedBy(PresortedComparable::slowCompareTo);
-    enqueuer.liveAnnotations.items.forEach(annotation -> builder.add(annotation.annotation.type));
+    liveAnnotations.items.forEach(annotation -> builder.add(annotation.annotation.type));
 
     // Remove the temporary mappings that have been inserted into the field access info collection
     // and verify that the mapping is then one-to-one.
-    enqueuer.fieldAccessInfoCollection.removeIf(
+    fieldAccessInfoCollection.removeIf(
         (field, info) -> field != info.getField() || info == MISSING_FIELD_ACCESS_INFO);
-    assert enqueuer.fieldAccessInfoCollection.verifyMappingIsOneToOne();
+    assert fieldAccessInfoCollection.verifyMappingIsOneToOne();
 
     AppInfoWithLiveness appInfoWithLiveness =
         new AppInfoWithLiveness(
             appInfo,
-            ImmutableSortedSet.copyOf(PresortedComparable::slowCompareTo, enqueuer.liveTypes),
+            ImmutableSortedSet.copyOf(PresortedComparable::slowCompareTo, liveTypes),
             builder.build(),
+            ImmutableSortedSet.copyOf(PresortedComparable::slowCompareTo, instantiatedAppServices),
             ImmutableSortedSet.copyOf(
-                PresortedComparable::slowCompareTo, enqueuer.instantiatedAppServices),
+                PresortedComparable::slowCompareTo, instantiatedTypes.getItems()),
+            Enqueuer.toSortedDescriptorSet(targetedMethods.getItems()),
+            ImmutableSortedSet.copyOf(DexMethod::slowCompareTo, bootstrapMethods),
+            ImmutableSortedSet.copyOf(DexMethod::slowCompareTo, methodsTargetedByInvokeDynamic),
             ImmutableSortedSet.copyOf(
-                PresortedComparable::slowCompareTo, enqueuer.instantiatedTypes.getItems()),
-            Enqueuer.toSortedDescriptorSet(enqueuer.targetedMethods.getItems()),
-            ImmutableSortedSet.copyOf(DexMethod::slowCompareTo, enqueuer.bootstrapMethods),
+                DexMethod::slowCompareTo, virtualMethodsTargetedByInvokeDirect),
+            toSortedDescriptorSet(liveMethods.getItems()),
+            fieldAccessInfoCollection,
             ImmutableSortedSet.copyOf(
-                DexMethod::slowCompareTo, enqueuer.methodsTargetedByInvokeDynamic),
-            ImmutableSortedSet.copyOf(
-                DexMethod::slowCompareTo, enqueuer.virtualMethodsTargetedByInvokeDirect),
-            toSortedDescriptorSet(enqueuer.liveMethods.getItems()),
-            enqueuer.fieldAccessInfoCollection,
-            ImmutableSortedSet.copyOf(
-                DexField::slowCompareTo,
-                enqueuer.staticFieldsWrittenOnlyInEnclosingStaticInitializer()),
+                DexField::slowCompareTo, staticFieldsWrittenOnlyInEnclosingStaticInitializer()),
             // TODO(b/132593519): Do we require these sets to be sorted for determinism?
-            toImmutableSortedMap(enqueuer.virtualInvokes, PresortedComparable::slowCompare),
-            toImmutableSortedMap(enqueuer.interfaceInvokes, PresortedComparable::slowCompare),
-            toImmutableSortedMap(enqueuer.superInvokes, PresortedComparable::slowCompare),
-            toImmutableSortedMap(enqueuer.directInvokes, PresortedComparable::slowCompare),
-            toImmutableSortedMap(enqueuer.staticInvokes, PresortedComparable::slowCompare),
-            enqueuer.callSites,
-            ImmutableSortedSet.copyOf(DexMethod::slowCompareTo, enqueuer.brokenSuperInvokes),
-            enqueuer.pinnedItems,
-            enqueuer.rootSet.mayHaveSideEffects,
-            enqueuer.rootSet.noSideEffects,
-            enqueuer.rootSet.assumedValues,
-            enqueuer.rootSet.alwaysInline,
-            enqueuer.rootSet.forceInline,
-            enqueuer.rootSet.neverInline,
-            enqueuer.rootSet.keepConstantArguments,
-            enqueuer.rootSet.keepUnusedArguments,
-            enqueuer.rootSet.neverClassInline,
-            enqueuer.rootSet.neverMerge,
-            enqueuer.rootSet.neverPropagateValue,
-            joinIdentifierNameStrings(
-                enqueuer.rootSet.identifierNameStrings, enqueuer.identifierNameStrings),
+            toImmutableSortedMap(virtualInvokes, PresortedComparable::slowCompare),
+            toImmutableSortedMap(interfaceInvokes, PresortedComparable::slowCompare),
+            toImmutableSortedMap(superInvokes, PresortedComparable::slowCompare),
+            toImmutableSortedMap(directInvokes, PresortedComparable::slowCompare),
+            toImmutableSortedMap(staticInvokes, PresortedComparable::slowCompare),
+            callSites,
+            ImmutableSortedSet.copyOf(DexMethod::slowCompareTo, brokenSuperInvokes),
+            pinnedItems,
+            rootSet.mayHaveSideEffects,
+            rootSet.noSideEffects,
+            rootSet.assumedValues,
+            rootSet.alwaysInline,
+            rootSet.forceInline,
+            rootSet.neverInline,
+            rootSet.keepConstantArguments,
+            rootSet.keepUnusedArguments,
+            rootSet.neverClassInline,
+            rootSet.neverMerge,
+            rootSet.neverPropagateValue,
+            joinIdentifierNameStrings(rootSet.identifierNameStrings, identifierNameStrings),
             Collections.emptySet(),
             Collections.emptyMap(),
             Collections.emptyMap(),
             ImmutableSortedSet.copyOf(
-                PresortedComparable::slowCompareTo, enqueuer.instantiatedLambdas.getItems()));
+                PresortedComparable::slowCompareTo, instantiatedLambdas.getItems()));
     appInfo.markObsolete();
     return appInfoWithLiveness;
   }
