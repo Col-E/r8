@@ -107,9 +107,8 @@ public final class BackportedMethodRewriter {
       return;
     }
     Set<DexProgramClass> referencingClasses = Sets.newConcurrentHashSet();
-    AppInfo appInfo = appView.appInfo();
     for (DexType holder : holders) {
-      DexClass definitionFor = appInfo.definitionFor(holder);
+      DexClass definitionFor = appView.definitionFor(holder);
       if (definitionFor == null) {
         Collection<DexProgramClass> synthesizedFrom = findSynthesizedFrom(builder, holder);
         assert synthesizedFrom != null;
@@ -125,6 +124,10 @@ public final class BackportedMethodRewriter {
 
     for (MethodGenerator generator : methodGenerators.values()) {
       DexMethod method = generator.generateMethod(factory);
+      // The utility class could have been synthesized, e.g., running R8 then D8.
+      if (appView.definitionFor(method.holder) != null) {
+        continue;
+      }
       TemplateMethodCode code = generator.generateTemplateMethod(options, method);
       DexEncodedMethod dexEncodedMethod= new DexEncodedMethod(method,
           flags, DexAnnotationSet.empty(), ParameterAnnotationsList.empty(), code);
@@ -149,6 +152,7 @@ public final class BackportedMethodRewriter {
               factory.getSkipNameValidationForTesting(),
               referencingClasses);
       code.setUpContext(utilityClass);
+      AppInfo appInfo = appView.appInfo();
       boolean addToMainDexList =
           referencingClasses.stream().anyMatch(clazz -> appInfo.isInMainDexList(clazz.type));
       appInfo.addSynthesizedClass(utilityClass);
