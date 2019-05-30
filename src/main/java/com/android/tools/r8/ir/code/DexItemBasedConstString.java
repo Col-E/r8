@@ -43,6 +43,14 @@ public class DexItemBasedConstString extends ConstInstruction {
     return visitor.visit(this);
   }
 
+  public static DexItemBasedConstString copyOf(IRCode code, DexItemBasedConstString original) {
+    Value newValue =
+        new Value(code.valueNumberGenerator.next(),
+            original.outValue().getTypeLattice(),
+            original.getLocalInfo());
+    return copyOf(newValue, original);
+  }
+
   public static DexItemBasedConstString copyOf(Value newValue, DexItemBasedConstString original) {
     return new DexItemBasedConstString(
         newValue, original.getItem(), original.throwingInfo, original.classNameComputationInfo);
@@ -77,7 +85,10 @@ public class DexItemBasedConstString extends ConstInstruction {
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
-    return other.isDexItemBasedConstString() && other.asDexItemBasedConstString().item == item;
+    return other.isDexItemBasedConstString()
+        && other.asDexItemBasedConstString().item == item
+        && other.asDexItemBasedConstString().classNameComputationInfo
+            .equals(classNameComputationInfo);
   }
 
   @Override

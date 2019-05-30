@@ -133,6 +133,7 @@ public class IRConverter {
   private final InternalOptions options;
   private final CfgPrinter printer;
   private final CodeRewriter codeRewriter;
+  private final ConstantCanonicalizer constantCanonicalizer;
   private final MemberValuePropagation memberValuePropagation;
   private final LensCodeRewriter lensCodeRewriter;
   private final NonNullTracker nonNullTracker;
@@ -169,6 +170,7 @@ public class IRConverter {
     this.printer = printer;
     this.mainDexClasses = mainDexClasses.getClasses();
     this.codeRewriter = new CodeRewriter(appView, this);
+    this.constantCanonicalizer = new ConstantCanonicalizer();
     this.classInitializerDefaultsOptimization =
         options.debug ? null : new ClassInitializerDefaultsOptimization(appView, this);
     this.stringConcatRewriter = new StringConcatRewriter(appView);
@@ -612,6 +614,7 @@ public class IRConverter {
     }
 
     if (Log.ENABLED) {
+      constantCanonicalizer.logResults();
       if (idempotentFunctionCallCanonicalizer != null) {
         idempotentFunctionCallCanonicalizer.logResults();
       }
@@ -1119,7 +1122,7 @@ public class IRConverter {
 
     // TODO(mkroghj) Test if shorten live ranges is worth it.
     if (!options.isGeneratingClassFiles()) {
-      ConstantCanonicalizer.canonicalize(appView, code);
+      constantCanonicalizer.canonicalize(appView, code);
       codeRewriter.useDedicatedConstantForLitInstruction(code);
       codeRewriter.shortenLiveRanges(code);
     }

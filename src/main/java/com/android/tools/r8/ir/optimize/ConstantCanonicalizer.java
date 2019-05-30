@@ -9,12 +9,17 @@ import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
+import com.android.tools.r8.ir.code.DexItemBasedConstString;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.logging.Log;
+import com.android.tools.r8.utils.StringUtils;
 import it.unimi.dsi.fastutil.Hash.Strategy;
+import it.unimi.dsi.fastutil.objects.Object2IntArrayMap;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenCustomHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectSortedMap.FastSortedEntrySet;
 import java.util.ArrayList;
@@ -25,9 +30,40 @@ import java.util.List;
  */
 public class ConstantCanonicalizer {
   // Threshold to limit the number of constant canonicalization.
-  private static final int MAX_CANONICALIZED_CONSTANT = 15;
+  private static final int MAX_CANONICALIZED_CONSTANT = 22;
 
-  public static void canonicalize(AppView<?> appView, IRCode code) {
+  private int numberOfConstNumberCanonicalization = 0;
+  private int numberOfConstStringCanonicalization = 0;
+  private int numberOfDexItemBasedConstStringCanonicalization = 0;
+  private int numberOfConstClassCanonicalization = 0;
+  private Object2IntMap<Long> histogramOfCanonicalizationCandidatesPerMethod = null;
+
+  public ConstantCanonicalizer() {
+    if (Log.ENABLED) {
+      histogramOfCanonicalizationCandidatesPerMethod = new Object2IntArrayMap<>();
+    }
+  }
+
+  public void logResults() {
+    assert Log.ENABLED;
+    Log.info(getClass(),
+        "# const-number canonicalization: %s", numberOfConstNumberCanonicalization);
+    Log.info(getClass(),
+        "# const-string canonicalization: %s", numberOfConstStringCanonicalization);
+    Log.info(getClass(),
+        "# item-based const-string canonicalization: %s",
+        numberOfDexItemBasedConstStringCanonicalization);
+    Log.info(getClass(),
+        "# const-class canonicalization: %s", numberOfConstClassCanonicalization);
+    assert histogramOfCanonicalizationCandidatesPerMethod != null;
+    Log.info(getClass(), "------ histogram of constant canonicalization candidates ------");
+    histogramOfCanonicalizationCandidatesPerMethod.forEach((length, count) -> {
+      Log.info(getClass(),
+          "%s: %s (%s)", length, StringUtils.times("*", Math.min(count, 53)), count);
+    });
+  }
+
+  public void canonicalize(AppView<?> appView, IRCode code) {
     Object2ObjectLinkedOpenCustomHashMap<ConstInstruction, List<Value>> valuesDefinedByConstant =
         new Object2ObjectLinkedOpenCustomHashMap<>(
             new Strategy<ConstInstruction>() {
@@ -35,6 +71,7 @@ public class ConstantCanonicalizer {
               public int hashCode(ConstInstruction constInstruction) {
                 assert constInstruction.isConstNumber()
                     || constInstruction.isConstString()
+                    || constInstruction.isDexItemBasedConstString()
                     || constInstruction.isConstClass();
                 if (constInstruction.isConstNumber()) {
                   return Long.hashCode(constInstruction.asConstNumber().getRawValue())
@@ -42,6 +79,9 @@ public class ConstantCanonicalizer {
                 }
                 if (constInstruction.isConstString()) {
                   return constInstruction.asConstString().getValue().hashCode();
+                }
+                if (constInstruction.isDexItemBasedConstString()) {
+                  return constInstruction.asDexItemBasedConstString().getItem().hashCode();
                 }
                 return constInstruction.asConstClass().getValue().hashCode();
               }
@@ -61,8 +101,11 @@ public class ConstantCanonicalizer {
       InstructionListIterator it = block.listIterator();
       while (it.hasNext()) {
         Instruction current = it.next();
-        // Interested in ConstNumber, ConstString, and ConstClass
-        if (!current.isConstNumber() && !current.isConstString() && !current.isConstClass()) {
+        // Interested in ConstNumber, (DexItemBased)?ConstString, and ConstClass
+        if (!current.isConstNumber()
+            && !current.isConstString()
+            && !current.isDexItemBasedConstString()
+            && !current.isConstClass()) {
           continue;
         }
         // Do not canonicalize ConstClass that may have side effects. Its original instructions
@@ -74,7 +117,8 @@ public class ConstantCanonicalizer {
         // Do not canonicalize ConstString instructions if there are monitor operations in the code.
         // That could lead to unbalanced locking and could lead to situations where OOM exceptions
         // could leave a synchronized method without unlocking the monitor.
-        if (current.isConstString() && code.hasMonitorInstruction) {
+        if ((current.isConstString() || current.isDexItemBasedConstString())
+            && code.hasMonitorInstruction) {
           continue;
         }
         // Constants with local info must not be canonicalized and must be filtered.
@@ -107,6 +151,11 @@ public class ConstantCanonicalizer {
         valuesDefinedByConstant.object2ObjectEntrySet();
     // Sort the most frequently used constant first and exclude constant use only one time, such
     // as the {@code MAX_CANONICALIZED_CONSTANT} will be canonicalized into the entry block.
+    if (Log.ENABLED) {
+      Long numOfCandidates = entries.stream().filter(a -> a.getValue().size() > 1).count();
+      int count = histogramOfCanonicalizationCandidatesPerMethod.getOrDefault(numOfCandidates, 0);
+      histogramOfCanonicalizationCandidatesPerMethod.put(numOfCandidates, count + 1);
+    }
     entries.stream()
         .filter(a -> a.getValue().size() > 1)
         .sorted((a, b) -> Integer.compare(b.getValue().size(), a.getValue().size()))
@@ -115,17 +164,30 @@ public class ConstantCanonicalizer {
           ConstInstruction canonicalizedConstant = entry.getKey().asConstInstruction();
           assert canonicalizedConstant.isConstNumber()
               || canonicalizedConstant.isConstString()
+              || canonicalizedConstant.isDexItemBasedConstString()
               || canonicalizedConstant.isConstClass();
           ConstInstruction newConst;
           if (canonicalizedConstant.isConstNumber()) {
-            ConstNumber canonicalizedConstantNumber = canonicalizedConstant.asConstNumber();
-            newConst = ConstNumber.copyOf(code, canonicalizedConstantNumber);
+            if (Log.ENABLED) {
+              numberOfConstNumberCanonicalization++;
+            }
+            newConst = ConstNumber.copyOf(code, canonicalizedConstant.asConstNumber());
           } else if (canonicalizedConstant.isConstString()) {
-            ConstString canonicalizedConstantString = canonicalizedConstant.asConstString();
-            newConst = ConstString.copyOf(code, canonicalizedConstantString);
+            if (Log.ENABLED) {
+              numberOfConstStringCanonicalization++;
+            }
+            newConst = ConstString.copyOf(code, canonicalizedConstant.asConstString());
+          } else if (canonicalizedConstant.isDexItemBasedConstString()) {
+            if (Log.ENABLED) {
+              numberOfDexItemBasedConstStringCanonicalization++;
+            }
+            newConst = DexItemBasedConstString.copyOf(
+                code, canonicalizedConstant.asDexItemBasedConstString());
           } else {
-            ConstClass canonicalizedConstClass = canonicalizedConstant.asConstClass();
-            newConst = ConstClass.copyOf(code, canonicalizedConstClass);
+            if (Log.ENABLED) {
+              numberOfConstClassCanonicalization++;
+            }
+            newConst = ConstClass.copyOf(code, canonicalizedConstant.asConstClass());
           }
           newConst.setPosition(firstNonNonePosition);
           insertCanonicalizedConstant(code, newConst);

@@ -73,6 +73,21 @@ public class ReflectionOptimizer {
     public boolean needsToRegisterTypeReference() {
       return classNameComputationOption.needsToRegisterTypeReference();
     }
+
+    @Override
+    public boolean equals(Object other) {
+      if (!(other instanceof ClassNameComputationInfo)) {
+        return false;
+      }
+      ClassNameComputationInfo otherInfo = (ClassNameComputationInfo) other;
+      return this.classNameComputationOption == otherInfo.classNameComputationOption
+          && this.arrayDepth == otherInfo.arrayDepth;
+    }
+
+    @Override
+    public int hashCode() {
+      return classNameComputationOption.ordinal() * 31 + arrayDepth;
+    }
   }
 
   // Rewrite getClass() call to const-class if the type of the given instance is effectively final.
