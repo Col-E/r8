@@ -121,7 +121,6 @@ public class IdempotentFunctionCallCanonicalizer {
         if (current.outValue().hasLocalInfo()) {
           continue;
         }
-        DexMethod invokedMethod = invoke.getInvokedMethod();
         // Interested in known-to-be idempotent methods.
         if (!isIdempotentLibraryMethodInvoke(invoke)) {
           if (!appView.enableWholeProgramOptimizations()) {
