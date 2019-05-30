@@ -64,7 +64,7 @@ import java.util.stream.Collectors;
 
 public class RootSetBuilder {
 
-  private final AppView<?> appView;
+  private final AppView<? extends AppInfoWithSubtyping> appView;
   private final DirectMappedDexApplication application;
   private final Iterable<? extends ProguardConfigurationRule> rules;
   private final Map<DexReference, Set<ProguardKeepRule>> noShrinking = new IdentityHashMap<>();
@@ -96,7 +96,7 @@ public class RootSetBuilder {
   private final Set<ProguardIfRule> ifRules = Sets.newIdentityHashSet();
 
   public RootSetBuilder(
-      AppView<?> appView,
+      AppView<? extends AppInfoWithSubtyping> appView,
       DexApplication application,
       Iterable<? extends ProguardConfigurationRule> rules) {
     this.appView = appView;
@@ -105,7 +105,8 @@ public class RootSetBuilder {
     this.options = appView.options();
   }
 
-  RootSetBuilder(AppView<?> appView, Collection<ProguardIfRule> ifRules) {
+  RootSetBuilder(
+      AppView<? extends AppInfoWithSubtyping> appView, Collection<ProguardIfRule> ifRules) {
     this(appView, appView.appInfo().app(), ifRules);
   }
 
@@ -187,10 +188,8 @@ public class RootSetBuilder {
       } else if (rule instanceof ProguardAssumeMayHaveSideEffectsRule
           || rule instanceof ProguardAssumeNoSideEffectRule) {
         markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true);
-        if (appView.appInfo().hasSubtyping()) {
-          markMatchingOverriddenMethods(
-              appView.appInfo().withSubtyping(), clazz, memberKeepRules, rule, null, true);
-        }
+        markMatchingOverriddenMethods(
+            appView.appInfo(), clazz, memberKeepRules, rule, null, true);
         markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true);
       } else if (rule instanceof ClassMergingRule) {
         if (allRulesSatisfied(memberKeepRules, clazz)) {
