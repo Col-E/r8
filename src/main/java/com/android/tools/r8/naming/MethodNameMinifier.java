@@ -231,14 +231,14 @@ class MethodNameMinifier {
       return;
     }
     DexString newName = state.assignNewNameFor(method, method.name, method.proto);
-    if (newName != method.name) {
-      addRenaming(encodedMethod, state, newName);
-    }
+    addRenaming(encodedMethod, state, newName);
   }
 
   private void addRenaming(
       DexEncodedMethod encodedMethod, MethodNamingState<?> state, DexString renamedName) {
-    renaming.put(encodedMethod.method, renamedName);
+    if (encodedMethod.method.name != renamedName) {
+      renaming.put(encodedMethod.method, renamedName);
+    }
     if (!encodedMethod.accessFlags.isPrivate()) {
       state.addRenaming(encodedMethod.method.name, encodedMethod.method.proto, renamedName);
     }
@@ -314,9 +314,7 @@ class MethodNameMinifier {
             }
             state.reserveName(reservedName, method.method.proto, method.method.name);
             globalState.reserveName(reservedName, method.method.proto, method.method.name);
-            if (reservedName != method.method.name) {
-              addRenaming(method, state, reservedName);
-            }
+            addRenaming(method, state, reservedName);
           }
         }
       }

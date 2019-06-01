@@ -1,0 +1,113 @@
+// Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
+// for details. All rights reserved. Use of this source code is governed by a
+// BSD-style license that can be found in the LICENSE file.
+package com.android.tools.r8.naming.b133686361;
+
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
+
+import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+
+// Reproduce b/133686361
+// This test is just same as {@link com.android.tools.r8.naming.AbstractMethodRenamingTest},
+// except for methods `foo` being renamed to `a` (e.g., already processed by other shrinker).
+// In that case, assigning `a` to Base#a seems not a new renaming. But, if we skip marking that
+// name in the corresponding naming state, all subtypes' `a` are renamed to some other names,
+// resulting in AbstractMethodError.
+@RunWith(Parameterized.class)
+public class AlreadyRenamedAbstractMethodRenamingTest extends TestBase {
+
+  static abstract class Base implements Runnable {
+    @NeverInline
+    public abstract void a();
+
+    @NeverInline
+    @Override
+    public void run() {
+      a();
+    }
+  }
+
+  static final class Sub1 extends Base {
+    public final void a() {
+      System.out.println("Sub1::a");
+    }
+  }
+
+  static final class Sub2 extends Base {
+    public final void a() {
+      System.out.println("Sub2::a");
+    }
+  }
+
+  static class TestMain {
+    static Runnable createInstance() {
+      return System.currentTimeMillis() > 0 ? new Sub1() : new Sub2();
+    }
+    public static void main(String... args) {
+      Runnable instance = createInstance();
+      instance.run();
+    }
+  }
+
+  private TestParameters parameters;
+
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimes().build();
+  }
+
+  public AlreadyRenamedAbstractMethodRenamingTest(TestParameters parameters) {
+    this.parameters = parameters;
+  }
+
+  @Test
+  public void b133686361() throws Exception {
+    testForR8(parameters.getBackend())
+        .addInnerClasses(AlreadyRenamedAbstractMethodRenamingTest.class)
+        .addKeepMainRule(TestMain.class)
+        .enableInliningAnnotations()
+        .setMinApi(parameters.getRuntime())
+        .run(parameters.getRuntime(), TestMain.class)
+        .assertSuccessWithOutput(StringUtils.lines("Sub1::a"))
+        .inspect(this::inspect);
+  }
+
+  private void inspect(CodeInspector inspector) {
+    ClassSubject base = inspector.clazz(Base.class);
+    assertThat(base, isPresent());
+    assertThat(base, isRenamed());
+    MethodSubject a = base.uniqueMethodWithName("a");
+    assertThat(a, isPresent());
+    assertThat(a, not(isRenamed()));
+
+    ClassSubject sub1 = inspector.clazz(Sub1.class);
+    assertThat(sub1, isPresent());
+    assertThat(sub1, isRenamed());
+    MethodSubject aInSub1 = sub1.uniqueMethodWithName("a");
+    assertThat(aInSub1, isPresent());
+    assertThat(aInSub1, not(isRenamed()));
+    assertEquals(a.getFinalName(), aInSub1.getFinalName());
+
+    ClassSubject sub2 = inspector.clazz(Sub1.class);
+    assertThat(sub2, isPresent());
+    assertThat(sub2, isRenamed());
+    MethodSubject aInSub2 = sub2.uniqueMethodWithName("a");
+    assertThat(aInSub2, isPresent());
+    assertThat(aInSub2, not(isRenamed()));
+    assertEquals(a.getFinalName(), aInSub2.getFinalName());
+  }
+}
