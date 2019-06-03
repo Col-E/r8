@@ -161,7 +161,14 @@ public class DexEncodedField extends KeyedDexItem<DexField> {
           // Types that are a super type of the current context are guaranteed to be initialized
           // already.
           type -> appView.isSubtype(context, type).isTrue())) {
-        return null;
+        // Ignore class initialization side-effects for dead proto extension fields to ensure that
+        // we force replace these field reads by null.
+        boolean ignore =
+            appView.withGeneratedExtensionRegistryShrinker(
+                shrinker -> shrinker.isDeadProtoExtensionField(field), false);
+        if (!ignore) {
+          return null;
+        }
       }
     }
 
