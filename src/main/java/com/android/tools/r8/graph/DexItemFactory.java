@@ -203,6 +203,7 @@ public class DexItemFactory {
   public final DexString proxyDescriptor = createString("Ljava/lang/reflect/Proxy;");
   public final DexString serviceLoaderDescriptor = createString("Ljava/util/ServiceLoader;");
   public final DexString listDescriptor = createString("Ljava/util/List;");
+  public final DexString comparatorDescriptor = createString("Ljava/util/Comparator;");
 
   public final DexString throwableDescriptor = createString(throwableDescriptorString);
   public final DexString illegalAccessErrorDescriptor =
@@ -275,6 +276,7 @@ public class DexItemFactory {
   public final DexType proxyType = createType(proxyDescriptor);
   public final DexType serviceLoaderType = createType(serviceLoaderDescriptor);
   public final DexType listType = createType(listDescriptor);
+  public final DexType comparatorType = createType(comparatorDescriptor);
 
   public final DexType throwableType = createType(throwableDescriptor);
   public final DexType illegalAccessErrorType = createType(illegalAccessErrorDescriptor);

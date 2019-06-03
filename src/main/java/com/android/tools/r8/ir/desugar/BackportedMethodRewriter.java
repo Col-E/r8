@@ -33,10 +33,13 @@ import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -579,6 +582,125 @@ public final class BackportedMethodRewriter {
     }
   }
 
+  private static final class ObjectsMethods extends TemplateMethodCode {
+    ObjectsMethods(InternalOptions options, DexMethod method, String methodName) {
+      super(options, method, methodName, method.proto.toDescriptorString());
+    }
+
+    public static ObjectsMethods compareCode(InternalOptions options, DexMethod method) {
+      return new ObjectsMethods(options, method, "compareImpl");
+    }
+
+    public static ObjectsMethods deepEqualsCode(InternalOptions options, DexMethod method) {
+      return new ObjectsMethods(options, method, "deepEqualsImpl");
+    }
+
+    public static ObjectsMethods equalsCode(InternalOptions options, DexMethod method) {
+      return new ObjectsMethods(options, method, "equalsImpl");
+    }
+
+    public static ObjectsMethods hashCode(InternalOptions options, DexMethod method) {
+      return new ObjectsMethods(options, method, "hashImpl");
+    }
+
+    public static ObjectsMethods hashCodeCode(InternalOptions options, DexMethod method) {
+      return new ObjectsMethods(options, method, "hashCodeImpl");
+    }
+
+    public static ObjectsMethods isNullCode(InternalOptions options, DexMethod method) {
+      return new ObjectsMethods(options, method, "isNullImpl");
+    }
+
+    public static ObjectsMethods nonNullCode(InternalOptions options, DexMethod method) {
+      return new ObjectsMethods(options, method, "nonNullImpl");
+    }
+
+    public static ObjectsMethods requireNonNullMessageCode(InternalOptions options,
+        DexMethod method) {
+      return new ObjectsMethods(options, method, "requireNonNullMessageImpl");
+    }
+
+    public static ObjectsMethods toStringCode(InternalOptions options, DexMethod method) {
+      return new ObjectsMethods(options, method, "toStringImpl");
+    }
+
+    public static ObjectsMethods toStringDefaultCode(InternalOptions options, DexMethod method) {
+      return new ObjectsMethods(options, method, "toStringDefaultImpl");
+    }
+
+    public static <T> int compareImpl(T a, T b, Comparator<? super T> c) {
+      return a == b ? 0 : c.compare(a, b);
+    }
+
+    public static boolean deepEqualsImpl(Object a, Object b) {
+      if (a == b) return true;
+      if (a == null) return false;
+      if (a instanceof boolean[]) {
+        return b instanceof boolean[] && Arrays.equals((boolean[]) a, (boolean[]) b);
+      }
+      if (a instanceof byte[]) {
+        return b instanceof byte[] && Arrays.equals((byte[]) a, (byte[]) b);
+      }
+      if (a instanceof char[]) {
+        return b instanceof char[] && Arrays.equals((char[]) a, (char[]) b);
+      }
+      if (a instanceof double[]) {
+        return b instanceof double[] && Arrays.equals((double[]) a, (double[]) b);
+      }
+      if (a instanceof float[]) {
+        return b instanceof float[] && Arrays.equals((float[]) a, (float[]) b);
+      }
+      if (a instanceof int[]) {
+        return b instanceof int[] && Arrays.equals((int[]) a, (int[]) b);
+      }
+      if (a instanceof long[]) {
+        return b instanceof long[] && Arrays.equals((long[]) a, (long[]) b);
+      }
+      if (a instanceof short[]) {
+        return b instanceof short[] && Arrays.equals((short[]) a, (short[]) b);
+      }
+      if (a instanceof Object[]) {
+        return b instanceof Object[] && Arrays.deepEquals((Object[]) a, (Object[]) b);
+      }
+      return a.equals(b);
+    }
+
+    public static boolean equalsImpl(Object a, Object b) {
+      return a == b || (a != null && a.equals(b));
+    }
+
+    public static int hashImpl(Object[] o) {
+      return Arrays.hashCode(o);
+    }
+
+    public static int hashCodeImpl(Object o) {
+      return o == null ? 0 : o.hashCode();
+    }
+
+    public static boolean isNullImpl(Object o) {
+      return o == null;
+    }
+
+    public static boolean nonNullImpl(Object o) {
+      return o != null;
+    }
+
+    public static <T> T requireNonNullMessageImpl(T obj, String message) {
+      if (obj == null) {
+        throw new NullPointerException(message);
+      }
+      return obj;
+    }
+
+    public static String toStringImpl(Object o) {
+      return Objects.toString(o, "null");
+    }
+
+    public static String toStringDefaultImpl(Object o, String nullDefault) {
+      return o == null ? nullDefault : o.toString();
+    }
+  }
+
   public static final class RewritableMethods {
     // Map class, method, proto to a generator for creating the code and method.
     private final Map<DexString, Map<DexString, Map<DexProto, MethodGenerator>>> rewritable =
@@ -643,6 +765,62 @@ public final class BackportedMethodRewriter {
       proto = factory.createProto(factory.intType, factory.charType, factory.charType);
       addOrGetMethod(clazz, method)
           .put(proto, new MethodGenerator(CharacterMethods::compareCode, clazz, method, proto));
+
+      // Objects
+      clazz = factory.objectsDescriptor;
+
+      // int Objects.compare(T a, T b, Comparator<? super T> c)
+      method = factory.createString("compare");
+      proto = factory.createProto(factory.intType, factory.objectType, factory.objectType,
+          factory.comparatorType);
+      addOrGetMethod(clazz, method)
+          .put(proto, new MethodGenerator(ObjectsMethods::compareCode, clazz, method, proto));
+
+      // boolean Objects.deepEquals(Object a, Object b)
+      method = factory.createString("deepEquals");
+      proto = factory.createProto(factory.booleanType, factory.objectType, factory.objectType);
+      addOrGetMethod(clazz, method)
+          .put(proto, new MethodGenerator(ObjectsMethods::deepEqualsCode, clazz, method, proto));
+
+      // boolean Objects.equals(Object a, Object b)
+      method = factory.createString("equals");
+      proto = factory.createProto(factory.booleanType, factory.objectType, factory.objectType);
+      addOrGetMethod(clazz, method)
+          .put(proto, new MethodGenerator(ObjectsMethods::equalsCode, clazz, method, proto));
+
+      // int Objects.hash(Object... o)
+      method = factory.createString("hash");
+      proto = factory.createProto(factory.intType, factory.objectArrayType);
+      addOrGetMethod(clazz, method)
+          .put(proto, new MethodGenerator(ObjectsMethods::hashCode, clazz, method, proto));
+
+      // int Objects.hashCode(Object o)
+      method = factory.createString("hashCode");
+      proto = factory.createProto(factory.intType, factory.objectType);
+      addOrGetMethod(clazz, method)
+          .put(proto, new MethodGenerator(ObjectsMethods::hashCodeCode, clazz, method, proto));
+
+      // Note: Objects.requireNonNull(T) rewriting is handled by CodeRewriter for now.
+
+      // T Objects.requireNonNull(T obj, String message)
+      method = factory.createString("requireNonNull");
+      proto = factory.createProto(factory.objectType, factory.objectType, factory.stringType);
+      addOrGetMethod(clazz, method)
+          .put(proto,
+              new MethodGenerator(ObjectsMethods::requireNonNullMessageCode, clazz, method, proto));
+
+      // String Objects.toString(Object o)
+      method = factory.createString("toString");
+      proto = factory.createProto(factory.stringType, factory.objectType);
+      addOrGetMethod(clazz, method)
+          .put(proto, new MethodGenerator(ObjectsMethods::toStringCode, clazz, method, proto));
+
+      // String Objects.toString(Object o, String nullDefault);
+      method = factory.createString("toString");
+      proto = factory.createProto(factory.stringType, factory.objectType, factory.stringType);
+      addOrGetMethod(clazz, method)
+          .put(proto,
+              new MethodGenerator(ObjectsMethods::toStringDefaultCode, clazz, method, proto));
     }
 
     private void initializeJava8SignedOperations(DexItemFactory factory) {
@@ -817,6 +995,21 @@ public final class BackportedMethodRewriter {
       proto = factory.createProto(factory.intType, factory.charType);
       addOrGetMethod(clazz, method)
           .put(proto, new MethodGenerator(CharacterMethods::hashCodeCode, clazz, method, proto));
+
+      // Objects
+      clazz = factory.objectsDescriptor;
+
+      // boolean Objects.isNull(Object o)
+      method = factory.createString("isNull");
+      proto = factory.createProto(factory.booleanType, factory.objectType);
+      addOrGetMethod(clazz, method)
+          .put(proto, new MethodGenerator(ObjectsMethods::isNullCode, clazz, method, proto));
+
+      // boolean Objects.nonNull(Object a)
+      method = factory.createString("nonNull");
+      proto = factory.createProto(factory.booleanType, factory.objectType);
+      addOrGetMethod(clazz, method)
+          .put(proto, new MethodGenerator(ObjectsMethods::nonNullCode, clazz, method, proto));
     }
 
     private void initializeJava8UnsignedOperations(DexItemFactory factory) {

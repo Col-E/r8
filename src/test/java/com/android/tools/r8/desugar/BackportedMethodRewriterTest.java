@@ -15,7 +15,10 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.nio.file.Path;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -36,9 +39,9 @@ public class BackportedMethodRewriterTest extends TestBase {
         .run(TestMethods.class)
         .assertSuccessWithOutput(expectedOutput);
 
-    assertDesugaring(AndroidApiLevel.O, 37);
-    assertDesugaring(AndroidApiLevel.N, 31);
-    assertDesugaring(AndroidApiLevel.K, 6);
+    assertDesugaring(AndroidApiLevel.O, 55);
+    assertDesugaring(AndroidApiLevel.N, 49);
+    assertDesugaring(AndroidApiLevel.K, 20);
     assertDesugaring(AndroidApiLevel.J_MR2, 0);
   }
 
@@ -125,6 +128,11 @@ public class BackportedMethodRewriterTest extends TestBase {
 
   static class TestMethods {
     // Defined as a static method on this class to avoid affecting invoke-static counts in main().
+    private static <T> Comparator<T> reverse() {
+      return Collections.reverseOrder();
+    }
+
+    // Defined as a static method on this class to avoid affecting invoke-static counts in main().
     private static int signum(int value) {
       return (int) Math.signum(value);
     }
@@ -195,9 +203,10 @@ public class BackportedMethodRewriterTest extends TestBase {
         }
       }
 
-      for (boolean aBoolean : new boolean[]{true, false}) {
+      boolean[] aBooleans = { true, false };
+      for (boolean aBoolean : aBooleans) {
         System.out.println(Boolean.hashCode(aBoolean));
-        for (boolean bBoolean : new boolean[]{true, false}) {
+        for (boolean bBoolean : aBooleans) {
           System.out.println(Boolean.compare(aBoolean, bBoolean));
           System.out.println(Boolean.logicalAnd(aBoolean, bBoolean));
           System.out.println(Boolean.logicalOr(aBoolean, bBoolean));
@@ -228,6 +237,48 @@ public class BackportedMethodRewriterTest extends TestBase {
         for (char bChar : aChars) {
           System.out.println(Character.compare(aChar, bChar));
         }
+      }
+
+      System.out.println(Objects.compare("a", "b", reverse()));
+      System.out.println(Objects.compare("b", "a", reverse()));
+      System.out.println(Objects.compare("a", "a", reverse()));
+
+      Object[] objects = { aBytes, aBooleans, aChars, aDoubles, aFloats, aInts, aLongs, "a", null };
+      for (Object aObject : objects) {
+        for (Object bObject : objects) {
+          System.out.println(Objects.deepEquals(aObject, bObject));
+          System.out.println(Objects.equals(aObject, bObject));
+        }
+      }
+
+      // Use explicit boxing to avoid valueOf method calls which affect invoke-static counts.
+      System.out.println(
+          Objects.hash(new Integer(1), "2", new Double(3), new Float(4), new Long(5)));
+
+      // Runtime conditionals to prevent any null analysis. Will always evaluate to false branch.
+      Object maybeNullButNot = args.length == 1000 ? null : "non-null";
+      Object maybeNullButIs = args.length == 2000 ? "non-null" : null;
+
+      System.out.println(Objects.isNull(maybeNullButNot));
+      System.out.println(Objects.isNull(maybeNullButIs));
+
+      System.out.println(Objects.nonNull(maybeNullButNot));
+      System.out.println(Objects.nonNull(maybeNullButIs));
+
+      System.out.println(Objects.toString(maybeNullButNot));
+      System.out.println(Objects.toString(maybeNullButIs));
+
+      System.out.println(Objects.toString(maybeNullButNot, "null default"));
+      System.out.println(Objects.toString(maybeNullButIs, "null default"));
+
+      System.out.println(Objects.hashCode(maybeNullButNot));
+      System.out.println(Objects.hashCode(maybeNullButIs));
+
+      System.out.println(Objects.requireNonNull(maybeNullButNot, "unexpected"));
+      try {
+        throw new AssertionError(Objects.requireNonNull(maybeNullButIs, "expected"));
+      } catch (NullPointerException e) {
+        System.out.println(e.getMessage().contains("expected"));
       }
     }
   }
