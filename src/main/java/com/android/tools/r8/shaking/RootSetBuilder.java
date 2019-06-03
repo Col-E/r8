@@ -178,12 +178,16 @@ public class RootSetBuilder {
           markClass(clazz, rule);
         } else {
           preconditionSupplier = ImmutableMap.of((definition -> true), clazz);
-          markMatchingFields(clazz, memberKeepRules, rule, preconditionSupplier);
-          markMatchingMethods(clazz, memberKeepRules, rule, preconditionSupplier);
+          markMatchingVisibleMethods(clazz, memberKeepRules, rule, preconditionSupplier, true);
+          markMatchingOverriddenMethods(
+              appView.appInfo(), clazz, memberKeepRules, rule, preconditionSupplier, true);
+          markMatchingVisibleFields(clazz, memberKeepRules, rule, preconditionSupplier, true);
         }
       } else if (rule instanceof ProguardWhyAreYouKeepingRule) {
         markClass(clazz, rule);
         markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true);
+        markMatchingOverriddenMethods(
+            appView.appInfo(), clazz, memberKeepRules, rule, null, true);
         markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true);
       } else if (rule instanceof ProguardAssumeMayHaveSideEffectsRule
           || rule instanceof ProguardAssumeNoSideEffectRule) {
