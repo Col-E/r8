@@ -26,6 +26,7 @@ import com.android.tools.r8.graph.FieldAccessInfoImpl;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.optimize.NestUtils;
 import com.android.tools.r8.utils.CollectionUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -769,9 +770,9 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     }
     switch (type) {
       case VIRTUAL:
-        return lookupSingleVirtualTarget(target);
+        return lookupSingleVirtualTarget(target, invocationContext);
       case INTERFACE:
-        return lookupSingleInterfaceTarget(target);
+        return lookupSingleInterfaceTarget(target, invocationContext);
       case DIRECT:
         return lookupDirectTarget(target);
       case STATIC:
@@ -784,13 +785,18 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
   }
 
   /** For mapping invoke virtual instruction to single target method. */
-  public DexEncodedMethod lookupSingleVirtualTarget(DexMethod method) {
+  public DexEncodedMethod lookupSingleVirtualTarget(DexMethod method, DexType invocationContext) {
     assert checkIfObsolete();
-    return lookupSingleVirtualTarget(method, method.holder);
+    return lookupSingleVirtualTarget(method, invocationContext, method.holder);
   }
 
-  public DexEncodedMethod lookupSingleVirtualTarget(DexMethod method, DexType refinedReceiverType) {
+  public DexEncodedMethod lookupSingleVirtualTarget(
+      DexMethod method, DexType invocationContext, DexType refinedReceiverType) {
     assert checkIfObsolete();
+    DexEncodedMethod directResult = nestAccessLookup(method, invocationContext);
+    if (directResult != null) {
+      return directResult;
+    }
     // This implements the logic from
     // https://docs.oracle.com/javase/specs/jvms/se9/html/jvms-6.html#jvms-6.5.invokevirtual
     assert method != null;
@@ -845,6 +851,21 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     result = result == DexEncodedMethod.SENTINEL ? null : result;
     method.setSingleVirtualMethodCache(refinedReceiverType, result);
     return result;
+  }
+
+  private DexEncodedMethod nestAccessLookup(DexMethod method, DexType invocationContext) {
+    if (method.holder == invocationContext || !definitionFor(invocationContext).isInANest()) {
+      return null;
+    }
+    DexEncodedMethod directTarget = lookupDirectTarget(method);
+    assert directTarget == null || directTarget.method.holder == method.holder;
+    if (directTarget != null
+        && directTarget.isPrivateMethod()
+        && NestUtils.sameNest(method.holder, invocationContext, this)) {
+      return directTarget;
+    }
+
+    return null;
   }
 
   /**
@@ -937,14 +958,18 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     return false;
   }
 
-  public DexEncodedMethod lookupSingleInterfaceTarget(DexMethod method) {
+  public DexEncodedMethod lookupSingleInterfaceTarget(DexMethod method, DexType invocationContext) {
     assert checkIfObsolete();
-    return lookupSingleInterfaceTarget(method, method.holder);
+    return lookupSingleInterfaceTarget(method, invocationContext, method.holder);
   }
 
   public DexEncodedMethod lookupSingleInterfaceTarget(
-      DexMethod method, DexType refinedReceiverType) {
+      DexMethod method, DexType invocationContext, DexType refinedReceiverType) {
     assert checkIfObsolete();
+    DexEncodedMethod directResult = nestAccessLookup(method, invocationContext);
+    if (directResult != null) {
+      return directResult;
+    }
     if (instantiatedLambdas.contains(method.holder)) {
       return null;
     }

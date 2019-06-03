@@ -88,7 +88,9 @@ public class InvokeInterface extends InvokeMethodWithReceiver {
       AppView<AppInfoWithLiveness> appView, DexType invocationContext) {
     DexType refinedReceiverType = TypeAnalysis.getRefinedReceiverType(appView, this);
     DexMethod method = getInvokedMethod();
-    return appView.appInfo().lookupSingleInterfaceTarget(method, refinedReceiverType);
+    return appView
+        .appInfo()
+        .lookupSingleInterfaceTarget(method, invocationContext, refinedReceiverType);
   }
 
   @Override

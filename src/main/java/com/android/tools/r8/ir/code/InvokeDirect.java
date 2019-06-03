@@ -45,6 +45,10 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
         || result == null;
   }
 
+  public boolean isInterface() {
+    return itf;
+  }
+
   @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);

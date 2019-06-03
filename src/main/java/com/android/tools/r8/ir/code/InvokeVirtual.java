@@ -91,7 +91,9 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
       AppView<AppInfoWithLiveness> appView, DexType invocationContext) {
     DexType refinedReceiverType = TypeAnalysis.getRefinedReceiverType(appView, this);
     DexMethod method = getInvokedMethod();
-    return appView.appInfo().lookupSingleVirtualTarget(method, refinedReceiverType);
+    return appView
+        .appInfo()
+        .lookupSingleVirtualTarget(method, invocationContext, refinedReceiverType);
   }
 
   @Override

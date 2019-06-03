@@ -53,6 +53,13 @@ public class NestAccessControlTestUtils {
           "NestHostInliningSubclasses$InnerNoPrivAccess",
           "OutsideInliningNoAccess",
           "OutsideInliningWithAccess",
+          "NestPvtMethodCallInlined",
+          "NestPvtMethodCallInlined$Inner",
+          "NestPvtMethodCallInlined$InnerInterface",
+          "NestPvtMethodCallInlined$InnerInterfaceImpl",
+          "NestPvtMethodCallInlined$InnerSub",
+          "NestPvtFieldPropagated",
+          "NestPvtFieldPropagated$Inner",
           "NestHostExample",
           "NestHostExample$NestMemberInner",
           "NestHostExample$NestMemberInner$NestMemberInnerInner",
@@ -77,6 +84,8 @@ public class NestAccessControlTestUtils {
           .put("prune", "BasicNestHostTreePruning")
           .put("inlining", "NestHostInlining")
           .put("inliningSub", "NestHostInliningSubclasses")
+          .put("pvtCallInlined", "NestPvtMethodCallInlined")
+          .put("memberPropagated", "NestPvtFieldPropagated")
           .build();
   public static final String ALL_RESULT_LINE =
       String.join(
@@ -134,6 +143,18 @@ public class NestAccessControlTestUtils {
                   "staticInterfaceMethodstaticStaticInterfaceMethod",
                   "staticInterfaceMethodstaticStaticInterfaceMethod",
                   "staticInterfaceMethodstaticStaticInterfaceMethod"))
+          .put(
+              "pvtCallInlined",
+              StringUtils.lines(
+                  "nestPvtCallToInlineInner",
+                  "nestPvtCallToInlineInnerInterface",
+                  "notInlinedPvtCallInner",
+                  "notInlinedPvtCallInnerInterface",
+                  "notInlinedPvtCallInnerSub",
+                  "notInlinedPvtCallInnerInterface",
+                  "nestPvtCallToInlineInnerSub",
+                  "nestPvtCallToInlineInner"))
+          .put("memberPropagated", StringUtils.lines("toPropagateStatic"))
           .build();
 
   public static String getMainClass(String id) {

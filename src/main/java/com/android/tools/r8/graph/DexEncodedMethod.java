@@ -48,6 +48,7 @@ import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaring.DexFieldWithAccess;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
+import com.android.tools.r8.ir.optimize.NestUtils;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.ir.synthetic.FieldAccessorSourceCode;
 import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
@@ -316,6 +317,10 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     return accessFlags.isSynthetic();
   }
 
+  public boolean isOnlyInlinedIntoNestMembers() {
+    return compilationState == PROCESSED_INLINING_CANDIDATE_SAME_NEST;
+  }
+
   public boolean isInliningCandidate(
       DexEncodedMethod container, Reason inliningReason, AppInfoWithSubtyping appInfo) {
     checkIfObsolete();
@@ -347,7 +352,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       case PROCESSED_INLINING_CANDIDATE_SAME_PACKAGE:
         return containerType.isSamePackage(method.holder);
       case PROCESSED_INLINING_CANDIDATE_SAME_NEST:
-        return ConstraintWithTarget.sameNest(containerType, method.holder, appInfo);
+        return NestUtils.sameNest(containerType, method.holder, appInfo);
       case PROCESSED_INLINING_CANDIDATE_SAME_CLASS:
         return containerType == method.holder;
       default:

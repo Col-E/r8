@@ -8,7 +8,6 @@ import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassHierarchy;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -138,7 +137,7 @@ public class Inliner {
       return true;
     }
     if (flags.isPrivate()) {
-      return target == context;
+      return NestUtils.sameNest(target, context, appView);
     }
     if (flags.isProtected()) {
       return appView.appInfo().isSubtype(context, target) || target.isSamePackage(context);
@@ -300,24 +299,6 @@ public class Inliner {
           && this.targetHolder == o.targetHolder;
     }
 
-    public static boolean sameNest(
-        DexType contextHolder, DexType targetHolder, DexDefinitionSupplier definitions) {
-      if (contextHolder == targetHolder) {
-        return true;
-      }
-      DexClass contextHolderClass = definitions.definitionFor(contextHolder);
-      assert contextHolderClass != null;
-      if (!contextHolderClass.isInANest()) {
-        return false;
-      }
-      DexClass targetHolderClass = definitions.definitionFor(targetHolder);
-      if (targetHolderClass == null) {
-        // Conservatively return false
-        return false;
-      }
-      return contextHolderClass.getNestHost() == targetHolderClass.getNestHost();
-    }
-
     public static ConstraintWithTarget deriveConstraint(
         DexType contextHolder, DexType targetHolder, AccessFlags flags, AppView<?> appView) {
       if (flags.isPublic()) {
@@ -326,7 +307,7 @@ public class Inliner {
         DexClass contextHolderClass = appView.definitionFor(contextHolder);
         assert contextHolderClass != null;
         if (contextHolderClass.isInANest()) {
-          return sameNest(contextHolder, targetHolder, appView)
+          return NestUtils.sameNest(contextHolder, targetHolder, appView)
               ? new ConstraintWithTarget(Constraint.SAMENEST, targetHolder)
               : NEVER;
         }
@@ -389,7 +370,7 @@ public class Inliner {
           return NEVER;
         }
         if (other.constraint == Constraint.SAMENEST) {
-          if (sameNest(one.targetHolder, other.targetHolder, appView)) {
+          if (NestUtils.sameNest(one.targetHolder, other.targetHolder, appView)) {
             return one;
           }
           return NEVER;
@@ -410,7 +391,7 @@ public class Inliner {
       if (Constraint.SAMENEST.isSet(constraint)) {
         assert one.constraint == Constraint.SAMENEST;
         if (other.constraint == Constraint.SAMENEST) {
-          if (sameNest(one.targetHolder, other.targetHolder, appView)) {
+          if (NestUtils.sameNest(one.targetHolder, other.targetHolder, appView)) {
             return one;
           }
           return NEVER;

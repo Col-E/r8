@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Phi.RegisterReadType;
+import com.android.tools.r8.ir.optimize.NestUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.google.common.collect.ImmutableList;
@@ -417,8 +418,14 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
       Set<BasicBlock> blocksToRemove,
       DexType downcast) {
     assert blocksToRemove != null;
+    DexType codeHolder = code.method.method.holder;
+    DexType inlineeHolder = inlinee.method.method.holder;
+    if (codeHolder != inlineeHolder && inlinee.method.isOnlyInlinedIntoNestMembers()) {
+      // Should rewrite private calls to virtual calls.
+      assert NestUtils.sameNest(codeHolder, inlineeHolder, appView);
+      NestUtils.rewriteNestCallsForInlining(inlinee, codeHolder, appView);
+    }
     boolean inlineeCanThrow = canThrow(inlinee);
-
     // Split the block with the invocation into three blocks, where the first block contains all
     // instructions before the invocation, the second block contains only the invocation, and the
     // third block contains all instructions that follow the invocation.
