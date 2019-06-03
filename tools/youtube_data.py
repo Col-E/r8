@@ -131,6 +131,7 @@ VERSIONS = {
       'pgconf': [
           '%s_proguard.config' % V14_19_PREFIX,
           '%s/proguardsettings/YouTubeRelease_proguard.config' % utils.THIRD_PARTY],
+      'proto-shrinking': 1,
       # Build for native multi dex, as Currently R8 cannot meet the main-dex
       # constraints.
       #'maindexrules' : [

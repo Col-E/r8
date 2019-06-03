@@ -11,13 +11,19 @@ import java.util.function.Consumer;
 /** Provides immutable access to {@link FieldAccessInfoImpl}. */
 public interface FieldAccessInfo {
 
+  FieldAccessInfoImpl asMutable();
+
   DexField getField();
+
+  DexEncodedMethod getUniqueReadContext();
 
   void forEachIndirectAccess(Consumer<DexField> consumer);
 
   void forEachIndirectAccessWithContexts(BiConsumer<DexField, Set<DexEncodedMethod>> consumer);
 
   boolean isRead();
+
+  boolean isReadOnlyIn(DexEncodedMethod method);
 
   boolean isWritten();
 }

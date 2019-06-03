@@ -111,6 +111,14 @@ public class Enqueuer {
   private final boolean forceProguardCompatibility;
   private boolean tracingMainDex = false;
 
+  // If shrinking of the generated proto extension registry is enabled, then the Enqueuer
+  // won't trace the dead proto extensions fields. However, for the purpose of member value
+  // propagation, we should keep the dead proto extension fields in the program, such that
+  // member value propagation can find their definitions and the corresponding optimization
+  // info. This is handled by simply marking the dead proto extension types as live after the
+  // Enqueuer has finished. This way we don't actually trace these types.
+  private boolean markSkippedProtoExtensionTypesAsLive = false;
+
   private final AppInfoWithSubtyping appInfo;
   private final AppView<? extends AppInfoWithSubtyping> appView;
   private final InternalOptions options;
@@ -167,6 +175,14 @@ public class Enqueuer {
    * for these.
    */
   private final Set<DexType> liveTypes = Sets.newIdentityHashSet();
+
+  /**
+   * Set of proto extension types that are technically live, but which we have not traced because
+   * they are dead according to the generated extension registry shrinker.
+   *
+   * <p>Only used if {@link InternalOptions#enableGeneratedExtensionRegistryShrinking} is set.
+   */
+  private final Set<DexType> skippedProtoExtensionTypes = Sets.newIdentityHashSet();
 
   /** Set of annotation types that are instantiated. */
   private final SetWithReason<DexAnnotation> liveAnnotations =
@@ -285,6 +301,10 @@ public class Enqueuer {
     this.forceProguardCompatibility = options.forceProguardCompatibility;
     this.keptGraphConsumer = keptGraphConsumer;
     this.options = options;
+  }
+
+  public void markSkippedProtoExtensionTypesAsLive(boolean value) {
+    markSkippedProtoExtensionTypesAsLive = value;
   }
 
   private Set<DexField> staticFieldsWrittenOnlyInEnclosingStaticInitializer() {
@@ -609,9 +629,30 @@ public class Enqueuer {
       if (!registerFieldRead(field, currentMethod)) {
         return false;
       }
+
       if (Log.ENABLED) {
         Log.verbose(getClass(), "Register Sget `%s`.", field);
       }
+
+      DexEncodedField encodedField = appInfo.resolveField(field);
+      if (encodedField != null && encodedField.isProgramField(appView)) {
+        if (appView.options().enableGeneratedExtensionRegistryShrinking) {
+          // If it is a dead proto extension field, don't trace onwards.
+          boolean skipTracing =
+              appView.withGeneratedExtensionRegistryShrinker(
+                  shrinker ->
+                      shrinker.isDeadProtoExtensionField(
+                          encodedField.field, fieldAccessInfoCollection),
+                  false);
+          if (skipTracing) {
+            if (markSkippedProtoExtensionTypesAsLive) {
+              skippedProtoExtensionTypes.add(encodedField.field.holder);
+            }
+            return false;
+          }
+        }
+      }
+
       markStaticFieldAsLive(field, KeepReason.fieldReferencedIn(currentMethod));
       return true;
     }
@@ -621,12 +662,30 @@ public class Enqueuer {
       if (!registerFieldWrite(field, currentMethod)) {
         return false;
       }
+
       if (Log.ENABLED) {
         Log.verbose(getClass(), "Register Sput `%s`.", field);
       }
 
       DexEncodedField encodedField = appInfo.resolveField(field);
       if (encodedField != null && encodedField.isProgramField(appView)) {
+        if (appView.options().enableGeneratedExtensionRegistryShrinking) {
+          // If it is a dead proto extension field, don't trace onwards.
+          boolean skipTracing =
+              appView.withGeneratedExtensionRegistryShrinker(
+                  shrinker ->
+                      shrinker.isDeadProtoExtensionField(
+                          encodedField.field, fieldAccessInfoCollection),
+                  false);
+          if (skipTracing) {
+            if (markSkippedProtoExtensionTypesAsLive) {
+              skippedProtoExtensionTypes.add(encodedField.field.holder);
+            }
+            return false;
+          }
+        }
+
+        // If it is written outside of the <clinit> of its enclosing class, record it.
         boolean isWrittenOutsideEnclosingStaticInitializer =
             currentMethod.method.holder != encodedField.field.holder
                 || !currentMethod.isClassInitializer();
@@ -1563,6 +1622,14 @@ public class Enqueuer {
     fieldAccessInfoCollection.removeIf(
         (field, info) -> field != info.getField() || info == MISSING_FIELD_ACCESS_INFO);
     assert fieldAccessInfoCollection.verifyMappingIsOneToOne();
+
+    // Mark the proto extensions types that have not been traced as live if specified by the
+    // configuration. This enables the member value propagation to find the definition of the dead
+    // proto extension fields, and thereby optimize the corresponding static-get instructions (will
+    // always be null).
+    if (markSkippedProtoExtensionTypesAsLive) {
+      liveTypes.addAll(skippedProtoExtensionTypes);
+    }
 
     AppInfoWithLiveness appInfoWithLiveness =
         new AppInfoWithLiveness(

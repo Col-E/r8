@@ -25,6 +25,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.ir.analysis.proto.GeneratedExtensionRegistryShrinker;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.R8NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.optimize.EnumOrdinalMapCollector;
@@ -35,6 +36,7 @@ import com.android.tools.r8.ir.optimize.UninstantiatedTypeOptimization;
 import com.android.tools.r8.ir.optimize.UnusedArgumentsCollector;
 import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.kotlin.Kotlin;
+import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.Minifier;
 import com.android.tools.r8.naming.NamingLens;
@@ -327,6 +329,16 @@ public class R8 {
                 .run(executorService));
 
         Enqueuer enqueuer = new Enqueuer(appView, options, null, compatibility);
+
+        // If shrinking of the generated proto extension registry is enabled, then the Enqueuer
+        // won't trace the dead proto extensions fields. However, for the purpose of member value
+        // propagation, we should keep the dead proto extension fields in the program, such that
+        // member value propagation can find their definitions and the corresponding optimization
+        // info. This is handled by simply marking the dead proto extension types as live after the
+        // Enqueuer has finished. This way we don't actually trace these types.
+        enqueuer.markSkippedProtoExtensionTypesAsLive(
+            options.enableGeneratedExtensionRegistryShrinking);
+
         AppView<AppInfoWithLiveness> appViewWithLiveness =
             appView.setAppInfo(
                 enqueuer.traceApplication(
@@ -356,6 +368,9 @@ public class R8 {
                   .withLiveness()
                   .prunedCopyFrom(application, pruner.getRemovedClasses()));
           new AbstractMethodRemover(appView.appInfo().withLiveness()).run();
+
+          // Mark dead proto extensions fields as neither being read nor written.
+          appView.withGeneratedExtensionRegistryShrinker(GeneratedExtensionRegistryShrinker::run);
         }
 
         classesToRetainInnerClassAttributeFor =
@@ -628,6 +643,11 @@ public class R8 {
                   options.getProguardConfiguration().getDontWarnPatterns(),
                   executorService,
                   timing));
+
+          if (Log.ENABLED) {
+            appView.withGeneratedExtensionRegistryShrinker(
+                GeneratedExtensionRegistryShrinker::logDeadProtoExtensionFields);
+          }
 
           if (options.isShrinking()) {
             TreePruner pruner = new TreePruner(application, appViewWithLiveness);

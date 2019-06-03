@@ -37,8 +37,24 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
   }
 
   @Override
+  public FieldAccessInfoImpl asMutable() {
+    return this;
+  }
+
+  @Override
   public DexField getField() {
     return field;
+  }
+
+  @Override
+  public DexEncodedMethod getUniqueReadContext() {
+    if (readsWithContexts != null && readsWithContexts.size() == 1) {
+      Set<DexEncodedMethod> contexts = readsWithContexts.values().iterator().next();
+      if (contexts.size() == 1) {
+        return contexts.iterator().next();
+      }
+    }
+    return null;
   }
 
   @Override
@@ -99,6 +115,14 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
     return readsWithContexts != null && !readsWithContexts.isEmpty();
   }
 
+  @Override
+  public boolean isReadOnlyIn(DexEncodedMethod method) {
+    assert isRead();
+    assert method != null;
+    DexEncodedMethod uniqueReadContext = getUniqueReadContext();
+    return uniqueReadContext != null && uniqueReadContext == method;
+  }
+
   /** Returns true if this field is written by the program. */
   @Override
   public boolean isWritten() {
@@ -121,6 +145,10 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
     return writesWithContexts
         .computeIfAbsent(access, ignore -> Sets.newIdentityHashSet())
         .add(context);
+  }
+
+  public void clearReads() {
+    readsWithContexts = null;
   }
 
   public void clearWrites() {

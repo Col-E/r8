@@ -9,5 +9,7 @@ import java.util.function.Consumer;
 /** Provides immutable access to {@link FieldAccessInfoCollectionImpl}. */
 public interface FieldAccessInfoCollection<T extends FieldAccessInfo> {
 
+  T get(DexField field);
+
   void forEach(Consumer<T> consumer);
 }

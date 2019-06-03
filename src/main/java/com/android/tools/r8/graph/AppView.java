@@ -5,6 +5,7 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.OptionalBool;
+import com.android.tools.r8.ir.analysis.proto.GeneratedExtensionRegistryShrinker;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.shaking.VerticalClassMerger.VerticallyMergedClasses;
@@ -12,6 +13,8 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
@@ -29,6 +32,10 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
   private final InternalOptions options;
   private RootSet rootSet;
 
+  // Optimizations.
+  private final GeneratedExtensionRegistryShrinker generatedExtensionRegistryShrinker;
+
+  // Optimization results.
   private Predicate<DexType> classesEscapingIntoLibrary = Predicates.alwaysTrue();
   private Set<DexMethod> unneededVisibilityBridgeMethods = ImmutableSet.of();
   private VerticallyMergedClasses verticallyMergedClasses;
@@ -40,6 +47,15 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
     this.wholeProgramOptimizations = wholeProgramOptimizations;
     this.graphLense = GraphLense.getIdentityLense();
     this.options = options;
+
+    if (enableWholeProgramOptimizations()) {
+      this.generatedExtensionRegistryShrinker =
+          options.enableGeneratedExtensionRegistryShrinking
+              ? new GeneratedExtensionRegistryShrinker(this.withLiveness())
+              : null;
+    } else {
+      this.generatedExtensionRegistryShrinker = null;
+    }
   }
 
   public static <T extends AppInfo> AppView<T> createForD8(T appInfo, InternalOptions options) {
@@ -125,6 +141,21 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
 
   public boolean enableWholeProgramOptimizations() {
     return wholeProgramOptimizations == WholeProgramOptimizations.ON;
+  }
+
+  public void withGeneratedExtensionRegistryShrinker(
+      Consumer<GeneratedExtensionRegistryShrinker> consumer) {
+    if (generatedExtensionRegistryShrinker != null) {
+      consumer.accept(generatedExtensionRegistryShrinker);
+    }
+  }
+
+  public <U> U withGeneratedExtensionRegistryShrinker(
+      Function<GeneratedExtensionRegistryShrinker, U> fn, U defaultValue) {
+    if (generatedExtensionRegistryShrinker != null) {
+      return fn.apply(generatedExtensionRegistryShrinker);
+    }
+    return defaultValue;
   }
 
   public GraphLense graphLense() {

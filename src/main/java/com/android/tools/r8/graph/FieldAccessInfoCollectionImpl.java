@@ -15,6 +15,7 @@ public class FieldAccessInfoCollectionImpl
 
   private Map<DexField, FieldAccessInfoImpl> infos = new IdentityHashMap<>();
 
+  @Override
   public FieldAccessInfoImpl get(DexField field) {
     return infos.get(field);
   }
