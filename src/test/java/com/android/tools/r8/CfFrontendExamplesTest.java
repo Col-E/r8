@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.function.BiConsumer;
 import org.junit.Test;
 import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.util.ASMifier;
 import org.objectweb.asm.util.TraceClassVisitor;
 
@@ -121,11 +120,6 @@ public class CfFrontendExamplesTest extends TestBase {
   @Test
   public void testUdpServer() throws Exception {
     runTest("loop.UdpServer");
-  }
-
-  @Test
-  public void testNewArray() throws Exception {
-    runTest("newarray.NewArray");
   }
 
   @Test

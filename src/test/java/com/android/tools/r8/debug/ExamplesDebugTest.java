@@ -156,11 +156,6 @@ public class ExamplesDebugTest extends DebugTestBase {
   }
 
   @Test
-  public void testNewArray() throws Exception {
-    testDebugging("newarray", "NewArray");
-  }
-
-  @Test
   public void testRegAlloc() throws Exception {
     testDebugging("regalloc", "RegAlloc");
   }
