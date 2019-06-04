@@ -645,9 +645,9 @@ public class R8 {
                   executorService,
                   timing));
 
-          if (Log.ENABLED) {
+          if (Log.ENABLED && Log.isLoggingEnabledFor(GeneratedExtensionRegistryShrinker.class)) {
             appView.withGeneratedExtensionRegistryShrinker(
-                GeneratedExtensionRegistryShrinker::logDeadProtoExtensionFields);
+                GeneratedExtensionRegistryShrinker::logRemainingProtoExtensionFields);
           }
 
           if (options.isShrinking()) {

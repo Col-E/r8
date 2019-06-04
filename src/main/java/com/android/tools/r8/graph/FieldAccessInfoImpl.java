@@ -109,6 +109,23 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
     }
   }
 
+  @Override
+  public void forEachReadContext(Consumer<DexMethod> consumer) {
+    // There can be indirect reads and writes of the same field reference, so we need to keep track
+    // of the previously-seen indirect accesses to avoid reporting duplicates.
+    Set<DexMethod> visited = Sets.newIdentityHashSet();
+    if (readsWithContexts != null) {
+      for (Set<DexEncodedMethod> encodedReadContexts : readsWithContexts.values()) {
+        for (DexEncodedMethod encodedReadContext : encodedReadContexts) {
+          DexMethod readContext = encodedReadContext.method;
+          if (visited.add(readContext)) {
+            consumer.accept(readContext);
+          }
+        }
+      }
+    }
+  }
+
   /** Returns true if this field is read by the program. */
   @Override
   public boolean isRead() {

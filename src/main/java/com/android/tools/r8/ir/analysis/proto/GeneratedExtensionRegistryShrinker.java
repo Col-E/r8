@@ -5,8 +5,10 @@
 package com.android.tools.r8.ir.analysis.proto;
 
 import static com.google.common.base.Predicates.alwaysFalse;
+import static com.google.common.base.Predicates.not;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DefaultUseRegistry;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -26,7 +28,16 @@ import com.android.tools.r8.ir.conversion.OptimizationFeedbackIgnore;
 import com.android.tools.r8.ir.optimize.Outliner;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.FileUtils;
+import com.google.common.base.Predicates;
+import com.google.common.collect.Sets;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
  * This optimization is responsible for pruning dead proto extensions.
@@ -196,11 +207,91 @@ public class GeneratedExtensionRegistryShrinker {
   }
 
   /** For debugging. */
-  public void logDeadProtoExtensionFields() {
-    if (Log.isLoggingEnabledFor(GeneratedExtensionRegistryShrinker.class)) {
-      forEachDeadProtoExtensionField(
-          field ->
-              System.out.println("Dead proto extension field: `" + field.toSourceString() + "`"));
+  public void logRemainingProtoExtensionFields() {
+    Predicate<DexField> skip = getSkipPredicate(null);
+
+    Set<DexField> remainingProtoExtensionFieldReads = Sets.newIdentityHashSet();
+    forEachFindLiteExtensionByNumberMethod(
+        method -> {
+          Log.info(
+              GeneratedExtensionRegistryShrinker.class,
+              "Extracting remaining proto extension field reads from method `%s`",
+              method.method.toSourceString());
+
+          assert method.hasCode();
+          method
+              .getCode()
+              .registerCodeReferences(
+                  method,
+                  new DefaultUseRegistry(appView.dexItemFactory()) {
+
+                    @Override
+                    public boolean registerStaticFieldRead(DexField field) {
+                      if (!skip.test(field)) {
+                        remainingProtoExtensionFieldReads.add(field);
+                      }
+                      return true;
+                    }
+                  });
+        });
+
+    Log.info(
+        GeneratedExtensionRegistryShrinker.class,
+        "Number of remaining proto extension fields: %s",
+        remainingProtoExtensionFieldReads.size());
+
+    FieldAccessInfoCollection<?> fieldAccessInfoCollection =
+        appView.appInfo().getFieldAccessInfoCollection();
+    for (DexField field : remainingProtoExtensionFieldReads) {
+      StringBuilder message = new StringBuilder(field.toSourceString());
+      FieldAccessInfo fieldAccessInfo = fieldAccessInfoCollection.get(field);
+      fieldAccessInfo.forEachReadContext(
+          readContext ->
+              message
+                  .append(System.lineSeparator())
+                  .append("- ")
+                  .append(readContext.toSourceString()));
+      Log.info(GeneratedExtensionRegistryShrinker.class, message.toString());
     }
+  }
+
+  /**
+   * Utility to disable logging for proto extensions fields that are expected to be present in the
+   * output.
+   *
+   * <p>Each proto extension field that is expected to be present in the output can be added to the
+   * given file. Then no logs will be emitted for that field.
+   *
+   * <p>Example: File expected-proto-extensions.txt with lines like this:
+   *
+   * <pre>
+   *   foo.bar.SomeClass.someField
+   *   foo.bar.SomeOtherClass.someOtherField
+   * </pre>
+   */
+  private Predicate<DexField> getSkipPredicate(Path file) {
+    if (file != null) {
+      try {
+        DexItemFactory dexItemFactory = appView.dexItemFactory();
+        Set<DexField> skipFields =
+            FileUtils.readAllLines(file).stream()
+                .map(String::trim)
+                .filter(not(String::isEmpty))
+                .map(
+                    x -> {
+                      int separatorIndex = x.lastIndexOf(".");
+                      return dexItemFactory.createField(
+                          dexItemFactory.createType(
+                              DescriptorUtils.javaTypeToDescriptor(x.substring(0, separatorIndex))),
+                          references.generatedExtensionType,
+                          dexItemFactory.createString(x.substring(separatorIndex + 1)));
+                    })
+                .collect(Collectors.toSet());
+        return skipFields::contains;
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    }
+    return Predicates.alwaysFalse();
   }
 }

@@ -21,6 +21,8 @@ public interface FieldAccessInfo {
 
   void forEachIndirectAccessWithContexts(BiConsumer<DexField, Set<DexEncodedMethod>> consumer);
 
+  void forEachReadContext(Consumer<DexMethod> consumer);
+
   boolean isRead();
 
   boolean isReadOnlyIn(DexEncodedMethod method);
