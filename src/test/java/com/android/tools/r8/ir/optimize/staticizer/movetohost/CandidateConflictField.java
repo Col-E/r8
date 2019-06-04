@@ -5,8 +5,11 @@
 package com.android.tools.r8.ir.optimize.staticizer.movetohost;
 
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NeverPropagateValue;
 
 public class CandidateConflictField {
+
+  @NeverPropagateValue
   public static String field;
 
   @NeverInline

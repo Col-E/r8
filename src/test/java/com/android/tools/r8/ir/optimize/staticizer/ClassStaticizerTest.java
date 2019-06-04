@@ -27,6 +27,7 @@ import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.optimize.staticizer.dualcallinline.Candidate;
+import com.android.tools.r8.ir.optimize.staticizer.dualcallinline.DualCallTest;
 import com.android.tools.r8.ir.optimize.staticizer.movetohost.CandidateConflictField;
 import com.android.tools.r8.ir.optimize.staticizer.movetohost.CandidateConflictMethod;
 import com.android.tools.r8.ir.optimize.staticizer.movetohost.CandidateOk;
@@ -45,7 +46,6 @@ import com.android.tools.r8.ir.optimize.staticizer.trivial.SimpleWithParams;
 import com.android.tools.r8.ir.optimize.staticizer.trivial.SimpleWithPhi;
 import com.android.tools.r8.ir.optimize.staticizer.trivial.SimpleWithSideEffects;
 import com.android.tools.r8.ir.optimize.staticizer.trivial.TrivialTestClass;
-import com.android.tools.r8.ir.optimize.staticizer.dualcallinline.DualCallTest;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -204,6 +204,7 @@ public class ClassStaticizerTest extends TestBase {
         testForR8(parameters.getBackend())
             .addProgramClasses(classes)
             .enableInliningAnnotations()
+            .enableMemberValuePropagationAnnotations()
             .addKeepMainRule(main)
             .noMinification()
             .addKeepRules("-allowaccessmodification")

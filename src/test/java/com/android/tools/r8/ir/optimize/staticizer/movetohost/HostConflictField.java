@@ -4,8 +4,12 @@
 
 package com.android.tools.r8.ir.optimize.staticizer.movetohost;
 
+import com.android.tools.r8.NeverPropagateValue;
+
 public class HostConflictField {
+
   static CandidateConflictField INSTANCE = new CandidateConflictField();
 
+  @NeverPropagateValue
   public String field;
 }

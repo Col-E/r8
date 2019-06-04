@@ -1057,6 +1057,14 @@ public abstract class DexValue extends DexItem {
     public String toString() {
       return "Null";
     }
+
+    @Override
+    public ConstInstruction asConstInstruction(IRCode code, Value dest, InternalOptions options) {
+      if (dest.getTypeLattice().isNullType()) {
+        return new ConstNumber(dest, 0);
+      }
+      return code.createConstNull(dest.getLocalInfo());
+    }
   }
 
   static public class DexValueBoolean extends SimpleDexValue {
