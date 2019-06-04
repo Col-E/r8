@@ -784,6 +784,7 @@ public class CodeRewriter {
   }
 
   public void rewriteSwitch(IRCode code) {
+    boolean needToRemoveUnreachableBlocks = false;
     ListIterator<BasicBlock> blocksIterator = code.listIterator();
     while (blocksIterator.hasNext()) {
       BasicBlock block = blocksIterator.next();
@@ -792,6 +793,24 @@ public class CodeRewriter {
         Instruction instruction = iterator.next();
         if (instruction.isSwitch()) {
           Switch theSwitch = instruction.asSwitch();
+          if (options.testing.enableDeadSwitchCaseElimination) {
+            SwitchCaseEliminator eliminator =
+                removeUnnecessarySwitchCases(code, theSwitch, iterator);
+            if (eliminator != null) {
+              if (eliminator.mayHaveIntroducedUnreachableBlocks()) {
+                needToRemoveUnreachableBlocks = true;
+              }
+
+              iterator.previous();
+              instruction = iterator.next();
+              if (instruction.isGoto()) {
+                continue;
+              }
+
+              assert instruction.isSwitch();
+              theSwitch = instruction.asSwitch();
+            }
+          }
           if (theSwitch.numberOfKeys() == 1) {
             // Rewrite the switch to an if.
             int fallthroughBlockIndex = theSwitch.getFallthroughBlockIndex();
@@ -884,7 +903,10 @@ public class CodeRewriter {
             // in newIntervals, potentially with a switch combining the remaining intervals.
             // Now we check to see if we can create any if's to reduce size.
             IntList outliers = new IntArrayList();
-            int outliersAsIfSize = findIfsForCandidates(newSwitches, theSwitch, outliers);
+            int outliersAsIfSize =
+                appView.options().testing.enableSwitchToIfRewriting
+                    ? findIfsForCandidates(newSwitches, theSwitch, outliers)
+                    : 0;
 
             long newSwitchesSize = 0;
             List<IntList> newSwitchSequences = new ArrayList<>(newSwitches.size());
@@ -902,11 +924,52 @@ public class CodeRewriter {
         }
       }
     }
+
+    if (needToRemoveUnreachableBlocks) {
+      code.removeUnreachableBlocks();
+    }
+
     // Rewriting of switches introduces new branching structure. It relies on critical edges
     // being split on the way in but does not maintain this property. We therefore split
     // critical edges at exit.
     code.splitCriticalEdges();
     assert code.isConsistentSSA();
+  }
+
+  private SwitchCaseEliminator removeUnnecessarySwitchCases(
+      IRCode code, Switch theSwitch, InstructionListIterator iterator) {
+    BasicBlock defaultTarget = theSwitch.fallthroughBlock();
+    SwitchCaseEliminator eliminator = null;
+
+    // Compute the set of switch cases that can be removed.
+    for (int i = 0; i < theSwitch.numberOfKeys(); i++) {
+      BasicBlock targetBlock = theSwitch.targetBlock(i);
+
+      // This switch case can be removed if the behavior of the target block is equivalent to the
+      // behavior of the default block, or if the switch case is unreachable.
+      if (basicBlockCanBeReplacedBy(code, targetBlock, defaultTarget)
+          || switchCaseIsUnreachable(theSwitch, i)) {
+        if (eliminator == null) {
+          eliminator = new SwitchCaseEliminator(theSwitch, iterator);
+        }
+        eliminator.markSwitchCaseForRemoval(i);
+      }
+    }
+    if (eliminator != null) {
+      eliminator.optimize();
+    }
+    return eliminator;
+  }
+
+  private boolean basicBlockCanBeReplacedBy(IRCode code, BasicBlock block, BasicBlock replacement) {
+    // TODO(b/132420434): TBD.
+    return false;
+  }
+
+  private boolean switchCaseIsUnreachable(Switch theSwitch, int index) {
+    Value switchValue = theSwitch.value();
+    return switchValue.hasValueRange()
+        && !switchValue.getValueRange().containsValue(theSwitch.getKey(index));
   }
 
   /**

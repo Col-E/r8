@@ -372,6 +372,11 @@ public class DexInstructionSubject implements InstructionSubject {
   }
 
   @Override
+  public boolean isSwitch() {
+    return isPackedSwitch() || isSparseSwitch();
+  }
+
+  @Override
   public boolean isPackedSwitch() {
     return instruction instanceof PackedSwitch;
   }

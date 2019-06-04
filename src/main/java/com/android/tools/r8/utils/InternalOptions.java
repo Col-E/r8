@@ -804,6 +804,8 @@ public class InternalOptions {
     public boolean allowTypeErrors =
         !Version.isDev() || System.getProperty("com.android.tools.r8.allowTypeErrors") != null;
     public boolean alwaysUsePessimisticRegisterAllocation = false;
+    public boolean enableDeadSwitchCaseElimination = true;
+    public boolean enableSwitchToIfRewriting = true;
     public boolean invertConditionals = false;
     public boolean placeExceptionalBlocksLast = false;
     public boolean dontCreateMarkerInD8 = false;

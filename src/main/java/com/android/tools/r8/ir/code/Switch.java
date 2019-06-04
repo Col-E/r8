@@ -47,6 +47,7 @@ public class Switch extends JumpInstruction {
   }
 
   private boolean valid() {
+    assert keys.length >= 1;
     assert keys.length <= Constants.U16BIT_MAX;
     // Keys must be acceding, and cannot target the fallthrough.
     assert keys.length == targetBlockIndices.length;
@@ -208,6 +209,10 @@ public class Switch extends JumpInstruction {
 
   public int getKey(int index) {
     return keys[index];
+  }
+
+  public int getTargetBlockIndex(int index) {
+    return targetBlockIndices[index];
   }
 
   public int[] getKeys() {

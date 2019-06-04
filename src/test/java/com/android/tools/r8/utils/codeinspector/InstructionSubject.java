@@ -84,6 +84,8 @@ public interface InstructionSubject {
 
   boolean isIf(); // Also include CF/if_cmp* instructions.
 
+  boolean isSwitch();
+
   boolean isPackedSwitch();
 
   boolean isSparseSwitch();
