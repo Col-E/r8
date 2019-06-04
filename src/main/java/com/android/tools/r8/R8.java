@@ -763,7 +763,7 @@ public class R8 {
       }
 
       // Validity checks.
-      assert application.classes().stream().allMatch(clazz -> clazz.isValid(options));
+      assert application.classes().stream().allMatch(DexClass::isValid);
       assert appView.rootSet().verifyKeptItemsAreKept(application, appView.appInfo());
       assert appView
           .graphLense()

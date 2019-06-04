@@ -85,23 +85,13 @@ public class SmaliBuilder {
 
   public class ClassBuilder extends Builder {
 
-    private boolean isAbstract = false;
-
     ClassBuilder(String name, String superName, List<String> implementedInterfaces) {
       super(name, superName, implementedInterfaces);
-    }
-
-    public ClassBuilder setAbstract() {
-      isAbstract = true;
-      return this;
     }
 
     public String toString() {
       StringBuilder builder = new StringBuilder();
       builder.append(".class public ");
-      if (isAbstract) {
-        builder.append("abstract ");
-      }
       builder.append(DescriptorUtils.javaTypeToDescriptor(name));
       builder.append("\n");
       appendSuper(builder);
@@ -174,12 +164,10 @@ public class SmaliBuilder {
     addClass(name, superName, ImmutableList.of());
   }
 
-  public ClassBuilder addClass(String name, String superName, List<String> implementedInterfaces) {
+  public void addClass(String name, String superName, List<String> implementedInterfaces) {
     assert !classes.containsKey(name);
     currentClassName = name;
-    ClassBuilder classBuilder = new ClassBuilder(name, superName, implementedInterfaces);
-    classes.put(name, classBuilder);
-    return classBuilder;
+    classes.put(name, new ClassBuilder(name, superName, implementedInterfaces));
   }
 
   public void addInterface(String name) {

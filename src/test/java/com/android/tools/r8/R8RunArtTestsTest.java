@@ -118,8 +118,6 @@ public abstract class R8RunArtTestsTest {
   private static Map<String, AndroidApiLevel> needMinSdkVersion =
       new ImmutableMap.Builder<String, AndroidApiLevel>()
           .put("004-JniTest", AndroidApiLevel.N)
-          // Has a non-abstract class with an abstract method.
-          .put("800-smali", AndroidApiLevel.L)
           // Android O
           .put("952-invoke-custom", AndroidApiLevel.O)
           .put("952-invoke-custom-kinds", AndroidApiLevel.O)
