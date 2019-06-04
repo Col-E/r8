@@ -27,7 +27,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import org.junit.BeforeClass;
@@ -195,7 +194,7 @@ public class BootstrapCurrentEqualityTest extends TestBase {
     assertProgramsEqual(result.outputJar(), runR8R8.outputJar());
   }
 
-  private static void assertProgramsEqual(Path expectedJar, Path actualJar) throws Exception {
+  public static void assertProgramsEqual(Path expectedJar, Path actualJar) throws Exception {
     if (filesAreEqual(expectedJar, actualJar)) {
       return;
     }
