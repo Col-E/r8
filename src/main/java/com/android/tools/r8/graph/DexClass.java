@@ -262,6 +262,19 @@ public abstract class DexClass extends DexDefinition {
     return true;
   }
 
+  private boolean verifyNoAbstractMethodsOnNonAbstractClasses(
+      Iterable<DexEncodedMethod> methods, InternalOptions options) {
+    if (options.canHaveDalvikAbstractMethodOnNonAbstractClassVerificationBug()) {
+      if (!isAbstract()) {
+        for (DexEncodedMethod method : methods) {
+          assert !method.isAbstract()
+              : "Non-abstract method on abstract class: `" + method.method.toSourceString() + "`";
+        }
+      }
+    }
+    return true;
+  }
+
   private boolean verifyNoDuplicateMethods() {
     Set<DexMethod> unique = Sets.newIdentityHashSet();
     for (DexEncodedMethod method : methods()) {
@@ -572,7 +585,10 @@ public abstract class DexClass extends DexDefinition {
     return null;
   }
 
-  // Tells whether this is an interface.
+  public boolean isAbstract() {
+    return accessFlags.isAbstract();
+  }
+
   public boolean isInterface() {
     return accessFlags.isInterface();
   }
@@ -876,9 +892,9 @@ public abstract class DexClass extends DexDefinition {
     return getKotlinInfo() != null;
   }
 
-  public boolean isValid() {
-    assert !isInterface()
-        || Arrays.stream(virtualMethods).noneMatch(method -> method.accessFlags.isFinal());
+  public boolean isValid(InternalOptions options) {
+    assert verifyNoAbstractMethodsOnNonAbstractClasses(virtualMethods(), options);
+    assert !isInterface() || virtualMethods().stream().noneMatch(DexEncodedMethod::isFinal);
     assert verifyCorrectnessOfFieldHolders(fields());
     assert verifyNoDuplicateFields();
     assert verifyCorrectnessOfMethodHolders(methods());

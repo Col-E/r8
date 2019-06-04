@@ -600,8 +600,12 @@ public class DexParser {
     return fields;
   }
 
-  private DexEncodedMethod[] readMethods(int size, DexMethodAnnotation[] annotations,
-      DexParameterAnnotation[] parameters, boolean skipCodes) {
+  private DexEncodedMethod[] readMethods(
+      int size,
+      DexMethodAnnotation[] annotations,
+      DexParameterAnnotation[] parameters,
+      boolean skipCodes,
+      boolean ensureNonAbstract) {
     DexEncodedMethod[] methods = new DexEncodedMethod[size];
     int methodIndex = 0;
     MemberAnnotationIterator<DexMethod, DexAnnotationSet> annotationIterator =
@@ -618,8 +622,21 @@ public class DexParser {
         code = codes.get(codeOff);
       }
       DexMethod method = indexedItems.getMethod(methodIndex);
-      methods[i] = new DexEncodedMethod(method, accessFlags, annotationIterator.getNextFor(method),
-          parameterAnnotationsIterator.getNextFor(method), code);
+      DexEncodedMethod encodedMethod =
+          new DexEncodedMethod(
+              method,
+              accessFlags,
+              annotationIterator.getNextFor(method),
+              parameterAnnotationsIterator.getNextFor(method),
+              code);
+      if (accessFlags.isAbstract() && ensureNonAbstract) {
+        accessFlags.unsetAbstract();
+        encodedMethod =
+            options.isGeneratingClassFiles()
+                ? encodedMethod.toEmptyThrowingMethodCf()
+                : encodedMethod.toEmptyThrowingMethodDex();
+      }
+      methods[i] = encodedMethod;
     }
     return methods;
   }
@@ -692,13 +709,17 @@ public class DexParser {
                 directMethodsSize,
                 annotationsDirectory.methods,
                 annotationsDirectory.parameters,
-                classKind != ClassKind.PROGRAM);
+                classKind != ClassKind.PROGRAM,
+                options.canHaveDalvikAbstractMethodOnNonAbstractClassVerificationBug()
+                    && !flags.isAbstract());
         virtualMethods =
             readMethods(
                 virtualMethodsSize,
                 annotationsDirectory.methods,
                 annotationsDirectory.parameters,
-                classKind != ClassKind.PROGRAM);
+                classKind != ClassKind.PROGRAM,
+                options.canHaveDalvikAbstractMethodOnNonAbstractClassVerificationBug()
+                    && !flags.isAbstract());
       }
 
       AttributesAndAnnotations attrs =
