@@ -441,7 +441,8 @@ public class R8 {
 
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
       appView.setGraphLense(new MemberRebindingAnalysis(appViewWithLiveness).run());
-      if (options.enableNestBasedAccessDesugaring && !options.canUseNestBasedAccess()) {
+      if (options.testing.enableForceNestBasedAccessDesugaringForTest
+          || (options.enableNestBasedAccessDesugaring && !options.canUseNestBasedAccess())) {
         timing.begin("NestBasedAccessDesugaring");
         R8NestBasedAccessDesugaring analyzer = new R8NestBasedAccessDesugaring(appViewWithLiveness);
         boolean changed =

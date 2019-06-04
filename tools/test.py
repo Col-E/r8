@@ -212,6 +212,7 @@ def Main():
 
   # Build an R8 with dependencies for bootstrapping tests before adding test sources.
   gradle_args.append('r8WithRelocatedDeps')
+  gradle_args.append('r8WithRelocatedDeps11')
 
   # Add Gradle tasks
   gradle_args.append('cleanTest')
