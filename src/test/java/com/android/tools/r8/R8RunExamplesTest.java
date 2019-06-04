@@ -48,7 +48,6 @@ public class R8RunExamplesTest extends R8RunExamplesCommon {
         "loadconst.LoadConst",
         "loop.UdpServer",
         "nestedtrycatches.NestedTryCatches",
-        "newarray.NewArray",
         "regalloc.RegAlloc",
         "returns.Returns",
         "staticfield.StaticField",
@@ -158,11 +157,6 @@ public class R8RunExamplesTest extends R8RunExamplesCommon {
   @Override
   protected Set<String> getFailingCompileCfToDex() {
     return new ImmutableSet.Builder<String>()
-        // TODO(b/109789539): Implement CfMultiANewArray.buildIR() for DEX backend.
-        .add("newarray.NewArray")
-        .add("trycatch.TryCatch")
-        .add("regress_70737019.Test")
-        .add("regress_72361252.Test")
         .build();
   }
 

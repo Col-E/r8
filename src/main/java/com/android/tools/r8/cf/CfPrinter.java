@@ -317,7 +317,7 @@ public class CfPrinter {
   public void print(CfConstClass constClass) {
     indent();
     builder.append("ldc ");
-    appendClass(constClass.getType());
+    appendType(constClass.getType());
   }
 
   public void print(CfReturnVoid ret) {

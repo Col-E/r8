@@ -4,7 +4,6 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
@@ -55,10 +54,7 @@ public class CfMultiANewArray extends CfInstruction {
   @Override
   public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
     InternalOptions options = builder.appView.options();
-    if (options.isGeneratingDex()) {
-      // TODO(b/109789539): Implement this case (see JarSourceCode.buildPrelude()/buildPostlude()).
-      throw new Unimplemented("CfMultiANewArray to DEX backend");
-    }
+    assert !options.isGeneratingDex();
     int[] dimensions = state.popReverse(this.dimensions);
     builder.addMultiNewArray(type, state.push(type).register, dimensions);
   }

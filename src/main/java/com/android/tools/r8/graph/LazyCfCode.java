@@ -783,7 +783,47 @@ public class LazyCfCode extends Code {
 
     @Override
     public void visitMultiANewArrayInsn(String desc, int dims) {
-      instructions.add(new CfMultiANewArray(factory.createType(desc), dims));
+      if (!application.options.isGeneratingDex()) {
+        instructions.add(new CfMultiANewArray(factory.createType(desc), dims));
+        return;
+      }
+      // When generating DEX code a multianewarray is desugared to a reflective creation.
+      // The stack transformation is:
+      //   ..., count1, ..., countN (where N = dims)
+      //   ->
+      //   ..., arrayref(of type : desc)
+      //
+      // This is unfolded to a call to java.lang.reflect.Array.newInstance to the same effect:
+      // ..., count1, ..., countN
+      visitLdcInsn(dims);
+      // ..., count1, ..., countN, dims
+      visitIntInsn(Opcodes.NEWARRAY, Opcodes.T_INT);
+      // ..., count1, ..., countN, dim-array
+      for (int i = dims - 1; i >= 0; i--) {
+        visitInsn(Opcodes.DUP_X1);
+        // ..., count1, ..., dim-array, countN, dim-array
+        visitInsn(Opcodes.SWAP);
+        // ..., count1, ..., dim-array, dim-array, countN
+        visitLdcInsn(i);
+        // ..., count1, ..., dim-array, dim-array, countN, index
+        visitInsn(Opcodes.SWAP);
+        // ..., count1, ..., dim-array, dim-array, index, countN
+        visitInsn(Opcodes.IASTORE);
+        // ..., count1, ..., dim-array
+      }
+      visitLdcInsn(Type.getType(desc.substring(dims)));
+      // ..., dim-array, dim-member-type
+      visitInsn(Opcodes.SWAP);
+      // ..., dim-member-type, dim-array
+      visitMethodInsn(
+          Opcodes.INVOKESTATIC,
+          "java/lang/reflect/Array",
+          "newInstance",
+          "(Ljava/lang/Class;[I)Ljava/lang/Object;",
+          false);
+      // ..., ref
+      visitTypeInsn(Opcodes.CHECKCAST, desc);
+      // ..., arrayref(of type : desc)
     }
 
     @Override
