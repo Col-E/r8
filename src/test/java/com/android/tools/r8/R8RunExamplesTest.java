@@ -22,8 +22,6 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class R8RunExamplesTest extends R8RunExamplesCommon {
 
-  private static final boolean ONLY_RUN_CF_TESTS = false;
-
   @Parameters(name = "{0}_{1}_{2}_{3}_{5}_{6}")
   public static Collection<String[]> data() {
     String[] tests = {
@@ -87,20 +85,18 @@ public class R8RunExamplesTest extends R8RunExamplesCommon {
 
     List<String[]> fullTestList = new ArrayList<>(tests.length * 2);
     for (String test : tests) {
-      if (!ONLY_RUN_CF_TESTS) {
-        fullTestList.add(makeTest(Input.JAVAC, CompilerUnderTest.D8, CompilationMode.DEBUG, test));
-        fullTestList.add(makeTest(Input.JAVAC_ALL, CompilerUnderTest.D8, CompilationMode.DEBUG,
-            test));
-        fullTestList.add(makeTest(Input.JAVAC_NONE, CompilerUnderTest.D8, CompilationMode.DEBUG,
-            test));
-        fullTestList.add(makeTest(Input.JAVAC_ALL, CompilerUnderTest.D8, CompilationMode.RELEASE,
-            test));
-        fullTestList.add(makeTest(Input.JAVAC_ALL, CompilerUnderTest.R8, CompilationMode.RELEASE,
-            test));
-        fullTestList.add(makeTest(Input.JAVAC_ALL, CompilerUnderTest.R8, CompilationMode.DEBUG,
-            test));
-        fullTestList.add(makeTest(Input.DX, CompilerUnderTest.R8, CompilationMode.RELEASE, test));
-      }
+      fullTestList.add(makeTest(Input.JAVAC, CompilerUnderTest.D8, CompilationMode.DEBUG, test));
+      fullTestList.add(
+          makeTest(Input.JAVAC_ALL, CompilerUnderTest.D8, CompilationMode.DEBUG, test));
+      fullTestList.add(
+          makeTest(Input.JAVAC_NONE, CompilerUnderTest.D8, CompilationMode.DEBUG, test));
+      fullTestList.add(
+          makeTest(Input.JAVAC_ALL, CompilerUnderTest.D8, CompilationMode.RELEASE, test));
+      fullTestList.add(
+          makeTest(Input.JAVAC_ALL, CompilerUnderTest.R8, CompilationMode.RELEASE, test));
+      fullTestList.add(
+          makeTest(Input.JAVAC_ALL, CompilerUnderTest.R8, CompilationMode.DEBUG, test));
+      fullTestList.add(makeTest(Input.DX, CompilerUnderTest.R8, CompilationMode.RELEASE, test));
       fullTestList.add(
           makeTest(
               Input.JAVAC_ALL, CompilerUnderTest.R8, CompilationMode.RELEASE, test, Output.CF));
@@ -162,8 +158,6 @@ public class R8RunExamplesTest extends R8RunExamplesCommon {
   @Override
   protected Set<String> getFailingCompileCfToDex() {
     return new ImmutableSet.Builder<String>()
-        // TODO(b/109789541): Implement method synchronization for DEX backend.
-        .add("sync.Sync")
         // TODO(b/109789539): Implement CfMultiANewArray.buildIR() for DEX backend.
         .add("newarray.NewArray")
         .add("trycatch.TryCatch")

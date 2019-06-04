@@ -1644,8 +1644,8 @@ public class VerticalClassMerger {
                 invocationContext);
         return constraint == ConstraintWithTarget.NEVER;
       }
-      // TODO(christofferqa): For non-jar code we currently cannot guarantee that markForceInline()
-      // will succeed.
+      // TODO(b/133479464): For non-jar code we currently cannot guarantee that markForceInline()
+      // will succeed. This should at least support inlining CF code.
     }
     return true;
   }

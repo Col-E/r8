@@ -27,6 +27,7 @@ import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.CanonicalPositions;
 import com.android.tools.r8.ir.code.CatchHandlers;
+import com.android.tools.r8.ir.code.Monitor;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.conversion.CfState.Snapshot;
 import com.android.tools.r8.ir.conversion.IRBuilder.BlockInfo;
@@ -48,11 +49,17 @@ import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ReferenceSet;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class CfSourceCode implements SourceCode {
 
   private BlockInfo currentBlockInfo;
   private boolean hasExitingInstruction = false;
+
+  private static final int EXCEPTIONAL_SYNC_EXIT_OFFSET = -2;
+  private final boolean needsGeneratedMethodSynchronization;
+  private boolean currentlyGeneratingMethodSynchronization = false;
+  private Monitor monitorEnter = null;
 
   private static class TryHandlerList {
 
@@ -81,12 +88,14 @@ public class CfSourceCode implements SourceCode {
         int instructionOffset,
         List<CfTryCatch> tryCatchRanges,
         Reference2IntMap<CfLabel> labelOffsets,
+        boolean needsGeneratedMethodSynchronization,
         DexItemFactory factory) {
-      int startOffset = Integer.MIN_VALUE;
+      int startOffset = 0;
       int endOffset = Integer.MAX_VALUE;
       List<DexType> guards = new ArrayList<>();
       IntList offsets = new IntArrayList();
       ReferenceSet<DexType> seen = new ReferenceOpenHashSet<>();
+      boolean seenCatchAll = false;
       for (CfTryCatch tryCatch : tryCatchRanges) {
         int start = labelOffsets.getInt(tryCatch.start);
         int end = labelOffsets.getInt(tryCatch.end);
@@ -99,7 +108,6 @@ public class CfSourceCode implements SourceCode {
         }
         startOffset = Math.max(startOffset, start);
         endOffset = Math.min(endOffset, end);
-        boolean seenCatchAll = false;
         for (int i = 0; i < tryCatch.guards.size() && !seenCatchAll; i++) {
           DexType guard = tryCatch.guards.get(i);
           if (seen.add(guard)) {
@@ -111,6 +119,10 @@ public class CfSourceCode implements SourceCode {
         if (seenCatchAll) {
           break;
         }
+      }
+      if (needsGeneratedMethodSynchronization && !seenCatchAll) {
+        guards.add(factory.throwableType);
+        offsets.add(EXCEPTIONAL_SYNC_EXIT_OFFSET);
       }
       return new TryHandlerList(startOffset, endOffset, guards, offsets);
     }
@@ -189,6 +201,7 @@ public class CfSourceCode implements SourceCode {
   private final CfCode code;
   private final DexEncodedMethod method;
   private final Origin origin;
+  private final AppView<?> appView;
 
   private final Reference2IntMap<CfLabel> labelOffsets = new Reference2IntOpenHashMap<>();
   private TryHandlerList cachedTryHandlerList;
@@ -207,10 +220,11 @@ public class CfSourceCode implements SourceCode {
       DexMethod originalMethod,
       Position callerPosition,
       Origin origin,
-      InternalOutputMode internalOutputMode) {
+      AppView<?> appView) {
     this.code = code;
     this.method = method;
     this.origin = origin;
+    this.appView = appView;
     int cfPositionCount = 0;
     for (int i = 0; i < code.getInstructions().size(); i++) {
       CfInstruction instruction = code.getInstructions().get(i);
@@ -223,7 +237,12 @@ public class CfSourceCode implements SourceCode {
     }
     this.state = new CfState(origin);
     canonicalPositions = new CanonicalPositions(callerPosition, cfPositionCount, originalMethod);
-    this.internalOutputMode = internalOutputMode;
+    internalOutputMode = appView.options().getInternalOutputMode();
+
+    needsGeneratedMethodSynchronization =
+        !method.isProcessed()
+            && internalOutputMode.isGeneratingDex()
+            && method.accessFlags.isSynchronized();
   }
 
   @Override
@@ -303,7 +322,11 @@ public class CfSourceCode implements SourceCode {
     if (cachedTryHandlerList == null || !cachedTryHandlerList.validFor(instructionOffset)) {
       cachedTryHandlerList =
           TryHandlerList.computeTryHandlers(
-              instructionOffset, code.getTryCatchRanges(), labelOffsets, factory);
+              instructionOffset,
+              code.getTryCatchRanges(),
+              labelOffsets,
+              needsGeneratedMethodSynchronization,
+              factory);
     }
     return cachedTryHandlerList;
   }
@@ -351,8 +374,10 @@ public class CfSourceCode implements SourceCode {
     state.buildPrelude(canonicalPositions.getPreamblePosition());
     setLocalVariableLists();
     buildArgumentInstructions(builder);
+    if (needsGeneratedMethodSynchronization) {
+      buildMethodEnterSynchronization(builder);
+    }
     recordStateForTarget(0, state.getSnapshot());
-    // TODO(b/109789541): Generate method synchronization for DEX backend.
     inPrelude = false;
   }
 
@@ -381,15 +406,53 @@ public class CfSourceCode implements SourceCode {
     return method.accessFlags.isStatic();
   }
 
+  private boolean isCurrentlyGeneratingMethodSynchronization() {
+    return currentlyGeneratingMethodSynchronization;
+  }
+
+  private boolean isExceptionalExitForMethodSynchronization(int instructionIndex) {
+    return instructionIndex == EXCEPTIONAL_SYNC_EXIT_OFFSET;
+  }
+
+  private void buildMethodEnterSynchronization(IRBuilder builder) {
+    assert needsGeneratedMethodSynchronization;
+    currentlyGeneratingMethodSynchronization = true;
+    DexType type = method.method.holder;
+    int monitorRegister;
+    if (isStatic()) {
+      monitorRegister = state.push(type).register;
+      state.pop();
+      builder.addConstClass(monitorRegister, type);
+    } else {
+      monitorRegister = state.read(0).register;
+    }
+    // Build the monitor enter and save it for when generating exits later.
+    monitorEnter = builder.addMonitor(Monitor.Type.ENTER, monitorRegister);
+    currentlyGeneratingMethodSynchronization = false;
+  }
+
+  private void buildExceptionalExitMethodSynchronization(IRBuilder builder) {
+    assert needsGeneratedMethodSynchronization;
+    currentlyGeneratingMethodSynchronization = true;
+    builder.add(new Monitor(Monitor.Type.EXIT, monitorEnter.inValues().get(0)));
+    builder.addThrow(getMoveExceptionRegister(0));
+    currentlyGeneratingMethodSynchronization = false;
+  }
+
   @Override
   public void buildPostlude(IRBuilder builder) {
-    // TODO(b/109789541): Generate method synchronization for DEX backend.
+    if (needsGeneratedMethodSynchronization) {
+      currentlyGeneratingMethodSynchronization = true;
+      builder.add(new Monitor(Monitor.Type.EXIT, monitorEnter.inValues().get(0)));
+      currentlyGeneratingMethodSynchronization = false;
+    }
   }
 
   @Override
   public void buildBlockTransfer(
       IRBuilder builder, int predecessorOffset, int successorOffset, boolean isExceptional) {
-    if (predecessorOffset == IRBuilder.INITIAL_BLOCK_OFFSET) {
+    if (predecessorOffset == IRBuilder.INITIAL_BLOCK_OFFSET
+        || isExceptionalExitForMethodSynchronization(successorOffset)) {
       return;
     }
     // The transfer has not yet taken place, so the current position is that of the predecessor.
@@ -429,6 +492,10 @@ public class CfSourceCode implements SourceCode {
   @Override
   public void buildInstruction(
       IRBuilder builder, int instructionIndex, boolean firstBlockInstruction) {
+    if (isExceptionalExitForMethodSynchronization(instructionIndex)) {
+      buildExceptionalExitMethodSynchronization(builder);
+      return;
+    }
     CfInstruction instruction = code.getInstructions().get(instructionIndex);
     currentInstructionIndex = instructionIndex;
     if (firstBlockInstruction) {
@@ -570,11 +637,14 @@ public class CfSourceCode implements SourceCode {
 
   @Override
   public DebugLocalInfo getIncomingLocal(int register) {
-    return incomingLocals.get(register);
+    return isCurrentlyGeneratingMethodSynchronization() ? null : incomingLocals.get(register);
   }
 
   @Override
   public DebugLocalInfo getOutgoingLocal(int register) {
+    if (isCurrentlyGeneratingMethodSynchronization()) {
+      return null;
+    }
     if (inPrelude) {
       return getIncomingLocal(register);
     }
@@ -627,6 +697,9 @@ public class CfSourceCode implements SourceCode {
 
   @Override
   public CatchHandlers<Integer> getCurrentCatchHandlers(IRBuilder builder) {
+    if (isCurrentlyGeneratingMethodSynchronization()) {
+      return null;
+    }
     TryHandlerList tryHandlers =
         getTryHandlers(
             instructionOffset(currentInstructionIndex), builder.appView.dexItemFactory());
@@ -643,7 +716,8 @@ public class CfSourceCode implements SourceCode {
 
   @Override
   public boolean verifyCurrentInstructionCanThrow() {
-    return canThrowHelper(code.getInstructions().get(currentInstructionIndex));
+    return isCurrentlyGeneratingMethodSynchronization()
+        || canThrowHelper(code.getInstructions().get(currentInstructionIndex));
   }
 
   @Override
@@ -653,6 +727,16 @@ public class CfSourceCode implements SourceCode {
 
   @Override
   public Position getCanonicalDebugPositionAtOffset(int offset) {
+    if (offset == EXCEPTIONAL_SYNC_EXIT_OFFSET) {
+      return canonicalPositions.getExceptionalExitPosition(
+          appView.options().debug,
+          () ->
+              code.instructions.stream()
+                  .filter(insn -> insn instanceof CfPosition)
+                  .map(insn -> ((CfPosition) insn).getPosition())
+                  .collect(Collectors.toList()),
+          method.method);
+    }
     while (offset + 1 < code.getInstructions().size()) {
       CfInstruction insn = code.getInstructions().get(offset);
       if (!(insn instanceof CfLabel) && !(insn instanceof CfFrame)) {

@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.graph.DexMethod;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Supplier;
 
 /**
  * Maintains a set of canonical positions. Also supports appending a new caller at the end of the
@@ -16,6 +17,9 @@ public class CanonicalPositions {
   private final Position callerPosition;
   private final Map<Position, Position> canonicalPositions;
   private final Position preamblePosition;
+
+  // Lazily computed synthetic position for shared exceptional exits in synchronized methods.
+  private Position syntheticPosition;
 
   public CanonicalPositions(
       Position callerPosition,
@@ -64,5 +68,38 @@ public class CanonicalPositions {
         caller.isNone()
             ? Position.noneWithMethod(caller.method, callerOfCaller)
             : new Position(caller.line, caller.file, caller.method, callerOfCaller));
+  }
+
+  // If we need to emit a synthetic position for exceptional monitor exits, we try to cook up a
+  // position that is not actually a valid program position, so as not to incorrectly position the
+  // user on an exit that is not the actual exit being taken. Our heuristic for this is that if the
+  // method has at least two positions we use the first position minus one as the synthetic exit.
+  // If the method only has one position it is safe to just use that position.
+  public Position getExceptionalExitPosition(
+      boolean debug, Supplier<Iterable<Position>> positions, DexMethod originalMethod) {
+    if (syntheticPosition == null) {
+      if (debug) {
+        int min = Integer.MAX_VALUE;
+        int max = Integer.MIN_VALUE;
+        for (Position position : positions.get()) {
+          // No inlining in debug mode, so the position is from the only frame.
+          assert position == position.getOutermostCaller();
+          int line = position.line;
+          min = Math.min(min, line);
+          max = Math.max(max, line);
+        }
+        syntheticPosition =
+            (min == Integer.MAX_VALUE)
+                ? getPreamblePosition()
+                : Position.synthetic(min < max ? min - 1 : min, originalMethod, callerPosition);
+      } else {
+        // If in release mode we explicitly associate a synthetic none position with monitor exit.
+        // This is safe as the runtime must never throw at this position because the monitor cannot
+        // be null and the thread calling exit can only be the same thread that entered the monitor
+        // at method entry.
+        syntheticPosition = Position.syntheticNone();
+      }
+    }
+    return syntheticPosition;
   }
 }

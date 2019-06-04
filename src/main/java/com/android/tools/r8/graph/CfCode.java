@@ -232,11 +232,6 @@ public class CfCode extends Code {
       ValueNumberGenerator generator,
       Position callerPosition,
       Origin origin) {
-    // TODO(b/109789541): Implement CF->IR->DEX for synchronized methods.
-    if (appView.options().isGeneratingDex() && encodedMethod.accessFlags.isSynchronized()) {
-      throw new Unimplemented(
-          "Converting CfCode to IR not supported for DEX output of synchronized methods.");
-    }
     CfSourceCode source =
         new CfSourceCode(
             this,
@@ -244,7 +239,7 @@ public class CfCode extends Code {
             appView.graphLense().getOriginalMethodSignature(encodedMethod.method),
             callerPosition,
             origin,
-            appView.options().getInternalOutputMode());
+            appView);
     return new IRBuilder(encodedMethod, appView, source, origin, generator).build(context);
   }
 
