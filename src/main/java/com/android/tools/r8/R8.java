@@ -691,6 +691,14 @@ public class R8 {
         }
       }
 
+      {
+        MainDexClasses finalMainDexClasses = mainDexClasses;
+        appView.withGeneratedExtensionRegistryShrinker(
+            shrinker ->
+                shrinker.postOptimizeGeneratedExtensionRegistry(
+                    new IRConverter(appView, timing, null, finalMainDexClasses)));
+      }
+
       // Add automatic main dex classes to an eventual manual list of classes.
       if (!options.mainDexKeepRules.isEmpty()) {
         application = application.builder().addToMainDexList(mainDexClasses.getClasses()).build();

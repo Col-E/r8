@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.analysis.proto;
 
+import static com.google.common.base.Predicates.alwaysFalse;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -11,12 +13,17 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
 import com.android.tools.r8.graph.FieldAccessInfoImpl;
+import com.android.tools.r8.ir.conversion.CallSiteInformation;
+import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.conversion.OptimizationFeedbackIgnore;
+import com.android.tools.r8.ir.optimize.Outliner;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.function.Consumer;
@@ -54,6 +61,7 @@ public class GeneratedExtensionRegistryShrinker {
 
   static class ProtoReferences {
 
+    public final DexType extensionRegistryLiteType;
     public final DexType generatedExtensionType;
     public final DexType generatedMessageLiteType;
     public final DexType messageLiteType;
@@ -64,6 +72,8 @@ public class GeneratedExtensionRegistryShrinker {
     public final DexProto findLiteExtensionByNumberProto;
 
     private ProtoReferences(DexItemFactory factory) {
+      extensionRegistryLiteType =
+          factory.createType(factory.createString("Lcom/google/protobuf/ExtensionRegistryLite;"));
       generatedExtensionType =
           factory.createType(
               factory.createString(
@@ -112,6 +122,31 @@ public class GeneratedExtensionRegistryShrinker {
           fieldAccessInfo.clearReads();
           fieldAccessInfo.clearWrites();
         });
+  }
+
+  public void postOptimizeGeneratedExtensionRegistry(IRConverter converter) {
+    forEachFindLiteExtensionByNumberMethod(
+        method ->
+            converter.processMethod(
+                method,
+                OptimizationFeedbackIgnore.getInstance(),
+                alwaysFalse(),
+                CallSiteInformation.empty(),
+                Outliner::noProcessing));
+  }
+
+  private void forEachFindLiteExtensionByNumberMethod(Consumer<DexEncodedMethod> consumer) {
+    for (DexProgramClass clazz : appView.appInfo().classes()) {
+      if (clazz.superType != references.extensionRegistryLiteType) {
+        continue;
+      }
+
+      for (DexEncodedMethod method : clazz.methods()) {
+        if (references.isFindLiteExtensionByNumberMethod(method.method)) {
+          consumer.accept(method);
+        }
+      }
+    }
   }
 
   public boolean isDeadProtoExtensionField(DexField field) {
