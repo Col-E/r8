@@ -1993,32 +1993,14 @@ public class CodeRewriter {
     if (!appView.enableWholeProgramOptimizations()) {
       return;
     }
-    // If we can remove a CheckCast it is due to us having at least as much information about the
-    // type as the CheckCast gives. We then need to propagate that information to the users of
-    // the CheckCast to ensure further optimizations and removals of CheckCast:
-    //
-    //    : 1: NewArrayEmpty        v2 <- v1(1) java.lang.String[]  <-- v2 = String[]
-    // ...
-    //    : 2: CheckCast            v5 <- v2; java.lang.Object[]    <-- v5 = Object[]
-    // ...
-    //    : 3: ArrayGet             v7 <- v5, v6(0)                 <-- v7 = Object
-    //    : 4: CheckCast            v8 <- v7; java.lang.String      <-- v8 = String
-    // ...
-    //
-    // When looking at line 2 we can conclude that the CheckCast is trivial because v2 is String[]
-    // and remove it. However, v7 is still only known to be Object and we cannot remove the
-    // CheckCast at line 4 unless we update v7 with the most precise information by narrowing the
-    // affected values of v5. We therefore have to run the type analysis after each CheckCast
-    // removal.
-    TypeAnalysis typeAnalysis = new TypeAnalysis(appView, code.method);
-    Set<Value> affectedValues = Sets.newIdentityHashSet();
+
     InstructionIterator it = code.instructionIterator();
     boolean needToRemoveTrivialPhis = false;
     while (it.hasNext()) {
       Instruction current = it.next();
       if (current.isCheckCast()) {
         boolean hasPhiUsers = current.outValue().numberOfPhiUsers() != 0;
-        if (removeCheckCastInstructionIfTrivial(current.asCheckCast(), it, code, affectedValues)) {
+        if (removeCheckCastInstructionIfTrivial(current.asCheckCast(), it, code)) {
           needToRemoveTrivialPhis |= hasPhiUsers;
         }
       } else if (current.isInstanceOf()) {
@@ -2026,10 +2008,6 @@ public class CodeRewriter {
         if (removeInstanceOfInstructionIfTrivial(current.asInstanceOf(), it, code)) {
           needToRemoveTrivialPhis |= hasPhiUsers;
         }
-      }
-      if (!affectedValues.isEmpty()) {
-        typeAnalysis.narrowing(affectedValues);
-        affectedValues.clear();
       }
     }
     // ... v1
@@ -2046,7 +2024,7 @@ public class CodeRewriter {
 
   // Returns true if the given check-cast instruction was removed.
   private boolean removeCheckCastInstructionIfTrivial(
-      CheckCast checkCast, InstructionIterator it, IRCode code, Set<Value> affectedValues) {
+      CheckCast checkCast, InstructionIterator it, IRCode code) {
     Value inValue = checkCast.object();
     Value outValue = checkCast.outValue();
     DexType castType = checkCast.getType();
@@ -2098,7 +2076,6 @@ public class CodeRewriter {
       //   A a = ...
       //   B b = (B) a;
       assert inTypeLattice.lessThanOrEqual(outTypeLattice, appView);
-      affectedValues.addAll(outValue.affectedValues());
       removeOrReplaceByDebugLocalWrite(checkCast, it, inValue, outValue);
       return true;
     }
@@ -2190,14 +2167,13 @@ public class CodeRewriter {
       }
     }
     if (result != InstanceOfResult.UNKNOWN) {
-      ConstNumber newInstruction =
+      it.replaceCurrentInstruction(
           new ConstNumber(
               new Value(
                   code.valueNumberGenerator.next(),
                   TypeLatticeElement.INT,
                   instanceOf.outValue().getLocalInfo()),
-              result == InstanceOfResult.TRUE ? 1 : 0);
-      it.replaceCurrentInstruction(newInstruction);
+              result == InstanceOfResult.TRUE ? 1 : 0));
       return true;
     }
     return false;
