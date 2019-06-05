@@ -956,7 +956,7 @@ public class Outliner {
         // For values of lattice type java.lang.Object and only one interface use the interface as
         // the type of the outline argument. If there are several interfaces these interfaces don't
         // have a common super interface nor are they implemented by a common superclass so the
-        // argument type of the ouline will be java.lang.Object.
+        // argument type of the outline will be java.lang.Object.
         if (valueClassTypeLatticeElement.getClassType() == objectType
             && valueClassTypeLatticeElement.getInterfaces().size() == 1) {
           return valueClassTypeLatticeElement.getInterfaces().iterator().next();
@@ -966,8 +966,8 @@ public class Outliner {
       } else if (valueLatticeElement.isArrayType()) {
         return value.getTypeLattice().asArrayTypeLatticeElement().getArrayType(itemFactory);
       } else if (valueLatticeElement.isNullType()) {
-        // For values which are always null use java.lang.Object as the outline argument type.
-        return objectType;
+        // For values which are always null use the actual type at the call site.
+        return argumentTypeFromInvoke(invoke, argumentIndex);
       } else {
         assert valueLatticeElement.isPrimitive();
         assert valueLatticeElement.asPrimitiveTypeLatticeElement().hasDexType();
