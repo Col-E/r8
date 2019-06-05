@@ -1250,4 +1250,12 @@ public class InternalOptions {
   public boolean canHaveDalvikCatchHandlerVerificationBug() {
     return minApiLevel < AndroidApiLevel.L.getLevel();
   }
+
+  // Having an invoke instruction that targets an abstract method on a non-abstract class will fail
+  // with a verification error.
+  //
+  // See b/132953944.
+  public boolean canHaveDalvikAbstractMethodOnNonAbstractClassVerificationBug() {
+    return minApiLevel < AndroidApiLevel.L.getLevel();
+  }
 }

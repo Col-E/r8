@@ -118,6 +118,8 @@ public abstract class R8RunArtTestsTest {
   private static Map<String, AndroidApiLevel> needMinSdkVersion =
       new ImmutableMap.Builder<String, AndroidApiLevel>()
           .put("004-JniTest", AndroidApiLevel.N)
+          // Has a non-abstract class with an abstract method.
+          .put("800-smali", AndroidApiLevel.L)
           // Android O
           .put("952-invoke-custom", AndroidApiLevel.O)
           .put("952-invoke-custom-kinds", AndroidApiLevel.O)
@@ -1098,13 +1100,20 @@ public abstract class R8RunArtTestsTest {
           // When running R8 on dex input (D8, DX) this test non-deterministically fails
           // with a compiler exception, due to invoke-virtual on an interface, or it completes but
           // the output when run on Art is not as expected. b/65233869
-          .put("162-method-resolution",
+          .put(
+              "162-method-resolution",
               TestCondition.match(
-                  TestCondition.tools(DexTool.DX, DexTool.NONE),
-                  TestCondition.R8_COMPILER))
+                  TestCondition.tools(DexTool.DX, DexTool.NONE), TestCondition.R8_COMPILER))
           // Produces wrong output when compiled in release mode, which we cannot express.
-          .put("015-switch",
-              TestCondition.match(TestCondition.runtimes(DexVm.Version.V4_0_4)))
+          .put("015-switch", TestCondition.match(TestCondition.runtimes(DexVm.Version.V4_0_4)))
+          // To prevent "Dex file with version '37' cannot be used with min sdk level '21'", which
+          // would otherwise happen because D8 passes through the DEX code from DX.
+          .put(
+              "800-smali",
+              TestCondition.match(
+                  TestCondition.tools(DexTool.DX),
+                  TestCondition.D8_COMPILER,
+                  TestCondition.runtimesFrom(DexVm.Version.V5_1_1)))
           .build();
 
   public static List<String> requireInliningToBeDisabled =

@@ -380,20 +380,20 @@ public class SmaliDisassembleTest extends SmaliTestBase {
   @Test
   public void implementsInterface() {
     SmaliBuilder builder = new SmaliBuilder();
-    builder.addClass("Test", "java.lang.Object", ImmutableList.of("java.util.List"));
+    builder.addClass("Test", "java.lang.Object", ImmutableList.of("java.util.List")).setAbstract();
     builder.addAbstractMethod("int", "test", ImmutableList.of());
     AndroidApp application = buildApplication(builder);
 
     String expected =
-        ".class public LTest;\n" +
-            "\n" +
-            ".super Ljava/lang/Object;\n" +
-            ".implements Ljava/util/List;\n" +
-            "\n" +
-            ".method public abstract test()I\n" +
-            ".end method\n" +
-            "\n" +
-            "# End of class LTest;\n";
+        ".class public abstract LTest;\n"
+            + "\n"
+            + ".super Ljava/lang/Object;\n"
+            + ".implements Ljava/util/List;\n"
+            + "\n"
+            + ".method public abstract test()I\n"
+            + ".end method\n"
+            + "\n"
+            + "# End of class LTest;\n";
 
     assertEquals(expected, SmaliWriter.smali(application, new InternalOptions()));
 
