@@ -15,11 +15,16 @@ import com.android.tools.r8.NeverPropagateValue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Streams;
+import java.util.Set;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -71,6 +76,9 @@ public class SwitchCaseRemovalTest extends TestBase {
       assertEquals(
           parameters.isCfRuntime() ? 3 : 2,
           methodSubject.streamInstructions().filter(InstructionSubject::isReturnObject).count());
+      verifyUniqueSwitchHasExactCases(
+          methodSubject.buildIR(),
+          parameters.isCfRuntime() ? ImmutableSet.of(0, 1) : ImmutableSet.of(0));
     }
 
     {
@@ -86,6 +94,19 @@ public class SwitchCaseRemovalTest extends TestBase {
       assertThat(methodSubject, isPresent());
       assertTrue(methodSubject.streamInstructions().noneMatch(InstructionSubject::isSwitch));
     }
+  }
+
+  private void verifyUniqueSwitchHasExactCases(IRCode code, Set<Integer> expectedCases) {
+    Streams.stream(code.instructions())
+        .filter(Instruction::isSwitch)
+        .map(Instruction::asSwitch)
+        .forEach(
+            theSwitch -> {
+              assertEquals(expectedCases.size(), theSwitch.numberOfKeys());
+              for (int i : theSwitch.getKeys()) {
+                assertTrue(expectedCases.contains(i));
+              }
+            });
   }
 
   static class TestClass {
