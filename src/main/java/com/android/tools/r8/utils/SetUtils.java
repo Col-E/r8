@@ -10,6 +10,12 @@ import java.util.Set;
 
 public class SetUtils {
 
+  public static <T> Set<T> newIdentityHashSet(T element) {
+    Set<T> result = Sets.newIdentityHashSet();
+    result.add(element);
+    return result;
+  }
+
   public static <T> Set<T> newIdentityHashSet(Collection<T> c) {
     Set<T> result = Sets.newIdentityHashSet();
     result.addAll(c);

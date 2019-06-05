@@ -149,10 +149,12 @@ public class SwitchRewritingTest extends SmaliTestBase {
         "    return-void"
     );
 
-    Consumer<InternalOptions> optionsConsumer = options -> {
-      options.verbose = true;
-      options.printTimes = true;
-    };
+    Consumer<InternalOptions> optionsConsumer =
+        options -> {
+          options.testing.enableDeadSwitchCaseElimination = false;
+          options.verbose = true;
+          options.printTimes = true;
+        };
     AndroidApp originalApplication = buildApplication(builder);
     AndroidApp processedApplication = processApplication(originalApplication, optionsConsumer);
     DexEncodedMethod method = getMethod(processedApplication, signature);

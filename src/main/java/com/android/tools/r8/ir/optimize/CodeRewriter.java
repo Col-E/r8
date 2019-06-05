@@ -31,6 +31,7 @@ import com.android.tools.r8.graph.ParameterUsagesInfo;
 import com.android.tools.r8.graph.ParameterUsagesInfo.ParameterUsage;
 import com.android.tools.r8.graph.ParameterUsagesInfo.ParameterUsageBuilder;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
+import com.android.tools.r8.ir.analysis.equivalence.BasicBlockBehavioralSubsumption;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
@@ -940,6 +941,8 @@ public class CodeRewriter {
       IRCode code, Switch theSwitch, InstructionListIterator iterator) {
     BasicBlock defaultTarget = theSwitch.fallthroughBlock();
     SwitchCaseEliminator eliminator = null;
+    BasicBlockBehavioralSubsumption behavioralSubsumption =
+        new BasicBlockBehavioralSubsumption(appView, code.method.method.holder);
 
     // Compute the set of switch cases that can be removed.
     for (int i = 0; i < theSwitch.numberOfKeys(); i++) {
@@ -947,8 +950,8 @@ public class CodeRewriter {
 
       // This switch case can be removed if the behavior of the target block is equivalent to the
       // behavior of the default block, or if the switch case is unreachable.
-      if (basicBlockCanBeReplacedBy(code, targetBlock, defaultTarget)
-          || switchCaseIsUnreachable(theSwitch, i)) {
+      if (switchCaseIsUnreachable(theSwitch, i)
+          || behavioralSubsumption.isSubsumedBy(targetBlock, defaultTarget)) {
         if (eliminator == null) {
           eliminator = new SwitchCaseEliminator(theSwitch, iterator);
         }
@@ -959,11 +962,6 @@ public class CodeRewriter {
       eliminator.optimize();
     }
     return eliminator;
-  }
-
-  private boolean basicBlockCanBeReplacedBy(IRCode code, BasicBlock block, BasicBlock replacement) {
-    // TODO(b/132420434): TBD.
-    return false;
   }
 
   private boolean switchCaseIsUnreachable(Switch theSwitch, int index) {
