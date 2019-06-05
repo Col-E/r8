@@ -590,6 +590,12 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     return generateCodeFromTemplate(1, 0, insn);
   }
 
+  public DexEncodedMethod toEmptyThrowingMethod(InternalOptions options) {
+    return options.isGeneratingClassFiles()
+        ? toEmptyThrowingMethodCf()
+        : toEmptyThrowingMethodDex();
+  }
+
   public DexEncodedMethod toEmptyThrowingMethodDex() {
     checkIfObsolete();
     assert !shouldNotHaveCode();
