@@ -230,7 +230,7 @@ public class InterfaceMethodNameMinifier {
             .collect(Collectors.toList());
     timing.end();
 
-    timing.begin("propogate");
+    timing.begin("propagate");
     // Propagate reserved names to all states.
     List<Wrapper<DexMethod>> reservedInterfaceMethods =
         interfaceMethods.stream()
@@ -247,7 +247,7 @@ public class InterfaceMethodNameMinifier {
         .noneMatch(key -> propagateReservedNames(key, unification));
     timing.end();
 
-    timing.begin("assing interface");
+    timing.begin("assign interface");
     // Assign names to unreserved interface methods.
     for (Wrapper<DexMethod> key : interfaceMethods) {
       if (!reservedInterfaceMethods.contains(key)) {
