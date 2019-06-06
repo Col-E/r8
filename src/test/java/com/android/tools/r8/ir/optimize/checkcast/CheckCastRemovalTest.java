@@ -218,7 +218,6 @@ public class CheckCastRemovalTest extends JasminTestBase {
   }
 
   @Test
-  @Ignore("b/133739171")
   public void bothUpAndDowncast() throws Exception {
     JasminBuilder builder = new JasminBuilder();
     ClassBuilder classBuilder = builder.addClass(CLASS_NAME);

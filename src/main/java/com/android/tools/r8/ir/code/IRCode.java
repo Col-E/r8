@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.TypeChecker;
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.origin.Origin;
@@ -720,6 +721,26 @@ public class IRCode {
           assert !v.getTypeLattice().isBottom();
           assert !(v.definition instanceof ImpreciseMemberTypeInstruction)
               || ((ImpreciseMemberTypeInstruction) v.definition).getMemberType().isPrecise();
+          return true;
+        };
+    return verifySSATypeLattice(
+        v -> {
+          // StackValues is an artificial type created to allow returning multiple values from an
+          // instruction.
+          if (v instanceof StackValues) {
+            return Stream.of(((StackValues) v).getStackValues()).allMatch(verifyValue);
+          } else {
+            return verifyValue(v);
+          }
+        });
+  }
+
+  public boolean verifyNoNullabilityBottomTypes() {
+    Predicate<Value> verifyValue =
+        v -> {
+          assert v.getTypeLattice().isPrimitive()
+              || v.getTypeLattice().asReferenceTypeLatticeElement().nullability()
+                  != Nullability.bottom();
           return true;
         };
     return verifySSATypeLattice(

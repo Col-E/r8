@@ -12,6 +12,7 @@ public class NullabilityVariants<T extends ReferenceTypeLatticeElement> {
   private T maybeNullVariant;
   private T definitelyNullVariant;
   private T definitelyNotNullVariant;
+  private T bottomVariant;
 
   public static <T extends ReferenceTypeLatticeElement> T create(
       Nullability nullability, Function<NullabilityVariants<T>, T> callback) {
@@ -26,9 +27,11 @@ public class NullabilityVariants<T extends ReferenceTypeLatticeElement> {
       maybeNullVariant = element;
     } else if (nullability == Nullability.definitelyNull()) {
       definitelyNullVariant = element;
-    } else {
-      assert nullability == Nullability.definitelyNotNull();
+    } else if (nullability == Nullability.definitelyNotNull()) {
       definitelyNotNullVariant = element;
+    } else {
+      assert nullability == Nullability.bottom();
+      bottomVariant = element;
     }
   }
 
@@ -37,9 +40,11 @@ public class NullabilityVariants<T extends ReferenceTypeLatticeElement> {
       return maybeNullVariant;
     } else if (nullability == Nullability.definitelyNull()) {
       return definitelyNullVariant;
-    } else {
-      assert nullability == Nullability.definitelyNotNull();
+    } else if (nullability == Nullability.definitelyNotNull()) {
       return definitelyNotNullVariant;
+    } else {
+      assert nullability == Nullability.bottom();
+      return bottomVariant;
     }
   }
 
