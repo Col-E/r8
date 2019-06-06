@@ -210,7 +210,7 @@ public class DexItemFactory {
   public final DexString icceDescriptor = createString("Ljava/lang/IncompatibleClassChangeError;");
   public final DexString exceptionInInitializerErrorDescriptor =
       createString("Ljava/lang/ExceptionInInitializerError;");
-  public final DexString noSuchFieldErrorDescriptor = createString("Ljava/lang/NoSuchFieldError");
+  public final DexString noSuchFieldErrorDescriptor = createString("Ljava/lang/NoSuchFieldError;");
   public final DexString npeDescriptor = createString("Ljava/lang/NullPointerException;");
   public final DexString reflectiveOperationExceptionDescriptor =
       createString("Ljava/lang/ReflectiveOperationException;");
