@@ -1122,7 +1122,7 @@ public class Enqueuer {
     // For all instance fields visible from the class, mark them live if we have seen a read.
     transitionFieldsForInstantiatedClass(clazz.type);
     // Add all dependent instance members to the workqueue.
-    rootSet.forEachDependentNonStaticMember(clazz, appView, this::enqueueDependentItem);
+    transitionDependentItemsForInstantiatedClass(clazz);
   }
 
   /**
@@ -1234,6 +1234,19 @@ public class Enqueuer {
       }
       type = clazz.superType;
     } while (type != null && !instantiatedTypes.contains(type));
+  }
+
+  private void transitionDependentItemsForInstantiatedClass(DexClass clazz) {
+    DexClass current = clazz;
+    do {
+      // Handle keep rules that are dependent on the class being instantiated.
+      rootSet.forEachDependentNonStaticMember(clazz, appView, this::enqueueDependentItem);
+
+      // Visit the super type.
+      current = current.superType != null ? appView.definitionFor(current.superType) : null;
+    } while (current != null
+        && current.isProgramClass()
+        && !instantiatedTypes.contains(current.type));
   }
 
   private void markStaticFieldAsLive(DexField field, KeepReason reason) {
