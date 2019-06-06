@@ -186,14 +186,13 @@ public class RootSetBuilder {
       } else if (rule instanceof ProguardWhyAreYouKeepingRule) {
         markClass(clazz, rule);
         markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true);
-        markMatchingOverriddenMethods(
-            appView.appInfo(), clazz, memberKeepRules, rule, null, true);
+        markMatchingOverriddenMethods(appView.appInfo(), clazz, memberKeepRules, rule, null, true);
         markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true);
       } else if (rule instanceof ProguardAssumeMayHaveSideEffectsRule
-          || rule instanceof ProguardAssumeNoSideEffectRule) {
+          || rule instanceof ProguardAssumeNoSideEffectRule
+          || rule instanceof ProguardAssumeValuesRule) {
         markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true);
-        markMatchingOverriddenMethods(
-            appView.appInfo(), clazz, memberKeepRules, rule, null, true);
+        markMatchingOverriddenMethods(appView.appInfo(), clazz, memberKeepRules, rule, null, true);
         markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true);
       } else if (rule instanceof ClassMergingRule) {
         if (allRulesSatisfied(memberKeepRules, clazz)) {
@@ -208,9 +207,6 @@ public class RootSetBuilder {
           markClass(clazz, rule);
         }
       } else if (rule instanceof MemberValuePropagationRule) {
-        markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true);
-        markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true);
-      } else if (rule instanceof ProguardAssumeValuesRule) {
         markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true);
         markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true);
       } else {
