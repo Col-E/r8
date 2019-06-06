@@ -1240,7 +1240,7 @@ public class Enqueuer {
     DexClass current = clazz;
     do {
       // Handle keep rules that are dependent on the class being instantiated.
-      rootSet.forEachDependentNonStaticMember(clazz, appView, this::enqueueDependentItem);
+      rootSet.forEachDependentNonStaticMember(current, appView, this::enqueueDependentItem);
 
       // Visit the super type.
       current = current.superType != null ? appView.definitionFor(current.superType) : null;
