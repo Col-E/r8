@@ -182,12 +182,12 @@ public class DexBuilder {
       // large for the if encoding.
       rewriteIfs();
 
-      // Reset the state of the builder to start from scratch.
-      reset();
-
       // Remove redundant debug position instructions. They would otherwise materialize as
       // unnecessary nops.
       removeRedundantDebugPositions(ir);
+
+      // Reset the state of the builder to start from scratch.
+      reset();
 
       // Populate the builder info objects.
       numberOfInstructions = 0;
@@ -667,10 +667,12 @@ public class DexBuilder {
 
   // Helper used by the info objects.
   private Info getInfo(com.android.tools.r8.ir.code.Instruction instruction) {
+    assert instruction.getNumber() >= 0;
     return instructionToInfo[instructionNumberToIndex(instruction.getNumber())];
   }
 
   private void setInfo(com.android.tools.r8.ir.code.Instruction instruction, Info info) {
+    assert instruction.getNumber() >= 0;
     if (!(info instanceof FallThroughInfo)) {
       previousNonFallthroughInfo = info;
     }
