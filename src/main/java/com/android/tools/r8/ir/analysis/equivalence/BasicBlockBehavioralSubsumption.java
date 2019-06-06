@@ -16,9 +16,11 @@ import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.DexItemBasedConstString;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
+import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.utils.SetUtils;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -72,7 +74,8 @@ public class BasicBlockBehavioralSubsumption {
         // If the other instruction is also a goto instruction, which targets the same block, then
         // we are done.
         if (targetBlock == otherTargetBlock) {
-          return true;
+          return passesIdenticalValuesForPhis(
+              instruction.getBlock(), otherInstruction.getBlock(), targetBlock);
         }
         // Otherwise we continue the search from the two successor blocks.
         otherIterator = otherTargetBlock.iterator();
@@ -203,5 +206,40 @@ public class BasicBlockBehavioralSubsumption {
     }
 
     return false;
+  }
+
+  private boolean passesIdenticalValuesForPhis(
+      BasicBlock block, BasicBlock other, BasicBlock blockWithPhis) {
+    if (block == other) {
+      return true;
+    }
+
+    int predecessorIndex = -1, otherPredecessorIndex = -1;
+    List<BasicBlock> predecessors = blockWithPhis.getPredecessors();
+    for (int i = 0; i < predecessors.size(); i++) {
+      BasicBlock predecessor = predecessors.get(i);
+      if (predecessor == block) {
+        predecessorIndex = i;
+        if (otherPredecessorIndex >= 0) {
+          break;
+        }
+      } else if (predecessor == other) {
+        otherPredecessorIndex = i;
+        if (predecessorIndex >= 0) {
+          break;
+        }
+      }
+    }
+
+    assert predecessorIndex >= 0;
+    assert otherPredecessorIndex >= 0;
+
+    for (Phi phi : blockWithPhis.getPhis()) {
+      if (!valuesAreIdentical(
+          phi.getOperand(predecessorIndex), phi.getOperand(otherPredecessorIndex))) {
+        return false;
+      }
+    }
+    return true;
   }
 }
