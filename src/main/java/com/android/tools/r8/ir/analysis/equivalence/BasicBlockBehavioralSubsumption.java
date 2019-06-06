@@ -96,11 +96,24 @@ public class BasicBlockBehavioralSubsumption {
 
     // If the current instruction is not a goto instruction, but the other instruction is, then
     // we continue the search from the target of the other goto instruction.
-    if (otherInstruction.isGoto()) {
+    Set<BasicBlock> otherVisited = null;
+    while (otherInstruction.isGoto()) {
+      BasicBlock block = otherInstruction.getBlock();
+      if (otherVisited != null && !otherVisited.add(block)) {
+        // Guard against cycles in the control flow graph.
+        return false;
+      }
+
       otherIterator = otherInstruction.asGoto().getTarget().iterator();
       otherInstruction =
           otherIterator.nextUntil(
               or(this::instructionMayHaveSideEffects, Instruction::isJumpInstruction));
+
+      // If following the first goto instruction leads to another goto instruction, then we need to
+      // keep track of the set of visited blocks to guard against cycles in the control flow graph.
+      if (otherInstruction.isGoto() && otherVisited == null) {
+        otherVisited = SetUtils.newIdentityHashSet(block);
+      }
     }
 
     if (instruction.isReturn()) {
