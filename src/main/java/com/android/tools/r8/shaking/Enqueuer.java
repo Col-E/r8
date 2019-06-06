@@ -8,6 +8,7 @@ import static com.android.tools.r8.naming.IdentifierNameStringUtils.identifyIden
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.isReflectionMethod;
 import static com.android.tools.r8.shaking.AnnotationRemover.shouldKeepAnnotation;
 import static com.android.tools.r8.shaking.EnqueuerUtils.toImmutableSortedMap;
+import static com.google.common.base.Predicates.or;
 
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.dex.IndexedItemCollection;
@@ -1380,7 +1381,9 @@ public class Enqueuer {
 
   private boolean isInstantiatedOrHasInstantiatedSubtype(DexType type) {
     return instantiatedTypes.contains(type)
-        || appInfo.subtypes(type).stream().anyMatch(instantiatedTypes::contains);
+        || instantiatedLambdas.contains(type)
+        || appInfo.subtypes(type).stream()
+            .anyMatch(or(instantiatedTypes::contains, instantiatedLambdas::contains));
   }
 
   private void markInstanceFieldAsReachable(DexField field, KeepReason reason) {
@@ -1502,7 +1505,8 @@ public class Enqueuer {
         continue;
       }
 
-      if (instantiatedTypes.contains(possibleTarget.holder)) {
+      if (instantiatedTypes.contains(possibleTarget.holder)
+          || instantiatedLambdas.contains(possibleTarget.holder)) {
         markVirtualMethodAsLive(
             encodedPossibleTarget, KeepReason.reachableFromLiveType(possibleTarget.holder));
       } else {

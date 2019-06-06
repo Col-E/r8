@@ -363,15 +363,31 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
       }
     }
 
+    Consumer<DexEncodedMethod> addIfNotAbstract =
+        m -> {
+          if (!m.accessFlags.isAbstract()) {
+            result.add(m);
+          }
+        };
+    // Default methods are looked up when looking at a specific subtype that does not override them.
+    // Otherwise, we would look up default methods that are actually never used. However, we have to
+    // add bridge methods, otherwise we can remove a bridge that will be used.
+    Consumer<DexEncodedMethod> addIfNotAbstractAndBridge =
+        m -> {
+          if (!m.accessFlags.isAbstract() && m.accessFlags.isBridge()) {
+            result.add(m);
+          }
+        };
+
     Set<DexType> set = subtypes(method.holder);
     for (DexType type : set) {
       DexClass clazz = definitionFor(type);
-      // Default methods are looked up when looking at a specific subtype that does not
-      // override them, so we ignore interfaces here. Otherwise, we would look up default methods
-      // that are factually never used.
-      if (!clazz.isInterface()) {
+      if (clazz.isInterface()) {
+        ResolutionResult targetMethods = resolveMethodOnInterface(type, method);
+        targetMethods.forEachTarget(addIfNotAbstractAndBridge);
+      } else {
         ResolutionResult targetMethods = resolveMethodOnClass(type, method);
-        targetMethods.forEachTarget(result::add);
+        targetMethods.forEachTarget(addIfNotAbstract);
       }
     }
     return result;
