@@ -336,6 +336,11 @@ public abstract class NestBasedAccessDesugaring {
     }
 
     private boolean registerInvoke(DexMethod method, Invoke.Type invokeType) {
+      // Calls to non class type are not done through nest based access control.
+      // Work-around for calls to enum.clone().
+      if (!method.holder.isClassType()) {
+        return false;
+      }
       DexEncodedMethod encodedMethod = definitionFor(method, context, invokeType);
       if (encodedMethod != null && invokeRequiresRewriting(encodedMethod, currentClass)) {
         ensureInvokeBridge(encodedMethod);

@@ -689,7 +689,7 @@ task repackageSources11(type: ShadowJar) {
     if (!project.hasProperty('lib_no_relocate')) {
         configureRelocations(it)
     }
-    baseName 'sources'
+    baseName 'sources11'
 }
 
 task r8WithRelocatedDeps(type: ShadowJar) {
@@ -827,46 +827,6 @@ def r8LibCreateTask(name, pgConf, r8Task, output, args = [], libs = []) {
     }
 }
 
-def baseR8CommandLine11(args = []) {
-    // Execute r8 commands against a stable r8 with relocated dependencies.
-    def jdkDir = 'third_party/openjdk/jdk-11/'
-    def javaExecutable
-    if (OperatingSystem.current().isLinux()) {
-        javaExecutable = file(jdkDir + 'Linux/bin/java')
-    } else if (OperatingSystem.current().isMacOsX()) {
-        javaExecutable = file(jdkDir + 'Mac/bin/java')
-    } else {
-        javaExecutable = file(jdkDir + 'Windows/bin/java')
-    }
-    return [javaExecutable,
-            "-ea", "-jar", r8WithRelocatedDeps11.outputs.files[0]] + args
-}
-
-
-def r8CfCommandLine11(input, output, pgconf, args = [], libs = []) {
-    return baseR8CommandLine11([
-            "--classfile", "--release",
-            input,
-            "--output", output,
-            "--pg-conf", pgconf,
-            "--pg-map-output", output + ".map",
-            "--lib", "third_party/openjdk/openjdk-rt-1.8/rt.jar"
-    ] + args + libs.collectMany { ["--lib", it] })
-}
-
-def r8LibCreateTask11(name, pgConf, r8Task, output, args = [], libs = []) {
-    // Execute r8 11 commands against a stable r8 11 with relocated dependencies.
-    return tasks.create("r8Lib${name}", Exec) {
-        inputs.files ([pgConf, r8WithRelocatedDeps.outputs, r8Task.outputs])
-        outputs.file output
-        dependsOn downloadOpenJDKrt
-        dependsOn r8WithRelocatedDeps11
-        dependsOn r8Task
-        commandLine r8CfCommandLine11(r8Task.outputs.files[0], output, pgConf, args, libs)
-        workingDir = projectDir
-    }
-}
-
 task testJar(type: ShadowJar, dependsOn: testClasses) {
     baseName = "r8tests"
     from sourceSets.test.output
@@ -917,22 +877,6 @@ task R8Lib {
             ["--pg-conf", genRulesTask.outputs.files[0]]
     ).dependsOn(genRulesTask)
     outputs.file r8LibPath
-}
-
-task R8Lib11 {
-    def genRulesTask = generateR8LibKeepRules(
-            "Main11",
-            r8WithRelocatedDeps11,
-            testJar,
-            r8LibGeneratedKeepRulesPath)
-    dependsOn r8LibCreateTask(
-            "Main11",
-            "src/main/keep.txt",
-            r8WithRelocatedDeps11,
-            r8LibPath11,
-            ["--pg-conf", genRulesTask.outputs.files[0]]
-    ).dependsOn(genRulesTask)
-    outputs.file r8LibPath11
 }
 
 task R8LibNoDeps {

@@ -204,13 +204,23 @@ public class CfApplicationWriter {
         options.reporter, handler -> consumer.accept(ByteDataView.of(result), desc, handler));
   }
 
+  private int getClassFileVersion(DexEncodedMethod method) {
+    if (!method.hasClassFileVersion()) {
+      // In this case bridges have been introduced for the Cf back-end,
+      // which do not have class file version.
+      assert options.testing.enableForceNestBasedAccessDesugaringForTest;
+      return 0;
+    }
+    return method.getClassFileVersion();
+  }
+
   private int getClassFileVersion(DexProgramClass clazz) {
     int version = clazz.hasClassFileVersion() ? clazz.getInitialClassFileVersion() : 50;
     for (DexEncodedMethod method : clazz.directMethods()) {
-      version = Math.max(version, method.getClassFileVersion());
+      version = Math.max(version, getClassFileVersion(method));
     }
     for (DexEncodedMethod method : clazz.virtualMethods()) {
-      version = Math.max(version, method.getClassFileVersion());
+      version = Math.max(version, getClassFileVersion(method));
     }
     return version;
   }

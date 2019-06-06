@@ -10,6 +10,7 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.R8Command.Builder;
 import com.android.tools.r8.TestBase.Backend;
+import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.utils.AndroidApp;
@@ -51,6 +52,9 @@ public class ExternalR8TestBuilder
   // Additional Proguard configuration files.
   private List<Path> proguardConfigFiles = new ArrayList<>();
 
+  // External JDK to use to run R8
+  private CfVm externalJDK = null;
+
   private boolean addR8ExternalDeps = false;
 
   private ExternalR8TestBuilder(TestState state, Builder builder, Backend backend) {
@@ -64,6 +68,18 @@ public class ExternalR8TestBuilder
   @Override
   ExternalR8TestBuilder self() {
     return this;
+  }
+
+  public ExternalR8TestBuilder useExternalJDK(CfVm externalJDK) {
+    this.externalJDK = externalJDK;
+    return this;
+  }
+
+  private String getJDKToRun() {
+    if (externalJDK == null) {
+      return getJavaExecutable();
+    }
+    return getJavaExecutable(externalJDK);
   }
 
   @Override
@@ -85,7 +101,7 @@ public class ExternalR8TestBuilder
       List<String> command = new ArrayList<>();
       Collections.addAll(
           command,
-          getJavaExecutable(),
+          getJDKToRun(),
           "-ea",
           "-cp",
           classPath,

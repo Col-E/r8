@@ -41,7 +41,8 @@ public class R8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
 
   public GraphLense run(ExecutorService executorService, DexApplication.Builder<?> appBuilder)
       throws ExecutionException {
-    assert !appView.options().canUseNestBasedAccess();
+    assert !appView.options().canUseNestBasedAccess()
+        || appView.options().testing.enableForceNestBasedAccessDesugaringForTest;
     computeAndProcessNestsConcurrently(executorService);
     addDeferredBridgesAndMapMethods();
     clearNestAttributes();
