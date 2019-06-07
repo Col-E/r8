@@ -263,10 +263,11 @@ public class MemberValuePropagation {
 
     ProguardMemberRuleLookup lookup = lookupMemberRule(definition);
     if (lookup == null) {
-      // Since -assumenosideeffects rules are always applied to all overriding methods, we can
-      // simply check the target method, although this may be different from the dynamically
-      // targeted method.
-      DexEncodedMethod target = appView.definitionFor(invokedMethod);
+      // -assumenosideeffects rules are applied to upward visible and overriding methods, but only
+      // references that have actual definitions are marked by the root set builder. So, here, we
+      // try again with a resolved target, not the direct definition, which may not exist.
+      DexEncodedMethod target =
+          appView.appInfo().resolveMethod(invokedHolder, invokedMethod).asSingleTarget();
       lookup = lookupMemberRule(target);
     }
     boolean invokeReplaced = false;
