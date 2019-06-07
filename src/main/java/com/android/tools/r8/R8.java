@@ -350,7 +350,7 @@ public class R8 {
         assert appView.rootSet().verifyKeptMethodsAreTargetedAndLive(appViewWithLiveness.appInfo());
         assert appView.rootSet().verifyKeptTypesAreLive(appViewWithLiveness.appInfo());
 
-        if (options.getProguardConfiguration().isPrintSeeds()) {
+        if (options.proguardSeedsConsumer != null) {
           ByteArrayOutputStream bytes = new ByteArrayOutputStream();
           PrintStream out = new PrintStream(bytes);
           RootSetBuilder.writeSeeds(appView.appInfo().withLiveness(), out, type -> true);

@@ -78,7 +78,7 @@ public final class R8Command extends BaseCompilerCommand {
     }
 
     private final List<ProguardConfigurationSource> mainDexRules = new ArrayList<>();
-    private Consumer<ProguardConfiguration.Builder> proguardConfigurationConsumer = null;
+    private Consumer<ProguardConfiguration.Builder> proguardConfigurationConsumerForTesting = null;
     private Consumer<List<ProguardConfigurationRule>> syntheticProguardRulesConsumer = null;
     private final List<ProguardConfigurationSource> proguardConfigs = new ArrayList<>();
     private boolean disableTreeShaking = false;
@@ -86,6 +86,9 @@ public final class R8Command extends BaseCompilerCommand {
     private boolean disableVerticalClassMerging = false;
     private boolean forceProguardCompatibility = false;
     private StringConsumer proguardMapConsumer = null;
+    private StringConsumer proguardUsageConsumer = null;
+    private StringConsumer proguardSeedsConsumer = null;
+    private StringConsumer proguardConfigurationConsumer = null;
     private GraphConsumer keptGraphConsumer = null;
     private GraphConsumer mainDexKeptGraphConsumer = null;
 
@@ -237,6 +240,44 @@ public final class R8Command extends BaseCompilerCommand {
     }
 
     /**
+     * Set a consumer for receiving the proguard usage information.
+     *
+     * <p>Note that any subsequent calls to this method will replace the previous setting.
+     *
+     * @param proguardUsageConsumer Consumer to receive usage information.
+     */
+    public Builder setProguardUsageConsumer(StringConsumer proguardUsageConsumer) {
+      this.proguardUsageConsumer = proguardUsageConsumer;
+      return self();
+    }
+
+    /**
+     * Set a consumer for receiving the proguard seeds information.
+     *
+     * <p>Note that any subsequent calls to this method will replace the previous setting.
+     *
+     * @param proguardSeedsConsumer Consumer to receive seeds information.
+     * @return
+     */
+    public Builder setProguardSeedsConsumer(StringConsumer proguardSeedsConsumer) {
+      this.proguardSeedsConsumer = proguardSeedsConsumer;
+      return self();
+    }
+
+    /**
+     * Set a consumer for receiving the proguard configuration information.
+     *
+     * <p>Note that any subsequent calls to this method will replace the previous setting.
+     *
+     * @param proguardConfigurationConsumer
+     * @return
+     */
+    public Builder setProguardConfigurationConsumer(StringConsumer proguardConfigurationConsumer) {
+      this.proguardConfigurationConsumer = proguardConfigurationConsumer;
+      return self();
+    }
+
+    /**
      * Set a consumer for receiving kept-graph events.
      *
      * @param graphConsumer
@@ -379,8 +420,8 @@ public final class R8Command extends BaseCompilerCommand {
         configurationBuilder.enableKeepRuleSynthesisForRecompilation();
       }
 
-      if (proguardConfigurationConsumer != null) {
-        proguardConfigurationConsumer.accept(configurationBuilder);
+      if (proguardConfigurationConsumerForTesting != null) {
+        proguardConfigurationConsumerForTesting.accept(configurationBuilder);
       }
 
       // Process Proguard configurations supplied through data resources in the input.
@@ -454,6 +495,9 @@ public final class R8Command extends BaseCompilerCommand {
               disableVerticalClassMerging,
               forceProguardCompatibility,
               proguardMapConsumer,
+              proguardUsageConsumer,
+              proguardSeedsConsumer,
+              proguardConfigurationConsumer,
               proguardCompatibilityRulesOutput,
               keptGraphConsumer,
               mainDexKeptGraphConsumer,
@@ -465,8 +509,8 @@ public final class R8Command extends BaseCompilerCommand {
 
     // Internal for-testing method to add post-processors of the proguard configuration.
     void addProguardConfigurationConsumerForTesting(Consumer<ProguardConfiguration.Builder> c) {
-      Consumer<ProguardConfiguration.Builder> oldConsumer = proguardConfigurationConsumer;
-      proguardConfigurationConsumer =
+      Consumer<ProguardConfiguration.Builder> oldConsumer = proguardConfigurationConsumerForTesting;
+      proguardConfigurationConsumerForTesting =
           builder -> {
             if (oldConsumer != null) {
               oldConsumer.accept(builder);
@@ -531,6 +575,9 @@ public final class R8Command extends BaseCompilerCommand {
   private final boolean disableVerticalClassMerging;
   private final boolean forceProguardCompatibility;
   private final StringConsumer proguardMapConsumer;
+  private final StringConsumer proguardUsageConsumer;
+  private final StringConsumer proguardSeedsConsumer;
+  private final StringConsumer proguardConfigurationConsumer;
   private final Path proguardCompatibilityRulesOutput;
   private final GraphConsumer keptGraphConsumer;
   private final GraphConsumer mainDexKeptGraphConsumer;
@@ -598,6 +645,9 @@ public final class R8Command extends BaseCompilerCommand {
       boolean disableVerticalClassMerging,
       boolean forceProguardCompatibility,
       StringConsumer proguardMapConsumer,
+      StringConsumer proguardUsageConsumer,
+      StringConsumer proguardSeedsConsumer,
+      StringConsumer proguardConfigurationConsumer,
       Path proguardCompatibilityRulesOutput,
       GraphConsumer keptGraphConsumer,
       GraphConsumer mainDexKeptGraphConsumer,
@@ -621,6 +671,9 @@ public final class R8Command extends BaseCompilerCommand {
     this.disableVerticalClassMerging = disableVerticalClassMerging;
     this.forceProguardCompatibility = forceProguardCompatibility;
     this.proguardMapConsumer = proguardMapConsumer;
+    this.proguardUsageConsumer = proguardUsageConsumer;
+    this.proguardSeedsConsumer = proguardSeedsConsumer;
+    this.proguardConfigurationConsumer = proguardConfigurationConsumer;
     this.proguardCompatibilityRulesOutput = proguardCompatibilityRulesOutput;
     this.keptGraphConsumer = keptGraphConsumer;
     this.mainDexKeptGraphConsumer = mainDexKeptGraphConsumer;
@@ -636,6 +689,9 @@ public final class R8Command extends BaseCompilerCommand {
     disableVerticalClassMerging = false;
     forceProguardCompatibility = false;
     proguardMapConsumer = null;
+    proguardUsageConsumer = null;
+    proguardSeedsConsumer = null;
+    proguardConfigurationConsumer = null;
     proguardCompatibilityRulesOutput = null;
     keptGraphConsumer = null;
     mainDexKeptGraphConsumer = null;
@@ -700,45 +756,33 @@ public final class R8Command extends BaseCompilerCommand {
       internal.outline.enabled = false;
     }
 
-    // Setup a configuration consumer.
-    if (proguardConfiguration.isPrintConfiguration()) {
-      internal.configurationConsumer = proguardConfiguration.getPrintConfigurationFile() != null
-          ? new StringConsumer.FileConsumer(proguardConfiguration.getPrintConfigurationFile())
-          : new StringConsumer.StreamConsumer(StandardOutOrigin.instance(), System.out);
-    }
-
-    // Setup a usage information consumer.
-    if (proguardConfiguration.isPrintUsage()) {
-      internal.usageInformationConsumer = proguardConfiguration.getPrintUsageFile() != null
-          ? new StringConsumer.FileConsumer(proguardConfiguration.getPrintUsageFile())
-          : new StringConsumer.StreamConsumer(StandardOutOrigin.instance(), System.out);
-    }
-
-    // Setup pg-seeds consumer.
-    if (proguardConfiguration.isPrintSeeds()) {
-      internal.proguardSeedsConsumer =  proguardConfiguration.getSeedFile() != null
-          ? new StringConsumer.FileConsumer(proguardConfiguration.getSeedFile())
-          : new StringConsumer.StreamConsumer(StandardOutOrigin.instance(), System.out);
-    }
-
     // Amend the proguard-map consumer with options from the proguard configuration.
-    {
-      StringConsumer wrappedConsumer;
-      if (proguardConfiguration.isPrintMapping()) {
-        if (proguardConfiguration.getPrintMappingFile() != null) {
-          wrappedConsumer =
-              new StringConsumer.FileConsumer(
-                  proguardConfiguration.getPrintMappingFile(), proguardMapConsumer);
-        } else {
-          wrappedConsumer =
-              new StringConsumer.StreamConsumer(
-                  StandardOutOrigin.instance(), System.out, proguardMapConsumer);
-        }
-      } else {
-        wrappedConsumer = proguardMapConsumer;
-      }
-      internal.proguardMapConsumer = wrappedConsumer;
-    }
+    internal.proguardMapConsumer =
+        wrapStringConsumer(
+            proguardMapConsumer,
+            proguardConfiguration.isPrintMapping(),
+            proguardConfiguration.getPrintMappingFile());
+
+    // Amend the usage information consumer with options from the proguard configuration.
+    internal.usageInformationConsumer =
+        wrapStringConsumer(
+            proguardUsageConsumer,
+            proguardConfiguration.isPrintUsage(),
+            proguardConfiguration.getPrintUsageFile());
+
+    // Amend the pg-seeds consumer with options from the proguard configuration.
+    internal.proguardSeedsConsumer =
+        wrapStringConsumer(
+            proguardSeedsConsumer,
+            proguardConfiguration.isPrintSeeds(),
+            proguardConfiguration.getSeedFile());
+
+    // Amend the configuration consumer with options from the proguard configuration.
+    internal.configurationConsumer =
+        wrapStringConsumer(
+            proguardConfigurationConsumer,
+            proguardConfiguration.isPrintConfiguration(),
+            proguardConfiguration.getPrintConfigurationFile());
 
     // Set the kept-graph consumer if any. It will only be actively used if the enqueuer triggers.
     internal.keptGraphConsumer = keptGraphConsumer;
@@ -766,5 +810,18 @@ public final class R8Command extends BaseCompilerCommand {
     internal.enableInheritanceClassInDexDistributor = isOptimizeMultidexForLinearAlloc();
 
     return internal;
+  }
+
+  private static StringConsumer wrapStringConsumer(
+      StringConsumer optionConsumer, boolean optionsFlag, Path optionFile) {
+    if (optionsFlag) {
+      if (optionFile != null) {
+        return new StringConsumer.FileConsumer(optionFile, optionConsumer);
+      } else {
+        return new StringConsumer.StreamConsumer(
+            StandardOutOrigin.instance(), System.out, optionConsumer);
+      }
+    }
+    return optionConsumer;
   }
 }
