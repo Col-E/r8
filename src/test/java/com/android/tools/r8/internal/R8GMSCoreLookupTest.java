@@ -4,7 +4,6 @@
 package com.android.tools.r8.internal;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.StringResource;
@@ -26,6 +25,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -68,11 +68,21 @@ public class R8GMSCoreLookupTest {
     Set<DexEncodedMethod> targets = appInfo.lookupInterfaceTargets(method.method);
     if (appInfo.subtypes(method.method.holder).stream()
         .allMatch(t -> appInfo.definitionFor(t).isInterface())) {
-      assertTrue(targets.isEmpty());
+      assertTrue(
+          targets.stream()
+              .filter(m -> m.accessFlags.isAbstract() || !m.accessFlags.isBridge())
+              .collect(Collectors.toSet())
+              .isEmpty());
     } else {
-      assertFalse(targets.isEmpty());
+      assertTrue(
+          targets.stream()
+              .filter(m -> m.accessFlags.isAbstract())
+              .collect(Collectors.toSet())
+              .isEmpty());
     }
   }
+
+
 
   private void testLookup(DexProgramClass clazz) {
     if (clazz.isInterface()) {
