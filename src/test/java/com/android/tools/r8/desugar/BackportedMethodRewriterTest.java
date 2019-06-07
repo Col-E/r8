@@ -39,7 +39,7 @@ public class BackportedMethodRewriterTest extends TestBase {
         .run(TestMethods.class)
         .assertSuccessWithOutput(expectedOutput);
 
-    assertDesugaring(AndroidApiLevel.O, 55);
+    assertDesugaring(AndroidApiLevel.O, 60);
     assertDesugaring(AndroidApiLevel.N, 49);
     assertDesugaring(AndroidApiLevel.K, 20);
     assertDesugaring(AndroidApiLevel.J_MR2, 0);
@@ -141,6 +141,8 @@ public class BackportedMethodRewriterTest extends TestBase {
       byte[] aBytes = new byte[]{42, 1, -1, Byte.MAX_VALUE, Byte.MIN_VALUE};
       for (byte aByte : aBytes) {
         System.out.println(Byte.hashCode(aByte));
+        System.out.println(Byte.toUnsignedInt(aByte));
+        System.out.println(Byte.toUnsignedLong(aByte));
         for (byte bByte : aBytes) {
           // Normalize comparison to [-1, 1] since the values differ across versions but signs match
           System.out.println(signum(Byte.compare(aByte, bByte)));
@@ -150,6 +152,8 @@ public class BackportedMethodRewriterTest extends TestBase {
       short[] aShorts = new short[]{42, 1, -1, Short.MAX_VALUE, Short.MIN_VALUE};
       for (short aShort : aShorts) {
         System.out.println(Short.hashCode(aShort));
+        System.out.println(Short.toUnsignedInt(aShort));
+        System.out.println(Short.toUnsignedLong(aShort));
         for (short bShort : aShorts) {
           // Normalize comparison to [-1, 1] since the values differ across versions but signs match
           System.out.println(signum(Short.compare(aShort, bShort)));
@@ -160,6 +164,7 @@ public class BackportedMethodRewriterTest extends TestBase {
       int[] bInts = new int[]{43, 1, -1, Integer.MAX_VALUE, Integer.MIN_VALUE};
       for (int aInt : aInts) {
         System.out.println(Integer.hashCode(aInt));
+        System.out.println(Integer.toUnsignedLong(aInt));
         for (int bInt : bInts) {
           System.out.println(Integer.compare(aInt, bInt));
           System.out.println(Integer.max(aInt, bInt));

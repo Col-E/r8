@@ -184,6 +184,14 @@ public final class BackportedMethodRewriter {
       return new ByteMethods(options, method, "compareImpl");
     }
 
+    public static ByteMethods toUnsignedIntCode(InternalOptions options, DexMethod method) {
+      return new ByteMethods(options, method, "toUnsignedIntImpl");
+    }
+
+    public static ByteMethods toUnsignedLongCode(InternalOptions options, DexMethod method) {
+      return new ByteMethods(options, method, "toUnsignedLongImpl");
+    }
+
     public static int hashCodeImpl(byte i) {
       return Byte.valueOf(i).hashCode();
     }
@@ -191,8 +199,15 @@ public final class BackportedMethodRewriter {
     public static int compareImpl(byte a, byte b) {
       return Byte.valueOf(a).compareTo(Byte.valueOf(b));
     }
-  }
 
+    public static int toUnsignedIntImpl(byte value) {
+      return value & 0xff;
+    }
+
+    public static long toUnsignedLongImpl(byte value) {
+      return value & 0xffL;
+    }
+  }
 
   private static final class ShortMethods extends TemplateMethodCode {
     ShortMethods(InternalOptions options, DexMethod method, String methodName) {
@@ -207,12 +222,28 @@ public final class BackportedMethodRewriter {
       return new ShortMethods(options, method, "compareImpl");
     }
 
+    public static ShortMethods toUnsignedIntCode(InternalOptions options, DexMethod method) {
+      return new ShortMethods(options, method, "toUnsignedIntImpl");
+    }
+
+    public static ShortMethods toUnsignedLongCode(InternalOptions options, DexMethod method) {
+      return new ShortMethods(options, method, "toUnsignedLongImpl");
+    }
+
     public static int hashCodeImpl(short i) {
       return Short.valueOf(i).hashCode();
     }
 
     public static int compareImpl(short a, short b) {
       return Short.valueOf(a).compareTo(Short.valueOf(b));
+    }
+
+    public static int toUnsignedIntImpl(short value) {
+      return value & 0xffff;
+    }
+
+    public static long toUnsignedLongImpl(short value) {
+      return value & 0xffffL;
     }
   }
 
@@ -253,6 +284,10 @@ public final class BackportedMethodRewriter {
       return new IntegerMethods(options, method, "compareUnsignedImpl");
     }
 
+    public static IntegerMethods toUnsignedLongCode(InternalOptions options, DexMethod method) {
+      return new IntegerMethods(options, method, "toUnsignedLongImpl");
+    }
+
     public static int hashCodeImpl(int i) {
       return Integer.valueOf(i).hashCode();
     }
@@ -289,6 +324,10 @@ public final class BackportedMethodRewriter {
       int aFlipped = a ^ Integer.MIN_VALUE;
       int bFlipped = b ^ Integer.MIN_VALUE;
       return Integer.compare(aFlipped, bFlipped);
+    }
+
+    public static long toUnsignedLongImpl(int value) {
+      return value & 0xffffffffL;
     }
   }
 
@@ -1013,11 +1052,42 @@ public final class BackportedMethodRewriter {
     }
 
     private void initializeJava8UnsignedOperations(DexItemFactory factory) {
-      DexString clazz = factory.boxedIntDescriptor;
+      // Byte
+      DexString clazz = factory.boxedByteDescriptor;
+
+      // int Byte.toUnsignedInt(byte value)
+      DexString method = factory.createString("toUnsignedInt");
+      DexProto proto = factory.createProto(factory.intType, factory.byteType);
+      addOrGetMethod(clazz, method).put(proto,
+          new MethodGenerator(ByteMethods::toUnsignedIntCode, clazz, method, proto));
+
+      // long Byte.toUnsignedLong(byte value)
+      method = factory.createString("toUnsignedLong");
+      proto = factory.createProto(factory.longType, factory.byteType);
+      addOrGetMethod(clazz, method).put(proto,
+          new MethodGenerator(ByteMethods::toUnsignedLongCode, clazz, method, proto));
+
+      // Short
+      clazz = factory.boxedShortDescriptor;
+
+      // int Short.toUnsignedInt(short value)
+      method = factory.createString("toUnsignedInt");
+      proto = factory.createProto(factory.intType, factory.shortType);
+      addOrGetMethod(clazz, method).put(proto,
+          new MethodGenerator(ShortMethods::toUnsignedIntCode, clazz, method, proto));
+
+      // long Short.toUnsignedLong(short value)
+      method = factory.createString("toUnsignedLong");
+      proto = factory.createProto(factory.longType, factory.shortType);
+      addOrGetMethod(clazz, method).put(proto,
+          new MethodGenerator(ShortMethods::toUnsignedLongCode, clazz, method, proto));
+
+      // Integer
+      clazz = factory.boxedIntDescriptor;
 
       // int Integer.divideUnsigned(int a, int b)
-      DexString method = factory.createString("divideUnsigned");
-      DexProto proto = factory.createProto(factory.intType, factory.intType, factory.intType);
+      method = factory.createString("divideUnsigned");
+      proto = factory.createProto(factory.intType, factory.intType, factory.intType);
       addOrGetMethod(clazz, method).put(proto,
           new MethodGenerator(IntegerMethods::divideUnsignedCode, clazz, method, proto));
 
@@ -1033,6 +1103,13 @@ public final class BackportedMethodRewriter {
       addOrGetMethod(clazz, method).put(proto,
           new MethodGenerator(IntegerMethods::compareUnsignedCode, clazz, method, proto));
 
+      // long Integer.toUnsignedLong(int value)
+      method = factory.createString("toUnsignedLong");
+      proto = factory.createProto(factory.longType, factory.intType);
+      addOrGetMethod(clazz, method).put(proto,
+          new MethodGenerator(IntegerMethods::toUnsignedLongCode, clazz, method, proto));
+
+      // Long
       clazz = factory.boxedLongDescriptor;
 
       // long Long.divideUnsigned(long a, long b)
