@@ -4,21 +4,25 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.dex.ApplicationReader.ProgramClassConflictResolver;
-import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.errors.DuplicateTypesDiagnostic;
 import com.android.tools.r8.graph.ClassKind;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
+import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
+import com.android.tools.r8.references.Reference;
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 /** Represents a collection of library classes. */
 public class ProgramClassCollection extends ClassMap<DexProgramClass> {
+
+  private final ProgramClassConflictResolver conflictResolver;
 
   public static ProgramClassCollection create(
       List<DexProgramClass> classes, ProgramClassConflictResolver conflictResolver) {
@@ -28,11 +32,14 @@ public class ProgramClassCollection extends ClassMap<DexProgramClass> {
       map.merge(
           clazz.type, clazz, (a, b) -> conflictResolver.resolveClassConflict(a.get(), b.get()));
     }
-    return new ProgramClassCollection(map);
+    return new ProgramClassCollection(map, conflictResolver);
   }
 
-  private ProgramClassCollection(ConcurrentHashMap<DexType, Supplier<DexProgramClass>> classes) {
+  private ProgramClassCollection(
+      ConcurrentHashMap<DexType, Supplier<DexProgramClass>> classes,
+      ProgramClassConflictResolver conflictResolver) {
     super(classes, null);
+    this.conflictResolver = conflictResolver;
   }
 
   @Override
@@ -42,7 +49,7 @@ public class ProgramClassCollection extends ClassMap<DexProgramClass> {
 
   @Override
   DexProgramClass resolveClassConflict(DexProgramClass a, DexProgramClass b) {
-    return resolveClassConflictImpl(a, b);
+    return conflictResolver.resolveClassConflict(a, b);
   }
 
   @Override
@@ -55,17 +62,22 @@ public class ProgramClassCollection extends ClassMap<DexProgramClass> {
     return ClassKind.PROGRAM;
   }
 
-  public static DexProgramClass resolveClassConflictImpl(DexProgramClass a, DexProgramClass b) {
-    assert a.type == b.type;
-    // Only allow collapsing synthetic lambda, nest constructor, dispatch and twr-utility classes.
-    if (a.originatesFromDexResource()
-        && b.originatesFromDexResource()
-        && a.accessFlags.isSynthetic()
-        && b.accessFlags.isSynthetic()
-        && assumeClassesAreEqual(a)) {
-      return a;
-    }
-    throw new CompilationError("Program type already present: " + a.type.toSourceString());
+  public static ProgramClassConflictResolver disallowClassConflictsResolver(Reporter reporter) {
+    return (DexProgramClass a, DexProgramClass b) -> {
+      assert a.type == b.type;
+      // Only allow collapsing synthetic lambda, nest constructor, dispatch and twr-utility classes.
+      if (a.originatesFromDexResource()
+          && b.originatesFromDexResource()
+          && a.accessFlags.isSynthetic()
+          && b.accessFlags.isSynthetic()
+          && assumeClassesAreEqual(a)) {
+        return a;
+      }
+      throw reporter.fatalError(
+          new DuplicateTypesDiagnostic(
+              Reference.classFromDescriptor(a.type.toDescriptorString()),
+              ImmutableList.of(a.getOrigin(), b.getOrigin())));
+    };
   }
 
   private static boolean assumeClassesAreEqual(DexProgramClass a) {

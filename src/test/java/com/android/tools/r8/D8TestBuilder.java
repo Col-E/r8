@@ -29,6 +29,10 @@ public class D8TestBuilder
     return this;
   }
 
+  public Builder getBuilder() {
+    return builder;
+  }
+
   public D8TestBuilder addProgramResourceProvider(ProgramResourceProvider provider) {
     builder.addProgramResourceProvider(provider);
     return self();

@@ -86,12 +86,18 @@ public class ApplicationReader {
 
   public final DexApplication read(ExecutorService executorService)
       throws IOException, ExecutionException {
-    return read(null, executorService, ProgramClassCollection::resolveClassConflictImpl);
+    return read(
+        null,
+        executorService,
+        ProgramClassCollection.disallowClassConflictsResolver(options.reporter));
   }
 
   public final DexApplication read(StringResource proguardMap, ExecutorService executorService)
       throws IOException, ExecutionException {
-    return read(proguardMap, executorService, ProgramClassCollection::resolveClassConflictImpl);
+    return read(
+        proguardMap,
+        executorService,
+        ProgramClassCollection.disallowClassConflictsResolver(options.reporter));
   }
 
   public final DexApplication read(

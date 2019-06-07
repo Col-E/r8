@@ -205,7 +205,8 @@ public class LazyLoadedDexApplication extends DexApplication {
 
     private Builder(LazyLoadedDexApplication application) {
       super(application);
-      this.resolver = ProgramClassCollection::resolveClassConflictImpl;
+      this.resolver =
+          ProgramClassCollection.disallowClassConflictsResolver(application.options.reporter);
       this.classpathClasses = application.classpathClasses;
       this.libraryClasses = application.libraryClasses;
     }
