@@ -25,7 +25,6 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -68,17 +67,13 @@ public class R8GMSCoreLookupTest {
     Set<DexEncodedMethod> targets = appInfo.lookupInterfaceTargets(method.method);
     if (appInfo.subtypes(method.method.holder).stream()
         .allMatch(t -> appInfo.definitionFor(t).isInterface())) {
-      assertTrue(
+      assertEquals(
+          0,
           targets.stream()
               .filter(m -> m.accessFlags.isAbstract() || !m.accessFlags.isBridge())
-              .collect(Collectors.toSet())
-              .isEmpty());
+              .count());
     } else {
-      assertTrue(
-          targets.stream()
-              .filter(m -> m.accessFlags.isAbstract())
-              .collect(Collectors.toSet())
-              .isEmpty());
+      assertEquals(0, targets.stream().filter(m -> m.accessFlags.isAbstract()).count());
     }
   }
 
