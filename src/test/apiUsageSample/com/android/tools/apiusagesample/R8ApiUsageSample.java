@@ -15,6 +15,7 @@ import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ResourceException;
+import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.origin.ArchiveEntryOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
@@ -114,6 +115,47 @@ public class R8ApiUsageSample {
     useProguardConfigFiles(minApiLevel, libraries, inputs, mainDexList, pgConf);
     useProguardConfigLines(minApiLevel, libraries, inputs, mainDexList, pgConf);
     useVArgVariants(minApiLevel, libraries, inputs, mainDexList, mainDexRules, pgConf);
+    useProguardConfigConsumers(minApiLevel, libraries, inputs, pgConf);
+  }
+
+  private static class InMemoryStringConsumer implements StringConsumer {
+    public String value = null;
+
+    @Override
+    public void accept(String string, DiagnosticsHandler handler) {
+      value = string;
+    }
+  }
+
+  private static void useProguardConfigConsumers(
+      int minApiLevel, Collection<Path> libraries, Collection<Path> inputs, List<Path> pgConf) {
+    InMemoryStringConsumer usageConsumer = new InMemoryStringConsumer();
+    InMemoryStringConsumer seedsConsumer = new InMemoryStringConsumer();
+    InMemoryStringConsumer configConsumer = new InMemoryStringConsumer();
+    try {
+      R8.run(
+          R8Command.builder(handler)
+              .setMinApiLevel(minApiLevel)
+              .setProgramConsumer(new EnsureOutputConsumer())
+              .addLibraryFiles(libraries)
+              .addProgramFiles(inputs)
+              .addProguardConfigurationFiles(pgConf)
+              .setProguardUsageConsumer(usageConsumer)
+              .setProguardSeedsConsumer(seedsConsumer)
+              .setProguardConfigurationConsumer(configConsumer)
+              .build());
+    } catch (CompilationFailedException e) {
+      throw new RuntimeException("Unexpected compilation exception", e);
+    }
+    if (usageConsumer.value == null) {
+      throw new RuntimeException("Expected usage info but had none");
+    }
+    if (seedsConsumer.value == null) {
+      throw new RuntimeException("Expected seeds info but had none");
+    }
+    if (configConsumer.value == null) {
+      throw new RuntimeException("Expected config info but had none");
+    }
   }
 
   // Check API support for compiling Java class-files from the file system.
