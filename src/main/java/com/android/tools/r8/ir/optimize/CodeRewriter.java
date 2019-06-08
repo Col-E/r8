@@ -2073,8 +2073,8 @@ public class CodeRewriter {
             user.isCheckCast()
                 && appView.isSubtype(user.asCheckCast().getType(), castType).isTrue();
     if (!checkCast.getBlock().hasCatchHandlers()
-        && outValue.isUsed()
         && outValue.numberOfPhiUsers() == 0
+        && outValue.numberOfUsers() > 0
         && outValue.uniqueUsers().stream().allMatch(isCheckcastToSubtype)) {
       // The removeOrReplaceByDebugLocalWrite will propagate the incoming value for the CheckCast
       // to the users of the CheckCast's out value.
