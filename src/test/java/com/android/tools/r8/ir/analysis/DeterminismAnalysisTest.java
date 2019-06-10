@@ -5,14 +5,24 @@ package com.android.tools.r8.ir.analysis;
 
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ir.code.IRCode;
 import java.util.function.Consumer;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class DeterminismAnalysisTest extends AnalysisTestBase {
 
-  public DeterminismAnalysisTest() throws Exception {
-    super(TestClass.class.getTypeName(), TestClass.class);
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimes().build();
+  }
+
+  public DeterminismAnalysisTest(TestParameters parameters) throws Exception {
+    super(parameters, TestClass.class.getTypeName(), TestClass.class);
   }
 
   @Test

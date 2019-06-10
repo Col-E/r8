@@ -5,6 +5,8 @@ package com.android.tools.r8.ir.optimize.string;
 
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.AnalysisTestBase;
@@ -15,11 +17,22 @@ import java.util.Set;
 import java.util.function.Consumer;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
 
-  public StringBuilderOptimizerAnalysisTest() throws Exception {
-    super(StringConcatenationTestClass.class.getTypeName(), StringConcatenationTestClass.class);
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimes().build();
+  }
+
+  public StringBuilderOptimizerAnalysisTest(TestParameters parameters) throws Exception {
+    super(
+        parameters,
+        StringConcatenationTestClass.class.getTypeName(),
+        StringConcatenationTestClass.class);
   }
 
   @Test
@@ -67,7 +80,7 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
     }));
   }
 
-  // TODO(b/114002137): Parameterize tests and make sure analysis result is same at all VMs.
+  // TODO(b/114002137): Make sure analysis result / tests don't depend on VMs.
   @Ignore("b/114002137")
   @Test
   public void testPhiAtInit() throws Exception {

@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.analysis;
 import static org.junit.Assert.fail;
 
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
@@ -23,23 +24,39 @@ import org.junit.Before;
 
 public abstract class AnalysisTestBase extends TestBase {
 
+  protected final TestParameters parameters;
   private final AndroidApp app;
   private final String className;
   private final InternalOptions options = new InternalOptions();
 
   public AppView<?> appView;
 
-  public AnalysisTestBase(Class<?> clazz) throws Exception {
-    this.app = testForD8().release().addProgramClasses(clazz).compile().app;
+  public AnalysisTestBase(TestParameters parameters, Class<?> clazz) throws Exception {
+    this.parameters = parameters;
+    this.app =
+        testForD8()
+            .release()
+            .setMinApi(parameters.getRuntime())
+            .addProgramClasses(clazz)
+            .compile()
+            .app;
     this.className = clazz.getTypeName();
   }
 
-  public AnalysisTestBase(String mainClassName, Class<?>... classes) throws Exception {
-    this.app = testForD8().addProgramClasses(classes).compile().app;
+  public AnalysisTestBase(
+      TestParameters parameters, String mainClassName, Class<?>... classes) throws Exception {
+    this.parameters = parameters;
+    this.app =
+        testForD8()
+            .addProgramClasses(classes)
+            .setMinApi(parameters.getRuntime())
+            .compile()
+            .app;
     this.className = mainClassName;
   }
 
-  public AnalysisTestBase(AndroidApp app, String className) {
+  public AnalysisTestBase(TestParameters parameters, AndroidApp app, String className) {
+    this.parameters = parameters;
     this.app = app;
     this.className = className;
   }

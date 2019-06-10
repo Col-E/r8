@@ -11,6 +11,8 @@ import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.LONG;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ir.analysis.AnalysisTestBase;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
@@ -19,11 +21,19 @@ import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.Streams;
 import java.util.function.Consumer;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class ConstrainedPrimitiveTypeTest extends AnalysisTestBase {
 
-  public ConstrainedPrimitiveTypeTest() throws Exception {
-    super(TestClass.class);
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimes().build();
+  }
+
+  public ConstrainedPrimitiveTypeTest(TestParameters parameters) throws Exception {
+    super(parameters, TestClass.class);
   }
 
   @Test
@@ -33,11 +43,11 @@ public class ConstrainedPrimitiveTypeTest extends AnalysisTestBase {
 
     testForJvm().addTestClasspath().run(TestClass.class).assertSuccessWithOutput(expectedOutput);
 
-    testForR8(Backend.DEX)
+    testForR8(parameters.getBackend())
         .addInnerClasses(ConstrainedPrimitiveTypeTest.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
-        .run(TestClass.class)
+        .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(expectedOutput);
   }
 

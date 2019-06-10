@@ -8,6 +8,8 @@ import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.INT;
 import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.LONG;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ir.analysis.AnalysisTestBase;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
@@ -19,11 +21,19 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
 import java.util.function.Consumer;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class UnconstrainedPrimitiveTypeTest extends AnalysisTestBase {
 
-  public UnconstrainedPrimitiveTypeTest() throws Exception {
-    super(buildApp(), "TestClass");
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimes().build();
+  }
+
+  public UnconstrainedPrimitiveTypeTest(TestParameters parameters) throws Exception {
+    super(parameters, buildApp(), "TestClass");
   }
 
   private static AndroidApp buildApp() throws Exception {

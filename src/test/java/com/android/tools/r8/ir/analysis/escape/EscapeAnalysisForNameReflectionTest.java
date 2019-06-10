@@ -8,6 +8,8 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.analysis.AnalysisTestBase;
@@ -24,11 +26,21 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class EscapeAnalysisForNameReflectionTest extends AnalysisTestBase {
 
-  public EscapeAnalysisForNameReflectionTest() throws Exception {
-    super(TestClass.class.getTypeName(), TestClass.class, Helper.class, NamingInterface.class);
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimes().build();
+  }
+
+  public EscapeAnalysisForNameReflectionTest(TestParameters parameters) throws Exception {
+    super(
+        parameters,
+        TestClass.class.getTypeName(), TestClass.class, Helper.class, NamingInterface.class);
   }
 
   private static Predicate<Instruction> invokesMethodWithName(String name) {
