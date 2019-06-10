@@ -14,6 +14,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -35,6 +36,8 @@ public class StringConcatenationTest extends TestBase {
       "Hello,R8",
       "Hello,",
       "Hello,D8",
+      "Hello,R8",
+      "Hello,R8",
       "na;na;na;na;na;na;na;na;Batman!",
       "na;na;na;na;na;na;na;na;Batman!"
   );
@@ -60,7 +63,10 @@ public class StringConcatenationTest extends TestBase {
   }
 
   private void test(
-      TestRunResult result, int expectedStringCount1, int expectedStringCount2)
+      TestRunResult result,
+      int expectedStringCount1,
+      int expectedStringCount2,
+      int expectedStringCount3)
       throws Exception {
     CodeInspector codeInspector = result.inspector();
     ClassSubject mainClass = codeInspector.clazz(MAIN);
@@ -93,13 +99,25 @@ public class StringConcatenationTest extends TestBase {
     assertThat(method, isPresent());
     count = Streams.stream(method.iterateInstructions(
         i -> i.isConstString(JumboStringMode.ALLOW))).count();
-    assertEquals(expectedStringCount2, count);
+    assertEquals(expectedStringCount3, count);
 
     method = mainClass.uniqueMethodWithName("simplePhi");
     assertThat(method, isPresent());
     count = Streams.stream(method.iterateInstructions(
         i -> i.isConstString(JumboStringMode.ALLOW))).count();
     assertEquals(5, count);
+
+    method = mainClass.uniqueMethodWithName("phiAtInit");
+    assertThat(method, isPresent());
+    count = Streams.stream(method.iterateInstructions(
+        i -> i.isConstString(JumboStringMode.ALLOW))).count();
+    assertEquals(3, count);
+
+    method = mainClass.uniqueMethodWithName("phiWithDifferentInits");
+    assertThat(method, isPresent());
+    count = Streams.stream(method.iterateInstructions(
+        i -> i.isConstString(JumboStringMode.ALLOW))).count();
+    assertEquals(3, count);
 
     method = mainClass.uniqueMethodWithName("loop");
     assertThat(method, isPresent());
@@ -123,34 +141,44 @@ public class StringConcatenationTest extends TestBase {
             .debug()
             .addProgramClasses(MAIN)
             .setMinApi(parameters.getRuntime())
+            .addOptionsModification(this::configure)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 3, 4);
+    test(result, 3, 4, 4);
 
     result =
         testForD8()
             .release()
             .addProgramClasses(MAIN)
             .setMinApi(parameters.getRuntime())
+            .addOptionsModification(this::configure)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
-    // TODO(b/114002137): could be 1 and 3.
-    test(result, 3, 4);
+    // TODO(b/114002137): could be 1, 4, and 3.
+    test(result, 3, 4, 4);
   }
 
   @Test
   public void testR8() throws Exception {
+    assumeTrue("CF does not canonicalize constants.", parameters.isDexRuntime());
+
     R8TestRunResult result =
         testForR8(parameters.getBackend())
             .addProgramClasses(MAIN)
             .enableInliningAnnotations()
             .addKeepMainRule(MAIN)
-            .setMinApi(parameters.getRuntime())
             .noMinification()
+            .setMinApi(parameters.getRuntime())
+            .addOptionsModification(this::configure)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
-    // TODO(b/114002137): could be 1 and 3.
-    test(result, 3, 4);
+    // TODO(b/114002137): could be 1, 4, and 3.
+    test(result, 3, 4, 4);
+  }
+
+  // TODO(b/114002137): Once enabled, remove this test-specific setting.
+  private void configure(InternalOptions options) {
+    options.enableStringConcatenationOptimization = true;
   }
 
 }

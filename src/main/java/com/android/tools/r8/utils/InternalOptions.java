@@ -167,6 +167,8 @@ public class InternalOptions {
   public boolean enableServiceLoaderRewriting = true;
   // TODO(b/120138731): Enable this when it is worthwhile, e.g., combined with Class#forName.
   public boolean enableNameReflectionOptimization = false;
+  // TODO(b/114002137): Enable this when it is worthwhile, e.g., support non-String args.
+  public boolean enableStringConcatenationOptimization = false;
   public boolean enableTreeShakingOfLibraryMethodOverrides = false;
 
   // This defines the max depth threshold for the cycle eliminator. If the length of a call chain

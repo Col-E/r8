@@ -84,6 +84,24 @@ class StringConcatenationTestClass {
   }
 
   @NeverInline
+  public static void phiAtInit() {
+    // TODO(b/114002137): Use ASM to test two new-instance calls flow into the same <init>
+    StringBuilder builder =
+        System.currentTimeMillis() > 0 ? new StringBuilder("Hello") : new StringBuilder("Hi");
+    builder.append(",R8");
+    System.out.println(builder.toString());
+  }
+
+  @NeverInline
+  public static void phiWithDifferentInits() {
+    StringBuilder b1 = new StringBuilder("Hello");
+    StringBuilder b2 = new StringBuilder("Hi");
+    StringBuilder builder = System.currentTimeMillis() > 0 ? b1 : b2;
+    builder.append(",R8");
+    System.out.println(builder.toString());
+  }
+
+  @NeverInline
   public static void loop() {
     String r = "";
     for (int i = 0; i < 8; i++) {
@@ -109,6 +127,8 @@ class StringConcatenationTestClass {
     nestedBuilders_appendBuilderItself();
     nestedBuilders_appendBuilderResult();
     simplePhi();
+    phiAtInit();
+    phiWithDifferentInits();
     loop();
     loopWithBuilder();
   }

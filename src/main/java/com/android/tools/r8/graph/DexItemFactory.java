@@ -156,6 +156,7 @@ public class DexItemFactory {
 
   public final DexString valueOfMethodName = createString("valueOf");
   public final DexString toStringMethodName = createString("toString");
+  public final DexString internMethodName = createString("intern");
 
   public final DexString getClassMethodName = createString("getClass");
   public final DexString finalizeMethodName = createString("finalize");
@@ -767,6 +768,7 @@ public class DexItemFactory {
 
     public final DexMethod valueOf;
     public final DexMethod toString;
+    public final DexMethod intern;
 
     private StringMethods() {
       isEmpty = createMethod(
@@ -810,6 +812,8 @@ public class DexItemFactory {
           stringDescriptor, valueOfMethodName, stringDescriptor, needsOneObject);
       toString = createMethod(
           stringDescriptor, toStringMethodName, stringDescriptor, DexString.EMPTY_ARRAY);
+      intern = createMethod(
+          stringDescriptor, internMethodName, stringDescriptor, DexString.EMPTY_ARRAY);
     }
   }
 
@@ -832,12 +836,12 @@ public class DexItemFactory {
     public final DexMethod defaultConstructor;
     public final DexMethod intConstructor;
     public final DexMethod stringConstructor;
+    public final DexMethod toString;
 
     private final Set<DexMethod> appendMethods;
     private final Set<DexMethod> constructorMethods;
 
     private StringBuildingMethods(DexType receiver) {
-      DexType sbufType = createType(createString("Ljava/lang/StringBuffer;"));
       DexString append = createString("append");
 
       appendBoolean = createMethod(receiver, createProto(receiver, booleanType), append);
@@ -854,7 +858,7 @@ public class DexItemFactory {
       appendLong = createMethod(receiver, createProto(receiver, longType), append);
       appendObject = createMethod(receiver, createProto(receiver, objectType), append);
       appendString = createMethod(receiver, createProto(receiver, stringType), append);
-      appendStringBuffer = createMethod(receiver, createProto(receiver, sbufType), append);
+      appendStringBuffer = createMethod(receiver, createProto(receiver, stringBufferType), append);
 
       charSequenceConstructor =
           createMethod(receiver, createProto(voidType, charSequenceType), constructorMethodName);
@@ -863,6 +867,7 @@ public class DexItemFactory {
           createMethod(receiver, createProto(voidType, intType), constructorMethodName);
       stringConstructor =
           createMethod(receiver, createProto(voidType, stringType), constructorMethodName);
+      toString = createMethod(receiver, createProto(stringType), toStringMethodName);
 
       appendMethods =
           ImmutableSet.of(
@@ -1186,7 +1191,9 @@ public class DexItemFactory {
     return new DexCallSite(methodName, methodProto, bootstrapMethod, bootstrapArgs);
   }
 
-  public DexMethod createMethod(DexString clazzDescriptor, DexString name,
+  public DexMethod createMethod(
+      DexString clazzDescriptor,
+      DexString name,
       DexString returnTypeDescriptor,
       DexString[] parameterDescriptors) {
     assert !sorted;

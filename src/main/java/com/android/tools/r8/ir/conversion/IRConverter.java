@@ -68,6 +68,7 @@ import com.android.tools.r8.ir.optimize.UninstantiatedTypeOptimization;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInliner;
 import com.android.tools.r8.ir.optimize.lambda.LambdaMerger;
 import com.android.tools.r8.ir.optimize.staticizer.ClassStaticizer;
+import com.android.tools.r8.ir.optimize.string.StringBuilderOptimizer;
 import com.android.tools.r8.ir.optimize.string.StringOptimizer;
 import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
@@ -142,6 +143,7 @@ public class IRConverter {
   private final Devirtualizer devirtualizer;
   private final CovariantReturnTypeAnnotationTransformer covariantReturnTypeAnnotationTransformer;
   private final StringOptimizer stringOptimizer;
+  private final StringBuilderOptimizer stringBuilderOptimizer;
   private final UninstantiatedTypeOptimization uninstantiatedTypeOptimization;
   private final TypeChecker typeChecker;
   private final IdempotentFunctionCallCanonicalizer idempotentFunctionCallCanonicalizer;
@@ -193,6 +195,7 @@ public class IRConverter {
             ? new CovariantReturnTypeAnnotationTransformer(this, appView.dexItemFactory())
             : null;
     this.stringOptimizer = new StringOptimizer(appView);
+    this.stringBuilderOptimizer = new StringBuilderOptimizer(appView);
     this.nonNullTracker = options.enableNonNullTracking ? new NonNullTracker(appView) : null;
     if (appView.enableWholeProgramOptimizations()) {
       assert appView.appInfo().hasLiveness();
@@ -624,6 +627,9 @@ public class IRConverter {
       if (uninstantiatedTypeOptimization != null) {
         uninstantiatedTypeOptimization.logResults();
       }
+      if (stringBuilderOptimizer != null) {
+        stringBuilderOptimizer.logResults();
+      }
     }
 
     // Check if what we've added to the application builder as synthesized classes are same as
@@ -1004,6 +1010,13 @@ public class IRConverter {
     codeRewriter.commonSubexpressionElimination(code);
     codeRewriter.simplifyArrayConstruction(code);
     codeRewriter.rewriteMoveResult(code);
+    // TODO(b/114002137): for now, string concatenation depends on rewriteMoveResult.
+    if (options.enableStringConcatenationOptimization
+        && !isDebugMode
+        && options.isGeneratingDex()) {
+      stringBuilderOptimizer.computeTrivialStringConcatenation(code);
+    }
+
     codeRewriter.splitRangeInvokeConstants(code);
     new SparseConditionalConstantPropagation(code).run();
     codeRewriter.rewriteSwitch(code);
