@@ -13,6 +13,7 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
 import java.util.Set;
 import java.util.function.Consumer;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
@@ -66,6 +67,8 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
     }));
   }
 
+  // TODO(b/114002137): Parameterize tests and make sure analysis result is same at all VMs.
+  @Ignore("b/114002137")
   @Test
   public void testPhiAtInit() throws Exception {
     buildAndCheckIR("phiAtInit", checkBuilderDetection(builders -> {
