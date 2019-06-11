@@ -1755,7 +1755,7 @@ public class JctfTestSpecifications {
                 match(R8_COMPILER))
           .put("lang.StringBuilder.ConstructorLjava_lang_CharSequence.StringBuilder_Constructor_A02",
               match(R8_COMPILER))
-          .put("lang.StringBuilder.ConstructorLjava_lang_String.StringBuilder_Constructor_A02 ",
+          .put("lang.StringBuilder.ConstructorLjava_lang_String.StringBuilder_Constructor_A02",
               match(R8_COMPILER))
           .build();
 
