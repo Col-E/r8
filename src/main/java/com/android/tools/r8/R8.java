@@ -204,7 +204,6 @@ public class R8 {
       String deadCode,
       GraphLense graphLense,
       NamingLens namingLens,
-      String proguardSeedsData,
       InternalOptions options,
       ProguardMapSupplier proguardMapSupplier)
       throws ExecutionException {
@@ -220,7 +219,6 @@ public class R8 {
                 deadCode,
                 graphLense,
                 namingLens,
-                proguardSeedsData,
                 proguardMapSupplier)
             .write(options.getClassFileConsumer(), executorService);
       } else {
@@ -232,7 +230,6 @@ public class R8 {
                 deadCode,
                 graphLense,
                 namingLens,
-                proguardSeedsData,
                 proguardMapSupplier)
             .write(executorService);
       }
@@ -284,7 +281,6 @@ public class R8 {
       appView.setAppServices(AppServices.builder(appView).build());
 
       List<ProguardConfigurationRule> synthesizedProguardRules = new ArrayList<>();
-      String proguardSeedsData = null;
       timing.begin("Strip unused code");
       Set<DexType> classesToRetainInnerClassAttributeFor = null;
       try {
@@ -355,7 +351,8 @@ public class R8 {
           PrintStream out = new PrintStream(bytes);
           RootSetBuilder.writeSeeds(appView.appInfo().withLiveness(), out, type -> true);
           out.flush();
-          proguardSeedsData = bytes.toString();
+          ExceptionUtils.withConsumeResourceHandler(
+              options.reporter, options.proguardSeedsConsumer, bytes.toString());
         }
         if (options.isShrinking()) {
           TreePruner pruner = new TreePruner(application, appView.withLiveness());
@@ -788,7 +785,6 @@ public class R8 {
           application.deadCode,
           appView.graphLense(),
           namingLens,
-          proguardSeedsData,
           options,
           proguardMapSupplier);
 

@@ -63,7 +63,6 @@ public class ApplicationWriter {
   public final String deadCode;
   public final GraphLense graphLense;
   public final NamingLens namingLens;
-  public final String proguardSeedsData;
   public final InternalOptions options;
   public List<Marker> markers;
   public List<DexString> markerStrings;
@@ -135,7 +134,6 @@ public class ApplicationWriter {
       String deadCode,
       GraphLense graphLense,
       NamingLens namingLens,
-      String proguardSeedsData,
       ProguardMapSupplier proguardMapSupplier) {
     this(
         application,
@@ -145,7 +143,6 @@ public class ApplicationWriter {
         deadCode,
         graphLense,
         namingLens,
-        proguardSeedsData,
         proguardMapSupplier,
         null);
   }
@@ -158,7 +155,6 @@ public class ApplicationWriter {
       String deadCode,
       GraphLense graphLense,
       NamingLens namingLens,
-      String proguardSeedsData,
       ProguardMapSupplier proguardMapSupplier,
       DexIndexedConsumer consumer) {
     assert application != null;
@@ -170,7 +166,6 @@ public class ApplicationWriter {
     this.deadCode = deadCode;
     this.graphLense = graphLense;
     this.namingLens = namingLens;
-    this.proguardSeedsData = proguardSeedsData;
     this.proguardMapSupplier = proguardMapSupplier;
     this.programConsumer = consumer;
   }
@@ -288,8 +283,7 @@ public class ApplicationWriter {
           namingLens,
           options,
           deadCode,
-          proguardMapAndId == null ? null : proguardMapAndId.map,
-          proguardSeedsData);
+          proguardMapAndId == null ? null : proguardMapAndId.map);
     } finally {
       application.timing.end();
     }
@@ -302,8 +296,7 @@ public class ApplicationWriter {
       NamingLens namingLens,
       InternalOptions options,
       String deadCode,
-      String proguardMapContent,
-      String proguardSeedsData) {
+      String proguardMapContent) {
     if (options.configurationConsumer != null) {
       ExceptionUtils.withConsumeResourceHandler(
           options.reporter, options.configurationConsumer,
@@ -317,11 +310,6 @@ public class ApplicationWriter {
       assert validateProguardMapParses(proguardMapContent);
       ExceptionUtils.withConsumeResourceHandler(
           options.reporter, options.proguardMapConsumer, proguardMapContent);
-    }
-
-    if (options.proguardSeedsConsumer != null && proguardSeedsData != null) {
-      ExceptionUtils.withConsumeResourceHandler(
-          options.reporter, options.proguardSeedsConsumer, proguardSeedsData);
     }
     if (options.mainDexListConsumer != null) {
       ExceptionUtils.withConsumeResourceHandler(

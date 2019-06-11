@@ -202,7 +202,6 @@ public final class D8 {
               null,
               GraphLense.getIdentityLense(),
               NamingLens.getIdentityLens(),
-              null,
               null)
           .write(executor);
       options.printWarnings();

@@ -120,7 +120,6 @@ public class Smali {
               null,
               GraphLense.getIdentityLense(),
               NamingLens.getIdentityLens(),
-              null,
               null);
       writer.write(executor);
       return consumer.contents;

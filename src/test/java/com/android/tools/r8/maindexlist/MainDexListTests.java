@@ -806,7 +806,6 @@ public class MainDexListTests extends TestBase {
             null,
             GraphLense.getIdentityLense(),
             NamingLens.getIdentityLens(),
-            null,
             null);
     ExecutorService executor = ThreadUtils.getExecutorService(options);
     AndroidAppConsumers compatSink = new AndroidAppConsumers(options);

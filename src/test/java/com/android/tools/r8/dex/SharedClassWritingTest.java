@@ -147,7 +147,6 @@ public class SharedClassWritingTest {
             null,
             GraphLense.getIdentityLense(),
             NamingLens.getIdentityLens(),
-            null,
             null);
     ExecutorService executorService = ThreadUtils.getExecutorService(options);
     writer.write(executorService);

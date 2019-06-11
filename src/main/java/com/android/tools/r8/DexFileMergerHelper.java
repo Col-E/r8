@@ -103,7 +103,6 @@ public class DexFileMergerHelper {
                 null,
                 GraphLense.getIdentityLense(),
                 NamingLens.getIdentityLens(),
-                null,
                 null);
         writer.write(executor);
         options.printWarnings();

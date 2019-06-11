@@ -76,7 +76,6 @@ public class CfApplicationWriter {
 
   public final ProguardMapSupplier proguardMapSupplier;
   public final String deadCode;
-  public final String proguardSeedsData;
 
   public CfApplicationWriter(
       DexApplication application,
@@ -86,7 +85,6 @@ public class CfApplicationWriter {
       String deadCode,
       GraphLense graphLense,
       NamingLens namingLens,
-      String proguardSeedsData,
       ProguardMapSupplier proguardMapSupplier) {
     this.application = application;
     this.appView = appView;
@@ -97,7 +95,6 @@ public class CfApplicationWriter {
     this.marker = marker;
     this.proguardMapSupplier = proguardMapSupplier;
     this.deadCode = deadCode;
-    this.proguardSeedsData = proguardSeedsData;
   }
 
   public void write(ClassFileConsumer consumer, ExecutorService executor) {
@@ -132,8 +129,7 @@ public class CfApplicationWriter {
         namingLens,
         options,
         deadCode,
-        proguardMapAndId == null ? null : proguardMapAndId.map,
-        proguardSeedsData);
+        proguardMapAndId == null ? null : proguardMapAndId.map);
   }
 
   private void writeClass(DexProgramClass clazz, ClassFileConsumer consumer, String markerString) {

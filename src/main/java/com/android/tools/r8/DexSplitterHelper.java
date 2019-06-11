@@ -105,7 +105,6 @@ public final class DexSplitterHelper {
                   GraphLense.getIdentityLense(),
                   NamingLens.getIdentityLens(),
                   null,
-                  null,
                   consumer)
               .write(executor);
           options.printWarnings();

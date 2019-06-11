@@ -1849,7 +1849,6 @@ public class ToolHelper {
         null,
         GraphLense.getIdentityLense(),
         NamingLens.getIdentityLens(),
-        null,
         options,
         null);
   }
