@@ -70,7 +70,7 @@ public enum DexVersion {
       case M:
         return DexVersion.V35;
       default :
-        throw new Unreachable();
+        throw new Unreachable("Unsupported api level " + androidApiLevel);
     }
   }
 
