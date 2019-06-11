@@ -2777,4 +2777,15 @@ public class ProguardConfigurationParserTest extends TestBase {
           proguardConfig, "Expecting type and name instead of just '" + initName + "'");
     }
   }
+
+  @Test
+  public void parseIncludeCode() throws Exception {
+    ProguardConfigurationParser parser;
+    parser = new ProguardConfigurationParser(new DexItemFactory(), reporter);
+    Path proguardConfig = writeTextToTempFile("-keep,includecode class A { method(); }");
+    parser.parse(proguardConfig);
+    assertEquals(1, parser.getConfig().getRules().size());
+    assertEquals(1, handler.infos.size());
+    checkDiagnostics(handler.infos, proguardConfig, 1, 7, "Ignoring modifier", "includecode");
+  }
 }
