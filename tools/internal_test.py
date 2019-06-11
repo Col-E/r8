@@ -63,7 +63,7 @@ TEST_COMMANDS = [
 ]
 
 # Command timeout, in seconds.
-RUN_TIMEOUT = 3600 * 3
+RUN_TIMEOUT = 3600 * 6
 BOT_RUN_TIMEOUT = RUN_TIMEOUT * len(TEST_COMMANDS)
 
 def log(str):
