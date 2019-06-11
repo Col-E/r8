@@ -176,7 +176,7 @@ public class GenerateMainDexListCommandTest {
   public void duplicateProgramClasses() throws Throwable {
     Path input = Paths.get(EXAMPLES_BUILD_DIR, "arithmetic.jar");
     DiagnosticsChecker.checkErrorsContains(
-        "Program type already present",
+        "defined multiple times",
         handler ->
             GenerateMainDexList.run(
                 GenerateMainDexListCommand.builder(handler)
