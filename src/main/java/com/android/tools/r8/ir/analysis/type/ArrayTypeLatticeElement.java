@@ -169,8 +169,8 @@ public class ArrayTypeLatticeElement extends ReferenceTypeLatticeElement {
       return ArrayTypeLatticeElement.create(join, nullability);
     }
     if (aMember.isPrimitive() || bMember.isPrimitive()) {
-      return aMember.objectClassType(appView, nullability);
+      return objectClassType(appView, nullability);
     }
-    return aMember.objectArrayType(appView, nullability);
+    return objectArrayType(appView, nullability);
   }
 }
