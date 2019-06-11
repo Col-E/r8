@@ -25,6 +25,7 @@ import com.android.tools.r8.ir.analysis.type.ReferenceTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.ArrayUtils;
@@ -461,8 +462,12 @@ public class DexItemFactory {
       Streams.<Pair<DexMethod, Predicate<InvokeMethod>>>concat(
               Stream.of(new Pair<>(objectMethods.constructor, alwaysTrue())),
               mapToPredicate(classMethods.getNames, alwaysTrue()),
-              mapToPredicate(stringBufferMethods.constructorMethods, alwaysTrue()),
-              mapToPredicate(stringBuilderMethods.constructorMethods, alwaysTrue()),
+              mapToPredicate(
+                  stringBufferMethods.constructorMethods,
+                  stringBufferMethods::constructorInvokeIsSideEffectFree),
+              mapToPredicate(
+                  stringBuilderMethods.constructorMethods,
+                  stringBuilderMethods::constructorInvokeIsSideEffectFree),
               mapToPredicate(boxedValueOfMethods(), alwaysTrue()))
           .collect(Collectors.toMap(Pair::getFirst, Pair::getSecond));
 
@@ -891,6 +896,37 @@ public class DexItemFactory {
 
     public boolean isAppendMethod(DexMethod method) {
       return appendMethods.contains(method);
+    }
+
+    public boolean constructorInvokeIsSideEffectFree(InvokeMethod invoke) {
+      DexMethod invokedMethod = invoke.getInvokedMethod();
+      if (invokedMethod == charSequenceConstructor) {
+        // NullPointerException - if seq is null.
+        Value seqValue = invoke.inValues().get(1);
+        return !seqValue.getTypeLattice().isNullable();
+      }
+
+      if (invokedMethod == defaultConstructor) {
+        return true;
+      }
+
+      if (invokedMethod == intConstructor) {
+        // NegativeArraySizeException - if the capacity argument is less than 0.
+        Value capacityValue = invoke.inValues().get(1);
+        if (capacityValue.hasValueRange()) {
+          return capacityValue.getValueRange().getMin() >= 0;
+        }
+        return false;
+      }
+
+      if (invokedMethod == stringConstructor) {
+        // NullPointerException - if str is null.
+        Value strValue = invoke.inValues().get(1);
+        return !strValue.getTypeLattice().isNullable();
+      }
+
+      assert false : "Unexpected invoke targeting `" + invokedMethod.toSourceString() +  "`";
+      return false;
     }
   }
 
