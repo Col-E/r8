@@ -903,7 +903,7 @@ public class Enqueuer {
         return;
       }
       for (DexType iface : holder.interfaces.values) {
-        markTypeAsLive(iface);
+        markInterfaceTypeAsLiveViaInheritanceClause(iface);
       }
       if (holder.superType != null) {
         markTypeAsLive(holder.superType);
@@ -947,6 +947,36 @@ public class Enqueuer {
       rootSet.forEachDependentStaticMember(holder, appView, this::enqueueDependentItem);
       compatEnqueueHolderIfDependentNonStaticMember(
           holder, rootSet.getDependentKeepClassCompatRule(holder.getType()));
+    }
+  }
+
+  private void markInterfaceTypeAsLiveViaInheritanceClause(DexType type) {
+    if (appView.options().enableUnusedInterfaceRemoval && !tracingMainDex) {
+      DexClass clazz = appView.definitionFor(type);
+      if (clazz == null || !clazz.isProgramClass()) {
+        markTypeAsLive(type);
+        return;
+      }
+
+      assert clazz.isInterface();
+
+      if (!clazz.interfaces.isEmpty()) {
+        markTypeAsLive(type);
+        return;
+      }
+
+      for (DexEncodedMethod method : clazz.virtualMethods()) {
+        if (!method.accessFlags.isAbstract()) {
+          markTypeAsLive(type);
+          return;
+        }
+      }
+
+      // No need to mark the type as live. If an interface type is only reachable via the
+      // inheritance clause of another type, and the interface only has abstract methods, it can
+      // simply be removed from the inheritance clause.
+    } else {
+      markTypeAsLive(type);
     }
   }
 
@@ -1256,8 +1286,7 @@ public class Enqueuer {
 
   private void markStaticFieldAsLive(
       DexField field, KeepReason reason, DexEncodedField encodedField) {
-    // Mark the type live here, so that the class exists at runtime. Note that this also marks all
-    // supertypes as live, so even if the field is actually on a supertype, its class will be live.
+    // Mark the type live here, so that the class exists at runtime.
     markTypeAsLive(field.holder);
     markTypeAsLive(field.type);
 
@@ -1269,6 +1298,15 @@ public class Enqueuer {
 
     if (!encodedField.isProgramField(appView)) {
       return;
+    }
+
+    // If unused interface removal is enabled, then we won't necessarily mark the actual holder of
+    // the field as live, if the holder is an interface.
+    if (appView.options().enableUnusedInterfaceRemoval) {
+      if (encodedField.field != field) {
+        markTypeAsLive(encodedField.field.holder);
+        markTypeAsLive(encodedField.field.type);
+      }
     }
 
     // This field might be an instance field reachable from a static context, e.g. a getStatic that
@@ -1399,9 +1437,20 @@ public class Enqueuer {
       reportMissingField(field);
       return;
     }
+
     if (!encodedField.isProgramField(appView)) {
       return;
     }
+
+    // If unused interface removal is enabled, then we won't necessarily mark the actual holder of
+    // the field as live, if the holder is an interface.
+    if (appView.options().enableUnusedInterfaceRemoval) {
+      if (encodedField.field != field) {
+        markTypeAsLive(encodedField.field.holder);
+        markTypeAsLive(encodedField.field.type);
+      }
+    }
+
     // We might have a instance field access that is dispatched to a static field. In such case,
     // we have to keep the static field, so that the dispatch fails at runtime in the same way that
     // it did before. We have to keep the field even if the receiver has no live inhabitants, as

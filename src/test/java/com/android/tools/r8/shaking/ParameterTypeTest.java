@@ -7,14 +7,12 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertThat;
 
-import com.android.tools.r8.DexIndexedConsumer;
-import com.android.tools.r8.OutputMode;
-import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
@@ -22,7 +20,6 @@ import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -81,27 +78,35 @@ class B112452064TestMain {
 public class ParameterTypeTest extends TestBase {
 
   private final boolean enableArgumentRemoval;
+  private final TestParameters parameters;
 
-  @Parameters(name = "Argument removal: {0}")
-  public static Boolean[] data() {
-    return BooleanUtils.values();
+  @Parameters(name = "{1}, argument removal: {0}")
+  public static List<Object[]> data() {
+    return buildParameters(BooleanUtils.values(), getTestParameters().withAllRuntimes().build());
   }
 
-  public ParameterTypeTest(boolean enableArgumentRemoval) {
+  public ParameterTypeTest(boolean enableArgumentRemoval, TestParameters parameters) {
     this.enableArgumentRemoval = enableArgumentRemoval;
+    this.parameters = parameters;
   }
 
   @Test
   public void test_fromJavacWithVerticalClassMerging() throws Exception {
-    test_fromJavac(true);
+    test_fromJavac(false, true);
+  }
+
+  @Test
+  public void test_fromJavacWithVerticalClassMergingAndUnusedInterfaceRemoval() throws Exception {
+    test_fromJavac(true, true);
   }
 
   @Test
   public void test_fromJavacWithoutVerticalClassMerging() throws Exception {
-    test_fromJavac(false);
+    test_fromJavac(false, false);
   }
 
-  private void test_fromJavac(boolean enableVerticalClassMerging) throws Exception {
+  private void test_fromJavac(
+      boolean enableUnusedInterfaceRemoval, boolean enableVerticalClassMerging) throws Exception {
     String mainName = B112452064TestMain.class.getCanonicalName();
     ProcessResult javaResult = ToolHelper.runJava(ToolHelper.getClassPathForTests(), mainName);
     assertEquals(0, javaResult.exitCode);
@@ -109,32 +114,27 @@ public class ParameterTypeTest extends TestBase {
     assertThat(javaResult.stdout, containsString("::foo"));
     assertEquals(-1, javaResult.stderr.indexOf("ClassNotFoundException"));
 
-    List<String> config = ImmutableList.of(
-        "-printmapping",
-        "-keep class " + mainName + " {",
-        "  public static void main(...);",
-        "}"
-    );
-    R8Command.Builder builder = R8Command.builder();
-    builder.addProgramFiles(ToolHelper.getClassFilesForTestDirectory(
-        ToolHelper.getPackageDirectoryForTestPackage(B112452064TestMain.class.getPackage()),
-        path -> path.getFileName().toString().startsWith("B112452064")));
-    builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
-    builder.setMinApiLevel(ToolHelper.getMinApiLevelForDexVm().getLevel());
-    builder.addProguardConfiguration(config, Origin.unknown());
-    AndroidApp processedApp = ToolHelper.runR8(builder.build(), options -> {
-      options.enableInlining = false;
-      options.enableVerticalClassMerging = enableVerticalClassMerging;
-    });
+    CodeInspector inspector =
+        testForR8(parameters.getBackend())
+            .addProgramFiles(
+                ToolHelper.getClassFilesForTestDirectory(
+                    ToolHelper.getPackageDirectoryForTestPackage(
+                        B112452064TestMain.class.getPackage()),
+                    path -> path.getFileName().toString().startsWith("B112452064")))
+            .addKeepMainRule(B112452064TestMain.class)
+            .addOptionsModification(
+                options -> {
+                  options.enableInlining = false;
+                  options.enableUnusedInterfaceRemoval = enableUnusedInterfaceRemoval;
+                  options.enableVerticalClassMerging = enableVerticalClassMerging;
+                })
+            .setMinApi(parameters.getRuntime())
+            .compile()
+            .run(parameters.getRuntime(), B112452064TestMain.class)
+            .assertSuccessWithOutput(javaResult.stdout)
+            .assertStderrMatches(not(containsString("ClassNotFoundException")))
+            .inspector();
 
-    Path outDex = temp.getRoot().toPath().resolve("dex.zip");
-    processedApp.writeToZip(outDex, OutputMode.DexIndexed);
-    ProcessResult artResult = ToolHelper.runArtNoVerificationErrorsRaw(outDex.toString(), mainName);
-    assertEquals(0, artResult.exitCode);
-    assertEquals(javaResult.stdout, artResult.stdout);
-    assertEquals(-1, artResult.stderr.indexOf("ClassNotFoundException"));
-
-    CodeInspector inspector = new CodeInspector(processedApp);
     ClassSubject superInterface1 = inspector.clazz(B112452064SuperInterface1.class);
     assertThat(superInterface1, isRenamed());
     MethodSubject foo = superInterface1.method("void", "foo", ImmutableList.of());
@@ -148,7 +148,12 @@ public class ParameterTypeTest extends TestBase {
     MethodSubject bar = superInterface1.method("void", "bar", ImmutableList.of());
     assertThat(bar, not(isPresent()));
     ClassSubject subInterface = inspector.clazz(B112452064SubInterface.class);
-    assertThat(subInterface, isRenamed());
+    if (enableUnusedInterfaceRemoval) {
+      assertThat(subInterface, not(isPresent()));
+    } else {
+      assertThat(subInterface, isPresent());
+      assertThat(subInterface, isRenamed());
+    }
   }
 
   @Test

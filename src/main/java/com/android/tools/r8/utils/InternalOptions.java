@@ -161,6 +161,7 @@ public class InternalOptions {
   public boolean enableVerticalClassMerging = true;
   public boolean enableArgumentRemoval = true;
   public boolean enableUnusedArgumentRemoval = true;
+  public boolean enableUnusedInterfaceRemoval = true;
   public boolean enableDevirtualization = true;
   public boolean enableNonNullTracking = true;
   public boolean enableInlining =

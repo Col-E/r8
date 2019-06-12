@@ -7,6 +7,7 @@ package com.android.tools.r8.shaking.ifrule.verticalclassmerging;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 
@@ -22,6 +23,16 @@ public class ImplementsMergedTypeIndirectlyTest extends MergedTypeBaseTest {
   public ImplementsMergedTypeIndirectlyTest(
       TestParameters parameters, boolean enableVerticalClassMerging) {
     super(parameters, enableVerticalClassMerging);
+  }
+
+  @Override
+  public void configure(InternalOptions options) {
+    super.configure(options);
+
+    // If unused interface removal is enabled, the `implements J` clause will be removed by the tree
+    // pruner.
+    // TODO(b/135083634): Should handle unused interfaces similar to vertically merged classes.
+    options.enableUnusedInterfaceRemoval = false;
   }
 
   @Override

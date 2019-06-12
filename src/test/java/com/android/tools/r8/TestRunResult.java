@@ -78,6 +78,11 @@ public abstract class TestRunResult<RR extends TestRunResult<?>> {
     return self();
   }
 
+  public RR assertStderrMatches(Matcher<String> matcher) {
+    assertThat(errorMessage("Run stderr incorrect.", matcher.toString()), result.stderr, matcher);
+    return self();
+  }
+
   public RR assertSuccessWithOutput(String expected) {
     assertSuccess();
     assertEquals(errorMessage("Run stdout incorrect.", expected), expected, result.stdout);

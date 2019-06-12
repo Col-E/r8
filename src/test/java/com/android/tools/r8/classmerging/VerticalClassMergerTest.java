@@ -78,9 +78,9 @@ public class VerticalClassMergerTest extends TestBase {
       .resolve("classmerging").resolve("keep-rules-dontoptimize.txt");
 
   private void configure(InternalOptions options) {
-    options.enableVerticalClassMerging = true;
     options.enableClassInlining = false;
     options.enableSideEffectAnalysis = false;
+    options.enableUnusedInterfaceRemoval = false;
     options.testing.nondeterministicCycleElimination = true;
   }
 
@@ -744,7 +744,9 @@ public class VerticalClassMergerTest extends TestBase {
         "sget-object v0, Ljava/lang/System;->out:Ljava/io/PrintStream;",
         "const-string v1, \"In referencedMethod on SubClassThatReferencesSuperMethod\"",
         "invoke-virtual {v0, v1}, Ljava/io/PrintStream;->println(Ljava/lang/String;)V",
-        "invoke-super {p0}, Lclassmerging/SubClassThatReferencesSuperMethod;->referencedMethod()Ljava/lang/String;",
+        "invoke-super {p0}, "
+            + "Lclassmerging/SubClassThatReferencesSuperMethod;->referencedMethod()"
+            + "Ljava/lang/String;",
         "move-result-object v1",
         "return-object v1");
 

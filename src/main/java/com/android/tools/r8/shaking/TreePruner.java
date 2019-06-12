@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.KeyedDexItem;
@@ -93,10 +94,39 @@ public class TreePruner {
           clazz.accessFlags.setAbstract();
         }
         // The class is used and must be kept. Remove the unused fields and methods from the class.
+        pruneUnusedInterfaces(clazz);
         pruneMembersAndAttributes(clazz);
       }
     }
     return newClasses;
+  }
+
+  private void pruneUnusedInterfaces(DexProgramClass clazz) {
+    int numberOfReachableInterfaces = 0;
+    for (DexType type : clazz.interfaces.values) {
+      if (appView.appInfo().liveTypes.contains(type)) {
+        numberOfReachableInterfaces++;
+      }
+    }
+
+    if (numberOfReachableInterfaces == clazz.interfaces.size()) {
+      return;
+    }
+
+    if (numberOfReachableInterfaces == 0) {
+      clazz.interfaces = DexTypeList.empty();
+      return;
+    }
+
+    DexType[] reachableInterfaces = new DexType[numberOfReachableInterfaces];
+    int i = 0;
+    for (DexType type : clazz.interfaces.values) {
+      if (appView.appInfo().liveTypes.contains(type)) {
+        reachableInterfaces[i] = type;
+        i++;
+      }
+    }
+    clazz.interfaces = new DexTypeList(reachableInterfaces);
   }
 
   private void pruneMembersAndAttributes(DexProgramClass clazz) {

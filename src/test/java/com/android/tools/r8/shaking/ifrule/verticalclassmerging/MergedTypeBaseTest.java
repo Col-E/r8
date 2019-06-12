@@ -103,12 +103,13 @@ public abstract class MergedTypeBaseTest extends TestBase {
         .addOptionsModification(this::configure)
         .enableClassInliningAnnotations()
         .enableSideEffectAnnotations()
+        .setMinApi(parameters.getRuntime())
         .run(parameters.getRuntime(), getTestClass())
         .assertSuccessWithOutput(expected)
         .inspect(this::inspect);
   }
 
-  private void configure(InternalOptions options) {
+  public void configure(InternalOptions options) {
     options.enableVerticalClassMerging = enableVerticalClassMerging;
 
     // To ensure that the handling of extends and implements rules work as intended,

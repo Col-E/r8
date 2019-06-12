@@ -10,6 +10,7 @@ import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 
@@ -25,6 +26,16 @@ public class ImplementsMergedTypeDirectlyTest extends MergedTypeBaseTest {
   public ImplementsMergedTypeDirectlyTest(
       TestParameters parameters, boolean enableVerticalClassMerging) {
     super(parameters, enableVerticalClassMerging);
+  }
+
+  @Override
+  public void configure(InternalOptions options) {
+    super.configure(options);
+
+    // If unused interface removal is enabled, the `implements K` clause will be removed prior to
+    // vertical class merging (by the tree pruner).
+    // TODO(b/135083634): Should handle unused interfaces similar to vertically merged classes.
+    options.enableUnusedInterfaceRemoval = false;
   }
 
   @Override
