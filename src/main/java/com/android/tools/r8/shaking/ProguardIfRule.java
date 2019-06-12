@@ -3,11 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class ProguardIfRule extends ProguardKeepRuleBase {
@@ -20,7 +22,12 @@ public class ProguardIfRule extends ProguardKeepRuleBase {
         }
       };
 
+  private final Set<DexReference> preconditions;
   final ProguardKeepRule subsequentRule;
+
+  public Set<DexReference> getPreconditions() {
+    return preconditions;
+  }
 
   public static class Builder extends ProguardKeepRuleBase.Builder<ProguardIfRule, Builder> {
 
@@ -42,9 +49,22 @@ public class ProguardIfRule extends ProguardKeepRuleBase {
     @Override
     public ProguardIfRule build() {
       assert subsequentRule != null : "Option -if without a subsequent rule.";
-      return new ProguardIfRule(origin, getPosition(), source, classAnnotation, classAccessFlags,
-          negatedClassAccessFlags, classTypeNegated, classType, classNames, inheritanceAnnotation,
-          inheritanceClassName, inheritanceIsExtends, memberRules, subsequentRule);
+      return new ProguardIfRule(
+          origin,
+          getPosition(),
+          source,
+          classAnnotation,
+          classAccessFlags,
+          negatedClassAccessFlags,
+          classTypeNegated,
+          classType,
+          classNames,
+          inheritanceAnnotation,
+          inheritanceClassName,
+          inheritanceIsExtends,
+          memberRules,
+          subsequentRule,
+          null);
     }
   }
 
@@ -54,17 +74,22 @@ public class ProguardIfRule extends ProguardKeepRuleBase {
       String source,
       ProguardTypeMatcher classAnnotation,
       ProguardAccessFlags classAccessFlags,
-      ProguardAccessFlags negatedClassAccessFlags, boolean classTypeNegated,
-      ProguardClassType classType, ProguardClassNameList classNames,
+      ProguardAccessFlags negatedClassAccessFlags,
+      boolean classTypeNegated,
+      ProguardClassType classType,
+      ProguardClassNameList classNames,
       ProguardTypeMatcher inheritanceAnnotation,
-      ProguardTypeMatcher inheritanceClassName, boolean inheritanceIsExtends,
+      ProguardTypeMatcher inheritanceClassName,
+      boolean inheritanceIsExtends,
       List<ProguardMemberRule> memberRules,
-      ProguardKeepRule subsequentRule) {
+      ProguardKeepRule subsequentRule,
+      Set<DexReference> preconditions) {
     super(origin, position, source, classAnnotation, classAccessFlags, negatedClassAccessFlags,
         classTypeNegated, classType, classNames, inheritanceAnnotation, inheritanceClassName,
         inheritanceIsExtends, memberRules,
         ProguardKeepRuleType.CONDITIONAL, ProguardKeepRuleModifiers.builder().build());
     this.subsequentRule = subsequentRule;
+    this.preconditions = preconditions;
   }
 
   public static Builder builder() {
@@ -76,7 +101,7 @@ public class ProguardIfRule extends ProguardKeepRuleBase {
     return Iterables.concat(super.getWildcards(), subsequentRule.getWildcards());
   }
 
-  protected ProguardIfRule materialize() {
+  protected ProguardIfRule materialize(Set<DexReference> preconditions) {
     return new ProguardIfRule(
         getOrigin(),
         getPosition(),
@@ -95,7 +120,8 @@ public class ProguardIfRule extends ProguardKeepRuleBase {
             : getMemberRules().stream()
                 .map(ProguardMemberRule::materialize)
                 .collect(Collectors.toList()),
-        subsequentRule.materialize());
+        subsequentRule.materialize(),
+        preconditions);
   }
 
   protected ClassInlineRule neverClassInlineRuleForCondition() {
@@ -168,7 +194,7 @@ public class ProguardIfRule extends ProguardKeepRuleBase {
       return false;
     }
     ProguardIfRule other = (ProguardIfRule) o;
-    if (subsequentRule != other.subsequentRule) {
+    if (!subsequentRule.equals(other.subsequentRule)) {
       return false;
     }
     return super.equals(o);

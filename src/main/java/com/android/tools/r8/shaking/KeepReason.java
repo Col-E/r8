@@ -27,11 +27,18 @@ public abstract class KeepReason {
     return new AnnotatedOn(definition);
   }
 
-  static KeepReason dueToKeepRule(ProguardKeepRule rule) {
-    return new DueToKeepRule(rule);
+  static KeepReason dueToKeepRule(ProguardKeepRuleBase rule) {
+    if (rule instanceof ProguardKeepRule) {
+      return new DueToKeepRule(rule);
+    }
+    if (rule instanceof ProguardIfRule) {
+      ProguardIfRule ifRule = (ProguardIfRule) rule;
+      return new DueToConditionalKeepRule(ifRule, ifRule.getPreconditions());
+    }
+    throw new Unreachable("Unexpected proguard keep rule: " + rule);
   }
 
-  static KeepReason dueToConditionalKeepRule(ProguardKeepRule rule, DexReference reference) {
+  static KeepReason dueToConditionalKeepRule(ProguardKeepRuleBase rule, DexReference reference) {
     return new DueToConditionalKeepRule(rule, reference);
   }
 
@@ -87,7 +94,7 @@ public abstract class KeepReason {
     return false;
   }
 
-  public ProguardKeepRule getProguardKeepRule() {
+  public ProguardKeepRuleBase getProguardKeepRule() {
     return null;
   }
 
@@ -109,9 +116,9 @@ public abstract class KeepReason {
 
   private static class DueToKeepRule extends KeepReason {
 
-    final ProguardKeepRule keepRule;
+    final ProguardKeepRuleBase keepRule;
 
-    private DueToKeepRule(ProguardKeepRule keepRule) {
+    private DueToKeepRule(ProguardKeepRuleBase keepRule) {
       this.keepRule = keepRule;
     }
 
@@ -126,7 +133,7 @@ public abstract class KeepReason {
     }
 
     @Override
-    public ProguardKeepRule getProguardKeepRule() {
+    public ProguardKeepRuleBase getProguardKeepRule() {
       return keepRule;
     }
 
@@ -154,17 +161,22 @@ public abstract class KeepReason {
 
   private static class DueToConditionalKeepRule extends DueToKeepRule {
 
-    private final DexReference condition;
+    private final Set<DexReference> preconditions;
 
-    public DueToConditionalKeepRule(ProguardKeepRule rule, DexReference condition) {
+    public DueToConditionalKeepRule(ProguardKeepRuleBase rule, DexReference precondition) {
+      this(rule, Collections.singleton(precondition));
+      assert precondition != null;
+    }
+
+    public DueToConditionalKeepRule(ProguardKeepRuleBase rule, Set<DexReference> preconditions) {
       super(rule);
-      assert condition != null;
-      this.condition = condition;
+      assert !preconditions.isEmpty();
+      this.preconditions = preconditions;
     }
 
     @Override
     public Set<DexReference> getPreconditions() {
-      return Collections.singleton(condition);
+      return preconditions;
     }
 
     @Override

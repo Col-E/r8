@@ -6,8 +6,8 @@ package com.android.tools.r8.shaking;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.experimental.graphinfo.GraphEdgeInfo;
 import com.android.tools.r8.experimental.graphinfo.GraphNode;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -18,8 +18,7 @@ public class CollectingGraphConsumer implements GraphConsumer {
   private final GraphConsumer subConsumer;
 
   // Directional map backwards from targets to direct sources.
-  private final Map<GraphNode, Map<GraphNode, Set<GraphEdgeInfo>>> target2sources =
-      new IdentityHashMap<>();
+  private final Map<GraphNode, Map<GraphNode, Set<GraphEdgeInfo>>> target2sources = new HashMap<>();
 
   public CollectingGraphConsumer(GraphConsumer subConsumer) {
     this.subConsumer = subConsumer;
@@ -28,7 +27,7 @@ public class CollectingGraphConsumer implements GraphConsumer {
   @Override
   public void acceptEdge(GraphNode source, GraphNode target, GraphEdgeInfo info) {
     target2sources
-        .computeIfAbsent(target, k -> new IdentityHashMap<>())
+        .computeIfAbsent(target, k -> new HashMap<>())
         .computeIfAbsent(source, k -> new HashSet<>())
         .add(info);
     if (subConsumer != null) {

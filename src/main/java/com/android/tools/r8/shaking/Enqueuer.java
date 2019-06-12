@@ -144,7 +144,7 @@ public class Enqueuer {
   private final Map<DexType, ClassGraphNode> classNodes = new IdentityHashMap<>();
   private final Map<DexMethod, MethodGraphNode> methodNodes = new IdentityHashMap<>();
   private final Map<DexField, FieldGraphNode> fieldNodes = new IdentityHashMap<>();
-  private final Map<ProguardKeepRule, KeepRuleGraphNode> ruleNodes = new IdentityHashMap<>();
+  private final Map<ProguardKeepRuleBase, GraphNode> ruleNodes = new IdentityHashMap<>();
   private final Map<EdgeKind, GraphEdgeInfo> reasonInfo = new IdentityHashMap<>();
 
   /**
@@ -339,11 +339,11 @@ public class Enqueuer {
     return new SetWithReason<>((f, r) -> {});
   }
 
-  private void enqueueRootItems(Map<DexReference, Set<ProguardKeepRule>> items) {
+  private void enqueueRootItems(Map<DexReference, Set<ProguardKeepRuleBase>> items) {
     items.entrySet().forEach(this::enqueueRootItem);
   }
 
-  private void enqueueRootItem(Entry<DexReference, Set<ProguardKeepRule>> root) {
+  private void enqueueRootItem(Entry<DexReference, Set<ProguardKeepRuleBase>> root) {
     DexDefinition item = appView.definitionFor(root.getKey());
     if (item != null) {
       enqueueRootItem(item, root.getValue());
@@ -353,11 +353,11 @@ public class Enqueuer {
     }
   }
 
-  private void enqueueRootItem(DexDefinition item, Set<ProguardKeepRule> rules) {
+  private void enqueueRootItem(DexDefinition item, Set<ProguardKeepRuleBase> rules) {
     assert !rules.isEmpty();
     if (keptGraphConsumer != null) {
       GraphNode node = getGraphNode(item.toReference());
-      for (ProguardKeepRule rule : rules) {
+      for (ProguardKeepRuleBase rule : rules) {
         registerEdge(node, KeepReason.dueToKeepRule(rule));
       }
     }
@@ -412,7 +412,7 @@ public class Enqueuer {
   }
 
   private void compatEnqueueHolderIfDependentNonStaticMember(
-      DexClass holder, Set<ProguardKeepRule> compatRules) {
+      DexClass holder, Set<ProguardKeepRuleBase> compatRules) {
     if (!forceProguardCompatibility || compatRules == null) {
       return;
     }
@@ -951,17 +951,17 @@ public class Enqueuer {
   }
 
   private void enqueueDependentItem(
-      DexDefinition precondition, DexDefinition consequent, Set<ProguardKeepRule> reasons) {
+      DexDefinition precondition, DexDefinition consequent, Set<ProguardKeepRuleBase> reasons) {
     DexReference preconditionReference = precondition.toReference();
     if (keptGraphConsumer != null) {
       GraphNode consequentNode = getGraphNode(consequent.toReference());
-      for (ProguardKeepRule rule : reasons) {
+      for (ProguardKeepRuleBase rule : reasons) {
         registerEdge(
             consequentNode, KeepReason.dueToConditionalKeepRule(rule, preconditionReference));
       }
     }
     // Note: the reason for keeping is reproted above, so this just uses the first.
-    ProguardKeepRule reason = reasons.iterator().next();
+    ProguardKeepRuleBase reason = reasons.iterator().next();
     internalEnqueueRootItem(
         consequent, KeepReason.dueToConditionalKeepRule(reason, preconditionReference));
   }
@@ -2662,7 +2662,23 @@ public class Enqueuer {
         });
   }
 
-  KeepRuleGraphNode getKeepRuleGraphNode(ProguardKeepRule rule) {
-    return ruleNodes.computeIfAbsent(rule, KeepRuleGraphNode::new);
+  GraphNode getKeepRuleGraphNode(ProguardKeepRuleBase rule) {
+    if (rule instanceof ProguardKeepRule) {
+      return ruleNodes.computeIfAbsent(rule, key -> new KeepRuleGraphNode((ProguardKeepRule) rule));
+    }
+    if (rule instanceof ProguardIfRule) {
+      ProguardIfRule ifRule = (ProguardIfRule) rule;
+      assert !ifRule.getPreconditions().isEmpty();
+      return ruleNodes.computeIfAbsent(
+          ifRule,
+          key -> {
+            Set<GraphNode> preconditions = new HashSet<>(ifRule.getPreconditions().size());
+            for (DexReference precondition : ifRule.getPreconditions()) {
+              preconditions.add(getGraphNode(precondition));
+            }
+            return new KeepRuleGraphNode(ifRule, preconditions);
+          });
+    }
+    throw new Unreachable("Unexpected type of keep rule: " + rule);
   }
 }

@@ -67,7 +67,7 @@ public class RootSetBuilder {
   private final AppView<? extends AppInfoWithSubtyping> appView;
   private final DirectMappedDexApplication application;
   private final Iterable<? extends ProguardConfigurationRule> rules;
-  private final Map<DexReference, Set<ProguardKeepRule>> noShrinking = new IdentityHashMap<>();
+  private final Map<DexReference, Set<ProguardKeepRuleBase>> noShrinking = new IdentityHashMap<>();
   private final Set<DexReference> noOptimization = Sets.newIdentityHashSet();
   private final Set<DexReference> noObfuscation = Sets.newIdentityHashSet();
   private final LinkedHashMap<DexReference, DexReference> reasonAsked = new LinkedHashMap<>();
@@ -82,9 +82,9 @@ public class RootSetBuilder {
   private final Set<DexType> neverClassInline = Sets.newIdentityHashSet();
   private final Set<DexType> neverMerge = Sets.newIdentityHashSet();
   private final Set<DexReference> neverPropagateValue = Sets.newIdentityHashSet();
-  private final Map<DexReference, Map<DexReference, Set<ProguardKeepRule>>> dependentNoShrinking =
-      new IdentityHashMap<>();
-  private final Map<DexType, Set<ProguardKeepRule>> dependentKeepClassCompatRule =
+  private final Map<DexReference, Map<DexReference, Set<ProguardKeepRuleBase>>>
+      dependentNoShrinking = new IdentityHashMap<>();
+  private final Map<DexType, Set<ProguardKeepRuleBase>> dependentKeepClassCompatRule =
       new IdentityHashMap<>();
   private final Map<DexReference, ProguardMemberRule> mayHaveSideEffects = new IdentityHashMap<>();
   private final Map<DexReference, ProguardMemberRule> noSideEffects = new IdentityHashMap<>();
@@ -144,8 +144,10 @@ public class RootSetBuilder {
           case KEEP_CLASS_MEMBERS:
             // Members mentioned at -keepclassmembers always depend on their holder.
             preconditionSupplier = ImmutableMap.of(definition -> true, clazz);
-            markMatchingVisibleMethods(clazz, memberKeepRules, rule, preconditionSupplier, false);
-            markMatchingVisibleFields(clazz, memberKeepRules, rule, preconditionSupplier, false);
+            markMatchingVisibleMethods(
+                clazz, memberKeepRules, rule, preconditionSupplier, false, ifRule);
+            markMatchingVisibleFields(
+                clazz, memberKeepRules, rule, preconditionSupplier, false, ifRule);
             break;
           case KEEP_CLASSES_WITH_MEMBERS:
             if (!allRulesSatisfied(memberKeepRules, clazz)) {
@@ -153,7 +155,7 @@ public class RootSetBuilder {
             }
             // fallthrough;
           case KEEP:
-            markClass(clazz, rule);
+            markClass(clazz, rule, ifRule);
             preconditionSupplier = new HashMap<>();
             if (ifRule != null) {
               // Static members in -keep are pinned no matter what.
@@ -165,54 +167,60 @@ public class RootSetBuilder {
               // not triggered conditionally.
               preconditionSupplier.put((definition -> true), null);
             }
-            markMatchingVisibleMethods(clazz, memberKeepRules, rule, preconditionSupplier, false);
-            markMatchingVisibleFields(clazz, memberKeepRules, rule, preconditionSupplier, false);
+            markMatchingVisibleMethods(
+                clazz, memberKeepRules, rule, preconditionSupplier, false, ifRule);
+            markMatchingVisibleFields(
+                clazz, memberKeepRules, rule, preconditionSupplier, false, ifRule);
             break;
           case CONDITIONAL:
             throw new Unreachable("-if rule will be evaluated separately, not here.");
         }
-      } else if (rule instanceof ProguardIfRule) {
+        return;
+      }
+      // Only the ordinary keep rules are supported in a conditional rule.
+      assert ifRule == null;
+      if (rule instanceof ProguardIfRule) {
         throw new Unreachable("-if rule will be evaluated separately, not here.");
       } else if (rule instanceof ProguardCheckDiscardRule) {
         if (memberKeepRules.isEmpty()) {
-          markClass(clazz, rule);
+          markClass(clazz, rule, ifRule);
         } else {
           preconditionSupplier = ImmutableMap.of((definition -> true), clazz);
-          markMatchingVisibleMethods(clazz, memberKeepRules, rule, preconditionSupplier, true);
+          markMatchingVisibleMethods(clazz, memberKeepRules, rule, preconditionSupplier, true, ifRule);
           markMatchingOverriddenMethods(
-              appView.appInfo(), clazz, memberKeepRules, rule, preconditionSupplier, true);
-          markMatchingVisibleFields(clazz, memberKeepRules, rule, preconditionSupplier, true);
+              appView.appInfo(), clazz, memberKeepRules, rule, preconditionSupplier, true, ifRule);
+          markMatchingVisibleFields(clazz, memberKeepRules, rule, preconditionSupplier, true, ifRule);
         }
       } else if (rule instanceof ProguardWhyAreYouKeepingRule) {
-        markClass(clazz, rule);
-        markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true);
-        markMatchingOverriddenMethods(appView.appInfo(), clazz, memberKeepRules, rule, null, true);
-        markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true);
+        markClass(clazz, rule, ifRule);
+        markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true, ifRule);
+        markMatchingOverriddenMethods(appView.appInfo(), clazz, memberKeepRules, rule, null, true, ifRule);
+        markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true, ifRule);
       } else if (rule instanceof ProguardAssumeMayHaveSideEffectsRule
           || rule instanceof ProguardAssumeNoSideEffectRule
           || rule instanceof ProguardAssumeValuesRule) {
-        markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true);
-        markMatchingOverriddenMethods(appView.appInfo(), clazz, memberKeepRules, rule, null, true);
-        markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true);
+        markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true, ifRule);
+        markMatchingOverriddenMethods(appView.appInfo(), clazz, memberKeepRules, rule, null, true, ifRule);
+        markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true, ifRule);
       } else if (rule instanceof ClassMergingRule) {
         if (allRulesSatisfied(memberKeepRules, clazz)) {
-          markClass(clazz, rule);
+          markClass(clazz, rule, ifRule);
         }
       } else if (rule instanceof InlineRule
           || rule instanceof ConstantArgumentRule
           || rule instanceof UnusedArgumentRule) {
-        markMatchingMethods(clazz, memberKeepRules, rule, null);
+        markMatchingMethods(clazz, memberKeepRules, rule, null, ifRule);
       } else if (rule instanceof ClassInlineRule) {
         if (allRulesSatisfied(memberKeepRules, clazz)) {
-          markClass(clazz, rule);
+          markClass(clazz, rule, ifRule);
         }
       } else if (rule instanceof MemberValuePropagationRule) {
-        markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true);
-        markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true);
+        markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true, ifRule);
+        markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true, ifRule);
       } else {
         assert rule instanceof ProguardIdentifierNameStringRule;
-        markMatchingFields(clazz, memberKeepRules, rule, null);
-        markMatchingMethods(clazz, memberKeepRules, rule, null);
+        markMatchingFields(clazz, memberKeepRules, rule, null, ifRule);
+        markMatchingMethods(clazz, memberKeepRules, rule, null, ifRule);
       }
     }
   }
@@ -423,7 +431,7 @@ public class RootSetBuilder {
       }
       Collection<ProguardMemberRule> memberKeepRules = rule.getMemberRules();
       if (memberKeepRules.isEmpty()) {
-        materializeIfRule(rule);
+        materializeIfRule(rule, ImmutableSet.of(sourceClass.toReference()));
         return;
       }
 
@@ -472,20 +480,20 @@ public class RootSetBuilder {
                                 ruleSatisfiedByFields(memberRule, fieldsInCombination)
                                     || ruleSatisfiedByMethods(memberRule, methodsInCombination));
                 if (satisfied) {
-                  materializeIfRule(rule);
+                  materializeIfRule(rule, ImmutableSet.of(sourceClass.toReference()));
                 }
               });
     }
 
-    private void materializeIfRule(ProguardIfRule rule) {
-      ProguardIfRule materializedRule = rule.materialize();
+    private void materializeIfRule(ProguardIfRule rule, Set<DexReference> preconditions) {
+      ProguardIfRule materializedRule = rule.materialize(preconditions);
 
       // We need to abort class inlining of classes that could be matched by the condition of this
       // -if rule.
       ClassInlineRule neverClassInlineRuleForCondition =
           materializedRule.neverClassInlineRuleForCondition();
       if (neverClassInlineRuleForCondition != null) {
-        runPerRule(executorService, futures, neverClassInlineRuleForCondition, materializedRule);
+        runPerRule(executorService, futures, neverClassInlineRuleForCondition, null);
       }
 
       // If the condition of the -if rule has any members, then we need to keep these members to
@@ -493,7 +501,7 @@ public class RootSetBuilder {
       // shaking.
       InlineRule neverInlineRuleForCondition = materializedRule.neverInlineRuleForCondition();
       if (neverInlineRuleForCondition != null) {
-        runPerRule(executorService, futures, neverInlineRuleForCondition, materializedRule);
+        runPerRule(executorService, futures, neverInlineRuleForCondition, null);
       }
 
       // Keep whatever is required by the -if rule.
@@ -526,7 +534,8 @@ public class RootSetBuilder {
       Collection<ProguardMemberRule> memberKeepRules,
       ProguardConfigurationRule rule,
       Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier,
-      boolean includeLibraryClasses) {
+      boolean includeLibraryClasses,
+      ProguardIfRule ifRule) {
     Set<Wrapper<DexMethod>> methodsMarked =
         options.forceProguardCompatibility || rule instanceof ProguardAssumeNoSideEffectRule
             ? null : new HashSet<>();
@@ -542,7 +551,7 @@ public class RootSetBuilder {
             .forEach(
                 method -> {
                   DexDefinition precondition = testAndGetPrecondition(method, preconditionSupplier);
-                  markMethod(method, memberKeepRules, methodsMarked, rule, precondition);
+                  markMethod(method, memberKeepRules, methodsMarked, rule, precondition, ifRule);
                 });
       }
       clazz
@@ -550,7 +559,7 @@ public class RootSetBuilder {
           .forEach(
               method -> {
                 DexDefinition precondition = testAndGetPrecondition(method, preconditionSupplier);
-                markMethod(method, memberKeepRules, methodsMarked, rule, precondition);
+                markMethod(method, memberKeepRules, methodsMarked, rule, precondition, ifRule);
               });
       clazz = clazz.superType == null ? null : application.definitionFor(clazz.superType);
     }
@@ -562,7 +571,8 @@ public class RootSetBuilder {
       Collection<ProguardMemberRule> memberKeepRules,
       ProguardConfigurationRule rule,
       Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier,
-      boolean onlyIncludeProgramClasses) {
+      boolean onlyIncludeProgramClasses,
+      ProguardIfRule ifRule) {
     Set<DexType> visited = new HashSet<>();
     Deque<DexType> worklist = new ArrayDeque<>();
     // Intentionally skip the current `clazz`, assuming it's covered by markMatchingVisibleMethods.
@@ -585,7 +595,7 @@ public class RootSetBuilder {
           .forEach(
               method -> {
                 DexDefinition precondition = testAndGetPrecondition(method, preconditionSupplier);
-                markMethod(method, memberKeepRules, null, rule, precondition);
+                markMethod(method, memberKeepRules, null, rule, precondition, ifRule);
               });
       worklist.addAll(appInfoWithSubtyping.allImmediateSubtypes(currentClazz.type));
     }
@@ -595,11 +605,12 @@ public class RootSetBuilder {
       DexClass clazz,
       Collection<ProguardMemberRule> memberKeepRules,
       ProguardConfigurationRule rule,
-      Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier) {
+      Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier,
+      ProguardIfRule ifRule) {
     clazz.forEachMethod(
         method -> {
           DexDefinition precondition = testAndGetPrecondition(method, preconditionSupplier);
-          markMethod(method, memberKeepRules, null, rule, precondition);
+          markMethod(method, memberKeepRules, null, rule, precondition, ifRule);
         });
   }
 
@@ -608,7 +619,8 @@ public class RootSetBuilder {
       Collection<ProguardMemberRule> memberKeepRules,
       ProguardConfigurationRule rule,
       Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier,
-      boolean includeLibraryClasses) {
+      boolean includeLibraryClasses,
+      ProguardIfRule ifRule) {
     while (clazz != null) {
       if (!includeLibraryClasses && clazz.isNotProgramClass()) {
         return;
@@ -616,7 +628,7 @@ public class RootSetBuilder {
       clazz.forEachField(
           field -> {
             DexDefinition precondition = testAndGetPrecondition(field, preconditionSupplier);
-            markField(field, memberKeepRules, rule, precondition);
+            markField(field, memberKeepRules, rule, precondition, ifRule);
           });
       clazz = clazz.superType == null ? null : application.definitionFor(clazz.superType);
     }
@@ -626,11 +638,12 @@ public class RootSetBuilder {
       DexClass clazz,
       Collection<ProguardMemberRule> memberKeepRules,
       ProguardConfigurationRule rule,
-      Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier) {
+      Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier,
+      ProguardIfRule ifRule) {
     clazz.forEachField(
         field -> {
           DexDefinition precondition = testAndGetPrecondition(field, preconditionSupplier);
-          markField(field, memberKeepRules, rule, precondition);
+          markField(field, memberKeepRules, rule, precondition, ifRule);
         });
   }
 
@@ -886,7 +899,8 @@ public class RootSetBuilder {
       Collection<ProguardMemberRule> rules,
       Set<Wrapper<DexMethod>> methodsMarked,
       ProguardConfigurationRule context,
-      DexDefinition precondition) {
+      DexDefinition precondition,
+      ProguardIfRule ifRule) {
     if (methodsMarked != null
         && methodsMarked.contains(MethodSignatureEquivalence.get().wrap(method.method))) {
       // Ignore, method is overridden in sub class.
@@ -901,7 +915,7 @@ public class RootSetBuilder {
         if (methodsMarked != null) {
           methodsMarked.add(MethodSignatureEquivalence.get().wrap(method.method));
         }
-        addItemToSets(method, context, rule, precondition);
+        addItemToSets(method, context, rule, precondition, ifRule);
       }
     }
   }
@@ -910,26 +924,27 @@ public class RootSetBuilder {
       DexEncodedField field,
       Collection<ProguardMemberRule> rules,
       ProguardConfigurationRule context,
-      DexDefinition precondition) {
+      DexDefinition precondition,
+      ProguardIfRule ifRule) {
     for (ProguardMemberRule rule : rules) {
       if (rule.matches(field, appView, dexStringCache)) {
         if (Log.ENABLED) {
           Log.verbose(getClass(), "Marking field `%s` due to `%s { %s }`.", field, context,
               rule);
         }
-        addItemToSets(field, context, rule, precondition);
+        addItemToSets(field, context, rule, precondition, ifRule);
       }
     }
   }
 
-  private void markClass(DexClass clazz, ProguardConfigurationRule rule) {
+  private void markClass(DexClass clazz, ProguardConfigurationRule rule, ProguardIfRule ifRule) {
     if (Log.ENABLED) {
       Log.verbose(getClass(), "Marking class `%s` due to `%s`.", clazz.type, rule);
     }
-    addItemToSets(clazz, rule, null, null);
+    addItemToSets(clazz, rule, null, null, ifRule);
   }
 
-  private void includeDescriptor(DexDefinition item, DexType type, ProguardKeepRule context) {
+  private void includeDescriptor(DexDefinition item, DexType type, ProguardKeepRuleBase context) {
     if (type.isVoidType()) {
       return;
     }
@@ -952,7 +967,7 @@ public class RootSetBuilder {
     noObfuscation.add(type);
   }
 
-  private void includeDescriptorClasses(DexDefinition item, ProguardKeepRule context) {
+  private void includeDescriptorClasses(DexDefinition item, ProguardKeepRuleBase context) {
     if (item.isDexEncodedMethod()) {
       DexMethod method = item.asDexEncodedMethod().method;
       includeDescriptor(item, method.proto.returnType, context);
@@ -971,7 +986,8 @@ public class RootSetBuilder {
       DexDefinition item,
       ProguardConfigurationRule context,
       ProguardMemberRule rule,
-      DexDefinition precondition) {
+      DexDefinition precondition,
+      ProguardIfRule ifRule) {
     if (context instanceof ProguardKeepRule) {
       if (item.isDexEncodedMethod()) {
         DexEncodedMethod encodedMethod = item.asDexEncodedMethod();
@@ -998,8 +1014,10 @@ public class RootSetBuilder {
         }
       }
 
-      ProguardKeepRule keepRule = (ProguardKeepRule) context;
-      ProguardKeepRuleModifiers modifiers = keepRule.getModifiers();
+      // The reason for keeping should link to the conditional rule as a whole, if present.
+      ProguardKeepRuleBase keepRule = ifRule != null ? ifRule : (ProguardKeepRuleBase) context;
+      // The modifiers are specified on the actual keep rule (ie, the consequent/context).
+      ProguardKeepRuleModifiers modifiers = ((ProguardKeepRule) context).getModifiers();
       // In compatibility mode, for a match on instance members a referenced class becomes live.
       if (options.forceProguardCompatibility
           && !modifiers.allowsShrinking
@@ -1115,7 +1133,7 @@ public class RootSetBuilder {
 
   public static class RootSet {
 
-    public final Map<DexReference, Set<ProguardKeepRule>> noShrinking;
+    public final Map<DexReference, Set<ProguardKeepRuleBase>> noShrinking;
     public final Set<DexReference> noOptimization;
     private final Set<DexReference> noObfuscation;
     public final ImmutableList<DexReference> reasonAsked;
@@ -1131,14 +1149,14 @@ public class RootSetBuilder {
     public final Map<DexReference, ProguardMemberRule> mayHaveSideEffects;
     public final Map<DexReference, ProguardMemberRule> noSideEffects;
     public final Map<DexReference, ProguardMemberRule> assumedValues;
-    private final Map<DexReference, Map<DexReference, Set<ProguardKeepRule>>>
+    private final Map<DexReference, Map<DexReference, Set<ProguardKeepRuleBase>>>
         dependentNoShrinking;
-    private final Map<DexType, Set<ProguardKeepRule>> dependentKeepClassCompatRule;
+    private final Map<DexType, Set<ProguardKeepRuleBase>> dependentKeepClassCompatRule;
     public final Set<DexReference> identifierNameStrings;
     public final Set<ProguardIfRule> ifRules;
 
     private RootSet(
-        Map<DexReference, Set<ProguardKeepRule>> noShrinking,
+        Map<DexReference, Set<ProguardKeepRuleBase>> noShrinking,
         Set<DexReference> noOptimization,
         Set<DexReference> noObfuscation,
         ImmutableList<DexReference> reasonAsked,
@@ -1154,8 +1172,8 @@ public class RootSetBuilder {
         Map<DexReference, ProguardMemberRule> mayHaveSideEffects,
         Map<DexReference, ProguardMemberRule> noSideEffects,
         Map<DexReference, ProguardMemberRule> assumedValues,
-        Map<DexReference, Map<DexReference, Set<ProguardKeepRule>>> dependentNoShrinking,
-        Map<DexType, Set<ProguardKeepRule>> dependentKeepClassCompatRule,
+        Map<DexReference, Map<DexReference, Set<ProguardKeepRuleBase>>> dependentNoShrinking,
+        Map<DexType, Set<ProguardKeepRuleBase>> dependentKeepClassCompatRule,
         Set<DexReference> identifierNameStrings,
         Set<ProguardIfRule> ifRules) {
       this.noShrinking = noShrinking;
@@ -1239,7 +1257,7 @@ public class RootSetBuilder {
 
     // Add dependent items that depend on -if rules.
     private void addDependentItems(
-        Map<DexReference, Map<DexReference, Set<ProguardKeepRule>>> dependentItems) {
+        Map<DexReference, Map<DexReference, Set<ProguardKeepRuleBase>>> dependentItems) {
       dependentItems.forEach(
           (reference, dependence) ->
               dependentNoShrinking
@@ -1247,11 +1265,11 @@ public class RootSetBuilder {
                   .putAll(dependence));
     }
 
-    Set<ProguardKeepRule> getDependentKeepClassCompatRule(DexType type) {
+    Set<ProguardKeepRuleBase> getDependentKeepClassCompatRule(DexType type) {
       return dependentKeepClassCompatRule.get(type);
     }
 
-    Map<DexReference, Set<ProguardKeepRule>> getDependentItems(DexDefinition item) {
+    Map<DexReference, Set<ProguardKeepRuleBase>> getDependentItems(DexDefinition item) {
       return Collections.unmodifiableMap(
           dependentNoShrinking.getOrDefault(item.toReference(), Collections.emptyMap()));
     }
@@ -1259,7 +1277,7 @@ public class RootSetBuilder {
     public void forEachDependentStaticMember(
         DexDefinition item,
         AppView<?> appView,
-        Consumer3<DexDefinition, DexDefinition, Set<ProguardKeepRule>> fn) {
+        Consumer3<DexDefinition, DexDefinition, Set<ProguardKeepRuleBase>> fn) {
       getDependentItems(item)
           .forEach(
               (reference, reasons) -> {
@@ -1273,7 +1291,7 @@ public class RootSetBuilder {
     public void forEachDependentNonStaticMember(
         DexDefinition item,
         AppView<?> appView,
-        Consumer3<DexDefinition, DexDefinition, Set<ProguardKeepRule>> fn) {
+        Consumer3<DexDefinition, DexDefinition, Set<ProguardKeepRuleBase>> fn) {
       getDependentItems(item)
           .forEach(
               (reference, reasons) -> {
@@ -1510,20 +1528,20 @@ public class RootSetBuilder {
   static class ConsequentRootSet {
     final Set<DexMethod> neverInline;
     final Set<DexType> neverClassInline;
-    final Map<DexReference, Set<ProguardKeepRule>> noShrinking;
+    final Map<DexReference, Set<ProguardKeepRuleBase>> noShrinking;
     final Set<DexReference> noOptimization;
     final Set<DexReference> noObfuscation;
-    final Map<DexReference, Map<DexReference, Set<ProguardKeepRule>>> dependentNoShrinking;
-    final Map<DexType, Set<ProguardKeepRule>> dependentKeepClassCompatRule;
+    final Map<DexReference, Map<DexReference, Set<ProguardKeepRuleBase>>> dependentNoShrinking;
+    final Map<DexType, Set<ProguardKeepRuleBase>> dependentKeepClassCompatRule;
 
     private ConsequentRootSet(
         Set<DexMethod> neverInline,
         Set<DexType> neverClassInline,
-        Map<DexReference, Set<ProguardKeepRule>> noShrinking,
+        Map<DexReference, Set<ProguardKeepRuleBase>> noShrinking,
         Set<DexReference> noOptimization,
         Set<DexReference> noObfuscation,
-        Map<DexReference, Map<DexReference, Set<ProguardKeepRule>>> dependentNoShrinking,
-        Map<DexType, Set<ProguardKeepRule>> dependentKeepClassCompatRule) {
+        Map<DexReference, Map<DexReference, Set<ProguardKeepRuleBase>>> dependentNoShrinking,
+        Map<DexType, Set<ProguardKeepRuleBase>> dependentKeepClassCompatRule) {
       this.neverInline = Collections.unmodifiableSet(neverInline);
       this.neverClassInline = Collections.unmodifiableSet(neverClassInline);
       this.noShrinking = Collections.unmodifiableMap(noShrinking);

@@ -9,40 +9,69 @@ import com.android.tools.r8.position.Position;
 import com.android.tools.r8.position.TextPosition;
 import com.android.tools.r8.position.TextRange;
 import com.android.tools.r8.shaking.ProguardKeepRule;
+import com.android.tools.r8.shaking.ProguardKeepRuleBase;
+import java.util.Collections;
+import java.util.Objects;
+import java.util.Set;
 
 // Note: this could potentially be merged with ConditionalKeepRuleGraphNode
 // and an empty precondition set.
 @Keep
 public final class KeepRuleGraphNode extends GraphNode {
 
-  private final ProguardKeepRule rule;
+  private final Origin origin;
+  private final Position position;
+  private final String content;
+  private final Set<GraphNode> preconditions;
 
   public KeepRuleGraphNode(ProguardKeepRule rule) {
+    this(rule, Collections.emptySet());
+  }
+
+  public KeepRuleGraphNode(ProguardKeepRuleBase rule, Set<GraphNode> preconditions) {
     super(false);
     assert rule != null;
-    this.rule = rule;
+    assert preconditions != null;
+    origin = rule.getOrigin();
+    position = rule.getPosition();
+    content = rule.getSource();
+    this.preconditions = preconditions;
   }
 
   @Override
   public boolean equals(Object o) {
-    return this == o || (o instanceof KeepRuleGraphNode && ((KeepRuleGraphNode) o).rule == rule);
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof KeepRuleGraphNode)) {
+      return false;
+    }
+    KeepRuleGraphNode other = (KeepRuleGraphNode) o;
+    return origin.equals(other.getOrigin())
+        && position.equals(other.getPosition())
+        && content.equals(other.getContent())
+        && preconditions.equals(other.getPreconditions());
   }
 
   @Override
   public int hashCode() {
-    return rule.hashCode();
+    return Objects.hash(origin, position, content, preconditions);
   }
 
   public Origin getOrigin() {
-    return rule.getOrigin();
+    return origin;
   }
 
   public Position getPosition() {
-    return rule.getPosition();
+    return position;
   }
 
   public String getContent() {
-    return rule.getSource();
+    return content;
+  }
+
+  public Set<GraphNode> getPreconditions() {
+    return preconditions;
   }
 
   /**

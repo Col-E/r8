@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils.graphinspector;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -29,6 +30,7 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -62,21 +64,74 @@ public class GraphInspector {
     }
   }
 
+  public static class QueryNodeSet {
+    private final Set<QueryNode> nodes;
+    private final String absentString;
+
+    public QueryNodeSet(Set<QueryNode> nodes, String absentString) {
+      this.nodes = nodes;
+      this.absentString = absentString;
+    }
+
+    private static QueryNodeSet from(Set<QueryNode> nodes, String absentString) {
+      return new QueryNodeSet(nodes, absentString);
+    }
+
+    private String errorMessage(String expected, String actual) {
+      return "Expected " + expected + " but was " + actual + " for " + absentString;
+    }
+
+    public boolean isEmpty() {
+      return nodes.isEmpty();
+    }
+
+    public QueryNodeSet assertEmpty() {
+      assertTrue(errorMessage("empty", "non-empty"), isEmpty());
+      return this;
+    }
+
+    public QueryNodeSet assertNonEmpty() {
+      assertFalse(errorMessage("non-empty", "empty"), isEmpty());
+      return this;
+    }
+
+    public QueryNodeSet assertSize(int expected) {
+      assertEquals(errorMessage("" + expected, "" + nodes.size()), expected, nodes.size());
+      return this;
+    }
+
+    public QueryNodeSet assertAnyMatch(Predicate<QueryNode> predicate) {
+      assertTrue(nodes.stream().anyMatch(predicate));
+      return this;
+    }
+
+    public QueryNodeSet assertAllMatch(Predicate<QueryNode> predicate) {
+      assertTrue(nodes.stream().allMatch(predicate));
+      return this;
+    }
+  }
+
   public abstract static class QueryNode {
 
-    abstract boolean isPresent();
+    @Override
+    public abstract boolean equals(Object obj);
 
-    abstract boolean isRoot();
+    @Override
+    public abstract int hashCode();
 
-    abstract boolean isRenamed();
+    public abstract boolean isPresent();
 
-    abstract boolean isInvokedFrom(MethodReference method);
+    public abstract boolean isRoot();
 
-    abstract boolean isReflectedFrom(MethodReference method);
+    public abstract boolean isRenamed();
 
-    abstract boolean isKeptBy(QueryNode node);
+    public abstract boolean isInvokedFrom(MethodReference method);
 
-    abstract boolean isSatisfiedBy(QueryNode node);
+    public abstract boolean isReflectedFrom(MethodReference method);
+
+    public abstract boolean isKeptBy(QueryNode node);
+
+    public abstract boolean isSatisfiedBy(QueryNode node);
 
     abstract String getNodeDescription();
 
@@ -176,7 +231,19 @@ public class GraphInspector {
     private final String failedQueryNodeDescription;
 
     public AbsentQueryNode(String failedQueryNodeDescription) {
+      assert failedQueryNodeDescription != null;
       this.failedQueryNodeDescription = failedQueryNodeDescription;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      return obj instanceof AbsentQueryNode
+          && failedQueryNodeDescription.equals(((AbsentQueryNode) obj).failedQueryNodeDescription);
+    }
+
+    @Override
+    public int hashCode() {
+      return failedQueryNodeDescription.hashCode();
     }
 
     @Override
@@ -190,7 +257,7 @@ public class GraphInspector {
     }
 
     @Override
-    boolean isRoot() {
+    public boolean isRoot() {
       fail("Invalid call to isRoot on " + getNodeDescription());
       throw new Unreachable();
     }
@@ -240,6 +307,16 @@ public class GraphInspector {
     }
 
     @Override
+    public boolean equals(Object obj) {
+      return obj instanceof QueryNodeImpl && graphNode.equals(((QueryNodeImpl) obj).graphNode);
+    }
+
+    @Override
+    public int hashCode() {
+      return graphNode.hashCode();
+    }
+
+    @Override
     public String getNodeDescription() {
       return graphNode.toString();
     }
@@ -250,7 +327,7 @@ public class GraphInspector {
     }
 
     @Override
-    boolean isRoot() {
+    public boolean isRoot() {
       return inspector.roots.contains(graphNode);
     }
 
@@ -387,6 +464,16 @@ public class GraphInspector {
       }
     }
     return getQueryNode(found, ruleContent);
+  }
+
+  public QueryNodeSet ruleInstances(String ruleContent) {
+    Set<QueryNode> set = new HashSet<>();
+    for (KeepRuleGraphNode rule : rules) {
+      if (rule.getContent().equals(ruleContent)) {
+        set.add(getQueryNode(rule, ruleContent));
+      }
+    }
+    return QueryNodeSet.from(set, ruleContent);
   }
 
   public QueryNode rule(Origin origin, int line, int column) {
