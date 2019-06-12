@@ -60,13 +60,15 @@ public class IdempotentFunctionCallCanonicalizer {
 
   private int numberOfLibraryCallCanonicalization = 0;
   private int numberOfProgramCallCanonicalization = 0;
-  private Object2IntMap<Long> histogramOfCanonicalizationCandidatesPerMethod = null;
+  private final Object2IntMap<Long> histogramOfCanonicalizationCandidatesPerMethod;
 
   public IdempotentFunctionCallCanonicalizer(AppView<?> appView) {
     this.appView = appView;
     this.factory = appView.dexItemFactory();
     if (Log.ENABLED) {
       histogramOfCanonicalizationCandidatesPerMethod = new Object2IntArrayMap<>();
+    } else {
+      histogramOfCanonicalizationCandidatesPerMethod = null;
     }
   }
 
@@ -179,10 +181,12 @@ public class IdempotentFunctionCallCanonicalizer {
     Map<InvokeMethod, Value> deadInvocations = Maps.newHashMap();
 
     FastSortedEntrySet<InvokeMethod, List<Value>> entries = returnValues.object2ObjectEntrySet();
-    if (Log.ENABLED) {
+    if (Log.ENABLED && Log.isLoggingEnabledFor(IdempotentFunctionCallCanonicalizer.class)) {
       Long numOfCandidates = entries.stream().filter(a -> a.getValue().size() > 1).count();
-      int count = histogramOfCanonicalizationCandidatesPerMethod.getOrDefault(numOfCandidates, 0);
-      histogramOfCanonicalizationCandidatesPerMethod.put(numOfCandidates, count + 1);
+      synchronized (histogramOfCanonicalizationCandidatesPerMethod) {
+        int count = histogramOfCanonicalizationCandidatesPerMethod.getOrDefault(numOfCandidates, 0);
+        histogramOfCanonicalizationCandidatesPerMethod.put(numOfCandidates, count + 1);
+      }
     }
     entries.stream()
         .filter(a -> a.getValue().size() > 1)

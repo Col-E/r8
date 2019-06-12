@@ -36,11 +36,13 @@ public class ConstantCanonicalizer {
   private int numberOfConstStringCanonicalization = 0;
   private int numberOfDexItemBasedConstStringCanonicalization = 0;
   private int numberOfConstClassCanonicalization = 0;
-  private Object2IntMap<Long> histogramOfCanonicalizationCandidatesPerMethod = null;
+  private final Object2IntMap<Long> histogramOfCanonicalizationCandidatesPerMethod;
 
   public ConstantCanonicalizer() {
     if (Log.ENABLED) {
       histogramOfCanonicalizationCandidatesPerMethod = new Object2IntArrayMap<>();
+    } else {
+      histogramOfCanonicalizationCandidatesPerMethod = null;
     }
   }
 
@@ -153,8 +155,10 @@ public class ConstantCanonicalizer {
     // as the {@code MAX_CANONICALIZED_CONSTANT} will be canonicalized into the entry block.
     if (Log.ENABLED && Log.isLoggingEnabledFor(ConstantCanonicalizer.class)) {
       Long numOfCandidates = entries.stream().filter(a -> a.getValue().size() > 1).count();
-      int count = histogramOfCanonicalizationCandidatesPerMethod.getOrDefault(numOfCandidates, 0);
-      histogramOfCanonicalizationCandidatesPerMethod.put(numOfCandidates, count + 1);
+      synchronized (histogramOfCanonicalizationCandidatesPerMethod) {
+        int count = histogramOfCanonicalizationCandidatesPerMethod.getOrDefault(numOfCandidates, 0);
+        histogramOfCanonicalizationCandidatesPerMethod.put(numOfCandidates, count + 1);
+      }
     }
     entries.stream()
         .filter(a -> a.getValue().size() > 1)
