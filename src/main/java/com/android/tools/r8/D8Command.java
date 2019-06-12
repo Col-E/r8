@@ -271,6 +271,8 @@ public final class D8Command extends BaseCompilerCommand {
 
     internal.enableDesugaring = getEnableDesugaring();
     internal.enableInheritanceClassInDexDistributor = isOptimizeMultidexForLinearAlloc();
+    // This is currently only used for testing.
+    assert internal.rewritePrefix.isEmpty();
     return internal;
   }
 }

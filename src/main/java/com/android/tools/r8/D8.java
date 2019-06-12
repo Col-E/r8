@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.naming.PrefixRewritingNamingLens;
 import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.CfgPrinter;
@@ -201,7 +202,9 @@ public final class D8 {
               marker == null ? null : ImmutableList.copyOf(markers),
               null,
               GraphLense.getIdentityLense(),
-              NamingLens.getIdentityLens(),
+              options.rewritePrefix.isEmpty()
+                  ? NamingLens.getIdentityLens()
+                  : new PrefixRewritingNamingLens(app),
               null)
           .write(executor);
       options.printWarnings();

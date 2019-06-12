@@ -37,6 +37,7 @@ import com.android.tools.r8.utils.IROrdering.IdentityIROrdering;
 import com.android.tools.r8.utils.IROrdering.NondeterministicIROrdering;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.nio.file.Path;
@@ -360,6 +361,8 @@ public class InternalOptions {
    * constraints.
    */
   public boolean enableInheritanceClassInDexDistributor = true;
+
+  public Map<String, String> rewritePrefix = ImmutableMap.of();
 
   public LineNumberOptimization lineNumberOptimization = LineNumberOptimization.ON;
 
