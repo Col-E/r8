@@ -135,7 +135,7 @@ public class InvokePolymorphic extends InvokeMethod {
   @Override
   public InlineAction computeInlining(
       InliningOracle decider,
-      DexType invocationContext,
+      DexMethod invocationContext,
       ClassInitializationAnalysis classInitializationAnalysis) {
     return decider.computeForInvokePolymorphic(this, invocationContext);
   }

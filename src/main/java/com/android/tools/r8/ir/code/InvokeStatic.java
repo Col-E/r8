@@ -119,7 +119,7 @@ public class InvokeStatic extends InvokeMethod {
   @Override
   public InlineAction computeInlining(
       InliningOracle decider,
-      DexType invocationContext,
+      DexMethod invocationContext,
       ClassInitializationAnalysis classInitializationAnalysis) {
     return decider.computeForInvokeStatic(this, invocationContext, classInitializationAnalysis);
   }

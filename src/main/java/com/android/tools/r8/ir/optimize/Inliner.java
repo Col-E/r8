@@ -789,7 +789,7 @@ public class Inliner {
         if (current.isInvokeMethod()) {
           InvokeMethod invoke = current.asInvokeMethod();
           InlineAction result =
-              invoke.computeInlining(oracle, context.method.holder, classInitializationAnalysis);
+              invoke.computeInlining(oracle, context.method, classInitializationAnalysis);
           if (result != null) {
             if (!(strategy.stillHasBudget() || result.reason.mustBeInlined())) {
               continue;

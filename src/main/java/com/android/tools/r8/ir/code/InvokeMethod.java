@@ -66,7 +66,7 @@ public abstract class InvokeMethod extends Invoke {
 
   public abstract InlineAction computeInlining(
       InliningOracle decider,
-      DexType invocationContext,
+      DexMethod invocationContext,
       ClassInitializationAnalysis classInitializationAnalysis);
 
   @Override

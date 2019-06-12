@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.ClassHierarchy;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -74,8 +75,9 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     }
   }
 
-  private DexEncodedMethod validateCandidate(InvokeMethod invoke, DexType invocationContext) {
-    DexEncodedMethod candidate = invoke.lookupSingleTarget(inliner.appView, invocationContext);
+  private DexEncodedMethod validateCandidate(InvokeMethod invoke, DexMethod invocationContext) {
+    DexEncodedMethod candidate =
+        invoke.lookupSingleTarget(inliner.appView, invocationContext.holder);
     if ((candidate == null)
         || (candidate.getCode() == null)
         || inliner.appView.definitionFor(candidate.method.holder).isNotProgramClass()) {
@@ -293,7 +295,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
 
   @Override
   public InlineAction computeForInvokeWithReceiver(
-      InvokeMethodWithReceiver invoke, DexType invocationContext) {
+      InvokeMethodWithReceiver invoke, DexMethod invocationContext) {
     DexEncodedMethod candidate = validateCandidate(invoke, invocationContext);
     if (candidate == null || inliner.isBlackListed(candidate.method)) {
       return null;
@@ -318,18 +320,44 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
 
     InlineAction action = new InlineAction(candidate, invoke, reason);
 
-    if (invoke.getReceiver().getTypeLattice().isDefinitelyNull()) {
-      action.setShouldReturnEmptyThrowingCode();
-    } else {
-      // When inlining an instance method call, we need to preserve the null check for the receiver.
-      // Therefore, if the receiver may be null and the candidate inlinee does not throw if the
-      // receiver is null before any other side effect, then we must synthesize a null check.
-      if (invoke.getReceiver().getTypeLattice().isNullable()
-          && !candidate.getOptimizationInfo().checksNullReceiverBeforeAnySideEffect()) {
-        if (!appView.options().enableInliningOfInvokesWithNullableReceivers) {
+    Value receiver = invoke.getReceiver();
+    if (receiver.getTypeLattice().isNullable()) {
+      InternalOptions options = appView.options();
+      if (receiver.getTypeLattice().isDefinitelyNull()) {
+        if (!options.enableInliningOfInvokesWithDefinitelyNullReceivers) {
           return null;
         }
-        action.setShouldSynthesizeNullCheckForReceiver();
+        if (Log.ENABLED && Log.isLoggingEnabledFor(Inliner.class)) {
+          Log.debug(
+              Inliner.class,
+              "Inlining method `%s` with definitely null receiver into `%s`",
+              invoke.getInvokedMethod().toSourceString(),
+              invocationContext.toSourceString());
+        }
+        action.setShouldReturnEmptyThrowingCode();
+      } else {
+        // When inlining an instance method call, we need to preserve the null check for the
+        // receiver. Therefore, if the receiver may be null and the candidate inlinee does not
+        // throw if the receiver is null before any other side effect, then we must synthesize a
+        // null check.
+        if (!candidate.getOptimizationInfo().checksNullReceiverBeforeAnySideEffect()) {
+          if (!options.enableInliningOfInvokesWithNullableReceivers) {
+            return null;
+          }
+          if (!options.nullableReceiverInliningFilter.isEmpty()
+              && !options.nullableReceiverInliningFilter.contains(
+                  invoke.getInvokedMethod().toSourceString())) {
+            return null;
+          }
+          if (Log.ENABLED && Log.isLoggingEnabledFor(Inliner.class)) {
+            Log.debug(
+                Inliner.class,
+                "Inlining method `%s` with nullable receiver into `%s`",
+                invoke.getInvokedMethod().toSourceString(),
+                invocationContext.toSourceString());
+          }
+          action.setShouldSynthesizeNullCheckForReceiver();
+        }
       }
     }
 
@@ -339,7 +367,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
   @Override
   public InlineAction computeForInvokeStatic(
       InvokeStatic invoke,
-      DexType invocationContext,
+      DexMethod invocationContext,
       ClassInitializationAnalysis classInitializationAnalysis) {
     DexEncodedMethod candidate = validateCandidate(invoke, invocationContext);
     if (candidate == null || inliner.isBlackListed(candidate.method)) {
@@ -376,7 +404,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
 
   @Override
   public InlineAction computeForInvokePolymorphic(
-      InvokePolymorphic invoke, DexType invocationContext) {
+      InvokePolymorphic invoke, DexMethod invocationContext) {
     // TODO: No inlining of invoke polymorphic for now.
     if (info != null) {
       info.exclude(invoke, "inlining through invoke signature polymorpic is not supported");

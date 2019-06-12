@@ -151,7 +151,7 @@ public class ConstantCanonicalizer {
         valuesDefinedByConstant.object2ObjectEntrySet();
     // Sort the most frequently used constant first and exclude constant use only one time, such
     // as the {@code MAX_CANONICALIZED_CONSTANT} will be canonicalized into the entry block.
-    if (Log.ENABLED) {
+    if (Log.ENABLED && Log.isLoggingEnabledFor(ConstantCanonicalizer.class)) {
       Long numOfCandidates = entries.stream().filter(a -> a.getValue().size() > 1).count();
       int count = histogramOfCanonicalizationCandidatesPerMethod.getOrDefault(numOfCandidates, 0);
       histogramOfCanonicalizationCandidatesPerMethod.put(numOfCandidates, count + 1);

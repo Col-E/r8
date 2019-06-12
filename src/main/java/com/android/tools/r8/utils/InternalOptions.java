@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
+import static com.google.common.base.Predicates.not;
+
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.DataResourceConsumer;
 import com.android.tools.r8.DataResourceProvider;
@@ -40,7 +42,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -159,7 +165,12 @@ public class InternalOptions {
   public boolean enableNonNullTracking = true;
   public boolean enableInlining =
       !Version.isDev() || System.getProperty("com.android.tools.r8.disableinlining") == null;
-  public boolean enableInliningOfInvokesWithNullableReceivers = true;
+  public boolean enableInliningOfInvokesWithDefinitelyNullReceivers =
+      System.getProperty("com.android.tools.r8.disableInliningOfInvokesWithDefinitelyNullReceivers")
+          == null;
+  public boolean enableInliningOfInvokesWithNullableReceivers =
+      System.getProperty("com.android.tools.r8.disableInliningOfInvokesWithNullableReceivers")
+          == null;
   public boolean enableClassInlining = true;
   public boolean enableClassStaticizer = true;
   public boolean enableInitializedClassesAnalysis = true;
@@ -283,6 +294,7 @@ public class InternalOptions {
   public Set<String> extensiveFieldMinifierLoggingFilter = getExtensiveFieldMinifierLoggingFilter();
   public Set<String> extensiveInterfaceMethodMinifierLoggingFilter =
       getExtensiveInterfaceMethodMinifierLoggingFilter();
+  public Set<String> nullableReceiverInliningFilter = getNullableReceiverInliningFilter();
 
   public List<String> methodsFilter = ImmutableList.of();
   public int minApiLevel = AndroidApiLevel.getDefault().getLevel();
@@ -402,6 +414,40 @@ public class InternalOptions {
       ImmutableSet.Builder<String> builder = ImmutableSet.builder();
       for (String method : property.split(";")) {
         builder.add(method);
+      }
+      return builder.build();
+    }
+    return ImmutableSet.of();
+  }
+
+  private static Set<String> getNullableReceiverInliningFilter() {
+    String property = System.getProperty("com.android.tools.r8.nullableReceiverInliningFilter");
+    if (property != null) {
+      // The property is allowed to be either (1) a path to a file where each line is a method
+      // signature, or (2) a semicolon separated list of method signatures.
+      Path path = null;
+      try {
+        Path tmp = Paths.get(property);
+        if (Files.exists(tmp)) {
+          path = tmp;
+        }
+      } catch (InvalidPathException | NullPointerException e) {
+        // Ignore, treat as a semicolon separated list of method signatures.
+      }
+      ImmutableSet.Builder<String> builder = ImmutableSet.builder();
+      if (path != null) {
+        try {
+          Files.readAllLines(path).stream()
+              .map(String::trim)
+              .filter(not(String::isEmpty))
+              .forEach(builder::add);
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
+      } else {
+        for (String method : property.split(";")) {
+          builder.add(method);
+        }
       }
       return builder.build();
     }

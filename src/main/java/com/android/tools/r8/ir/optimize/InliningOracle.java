@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.ir.optimize;
 
-import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.InvokePolymorphic;
@@ -19,13 +19,12 @@ public interface InliningOracle {
   void finish();
 
   InlineAction computeForInvokeWithReceiver(
-      InvokeMethodWithReceiver invoke, DexType invocationContext);
+      InvokeMethodWithReceiver invoke, DexMethod invocationContext);
 
   InlineAction computeForInvokeStatic(
       InvokeStatic invoke,
-      DexType invocationContext,
+      DexMethod invocationContext,
       ClassInitializationAnalysis classInitializationAnalysis);
 
-  InlineAction computeForInvokePolymorphic(
-      InvokePolymorphic invoke, DexType invocationContext);
+  InlineAction computeForInvokePolymorphic(InvokePolymorphic invoke, DexMethod invocationContext);
 }

@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize;
 
 import com.android.tools.r8.graph.ClassHierarchy;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -37,14 +38,14 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
 
   @Override
   public InlineAction computeForInvokeWithReceiver(
-      InvokeMethodWithReceiver invoke, DexType invocationContext) {
+      InvokeMethodWithReceiver invoke, DexMethod invocationContext) {
     return computeForInvoke(invoke);
   }
 
   @Override
   public InlineAction computeForInvokeStatic(
       InvokeStatic invoke,
-      DexType invocationContext,
+      DexMethod invocationContext,
       ClassInitializationAnalysis classInitializationAnalysis) {
     return computeForInvoke(invoke);
   }
@@ -65,7 +66,7 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
 
   @Override
   public InlineAction computeForInvokePolymorphic(
-      InvokePolymorphic invoke, DexType invocationContext) {
+      InvokePolymorphic invoke, DexMethod invocationContext) {
     return null; // Not yet supported.
   }
 

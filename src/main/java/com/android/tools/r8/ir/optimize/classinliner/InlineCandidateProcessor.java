@@ -836,7 +836,7 @@ final class InlineCandidateProcessor {
       // Check if the method is inline-able by standard inliner.
       InlineAction inlineAction =
           invoke.computeInlining(
-              defaultOracle.get(), method.method.holder, ClassInitializationAnalysis.trivial());
+              defaultOracle.get(), method.method, ClassInitializationAnalysis.trivial());
       if (inlineAction == null) {
         return false;
       }
