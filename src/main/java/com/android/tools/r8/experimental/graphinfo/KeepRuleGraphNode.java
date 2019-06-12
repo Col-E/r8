@@ -49,7 +49,7 @@ public final class KeepRuleGraphNode extends GraphNode {
     KeepRuleGraphNode other = (KeepRuleGraphNode) o;
     return origin.equals(other.getOrigin())
         && position.equals(other.getPosition())
-        && content.equals(other.getContent())
+        && Objects.equals(content, other.getContent())
         && preconditions.equals(other.getPreconditions());
   }
 
