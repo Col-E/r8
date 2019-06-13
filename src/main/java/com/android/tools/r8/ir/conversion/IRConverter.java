@@ -7,6 +7,7 @@ import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.Flavor.Exc
 import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.Flavor.IncludeAllResources;
 import static com.android.tools.r8.ir.optimize.CodeRewriter.checksNullBeforeSideEffect;
 
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfo.ResolutionResult;
@@ -75,6 +76,9 @@ import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.kotlin.KotlinInfo;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.IdentifierNameStringMarker;
+import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.position.MethodPosition;
+import com.android.tools.r8.position.Position;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.LibraryMethodOverrideAnalysis;
 import com.android.tools.r8.shaking.MainDexClasses;
@@ -860,6 +864,33 @@ public class IRConverter {
       Predicate<DexEncodedMethod> isProcessedConcurrently,
       CallSiteInformation callSiteInformation,
       BiConsumer<IRCode, DexEncodedMethod> outlineHandler) {
+    Origin origin = appView.appInfo().originFor(method.method.holder);
+    try {
+      rewriteCodeInternal(
+          method, feedback, isProcessedConcurrently, callSiteInformation, outlineHandler, origin);
+    } catch (CompilationError e) {
+      // If rewriting throws a compilation error, attach the origin and method if missing.
+      Origin errorOrigin = e.getOrigin();
+      Position errorPosition = e.getPosition();
+      if (errorOrigin == Origin.unknown() || errorPosition == Position.UNKNOWN) {
+        throw new CompilationError(
+            e.getMessage(),
+            e,
+            errorOrigin != Origin.unknown() ? errorOrigin : origin,
+            errorPosition != Position.UNKNOWN ? errorPosition : new MethodPosition(method.method));
+      }
+      throw e;
+    }
+  }
+
+  private void rewriteCodeInternal(
+      DexEncodedMethod method,
+      OptimizationFeedback feedback,
+      Predicate<DexEncodedMethod> isProcessedConcurrently,
+      CallSiteInformation callSiteInformation,
+      BiConsumer<IRCode, DexEncodedMethod> outlineHandler,
+      Origin origin) {
+
     if (options.verbose) {
       options.reporter.info(
           new StringDiagnostic("Processing: " + method.toSourceString()));
@@ -872,7 +903,7 @@ public class IRConverter {
       feedback.markProcessed(method, ConstraintWithTarget.NEVER);
       return;
     }
-    IRCode code = method.buildIR(appView, appView.appInfo().originFor(method.method.holder));
+    IRCode code = method.buildIR(appView, origin);
     if (code == null) {
       feedback.markProcessed(method, ConstraintWithTarget.NEVER);
       return;
