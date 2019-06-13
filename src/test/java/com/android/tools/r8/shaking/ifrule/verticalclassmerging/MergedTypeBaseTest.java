@@ -111,9 +111,5 @@ public abstract class MergedTypeBaseTest extends TestBase {
 
   public void configure(InternalOptions options) {
     options.enableVerticalClassMerging = enableVerticalClassMerging;
-
-    // To ensure that the handling of extends and implements rules work as intended,
-    // and that we don't end up keeping `Unused` only because one of the two implementations work.
-    options.testing.allowProguardRulesThatUseExtendsOrImplementsWrong = false;
   }
 }

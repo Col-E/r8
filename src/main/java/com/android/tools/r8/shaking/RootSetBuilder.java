@@ -714,33 +714,11 @@ public class RootSetBuilder {
   }
 
   private boolean satisfyInheritanceRule(DexClass clazz, ProguardConfigurationRule rule) {
-    boolean extendsExpected = satisfyExtendsRule(clazz, rule);
-    boolean implementsExpected = false;
-    if (!extendsExpected) {
-      implementsExpected = satisfyImplementsRule(clazz, rule);
-    }
-    if (extendsExpected || implementsExpected) {
-      // Warn if users got it wrong, but only warn once. Also, only warn if rule is actually
-      // specific (there is no correct way to write "keep class X that extends or implements from
-      // a class or interface in package Y").
-      if (rule.getInheritanceClassName().matchesSpecificType()) {
-        if (rule.getInheritanceIsExtends()) {
-          if (implementsExpected && rulesThatUseExtendsOrImplementsWrong.add(rule)) {
-            assert options.testing.allowProguardRulesThatUseExtendsOrImplementsWrong;
-            options.reporter.warning(
-                new StringDiagnostic(
-                    "The rule `" + rule + "` uses extends but actually matches implements."));
-          }
-        } else if (extendsExpected && rulesThatUseExtendsOrImplementsWrong.add(rule)) {
-          assert options.testing.allowProguardRulesThatUseExtendsOrImplementsWrong;
-          options.reporter.warning(
-              new StringDiagnostic(
-                  "The rule `" + rule + "` uses implements but actually matches extends."));
-        }
-      }
+    if (satisfyExtendsRule(clazz, rule)) {
       return true;
     }
-    return false;
+
+    return satisfyImplementsRule(clazz, rule);
   }
 
   private boolean satisfyExtendsRule(DexClass clazz, ProguardConfigurationRule rule) {

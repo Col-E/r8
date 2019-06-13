@@ -852,7 +852,6 @@ public class InternalOptions {
      */
     public boolean addCallEdgesForLibraryInvokes = false;
 
-    public boolean allowProguardRulesThatUseExtendsOrImplementsWrong = true;
     public boolean allowTypeErrors =
         !Version.isDev() || System.getProperty("com.android.tools.r8.allowTypeErrors") != null;
     public boolean alwaysUsePessimisticRegisterAllocation = false;
