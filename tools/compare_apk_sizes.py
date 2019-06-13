@@ -94,7 +94,7 @@ def generate_file_info(path, options):
         file_path = os.path.join(root, f)
         entry = FileInfo(file_path, path)
         if not options.use_code_size:
-          entry.set_size()
+          entry.set_size(False)
         file_info_map[file_path] = entry
   threads = []
   file_infos = file_info_map.values() if options.use_code_size else []
