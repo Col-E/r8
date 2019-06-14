@@ -155,8 +155,8 @@ sourceSets {
         java {
             srcDirs = ['src/test/examplesProto']
         }
-        compileClasspath = files(file("build/generated/test/proto").listFiles())
-        compileClasspath += files("third_party/protobuf-lite/libprotobuf_lite.jar")
+        compileClasspath = files("third_party/protobuf-lite/libprotobuf_lite.jar")
+        compileClasspath += fileTree(dir: "build/generated/test/proto", include: "*.jar")
         output.resourcesDir = 'build/classes/examplesProto'
     }
     jctfCommon {
@@ -1116,8 +1116,8 @@ task buildExamplesProto {
     task "compile_examples_proto"(type: JavaCompile) {
         source = fileTree(dir: examplesProtoDir, include: "**/*.java")
         destinationDir = file("build/test/examplesProto/classes")
-        classpath = files(file("build/generated/test/proto").listFiles())
-        classpath += files("third_party/protobuf-lite/libprotobuf_lite.jar")
+        classpath = files("third_party/protobuf-lite/libprotobuf_lite.jar")
+        classpath += fileTree(dir: "build/generated/test/proto", include: "*.jar")
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
