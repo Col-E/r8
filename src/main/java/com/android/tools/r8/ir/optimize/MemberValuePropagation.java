@@ -344,6 +344,14 @@ public class MemberValuePropagation {
       return;
     }
 
+    // Check if there is a Proguard configuration rule that specifies the value of the field.
+    ProguardMemberRuleLookup lookup = lookupMemberRule(target);
+    if (lookup != null
+        && tryConstantReplacementFromProguard(
+            code, affectedValues, blocks, iterator, current, lookup)) {
+      return;
+    }
+
     // Check if a this value is known const.
     if (!appView.appInfo().isPinned(target.field)) {
       ConstInstruction replacement = target.valueAsConstInstruction(code, current.dest(), appView);
@@ -358,12 +366,6 @@ public class MemberValuePropagation {
       }
     }
 
-    ProguardMemberRuleLookup lookup = lookupMemberRule(target);
-    if (lookup != null
-        && tryConstantReplacementFromProguard(
-            code, affectedValues, blocks, iterator, current, lookup)) {
-      return;
-    }
     if (current.dest() != null) {
       // In case the class holder of this static field satisfying following criteria:
       //   -- cannot trigger other static initializer except for its own

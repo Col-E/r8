@@ -152,7 +152,6 @@ public class IdentifierNameStringMarker {
             iterator.next();
           }
           if (instruction.isStaticPut()) {
-            StaticPut staticPut = instruction.asStaticPut();
             iterator.replaceCurrentInstruction(new StaticPut(newIn, field));
           } else {
             assert instruction.isInstancePut();
