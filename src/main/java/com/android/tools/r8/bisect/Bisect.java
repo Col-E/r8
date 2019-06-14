@@ -16,11 +16,11 @@ import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.io.CharStreams;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -91,12 +91,9 @@ public class Bisect {
     // Setup output directory (or write to a temp dir).
     Path output;
     if (options.output != null) {
-      output = options.output.toPath();
+      output = options.output;
     } else {
-      File temp = File.createTempFile("bisect", "", new File("/tmp"));
-      temp.delete();
-      temp.mkdir();
-      output = temp.toPath();
+      output = Files.createTempDirectory("bisect");
     }
 
     ExecutorService executor = Executors.newWorkStealingPool();
@@ -104,9 +101,8 @@ public class Bisect {
       DexApplication goodApp = readApp(options.goodBuild, executor);
       DexApplication badApp = readApp(options.badBuild, executor);
 
-      File stateFile = options.stateFile != null
-          ? options.stateFile
-          : output.resolve("bisect.state").toFile();
+      Path stateFile =
+          options.stateFile != null ? options.stateFile : output.resolve("bisect.state");
 
       // Setup initial (or saved) bisection state.
       BisectState state = new BisectState(goodApp, badApp, stateFile);
@@ -168,9 +164,9 @@ public class Bisect {
     throw new CompilationError("Failed to run command " + args);
   }
 
-  private DexApplication readApp(File apk, ExecutorService executor)
+  private DexApplication readApp(Path apk, ExecutorService executor)
       throws IOException, ExecutionException {
-    AndroidApp app = AndroidApp.builder().addProgramFiles(apk.toPath()).build();
+    AndroidApp app = AndroidApp.builder().addProgramFiles(apk).build();
     return new ApplicationReader(app, new InternalOptions(), timing).read(executor);
   }
 

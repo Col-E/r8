@@ -4,9 +4,11 @@
 package com.android.tools.r8.bisect;
 
 import com.android.tools.r8.errors.CompilationError;
-import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -21,11 +23,11 @@ public class BisectOptions {
   public static final String OUTPUT_FLAG = "output";
   public static final String COMMAND_FLAG = "command";
 
-  public final File goodBuild;
-  public final File badBuild;
-  public final File stateFile;
-  public final File command;
-  public final File output;
+  public final Path goodBuild;
+  public final Path badBuild;
+  public final Path stateFile;
+  public final Path command;
+  public final Path output;
   public final Result result;
 
   public enum Result { UNKNOWN, GOOD, BAD }
@@ -76,8 +78,8 @@ public class BisectOptions {
     }
   }
 
-  private BisectOptions(File goodBuild, File badBuild, File stateFile, File command, File output,
-      Result result) {
+  private BisectOptions(
+      Path goodBuild, Path badBuild, Path stateFile, Path command, Path output, Result result) {
     this.goodBuild = goodBuild;
     this.badBuild = badBuild;
     this.stateFile = stateFile;
@@ -93,17 +95,17 @@ public class BisectOptions {
       printHelp(System.out);
       return null;
     }
-    File goodBuild = exists(require(options, parser.goodBuild, BUILD_GOOD_FLAG), BUILD_GOOD_FLAG);
-    File badBuild = exists(require(options, parser.badBuild, BUILD_BAD_FLAG), BUILD_BAD_FLAG);
-    File stateFile = null;
+    Path goodBuild = exists(require(options, parser.goodBuild, BUILD_GOOD_FLAG), BUILD_GOOD_FLAG);
+    Path badBuild = exists(require(options, parser.badBuild, BUILD_BAD_FLAG), BUILD_BAD_FLAG);
+    Path stateFile = null;
     if (options.valueOf(parser.stateFile) != null) {
       stateFile = exists(options.valueOf(parser.stateFile), STATE_FLAG);
     }
-    File command = null;
+    Path command = null;
     if (options.valueOf(parser.command) != null) {
       command = exists(options.valueOf(parser.command), COMMAND_FLAG);
     }
-    File output = null;
+    Path output = null;
     if (options.valueOf(parser.output) != null) {
       output = directoryExists(options.valueOf(parser.output), OUTPUT_FLAG);
     }
@@ -129,17 +131,17 @@ public class BisectOptions {
     throw new CompilationError("Missing required option: --" + flag);
   }
 
-  private static File exists(String path, String flag) {
-    File file = new File(path);
-    if (file.exists()) {
+  private static Path exists(String path, String flag) {
+    Path file = Paths.get(path);
+    if (Files.exists(file)) {
       return file;
     }
     throw new CompilationError("File --" + flag + ": " + file + " does not exist");
   }
 
-  private static File directoryExists(String path, String flag) {
-    File file = new File(path);
-    if (file.exists() && file.isDirectory()) {
+  private static Path directoryExists(String path, String flag) {
+    Path file = Paths.get(path);
+    if (Files.exists(file) && Files.isDirectory(file)) {
       return file;
     }
     throw new CompilationError("File --" + flag + ": " + file + " is not a valid directory");

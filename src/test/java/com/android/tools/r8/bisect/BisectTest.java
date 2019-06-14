@@ -79,7 +79,7 @@ public class BisectTest {
         Timing timing = new Timing("bisect-test");
         DexApplication appGood = new ApplicationReader(goodInput, options, timing).read();
         DexApplication appBad = new ApplicationReader(badInput, options, timing).read();
-        BisectState state = new BisectState(appGood, appBad, stateFile.toFile());
+        BisectState state = new BisectState(appGood, appBad, stateFile);
         state.read();
         if (lastResult != Result.UNKNOWN) {
           state.setPreviousResult(lastResult);
