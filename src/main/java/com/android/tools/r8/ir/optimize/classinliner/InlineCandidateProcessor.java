@@ -497,7 +497,7 @@ final class InlineCandidateProcessor {
         fieldValueHelper.replaceValue(value, newValue);
       }
       assert value.numberOfAllUsers() == 0;
-      new TypeAnalysis(appView, code.method).widening(code.method, code);
+      new TypeAnalysis(appView).widening(code.method, code.method, code);
     }
     removeInstruction(fieldRead);
   }

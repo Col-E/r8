@@ -407,7 +407,7 @@ public class LensCodeRewriter {
       code.removeUnreachableBlocks();
     }
     if (!newSSAValues.isEmpty()) {
-      new TypeAnalysis(appView, method).widening(newSSAValues);
+      new TypeAnalysis(appView).widening(newSSAValues);
     }
     assert code.isConsistentSSA();
     assert code.hasNoVerticallyMergedClasses(appView);

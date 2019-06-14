@@ -53,8 +53,8 @@ public class NullabilityTest extends NonNullTrackerTestBase {
     DexEncodedMethod foo = codeInspector.clazz(mainClass.getName()).method(signature).getMethod();
     IRCode irCode = fooSubject.buildIR();
     new NonNullTracker(appView).addNonNull(irCode);
-    TypeAnalysis analysis = new TypeAnalysis(appView, foo);
-    analysis.widening(foo, irCode);
+    TypeAnalysis analysis = new TypeAnalysis(appView);
+    analysis.widening(foo, foo, irCode);
     inspector.accept(appView, irCode);
     verifyLastInvoke(irCode, npeCaught);
   }

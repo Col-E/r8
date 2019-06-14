@@ -36,18 +36,15 @@ public class TypeAnalysis {
   private Mode mode = Mode.UNSET;
 
   private final AppView<?> appView;
-  private final DexEncodedMethod context;
 
   private final Deque<Value> worklist = new ArrayDeque<>();
 
-  public TypeAnalysis(AppView<?> appView, DexEncodedMethod encodedMethod) {
-    this(appView, encodedMethod, false);
+  public TypeAnalysis(AppView<?> appView) {
+    this(appView, false);
   }
 
-  public TypeAnalysis(
-      AppView<?> appView, DexEncodedMethod encodedMethod, boolean mayHaveImpreciseTypes) {
+  public TypeAnalysis(AppView<?> appView, boolean mayHaveImpreciseTypes) {
     this.appView = appView;
-    this.context = encodedMethod;
     this.mayHaveImpreciseTypes = mayHaveImpreciseTypes;
   }
 
@@ -57,10 +54,10 @@ public class TypeAnalysis {
     }
   }
 
-  public void widening(DexEncodedMethod encodedMethod, IRCode code) {
+  public void widening(DexEncodedMethod context, DexEncodedMethod encodedMethod, IRCode code) {
     mode = Mode.WIDENING;
     assert worklist.isEmpty();
-    code.topologicallySortedBlocks().forEach(b -> analyzeBasicBlock(encodedMethod, b));
+    code.topologicallySortedBlocks().forEach(b -> analyzeBasicBlock(context, encodedMethod, b));
     analyze();
   }
 
@@ -89,7 +86,8 @@ public class TypeAnalysis {
     }
   }
 
-  public void analyzeBasicBlock(DexEncodedMethod encodedMethod, BasicBlock block) {
+  public void analyzeBasicBlock(
+      DexEncodedMethod context, DexEncodedMethod encodedMethod, BasicBlock block) {
     int argumentsSeen = encodedMethod.accessFlags.isStatic() ? 0 : -1;
     for (Instruction instruction : block.getInstructions()) {
       Value outValue = instruction.outValue();

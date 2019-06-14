@@ -613,7 +613,7 @@ public class IRBuilder {
       assert source instanceof DexSourceCode;
       new TypeConstraintResolver(appView, this).resolve(impreciseInstructions, ir, method, context);
     } else {
-      new TypeAnalysis(appView, context).widening(method, ir);
+      new TypeAnalysis(appView).widening(context, method, ir);
     }
 
     assert ir.isConsistentSSA();

@@ -142,8 +142,8 @@ public class TypeAnalysisTest extends SmaliTestBase {
                 new MethodSignature("subtractConstants8bitRegisters", "int", ImmutableList.of()));
     DexEncodedMethod subtract = subtractSubject.getMethod();
     IRCode irCode = subtractSubject.buildIR();
-    TypeAnalysis analysis = new TypeAnalysis(appView, subtract);
-    analysis.widening(subtract, irCode);
+    TypeAnalysis analysis = new TypeAnalysis(appView);
+    analysis.widening(subtract, subtract, irCode);
     forEachOutValue(irCode, (v, l) -> {
       // v9 <- 9 (INT_OR_FLOAT), which is never used later, hence imprecise.
       assertEither(l, SINGLE, INT, NULL);
@@ -158,8 +158,8 @@ public class TypeAnalysisTest extends SmaliTestBase {
             .method(new MethodSignature("fibonacci", "int", ImmutableList.of("int")));
     DexEncodedMethod fib = fibSubject.getMethod();
     IRCode irCode = fibSubject.buildIR();
-    TypeAnalysis analysis = new TypeAnalysis(appView, fib);
-    analysis.widening(fib, irCode);
+    TypeAnalysis analysis = new TypeAnalysis(appView);
+    analysis.widening(fib, fib, irCode);
     forEachOutValue(irCode, (v, l) -> assertEither(l, INT, NULL));
   }
 
@@ -169,8 +169,8 @@ public class TypeAnalysisTest extends SmaliTestBase {
         inspector.clazz("Test").method(new MethodSignature("test1", "int[]", ImmutableList.of()));
     DexEncodedMethod test1 = test1Subject.getMethod();
     IRCode irCode = test1Subject.buildIR();
-    TypeAnalysis analysis = new TypeAnalysis(appView, test1);
-    analysis.widening(test1, irCode);
+    TypeAnalysis analysis = new TypeAnalysis(appView);
+    analysis.widening(test1, test1, irCode);
     Value array = null;
     InstructionIterator iterator = irCode.instructionIterator();
     while (iterator.hasNext()) {
@@ -199,8 +199,8 @@ public class TypeAnalysisTest extends SmaliTestBase {
         inspector.clazz("Test").method(new MethodSignature("test4", "int[]", ImmutableList.of()));
     DexEncodedMethod test4 = test4Subject.getMethod();
     IRCode irCode = test4Subject.buildIR();
-    TypeAnalysis analysis = new TypeAnalysis(appView, test4);
-    analysis.widening(test4, irCode);
+    TypeAnalysis analysis = new TypeAnalysis(appView);
+    analysis.widening(test4, test4, irCode);
     Value array = null;
     InstructionIterator iterator = irCode.instructionIterator();
     while (iterator.hasNext()) {
@@ -229,8 +229,8 @@ public class TypeAnalysisTest extends SmaliTestBase {
         inspector.clazz("Test").method(new MethodSignature("loop2", "void", ImmutableList.of()));
     DexEncodedMethod loop2 = loop2Subject.getMethod();
     IRCode irCode = loop2Subject.buildIR();
-    TypeAnalysis analysis = new TypeAnalysis(appView, loop2);
-    analysis.widening(loop2, irCode);
+    TypeAnalysis analysis = new TypeAnalysis(appView);
+    analysis.widening(loop2, loop2, irCode);
     forEachOutValue(irCode, (v, l) -> {
       if (l.isClassType()) {
         ClassTypeLatticeElement lattice = l.asClassTypeLatticeElement();
@@ -249,8 +249,8 @@ public class TypeAnalysisTest extends SmaliTestBase {
             .method(new MethodSignature("test2_throw", "int", ImmutableList.of()));
     DexEncodedMethod test2 = test2Subject.getMethod();
     IRCode irCode = test2Subject.buildIR();
-    TypeAnalysis analysis = new TypeAnalysis(appView, test2);
-    analysis.widening(test2, irCode);
+    TypeAnalysis analysis = new TypeAnalysis(appView);
+    analysis.widening(test2, test2, irCode);
     forEachOutValue(irCode, (v, l) -> {
       if (l.isClassType()) {
         ClassTypeLatticeElement lattice = l.asClassTypeLatticeElement();
@@ -276,8 +276,8 @@ public class TypeAnalysisTest extends SmaliTestBase {
             CheckCast.class, TypeLatticeElement.fromDexType(test, maybeNull(), appView),
             NewInstance.class, TypeLatticeElement.fromDexType(test, definitelyNotNull(), appView));
     IRCode irCode = methodSubject.buildIR();
-    TypeAnalysis analysis = new TypeAnalysis(appView, method);
-    analysis.widening(method, irCode);
+    TypeAnalysis analysis = new TypeAnalysis(appView);
+    analysis.widening(method, method, irCode);
     forEachOutValue(irCode, (v, l) -> {
       verifyTypeEnvironment(expectedLattices, v, l);
       // There are double-to-int, long-to-int, and int-to-long conversions in this example.
@@ -306,8 +306,8 @@ public class TypeAnalysisTest extends SmaliTestBase {
             InstanceOf.class, INT,
             StaticGet.class, TypeLatticeElement.fromDexType(test, maybeNull(), appView));
     IRCode irCode = methodSubject.buildIR();
-    TypeAnalysis analysis = new TypeAnalysis(appView, method);
-    analysis.widening(method, irCode);
+    TypeAnalysis analysis = new TypeAnalysis(appView);
+    analysis.widening(method, method, irCode);
     forEachOutValue(irCode, (v, l) -> verifyTypeEnvironment(expectedLattices, v, l));
   }
 

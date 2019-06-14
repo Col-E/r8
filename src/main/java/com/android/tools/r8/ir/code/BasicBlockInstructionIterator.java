@@ -506,7 +506,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
     assert entryBlock.getInstructions().stream().noneMatch(Instruction::isArgument);
 
     // Actual arguments are flown to the inlinee.
-    new TypeAnalysis(appView, inlinee.method).narrowing(argumentUsers);
+    new TypeAnalysis(appView).narrowing(argumentUsers);
 
     // The inline entry is the first block now the argument instructions are gone.
     BasicBlock inlineEntry = inlinee.entryBlock();
@@ -525,7 +525,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
         Return returnInstruction = inlineeIterator.peekNext().asReturn();
         invoke.outValue().replaceUsers(returnInstruction.returnValue());
         // The return type is flown to the original context.
-        new TypeAnalysis(appView, code.method)
+        new TypeAnalysis(appView)
             .narrowing(
                 Iterables.concat(
                     ImmutableList.of(returnInstruction.returnValue()), affectedValues));
@@ -636,7 +636,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
                 null,
                 RegisterReadType.NORMAL);
         phi.addOperands(operands);
-        new TypeAnalysis(appView, code.method).widening(ImmutableSet.of(phi));
+        new TypeAnalysis(appView).widening(ImmutableSet.of(phi));
         value = phi;
       }
       newReturn = new Return(value);

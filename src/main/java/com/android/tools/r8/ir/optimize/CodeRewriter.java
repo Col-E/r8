@@ -219,7 +219,7 @@ public class CodeRewriter {
     }
 
     if (!valuesThatRequireWidening.isEmpty()) {
-      new TypeAnalysis(appView, code.method).widening(valuesThatRequireWidening);
+      new TypeAnalysis(appView).widening(valuesThatRequireWidening);
     }
 
     assert Streams.stream(code.instructions()).noneMatch(Instruction::isAssume);
@@ -1814,7 +1814,7 @@ public class CodeRewriter {
       code.removeAllTrivialPhis();
     }
     if (!needToWidenValues.isEmpty() || !needToNarrowValues.isEmpty()) {
-      TypeAnalysis analysis = new TypeAnalysis(appView, code.method);
+      TypeAnalysis analysis = new TypeAnalysis(appView);
       // If out value of invoke < argument (e.g., losing non-null info), widen users type.
       if (!needToWidenValues.isEmpty()) {
         analysis.widening(needToWidenValues);
@@ -2008,7 +2008,7 @@ public class CodeRewriter {
     // CheckCast at line 4 unless we update v7 with the most precise information by narrowing the
     // affected values of v5. We therefore have to run the type analysis after each CheckCast
     // removal.
-    TypeAnalysis typeAnalysis = new TypeAnalysis(appView, code.method);
+    TypeAnalysis typeAnalysis = new TypeAnalysis(appView);
     Set<Value> affectedValues = Sets.newIdentityHashSet();
     InstructionIterator it = code.instructionIterator();
     boolean needToRemoveTrivialPhis = false;
@@ -3135,7 +3135,7 @@ public class CodeRewriter {
     }
     Set<Value> affectedValues = code.removeUnreachableBlocks();
     if (!affectedValues.isEmpty()) {
-      new TypeAnalysis(appView, code.method).narrowing(affectedValues);
+      new TypeAnalysis(appView).narrowing(affectedValues);
     }
     assert code.isConsistentSSA();
   }

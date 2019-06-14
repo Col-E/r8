@@ -486,7 +486,7 @@ public class MemberValuePropagation {
       }
     }
     if (!affectedValues.isEmpty()) {
-      new TypeAnalysis(appView, code.method).narrowing(affectedValues);
+      new TypeAnalysis(appView).narrowing(affectedValues);
     }
     assert code.isConsistentSSA();
   }

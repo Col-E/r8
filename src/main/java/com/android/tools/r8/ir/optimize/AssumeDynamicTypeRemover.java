@@ -103,7 +103,7 @@ public class AssumeDynamicTypeRemover {
 
   public void finish() {
     if (!affectedValues.isEmpty()) {
-      new TypeAnalysis(appView, code.method).narrowing(affectedValues);
+      new TypeAnalysis(appView).narrowing(affectedValues);
     }
   }
 }
