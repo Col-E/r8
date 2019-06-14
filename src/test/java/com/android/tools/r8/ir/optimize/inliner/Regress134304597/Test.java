@@ -8,7 +8,7 @@ class Test {
   private int j = 42;
 
   Test() {
-    i = System.currentTimeMillis() == 42 ? 0 : 42;
+    i = System.currentTimeMillis() == 42 ? 0 : 1;
     j = i + 3;
   }
 

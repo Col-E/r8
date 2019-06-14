@@ -10,6 +10,7 @@ import com.android.tools.r8.code.OrIntLit16;
 import com.android.tools.r8.code.OrIntLit8;
 import com.android.tools.r8.code.OrLong;
 import com.android.tools.r8.code.OrLong2Addr;
+import java.util.Set;
 
 public class Or extends LogicalBinop {
 
@@ -85,5 +86,10 @@ public class Or extends LogicalBinop {
   @Override
   CfLogicalBinop.Opcode getCfOpcode() {
     return CfLogicalBinop.Opcode.Or;
+  }
+
+  @Override
+  public boolean outTypeKnownToBeBoolean(Set<Phi> seen) {
+    return leftValue().knownToBeBoolean(seen) && rightValue().knownToBeBoolean(seen);
   }
 }

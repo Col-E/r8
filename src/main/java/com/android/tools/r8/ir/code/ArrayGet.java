@@ -28,6 +28,7 @@ import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import java.util.Arrays;
+import java.util.Set;
 
 public class ArrayGet extends Instruction implements ImpreciseMemberTypeInstruction {
 
@@ -249,6 +250,13 @@ public class ArrayGet extends Instruction implements ImpreciseMemberTypeInstruct
   @Override
   public Value getNonNullInput() {
     return array();
+  }
+
+  @Override
+  public boolean outTypeKnownToBeBoolean(Set<Phi> seen) {
+    return array().getTypeLattice().isArrayType()
+        && array().getTypeLattice().asArrayTypeLatticeElement().getArrayMemberTypeAsMemberType()
+        == TypeLatticeElement.BOOLEAN;
   }
 
   @Override

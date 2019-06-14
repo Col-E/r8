@@ -174,12 +174,17 @@ public class DexSourceCode implements SourceCode {
         nextRemovedArgument =
             removedArgumentIterator.hasNext() ? removedArgumentIterator.next() : null;
       } else {
+        DexType dexType = method.method.proto.parameters.values[usedArgumentIndex++];
         type =
             TypeLatticeElement.fromDexType(
-                method.method.proto.parameters.values[usedArgumentIndex++],
+                dexType,
                 Nullability.maybeNull(),
                 builder.appView);
-        builder.addNonThisArgument(register, type);
+        if (dexType.isBooleanType()) {
+          builder.addBooleanNonThisArgument(register);
+        } else {
+          builder.addNonThisArgument(register, type);
+        }
       }
       register += type.requiredRegisters();
     }

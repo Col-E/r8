@@ -1314,4 +1314,8 @@ public abstract class Instruction implements InstructionOrPhi {
     assert !instructionTypeCanThrow() || getPosition().isSome() || getPosition().isSyntheticNone();
     return true;
   }
+
+  public boolean outTypeKnownToBeBoolean(Set<Phi> seen) {
+    return false;
+  }
 }

@@ -29,21 +29,12 @@ public class TestRunner extends TestBase {
 
   @Test
   public void TestInlineIntForBoolean() throws Exception {
-
-    R8TestRunResult result = testForR8(parameters.getBackend())
-          .addProgramClasses(Main.class)
-          .addProgramClassFileData(TestDump.dump())
-          .setMinApi(parameters.getApiLevel())
-          .addKeepMainRule(Main.class)
-          .run(parameters.getRuntime(), Main.class);
-
-
-    if (parameters.isDexRuntime() &&
-      parameters.getRuntime().asDex().getMinApiLevel().compareTo(AndroidApiLevel.L) > 0){
-      // TODO(134304597): Remove when fixed
-      result.assertFailure();
-    } else {
-      result.assertSuccessWithOutputLines("true");
-    }
+    testForR8(parameters.getBackend())
+        .addProgramClasses(Main.class)
+        .addProgramClassFileData(TestDump.dump())
+        .setMinApi(parameters.getApiLevel())
+        .addKeepMainRule(Main.class)
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines("true");
   }
 }

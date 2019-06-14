@@ -1458,9 +1458,13 @@ public class Outliner {
     public void buildPrelude(IRBuilder builder) {
       // Fill in the Argument instructions in the argument block.
       for (int i = 0; i < outline.argumentTypes.size(); i++) {
-        TypeLatticeElement typeLattice =
-            TypeLatticeElement.fromDexType(outline.argumentTypes.get(i), maybeNull(), appView);
-        builder.addNonThisArgument(i, typeLattice);
+        if (outline.argumentTypes.get(i).isBooleanType()) {
+          builder.addBooleanNonThisArgument(i);
+        } else {
+          TypeLatticeElement typeLattice =
+              TypeLatticeElement.fromDexType(outline.argumentTypes.get(i), maybeNull(), appView);
+          builder.addNonThisArgument(i, typeLattice);
+        }
       }
       builder.flushArgumentInstructions();
     }

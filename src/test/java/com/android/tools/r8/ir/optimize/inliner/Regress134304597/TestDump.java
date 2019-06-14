@@ -74,7 +74,7 @@ public class TestDump implements Opcodes {
       methodVisitor.visitFrame(Opcodes.F_FULL, 1,
           new Object[]{"com/android/tools/r8/ir/optimize/inliner/Regress134304597/Test"}, 1,
           new Object[]{"com/android/tools/r8/ir/optimize/inliner/Regress134304597/Test"});
-      methodVisitor.visitIntInsn(BIPUSH, 42);
+      methodVisitor.visitIntInsn(BIPUSH, 1);
       methodVisitor.visitLabel(label5);
       methodVisitor.visitFrame(Opcodes.F_FULL, 1,
           new Object[]{"com/android/tools/r8/ir/optimize/inliner/Regress134304597/Test"}, 2,

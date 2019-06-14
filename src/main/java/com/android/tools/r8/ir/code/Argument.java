@@ -14,14 +14,18 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
+import java.util.Set;
 
 /**
  * Argument pseudo instruction used to introduce values for all arguments for SSA conversion.
  */
 public class Argument extends Instruction {
 
-  public Argument(Value outValue) {
+  private final boolean knownToBeBoolean;
+
+  public Argument(Value outValue, boolean knownToBeBoolean) {
     super(outValue);
+    this.knownToBeBoolean = knownToBeBoolean;
     outValue.markAsArgument();
   }
 
@@ -98,5 +102,10 @@ public class Argument extends Instruction {
   @Override
   public boolean hasInvariantOutType() {
     return true;
+  }
+
+  @Override
+  public boolean outTypeKnownToBeBoolean(Set<Phi> seen) {
+    return knownToBeBoolean;
   }
 }

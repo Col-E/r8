@@ -11,6 +11,7 @@ import com.android.tools.r8.code.AndIntLit16;
 import com.android.tools.r8.code.AndIntLit8;
 import com.android.tools.r8.code.AndLong;
 import com.android.tools.r8.code.AndLong2Addr;
+import java.util.Set;
 
 public class And extends LogicalBinop {
 
@@ -86,5 +87,10 @@ public class And extends LogicalBinop {
   @Override
   CfLogicalBinop.Opcode getCfOpcode() {
     return CfLogicalBinop.Opcode.And;
+  }
+
+  @Override
+  public boolean outTypeKnownToBeBoolean(Set<Phi> seen) {
+    return leftValue().knownToBeBoolean(seen) && rightValue().knownToBeBoolean(seen);
   }
 }

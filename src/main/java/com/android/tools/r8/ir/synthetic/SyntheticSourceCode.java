@@ -191,7 +191,7 @@ public abstract class SyntheticSourceCode implements SourceCode {
               TypeLatticeElement.fromDexType(
                   receiver, Nullability.definitelyNotNull(), builder.appView),
               NO_THROW);
-      builder.add(new Argument(receiverValue));
+      builder.add(new Argument(receiverValue, false));
       receiverValue.markAsThis();
     }
 
@@ -203,7 +203,7 @@ public abstract class SyntheticSourceCode implements SourceCode {
           TypeLatticeElement.fromDexType(parameters[i], Nullability.maybeNull(), builder.appView);
       Value paramValue = builder.writeRegister(paramRegisters[i], typeLattice, NO_THROW);
       paramValues[i] = paramValue;
-      builder.add(new Argument(paramValue));
+      builder.add(new Argument(paramValue, parameters[i].isBooleanType()));
     }
   }
 

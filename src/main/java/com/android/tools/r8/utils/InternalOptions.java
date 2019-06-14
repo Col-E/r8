@@ -1302,7 +1302,7 @@ public class InternalOptions {
   //
   // See b/131349148
   public boolean canHaveDalvikCatchHandlerVerificationBug() {
-    return minApiLevel < AndroidApiLevel.L.getLevel();
+    return isGeneratingClassFiles() || minApiLevel < AndroidApiLevel.L.getLevel();
   }
 
   // Having an invoke instruction that targets an abstract method on a non-abstract class will fail
@@ -1311,5 +1311,15 @@ public class InternalOptions {
   // See b/132953944.
   public boolean canHaveDalvikAbstractMethodOnNonAbstractClassVerificationBug() {
     return minApiLevel < AndroidApiLevel.L.getLevel();
+  }
+
+  // On dalvik we see issues if we inline the following method into the call site:
+  // public int value;
+  // public boolean getValue() {
+  //   return value;
+  // }
+  // See b/134304597
+  public boolean canHaveDalvikIntUsedAsBooleanBug() {
+    return isGeneratingClassFiles() || minApiLevel < AndroidApiLevel.L.getLevel();
   }
 }

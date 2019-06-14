@@ -19,6 +19,7 @@ import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import java.util.List;
+import java.util.Set;
 
 public abstract class Invoke extends Instruction {
 
@@ -268,5 +269,10 @@ public abstract class Invoke extends Instruction {
       throw new Unreachable("void methods have no type.");
     }
     return TypeLatticeElement.fromDexType(returnType, Nullability.maybeNull(), appView);
+  }
+
+  @Override
+  public boolean outTypeKnownToBeBoolean(Set<Phi> seen) {
+    return getReturnType().isBooleanType();
   }
 }

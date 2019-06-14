@@ -209,7 +209,6 @@ public class Value {
   private int needsRegister = -1;
   private boolean isThis = false;
   private boolean isArgument = false;
-  private boolean knownToBeBoolean = false;
   private LongInterval valueRange;
   private DebugData debugData;
   protected TypeLatticeElement typeLattice;
@@ -815,22 +814,35 @@ public class Value {
     return isArgument;
   }
 
-  public void setKnownToBeBoolean(boolean knownToBeBoolean) {
-    this.knownToBeBoolean = knownToBeBoolean;
-  }
 
   public boolean knownToBeBoolean() {
-    if (knownToBeBoolean) {
+    return knownToBeBoolean(null);
+  }
+
+  public boolean knownToBeBoolean(Set<Phi> seen) {
+    if (!getTypeLattice().isInt()) {
+      return false;
+    }
+
+    if (isPhi()) {
+      Phi self = this.asPhi();
+      if (seen == null) {
+        seen = new HashSet<>();
+      }
+      if (seen.contains(self)) {
+        return true;
+      }
+      seen.add(self);
+      for (Value operand : self.getOperands()) {
+        if (!operand.knownToBeBoolean(seen)) {
+          operand.knownToBeBoolean(seen);
+          return false;
+        }
+      }
       return true;
     }
-    if (getTypeLattice().isInt()) {
-      Value aliasedValue = getAliasedValue();
-      if (!aliasedValue.isPhi() && aliasedValue.definition.isConstNumber()) {
-        ConstNumber definition = aliasedValue.definition.asConstNumber();
-        return definition.isZero() || definition.getRawValue() == 1;
-      }
-    }
-    return false;
+    assert definition != null;
+    return definition.outTypeKnownToBeBoolean(seen);
   }
 
   public void markAsThis() {

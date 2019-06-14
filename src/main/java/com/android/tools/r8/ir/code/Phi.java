@@ -325,41 +325,6 @@ public class Phi extends Value implements InstructionOrPhi {
     definitionUsers = null;
   }
 
-  /**
-   * Determine if the only possible values for the phi are the integers 0 or 1.
-   */
-  @Override
-  public boolean knownToBeBoolean() {
-    return knownToBeBoolean(new HashSet<>());
-  }
-
-  private boolean knownToBeBoolean(HashSet<Phi> active) {
-    active.add(this);
-
-    for (Value operand : operands) {
-      if (!operand.isPhi()) {
-        if (operand.isConstNumber()) {
-          ConstNumber number = operand.getConstInstruction().asConstNumber();
-          if (!number.isIntegerOne() && !number.isIntegerZero()) {
-            return false;
-          }
-        } else {
-          return false;
-        }
-      }
-    }
-
-    for (Value operand : operands) {
-      if (operand.isPhi() && !active.contains(operand.asPhi())) {
-        if (!operand.asPhi().knownToBeBoolean(active)) {
-          return false;
-        }
-      }
-    }
-
-    return true;
-  }
-
   @Override
   public boolean isConstant() {
     return false;

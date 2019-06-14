@@ -15,6 +15,7 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
+import java.util.Set;
 
 public class Assume<An extends Assumption> extends Instruction {
 
@@ -64,6 +65,11 @@ public class Assume<An extends Assumption> extends Instruction {
 
   public Instruction origin() {
     return origin;
+  }
+
+  @Override
+  public boolean outTypeKnownToBeBoolean(Set<Phi> seen) {
+    return src().knownToBeBoolean(seen);
   }
 
   @Override

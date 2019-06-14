@@ -26,6 +26,7 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.utils.InternalOutputMode;
 import com.android.tools.r8.utils.NumberUtils;
+import java.util.Set;
 import java.util.function.Function;
 
 public class ConstNumber extends ConstInstruction {
@@ -314,4 +315,8 @@ public class ConstNumber extends ConstInstruction {
     return true;
   }
 
+  @Override
+  public boolean outTypeKnownToBeBoolean(Set<Phi> seen) {
+    return this.value == 0 || this.value == 1;
+  }
 }
