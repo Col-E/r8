@@ -294,8 +294,17 @@ public class R8 {
                     new StringDiagnostic("Missing class: " + clazz.toSourceString()));
               });
           if (!options.ignoreMissingClasses) {
-            throw new CompilationError(
-                "Compilation can't be completed because some library classes are missing.");
+            DexType missingClass = missingClasses.iterator().next();
+            if (missingClasses.size() == 1) {
+              throw new CompilationError(
+                  "Compilation can't be completed because the class `"
+                      + missingClass.toSourceString()
+                      + "` is missing.");
+            } else {
+              throw new CompilationError(
+                  "Compilation can't be completed because `" + missingClass.toSourceString()
+                      + "` and " + (missingClasses.size() - 1) + " other classes are missing.");
+            }
           }
         }
 
