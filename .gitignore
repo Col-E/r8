@@ -73,6 +73,10 @@ third_party/proguard/*
 !third_party/proguard/*.sha1
 third_party/proguardsettings.tar.gz
 third_party/proguardsettings/
+third_party/proto.tar.gz
+third_party/proto/
+third_party/protobuf-lite.tar.gz
+third_party/protobuf-lite/
 third_party/youtube/*
 !third_party/youtube/*sha1
 third_party/jctf

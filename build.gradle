@@ -151,6 +151,14 @@ sourceSets {
         }
         output.resourcesDir = 'build/classes/examplesAndroidP'
     }
+    examplesProto {
+        java {
+            srcDirs = ['src/test/examplesProto']
+        }
+        compileClasspath = files(file("build/generated/test/proto").listFiles())
+        compileClasspath += files("third_party/protobuf-lite/libprotobuf_lite.jar")
+        output.resourcesDir = 'build/classes/examplesProto'
+    }
     jctfCommon {
         java {
             srcDirs = [
@@ -382,6 +390,8 @@ def x20Dependencies = [
         "photos/2017-06-06",
         "proguard/proguard_internal_159423826",
         "proguardsettings",
+        "proto",
+        "protobuf-lite",
         "youtube/youtube.android_12.10",
         "youtube/youtube.android_12.17",
         "youtube/youtube.android_12.22",
@@ -1074,6 +1084,55 @@ task buildExampleKotlinJars {
     }
 }
 
+task buildProtoGeneratedSources {
+    def examplesProtoDir = file("src/test/examplesProto")
+    examplesProtoDir.eachDir { dir ->
+        def name = dir.getName()
+        task "compile_proto_generated_source_${name}"(type: JavaCompile) {
+            source = {
+                file('third_party/proto').listFiles()
+                        .findAll { it.name.startsWith(name) && it.name.endsWith('-src.jar') }
+                        .collect { zipTree(it) }
+            }
+            destinationDir = file("build/generated/test/proto/${name}_classes")
+            classpath = files("third_party/protobuf-lite/libprotobuf_lite.jar")
+            sourceCompatibility = JavaVersion.VERSION_1_8
+            targetCompatibility = JavaVersion.VERSION_1_8
+        }
+        task "jar_proto_generated_source_${name}"(type: Jar, dependsOn: "compile_proto_generated_source_${name}") {
+            archiveName = "${name}.jar"
+            destinationDir = file("build/generated/test/proto")
+            from "build/generated/test/proto/${name}_classes"
+            include "/**/*.class"
+        }
+        dependsOn "jar_proto_generated_source_${name}"
+    }
+}
+
+task buildExamplesProto {
+    def examplesProtoDir = file("src/test/examplesProto")
+    def examplesProtoOutputDir = file("build/test/examplesProto");
+    dependsOn buildProtoGeneratedSources
+    task "compile_examples_proto"(type: JavaCompile) {
+        source = fileTree(dir: examplesProtoDir, include: "**/*.java")
+        destinationDir = file("build/test/examplesProto/classes")
+        classpath = files(file("build/generated/test/proto").listFiles())
+        classpath += files("third_party/protobuf-lite/libprotobuf_lite.jar")
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+    examplesProtoDir.eachDir { dir ->
+        def name = dir.getName()
+        task "jar_examples_proto_${name}"(type: Jar, dependsOn: "compile_examples_proto") {
+            archiveName = "${name}.jar"
+            destinationDir = examplesProtoOutputDir
+            from "build/test/examplesProto/classes"
+            include name + "/**/*.class"
+        }
+        dependsOn "jar_examples_proto_${name}"
+    }
+}
+
 // Proto lite generated code yields warnings when compiling with javac.
 // We change the options passed to javac to ignore it.
 compileExamplesJava.options.compilerArgs = ["-Xlint:none"]
@@ -1690,6 +1749,8 @@ test {
     }
     if (project.hasProperty('no_internal')) {
         exclude "com/android/tools/r8/internal/**"
+    } else {
+        dependsOn buildExamplesProto
     }
     if (project.hasProperty('only_internal')) {
         include "com/android/tools/r8/internal/**"

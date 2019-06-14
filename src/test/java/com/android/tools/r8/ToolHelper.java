@@ -79,7 +79,9 @@ import org.junit.rules.TemporaryFolder;
 public class ToolHelper {
 
   public static final String BUILD_DIR = "build/";
+  public static final String GENERATED_TEST_BUILD_DIR = BUILD_DIR + "generated/test/";
   public static final String LIBS_DIR = BUILD_DIR + "libs/";
+  public static final String THIRD_PARTY_DIR = "third_party/";
   public static final String TOOLS_DIR = "tools/";
   public static final String TESTS_DIR = "src/test/";
   public static final String EXAMPLES_DIR = TESTS_DIR + "examples/";
@@ -99,6 +101,8 @@ public class ToolHelper {
   public static final String EXAMPLES_JAVA9_BUILD_DIR = TESTS_BUILD_DIR + "examplesJava9/";
   public static final String EXAMPLES_JAVA11_JAR_DIR = TESTS_BUILD_DIR + "examplesJava11/";
   public static final String EXAMPLES_JAVA11_BUILD_DIR = BUILD_DIR + "classes/java/examplesJava11/";
+  public static final String EXAMPLES_PROTO_BUILD_DIR = TESTS_BUILD_DIR + "examplesProto/";
+  public static final String GENERATED_PROTO_BUILD_DIR = GENERATED_TEST_BUILD_DIR + "proto/";
   public static final String SMALI_DIR = TESTS_DIR + "smali/";
   public static final String SMALI_BUILD_DIR = TESTS_BUILD_DIR + "smali/";
 
