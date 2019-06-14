@@ -11,6 +11,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.BottomUpClassHierarchyTraversal;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
@@ -276,6 +277,10 @@ public class RootSetBuilder {
     } finally {
       application.timing.end();
     }
+    if (!noSideEffects.isEmpty() || !assumedValues.isEmpty()) {
+      BottomUpClassHierarchyTraversal.forAllClasses(appView)
+          .visit(appView.appInfo().classes(), this::propagateAssumeRules);
+    }
     return new RootSet(
         noShrinking,
         noOptimization,
@@ -297,6 +302,47 @@ public class RootSetBuilder {
         dependentKeepClassCompatRule,
         identifierNameStrings,
         ifRules);
+  }
+
+  private void propagateAssumeRules(DexClass clazz) {
+    Set<DexType> subTypes = appView.appInfo().allImmediateSubtypes(clazz.type);
+    if (subTypes.isEmpty()) {
+      return;
+    }
+    for (DexEncodedMethod encodedMethod : clazz.virtualMethods()) {
+      propagateAssumeRules(encodedMethod.method, subTypes, noSideEffects);
+      propagateAssumeRules(encodedMethod.method, subTypes, assumedValues);
+    }
+  }
+
+  private void propagateAssumeRules(
+      DexMethod reference,
+      Set<DexType> subTypes,
+      Map<DexReference, ProguardMemberRule> assumeRulePool) {
+    ProguardMemberRule ruleToBePropagated = null;
+    for (DexType subType : subTypes) {
+      DexMethod referenceInSubType =
+          appView.dexItemFactory().createMethod(subType, reference.proto, reference.name);
+      ProguardMemberRule ruleInSubType = assumeRulePool.get(referenceInSubType);
+      // We are looking for the greatest lower bound of assume rules from all sub types.
+      // If any subtype doesn't have a matching assume rule, the lower bound is literally nothing.
+      if (ruleInSubType == null) {
+        ruleToBePropagated = null;
+        break;
+      }
+      if (ruleToBePropagated == null) {
+        ruleToBePropagated = ruleInSubType;
+      } else {
+        // TODO(b/133208961): Introduce comparison/meet of assume rules.
+        if (!ruleToBePropagated.equals(ruleInSubType)) {
+          ruleToBePropagated = null;
+          break;
+        }
+      }
+    }
+    if (ruleToBePropagated != null) {
+      assumeRulePool.put(reference, ruleToBePropagated);
+    }
   }
 
   IfRuleEvaluator getIfRuleEvaluator(

@@ -100,28 +100,9 @@ public class AssumenosideeffectsWithMultipleTargetsTest extends TestBase {
       throw new Unreachable();
     }
 
-    private static final String OUTPUT_WITH_PARTIAL_INFO = StringUtils.lines(
-        "TestClass: message2",
+    static final String OUTPUT_WITHOUT_INFO = StringUtils.lines(
         "The end"
     );
-    private static final String OUTPUT_WITHOUT_INFO = StringUtils.lines(
-        "The end"
-    );
-
-    public String expectedOutput(boolean isR8) {
-      if (!isR8) {
-        return OUTPUT_WITHOUT_INFO;
-      }
-      switch (this) {
-        case RULE_THAT_DIRECTLY_REFERS_CLASS:
-        case RULE_THAT_DIRECTLY_REFERS_INTERFACE:
-          return OUTPUT_WITHOUT_INFO;
-        case RULE_WITH_IMPLEMENTS:
-          return OUTPUT_WITH_PARTIAL_INFO;
-        default:
-          throw new Unreachable();
-      }
-    }
 
     public void inspect(CodeInspector inspector, boolean isR8) {
       ClassSubject main = inspector.clazz(MAIN);
@@ -135,26 +116,7 @@ public class AssumenosideeffectsWithMultipleTargetsTest extends TestBase {
               i -> i.isInvoke() && i.getMethod().name.toString().equals("info"))).count());
 
       MethodSubject testInvokeInterface = main.uniqueMethodWithName("testInvokeInterface");
-      if (isR8) {
-        switch (this) {
-          case RULE_THAT_DIRECTLY_REFERS_CLASS:
-          case RULE_THAT_DIRECTLY_REFERS_INTERFACE:
-            assertThat(testInvokeInterface, not(isPresent()));
-            break;
-          case RULE_WITH_IMPLEMENTS:
-            assertThat(testInvokeInterface, isPresent());
-            // TODO(b/132216744): upwards propagation of member rules.
-            assertEquals(
-                1,
-                Streams.stream(testInvokeInterface.iterateInstructions(
-                    i -> i.isInvoke() && i.getMethod().name.toString().equals("info"))).count());
-            break;
-          default:
-            throw new Unreachable();
-        }
-      } else {
-        assertThat(testInvokeInterface, not(isPresent()));
-      }
+      assertThat(testInvokeInterface, not(isPresent()));
 
       FieldSubject tag = main.uniqueFieldWithName("TAG");
       if (isR8) {
@@ -190,7 +152,7 @@ public class AssumenosideeffectsWithMultipleTargetsTest extends TestBase {
         .noMinification()
         .setMinApi(parameters.getRuntime())
         .run(parameters.getRuntime(), MAIN)
-        .assertSuccessWithOutput(config.expectedOutput(true))
+        .assertSuccessWithOutput(TestConfig.OUTPUT_WITHOUT_INFO)
         .inspect(inspector -> config.inspect(inspector, true));
   }
 
@@ -205,7 +167,7 @@ public class AssumenosideeffectsWithMultipleTargetsTest extends TestBase {
         .addKeepRules(config.getKeepRule())
         .noMinification()
         .run(parameters.getRuntime(), MAIN)
-        .assertSuccessWithOutput(config.expectedOutput(false))
+        .assertSuccessWithOutput(TestConfig.OUTPUT_WITHOUT_INFO)
         .inspect(inspector -> config.inspect(inspector, false));
   }
 

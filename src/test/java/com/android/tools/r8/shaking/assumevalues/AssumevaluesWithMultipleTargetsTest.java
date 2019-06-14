@@ -112,31 +112,12 @@ public class AssumevaluesWithMultipleTargetsTest extends TestBase {
       throw new Unreachable();
     }
 
-    private static final String OUTPUT_WITH_PARTIAL_REPLACEMENT = StringUtils.lines(
-        "8",
-        // TODO(b/132216744): upwards propagation of member rules.
-        "42",
-        "8",
-        "The end"
-    );
     private static final String OUTPUT_WITH_FULL_REPLACEMENT = StringUtils.lines(
         "8",
         "8",
         "8",
         "The end"
     );
-
-    public String expectedOutput() {
-      switch (this) {
-        case RULE_THAT_DIRECTLY_REFERS_CLASS:
-        case RULE_THAT_DIRECTLY_REFERS_INTERFACE:
-          return OUTPUT_WITH_FULL_REPLACEMENT;
-        case RULE_WITH_IMPLEMENTS:
-          return OUTPUT_WITH_PARTIAL_REPLACEMENT;
-        default:
-          throw new Unreachable();
-      }
-    }
 
     public void inspect(CodeInspector inspector) {
       ClassSubject main = inspector.clazz(MAIN);
@@ -151,7 +132,6 @@ public class AssumevaluesWithMultipleTargetsTest extends TestBase {
 
       MethodSubject testInvokeInterface = main.uniqueMethodWithName("testInvokeInterface");
       assertThat(testInvokeInterface, isPresent());
-      // TODO(b/132216744): upwards propagation of member rules.
       assertEquals(
           1,
           Streams.stream(testInvokeInterface.iterateInstructions(
@@ -183,7 +163,7 @@ public class AssumevaluesWithMultipleTargetsTest extends TestBase {
         .noMinification()
         .setMinApi(parameters.getRuntime())
         .run(parameters.getRuntime(), MAIN)
-        .assertSuccessWithOutput(config.expectedOutput())
+        .assertSuccessWithOutput(TestConfig.OUTPUT_WITH_FULL_REPLACEMENT)
         .inspect(config::inspect);
   }
 }
