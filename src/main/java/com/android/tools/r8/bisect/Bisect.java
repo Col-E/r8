@@ -10,6 +10,7 @@ import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.InternalOptions;
@@ -178,13 +179,19 @@ public class Bisect {
     InternalOptions options = new InternalOptions();
     AndroidAppConsumers compatSink = new AndroidAppConsumers(options);
     ApplicationWriter writer =
-        new ApplicationWriter(app, null, options, null, null, null, null, null);
+        new ApplicationWriter(
+            app, null, options, null, null, null, NamingLens.getIdentityLens(), null);
     writer.write(executor);
+    options.signalFinishedToConsumers();
     compatSink.build().writeToDirectory(output, OutputMode.DexIndexed);
   }
 
+  public static DexProgramClass run(BisectOptions options) throws Exception {
+    return new Bisect(options).run();
+  }
+
   public static void main(String[] args) throws Exception {
-    BisectOptions options = null;
+    BisectOptions options;
     try {
       options = BisectOptions.parse(args);
     } catch (CompilationError e) {
@@ -195,7 +202,7 @@ public class Bisect {
     if (options == null) {
       return;
     }
-    DexProgramClass clazz = new Bisect(options).run();
+    DexProgramClass clazz = Bisect.run(options);
     if (clazz != null) {
       System.out.println("Bisection found final bad class " + clazz);
     }

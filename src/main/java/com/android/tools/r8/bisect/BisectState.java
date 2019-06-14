@@ -20,6 +20,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -171,6 +172,10 @@ public class BisectState {
 
   public void read() throws IOException {
     if (stateFile == null) {
+      return;
+    }
+    if (!Files.exists(stateFile.toPath())) {
+      System.out.println("Assuming initial run for non-existent state file: " + stateFile);
       return;
     }
     List<String> data = new ArrayList<>();
