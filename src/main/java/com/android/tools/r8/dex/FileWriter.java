@@ -781,7 +781,7 @@ public class FileWriter {
     try {
       MessageDigest md = MessageDigest.getInstance("SHA-1");
       md.update(dest.asArray(), Constants.FILE_SIZE_OFFSET,
-          layout.getEndOfFile() - Constants.FIELD_IDS_OFF_OFFSET);
+          layout.getEndOfFile() - Constants.FILE_SIZE_OFFSET);
       md.digest(dest.asArray(), Constants.SIGNATURE_OFFSET, 20);
     } catch (Exception e) {
       throw new RuntimeException(e);
