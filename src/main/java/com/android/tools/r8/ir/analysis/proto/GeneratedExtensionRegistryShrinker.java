@@ -161,17 +161,18 @@ public class GeneratedExtensionRegistryShrinker {
   }
 
   public boolean isDeadProtoExtensionField(DexField field) {
-    return isDeadProtoExtensionField(field, appView.appInfo().getFieldAccessInfoCollection());
+    DexEncodedField encodedField = appView.appInfo().resolveField(field);
+    if (encodedField != null) {
+      return isDeadProtoExtensionField(
+          encodedField, appView.appInfo().getFieldAccessInfoCollection());
+    }
+    return false;
   }
 
   public boolean isDeadProtoExtensionField(
-      DexField field, FieldAccessInfoCollection<?> fieldAccessInfoCollection) {
+      DexEncodedField encodedField, FieldAccessInfoCollection<?> fieldAccessInfoCollection) {
+    DexField field = encodedField.field;
     if (field.type != references.generatedExtensionType) {
-      return false;
-    }
-
-    DexEncodedField encodedField = appView.appInfo().resolveField(field);
-    if (encodedField == null) {
       return false;
     }
 
