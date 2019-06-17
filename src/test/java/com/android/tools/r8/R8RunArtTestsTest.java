@@ -1959,9 +1959,8 @@ public abstract class R8RunArtTestsTest {
     VmErrors vmErrors = new VmErrors();
     List<TestRuntime> vms = new ArrayList<>();
     if (compilerUnderTest == CompilerUnderTest.R8CF) {
-      for (CfVm vm : TestParametersBuilder.getAvailableCfVms()) {
-        vms.add(new TestRuntime.CfRuntime(vm));
-      }
+      // TODO(b/135411839): Run on all java runtimes.
+      vms.add(TestRuntime.getDefaultJavaRuntime());
     } else {
       for (DexVm vm : TestParametersBuilder.getAvailableDexVms()) {
         vms.add(new DexRuntime(vm));
