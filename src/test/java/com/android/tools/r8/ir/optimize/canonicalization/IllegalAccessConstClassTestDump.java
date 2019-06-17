@@ -55,7 +55,7 @@ class IllegalAccessConstClassTestDump {
   //       if (System.currentTimeMillis() < -2) {
   //         System.out.println(PackagePrivateClass.class.getName());
   //       } else if (System.currentTimeMillis() < -1) {
-  //         System.out.println(PackagePrivateClass.class.getName());
+  //         System.out.println(PackagePrivateClass.class.getSimpleName());
   //       } else {
   //         System.out.println("No need to load any classes");
   //       }
@@ -140,7 +140,7 @@ class IllegalAccessConstClassTestDump {
         methodVisitor.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
         methodVisitor.visitLdcInsn(Type.getType("LPackagePrivateClass;"));
         methodVisitor.visitMethodInsn(
-            INVOKEVIRTUAL, "java/lang/Class", "getName", "()Ljava/lang/String;", false);
+            INVOKEVIRTUAL, "java/lang/Class", "getSimpleName", "()Ljava/lang/String;", false);
         methodVisitor.visitMethodInsn(
             INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V", false);
         methodVisitor.visitJumpInsn(GOTO, label3);

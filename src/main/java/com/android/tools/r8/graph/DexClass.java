@@ -14,6 +14,7 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
+import com.google.common.collect.Streams;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -724,6 +725,14 @@ public abstract class DexClass extends DexDefinition {
       }
     }
     return false;
+  }
+
+  public boolean isResolvable(AppView<?> appView) {
+    if (!isProgramClass()
+        && !appView.dexItemFactory().libraryTypesAssumedToBePresent.contains(type)) {
+      return false;
+    }
+    return Streams.stream(allImmediateSupertypes()).allMatch(type -> type.isResolvable(appView));
   }
 
   public boolean isSerializable(AppView<? extends AppInfoWithSubtyping> appView) {

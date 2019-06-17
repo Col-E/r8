@@ -11,6 +11,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.AbstractError;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
@@ -82,29 +83,47 @@ public class ConstClass extends ConstInstruction {
 
   @Override
   public boolean instructionInstanceCanThrow() {
-    // TODO(christofferqa): Should return false in R8 if the class is in the program.
     return true;
   }
 
   @Override
-  public boolean instructionMayHaveSideEffects(AppView<?> appView, DexType context) {
+  public AbstractError instructionInstanceCanThrow(AppView<?> appView, DexType context) {
     DexType baseType = getValue().toBaseType(appView.dexItemFactory());
     if (baseType.isPrimitiveType()) {
-      return false;
+      return AbstractError.bottom();
     }
 
-    if (appView.enableWholeProgramOptimizations()) {
-      DexClass clazz = appView.definitionFor(baseType);
-      if (clazz != null && clazz.isProgramClass()) {
-        return false;
-      }
-    } else {
+    // Not applicable for D8.
+    if (!appView.enableWholeProgramOptimizations()) {
+      // Unless the type of interest is same as the context.
       if (baseType == context) {
-        return false;
+        return AbstractError.bottom();
       }
+      return AbstractError.top();
     }
 
-    return true;
+    DexClass clazz = appView.definitionFor(baseType);
+
+    if (clazz == null) {
+      return AbstractError.specific(appView.dexItemFactory().noClassDefFoundErrorType);
+    }
+    // * NoClassDefFoundError (resolution failure).
+    if (!clazz.isResolvable(appView)) {
+      return AbstractError.specific(appView.dexItemFactory().noClassDefFoundErrorType);
+    }
+    // * IllegalAccessError (not visible from the access context).
+    ConstraintWithTarget classVisibility =
+        ConstraintWithTarget.deriveConstraint(context, baseType, clazz.accessFlags, appView);
+    if (classVisibility == ConstraintWithTarget.NEVER) {
+      return AbstractError.specific(appView.dexItemFactory().illegalAccessErrorType);
+    }
+
+    return AbstractError.bottom();
+  }
+
+  @Override
+  public boolean instructionMayHaveSideEffects(AppView<?> appView, DexType context) {
+    return instructionInstanceCanThrow(appView, context).isThrowing();
   }
 
   @Override

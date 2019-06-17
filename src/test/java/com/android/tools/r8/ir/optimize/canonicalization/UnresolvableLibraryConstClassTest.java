@@ -19,7 +19,6 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.Streams;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -50,15 +49,15 @@ class TestMain {
     if (System.currentTimeMillis() < -6) {
       System.out.println(ProgramSubClass.class.getName());
     } else if (System.currentTimeMillis() < -5) {
-      System.out.println(ProgramSubClass.class.getName());
+      System.out.println(ProgramSubClass.class.getSimpleName());
     } else if (System.currentTimeMillis() < -4) {
       System.out.println(ProgramClass1.class.getName());
     } else if (System.currentTimeMillis() < -3) {
-      System.out.println(ProgramClass1.class.getName());
+      System.out.println(ProgramClass1.class.getSimpleName());
     } else if (System.currentTimeMillis() < -2) {
       System.out.println(ProgramClass2.class.getName());
     } else if (System.currentTimeMillis() < -1) {
-      System.out.println(ProgramClass2.class.getName());
+      System.out.println(ProgramClass2.class.getSimpleName());
     } else {
       System.out.println("No need to load any classes");
     }
@@ -106,7 +105,6 @@ public class UnresolvableLibraryConstClassTest extends TestBase {
         .assertSuccessWithOutput(JAVA_OUTPUT);
   }
 
-  @Ignore("b/135210786")
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())

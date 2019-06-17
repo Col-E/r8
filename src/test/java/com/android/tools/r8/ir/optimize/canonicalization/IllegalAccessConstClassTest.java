@@ -17,7 +17,6 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.Streams;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -32,7 +31,7 @@ class FakePackagePrivateClassConsumer {
     if (System.currentTimeMillis() < -2) {
       System.out.println(PackagePrivateClass.class.getName());
     } else if (System.currentTimeMillis() < -1) {
-      System.out.println(PackagePrivateClass.class.getName());
+      System.out.println(PackagePrivateClass.class.getSimpleName());
     } else {
       System.out.println("No need to load any classes");
     }
@@ -83,7 +82,6 @@ public class IllegalAccessConstClassTest extends TestBase {
         .assertSuccessWithOutput(JAVA_OUTPUT);
   }
 
-  @Ignore("b/135210786")
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())

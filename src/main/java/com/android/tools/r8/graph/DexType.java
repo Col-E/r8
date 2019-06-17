@@ -258,6 +258,11 @@ public class DexType extends DexReference implements PresortedComparable<DexType
     return clazz != null && clazz.isProgramClass();
   }
 
+  public boolean isResolvable(AppView<?> appView) {
+    DexClass clazz = appView.definitionFor(this);
+    return clazz != null && clazz.isResolvable(appView);
+  }
+
   public int elementSizeForPrimitiveArrayType() {
     assert isPrimitiveArrayType();
     switch (descriptor.content[1]) {
