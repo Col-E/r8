@@ -176,19 +176,19 @@ public final class BackportedMethodRewriter {
       super(options, method, methodName, method.proto.toDescriptorString());
     }
 
-    public static int hashCodeImpl(byte i) {
+    public static int hashCode(byte i) {
       return Byte.valueOf(i).hashCode();
     }
 
-    public static int compareImpl(byte a, byte b) {
+    public static int compare(byte a, byte b) {
       return Byte.valueOf(a).compareTo(Byte.valueOf(b));
     }
 
-    public static int toUnsignedIntImpl(byte value) {
+    public static int toUnsignedInt(byte value) {
       return value & 0xff;
     }
 
-    public static long toUnsignedLongImpl(byte value) {
+    public static long toUnsignedLong(byte value) {
       return value & 0xffL;
     }
   }
@@ -198,19 +198,19 @@ public final class BackportedMethodRewriter {
       super(options, method, methodName, method.proto.toDescriptorString());
     }
 
-    public static int hashCodeImpl(short i) {
+    public static int hashCode(short i) {
       return Short.valueOf(i).hashCode();
     }
 
-    public static int compareImpl(short a, short b) {
+    public static int compare(short a, short b) {
       return Short.valueOf(a).compareTo(Short.valueOf(b));
     }
 
-    public static int toUnsignedIntImpl(short value) {
+    public static int toUnsignedInt(short value) {
       return value & 0xffff;
     }
 
-    public static long toUnsignedLongImpl(short value) {
+    public static long toUnsignedLong(short value) {
       return value & 0xffffL;
     }
   }
@@ -220,45 +220,45 @@ public final class BackportedMethodRewriter {
       super(options, method, methodName, method.proto.toDescriptorString());
     }
 
-    public static int hashCodeImpl(int i) {
+    public static int hashCode(int i) {
       return Integer.valueOf(i).hashCode();
     }
 
-    public static int compareImpl(int a, int b) {
+    public static int compare(int a, int b) {
       return Integer.valueOf(a).compareTo(Integer.valueOf(b));
     }
 
-    public static int maxImpl(int a, int b) {
+    public static int max(int a, int b) {
       return java.lang.Math.max(a, b);
     }
 
-    public static int minImpl(int a, int b) {
+    public static int min(int a, int b) {
       return java.lang.Math.min(a, b);
     }
 
-    public static int sumImpl(int a, int b) {
+    public static int sum(int a, int b) {
       return a + b;
     }
 
-    public static int divideUnsignedImpl(int dividend, int divisor) {
+    public static int divideUnsigned(int dividend, int divisor) {
       long dividendLong = dividend & 0xffffffffL;
       long divisorLong = divisor & 0xffffffffL;
       return (int) (dividendLong / divisorLong);
     }
 
-    public static int remainderUnsignedImpl(int dividend, int divisor) {
+    public static int remainderUnsigned(int dividend, int divisor) {
       long dividendLong = dividend & 0xffffffffL;
       long divisorLong = divisor & 0xffffffffL;
       return (int) (dividendLong % divisorLong);
     }
 
-    public static int compareUnsignedImpl(int a, int b) {
+    public static int compareUnsigned(int a, int b) {
       int aFlipped = a ^ Integer.MIN_VALUE;
       int bFlipped = b ^ Integer.MIN_VALUE;
       return Integer.compare(aFlipped, bFlipped);
     }
 
-    public static long toUnsignedLongImpl(int value) {
+    public static long toUnsignedLong(int value) {
       return value & 0xffffffffL;
     }
   }
@@ -268,23 +268,23 @@ public final class BackportedMethodRewriter {
       super(options, method, methodName, method.proto.toDescriptorString());
     }
 
-    public static int hashCodeImpl(double d) {
+    public static int hashCode(double d) {
       return Double.valueOf(d).hashCode();
     }
 
-    public static double maxImpl(double a, double b) {
+    public static double max(double a, double b) {
       return java.lang.Math.max(a, b);
     }
 
-    public static double minImpl(double a, double b) {
+    public static double min(double a, double b) {
       return java.lang.Math.min(a, b);
     }
 
-    public static double sumImpl(double a, double b) {
+    public static double sum(double a, double b) {
       return a + b;
     }
 
-    public static boolean isFiniteImpl(double d) {
+    public static boolean isFinite(double d) {
       Double boxed = Double.valueOf(d);
       return !boxed.isInfinite() && !boxed.isNaN();
     }
@@ -295,23 +295,23 @@ public final class BackportedMethodRewriter {
       super(options, method, methodName, method.proto.toDescriptorString());
     }
 
-    public static int hashCodeImpl(float d) {
+    public static int hashCode(float d) {
       return Float.valueOf(d).hashCode();
     }
 
-    public static float maxImpl(float a, float b) {
+    public static float max(float a, float b) {
       return java.lang.Math.max(a, b);
     }
 
-    public static float minImpl(float a, float b) {
+    public static float min(float a, float b) {
       return java.lang.Math.min(a, b);
     }
 
-    public static float sumImpl(float a, float b) {
+    public static float sum(float a, float b) {
       return a + b;
     }
 
-    public static boolean isFiniteImpl(float d) {
+    public static boolean isFinite(float d) {
       Float boxed = Float.valueOf(d);
       return !boxed.isInfinite() && !boxed.isNaN();
     }
@@ -322,23 +322,23 @@ public final class BackportedMethodRewriter {
       super(options, method, methodName, method.proto.toDescriptorString());
     }
 
-    public static int hashCodeImpl(boolean b) {
+    public static int hashCode(boolean b) {
       return Boolean.valueOf(b).hashCode();
     }
 
-    public static int compareImpl(boolean a, boolean b) {
+    public static int compare(boolean a, boolean b) {
       return Boolean.valueOf(a).compareTo(Boolean.valueOf(b));
     }
 
-    public static boolean logicalAndImpl(boolean a, boolean b) {
+    public static boolean logicalAnd(boolean a, boolean b) {
       return a && b;
     }
 
-    public static boolean logicalOrImpl(boolean a, boolean b) {
+    public static boolean logicalOr(boolean a, boolean b) {
       return a || b;
     }
 
-    public static boolean logicalXorImpl(boolean a, boolean b) {
+    public static boolean logicalXor(boolean a, boolean b) {
       return a ^ b;
     }
   }
@@ -348,23 +348,23 @@ public final class BackportedMethodRewriter {
       super(options, method, methodName, method.proto.toDescriptorString());
     }
 
-    public static int hashCodeImpl(long i) {
+    public static int hashCode(long i) {
       return Long.valueOf(i).hashCode();
     }
 
-    public static long maxImpl(long a, long b) {
+    public static long max(long a, long b) {
       return java.lang.Math.max(a, b);
     }
 
-    public static long minImpl(long a, long b) {
+    public static long min(long a, long b) {
       return java.lang.Math.min(a, b);
     }
 
-    public static long sumImpl(long a, long b) {
+    public static long sum(long a, long b) {
       return a + b;
     }
 
-    public static long divideUnsignedImpl(long dividend, long divisor) {
+    public static long divideUnsigned(long dividend, long divisor) {
       // This implementation is adapted from Guava's UnsignedLongs.java and Longs.java.
 
       if (divisor < 0) { // i.e., divisor >= 2^63:
@@ -400,7 +400,7 @@ public final class BackportedMethodRewriter {
       return quotient + (remFlipped >= divisorFlipped ? 1 : 0);
     }
 
-    public static long remainderUnsignedImpl(long dividend, long divisor) {
+    public static long remainderUnsigned(long dividend, long divisor) {
       // This implementation is adapted from Guava's UnsignedLongs.java and Longs.java.
 
       if (divisor < 0) { // i.e., divisor >= 2^63:
@@ -436,7 +436,7 @@ public final class BackportedMethodRewriter {
       return rem - (remFlipped >= divisorFlipped ? divisor : 0);
     }
 
-    public static int compareUnsignedImpl(long a, long b) {
+    public static int compareUnsigned(long a, long b) {
       long aFlipped = a ^ Long.MIN_VALUE;
       long bFlipped = b ^ Long.MIN_VALUE;
       return Long.compare(aFlipped, bFlipped);
@@ -448,11 +448,11 @@ public final class BackportedMethodRewriter {
       super(options, method, methodName, method.proto.toDescriptorString());
     }
 
-    public static int hashCodeImpl(char i) {
+    public static int hashCode(char i) {
       return Character.valueOf(i).hashCode();
     }
 
-    public static int compareImpl(char a, char b) {
+    public static int compare(char a, char b) {
       return Character.valueOf(a).compareTo(Character.valueOf(b));
     }
   }
@@ -462,7 +462,7 @@ public final class BackportedMethodRewriter {
       super(options, method, methodName, method.proto.toDescriptorString());
     }
 
-    public static String joinArrayImpl(CharSequence delimiter, CharSequence... elements) {
+    public static String joinArray(CharSequence delimiter, CharSequence... elements) {
       if (delimiter == null) throw new NullPointerException("delimiter");
       StringBuilder builder = new StringBuilder();
       if (elements.length > 0) {
@@ -475,7 +475,7 @@ public final class BackportedMethodRewriter {
       return builder.toString();
     }
 
-    public static String joinIterableImpl(CharSequence delimiter,
+    public static String joinIterable(CharSequence delimiter,
         Iterable<? extends CharSequence> elements) {
       if (delimiter == null) throw new NullPointerException("delimiter");
       StringBuilder builder = new StringBuilder();
@@ -496,11 +496,11 @@ public final class BackportedMethodRewriter {
       super(options, method, methodName, method.proto.toDescriptorString());
     }
 
-    public static <T> int compareImpl(T a, T b, Comparator<? super T> c) {
+    public static <T> int compare(T a, T b, Comparator<? super T> c) {
       return a == b ? 0 : c.compare(a, b);
     }
 
-    public static boolean deepEqualsImpl(Object a, Object b) {
+    public static boolean deepEquals(Object a, Object b) {
       if (a == b) return true;
       if (a == null) return false;
       if (a instanceof boolean[]) {
@@ -533,38 +533,38 @@ public final class BackportedMethodRewriter {
       return a.equals(b);
     }
 
-    public static boolean equalsImpl(Object a, Object b) {
+    public static boolean equals(Object a, Object b) {
       return a == b || (a != null && a.equals(b));
     }
 
-    public static int hashImpl(Object[] o) {
+    public static int hash(Object[] o) {
       return Arrays.hashCode(o);
     }
 
-    public static int hashCodeImpl(Object o) {
+    public static int hashCode(Object o) {
       return o == null ? 0 : o.hashCode();
     }
 
-    public static boolean isNullImpl(Object o) {
+    public static boolean isNull(Object o) {
       return o == null;
     }
 
-    public static boolean nonNullImpl(Object o) {
+    public static boolean nonNull(Object o) {
       return o != null;
     }
 
-    public static <T> T requireNonNullMessageImpl(T obj, String message) {
+    public static <T> T requireNonNullMessage(T obj, String message) {
       if (obj == null) {
         throw new NullPointerException(message);
       }
       return obj;
     }
 
-    public static String toStringImpl(Object o) {
+    public static String toString(Object o) {
       return Objects.toString(o, "null");
     }
 
-    public static String toStringDefaultImpl(Object o, String nullDefault) {
+    public static String toStringDefault(Object o, String nullDefault) {
       return o == null ? nullDefault : o.toString();
     }
   }
@@ -599,40 +599,35 @@ public final class BackportedMethodRewriter {
       // int Byte.compare(byte a, byte b)
       DexString method = factory.createString("compare");
       DexProto proto = factory.createProto(factory.intType, factory.byteType, factory.byteType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(ByteMethods::new, "compareImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, ByteMethods::new));
 
       // Short
       clazz = factory.boxedShortDescriptor;
       // int Short.compare(short a, short b)
       method = factory.createString("compare");
       proto = factory.createProto(factory.intType, factory.shortType, factory.shortType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(ShortMethods::new, "compareImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, ShortMethods::new));
 
       // Integer
       clazz = factory.boxedIntDescriptor;
       // int Integer.compare(int a, int b)
       method = factory.createString("compare");
       proto = factory.createProto(factory.intType, factory.intType, factory.intType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(IntegerMethods::new, "compareImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, IntegerMethods::new));
 
       // Boolean
       clazz = factory.boxedBooleanDescriptor;
       // int Boolean.compare(boolean a, boolean b)
       method = factory.createString("compare");
       proto = factory.createProto(factory.intType, factory.booleanType, factory.booleanType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(BooleanMethods::new, "compareImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, BooleanMethods::new));
 
       // Character
       clazz = factory.boxedCharDescriptor;
       // int Character.compare(char a, char b)
       method = factory.createString("compare");
       proto = factory.createProto(factory.intType, factory.charType, factory.charType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(CharacterMethods::new, "compareImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, CharacterMethods::new));
 
       // Objects
       clazz = factory.objectsDescriptor;
@@ -641,53 +636,46 @@ public final class BackportedMethodRewriter {
       method = factory.createString("compare");
       proto = factory.createProto(factory.intType, factory.objectType, factory.objectType,
           factory.comparatorType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(ObjectsMethods::new, "compareImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, ObjectsMethods::new));
 
       // boolean Objects.deepEquals(Object a, Object b)
       method = factory.createString("deepEquals");
       proto = factory.createProto(factory.booleanType, factory.objectType, factory.objectType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(ObjectsMethods::new, "deepEqualsImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, ObjectsMethods::new));
 
       // boolean Objects.equals(Object a, Object b)
       method = factory.createString("equals");
       proto = factory.createProto(factory.booleanType, factory.objectType, factory.objectType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(ObjectsMethods::new, "equalsImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, ObjectsMethods::new));
 
       // int Objects.hash(Object... o)
       method = factory.createString("hash");
       proto = factory.createProto(factory.intType, factory.objectArrayType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(ObjectsMethods::new, "hashImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, ObjectsMethods::new));
 
       // int Objects.hashCode(Object o)
       method = factory.createString("hashCode");
       proto = factory.createProto(factory.intType, factory.objectType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(ObjectsMethods::new, "hashCodeImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, ObjectsMethods::new));
 
       // Note: Objects.requireNonNull(T) rewriting is handled by CodeRewriter for now.
 
       // T Objects.requireNonNull(T obj, String message)
       method = factory.createString("requireNonNull");
       proto = factory.createProto(factory.objectType, factory.objectType, factory.stringType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(ObjectsMethods::new, "requireNonNullMessageImpl", clazz, method,
-              proto));
+      addGenerator(
+          new MethodGenerator(clazz, method, proto, ObjectsMethods::new, "requireNonNullMessage"));
 
       // String Objects.toString(Object o)
       method = factory.createString("toString");
       proto = factory.createProto(factory.stringType, factory.objectType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(ObjectsMethods::new, "toStringImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, ObjectsMethods::new));
 
       // String Objects.toString(Object o, String nullDefault);
       method = factory.createString("toString");
       proto = factory.createProto(factory.stringType, factory.objectType, factory.stringType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(ObjectsMethods::new, "toStringDefaultImpl", clazz, method, proto));
+      addGenerator(
+          new MethodGenerator(clazz, method, proto, ObjectsMethods::new, "toStringDefault"));
     }
 
     private void initializeJava8SignedOperations(DexItemFactory factory) {
@@ -696,16 +684,14 @@ public final class BackportedMethodRewriter {
       // int Byte.hashCode(byte i)
       DexString method = factory.createString("hashCode");
       DexProto proto = factory.createProto(factory.intType, factory.byteType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(ByteMethods::new, "hashCodeImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, ByteMethods::new));
 
       // Short
       clazz = factory.boxedShortDescriptor;
       // int Short.hashCode(short i)
       method = factory.createString("hashCode");
       proto = factory.createProto(factory.intType, factory.shortType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(ShortMethods::new, "hashCodeImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, ShortMethods::new));
 
       // Integer
       clazz = factory.boxedIntDescriptor;
@@ -713,26 +699,22 @@ public final class BackportedMethodRewriter {
       // int Integer.hashCode(int i)
       method = factory.createString("hashCode");
       proto = factory.createProto(factory.intType, factory.intType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(IntegerMethods::new, "hashCodeImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, IntegerMethods::new));
 
       // int Integer.max(int a, int b)
       method = factory.createString("max");
       proto = factory.createProto(factory.intType, factory.intType, factory.intType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(IntegerMethods::new, "maxImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, IntegerMethods::new));
 
       // int Integer.min(int a, int b)
       method = factory.createString("min");
       proto = factory.createProto(factory.intType, factory.intType, factory.intType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(IntegerMethods::new, "minImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, IntegerMethods::new));
 
       // int Integer.sum(int a, int b)
       method = factory.createString("sum");
       proto = factory.createProto(factory.intType, factory.intType, factory.intType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(IntegerMethods::new, "sumImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, IntegerMethods::new));
 
       // Double
       clazz = factory.boxedDoubleDescriptor;
@@ -740,32 +722,27 @@ public final class BackportedMethodRewriter {
       // int Double.hashCode(double d)
       method = factory.createString("hashCode");
       proto = factory.createProto(factory.intType, factory.doubleType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(DoubleMethods::new, "hashCodeImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, DoubleMethods::new));
 
       // double Double.max(double a, double b)
       method = factory.createString("max");
       proto = factory.createProto(factory.doubleType, factory.doubleType, factory.doubleType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(DoubleMethods::new, "maxImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, DoubleMethods::new));
 
       // double Double.min(double a, double b)
       method = factory.createString("min");
       proto = factory.createProto(factory.doubleType, factory.doubleType, factory.doubleType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(DoubleMethods::new, "minImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, DoubleMethods::new));
 
       // double Double.sum(double a, double b)
       method = factory.createString("sum");
       proto = factory.createProto(factory.doubleType, factory.doubleType, factory.doubleType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(DoubleMethods::new, "sumImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, DoubleMethods::new));
 
       // boolean Double.isFinite(double a)
       method = factory.createString("isFinite");
       proto = factory.createProto(factory.booleanType, factory.doubleType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(DoubleMethods::new, "isFiniteImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, DoubleMethods::new));
 
       // Float
       clazz = factory.boxedFloatDescriptor;
@@ -773,32 +750,27 @@ public final class BackportedMethodRewriter {
       // int Float.hashCode(float d)
       method = factory.createString("hashCode");
       proto = factory.createProto(factory.intType, factory.floatType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(FloatMethods::new, "hashCodeImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, FloatMethods::new));
 
       // float Float.max(float a, float b)
       method = factory.createString("max");
       proto = factory.createProto(factory.floatType, factory.floatType, factory.floatType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(FloatMethods::new, "maxImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, FloatMethods::new));
 
       // float Float.min(float a, float b)
       method = factory.createString("min");
       proto = factory.createProto(factory.floatType, factory.floatType, factory.floatType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(FloatMethods::new, "minImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, FloatMethods::new));
 
       // float Float.sum(float a, float b)
       method = factory.createString("sum");
       proto = factory.createProto(factory.floatType, factory.floatType, factory.floatType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(FloatMethods::new, "sumImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, FloatMethods::new));
 
       // boolean Float.isFinite(float a)
       method = factory.createString("isFinite");
       proto = factory.createProto(factory.booleanType, factory.floatType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(FloatMethods::new, "isFiniteImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, FloatMethods::new));
 
       // Boolean
       clazz = factory.boxedBooleanDescriptor;
@@ -806,26 +778,22 @@ public final class BackportedMethodRewriter {
       // int Boolean.hashCode(boolean b)
       method = factory.createString("hashCode");
       proto = factory.createProto(factory.intType, factory.booleanType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(BooleanMethods::new, "hashCodeImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, BooleanMethods::new));
 
       // boolean Boolean.logicalAnd(boolean a, boolean b)
       method = factory.createString("logicalAnd");
       proto = factory.createProto(factory.booleanType, factory.booleanType, factory.booleanType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(BooleanMethods::new, "logicalAndImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, BooleanMethods::new));
 
       // boolean Boolean.logicalOr(boolean a, boolean b)
       method = factory.createString("logicalOr");
       proto = factory.createProto(factory.booleanType, factory.booleanType, factory.booleanType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(BooleanMethods::new, "logicalOrImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, BooleanMethods::new));
 
       // boolean Boolean.logicalXor(boolean a, boolean b)
       method = factory.createString("logicalXor");
       proto = factory.createProto(factory.booleanType, factory.booleanType, factory.booleanType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(BooleanMethods::new, "logicalXorImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, BooleanMethods::new));
 
       // Long
       clazz = factory.boxedLongDescriptor;
@@ -833,26 +801,22 @@ public final class BackportedMethodRewriter {
       // int Long.hashCode(long i)
       method = factory.createString("hashCode");
       proto = factory.createProto(factory.intType, factory.longType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(LongMethods::new, "hashCodeImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, LongMethods::new));
 
       // long Long.max(long a, long b)
       method = factory.createString("max");
       proto = factory.createProto(factory.longType, factory.longType, factory.longType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(LongMethods::new, "maxImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, LongMethods::new));
 
       // long Long.min(long a, long b)
       method = factory.createString("min");
       proto = factory.createProto(factory.longType, factory.longType, factory.longType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(LongMethods::new, "minImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, LongMethods::new));
 
       // long Long.sum(long a, long b)
       method = factory.createString("sum");
       proto = factory.createProto(factory.longType, factory.longType, factory.longType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(LongMethods::new, "sumImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, LongMethods::new));
 
       // Character
       clazz = factory.boxedCharDescriptor;
@@ -860,8 +824,7 @@ public final class BackportedMethodRewriter {
       // int Character.hashCode(char i)
       method = factory.createString("hashCode");
       proto = factory.createProto(factory.intType, factory.charType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(CharacterMethods::new, "hashCodeImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, CharacterMethods::new));
 
       // Objects
       clazz = factory.objectsDescriptor;
@@ -869,14 +832,12 @@ public final class BackportedMethodRewriter {
       // boolean Objects.isNull(Object o)
       method = factory.createString("isNull");
       proto = factory.createProto(factory.booleanType, factory.objectType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(ObjectsMethods::new, "isNullImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, ObjectsMethods::new));
 
       // boolean Objects.nonNull(Object a)
       method = factory.createString("nonNull");
       proto = factory.createProto(factory.booleanType, factory.objectType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(ObjectsMethods::new, "nonNullImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, ObjectsMethods::new));
     }
 
     private void initializeJava8UnsignedOperations(DexItemFactory factory) {
@@ -886,14 +847,12 @@ public final class BackportedMethodRewriter {
       // int Byte.toUnsignedInt(byte value)
       DexString method = factory.createString("toUnsignedInt");
       DexProto proto = factory.createProto(factory.intType, factory.byteType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(ByteMethods::new, "toUnsignedIntImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, ByteMethods::new));
 
       // long Byte.toUnsignedLong(byte value)
       method = factory.createString("toUnsignedLong");
       proto = factory.createProto(factory.longType, factory.byteType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(ByteMethods::new, "toUnsignedLongImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, ByteMethods::new));
 
       // Short
       clazz = factory.boxedShortDescriptor;
@@ -901,14 +860,12 @@ public final class BackportedMethodRewriter {
       // int Short.toUnsignedInt(short value)
       method = factory.createString("toUnsignedInt");
       proto = factory.createProto(factory.intType, factory.shortType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(ShortMethods::new, "toUnsignedIntImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, ShortMethods::new));
 
       // long Short.toUnsignedLong(short value)
       method = factory.createString("toUnsignedLong");
       proto = factory.createProto(factory.longType, factory.shortType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(ShortMethods::new, "toUnsignedLongImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, ShortMethods::new));
 
       // Integer
       clazz = factory.boxedIntDescriptor;
@@ -916,26 +873,22 @@ public final class BackportedMethodRewriter {
       // int Integer.divideUnsigned(int a, int b)
       method = factory.createString("divideUnsigned");
       proto = factory.createProto(factory.intType, factory.intType, factory.intType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(IntegerMethods::new, "divideUnsignedImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, IntegerMethods::new));
 
       // int Integer.remainderUnsigned(int a, int b)
       method = factory.createString("remainderUnsigned");
       proto = factory.createProto(factory.intType, factory.intType, factory.intType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(IntegerMethods::new, "remainderUnsignedImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, IntegerMethods::new));
 
       // int Integer.compareUnsigned(int a, int b)
       method = factory.createString("compareUnsigned");
       proto = factory.createProto(factory.intType, factory.intType, factory.intType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(IntegerMethods::new, "compareUnsignedImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, IntegerMethods::new));
 
       // long Integer.toUnsignedLong(int value)
       method = factory.createString("toUnsignedLong");
       proto = factory.createProto(factory.longType, factory.intType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(IntegerMethods::new, "toUnsignedLongImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, IntegerMethods::new));
 
       // Long
       clazz = factory.boxedLongDescriptor;
@@ -943,20 +896,17 @@ public final class BackportedMethodRewriter {
       // long Long.divideUnsigned(long a, long b)
       method = factory.createString("divideUnsigned");
       proto = factory.createProto(factory.longType, factory.longType, factory.longType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(LongMethods::new, "divideUnsignedImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, LongMethods::new));
 
       // long Long.remainderUnsigned(long a, long b)
       method = factory.createString("remainderUnsigned");
       proto = factory.createProto(factory.longType, factory.longType, factory.longType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(LongMethods::new, "remainderUnsignedImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, LongMethods::new));
 
       // int Long.compareUnsigned(long a, long b)
       method = factory.createString("compareUnsigned");
       proto = factory.createProto(factory.intType, factory.longType, factory.longType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(LongMethods::new, "compareUnsignedImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, LongMethods::new));
 
       // String
       clazz = factory.stringDescriptor;
@@ -965,24 +915,20 @@ public final class BackportedMethodRewriter {
       method = factory.createString("join");
       proto = factory.createProto(factory.stringType, factory.charSequenceType,
           factory.charSequenceArrayType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(StringMethods::new, "joinArrayImpl", clazz, method, proto));
+      addGenerator(new MethodGenerator(clazz, method, proto, StringMethods::new, "joinArray"));
 
       // String String.join(CharSequence, Iterable<? extends CharSequence>)
       method = factory.createString("join");
       proto =
           factory.createProto(factory.stringType, factory.charSequenceType, factory.iterableType);
-      addOrGetMethod(clazz, method).put(proto,
-          new MethodGenerator(StringMethods::new, "joinIterableImpl", clazz, method, proto));
+      addGenerator(
+          new MethodGenerator(clazz, method, proto, StringMethods::new, "joinIterable"));
     }
 
-    private Map<DexString, Map<DexProto, MethodGenerator>> addOrGetClass(DexString clazz) {
-      return rewritable.computeIfAbsent(clazz, k -> new HashMap<>());
-    }
-
-    private Map<DexProto, MethodGenerator> addOrGetMethod(
-        DexString clazz, DexString method) {
-      return addOrGetClass(clazz).computeIfAbsent(method, k -> new HashMap<>());
+    private void addGenerator(MethodGenerator generator) {
+      rewritable.computeIfAbsent(generator.clazz, k -> new HashMap<>())
+          .computeIfAbsent(generator.method, k -> new HashMap<>())
+          .put(generator.proto, generator);
     }
 
     public MethodGenerator getGenerator(DexString clazz, DexString method, DexProto proto) {
@@ -1004,8 +950,13 @@ public final class BackportedMethodRewriter {
       private final DexProto proto;
       private DexMethod dexMethod;
 
-      public MethodGenerator(TemplateMethodFactory factory,
-          String methodName, DexString clazz, DexString method, DexProto proto) {
+      public MethodGenerator(DexString clazz, DexString method, DexProto proto,
+          TemplateMethodFactory factory) {
+        this(clazz, method, proto, factory, method.toString());
+      }
+
+      public MethodGenerator(DexString clazz, DexString method, DexProto proto,
+          TemplateMethodFactory factory, String methodName) {
         this.factory = factory;
         this.methodName = methodName;
         this.clazz = clazz;
