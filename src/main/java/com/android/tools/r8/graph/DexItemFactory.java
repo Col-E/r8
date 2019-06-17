@@ -179,6 +179,7 @@ public class DexItemFactory {
   public final DexString invokeExactMethodName = createString("invokeExact");
 
   public final DexString charSequenceDescriptor = createString("Ljava/lang/CharSequence;");
+  public final DexString charSequenceArrayDescriptor = createString("[Ljava/lang/CharSequence;");
   public final DexString stringDescriptor = createString("Ljava/lang/String;");
   public final DexString stringArrayDescriptor = createString("[Ljava/lang/String;");
   public final DexString objectDescriptor = createString("Ljava/lang/Object;");
@@ -193,6 +194,7 @@ public class DexItemFactory {
   public final DexString enumDescriptor = createString("Ljava/lang/Enum;");
   public final DexString annotationDescriptor = createString("Ljava/lang/annotation/Annotation;");
   public final DexString objectsDescriptor = createString("Ljava/util/Objects;");
+  public final DexString iterableDescriptor = createString("Ljava/lang/Iterable;");
 
   public final DexString stringBuilderDescriptor = createString("Ljava/lang/StringBuilder;");
   public final DexString stringBufferDescriptor = createString("Ljava/lang/StringBuffer;");
@@ -256,6 +258,7 @@ public class DexItemFactory {
   public final DexType boxedNumberType = createType(boxedNumberDescriptor);
 
   public final DexType charSequenceType = createType(charSequenceDescriptor);
+  public final DexType charSequenceArrayType = createType(charSequenceArrayDescriptor);
   public final DexType stringType = createType(stringDescriptor);
   public final DexType stringArrayType = createType(stringArrayDescriptor);
   public final DexType objectType = createType(objectDescriptor);
@@ -263,6 +266,7 @@ public class DexItemFactory {
   public final DexType classArrayType = createType(classArrayDescriptor);
   public final DexType enumType = createType(enumDescriptor);
   public final DexType annotationType = createType(annotationDescriptor);
+  public final DexType iterableType = createType(iterableDescriptor);
 
   public final DexType classType = createType(classDescriptor);
   public final DexType classLoaderType = createType(classLoaderDescriptor);

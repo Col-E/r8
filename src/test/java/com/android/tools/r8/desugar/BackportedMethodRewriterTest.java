@@ -15,6 +15,7 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -39,7 +40,7 @@ public class BackportedMethodRewriterTest extends TestBase {
         .run(TestMethods.class)
         .assertSuccessWithOutput(expectedOutput);
 
-    assertDesugaring(AndroidApiLevel.O, 60);
+    assertDesugaring(AndroidApiLevel.O, 70);
     assertDesugaring(AndroidApiLevel.N, 49);
     assertDesugaring(AndroidApiLevel.K, 20);
     assertDesugaring(AndroidApiLevel.J_MR2, 0);
@@ -135,6 +136,12 @@ public class BackportedMethodRewriterTest extends TestBase {
     // Defined as a static method on this class to avoid affecting invoke-static counts in main().
     private static int signum(int value) {
       return (int) Math.signum(value);
+    }
+
+    // Defined as a static method on this class to avoid affecting invoke-static counts in main().
+    @SafeVarargs
+    private static <T> List<T> listOf(T... values) {
+      return Arrays.asList(values);
     }
 
     public static void main(String[] args) {
@@ -242,6 +249,30 @@ public class BackportedMethodRewriterTest extends TestBase {
         for (char bChar : aChars) {
           System.out.println(Character.compare(aChar, bChar));
         }
+      }
+
+      System.out.println(String.join(", "));
+      System.out.println(String.join(", ", "one", "two", "three"));
+      System.out.println(String.join("", "one", "two", "three"));
+      try {
+        throw new AssertionError(String.join(null, "one", "two", "three"));
+      } catch (NullPointerException expected) {
+      }
+      try {
+        throw new AssertionError(String.join(", ", (CharSequence[]) null));
+      } catch (NullPointerException expected) {
+      }
+
+      System.out.println(String.join(", ", listOf()));
+      System.out.println(String.join(", ", listOf("one", "two", "three")));
+      System.out.println(String.join("", listOf("one", "two", "three")));
+      try {
+        throw new AssertionError(String.join(null, listOf("one", "two", "three")));
+      } catch (NullPointerException expected) {
+      }
+      try {
+        throw new AssertionError(String.join(", ", (Iterable<CharSequence>) null));
+      } catch (NullPointerException expected) {
       }
 
       System.out.println(Objects.compare("a", "b", reverse()));

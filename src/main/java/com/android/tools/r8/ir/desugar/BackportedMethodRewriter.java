@@ -38,6 +38,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -453,6 +454,40 @@ public final class BackportedMethodRewriter {
 
     public static int compareImpl(char a, char b) {
       return Character.valueOf(a).compareTo(Character.valueOf(b));
+    }
+  }
+
+  private static final class StringMethods extends TemplateMethodCode {
+    StringMethods(InternalOptions options, DexMethod method, String methodName) {
+      super(options, method, methodName, method.proto.toDescriptorString());
+    }
+
+    public static String joinArrayImpl(CharSequence delimiter, CharSequence... elements) {
+      if (delimiter == null) throw new NullPointerException("delimiter");
+      StringBuilder builder = new StringBuilder();
+      if (elements.length > 0) {
+        builder.append(elements[0]);
+        for (int i = 1; i < elements.length; i++) {
+          builder.append(delimiter);
+          builder.append(elements[i]);
+        }
+      }
+      return builder.toString();
+    }
+
+    public static String joinIterableImpl(CharSequence delimiter,
+        Iterable<? extends CharSequence> elements) {
+      if (delimiter == null) throw new NullPointerException("delimiter");
+      StringBuilder builder = new StringBuilder();
+      Iterator<? extends CharSequence> iterator = elements.iterator();
+      if (iterator.hasNext()) {
+        builder.append(iterator.next());
+        while (iterator.hasNext()) {
+          builder.append(delimiter);
+          builder.append(iterator.next());
+        }
+      }
+      return builder.toString();
     }
   }
 
@@ -922,6 +957,23 @@ public final class BackportedMethodRewriter {
       proto = factory.createProto(factory.intType, factory.longType, factory.longType);
       addOrGetMethod(clazz, method).put(proto,
           new MethodGenerator(LongMethods::new, "compareUnsignedImpl", clazz, method, proto));
+
+      // String
+      clazz = factory.stringDescriptor;
+
+      // String String.join(CharSequence, CharSequence...)
+      method = factory.createString("join");
+      proto = factory.createProto(factory.stringType, factory.charSequenceType,
+          factory.charSequenceArrayType);
+      addOrGetMethod(clazz, method).put(proto,
+          new MethodGenerator(StringMethods::new, "joinArrayImpl", clazz, method, proto));
+
+      // String String.join(CharSequence, Iterable<? extends CharSequence>)
+      method = factory.createString("join");
+      proto =
+          factory.createProto(factory.stringType, factory.charSequenceType, factory.iterableType);
+      addOrGetMethod(clazz, method).put(proto,
+          new MethodGenerator(StringMethods::new, "joinIterableImpl", clazz, method, proto));
     }
 
     private Map<DexString, Map<DexProto, MethodGenerator>> addOrGetClass(DexString clazz) {
