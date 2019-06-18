@@ -81,7 +81,8 @@ public class TrivialGotoEliminationTest {
             false,
             false,
             false,
-            Origin.unknown());
+            Origin.unknown(),
+            IRCode.NO_PARAMETER_INFO);
     CodeRewriter.collapseTrivialGotos(null, code);
     assertTrue(code.entryBlock().isTrivialGoto());
     assertTrue(blocks.contains(block0));
@@ -168,7 +169,8 @@ public class TrivialGotoEliminationTest {
             false,
             false,
             false,
-            Origin.unknown());
+            Origin.unknown(),
+            IRCode.NO_PARAMETER_INFO);
     CodeRewriter.collapseTrivialGotos(null, code);
     assertTrue(block0.getInstructions().get(1).isIf());
     assertEquals(block1, block0.getInstructions().get(1).asIf().fallthroughBlock());

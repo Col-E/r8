@@ -268,6 +268,7 @@ public class CfBuilder {
     CatchHandlers<BasicBlock> tryCatchHandlers = CatchHandlers.EMPTY_BASIC_BLOCK;
     boolean previousFallthrough = false;
 
+    boolean firstBlock = true;
     do {
       CatchHandlers<BasicBlock> handlers = block.getCatchHandlers();
       if (!tryCatchHandlers.equals(handlers)) {
@@ -308,6 +309,11 @@ public class CfBuilder {
       buildCfInstructions(block, nextBlock, fallthrough, stackHeightTracker);
 
       assert !block.exit().isReturn() || stackHeightTracker.isEmpty();
+
+      if (firstBlock) {
+        addParameterNamesIfRequired(block, code.parameterInfo);
+        firstBlock = false;
+      }
 
       block = nextBlock;
       previousFallthrough = fallthrough;
@@ -622,6 +628,24 @@ public class CfBuilder {
     if (!emittedLabels.contains(label)) {
       emittedLabels.add(label);
       instructions.add(label);
+    }
+  }
+
+  private void addParameterNamesIfRequired(
+      BasicBlock block, Map<Integer, DebugLocalInfo> parameterInfo) {
+    // Don't add this information if the code already have full debug information.
+    if (appView.options().debug) {
+      return;
+    }
+
+    if (code.parameterInfo != IRCode.NO_PARAMETER_INFO) {
+      for (Map.Entry<Integer, DebugLocalInfo> entries : parameterInfo.entrySet()) {
+        LocalVariableInfo localVariableInfo =
+            new LocalVariableInfo(entries.getKey(), entries.getValue(), getLabel(block));
+        CfLabel endLabel = ensureLabel();
+        localVariableInfo.setEnd(endLabel);
+        localVariablesTable.add(localVariableInfo);
+      }
     }
   }
 

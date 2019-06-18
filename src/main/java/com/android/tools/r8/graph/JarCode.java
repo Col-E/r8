@@ -18,13 +18,16 @@ import com.android.tools.r8.jar.JarRegisterEffectsVisitor;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OffOrAuto;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.function.BiFunction;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
@@ -34,6 +37,7 @@ import org.objectweb.asm.commons.JSRInlinerAdapter;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LineNumberNode;
+import org.objectweb.asm.tree.LocalVariableNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.TryCatchBlockNode;
 import org.objectweb.asm.util.Textifier;
@@ -148,9 +152,37 @@ public class JarCode extends Code {
       Position callerPosition) {
     triggerDelayedParsingIfNeccessary();
     if (!keepLocals(encodedMethod, appView.options())) {
+      // If the locals are not kept, we might still need a bit of locals information to satisfy
+      // -keepparameternames for R8.
+      Map<Integer, DebugLocalInfo> parameterInfo = IRCode.NO_PARAMETER_INFO;
+      if (appView.options().hasProguardConfiguration()
+          && appView.options().getProguardConfiguration().isKeepParameterNames()) {
+        // Collect the number of local slots used for arguments.
+        int localsForParameters = encodedMethod.isStatic() ? 0 : 1;
+        for (DexType type : encodedMethod.method.proto.parameters.values) {
+          localsForParameters += type.isLongType() || type.isDoubleType() ? 2 : 1;
+        }
+        // Collect the first piece of local variable information for each argument local slot,
+        // assuming that that does actually describe the parameter (name, type and possibly
+        // signature).
+        DexItemFactory factory = appView.options().itemFactory;
+        parameterInfo = new Int2ReferenceArrayMap<>(localsForParameters);
+        for (Object o : node.localVariables) {
+          LocalVariableNode node = (LocalVariableNode) o;
+          if (node.index < localsForParameters && !parameterInfo.containsKey(node.index)) {
+            parameterInfo.put(
+                node.index,
+                new DebugLocalInfo(
+                    factory.createString(node.name),
+                    factory.createType(factory.createString(node.desc)),
+                    node.signature == null ? null : factory.createString(node.signature)));
+          }
+        }
+      }
       // We strip locals here because we will not be able to recover from invalid info.
       node.localVariables.clear();
-      return internalBuild(context, encodedMethod, appView, generator, callerPosition);
+      return internalBuild(
+          context, encodedMethod, appView, generator, callerPosition, parameterInfo);
     } else {
       return internalBuildWithLocals(context, encodedMethod, appView, generator, callerPosition);
     }
@@ -163,11 +195,13 @@ public class JarCode extends Code {
       ValueNumberGenerator generator,
       Position callerPosition) {
     try {
-      return internalBuild(context, encodedMethod, appView, generator, callerPosition);
+      return internalBuild(
+          context, encodedMethod, appView, generator, callerPosition, IRCode.NO_PARAMETER_INFO);
     } catch (InvalidDebugInfoException e) {
       appView.options().warningInvalidDebugInfo(encodedMethod, origin, e);
       node.localVariables.clear();
-      return internalBuild(context, encodedMethod, appView, generator, callerPosition);
+      return internalBuild(
+          context, encodedMethod, appView, generator, callerPosition, IRCode.NO_PARAMETER_INFO);
     }
   }
 
@@ -186,7 +220,8 @@ public class JarCode extends Code {
       DexEncodedMethod encodedMethod,
       AppView<?> appView,
       ValueNumberGenerator generator,
-      Position callerPosition) {
+      Position callerPosition,
+      Map<Integer, DebugLocalInfo> parameterInfo) {
     assert node.localVariables.isEmpty() || keepLocals(encodedMethod, appView.options());
     JarSourceCode source =
         new JarSourceCode(
@@ -196,7 +231,7 @@ public class JarCode extends Code {
             appView.graphLense().getOriginalMethodSignature(encodedMethod.method),
             callerPosition);
     IRBuilder builder = new IRBuilder(encodedMethod, appView, source, origin, generator);
-    return builder.build(context);
+    return builder.build(context, parameterInfo);
   }
 
   @Override
@@ -286,17 +321,19 @@ public class JarCode extends Code {
   }
 
   private void parseCode(ReparseContext context, boolean useJsrInliner) {
-    // If the keep attributes do not specify keeping LocalVariableTable, LocalVariableTypeTable or
-    // LineNumberTable, then we can skip parsing all the debug related attributes during code read.
-    // If the method is reachability sensitive we have to include debug information in order
-    // to get locals information which we need to extend the live ranges of locals for their
-    // entire scope.
+    // If -keepparameternames is not specified and the keep attributes do not specify keeping
+    // either of LocalVariableTable, LocalVariableTypeTable or LineNumberTable, then we can skip
+    // parsing all the debug related attributes during code read. If the method is reachability
+    // sensitive we have to include debug information in order to get locals information which we
+    // need to extend the live ranges of locals for their entire scope.
     int parsingOptions = ClassReader.SKIP_FRAMES;
 
-    if (application.options.getProguardConfiguration() != null) {
+    ProguardConfiguration configuration = application.options.getProguardConfiguration();
+    if (configuration != null && !configuration.isKeepParameterNames()) {
       ProguardKeepAttributes keep =
           application.options.getProguardConfiguration().getKeepAttributes();
-      if (!keep.localVariableTable
+      if (!application.options.getProguardConfiguration().isKeepParameterNames()
+          && !keep.localVariableTable
           && !keep.localVariableTypeTable
           && !keep.lineNumberTable
           && !reachabilitySensitive) {

@@ -141,7 +141,8 @@ public class ConstantRemovalTest {
             false,
             false,
             false,
-            Origin.unknown());
+            Origin.unknown(),
+            IRCode.NO_PARAMETER_INFO);
     PeepholeOptimizer.optimize(code, new MockLinearScanRegisterAllocator(appView, code));
 
     // Check that all four constant number instructions remain.

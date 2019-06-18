@@ -495,6 +495,19 @@ public class IRBuilder {
    * @return The list of basic blocks. First block is the main entry.
    */
   public IRCode build(DexEncodedMethod context) {
+    return build(context, IRCode.NO_PARAMETER_INFO);
+  }
+
+  /**
+   * Build the high-level IR in SSA form.
+   *
+   * @param context Under what context this IRCode is built. Either the current method or caller.
+   * @param parameterInfo Parameter information to include in the output. Pass <code>
+   *     IRCode.NO_PARAMETER_INFO</code> if this is not relevant. This information is only used if
+   *     the generated code does not contain any debug information.
+   * @return The list of basic blocks. First block is the main entry.
+   */
+  public IRCode build(DexEncodedMethod context, Map<Integer, DebugLocalInfo> parameterInfo) {
     assert source != null;
     source.setUp();
 
@@ -595,7 +608,8 @@ public class IRBuilder {
             hasDebugPositions,
             hasMonitorInstruction,
             hasConstString,
-            origin);
+            origin,
+            parameterInfo);
 
     // Verify critical edges are split so we have a place to insert phi moves if necessary.
     assert ir.verifySplitCriticalEdges();

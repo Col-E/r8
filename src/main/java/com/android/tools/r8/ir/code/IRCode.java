@@ -21,6 +21,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -89,6 +90,8 @@ public class IRCode {
   // When numbering instructions we number instructions only with even numbers. This allows us to
   // use odd instruction numbers for the insertion of moves during spilling.
   public static final int INSTRUCTION_NUMBER_DELTA = 2;
+  public static final Map<Integer, DebugLocalInfo> NO_PARAMETER_INFO =
+      new Int2ReferenceArrayMap<>(0);
 
   public final DexEncodedMethod method;
 
@@ -112,6 +115,8 @@ public class IRCode {
 
   public final Origin origin;
 
+  public final Map<Integer, DebugLocalInfo> parameterInfo;
+
   public IRCode(
       InternalOptions options,
       DexEncodedMethod method,
@@ -120,7 +125,8 @@ public class IRCode {
       boolean hasDebugPositions,
       boolean hasMonitorInstruction,
       boolean hasConstString,
-      Origin origin) {
+      Origin origin,
+      Map<Integer, DebugLocalInfo> parameterInfo) {
     assert options != null;
     this.options = options;
     this.method = method;
@@ -130,8 +136,10 @@ public class IRCode {
     this.hasMonitorInstruction = hasMonitorInstruction;
     this.hasConstString = hasConstString;
     this.origin = origin;
+    this.parameterInfo = parameterInfo;
     // TODO(zerny): Remove or update this property now that all instructions have positions.
     allThrowingInstructionsHavePositions = computeAllThrowingInstructionsHavePositions();
+    assert parameterInfo != null;
   }
 
   public void copyMetadataFromInlinee(IRCode inlinee) {
