@@ -217,8 +217,7 @@ public class ProguardConfigurationParser {
       configurationBuilder.addParsedConfiguration(contents.substring(positionAfterInclude));
     }
 
-    private boolean parseOption()
-        throws ProguardRuleParserException {
+    private boolean parseOption() throws ProguardRuleParserException {
       if (eof()) {
         return false;
       }
@@ -250,15 +249,11 @@ public class ProguardConfigurationParser {
       } else if (acceptString("keepdirectories")) {
         configurationBuilder.enableKeepDirectories();
         parsePathFilter(configurationBuilder::addKeepDirectories);
-      } else if (allowTestOptions && acceptString("keepconstantarguments")) {
-        ConstantArgumentRule rule = parseConstantArgumentRule(optionStart);
-        configurationBuilder.addRule(rule);
-      } else if (allowTestOptions && acceptString("keepunusedarguments")) {
-        UnusedArgumentRule rule = parseUnusedArgumentRule(optionStart);
-        configurationBuilder.addRule(rule);
       } else if (acceptString("keep")) {
-        ProguardKeepRule rule = parseKeepRule(optionStart);
-        configurationBuilder.addRule(rule);
+        if (!parseTestingOption(optionStart)) {
+          ProguardKeepRule rule = parseKeepRule(optionStart);
+          configurationBuilder.addRule(rule);
+        }
       } else if (acceptString("whyareyoukeeping")) {
         ProguardWhyAreYouKeepingRule rule = parseWhyAreYouKeepingRule(optionStart);
         configurationBuilder.addRule(rule);
@@ -380,28 +375,6 @@ public class ProguardConfigurationParser {
       } else if (acceptString("alwaysinline")) {
         InlineRule rule = parseInlineRule(InlineRule.Type.ALWAYS, optionStart);
         configurationBuilder.addRule(rule);
-      } else if (allowTestOptions && acceptString("assumemayhavesideeffects")) {
-        ProguardAssumeMayHaveSideEffectsRule rule = parseAssumeMayHaveSideEffectsRule(optionStart);
-        configurationBuilder.addRule(rule);
-      } else if (allowTestOptions && acceptString("forceinline")) {
-        InlineRule rule = parseInlineRule(InlineRule.Type.FORCE, optionStart);
-        configurationBuilder.addRule(rule);
-        // Insert a matching -checkdiscard rule to ensure force inlining happens.
-        ProguardCheckDiscardRule ruled = rule.asProguardCheckDiscardRule();
-        configurationBuilder.addRule(ruled);
-      } else if (allowTestOptions && acceptString("neverinline")) {
-        InlineRule rule = parseInlineRule(InlineRule.Type.NEVER, optionStart);
-        configurationBuilder.addRule(rule);
-      } else if (allowTestOptions && acceptString("neverclassinline")) {
-        ClassInlineRule rule = parseClassInlineRule(ClassInlineRule.Type.NEVER, optionStart);
-        configurationBuilder.addRule(rule);
-      } else if (allowTestOptions && acceptString("nevermerge")) {
-        ClassMergingRule rule = parseClassMergingRule(ClassMergingRule.Type.NEVER, optionStart);
-        configurationBuilder.addRule(rule);
-      } else if (allowTestOptions && acceptString("neverpropagatevalue")) {
-        MemberValuePropagationRule rule =
-            parseMemberValuePropagationRule(MemberValuePropagationRule.Type.NEVER, optionStart);
-        configurationBuilder.addRule(rule);
       } else if (acceptString("adaptclassstrings")) {
         parseClassFilter(configurationBuilder::addAdaptClassStringsPattern);
       } else if (acceptString("adaptresourcefilenames")) {
@@ -416,7 +389,7 @@ public class ProguardConfigurationParser {
         configurationBuilder.setConfigurationDebugging(true);
       } else if (acceptString("dontusemixedcaseclassnames")) {
         configurationBuilder.setDontUseMixedCaseClassnames(true);
-      } else {
+      } else if (!parseTestingOption(optionStart)) {
         String unknownOption = acceptString();
         String devMessage = "";
         if (Version.isDev()
@@ -424,16 +397,68 @@ public class ProguardConfigurationParser {
             && (unknownOption.equals("forceinline") || unknownOption.equals("neverinline"))) {
           devMessage = ", this option needs to be turned on explicitly if used for tests.";
         }
-        unknownOption(unknownOption, optionStart, devMessage);
+        throw unknownOption(unknownOption, optionStart, devMessage);
       }
       return true;
     }
 
-    private void unknownOption(String unknownOption, TextPosition optionStart) {
-      unknownOption(unknownOption, optionStart, "");
+    private boolean parseTestingOption(TextPosition optionStart)
+        throws ProguardRuleParserException {
+      if (allowTestOptions) {
+        if (acceptString("assumemayhavesideeffects")) {
+          ProguardAssumeMayHaveSideEffectsRule rule =
+              parseAssumeMayHaveSideEffectsRule(optionStart);
+          configurationBuilder.addRule(rule);
+          return true;
+        }
+        if (acceptString("forceinline")) {
+          InlineRule rule = parseInlineRule(InlineRule.Type.FORCE, optionStart);
+          configurationBuilder.addRule(rule);
+          // Insert a matching -checkdiscard rule to ensure force inlining happens.
+          ProguardCheckDiscardRule ruled = rule.asProguardCheckDiscardRule();
+          configurationBuilder.addRule(ruled);
+          return true;
+        }
+        if (acceptString("keepconstantarguments")) {
+          ConstantArgumentRule rule = parseConstantArgumentRule(optionStart);
+          configurationBuilder.addRule(rule);
+          return true;
+        }
+        if (acceptString("keepunusedarguments")) {
+          UnusedArgumentRule rule = parseUnusedArgumentRule(optionStart);
+          configurationBuilder.addRule(rule);
+          return true;
+        }
+        if (acceptString("neverclassinline")) {
+          ClassInlineRule rule = parseClassInlineRule(ClassInlineRule.Type.NEVER, optionStart);
+          configurationBuilder.addRule(rule);
+          return true;
+        }
+        if (acceptString("neverinline")) {
+          InlineRule rule = parseInlineRule(InlineRule.Type.NEVER, optionStart);
+          configurationBuilder.addRule(rule);
+          return true;
+        }
+        if (acceptString("nevermerge")) {
+          ClassMergingRule rule = parseClassMergingRule(ClassMergingRule.Type.NEVER, optionStart);
+          configurationBuilder.addRule(rule);
+          return true;
+        }
+        if (acceptString("neverpropagatevalue")) {
+          MemberValuePropagationRule rule =
+              parseMemberValuePropagationRule(MemberValuePropagationRule.Type.NEVER, optionStart);
+          configurationBuilder.addRule(rule);
+          return true;
+        }
+      }
+      return false;
     }
 
-    private void unknownOption(
+    private RuntimeException unknownOption(String unknownOption, TextPosition optionStart) {
+      throw unknownOption(unknownOption, optionStart, "");
+    }
+
+    private RuntimeException unknownOption(
         String unknownOption, TextPosition optionStart, String additionalMessage) {
       throw reporter.fatalError((new StringDiagnostic(
           "Unknown option \"-" + unknownOption + "\"" + additionalMessage,
@@ -802,7 +827,7 @@ public class ProguardConfigurationParser {
           TextPosition start = getPosition();
           acceptString("-");
           String unknownOption = acceptString();
-          unknownOption(unknownOption, start);
+          throw unknownOption(unknownOption, start);
         }
       } else {
         builder.setType(ProguardKeepRuleType.KEEP);
@@ -813,7 +838,7 @@ public class ProguardConfigurationParser {
         TextPosition start = getPosition();
         acceptString("-");
         String unknownOption = acceptString();
-        unknownOption(unknownOption, start);
+        throw unknownOption(unknownOption, start);
       }
       parseRuleModifiers(builder);
     }
