@@ -68,6 +68,8 @@ public abstract class MethodSubject extends MemberSubject {
 
   public abstract LineNumberTable getLineNumberTable();
 
+  public abstract LocalVariableTable getLocalVariableTable();
+
   public abstract boolean hasLocalVariableTable();
 
   public Stream<InstructionSubject> streamInstructions() {

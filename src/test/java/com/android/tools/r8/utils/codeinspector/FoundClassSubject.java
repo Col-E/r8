@@ -20,7 +20,6 @@ import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.signature.GenericSignatureParser;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -292,5 +291,9 @@ public class FoundClassSubject extends ClassSubject {
   @Override
   public String toString() {
     return dexClass.toSourceString();
+  }
+
+  public TypeSubject asTypeSybject() {
+    return new TypeSubject(codeInspector, getDexClass().type);
   }
 }

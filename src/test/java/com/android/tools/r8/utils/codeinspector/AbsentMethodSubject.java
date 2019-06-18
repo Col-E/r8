@@ -119,6 +119,11 @@ public class AbsentMethodSubject extends MethodSubject {
   }
 
   @Override
+  public LocalVariableTable getLocalVariableTable() {
+    return null;
+  }
+
+  @Override
   public boolean hasLocalVariableTable() {
     throw new Unreachable("Cannot determine if an absent method has a local variable table");
   }

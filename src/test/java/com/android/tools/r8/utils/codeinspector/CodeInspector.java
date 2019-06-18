@@ -163,6 +163,11 @@ public class CodeInspector {
     return dexItemFactory.createType(DescriptorUtils.javaTypeToDescriptorIgnorePrimitives(string));
   }
 
+  public TypeSubject getTypeSubject(String string) {
+    return new TypeSubject(
+        this, dexItemFactory.createType(DescriptorUtils.javaTypeToDescriptor(string)));
+  }
+
   String mapType(Map<String, String> mapping, String typeName) {
     final String ARRAY_POSTFIX = "[]";
     int arrayCount = 0;

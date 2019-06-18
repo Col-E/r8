@@ -13,6 +13,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
+import com.android.tools.r8.graph.CfCode.LocalVariableInfo;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexCode;
@@ -30,6 +31,8 @@ import com.android.tools.r8.naming.signature.GenericSignatureParser;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.utils.codeinspector.LocalVariableTable.LocalVariableTableEntry;
+import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.util.Arrays;
@@ -283,6 +286,46 @@ public class FoundMethodSubject extends MethodSubject {
       lineNumberTable.put(new DexInstructionSubject(insn), state.getCurrentLine());
     }
     return new LineNumberTable(lineNumberTable);
+  }
+
+  @Override
+  public LocalVariableTable getLocalVariableTable() {
+    Code code = getMethod().getCode();
+    if (code.isDexCode()) {
+      return getDexLocalVariableTable(code.asDexCode());
+    }
+    if (code.isCfCode()) {
+      return getCfLocalVariableTable(code.asCfCode());
+    }
+    if (code.isJarCode()) {
+      return getJarLocalVariableTable(code.asJarCode());
+    }
+    throw new Unreachable("Unexpected code type: " + code.getClass().getSimpleName());
+  }
+
+  private LocalVariableTable getJarLocalVariableTable(JarCode code) {
+    throw new Unimplemented("No support for inspecting the line number table for JarCode");
+  }
+
+  private LocalVariableTable getCfLocalVariableTable(CfCode code) {
+    ImmutableList.Builder<LocalVariableTableEntry> builder = ImmutableList.builder();
+    for (LocalVariableInfo localVariable : code.getLocalVariables()) {
+      builder.add(
+          new LocalVariableTableEntry(
+              localVariable.getIndex(),
+              localVariable.getLocal().name.toString(),
+              new TypeSubject(codeInspector, localVariable.getLocal().type),
+              localVariable.getLocal().signature == null
+                  ? null
+                  : localVariable.getLocal().signature.toString(),
+              new CfInstructionSubject(localVariable.getStart()),
+              new CfInstructionSubject(localVariable.getEnd())));
+    }
+    return new LocalVariableTable(builder.build());
+  }
+
+  private LocalVariableTable getDexLocalVariableTable(DexCode code) {
+    throw new Unimplemented("No support for inspecting the line number table for DexCode");
   }
 
   @Override
