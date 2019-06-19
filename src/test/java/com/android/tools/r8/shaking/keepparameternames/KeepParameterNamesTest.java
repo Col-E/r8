@@ -10,6 +10,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.KeepUnusedArguments;
+import com.android.tools.r8.NeverClassInline;
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestShrinkerBuilder;
@@ -33,15 +36,19 @@ public class KeepParameterNamesTest extends TestBase {
 
   private final TestParameters parameters;
   private final boolean keepParameterNames;
+  private final boolean enableMinification;
 
-  @Parameterized.Parameters(name = "{0}, keepparameternames {1}")
+  @Parameterized.Parameters(name = "{0}, keepparameternames {1}, minification {2}")
   public static Collection<Object[]> data() {
-    return buildParameters(getTestParameters().withCfRuntimes().build(), BooleanUtils.values());
+    return buildParameters(
+        getTestParameters().withCfRuntimes().build(), BooleanUtils.values(), BooleanUtils.values());
   }
 
-  public KeepParameterNamesTest(TestParameters parameters, boolean keepParameterNames) {
+  public KeepParameterNamesTest(
+      TestParameters parameters, boolean keepParameterNames, boolean enableMinification) {
     this.parameters = parameters;
     this.keepParameterNames = keepParameterNames;
+    this.enableMinification = enableMinification;
   }
 
   private void checkLocalVariable(
@@ -70,16 +77,16 @@ public class KeepParameterNamesTest extends TestBase {
       assertEquals("this", localVariableTable.get(0).name);
       assertTrue(localVariableTable.get(0).type.is(classSubject));
     } else {
-      method.getLocalVariableTable().isEmpty();
+      assertTrue(method.getLocalVariableTable().isEmpty());
     }
 
     method = classSubject.uniqueMethodWithName("apiNoArgsStatic");
     assertThat(method, isPresent());
     assertFalse(method.hasLocalVariableTable());
+    assertTrue(method.getLocalVariableTable().isEmpty());
 
     method = classSubject.uniqueMethodWithName("api1");
     assertThat(method, isPresent());
-
     assertEquals(keepParameterNames, method.hasLocalVariableTable());
     if (keepParameterNames) {
       LocalVariableTable localVariableTable = method.getLocalVariableTable();
@@ -99,7 +106,7 @@ public class KeepParameterNamesTest extends TestBase {
           inspector.getTypeSubject("java.lang.String"),
           null);
     } else {
-      method.getLocalVariableTable().isEmpty();
+      assertTrue(method.getLocalVariableTable().isEmpty());
     }
 
     method = classSubject.uniqueMethodWithName("api2");
@@ -119,7 +126,7 @@ public class KeepParameterNamesTest extends TestBase {
       checkLocalVariable(
           localVariableTable.get(2), 3, "parameter2", inspector.getTypeSubject("double"), null);
     } else {
-      method.getLocalVariableTable().isEmpty();
+      assertTrue(method.getLocalVariableTable().isEmpty());
     }
 
     method = classSubject.uniqueMethodWithName("api3");
@@ -147,12 +154,12 @@ public class KeepParameterNamesTest extends TestBase {
           inspector.getTypeSubject("java.util.Map"),
           "Ljava/util/Map<Ljava/lang/String;Ljava/lang/Object;>;");
     } else {
-      method.getLocalVariableTable().isEmpty();
+      assertTrue(method.getLocalVariableTable().isEmpty());
     }
   }
 
   @Test
-  public void test() throws Exception {
+  public void testApiKept() throws Exception {
     String expectedOutput =
         StringUtils.lines(
             "In Api.apiNoArgs",
@@ -164,10 +171,48 @@ public class KeepParameterNamesTest extends TestBase {
         .addInnerClasses(KeepParameterNamesTest.class)
         .addKeepMainRule(TestClass.class)
         .addKeepRules("-keep class " + Api.class.getTypeName() + "{ api*(...); }")
+        .minification(enableMinification)
         .apply(this::configureKeepParameterNames)
         .compile()
-        .disassemble()
         .inspect(this::checkLocalVariableTable)
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(expectedOutput);
+  }
+
+  private void checkLocalVariableTableNotKept(CodeInspector inspector) {
+    ClassSubject classSubject = inspector.clazz(Api.class);
+    assertThat(classSubject, isPresent());
+    assertEquals(enableMinification, classSubject.isRenamed());
+
+    MethodSubject method;
+    for (String name : new String[] {"apiNoArgs", "apiNoArgsStatic", "api1", "api2", "api3"}) {
+      method = classSubject.uniqueMethodWithName(name);
+      assertThat(method, isPresent());
+      assertEquals(enableMinification, method.isRenamed());
+      assertFalse(method.hasLocalVariableTable());
+      assertTrue(method.getLocalVariableTable().isEmpty());
+    }
+  }
+
+  @Test
+  public void testApiNotKept() throws Exception {
+    String expectedOutput =
+        StringUtils.lines(
+            "In Api.apiNoArgs",
+            "In Api.apiNoArgsStatic",
+            "In Api.api1",
+            "In Api.api2",
+            "In Api.api3");
+    testForR8(parameters.getBackend())
+        .enableClassInliningAnnotations()
+        .enableInliningAnnotations()
+        .enableUnusedArgumentAnnotations()
+        .addInnerClasses(KeepParameterNamesTest.class)
+        .addKeepMainRule(TestClass.class)
+        .minification(enableMinification)
+        .apply(this::configureKeepParameterNames)
+        .compile()
+        .inspect(this::checkLocalVariableTableNotKept)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(expectedOutput);
   }
@@ -190,23 +235,37 @@ public class KeepParameterNamesTest extends TestBase {
     }
   }
 
+  @NeverClassInline
   static class Api {
+    @NeverInline
     void apiNoArgs() {
       System.out.println("In Api.apiNoArgs");
     }
 
+    @NeverInline
     static void apiNoArgsStatic() {
       System.out.println("In Api.apiNoArgsStatic");
     }
 
+    @NeverInline
+    @KeepUnusedArguments
     void api1(int parameter1, String parameter2) {
+      try {
+        // Reflective behaviour to trigger IR building in the enqueuer.
+        Class.forName("NotFound");
+      } catch (Exception e) {
+      }
       System.out.println("In Api.api1");
     }
 
+    @NeverInline
+    @KeepUnusedArguments
     void api2(long parameter1, double parameter2) {
       System.out.println("In Api.api2");
     }
 
+    @NeverInline
+    @KeepUnusedArguments
     void api3(List<String> parameter1, Map<String, Object> parameter2) {
       System.out.println("In Api.api3");
     }

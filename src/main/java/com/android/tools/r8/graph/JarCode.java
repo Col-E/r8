@@ -26,6 +26,7 @@ import com.android.tools.r8.utils.OffOrAuto;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.BitSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -154,33 +155,11 @@ public class JarCode extends Code {
     if (!keepLocals(encodedMethod, appView.options())) {
       // If the locals are not kept, we might still need a bit of locals information to satisfy
       // -keepparameternames for R8.
-      Map<Integer, DebugLocalInfo> parameterInfo = IRCode.NO_PARAMETER_INFO;
-      if (appView.options().hasProguardConfiguration()
-          && appView.options().getProguardConfiguration().isKeepParameterNames()) {
-        // Collect the number of local slots used for arguments.
-        int localsForParameters = encodedMethod.isStatic() ? 0 : 1;
-        for (DexType type : encodedMethod.method.proto.parameters.values) {
-          localsForParameters += type.isLongType() || type.isDoubleType() ? 2 : 1;
-        }
-        // Collect the first piece of local variable information for each argument local slot,
-        // assuming that that does actually describe the parameter (name, type and possibly
-        // signature).
-        DexItemFactory factory = appView.options().itemFactory;
-        parameterInfo = new Int2ReferenceArrayMap<>(localsForParameters);
-        for (Object o : node.localVariables) {
-          LocalVariableNode node = (LocalVariableNode) o;
-          if (node.index < localsForParameters && !parameterInfo.containsKey(node.index)) {
-            parameterInfo.put(
-                node.index,
-                new DebugLocalInfo(
-                    factory.createString(node.name),
-                    factory.createType(factory.createString(node.desc)),
-                    node.signature == null ? null : factory.createString(node.signature)));
-          }
-        }
-      }
+      Map<Integer, DebugLocalInfo> parameterInfo = collectParameterInfo(encodedMethod, appView);
       // We strip locals here because we will not be able to recover from invalid info.
-      node.localVariables.clear();
+      if (canStripLocals(encodedMethod, appView)) {
+        node.localVariables.clear();
+      }
       return internalBuild(
           context, encodedMethod, appView, generator, callerPosition, parameterInfo);
     } else {
@@ -215,6 +194,65 @@ public class JarCode extends Code {
     return false;
   }
 
+  private Map<Integer, DebugLocalInfo> collectParameterInfo(
+      DexEncodedMethod encodedMethod, AppView<?> appView) {
+    if (!appView.options().hasProguardConfiguration()
+        || !appView.options().getProguardConfiguration().isKeepParameterNames()) {
+      return IRCode.NO_PARAMETER_INFO;
+    }
+    // The enqueuer might build IR to trace reflective behaviour. At that point liveness is not
+    // known, so be conservative with collection parameter name information.
+    if (appView.appInfo().hasLiveness()
+        && !appView.appInfo().withLiveness().isPinned(encodedMethod.method)) {
+      return IRCode.NO_PARAMETER_INFO;
+    }
+    // Collect the local slots used for parameters.
+    BitSet localSlotsForParameters = new BitSet(0);
+    int nextLocalSlotsForParameters = 0;
+    if (!encodedMethod.isStatic()) {
+      localSlotsForParameters.set(nextLocalSlotsForParameters++);
+    }
+    for (DexType type : encodedMethod.method.proto.parameters.values) {
+      localSlotsForParameters.set(nextLocalSlotsForParameters);
+      nextLocalSlotsForParameters += type.isLongType() || type.isDoubleType() ? 2 : 1;
+    }
+    // Collect the first piece of local variable information for each argument local slot,
+    // assuming that that does actually describe the parameter (name, type and possibly
+    // signature).
+    DexItemFactory factory = appView.options().itemFactory;
+    Map<Integer, DebugLocalInfo> parameterInfo =
+        new Int2ReferenceArrayMap<>(localSlotsForParameters.cardinality());
+    for (Object o : node.localVariables) {
+      LocalVariableNode node = (LocalVariableNode) o;
+      if (node.index < nextLocalSlotsForParameters
+          && localSlotsForParameters.get(node.index)
+          && !parameterInfo.containsKey(node.index)) {
+        parameterInfo.put(
+            node.index,
+            new DebugLocalInfo(
+                factory.createString(node.name),
+                factory.createType(factory.createString(node.desc)),
+                node.signature == null ? null : factory.createString(node.signature)));
+      }
+    }
+    return parameterInfo;
+  }
+
+  private boolean canStripLocals(DexEncodedMethod encodedMethod, AppView<?> appView) {
+    // If not keeping parameter names the locals can always be stripped.
+    if (!appView.options().hasProguardConfiguration()
+        || !appView.options().getProguardConfiguration().isKeepParameterNames()) {
+      return true;
+    }
+    // The enqueuer might build IR to trace reflective behaviour. At that point liveness is not
+    // known, so locals cannot be stripped as IR will built again in the IR converter.
+    if (appView.appInfo().hasLiveness()
+        && !appView.appInfo().withLiveness().isPinned(encodedMethod.method)) {
+      return true;
+    }
+    return false;
+  }
+
   private IRCode internalBuild(
       DexEncodedMethod context,
       DexEncodedMethod encodedMethod,
@@ -222,7 +260,9 @@ public class JarCode extends Code {
       ValueNumberGenerator generator,
       Position callerPosition,
       Map<Integer, DebugLocalInfo> parameterInfo) {
-    assert node.localVariables.isEmpty() || keepLocals(encodedMethod, appView.options());
+    assert node.localVariables.isEmpty()
+        || keepLocals(encodedMethod, appView.options())
+        || !canStripLocals(encodedMethod, appView);
     JarSourceCode source =
         new JarSourceCode(
             method.holder,
