@@ -8,7 +8,6 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assume.assumeFalse;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
@@ -50,10 +49,6 @@ public class StringSwitchConversionFromIfTest extends TestBase {
 
   @Test
   public void test() throws Exception {
-    // TODO(b/135559645): Add support for identifying string-switch instructions in the generated
-    //  bytecode.
-    assumeFalse(enableStringSwitchConversion);
-
     testForR8(parameters.getBackend())
         .addInnerClasses(StringSwitchConversionFromIfTest.class)
         .addKeepMainRule(TestClass.class)
@@ -110,12 +105,6 @@ public class StringSwitchConversionFromIfTest extends TestBase {
                     methodName,
                     enableStringSwitchConversion,
                     hashCodeValues.stream().filter(Objects::nonNull).noneMatch(Value::isUsed));
-
-                // Check that the IR has exactly one StringSwitch instruction iff string-switch
-                // conversion is enabled.
-                long numberOfStringSwitchInstructions =
-                    Streams.stream(code.instructions()).filter(Instruction::isStringSwitch).count();
-                assertEquals(enableStringSwitchConversion, numberOfStringSwitchInstructions == 1);
               }
             })
         .run(parameters.getRuntime(), TestClass.class)

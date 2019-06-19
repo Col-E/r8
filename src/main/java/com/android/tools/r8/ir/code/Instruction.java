@@ -1319,7 +1319,11 @@ public abstract class Instruction implements InstructionOrPhi {
   public boolean verifyValidPositionInfo(boolean debug) {
     assert position != null;
     assert !debug || getPosition().isSome();
-    assert !instructionTypeCanThrow() || getPosition().isSome() || getPosition().isSyntheticNone();
+    assert !instructionTypeCanThrow()
+        || isConstString()
+        || isDexItemBasedConstString()
+        || getPosition().isSome()
+        || getPosition().isSyntheticNone();
     return true;
   }
 

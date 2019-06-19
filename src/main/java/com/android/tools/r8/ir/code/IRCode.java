@@ -908,7 +908,8 @@ public class IRCode {
       if (instruction.instructionTypeCanThrow()
           && !instruction.isConstString()
           && !instruction.isDexItemBasedConstString()
-          && instruction.getPosition().isNone()) {
+          && instruction.getPosition().isNone()
+          && !instruction.getPosition().isSyntheticNone()) {
         return false;
       }
     }

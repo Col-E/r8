@@ -10,6 +10,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import java.util.function.BiConsumer;
 
 public class StringSwitch extends JumpInstruction {
 
@@ -29,6 +30,12 @@ public class StringSwitch extends JumpInstruction {
   @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);
+  }
+
+  public void forEachCase(BiConsumer<DexString, BasicBlock> fn) {
+    for (int i = 0; i < keys.length; i++) {
+      fn.accept(getKey(i), targetBlock(i));
+    }
   }
 
   private boolean valid() {

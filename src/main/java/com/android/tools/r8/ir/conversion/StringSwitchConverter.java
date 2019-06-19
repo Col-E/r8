@@ -722,7 +722,7 @@ class StringSwitchConverter {
   static class Utils {
 
     static BasicBlock getTrueTarget(If theIf) {
-      assert theIf.getType() == If.Type.EQ || theIf.getType() != If.Type.NE;
+      assert theIf.getType() == If.Type.EQ || theIf.getType() == If.Type.NE;
       return theIf.getType() == If.Type.EQ ? theIf.getTrueTarget() : theIf.fallthroughBlock();
     }
 

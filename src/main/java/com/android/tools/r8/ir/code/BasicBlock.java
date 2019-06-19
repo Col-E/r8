@@ -1316,9 +1316,11 @@ public class BasicBlock {
    * @param theIf the if instruction
    * @param instruction the instruction to place before the if instruction
    */
-  public static BasicBlock createIfBlock(int blockNumber, If theIf, Instruction instruction) {
+  public static BasicBlock createIfBlock(int blockNumber, If theIf, Instruction... instructions) {
     BasicBlock block = new BasicBlock();
-    block.add(instruction);
+    for (Instruction instruction : instructions) {
+      block.add(instruction);
+    }
     block.add(theIf);
     block.close(null);
     block.setNumber(blockNumber);

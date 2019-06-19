@@ -148,6 +148,7 @@ public class IRConverter {
   private final CovariantReturnTypeAnnotationTransformer covariantReturnTypeAnnotationTransformer;
   private final StringOptimizer stringOptimizer;
   private final StringBuilderOptimizer stringBuilderOptimizer;
+  private final StringSwitchRemover stringSwitchRemover;
   private final UninstantiatedTypeOptimization uninstantiatedTypeOptimization;
   private final TypeChecker typeChecker;
   private final IdempotentFunctionCallCanonicalizer idempotentFunctionCallCanonicalizer;
@@ -200,6 +201,8 @@ public class IRConverter {
             : null;
     this.stringOptimizer = new StringOptimizer(appView);
     this.stringBuilderOptimizer = new StringBuilderOptimizer(appView);
+    this.stringSwitchRemover =
+        options.isStringSwitchConversionEnabled() ? new StringSwitchRemover(appView) : null;
     this.nonNullTracker = options.enableNonNullTracking ? new NonNullTracker(appView) : null;
     if (appView.enableWholeProgramOptimizations()) {
       assert appView.appInfo().hasLiveness();
@@ -1050,6 +1053,10 @@ public class IRConverter {
 
     codeRewriter.splitRangeInvokeConstants(code);
     new SparseConditionalConstantPropagation(code).run();
+    if (stringSwitchRemover != null) {
+      // TODO(b/135588279): Add support for string-switch instruction in the CF and DEX backend.
+      stringSwitchRemover.run(code);
+    }
     codeRewriter.rewriteSwitch(code);
     codeRewriter.processMethodsNeverReturningNormally(code);
     codeRewriter.simplifyIf(code);
