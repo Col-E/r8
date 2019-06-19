@@ -212,6 +212,15 @@ public class BasicBlock {
     return normals.build();
   }
 
+  public boolean hasUniquePredecessor() {
+    return predecessors.size() == 1;
+  }
+
+  public BasicBlock getUniquePredecessor() {
+    assert hasUniquePredecessor();
+    return predecessors.get(0);
+  }
+
   public List<BasicBlock> getPredecessors() {
     return Collections.unmodifiableList(predecessors);
   }
@@ -1325,6 +1334,25 @@ public class BasicBlock {
 
   public boolean isTrivialGoto() {
     return instructions.size() == 1 && exit().isGoto();
+  }
+
+  // Go backwards in the control flow graph until a block that is not a trivial goto block is found,
+  // or a block that does not have a unique predecessor is found. Returns null if the goto chain is
+  // cyclic.
+  public BasicBlock startOfGotoChain() {
+    // See Floyd's cycle-finding algorithm for reference.
+    BasicBlock hare = this;
+    BasicBlock tortuous = this;
+    boolean advance = false;
+    while (hare.isTrivialGoto() && hare.hasUniquePredecessor()) {
+      hare = hare.getUniquePredecessor();
+      tortuous = advance ? tortuous.getUniquePredecessor() : tortuous;
+      advance = !advance;
+      if (hare == tortuous) {
+        return null;
+      }
+    }
+    return hare;
   }
 
   // Find the final target from this goto block. Returns null if the goto chain is cyclic.
