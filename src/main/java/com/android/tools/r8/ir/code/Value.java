@@ -397,6 +397,15 @@ public class Value {
     return previousConsecutive;
   }
 
+  public boolean onlyUsedInBlock(BasicBlock block) {
+    for (Instruction user : uniqueUsers()) {
+      if (user.getBlock() != block) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   public Set<Instruction> uniqueUsers() {
     if (uniqueUsers != null) {
       return uniqueUsers;

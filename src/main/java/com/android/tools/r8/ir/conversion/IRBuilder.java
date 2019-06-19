@@ -630,6 +630,10 @@ public class IRBuilder {
       new TypeAnalysis(appView).widening(context, method, ir);
     }
 
+    if (appView.options().isStringSwitchConversionEnabled()) {
+      StringSwitchConverter.convertToStringSwitchInstructions(ir, appView.dexItemFactory());
+    }
+
     assert ir.isConsistentSSA();
 
     // Clear the code so we don't build multiple times.

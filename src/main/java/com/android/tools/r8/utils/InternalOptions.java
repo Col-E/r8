@@ -965,6 +965,10 @@ public class InternalOptions {
         && !canUseDefaultAndStaticInterfaceMethods();
   }
 
+  public boolean isStringSwitchConversionEnabled() {
+    return enableStringSwitchConversion && !debug;
+  }
+
   public boolean canUseMultidex() {
     assert isGeneratingDex();
     return intermediate || hasMinApi(AndroidApiLevel.L);

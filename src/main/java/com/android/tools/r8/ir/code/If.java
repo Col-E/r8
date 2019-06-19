@@ -88,6 +88,15 @@ public class If extends JumpInstruction {
     return inValues.size() == 1;
   }
 
+  public Value lhs() {
+    return inValues.get(0);
+  }
+
+  public Value rhs() {
+    assert !isZeroTest();
+    return inValues.get(1);
+  }
+
   public Type getType() {
     return type;
   }

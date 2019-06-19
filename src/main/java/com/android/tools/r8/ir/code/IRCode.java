@@ -109,6 +109,7 @@ public class IRCode {
   // TODO(b/122257895): Update OptimizationInfo to capture instruction kinds of interest.
   public final boolean hasDebugPositions;
   public boolean hasConstString;
+  public boolean hasStringSwitch;
   public final boolean hasMonitorInstruction;
 
   private final InternalOptions options;
@@ -145,6 +146,7 @@ public class IRCode {
   public void copyMetadataFromInlinee(IRCode inlinee) {
     assert !inlinee.hasMonitorInstruction;
     this.hasConstString |= inlinee.hasConstString;
+    this.hasStringSwitch = inlinee.hasStringSwitch;
   }
 
   public BasicBlock entryBlock() {

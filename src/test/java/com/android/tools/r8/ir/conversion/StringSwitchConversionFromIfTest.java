@@ -76,6 +76,7 @@ public class StringSwitchConversionFromIfTest extends TestBase {
               List<String> methodNames =
                   ImmutableList.of(
                       "test",
+                      "testWithDeadStringIdComparisons",
                       "testWithMultipleHashCodeInvocations",
                       "testWithSwitch",
                       "testNullCheckIsPreserved");
@@ -151,6 +152,8 @@ public class StringSwitchConversionFromIfTest extends TestBase {
     public static void main(String[] args) {
       test(A.class);
       test(B.class);
+      testWithDeadStringIdComparisons(A.class);
+      testWithDeadStringIdComparisons(B.class);
       testWithMultipleHashCodeInvocations(A.class);
       testWithMultipleHashCodeInvocations(B.class);
       testWithSwitch(A.class);
@@ -178,9 +181,54 @@ public class StringSwitchConversionFromIfTest extends TestBase {
         }
       }
       if (result == 0) {
-        System.out.print("He");
+        System.out.print("H");
       } else if (result == 1) {
+        System.out.print("e");
+      }
+    }
+
+    @NeverInline
+    private static void testWithDeadStringIdComparisons(Class<?> clazz) {
+      String className = clazz.getName();
+      int hashCode = className.hashCode();
+      int result = -1;
+      if (hashCode == HASH_1) {
+        if (className.equals(NAME_1)) {
+          result = 0;
+        }
+      } else if (hashCode == HASH_2) {
+        if (className.equals(NAME_2)) {
+          result = 1;
+        }
+      }
+      if (result == 0) {
         System.out.print("l");
+      } else {
+        switch (result) {
+          case 0:
+            System.out.println("Unexpected");
+            break;
+          default:
+            if (result == 0) {
+              System.out.print("Unexpected");
+            } else if (result == 1) {
+              System.out.print("l");
+            } else if (result == 0) {
+              System.out.print("Unexpected");
+            } else if (result == 1) {
+              System.out.print("Unexpected");
+            } else {
+              switch (result) {
+                case 0:
+                  System.out.println("Unexpected");
+                  break;
+                case 1:
+                  System.out.println("Unexpected");
+                  break;
+              }
+            }
+            break;
+        }
       }
     }
 
@@ -198,9 +246,9 @@ public class StringSwitchConversionFromIfTest extends TestBase {
         }
       }
       if (result == 0) {
-        System.out.print("l");
-      } else if (result == 1) {
         System.out.print("o");
+      } else if (result == 1) {
+        System.out.print(" ");
       }
     }
 
@@ -219,7 +267,7 @@ public class StringSwitchConversionFromIfTest extends TestBase {
       }
       switch (result) {
         case 0:
-          System.out.print(" world");
+          System.out.print("world");
           break;
         case 1:
           System.out.println("!");
