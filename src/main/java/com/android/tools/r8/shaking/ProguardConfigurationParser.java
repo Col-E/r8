@@ -226,9 +226,10 @@ public class ProguardConfigurationParser {
       }
       TextPosition optionStart = getPosition();
       expectChar('-');
-      if (parseIgnoredOption(optionStart) ||
-          parseIgnoredOptionAndWarn(optionStart) ||
-          parseUnsupportedOptionAndErr(optionStart)) {
+      if (parseIgnoredOption(optionStart)
+          || parseIgnoredOptionAndWarn(optionStart)
+          || parseTestingOption(optionStart)
+          || parseUnsupportedOptionAndErr(optionStart)) {
         // Intentionally left empty.
       } else if (acceptString("renamesourcefileattribute")) {
         skipWhitespace();
@@ -250,10 +251,8 @@ public class ProguardConfigurationParser {
         configurationBuilder.enableKeepDirectories();
         parsePathFilter(configurationBuilder::addKeepDirectories);
       } else if (acceptString("keep")) {
-        if (!parseTestingOption(optionStart)) {
-          ProguardKeepRule rule = parseKeepRule(optionStart);
-          configurationBuilder.addRule(rule);
-        }
+        ProguardKeepRule rule = parseKeepRule(optionStart);
+        configurationBuilder.addRule(rule);
       } else if (acceptString("whyareyoukeeping")) {
         ProguardWhyAreYouKeepingRule rule = parseWhyAreYouKeepingRule(optionStart);
         configurationBuilder.addRule(rule);
@@ -389,7 +388,7 @@ public class ProguardConfigurationParser {
         configurationBuilder.setConfigurationDebugging(true);
       } else if (acceptString("dontusemixedcaseclassnames")) {
         configurationBuilder.setDontUseMixedCaseClassnames(true);
-      } else if (!parseTestingOption(optionStart)) {
+      } else {
         String unknownOption = acceptString();
         String devMessage = "";
         if (Version.isDev()
