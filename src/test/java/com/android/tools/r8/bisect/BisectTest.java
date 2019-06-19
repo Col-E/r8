@@ -5,7 +5,10 @@ package com.android.tools.r8.bisect;
 
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersBuilder;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.bisect.BisectOptions.Result;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.DexApplication;
@@ -21,11 +24,24 @@ import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
-public class BisectTest {
+@RunWith(Parameterized.class)
+public class BisectTest extends TestBase {
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection parameters() {
+    return TestParametersBuilder.builder().withNoneRuntime().build();
+  }
+
+  private final TestParameters parameters;
+
+  public BisectTest(TestParameters parameters) {
+    this.parameters = parameters;
+  }
 
   private final String[] CLASSES = {"A", "B", "C", "D", "E", "F", "G", "H"};
   private final String ERRONEOUS_CLASS = "F";
@@ -34,9 +50,6 @@ public class BisectTest {
 
   // Set during build to more easily inspect later.
   private MethodSignature erroneousMethodSignature = null;
-
-  @Rule
-  public TemporaryFolder temp = ToolHelper.getTemporaryFolderForTest();
 
   // Build "good" application with no method in "F".
   AndroidApp buildGood() throws Exception {

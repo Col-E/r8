@@ -4,6 +4,8 @@
 package com.android.tools.r8.bisect;
 
 import com.android.tools.r8.OutputMode;
+import com.android.tools.r8.ProgramConsumer;
+import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.bisect.BisectOptions.Result;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.ApplicationWriter;
@@ -15,6 +17,7 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
+import com.google.common.collect.ImmutableList;
 import com.google.common.io.CharStreams;
 import java.io.IOException;
 import java.io.InputStream;
@@ -84,6 +87,7 @@ public class Bisect {
         return null;
       }
       state.setPreviousResult(command.apply(app));
+      app.options.itemFactory.resetSortedIndices();
     }
   }
 
@@ -98,8 +102,9 @@ public class Bisect {
 
     ExecutorService executor = Executors.newWorkStealingPool();
     try {
-      DexApplication goodApp = readApp(options.goodBuild, executor);
-      DexApplication badApp = readApp(options.badBuild, executor);
+      InternalOptions internal = new InternalOptions();
+      DexApplication goodApp = readApp(options.goodBuild, internal, executor);
+      DexApplication badApp = readApp(options.badBuild, internal, executor);
 
       Path stateFile =
           options.stateFile != null ? options.stateFile : output.resolve("bisect.state");
@@ -118,10 +123,11 @@ public class Bisect {
       // Setup post-build command.
       Command command = null;
       if (options.command != null) {
-        command = (application) -> {
-          writeApp(application, output, executor);
-          return runCommand(output);
-        };
+        command =
+            (application) -> {
+              writeApp(application, output, executor);
+              return runCommand(options.command, options.goodBuild, options.badBuild, output);
+            };
       }
 
       // Run bisection.
@@ -131,11 +137,13 @@ public class Bisect {
     }
   }
 
-  private Result runCommand(Path output) throws IOException {
+  private static Result runCommand(Path command, Path good, Path bad, Path output)
+      throws IOException {
     List<String> args = new ArrayList<>();
     args.add("/bin/bash");
-    args.add(options.command.toString());
-    args.add(output.toString());
+    args.add(command.toString());
+    args.addAll(ImmutableList.of(good.toString(), bad.toString(), output.toString()));
+    System.out.println("Running cmd: " + String.join(" ", args));
     ProcessBuilder builder = new ProcessBuilder(args);
     Process process = builder.start();
     StreamReader stdoutReader = new StreamReader(process.getInputStream());
@@ -151,6 +159,8 @@ public class Bisect {
     } catch (InterruptedException e) {
       throw new RuntimeException("Execution interrupted", e);
     }
+    System.out.print("OUT:\n" + stdoutReader.getResult());
+    System.out.print("ERR:\n" + stderrReader.getResult());
     int result = process.exitValue();
     if (result == 0) {
       return Result.GOOD;
@@ -159,20 +169,21 @@ public class Bisect {
     }
     System.out.println("Failed to run command " + args);
     System.out.println("Exit code: " + result + " (expected 0 for good, 1 for bad)");
-    System.out.println("Std out:\n" + stdoutReader.getResult());
-    System.out.println("Std err:\n" + stderrReader.getResult());
     throw new CompilationError("Failed to run command " + args);
   }
 
-  private DexApplication readApp(Path apk, ExecutorService executor)
+  private DexApplication readApp(Path apk, InternalOptions options, ExecutorService executor)
       throws IOException, ExecutionException {
     AndroidApp app = AndroidApp.builder().addProgramFiles(apk).build();
-    return new ApplicationReader(app, new InternalOptions(), timing).read(executor);
+    return new ApplicationReader(app, options, timing).read(executor);
   }
 
   private static void writeApp(DexApplication app, Path output, ExecutorService executor)
       throws IOException, ExecutionException {
-    InternalOptions options = new InternalOptions();
+    InternalOptions options = app.options;
+    // Save the original consumers so they can be unwrapped after write.
+    ProgramConsumer programConsumer = options.programConsumer;
+    StringConsumer proguardMapConsumer = options.proguardMapConsumer;
     AndroidAppConsumers compatSink = new AndroidAppConsumers(options);
     ApplicationWriter writer =
         new ApplicationWriter(
@@ -180,6 +191,9 @@ public class Bisect {
     writer.write(executor);
     options.signalFinishedToConsumers();
     compatSink.build().writeToDirectory(output, OutputMode.DexIndexed);
+    // Restore original consumers.
+    options.programConsumer = programConsumer;
+    options.proguardMapConsumer = proguardMapConsumer;
   }
 
   public static DexProgramClass run(BisectOptions options) throws Exception {
