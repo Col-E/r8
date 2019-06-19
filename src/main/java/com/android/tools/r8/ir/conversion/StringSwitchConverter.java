@@ -26,6 +26,7 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
+import java.io.UTFDataFormatException;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -509,11 +510,16 @@ class StringSwitchConverter {
 
         // TODO(b/135559645): Consider implementing hashCode() on DexString to avoid String
         //  materialization.
-        if (theString.getValue().toSourceString().hashCode() == hash) {
-          BasicBlock trueTarget = theIf.targetFromCondition(1).endOfGotoChain();
-          if (!addMappingForString(trueTarget, theString.getValue(), extension)) {
-            return false;
+        try {
+          if (theString.getValue().decodedHashCode() == hash) {
+            BasicBlock trueTarget = theIf.targetFromCondition(1).endOfGotoChain();
+            if (!addMappingForString(trueTarget, theString.getValue(), extension)) {
+              return false;
+            }
           }
+        } catch (UTFDataFormatException e) {
+          // It is already guaranteed that the string does not throw.
+          throw new Unreachable();
         }
 
         BasicBlock fallthroughBlock = theIf.targetFromCondition(0).endOfGotoChain();
