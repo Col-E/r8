@@ -780,6 +780,7 @@ public class DexItemFactory {
     public final DexMethod compareTo;
     public final DexMethod compareToIgnoreCase;
 
+    public final DexMethod hashCode;
     public final DexMethod valueOf;
     public final DexMethod toString;
     public final DexMethod intern;
@@ -822,6 +823,7 @@ public class DexItemFactory {
           createMethod(stringDescriptor, compareToIgnoreCaseMethodName, intDescriptor,
               needsOneString);
 
+      hashCode = createMethod(stringType, createProto(intType), "hashCode");
       valueOf = createMethod(
           stringDescriptor, valueOfMethodName, stringDescriptor, needsOneObject);
       toString = createMethod(

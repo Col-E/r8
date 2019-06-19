@@ -779,6 +779,10 @@ public abstract class Instruction implements InstructionOrPhi {
     return null;
   }
 
+  public boolean isStringSwitch() {
+    return false;
+  }
+
   public boolean isInstanceGet() {
     return false;
   }

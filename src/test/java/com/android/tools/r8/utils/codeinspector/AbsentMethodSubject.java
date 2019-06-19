@@ -6,15 +6,15 @@ package com.android.tools.r8.utils.codeinspector;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
+import com.android.tools.r8.utils.InternalOptions;
 
 public class AbsentMethodSubject extends MethodSubject {
 
   @Override
-  public IRCode buildIR(DexItemFactory dexItemFactory) {
+  public IRCode buildIR(InternalOptions options) {
     throw new Unreachable("Cannot build IR for an absent method");
   }
 

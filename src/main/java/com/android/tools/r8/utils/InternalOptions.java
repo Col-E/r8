@@ -204,6 +204,7 @@ public class InternalOptions {
   // the actual catch handler allowed when inlining. Threshold found empirically by testing on
   // GMS Core.
   public int inliningControlFlowResolutionBlocksThreshold = 15;
+  public boolean enableStringSwitchConversion = false;
   public boolean enableSwitchMapRemoval = true;
   public final OutlineOptions outline = new OutlineOptions();
   public boolean enableValuePropagation = true;

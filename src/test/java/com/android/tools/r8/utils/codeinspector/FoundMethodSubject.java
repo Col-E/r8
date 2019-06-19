@@ -21,7 +21,6 @@ import com.android.tools.r8.graph.DexDebugEvent;
 import com.android.tools.r8.graph.DexDebugInfo;
 import com.android.tools.r8.graph.DexDebugPositionState;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.JarCode;
 import com.android.tools.r8.ir.code.IRCode;
@@ -30,7 +29,6 @@ import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.signature.GenericSignatureParser;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.codeinspector.LocalVariableTable.LocalVariableTableEntry;
 import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
@@ -53,10 +51,8 @@ public class FoundMethodSubject extends MethodSubject {
   }
 
   @Override
-  public IRCode buildIR(DexItemFactory dexItemFactory) {
-    InternalOptions options = new InternalOptions(dexItemFactory, new Reporter());
+  public IRCode buildIR(InternalOptions options) {
     options.programConsumer = DexIndexedConsumer.emptyConsumer();
-
     DexEncodedMethod method = getMethod();
     return method
         .getCode()
