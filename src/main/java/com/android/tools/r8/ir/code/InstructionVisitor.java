@@ -134,6 +134,8 @@ public interface InstructionVisitor<T> {
 
   T visit(Switch instruction);
 
+  T visit(StringSwitch instruction);
+
   T visit(Throw instruction);
 
   T visit(Ushr instruction);

@@ -10,6 +10,7 @@ import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
@@ -1058,6 +1059,9 @@ public class CodeRewriter {
       }
       if (block.exit().isSwitch()) {
         collapseNonFallthroughSwitchTargets(block);
+      }
+      if (block.exit().isStringSwitch()) {
+        throw new Unimplemented();
       }
       block = nextBlock;
     } while (nextBlock != null);

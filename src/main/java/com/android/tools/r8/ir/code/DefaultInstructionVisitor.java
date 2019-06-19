@@ -335,6 +335,11 @@ public abstract class DefaultInstructionVisitor<T> implements InstructionVisitor
   }
 
   @Override
+  public T visit(StringSwitch instruction) {
+    return null;
+  }
+
+  @Override
   public T visit(Throw instruction) {
     return null;
   }

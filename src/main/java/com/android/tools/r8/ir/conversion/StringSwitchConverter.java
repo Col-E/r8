@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.conversion;
 
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
@@ -19,6 +18,7 @@ import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.JumpInstruction;
 import com.android.tools.r8.ir.code.Phi;
+import com.android.tools.r8.ir.code.StringSwitch;
 import com.android.tools.r8.ir.code.Switch;
 import com.android.tools.r8.ir.code.Value;
 import com.google.common.collect.Sets;
@@ -27,7 +27,10 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 /**
@@ -224,10 +227,41 @@ class StringSwitchConverter {
           return null;
         }
 
-        // TODO(b/135559645): Build mapping from every string key of the switch to its id, in order
-        //  to be able to build the string-switch instruction.
-        return null;
+        if (stringToIdMapping.mapping.size() != idToTargetMapping.mapping.size()) {
+          return null;
+        }
+
+        Map<DexString, BasicBlock> stringToTargetMapping = new IdentityHashMap<>();
+        for (DexString key : stringToIdMapping.mapping.keySet()) {
+          int id = stringToIdMapping.mapping.getInt(key);
+          BasicBlock target = idToTargetMapping.mapping.get(id);
+          if (target == null) {
+            return null;
+          }
+          stringToTargetMapping.put(key, target);
+        }
+        return new StringSwitchBuilderInfo(
+            idToTargetMapping.fallthroughBlock,
+            stringToIdMapping.insertionBlock,
+            stringToTargetMapping,
+            stringValue);
       }
+    }
+
+    private final BasicBlock fallthroughBlock;
+    private final BasicBlock insertionBlock;
+    private final Map<DexString, BasicBlock> mapping;
+    private final Value value;
+
+    StringSwitchBuilderInfo(
+        BasicBlock fallthroughBlock,
+        BasicBlock insertionBlock,
+        Map<DexString, BasicBlock> mapping,
+        Value value) {
+      this.fallthroughBlock = fallthroughBlock;
+      this.insertionBlock = insertionBlock;
+      this.mapping = mapping;
+      this.value = value;
     }
 
     static Builder builder(DexItemFactory dexItemFactory) {
@@ -235,8 +269,27 @@ class StringSwitchConverter {
     }
 
     void createAndInsertStringSwitch() {
-      // TODO(b/135559645): Add StringSwitch instruction to IR.
-      throw new Unimplemented();
+      // Remove outgoing control flow edges from `insertionBlock`.
+      for (BasicBlock successor : insertionBlock.getNormalSuccessors()) {
+        successor.removePredecessor(insertionBlock);
+      }
+      insertionBlock.removeAllNormalSuccessors();
+
+      // Build new StringSwitch instruction meanwhile inserting new control flow edges.
+      DexString[] keys = new DexString[mapping.size()];
+      int[] targetBlockIndices = new int[mapping.size()];
+      int i = 0;
+      int numberOfCatchHandlers = insertionBlock.numberOfCatchHandlers();
+      for (Entry<DexString, BasicBlock> entry : mapping.entrySet()) {
+        keys[i] = entry.getKey();
+        targetBlockIndices[i] = i + numberOfCatchHandlers;
+        insertionBlock.link(entry.getValue());
+        i++;
+      }
+      insertionBlock.link(fallthroughBlock);
+      insertionBlock
+          .exit()
+          .replace(new StringSwitch(value, keys, targetBlockIndices, i + numberOfCatchHandlers));
     }
   }
 

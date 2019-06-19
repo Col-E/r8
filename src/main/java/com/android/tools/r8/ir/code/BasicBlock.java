@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.code;
 import static com.android.tools.r8.ir.code.IRCode.INSTRUCTION_NUMBER_DELTA;
 
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DebugLocalInfo.PrintLevel;
@@ -274,6 +275,21 @@ public class BasicBlock {
     }
   }
 
+  public void removeAllNormalSuccessors() {
+    if (hasCatchHandlers()) {
+      IntList successorsToRemove = new IntArrayList();
+      Set<Integer> handlers = catchHandlers.getUniqueTargets();
+      for (int i = 0; i < successors.size(); i++) {
+        if (!handlers.contains(i)) {
+          successorsToRemove.add(i);
+        }
+      }
+      removeSuccessorsByIndex(successorsToRemove);
+    } else {
+      successors.clear();
+    }
+  }
+
   public void swapSuccessors(BasicBlock a, BasicBlock b) {
     assert a != b;
     int aIndex = successors.indexOf(a);
@@ -381,6 +397,11 @@ public class BasicBlock {
             indices[i] = indices[i] - 1;
           }
         }
+      } else if (exit().isStringSwitch()) {
+        // TODO(b/135596413): Handle this case.
+        throw new Unimplemented();
+      } else {
+        assert exit().isReturn() || exit().isThrow();
       }
 
       // Remove the replaced successor.
