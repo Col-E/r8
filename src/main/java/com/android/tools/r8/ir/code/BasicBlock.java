@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.code;
 import static com.android.tools.r8.ir.code.IRCode.INSTRUCTION_NUMBER_DELTA;
 
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DebugLocalInfo.PrintLevel;
@@ -379,9 +378,9 @@ public class BasicBlock {
           // position to become that target.
           swapSuccessorsByIndex(indexOfOldBlock - 1, indexOfNewBlock);
         }
-      } else if (exit().isIntSwitch()) {
+      } else if (exit().isSwitch()) {
         // Rewrite fallthrough and case target indices.
-        IntSwitch exit = exit().asIntSwitch();
+        Switch exit = exit().asSwitch();
         if (exit.getFallthroughBlockIndex() == indexOfOldBlock) {
           exit.setFallthroughBlockIndex(indexOfNewBlock);
         }
@@ -397,9 +396,6 @@ public class BasicBlock {
             indices[i] = indices[i] - 1;
           }
         }
-      } else if (exit().isStringSwitch()) {
-        // TODO(b/135596413): Handle this case.
-        throw new Unimplemented();
       } else {
         assert exit().isReturn() || exit().isThrow();
       }
