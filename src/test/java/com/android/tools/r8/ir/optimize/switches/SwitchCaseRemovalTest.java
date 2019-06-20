@@ -98,8 +98,8 @@ public class SwitchCaseRemovalTest extends TestBase {
 
   private void verifyUniqueSwitchHasExactCases(IRCode code, Set<Integer> expectedCases) {
     Streams.stream(code.instructions())
-        .filter(Instruction::isSwitch)
-        .map(Instruction::asSwitch)
+        .filter(Instruction::isIntSwitch)
+        .map(Instruction::asIntSwitch)
         .forEach(
             theSwitch -> {
               assertEquals(expectedCases.size(), theSwitch.numberOfKeys());

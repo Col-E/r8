@@ -167,7 +167,7 @@ public abstract class Instruction {
     return false;
   }
 
-  public boolean isSwitch() {
+  public boolean isIntSwitch() {
     return false;
   }
 

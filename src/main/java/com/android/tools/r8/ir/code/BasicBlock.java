@@ -379,9 +379,9 @@ public class BasicBlock {
           // position to become that target.
           swapSuccessorsByIndex(indexOfOldBlock - 1, indexOfNewBlock);
         }
-      } else if (exit().isSwitch()) {
+      } else if (exit().isIntSwitch()) {
         // Rewrite fallthrough and case target indices.
-        Switch exit = exit().asSwitch();
+        IntSwitch exit = exit().asIntSwitch();
         if (exit.getFallthroughBlockIndex() == indexOfOldBlock) {
           exit.setFallthroughBlockIndex(indexOfNewBlock);
         }
@@ -1327,7 +1327,7 @@ public class BasicBlock {
     return block;
   }
 
-  public static BasicBlock createSwitchBlock(int blockNumber, Switch theSwitch) {
+  public static BasicBlock createSwitchBlock(int blockNumber, IntSwitch theSwitch) {
     BasicBlock block = new BasicBlock();
     block.add(theSwitch);
     block.close(null);

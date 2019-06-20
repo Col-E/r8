@@ -330,7 +330,7 @@ public abstract class DefaultInstructionVisitor<T> implements InstructionVisitor
   }
 
   @Override
-  public T visit(Switch instruction) {
+  public T visit(IntSwitch instruction) {
     return null;
   }
 

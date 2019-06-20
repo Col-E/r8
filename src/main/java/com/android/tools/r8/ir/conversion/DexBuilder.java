@@ -50,13 +50,13 @@ import com.android.tools.r8.ir.code.DebugPosition;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.InstructionIterator;
+import com.android.tools.r8.ir.code.IntSwitch;
 import com.android.tools.r8.ir.code.JumpInstruction;
 import com.android.tools.r8.ir.code.Move;
 import com.android.tools.r8.ir.code.NewArrayFilledData;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.StackValue;
-import com.android.tools.r8.ir.code.Switch;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
@@ -620,7 +620,7 @@ public class DexBuilder {
     add(ir, new MultiFixedSizeInfo(ir, dex));
   }
 
-  public void addSwitch(Switch s, Format31t dex) {
+  public void addSwitch(IntSwitch s, Format31t dex) {
     assert nextBlock == s.fallthroughBlock();
     switchPayloadInfos.add(new SwitchPayloadInfo(s, dex));
     add(s, dex);
@@ -714,7 +714,7 @@ public class DexBuilder {
 
   // Helper for computing switch payloads.
   private Nop createSwitchPayload(SwitchPayloadInfo info, int offset) {
-    Switch ir = info.ir;
+    IntSwitch ir = info.ir;
     // Patch the payload offset in the generated switch instruction now
     // that the location is known.
     info.dex.setPayloadOffset(offset - getInfo(ir).getOffset());
@@ -1511,10 +1511,10 @@ public class DexBuilder {
 
   private static class SwitchPayloadInfo {
 
-    public final Switch ir;
+    public final IntSwitch ir;
     public final Format31t dex;
 
-    public SwitchPayloadInfo(Switch ir, Format31t dex) {
+    public SwitchPayloadInfo(IntSwitch ir, Format31t dex) {
       this.ir = ir;
       this.dex = dex;
     }

@@ -771,11 +771,11 @@ public abstract class Instruction implements InstructionOrPhi {
     return null;
   }
 
-  public boolean isSwitch() {
+  public boolean isIntSwitch() {
     return false;
   }
 
-  public Switch asSwitch() {
+  public IntSwitch asIntSwitch() {
     return null;
   }
 

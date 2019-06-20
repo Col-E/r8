@@ -7,7 +7,7 @@ package com.android.tools.r8.ir.optimize;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.Goto;
 import com.android.tools.r8.ir.code.InstructionListIterator;
-import com.android.tools.r8.ir.code.Switch;
+import com.android.tools.r8.ir.code.IntSwitch;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
@@ -21,12 +21,12 @@ class SwitchCaseEliminator {
   private final BasicBlock block;
   private final BasicBlock defaultTarget;
   private final InstructionListIterator iterator;
-  private final Switch theSwitch;
+  private final IntSwitch theSwitch;
 
   private boolean mayHaveIntroducedUnreachableBlocks = false;
   private IntSet switchCasesToBeRemoved;
 
-  SwitchCaseEliminator(Switch theSwitch, InstructionListIterator iterator) {
+  SwitchCaseEliminator(IntSwitch theSwitch, InstructionListIterator iterator) {
     this.block = theSwitch.getBlock();
     this.defaultTarget = theSwitch.fallthroughBlock();
     this.iterator = iterator;
@@ -138,7 +138,7 @@ class SwitchCaseEliminator {
     assert targetBlockIndexOffset[theSwitch.getFallthroughBlockIndex()] == 0;
 
     iterator.replaceCurrentInstruction(
-        new Switch(
+        new IntSwitch(
             theSwitch.value(),
             newKeys,
             newTargetBlockIndices,

@@ -132,7 +132,7 @@ public interface InstructionVisitor<T> {
 
   T visit(Swap instruction);
 
-  T visit(Switch instruction);
+  T visit(IntSwitch instruction);
 
   T visit(StringSwitch instruction);
 

@@ -9,10 +9,10 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
+import com.android.tools.r8.ir.code.IntSwitch;
 import com.android.tools.r8.ir.code.JumpInstruction;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.StringSwitch;
-import com.android.tools.r8.ir.code.Switch;
 import com.android.tools.r8.ir.code.Value;
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -203,8 +203,8 @@ public class SparseConditionalConstantPropagation {
         assert !leftElement.isTop();
         assert !rightElement.isTop();
       }
-    } else if (jumpInstruction.isSwitch()) {
-      Switch switchInst = jumpInstruction.asSwitch();
+    } else if (jumpInstruction.isIntSwitch()) {
+      IntSwitch switchInst = jumpInstruction.asIntSwitch();
       LatticeElement switchElement = getLatticeElement(switchInst.value());
       if (switchElement.isConst()) {
         BasicBlock target = switchInst.getKeyToTargetMap()

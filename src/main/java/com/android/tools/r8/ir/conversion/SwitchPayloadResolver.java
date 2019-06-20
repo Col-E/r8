@@ -60,7 +60,7 @@ public class SwitchPayloadResolver {
   }
 
   public int[] absoluteTargets(Instruction dex) {
-    assert dex.isSwitch();
+    assert dex.isIntSwitch();
     return absoluteTargets(dex.getOffset() + dex.getPayloadOffset());
   }
 

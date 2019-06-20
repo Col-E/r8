@@ -15,11 +15,11 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
+import com.android.tools.r8.ir.code.IntSwitch;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.JumpInstruction;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.StringSwitch;
-import com.android.tools.r8.ir.code.Switch;
 import com.android.tools.r8.ir.code.Value;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
@@ -353,8 +353,8 @@ class StringSwitchConverter {
         if (exit.isIf()) {
           return extendWithIf(toBeExtended, exit.asIf());
         }
-        if (exit.isSwitch()) {
-          return extendWithSwitch(toBeExtended, exit.asSwitch());
+        if (exit.isIntSwitch()) {
+          return extendWithSwitch(toBeExtended, exit.asIntSwitch());
         }
         return toBeExtended;
       }
@@ -441,7 +441,8 @@ class StringSwitchConverter {
         return extendWithPredecessor(toBeExtended, theIf.getBlock());
       }
 
-      private StringToIdMapping extendWithSwitch(StringToIdMapping toBeExtended, Switch theSwitch) {
+      private StringToIdMapping extendWithSwitch(
+          StringToIdMapping toBeExtended, IntSwitch theSwitch) {
         Value stringHashValue = Utils.getStringHashValueFromSwitch(theSwitch, dexItemFactory);
         if (stringHashValue == null
             || (toBeExtended != null
@@ -627,8 +628,8 @@ class StringSwitchConverter {
           if (exit.isIf()) {
             return extendWithIf(toBeExtended, exit.asIf());
           }
-          if (exit.isSwitch()) {
-            return extendWithSwitch(toBeExtended, exit.asSwitch());
+          if (exit.isIntSwitch()) {
+            return extendWithSwitch(toBeExtended, exit.asIntSwitch());
           }
         }
         if (numberOfInstructions == 2) {
@@ -691,7 +692,8 @@ class StringSwitchConverter {
         return extend(toBeExtended, Utils.fallthroughBlock(theIf));
       }
 
-      private IdToTargetMapping extendWithSwitch(IdToTargetMapping toBeExtended, Switch theSwitch) {
+      private IdToTargetMapping extendWithSwitch(
+          IdToTargetMapping toBeExtended, IntSwitch theSwitch) {
         Value switchValue = theSwitch.value();
         if (!switchValue.isPhi() || (toBeExtended != null && switchValue != toBeExtended.idValue)) {
           // Not an extension of `toBeExtended`.
@@ -735,8 +737,8 @@ class StringSwitchConverter {
         If theIf = exit.asIf();
         return theIf.getType() == If.Type.EQ ? theIf.fallthroughBlock() : theIf.getTrueTarget();
       }
-      if (exit.isSwitch()) {
-        return exit.asSwitch().fallthroughBlock();
+      if (exit.isIntSwitch()) {
+        return exit.asIntSwitch().fallthroughBlock();
       }
       throw new Unreachable();
     }
@@ -746,8 +748,8 @@ class StringSwitchConverter {
       if (instruction.isIf()) {
         return getStringHashValueFromIf(instruction.asIf(), dexItemFactory);
       }
-      if (instruction.isSwitch()) {
-        return getStringHashValueFromSwitch(instruction.asSwitch(), dexItemFactory);
+      if (instruction.isIntSwitch()) {
+        return getStringHashValueFromSwitch(instruction.asIntSwitch(), dexItemFactory);
       }
       return null;
     }
@@ -765,7 +767,7 @@ class StringSwitchConverter {
       return null;
     }
 
-    static Value getStringHashValueFromSwitch(Switch theSwitch, DexItemFactory dexItemFactory) {
+    static Value getStringHashValueFromSwitch(IntSwitch theSwitch, DexItemFactory dexItemFactory) {
       Value switchValue = theSwitch.value();
       if (isDefinedByStringHashCode(switchValue, dexItemFactory)) {
         return switchValue;

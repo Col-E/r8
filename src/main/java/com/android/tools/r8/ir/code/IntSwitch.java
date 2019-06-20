@@ -24,17 +24,13 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Switch extends JumpInstruction {
+public class IntSwitch extends JumpInstruction {
 
   private final int[] keys;
   private final int[] targetBlockIndices;
   private int fallthroughBlockIndex;
 
-  public Switch(
-      Value value,
-      int[] keys,
-      int[] targetBlockIndices,
-      int fallthroughBlockIndex) {
+  public IntSwitch(Value value, int[] keys, int[] targetBlockIndices, int fallthroughBlockIndex) {
     super(null, value);
     this.keys = keys;
     this.targetBlockIndices = targetBlockIndices;
@@ -185,12 +181,12 @@ public class Switch extends JumpInstruction {
   }
 
   @Override
-  public boolean isSwitch() {
+  public boolean isIntSwitch() {
     return true;
   }
 
   @Override
-  public Switch asSwitch() {
+  public IntSwitch asIntSwitch() {
     return this;
   }
 

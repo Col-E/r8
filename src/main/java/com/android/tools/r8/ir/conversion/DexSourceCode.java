@@ -413,7 +413,7 @@ public class DexSourceCode implements SourceCode {
       // Close the block if the instruction is a throw, otherwise the block remains open.
       return dex instanceof Throw ? index : -1;
     }
-    if (dex.isSwitch()) {
+    if (dex.isIntSwitch()) {
       // TODO(zerny): Remove this from block computation.
       switchPayloadResolver.addPayloadUser(dex);
 

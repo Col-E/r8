@@ -64,6 +64,7 @@ import com.android.tools.r8.ir.code.InstanceOf;
 import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
+import com.android.tools.r8.ir.code.IntSwitch;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.code.InvokeCustom;
@@ -90,7 +91,6 @@ import com.android.tools.r8.ir.code.Shr;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Sub;
-import com.android.tools.r8.ir.code.Switch;
 import com.android.tools.r8.ir.code.Throw;
 import com.android.tools.r8.ir.code.Ushr;
 import com.android.tools.r8.ir.code.Value;
@@ -1773,11 +1773,12 @@ public class IRBuilder {
     // Create a switch with only the non-fallthrough targets.
     keys = nonFallthroughKeys.toIntArray();
     labelOffsets = nonFallthroughOffsets.toIntArray();
-    Switch aSwitch = createSwitch(switchValue, keys, fallthroughOffset, labelOffsets);
+    IntSwitch aSwitch = createSwitch(switchValue, keys, fallthroughOffset, labelOffsets);
     closeCurrentBlock(aSwitch);
   }
 
-  private Switch createSwitch(Value value, int[] keys, int fallthroughOffset, int[] targetOffsets) {
+  private IntSwitch createSwitch(
+      Value value, int[] keys, int fallthroughOffset, int[] targetOffsets) {
     assert keys.length == targetOffsets.length;
     // Compute target blocks for all keys. Only add a successor block once even
     // if it is hit by more of the keys.
@@ -1808,7 +1809,7 @@ public class IRBuilder {
         targetBlockIndices[i] = targetBlockIndex;
       }
     }
-    return new Switch(value, keys, targetBlockIndices, fallthroughBlockIndex);
+    return new IntSwitch(value, keys, targetBlockIndices, fallthroughBlockIndex);
   }
 
   public void addThrow(int value) {

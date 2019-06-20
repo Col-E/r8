@@ -36,7 +36,7 @@ public class SparseSwitch extends Format31t {
   }
 
   @Override
-  public boolean isSwitch() {
+  public boolean isIntSwitch() {
     return true;
   }
 

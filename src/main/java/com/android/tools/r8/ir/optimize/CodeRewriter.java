@@ -61,6 +61,7 @@ import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
+import com.android.tools.r8.ir.code.IntSwitch;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
@@ -77,7 +78,6 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
-import com.android.tools.r8.ir.code.Switch;
 import com.android.tools.r8.ir.code.Throw;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
@@ -328,7 +328,7 @@ public class CodeRewriter {
   }
 
   private static void collapseNonFallthroughSwitchTargets(BasicBlock block) {
-    Switch insn = block.exit().asSwitch();
+    IntSwitch insn = block.exit().asIntSwitch();
     BasicBlock fallthroughBlock = insn.fallthroughBlock();
     Set<BasicBlock> replacedBlocks = new HashSet<>();
     for (int j = 0; j < insn.targetBlockIndices().length; j++) {
@@ -450,7 +450,7 @@ public class CodeRewriter {
       }
       Integer fallthroughIndex =
           targetToSuccessorIndex.computeIfAbsent(fallthrough, b -> targetToSuccessorIndex.size());
-      Switch newSwitch = new Switch(value, keys, targetBlockIndices, fallthroughIndex);
+      IntSwitch newSwitch = new IntSwitch(value, keys, targetBlockIndices, fallthroughIndex);
       newSwitch.setPosition(position);
       BasicBlock newSwitchBlock = BasicBlock.createSwitchBlock(blockNumber, newSwitch);
       for (BasicBlock successor : targetToSuccessorIndex.keySet()) {
@@ -519,13 +519,17 @@ public class CodeRewriter {
   }
 
   /**
-   * Covert the switch instruction to a sequence of if instructions checking for a specified
-   * set of keys, followed by a new switch with the remaining keys.
+   * Covert the switch instruction to a sequence of if instructions checking for a specified set of
+   * keys, followed by a new switch with the remaining keys.
    */
   private void convertSwitchToSwitchAndIfs(
-      IRCode code, ListIterator<BasicBlock> blocksIterator, BasicBlock originalBlock,
-      InstructionListIterator iterator, Switch theSwitch,
-      List<IntList> switches, IntList keysToRemove) {
+      IRCode code,
+      ListIterator<BasicBlock> blocksIterator,
+      BasicBlock originalBlock,
+      InstructionListIterator iterator,
+      IntSwitch theSwitch,
+      List<IntList> switches,
+      IntList keysToRemove) {
 
     Position position = theSwitch.getPosition();
 
@@ -620,16 +624,18 @@ public class CodeRewriter {
 
     public long packedSavings(InternalOutputMode mode) {
       long packedTargets = (long) getMax() - (long) getMin() + 1;
-      if (!Switch.canBePacked(mode, packedTargets)) {
+      if (!IntSwitch.canBePacked(mode, packedTargets)) {
         return Long.MIN_VALUE + 1;
       }
-      long sparseCost = Switch.baseSparseSize(mode) + Switch.sparsePayloadSize(mode, keys.size());
-      long packedCost = Switch.basePackedSize(mode) + Switch.packedPayloadSize(mode, packedTargets);
+      long sparseCost =
+          IntSwitch.baseSparseSize(mode) + IntSwitch.sparsePayloadSize(mode, keys.size());
+      long packedCost =
+          IntSwitch.basePackedSize(mode) + IntSwitch.packedPayloadSize(mode, packedTargets);
       return sparseCost - packedCost;
     }
 
     public long estimatedSize(InternalOutputMode mode) {
-      return Switch.estimatedSize(mode, keys.toIntArray());
+      return IntSwitch.estimatedSize(mode, keys.toIntArray());
     }
   }
 
@@ -694,7 +700,8 @@ public class CodeRewriter {
     return options.getInternalOutputMode().isGeneratingClassFiles() ? 3 : 1;
   }
 
-  private int findIfsForCandidates(List<Interval> newSwitches, Switch theSwitch, IntList outliers) {
+  private int findIfsForCandidates(
+      List<Interval> newSwitches, IntSwitch theSwitch, IntList outliers) {
     Set<Interval> switchesToRemove = new HashSet<>();
     InternalOutputMode mode = options.getInternalOutputMode();
     int outliersAsIfSize = 0;
@@ -732,7 +739,7 @@ public class CodeRewriter {
       long currentSavings =
           switchSize
               - sizeForKeysWrittenAsIfs(theSwitch.value().outType(), ifKeys)
-              - Switch.estimatedSparseSize(mode, candidateKeys.size() - ifKeys.size());
+              - IntSwitch.estimatedSparseSize(mode, candidateKeys.size() - ifKeys.size());
       int minIndex = smallestPosition - 1;
       int maxIndex = smallestPosition + 1;
       while (ifKeys.size() < maxIfBudget && currentSavings > previousSavings) {
@@ -756,7 +763,7 @@ public class CodeRewriter {
         currentSavings =
             switchSize
                 - sizeForKeysWrittenAsIfs(theSwitch.value().outType(), ifKeys)
-                - Switch.estimatedSparseSize(mode, candidateKeys.size() - ifKeys.size());
+                - IntSwitch.estimatedSparseSize(mode, candidateKeys.size() - ifKeys.size());
       }
       if (previousSavings >= currentSavings) {
         // Remove the last added key since it did not contribute to savings.
@@ -773,7 +780,8 @@ public class CodeRewriter {
       maxIndex--;
       if (ifKeys.size() > 0) {
         int ifsSize = sizeForKeysWrittenAsIfs(theSwitch.value().outType(), ifKeys);
-        long newSwitchSize = Switch.estimatedSparseSize(mode, candidateKeys.size() - ifKeys.size());
+        long newSwitchSize =
+            IntSwitch.estimatedSparseSize(mode, candidateKeys.size() - ifKeys.size());
         if (newSwitchSize + ifsSize + codeUnitMargin() < switchSize) {
           candidateKeys.removeElements(minIndex, maxIndex);
           outliers.addAll(ifKeys);
@@ -793,8 +801,8 @@ public class CodeRewriter {
       InstructionListIterator iterator = block.listIterator();
       while (iterator.hasNext()) {
         Instruction instruction = iterator.next();
-        if (instruction.isSwitch()) {
-          Switch theSwitch = instruction.asSwitch();
+        if (instruction.isIntSwitch()) {
+          IntSwitch theSwitch = instruction.asIntSwitch();
           if (options.testing.enableDeadSwitchCaseElimination) {
             SwitchCaseEliminator eliminator =
                 removeUnnecessarySwitchCases(code, theSwitch, iterator);
@@ -809,8 +817,8 @@ public class CodeRewriter {
                 continue;
               }
 
-              assert instruction.isSwitch();
-              theSwitch = instruction.asSwitch();
+              assert instruction.isIntSwitch();
+              theSwitch = instruction.asIntSwitch();
             }
           }
           if (theSwitch.numberOfKeys() == 1) {
@@ -917,7 +925,7 @@ public class CodeRewriter {
               newSwitchSequences.add(interval.keys);
             }
 
-            long currentSize = Switch.estimatedSize(mode, theSwitch.getKeys());
+            long currentSize = IntSwitch.estimatedSize(mode, theSwitch.getKeys());
             if (newSwitchesSize + outliersAsIfSize + codeUnitMargin() < currentSize) {
               convertSwitchToSwitchAndIfs(
                   code, blocksIterator, block, iterator, theSwitch, newSwitchSequences, outliers);
@@ -939,7 +947,7 @@ public class CodeRewriter {
   }
 
   private SwitchCaseEliminator removeUnnecessarySwitchCases(
-      IRCode code, Switch theSwitch, InstructionListIterator iterator) {
+      IRCode code, IntSwitch theSwitch, InstructionListIterator iterator) {
     BasicBlock defaultTarget = theSwitch.fallthroughBlock();
     SwitchCaseEliminator eliminator = null;
     BasicBlockBehavioralSubsumption behavioralSubsumption =
@@ -965,7 +973,7 @@ public class CodeRewriter {
     return eliminator;
   }
 
-  private boolean switchCaseIsUnreachable(Switch theSwitch, int index) {
+  private boolean switchCaseIsUnreachable(IntSwitch theSwitch, int index) {
     Value switchValue = theSwitch.value();
     return switchValue.hasValueRange()
         && !switchValue.getValueRange().containsValue(theSwitch.getKey(index));
@@ -993,8 +1001,8 @@ public class CodeRewriter {
       while (it.hasNext()) {
         Instruction insn = it.next();
         // Pattern match a switch on a switch map as input.
-        if (insn.isSwitch()) {
-          Switch switchInsn = insn.asSwitch();
+        if (insn.isIntSwitch()) {
+          IntSwitch switchInsn = insn.asIntSwitch();
           EnumSwitchInfo info =
               SwitchUtils.analyzeSwitchOverEnum(switchInsn, appView.withLiveness());
           if (info != null) {
@@ -1012,8 +1020,12 @@ public class CodeRewriter {
               targets[i] = targetMap.get(keys.getInt(i));
             }
 
-            Switch newSwitch = new Switch(info.ordinalInvoke.outValue(), keys.toIntArray(),
-                targets, switchInsn.getFallthroughBlockIndex());
+            IntSwitch newSwitch =
+                new IntSwitch(
+                    info.ordinalInvoke.outValue(),
+                    keys.toIntArray(),
+                    targets,
+                    switchInsn.getFallthroughBlockIndex());
             // Replace the switch itself.
             it.replaceCurrentInstruction(newSwitch);
             // If the original input to the switch is now unused, remove it too. It is not dead
@@ -1057,7 +1069,7 @@ public class CodeRewriter {
       if (block.exit().isIf()) {
         collapseIfTrueTarget(block);
       }
-      if (block.exit().isSwitch()) {
+      if (block.exit().isIntSwitch()) {
         collapseNonFallthroughSwitchTargets(block);
       }
       if (block.exit().isStringSwitch()) {
