@@ -281,8 +281,8 @@ public class UnusedArgumentsCollector {
         || appView.appInfo().keepUnusedArguments.contains(method.method)) {
       return null;
     }
-    // Only process classfile code objects.
-    if (method.getCode() == null || !method.getCode().isCfOrJarCode()) {
+    // Only process JAR code.
+    if (method.getCode() == null || !method.getCode().isJarCode()) {
       return null;
     }
     if (method.isVirtualMethod()) {

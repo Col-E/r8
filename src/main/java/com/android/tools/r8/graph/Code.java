@@ -97,9 +97,4 @@ public abstract class Code extends CachedHashValueDexItem {
   }
 
   public abstract boolean isEmptyVoidMethod();
-
-  // Transitional methods for replacing 'Jar' by 'Cf' front-end.
-  public boolean isCfOrJarCode() {
-    return isCfCode() || isJarCode();
-  }
 }
