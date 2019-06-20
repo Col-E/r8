@@ -4,6 +4,7 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.ValueType;
@@ -198,15 +199,35 @@ public class CfStackInstruction extends CfInstruction {
             // Input stack: ..., value2, value1
             // Output stack: ..., value1, value2, value1
             dupX1(builder, state, value1, value2);
-          } else if (value1.type.isWide()) {
-            throw new Unimplemented("Building IR for Dup2X2 narrow,narrow,wide not supported");
-          } else if (value2.type.isWide()) {
-            throw new Unimplemented("Building IR for Dup2X2 wide,narrow,narrow not supported");
+            break;
+          }
+          // Remaining valid cases are:
+          // - single, single, wide
+          // - wide, single, single
+          // - single, single, single, single
+          Slot value3 = state.pop();
+          if (value1.type.isWide()) {
+            if (value3.type.isWide()) {
+              throw new CompilationError("Invalid dup2x2 with types: wide, single, wide");
+            }
+            // Input stack: ..., value3, value2, value1
+            // Output stack: ..., value1, value3, value2, value1
+            dupX2(builder, state, value1, value2, value3);
+            break;
+          }
+          if (value2.type.isWide()) {
+            throw new CompilationError("Invalid dup2x2 with types: ..., wide, single");
+          }
+          if (value3.type.isWide()) {
+              throw new Unimplemented("Building IR for Dup2X2 wide,narrow,narrow not supported");
           } else {
+            Slot value4 = state.pop();
+            if (value4.type.isWide()) {
+              throw new CompilationError("Invalid dup2x2 with types: wide, single, single, single");
+            }
             throw new Unimplemented(
                 "Building IR for Dup2X2 narrow,narrow,narrow,narrow not supported");
           }
-          break;
         }
       case Swap:
         {
@@ -224,6 +245,7 @@ public class CfStackInstruction extends CfInstruction {
     }
   }
 
+  // Dup top of stack across/X one other value (width independent).
   private void dupX1(IRBuilder builder, CfState state, Slot inValue1, Slot inValue2) {
     // Input stack: ..., A:inValue2, B:inValue1 (values already popped)
     Slot outValue1 = state.push(inValue1);
@@ -235,6 +257,26 @@ public class CfStackInstruction extends CfInstruction {
     // Move B(outValue2) <- A(inValue2)
     builder.addMove(inValue2.type, outValue2.register, inValue2.register);
     // Move A(outValue1) <- C(outValue1Copy)
+    builder.addMove(outValue1Copy.type, outValue1.register, outValue1Copy.register);
+  }
+
+  // Dup top of stack across/X two other values.
+  // Width independent, but the two cross values can only be single for valid CF inputs.
+  private void dupX2(
+      IRBuilder builder, CfState state, Slot inValue1, Slot inValue2, Slot inValue3) {
+    // Input stack: ..., A:inValue3, B:inValue2, C:inValue1 (values already popped)
+    Slot outValue1 = state.push(inValue1);
+    Slot outValue3 = state.push(inValue3);
+    Slot outValue2 = state.push(inValue2);
+    Slot outValue1Copy = state.push(inValue1);
+    // Output stack: ..., A:outValue1, B:outValue3, C:outValue2, D:outValue1Copy
+    // Move D(outValue1Copy) <- C(inValue1)
+    builder.addMove(inValue1.type, outValue1Copy.register, inValue1.register);
+    // Move C(outValue2) <- B(inValue2)
+    builder.addMove(inValue2.type, outValue2.register, inValue2.register);
+    // Move B(outValue3) <- A(inValue3)
+    builder.addMove(inValue3.type, outValue3.register, inValue3.register);
+    // Move A(outValue1) <- D(outValue1Copy)
     builder.addMove(outValue1Copy.type, outValue1.register, outValue1Copy.register);
   }
 
