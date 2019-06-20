@@ -508,8 +508,6 @@ class StringSwitchConverter {
           return false;
         }
 
-        // TODO(b/135559645): Consider implementing hashCode() on DexString to avoid String
-        //  materialization.
         try {
           if (theString.getValue().decodedHashCode() == hash) {
             BasicBlock trueTarget = theIf.targetFromCondition(1).endOfGotoChain();
