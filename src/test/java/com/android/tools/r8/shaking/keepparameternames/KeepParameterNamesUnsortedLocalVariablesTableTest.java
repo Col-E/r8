@@ -78,9 +78,8 @@ public class KeepParameterNamesUnsortedLocalVariablesTableTest extends TestBase 
           "this",
           classSubject.asFoundClassSubject().asTypeSybject(),
           null);
-      // TODO(132549918): This should be parameter1 and not x.
       checkLocalVariable(
-          localVariableTable.get(1), 1, "x", inspector.getTypeSubject("int"), null);
+          localVariableTable.get(1), 1, "parameter1", inspector.getTypeSubject("int"), null);
       checkLocalVariable(
           localVariableTable.get(2), 2, "parameter2", inspector.getTypeSubject("int"), null);
     } else {
@@ -99,7 +98,6 @@ public class KeepParameterNamesUnsortedLocalVariablesTableTest extends TestBase 
         .apply(this::configureKeepParameterNames)
         .addOptionsModification(options -> options.enableCfFrontend = cfFrontend)
         .compile()
-        .disassemble()
         .inspect(this::checkLocalVariableTable)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(expectedOutput);

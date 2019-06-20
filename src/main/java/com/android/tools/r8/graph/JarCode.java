@@ -194,6 +194,17 @@ public class JarCode extends Code {
 
   private Int2ReferenceMap<DebugLocalInfo> collectParameterInfo(
       DexEncodedMethod encodedMethod, AppView<?> appView) {
+    LabelNode firstLabel = null;
+    for (Iterator<AbstractInsnNode> it = getNode().instructions.iterator(); it.hasNext(); ) {
+      AbstractInsnNode insn = it.next();
+      if (insn.getType() == AbstractInsnNode.LABEL) {
+        firstLabel = (LabelNode) insn;
+        break;
+      }
+    }
+    if (firstLabel == null) {
+      return DexEncodedMethod.NO_PARAMETER_INFO;
+    }
     if (!appView.options().hasProguardConfiguration()
         || !appView.options().getProguardConfiguration().isKeepParameterNames()) {
       return DexEncodedMethod.NO_PARAMETER_INFO;
@@ -220,9 +231,8 @@ public class JarCode extends Code {
     DexItemFactory factory = appView.options().itemFactory;
     Int2ReferenceMap<DebugLocalInfo> parameterInfo =
         new Int2ReferenceArrayMap<>(localSlotsForParameters.cardinality());
-    for (Object o : node.localVariables) {
-      LocalVariableNode node = (LocalVariableNode) o;
-      if (node.index < nextLocalSlotsForParameters
+    for (LocalVariableNode node : node.localVariables) {
+      if (node.start == firstLabel
           && localSlotsForParameters.get(node.index)
           && !parameterInfo.containsKey(node.index)) {
         parameterInfo.put(
