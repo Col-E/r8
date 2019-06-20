@@ -320,7 +320,6 @@ public class CfCode extends Code {
         new Int2ReferenceArrayMap<>(localSlotsForParameters.cardinality());
     for (LocalVariableInfo node : localVariables) {
       if (node.start == firstLabel
-          && node.index < nextLocalSlotsForParameters
           && localSlotsForParameters.get(node.index)
           && !parameterInfo.containsKey(node.index)) {
         parameterInfo.put(
