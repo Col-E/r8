@@ -140,6 +140,12 @@ public class ArrayPut extends Instruction implements ImpreciseMemberTypeInstruct
   }
 
   @Override
+  public boolean instructionMayHaveSideEffects(AppView<?> appView, DexType context) {
+    // ArrayPut has side-effects on input values.
+    return true;
+  }
+
+  @Override
   public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
     // ArrayPut has side-effects on input values.
     return false;

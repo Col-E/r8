@@ -41,8 +41,7 @@ public class B135542760 extends TestBase {
         .setMinApi(parameters.getRuntime())
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
-        // TODO(135542760): Expected output is actually [1, 2, 3, 4]
-        .assertSuccessWithOutput(StringUtils.lines("[1, 2, 3, 0]"));
+        .assertSuccessWithOutput(StringUtils.lines("[1, 2, 3, 4]"));
   }
 
   static class TestClass {
