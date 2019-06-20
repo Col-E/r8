@@ -318,13 +318,14 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
   }
 
   private AppInfoWithLiveness(AppInfoWithLiveness previous) {
-    this(previous, previous.app(), null);
+    this(previous, previous.app(), null, null);
   }
 
   private AppInfoWithLiveness(
       AppInfoWithLiveness previous,
       DexApplication application,
-      Collection<DexType> removedClasses) {
+      Collection<DexType> removedClasses,
+      Collection<DexReference> additionalPinnedItems) {
     this(
         application,
         previous.liveTypes,
@@ -345,7 +346,9 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
         previous.staticInvokes,
         previous.callSites,
         previous.brokenSuperInvokes,
-        previous.pinnedItems,
+        additionalPinnedItems == null
+            ? previous.pinnedItems
+            : CollectionUtils.mergeSets(previous.pinnedItems, additionalPinnedItems),
         previous.mayHaveSideEffects,
         previous.noSideEffects,
         previous.assumedValues,
@@ -736,9 +739,11 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
    * DexApplication object.
    */
   public AppInfoWithLiveness prunedCopyFrom(
-      DexApplication application, Collection<DexType> removedClasses) {
+      DexApplication application,
+      Collection<DexType> removedClasses,
+      Collection<DexReference> additionalPinnedItems) {
     assert checkIfObsolete();
-    return new AppInfoWithLiveness(this, application, removedClasses);
+    return new AppInfoWithLiveness(this, application, removedClasses, additionalPinnedItems);
   }
 
   public AppInfoWithLiveness rewrittenWithLense(

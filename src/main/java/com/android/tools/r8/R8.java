@@ -372,7 +372,10 @@ public class R8 {
               appView
                   .appInfo()
                   .withLiveness()
-                  .prunedCopyFrom(application, pruner.getRemovedClasses()));
+                  .prunedCopyFrom(
+                      application,
+                      pruner.getRemovedClasses(),
+                      pruner.getMethodsToKeepForConfigurationDebugging()));
           new AbstractMethodRemover(appView.appInfo().withLiveness()).run();
 
           // Mark dead proto extensions fields as neither being read nor written.
@@ -664,7 +667,8 @@ public class R8 {
                     .appInfo()
                     .prunedCopyFrom(
                         application,
-                        CollectionUtils.mergeSets(prunedTypes, pruner.getRemovedClasses())));
+                        CollectionUtils.mergeSets(prunedTypes, pruner.getRemovedClasses()),
+                        pruner.getMethodsToKeepForConfigurationDebugging()));
 
             // TODO(b/130721661): Enable this assert.
             // assert Inliner.verifyNoMethodsInlinedDueToSingleCallSite(appView);

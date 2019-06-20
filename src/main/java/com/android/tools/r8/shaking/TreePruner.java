@@ -8,7 +8,9 @@ import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
@@ -32,6 +34,7 @@ public class TreePruner {
   private final AppView<AppInfoWithLiveness> appView;
   private final UsagePrinter usagePrinter;
   private final Set<DexType> prunedTypes = Sets.newIdentityHashSet();
+  private final Set<DexMethod> methodsToKeepForConfigurationDebugging = Sets.newIdentityHashSet();
 
   public TreePruner(DexApplication application, AppView<AppInfoWithLiveness> appView) {
     this.application = application;
@@ -255,6 +258,7 @@ public class TreePruner {
             method.shouldNotHaveCode() && !method.hasCode()
                 ? method
                 : method.toMethodThatLogsError(appView));
+        methodsToKeepForConfigurationDebugging.add(method.method);
       } else if (appInfo.targetedMethods.contains(method.getKey())) {
         // If the method is already abstract, and doesn't have code, let it be.
         if (method.shouldNotHaveCode() && !method.hasCode()) {
@@ -329,5 +333,9 @@ public class TreePruner {
 
   public Collection<DexType> getRemovedClasses() {
     return Collections.unmodifiableCollection(prunedTypes);
+  }
+
+  public Collection<DexReference> getMethodsToKeepForConfigurationDebugging() {
+    return Collections.unmodifiableCollection(methodsToKeepForConfigurationDebugging);
   }
 }
