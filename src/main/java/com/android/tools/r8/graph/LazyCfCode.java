@@ -193,6 +193,11 @@ public class LazyCfCode extends Code {
   }
 
   @Override
+  public void registerArgumentReferences(DexEncodedMethod method, ArgumentUse registry) {
+    asCfCode().registerArgumentReferences(method, registry);
+  }
+
+  @Override
   public String toString() {
     return asCfCode().toString();
   }

@@ -5,8 +5,10 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.cf.code.CfFrame;
+import com.android.tools.r8.cf.code.CfIinc;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfLabel;
+import com.android.tools.r8.cf.code.CfLoad;
 import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.cf.code.CfReturnVoid;
 import com.android.tools.r8.cf.code.CfTryCatch;
@@ -23,6 +25,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import java.util.BitSet;
+import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import java.util.Collections;
 import java.util.List;
 import org.objectweb.asm.Label;
@@ -325,6 +328,37 @@ public class CfCode extends Code {
       }
     }
     return parameterInfo;
+  }
+
+  @Override
+  public void registerArgumentReferences(DexEncodedMethod method, ArgumentUse registry) {
+    DexProto proto = method.method.proto;
+    boolean isStatic = method.accessFlags.isStatic();
+    int argumentCount = proto.parameters.values.length + (isStatic ? 0 : 1);
+    Int2IntArrayMap indexToNumber = new Int2IntArrayMap(argumentCount);
+    {
+      int index = 0;
+      int number = 0;
+      for (DexType value : proto.parameters.values) {
+        indexToNumber.put(index++, number++);
+        if (value.isLongType() || value.isDoubleType()) {
+          index++;
+        }
+      }
+    }
+    for (CfInstruction instruction : instructions) {
+      int index;
+      if (instruction instanceof CfLoad) {
+        index = ((CfLoad) instruction).getLocalIndex();
+      } else if (instruction instanceof CfIinc) {
+        index = ((CfIinc) instruction).getLocalIndex();
+      } else {
+        continue;
+      }
+      if (index < indexToNumber.size()) {
+        registry.register(indexToNumber.get(index));
+      }
+    }
   }
 
   @Override
