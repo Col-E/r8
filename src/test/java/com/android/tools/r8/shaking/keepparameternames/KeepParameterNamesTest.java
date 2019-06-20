@@ -37,18 +37,26 @@ public class KeepParameterNamesTest extends TestBase {
   private final TestParameters parameters;
   private final boolean keepParameterNames;
   private final boolean enableMinification;
+  private final boolean cfFrontend;
 
-  @Parameterized.Parameters(name = "{0}, keepparameternames {1}, minification {2}")
+  @Parameterized.Parameters(name = "{0}, keepparameternames {1}, minification {2}, cf frontend {3}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withCfRuntimes().build(), BooleanUtils.values(), BooleanUtils.values());
+        getTestParameters().withCfRuntimes().build(),
+        BooleanUtils.values(),
+        BooleanUtils.values(),
+        BooleanUtils.values());
   }
 
   public KeepParameterNamesTest(
-      TestParameters parameters, boolean keepParameterNames, boolean enableMinification) {
+      TestParameters parameters,
+      boolean keepParameterNames,
+      boolean enableMinification,
+      boolean cfFrontend) {
     this.parameters = parameters;
     this.keepParameterNames = keepParameterNames;
     this.enableMinification = enableMinification;
+    this.cfFrontend = cfFrontend;
   }
 
   private void checkLocalVariable(
@@ -211,6 +219,7 @@ public class KeepParameterNamesTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .minification(enableMinification)
         .apply(this::configureKeepParameterNames)
+        .addOptionsModification(options -> options.enableCfFrontend = cfFrontend)
         .compile()
         .inspect(this::checkLocalVariableTableNotKept)
         .run(parameters.getRuntime(), TestClass.class)

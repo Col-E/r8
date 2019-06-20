@@ -20,6 +20,9 @@ import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
+import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
 import org.objectweb.asm.Label;
@@ -240,6 +243,15 @@ public class CfCode extends Code {
             callerPosition,
             origin,
             appView);
+    if (!keepLocals(encodedMethod, appView.options())) {
+      // If the locals are not kept, we might still need a bit of locals information to satisfy
+      // -keepparameternames for R8. As locals are stripped after collecting the parameter names
+      // this information can only be retrieved the first time IR is build for a method, so stick
+      // to the information if already present.
+      if (!encodedMethod.hasParameterInfo()) {
+        encodedMethod.setParameterInfo(collectParameterInfo(encodedMethod, appView));
+      }
+    }
     return new IRBuilder(encodedMethod, appView, source, origin, generator).build(context);
   }
 
@@ -253,6 +265,66 @@ public class CfCode extends Code {
         registry.registerTypeReference(guard);
       }
     }
+  }
+
+  private boolean keepLocals(DexEncodedMethod encodedMethod, InternalOptions options) {
+    if (options.testing.noLocalsTableOnInput) {
+      return false;
+    }
+    if (options.debug || encodedMethod.getOptimizationInfo().isReachabilitySensitive()) {
+      return true;
+    }
+    return false;
+  }
+
+  private Int2ReferenceMap<DebugLocalInfo> collectParameterInfo(
+      DexEncodedMethod encodedMethod, AppView<?> appView) {
+    CfLabel firstLabel = null;
+    for (CfInstruction instruction : instructions) {
+      if (instruction instanceof CfLabel) {
+        firstLabel = (CfLabel) instruction;
+        break;
+      }
+    }
+    if (firstLabel == null) {
+      return DexEncodedMethod.NO_PARAMETER_INFO;
+    }
+    if (!appView.options().hasProguardConfiguration()
+        || !appView.options().getProguardConfiguration().isKeepParameterNames()) {
+      return DexEncodedMethod.NO_PARAMETER_INFO;
+    }
+    // The enqueuer might build IR to trace reflective behaviour. At that point liveness is not
+    // known, so be conservative with collection parameter name information.
+    if (appView.appInfo().hasLiveness()
+        && !appView.appInfo().withLiveness().isPinned(encodedMethod.method)) {
+      return DexEncodedMethod.NO_PARAMETER_INFO;
+    }
+
+    // Collect the local slots used for parameters.
+    BitSet localSlotsForParameters = new BitSet(0);
+    int nextLocalSlotsForParameters = 0;
+    if (!encodedMethod.isStatic()) {
+      localSlotsForParameters.set(nextLocalSlotsForParameters++);
+    }
+    for (DexType type : encodedMethod.method.proto.parameters.values) {
+      localSlotsForParameters.set(nextLocalSlotsForParameters);
+      nextLocalSlotsForParameters += type.isLongType() || type.isDoubleType() ? 2 : 1;
+    }
+    // Collect the first piece of local variable information for each argument local slot,
+    // assuming that that does actually describe the parameter (name, type and possibly
+    // signature).
+    Int2ReferenceMap<DebugLocalInfo> parameterInfo =
+        new Int2ReferenceArrayMap<>(localSlotsForParameters.cardinality());
+    for (LocalVariableInfo node : localVariables) {
+      if (node.start == firstLabel
+          && node.index < nextLocalSlotsForParameters
+          && localSlotsForParameters.get(node.index)
+          && !parameterInfo.containsKey(node.index)) {
+        parameterInfo.put(
+            node.index, new DebugLocalInfo(node.local.name, node.local.type, node.local.signature));
+      }
+    }
+    return parameterInfo;
   }
 
   @Override

@@ -34,16 +34,19 @@ public class KeepParameterNamesUnsortedLocalVariablesTableTest extends TestBase 
 
   private final TestParameters parameters;
   private final boolean keepParameterNames;
+  private final boolean cfFrontend;
 
-  @Parameterized.Parameters(name = "{0}, keepparameternames {1}")
+  @Parameterized.Parameters(name = "{0}, keepparameternames {1}, cf frontend {3}")
   public static Collection<Object[]> data() {
-    return buildParameters(getTestParameters().withCfRuntimes().build(), BooleanUtils.values());
+    return buildParameters(
+        getTestParameters().withCfRuntimes().build(), BooleanUtils.values(), BooleanUtils.values());
   }
 
   public KeepParameterNamesUnsortedLocalVariablesTableTest(
-      TestParameters parameters, boolean keepParameterNames) {
+      TestParameters parameters, boolean keepParameterNames, boolean cfFrontend) {
     this.parameters = parameters;
     this.keepParameterNames = keepParameterNames;
+    this.cfFrontend = cfFrontend;
   }
 
   private void checkLocalVariable(
@@ -94,6 +97,7 @@ public class KeepParameterNamesUnsortedLocalVariablesTableTest extends TestBase 
         .addKeepMainRule(TestClass.class)
         .addKeepRules("-keep class Api { api*(...); }")
         .apply(this::configureKeepParameterNames)
+        .addOptionsModification(options -> options.enableCfFrontend = cfFrontend)
         .compile()
         .disassemble()
         .inspect(this::checkLocalVariableTable)

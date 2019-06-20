@@ -154,7 +154,7 @@ public class JarCode extends Code {
     triggerDelayedParsingIfNeccessary();
     if (!keepLocals(encodedMethod, appView.options())) {
       // If the locals are not kept, we might still need a bit of locals information to satisfy
-      // -keepparameternames for R8. As locals are stripped after collection the parameter names
+      // -keepparameternames for R8. As locals are stripped after collecting the parameter names
       // this information can only be retrieved the first time IR is build for a method, so stick
       // to the information if already present.
       if (!encodedMethod.hasParameterInfo()) {
