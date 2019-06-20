@@ -108,7 +108,7 @@ class StringSwitchConverter {
     if (rewritingCandidates != null) {
       boolean changed = false;
       for (BasicBlock block : rewritingCandidates) {
-        if (convertRewritingCandidateToStringSwitchInstruction(block, dexItemFactory)) {
+        if (convertRewritingCandidateToStringSwitchInstruction(code, block, dexItemFactory)) {
           changed = true;
         }
       }
@@ -172,10 +172,10 @@ class StringSwitchConverter {
   }
 
   private static boolean convertRewritingCandidateToStringSwitchInstruction(
-      BasicBlock block, DexItemFactory dexItemFactory) {
+      IRCode code, BasicBlock block, DexItemFactory dexItemFactory) {
     StringSwitchBuilderInfo info = StringSwitchBuilderInfo.builder(dexItemFactory).build(block);
     if (info != null) {
-      info.createAndInsertStringSwitch();
+      info.createAndInsertStringSwitch(code);
       return true;
     }
     return false;
@@ -269,7 +269,7 @@ class StringSwitchConverter {
       return new Builder(dexItemFactory);
     }
 
-    void createAndInsertStringSwitch() {
+    void createAndInsertStringSwitch(IRCode code) {
       // Remove outgoing control flow edges from `insertionBlock`.
       for (BasicBlock successor : insertionBlock.getNormalSuccessors()) {
         successor.removePredecessor(insertionBlock);
@@ -288,9 +288,16 @@ class StringSwitchConverter {
         i++;
       }
       insertionBlock.link(fallthroughBlock);
-      insertionBlock
-          .exit()
-          .replace(new StringSwitch(value, keys, targetBlockIndices, i + numberOfCatchHandlers));
+
+      // Finally, insert the new StringSwitch instruction.
+      StringSwitch stringSwitchInstruction =
+          new StringSwitch(
+              value,
+              keys,
+              targetBlockIndices,
+              i + numberOfCatchHandlers,
+              code.valueNumberGenerator);
+      insertionBlock.exit().replace(stringSwitchInstruction);
     }
   }
 
