@@ -213,10 +213,6 @@ public class Value {
   private DebugData debugData;
   protected TypeLatticeElement typeLattice;
 
-  public Value(int number, TypeLatticeElement typeLattice) {
-    this(number, typeLattice, null);
-  }
-
   public Value(int number, TypeLatticeElement typeLattice, DebugLocalInfo local) {
     this.number = number;
     this.debugData = local == null ? null : new DebugData(local);
@@ -800,14 +796,6 @@ public class Value {
   }
 
   public Phi asPhi() {
-    return null;
-  }
-
-  public boolean isTemporary() {
-    return false;
-  }
-
-  public TemporaryValue asTemporary() {
     return null;
   }
 

@@ -2496,10 +2496,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       intervals.addRange(new LiveRange(instructionNumber, end));
       assert unconstrainedForCf(intervals.getRegisterLimit(), options);
       if (options.isGeneratingDex() && !value.isPhi()) {
-        int constraint =
-            value.isTemporary()
-                ? value.asTemporary().maxRegister()
-                : value.definition.maxOutValueRegister();
+        int constraint = value.definition.maxOutValueRegister();
         intervals.addUse(new LiveIntervalsUse(instructionNumber, constraint));
       }
     } else {
@@ -2595,17 +2592,6 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
                 : "Arguments should be the only potentially unused local in CF";
           }
           live.remove(definition);
-        }
-        if (instruction.requiresTemporaryRegisters()) {
-          // Handle temporary values similar to out-values that have no usages.
-          instruction.forEachTemporaryValue(
-              temporaryValue ->
-                  addLiveRange(
-                      temporaryValue,
-                      block,
-                      instruction.getNumber() + INSTRUCTION_NUMBER_DELTA,
-                      liveIntervals,
-                      options));
         }
         for (Value use : instruction.inValues()) {
           if (use.needsRegister()) {

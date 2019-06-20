@@ -34,7 +34,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 public abstract class Instruction implements InstructionOrPhi {
@@ -336,14 +335,6 @@ public abstract class Instruction implements InstructionOrPhi {
   public void setNumber(int number) {
     assert number != -1;
     this.number = number;
-  }
-
-  public boolean requiresTemporaryRegisters() {
-    return false;
-  }
-
-  public void forEachTemporaryValue(Consumer<Value> fn) {
-    throw new Unreachable();
   }
 
   /**

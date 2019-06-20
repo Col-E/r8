@@ -8,46 +8,24 @@ import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexString;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 
 public class StringSwitch extends Switch {
 
   private final DexString[] keys;
 
-  // Temporary value that will be given a register that we can use for storing a single-width value.
-  private final Value temporaryValue;
-
   public StringSwitch(
-      Value value,
-      DexString[] keys,
-      int[] targetBlockIndices,
-      int fallthroughBlockIndex,
-      ValueNumberGenerator valueNumberGenerator) {
+      Value value, DexString[] keys, int[] targetBlockIndices, int fallthroughBlockIndex) {
     super(value, targetBlockIndices, fallthroughBlockIndex);
     this.keys = keys;
-    this.temporaryValue =
-        new TemporaryValue(this, valueNumberGenerator.next(), TypeLatticeElement.INT)
-            .setMaxRegister(Constants.U8BIT_MAX);
     assert valid();
   }
 
   @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);
-  }
-
-  @Override
-  public boolean requiresTemporaryRegisters() {
-    return true;
-  }
-
-  @Override
-  public void forEachTemporaryValue(Consumer<Value> fn) {
-    fn.accept(temporaryValue);
   }
 
   public void forEachCase(BiConsumer<DexString, BasicBlock> fn) {
