@@ -10,7 +10,6 @@ import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
@@ -78,6 +77,7 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
+import com.android.tools.r8.ir.code.Switch;
 import com.android.tools.r8.ir.code.Throw;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
@@ -328,7 +328,7 @@ public class CodeRewriter {
   }
 
   private static void collapseNonFallthroughSwitchTargets(BasicBlock block) {
-    IntSwitch insn = block.exit().asIntSwitch();
+    Switch insn = block.exit().asSwitch();
     BasicBlock fallthroughBlock = insn.fallthroughBlock();
     Set<BasicBlock> replacedBlocks = new HashSet<>();
     for (int j = 0; j < insn.targetBlockIndices().length; j++) {
@@ -1047,11 +1047,11 @@ public class CodeRewriter {
   }
 
   /**
-   * Rewrite all branch targets to the destination of trivial goto chains when possible.
-   * Does not rewrite fallthrough targets as that would require block reordering and the
-   * transformation only makes sense after SSA destruction where there are no phis.
+   * Rewrite all branch targets to the destination of trivial goto chains when possible. Does not
+   * rewrite fallthrough targets as that would require block reordering and the transformation only
+   * makes sense after SSA destruction where there are no phis.
    */
-  public static void collapseTrivialGotos(DexEncodedMethod method, IRCode code) {
+  public static void collapseTrivialGotos(IRCode code) {
     assert code.isConsistentGraph();
     List<BasicBlock> blocksToRemove = new ArrayList<>();
     // Rewrite all non-fallthrough targets to the end of trivial goto chains and remove
@@ -1069,11 +1069,8 @@ public class CodeRewriter {
       if (block.exit().isIf()) {
         collapseIfTrueTarget(block);
       }
-      if (block.exit().isIntSwitch()) {
+      if (block.exit().isSwitch()) {
         collapseNonFallthroughSwitchTargets(block);
-      }
-      if (block.exit().isStringSwitch()) {
-        throw new Unimplemented();
       }
       block = nextBlock;
     } while (nextBlock != null);

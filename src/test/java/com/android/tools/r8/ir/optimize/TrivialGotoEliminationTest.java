@@ -82,7 +82,7 @@ public class TrivialGotoEliminationTest {
             false,
             false,
             Origin.unknown());
-    CodeRewriter.collapseTrivialGotos(null, code);
+    CodeRewriter.collapseTrivialGotos(code);
     assertTrue(code.entryBlock().isTrivialGoto());
     assertTrue(blocks.contains(block0));
     assertTrue(blocks.contains(block1));
@@ -169,7 +169,7 @@ public class TrivialGotoEliminationTest {
             false,
             false,
             Origin.unknown());
-    CodeRewriter.collapseTrivialGotos(null, code);
+    CodeRewriter.collapseTrivialGotos(code);
     assertTrue(block0.getInstructions().get(1).isIf());
     assertEquals(block1, block0.getInstructions().get(1).asIf().fallthroughBlock());
     assertTrue(blocks.containsAll(ImmutableList.of(block0, block1, block2, block3)));

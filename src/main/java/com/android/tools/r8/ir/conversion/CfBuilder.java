@@ -153,14 +153,14 @@ public class CfBuilder {
     loadStoreHelper.insertPhiMoves(registerAllocator);
 
     for (int i = 0; i < PEEPHOLE_OPTIMIZATION_PASSES; i++) {
-      CodeRewriter.collapseTrivialGotos(method, code);
+      CodeRewriter.collapseTrivialGotos(code);
       PeepholeOptimizer.removeIdenticalPredecessorBlocks(code, registerAllocator);
       PeepholeOptimizer.shareIdenticalBlockSuffix(code, registerAllocator, SUFFIX_SHARING_OVERHEAD);
     }
 
     rewriteIincPatterns();
 
-    CodeRewriter.collapseTrivialGotos(method, code);
+    CodeRewriter.collapseTrivialGotos(code);
     DexBuilder.removeRedundantDebugPositions(code);
     CfCode code = buildCfCode();
     assert verifyInvokeInterface(code, appView);
