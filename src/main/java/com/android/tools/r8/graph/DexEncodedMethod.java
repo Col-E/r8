@@ -62,11 +62,14 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.IntPredicate;
@@ -114,6 +117,8 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   public static final DexEncodedMethod[] EMPTY_ARRAY = {};
   public static final DexEncodedMethod SENTINEL =
       new DexEncodedMethod(null, null, null, ParameterAnnotationsList.empty(), null);
+  public static final Int2ReferenceMap<DebugLocalInfo> NO_PARAMETER_INFO =
+      new Int2ReferenceArrayMap<>(0);
 
   public final DexMethod method;
   public final MethodAccessFlags accessFlags;
@@ -130,6 +135,8 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   private DexEncodedMethod defaultInterfaceMethodImplementation = null;
 
   private OptionalBool isLibraryMethodOverride = OptionalBool.unknown();
+
+  private Int2ReferenceMap<DebugLocalInfo> parameterInfo = NO_PARAMETER_INFO;
 
   // This flag indicates the current instance is no longer up-to-date as another instance was
   // created based on this. Any further (public) operations on this instance will raise an error
@@ -427,6 +434,19 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     checkIfObsolete();
     final DexBuilder builder = new DexBuilder(ir, registerAllocator);
     setCode(builder.build());
+  }
+
+  public void setParameterInfo(Int2ReferenceMap<DebugLocalInfo> parameterInfo) {
+    assert this.parameterInfo == NO_PARAMETER_INFO;
+    this.parameterInfo = parameterInfo;
+  }
+
+  public boolean hasParameterInfo() {
+    return parameterInfo != NO_PARAMETER_INFO;
+  }
+
+  public Map<Integer, DebugLocalInfo> getParameterInfo() {
+    return parameterInfo;
   }
 
   @Override

@@ -311,7 +311,7 @@ public class CfBuilder {
       assert !block.exit().isReturn() || stackHeightTracker.isEmpty();
 
       if (firstBlock) {
-        addParameterNamesIfRequired(block, code.parameterInfo);
+        addParameterNamesIfRequired(block);
         firstBlock = false;
       }
 
@@ -631,15 +631,19 @@ public class CfBuilder {
     }
   }
 
-  private void addParameterNamesIfRequired(
-      BasicBlock block, Map<Integer, DebugLocalInfo> parameterInfo) {
+  private void addParameterNamesIfRequired(BasicBlock block) {
     // Don't add this information if the code already have full debug information.
     if (appView.options().debug) {
       return;
     }
 
-    if (code.parameterInfo != IRCode.NO_PARAMETER_INFO) {
-      for (Map.Entry<Integer, DebugLocalInfo> entries : parameterInfo.entrySet()) {
+    if (appView.appInfo().hasLiveness()
+        && !appView.appInfo().withLiveness().isPinned(method.method)) {
+      return;
+    }
+
+    if (method.hasParameterInfo()) {
+      for (Map.Entry<Integer, DebugLocalInfo> entries : method.getParameterInfo().entrySet()) {
         LocalVariableInfo localVariableInfo =
             new LocalVariableInfo(entries.getKey(), entries.getValue(), getLabel(block));
         CfLabel endLabel = ensureLabel();
