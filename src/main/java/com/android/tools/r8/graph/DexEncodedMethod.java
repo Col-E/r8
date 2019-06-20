@@ -430,7 +430,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     this.code = code;
   }
 
-  public void setCode(IRCode ir, RegisterAllocator registerAllocator, InternalOptions options) {
+  public void setCode(IRCode ir, RegisterAllocator registerAllocator) {
     checkIfObsolete();
     final DexBuilder builder = new DexBuilder(ir, registerAllocator);
     setCode(builder.build());
