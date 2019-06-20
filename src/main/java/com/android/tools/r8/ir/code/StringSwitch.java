@@ -14,11 +14,9 @@ import com.android.tools.r8.ir.conversion.DexBuilder;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-public class StringSwitch extends JumpInstruction {
+public class StringSwitch extends Switch {
 
   private final DexString[] keys;
-  private final int[] targetBlockIndices;
-  private final int fallthroughBlockIndex;
 
   // Temporary value that will be given a register that we can use for storing a single-width value.
   private final Value temporaryValue;
@@ -29,10 +27,8 @@ public class StringSwitch extends JumpInstruction {
       int[] targetBlockIndices,
       int fallthroughBlockIndex,
       ValueNumberGenerator valueNumberGenerator) {
-    super(null, value);
+    super(value, targetBlockIndices, fallthroughBlockIndex);
     this.keys = keys;
-    this.targetBlockIndices = targetBlockIndices;
-    this.fallthroughBlockIndex = fallthroughBlockIndex;
     this.temporaryValue =
         new TemporaryValue(this, valueNumberGenerator.next(), TypeLatticeElement.INT)
             .setMaxRegister(Constants.U8BIT_MAX);
@@ -60,23 +56,13 @@ public class StringSwitch extends JumpInstruction {
     }
   }
 
-  private boolean valid() {
+  @Override
+  public boolean valid() {
+    assert super.valid();
     assert keys.length >= 1;
     assert keys.length <= Constants.U16BIT_MAX;
-    assert keys.length == targetBlockIndices.length;
-    for (int i = 1; i < keys.length - 1; i++) {
-      assert targetBlockIndices[i] != fallthroughBlockIndex;
-    }
-    assert targetBlockIndices[keys.length - 1] != fallthroughBlockIndex;
+    assert keys.length == numberOfKeys();
     return true;
-  }
-
-  public int size() {
-    return keys.length;
-  }
-
-  public Value value() {
-    return inValues.get(0);
   }
 
   @Override
@@ -93,24 +79,10 @@ public class StringSwitch extends JumpInstruction {
     return keys[index];
   }
 
-  public BasicBlock targetBlock(int index) {
-    return getBlock().getSuccessors().get(targetBlockIndices[index]);
-  }
-
-  @Override
-  public BasicBlock fallthroughBlock() {
-    return getBlock().getSuccessors().get(fallthroughBlockIndex);
-  }
-
-  @Override
-  public void setFallthroughBlock(BasicBlock block) {
-    getBlock().getMutableSuccessors().set(fallthroughBlockIndex, block);
-  }
-
   @Override
   public String toString() {
     StringBuilder builder = new StringBuilder(super.toString()).append(System.lineSeparator());
-    for (int i = 0; i < size(); i++) {
+    for (int i = 0; i < numberOfKeys(); i++) {
       builder
           .append("          \"")
           .append(getKey(i))

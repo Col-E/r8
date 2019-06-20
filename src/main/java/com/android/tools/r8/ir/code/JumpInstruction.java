@@ -11,16 +11,16 @@ import java.util.List;
 
 public abstract class JumpInstruction extends Instruction {
 
-  public JumpInstruction(Value out) {
+  public JumpInstruction() {
     super(null);
   }
 
-  public JumpInstruction(Value out, Value in) {
-    super(out, in);
+  public JumpInstruction(Value in) {
+    super(null, in);
   }
 
-  public JumpInstruction(Value out, List<? extends Value> ins) {
-    super(out, ins);
+  public JumpInstruction(List<? extends Value> ins) {
+    super(null, ins);
   }
 
   public BasicBlock fallthroughBlock() {

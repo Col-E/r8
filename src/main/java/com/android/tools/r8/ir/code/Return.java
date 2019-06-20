@@ -21,11 +21,11 @@ import com.android.tools.r8.ir.optimize.InliningConstraints;
 public class Return extends JumpInstruction {
 
   public Return() {
-    super(null);
+    super();
   }
 
   public Return(Value value) {
-    super(null, value);
+    super(value);
   }
 
   @Override

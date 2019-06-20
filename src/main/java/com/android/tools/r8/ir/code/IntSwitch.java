@@ -24,17 +24,13 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import java.util.ArrayList;
 import java.util.List;
 
-public class IntSwitch extends JumpInstruction {
+public class IntSwitch extends Switch {
 
   private final int[] keys;
-  private final int[] targetBlockIndices;
-  private int fallthroughBlockIndex;
 
   public IntSwitch(Value value, int[] keys, int[] targetBlockIndices, int fallthroughBlockIndex) {
-    super(null, value);
+    super(value, targetBlockIndices, fallthroughBlockIndex);
     this.keys = keys;
-    this.targetBlockIndices = targetBlockIndices;
-    this.fallthroughBlockIndex = fallthroughBlockIndex;
     assert valid();
   }
 
@@ -49,29 +45,25 @@ public class IntSwitch extends JumpInstruction {
     }
   }
 
-  private boolean valid() {
+  @Override
+  public boolean valid() {
+    assert super.valid();
     assert keys.length >= 1;
     assert keys.length <= Constants.U16BIT_MAX;
     // Keys must be acceding, and cannot target the fallthrough.
-    assert keys.length == targetBlockIndices.length;
+    assert keys.length == numberOfKeys();
     for (int i = 1; i < keys.length - 1; i++) {
       assert keys[i - 1] < keys[i];
-      assert targetBlockIndices[i] != fallthroughBlockIndex;
     }
-    assert targetBlockIndices[keys.length - 1] != fallthroughBlockIndex;
     return true;
   }
 
-  public Value value() {
-    return inValues.get(0);
-  }
-
   // Number of targets if this switch is emitted as a packed switch.
-  private static long numberOfTargetsIfPacked(int keys[]) {
+  private static long numberOfTargetsIfPacked(int[] keys) {
     return ((long) keys[keys.length - 1]) - ((long) keys[0]) + 1;
   }
 
-  public static boolean canBePacked(InternalOutputMode mode, int keys[]) {
+  public static boolean canBePacked(InternalOutputMode mode, int[] keys) {
     // The size of a switch payload is stored in an ushort in the Dex file.
     return canBePacked(mode, numberOfTargetsIfPacked(keys));
   }
@@ -135,7 +127,7 @@ public class IntSwitch extends JumpInstruction {
   }
 
   // Size of the switch payload if emitted as packed in code units (bytes in CF, 16-bit in Dex).
-  public static long packedPayloadSize(InternalOutputMode mode, int keys[]) {
+  public static long packedPayloadSize(InternalOutputMode mode, int[] keys) {
     assert canBePacked(mode, keys);
     long numberOfTargets = numberOfTargetsIfPacked(keys);
     return packedPayloadSize(mode, numberOfTargets);
@@ -205,25 +197,12 @@ public class IntSwitch extends JumpInstruction {
     }
   }
 
-
-  public int numberOfKeys() {
-    return keys.length;
-  }
-
   public int getKey(int index) {
     return keys[index];
   }
 
-  public int getTargetBlockIndex(int index) {
-    return targetBlockIndices[index];
-  }
-
   public int[] getKeys() {
     return keys;
-  }
-
-  public int[] targetBlockIndices() {
-    return targetBlockIndices;
   }
 
   public Int2ReferenceSortedMap<BasicBlock> getKeyToTargetMap() {
@@ -232,28 +211,6 @@ public class IntSwitch extends JumpInstruction {
       result.put(getKey(i), targetBlock(i));
     }
     return result;
-  }
-
-  @Override
-  public BasicBlock fallthroughBlock() {
-    return getBlock().getSuccessors().get(fallthroughBlockIndex);
-  }
-
-  public int getFallthroughBlockIndex() {
-    return fallthroughBlockIndex;
-  }
-
-  public void setFallthroughBlockIndex(int i) {
-    fallthroughBlockIndex = i;
-  }
-
-  public BasicBlock targetBlock(int index) {
-    return getBlock().getSuccessors().get(targetBlockIndices()[index]);
-  }
-
-  @Override
-  public void setFallthroughBlock(BasicBlock block) {
-    getBlock().getMutableSuccessors().set(fallthroughBlockIndex, block);
   }
 
   public Nop buildPayload(int[] targets, int fallthroughTarget, InternalOutputMode mode) {
@@ -299,23 +256,22 @@ public class IntSwitch extends JumpInstruction {
 
   @Override
   public String toString() {
-    StringBuilder builder = new StringBuilder(super.toString()+ "\n");
+    StringBuilder builder = new StringBuilder(super.toString()).append(System.lineSeparator());
     for (int i = 0; i < numberOfKeys(); i++) {
-      builder.append("          ");
-      builder.append(getKey(i));
-      builder.append(" -> ");
-      builder.append(targetBlock(i).getNumberAsString());
-      builder.append("\n");
+      builder
+          .append("          ")
+          .append(getKey(i))
+          .append(" -> ")
+          .append(targetBlock(i).getNumberAsString())
+          .append(System.lineSeparator());
     }
-    builder.append("          F -> ");
-    builder.append(fallthroughBlock().getNumber());
-    return builder.toString();
+    return builder.append("          F -> ").append(fallthroughBlock().getNumber()).toString();
   }
 
   @Override
   public void print(CfgPrinter printer) {
     super.print(printer);
-    for (int index : targetBlockIndices) {
+    for (int index : targetBlockIndices()) {
       BasicBlock target = getBlock().getSuccessors().get(index);
       printer.append(" B").append(target.getNumber());
     }
@@ -337,16 +293,16 @@ public class IntSwitch extends JumpInstruction {
       int index = 0;
       for (long i = min; i <= max; i++) {
         if (i == keys[index]) {
-          labels.add(builder.getLabel(successors.get(targetBlockIndices[index])));
+          labels.add(builder.getLabel(successors.get(getTargetBlockIndex(index))));
           index++;
         } else {
           labels.add(fallthroughLabel);
         }
       }
-      assert index == targetBlockIndices.length;
-      builder.add(new CfSwitch(Kind.TABLE, fallthroughLabel, new int[] { min }, labels));
+      assert index == numberOfKeys();
+      builder.add(new CfSwitch(Kind.TABLE, fallthroughLabel, new int[] {min}, labels));
     } else {
-      for (int index : targetBlockIndices) {
+      for (int index : targetBlockIndices()) {
         labels.add(builder.getLabel(successors.get(index)));
       }
       builder.add(new CfSwitch(Kind.LOOKUP, fallthroughLabel, this.keys, labels));

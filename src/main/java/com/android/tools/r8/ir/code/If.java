@@ -70,12 +70,12 @@ public class If extends JumpInstruction {
   private Type type;
 
   public If(Type type, Value value) {
-    super(null, value);
+    super(value);
     this.type = type;
   }
 
   public If(Type type, List<Value> values) {
-    super(null, values);
+    super(values);
     this.type = type;
   }
 

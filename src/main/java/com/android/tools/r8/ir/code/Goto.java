@@ -14,7 +14,7 @@ import java.util.ListIterator;
 public class Goto extends JumpInstruction {
 
   public Goto() {
-    super(null);
+    super();
   }
 
   public Goto(BasicBlock block) {

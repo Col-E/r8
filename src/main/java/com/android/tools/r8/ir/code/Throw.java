@@ -17,7 +17,7 @@ import com.android.tools.r8.ir.optimize.InliningConstraints;
 public class Throw extends JumpInstruction {
 
   public Throw(Value exception) {
-    super(null, exception);
+    super(exception);
   }
 
   @Override
