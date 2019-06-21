@@ -67,6 +67,7 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeVirtual;
+import com.android.tools.r8.ir.code.JumpInstruction;
 import com.android.tools.r8.ir.code.Move;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.NewArrayFilledData;
@@ -997,49 +998,45 @@ public class CodeRewriter {
    */
   public void removeSwitchMaps(IRCode code) {
     for (BasicBlock block : code.blocks) {
-      InstructionListIterator it = block.listIterator();
-      while (it.hasNext()) {
-        Instruction insn = it.next();
-        // Pattern match a switch on a switch map as input.
-        if (insn.isIntSwitch()) {
-          IntSwitch switchInsn = insn.asIntSwitch();
-          EnumSwitchInfo info =
-              SwitchUtils.analyzeSwitchOverEnum(switchInsn, appView.withLiveness());
-          if (info != null) {
-            Int2IntMap targetMap = new Int2IntArrayMap();
-            IntList keys = new IntArrayList(switchInsn.numberOfKeys());
-            for (int i = 0; i < switchInsn.numberOfKeys(); i++) {
-              assert switchInsn.targetBlockIndices()[i] != switchInsn.getFallthroughBlockIndex();
-              int key = info.ordinalsMap.getInt(info.indexMap.get(switchInsn.getKey(i)));
-              keys.add(key);
-              targetMap.put(key, switchInsn.targetBlockIndices()[i]);
-            }
-            keys.sort(Comparator.naturalOrder());
-            int[] targets = new int[keys.size()];
-            for (int i = 0; i < keys.size(); i++) {
-              targets[i] = targetMap.get(keys.getInt(i));
-            }
+      JumpInstruction exit = block.exit();
+      // Pattern match a switch on a switch map as input.
+      if (exit.isIntSwitch()) {
+        IntSwitch switchInsn = exit.asIntSwitch();
+        EnumSwitchInfo info = SwitchUtils.analyzeSwitchOverEnum(switchInsn, appView.withLiveness());
+        if (info != null) {
+          Int2IntMap targetMap = new Int2IntArrayMap();
+          IntList keys = new IntArrayList(switchInsn.numberOfKeys());
+          for (int i = 0; i < switchInsn.numberOfKeys(); i++) {
+            assert switchInsn.targetBlockIndices()[i] != switchInsn.getFallthroughBlockIndex();
+            int key = info.ordinalsMap.getInt(info.indexMap.get(switchInsn.getKey(i)));
+            keys.add(key);
+            targetMap.put(key, switchInsn.targetBlockIndices()[i]);
+          }
+          keys.sort(Comparator.naturalOrder());
+          int[] targets = new int[keys.size()];
+          for (int i = 0; i < keys.size(); i++) {
+            targets[i] = targetMap.get(keys.getInt(i));
+          }
 
-            IntSwitch newSwitch =
-                new IntSwitch(
-                    info.ordinalInvoke.outValue(),
-                    keys.toIntArray(),
-                    targets,
-                    switchInsn.getFallthroughBlockIndex());
-            // Replace the switch itself.
-            it.replaceCurrentInstruction(newSwitch);
-            // If the original input to the switch is now unused, remove it too. It is not dead
-            // as it might have side-effects but we ignore these here.
-            Instruction arrayGet = info.arrayGet;
-            if (arrayGet.outValue().numberOfUsers() == 0) {
-              arrayGet.inValues().forEach(v -> v.removeUser(arrayGet));
-              arrayGet.getBlock().removeInstruction(arrayGet);
-            }
-            Instruction staticGet = info.staticGet;
-            if (staticGet.outValue().numberOfUsers() == 0) {
-              assert staticGet.inValues().isEmpty();
-              staticGet.getBlock().removeInstruction(staticGet);
-            }
+          IntSwitch newSwitch =
+              new IntSwitch(
+                  info.ordinalInvoke.outValue(),
+                  keys.toIntArray(),
+                  targets,
+                  switchInsn.getFallthroughBlockIndex());
+          // Replace the switch itself.
+          exit.replace(newSwitch);
+          // If the original input to the switch is now unused, remove it too. It is not dead
+          // as it might have side-effects but we ignore these here.
+          Instruction arrayGet = info.arrayGet;
+          if (arrayGet.outValue().numberOfUsers() == 0) {
+            arrayGet.inValues().forEach(v -> v.removeUser(arrayGet));
+            arrayGet.getBlock().removeInstruction(arrayGet);
+          }
+          Instruction staticGet = info.staticGet;
+          if (staticGet.outValue().numberOfUsers() == 0) {
+            assert staticGet.inValues().isEmpty();
+            staticGet.getBlock().removeInstruction(staticGet);
           }
         }
       }

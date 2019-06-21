@@ -7,6 +7,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
@@ -61,14 +62,18 @@ public class SwitchMapCollector {
 
   private final AppView<AppInfoWithLiveness> appView;
   private final DexString switchMapPrefix;
+  private final DexString kotlinSwitchMapPrefix;
   private final DexType intArrayType;
 
   private final Map<DexField, Int2ReferenceMap<DexField>> switchMaps = new IdentityHashMap<>();
 
   public SwitchMapCollector(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
-    switchMapPrefix = appView.dexItemFactory().createString("$SwitchMap$");
-    intArrayType = appView.dexItemFactory().createType("[I");
+
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    switchMapPrefix = dexItemFactory.createString("$SwitchMap$");
+    kotlinSwitchMapPrefix = dexItemFactory.createString("$EnumSwitchMapping$");
+    intArrayType = dexItemFactory.createType("[I");
   }
 
   public AppInfoWithLiveness run() {
@@ -142,7 +147,7 @@ public class SwitchMapCollector {
     // We are looking for synthetic fields of type int[].
     DexField field = dexEncodedField.field;
     return dexEncodedField.accessFlags.isSynthetic()
-        && field.name.startsWith(switchMapPrefix)
+        && (field.name.startsWith(switchMapPrefix) || field.name.startsWith(kotlinSwitchMapPrefix))
         && field.type == intArrayType;
   }
 }

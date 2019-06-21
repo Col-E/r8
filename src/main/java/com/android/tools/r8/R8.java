@@ -539,8 +539,10 @@ public class R8 {
       assert appView.dexItemFactory().verifyNoCachedTypeLatticeElements();
 
       // Collect switch maps and ordinals maps.
-      appViewWithLiveness.setAppInfo(new SwitchMapCollector(appViewWithLiveness).run());
-      appViewWithLiveness.setAppInfo(new EnumOrdinalMapCollector(appViewWithLiveness).run());
+      if (options.enableSwitchMapRemoval) {
+        appViewWithLiveness.setAppInfo(new SwitchMapCollector(appViewWithLiveness).run());
+        appViewWithLiveness.setAppInfo(new EnumOrdinalMapCollector(appViewWithLiveness).run());
+      }
 
       appView.setAppServices(appView.appServices().rewrittenWithLens(appView.graphLense()));
 
