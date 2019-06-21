@@ -3,8 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
+import static com.android.tools.r8.naming.IdentifierNameStringUtils.getPositionOfFirstConstString;
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.identifyIdentifier;
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.inferMemberOrTypeFromNameString;
+import static com.android.tools.r8.naming.IdentifierNameStringUtils.isClassNameComparison;
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.isReflectionMethod;
 
 import com.android.tools.r8.graph.AppView;
@@ -22,6 +24,7 @@ import com.android.tools.r8.graph.DexValue.DexItemBasedValueString;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
+import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.DexItemBasedConstString;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
@@ -187,53 +190,68 @@ public class IdentifierNameStringMarker {
       InstructionListIterator iterator,
       InvokeMethod invoke) {
     DexMethod invokedMethod = invoke.getInvokedMethod();
-    if (!identifierNameStrings.containsKey(invokedMethod)) {
+    boolean isClassNameComparison = isClassNameComparison(invoke, appView.dexItemFactory());
+    if (!identifierNameStrings.containsKey(invokedMethod) && !isClassNameComparison) {
       return iterator;
     }
     List<Value> ins = invoke.arguments();
     Value[] changes = new Value[ins.size()];
-    if (isReflectionMethod(appView.dexItemFactory(), invokedMethod)) {
+    if (isReflectionMethod(appView.dexItemFactory(), invokedMethod) || isClassNameComparison) {
       DexReference itemBasedString = identifyIdentifier(invoke, appView);
       if (itemBasedString == null) {
         DexType context = method.method.holder;
         warnUndeterminedIdentifierIfNecessary(invokedMethod, context, invoke, null);
         return iterator;
       }
-      DexType returnType = invoke.getReturnType();
-      boolean isClassForName = returnType.descriptor == appView.dexItemFactory().classDescriptor;
-      boolean isReferenceFieldUpdater =
-          returnType.descriptor == appView.dexItemFactory().referenceFieldUpdaterDescriptor;
-      int positionOfIdentifier = isClassForName ? 0 : (isReferenceFieldUpdater ? 2 : 1);
-      Value in = invoke.arguments().get(positionOfIdentifier);
-      // Move the cursor back to $invoke
-      assert iterator.peekPrevious() == invoke;
-      iterator.previous();
+      int identifierPosition = getIdentifierPositionInArguments(invoke);
+      Value in = invoke.arguments().get(identifierPosition);
       // Prepare $decoupled just before $invoke
       Value newIn = code.createValue(in.getTypeLattice(), in.getLocalInfo());
       DexItemBasedConstString decoupled =
           new DexItemBasedConstString(newIn, itemBasedString, throwingInfo);
-      decoupled.setPosition(invoke.getPosition());
-      changes[positionOfIdentifier] = newIn;
-      // If the current block has catch handler, split into two blocks.
-      // Because const-string we're about to add is also a throwing instr, we need to split
-      // before adding it.
-      BasicBlock block = invoke.getBlock();
-      BasicBlock blockWithInvoke = block.hasCatchHandlers() ? iterator.split(code, blocks) : block;
-      if (blockWithInvoke != block) {
-        // If we split, add const-string at the end of the currently visiting block.
-        iterator = block.listIterator(block.getInstructions().size());
-        iterator.previous();
-        iterator.add(decoupled);
-        // Restore the cursor and block.
-        iterator = blockWithInvoke.listIterator();
-        assert iterator.peekNext() == invoke;
-        iterator.next();
+      changes[identifierPosition] = newIn;
+
+      if (in.numberOfAllUsers() == 1) {
+        // Simply replace the existing ConstString by a DexItemBasedConstString. No need to check
+        // for catch handlers, as this is replacing one throwing instruction with another.
+        ConstString constString = in.definition.asConstString();
+        if (constString.getBlock() == invoke.getBlock()) {
+          iterator.previousUntil(instruction -> instruction == constString);
+          Instruction current = iterator.next();
+          assert current == constString;
+          iterator.replaceCurrentInstruction(decoupled);
+          iterator.nextUntil(instruction -> instruction == invoke);
+        } else {
+          in.definition.replace(decoupled);
+        }
       } else {
-        // Otherwise, just add it to the current block at the position of the iterator.
-        iterator.add(decoupled);
-        // Restore the cursor.
-        assert iterator.peekNext() == invoke;
-        iterator.next();
+        decoupled.setPosition(invoke.getPosition());
+
+        // Move the cursor back to $invoke
+        assert iterator.peekPrevious() == invoke;
+        iterator.previous();
+        // If the current block has catch handler, split into two blocks.
+        // Because const-string we're about to add is also a throwing instr, we need to split
+        // before adding it.
+        BasicBlock block = invoke.getBlock();
+        BasicBlock blockWithInvoke =
+            block.hasCatchHandlers() ? iterator.split(code, blocks) : block;
+        if (blockWithInvoke != block) {
+          // If we split, add const-string at the end of the currently visiting block.
+          iterator = block.listIterator(block.getInstructions().size());
+          iterator.previous();
+          iterator.add(decoupled);
+          // Restore the cursor and block.
+          iterator = blockWithInvoke.listIterator();
+          assert iterator.peekNext() == invoke;
+          iterator.next();
+        } else {
+          // Otherwise, just add it to the current block at the position of the iterator.
+          iterator.add(decoupled);
+          // Restore the cursor.
+          assert iterator.peekNext() == invoke;
+          iterator.next();
+        }
       }
     } else {
       // For general invoke. Multiple arguments can be string literals to be renamed.
@@ -295,6 +313,29 @@ public class IdentifierNameStringMarker {
       method.getMutableOptimizationInfo().markUseIdentifierNameString();
     }
     return iterator;
+  }
+
+  private int getIdentifierPositionInArguments(InvokeMethod invoke) {
+    DexType returnType = invoke.getReturnType();
+    if (isClassNameComparison(invoke, appView.dexItemFactory())) {
+      return getPositionOfFirstConstString(invoke);
+    }
+
+    boolean isClassForName = returnType == appView.dexItemFactory().classType;
+    if (isClassForName) {
+      assert invoke.getInvokedMethod() == appView.dexItemFactory().classMethods.forName;
+      return 0;
+    }
+
+    boolean isReferenceFieldUpdater =
+        returnType == appView.dexItemFactory().referenceFieldUpdaterType;
+    if (isReferenceFieldUpdater) {
+      assert invoke.getInvokedMethod()
+          == appView.dexItemFactory().atomicFieldUpdaterMethods.referenceUpdater;
+      return 2;
+    }
+
+    return 1;
   }
 
   private void warnUndeterminedIdentifierIfNecessary(

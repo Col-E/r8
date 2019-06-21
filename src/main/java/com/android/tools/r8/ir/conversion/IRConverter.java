@@ -228,7 +228,7 @@ public class IRConverter {
       this.outliner = new Outliner(appViewWithLiveness, this);
       this.memberValuePropagation =
           options.enableValuePropagation ? new MemberValuePropagation(appViewWithLiveness) : null;
-      if (!appInfoWithLiveness.identifierNameStrings.isEmpty() && options.isMinifying()) {
+      if (options.isMinifying()) {
         this.identifierNameStringMarker = new IdentifierNameStringMarker(appViewWithLiveness);
       } else {
         this.identifierNameStringMarker = null;
