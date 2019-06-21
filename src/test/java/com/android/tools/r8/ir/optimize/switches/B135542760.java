@@ -32,11 +32,7 @@ public class B135542760 extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(TestClass.class)
         .addKeepMainRule(TestClass.class)
-        .addOptionsModification(
-            options -> {
-              options.testing.enableSwitchToIfRewriting = false;
-              options.testing.enableDeadSwitchCaseElimination = true;
-            })
+        .addOptionsModification(options -> options.testing.enableSwitchToIfRewriting = false)
         .enableInliningAnnotations()
         .setMinApi(parameters.getRuntime())
         .compile()

@@ -52,11 +52,7 @@ public class SwitchCaseRemovalTest extends TestBase {
             "-assumevalues class " + TestClass.class.getTypeName() + " {",
             "  public static final int x return 0..42;",
             "}")
-        .addOptionsModification(
-            options -> {
-              options.testing.enableSwitchToIfRewriting = false;
-              options.testing.enableDeadSwitchCaseElimination = true;
-            })
+        .addOptionsModification(options -> options.testing.enableSwitchToIfRewriting = false)
         .enableInliningAnnotations()
         .enableMemberValuePropagationAnnotations()
         .setMinApi(parameters.getRuntime())
