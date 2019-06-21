@@ -48,11 +48,12 @@ public class IdentifierNameStringMarker {
 
   private final AppView<AppInfoWithLiveness> appView;
   private final Object2BooleanMap<DexReference> identifierNameStrings;
+  private final ThrowingInfo throwingInfo;
 
   public IdentifierNameStringMarker(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
-    // Note that this info is only available at AppInfoWithLiveness.
     this.identifierNameStrings = appView.appInfo().identifierNameStrings;
+    this.throwingInfo = ThrowingInfo.defaultForConstString(appView.options());
   }
 
   public void decoupleIdentifierNameStringsInFields() {
@@ -83,8 +84,6 @@ public class IdentifierNameStringMarker {
     if (!code.hasConstString) {
       return;
     }
-    ThrowingInfo throwingInfo = ThrowingInfo.defaultForConstString(appView.options());
-    DexType originHolder = code.method.method.holder;
     ListIterator<BasicBlock> blocks = code.listIterator();
     while (blocks.hasNext()) {
       BasicBlock block = blocks.next();
@@ -103,181 +102,199 @@ public class IdentifierNameStringMarker {
         // v_n' <- DexItemBasedString("Lx/y/z;") // decoupled
         // this.fld <- v_n' // fieldPut
         if (instruction.isStaticPut() || instruction.isInstancePut()) {
-          FieldInstruction fieldPut = instruction.asFieldInstruction();
-          DexField field = fieldPut.getField();
-          if (!identifierNameStrings.containsKey(field)) {
-            continue;
-          }
-          Value in = instruction.isStaticPut()
-              ? instruction.asStaticPut().inValue()
-              : instruction.asInstancePut().value();
-          if (!in.isConstString()) {
-            warnUndeterminedIdentifierIfNecessary(field, originHolder, instruction, null);
-            continue;
-          }
-          DexString original = in.getConstInstruction().asConstString().getValue();
-          DexReference itemBasedString = inferMemberOrTypeFromNameString(appView, original);
-          if (itemBasedString == null) {
-            warnUndeterminedIdentifierIfNecessary(field, originHolder, instruction, original);
-            continue;
-          }
-          // Move the cursor back to $fieldPut
-          assert iterator.peekPrevious() == fieldPut;
-          iterator.previous();
-          // Prepare $decoupled just before $fieldPut
-          Value newIn = code.createValue(in.getTypeLattice(), in.getLocalInfo());
-          DexItemBasedConstString decoupled =
-              new DexItemBasedConstString(newIn, itemBasedString, throwingInfo);
-          decoupled.setPosition(fieldPut.getPosition());
-          // If the current block has catch handler, split into two blocks.
-          // Because const-string we're about to add is also a throwing instr, we need to split
-          // before adding it.
-          BasicBlock blockWithFieldInstruction =
-              block.hasCatchHandlers() ? iterator.split(code, blocks) : block;
-          if (blockWithFieldInstruction != block) {
-            // If we split, add const-string at the end of the currently visiting block.
-            iterator = block.listIterator(block.getInstructions().size());
-            iterator.previous();
-            iterator.add(decoupled);
-            // Restore the cursor and block.
-            iterator = blockWithFieldInstruction.listIterator();
-            assert iterator.peekNext() == fieldPut;
-            iterator.next();
-            block = blockWithFieldInstruction;
-          } else {
-            // Otherwise, just add it to the current block at the position of the iterator.
-            iterator.add(decoupled);
-            // Restore the cursor.
-            assert iterator.peekNext() == fieldPut;
-            iterator.next();
-          }
-          if (instruction.isStaticPut()) {
-            iterator.replaceCurrentInstruction(new StaticPut(newIn, field));
-          } else {
-            assert instruction.isInstancePut();
-            InstancePut instancePut = instruction.asInstancePut();
-            iterator.replaceCurrentInstruction(new InstancePut(field, instancePut.object(), newIn));
-          }
-          encodedMethod.getMutableOptimizationInfo().markUseIdentifierNameString();
+          iterator =
+              decoupleIdentifierNameStringForFieldPutInstruction(
+                  code, encodedMethod, blocks, iterator, instruction.asFieldInstruction());
         } else if (instruction.isInvokeMethod()) {
-          InvokeMethod invoke = instruction.asInvokeMethod();
-          DexMethod invokedMethod = invoke.getInvokedMethod();
-          if (!identifierNameStrings.containsKey(invokedMethod)) {
-            continue;
-          }
-          List<Value> ins = invoke.arguments();
-          Value[] changes = new Value [ins.size()];
-          if (isReflectionMethod(appView.dexItemFactory(), invokedMethod)) {
-            DexReference itemBasedString = identifyIdentifier(invoke, appView);
-            if (itemBasedString == null) {
-              warnUndeterminedIdentifierIfNecessary(invokedMethod, originHolder, instruction, null);
-              continue;
-            }
-            DexType returnType = invoke.getReturnType();
-            boolean isClassForName =
-                returnType.descriptor == appView.dexItemFactory().classDescriptor;
-            boolean isReferenceFieldUpdater =
-                returnType.descriptor == appView.dexItemFactory().referenceFieldUpdaterDescriptor;
-            int positionOfIdentifier = isClassForName ? 0 : (isReferenceFieldUpdater ? 2 : 1);
-            Value in = invoke.arguments().get(positionOfIdentifier);
-            // Move the cursor back to $invoke
-            assert iterator.peekPrevious() == invoke;
-            iterator.previous();
-            // Prepare $decoupled just before $invoke
-            Value newIn = code.createValue(in.getTypeLattice(), in.getLocalInfo());
-            DexItemBasedConstString decoupled =
-                new DexItemBasedConstString(newIn, itemBasedString, throwingInfo);
-            decoupled.setPosition(invoke.getPosition());
-            changes[positionOfIdentifier] = newIn;
-            // If the current block has catch handler, split into two blocks.
-            // Because const-string we're about to add is also a throwing instr, we need to split
-            // before adding it.
-            BasicBlock blockWithInvoke =
-                block.hasCatchHandlers() ? iterator.split(code, blocks) : block;
-            if (blockWithInvoke != block) {
-              // If we split, add const-string at the end of the currently visiting block.
-              iterator = block.listIterator(block.getInstructions().size());
-              iterator.previous();
-              iterator.add(decoupled);
-              // Restore the cursor and block.
-              iterator = blockWithInvoke.listIterator();
-              assert iterator.peekNext() == invoke;
-              iterator.next();
-              block = blockWithInvoke;
-            } else {
-              // Otherwise, just add it to the current block at the position of the iterator.
-              iterator.add(decoupled);
-              // Restore the cursor.
-              assert iterator.peekNext() == invoke;
-              iterator.next();
-            }
-          } else {
-            // For general invoke. Multiple arguments can be string literals to be renamed.
-            for (int i = 0; i < ins.size(); i++) {
-              Value in = ins.get(i);
-              if (!in.isConstString()) {
-                warnUndeterminedIdentifierIfNecessary(
-                    invokedMethod, originHolder, instruction, null);
-                continue;
-              }
-              DexString original = in.getConstInstruction().asConstString().getValue();
-              DexReference itemBasedString = inferMemberOrTypeFromNameString(appView, original);
-              if (itemBasedString == null) {
-                warnUndeterminedIdentifierIfNecessary(
-                    invokedMethod, originHolder, instruction, original);
-                continue;
-              }
-              // Move the cursor back to $invoke
-              assert iterator.peekPrevious() == invoke;
-              iterator.previous();
-              // Prepare $decoupled just before $invoke
-              Value newIn = code.createValue(in.getTypeLattice(), in.getLocalInfo());
-              DexItemBasedConstString decoupled =
-                  new DexItemBasedConstString(newIn, itemBasedString, throwingInfo);
-              decoupled.setPosition(invoke.getPosition());
-              changes[i] = newIn;
-              // If the current block has catch handler, split into two blocks.
-              // Because const-string we're about to add is also a throwing instr, we need to split
-              // before adding it.
-              BasicBlock blockWithInvoke =
-                  block.hasCatchHandlers() ? iterator.split(code, blocks) : block;
-              if (blockWithInvoke != block) {
-                // If we split, add const-string at the end of the currently visiting block.
-                iterator = block.listIterator(block.getInstructions().size());
-                iterator.previous();
-                iterator.add(decoupled);
-                // Restore the cursor and block.
-                iterator = blockWithInvoke.listIterator();
-                assert iterator.peekNext() == invoke;
-                iterator.next();
-                block = blockWithInvoke;
-              } else {
-                // Otherwise, just add it to the current block at the position of the iterator.
-                iterator.add(decoupled);
-                // Restore the cursor.
-                assert iterator.peekNext() == invoke;
-                iterator.next();
-              }
-            }
-          }
-          if (!Arrays.stream(changes).allMatch(Objects::isNull)) {
-            List<Value> newIns =
-                Streams.mapWithIndex(
-                    ins.stream(),
-                    (in, index) -> changes[(int) index] != null ? changes[(int) index] : in)
-                .collect(Collectors.toList());
-            iterator.replaceCurrentInstruction(
-                Invoke.create(
-                    invoke.getType(),
-                    invokedMethod,
-                    invokedMethod.proto,
-                    invoke.outValue(),
-                    newIns));
-            encodedMethod.getMutableOptimizationInfo().markUseIdentifierNameString();
-          }
+          iterator =
+              decoupleIdentifierNameStringForInvokeInstruction(
+                  code, encodedMethod, blocks, iterator, instruction.asInvokeMethod());
         }
       }
     }
+  }
+
+  private InstructionListIterator decoupleIdentifierNameStringForFieldPutInstruction(
+      IRCode code,
+      DexEncodedMethod method,
+      ListIterator<BasicBlock> blocks,
+      InstructionListIterator iterator,
+      FieldInstruction instruction) {
+    assert instruction.isInstancePut() || instruction.isStaticPut();
+    FieldInstruction fieldPut = instruction.asFieldInstruction();
+    DexField field = fieldPut.getField();
+    if (!identifierNameStrings.containsKey(field)) {
+      return iterator;
+    }
+    Value in =
+        instruction.isStaticPut()
+            ? instruction.asStaticPut().inValue()
+            : instruction.asInstancePut().value();
+    if (!in.isConstString()) {
+      warnUndeterminedIdentifierIfNecessary(field, method.method.holder, instruction, null);
+      return iterator;
+    }
+    DexString original = in.getConstInstruction().asConstString().getValue();
+    DexReference itemBasedString = inferMemberOrTypeFromNameString(appView, original);
+    if (itemBasedString == null) {
+      warnUndeterminedIdentifierIfNecessary(field, method.method.holder, instruction, original);
+      return iterator;
+    }
+    // Move the cursor back to $fieldPut
+    assert iterator.peekPrevious() == fieldPut;
+    iterator.previous();
+    // Prepare $decoupled just before $fieldPut
+    Value newIn = code.createValue(in.getTypeLattice(), in.getLocalInfo());
+    DexItemBasedConstString decoupled =
+        new DexItemBasedConstString(newIn, itemBasedString, throwingInfo);
+    decoupled.setPosition(fieldPut.getPosition());
+    // If the current block has catch handler, split into two blocks.
+    // Because const-string we're about to add is also a throwing instr, we need to split
+    // before adding it.
+    BasicBlock block = instruction.getBlock();
+    BasicBlock blockWithFieldInstruction =
+        block.hasCatchHandlers() ? iterator.split(code, blocks) : block;
+    if (blockWithFieldInstruction != block) {
+      // If we split, add const-string at the end of the currently visiting block.
+      iterator = block.listIterator(block.getInstructions().size() - 1);
+      iterator.add(decoupled);
+      // Restore the cursor and block.
+      iterator = blockWithFieldInstruction.listIterator();
+      assert iterator.peekNext() == fieldPut;
+      iterator.next();
+    } else {
+      // Otherwise, just add it to the current block at the position of the iterator.
+      iterator.add(decoupled);
+      // Restore the cursor.
+      assert iterator.peekNext() == fieldPut;
+      iterator.next();
+    }
+    if (instruction.isStaticPut()) {
+      iterator.replaceCurrentInstruction(new StaticPut(newIn, field));
+    } else {
+      assert instruction.isInstancePut();
+      InstancePut instancePut = instruction.asInstancePut();
+      iterator.replaceCurrentInstruction(new InstancePut(field, instancePut.object(), newIn));
+    }
+    method.getMutableOptimizationInfo().markUseIdentifierNameString();
+    return iterator;
+  }
+
+  private InstructionListIterator decoupleIdentifierNameStringForInvokeInstruction(
+      IRCode code,
+      DexEncodedMethod method,
+      ListIterator<BasicBlock> blocks,
+      InstructionListIterator iterator,
+      InvokeMethod invoke) {
+    DexMethod invokedMethod = invoke.getInvokedMethod();
+    if (!identifierNameStrings.containsKey(invokedMethod)) {
+      return iterator;
+    }
+    List<Value> ins = invoke.arguments();
+    Value[] changes = new Value[ins.size()];
+    if (isReflectionMethod(appView.dexItemFactory(), invokedMethod)) {
+      DexReference itemBasedString = identifyIdentifier(invoke, appView);
+      if (itemBasedString == null) {
+        DexType context = method.method.holder;
+        warnUndeterminedIdentifierIfNecessary(invokedMethod, context, invoke, null);
+        return iterator;
+      }
+      DexType returnType = invoke.getReturnType();
+      boolean isClassForName = returnType.descriptor == appView.dexItemFactory().classDescriptor;
+      boolean isReferenceFieldUpdater =
+          returnType.descriptor == appView.dexItemFactory().referenceFieldUpdaterDescriptor;
+      int positionOfIdentifier = isClassForName ? 0 : (isReferenceFieldUpdater ? 2 : 1);
+      Value in = invoke.arguments().get(positionOfIdentifier);
+      // Move the cursor back to $invoke
+      assert iterator.peekPrevious() == invoke;
+      iterator.previous();
+      // Prepare $decoupled just before $invoke
+      Value newIn = code.createValue(in.getTypeLattice(), in.getLocalInfo());
+      DexItemBasedConstString decoupled =
+          new DexItemBasedConstString(newIn, itemBasedString, throwingInfo);
+      decoupled.setPosition(invoke.getPosition());
+      changes[positionOfIdentifier] = newIn;
+      // If the current block has catch handler, split into two blocks.
+      // Because const-string we're about to add is also a throwing instr, we need to split
+      // before adding it.
+      BasicBlock block = invoke.getBlock();
+      BasicBlock blockWithInvoke = block.hasCatchHandlers() ? iterator.split(code, blocks) : block;
+      if (blockWithInvoke != block) {
+        // If we split, add const-string at the end of the currently visiting block.
+        iterator = block.listIterator(block.getInstructions().size());
+        iterator.previous();
+        iterator.add(decoupled);
+        // Restore the cursor and block.
+        iterator = blockWithInvoke.listIterator();
+        assert iterator.peekNext() == invoke;
+        iterator.next();
+      } else {
+        // Otherwise, just add it to the current block at the position of the iterator.
+        iterator.add(decoupled);
+        // Restore the cursor.
+        assert iterator.peekNext() == invoke;
+        iterator.next();
+      }
+    } else {
+      // For general invoke. Multiple arguments can be string literals to be renamed.
+      for (int i = 0; i < ins.size(); i++) {
+        Value in = ins.get(i);
+        if (!in.isConstString()) {
+          warnUndeterminedIdentifierIfNecessary(invokedMethod, method.method.holder, invoke, null);
+          continue;
+        }
+        DexString original = in.getConstInstruction().asConstString().getValue();
+        DexReference itemBasedString = inferMemberOrTypeFromNameString(appView, original);
+        if (itemBasedString == null) {
+          warnUndeterminedIdentifierIfNecessary(
+              invokedMethod, method.method.holder, invoke, original);
+          continue;
+        }
+        // Move the cursor back to $invoke
+        assert iterator.peekPrevious() == invoke;
+        iterator.previous();
+        // Prepare $decoupled just before $invoke
+        Value newIn = code.createValue(in.getTypeLattice(), in.getLocalInfo());
+        DexItemBasedConstString decoupled =
+            new DexItemBasedConstString(newIn, itemBasedString, throwingInfo);
+        decoupled.setPosition(invoke.getPosition());
+        changes[i] = newIn;
+        // If the current block has catch handler, split into two blocks.
+        // Because const-string we're about to add is also a throwing instr, we need to split
+        // before adding it.
+        BasicBlock block = invoke.getBlock();
+        BasicBlock blockWithInvoke =
+            block.hasCatchHandlers() ? iterator.split(code, blocks) : block;
+        if (blockWithInvoke != block) {
+          // If we split, add const-string at the end of the currently visiting block.
+          iterator = block.listIterator(block.getInstructions().size());
+          iterator.previous();
+          iterator.add(decoupled);
+          // Restore the cursor and block.
+          iterator = blockWithInvoke.listIterator();
+          assert iterator.peekNext() == invoke;
+          iterator.next();
+        } else {
+          // Otherwise, just add it to the current block at the position of the iterator.
+          iterator.add(decoupled);
+          // Restore the cursor.
+          assert iterator.peekNext() == invoke;
+          iterator.next();
+        }
+      }
+    }
+    if (!Arrays.stream(changes).allMatch(Objects::isNull)) {
+      List<Value> newIns =
+          Streams.mapWithIndex(
+                  ins.stream(),
+                  (in, index) -> changes[(int) index] != null ? changes[(int) index] : in)
+              .collect(Collectors.toList());
+      iterator.replaceCurrentInstruction(
+          Invoke.create(
+              invoke.getType(), invokedMethod, invokedMethod.proto, invoke.outValue(), newIns));
+      method.getMutableOptimizationInfo().markUseIdentifierNameString();
+    }
+    return iterator;
   }
 
   private void warnUndeterminedIdentifierIfNecessary(
