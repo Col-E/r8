@@ -24,7 +24,6 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeStatic;
-import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.Value;
 import com.google.common.collect.Sets;
@@ -139,30 +138,6 @@ public final class IdentifierNameStringUtils {
   }
 
   /**
-   * Returns true if the given invoke instruction is calling `boolean java.lang.String.equals(
-   * java.lang.String)`, and one of the arguments is defined by an invoke-instruction that calls
-   * `java.lang.String java.lang.Class.getName()`.
-   */
-  public static boolean isClassNameComparison(InvokeMethod invoke, DexItemFactory dexItemFactory) {
-    return invoke.isInvokeVirtual()
-        && isClassNameComparison(invoke.asInvokeVirtual(), dexItemFactory);
-  }
-
-  public static boolean isClassNameComparison(InvokeVirtual invoke, DexItemFactory dexItemFactory) {
-    return invoke.getInvokedMethod() == dexItemFactory.stringMethods.equals
-        && (isClassNameValue(invoke.getReceiver(), dexItemFactory)
-            || isClassNameValue(invoke.inValues().get(1), dexItemFactory));
-  }
-
-  private static boolean isClassNameValue(Value value, DexItemFactory dexItemFactory) {
-    Value root = value.getAliasedValue();
-    return !root.isPhi()
-        && root.definition.isInvokeVirtual()
-        && root.definition.asInvokeVirtual().getInvokedMethod()
-            == dexItemFactory.classMethods.getName;
-  }
-
-  /**
    * Returns a {@link DexReference} if one of the arguments to the invoke instruction is a constant
    * string that corresponds to either a class or member name (i.e., an identifier).
    *
@@ -179,17 +154,6 @@ public final class IdentifierNameStringUtils {
       InvokeStatic invokeStatic = invoke.asInvokeStatic();
       if (invokeStatic.getInvokedMethod() == definitions.dexItemFactory().classMethods.forName) {
         return ConstantValueUtils.getDexTypeFromClassForName(invokeStatic, definitions);
-      }
-    }
-
-    if (invoke.isInvokeVirtual()) {
-      InvokeVirtual invokeVirtual = invoke.asInvokeVirtual();
-      if (isClassNameComparison(invokeVirtual, definitions.dexItemFactory())) {
-        int argumentIndex = getPositionOfFirstConstString(invokeVirtual);
-        if (argumentIndex >= 0) {
-          return inferTypeFromConstStringValue(
-              definitions, invokeVirtual.inValues().get(argumentIndex));
-        }
       }
     }
 
@@ -246,17 +210,6 @@ public final class IdentifierNameStringUtils {
     return null;
   }
 
-  static int getPositionOfFirstConstString(Instruction instruction) {
-    List<Value> inValues = instruction.inValues();
-    for (int i = 0; i < inValues.size(); i++) {
-      Value value = inValues.get(i);
-      if (value.getAliasedValue().isConstString()) {
-        return i;
-      }
-    }
-    return -1;
-  }
-
   static DexReference inferMemberOrTypeFromNameString(
       DexDefinitionSupplier definitions, DexString dexString) {
     // "fully.qualified.ClassName.fieldOrMethodName"
@@ -276,14 +229,6 @@ public final class IdentifierNameStringUtils {
       return definitions.dexItemFactory().createType(maybeDescriptor);
     }
     return null;
-  }
-
-  public static DexType inferTypeFromConstStringValue(
-      DexDefinitionSupplier definitions, Value value) {
-    assert value.definition != null;
-    assert value.getAliasedValue().isConstString();
-    return inferTypeFromNameString(
-        definitions, value.getAliasedValue().definition.asConstString().getValue());
   }
 
   private static DexReference inferMemberFromNameString(
