@@ -205,6 +205,8 @@ public class IdentifierNameStringMarker {
       }
 
       int identifierPosition = getIdentifierPositionInArguments(invoke);
+      assert identifierPosition >= 0;
+
       Value in = invoke.arguments().get(identifierPosition);
       if (in.definition.isDexItemBasedConstString()) {
         return iterator;

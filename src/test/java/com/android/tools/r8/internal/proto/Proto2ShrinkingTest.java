@@ -33,6 +33,8 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
         .addProgramFiles(PROTO2_EXAMPLES_JAR, PROTO2_PROTO_JAR, PROTOBUF_LITE_JAR)
         .addKeepMainRule("proto2.TestClass")
         .addKeepRules(
+            // TODO(b/112437944): Fix -identifiernamestring support.
+            "-keepnames class * extends com.google.protobuf.GeneratedMessageLite",
             // TODO(b/112437944): Use dex item based const strings for proto schema definitions.
             "-keepclassmembernames class * extends com.google.protobuf.GeneratedMessageLite {",
             "  <fields>;",

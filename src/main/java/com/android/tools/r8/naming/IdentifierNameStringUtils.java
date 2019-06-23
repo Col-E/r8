@@ -249,8 +249,8 @@ public final class IdentifierNameStringUtils {
   static int getPositionOfFirstConstString(Instruction instruction) {
     List<Value> inValues = instruction.inValues();
     for (int i = 0; i < inValues.size(); i++) {
-      Value value = inValues.get(i);
-      if (value.getAliasedValue().isConstString()) {
+      Value value = inValues.get(i).getAliasedValue();
+      if (value.isConstString() || value.isDexItemBasedConstString()) {
         return i;
       }
     }
