@@ -56,6 +56,7 @@ public class MetadataStripTest extends KotlinTestBase {
             .addKeepMainRule(mainClassName)
             .addKeepRules(KEEP_ANNOTATIONS)
             .addKeepRules("-keep class kotlin.Metadata")
+            .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), mainClassName);
     CodeInspector inspector = result.inspector();
     ClassSubject clazz = inspector.clazz(mainClassName);
