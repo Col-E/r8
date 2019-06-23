@@ -280,10 +280,19 @@ public final class IdentifierNameStringUtils {
 
   public static DexType inferTypeFromConstStringValue(
       DexDefinitionSupplier definitions, Value value) {
-    assert value.definition != null;
-    assert value.getAliasedValue().isConstString();
-    return inferTypeFromNameString(
-        definitions, value.getAliasedValue().definition.asConstString().getValue());
+    Value root = value.getAliasedValue();
+    assert !root.isPhi();
+    assert root.isConstString() || root.isDexItemBasedConstString();
+    if (root.isConstString()) {
+      return inferTypeFromNameString(definitions, root.definition.asConstString().getValue());
+    }
+    if (root.isDexItemBasedConstString()) {
+      DexReference reference = root.definition.asDexItemBasedConstString().getItem();
+      if (reference.isDexType()) {
+        return reference.asDexType();
+      }
+    }
+    return null;
   }
 
   private static DexReference inferMemberFromNameString(
