@@ -5,6 +5,7 @@ package com.android.tools.r8.graph;
 
 import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX;
 import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.DISPATCH_CLASS_NAME_SUFFIX;
+import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.EMULATE_LIBRARY_CLASS_NAME_SUFFIX;
 import static com.android.tools.r8.ir.desugar.LambdaRewriter.LAMBDA_CLASS_NAME_PREFIX;
 import static com.android.tools.r8.ir.desugar.LambdaRewriter.LAMBDA_GROUP_CLASS_NAME_PREFIX;
 
@@ -244,6 +245,7 @@ public class DexType extends DexReference implements PresortedComparable<DexType
   public boolean isD8R8SynthesizedClassType() {
     String name = toSourceString();
     return name.contains(COMPANION_CLASS_NAME_SUFFIX)
+        || name.contains(EMULATE_LIBRARY_CLASS_NAME_SUFFIX)
         || name.contains(DISPATCH_CLASS_NAME_SUFFIX)
         || name.contains(LAMBDA_CLASS_NAME_PREFIX)
         || name.contains(LAMBDA_GROUP_CLASS_NAME_PREFIX)

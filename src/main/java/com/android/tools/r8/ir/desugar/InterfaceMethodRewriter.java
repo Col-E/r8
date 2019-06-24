@@ -8,9 +8,12 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.ClassAccessFlags;
+import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexLibraryClass;
@@ -18,6 +21,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
@@ -31,9 +35,16 @@ import com.android.tools.r8.ir.code.InvokeSuper;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.DefaultMethodsHelper.Collection;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.position.MethodPosition;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.Sets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -72,6 +83,7 @@ import java.util.concurrent.ExecutorService;
 public final class InterfaceMethodRewriter {
 
   // Public for testing.
+  public static final String EMULATE_LIBRARY_CLASS_NAME_SUFFIX = "$-EL";
   public static final String DISPATCH_CLASS_NAME_SUFFIX = "$-DC";
   public static final String COMPANION_CLASS_NAME_SUFFIX = "$-CC";
   public static final String DEFAULT_METHOD_PREFIX = "$default$";
@@ -81,6 +93,7 @@ public final class InterfaceMethodRewriter {
   private final IRConverter converter;
   private final InternalOptions options;
   final DexItemFactory factory;
+  private final Map<DexType, DexType> emulatedInterfaces = new IdentityHashMap<>();
 
   // All forwarding methods generated during desugaring. We don't synchronize access
   // to this collection since it is only filled in ClassProcessor running synchronously.
@@ -113,6 +126,13 @@ public final class InterfaceMethodRewriter {
     this.converter = converter;
     this.options = appView.options();
     this.factory = appView.dexItemFactory();
+    for (String interfaceName : options.emulateLibraryInterface.keySet()) {
+      emulatedInterfaces.put(
+          factory.createType(DescriptorUtils.javaTypeToDescriptor(interfaceName)),
+          factory.createType(
+              DescriptorUtils.javaTypeToDescriptor(
+                  options.emulateLibraryInterface.get(interfaceName))));
+    }
   }
 
   // Rewrites the references to static and default interface methods.
@@ -268,6 +288,101 @@ public final class InterfaceMethodRewriter {
     }
   }
 
+  private void generateEmulateInterfaceLibrary(Builder<?> builder) {
+    for (DexType interfaceType : emulatedInterfaces.keySet()) {
+      DexClass theInterface = appView.definitionFor(interfaceType);
+      if (theInterface == null) {
+        StringDiagnostic warning =
+            new StringDiagnostic(
+                "Cannot emulate interface "
+                    + interfaceType.getName()
+                    + " because the interface is missing.");
+        options.reporter.warning(warning);
+      } else if (theInterface.isProgramClass()) {
+        DexProgramClass synthesizedClass =
+            synthetizeEmulateInterfaceLibraryClass(theInterface.asProgramClass());
+        if (synthesizedClass != null) {
+          builder.addSynthesizedClass(synthesizedClass, isInMainDexList(interfaceType));
+          appView.appInfo().addSynthesizedClass(synthesizedClass);
+        }
+      }
+    }
+  }
+
+  private static DexMethod emulateInterfaceLibraryMethod(DexMethod method, DexItemFactory factory) {
+    return factory.createMethod(
+        getEmulateLibraryInterfaceClassType(method.holder, factory),
+        factory.prependTypeToProto(method.holder, method.proto),
+        factory.createString(method.name.toString()));
+  }
+
+  private DexProgramClass synthetizeEmulateInterfaceLibraryClass(DexProgramClass theInterface) {
+    List<DexEncodedMethod> emulationMethods = new ArrayList<>();
+    for (DexEncodedMethod method : theInterface.methods()) {
+      if (method.isDefaultMethod()) {
+        DexMethod libraryMethod =
+            factory.createMethod(
+                emulatedInterfaces.get(theInterface.type), method.method.proto, method.method.name);
+        DexMethod companionMethod =
+            method.isStatic()
+                ? staticAsMethodOfCompanionClass(method.method)
+                : instanceAsMethodOfCompanionClass(method.method, DEFAULT_METHOD_PREFIX, factory);
+        emulationMethods.add(
+            method.toEmulateInterfaceLibraryMethod(
+                emulateInterfaceLibraryMethod(method.method, factory),
+                companionMethod,
+                libraryMethod,
+                appView));
+      }
+    }
+    if (emulationMethods.isEmpty()) {
+      return null;
+    }
+    DexType emulateLibraryClassType =
+        getEmulateLibraryInterfaceClassType(theInterface.type, factory);
+    ClassAccessFlags emulateLibraryClassFlags = theInterface.accessFlags.copy();
+    emulateLibraryClassFlags.unsetAbstract();
+    emulateLibraryClassFlags.unsetInterface();
+    emulateLibraryClassFlags.unsetAnnotation();
+    emulateLibraryClassFlags.setFinal();
+    emulateLibraryClassFlags.setSynthetic();
+    emulateLibraryClassFlags.setPublic();
+    synthesizedMethods.addAll(emulationMethods);
+    return new DexProgramClass(
+        emulateLibraryClassType,
+        null,
+        new SynthesizedOrigin("interface desugaring (libs)", getClass()),
+        emulateLibraryClassFlags,
+        factory.objectType,
+        DexTypeList.empty(),
+        theInterface.sourceFile,
+        null,
+        Collections.emptyList(),
+        null,
+        Collections.emptyList(),
+        DexAnnotationSet.empty(),
+        DexEncodedField.EMPTY_ARRAY,
+        DexEncodedField.EMPTY_ARRAY,
+        // All synthetized methods are static in this case.
+        emulationMethods.toArray(DexEncodedMethod.EMPTY_ARRAY),
+        DexEncodedMethod.EMPTY_ARRAY,
+        factory.getSkipNameValidationForTesting(),
+        Collections.singletonList(theInterface));
+  }
+
+  private static String getEmulateLibraryInterfaceClassDescriptor(String descriptor) {
+    return descriptor.substring(0, descriptor.length() - 1)
+        + EMULATE_LIBRARY_CLASS_NAME_SUFFIX
+        + ";";
+  }
+
+  static DexType getEmulateLibraryInterfaceClassType(DexType type, DexItemFactory factory) {
+    assert type.isClassType();
+    String descriptor = type.descriptor.toString();
+    String elTypeDescriptor = getEmulateLibraryInterfaceClassDescriptor(descriptor);
+    return factory.createType(elTypeDescriptor);
+  }
+
   private void reportStaticInterfaceMethodHandle(DexMethod referencedFrom, DexMethodHandle handle) {
     if (handle.type.isInvokeStatic()) {
       DexClass holderClass = appView.definitionFor(handle.asMethod().holder);
@@ -400,6 +515,9 @@ public final class InterfaceMethodRewriter {
       Flavor flavour,
       ExecutorService executorService)
       throws ExecutionException {
+    // Emulated library interfaces should generate the Emulated Library EL dispatch class
+    generateEmulateInterfaceLibrary(builder);
+
     // Process all classes first. Add missing forwarding methods to
     // replace desugared default interface methods.
     synthesizedMethods.addAll(processClasses(builder, flavour));

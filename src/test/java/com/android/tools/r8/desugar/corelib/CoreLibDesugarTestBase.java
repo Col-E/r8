@@ -42,18 +42,23 @@ public class CoreLibDesugarTestBase extends TestBase {
         .put("java.util.concurrent.DesugarUnsafe", "j$.util.concurrent.DesugarUnsafe")
         .put("java.util.concurrent.ThreadLocalRandom", "j$.util.concurrent.ThreadLocalRandom")
         .put("java.util.concurrent.atomic.DesugarAtomic", "j$.util.concurrent.atomic.DesugarAtomic")
-        // TODO(134732760): These should also be handled.
+        .build();
+  }
+
+  private Map<String, String> buildEmulateLibraryInterface() {
+    return ImmutableMap.<String, String>builder()
         // --emulate_core_library_interface.
-        // .put("java.util.Collection", "j$.util.Collection")
-        // .put("java.util.Map", "j$.util.Map")
-        // .put("java.util.Map$Entry", "j$.util.Map$Entry")
-        // .put("java.util.Iterator", "j$.util.Iterator")
-        // .put("java.util.Comparator", "j$.util.Comparator")
+        .put("java.util.Collection", "j$.util.Collection")
+        .put("java.util.Map", "j$.util.Map")
+        .put("java.util.Map$Entry", "j$.util.Map$Entry")
+        .put("java.util.Iterator", "j$.util.Iterator")
+        .put("java.util.Comparator", "j$.util.Comparator")
         .build();
   }
 
   protected void configureCoreLibDesugar(InternalOptions options) {
     options.rewritePrefix = buildPrefixRewriting();
+    options.emulateLibraryInterface = buildEmulateLibraryInterface();
   }
 
   protected Path buildDesugaredLibrary(AndroidApiLevel apiLevel) throws Exception {
