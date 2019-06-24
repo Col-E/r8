@@ -4,16 +4,11 @@
 package com.android.tools.r8.ir.optimize;
 
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
-import static com.android.tools.r8.utils.DescriptorUtils.getCanonicalNameFromDescriptor;
-import static com.android.tools.r8.utils.DescriptorUtils.getClassNameFromDescriptor;
-import static com.android.tools.r8.utils.DescriptorUtils.getUnqualifiedClassNameFromDescriptor;
 
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.ConstClass;
@@ -23,72 +18,9 @@ import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
-import com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo.ClassNameComputationOption;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.google.common.base.Strings;
 
 public class ReflectionOptimizer {
-
-  public static class ClassNameComputationInfo {
-    public enum ClassNameComputationOption {
-      NONE,
-      NAME,           // getName()
-      TYPE_NAME,      // getTypeName()
-      CANONICAL_NAME, // getCanonicalName()
-      SIMPLE_NAME;    // getSimpleName()
-
-      boolean needsToComputeClassName() {
-        return this != NONE;
-      }
-
-      boolean needsToRegisterTypeReference() {
-        return this == SIMPLE_NAME;
-      }
-    }
-
-    private static final ClassNameComputationInfo DEFAULT_INSTANCE =
-        new ClassNameComputationInfo(ClassNameComputationOption.NONE);
-
-    final ClassNameComputationOption classNameComputationOption;
-    final int arrayDepth;
-
-    public ClassNameComputationInfo(ClassNameComputationOption classNameComputationOption) {
-      this(classNameComputationOption, 0);
-    }
-
-    public ClassNameComputationInfo(
-        ClassNameComputationOption classNameComputationOption, int arrayDepth) {
-      this.classNameComputationOption = classNameComputationOption;
-      this.arrayDepth = arrayDepth;
-    }
-
-    public static ClassNameComputationInfo none() {
-      return DEFAULT_INSTANCE;
-    }
-
-    public boolean needsToComputeClassName() {
-      return classNameComputationOption.needsToComputeClassName();
-    }
-
-    public boolean needsToRegisterTypeReference() {
-      return classNameComputationOption.needsToRegisterTypeReference();
-    }
-
-    @Override
-    public boolean equals(Object other) {
-      if (!(other instanceof ClassNameComputationInfo)) {
-        return false;
-      }
-      ClassNameComputationInfo otherInfo = (ClassNameComputationInfo) other;
-      return this.classNameComputationOption == otherInfo.classNameComputationOption
-          && this.arrayDepth == otherInfo.arrayDepth;
-    }
-
-    @Override
-    public int hashCode() {
-      return classNameComputationOption.ordinal() * 31 + arrayDepth;
-    }
-  }
 
   // Rewrite getClass() call to const-class if the type of the given instance is effectively final.
   public static void rewriteGetClass(AppView<AppInfoWithLiveness> appView, IRCode code) {
@@ -152,74 +84,5 @@ public class ReflectionOptimizer {
       }
     }
     assert code.isConsistentSSA();
-  }
-
-  public static DexString computeClassName(
-      DexString descriptor,
-      DexClass holder,
-      ClassNameComputationInfo classNameComputationInfo,
-      DexItemFactory dexItemFactory) {
-    return computeClassName(
-        descriptor.toString(),
-        holder,
-        classNameComputationInfo.classNameComputationOption,
-        dexItemFactory,
-        classNameComputationInfo.arrayDepth);
-  }
-
-  public static DexString computeClassName(
-      String descriptor,
-      DexClass holder,
-      ClassNameComputationOption classNameComputationOption,
-      DexItemFactory dexItemFactory) {
-    return computeClassName(descriptor, holder, classNameComputationOption, dexItemFactory, 0);
-  }
-
-  public static DexString computeClassName(
-      String descriptor,
-      DexClass holder,
-      ClassNameComputationOption classNameComputationOption,
-      DexItemFactory dexItemFactory,
-      int arrayDepth) {
-    String name;
-    switch (classNameComputationOption) {
-      case NAME:
-        name = getClassNameFromDescriptor(descriptor);
-        if (arrayDepth > 0) {
-          name = Strings.repeat("[", arrayDepth) + "L" + name + ";";
-        }
-        break;
-      case TYPE_NAME:
-        // TODO(b/119426668): desugar Type#getTypeName
-        throw new Unreachable("Type#getTypeName not supported yet");
-        // name = getClassNameFromDescriptor(descriptor);
-        // if (arrayDepth > 0) {
-        //   name = name + Strings.repeat("[]", arrayDepth);
-        // }
-        // break;
-      case CANONICAL_NAME:
-        name = getCanonicalNameFromDescriptor(descriptor);
-        if (arrayDepth > 0) {
-          name = name + Strings.repeat("[]", arrayDepth);
-        }
-        break;
-      case SIMPLE_NAME:
-        assert holder != null;
-        boolean renamed = !descriptor.equals(holder.type.toDescriptorString());
-        boolean needsToRetrieveInnerName = holder.isMemberClass() || holder.isLocalClass();
-        if (!renamed && needsToRetrieveInnerName) {
-          name = holder.getInnerClassAttributeForThisClass().getInnerName().toString();
-        } else {
-          name = getUnqualifiedClassNameFromDescriptor(descriptor);
-        }
-        if (arrayDepth > 0) {
-          name = name + Strings.repeat("[]", arrayDepth);
-        }
-        break;
-      default:
-        throw new Unreachable(
-            "Unexpected ClassNameComputationOption: '" + classNameComputationOption + "'");
-    }
-    return dexItemFactory.createString(name);
   }
 }

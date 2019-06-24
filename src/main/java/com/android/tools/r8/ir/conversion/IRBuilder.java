@@ -99,6 +99,7 @@ import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.code.ValueTypeConstraint;
 import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.logging.Log;
+import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.IteratorUtils;
@@ -1133,14 +1134,14 @@ public class IRBuilder {
     add(new ConstString(writeRegister(dest, typeLattice, throwingInfo), string, throwingInfo));
   }
 
-  public void addDexItemBasedConstString(int dest, DexReference item) {
+  public void addDexItemBasedConstString(
+      int dest, DexReference item, NameComputationInfo<?> nameComputationInfo) {
     assert method.getOptimizationInfo().useIdentifierNameString();
     TypeLatticeElement typeLattice =
         TypeLatticeElement.stringClassType(appView, definitelyNotNull());
     ThrowingInfo throwingInfo = throwingInfoForConstStrings();
     Value out = writeRegister(dest, typeLattice, throwingInfo);
-    DexItemBasedConstString instruction = new DexItemBasedConstString(out, item, throwingInfo);
-    add(instruction);
+    add(new DexItemBasedConstString(out, item, nameComputationInfo, throwingInfo));
   }
 
   public void addDiv(NumericType type, int dest, int left, int right) {

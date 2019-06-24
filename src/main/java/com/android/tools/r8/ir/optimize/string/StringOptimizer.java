@@ -5,10 +5,9 @@ package com.android.tools.r8.ir.optimize.string;
 
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 import static com.android.tools.r8.ir.optimize.CodeRewriter.removeOrReplaceByDebugLocalWrite;
-import static com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo.ClassNameComputationOption.CANONICAL_NAME;
-import static com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo.ClassNameComputationOption.NAME;
-import static com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo.ClassNameComputationOption.SIMPLE_NAME;
-import static com.android.tools.r8.ir.optimize.ReflectionOptimizer.computeClassName;
+import static com.android.tools.r8.naming.dexitembasedstring.ClassNameComputationInfo.ClassNameMapping.CANONICAL_NAME;
+import static com.android.tools.r8.naming.dexitembasedstring.ClassNameComputationInfo.ClassNameMapping.NAME;
+import static com.android.tools.r8.naming.dexitembasedstring.ClassNameComputationInfo.ClassNameMapping.SIMPLE_NAME;
 import static com.android.tools.r8.utils.DescriptorUtils.INNER_CLASS_SEPARATOR;
 
 import com.android.tools.r8.graph.AppView;
@@ -31,7 +30,7 @@ import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo;
+import com.android.tools.r8.naming.dexitembasedstring.ClassNameComputationInfo;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -279,10 +278,10 @@ public class StringOptimizer {
               new DexItemBasedConstString(
                   invoke.outValue(),
                   baseType,
-                  throwingInfo,
-                  new ClassNameComputationInfo(NAME, arrayDepth));
+                  ClassNameComputationInfo.create(NAME, arrayDepth),
+                  throwingInfo);
         } else {
-          name = computeClassName(descriptor, holder, NAME, factory, arrayDepth);
+          name = NAME.map(descriptor, holder, factory, arrayDepth);
         }
       } else if (invokedMethod == factory.classMethods.getTypeName) {
         // TODO(b/119426668): desugar Type#getTypeName
@@ -304,10 +303,10 @@ public class StringOptimizer {
                 new DexItemBasedConstString(
                     invoke.outValue(),
                     baseType,
-                    throwingInfo,
-                    new ClassNameComputationInfo(CANONICAL_NAME, arrayDepth));
+                    ClassNameComputationInfo.create(CANONICAL_NAME, arrayDepth),
+                    throwingInfo);
           } else {
-            name = computeClassName(descriptor, holder, CANONICAL_NAME, factory, arrayDepth);
+            name = CANONICAL_NAME.map(descriptor, holder, factory, arrayDepth);
           }
         }
       } else if (invokedMethod == factory.classMethods.getSimpleName) {
@@ -326,10 +325,10 @@ public class StringOptimizer {
                 new DexItemBasedConstString(
                     invoke.outValue(),
                     baseType,
-                    throwingInfo,
-                    new ClassNameComputationInfo(SIMPLE_NAME, arrayDepth));
+                    ClassNameComputationInfo.create(SIMPLE_NAME, arrayDepth),
+                    throwingInfo);
           } else {
-            name = computeClassName(descriptor, holder, SIMPLE_NAME, factory, arrayDepth);
+            name = SIMPLE_NAME.map(descriptor, holder, factory, arrayDepth);
           }
         }
       }

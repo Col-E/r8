@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
-import static com.android.tools.r8.ir.optimize.ReflectionOptimizer.computeClassName;
 import static com.android.tools.r8.utils.DescriptorUtils.descriptorToJavaType;
 
 import com.android.tools.r8.cf.code.CfConstString;
@@ -17,7 +16,6 @@ import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
@@ -133,16 +131,9 @@ class IdentifierMinifier {
     assert encodedField.accessFlags.isStatic();
     DexValue staticValue = encodedField.getStaticValue();
     if (staticValue instanceof DexItemBasedValueString) {
-      DexItemBasedValueString dexItemBasedValueString = (DexItemBasedValueString) staticValue;
-      DexReference original = dexItemBasedValueString.getValue();
+      DexItemBasedValueString cnst = (DexItemBasedValueString) staticValue;
       DexString replacement =
-          dexItemBasedValueString.getClassNameComputationInfo().needsToComputeClassName()
-              ? computeClassName(
-                  lens.lookupDescriptor(original.asDexType()),
-                  appView.definitionFor(original.asDexType()),
-                  dexItemBasedValueString.getClassNameComputationInfo(),
-                  appView.dexItemFactory())
-              : lens.lookupName(original, appView.dexItemFactory());
+          cnst.getNameComputationInfo().computeNameFor(cnst.getValue(), appView, lens);
       encodedField.setStaticValue(new DexValueString(replacement));
     }
   }
@@ -166,13 +157,7 @@ class IdentifierMinifier {
         if (instruction.isDexItemBasedConstString()) {
           DexItemBasedConstString cnst = instruction.asDexItemBasedConstString();
           DexString replacement =
-              cnst.getClassNameComputationInfo().needsToComputeClassName()
-                  ? computeClassName(
-                      lens.lookupDescriptor(cnst.getItem().asDexType()),
-                      appView.definitionFor(cnst.getItem().asDexType()),
-                      cnst.getClassNameComputationInfo(),
-                      appView.dexItemFactory())
-                  : lens.lookupName(cnst.getItem(), appView.dexItemFactory());
+              cnst.getNameComputationInfo().computeNameFor(cnst.getItem(), appView, lens);
           ConstString constString = new ConstString(cnst.AA, replacement);
           constString.setOffset(instruction.getOffset());
           instructions[i] = constString;
@@ -186,13 +171,7 @@ class IdentifierMinifier {
         if (instruction.isDexItemBasedConstString()) {
           CfDexItemBasedConstString cnst = instruction.asDexItemBasedConstString();
           DexString replacement =
-              cnst.getClassNameComputationInfo().needsToComputeClassName()
-                  ? computeClassName(
-                      lens.lookupDescriptor(cnst.getItem().asDexType()),
-                      appView.definitionFor(cnst.getItem().asDexType()),
-                      cnst.getClassNameComputationInfo(),
-                      appView.dexItemFactory())
-                  : lens.lookupName(cnst.getItem(), appView.dexItemFactory());
+              cnst.getNameComputationInfo().computeNameFor(cnst.getItem(), appView, lens);
           instructions.set(i, new CfConstString(replacement));
         }
       }

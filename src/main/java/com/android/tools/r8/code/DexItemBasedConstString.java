@@ -8,8 +8,8 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.IRBuilder;
-import com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo;
 import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
 import java.nio.ShortBuffer;
 
 public class DexItemBasedConstString extends Format21c {
@@ -17,20 +17,20 @@ public class DexItemBasedConstString extends Format21c {
   public static final String NAME = "DexItemBasedConstString";
   public static final String SMALI_NAME = "const-string*";
 
-  private final ClassNameComputationInfo classNameComputationInfo;
+  private final NameComputationInfo<?> nameComputationInfo;
 
   public DexItemBasedConstString(
-      int register, DexReference string, ClassNameComputationInfo classNameComputationInfo) {
+      int register, DexReference string, NameComputationInfo<?> nameComputationInfo) {
     super(register, string);
-    this.classNameComputationInfo = classNameComputationInfo;
+    this.nameComputationInfo = nameComputationInfo;
   }
 
   public DexReference getItem() {
     return (DexReference) BBBB;
   }
 
-  public ClassNameComputationInfo getClassNameComputationInfo() {
-    return classNameComputationInfo;
+  public NameComputationInfo<?> getNameComputationInfo() {
+    return nameComputationInfo;
   }
 
   @Override
@@ -79,14 +79,15 @@ public class DexItemBasedConstString extends Format21c {
 
   @Override
   public void registerUse(UseRegistry registry) {
-    if (getItem().isDexType() && classNameComputationInfo.needsToRegisterTypeReference()) {
+    if (nameComputationInfo.needsToRegisterReference()) {
+      assert getItem().isDexType();
       registry.registerTypeReference(getItem().asDexType());
     }
   }
 
   @Override
   public void buildIR(IRBuilder builder) {
-    builder.addDexItemBasedConstString(AA, (DexReference) BBBB);
+    builder.addDexItemBasedConstString(AA, (DexReference) BBBB, nameComputationInfo);
   }
 
   @Override

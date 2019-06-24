@@ -15,7 +15,7 @@ import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.DexItemBasedConstString;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo;
+import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
 import com.android.tools.r8.utils.EncodedValueUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.Arrays;
@@ -750,20 +750,16 @@ public abstract class DexValue extends DexItem {
   }
 
   public static class DexItemBasedValueString extends NestedDexValue<DexReference> {
-    private final ClassNameComputationInfo classNameComputationInfo;
 
-    public DexItemBasedValueString(DexReference value) {
-      this(value, ClassNameComputationInfo.none());
-    }
+    private final NameComputationInfo<?> nameComputationInfo;
 
-    public DexItemBasedValueString(
-        DexReference value, ClassNameComputationInfo classNameComputationInfo) {
+    public DexItemBasedValueString(DexReference value, NameComputationInfo<?> nameComputationInfo) {
       super(value);
-      this.classNameComputationInfo = classNameComputationInfo;
+      this.nameComputationInfo = nameComputationInfo;
     }
 
-    public ClassNameComputationInfo getClassNameComputationInfo() {
-      return classNameComputationInfo;
+    public NameComputationInfo<?> getNameComputationInfo() {
+      return nameComputationInfo;
     }
 
     @Override
@@ -780,7 +776,7 @@ public abstract class DexValue extends DexItem {
     public ConstInstruction asConstInstruction(IRCode code, Value dest, InternalOptions options) {
       DexItemBasedConstString instruction =
           new DexItemBasedConstString(
-              dest, value, ThrowingInfo.defaultForConstString(options), classNameComputationInfo);
+              dest, value, nameComputationInfo, ThrowingInfo.defaultForConstString(options));
       // DexItemBasedConstString cannot throw.
       assert !instruction.instructionInstanceCanThrow();
       return instruction;

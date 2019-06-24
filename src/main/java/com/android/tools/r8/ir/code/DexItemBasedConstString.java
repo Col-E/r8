@@ -15,26 +15,22 @@ import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
-import com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo;
+import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
 
 public class DexItemBasedConstString extends ConstInstruction {
 
   private final DexReference item;
-  private final ClassNameComputationInfo classNameComputationInfo;
+  private final NameComputationInfo<?> nameComputationInfo;
   private final ThrowingInfo throwingInfo;
-
-  public DexItemBasedConstString(Value dest, DexReference item, ThrowingInfo throwingInfo) {
-    this(dest, item, throwingInfo, ClassNameComputationInfo.none());
-  }
 
   public DexItemBasedConstString(
       Value dest,
       DexReference item,
-      ThrowingInfo throwingInfo,
-      ClassNameComputationInfo classNameComputationInfo) {
+      NameComputationInfo<?> nameComputationInfo,
+      ThrowingInfo throwingInfo) {
     super(dest);
     this.item = item;
-    this.classNameComputationInfo = classNameComputationInfo;
+    this.nameComputationInfo = nameComputationInfo;
     this.throwingInfo = throwingInfo;
   }
 
@@ -53,15 +49,15 @@ public class DexItemBasedConstString extends ConstInstruction {
 
   public static DexItemBasedConstString copyOf(Value newValue, DexItemBasedConstString original) {
     return new DexItemBasedConstString(
-        newValue, original.getItem(), original.throwingInfo, original.classNameComputationInfo);
+        newValue, original.getItem(), original.nameComputationInfo, original.throwingInfo);
   }
 
   public DexReference getItem() {
     return item;
   }
 
-  public ClassNameComputationInfo getClassNameComputationInfo() {
-    return classNameComputationInfo;
+  public NameComputationInfo<?> getNameComputationInfo() {
+    return nameComputationInfo;
   }
 
   @Override
@@ -79,16 +75,14 @@ public class DexItemBasedConstString extends ConstInstruction {
     int dest = builder.allocatedRegister(outValue(), getNumber());
     builder.add(
         this,
-        new com.android.tools.r8.code.DexItemBasedConstString(
-            dest, item, classNameComputationInfo));
+        new com.android.tools.r8.code.DexItemBasedConstString(dest, item, nameComputationInfo));
   }
 
   @Override
   public boolean identicalNonValueNonPositionParts(Instruction other) {
     return other.isDexItemBasedConstString()
         && other.asDexItemBasedConstString().item == item
-        && other.asDexItemBasedConstString().classNameComputationInfo
-            .equals(classNameComputationInfo);
+        && other.asDexItemBasedConstString().nameComputationInfo.equals(nameComputationInfo);
   }
 
   @Override
@@ -137,7 +131,7 @@ public class DexItemBasedConstString extends ConstInstruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfDexItemBasedConstString(item, classNameComputationInfo));
+    builder.add(new CfDexItemBasedConstString(item, nameComputationInfo));
   }
 
   @Override

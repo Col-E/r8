@@ -11,27 +11,26 @@ import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
 import com.android.tools.r8.ir.conversion.CfState;
 import com.android.tools.r8.ir.conversion.IRBuilder;
-import com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
 import org.objectweb.asm.MethodVisitor;
 
 public class CfDexItemBasedConstString extends CfInstruction {
 
   private final DexReference item;
-  private final ClassNameComputationInfo classNameComputationInfo;
+  private final NameComputationInfo<?> nameComputationInfo;
 
-  public CfDexItemBasedConstString(
-      DexReference item, ClassNameComputationInfo classNameComputationInfo) {
+  public CfDexItemBasedConstString(DexReference item, NameComputationInfo<?> nameComputationInfo) {
     this.item = item;
-    this.classNameComputationInfo = classNameComputationInfo;
+    this.nameComputationInfo = nameComputationInfo;
   }
 
   public DexReference getItem() {
     return item;
   }
 
-  public ClassNameComputationInfo getClassNameComputationInfo() {
-    return classNameComputationInfo;
+  public NameComputationInfo<?> getNameComputationInfo() {
+    return nameComputationInfo;
   }
 
   @Override
@@ -63,7 +62,8 @@ public class CfDexItemBasedConstString extends CfInstruction {
 
   @Override
   public void registerUse(UseRegistry registry, DexType clazz) {
-    if (item.isDexType() && classNameComputationInfo.needsToRegisterTypeReference()) {
+    if (nameComputationInfo.needsToRegisterReference()) {
+      assert item.isDexType();
       registry.registerTypeReference(item.asDexType());
     }
   }
@@ -71,6 +71,8 @@ public class CfDexItemBasedConstString extends CfInstruction {
   @Override
   public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
     builder.addDexItemBasedConstString(
-        state.push(builder.appView.dexItemFactory().stringType).register, item);
+        state.push(builder.appView.dexItemFactory().stringType).register,
+        item,
+        nameComputationInfo);
   }
 }

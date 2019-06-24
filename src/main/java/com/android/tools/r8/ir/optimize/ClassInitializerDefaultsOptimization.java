@@ -4,10 +4,9 @@
 
 package com.android.tools.r8.ir.optimize;
 
-import static com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo.ClassNameComputationOption.CANONICAL_NAME;
-import static com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo.ClassNameComputationOption.NAME;
-import static com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo.ClassNameComputationOption.SIMPLE_NAME;
-import static com.android.tools.r8.ir.optimize.ReflectionOptimizer.computeClassName;
+import static com.android.tools.r8.naming.dexitembasedstring.ClassNameComputationInfo.ClassNameMapping.CANONICAL_NAME;
+import static com.android.tools.r8.naming.dexitembasedstring.ClassNameComputationInfo.ClassNameMapping.NAME;
+import static com.android.tools.r8.naming.dexitembasedstring.ClassNameComputationInfo.ClassNameMapping.SIMPLE_NAME;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
@@ -17,7 +16,6 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexItemBasedValueString;
@@ -45,7 +43,8 @@ import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
-import com.android.tools.r8.ir.optimize.ReflectionOptimizer.ClassNameComputationInfo;
+import com.android.tools.r8.naming.dexitembasedstring.ClassNameComputationInfo;
+import com.android.tools.r8.naming.dexitembasedstring.ClassNameComputationInfo.ClassNameMapping;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.IteratorUtils;
@@ -260,8 +259,8 @@ public class ClassInitializerDefaultsOptimization {
       }
       if (inValue.isDexItemBasedConstString()) {
         DexItemBasedConstString cnst = inValue.getConstInstruction().asDexItemBasedConstString();
-        assert !cnst.getClassNameComputationInfo().needsToComputeClassName();
-        return new DexItemBasedValueString(cnst.getItem(), cnst.getClassNameComputationInfo());
+        assert !cnst.getNameComputationInfo().needsToComputeName();
+        return new DexItemBasedValueString(cnst.getItem(), cnst.getNameComputationInfo());
       }
       assert false;
       return null;
@@ -282,13 +281,15 @@ public class ClassInitializerDefaultsOptimization {
 
     if (appView.options().isMinifying() && appView.rootSet().mayBeMinified(holder, appView)) {
       if (invokedMethod == dexItemFactory.classMethods.getName) {
-        return new DexItemBasedValueString(holder, new ClassNameComputationInfo(NAME));
+        return new DexItemBasedValueString(holder, ClassNameComputationInfo.getInstance(NAME));
       }
       if (invokedMethod == dexItemFactory.classMethods.getCanonicalName) {
-        return new DexItemBasedValueString(holder, new ClassNameComputationInfo(CANONICAL_NAME));
+        return new DexItemBasedValueString(
+            holder, ClassNameComputationInfo.getInstance(CANONICAL_NAME));
       }
       if (invokedMethod == dexItemFactory.classMethods.getSimpleName) {
-        return new DexItemBasedValueString(holder, new ClassNameComputationInfo(SIMPLE_NAME));
+        return new DexItemBasedValueString(
+            holder, ClassNameComputationInfo.getInstance(SIMPLE_NAME));
       }
       if (invokedMethod == dexItemFactory.classMethods.getTypeName) {
         // TODO(b/119426668): desugar Type#getTypeName
@@ -297,19 +298,18 @@ public class ClassInitializerDefaultsOptimization {
       return null;
     }
 
-    String descriptor = holder.toDescriptorString();
-    DexString name = null;
+    ClassNameMapping mapping = null;
     if (invokedMethod == dexItemFactory.classMethods.getName) {
-      name = computeClassName(descriptor, clazz, NAME, dexItemFactory);
+      mapping = NAME;
     } else if (invokedMethod == dexItemFactory.classMethods.getCanonicalName) {
-      name = computeClassName(descriptor, clazz, CANONICAL_NAME, dexItemFactory);
+      mapping = CANONICAL_NAME;
     } else if (invokedMethod == dexItemFactory.classMethods.getSimpleName) {
-      name = computeClassName(descriptor, clazz, SIMPLE_NAME, dexItemFactory);
+      mapping = SIMPLE_NAME;
     } else if (invokedMethod == dexItemFactory.classMethods.getTypeName) {
       // TODO(b/119426668): desugar Type#getTypeName
     }
-    if (name != null) {
-      return new DexValueString(name);
+    if (mapping != null) {
+      return new DexValueString(mapping.map(holder.toDescriptorString(), clazz, dexItemFactory));
     }
     assert false;
     return null;
