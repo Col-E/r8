@@ -3,16 +3,24 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
+
+import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.position.Position;
+import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class ProguardMapReaderTest {
+public class ProguardMapReaderTest extends TestBase {
 
   private static final String ROOT = ToolHelper.EXAMPLES_BUILD_DIR;
   private static final String EXAMPLE_MAP = "throwing/throwing.map";
@@ -46,6 +54,26 @@ public class ProguardMapReaderTest {
     ClassNameMapper firstMapper = ClassNameMapper.mapperFromFile(Paths.get(ROOT, EXAMPLE_MAP));
     ClassNameMapper secondMapper = ClassNameMapper.mapperFromString(firstMapper.toString());
     Assert.assertEquals(firstMapper, secondMapper);
+  }
+
+  @Test
+  public void roundTripTestWithBOM() throws IOException {
+    ClassNameMapper firstMapper = ClassNameMapper.mapperFromFile(Paths.get(ROOT, EXAMPLE_MAP));
+    assertTrue(firstMapper.toString().charAt(0) != StringUtils.BOM);
+    ClassNameMapper secondMapper =
+        ClassNameMapper.mapperFromString(StringUtils.BOM + firstMapper.toString());
+    assertTrue(secondMapper.toString().charAt(0) != StringUtils.BOM);
+    Assert.assertEquals(firstMapper, secondMapper);
+    byte[] bytes = Files.readAllBytes(Paths.get(ROOT, EXAMPLE_MAP));
+    assertNotEquals(0xef, Byte.toUnsignedLong(bytes[0]));
+    Path mapFileWithBOM = writeTextToTempFile(StringUtils.BOM + firstMapper.toString());
+    bytes = Files.readAllBytes(mapFileWithBOM);
+    assertEquals(0xef, Byte.toUnsignedLong(bytes[0]));
+    assertEquals(0xbb, Byte.toUnsignedLong(bytes[1]));
+    assertEquals(0xbf, Byte.toUnsignedLong(bytes[2]));
+    ClassNameMapper thirdMapper = ClassNameMapper.mapperFromFile(mapFileWithBOM);
+    assertTrue(thirdMapper.toString().charAt(0) != StringUtils.BOM);
+    Assert.assertEquals(firstMapper, thirdMapper);
   }
 
   @Test

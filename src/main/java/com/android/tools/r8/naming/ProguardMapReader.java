@@ -158,8 +158,11 @@ public class ProguardMapReader implements AutoCloseable {
   void parse(ProguardMap.Builder mapBuilder) throws IOException {
     // Read the first line.
     do {
-      lineNo++;
       line = reader.readLine();
+      if (line != null && lineNo == 0) {
+        line = StringUtils.stripBOM(line);
+      }
+      lineNo++;
     } while (hasLine() && isEmptyOrCommentLine(line));
     parseClassMappings(mapBuilder);
   }
