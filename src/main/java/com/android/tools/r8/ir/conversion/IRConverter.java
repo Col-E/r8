@@ -201,14 +201,11 @@ public class IRConverter {
             : null;
     this.stringOptimizer = new StringOptimizer(appView);
     this.stringBuilderOptimizer = new StringBuilderOptimizer(appView);
-    this.stringSwitchRemover =
-        options.isStringSwitchConversionEnabled() ? new StringSwitchRemover(appView) : null;
     this.nonNullTracker = options.enableNonNullTracking ? new NonNullTracker(appView) : null;
     if (appView.enableWholeProgramOptimizations()) {
       assert appView.appInfo().hasLiveness();
       assert appView.rootSet() != null;
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
-      AppInfoWithLiveness appInfoWithLiveness = appViewWithLiveness.appInfo();
       this.classInliner =
           options.enableClassInlining && options.enableInlining
               ? new ClassInliner(lambdaRewriter)
@@ -259,6 +256,10 @@ public class IRConverter {
     }
     this.deadCodeRemover = new DeadCodeRemover(appView, codeRewriter);
     this.idempotentFunctionCallCanonicalizer = new IdempotentFunctionCallCanonicalizer(appView);
+    this.stringSwitchRemover =
+        options.isStringSwitchConversionEnabled()
+            ? new StringSwitchRemover(appView, identifierNameStringMarker)
+            : null;
   }
 
   public Set<DexCallSite> getDesugaredCallSites() {
@@ -1054,8 +1055,7 @@ public class IRConverter {
     codeRewriter.splitRangeInvokeConstants(code);
     new SparseConditionalConstantPropagation(code).run();
     if (stringSwitchRemover != null) {
-      // TODO(b/135588279): Add support for string-switch instruction in the CF and DEX backend.
-      stringSwitchRemover.run(code);
+      stringSwitchRemover.run(method, code);
     }
     codeRewriter.rewriteSwitch(code);
     codeRewriter.processMethodsNeverReturningNormally(code);

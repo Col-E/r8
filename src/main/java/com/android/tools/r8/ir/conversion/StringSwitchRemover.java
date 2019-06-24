@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.Nullability;
@@ -21,39 +22,49 @@ import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.JumpInstruction;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.StringSwitch;
+import com.android.tools.r8.naming.IdentifierNameStringMarker;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import java.util.IdentityHashMap;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
-// TODO(b/135588279): Add support for string-switch instruction in the CF and DEX backend.
 public class StringSwitchRemover {
 
   private final AppView<?> appView;
+  private final IdentifierNameStringMarker identifierNameStringMarker;
   private final ClassTypeLatticeElement stringType;
   private final ThrowingInfo throwingInfo;
 
-  StringSwitchRemover(AppView<?> appView) {
+  StringSwitchRemover(AppView<?> appView, IdentifierNameStringMarker identifierNameStringMarker) {
     this.appView = appView;
+    this.identifierNameStringMarker = identifierNameStringMarker;
     this.stringType = TypeLatticeElement.stringClassType(appView, Nullability.definitelyNotNull());
     this.throwingInfo = ThrowingInfo.defaultForConstString(appView.options());
   }
 
-  void run(IRCode code) {
+  void run(DexEncodedMethod method, IRCode code) {
     if (!code.hasStringSwitch) {
       assert Streams.stream(code.instructions()).noneMatch(Instruction::isStringSwitch);
       return;
     }
+
+    Set<BasicBlock> newBlocks = Sets.newIdentityHashSet();
 
     ListIterator<BasicBlock> blockIterator = code.listIterator();
     while (blockIterator.hasNext()) {
       BasicBlock block = blockIterator.next();
       JumpInstruction exit = block.exit();
       if (exit.isStringSwitch()) {
-        removeStringSwitch(code, blockIterator, block, exit.asStringSwitch());
+        removeStringSwitch(code, blockIterator, block, exit.asStringSwitch(), newBlocks);
       }
+    }
+
+    if (identifierNameStringMarker != null) {
+      identifierNameStringMarker.decoupleIdentifierNameStringsInBlocks(method, code, newBlocks);
     }
 
     assert code.isConsistentSSA();
@@ -63,7 +74,8 @@ public class StringSwitchRemover {
       IRCode code,
       ListIterator<BasicBlock> blockIterator,
       BasicBlock block,
-      StringSwitch theSwitch) {
+      StringSwitch theSwitch,
+      Set<BasicBlock> newBlocks) {
     BasicBlock fallthroughBlock = theSwitch.fallthroughBlock();
     Map<DexString, BasicBlock> stringToTargetMap = new IdentityHashMap<>();
     theSwitch.forEachCase(stringToTargetMap::put);
@@ -96,6 +108,7 @@ public class StringSwitchRemover {
               code.blocks.size(), ifInstruction, constStringInstruction, invokeInstruction);
       newBlock.link(entry.getValue());
       blockIterator.add(newBlock);
+      newBlocks.add(newBlock);
 
       if (previous == null) {
         // Replace the string-switch instruction by a goto instruction.

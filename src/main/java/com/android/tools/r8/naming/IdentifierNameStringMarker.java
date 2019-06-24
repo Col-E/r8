@@ -45,6 +45,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class IdentifierNameStringMarker {
@@ -83,13 +84,21 @@ public class IdentifierNameStringMarker {
     }
   }
 
-  public void decoupleIdentifierNameStringsInMethod(DexEncodedMethod encodedMethod, IRCode code) {
+  public void decoupleIdentifierNameStringsInMethod(DexEncodedMethod method, IRCode code) {
+    decoupleIdentifierNameStringsInBlocks(method, code, null);
+  }
+
+  public void decoupleIdentifierNameStringsInBlocks(
+      DexEncodedMethod method, IRCode code, Set<BasicBlock> blocks) {
     if (!code.hasConstString) {
       return;
     }
-    ListIterator<BasicBlock> blocks = code.listIterator();
-    while (blocks.hasNext()) {
-      BasicBlock block = blocks.next();
+    ListIterator<BasicBlock> blockIterator = code.listIterator();
+    while (blockIterator.hasNext()) {
+      BasicBlock block = blockIterator.next();
+      if (blocks != null && !blocks.contains(block)) {
+        continue;
+      }
       InstructionListIterator iterator = block.listIterator();
       while (iterator.hasNext()) {
         Instruction instruction = iterator.next();
@@ -107,11 +116,11 @@ public class IdentifierNameStringMarker {
         if (instruction.isStaticPut() || instruction.isInstancePut()) {
           iterator =
               decoupleIdentifierNameStringForFieldPutInstruction(
-                  code, encodedMethod, blocks, iterator, instruction.asFieldInstruction());
+                  code, method, blockIterator, iterator, instruction.asFieldInstruction());
         } else if (instruction.isInvokeMethod()) {
           iterator =
               decoupleIdentifierNameStringForInvokeInstruction(
-                  code, encodedMethod, blocks, iterator, instruction.asInvokeMethod());
+                  code, method, blockIterator, iterator, instruction.asInvokeMethod());
         }
       }
     }
