@@ -94,13 +94,7 @@ public class ServiceLoaderRewriter {
         continue;
       }
 
-      ConstClass constClass =
-          serviceLoaderLoad
-              .inValues()
-              .get(0)
-              .getAliasedValue()
-              .getConstInstruction()
-              .asConstClass();
+      ConstClass constClass = argument.getConstInstruction().asConstClass();
 
       // Check that the service is not kept.
       if (appView.appInfo().isPinned(constClass.getValue())) {
