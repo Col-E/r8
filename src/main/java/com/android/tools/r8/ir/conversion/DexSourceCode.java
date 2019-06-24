@@ -142,7 +142,22 @@ public class DexSourceCode implements SourceCode {
     if (code.incomingRegisterSize == 0) {
       return;
     }
+    buildArgumentsWithUnusedArgumentStubs(
+        builder,
+        code.registerSize - code.incomingRegisterSize,
+        method,
+        DexSourceCode::doNothingWriteConsumer);
+  }
 
+  public static void doNothingWriteConsumer(Integer register, DexType type) {
+    // Intentionally empty.
+  }
+
+  public static void buildArgumentsWithUnusedArgumentStubs(
+      IRBuilder builder,
+      int register,
+      DexEncodedMethod method,
+      BiConsumer<Integer, DexType> writeCallback) {
     RemovedArgumentsInfo removedArgumentsInfo = builder.prototypeChanges.getRemovedArgumentsInfo();
     ListIterator<RemovedArgumentInfo> removedArgumentIterator = removedArgumentsInfo.iterator();
     RemovedArgumentInfo nextRemovedArgument =
@@ -152,8 +167,8 @@ public class DexSourceCode implements SourceCode {
     // block.
     int argumentIndex = 0;
 
-    int register = code.registerSize - code.incomingRegisterSize;
     if (!method.isStatic()) {
+      writeCallback.accept(register, method.method.holder);
       builder.addThisArgument(register);
       ++argumentIndex;
       ++register;
@@ -167,6 +182,7 @@ public class DexSourceCode implements SourceCode {
     for (int usedArgumentIndex = 0; argumentIndex < numberOfArguments; ++argumentIndex) {
       TypeLatticeElement type;
       if (nextRemovedArgument != null && nextRemovedArgument.getArgumentIndex() == argumentIndex) {
+        writeCallback.accept(register, nextRemovedArgument.getType());
         type =
             TypeLatticeElement.fromDexType(
                 nextRemovedArgument.getType(), Nullability.maybeNull(), builder.appView);
@@ -175,6 +191,7 @@ public class DexSourceCode implements SourceCode {
             removedArgumentIterator.hasNext() ? removedArgumentIterator.next() : null;
       } else {
         DexType dexType = method.method.proto.parameters.values[usedArgumentIndex++];
+        writeCallback.accept(register, dexType);
         type =
             TypeLatticeElement.fromDexType(
                 dexType,

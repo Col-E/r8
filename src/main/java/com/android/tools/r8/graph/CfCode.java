@@ -22,10 +22,10 @@ import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
+import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import java.util.BitSet;
-import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import java.util.Collections;
 import java.util.List;
 import org.objectweb.asm.Label;
@@ -338,6 +338,9 @@ public class CfCode extends Code {
     {
       int index = 0;
       int number = 0;
+      if (!isStatic) {
+        indexToNumber.put(index++, number++);
+      }
       for (DexType value : proto.parameters.values) {
         indexToNumber.put(index++, number++);
         if (value.isLongType() || value.isDoubleType()) {
@@ -345,6 +348,7 @@ public class CfCode extends Code {
         }
       }
     }
+    assert indexToNumber.size() == argumentCount;
     for (CfInstruction instruction : instructions) {
       int index;
       if (instruction instanceof CfLoad) {

@@ -23,8 +23,6 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.analysis.type.Nullability;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.CanonicalPositions;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.Monitor;
@@ -373,33 +371,12 @@ public class CfSourceCode implements SourceCode {
     inPrelude = true;
     state.buildPrelude(canonicalPositions.getPreamblePosition());
     setLocalVariableLists();
-    buildArgumentInstructions(builder);
+    DexSourceCode.buildArgumentsWithUnusedArgumentStubs(builder, 0, method, state::write);
     if (needsGeneratedMethodSynchronization) {
       buildMethodEnterSynchronization(builder);
     }
     recordStateForTarget(0, state.getSnapshot());
     inPrelude = false;
-  }
-
-  private void buildArgumentInstructions(IRBuilder builder) {
-    int argumentRegister = 0;
-    if (!isStatic()) {
-      DexType type = method.method.holder;
-      state.write(argumentRegister, type);
-      builder.addThisArgument(argumentRegister++);
-    }
-    for (DexType type : method.method.proto.parameters.values) {
-      state.write(argumentRegister, type);
-      if (type.isBooleanType()) {
-        builder.addBooleanNonThisArgument(argumentRegister++);
-      } else {
-        TypeLatticeElement typeLattice =
-            TypeLatticeElement.fromDexType(type, Nullability.maybeNull(), builder.appView);
-        builder.addNonThisArgument(argumentRegister, typeLattice);
-        argumentRegister += typeLattice.requiredRegisters();
-      }
-    }
-    builder.flushArgumentInstructions();
   }
 
   private boolean isStatic() {

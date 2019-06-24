@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir;
 
+import static org.junit.Assert.assertTrue;
+
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
@@ -74,10 +76,10 @@ public class LinearFlowIteratorTest extends TestBase {
         "V",
         ".limit stack 2",
         ".limit locals 2",
-        ".var 1 is x Ljava/lang/Object; from L1 to L2",
+        ".var 0 is x I from L1 to L2",
         "L1:",
-        "  aload 1",
-        "  iconst_0",
+        "  aconst_null",
+        "  iload 0",
         "  aaload",
         "  pop",
         "L2:",
@@ -109,11 +111,12 @@ public class LinearFlowIteratorTest extends TestBase {
   public void nextWillContinueThroughGotoBlocks() throws Exception {
     IRCode code = simpleCode();
     InstructionListIterator it = new LinearFlowInstructionIterator(code.entryBlock());
-    Instruction current = it.next();
-    current = it.next();
-    current = it.next();
-    current = it.next();
-    assert current.isArrayGet();
+    Instruction current;
+    current = it.next(); // Argument
+    current = it.next(); // ConstNumber 0/NULL
+    current = it.next(); // ArrayGet
+    current = it.next(); // Return;
+    assert current.isReturn();
   }
 
   @Test
@@ -152,10 +155,10 @@ public class LinearFlowIteratorTest extends TestBase {
     IRCode code = simpleCode();
     InstructionListIterator it = new LinearFlowInstructionIterator(code.blocks.get(1));
     Instruction current = it.previous();
-    assert current.isConstNumber() && current.outValue().getTypeLattice().isReference();
+    assertTrue(current.isConstNumber() && current.outValue().getTypeLattice().isReference());
     it.next();
     current = it.next();
-    assert current.isConstNumber() && current.outValue().getTypeLattice().isInt();
+    assertTrue(current.isArrayGet());
   }
 
   @Test
