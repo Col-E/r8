@@ -26,6 +26,7 @@ import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
 import com.android.tools.r8.utils.LongInterval;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.android.tools.r8.utils.StringUtils;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -203,7 +204,7 @@ public class ProguardConfigurationParser {
     private final Origin origin;
 
     ProguardConfigurationSourceParser(ProguardConfigurationSource source) throws IOException {
-      contents = source.get();
+      contents = StringUtils.stripBOM(source.get());
       baseDirectory = source.getBaseDirectory();
       name = source.getName();
       this.origin = source.getOrigin();

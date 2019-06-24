@@ -33,10 +33,12 @@ import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
 import com.android.tools.r8.utils.KeepingDiagnosticHandler;
 import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -2783,6 +2785,23 @@ public class ProguardConfigurationParserTest extends TestBase {
     ProguardConfigurationParser parser;
     parser = new ProguardConfigurationParser(new DexItemFactory(), reporter);
     Path proguardConfig = writeTextToTempFile("-keep,includecode class A { method(); }");
+    parser.parse(proguardConfig);
+    assertEquals(1, parser.getConfig().getRules().size());
+    assertEquals(1, handler.infos.size());
+    checkDiagnostics(handler.infos, proguardConfig, 1, 7, "Ignoring modifier", "includecode");
+  }
+
+  @Test
+  public void parseFileStartingWithBOM() throws Exception {
+    // Copied from test 'parseIncludeCode()' and added a BOM.
+    ProguardConfigurationParser parser;
+    parser = new ProguardConfigurationParser(new DexItemFactory(), reporter);
+    Path proguardConfig =
+        writeTextToTempFile(StringUtils.BOM + "-keep,includecode class A { method(); }");
+    byte[] bytes = Files.readAllBytes(proguardConfig);
+    assertEquals(0xef, Byte.toUnsignedLong(bytes[0]));
+    assertEquals(0xbb, Byte.toUnsignedLong(bytes[1]));
+    assertEquals(0xbf, Byte.toUnsignedLong(bytes[2]));
     parser.parse(proguardConfig);
     assertEquals(1, parser.getConfig().getRules().size());
     assertEquals(1, handler.infos.size());

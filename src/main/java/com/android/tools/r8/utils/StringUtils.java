@@ -16,6 +16,7 @@ public class StringUtils {
   public static char[] EMPTY_CHAR_ARRAY = {};
   public static final String[] EMPTY_ARRAY = {};
   public static final String LINE_SEPARATOR = System.getProperty("line.separator");
+  public static final char BOM = '\uFEFF';
 
   public enum BraceType {
     PARENS,
@@ -260,5 +261,13 @@ public class StringUtils {
       builder.append(string);
     }
     return builder.toString();
+  }
+
+  public static String stripBOM(String s) {
+    if (s.length() > 0 && s.charAt(0) == StringUtils.BOM) {
+      return s.substring(1);
+    } else {
+      return s;
+    }
   }
 }
