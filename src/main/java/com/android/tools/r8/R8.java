@@ -335,15 +335,6 @@ public class R8 {
 
         Enqueuer enqueuer = new Enqueuer(appView, options, null, compatibility);
 
-        // If shrinking of the generated proto extension registry is enabled, then the Enqueuer
-        // won't trace the dead proto extensions fields. However, for the purpose of member value
-        // propagation, we should keep the dead proto extension fields in the program, such that
-        // member value propagation can find their definitions and the corresponding optimization
-        // info. This is handled by simply marking the dead proto extension types as live after the
-        // Enqueuer has finished. This way we don't actually trace these types.
-        enqueuer.markSkippedProtoExtensionTypesAsLive(
-            options.enableGeneratedExtensionRegistryShrinking);
-
         AppView<AppInfoWithLiveness> appViewWithLiveness =
             appView.setAppInfo(
                 enqueuer.traceApplication(
@@ -364,6 +355,10 @@ public class R8 {
               options.reporter, options.proguardSeedsConsumer, bytes.toString());
         }
         if (options.isShrinking()) {
+          // Mark dead proto extensions fields as neither being read nor written. This step must
+          // run prior to the tree pruner.
+          appView.withGeneratedExtensionRegistryShrinker(GeneratedExtensionRegistryShrinker::run);
+
           TreePruner pruner = new TreePruner(application, appView.withLiveness());
           application = pruner.run();
 
@@ -377,9 +372,6 @@ public class R8 {
                       pruner.getRemovedClasses(),
                       pruner.getMethodsToKeepForConfigurationDebugging()));
           new AbstractMethodRemover(appView.appInfo().withLiveness()).run();
-
-          // Mark dead proto extensions fields as neither being read nor written.
-          appView.withGeneratedExtensionRegistryShrinker(GeneratedExtensionRegistryShrinker::run);
         }
 
         classesToRetainInnerClassAttributeFor =
@@ -662,6 +654,10 @@ public class R8 {
           }
 
           if (options.isShrinking()) {
+            // Mark dead proto extensions fields as neither being read nor written. This step must
+            // run prior to the tree pruner.
+            appView.withGeneratedExtensionRegistryShrinker(GeneratedExtensionRegistryShrinker::run);
+
             TreePruner pruner = new TreePruner(application, appViewWithLiveness);
             application = pruner.run();
             appViewWithLiveness.setAppInfo(

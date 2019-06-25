@@ -340,7 +340,17 @@ public class MemberValuePropagation {
 
     // TODO(b/123857022): Should be able to use definitionFor().
     DexEncodedField target = appView.appInfo().lookupStaticTarget(field.holder, field);
-    if (target == null || !mayPropagateValueFor(target)) {
+    if (target == null) {
+      boolean replaceCurrentInstructionWithConstNull =
+          appView.withGeneratedExtensionRegistryShrinker(
+              shrinker -> shrinker.wasRemoved(field), false);
+      if (replaceCurrentInstructionWithConstNull) {
+        iterator.replaceCurrentInstruction(code.createConstNull());
+      }
+      return;
+    }
+
+    if (!mayPropagateValueFor(target)) {
       return;
     }
 

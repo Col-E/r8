@@ -49,6 +49,7 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
         .addOptionsModification(
             options -> {
               options.enableGeneratedMessageLiteShrinking = true;
+              options.enableGeneratedExtensionRegistryShrinking = true;
               options.enableStringSwitchConversion = true;
             })
         .minification(enableMinification)

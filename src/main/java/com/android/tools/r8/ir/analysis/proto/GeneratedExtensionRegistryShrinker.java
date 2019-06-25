@@ -17,7 +17,6 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
-import com.android.tools.r8.graph.FieldAccessInfoImpl;
 import com.android.tools.r8.ir.conversion.CallSiteInformation;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.OptimizationFeedbackIgnore;
@@ -69,7 +68,9 @@ public class GeneratedExtensionRegistryShrinker {
   private final AppView<AppInfoWithLiveness> appView;
   private final ProtoReferences references;
 
-  public GeneratedExtensionRegistryShrinker(
+  private final Set<DexField> removedExtensionFields = Sets.newIdentityHashSet();
+
+  GeneratedExtensionRegistryShrinker(
       AppView<AppInfoWithLiveness> appView, ProtoReferences references) {
     assert appView.options().enableGeneratedExtensionRegistryShrinking;
     this.appView = appView;
@@ -77,19 +78,16 @@ public class GeneratedExtensionRegistryShrinker {
   }
 
   /**
-   * Will be run after the initial round of tree shaking. This clears the reads and writes to fields
-   * that store dead proto extensions. As a result of this, the member value propagation will
-   * automatically rewrite the reads of this field by null.
+   * Will be run after tree shaking. This populates the set {@link #removedExtensionFields}. This
+   * set is used by the member value propagation, which rewrites all reads of these fields by
+   * const-null.
    */
   public void run() {
-    FieldAccessInfoCollection<?> fieldAccessInfoCollection =
-        appView.appInfo().getFieldAccessInfoCollection();
-    forEachDeadProtoExtensionField(
-        field -> {
-          FieldAccessInfoImpl fieldAccessInfo = fieldAccessInfoCollection.get(field).asMutable();
-          fieldAccessInfo.clearReads();
-          fieldAccessInfo.clearWrites();
-        });
+    forEachDeadProtoExtensionField(removedExtensionFields::add);
+  }
+
+  public boolean wasRemoved(DexField field) {
+    return removedExtensionFields.contains(field);
   }
 
   public void postOptimizeGeneratedExtensionRegistry(IRConverter converter) {

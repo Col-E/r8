@@ -112,14 +112,6 @@ public class Enqueuer {
   private final boolean forceProguardCompatibility;
   private boolean tracingMainDex = false;
 
-  // If shrinking of the generated proto extension registry is enabled, then the Enqueuer
-  // won't trace the dead proto extensions fields. However, for the purpose of member value
-  // propagation, we should keep the dead proto extension fields in the program, such that
-  // member value propagation can find their definitions and the corresponding optimization
-  // info. This is handled by simply marking the dead proto extension types as live after the
-  // Enqueuer has finished. This way we don't actually trace these types.
-  private boolean markSkippedProtoExtensionTypesAsLive = false;
-
   private final AppInfoWithSubtyping appInfo;
   private final AppView<? extends AppInfoWithSubtyping> appView;
   private final InternalOptions options;
@@ -302,10 +294,6 @@ public class Enqueuer {
     this.forceProguardCompatibility = options.forceProguardCompatibility;
     this.keptGraphConsumer = keptGraphConsumer;
     this.options = options;
-  }
-
-  public void markSkippedProtoExtensionTypesAsLive(boolean value) {
-    markSkippedProtoExtensionTypesAsLive = value;
   }
 
   private Set<DexField> staticFieldsWrittenOnlyInEnclosingStaticInitializer() {
@@ -645,9 +633,6 @@ public class Enqueuer {
                       shrinker.isDeadProtoExtensionField(encodedField, fieldAccessInfoCollection),
                   false);
           if (skipTracing) {
-            if (markSkippedProtoExtensionTypesAsLive) {
-              skippedProtoExtensionTypes.add(encodedField.field.holder);
-            }
             return false;
           }
         }
@@ -677,9 +662,6 @@ public class Enqueuer {
                       shrinker.isDeadProtoExtensionField(encodedField, fieldAccessInfoCollection),
                   false);
           if (skipTracing) {
-            if (markSkippedProtoExtensionTypesAsLive) {
-              skippedProtoExtensionTypes.add(encodedField.field.holder);
-            }
             return false;
           }
         }
@@ -1686,14 +1668,6 @@ public class Enqueuer {
     fieldAccessInfoCollection.removeIf(
         (field, info) -> field != info.getField() || info == MISSING_FIELD_ACCESS_INFO);
     assert fieldAccessInfoCollection.verifyMappingIsOneToOne();
-
-    // Mark the proto extensions types that have not been traced as live if specified by the
-    // configuration. This enables the member value propagation to find the definition of the dead
-    // proto extension fields, and thereby optimize the corresponding static-get instructions (will
-    // always be null).
-    if (markSkippedProtoExtensionTypesAsLive) {
-      liveTypes.addAll(skippedProtoExtensionTypes);
-    }
 
     AppInfoWithLiveness appInfoWithLiveness =
         new AppInfoWithLiveness(

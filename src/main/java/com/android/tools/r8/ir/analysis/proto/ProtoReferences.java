@@ -22,8 +22,6 @@ public class ProtoReferences {
 
   public final DexString dynamicMethodName;
   public final DexString findLiteExtensionByNumberName;
-  public final DexString findLiteExtensionByNumber1Name;
-  public final DexString findLiteExtensionByNumber2Name;
 
   public final DexProto dynamicMethodProto;
   public final DexProto findLiteExtensionByNumberProto;
@@ -52,8 +50,6 @@ public class ProtoReferences {
     // Names.
     dynamicMethodName = factory.createString("dynamicMethod");
     findLiteExtensionByNumberName = factory.createString("findLiteExtensionByNumber");
-    findLiteExtensionByNumber1Name = factory.createString("findLiteExtensionByNumber1");
-    findLiteExtensionByNumber2Name = factory.createString("findLiteExtensionByNumber2");
 
     // Protos.
     dynamicMethodProto =
@@ -76,11 +72,7 @@ public class ProtoReferences {
   }
 
   public boolean isFindLiteExtensionByNumberMethod(DexMethod method) {
-    if (method.proto == findLiteExtensionByNumberProto) {
-      assert method.name != findLiteExtensionByNumber2Name;
-      return method.name == findLiteExtensionByNumberName
-          || method.name == findLiteExtensionByNumber1Name;
-    }
-    return false;
+    return method.proto == findLiteExtensionByNumberProto
+        && method.name.startsWith(findLiteExtensionByNumberName);
   }
 }
