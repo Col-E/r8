@@ -14,6 +14,8 @@ import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
+import com.android.tools.r8.ir.optimize.InliningConstraints;
 
 public class ConstMethodType extends ConstInstruction {
 
@@ -116,5 +118,11 @@ public class ConstMethodType extends ConstInstruction {
   @Override
   public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
     helper.storeOutValue(this, it);
+  }
+
+  @Override
+  public ConstraintWithTarget inliningConstraint(
+      InliningConstraints inliningConstraints, DexType invocationContext) {
+    return inliningConstraints.forConstMethodType();
   }
 }

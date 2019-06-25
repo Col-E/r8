@@ -18,9 +18,12 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
 import com.android.tools.r8.ir.conversion.IRBuilder;
+import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
+import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
@@ -31,7 +34,7 @@ import java.util.List;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 
-public class CfCode extends Code {
+public class CfCode extends Code implements CfOrJarCode {
 
   public static class LocalVariableInfo {
     private final int index;
@@ -372,5 +375,48 @@ public class CfCode extends Code {
   @Override
   public String toString(DexEncodedMethod method, ClassNameMapper naming) {
     return new CfPrinter(this, method, naming).toString();
+  }
+
+  @Override
+  public ConstraintWithTarget computeInliningConstraint(
+      DexEncodedMethod encodedMethod,
+      AppView<AppInfoWithLiveness> appView,
+      GraphLense graphLense,
+      DexType invocationContext) {
+
+    InliningConstraints inliningConstraints = new InliningConstraints(appView, graphLense);
+    if (appView.options().isInterfaceMethodDesugaringEnabled()) {
+      // TODO(b/120130831): Conservatively need to say "no" at this point if there are invocations
+      // to static interface methods. This should be fixed by making sure that the desugared
+      // versions of default and static interface methods are present in the application during
+      // IR processing.
+      inliningConstraints.disallowStaticInterfaceMethodCalls();
+    }
+
+    // Model a synchronized method as having a monitor instruction.
+    ConstraintWithTarget constraint =
+        encodedMethod.accessFlags.isSynchronized()
+            ? inliningConstraints.forMonitor()
+            : ConstraintWithTarget.ALWAYS;
+
+    if (constraint == ConstraintWithTarget.NEVER) {
+      return constraint;
+    }
+    for (CfInstruction insn : instructions) {
+      constraint =
+          ConstraintWithTarget.meet(
+              constraint,
+              insn.inliningConstraint(inliningConstraints, invocationContext, graphLense, appView),
+              appView);
+      if (constraint == ConstraintWithTarget.NEVER) {
+        return constraint;
+      }
+    }
+    if (!tryCatchRanges.isEmpty()) {
+      // Model a try-catch as a move-exception instruction.
+      constraint =
+          ConstraintWithTarget.meet(constraint, inliningConstraints.forMoveException(), appView);
+    }
+    return constraint;
   }
 }

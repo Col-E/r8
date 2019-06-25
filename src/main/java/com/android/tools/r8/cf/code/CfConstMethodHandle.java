@@ -4,13 +4,17 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.graph.UseRegistry.MethodHandleUse;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
 import com.android.tools.r8.ir.conversion.CfState;
 import com.android.tools.r8.ir.conversion.IRBuilder;
+import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
+import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
 import org.objectweb.asm.MethodVisitor;
 
@@ -51,5 +55,14 @@ public class CfConstMethodHandle extends CfInstruction {
   public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
     builder.addConstMethodHandle(
         state.push(builder.appView.dexItemFactory().methodHandleType).register, handle);
+  }
+
+  @Override
+  public ConstraintWithTarget inliningConstraint(
+      InliningConstraints inliningConstraints,
+      DexType invocationContext,
+      GraphLense graphLense,
+      AppView<?> appView) {
+    return inliningConstraints.forConstMethodHandle();
   }
 }

@@ -5,10 +5,15 @@ package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
 import com.android.tools.r8.ir.conversion.CfState;
 import com.android.tools.r8.ir.conversion.IRBuilder;
+import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
+import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -127,4 +132,12 @@ public class CfConstNumber extends CfInstruction {
     builder.addConst(type.toPrimitiveTypeLattice(), state.push(type).register, value);
   }
 
+  @Override
+  public ConstraintWithTarget inliningConstraint(
+      InliningConstraints inliningConstraints,
+      DexType invocationContext,
+      GraphLense graphLense,
+      AppView<?> appView) {
+    return inliningConstraints.forConstInstruction();
+  }
 }

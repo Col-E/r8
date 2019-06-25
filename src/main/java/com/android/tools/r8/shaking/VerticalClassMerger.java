@@ -9,6 +9,7 @@ import static com.android.tools.r8.ir.code.Invoke.Type.STATIC;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo.ResolutionResult;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.CfOrJarCode;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
@@ -28,7 +29,6 @@ import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.Builder;
 import com.android.tools.r8.graph.GraphLense.GraphLenseLookupResult;
-import com.android.tools.r8.graph.JarCode;
 import com.android.tools.r8.graph.KeyedDexItem;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
@@ -1640,18 +1640,17 @@ public class VerticalClassMerger {
 
   private boolean disallowInlining(DexEncodedMethod method, DexType invocationContext) {
     if (appView.options().enableInlining) {
-      if (method.getCode().isJarCode()) {
-        JarCode jarCode = method.getCode().asJarCode();
+      if (method.getCode().isCfOrJarCode()) {
+        CfOrJarCode code = method.getCode().asCfOrJarCode();
         ConstraintWithTarget constraint =
-            jarCode.computeInliningConstraint(
+            code.computeInliningConstraint(
                 method,
                 appView,
                 new SingleTypeMapperGraphLense(method.method.holder, invocationContext),
                 invocationContext);
         return constraint == ConstraintWithTarget.NEVER;
       }
-      // TODO(b/133479464): For non-jar code we currently cannot guarantee that markForceInline()
-      // will succeed. This should at least support inlining CF code.
+      // For non-jar/cf code we currently cannot guarantee that markForceInline() will succeed.
     }
     return true;
   }

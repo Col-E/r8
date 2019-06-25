@@ -56,8 +56,10 @@ import com.android.tools.r8.ir.code.Monitor;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
@@ -76,7 +78,7 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.JSRInlinerAdapter;
 
-public class LazyCfCode extends Code {
+public class LazyCfCode extends Code implements CfOrJarCode {
 
   private static class JsrEncountered extends RuntimeException {
     public JsrEncountered(String s) {
@@ -881,5 +883,15 @@ public class LazyCfCode extends Code {
       assert code == null || !(code instanceof LazyCfCode) || ((LazyCfCode) code).context == null;
     }
     return true;
+  }
+
+  @Override
+  public ConstraintWithTarget computeInliningConstraint(
+      DexEncodedMethod encodedMethod,
+      AppView<AppInfoWithLiveness> appView,
+      GraphLense graphLense,
+      DexType invocationContext) {
+    return asCfCode()
+        .computeInliningConstraint(encodedMethod, appView, graphLense, invocationContext);
   }
 }

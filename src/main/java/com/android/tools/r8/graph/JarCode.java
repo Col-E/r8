@@ -22,7 +22,6 @@ import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.OffOrAuto;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import java.io.PrintWriter;
@@ -44,7 +43,7 @@ import org.objectweb.asm.tree.TryCatchBlockNode;
 import org.objectweb.asm.util.Textifier;
 import org.objectweb.asm.util.TraceMethodVisitor;
 
-public class JarCode extends Code {
+public class JarCode extends Code implements CfOrJarCode {
 
   // TODO(zerny): Write via the IR.
   public void writeTo(MethodVisitor visitor) {
@@ -284,6 +283,7 @@ public class JarCode extends Code {
     node.instructions.accept(new JarArgumentUseVisitor(method, registry));
   }
 
+  @Override
   public ConstraintWithTarget computeInliningConstraint(
       DexEncodedMethod encodedMethod,
       AppView<AppInfoWithLiveness> appView,
@@ -295,9 +295,7 @@ public class JarCode extends Code {
         new InliningConstraintVisitor(
             application, appView, graphLense, encodedMethod, invocationContext);
 
-    if (appView.options().enableDesugaring
-        && appView.options().interfaceMethodDesugaring == OffOrAuto.Auto
-        && !appView.options().canUseDefaultAndStaticInterfaceMethods()) {
+    if (appView.options().isInterfaceMethodDesugaringEnabled()) {
       // TODO(b/120130831): Conservatively need to say "no" at this point if there are invocations
       // to static interface methods. This should be fixed by making sure that the desugared
       // versions of default and static interface methods are present in the application during

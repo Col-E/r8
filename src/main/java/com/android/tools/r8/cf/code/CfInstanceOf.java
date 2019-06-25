@@ -4,11 +4,15 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
 import com.android.tools.r8.ir.conversion.CfState;
 import com.android.tools.r8.ir.conversion.IRBuilder;
+import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
+import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -50,5 +54,14 @@ public class CfInstanceOf extends CfInstruction {
     int value = state.pop().register;
     builder.addInstanceOf(
         state.push(builder.appView.dexItemFactory().booleanType).register, value, type);
+  }
+
+  @Override
+  public ConstraintWithTarget inliningConstraint(
+      InliningConstraints inliningConstraints,
+      DexType invocationContext,
+      GraphLense graphLense,
+      AppView<?> appView) {
+    return inliningConstraints.forInstanceOf(type, invocationContext);
   }
 }

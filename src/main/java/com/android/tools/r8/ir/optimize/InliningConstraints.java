@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.code.Invoke.Type;
@@ -71,6 +72,11 @@ public class InliningConstraints {
   }
 
   public ConstraintWithTarget forBinop() {
+    return ConstraintWithTarget.ALWAYS;
+  }
+
+  public ConstraintWithTarget forDexItemBasedConstString(
+      DexReference type, DexType invocationContext) {
     return ConstraintWithTarget.ALWAYS;
   }
 
@@ -144,6 +150,7 @@ public class InliningConstraints {
   }
 
   public ConstraintWithTarget forInvokeCustom() {
+    // TODO(b/135965362): Test and support inlining invoke dynamic.
     return ConstraintWithTarget.NEVER;
   }
 
@@ -262,6 +269,10 @@ public class InliningConstraints {
   }
 
   public ConstraintWithTarget forConstMethodHandle() {
+    return ConstraintWithTarget.NEVER;
+  }
+
+  public ConstraintWithTarget forConstMethodType() {
     return ConstraintWithTarget.NEVER;
   }
 

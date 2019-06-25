@@ -15,6 +15,8 @@ import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
+import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
 
 public class DexItemBasedConstString extends ConstInstruction {
@@ -142,5 +144,11 @@ public class DexItemBasedConstString extends ConstInstruction {
   @Override
   public TypeLatticeElement evaluate(AppView<?> appView) {
     return TypeLatticeElement.stringClassType(appView, Nullability.definitelyNotNull());
+  }
+
+  @Override
+  public ConstraintWithTarget inliningConstraint(
+      InliningConstraints inliningConstraints, DexType invocationContext) {
+    return inliningConstraints.forDexItemBasedConstString(item, invocationContext);
   }
 }

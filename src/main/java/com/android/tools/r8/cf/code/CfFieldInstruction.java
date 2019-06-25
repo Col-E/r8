@@ -5,13 +5,17 @@ package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
 import com.android.tools.r8.ir.conversion.CfState;
 import com.android.tools.r8.ir.conversion.CfState.Slot;
 import com.android.tools.r8.ir.conversion.IRBuilder;
+import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
+import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -103,6 +107,26 @@ public class CfFieldInstruction extends CfInstruction {
           builder.addInstancePut(value.register, object.register, field);
           break;
         }
+      default:
+        throw new Unreachable("Unexpected opcode " + opcode);
+    }
+  }
+
+  @Override
+  public ConstraintWithTarget inliningConstraint(
+      InliningConstraints inliningConstraints,
+      DexType invocationContext,
+      GraphLense graphLense,
+      AppView<?> appView) {
+    switch (opcode) {
+      case Opcodes.GETSTATIC:
+        return inliningConstraints.forStaticGet(field, invocationContext);
+      case Opcodes.PUTSTATIC:
+        return inliningConstraints.forStaticPut(field, invocationContext);
+      case Opcodes.GETFIELD:
+        return inliningConstraints.forInstanceGet(field, invocationContext);
+      case Opcodes.PUTFIELD:
+        return inliningConstraints.forInstancePut(field, invocationContext);
       default:
         throw new Unreachable("Unexpected opcode " + opcode);
     }

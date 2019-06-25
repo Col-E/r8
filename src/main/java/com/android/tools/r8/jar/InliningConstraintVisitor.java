@@ -6,7 +6,6 @@ package com.android.tools.r8.jar;
 
 import static com.android.tools.r8.utils.InternalOptions.ASM_VERSION;
 
-import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
@@ -18,7 +17,6 @@ import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.GraphLenseLookupResult;
 import com.android.tools.r8.graph.JarApplicationReader;
 import com.android.tools.r8.ir.code.Invoke;
-import com.android.tools.r8.ir.conversion.JarSourceCode;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -126,21 +124,33 @@ public class InliningConstraintVisitor extends MethodVisitor {
   }
 
   @Override
+  public void visitInvokeDynamicInsn(
+      String name,
+      String descriptor,
+      Handle bootstrapMethodHandle,
+      Object... bootstrapMethodArguments) {
+    updateConstraint(inliningConstraints.forInvokeCustom());
+  }
+
+  @Override
   public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
     DexType ownerType = application.getTypeFromName(owner);
     DexMethod target = application.getMethod(ownerType, name, desc);
+    updateConstraint(
+        getConstraintForInvoke(
+            opcode, target, graphLense, appView, inliningConstraints, invocationContext));
+  }
 
+  public static ConstraintWithTarget getConstraintForInvoke(
+      int opcode,
+      DexMethod target,
+      GraphLense graphLense,
+      AppView<?> appView,
+      InliningConstraints inliningConstraints,
+      DexType invocationContext) {
     // Find the DEX invocation type.
     Invoke.Type type;
     switch (opcode) {
-      case Opcodes.INVOKEDYNAMIC:
-        type =
-            JarSourceCode.isCallToPolymorphicSignatureMethod(owner, name)
-                ? Invoke.Type.POLYMORPHIC
-                : Invoke.Type.CUSTOM;
-        assert noNeedToUseGraphLense(target, type);
-        break;
-
       case Opcodes.INVOKEINTERFACE:
         // Could have changed to an invoke-virtual instruction due to vertical class merging
         // (if an interface is merged into a class).
@@ -149,10 +159,10 @@ public class InliningConstraintVisitor extends MethodVisitor {
         break;
 
       case Opcodes.INVOKESPECIAL:
-        if (name.equals(Constants.INSTANCE_INITIALIZER_NAME)) {
+        if (appView.dexItemFactory().isConstructor(target)) {
           type = Invoke.Type.DIRECT;
-          assert noNeedToUseGraphLense(target, type);
-        } else if (ownerType == invocationContext) {
+          assert noNeedToUseGraphLense(target, type, graphLense);
+        } else if (target.holder == invocationContext) {
           // The method could have been publicized.
           type = graphLense.lookupMethod(target, null, Invoke.Type.DIRECT).getType();
           assert type == Invoke.Type.DIRECT || type == Invoke.Type.VIRTUAL;
@@ -165,7 +175,7 @@ public class InliningConstraintVisitor extends MethodVisitor {
           // TODO(christofferqa): Consider using graphLense.lookupMethod (to do this, we need the
           // context for the graph lense, though).
           type = Invoke.Type.SUPER;
-          assert noNeedToUseGraphLense(target, type);
+          assert noNeedToUseGraphLense(target, type, graphLense);
         }
         break;
 
@@ -179,8 +189,9 @@ public class InliningConstraintVisitor extends MethodVisitor {
 
       case Opcodes.INVOKEVIRTUAL: {
         type = Invoke.Type.VIRTUAL;
-        // Instructions that target a private method in the same class translates to invoke-direct.
-        if (target.holder == method.method.holder) {
+          // Instructions that target a private method in the same class translates to
+          // invoke-direct.
+          if (target.holder == invocationContext) {
             DexClass clazz = appView.definitionFor(target.holder);
           if (clazz != null && clazz.lookupDirectMethod(target) != null) {
             type = Invoke.Type.DIRECT;
@@ -198,10 +209,11 @@ public class InliningConstraintVisitor extends MethodVisitor {
         throw new Unreachable("Unexpected opcode " + opcode);
     }
 
-    updateConstraint(inliningConstraints.forInvoke(target, type, invocationContext));
+    return inliningConstraints.forInvoke(target, type, invocationContext);
   }
 
-  private boolean noNeedToUseGraphLense(DexMethod method, Invoke.Type type) {
+  private static boolean noNeedToUseGraphLense(
+      DexMethod method, Invoke.Type type, GraphLense graphLense) {
     assert graphLense.lookupMethod(method, null, type).getType() == type;
     return true;
   }

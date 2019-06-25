@@ -102,4 +102,8 @@ public abstract class Code extends CachedHashValueDexItem {
   public boolean isCfOrJarCode() {
     return isCfCode() || isJarCode();
   }
+
+  public CfOrJarCode asCfOrJarCode() {
+    return isCfOrJarCode() ? (CfOrJarCode) this : null;
+  }
 }
