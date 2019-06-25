@@ -4,6 +4,8 @@
 package com.android.tools.r8.ir.analysis.type;
 
 import static com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement.computeLeastUpperBoundOfInterfaces;
+import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.BOTTOM;
+import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.TOP;
 import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.fromDexType;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -78,7 +80,11 @@ public class TypeLatticeTest extends TestBase {
   }
 
   private TypeLatticeElement element(DexType type) {
-    return TypeLatticeElement.fromDexType(type, Nullability.maybeNull(), appView);
+    return element(type, Nullability.maybeNull());
+  }
+
+  private TypeLatticeElement element(DexType type, Nullability nullability) {
+    return TypeLatticeElement.fromDexType(type, nullability, appView);
   }
 
   private ArrayTypeLatticeElement array(int nesting, DexType base) {
@@ -96,6 +102,10 @@ public class TypeLatticeTest extends TestBase {
 
   private boolean lessThanOrEqual(TypeLatticeElement l1, TypeLatticeElement l2) {
     return l1.lessThanOrEqual(l2, appView);
+  }
+
+  private boolean lessThanOrEqualUpToNullability(TypeLatticeElement l1, TypeLatticeElement l2) {
+    return l1.lessThanOrEqualUpToNullability(l2, appView);
   }
 
   @Test
@@ -503,6 +513,24 @@ public class TypeLatticeTest extends TestBase {
     assertTrue(strictlyLessThan(
         ReferenceTypeLatticeElement.getNullTypeLatticeElement(),
         array(1, factory.classType)));
+  }
+
+  @Test
+  public void testLessThanOrEqualUpToNullability() {
+    assertTrue(
+        lessThanOrEqualUpToNullability(
+            element(factory.objectType, Nullability.maybeNull()),
+            element(factory.objectType, Nullability.definitelyNotNull())));
+    assertTrue(
+        lessThanOrEqualUpToNullability(
+            element(factory.objectType, Nullability.definitelyNotNull()),
+            element(factory.objectType, Nullability.maybeNull())));
+    assertFalse(
+        lessThanOrEqualUpToNullability(array(3, factory.stringType), array(4, factory.stringType)));
+    assertTrue(lessThanOrEqualUpToNullability(BOTTOM, element(factory.objectType)));
+    assertFalse(lessThanOrEqualUpToNullability(element(factory.objectType), BOTTOM));
+    assertFalse(lessThanOrEqualUpToNullability(TOP, element(factory.objectType)));
+    assertTrue(lessThanOrEqualUpToNullability(element(factory.objectType), TOP));
   }
 
   @Test

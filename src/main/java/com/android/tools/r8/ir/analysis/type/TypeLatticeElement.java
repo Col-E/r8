@@ -138,6 +138,18 @@ public abstract class TypeLatticeElement {
     if (this == other) {
       return true;
     }
+    if (this.isTop()) {
+      return other.isTop();
+    }
+    if (other.isTop()) {
+      return true;
+    }
+    if (this.isBottom()) {
+      return true;
+    }
+    if (other.isBottom()) {
+      return false;
+    }
     if (isPrimitive()) {
       // Primitives cannot be nullable.
       return lessThanOrEqual(other, appView);
