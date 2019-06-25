@@ -144,7 +144,7 @@ public class InternalOptions {
     enableUninstantiatedTypeOptimization = false;
     enableUnusedArgumentRemoval = false;
     outline.enabled = false;
-    enableSwitchMapRemoval = false;
+    enableEnumValueOptimization = false;
     enableValuePropagation = false;
     enableSideEffectAnalysis = false;
     enableTreeShakingOfLibraryMethodOverrides = false;
@@ -205,7 +205,7 @@ public class InternalOptions {
   // GMS Core.
   public int inliningControlFlowResolutionBlocksThreshold = 15;
   public boolean enableStringSwitchConversion = false;
-  public boolean enableSwitchMapRemoval = true;
+  public boolean enableEnumValueOptimization = true;
   public final OutlineOptions outline = new OutlineOptions();
   public boolean enableValuePropagation = true;
   public boolean enableUninstantiatedTypeOptimization = true;

@@ -41,7 +41,8 @@ public class KotlinEnumSwitchTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramFiles(Paths.get(ToolHelper.EXAMPLES_KOTLIN_BUILD_DIR, "enumswitch.jar"))
         .addKeepMainRule("enumswitch.EnumSwitchKt")
-        .addOptionsModification(options -> options.enableSwitchMapRemoval = enableSwitchMapRemoval)
+        .addOptionsModification(
+            options -> options.enableEnumValueOptimization = enableSwitchMapRemoval)
         .setMinApi(parameters.getRuntime())
         .noMinification()
         .compile()

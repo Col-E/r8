@@ -992,7 +992,7 @@ public class IRConverter {
       memberValuePropagation.rewriteWithConstantValues(
           code, method.method.holder, isProcessedConcurrently);
     }
-    if (options.enableSwitchMapRemoval) {
+    if (options.enableEnumValueOptimization) {
       assert appView.enableWholeProgramOptimizations();
       codeRewriter.removeSwitchMaps(code);
     }
@@ -1051,6 +1051,11 @@ public class IRConverter {
 
     assert code.verifyTypes(appView);
     codeRewriter.removeTrivialCheckCastAndInstanceOfInstructions(code);
+
+    if (options.enableEnumValueOptimization) {
+      assert appView.enableWholeProgramOptimizations();
+      codeRewriter.rewriteConstantEnumOrdinal(code);
+    }
 
     codeRewriter.rewriteLongCompareAndRequireNonNull(code, options);
     codeRewriter.commonSubexpressionElimination(code);

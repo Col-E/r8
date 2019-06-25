@@ -222,20 +222,7 @@ public class DexInstructionSubject implements InstructionSubject {
 
   @Override
   public boolean isConstNumber(long value) {
-    if (!isConstNumber()) {
-      return false;
-    }
-    if (instruction instanceof Const
-        || instruction instanceof Const4
-        || instruction instanceof Const16
-        || instruction instanceof ConstHigh16) {
-      return ((SingleConstant) instruction).decodedValue() == value;
-    }
-    assert instruction instanceof ConstWide
-        || instruction instanceof ConstWide16
-        || instruction instanceof ConstWide32
-        || instruction instanceof ConstWideHigh16;
-    return ((WideConstant) instruction).decodedValue() == value;
+    return isConstNumber() && getConstNumber() == value;
   }
 
   @Override
@@ -261,6 +248,15 @@ public class DexInstructionSubject implements InstructionSubject {
   @Override
   public boolean isJumboString() {
     return instruction instanceof ConstStringJumbo;
+  }
+
+  @Override public long getConstNumber() {
+    assert isConstNumber();
+    if (instruction instanceof SingleConstant) {
+      return ((SingleConstant) instruction).decodedValue();
+    }
+    assert instruction instanceof WideConstant;
+    return ((WideConstant) instruction).decodedValue();
   }
 
   @Override

@@ -263,7 +263,7 @@ public final class D8Command extends BaseCompilerCommand {
     assert !internal.enableHorizontalClassMerging;
     assert !internal.enableVerticalClassMerging;
     assert !internal.enableClassStaticizer;
-    assert !internal.enableSwitchMapRemoval;
+    assert !internal.enableEnumValueOptimization;
     assert !internal.outline.enabled;
     assert !internal.enableValuePropagation;
     assert !internal.enableLambdaMerging;

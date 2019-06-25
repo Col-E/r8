@@ -64,6 +64,7 @@ import com.android.tools.r8.ir.code.IntSwitch;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeVirtual;
@@ -3618,6 +3619,51 @@ public class CodeRewriter {
     block.replaceLastInstruction(newIf);
     block.swapSuccessors(trueTarget, fallthrough);
     return true;
+  }
+
+  public void rewriteConstantEnumOrdinal(IRCode code) {
+    InstructionIterator iterator = code.instructionIterator();
+    while (iterator.hasNext()) {
+      Instruction current = iterator.next();
+
+      if (!current.isInvokeMethodWithReceiver()) {
+        continue;
+      }
+      InvokeMethodWithReceiver methodWithReceiver = current.asInvokeMethodWithReceiver();
+      if (methodWithReceiver.getInvokedMethod() != dexItemFactory.enumMethods.ordinal) {
+        continue;
+      }
+
+      Value receiver = methodWithReceiver.getReceiver().getAliasedValue();
+      if (receiver.isPhi()) {
+        continue;
+      }
+      Instruction definition = receiver.getDefinition();
+      if (!definition.isStaticGet()) {
+        continue;
+      }
+      DexField enumField = definition.asStaticGet().getField();
+
+      Reference2IntMap<DexField> ordinalMap =
+          appView.appInfo().withLiveness().getOrdinalsMapFor(enumField.type);
+      if (ordinalMap == null) {
+        continue;
+      }
+
+      // The receiver value is identified as being from a constant enum field lookup by the fact
+      // that it is a static-get to a field whose type is the same as the enclosing class (which
+      // is known to be an enum type). An enum may still define a static field using the enum type
+      // so ensure the field is present in the ordinal map for final validation.
+      if (!ordinalMap.containsKey(enumField)) {
+        continue;
+      }
+      int ordinalValue = ordinalMap.getInt(enumField);
+
+      Value outValue = methodWithReceiver.outValue();
+      iterator.replaceCurrentInstruction(new ConstNumber(outValue, ordinalValue));
+    }
+
+    assert code.isConsistentSSA();
   }
 
   public void rewriteLongCompareAndRequireNonNull(IRCode code, InternalOptions options) {

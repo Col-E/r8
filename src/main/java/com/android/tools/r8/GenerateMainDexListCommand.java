@@ -227,7 +227,7 @@ public class GenerateMainDexListCommand extends BaseCommand {
     internal.mainDexListConsumer = mainDexListConsumer;
     internal.mainDexKeptGraphConsumer = mainDexKeptGraphConsumer;
     internal.minimalMainDex = internal.debug;
-    internal.enableSwitchMapRemoval = false;
+    internal.enableEnumValueOptimization = false;
     internal.enableInlining = false;
     return internal;
   }

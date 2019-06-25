@@ -655,6 +655,7 @@ public class DexItemFactory {
   public class EnumMethods {
 
     public DexMethod valueOf;
+    public DexMethod ordinal;
 
     private EnumMethods() {
       valueOf =
@@ -663,6 +664,12 @@ public class DexItemFactory {
               valueOfMethodName,
               enumDescriptor,
               new DexString[] {classDescriptor, stringDescriptor});
+      ordinal =
+          createMethod(
+              enumDescriptor,
+              ordinalMethodName,
+              intDescriptor,
+              DexString.EMPTY_ARRAY);
     }
   }
 

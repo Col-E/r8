@@ -122,8 +122,7 @@ public class CfInstructionSubject implements InstructionSubject {
 
   @Override
   public boolean isConstNumber(long value) {
-    return instruction instanceof CfConstNumber
-        && ((CfConstNumber) instruction).getRawValue() == value;
+    return isConstNumber() && getConstNumber() == value;
   }
 
   @Override
@@ -145,6 +144,11 @@ public class CfInstructionSubject implements InstructionSubject {
   @Override
   public boolean isJumboString() {
     return false;
+  }
+
+  @Override public long getConstNumber() {
+    assert isConstNumber();
+    return ((CfConstNumber) instruction).getRawValue();
   }
 
   @Override
