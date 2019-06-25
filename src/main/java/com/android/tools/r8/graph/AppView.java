@@ -6,6 +6,7 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.OptionalBool;
 import com.android.tools.r8.ir.analysis.proto.GeneratedExtensionRegistryShrinker;
+import com.android.tools.r8.ir.analysis.proto.ProtoShrinker;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.shaking.VerticalClassMerger.VerticallyMergedClasses;
@@ -33,7 +34,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
   private RootSet rootSet;
 
   // Optimizations.
-  private final GeneratedExtensionRegistryShrinker generatedExtensionRegistryShrinker;
+  private final ProtoShrinker protoShrinker;
 
   // Optimization results.
   private Predicate<DexType> classesEscapingIntoLibrary = Predicates.alwaysTrue();
@@ -48,13 +49,10 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
     this.graphLense = GraphLense.getIdentityLense();
     this.options = options;
 
-    if (enableWholeProgramOptimizations()) {
-      this.generatedExtensionRegistryShrinker =
-          options.enableGeneratedExtensionRegistryShrinking
-              ? new GeneratedExtensionRegistryShrinker(this.withLiveness())
-              : null;
+    if (enableWholeProgramOptimizations() && options.isProtoShrinkingEnabled()) {
+      this.protoShrinker = new ProtoShrinker(withLiveness());
     } else {
-      this.generatedExtensionRegistryShrinker = null;
+      this.protoShrinker = null;
     }
   }
 
@@ -143,17 +141,21 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
     return wholeProgramOptimizations == WholeProgramOptimizations.ON;
   }
 
+  public ProtoShrinker protoShrinker() {
+    return protoShrinker;
+  }
+
   public void withGeneratedExtensionRegistryShrinker(
       Consumer<GeneratedExtensionRegistryShrinker> consumer) {
-    if (generatedExtensionRegistryShrinker != null) {
-      consumer.accept(generatedExtensionRegistryShrinker);
+    if (protoShrinker != null && protoShrinker.generatedExtensionRegistryShrinker != null) {
+      consumer.accept(protoShrinker.generatedExtensionRegistryShrinker);
     }
   }
 
   public <U> U withGeneratedExtensionRegistryShrinker(
       Function<GeneratedExtensionRegistryShrinker, U> fn, U defaultValue) {
-    if (generatedExtensionRegistryShrinker != null) {
-      return fn.apply(generatedExtensionRegistryShrinker);
+    if (protoShrinker != null && protoShrinker.generatedExtensionRegistryShrinker != null) {
+      return fn.apply(protoShrinker.generatedExtensionRegistryShrinker);
     }
     return defaultValue;
   }

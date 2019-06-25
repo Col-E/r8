@@ -15,15 +15,21 @@ import org.junit.runners.Parameterized;
 public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
 
   private final boolean allowAccessModification;
+  private final boolean enableMinification;
   private final TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{1}, allow access modification: {0}")
+  @Parameterized.Parameters(name = "{2}, allow access modification: {0}, enable minification: {1}")
   public static List<Object[]> data() {
-    return buildParameters(BooleanUtils.values(), getTestParameters().withAllRuntimes().build());
+    return buildParameters(
+        BooleanUtils.values(),
+        BooleanUtils.values(),
+        getTestParameters().withAllRuntimes().build());
   }
 
-  public Proto2ShrinkingTest(boolean allowAccessModification, TestParameters parameters) {
+  public Proto2ShrinkingTest(
+      boolean allowAccessModification, boolean enableMinification, TestParameters parameters) {
     this.allowAccessModification = allowAccessModification;
+    this.enableMinification = enableMinification;
     this.parameters = parameters;
   }
 
@@ -33,10 +39,6 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
         .addProgramFiles(PROTO2_EXAMPLES_JAR, PROTO2_PROTO_JAR, PROTOBUF_LITE_JAR)
         .addKeepMainRule("proto2.TestClass")
         .addKeepRules(
-            // TODO(b/112437944): Use dex item based const strings for proto schema definitions.
-            "-keepclassmembernames class * extends com.google.protobuf.GeneratedMessageLite {",
-            "  <fields>;",
-            "}",
             // TODO(b/112437944): Do not remove proto fields that are actually used in tree shaking.
             "-keepclassmembers,allowobfuscation class * extends",
             "    com.google.protobuf.GeneratedMessageLite {",
@@ -44,7 +46,12 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
             "}",
             allowAccessModification ? "-allowaccessmodification" : "")
         .addKeepRuleFiles(PROTOBUF_LITE_PROGUARD_RULES)
-        .addOptionsModification(options -> options.enableStringSwitchConversion = true)
+        .addOptionsModification(
+            options -> {
+              options.enableGeneratedMessageLiteShrinking = true;
+              options.enableStringSwitchConversion = true;
+            })
+        .minification(enableMinification)
         .setMinApi(parameters.getRuntime())
         .compile()
         .run(parameters.getRuntime(), "proto2.TestClass")

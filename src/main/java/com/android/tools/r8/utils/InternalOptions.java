@@ -317,6 +317,8 @@ public class InternalOptions {
   // Flag to turn on/off GeneratedExtensionRegistry shrinking.
   public boolean enableGeneratedExtensionRegistryShrinking =
       System.getProperty("com.android.tools.r8.generatedExtensionRegistryShrinking") != null;
+  public boolean enableGeneratedMessageLiteShrinking =
+      System.getProperty("com.android.tools.r8.generatedMessageLiteShrinking") != null;
   // Flag to turn on/off JDK11+ nest-access control
   public boolean enableNestBasedAccessDesugaring = true;
   // Flag to turn on/off reduction of nest to improve class merging optimizations.
@@ -968,6 +970,10 @@ public class InternalOptions {
 
   public boolean isStringSwitchConversionEnabled() {
     return enableStringSwitchConversion && !debug;
+  }
+
+  public boolean isProtoShrinkingEnabled() {
+    return enableGeneratedExtensionRegistryShrinking || enableGeneratedMessageLiteShrinking;
   }
 
   public boolean canUseMultidex() {

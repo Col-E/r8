@@ -12,6 +12,15 @@ import com.android.tools.r8.naming.NamingLens;
 
 public class FieldNameComputationInfo extends NameComputationInfo<DexField> {
 
+  private static final FieldNameComputationInfo FIELD_NAME_INSTANCE =
+      new FieldNameComputationInfo();
+
+  private FieldNameComputationInfo() {}
+
+  public static FieldNameComputationInfo forFieldName() {
+    return FIELD_NAME_INSTANCE;
+  }
+
   @Override
   public DexString internalComputeNameFor(
       DexField field, DexDefinitionSupplier definitions, NamingLens namingLens) {

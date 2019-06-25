@@ -14,11 +14,7 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexProto;
-import com.android.tools.r8.graph.DexString;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
 import com.android.tools.r8.graph.FieldAccessInfoImpl;
@@ -70,53 +66,14 @@ import java.util.stream.Collectors;
  */
 public class GeneratedExtensionRegistryShrinker {
 
-  static class ProtoReferences {
-
-    public final DexType extensionRegistryLiteType;
-    public final DexType generatedExtensionType;
-    public final DexType generatedMessageLiteType;
-    public final DexType messageLiteType;
-
-    public final DexString findLiteExtensionByNumberName;
-    public final DexString findLiteExtensionByNumber1Name;
-    public final DexString findLiteExtensionByNumber2Name;
-    public final DexProto findLiteExtensionByNumberProto;
-
-    private ProtoReferences(DexItemFactory factory) {
-      extensionRegistryLiteType =
-          factory.createType(factory.createString("Lcom/google/protobuf/ExtensionRegistryLite;"));
-      generatedExtensionType =
-          factory.createType(
-              factory.createString(
-                  "Lcom/google/protobuf/GeneratedMessageLite$GeneratedExtension;"));
-      generatedMessageLiteType =
-          factory.createType(factory.createString("Lcom/google/protobuf/GeneratedMessageLite;"));
-      messageLiteType =
-          factory.createType(factory.createString("Lcom/google/protobuf/MessageLite;"));
-      findLiteExtensionByNumberName = factory.createString("findLiteExtensionByNumber");
-      findLiteExtensionByNumber1Name = factory.createString("findLiteExtensionByNumber1");
-      findLiteExtensionByNumber2Name = factory.createString("findLiteExtensionByNumber2");
-      findLiteExtensionByNumberProto =
-          factory.createProto(generatedExtensionType, messageLiteType, factory.intType);
-    }
-
-    public boolean isFindLiteExtensionByNumberMethod(DexMethod method) {
-      if (method.proto == findLiteExtensionByNumberProto) {
-        assert method.name != findLiteExtensionByNumber2Name;
-        return method.name == findLiteExtensionByNumberName
-            || method.name == findLiteExtensionByNumber1Name;
-      }
-      return false;
-    }
-  }
-
   private final AppView<AppInfoWithLiveness> appView;
   private final ProtoReferences references;
 
-  public GeneratedExtensionRegistryShrinker(AppView<AppInfoWithLiveness> appView) {
+  public GeneratedExtensionRegistryShrinker(
+      AppView<AppInfoWithLiveness> appView, ProtoReferences references) {
     assert appView.options().enableGeneratedExtensionRegistryShrinking;
     this.appView = appView;
-    this.references = new ProtoReferences(appView.dexItemFactory());
+    this.references = references;
   }
 
   /**

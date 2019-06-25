@@ -31,6 +31,7 @@ import com.android.tools.r8.ir.analysis.DeterminismAnalysis;
 import com.android.tools.r8.ir.analysis.InitializedClassesOnNormalExitAnalysis;
 import com.android.tools.r8.ir.analysis.TypeChecker;
 import com.android.tools.r8.ir.analysis.constant.SparseConditionalConstantPropagation;
+import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteShrinker;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.AlwaysMaterializingDefinition;
@@ -125,6 +126,7 @@ public class IRConverter {
   private final Outliner outliner;
   private final ClassInitializerDefaultsOptimization classInitializerDefaultsOptimization;
   private final DynamicTypeOptimization dynamicTypeOptimization;
+  private final GeneratedMessageLiteShrinker generatedMessageLiteShrinker;
   private final LibraryMethodOverrideAnalysis libraryMethodOverrideAnalysis;
   private final StringConcatRewriter stringConcatRewriter;
   private final LambdaRewriter lambdaRewriter;
@@ -216,6 +218,10 @@ public class IRConverter {
           options.enableDynamicTypeOptimization
               ? new DynamicTypeOptimization(appViewWithLiveness)
               : null;
+      this.generatedMessageLiteShrinker =
+          options.enableGeneratedMessageLiteShrinking
+              ? new GeneratedMessageLiteShrinker(appViewWithLiveness)
+              : null;
       this.libraryMethodOverrideAnalysis =
           options.enableTreeShakingOfLibraryMethodOverrides
               ? new LibraryMethodOverrideAnalysis(appViewWithLiveness)
@@ -242,6 +248,7 @@ public class IRConverter {
       this.classInliner = null;
       this.classStaticizer = null;
       this.dynamicTypeOptimization = null;
+      this.generatedMessageLiteShrinker = null;
       this.libraryMethodOverrideAnalysis = null;
       this.inliner = null;
       this.outliner = null;
@@ -1003,6 +1010,10 @@ public class IRConverter {
     if (dynamicTypeOptimization != null) {
       assert appView.enableWholeProgramOptimizations();
       dynamicTypeOptimization.insertAssumeDynamicTypeInstructions(code);
+    }
+
+    if (generatedMessageLiteShrinker != null) {
+      generatedMessageLiteShrinker.run(method, code);
     }
 
     previous = printMethod(code, "IR after null tracking (SSA)", previous);
