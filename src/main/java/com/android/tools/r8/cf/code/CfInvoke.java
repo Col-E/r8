@@ -134,7 +134,7 @@ public class CfInvoke extends CfInstruction {
           canonicalMethod = method;
           if (method.name.toString().equals(Constants.INSTANCE_INITIALIZER_NAME)) {
             type = Type.DIRECT;
-          } else if (builder.getMethod().holder == method.holder) {
+          } else if (code.getOriginalHolder() == method.holder) {
             type = Type.DIRECT;
           } else {
             type = Type.SUPER;

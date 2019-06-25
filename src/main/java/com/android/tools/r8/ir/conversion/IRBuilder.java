@@ -473,10 +473,6 @@ public class IRBuilder {
     return targets;
   }
 
-  public DexMethod getMethod() {
-    return method.method;
-  }
-
   private void addToWorklist(BasicBlock block, int firstInstructionIndex) {
     // TODO(ager): Filter out the ones that are already in the worklist, mark bit in block?
     if (!block.isFilled()) {

@@ -243,6 +243,10 @@ public class CfSourceCode implements SourceCode {
             && method.accessFlags.isSynchronized();
   }
 
+  public DexType getOriginalHolder() {
+    return code.getOriginalHolder();
+  }
+
   @Override
   public int instructionCount() {
     return code.getInstructions().size();

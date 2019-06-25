@@ -327,6 +327,7 @@ public class CfBuilder {
       }
     }
     return new CfCode(
+        method.method.holder,
         stackHeightTracker.maxHeight,
         registerAllocator.registersUsed(),
         instructions,

@@ -81,6 +81,12 @@ public class CfCode extends Code implements CfOrJarCode {
     }
   }
 
+  // The original holder is a reference to the holder type that the method was in from input and
+  // for which the invokes still refer to. The holder is needed to determine if an invoke-special
+  // maps to an invoke-direct or invoke-super.
+  // TODO(b/135969130): Make IR building lense aware and avoid caching the holder type.
+  private final DexType originalHolder;
+
   private final int maxStack;
   private final int maxLocals;
   public final List<CfInstruction> instructions;
@@ -88,16 +94,22 @@ public class CfCode extends Code implements CfOrJarCode {
   private final List<LocalVariableInfo> localVariables;
 
   public CfCode(
+      DexType originalHolder,
       int maxStack,
       int maxLocals,
       List<CfInstruction> instructions,
       List<CfTryCatch> tryCatchRanges,
       List<LocalVariableInfo> localVariables) {
+    this.originalHolder = originalHolder;
     this.maxStack = maxStack;
     this.maxLocals = maxLocals;
     this.instructions = instructions;
     this.tryCatchRanges = tryCatchRanges;
     this.localVariables = localVariables;
+  }
+
+  public DexType getOriginalHolder() {
+    return originalHolder;
   }
 
   public int getMaxStack() {

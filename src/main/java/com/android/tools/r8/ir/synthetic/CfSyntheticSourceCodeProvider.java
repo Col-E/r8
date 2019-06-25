@@ -46,6 +46,7 @@ public abstract class CfSyntheticSourceCodeProvider implements SourceCodeProvide
 
   protected CfCode standardCfCodeFromInstructions(List<CfInstruction> instructions) {
     return new CfCode(
+        method.method.holder,
         defaultMaxStack(),
         defaultMaxLocals(),
         instructions,

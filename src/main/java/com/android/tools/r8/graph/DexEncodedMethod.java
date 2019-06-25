@@ -638,6 +638,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   public CfCode buildEmptyThrowingCfCode() {
     CfInstruction insn[] = {new CfConstNull(), new CfThrow()};
     return new CfCode(
+        method.holder,
         1,
         method.proto.parameters.size() + 1,
         Arrays.asList(insn),
@@ -741,6 +742,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
         .add(new CfThrow());
     CfCode code =
         new CfCode(
+            method.holder,
             3,
             locals,
             instructionBuilder.build(),

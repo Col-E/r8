@@ -274,7 +274,9 @@ public class LazyCfCode extends Code implements CfOrJarCode {
 
     @Override
     public void visitEnd() {
-      code.setCode(new CfCode(maxStack, maxLocals, instructions, tryCatchRanges, localVariables));
+      code.setCode(
+          new CfCode(
+              method.holder, maxStack, maxLocals, instructions, tryCatchRanges, localVariables));
     }
 
     @Override
