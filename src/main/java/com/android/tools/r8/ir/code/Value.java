@@ -483,6 +483,17 @@ public class Value {
     return false;
   }
 
+  public boolean mayDependOnEnvironment() {
+    Value root = getAliasedValue();
+    if (root.isConstant()) {
+      return false;
+    }
+    if (root.isConstantArray()) {
+      return false;
+    }
+    return true;
+  }
+
   public boolean usedInMonitorOperation() {
     for (Instruction instruction : uniqueUsers()) {
       if (instruction.isMonitor()) {
@@ -791,6 +802,11 @@ public class Value {
 
   public boolean isConstant() {
     return definition.isOutConstant() && !hasLocalInfo();
+  }
+
+  public boolean isConstantArray() {
+    Value root = getAliasedValue();
+    return !root.isPhi() && definition.isNewArrayEmpty();
   }
 
   public boolean isPhi() {

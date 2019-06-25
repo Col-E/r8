@@ -1092,6 +1092,11 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     private DefaultMethodOptimizationInfoImpl() {}
 
     @Override
+    public boolean classInitializerMayHaveObservableSideEffects() {
+      return true;
+    }
+
+    @Override
     public TypeLatticeElement getDynamicReturnType() {
       return UNKNOWN_TYPE;
     }
@@ -1238,6 +1243,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
   public static class MethodOptimizationInfoImpl implements UpdatableMethodOptimizationInfo {
 
+    private boolean classInitializationMayHaveObservableSideEffects = true;
     private boolean hasBeenInlinedIntoSingleCallSite = false;
     private Set<DexType> initializedClassesOnNormalExit =
         DefaultMethodOptimizationInfoImpl.UNKNOWN_INITIALIZED_CLASSES_ON_NORMAL_EXIT;
@@ -1317,6 +1323,16 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       nonNullParamOrThrow = template.nonNullParamOrThrow;
       nonNullParamOnNormalExits = template.nonNullParamOnNormalExits;
       reachabilitySensitive = template.reachabilitySensitive;
+    }
+
+    @Override
+    public boolean classInitializerMayHaveObservableSideEffects() {
+      return classInitializationMayHaveObservableSideEffects;
+    }
+
+    @Override
+    public void unsetClassInitializationMayHaveObservableSideEffects() {
+      classInitializationMayHaveObservableSideEffects = false;
     }
 
     @Override

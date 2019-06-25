@@ -124,4 +124,9 @@ public class OptimizationFeedbackSimple implements OptimizationFeedback {
   public void setNonNullParamOnNormalExits(DexEncodedMethod method, BitSet facts) {
     // Ignored.
   }
+
+  @Override
+  public void unsetClassInitializerMayHaveObservableSideEffects(DexEncodedMethod method) {
+    // Ignored.
+  }
 }

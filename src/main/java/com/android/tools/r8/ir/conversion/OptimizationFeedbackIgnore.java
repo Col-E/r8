@@ -95,4 +95,7 @@ public class OptimizationFeedbackIgnore implements OptimizationFeedback {
   @Override
   public void setNonNullParamOnNormalExits(DexEncodedMethod method, BitSet facts) {
   }
+
+  @Override
+  public void unsetClassInitializerMayHaveObservableSideEffects(DexEncodedMethod method) {}
 }

@@ -19,6 +19,8 @@ public interface MethodOptimizationInfo {
     Default
   }
 
+  boolean classInitializerMayHaveObservableSideEffects();
+
   TypeLatticeElement getDynamicReturnType();
 
   ParameterUsage getParameterUsages(int parameter);

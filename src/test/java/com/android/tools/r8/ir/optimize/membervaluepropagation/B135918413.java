@@ -5,8 +5,9 @@
 package com.android.tools.r8.ir.optimize.membervaluepropagation;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
@@ -14,6 +15,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
@@ -52,18 +54,26 @@ public class B135918413 extends TestBase {
     ClassSubject classSubject = inspector.clazz(TestClass.class);
     assertThat(classSubject, isPresent());
 
+    ClassSubject configClassSubject = inspector.clazz(Config.class);
+    assertThat(configClassSubject, isPresent());
+
+    FieldSubject alwaysEmptyFieldSubject = configClassSubject.uniqueFieldWithName("alwaysEmpty");
+    assertThat(alwaysEmptyFieldSubject, isPresent());
+
     MethodSubject mainMethodSubject = classSubject.mainMethod();
     assertThat(mainMethodSubject, isPresent());
-    // TODO(b/135918413): Should be true.
-    assertFalse(
+    assertTrue(
         mainMethodSubject
             .streamInstructions()
             .filter(InstructionSubject::isStaticGet)
-            .allMatch(instruction -> instruction.getField().name.toSourceString().equals("out")));
+            .map(InstructionSubject::getField)
+            .allMatch(
+                field ->
+                    field.name.toSourceString().equals(alwaysEmptyFieldSubject.getFinalName())
+                        || field.name.toSourceString().equals("out")));
 
     MethodSubject deadMethodSubject = classSubject.uniqueMethodWithName("dead");
-    // TODO(b/135918413): Should be absent.
-    assertThat(deadMethodSubject, isPresent());
+    assertThat(deadMethodSubject, not(isPresent()));
   }
 
   static class TestClass {

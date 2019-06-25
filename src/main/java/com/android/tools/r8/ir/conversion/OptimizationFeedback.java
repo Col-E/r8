@@ -59,4 +59,6 @@ public interface OptimizationFeedback {
   void setNonNullParamOrThrow(DexEncodedMethod method, BitSet facts);
 
   void setNonNullParamOnNormalExits(DexEncodedMethod method, BitSet facts);
+
+  void unsetClassInitializerMayHaveObservableSideEffects(DexEncodedMethod method);
 }

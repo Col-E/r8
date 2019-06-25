@@ -676,27 +676,6 @@ public abstract class DexClass extends DexDefinition {
     return getClassInitializer() != null;
   }
 
-  public boolean hasTrivialClassInitializer() {
-    if (isLibraryClass()) {
-      // We don't know for library classes in general but assume that java.lang.Object is safe.
-      return superType == null;
-    }
-    DexEncodedMethod clinit = getClassInitializer();
-    return clinit != null && clinit.getCode() != null && clinit.getCode().isEmptyVoidMethod();
-  }
-
-  public boolean hasNonTrivialClassInitializer() {
-    if (isLibraryClass()) {
-      // We don't know for library classes in general but assume that java.lang.Object is safe.
-      return superType != null;
-    }
-    DexEncodedMethod clinit = getClassInitializer();
-    if (clinit == null || clinit.getCode() == null) {
-      return false;
-    }
-    return !clinit.getCode().isEmptyVoidMethod();
-  }
-
   public boolean hasDefaultInitializer() {
     return getDefaultInitializer() != null;
   }
@@ -760,13 +739,25 @@ public abstract class DexClass extends DexDefinition {
         return false;
       }
     }
-    if (hasNonTrivialClassInitializer()) {
+    if (hasClassInitializerWithObservableSideEffects()) {
       return true;
     }
     if (defaultValuesForStaticFieldsMayTriggerAllocation()) {
       return true;
     }
     return initializationOfParentTypesMayHaveSideEffects(appView, ignore);
+  }
+
+  private boolean hasClassInitializerWithObservableSideEffects() {
+    if (isLibraryClass()) {
+      // We don't know for library classes in general but assume that java.lang.Object is safe.
+      return superType != null;
+    }
+    DexEncodedMethod clinit = getClassInitializer();
+    if (clinit == null || clinit.getCode() == null) {
+      return false;
+    }
+    return clinit.getOptimizationInfo().classInitializerMayHaveObservableSideEffects();
   }
 
   public Iterable<DexType> allImmediateSupertypes() {

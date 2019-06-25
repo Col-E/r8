@@ -19,6 +19,7 @@ import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -42,6 +43,7 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.NumericType;
+import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
 import com.android.tools.r8.ir.desugar.CovariantReturnTypeAnnotationTransformer;
@@ -1359,22 +1361,71 @@ public class IRConverter {
 
   private void computeMayHaveSideEffects(
       OptimizationFeedback feedback, DexEncodedMethod method, IRCode code) {
-    if (options.enableSideEffectAnalysis
-        && !appView.appInfo().withLiveness().mayHaveSideEffects.containsKey(method.method)) {
-      boolean mayHaveSideEffects =
-          // If the method is synchronized then it acquires a lock.
-          method.accessFlags.isSynchronized()
-              || (appView.dexItemFactory().isConstructor(method.method)
-                  && hasNonTrivialFinalizeMethod(method.method.holder))
-              || Streams.stream(code.instructions())
-                  .anyMatch(
-                      instruction ->
-                          instruction.instructionMayHaveSideEffects(appView, method.method.holder));
-      if (!mayHaveSideEffects) {
-        // If the method is native, we don't know what could happen.
-        assert !method.accessFlags.isNative();
-        feedback.methodMayNotHaveSideEffects(method);
+    // If the method is native, we don't know what could happen.
+    assert !method.accessFlags.isNative();
+
+    if (!options.enableSideEffectAnalysis) {
+      return;
+    }
+
+    if (appView.appInfo().withLiveness().mayHaveSideEffects.containsKey(method.method)) {
+      return;
+    }
+
+    DexType context = method.method.holder;
+
+    if (method.isClassInitializer()) {
+      // For class initializers, we also wish to compute if the class initializer has observable
+      // side effects. A class initializer has observable side effects if it writes a static field
+      // of another class, or if any non-static-put instructions may have side effects.
+      boolean hasIgnoredStaticPut = false;
+      boolean mayHaveObservableSideEffects = false;
+      for (Instruction instruction : code.instructions()) {
+        if (instruction.isStaticPut()) {
+          StaticPut staticPut = instruction.asStaticPut();
+          DexEncodedField field = appView.appInfo().resolveField(staticPut.getField());
+          if (field == null
+              || field.field.holder != method.method.holder
+              || staticPut.inValue().mayDependOnEnvironment()
+              || instruction.instructionInstanceCanThrow(appView, context).isThrowing()) {
+            mayHaveObservableSideEffects = true;
+            break;
+          }
+          hasIgnoredStaticPut = true;
+          continue;
+        }
+        if (instruction.instructionMayHaveSideEffects(appView, context)) {
+          mayHaveObservableSideEffects = true;
+          break;
+        }
       }
+      if (!mayHaveObservableSideEffects) {
+        feedback.unsetClassInitializerMayHaveObservableSideEffects(method);
+        if (!hasIgnoredStaticPut) {
+          feedback.methodMayNotHaveSideEffects(method);
+        }
+      }
+      return;
+    }
+
+    boolean mayHaveSideEffects;
+    if (method.accessFlags.isSynchronized()) {
+      // If the method is synchronized then it acquires a lock.
+      mayHaveSideEffects = true;
+    } else if (method.isInstanceInitializer() && hasNonTrivialFinalizeMethod(context)) {
+      // If a class T overrides java.lang.Object.finalize(), then treat the constructor as having
+      // side effects. This ensures that we won't remove instructions on the form `new-instance
+      // {v0}, T`.
+      mayHaveSideEffects = true;
+    } else {
+      // Otherwise, check if there is an instruction that has side effects.
+      mayHaveSideEffects =
+          Streams.stream(code.instructions())
+              .anyMatch(instruction -> instruction.instructionMayHaveSideEffects(appView, context));
+    }
+
+    if (!mayHaveSideEffects) {
+      feedback.methodMayNotHaveSideEffects(method);
     }
   }
 

@@ -148,6 +148,12 @@ public class OptimizationFeedbackDelayed implements OptimizationFeedback {
     getOptimizationInfoForUpdating(method).setNonNullParamOnNormalExits(facts);
   }
 
+  @Override
+  public synchronized void unsetClassInitializerMayHaveObservableSideEffects(
+      DexEncodedMethod method) {
+    getOptimizationInfoForUpdating(method).unsetClassInitializationMayHaveObservableSideEffects();
+  }
+
   public void updateVisibleOptimizationInfo() {
     // Remove methods that have become obsolete. A method may become obsolete, for example, as a
     // result of the class staticizer, which aims to transform virtual methods on companion classes
