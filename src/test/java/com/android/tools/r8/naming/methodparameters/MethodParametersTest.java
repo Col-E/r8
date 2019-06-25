@@ -14,7 +14,6 @@ import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -22,7 +21,6 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.ExecutionException;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -52,7 +50,6 @@ public class MethodParametersTest extends TestBase {
   }
 
   @Test
-  @Ignore("b/135043314")
   public void testKeepingMethodParametersR8()
       throws ExecutionException, CompilationFailedException, IOException {
     R8TestRunResult runResult =
@@ -63,27 +60,24 @@ public class MethodParametersTest extends TestBase {
             .addKeepRules(keepMethodParameters ? "-keepattributes MethodParameters" : "")
             .setMinApi(AndroidApiLevel.L)
             .run(parameters.getRuntime(), MethodParametersTest.class);
-    checkOutput(runResult);
+    if (keepMethodParameters) {
+      checkOutputContainsAll(runResult.getStdOut());
+    } else {
+      checkOutputNotContainsAll(runResult.getStdOut());
+    }
   }
 
   @Test
   public void testKeepingMethodParameters()
       throws ExecutionException, CompilationFailedException, IOException {
+    // In D8 we always output MethodParameters.
     assumeTrue(parameters.getBackend() == Backend.DEX);
     D8TestRunResult runResult =
         testForD8()
             .addProgramClassFileData(MethodParametersTestDump.dump())
             .setMinApi(keepMethodParameters ? AndroidApiLevel.O : AndroidApiLevel.L)
             .run(parameters.getRuntime(), MethodParametersTest.class);
-    checkOutput(runResult);
-  }
-
-  private void checkOutput(TestRunResult runResult) {
-    if (keepMethodParameters) {
-      checkOutputContainsAll(runResult.getStdOut());
-    } else {
-      checkOutputNotContainsAll(runResult.getStdOut());
-    }
+    checkOutputContainsAll(runResult.getStdOut());
   }
 
   private void checkOutputContainsAll(String stdOut) {

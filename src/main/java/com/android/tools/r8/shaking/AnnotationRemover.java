@@ -73,7 +73,7 @@ public class AnnotationRemover {
             && DexAnnotation.isSourceDebugExtension(annotation, dexItemFactory)) {
           return true;
         }
-        if (options.canUseParameterNameAnnotations()
+        if (config.methodParameters
             && DexAnnotation.isParameterNameAnnotation(annotation, dexItemFactory)) {
           return true;
         }

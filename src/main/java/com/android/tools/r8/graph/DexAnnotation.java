@@ -275,7 +275,6 @@ public class DexAnnotation extends DexItem {
     return annotation.annotation.type == factory.annotationDefault;
   }
 
-
   public static boolean isSourceDebugExtension(DexAnnotation annotation,
       DexItemFactory factory) {
     return annotation.annotation.type == factory.annotationSourceDebugExtension;

@@ -19,6 +19,7 @@ public class ProguardKeepAttributes {
   public static final String LINE_NUMBER_TABLE = "LineNumberTable";
   public static final String LOCAL_VARIABLE_TABLE = "LocalVariableTable";
   public static final String LOCAL_VARIABLE_TYPE_TABLE = "LocalVariableTypeTable";
+  public static final String METHOD_PARAMETERS = "MethodParameters";
   public static final String SOURCE_DEBUG_EXTENSION = "SourceDebugExtension";
   public static final String RUNTIME_VISIBLE_ANNOTATIONS = "RuntimeVisibleAnnotations";
   public static final String RUNTIME_INVISIBLE_ANNOTATIONS = "RuntimeInvisibleAnnotations";
@@ -43,6 +44,7 @@ public class ProguardKeepAttributes {
   public boolean lineNumberTable = false;
   public boolean localVariableTable = false;
   public boolean localVariableTypeTable = false;
+  public boolean methodParameters = false;
   public boolean sourceDebugExtension = false;
   public boolean runtimeVisibleAnnotations = false;
   public boolean runtimeInvisibleAnnotations = false;
@@ -115,11 +117,12 @@ public class ProguardKeepAttributes {
     sourceDir = update(sourceDir, SOURCE_DIR, patterns);
     innerClasses = update(innerClasses, INNER_CLASSES, patterns);
     enclosingMethod = update(enclosingMethod, ENCLOSING_METHOD, patterns);
-    signature = update(signature, SIGNATURE, patterns);
     lineNumberTable = update(lineNumberTable, LINE_NUMBER_TABLE, patterns);
     localVariableTable = update(localVariableTable, LOCAL_VARIABLE_TABLE, patterns);
     localVariableTypeTable = update(localVariableTypeTable, LOCAL_VARIABLE_TYPE_TABLE, patterns);
     exceptions = update(exceptions, EXCEPTIONS, patterns);
+    methodParameters = update(methodParameters, METHOD_PARAMETERS, patterns);
+    signature = update(signature, SIGNATURE, patterns);
     sourceDebugExtension = update(sourceDebugExtension, SOURCE_DEBUG_EXTENSION, patterns);
     runtimeVisibleAnnotations = update(runtimeVisibleAnnotations, RUNTIME_VISIBLE_ANNOTATIONS,
         patterns);
@@ -187,6 +190,7 @@ public class ProguardKeepAttributes {
         && this.enclosingMethod == other.enclosingMethod
         && this.signature == other.signature
         && this.exceptions == other.exceptions
+        && this.methodParameters == other.methodParameters
         && this.sourceDebugExtension == other.sourceDebugExtension
         && this.runtimeVisibleAnnotations == other.runtimeVisibleAnnotations
         && this.runtimeInvisibleAnnotations == other.runtimeInvisibleAnnotations
@@ -214,7 +218,8 @@ public class ProguardKeepAttributes {
         + (this.runtimeVisibleTypeAnnotations ? 1 << 11 : 0)
         + (this.runtimeInvisibleTypeAnnotations ? 1 << 12 : 0)
         + (this.annotationDefault ? 1 << 13 : 0)
-        + (this.stackMapTable ? 1 << 14 : 0);
+        + (this.stackMapTable ? 1 << 14 : 0)
+        + (this.methodParameters ? 1 << 15 : 0);
   }
 
   public boolean isEmpty() {
@@ -224,6 +229,7 @@ public class ProguardKeepAttributes {
         && !enclosingMethod
         && !signature
         && !exceptions
+        && !methodParameters
         && !sourceDebugExtension
         && !runtimeVisibleAnnotations
         && !runtimeInvisibleAnnotations
@@ -254,6 +260,9 @@ public class ProguardKeepAttributes {
     }
     if (exceptions) {
       attributes.add(EXCEPTIONS);
+    }
+    if (methodParameters) {
+      attributes.add(METHOD_PARAMETERS);
     }
     if (sourceDebugExtension) {
       attributes.add(SOURCE_DEBUG_EXTENSION);

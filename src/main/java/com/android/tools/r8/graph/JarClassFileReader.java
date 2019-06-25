@@ -741,8 +741,9 @@ public class JarClassFileReader {
 
     @Override
     public void visitEnd() {
+      InternalOptions options = parent.application.options;
       if (!flags.isAbstract() && !flags.isNative() && classRequiresCode()) {
-        if (parent.application.options.enableCfFrontend) {
+        if (options.enableCfFrontend) {
           code = new LazyCfCode(method, parent.origin, parent.context, parent.application);
         } else {
           code = new JarCode(method, parent.origin, parent.context, parent.application);
@@ -754,16 +755,14 @@ public class JarClassFileReader {
       } else {
         DexAnnotationSet[] sets = new DexAnnotationSet[parameterAnnotationsLists.size()];
         for (int i = 0; i < parameterAnnotationsLists.size(); i++) {
-          sets[i] =
-              createAnnotationSet(parameterAnnotationsLists.get(i), parent.application.options);
+          sets[i] = createAnnotationSet(parameterAnnotationsLists.get(i), options);
         }
         parameterAnnotationsList = new ParameterAnnotationsList(sets);
       }
-      InternalOptions internalOptions = parent.application.options;
-      if (parameterNames != null && internalOptions.canUseParameterNameAnnotations()) {
+      if (parameterNames != null) {
         assert parameterFlags != null;
         if (parameterNames.size() != parameterCount) {
-          internalOptions.warningInvalidParameterAnnotations(
+          options.warningInvalidParameterAnnotations(
               method, parent.origin, parameterCount, parameterNames.size());
         }
         getAnnotations().add(DexAnnotation.createMethodParametersAnnotation(
@@ -775,7 +774,7 @@ public class JarClassFileReader {
           new DexEncodedMethod(
               method,
               flags,
-              createAnnotationSet(annotations, parent.application.options),
+              createAnnotationSet(annotations, options),
               parameterAnnotationsList,
               code,
               parent.version);
@@ -788,7 +787,7 @@ public class JarClassFileReader {
           parent.virtualMethods.add(dexMethod);
         }
       } else {
-        internalOptions.reporter.warning(
+        options.reporter.warning(
             new StringDiagnostic(
                 String.format(
                     "Ignoring an implementation of the method `%s` because it has multiple "

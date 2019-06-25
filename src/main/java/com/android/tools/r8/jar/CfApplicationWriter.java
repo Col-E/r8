@@ -28,6 +28,7 @@ import com.android.tools.r8.graph.DexValue.DexValueAnnotation;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
 import com.android.tools.r8.graph.DexValue.DexValueEnum;
 import com.android.tools.r8.graph.DexValue.DexValueField;
+import com.android.tools.r8.graph.DexValue.DexValueInt;
 import com.android.tools.r8.graph.DexValue.DexValueMethod;
 import com.android.tools.r8.graph.DexValue.DexValueMethodHandle;
 import com.android.tools.r8.graph.DexValue.DexValueMethodType;
@@ -314,12 +315,33 @@ public class CfApplicationWriter {
         defaultVisitor.visitEnd();
       }
     }
+    writeMethodParametersAnnotation(visitor, method.annotations.annotations);
     writeAnnotations(visitor::visitAnnotation, method.annotations.annotations);
     writeParameterAnnotations(visitor, method.parameterAnnotationsList);
     if (!method.shouldNotHaveCode()) {
       writeCode(method.getCode(), visitor, options, classFileVersion);
     }
     visitor.visitEnd();
+  }
+
+  private void writeMethodParametersAnnotation(MethodVisitor visitor, DexAnnotation[] annotations) {
+    for (DexAnnotation annotation : annotations) {
+      if (annotation.annotation.type == appView.dexItemFactory().annotationMethodParameters) {
+        assert annotation.visibility == DexAnnotation.VISIBILITY_SYSTEM;
+        assert annotation.annotation.elements.length == 2;
+        assert annotation.annotation.elements[0].name.toString().equals("names");
+        assert annotation.annotation.elements[1].name.toString().equals("accessFlags");
+        DexValueArray names = (DexValueArray) annotation.annotation.elements[0].value;
+        DexValueArray accessFlags = (DexValueArray) annotation.annotation.elements[1].value;
+        assert names != null && accessFlags != null;
+        assert names.getValues().length == accessFlags.getValues().length;
+        for (int i = 0; i < names.getValues().length; i++) {
+          DexValueString name = (DexValueString) names.getValues()[i];
+          DexValueInt access = (DexValueInt) accessFlags.getValues()[i];
+          visitor.visitParameter(name.value.toString(), access.value);
+        }
+      }
+    }
   }
 
   private void writeParameterAnnotations(
