@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.optimize.lambda.kotlin;
 
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AccessFlags;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexClass;
@@ -175,7 +174,6 @@ public abstract class KotlinLambdaGroupIdFactory implements KotlinLambdaConstant
       } else if (method.isStatic()) {
         throw new LambdaStructureError(
             "unexpected static method: " + method.method.toSourceString());
-
       } else if (method.isInstanceInitializer()) {
         // Lambda class is expected to have one constructor
         // with parameters matching capture signature.
@@ -197,8 +195,13 @@ public abstract class KotlinLambdaGroupIdFactory implements KotlinLambdaConstant
             method.accessFlags, CONSTRUCTOR_FLAGS, CONSTRUCTOR_FLAGS_RELAXED);
         checkDirectMethodAnnotations(method);
 
+      } else if (method.isPrivateMethod()) {
+        // TODO(b/135975229)
+        throw new LambdaStructureError("private method: " + method.method.toSourceString());
       } else {
-        throw new Unreachable();
+        assert false;
+        throw new LambdaStructureError(
+            "unexpected method encountered: " + method.method.toSourceString());
       }
     }
   }
