@@ -38,17 +38,31 @@ public abstract class TestCompileResult<
     extends TestBaseResult<CR, RR> {
 
   public final AndroidApp app;
+  private final OutputMode outputMode;
   final List<Path> additionalRunClassPath = new ArrayList<>();
   final List<String> vmArguments = new ArrayList<>();
 
-  TestCompileResult(TestState state, AndroidApp app) {
+  TestCompileResult(TestState state, AndroidApp app, OutputMode outputMode) {
     super(state);
     this.app = app;
+    this.outputMode = outputMode;
   }
 
-  public abstract Backend getBackend();
+  public final Backend getBackend() {
+    if (outputMode == OutputMode.ClassFile) {
+      return Backend.CF;
+    }
+    assert outputMode == OutputMode.DexIndexed
+        || outputMode == OutputMode.DexFilePerClass
+        || outputMode == OutputMode.DexFilePerClassFile;
+    return Backend.DEX;
+  }
 
   public abstract TestDiagnosticMessages getDiagnosticMessages();
+
+  public OutputMode getOutputMode() {
+    return outputMode;
+  }
 
   protected abstract RR createRunResult(ProcessResult result);
 
@@ -150,7 +164,7 @@ public abstract class TestCompileResult<
   }
 
   public CR writeToZip(Path file) throws IOException {
-    app.writeToZip(file, getBackend() == DEX ? OutputMode.DexIndexed : OutputMode.ClassFile);
+    app.writeToZip(file, getOutputMode());
     return self();
   }
 
@@ -212,17 +226,12 @@ public abstract class TestCompileResult<
     // does not declare exceptions.
     try {
       Path out = state.getNewTempFolder().resolve("out.zip");
+      app.writeToZip(out, getOutputMode());
       switch (getBackend()) {
         case CF:
-          {
-            app.writeToZip(out, OutputMode.ClassFile);
-            return new CfDebugTestConfig().addPaths(out);
-          }
+          return new CfDebugTestConfig().addPaths(out);
         case DEX:
-          {
-            app.writeToZip(out, OutputMode.DexIndexed);
-            return new DexDebugTestConfig().addPaths(out);
-          }
+          return new DexDebugTestConfig().addPaths(out);
         default:
           throw new Unreachable();
       }

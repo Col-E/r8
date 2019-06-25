@@ -47,7 +47,12 @@ public abstract class TestCompilerBuilder<
     super(state, builder);
     this.backend = backend;
     defaultLibrary = TestBase.runtimeJar(backend);
-    programConsumer = TestBase.emptyConsumer(backend);
+    if (backend == Backend.DEX) {
+      setOutputMode(OutputMode.DexIndexed);
+    } else {
+      assert backend == Backend.CF;
+      setOutputMode(OutputMode.ClassFile);
+    }
   }
 
   abstract T self();
@@ -159,6 +164,45 @@ public abstract class TestCompilerBuilder<
   public T setMinApi(TestRuntime runtime) {
     if (runtime.isDex()) {
       setMinApi(runtime.asDex().getMinApiLevel());
+    }
+    return self();
+  }
+
+  public OutputMode getOutputMode() {
+    if (programConsumer instanceof DexIndexedConsumer) {
+      return OutputMode.DexIndexed;
+    }
+    if (programConsumer instanceof DexFilePerClassFileConsumer) {
+      return ((DexFilePerClassFileConsumer) programConsumer)
+              .combineSyntheticClassesWithPrimaryClass()
+          ? OutputMode.DexFilePerClassFile
+          : OutputMode.DexFilePerClass;
+    }
+    assert programConsumer instanceof ClassFileConsumer;
+    return OutputMode.ClassFile;
+  }
+
+  public T setOutputMode(OutputMode outputMode) {
+    assert ToolHelper.verifyValidOutputMode(backend, outputMode);
+    switch (outputMode) {
+      case DexIndexed:
+        programConsumer = DexIndexedConsumer.emptyConsumer();
+        break;
+      case DexFilePerClassFile:
+        programConsumer = DexFilePerClassFileConsumer.emptyConsumer();
+        break;
+      case DexFilePerClass:
+        programConsumer =
+            new DexFilePerClassFileConsumer.ForwardingConsumer(null) {
+              @Override
+              public boolean combineSyntheticClassesWithPrimaryClass() {
+                return false;
+              }
+            };
+        break;
+      case ClassFile:
+        programConsumer = ClassFileConsumer.emptyConsumer();
+        break;
     }
     return self();
   }

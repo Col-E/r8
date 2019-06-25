@@ -4,7 +4,6 @@
 
 package com.android.tools.r8;
 
-import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -20,8 +19,12 @@ public class ExternalR8TestCompileResult
   private final String proguardMap;
 
   protected ExternalR8TestCompileResult(
-      TestState state, Path outputJar, ProcessResult processResult, String proguardMap) {
-    super(state, AndroidApp.builder().addProgramFiles(outputJar).build());
+      TestState state,
+      Path outputJar,
+      ProcessResult processResult,
+      String proguardMap,
+      OutputMode outputMode) {
+    super(state, AndroidApp.builder().addProgramFiles(outputJar).build(), outputMode);
     assert processResult.exitCode == 0;
     this.outputJar = outputJar;
     this.processResult = processResult;
@@ -47,11 +50,6 @@ public class ExternalR8TestCompileResult
   @Override
   public ExternalR8TestCompileResult self() {
     return this;
-  }
-
-  @Override
-  public Backend getBackend() {
-    return null;
   }
 
   @Override

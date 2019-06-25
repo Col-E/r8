@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
-import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.shaking.CollectingGraphConsumer;
 import com.android.tools.r8.shaking.ProguardConfiguration;
@@ -18,7 +17,6 @@ import java.util.function.Consumer;
 
 public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, R8TestRunResult> {
 
-  private final Backend backend;
   private final ProguardConfiguration proguardConfiguration;
   private final List<ProguardConfigurationRule> syntheticProguardRules;
   private final String proguardMap;
@@ -26,14 +24,13 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
 
   R8TestCompileResult(
       TestState state,
-      Backend backend,
+      OutputMode outputMode,
       AndroidApp app,
       ProguardConfiguration proguardConfiguration,
       List<ProguardConfigurationRule> syntheticProguardRules,
       String proguardMap,
       CollectingGraphConsumer graphConsumer) {
-    super(state, app);
-    this.backend = backend;
+    super(state, app, outputMode);
     this.proguardConfiguration = proguardConfiguration;
     this.syntheticProguardRules = syntheticProguardRules;
     this.proguardMap = proguardMap;
@@ -43,11 +40,6 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
   @Override
   public R8TestCompileResult self() {
     return this;
-  }
-
-  @Override
-  public Backend getBackend() {
-    return backend;
   }
 
   @Override

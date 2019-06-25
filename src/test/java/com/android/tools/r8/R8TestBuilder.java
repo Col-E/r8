@@ -93,7 +93,7 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
             options -> box.proguardConfiguration = options.getProguardConfiguration()));
     return new R8TestCompileResult(
         getState(),
-        backend,
+        getOutputMode(),
         app.get(),
         box.proguardConfiguration,
         box.syntheticProguardRules,

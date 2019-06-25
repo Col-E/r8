@@ -140,7 +140,8 @@ public class ExternalR8TestBuilder
           proguardMapFile.toFile().exists()
               ? FileUtils.readTextFile(proguardMapFile, Charsets.UTF_8)
               : "";
-      return new ExternalR8TestCompileResult(getState(), outputJar, processResult, proguardMap);
+      return new ExternalR8TestCompileResult(
+          getState(), outputJar, processResult, proguardMap, getOutputMode());
     } catch (IOException e) {
       throw new CompilationFailedException(e);
     }

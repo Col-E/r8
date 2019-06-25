@@ -3,24 +3,18 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
-import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.utils.AndroidApp;
 
 public class DXTestCompileResult extends TestCompileResult<DXTestCompileResult, DXTestRunResult> {
 
   DXTestCompileResult(TestState state, AndroidApp app) {
-    super(state, app);
+    super(state, app, OutputMode.DexIndexed);
   }
 
   @Override
   public DXTestCompileResult self() {
     return this;
-  }
-
-  @Override
-  public Backend getBackend() {
-    return Backend.DEX;
   }
 
   @Override

@@ -8,18 +8,14 @@ import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.utils.AndroidApp;
 
 public class D8TestCompileResult extends TestCompileResult<D8TestCompileResult, D8TestRunResult> {
-  D8TestCompileResult(TestState state, AndroidApp app) {
-    super(state, app);
+  D8TestCompileResult(TestState state, AndroidApp app, OutputMode outputMode) {
+    super(state, app, outputMode);
+    assert ToolHelper.verifyValidOutputMode(Backend.DEX, outputMode);
   }
 
   @Override
   public D8TestCompileResult self() {
     return this;
-  }
-
-  @Override
-  public Backend getBackend() {
-    return Backend.DEX;
   }
 
   @Override
