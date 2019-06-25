@@ -354,6 +354,18 @@ public class JarCode extends Code implements CfOrJarCode {
     // parsing all the debug related attributes during code read. If the method is reachability
     // sensitive we have to include debug information in order to get locals information which we
     // need to extend the live ranges of locals for their entire scope.
+    int parsingOptions = getParsingOptions(application, reachabilitySensitive);
+    SecondVisitor classVisitor = new SecondVisitor(createCodeLocator(context), useJsrInliner);
+    try {
+      new ClassReader(context.classCache).accept(classVisitor, parsingOptions);
+    } catch (Exception exception) {
+      throw new CompilationError(
+          "Unable to parse method `" + method.toSourceString() + "`", exception);
+    }
+  }
+
+  public static int getParsingOptions(
+      JarApplicationReader application, boolean reachabilitySensitive) {
     int parsingOptions = ClassReader.SKIP_FRAMES;
 
     ProguardConfiguration configuration = application.options.getProguardConfiguration();
@@ -368,13 +380,7 @@ public class JarCode extends Code implements CfOrJarCode {
         parsingOptions |= ClassReader.SKIP_DEBUG;
       }
     }
-    SecondVisitor classVisitor = new SecondVisitor(createCodeLocator(context), useJsrInliner);
-    try {
-      new ClassReader(context.classCache).accept(classVisitor, parsingOptions);
-    } catch (Exception exception) {
-      throw new CompilationError(
-          "Unable to parse method `" + method.toSourceString() + "`", exception);
-    }
+    return parsingOptions;
   }
 
   protected BiFunction<String, String, JarCode> createCodeLocator(ReparseContext context) {

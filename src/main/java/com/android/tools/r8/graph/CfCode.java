@@ -269,6 +269,7 @@ public class CfCode extends Code implements CfOrJarCode {
       if (!encodedMethod.hasParameterInfo()) {
         encodedMethod.setParameterInfo(collectParameterInfo(encodedMethod, appView));
       }
+      // TODO(b/135986411): Remove the locals info.
     }
     return new IRBuilder(encodedMethod, appView, source, origin, generator).build(context);
   }

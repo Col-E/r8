@@ -135,8 +135,10 @@ public class LazyCfCode extends Code implements CfOrJarCode {
   }
 
   public void parseCode(ReparseContext context, boolean useJsrInliner) {
+    // TODO(b/135985231): Support reachability sensitivity in CF frontend.
+    int parsingOptions = JarCode.getParsingOptions(application, false);
     ClassCodeVisitor classVisitor = new ClassCodeVisitor(context, application, useJsrInliner);
-    new ClassReader(context.classCache).accept(classVisitor, ClassReader.EXPAND_FRAMES);
+    new ClassReader(context.classCache).accept(classVisitor, parsingOptions);
   }
 
   private void setCode(CfCode code) {
