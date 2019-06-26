@@ -3621,7 +3621,7 @@ public class CodeRewriter {
     return true;
   }
 
-  public void rewriteConstantEnumOrdinal(IRCode code) {
+  public void rewriteConstantEnumOrdinalAndName(IRCode code) {
     InstructionIterator iterator = code.instructionIterator();
     while (iterator.hasNext()) {
       Instruction current = iterator.next();
@@ -3630,7 +3630,10 @@ public class CodeRewriter {
         continue;
       }
       InvokeMethodWithReceiver methodWithReceiver = current.asInvokeMethodWithReceiver();
-      if (methodWithReceiver.getInvokedMethod() != dexItemFactory.enumMethods.ordinal) {
+      DexMethod invokedMethod = methodWithReceiver.getInvokedMethod();
+      boolean isOrdinalInvoke = invokedMethod == dexItemFactory.enumMethods.ordinal;
+      boolean isNameInvoke = invokedMethod == dexItemFactory.enumMethods.name;
+      if (!isOrdinalInvoke && !isNameInvoke) {
         continue;
       }
 
@@ -3657,10 +3660,16 @@ public class CodeRewriter {
       if (!ordinalMap.containsKey(enumField)) {
         continue;
       }
-      int ordinalValue = ordinalMap.getInt(enumField);
 
       Value outValue = methodWithReceiver.outValue();
-      iterator.replaceCurrentInstruction(new ConstNumber(outValue, ordinalValue));
+      Instruction newInstruction;
+      if (isOrdinalInvoke) {
+        newInstruction = new ConstNumber(outValue, ordinalMap.getInt(enumField));
+      } else {
+        assert isNameInvoke;
+        newInstruction = new ConstString(outValue, enumField.name, ThrowingInfo.NO_THROW);
+      }
+      iterator.replaceCurrentInstruction(newInstruction);
     }
 
     assert code.isConsistentSSA();

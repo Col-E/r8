@@ -162,6 +162,7 @@ public class DexItemFactory {
   public final DexString getClassMethodName = createString("getClass");
   public final DexString finalizeMethodName = createString("finalize");
   public final DexString ordinalMethodName = createString("ordinal");
+  public final DexString nameMethodName = createString("name");
   public final DexString desiredAssertionStatusMethodName = createString("desiredAssertionStatus");
   public final DexString forNameMethodName = createString("forName");
   public final DexString getNameName = createString("getName");
@@ -659,6 +660,7 @@ public class DexItemFactory {
 
     public DexMethod valueOf;
     public DexMethod ordinal;
+    public DexMethod name;
 
     private EnumMethods() {
       valueOf =
@@ -672,6 +674,12 @@ public class DexItemFactory {
               enumDescriptor,
               ordinalMethodName,
               intDescriptor,
+              DexString.EMPTY_ARRAY);
+      name =
+          createMethod(
+              enumDescriptor,
+              nameMethodName,
+              stringDescriptor,
               DexString.EMPTY_ARRAY);
     }
   }

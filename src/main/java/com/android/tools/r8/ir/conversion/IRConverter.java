@@ -1065,7 +1065,7 @@ public class IRConverter {
 
     if (options.enableEnumValueOptimization) {
       assert appView.enableWholeProgramOptimizations();
-      codeRewriter.rewriteConstantEnumOrdinal(code);
+      codeRewriter.rewriteConstantEnumOrdinalAndName(code);
     }
 
     codeRewriter.rewriteLongCompareAndRequireNonNull(code, options);
