@@ -52,7 +52,7 @@ public class JavaTimeTest extends CoreLibDesugarTestBase {
         .addInnerClasses(JavaTimeTest.class)
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .setMinApi(parameters.getRuntime())
-        .addOptionsModification(this::configureCoreLibDesugar)
+        .addOptionsModification(this::configureCoreLibDesugarForCoreLibCompilation)
         .compile()
         .inspect(this::checkRewrittenInvokes)
         .addRunClasspathFiles(buildDesugaredLibrary(parameters.getRuntime()))

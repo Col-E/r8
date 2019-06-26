@@ -56,7 +56,7 @@ public class JavaUtilFunctionTest extends CoreLibDesugarTestBase {
         .addInnerClasses(JavaUtilFunctionTest.class)
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .setMinApi(parameters.getRuntime())
-        .addOptionsModification(this::configureCoreLibDesugar)
+        .addOptionsModification(this::configureCoreLibDesugarForProgramCompilation)
         .compile()
         .inspect(this::checkRewrittenArguments)
         .addRunClasspathFiles(buildDesugaredLibrary(parameters.getRuntime()))

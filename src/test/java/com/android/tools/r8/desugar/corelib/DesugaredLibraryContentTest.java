@@ -74,8 +74,8 @@ public class DesugaredLibraryContentTest extends CoreLibDesugarTestBase {
     // TODO(134732760): This should be a 0 count.
     assertEquals(
         parameters.getRuntime().asDex().getMinApiLevel().getLevel() < AndroidApiLevel.N.getLevel()
-            ? 39
-            : 24,
+            ? 38
+            : 27,
         inspector.allClasses().stream()
             .map(ClassSubject::getOriginalName)
             .filter(name -> name.startsWith("java."))
@@ -85,8 +85,8 @@ public class DesugaredLibraryContentTest extends CoreLibDesugarTestBase {
     // TODO(134732760): Remove this when above is a 0 count.
     assertEquals(
         parameters.getRuntime().asDex().getMinApiLevel().getLevel() < AndroidApiLevel.N.getLevel()
-            ? 10
-            : 5,
+            ? 13
+            : 8,
         inspector.allClasses().stream()
             .map(ClassSubject::getOriginalName)
             .filter(name -> name.startsWith("java."))

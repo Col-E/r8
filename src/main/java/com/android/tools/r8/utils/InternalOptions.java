@@ -382,8 +382,11 @@ public class InternalOptions {
    */
   public boolean enableInheritanceClassInDexDistributor = true;
 
+  public boolean coreLibraryCompilation = false;
   public Map<String, String> rewritePrefix = ImmutableMap.of();
   public Map<String, String> emulateLibraryInterface = ImmutableMap.of();
+  public Map<String, String> retargetCoreLibMember = ImmutableMap.of();
+  public List<String> dontRewriteInvocations = ImmutableList.of();
 
   public LineNumberOptimization lineNumberOptimization = LineNumberOptimization.ON;
 
