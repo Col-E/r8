@@ -498,7 +498,10 @@ public class DexItemFactory {
           .build();
 
   public Set<DexType> libraryTypesAssumedToBePresent =
-      ImmutableSet.of(objectType, callableType, stringBufferType, stringBuilderType);
+      ImmutableSet.<DexType>builder()
+          .add(objectType, callableType, stringBufferType, stringBuilderType, stringType)
+          .addAll(primitiveToBoxed.values())
+          .build();
 
   public final Set<DexType> libraryClassesWithoutStaticInitialization =
       ImmutableSet.of(objectType, stringBufferType, stringBuilderType);

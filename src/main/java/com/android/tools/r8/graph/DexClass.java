@@ -707,9 +707,8 @@ public abstract class DexClass extends DexDefinition {
   }
 
   public boolean isResolvable(AppView<?> appView) {
-    if (!isProgramClass()
-        && !appView.dexItemFactory().libraryTypesAssumedToBePresent.contains(type)) {
-      return false;
+    if (!isProgramClass()) {
+      return appView.dexItemFactory().libraryTypesAssumedToBePresent.contains(type);
     }
     return Streams.stream(allImmediateSupertypes()).allMatch(type -> type.isResolvable(appView));
   }
