@@ -12,6 +12,7 @@ import com.android.tools.r8.cf.code.CfLoad;
 import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.cf.code.CfReturnVoid;
 import com.android.tools.r8.cf.code.CfTryCatch;
+import com.android.tools.r8.errors.InvalidDebugInfoException;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Position;
@@ -229,7 +230,8 @@ public class CfCode extends Code implements CfOrJarCode {
 
   @Override
   public IRCode buildIR(DexEncodedMethod encodedMethod, AppView<?> appView, Origin origin) {
-    return internalBuild(encodedMethod, encodedMethod, appView, null, null, origin);
+    return internalBuildPossiblyWithLocals(
+        encodedMethod, encodedMethod, appView, null, null, origin);
   }
 
   @Override
@@ -242,10 +244,52 @@ public class CfCode extends Code implements CfOrJarCode {
       Origin origin) {
     assert valueNumberGenerator != null;
     assert callerPosition != null;
-    return internalBuild(
+    return internalBuildPossiblyWithLocals(
         context, encodedMethod, appView, valueNumberGenerator, callerPosition, origin);
   }
 
+  // First build entry. Will either strip locals or build with locals.
+  private IRCode internalBuildPossiblyWithLocals(
+      DexEncodedMethod context,
+      DexEncodedMethod encodedMethod,
+      AppView<?> appView,
+      ValueNumberGenerator generator,
+      Position callerPosition,
+      Origin origin) {
+    if (!keepLocals(encodedMethod, appView.options())) {
+      // If the locals are not kept, we might still need a bit of locals information to satisfy
+      // -keepparameternames for R8. As locals are stripped after collecting the parameter names
+      // this information can only be retrieved the first time IR is build for a method, so stick
+      // to the information if already present.
+      if (!encodedMethod.hasParameterInfo()) {
+        encodedMethod.setParameterInfo(collectParameterInfo(encodedMethod, appView));
+      }
+      localVariables.clear();
+      return internalBuild(context, encodedMethod, appView, generator, callerPosition, origin);
+    } else {
+      return internalBuildWithLocals(
+          context, encodedMethod, appView, generator, callerPosition, origin);
+    }
+  }
+
+  // When building with locals, on invalid debug info, retry build without locals info.
+  private IRCode internalBuildWithLocals(
+      DexEncodedMethod context,
+      DexEncodedMethod encodedMethod,
+      AppView<?> appView,
+      ValueNumberGenerator generator,
+      Position callerPosition,
+      Origin origin) {
+    try {
+      return internalBuild(context, encodedMethod, appView, generator, callerPosition, origin);
+    } catch (InvalidDebugInfoException e) {
+      appView.options().warningInvalidDebugInfo(encodedMethod, origin, e);
+      localVariables.clear();
+      return internalBuild(context, encodedMethod, appView, generator, callerPosition, origin);
+    }
+  }
+
+  // Inner-most subroutine for building. Must only be called by the two internalBuildXYZ above.
   private IRCode internalBuild(
       DexEncodedMethod context,
       DexEncodedMethod encodedMethod,
@@ -261,16 +305,6 @@ public class CfCode extends Code implements CfOrJarCode {
             callerPosition,
             origin,
             appView);
-    if (!keepLocals(encodedMethod, appView.options())) {
-      // If the locals are not kept, we might still need a bit of locals information to satisfy
-      // -keepparameternames for R8. As locals are stripped after collecting the parameter names
-      // this information can only be retrieved the first time IR is build for a method, so stick
-      // to the information if already present.
-      if (!encodedMethod.hasParameterInfo()) {
-        encodedMethod.setParameterInfo(collectParameterInfo(encodedMethod, appView));
-      }
-      // TODO(b/135986411): Remove the locals info.
-    }
     return new IRBuilder(encodedMethod, appView, source, origin, generator).build(context);
   }
 

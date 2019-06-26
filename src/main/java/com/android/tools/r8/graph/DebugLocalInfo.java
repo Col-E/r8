@@ -100,7 +100,11 @@ public class DebugLocalInfo {
 
   @Override
   public String toString() {
-    switch (PRINT_LEVEL) {
+    return toString(PRINT_LEVEL);
+  }
+
+  public String toString(PrintLevel printLevel) {
+    switch (printLevel) {
       case NONE:
         return "";
       case NAME:

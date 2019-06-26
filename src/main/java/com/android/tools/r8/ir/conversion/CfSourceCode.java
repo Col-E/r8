@@ -15,10 +15,13 @@ import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.cf.code.CfSwitch;
 import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.cf.code.CfTryCatch;
+import com.android.tools.r8.errors.InvalidDebugInfoException;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.CfCode.LocalVariableInfo;
 import com.android.tools.r8.graph.DebugLocalInfo;
+import com.android.tools.r8.graph.DebugLocalInfo.PrintLevel;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -27,6 +30,8 @@ import com.android.tools.r8.ir.code.CanonicalPositions;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.Monitor;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.ir.conversion.CfState.Slot;
 import com.android.tools.r8.ir.conversion.CfState.Snapshot;
 import com.android.tools.r8.ir.conversion.IRBuilder.BlockInfo;
 import com.android.tools.r8.origin.Origin;
@@ -671,8 +676,33 @@ public class CfSourceCode implements SourceCode {
     assert localsChanged();
     for (Entry<DebugLocalInfo> entry : outgoingLocals.int2ObjectEntrySet()) {
       if (!entry.getValue().equals(incomingLocals.get(entry.getIntKey()))) {
+        Slot slot = state.read(entry.getIntKey());
+        if (slot != null && slot.type != ValueType.fromDexType(entry.getValue().type)) {
+          throw new InvalidDebugInfoException(
+              "Attempt to define local of type "
+                  + prettyType(slot.type)
+                  + " as "
+                  + entry.getValue().toString(PrintLevel.FULL));
+        }
         builder.addDebugLocalStart(entry.getIntKey(), entry.getValue());
       }
+    }
+  }
+
+  private String prettyType(ValueType type) {
+    switch (type) {
+      case OBJECT:
+        return "reference";
+      case INT:
+        return "int";
+      case FLOAT:
+        return "float";
+      case LONG:
+        return "long";
+      case DOUBLE:
+        return "double";
+      default:
+        throw new Unreachable();
     }
   }
 
