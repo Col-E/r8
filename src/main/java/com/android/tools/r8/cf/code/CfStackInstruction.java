@@ -101,10 +101,10 @@ public class CfStackInstruction extends CfInstruction {
         }
       case Pop2:
         {
-          Slot value = state.pop();
-          if (!value.type.isWide()) {
-            state.pop();
-            throw new Unimplemented("Building IR for Pop2 of narrow value not supported");
+          Slot pop1 = state.pop();
+          if (!pop1.type.isWide()) {
+            Slot pop2 = state.pop();
+            assert !pop2.type.isWide();
           }
           break;
         }
@@ -230,8 +230,10 @@ public class CfStackInstruction extends CfInstruction {
             if (value4.type.isWide()) {
               throw new CompilationError("Invalid dup2x2 with types: wide, single, single, single");
             }
-            throw new Unimplemented(
-                "Building IR for Dup2X2 narrow,narrow,narrow,narrow not supported");
+            // Input stack: ..., value4, value3, value2, value1
+            // Output stack: ..., value2, value1, value4, value3, value2, value1
+            dup2X2(builder, state, value1, value2, value3, value4);
+            break;
           }
         }
       case Swap:
@@ -283,6 +285,38 @@ public class CfStackInstruction extends CfInstruction {
     builder.addMove(inValue3.type, outValue3.register, inValue3.register);
     // Move A(outValue1) <- D(outValue1Copy)
     builder.addMove(outValue1Copy.type, outValue1.register, outValue1Copy.register);
+  }
+
+  // Dup top two elements of the stack across/X two other values.
+  // Width independent, but the four values can only be single for valid CF inputs.
+  private void dup2X2(
+      IRBuilder builder,
+      CfState state,
+      Slot inValue1,
+      Slot inValue2,
+      Slot inValue3,
+      Slot inValue4) {
+    // Input stack: ..., A:inValue4, B:inValue3, C:inValue2, D:inValue1 (values already popped)
+    Slot outValue2 = state.push(inValue2);
+    Slot outValue1 = state.push(inValue1);
+    Slot outValue4 = state.push(inValue4);
+    Slot outValue3 = state.push(inValue3);
+    Slot outValue2Copy = state.push(inValue2);
+    Slot outValue1Copy = state.push(inValue1);
+    // Output stack:
+    // ..., A:outValue2, B:outValue1, C:outValue4, D:outValue3, E:outValue2Copy, F:outValue1Copy
+    // Move F(outValue1Copy) <- D(inValue1)
+    builder.addMove(inValue1.type, outValue1Copy.register, inValue1.register);
+    // Move E(outValue2Copy) <- C(inValue2)
+    builder.addMove(inValue2.type, outValue2Copy.register, inValue2.register);
+    // Move D(outValue3) <- B(inValue3)
+    builder.addMove(inValue3.type, outValue3.register, inValue3.register);
+    // Move C(outValue4) <- A(inValue4)
+    builder.addMove(inValue4.type, outValue4.register, inValue4.register);
+    // Move B(outValue1) <- F(outValue1Copy)
+    builder.addMove(outValue1Copy.type, outValue1.register, outValue1Copy.register);
+    // Move A(outValue2) <- E(outValue2Copy)
+    builder.addMove(outValue2Copy.type, outValue2.register, outValue2Copy.register);
   }
 
   @Override

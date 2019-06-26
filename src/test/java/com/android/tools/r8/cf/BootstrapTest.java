@@ -62,7 +62,7 @@ public class BootstrapTest extends TestBase {
     }
   }
 
-  @Parameters
+  @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withCfRuntimes().build();
   }
