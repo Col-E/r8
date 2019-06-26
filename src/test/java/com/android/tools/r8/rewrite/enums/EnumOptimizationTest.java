@@ -9,8 +9,6 @@ import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.ForceInline;
-import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -20,7 +18,6 @@ import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -45,87 +42,6 @@ public class EnumOptimizationTest extends TestBase {
     this.parameters = parameters;
   }
 
-  static class Ordinals {
-    enum Number {
-      ONE, TWO;
-
-      public static final Direction DOWN = Direction.DOWN;
-      public static final Number DEFAULT = TWO;
-    }
-
-    enum Direction {
-      UP, DOWN
-    }
-
-    @NeverInline
-    static long simple() {
-      return Number.TWO.ordinal();
-    }
-
-    @NeverInline
-    static long local() {
-      Number two = Number.TWO;
-      return two.ordinal();
-    }
-
-    @NeverInline
-    static String multipleUsages() {
-      Number two = Number.TWO;
-      return two.name() + two.ordinal();
-    }
-
-    @NeverInline
-    static long inlined() {
-      return inlined2(Number.TWO);
-    }
-    @ForceInline
-    private static long inlined2(Number number) {
-      return number.ordinal();
-    }
-
-    @NeverInline
-    static long libraryType() {
-      return TimeUnit.SECONDS.ordinal();
-    }
-
-    @NeverInline
-    static long wrongTypeStaticField() {
-      return Number.DOWN.ordinal();
-    }
-
-    @NeverInline
-    static long nonValueStaticField() {
-      return Number.DEFAULT.ordinal();
-    }
-
-    @NeverInline
-    static long phi(boolean value) {
-      Number number = Number.ONE;
-      if (value) {
-        number = Number.TWO;
-      }
-      return number.ordinal();
-    }
-
-    @NeverInline
-    static long nonStaticGet() {
-      return new Ordinals().two.ordinal();
-    }
-    private final Number two = Number.TWO;
-
-    public static void main(String[] args) {
-      System.out.println(simple());
-      System.out.println(local());
-      System.out.println(multipleUsages());
-      System.out.println(inlined());
-      System.out.println(libraryType());
-      System.out.println(wrongTypeStaticField());
-      System.out.println(nonValueStaticField());
-      System.out.println(phi(true));
-      System.out.println(nonStaticGet());
-    }
-  }
-
   @Test public void ordinals() throws Exception {
     testForR8(parameters.getBackend())
         .addLibraryFiles(getDefaultAndroidJar())
@@ -137,7 +53,7 @@ public class EnumOptimizationTest extends TestBase {
         .compile()
         .inspect(this::inspectOrdinals)
         .run(parameters.getRuntime(), Ordinals.class)
-        .assertSuccessWithOutputLines("1", "1", "TWO1", "1", "3", "1", "1", "1", "1");
+        .assertSuccessWithOutputLines("1", "1", "TWO1", "1", "11", "3", "1", "1", "1", "1");
   }
 
   private void inspectOrdinals(CodeInspector inspector) {
@@ -149,11 +65,13 @@ public class EnumOptimizationTest extends TestBase {
       assertOrdinalReplacedWithConst(clazz.uniqueMethodWithName("local"), 1);
       assertOrdinalReplacedWithConst(clazz.uniqueMethodWithName("multipleUsages"), 1);
       assertOrdinalReplacedWithConst(clazz.uniqueMethodWithName("inlined"), 1);
+      assertOrdinalReplacedWithConst(clazz.uniqueMethodWithName("inSwitch"), 11);
     } else {
       assertOrdinalWasNotReplaced(clazz.uniqueMethodWithName("simple"));
       assertOrdinalWasNotReplaced(clazz.uniqueMethodWithName("local"));
       assertOrdinalWasNotReplaced(clazz.uniqueMethodWithName("multipleUsages"));
       assertOrdinalWasNotReplaced(clazz.uniqueMethodWithName("inlined"));
+      assertOrdinalWasNotReplaced(clazz.uniqueMethodWithName("inSwitch"));
     }
 
     assertOrdinalWasNotReplaced(clazz.uniqueMethodWithName("libraryType"));
@@ -161,87 +79,6 @@ public class EnumOptimizationTest extends TestBase {
     assertOrdinalWasNotReplaced(clazz.uniqueMethodWithName("nonValueStaticField"));
     assertOrdinalWasNotReplaced(clazz.uniqueMethodWithName("phi"));
     assertOrdinalWasNotReplaced(clazz.uniqueMethodWithName("nonStaticGet"));
-  }
-
-  static class Names {
-    enum Number {
-      ONE, TWO;
-
-      public static final Direction DOWN = Direction.DOWN;
-      public static final Number DEFAULT = TWO;
-    }
-
-    enum Direction {
-      UP, DOWN
-    }
-
-    @NeverInline
-    static String simple() {
-      return Number.TWO.name();
-    }
-
-    @NeverInline
-    static String local() {
-      Number two = Number.TWO;
-      return two.name();
-    }
-
-    @NeverInline
-    static String multipleUsages() {
-      Number two = Number.TWO;
-      return two.ordinal() + two.name();
-    }
-
-    @NeverInline
-    static String inlined() {
-      return inlined2(Number.TWO);
-    }
-    @ForceInline
-    private static String inlined2(Number number) {
-      return number.name();
-    }
-
-    @NeverInline
-    static String libraryType() {
-      return TimeUnit.SECONDS.name();
-    }
-
-    @NeverInline
-    static String wrongTypeStaticField() {
-      return Number.DOWN.name();
-    }
-
-    @NeverInline
-    static String nonValueStaticField() {
-      return Number.DEFAULT.name();
-    }
-
-    @NeverInline
-    static String phi(boolean value) {
-      Number number = Number.ONE;
-      if (value) {
-        number = Number.TWO;
-      }
-      return number.name();
-    }
-
-    @NeverInline
-    static String nonStaticGet() {
-      return new Names().two.name();
-    }
-    private final Number two = Number.TWO;
-
-    public static void main(String[] args) {
-      System.out.println(simple());
-      System.out.println(local());
-      System.out.println(multipleUsages());
-      System.out.println(inlined());
-      System.out.println(libraryType());
-      System.out.println(wrongTypeStaticField());
-      System.out.println(nonValueStaticField());
-      System.out.println(phi(true));
-      System.out.println(nonStaticGet());
-    }
   }
 
   @Test public void names() throws Exception {
