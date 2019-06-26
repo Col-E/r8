@@ -11,6 +11,7 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.desugar.backports.BooleanBackportTest;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -23,6 +24,10 @@ import java.util.Objects;
 import org.junit.Before;
 import org.junit.Test;
 
+/**
+ * @deprecated New tests should follow the pattern of {@link BooleanBackportTest}.
+ */
+@Deprecated
 public class BackportedMethodRewriterTest extends TestBase {
   static String expectedOutput = "";
 
@@ -40,9 +45,9 @@ public class BackportedMethodRewriterTest extends TestBase {
         .run(TestMethods.class)
         .assertSuccessWithOutput(expectedOutput);
 
-    assertDesugaring(AndroidApiLevel.O, 70);
-    assertDesugaring(AndroidApiLevel.N, 49);
-    assertDesugaring(AndroidApiLevel.K, 20);
+    assertDesugaring(AndroidApiLevel.O, 65);
+    assertDesugaring(AndroidApiLevel.N, 44);
+    assertDesugaring(AndroidApiLevel.K, 19);
     assertDesugaring(AndroidApiLevel.J_MR2, 0);
   }
 
@@ -215,17 +220,6 @@ public class BackportedMethodRewriterTest extends TestBase {
         }
       }
 
-      boolean[] aBooleans = { true, false };
-      for (boolean aBoolean : aBooleans) {
-        System.out.println(Boolean.hashCode(aBoolean));
-        for (boolean bBoolean : aBooleans) {
-          System.out.println(Boolean.compare(aBoolean, bBoolean));
-          System.out.println(Boolean.logicalAnd(aBoolean, bBoolean));
-          System.out.println(Boolean.logicalOr(aBoolean, bBoolean));
-          System.out.println(Boolean.logicalXor(aBoolean, bBoolean));
-        }
-      }
-
       long[] aLongs = new long[]{42L, 1L, -1L, Integer.MIN_VALUE, Integer.MAX_VALUE,
           Long.MAX_VALUE, Long.MIN_VALUE};
       long[] bLongs = new long[]{43L, 2L, -2L, Integer.MIN_VALUE, Integer.MAX_VALUE,
@@ -279,7 +273,9 @@ public class BackportedMethodRewriterTest extends TestBase {
       System.out.println(Objects.compare("b", "a", reverse()));
       System.out.println(Objects.compare("a", "a", reverse()));
 
-      Object[] objects = { aBytes, aBooleans, aChars, aDoubles, aFloats, aInts, aLongs, "a", null };
+      Object[] objects = {
+          aBytes, new boolean[] { true, false }, aChars, aDoubles, aFloats, aInts, aLongs, "a", null
+      };
       for (Object aObject : objects) {
         for (Object bObject : objects) {
           System.out.println(Objects.deepEquals(aObject, bObject));

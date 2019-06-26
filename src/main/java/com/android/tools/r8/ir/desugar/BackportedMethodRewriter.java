@@ -28,6 +28,7 @@ import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.BackportedMethodRewriter.RewritableMethods.MethodGenerator;
+import com.android.tools.r8.ir.desugar.backports.BooleanMethods;
 import com.android.tools.r8.ir.synthetic.TemplateMethodCode;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -314,32 +315,6 @@ public final class BackportedMethodRewriter {
     public static boolean isFinite(float d) {
       Float boxed = Float.valueOf(d);
       return !boxed.isInfinite() && !boxed.isNaN();
-    }
-  }
-
-  private static final class BooleanMethods extends TemplateMethodCode {
-    BooleanMethods(InternalOptions options, DexMethod method, String methodName) {
-      super(options, method, methodName, method.proto.toDescriptorString());
-    }
-
-    public static int hashCode(boolean b) {
-      return Boolean.valueOf(b).hashCode();
-    }
-
-    public static int compare(boolean a, boolean b) {
-      return Boolean.valueOf(a).compareTo(Boolean.valueOf(b));
-    }
-
-    public static boolean logicalAnd(boolean a, boolean b) {
-      return a && b;
-    }
-
-    public static boolean logicalOr(boolean a, boolean b) {
-      return a || b;
-    }
-
-    public static boolean logicalXor(boolean a, boolean b) {
-      return a ^ b;
     }
   }
 
