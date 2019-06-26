@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.optimize;
 
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.DiagnosticsHandler;
@@ -21,6 +20,7 @@ import java.nio.file.Path;
 import org.junit.Assert;
 import org.junit.Test;
 
+// Test documenting null-value usages with the reference implementation.
 public class NullArrayAndNullObjectValueTest extends JasminTestBase {
 
   @Test
@@ -178,16 +178,7 @@ public class NullArrayAndNullObjectValueTest extends JasminTestBase {
     ProcessResult riResult = ToolHelper.runJava(riJar, "TestClass");
     Assert.assertEquals(riResult.toString(), 1, riResult.exitCode);
     assertTrue(riResult.stderr.contains("VerifyError"));
-
-    Path d8Jar = temp.getRoot().toPath().resolve("d8-out.jar");
-    try {
-      D8.run(
-          D8Command.builder().addProgramFiles(riJar).setOutput(d8Jar, OutputMode.DexIndexed)
-              .build());
-    } catch (CompilationFailedException e) {
-      // Discard expected failure.
-      return;
-    }
-    Assert.fail("Expected D8 to fail compilation");
+    // This test does not check that D8 compiles or fails in any particular way as the input is
+    // invalid. The old frontend used to hit an assertion, the new frontend does not.
   }
 }
