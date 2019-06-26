@@ -45,9 +45,9 @@ public class BackportedMethodRewriterTest extends TestBase {
         .run(TestMethods.class)
         .assertSuccessWithOutput(expectedOutput);
 
-    assertDesugaring(AndroidApiLevel.O, 65);
-    assertDesugaring(AndroidApiLevel.N, 44);
-    assertDesugaring(AndroidApiLevel.K, 19);
+    assertDesugaring(AndroidApiLevel.O, 55);
+    assertDesugaring(AndroidApiLevel.N, 38);
+    assertDesugaring(AndroidApiLevel.K, 16);
     assertDesugaring(AndroidApiLevel.J_MR2, 0);
   }
 
@@ -139,39 +139,12 @@ public class BackportedMethodRewriterTest extends TestBase {
     }
 
     // Defined as a static method on this class to avoid affecting invoke-static counts in main().
-    private static int signum(int value) {
-      return (int) Math.signum(value);
-    }
-
-    // Defined as a static method on this class to avoid affecting invoke-static counts in main().
     @SafeVarargs
     private static <T> List<T> listOf(T... values) {
       return Arrays.asList(values);
     }
 
     public static void main(String[] args) {
-      byte[] aBytes = new byte[]{42, 1, -1, Byte.MAX_VALUE, Byte.MIN_VALUE};
-      for (byte aByte : aBytes) {
-        System.out.println(Byte.hashCode(aByte));
-        System.out.println(Byte.toUnsignedInt(aByte));
-        System.out.println(Byte.toUnsignedLong(aByte));
-        for (byte bByte : aBytes) {
-          // Normalize comparison to [-1, 1] since the values differ across versions but signs match
-          System.out.println(signum(Byte.compare(aByte, bByte)));
-        }
-      }
-
-      short[] aShorts = new short[]{42, 1, -1, Short.MAX_VALUE, Short.MIN_VALUE};
-      for (short aShort : aShorts) {
-        System.out.println(Short.hashCode(aShort));
-        System.out.println(Short.toUnsignedInt(aShort));
-        System.out.println(Short.toUnsignedLong(aShort));
-        for (short bShort : aShorts) {
-          // Normalize comparison to [-1, 1] since the values differ across versions but signs match
-          System.out.println(signum(Short.compare(aShort, bShort)));
-        }
-      }
-
       int[] aInts = new int[]{42, 1, -1, Integer.MAX_VALUE, Integer.MIN_VALUE};
       int[] bInts = new int[]{43, 1, -1, Integer.MAX_VALUE, Integer.MIN_VALUE};
       for (int aInt : aInts) {
@@ -237,14 +210,6 @@ public class BackportedMethodRewriterTest extends TestBase {
         }
       }
 
-      char[] aChars = new char[]{'s', 'u', 'p', Character.MAX_VALUE, Character.MIN_VALUE};
-      for (char aChar : aChars) {
-        System.out.println(Character.hashCode(aChar));
-        for (char bChar : aChars) {
-          System.out.println(Character.compare(aChar, bChar));
-        }
-      }
-
       System.out.println(String.join(", "));
       System.out.println(String.join(", ", "one", "two", "three"));
       System.out.println(String.join("", "one", "two", "three"));
@@ -274,7 +239,9 @@ public class BackportedMethodRewriterTest extends TestBase {
       System.out.println(Objects.compare("a", "a", reverse()));
 
       Object[] objects = {
-          aBytes, new boolean[] { true, false }, aChars, aDoubles, aFloats, aInts, aLongs, "a", null
+          new byte[] { 42, 1, -1, Byte.MAX_VALUE, Byte.MIN_VALUE }, new boolean[] { true, false },
+          new char[] { 's', 'u', 'p', Character.MAX_VALUE, Character.MIN_VALUE }, aDoubles, aFloats,
+          aInts, aLongs, new short[] { 42, 1, -1, Short.MAX_VALUE, Short.MIN_VALUE }, "a", null
       };
       for (Object aObject : objects) {
         for (Object bObject : objects) {

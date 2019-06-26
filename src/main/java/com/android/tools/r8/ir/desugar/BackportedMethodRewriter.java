@@ -29,6 +29,9 @@ import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.BackportedMethodRewriter.RewritableMethods.MethodGenerator;
 import com.android.tools.r8.ir.desugar.backports.BooleanMethods;
+import com.android.tools.r8.ir.desugar.backports.ByteMethods;
+import com.android.tools.r8.ir.desugar.backports.CharacterMethods;
+import com.android.tools.r8.ir.desugar.backports.ShortMethods;
 import com.android.tools.r8.ir.synthetic.TemplateMethodCode;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -170,50 +173,6 @@ public final class BackportedMethodRewriter {
     assert original != null;
     return rewritableMethods.getGenerator(
         original.holder.descriptor, original.name, original.proto);
-  }
-
-  private static final class ByteMethods extends TemplateMethodCode {
-    ByteMethods(InternalOptions options, DexMethod method, String methodName) {
-      super(options, method, methodName, method.proto.toDescriptorString());
-    }
-
-    public static int hashCode(byte i) {
-      return Byte.valueOf(i).hashCode();
-    }
-
-    public static int compare(byte a, byte b) {
-      return Byte.valueOf(a).compareTo(Byte.valueOf(b));
-    }
-
-    public static int toUnsignedInt(byte value) {
-      return value & 0xff;
-    }
-
-    public static long toUnsignedLong(byte value) {
-      return value & 0xffL;
-    }
-  }
-
-  private static final class ShortMethods extends TemplateMethodCode {
-    ShortMethods(InternalOptions options, DexMethod method, String methodName) {
-      super(options, method, methodName, method.proto.toDescriptorString());
-    }
-
-    public static int hashCode(short i) {
-      return Short.valueOf(i).hashCode();
-    }
-
-    public static int compare(short a, short b) {
-      return Short.valueOf(a).compareTo(Short.valueOf(b));
-    }
-
-    public static int toUnsignedInt(short value) {
-      return value & 0xffff;
-    }
-
-    public static long toUnsignedLong(short value) {
-      return value & 0xffffL;
-    }
   }
 
   private static final class IntegerMethods extends TemplateMethodCode {
@@ -415,20 +374,6 @@ public final class BackportedMethodRewriter {
       long aFlipped = a ^ Long.MIN_VALUE;
       long bFlipped = b ^ Long.MIN_VALUE;
       return Long.compare(aFlipped, bFlipped);
-    }
-  }
-
-  private static final class CharacterMethods extends TemplateMethodCode {
-    CharacterMethods(InternalOptions options, DexMethod method, String methodName) {
-      super(options, method, methodName, method.proto.toDescriptorString());
-    }
-
-    public static int hashCode(char i) {
-      return Character.valueOf(i).hashCode();
-    }
-
-    public static int compare(char a, char b) {
-      return Character.valueOf(a).compareTo(Character.valueOf(b));
     }
   }
 
