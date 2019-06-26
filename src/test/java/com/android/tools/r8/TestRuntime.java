@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.ToolHelper.DexVm;
@@ -96,7 +95,7 @@ public class TestRuntime {
           CfVm.JDK9,
           Paths.get("openjdk-9.0.4", "osx"),
           CfVm.JDK11,
-          Paths.get("jdk-11", "Mac"));
+          Paths.get("jdk-11", "Mac", "Contents", "Home"));
     }
     assert ToolHelper.isWindows();
     return ImmutableMap.of(
