@@ -532,7 +532,7 @@ tasks.named(sourceSets.examplesJava11.compileJavaTaskName).get().configure {
     if (OperatingSystem.current().isLinux()) {
         options.forkOptions.javaHome = file(jdkDir + 'Linux')
     } else if (OperatingSystem.current().isMacOsX()) {
-        options.forkOptions.javaHome = file(jdkDir + 'Mac')
+        options.forkOptions.javaHome = file(jdkDir + 'Mac/Contents/Home')
     } else {
         options.forkOptions.javaHome = file(jdkDir + 'Windows')
     }
@@ -547,7 +547,7 @@ task compileMainWithJava11 (type: JavaCompile) {
     if (OperatingSystem.current().isLinux()) {
         options.forkOptions.javaHome = file(jdkDir + 'Linux')
     } else if (OperatingSystem.current().isMacOsX()) {
-        options.forkOptions.javaHome = file(jdkDir + 'Mac')
+        options.forkOptions.javaHome = file(jdkDir + 'Mac/Contents/Home')
     } else {
         options.forkOptions.javaHome = file(jdkDir + 'Windows')
     }
