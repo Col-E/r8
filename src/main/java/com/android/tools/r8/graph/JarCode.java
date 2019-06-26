@@ -366,7 +366,10 @@ public class JarCode extends Code implements CfOrJarCode {
 
   public static int getParsingOptions(
       JarApplicationReader application, boolean reachabilitySensitive) {
-    int parsingOptions = ClassReader.SKIP_FRAMES;
+    int parsingOptions =
+        application.options.testing.readInputStackMaps
+            ? ClassReader.EXPAND_FRAMES
+            : ClassReader.SKIP_FRAMES;
 
     ProguardConfiguration configuration = application.options.getProguardConfiguration();
     if (configuration != null && !configuration.isKeepParameterNames()) {
