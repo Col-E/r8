@@ -96,6 +96,7 @@ import com.android.tools.r8.utils.Timing;
 import com.google.common.base.Predicates;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
@@ -276,6 +277,14 @@ public class IRConverter {
       return lambdaRewriter.getDesugaredCallSites();
     } else {
       return Collections.emptySet();
+    }
+  }
+
+  public Map<String, String> getAdditionalRewritePrefix() {
+    if (interfaceMethodRewriter != null) {
+      return interfaceMethodRewriter.getPrefixRewritingInterfaces();
+    } else {
+      return ImmutableMap.of();
     }
   }
 

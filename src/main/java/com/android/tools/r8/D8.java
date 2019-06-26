@@ -15,7 +15,6 @@ import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.conversion.IRConverter;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.PrefixRewritingNamingLens;
 import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.utils.AndroidApp;
@@ -169,7 +168,23 @@ public final class D8 {
 
       DexApplication app = new ApplicationReader(inputApp, options, timing).read(executor);
       AppInfo appInfo = new AppInfo(app);
-      app = optimize(app, appInfo, options, timing, executor);
+
+      final CfgPrinter printer = options.printCfg ? new CfgPrinter() : null;
+
+      IRConverter converter = new IRConverter(appInfo, options, timing, printer);
+      app = converter.convertToDex(app, executor);
+
+      if (options.printCfg) {
+        if (options.printCfgFile == null || options.printCfgFile.isEmpty()) {
+          System.out.print(printer.toString());
+        } else {
+          try (OutputStreamWriter writer =
+              new OutputStreamWriter(
+                  new FileOutputStream(options.printCfgFile), StandardCharsets.UTF_8)) {
+            writer.write(printer.toString());
+          }
+        }
+      }
 
       // Close any internal archive providers now the application is fully processed.
       inputApp.closeInternalArchiveProviders();
@@ -202,9 +217,8 @@ public final class D8 {
               marker == null ? null : ImmutableList.copyOf(markers),
               null,
               GraphLense.getIdentityLense(),
-              options.rewritePrefix.isEmpty()
-                  ? NamingLens.getIdentityLens()
-                  : new PrefixRewritingNamingLens(app),
+              PrefixRewritingNamingLens.createPrefixRewritingNamingLens(
+                  app, converter.getAdditionalRewritePrefix()),
               null)
           .write(executor);
       options.printWarnings();

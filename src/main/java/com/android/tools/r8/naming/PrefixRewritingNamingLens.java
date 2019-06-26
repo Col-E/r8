@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -30,15 +31,25 @@ import java.util.function.Predicate;
 public class PrefixRewritingNamingLens extends NamingLens {
   Map<DexType, DexString> classRenaming = new IdentityHashMap<>();
 
-  public PrefixRewritingNamingLens(DexApplication app) {
+  public static NamingLens createPrefixRewritingNamingLens(
+      DexApplication app, Map<String, String> additionalRewritePrefix) {
+    if (app.options.rewritePrefix.isEmpty() && additionalRewritePrefix.isEmpty()) {
+      return NamingLens.getIdentityLens();
+    }
+    return new PrefixRewritingNamingLens(app, additionalRewritePrefix);
+  }
+
+  public PrefixRewritingNamingLens(
+      DexApplication app, Map<String, String> additionalRewritePrefix) {
     // Create a map of descriptor prefix remappings.
     Map<String, String> descriptorPrefixRewriting = new TreeMap<>(Collections.reverseOrder());
-    app.options.rewritePrefix.forEach(
-        (from, to) -> {
-          descriptorPrefixRewriting.put(
-              "L" + DescriptorUtils.getBinaryNameFromJavaType(from),
-              "L" + DescriptorUtils.getBinaryNameFromJavaType(to));
-        });
+    BiConsumer<String, String> lambda =
+        (from, to) ->
+            descriptorPrefixRewriting.put(
+                "L" + DescriptorUtils.getBinaryNameFromJavaType(from),
+                "L" + DescriptorUtils.getBinaryNameFromJavaType(to));
+    app.options.rewritePrefix.forEach(lambda);
+    additionalRewritePrefix.forEach(lambda);
 
     // Run over all types and remap types with matching prefixes.
     // TODO(134732760): Use a more efficient data structure (prefix tree/trie).

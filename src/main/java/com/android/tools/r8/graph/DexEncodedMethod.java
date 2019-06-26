@@ -61,6 +61,7 @@ import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
@@ -845,7 +846,11 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   }
 
   public DexEncodedMethod toEmulateInterfaceLibraryMethod(
-      DexMethod newMethod, DexMethod companionMethod, DexMethod libraryMethod, AppView<?> appView) {
+      DexMethod newMethod,
+      DexMethod companionMethod,
+      DexMethod libraryMethod,
+      List<Pair<DexType, DexMethod>> extraDispatchCases,
+      AppView<?> appView) {
     // TODO(134732760): Deal with overrides for correct dispatch to implementations of Interfaces
     assert isDefaultMethod();
     DexEncodedMethod.Builder builder = DexEncodedMethod.builder(this);
@@ -863,9 +868,13 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
                 newEncodedMethod,
                 libraryMethod,
                 this.method,
+                extraDispatchCases,
                 appView),
             registry -> {
               registry.registerInvokeInterface(libraryMethod);
+              for (Pair<DexType, DexMethod> dispatch : extraDispatchCases) {
+                registry.registerInvokeStatic(dispatch.getSecond());
+              }
               registry.registerInvokeStatic(companionMethod);
             }));
     return newEncodedMethod;

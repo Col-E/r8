@@ -9,6 +9,9 @@ import static junit.framework.TestCase.assertTrue;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.code.Instruction;
+import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -16,6 +19,7 @@ import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -60,6 +64,22 @@ public class EmulateLibraryInterfaceTest extends CoreLibDesugarTestBase {
                           && method
                               .streamInstructions()
                               .anyMatch(InstructionSubject::isInstanceOf)));
+    }
+    if (this.parameters.getRuntime().asDex().getMinApiLevel().getLevel()
+        < AndroidApiLevel.N.getLevel()) {
+      DexClass collectionDispatch = inspector.clazz("java.util.Collection$-EL").getDexClass();
+      for (DexEncodedMethod method : collectionDispatch.methods()) {
+        int numCheckCast =
+            (int)
+                Stream.of(method.getCode().asDexCode().instructions)
+                    .filter(Instruction::isCheckCast)
+                    .count();
+        if (method.qualifiedName().contains("spliterator")) {
+          assertTrue(numCheckCast > 1);
+        } else {
+          assertEquals(1, numCheckCast);
+        }
+      }
     }
   }
 }

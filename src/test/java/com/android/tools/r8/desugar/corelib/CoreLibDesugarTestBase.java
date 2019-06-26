@@ -15,6 +15,7 @@ import java.util.Map;
 
 public class CoreLibDesugarTestBase extends TestBase {
   private Map<String, String> buildPrefixRewriting() {
+    // TODO(134732760): Make 2 different methods when compiling core_library or not.
     return ImmutableMap.<String, String>builder()
         // --rewrite_core_library_prefix.
         .put("java.lang.Double8", "j$.lang.Double8")
@@ -22,6 +23,7 @@ public class CoreLibDesugarTestBase extends TestBase {
         .put("java.lang.Long8", "j$.lang.Long8")
         .put("java.lang.Math8", "j$.lang.Math8")
         .put("java.io.Desugar", "j$.io.Desugar")
+        // TODO(134732760): I do not see UncheckedIOException in Bazel
         .put("java.io.UncheckedIOException", "j$.io.UncheckedIOException")
         .put("java.time.", "j$.time.")
         .put("java.util.stream.", "j$.util.stream.")
@@ -45,8 +47,66 @@ public class CoreLibDesugarTestBase extends TestBase {
         .build();
   }
 
+  // TODO(134732760): Following flag when compiling a core_library.
+  // --core_library.
+
+  // TODO(134732760): Following flag when compiling a core_library.
+  // --retarget_core_library_member
+  // "java/util/LinkedHashSet#spliterator->java/util/DesugarLinkedHashSet".
+
+  // TODO(134732760): Following flags when compiling the program using the core_library
+  // --retarget_core_library_member "java/lang/Double#max->java/lang/Double8" \
+  // --retarget_core_library_member "java/lang/Double#min->java/lang/Double8" \
+  // --retarget_core_library_member "java/lang/Double#sum->java/lang/Double8" \
+  // --retarget_core_library_member "java/lang/Integer#max->java/lang/Integer8" \
+  // --retarget_core_library_member "java/lang/Integer#min->java/lang/Integer8" \
+  // --retarget_core_library_member "java/lang/Integer#sum->java/lang/Integer8" \
+  // --retarget_core_library_member "java/lang/Long#max->java/lang/Long8" \
+  // --retarget_core_library_member "java/lang/Long#min->java/lang/Long8" \
+  // --retarget_core_library_member "java/lang/Long#sum->java/lang/Long8" \
+  // --retarget_core_library_member "java/lang/Math#toIntExact->java/lang/Math8" \
+  // --retarget_core_library_member "java/util/Arrays#stream->java/util/DesugarArrays" \
+  // --retarget_core_library_member "java/util/Arrays#spliterator->java/util/DesugarArrays" \
+  // --retarget_core_library_member "java/util/Calendar#toInstant->java/util/DesugarCalendar" \
+  // --retarget_core_library_member "java/util/Date#from->java/util/DesugarDate" \
+  // --retarget_core_library_member "java/util/Date#toInstant->java/util/DesugarDate" \
+  // --retarget_core_library_member
+  // "java/util/GregorianCalendar#from->java/util/DesugarGregorianCalendar" \
+  // --retarget_core_library_member
+  // "java/util/GregorianCalendar#toZonedDateTime->java/util/DesugarGregorianCalendar" \
+  // --retarget_core_library_member
+  // "java/util/LinkedHashSet#spliterator->java/util/DesugarLinkedHashSet" \
+  // --retarget_core_library_member
+  // "java/util/concurrent/atomic/AtomicInteger#getAndUpdate->java/util/concurrent/atomic/DesugarAtomicInteger" \
+  // --retarget_core_library_member
+  // "java/util/concurrent/atomic/AtomicInteger#updateAndGet->java/util/concurrent/atomic/DesugarAtomicInteger" \
+  // --retarget_core_library_member
+  // "java/util/concurrent/atomic/AtomicInteger#getAndAccumulate->java/util/concurrent/atomic/DesugarAtomicInteger" \
+  // --retarget_core_library_member
+  // "java/util/concurrent/atomic/AtomicInteger#accumulateAndGet->java/util/concurrent/atomic/DesugarAtomicInteger" \
+  // --retarget_core_library_member
+  // "java/util/concurrent/atomic/AtomicLong#getAndUpdate->java/util/concurrent/atomic/DesugarAtomicLong" \
+  // --retarget_core_library_member
+  // "java/util/concurrent/atomic/AtomicLong#updateAndGet->java/util/concurrent/atomic/DesugarAtomicLong" \
+  // --retarget_core_library_member
+  // "java/util/concurrent/atomic/AtomicLong#getAndAccumulate->java/util/concurrent/atomic/DesugarAtomicLong" \
+  // --retarget_core_library_member
+  // "java/util/concurrent/atomic/AtomicLong#accumulateAndGet->java/util/concurrent/atomic/DesugarAtomicLong" \
+  // --retarget_core_library_member
+  // "java/util/concurrent/atomic/AtomicReference#getAndUpdate->java/util/concurrent/atomic/DesugarAtomicReference" \
+  // --retarget_core_library_member
+  // "java/util/concurrent/atomic/AtomicReference#updateAndGet->java/util/concurrent/atomic/DesugarAtomicReference" \
+  // --retarget_core_library_member
+  // "java/util/concurrent/atomic/AtomicReference#getAndAccumulate->java/util/concurrent/atomic/DesugarAtomicReference" \
+  // --retarget_core_library_member
+  // "java/util/concurrent/atomic/AtomicReference#accumulateAndGet->java/util/concurrent/atomic/DesugarAtomicReference" .
+
+  // TODO(134732760): Following flag for both compilation.
+  // --dont_rewrite_core_library_invocation "java/util/Iterator#remove"
+
   private Map<String, String> buildEmulateLibraryInterface() {
     return ImmutableMap.<String, String>builder()
+        // Following flags for both compilation.
         // --emulate_core_library_interface.
         .put("java.util.Collection", "j$.util.Collection")
         .put("java.util.Map", "j$.util.Map")

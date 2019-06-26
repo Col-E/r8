@@ -1157,6 +1157,12 @@ public class DexItemFactory {
         parameters.length == 0 ? DexTypeList.empty() : new DexTypeList(parameters));
   }
 
+  public DexProto protoWithDifferentFirstParameter(DexProto proto, DexType firstParameter) {
+    DexType[] parameterTypes = proto.parameters.values.clone();
+    parameterTypes[0] = firstParameter;
+    return createProto(proto.returnType, parameterTypes);
+  }
+
   public DexProto prependTypeToProto(DexType extraFirstType, DexProto initialProto) {
     DexType[] parameterTypes = new DexType[initialProto.parameters.size() + 1];
     parameterTypes[0] = extraFirstType;
