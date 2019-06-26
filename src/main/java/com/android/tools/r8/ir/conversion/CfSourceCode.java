@@ -415,6 +415,7 @@ public class CfSourceCode implements SourceCode {
   private void buildExceptionalExitMethodSynchronization(IRBuilder builder) {
     assert needsGeneratedMethodSynchronization;
     currentlyGeneratingMethodSynchronization = true;
+    state.setPosition(getCanonicalDebugPositionAtOffset(EXCEPTIONAL_SYNC_EXIT_OFFSET));
     builder.add(new Monitor(Monitor.Type.EXIT, monitorEnter.inValues().get(0)));
     builder.addThrow(getMoveExceptionRegister(0));
     currentlyGeneratingMethodSynchronization = false;
@@ -436,8 +437,10 @@ public class CfSourceCode implements SourceCode {
         || isExceptionalExitForMethodSynchronization(successorOffset)) {
       return;
     }
-    // The transfer has not yet taken place, so the current position is that of the predecessor.
-    state.setPosition(getCanonicalDebugPositionAtOffset(predecessorOffset));
+    // The transfer has not yet taken place, so the current position is that of the predecessor,
+    // except for exceptional edges where the transfer has already taken place.
+    state.setPosition(
+        getCanonicalDebugPositionAtOffset(isExceptional ? successorOffset : predecessorOffset));
 
     // Manually compute the local variable change for the block transfer.
     Int2ObjectMap<DebugLocalInfo> atSource = getLocalVariables(predecessorOffset).locals;
@@ -485,8 +488,12 @@ public class CfSourceCode implements SourceCode {
         // If the entry block is also a target the actual entry block is at offset -1.
         currentBlockInfo = builder.getCFG().get(IRBuilder.INITIAL_BLOCK_OFFSET);
       }
-      state.reset(incomingState.get(instructionIndex), instructionIndex == 0);
+      state.reset(
+          incomingState.get(instructionIndex),
+          instructionIndex == 0,
+          getCanonicalDebugPositionAtOffset(instructionIndex));
     }
+
     assert currentBlockInfo != null;
     setLocalVariableLists();
 

@@ -67,6 +67,7 @@ public class CfState {
 
   private final Origin origin;
   private Snapshot current;
+  private Position position;
 
   public CfState(Origin origin) {
     this.origin = origin;
@@ -75,16 +76,18 @@ public class CfState {
   private static final int MAX_UPDATES = 4;
 
   public void buildPrelude(Position preamblePosition) {
-    current = new BaseSnapshot(preamblePosition);
+    current = new BaseSnapshot();
+    position = preamblePosition;
   }
 
   public void clear() {
     current = null;
   }
 
-  public void reset(Snapshot snapshot, boolean isMethodEntry) {
+  public void reset(Snapshot snapshot, boolean isMethodEntry, Position position) {
     assert !isMethodEntry || snapshot != null : "Must have snapshot for method entry.";
     current = snapshot;
+    this.position = position;
   }
 
   public void setStateFromFrame(DexType[] locals, DexType[] stack, Position position) {
@@ -92,9 +95,9 @@ public class CfState {
     current = new BaseSnapshot(locals, stack, position);
   }
 
-  public void merge(Snapshot snapshot, Position preamblePosition) {
+  public void merge(Snapshot snapshot) {
     if (current == null) {
-      current = snapshot == null ? new BaseSnapshot(preamblePosition) : snapshot;
+      current = snapshot == null ? new BaseSnapshot() : snapshot;
     } else {
       current = merge(current, snapshot, origin);
     }
@@ -209,12 +212,12 @@ public class CfState {
   }
 
   public Position getPosition() {
-    return current.getPosition();
+    return position;
   }
 
   public void setPosition(Position position) {
     assert position != null;
-    updateState(new SetPosition(current, position));
+    this.position = position;
   }
 
   @Override
@@ -287,10 +290,6 @@ public class CfState {
       return parent.getLocal(i);
     }
 
-    public Position getPosition() {
-      return parent.getPosition();
-    }
-
     void build(BaseSnapshot base) {
       parent.build(base);
     }
@@ -300,7 +299,7 @@ public class CfState {
     }
 
     public Snapshot exceptionTransfer(DexType throwableType) {
-      BaseSnapshot result = new BaseSnapshot(maxLocal() + 1, 1, getPosition());
+      BaseSnapshot result = new BaseSnapshot(maxLocal() + 1, 1);
       build(result);
       result.stack[0] = new SlotType.Precise(throwableType);
       return result;
@@ -310,22 +309,19 @@ public class CfState {
   private static class BaseSnapshot extends Snapshot {
     final SlotType[] locals;
     final SlotType[] stack;
-    final Position position;
 
-    BaseSnapshot(Position preamblePosition) {
-      this(0, 0, preamblePosition);
+    BaseSnapshot() {
+      this(0, 0);
     }
 
-    BaseSnapshot(int locals, int stack, Position position) {
+    BaseSnapshot(int locals, int stack) {
       super(null, 0);
-      assert position != null;
       this.locals = new SlotType[locals];
       this.stack = new SlotType[stack];
-      this.position = position;
     }
 
     BaseSnapshot(Snapshot newSnapshot) {
-      this(newSnapshot.maxLocal() + 1, newSnapshot.stackHeight(), newSnapshot.getPosition());
+      this(newSnapshot.maxLocal() + 1, newSnapshot.stackHeight());
       newSnapshot.build(this);
     }
 
@@ -334,7 +330,6 @@ public class CfState {
       assert position != null;
       this.locals = new SlotType[locals.length];
       this.stack = new SlotType[stack.length];
-      this.position = position;
       for (int i = 0; i < locals.length; i++) {
         this.locals[i] = locals[i] == null ? null : getSlotType(locals[i]);
       }
@@ -377,11 +372,6 @@ public class CfState {
     }
 
     @Override
-    public Position getPosition() {
-      return position;
-    }
-
-    @Override
     void build(BaseSnapshot dest) {
       for (int i = 0; i < locals.length && i < dest.locals.length; i++) {
         dest.locals[i] = locals[i];
@@ -398,8 +388,7 @@ public class CfState {
 
     @Override
     public String toString() {
-      StringBuilder stringBuilder =
-          new StringBuilder().append("position: ").append(position).append(" stack: [");
+      StringBuilder stringBuilder = new StringBuilder().append("stack: [");
       String sep = "";
       for (SlotType type : stack) {
         stringBuilder.append(sep).append(type);
@@ -517,26 +506,6 @@ public class CfState {
     @Override
     public String toString() {
       return parent.toString() + "; write " + slot.register + " := " + slot.slotType;
-    }
-  }
-
-  private static class SetPosition extends Snapshot {
-
-    private final Position position;
-
-    SetPosition(Snapshot parent, Position position) {
-      super(parent, parent.updates + 1);
-      this.position = position;
-    }
-
-    @Override
-    public Position getPosition() {
-      return position;
-    }
-
-    @Override
-    public String toString() {
-      return parent.toString() + "; set pos " + position;
     }
   }
 }
