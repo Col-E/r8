@@ -5,6 +5,7 @@
 package com.android.tools.r8.desugar.corelib;
 
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -20,6 +21,10 @@ public class CoreLibDesugarTestBase extends TestBase {
   private Map<String, String> buildPrefixRewritingForCoreLibCompilation() {
     return ImmutableMap.<String, String>builder()
         // --rewrite_core_library_prefix.
+        // Extra flags for R8
+        .put("java.io.DesugarBufferedReader", "j$.io.DesugarBufferedReader")
+        .put("java.io.UncheckedIOException", "j$.io.UncheckedIOException")
+        // TODO (b/134732760): Rewrite java.lang.*8 to java.lang.*
         .put("java.lang.Double8", "j$.lang.Double8")
         .put("java.lang.Integer8", "j$.lang.Integer8")
         .put("java.lang.Long8", "j$.lang.Long8")
@@ -49,11 +54,11 @@ public class CoreLibDesugarTestBase extends TestBase {
   private Map<String, String> buildPrefixRewritingForProgramCompilation() {
     return ImmutableMap.<String, String>builder()
         // --rewrite_core_library_prefix.
-        // TODO (b/134732760): Rewrite java.util.Long8 to java.util.Long
-        // .put("java.lang.Double8", "j$.lang.Double8")
-        // .put("java.lang.Integer8", "j$.lang.Integer8")
-        // .put("java.lang.Long8", "j$.lang.Long8")
-        // .put("java.lang.Math8", "j$.lang.Math8")
+        // TODO (b/134732760): Rewrite java.lang.*8 to java.lang.*
+        .put("java.lang.Double8", "j$.lang.Double8")
+        .put("java.lang.Integer8", "j$.lang.Integer8")
+        .put("java.lang.Long8", "j$.lang.Long8")
+        .put("java.lang.Math8", "j$.lang.Math8")
         .put("java.util.stream.", "j$.util.stream.")
         .put("java.util.function.", "j$.util.function.")
         .put("java.util.Desugar", "j$.util.Desugar")
@@ -79,7 +84,7 @@ public class CoreLibDesugarTestBase extends TestBase {
   private Map<String, String> buildRetargetCoreLibraryMemberForProgramCompilation() {
     // --retarget_core_library_member.
     return ImmutableMap.<String, String>builder()
-        // We ignore the following flags required by Bazel because desuagring of these methods
+        // We ignore the following flags required by Bazel because desugaring of these methods
         // is done separately.
         // .put("java/lang/Double#max", "j$/lang/Double8")
         // .put("java/lang/Double#min", "j$/lang/Double8")
@@ -143,15 +148,32 @@ public class CoreLibDesugarTestBase extends TestBase {
     return ImmutableList.of("java/util/Iterator#remove");
   }
 
-  private Map<String, String> buildEmulateLibraryInterface() {
+  protected Map<String, String> buildEmulateLibraryInterface() {
     return ImmutableMap.<String, String>builder()
         // --emulate_core_library_interface.
+        // Bazel flags.
+        .put("java.util.Map$Entry", "j$.util.Map$Entry")
         .put("java.util.Collection", "j$.util.Collection")
         .put("java.util.Map", "j$.util.Map")
-        .put("java.util.Map$Entry", "j$.util.Map$Entry")
         .put("java.util.Iterator", "j$.util.Iterator")
         .put("java.util.Comparator", "j$.util.Comparator")
+        // Extra flags: in R8 we marked as emulated all interfaces
+        // with default methods. Emulated interfaces have their
+        // companion class moved to j$ and have a dispatch class.
+        // Bazel instead analyzes the class hierarchy.
+        .put(
+            "java.util.concurrent.ConcurrentNavigableMap",
+            "j$.util.concurrent.ConcurrentNavigableMap")
+        .put("java.util.List", "j$.util.List")
+        .put("java.util.SortedSet", "j$.util.SortedSet")
+        .put("java.util.Set", "j$.util.Set")
+        .put("java.util.concurrent.ConcurrentMap", "j$.util.concurrent.ConcurrentMap")
         .build();
+  }
+
+  protected boolean requiresCoreLibDesugaring(TestParameters parameters) {
+    return parameters.getRuntime().asDex().getMinApiLevel().getLevel()
+        < AndroidApiLevel.N.getLevel();
   }
 
   protected void configureCoreLibDesugarForCoreLibCompilation(InternalOptions options) {

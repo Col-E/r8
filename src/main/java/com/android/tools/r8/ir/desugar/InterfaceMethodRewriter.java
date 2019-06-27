@@ -30,6 +30,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeDirect;
+import com.android.tools.r8.ir.code.InvokeInterface;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeSuper;
 import com.android.tools.r8.ir.conversion.IRConverter;
@@ -41,11 +42,12 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.StringDiagnostic;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.IdentityHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -98,7 +100,6 @@ public final class InterfaceMethodRewriter {
   private final Map<DexType, DexType> emulatedInterfaces = new IdentityHashMap<>();
   // In emulatedInterfacesHierarchy, keys are interfaces and values the list of emulated
   // interfaces the interface implements. The list is in a specific order (top-down).
-  private final Map<DexType, List<DexType>> emulatedInterfacesHierarchy = new IdentityHashMap<>();
   private final Map<String, String> prefixRewritingInterfaces = new IdentityHashMap<>();
 
   // All forwarding methods generated during desugaring. We don't synchronize access
@@ -137,62 +138,24 @@ public final class InterfaceMethodRewriter {
     this.options = appView.options();
     this.factory = appView.dexItemFactory();
     for (String interfaceName : options.emulateLibraryInterface.keySet()) {
-      emulatedInterfaces.put(
-          factory.createType(DescriptorUtils.javaTypeToDescriptor(interfaceName)),
+      DexType interfaceType =
+          factory.createType(DescriptorUtils.javaTypeToDescriptor(interfaceName));
+      DexType rewrittenType =
           factory.createType(
               DescriptorUtils.javaTypeToDescriptor(
-                  options.emulateLibraryInterface.get(interfaceName))));
-    }
-    if (!emulatedInterfaces.isEmpty()) {
-      computeEmulatedInterfaceHierarchy();
+                  options.emulateLibraryInterface.get(interfaceName)));
+      emulatedInterfaces.put(interfaceType, rewrittenType);
+      addRewritePrefix(interfaceType, rewrittenType.toSourceString());
     }
   }
 
-  private void computeEmulatedInterfaceHierarchy() {
-    // itfToEmulatedItf maps each interface to the list of interfaces it implements.
-    Map<DexType, Set<DexType>> itfToEmulatedItf = new IdentityHashMap<>();
-    Set<DexType> processed = Sets.newIdentityHashSet();
-    for (DexType theInterface : emulatedInterfaces.keySet()) {
-      itfToEmulatedItf.put(theInterface, ImmutableSet.of(theInterface));
-      emulatedInterfacesHierarchy.put(theInterface, new ArrayList<>());
-      processed.add(theInterface);
-    }
-    for (DexProgramClass clazz : appView.appInfo().classes()) {
-      if (clazz.isInterface()) {
-        processInterfaceInHierarchy(clazz, processed, itfToEmulatedItf);
-      }
-    }
-    // TODO(b/134732760): prune interfaces in emulatedInterfacesHierarchy, keep only relevant ones
-    // TODO(b/134732760): deal with retarget-core-library-member
-  }
-
-  private void processInterfaceInHierarchy(
-      DexClass theInterface, Set<DexType> processed, Map<DexType, Set<DexType>> itfToEmulatedItf) {
-    // Since we assume interface inheritance do not go very deep we use recursive algorithm.
-    assert theInterface.isInterface();
-    if (processed.contains(theInterface.type)) {
-      return;
-    }
-    processed.add(theInterface.type);
-    for (DexType superInterfaceType : theInterface.interfaces.values) {
-      DexClass superInterfaceClass = appView.definitionFor(superInterfaceType);
-      if (superInterfaceClass == null) {
-        warnMissingEmulatedInterfaceOnLookup(superInterfaceType);
-      } else {
-        processInterfaceInHierarchy(superInterfaceClass, processed, itfToEmulatedItf);
-        if (itfToEmulatedItf.containsKey(superInterfaceType)) {
-          itfToEmulatedItf.putIfAbsent(theInterface.type, Sets.newIdentityHashSet());
-          itfToEmulatedItf.get(theInterface.type).addAll(itfToEmulatedItf.get(superInterfaceType));
-        }
-      }
-    }
-    // Here we are guaranteed all superInterfaces have been processed before.
-    // Hence the list in emulatedInterfacesHierarchy is top-down regarding the inheritance tree.
-    if (itfToEmulatedItf.containsKey(theInterface.type)) {
-      for (DexType itf : itfToEmulatedItf.get(theInterface.type)) {
-        emulatedInterfacesHierarchy.get(itf).add(theInterface.type);
-      }
-    }
+  private void addRewritePrefix(DexType interfaceType, String rewrittenType) {
+    prefixRewritingInterfaces.put(
+        getCompanionClassType(interfaceType).toString(),
+        rewrittenType + COMPANION_CLASS_NAME_SUFFIX);
+    prefixRewritingInterfaces.put(
+        getEmulateLibraryInterfaceClassType(interfaceType, factory).toString(),
+        rewrittenType + EMULATE_LIBRARY_CLASS_NAME_SUFFIX);
   }
 
   // Rewrites the references to static and default interface methods.
@@ -344,17 +307,50 @@ public final class InterfaceMethodRewriter {
             }
           }
         }
+
+        if (instruction.isInvokeInterface() && !appView.options().coreLibraryCompilation) {
+          // If in the core library we can keep invokeInterface (desugared through companion).
+          InvokeInterface invokeInterface = instruction.asInvokeInterface();
+          DexMethod invokedMethod = invokeInterface.getInvokedMethod();
+          if (emulatedInterfaces.containsKey(invokedMethod.holder)) {
+            // If the method called on the interface is redefined in the core library,
+            // call the redefined method instead.
+            DexType implementingInterface =
+                lookupEmulatedMethod(invokedMethod, invokedMethod.holder);
+            if (implementingInterface != null) {
+              instructions.replaceCurrentInstruction(
+                  new InvokeStatic(
+                      emulateInterfaceLibraryMethod(invokedMethod, implementingInterface, factory),
+                      invokeInterface.outValue(),
+                      invokeInterface.arguments()));
+            }
+          }
+        }
       }
     }
   }
 
-  private void warnMissingEmulatedInterfaceOnLookup(DexType interfaceType) {
-    StringDiagnostic warning =
-        new StringDiagnostic(
-            "Cannot lookup interface type "
-                + interfaceType.getName()
-                + " (might break interface emulation).");
-    options.reporter.warning(warning);
+  private DexType lookupEmulatedMethod(DexMethod method, DexType interfaceType) {
+    // Finds the emulated interface which implements the emulated method.
+    if (!emulatedInterfaces.containsKey(interfaceType)) {
+      return null;
+    }
+    DexClass emulatedItf = appView.definitionFor(interfaceType);
+    assert emulatedItf.isLibraryClass();
+    DexEncodedMethod foundMethod = emulatedItf.lookupVirtualMethod(method);
+    if (foundMethod == null) {
+      for (DexType superInterfaceType : emulatedItf.interfaces.values) {
+        DexType result = lookupEmulatedMethod(method, superInterfaceType);
+        if (result != null) {
+          return result;
+        }
+      }
+      return null;
+    }
+    if (foundMethod.isAbstract()) {
+      return null;
+    }
+    return interfaceType;
   }
 
   private void warnMissingEmulatedInterface(DexType interfaceType) {
@@ -367,13 +363,15 @@ public final class InterfaceMethodRewriter {
   }
 
   private void generateEmulateInterfaceLibrary(Builder<?> builder) {
+    Map<DexType, List<DexType>> emulatedInterfacesHierarchy = processEmulatedInterfaceHierarchy();
     for (DexType interfaceType : emulatedInterfaces.keySet()) {
       DexClass theInterface = appView.definitionFor(interfaceType);
       if (theInterface == null) {
         warnMissingEmulatedInterface(interfaceType);
       } else if (theInterface.isProgramClass()) {
         DexProgramClass synthesizedClass =
-            synthetizeEmulateInterfaceLibraryClass(theInterface.asProgramClass());
+            synthetizeEmulateInterfaceLibraryClass(
+                theInterface.asProgramClass(), emulatedInterfacesHierarchy);
         if (synthesizedClass != null) {
           builder.addSynthesizedClass(synthesizedClass, isInMainDexList(interfaceType));
           appView.appInfo().addSynthesizedClass(synthesizedClass);
@@ -382,33 +380,53 @@ public final class InterfaceMethodRewriter {
     }
   }
 
-  private static DexMethod emulateInterfaceLibraryMethod(DexMethod method, DexItemFactory factory) {
+  private Map<DexType, List<DexType>> processEmulatedInterfaceHierarchy() {
+    Map<DexType, List<DexType>> emulatedInterfacesHierarchy = new IdentityHashMap<>();
+    Set<DexType> processed = Sets.newIdentityHashSet();
+    for (DexType interfaceType : emulatedInterfaces.keySet()) {
+      processEmulatedInterfaceHierarchy(interfaceType, processed, emulatedInterfacesHierarchy);
+    }
+    return emulatedInterfacesHierarchy;
+  }
+
+  private void processEmulatedInterfaceHierarchy(
+      DexType interfaceType,
+      Set<DexType> processed,
+      Map<DexType, List<DexType>> emulatedInterfacesHierarchy) {
+    if (processed.contains(interfaceType)) {
+      return;
+    }
+    emulatedInterfacesHierarchy.put(interfaceType, new ArrayList<>());
+    processed.add(interfaceType);
+    DexClass theInterface = appView.definitionFor(interfaceType);
+    if (theInterface == null) {
+      warnMissingEmulatedInterface(interfaceType);
+      return;
+    }
+    LinkedList<DexType> workList = new LinkedList<>(Arrays.asList(theInterface.interfaces.values));
+    while (!workList.isEmpty()) {
+      DexType next = workList.removeLast();
+      if (emulatedInterfaces.containsKey(next)) {
+        processEmulatedInterfaceHierarchy(next, processed, emulatedInterfacesHierarchy);
+        emulatedInterfacesHierarchy.get(next).add(interfaceType);
+        DexClass nextClass = appView.definitionFor(next);
+        if (nextClass != null) {
+          workList.addAll(Arrays.asList(nextClass.interfaces.values));
+        }
+      }
+    }
+  }
+
+  private static DexMethod emulateInterfaceLibraryMethod(
+      DexMethod method, DexType holder, DexItemFactory factory) {
     return factory.createMethod(
-        getEmulateLibraryInterfaceClassType(method.holder, factory),
-        factory.prependTypeToProto(method.holder, method.proto),
+        getEmulateLibraryInterfaceClassType(holder, factory),
+        factory.prependTypeToProto(holder, method.proto),
         factory.createString(method.name.toString()));
   }
 
-  private boolean assertSubInterfaceCompatible(DexType subInterfaceType, DexType interfaceType) {
-    assert interfaceType.getName().equals(emulatedInterfaces.get(interfaceType).getName());
-    assert subInterfaceType.getPackageDescriptor().startsWith(interfaceType.getPackageDescriptor());
-    return true;
-  }
-
-  private DexType getCompanionClassTypeUsingPrefix(
-      DexType subInterfaceType, DexType interfaceType) {
-    // Answers the companion class name and request extra rewriting for it.
-    assert assertSubInterfaceCompatible(subInterfaceType, interfaceType);
-    String initialPrefix = interfaceType.getPackageName();
-    String rewrittenPrefix = emulatedInterfaces.get(interfaceType).getPackageName();
-    String suffix = subInterfaceType.toString().substring(initialPrefix.length());
-    prefixRewritingInterfaces.put(
-        getCompanionClassType(subInterfaceType).toString(),
-        rewrittenPrefix + suffix + COMPANION_CLASS_NAME_SUFFIX);
-    return getCompanionClassType(subInterfaceType);
-  }
-
-  private DexProgramClass synthetizeEmulateInterfaceLibraryClass(DexProgramClass theInterface) {
+  private DexProgramClass synthetizeEmulateInterfaceLibraryClass(
+      DexProgramClass theInterface, Map<DexType, List<DexType>> emulatedInterfacesHierarchy) {
     List<DexEncodedMethod> emulationMethods = new ArrayList<>();
     for (DexEncodedMethod method : theInterface.methods()) {
       if (method.isDefaultMethod()) {
@@ -421,7 +439,7 @@ public final class InterfaceMethodRewriter {
                 : instanceAsMethodOfCompanionClass(method.method, DEFAULT_METHOD_PREFIX, factory);
         DexMethod companionMethod =
             factory.createMethod(
-                getCompanionClassType(emulatedInterfaces.get(theInterface.type)),
+                getCompanionClassType(theInterface.type),
                 originalCompanionMethod.proto,
                 originalCompanionMethod.name);
 
@@ -431,28 +449,27 @@ public final class InterfaceMethodRewriter {
         // hence reverse iteration.
         List<DexType> subInterfaces = emulatedInterfacesHierarchy.get(theInterface.type);
         List<Pair<DexType, DexMethod>> extraDispatchCases = new ArrayList<>();
-        for (int i = subInterfaces.size() - 1; i >= 0; i--) {
-          DexClass subInterfaceClass = appView.definitionFor(subInterfaces.get(i));
-          assert subInterfaceClass != null; // Else computation of subInterface would have failed.
-          // if the method is implemented, extra dispatch is required.
-          for (DexEncodedMethod subItfMethod : subInterfaceClass.virtualMethods()) {
-            if (subItfMethod.method.match(method)) {
+        if (subInterfaces != null) {
+          for (int i = subInterfaces.size() - 1; i >= 0; i--) {
+            DexClass subInterfaceClass = appView.definitionFor(subInterfaces.get(i));
+            assert subInterfaceClass != null; // Else computation of subInterface would have failed.
+            // if the method is implemented, extra dispatch is required.
+            DexEncodedMethod result = subInterfaceClass.lookupVirtualMethod(method.method);
+            if (result != null) {
               extraDispatchCases.add(
                   new Pair<>(
                       subInterfaceClass.type,
                       factory.createMethod(
-                          getCompanionClassTypeUsingPrefix(
-                              subInterfaceClass.type, theInterface.type),
+                          getCompanionClassType(subInterfaceClass.type),
                           factory.protoWithDifferentFirstParameter(
                               originalCompanionMethod.proto, subInterfaceClass.type),
                           originalCompanionMethod.name)));
             }
           }
         }
-
         emulationMethods.add(
             method.toEmulateInterfaceLibraryMethod(
-                emulateInterfaceLibraryMethod(method.method, factory),
+                emulateInterfaceLibraryMethod(method.method, method.method.holder, factory),
                 companionMethod,
                 libraryMethod,
                 extraDispatchCases,
@@ -640,7 +657,9 @@ public final class InterfaceMethodRewriter {
       ExecutorService executorService)
       throws ExecutionException {
     // Emulated library interfaces should generate the Emulated Library EL dispatch class
-    generateEmulateInterfaceLibrary(builder);
+    if (appView.options().coreLibraryCompilation) {
+      generateEmulateInterfaceLibrary(builder);
+    }
 
     // Process all classes first. Add missing forwarding methods to
     // replace desugared default interface methods.

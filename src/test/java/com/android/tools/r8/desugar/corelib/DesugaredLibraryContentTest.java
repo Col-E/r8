@@ -10,7 +10,6 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableSet;
@@ -73,9 +72,7 @@ public class DesugaredLibraryContentTest extends CoreLibDesugarTestBase {
 
     // TODO(134732760): This should be a 0 count.
     assertEquals(
-        parameters.getRuntime().asDex().getMinApiLevel().getLevel() < AndroidApiLevel.N.getLevel()
-            ? 38
-            : 27,
+        24,
         inspector.allClasses().stream()
             .map(ClassSubject::getOriginalName)
             .filter(name -> name.startsWith("java."))
@@ -84,9 +81,7 @@ public class DesugaredLibraryContentTest extends CoreLibDesugarTestBase {
 
     // TODO(134732760): Remove this when above is a 0 count.
     assertEquals(
-        parameters.getRuntime().asDex().getMinApiLevel().getLevel() < AndroidApiLevel.N.getLevel()
-            ? 13
-            : 8,
+        5,
         inspector.allClasses().stream()
             .map(ClassSubject::getOriginalName)
             .filter(name -> name.startsWith("java."))
