@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.ir.analysis.proto.schema.ProtoFieldTypeFactory;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
@@ -32,6 +33,8 @@ public class GeneratedMessageLiteShrinker {
   private final AppView<AppInfoWithLiveness> appView;
   private final ProtoReferences references;
   private final ThrowingInfo throwingInfo;
+
+  private final ProtoFieldTypeFactory factory = new ProtoFieldTypeFactory();
 
   public GeneratedMessageLiteShrinker(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
@@ -66,8 +69,9 @@ public class GeneratedMessageLiteShrinker {
         if (invoke.getInvokedMethod() != references.newMessageInfoMethod) {
           continue;
         }
-        Value array = invoke.inValues().get(2);
-        for (Instruction user : array.uniqueUsers()) {
+        Value infoValue = invoke.inValues().get(1);
+        Value objectsValue = invoke.inValues().get(2);
+        for (Instruction user : objectsValue.uniqueUsers()) {
           if (!user.isArrayPut()) {
             continue;
           }
@@ -77,6 +81,9 @@ public class GeneratedMessageLiteShrinker {
           }
           rewritingCandidates.add(rewritingCandidate.definition.asConstString());
         }
+
+        // For now, just verify that we can actually decode the raw message info from the IR.
+        assert new RawMessageInfoDecoder(factory, infoValue, objectsValue).run() != null;
       }
 
       // Implicitly check that the method newMessageInfo() has not been inlined. In that case,

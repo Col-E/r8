@@ -8,8 +8,10 @@ import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.IdentifierUtils;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.ThrowingCharIterator;
 import java.io.UTFDataFormatException;
 import java.util.Arrays;
+import java.util.NoSuchElementException;
 
 public class DexString extends IndexedDexItem implements PresortedComparable<DexString> {
 
@@ -26,6 +28,46 @@ public class DexString extends IndexedDexItem implements PresortedComparable<Dex
   DexString(String string) {
     this.size = string.length();
     this.content = encodeToMutf8(string);
+  }
+
+  public ThrowingCharIterator<UTFDataFormatException> iterator() {
+    return new ThrowingCharIterator<UTFDataFormatException>() {
+
+      private int i = 0;
+
+      @Override
+      public char nextChar() throws UTFDataFormatException {
+        if (!hasNext()) {
+          throw new NoSuchElementException();
+        }
+        char a = (char) (content[i++] & 0xff);
+        assert a != 0;
+        if (a < '\u0080') {
+          return a;
+        }
+        if ((a & 0xe0) == 0xc0) {
+          int b = content[i++] & 0xff;
+          if ((b & 0xC0) == 0x80) {
+            return (char) (((a & 0x1F) << 6) | (b & 0x3F));
+          }
+          throw new UTFDataFormatException("bad second byte");
+        }
+        if ((a & 0xf0) == 0xe0) {
+          int b = content[i++] & 0xff;
+          int c = content[i++] & 0xff;
+          if ((b & 0xC0) == 0x80 && (c & 0xC0) == 0x80) {
+            return (char) (((a & 0x0F) << 12) | ((b & 0x3F) << 6) | (c & 0x3F));
+          }
+          throw new UTFDataFormatException("bad second or third byte");
+        }
+        throw new UTFDataFormatException("bad byte");
+      }
+
+      @Override
+      public boolean hasNext() {
+        return i < content.length && (content[i] & 0xff) != 0;
+      }
+    };
   }
 
   @Override
