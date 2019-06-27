@@ -453,7 +453,7 @@ public class CfCode extends Code implements CfOrJarCode {
     }
     assert indexToNumber.size() == argumentCount;
     for (CfInstruction instruction : instructions) {
-      int index;
+      int index = -1;
       if (instruction instanceof CfLoad) {
         index = ((CfLoad) instruction).getLocalIndex();
       } else if (instruction instanceof CfIinc) {
@@ -461,7 +461,7 @@ public class CfCode extends Code implements CfOrJarCode {
       } else {
         continue;
       }
-      if (index < indexToNumber.size()) {
+      if (index >= 0) {
         registry.register(indexToNumber.get(index));
       }
     }
