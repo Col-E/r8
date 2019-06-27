@@ -2807,4 +2807,35 @@ public class ProguardConfigurationParserTest extends TestBase {
     assertEquals(1, handler.infos.size());
     checkDiagnostics(handler.infos, proguardConfig, 1, 7, "Ignoring modifier", "includecode");
   }
+
+  @Test
+  public void parseFileWithLotsOfWhitespace() throws Exception {
+    List<String> ws =
+        ImmutableList.of(
+            "",
+            " ",
+            "  ",
+            "\t ",
+            " \t",
+            "" + StringUtils.BOM,
+            StringUtils.BOM + " " + StringUtils.BOM);
+    // Copied from test 'parseIncludeCode()' and added whitespace.
+    for (String whitespace1 : ws) {
+      for (String whitespace2 : ws) {
+        reset();
+        Path proguardConfig =
+            writeTextToTempFile(
+                whitespace1
+                    + "-keep,includecode "
+                    + whitespace2
+                    + "class A { method(); }"
+                    + whitespace1);
+        parser.parse(proguardConfig);
+        assertEquals(1, parser.getConfig().getRules().size());
+        assertEquals(1, handler.infos.size());
+        // All BOSs except the leading are counted as input characters.
+        checkDiagnostics(handler.infos, proguardConfig, 1, 0, "Ignoring modifier", "includecode");
+      }
+    }
+  }
 }

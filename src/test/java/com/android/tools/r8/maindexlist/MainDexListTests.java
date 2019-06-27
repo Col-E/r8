@@ -65,7 +65,6 @@ import com.android.tools.r8.utils.AbortException;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
-import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -340,24 +339,64 @@ public class MainDexListTests extends TestBase {
 
   @Test
   public void validEntries() throws IOException {
-    List<String> list = ImmutableList.of(
-        "A.class",
-        "a/b/c/D.class",
-        "a/b/c/D$E.class"
-    );
-    for (Boolean addBOM : BooleanUtils.values()) {
-      DexItemFactory factory = new DexItemFactory();
-      Path mainDexList = temp.getRoot().toPath().resolve("valid.txt");
-      FileUtils.writeTextFile(
-          mainDexList,
-          list.stream()
-              .map(name -> name.startsWith("A") && addBOM ? StringUtils.BOM + name : name)
-              .collect(Collectors.toList()));
-      Set<DexType> types = parse(mainDexList, factory);
-      for (String entry : list) {
-        DexType type = factory.createType("L" + entry.replace(".class", "") + ";");
-        assertTrue(types.contains(type));
-        assertSame(type, MainDexList.parseEntry(entry, factory));
+    List<String> lines = ImmutableList.of("A.class", "a/b/c/D.class", "a/b/c/D$E.class");
+    DexItemFactory factory = new DexItemFactory();
+    Path mainDexList = temp.getRoot().toPath().resolve("valid.txt");
+    FileUtils.writeTextFile(mainDexList, lines);
+    Set<DexType> types = parse(mainDexList, factory);
+    for (String entry : lines) {
+      DexType type = factory.createType("L" + entry.replace(".class", "") + ";");
+      assertTrue(types.contains(type));
+      assertSame(type, MainDexList.parseEntry(entry, factory));
+    }
+  }
+
+  @Test
+  public void leadingBOM() throws IOException {
+    List<String> lines =
+        ImmutableList.of(StringUtils.BOM + "A.class", "a/b/c/D.class", "a/b/c/D$E.class");
+    List<String> classes = ImmutableList.of("A", "a/b/c/D", "a/b/c/D$E");
+    DexItemFactory factory = new DexItemFactory();
+    Path mainDexList = temp.getRoot().toPath().resolve("valid.txt");
+    FileUtils.writeTextFile(mainDexList, lines);
+    Set<DexType> types = parse(mainDexList, factory);
+    assertEquals(types.size(), classes.size());
+    for (String clazz : classes) {
+      DexType type = factory.createType("L" + clazz + ";");
+      assertTrue(types.contains(type));
+    }
+  }
+
+  @Test
+  public void lotsOfWhitespace() throws IOException {
+    List<String> ws =
+        ImmutableList.of(
+            "",
+            " ",
+            "  ",
+            "\t ",
+            " \t",
+            "" + StringUtils.BOM,
+            StringUtils.BOM + " " + StringUtils.BOM);
+    for (String before : ws) {
+      for (String after : ws) {
+        List<String> lines =
+            ImmutableList.of(
+                before + "A.class" + after,
+                before + "a/b/c/D.class" + after,
+                before + "a/b/c/D$E.class" + after,
+                before + after);
+
+        List<String> classes = ImmutableList.of("A", "a/b/c/D", "a/b/c/D$E");
+        DexItemFactory factory = new DexItemFactory();
+        Path mainDexList = temp.getRoot().toPath().resolve("valid.txt");
+        FileUtils.writeTextFile(mainDexList, lines);
+        Set<DexType> types = parse(mainDexList, factory);
+        assertEquals(types.size(), classes.size());
+        for (String clazz : classes) {
+          DexType type = factory.createType("L" + clazz + ";");
+          assertTrue(types.contains(type));
+        }
       }
     }
   }

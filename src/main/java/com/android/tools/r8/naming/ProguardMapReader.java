@@ -96,6 +96,7 @@ public class ProguardMapReader implements AutoCloseable {
   }
 
   private char nextChar() {
+    assert hasNext();
     try {
       return line.charAt(lineOffset++);
     } catch (ArrayIndexOutOfBoundsException e) {
@@ -110,7 +111,7 @@ public class ProguardMapReader implements AutoCloseable {
     return skipLine();
   }
 
-  private static boolean isEmptyOrCommentLine(String line) {
+  private boolean isEmptyOrCommentLine(String line) {
     if (line == null) {
       return true;
     }
@@ -118,7 +119,7 @@ public class ProguardMapReader implements AutoCloseable {
       char c = line.charAt(i);
       if (c == '#') {
         return true;
-      } else if (!Character.isWhitespace(c)) {
+      } else if (!StringUtils.isWhitespace(c)) {
         return false;
       }
     }
@@ -140,28 +141,35 @@ public class ProguardMapReader implements AutoCloseable {
 
   // Helpers for common pattern
   private void skipWhitespace() {
-    while (Character.isWhitespace(peekCodePoint())) {
+    while (hasNext() && StringUtils.isWhitespace(peekCodePoint())) {
       nextCodePoint();
     }
   }
 
-  private char expect(char c) {
+  private void expectWhitespace() {
+    boolean seen = false;
+    while (hasNext() && StringUtils.isWhitespace(peekCodePoint())) {
+      seen = seen || !StringUtils.isBOM(peekCodePoint());
+      nextCodePoint();
+    }
+    if (!seen) {
+      throw new ParseException("Expected whitespace", true);
+    }
+  }
+
+  private void expect(char c) {
     if (!hasNext()) {
       throw new ParseException("Expected '" + c + "'", true);
     }
     if (nextChar() != c) {
       throw new ParseException("Expected '" + c + "'");
     }
-    return c;
   }
 
   void parse(ProguardMap.Builder mapBuilder) throws IOException {
     // Read the first line.
     do {
       line = reader.readLine();
-      if (line != null && lineNo == 0) {
-        line = StringUtils.stripBOM(line);
-      }
       lineNo++;
     } while (hasLine() && isEmptyOrCommentLine(line));
     parseClassMappings(mapBuilder);
@@ -171,6 +179,7 @@ public class ProguardMapReader implements AutoCloseable {
 
   private void parseClassMappings(ProguardMap.Builder mapBuilder) throws IOException {
     while (hasLine()) {
+      skipWhitespace();
       String before = parseType(false);
       skipWhitespace();
       // Workaround for proguard map files that contain entries for package-info.java files.
@@ -189,9 +198,11 @@ public class ProguardMapReader implements AutoCloseable {
       }
       skipWhitespace();
       String after = parseType(false);
+      skipWhitespace();
       expect(':');
       ClassNaming.Builder currentClassBuilder =
           mapBuilder.classNamingBuilder(after, before, getPosition());
+      skipWhitespace();
       if (nextLine()) {
         parseMemberMappings(currentClassBuilder);
       }
@@ -207,7 +218,7 @@ public class ProguardMapReader implements AutoCloseable {
       Range mappedRange = null;
 
       // Parse the member line '  x:y:name:z:q -> renamedName'.
-      if (!Character.isWhitespace(peekCodePoint())) {
+      if (!StringUtils.isWhitespace(peekCodePoint())) {
         break;
       }
       skipWhitespace();
@@ -218,12 +229,16 @@ public class ProguardMapReader implements AutoCloseable {
               String.format("Invalid obfuscated line number range (%s).", maybeRangeOrInt));
         }
         mappedRange = (Range) maybeRangeOrInt;
+        skipWhitespace();
         expect(':');
       }
+      skipWhitespace();
       Signature signature = parseSignature();
+      skipWhitespace();
       if (peekChar(0) == ':') {
         // This is a mapping or inlining definition
         nextChar();
+        skipWhitespace();
         originalRange = maybeParseRangeOrInt();
         if (originalRange == null) {
           throw new ParseException("No number follows the colon after the method signature.");
@@ -303,7 +318,8 @@ public class ProguardMapReader implements AutoCloseable {
       expect('>');
     }
     if (IdentifierUtils.isDexIdentifierPart(peekCodePoint())) {
-      throw new ParseException("End of identifier expected");
+      throw new ParseException(
+          "End of identifier expected (was 0x" + Integer.toHexString(peekCodePoint()) + ")");
     }
   }
 
@@ -348,19 +364,24 @@ public class ProguardMapReader implements AutoCloseable {
 
   private Signature parseSignature() {
     String type = parseType(true);
-    expect(' ');
+    expectWhitespace();
     String name = parseMethodName();
+    skipWhitespace();
     Signature signature;
     if (peekChar(0) == '(') {
       nextChar();
+      skipWhitespace();
       String[] arguments;
       if (peekChar(0) == ')') {
         arguments = new String[0];
       } else {
         List<String> items = new LinkedList<>();
         items.add(parseType(true));
+        skipWhitespace();
         while (peekChar(0) != ')') {
+          skipWhitespace();
           expect(',');
+          skipWhitespace();
           items.add(parseType(true));
         }
         arguments = items.toArray(StringUtils.EMPTY_ARRAY);
@@ -408,10 +429,12 @@ public class ProguardMapReader implements AutoCloseable {
       return null;
     }
     int from = parseNumber();
+    skipWhitespace();
     if (peekChar(0) != ':') {
       return from;
     }
     expect(':');
+    skipWhitespace();
     int to = parseNumber();
     return new Range(from, to);
   }

@@ -4,8 +4,10 @@
 package com.android.tools.r8.utils;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
 
 import com.android.tools.r8.utils.StringUtils.BraceType;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.junit.Test;
@@ -34,5 +36,42 @@ public class StringUtilsTest {
         StringUtils.join(xs, ", ", BraceType.SQUARE, s -> '"' + StringUtils.toASCIIString(s) + '"'),
         StringUtils.join(ys, ", ", BraceType.SQUARE, s -> '"' + StringUtils.toASCIIString(s) + '"')
     );
+  }
+
+  @Test
+  public void testTrim() {
+    assertEquals("", StringUtils.trim(""));
+    String empty = "";
+    assertSame(empty, StringUtils.trim(empty));
+    assertSame(Strings.repeat("A", 1), StringUtils.trim(Strings.repeat("A", 1)));
+    String oneChar = "A";
+    assertSame(oneChar, StringUtils.trim(oneChar));
+    assertEquals(Strings.repeat("A", 2), Strings.repeat("A", 2));
+    String twoChar = "AB";
+    assertSame(twoChar, StringUtils.trim(twoChar));
+    assertEquals(Strings.repeat("A", 10), Strings.repeat("A", 10));
+    String manyChar = Strings.repeat("A", 10);
+    assertSame(manyChar, StringUtils.trim(manyChar));
+  }
+
+  @Test
+  public void testTrimWithWhitespace() {
+    List<String> ws =
+        ImmutableList.of(
+            "",
+            " ",
+            "  ",
+            "\t ",
+            " \t",
+            "" + StringUtils.BOM,
+            StringUtils.BOM + " " + StringUtils.BOM);
+    List<String> strings = ImmutableList.of("", "A", "AB", Strings.repeat("A", 10));
+    for (String before : ws) {
+      for (String after : ws) {
+        for (String string : strings) {
+          assertEquals(string, StringUtils.trim(before + string + after));
+        }
+      }
+    }
   }
 }

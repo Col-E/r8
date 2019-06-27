@@ -29,7 +29,8 @@ public class IdentifierUtils {
         || (0x00a1 <= cp && cp <= 0x1fff)
         || (0x2010 <= cp && cp <= 0x2027)
         || (0x2030 <= cp && cp <= 0xd7ff)
-        || (0xe000 <= cp && cp <= 0xffef)
+        || (0xe000 <= cp && cp < 0xfeff) // Don't include BOM.
+        || (0xfeff < cp && cp <= 0xffef)
         || (0x10000 <= cp && cp <= 0x10ffff);
   }
 }

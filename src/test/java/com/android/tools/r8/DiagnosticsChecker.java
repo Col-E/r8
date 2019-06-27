@@ -73,8 +73,12 @@ public class DiagnosticsChecker implements DiagnosticsHandler {
     } else {
       position = ((TextPosition) diagnostic.getPosition());
     }
-    assertEquals(lineStart, position.getLine());
-    assertEquals(columnStart, position.getColumn());
+    if (lineStart > 0) {
+      assertEquals(lineStart, position.getLine());
+    }
+    if (columnStart > 0) {
+      assertEquals(columnStart, position.getColumn());
+    }
     for (String part : messageParts) {
       assertTrue(diagnostic.getDiagnosticMessage() + " doesn't contain \"" + part + "\"",
           diagnostic.getDiagnosticMessage().contains(part));

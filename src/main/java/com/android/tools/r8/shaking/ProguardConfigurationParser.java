@@ -204,7 +204,8 @@ public class ProguardConfigurationParser {
     private final Origin origin;
 
     ProguardConfigurationSourceParser(ProguardConfigurationSource source) throws IOException {
-      contents = StringUtils.stripBOM(source.get());
+      // Strip any leading BOM here so it is not included in the text position.
+      contents = StringUtils.stripLeadingBOM(source.get());
       baseDirectory = source.getBaseDirectory();
       name = source.getName();
       this.origin = source.getOrigin();
@@ -1412,7 +1413,7 @@ public class ProguardConfigurationParser {
     }
 
     private void skipWhitespace() {
-      while (!eof() && Character.isWhitespace(contents.charAt(position))) {
+      while (!eof() && StringUtils.isWhitespace(peekChar())) {
         if (peekChar() == '\n') {
           line++;
           lineStartPosition = position + 1;

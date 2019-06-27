@@ -4,6 +4,7 @@
 package com.android.tools.r8.naming;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -57,7 +58,7 @@ public class ProguardMapReaderTest extends TestBase {
   }
 
   @Test
-  public void roundTripTestWithBOM() throws IOException {
+  public void roundTripTestWithLeadingBOM() throws IOException {
     ClassNameMapper firstMapper = ClassNameMapper.mapperFromFile(Paths.get(ROOT, EXAMPLE_MAP));
     assertTrue(firstMapper.toString().charAt(0) != StringUtils.BOM);
     ClassNameMapper secondMapper =
@@ -74,6 +75,51 @@ public class ProguardMapReaderTest extends TestBase {
     ClassNameMapper thirdMapper = ClassNameMapper.mapperFromFile(mapFileWithBOM);
     assertTrue(thirdMapper.toString().charAt(0) != StringUtils.BOM);
     Assert.assertEquals(firstMapper, thirdMapper);
+  }
+
+  @Test
+  public void roundTripTestWithMultipleBOMsAndWhitespace() throws IOException {
+    List<String> ws =
+        ImmutableList.of(
+            "",
+            " ",
+            "  ",
+            "\t ",
+            " \t",
+            "" + StringUtils.BOM,
+            StringUtils.BOM + " " + StringUtils.BOM);
+    for (String whitespace : ws) {
+      ClassNameMapper firstMapper = ClassNameMapper.mapperFromFile(Paths.get(ROOT, EXAMPLE_MAP));
+      assertTrue(firstMapper.toString().charAt(0) != StringUtils.BOM);
+      StringBuilder buildWithWhitespace = new StringBuilder();
+      char prevChar = '\0';
+      for (char c : firstMapper.toString().toCharArray()) {
+        if (c == ':' || c == ' ') {
+          buildWithWhitespace.append(whitespace);
+          buildWithWhitespace.append(c);
+          buildWithWhitespace.append(whitespace);
+        } else if (c == '-' || c == '(') {
+          buildWithWhitespace.append(whitespace);
+          buildWithWhitespace.append(c);
+        } else if (c == '>' && prevChar == '-') {
+          buildWithWhitespace.append(c);
+          buildWithWhitespace.append(whitespace);
+        } else {
+          buildWithWhitespace.append(c);
+        }
+        prevChar = c;
+      }
+      ClassNameMapper secondMapper =
+          ClassNameMapper.mapperFromString(buildWithWhitespace.toString());
+      assertFalse(firstMapper.toString().contains("" + StringUtils.BOM));
+      Assert.assertEquals(firstMapper, secondMapper);
+      byte[] bytes = Files.readAllBytes(Paths.get(ROOT, EXAMPLE_MAP));
+      assertNotEquals(0xef, Byte.toUnsignedLong(bytes[0]));
+      Path mapFileWithBOM = writeTextToTempFile(StringUtils.BOM + firstMapper.toString());
+      ClassNameMapper thirdMapper = ClassNameMapper.mapperFromFile(mapFileWithBOM);
+      assertTrue(thirdMapper.toString().charAt(0) != StringUtils.BOM);
+      Assert.assertEquals(firstMapper, thirdMapper);
+    }
   }
 
   @Test
