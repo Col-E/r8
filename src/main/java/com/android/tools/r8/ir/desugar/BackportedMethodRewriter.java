@@ -31,6 +31,8 @@ import com.android.tools.r8.ir.desugar.BackportedMethodRewriter.RewritableMethod
 import com.android.tools.r8.ir.desugar.backports.BooleanMethods;
 import com.android.tools.r8.ir.desugar.backports.ByteMethods;
 import com.android.tools.r8.ir.desugar.backports.CharacterMethods;
+import com.android.tools.r8.ir.desugar.backports.DoubleMethods;
+import com.android.tools.r8.ir.desugar.backports.FloatMethods;
 import com.android.tools.r8.ir.desugar.backports.ShortMethods;
 import com.android.tools.r8.ir.synthetic.TemplateMethodCode;
 import com.android.tools.r8.origin.SynthesizedOrigin;
@@ -220,60 +222,6 @@ public final class BackportedMethodRewriter {
 
     public static long toUnsignedLong(int value) {
       return value & 0xffffffffL;
-    }
-  }
-
-  private static final class DoubleMethods extends TemplateMethodCode {
-    DoubleMethods(InternalOptions options, DexMethod method, String methodName) {
-      super(options, method, methodName, method.proto.toDescriptorString());
-    }
-
-    public static int hashCode(double d) {
-      return Double.valueOf(d).hashCode();
-    }
-
-    public static double max(double a, double b) {
-      return java.lang.Math.max(a, b);
-    }
-
-    public static double min(double a, double b) {
-      return java.lang.Math.min(a, b);
-    }
-
-    public static double sum(double a, double b) {
-      return a + b;
-    }
-
-    public static boolean isFinite(double d) {
-      Double boxed = Double.valueOf(d);
-      return !boxed.isInfinite() && !boxed.isNaN();
-    }
-  }
-
-  private static final class FloatMethods extends TemplateMethodCode {
-    FloatMethods(InternalOptions options, DexMethod method, String methodName) {
-      super(options, method, methodName, method.proto.toDescriptorString());
-    }
-
-    public static int hashCode(float d) {
-      return Float.valueOf(d).hashCode();
-    }
-
-    public static float max(float a, float b) {
-      return java.lang.Math.max(a, b);
-    }
-
-    public static float min(float a, float b) {
-      return java.lang.Math.min(a, b);
-    }
-
-    public static float sum(float a, float b) {
-      return a + b;
-    }
-
-    public static boolean isFinite(float d) {
-      Float boxed = Float.valueOf(d);
-      return !boxed.isInfinite() && !boxed.isNaN();
     }
   }
 

@@ -106,5 +106,17 @@ abstract class AbstractBackportTest extends TestBase {
         throw new AssertionError("Expected <" + expected + "> but was <" + actual + '>');
       }
     }
+
+    static void assertEquals(float expected, float actual) {
+      if (Float.compare(expected, actual) != 0) {
+        throw new AssertionError("Expected <" + expected + "> but was <" + actual + '>');
+      }
+    }
+
+    static void assertEquals(double expected, double actual) {
+      if (Double.compare(expected, actual) != 0) {
+        throw new AssertionError("Expected <" + expected + "> but was <" + actual + '>');
+      }
+    }
   }
 }

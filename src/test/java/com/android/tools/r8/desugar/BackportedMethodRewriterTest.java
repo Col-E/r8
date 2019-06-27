@@ -45,8 +45,8 @@ public class BackportedMethodRewriterTest extends TestBase {
         .run(TestMethods.class)
         .assertSuccessWithOutput(expectedOutput);
 
-    assertDesugaring(AndroidApiLevel.O, 55);
-    assertDesugaring(AndroidApiLevel.N, 38);
+    assertDesugaring(AndroidApiLevel.O, 45);
+    assertDesugaring(AndroidApiLevel.N, 28);
     assertDesugaring(AndroidApiLevel.K, 16);
     assertDesugaring(AndroidApiLevel.J_MR2, 0);
   }
@@ -161,38 +161,6 @@ public class BackportedMethodRewriterTest extends TestBase {
         }
       }
 
-      double[] aDoubles = new double[]{42.0, 1.1, -1.1,  Double.MAX_VALUE, Double.MIN_NORMAL,
-          Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY};
-      double[] bDoubles = new double[]{43, 1.2, -1.3, Double.MAX_VALUE, Double.MIN_NORMAL,
-          Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY};
-      for (double aDouble : aDoubles) {
-        System.out.println(Double.hashCode(aDouble));
-        System.out.println(Double.isFinite(aDouble));
-        for (double bDouble : bDoubles) {
-          System.out.println(Double.max(aDouble, bDouble));
-          System.out.println(Double.min(aDouble, bDouble));
-          System.out.println(Double.sum(aDouble, bDouble));
-        }
-      }
-
-      // Float.MAX_VALUE/MIN_VALUE printed values differs between jvm and art on some versions,
-      // e.g., 1.17549435E-38 on jvm, 1.1754944E-38 on art
-      float[] aFloats = new float[]{42.0f, 1.1f, -1.1f,  Float.MAX_VALUE, Float.MIN_NORMAL,
-          Float.NaN, Float.POSITIVE_INFINITY, Float.NEGATIVE_INFINITY};
-      float[] bFloats = new float[]{43, 1.2f, -1.3f, Float.MAX_VALUE, Float.MIN_NORMAL,
-          Float.NaN, Float.POSITIVE_INFINITY, Float.NEGATIVE_INFINITY};
-      for (float aFloat : aFloats) {
-        System.out.println(Float.hashCode(aFloat));
-        System.out.println(Float.isFinite(aFloat));
-        for (float bFloat : bFloats) {
-          // Print comparison, since Max/Min printed values differs between jvm and art
-          System.out.println(Float.max(aFloat, bFloat) == aFloat);
-          System.out.println(Float.min(aFloat, bFloat) == aFloat);
-          // Compare to the calculated sum, again, Max/Min values may differ
-          System.out.println(Float.sum(aFloat, bFloat) == (aFloat + bFloat));
-        }
-      }
-
       long[] aLongs = new long[]{42L, 1L, -1L, Integer.MIN_VALUE, Integer.MAX_VALUE,
           Long.MAX_VALUE, Long.MIN_VALUE};
       long[] bLongs = new long[]{43L, 2L, -2L, Integer.MIN_VALUE, Integer.MAX_VALUE,
@@ -240,8 +208,13 @@ public class BackportedMethodRewriterTest extends TestBase {
 
       Object[] objects = {
           new byte[] { 42, 1, -1, Byte.MAX_VALUE, Byte.MIN_VALUE }, new boolean[] { true, false },
-          new char[] { 's', 'u', 'p', Character.MAX_VALUE, Character.MIN_VALUE }, aDoubles, aFloats,
-          aInts, aLongs, new short[] { 42, 1, -1, Short.MAX_VALUE, Short.MIN_VALUE }, "a", null
+          new char[] { 's', 'u', 'p', Character.MAX_VALUE, Character.MIN_VALUE }, new double[] {
+          42.0, 1.1, -1.1, Double.MAX_VALUE, Double.MIN_NORMAL, Double.NaN,
+          Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY
+      }, new float[] {
+          42.0f, 1.1f, -1.1f, Float.MAX_VALUE, Float.MIN_NORMAL, Float.NaN, Float.POSITIVE_INFINITY,
+          Float.NEGATIVE_INFINITY
+      }, aInts, aLongs, new short[] { 42, 1, -1, Short.MAX_VALUE, Short.MIN_VALUE }, "a", null
       };
       for (Object aObject : objects) {
         for (Object bObject : objects) {
