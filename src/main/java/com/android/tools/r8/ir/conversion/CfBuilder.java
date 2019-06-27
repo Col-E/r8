@@ -311,7 +311,6 @@ public class CfBuilder {
       assert !block.exit().isReturn() || stackHeightTracker.isEmpty();
 
       if (firstBlock) {
-        addParameterNamesIfRequired(block);
         firstBlock = false;
       }
 
@@ -629,28 +628,6 @@ public class CfBuilder {
     if (!emittedLabels.contains(label)) {
       emittedLabels.add(label);
       instructions.add(label);
-    }
-  }
-
-  private void addParameterNamesIfRequired(BasicBlock block) {
-    // Don't add this information if the code already have full debug information.
-    if (appView.options().debug) {
-      return;
-    }
-
-    if (appView.appInfo().hasLiveness()
-        && !appView.appInfo().withLiveness().isPinned(method.method)) {
-      return;
-    }
-
-    if (method.hasParameterInfo()) {
-      for (Map.Entry<Integer, DebugLocalInfo> entries : method.getParameterInfo().entrySet()) {
-        LocalVariableInfo localVariableInfo =
-            new LocalVariableInfo(entries.getKey(), entries.getValue(), getLabel(block));
-        CfLabel endLabel = ensureLabel();
-        localVariableInfo.setEnd(endLabel);
-        localVariablesTable.add(localVariableInfo);
-      }
     }
   }
 

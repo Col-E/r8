@@ -12,6 +12,7 @@ import com.android.tools.r8.cf.code.CfLoad;
 import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.cf.code.CfReturnVoid;
 import com.android.tools.r8.cf.code.CfTryCatch;
+import com.android.tools.r8.errors.InvalidDebugInfoException;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Position;
@@ -31,6 +32,7 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map.Entry;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 
@@ -165,8 +167,37 @@ public class CfCode extends Code implements CfOrJarCode {
     return this;
   }
 
+  private boolean shouldAddParameterNames(DexEncodedMethod method, AppView<?> appView) {
+    // Don't add parameter information if the code already has full debug information.
+    // Note: This fast path can cause a method to loose its parameter info, if the debug info turned
+    // out to be invalid during IR building.
+    if (appView.options().debug) {
+      return false;
+    }
+    assert localVariables.isEmpty();
+    if (!method.hasParameterInfo()) {
+      return false;
+    }
+    // If tree shaking, only keep annotations on kept methods.
+    if (appView.appInfo().hasLiveness()
+        && !appView.appInfo().withLiveness().isPinned(method.method)) {
+      return false;
+    }
+    return true;
+  }
+
   public void write(
-      MethodVisitor visitor, NamingLens namingLens, InternalOptions options, int classFileVersion) {
+      DexEncodedMethod method,
+      MethodVisitor visitor,
+      NamingLens namingLens,
+      AppView<?> appView,
+      int classFileVersion) {
+    InternalOptions options = appView.options();
+    CfLabel parameterLabel = null;
+    if (shouldAddParameterNames(method, appView)) {
+      parameterLabel = new CfLabel();
+      parameterLabel.write(visitor, namingLens);
+    }
     for (CfInstruction instruction : instructions) {
       if (instruction instanceof CfFrame
           && (classFileVersion <= 49
@@ -193,16 +224,34 @@ public class CfCode extends Code implements CfOrJarCode {
                 : namingLens.lookupInternalName(guard));
       }
     }
-    for (LocalVariableInfo localVariable : localVariables) {
-      DebugLocalInfo info = localVariable.local;
-      visitor.visitLocalVariable(
-          info.name.toString(),
-          namingLens.lookupDescriptor(info.type).toString(),
-          info.signature == null ? null : info.signature.toString(),
-          localVariable.start.getLabel(),
-          localVariable.end.getLabel(),
-          localVariable.index);
+    if (parameterLabel != null) {
+      assert localVariables.isEmpty();
+      for (Entry<Integer, DebugLocalInfo> entry : method.getParameterInfo().entrySet()) {
+        writeLocalVariableEntry(
+            visitor, namingLens, entry.getValue(), parameterLabel, parameterLabel, entry.getKey());
+      }
+    } else {
+      for (LocalVariableInfo local : localVariables) {
+        writeLocalVariableEntry(
+            visitor, namingLens, local.local, local.start, local.end, local.index);
+      }
     }
+  }
+
+  private void writeLocalVariableEntry(
+      MethodVisitor visitor,
+      NamingLens namingLens,
+      DebugLocalInfo info,
+      CfLabel start,
+      CfLabel end,
+      int index) {
+    visitor.visitLocalVariable(
+        info.name.toString(),
+        namingLens.lookupDescriptor(info.type).toString(),
+        info.signature == null ? null : info.signature.toString(),
+        start.getLabel(),
+        end.getLabel(),
+        index);
   }
 
   @Override
@@ -229,7 +278,8 @@ public class CfCode extends Code implements CfOrJarCode {
 
   @Override
   public IRCode buildIR(DexEncodedMethod encodedMethod, AppView<?> appView, Origin origin) {
-    return internalBuild(encodedMethod, encodedMethod, appView, null, null, origin);
+    return internalBuildPossiblyWithLocals(
+        encodedMethod, encodedMethod, appView, null, null, origin);
   }
 
   @Override
@@ -242,11 +292,66 @@ public class CfCode extends Code implements CfOrJarCode {
       Origin origin) {
     assert valueNumberGenerator != null;
     assert callerPosition != null;
-    return internalBuild(
+    return internalBuildPossiblyWithLocals(
         context, encodedMethod, appView, valueNumberGenerator, callerPosition, origin);
   }
 
+  // First build entry. Will either strip locals or build with locals.
+  private IRCode internalBuildPossiblyWithLocals(
+      DexEncodedMethod context,
+      DexEncodedMethod encodedMethod,
+      AppView<?> appView,
+      ValueNumberGenerator generator,
+      Position callerPosition,
+      Origin origin) {
+    if (!encodedMethod.keepLocals(appView.options())) {
+      return internalBuild(
+          Collections.emptyList(),
+          context,
+          encodedMethod,
+          appView,
+          generator,
+          callerPosition,
+          origin);
+    } else {
+      return internalBuildWithLocals(
+          context, encodedMethod, appView, generator, callerPosition, origin);
+    }
+  }
+
+  // When building with locals, on invalid debug info, retry build without locals info.
+  private IRCode internalBuildWithLocals(
+      DexEncodedMethod context,
+      DexEncodedMethod encodedMethod,
+      AppView<?> appView,
+      ValueNumberGenerator generator,
+      Position callerPosition,
+      Origin origin) {
+    try {
+      return internalBuild(
+          Collections.unmodifiableList(localVariables),
+          context,
+          encodedMethod,
+          appView,
+          generator,
+          callerPosition,
+          origin);
+    } catch (InvalidDebugInfoException e) {
+      appView.options().warningInvalidDebugInfo(encodedMethod, origin, e);
+      return internalBuild(
+          Collections.emptyList(),
+          context,
+          encodedMethod,
+          appView,
+          generator,
+          callerPosition,
+          origin);
+    }
+  }
+
+  // Inner-most subroutine for building. Must only be called by the two internalBuildXYZ above.
   private IRCode internalBuild(
+      List<CfCode.LocalVariableInfo> localVariables,
       DexEncodedMethod context,
       DexEncodedMethod encodedMethod,
       AppView<?> appView,
@@ -256,21 +361,12 @@ public class CfCode extends Code implements CfOrJarCode {
     CfSourceCode source =
         new CfSourceCode(
             this,
+            localVariables,
             encodedMethod,
             appView.graphLense().getOriginalMethodSignature(encodedMethod.method),
             callerPosition,
             origin,
             appView);
-    if (!keepLocals(encodedMethod, appView.options())) {
-      // If the locals are not kept, we might still need a bit of locals information to satisfy
-      // -keepparameternames for R8. As locals are stripped after collecting the parameter names
-      // this information can only be retrieved the first time IR is build for a method, so stick
-      // to the information if already present.
-      if (!encodedMethod.hasParameterInfo()) {
-        encodedMethod.setParameterInfo(collectParameterInfo(encodedMethod, appView));
-      }
-      // TODO(b/135986411): Remove the locals info.
-    }
     return new IRBuilder(encodedMethod, appView, source, origin, generator).build(context);
   }
 
@@ -286,17 +382,8 @@ public class CfCode extends Code implements CfOrJarCode {
     }
   }
 
-  private boolean keepLocals(DexEncodedMethod encodedMethod, InternalOptions options) {
-    if (options.testing.noLocalsTableOnInput) {
-      return false;
-    }
-    if (options.debug || encodedMethod.getOptimizationInfo().isReachabilitySensitive()) {
-      return true;
-    }
-    return false;
-  }
-
-  private Int2ReferenceMap<DebugLocalInfo> collectParameterInfo(
+  @Override
+  public Int2ReferenceMap<DebugLocalInfo> collectParameterInfo(
       DexEncodedMethod encodedMethod, AppView<?> appView) {
     CfLabel firstLabel = null;
     for (CfInstruction instruction : instructions) {

@@ -319,7 +319,7 @@ public class CfApplicationWriter {
     writeAnnotations(visitor::visitAnnotation, method.annotations.annotations);
     writeParameterAnnotations(visitor, method.parameterAnnotationsList);
     if (!method.shouldNotHaveCode()) {
-      writeCode(method.getCode(), visitor, options, classFileVersion);
+      writeCode(method, visitor, classFileVersion);
     }
     visitor.visitEnd();
   }
@@ -435,14 +435,14 @@ public class CfApplicationWriter {
     }
   }
 
-  private void writeCode(
-      Code code, MethodVisitor visitor, InternalOptions options, int classFileVersion) {
+  private void writeCode(DexEncodedMethod method, MethodVisitor visitor, int classFileVersion) {
+    Code code = method.getCode();
     if (code.isJarCode()) {
       assert namingLens.isIdentityLens();
       code.asJarCode().writeTo(visitor);
     } else {
       assert code.isCfCode();
-      code.asCfCode().write(visitor, namingLens, options, classFileVersion);
+      code.asCfCode().write(method, visitor, namingLens, appView, classFileVersion);
     }
   }
 

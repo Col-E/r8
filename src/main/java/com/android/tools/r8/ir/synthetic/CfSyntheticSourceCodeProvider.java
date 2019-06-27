@@ -33,8 +33,10 @@ public abstract class CfSyntheticSourceCodeProvider implements SourceCodeProvide
 
   @Override
   public SourceCode get(Position callerPosition) {
+    CfCode code = generateCfCode(callerPosition);
     return new CfSourceCode(
-        generateCfCode(callerPosition),
+        code,
+        code.getLocalVariables(),
         method,
         originalMethod,
         callerPosition,

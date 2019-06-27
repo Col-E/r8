@@ -217,7 +217,7 @@ public class LineNumberOptimizer {
               optimizeDexCodePositions(
                   method, application, positionRemapper, mappedPositions, identityMapping);
             } else if (code.isCfCode() && doesContainPositions(code.asCfCode())) {
-              optimizeCfCodePositions(method, positionRemapper, mappedPositions);
+              optimizeCfCodePositions(method, positionRemapper, mappedPositions, appView);
             }
           }
 
@@ -535,7 +535,8 @@ public class LineNumberOptimizer {
   private static void optimizeCfCodePositions(
       DexEncodedMethod method,
       PositionRemapper positionRemapper,
-      List<MappedPosition> mappedPositions) {
+      List<MappedPosition> mappedPositions,
+      AppView<?> appView) {
     // Do the actual processing for each method.
     CfCode oldCode = method.getCode().asCfCode();
     List<CfInstruction> oldInstructions = oldCode.getInstructions();
@@ -568,6 +569,7 @@ public class LineNumberOptimizer {
             oldCode.getMaxLocals(),
             newInstructions,
             oldCode.getTryCatchRanges(),
-            oldCode.getLocalVariables()));
+            oldCode.getLocalVariables()),
+        appView);
   }
 }

@@ -432,18 +432,30 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
         context, this, appView, valueNumberGenerator, callerPosition, origin);
   }
 
-  public void setCode(Code code) {
+  public void setCode(Code newCode, AppView<?> appView) {
     checkIfObsolete();
-    this.code = code;
+    // If the locals are not kept, we might still need information to satisfy -keepparameternames.
+    // The information needs to be retrieved on the original code object before replacing it.
+    if (code.isCfOrJarCode() && !hasParameterInfo() && !keepLocals(appView.options())) {
+      setParameterInfo(code.collectParameterInfo(this, appView));
+    }
+    code = newCode;
   }
 
-  public void setCode(IRCode ir, RegisterAllocator registerAllocator) {
+  public void setCode(IRCode ir, RegisterAllocator registerAllocator, AppView<?> appView) {
     checkIfObsolete();
-    final DexBuilder builder = new DexBuilder(ir, registerAllocator);
-    setCode(builder.build());
+    DexBuilder builder = new DexBuilder(ir, registerAllocator);
+    setCode(builder.build(), appView);
   }
 
-  public void setParameterInfo(Int2ReferenceMap<DebugLocalInfo> parameterInfo) {
+  public boolean keepLocals(InternalOptions options) {
+    if (options.testing.noLocalsTableOnInput) {
+      return false;
+    }
+    return options.debug || getOptimizationInfo().isReachabilitySensitive();
+  }
+
+  private void setParameterInfo(Int2ReferenceMap<DebugLocalInfo> parameterInfo) {
     assert this.parameterInfo == NO_PARAMETER_INFO;
     this.parameterInfo = parameterInfo;
   }
@@ -876,7 +888,8 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
                 registry.registerInvokeStatic(dispatch.getSecond());
               }
               registry.registerInvokeStatic(companionMethod);
-            }));
+            }),
+        appView);
     return newEncodedMethod;
   }
 

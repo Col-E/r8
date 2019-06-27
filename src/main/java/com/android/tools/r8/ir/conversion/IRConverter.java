@@ -771,7 +771,7 @@ public class IRConverter {
     assert code.isConsistentSSA();
     code.traceBlocks();
     RegisterAllocator registerAllocator = performRegisterAllocation(code, method);
-    method.setCode(code, registerAllocator);
+    method.setCode(code, registerAllocator, appView);
     if (Log.ENABLED) {
       Log.debug(getClass(), "Resulting dex code for %s:\n%s",
           method.toSourceString(), logCode(options, method));
@@ -1490,7 +1490,7 @@ public class IRConverter {
         options.isGeneratingClassFiles()
             ? method.buildEmptyThrowingCfCode()
             : method.buildEmptyThrowingDexCode();
-    method.setCode(emptyThrowingCode);
+    method.setCode(emptyThrowingCode, appView);
     feedback.markProcessed(method, ConstraintWithTarget.ALWAYS);
   }
 
@@ -1498,7 +1498,7 @@ public class IRConverter {
     assert !method.getCode().isDexCode();
     CfBuilder builder = new CfBuilder(appView, method, code);
     CfCode result = builder.build(codeRewriter);
-    method.setCode(result);
+    method.setCode(result, appView);
     markProcessed(method, code, feedback);
   }
 
@@ -1507,7 +1507,7 @@ public class IRConverter {
     CodeRewriter.disableDex2OatInliningForSelfRecursiveMethods(appView, code);
     // Perform register allocation.
     RegisterAllocator registerAllocator = performRegisterAllocation(code, method);
-    method.setCode(code, registerAllocator);
+    method.setCode(code, registerAllocator, appView);
     updateHighestSortingStrings(method);
     if (Log.ENABLED) {
       Log.debug(getClass(), "Resulting dex code for %s:\n%s",

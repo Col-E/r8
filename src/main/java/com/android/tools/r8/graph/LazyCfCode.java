@@ -62,6 +62,7 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -897,5 +898,11 @@ public class LazyCfCode extends Code implements CfOrJarCode {
       DexType invocationContext) {
     return asCfCode()
         .computeInliningConstraint(encodedMethod, appView, graphLense, invocationContext);
+  }
+
+  @Override
+  public Int2ReferenceMap<DebugLocalInfo> collectParameterInfo(
+      DexEncodedMethod encodedMethod, AppView<?> appView) {
+    return asCfCode().collectParameterInfo(encodedMethod, appView);
   }
 }

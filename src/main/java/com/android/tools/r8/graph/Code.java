@@ -12,6 +12,7 @@ import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.optimize.Outliner.OutlineCode;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 
 public abstract class Code extends CachedHashValueDexItem {
 
@@ -31,6 +32,11 @@ public abstract class Code extends CachedHashValueDexItem {
   public abstract void registerCodeReferences(DexEncodedMethod method, UseRegistry registry);
 
   public void registerArgumentReferences(DexEncodedMethod method, ArgumentUse registry) {
+    throw new Unreachable();
+  }
+
+  public Int2ReferenceMap<DebugLocalInfo> collectParameterInfo(
+      DexEncodedMethod encodedMethod, AppView<?> appView) {
     throw new Unreachable();
   }
 

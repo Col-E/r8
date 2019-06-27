@@ -368,7 +368,7 @@ public class CfState {
 
     @Override
     public Slot getLocal(int i) {
-      return new Slot(i, locals[i]);
+      return i < locals.length ? new Slot(i, locals[i]) : null;
     }
 
     @Override

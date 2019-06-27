@@ -5,6 +5,7 @@ package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.errors.InvalidDebugInfoException;
 import com.android.tools.r8.graph.DebugLocalInfo;
+import com.android.tools.r8.graph.DebugLocalInfo.PrintLevel;
 import com.android.tools.r8.graph.JarApplicationReader;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.Pair;
@@ -665,7 +666,10 @@ public class JarState {
     Type type = Type.getType(info.type.toDescriptorString());
     if (!local.slot.isCompatibleWith(type)) {
       throw new InvalidDebugInfoException(
-          "Attempt to define local of type " + prettyType(local.slot.type) + " as " + info);
+          "Attempt to define local of type "
+              + prettyType(local.slot.type)
+              + " as "
+              + info.toString(PrintLevel.FULL));
     }
     // Only update local info; keep slot type intact.
     locals[register] = new Local(local.slot, localToOpen.info);
@@ -681,7 +685,10 @@ public class JarState {
     Local local = getLocal(index, type);
     if (local != null && local.info != null && !local.slot.isCompatibleWith(type)) {
       throw new InvalidDebugInfoException(
-          "Attempt to write value of type " + prettyType(type) + " to local " + local.info);
+          "Attempt to write value of type "
+              + prettyType(type)
+              + " to local "
+              + local.info.toString(PrintLevel.FULL));
     }
     // We cannot assume consistency for writes because we do not have complete information about the
     // scopes of locals. We assume the program to be verified and overwrite if the types mismatch.
@@ -701,7 +708,10 @@ public class JarState {
     assert local != null;
     if (local.info != null && !local.slot.isCompatibleWith(type)) {
       throw new InvalidDebugInfoException(
-          "Attempt to read value of type " + prettyType(type) + " from local " + local.info);
+          "Attempt to read value of type "
+              + prettyType(type)
+              + " from local "
+              + local.info.toString(PrintLevel.FULL));
     }
     assert local.slot.isCompatibleWith(type);
     return local.slot;

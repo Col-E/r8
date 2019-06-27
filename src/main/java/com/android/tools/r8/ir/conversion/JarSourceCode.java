@@ -159,6 +159,7 @@ public class JarSourceCode implements SourceCode {
 
   private final JarApplicationReader application;
   private final MethodNode node;
+  private final List<LocalVariableNode> localVariables;
   private final DexType clazz;
   private final List<Type> parameterTypes;
   private final LabelNode initialLabel;
@@ -206,18 +207,20 @@ public class JarSourceCode implements SourceCode {
   public JarSourceCode(
       DexType clazz,
       MethodNode node,
+      List<LocalVariableNode> localVariables,
       JarApplicationReader application,
       DexMethod originalMethod,
       Position callerPosition) {
     assert node != null;
     assert node.desc != null;
     this.node = node;
+    this.localVariables = localVariables;
     this.application = application;
     this.originalMethod = originalMethod;
     this.clazz = clazz;
     this.callerPosition = callerPosition;
     parameterTypes = Arrays.asList(application.getArgumentTypes(node.desc));
-    state = new JarState(node.maxLocals, node.localVariables, this, application);
+    state = new JarState(node.maxLocals, localVariables, this, application);
     AbstractInsnNode first = node.instructions.getFirst();
     initialLabel = first instanceof LabelNode ? (LabelNode) first : null;
   }
@@ -288,10 +291,10 @@ public class JarSourceCode implements SourceCode {
 
     // Record types for arguments.
     Int2ReferenceMap<Type> argumentLocals = recordArgumentTypes(builder);
-    IntSet initializedLocals = new IntOpenHashSet(node.localVariables.size());
+    IntSet initializedLocals = new IntOpenHashSet(localVariables.size());
     initializedLocals.addAll(argumentLocals.keySet());
     // Initialize all non-argument locals to ensure safe insertion of debug-local instructions.
-    for (Object o : node.localVariables) {
+    for (Object o : localVariables) {
       LocalVariableNode local = (LocalVariableNode) o;
       Type localType;
       switch (application.getAsmType(local.desc).getSort()) {
@@ -394,7 +397,7 @@ public class JarSourceCode implements SourceCode {
 
   private Int2ReferenceMap<Type> recordArgumentTypes(IRBuilder builder) {
     Int2ReferenceMap<Type> initializedLocals =
-        new Int2ReferenceOpenHashMap<>(node.localVariables.size());
+        new Int2ReferenceOpenHashMap<>(localVariables.size());
     int argumentRegister = 0;
     if (!isStatic()) {
       Type thisType = application.getAsmType(clazz.descriptor.toString());
@@ -2974,7 +2977,7 @@ public class JarSourceCode implements SourceCode {
     builder.append("\n");
     builder.append("node.maxLocals = ").append(node.maxLocals);
     builder.append("\n");
-    builder.append("node.locals.size = ").append(node.localVariables.size());
+    builder.append("node.locals.size = ").append(localVariables.size());
     builder.append("\n");
     builder.append("node.insns.size = ").append(node.instructions.size());
     builder.append("\n");
@@ -2982,8 +2985,8 @@ public class JarSourceCode implements SourceCode {
       builder.append("arg ").append(i).append(", type: ").append(parameterTypes.get(i))
           .append("\n");
     }
-    for (int i = 0; i < node.localVariables.size(); i++) {
-      LocalVariableNode local = (LocalVariableNode) node.localVariables.get(i);
+    for (int i = 0; i < localVariables.size(); i++) {
+      LocalVariableNode local = (LocalVariableNode) localVariables.get(i);
       builder.append("local ").append(i)
           .append(", name: ").append(local.name)
           .append(", desc: ").append(local.desc)

@@ -27,7 +27,9 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.BitSet;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.function.BiFunction;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
@@ -151,16 +153,9 @@ public class JarCode extends Code implements CfOrJarCode {
       ValueNumberGenerator generator,
       Position callerPosition) {
     triggerDelayedParsingIfNeccessary();
-    if (!keepLocals(encodedMethod, appView.options())) {
-      // If the locals are not kept, we might still need a bit of locals information to satisfy
-      // -keepparameternames for R8. As locals are stripped after collecting the parameter names
-      // this information can only be retrieved the first time IR is build for a method, so stick
-      // to the information if already present.
-      if (!encodedMethod.hasParameterInfo()) {
-        encodedMethod.setParameterInfo(collectParameterInfo(encodedMethod, appView));
-      }
-      node.localVariables.clear();
-      return internalBuild(context, encodedMethod, appView, generator, callerPosition);
+    if (!encodedMethod.keepLocals(appView.options())) {
+      return internalBuild(
+          Collections.emptyList(), context, encodedMethod, appView, generator, callerPosition);
     } else {
       return internalBuildWithLocals(context, encodedMethod, appView, generator, callerPosition);
     }
@@ -173,25 +168,17 @@ public class JarCode extends Code implements CfOrJarCode {
       ValueNumberGenerator generator,
       Position callerPosition) {
     try {
-      return internalBuild(context, encodedMethod, appView, generator, callerPosition);
+      return internalBuild(
+          node.localVariables, context, encodedMethod, appView, generator, callerPosition);
     } catch (InvalidDebugInfoException e) {
       appView.options().warningInvalidDebugInfo(encodedMethod, origin, e);
-      node.localVariables.clear();
-      return internalBuild(context, encodedMethod, appView, generator, callerPosition);
+      return internalBuild(
+          Collections.emptyList(), context, encodedMethod, appView, generator, callerPosition);
     }
   }
 
-  private boolean keepLocals(DexEncodedMethod encodedMethod, InternalOptions options) {
-    if (options.testing.noLocalsTableOnInput) {
-      return false;
-    }
-    if (options.debug || encodedMethod.getOptimizationInfo().isReachabilitySensitive()) {
-      return true;
-    }
-    return false;
-  }
-
-  private Int2ReferenceMap<DebugLocalInfo> collectParameterInfo(
+  @Override
+  public Int2ReferenceMap<DebugLocalInfo> collectParameterInfo(
       DexEncodedMethod encodedMethod, AppView<?> appView) {
     LabelNode firstLabel = null;
     for (Iterator<AbstractInsnNode> it = getNode().instructions.iterator(); it.hasNext(); ) {
@@ -246,16 +233,17 @@ public class JarCode extends Code implements CfOrJarCode {
   }
 
   private IRCode internalBuild(
+      List<LocalVariableNode> localVariables,
       DexEncodedMethod context,
       DexEncodedMethod encodedMethod,
       AppView<?> appView,
       ValueNumberGenerator generator,
       Position callerPosition) {
-    assert node.localVariables.isEmpty() || keepLocals(encodedMethod, appView.options());
     JarSourceCode source =
         new JarSourceCode(
             method.holder,
             node,
+            localVariables,
             application,
             appView.graphLense().getOriginalMethodSignature(encodedMethod.method),
             callerPosition);
