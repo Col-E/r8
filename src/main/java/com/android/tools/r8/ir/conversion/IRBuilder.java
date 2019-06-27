@@ -2059,7 +2059,7 @@ public class IRBuilder {
     // A debug initiated value must have a precise type constraint.
     assert typeConstraint.isPrecise();
     TypeLatticeElement type =
-        typeConstraint == ValueTypeConstraint.OBJECT
+        typeConstraint.isObject()
             ? TypeLatticeElement.NULL
             : typeConstraint.toPrimitiveTypeLattice();
     if (uninitializedDebugLocalValues == null) {

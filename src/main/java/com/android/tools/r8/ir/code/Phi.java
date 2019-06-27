@@ -105,7 +105,12 @@ public class Phi extends Value implements InstructionOrPhi {
           assert readType == RegisterReadType.DEBUG;
           BasicBlock block = getBlock();
           InstructionListIterator it = block.listIterator();
-          Value value = new Value(builder.getValueNumberGenerator().next(), getTypeLattice(), null);
+          assert readConstraint.isPrecise();
+          TypeLatticeElement type =
+              readConstraint.isObject()
+                  ? TypeLatticeElement.NULL
+                  : readConstraint.toPrimitiveTypeLattice();
+          Value value = new Value(builder.getValueNumberGenerator().next(), type, null);
           Position position = block.getPosition();
           Instruction definition = new DebugLocalUninitialized(value);
           definition.setBlock(block);
