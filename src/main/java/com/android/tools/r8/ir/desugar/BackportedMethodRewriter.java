@@ -33,20 +33,18 @@ import com.android.tools.r8.ir.desugar.backports.ByteMethods;
 import com.android.tools.r8.ir.desugar.backports.CharacterMethods;
 import com.android.tools.r8.ir.desugar.backports.DoubleMethods;
 import com.android.tools.r8.ir.desugar.backports.FloatMethods;
+import com.android.tools.r8.ir.desugar.backports.ObjectsMethods;
 import com.android.tools.r8.ir.desugar.backports.ShortMethods;
+import com.android.tools.r8.ir.desugar.backports.StringMethods;
 import com.android.tools.r8.ir.synthetic.TemplateMethodCode;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -322,118 +320,6 @@ public final class BackportedMethodRewriter {
       long aFlipped = a ^ Long.MIN_VALUE;
       long bFlipped = b ^ Long.MIN_VALUE;
       return Long.compare(aFlipped, bFlipped);
-    }
-  }
-
-  private static final class StringMethods extends TemplateMethodCode {
-    StringMethods(InternalOptions options, DexMethod method, String methodName) {
-      super(options, method, methodName, method.proto.toDescriptorString());
-    }
-
-    public static String joinArray(CharSequence delimiter, CharSequence... elements) {
-      if (delimiter == null) throw new NullPointerException("delimiter");
-      StringBuilder builder = new StringBuilder();
-      if (elements.length > 0) {
-        builder.append(elements[0]);
-        for (int i = 1; i < elements.length; i++) {
-          builder.append(delimiter);
-          builder.append(elements[i]);
-        }
-      }
-      return builder.toString();
-    }
-
-    public static String joinIterable(CharSequence delimiter,
-        Iterable<? extends CharSequence> elements) {
-      if (delimiter == null) throw new NullPointerException("delimiter");
-      StringBuilder builder = new StringBuilder();
-      Iterator<? extends CharSequence> iterator = elements.iterator();
-      if (iterator.hasNext()) {
-        builder.append(iterator.next());
-        while (iterator.hasNext()) {
-          builder.append(delimiter);
-          builder.append(iterator.next());
-        }
-      }
-      return builder.toString();
-    }
-  }
-
-  private static final class ObjectsMethods extends TemplateMethodCode {
-    ObjectsMethods(InternalOptions options, DexMethod method, String methodName) {
-      super(options, method, methodName, method.proto.toDescriptorString());
-    }
-
-    public static <T> int compare(T a, T b, Comparator<? super T> c) {
-      return a == b ? 0 : c.compare(a, b);
-    }
-
-    public static boolean deepEquals(Object a, Object b) {
-      if (a == b) return true;
-      if (a == null) return false;
-      if (a instanceof boolean[]) {
-        return b instanceof boolean[] && Arrays.equals((boolean[]) a, (boolean[]) b);
-      }
-      if (a instanceof byte[]) {
-        return b instanceof byte[] && Arrays.equals((byte[]) a, (byte[]) b);
-      }
-      if (a instanceof char[]) {
-        return b instanceof char[] && Arrays.equals((char[]) a, (char[]) b);
-      }
-      if (a instanceof double[]) {
-        return b instanceof double[] && Arrays.equals((double[]) a, (double[]) b);
-      }
-      if (a instanceof float[]) {
-        return b instanceof float[] && Arrays.equals((float[]) a, (float[]) b);
-      }
-      if (a instanceof int[]) {
-        return b instanceof int[] && Arrays.equals((int[]) a, (int[]) b);
-      }
-      if (a instanceof long[]) {
-        return b instanceof long[] && Arrays.equals((long[]) a, (long[]) b);
-      }
-      if (a instanceof short[]) {
-        return b instanceof short[] && Arrays.equals((short[]) a, (short[]) b);
-      }
-      if (a instanceof Object[]) {
-        return b instanceof Object[] && Arrays.deepEquals((Object[]) a, (Object[]) b);
-      }
-      return a.equals(b);
-    }
-
-    public static boolean equals(Object a, Object b) {
-      return a == b || (a != null && a.equals(b));
-    }
-
-    public static int hash(Object[] o) {
-      return Arrays.hashCode(o);
-    }
-
-    public static int hashCode(Object o) {
-      return o == null ? 0 : o.hashCode();
-    }
-
-    public static boolean isNull(Object o) {
-      return o == null;
-    }
-
-    public static boolean nonNull(Object o) {
-      return o != null;
-    }
-
-    public static <T> T requireNonNullMessage(T obj, String message) {
-      if (obj == null) {
-        throw new NullPointerException(message);
-      }
-      return obj;
-    }
-
-    public static String toString(Object o) {
-      return Objects.toString(o, "null");
-    }
-
-    public static String toStringDefault(Object o, String nullDefault) {
-      return o == null ? nullDefault : o.toString();
     }
   }
 

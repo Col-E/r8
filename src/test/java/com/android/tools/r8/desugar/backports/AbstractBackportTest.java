@@ -45,7 +45,8 @@ abstract class AbstractBackportTest extends TestBase {
   @Test
   public void desugaring() throws Exception {
     testForD8()
-        .addProgramClasses(testClass, MiniAssert.class)
+        .addProgramClasses(MiniAssert.class, IgnoreInvokes.class)
+        .addProgramClassesAndInnerClasses(testClass)
         .setMinApi(parameters.getRuntime().asDex().getMinApiLevel())
         .compile()
         .run(parameters.getRuntime(), testClass)
@@ -57,11 +58,11 @@ abstract class AbstractBackportTest extends TestBase {
     ClassSubject testSubject = inspector.clazz(testClass);
     assertThat(testSubject, isPresent());
 
-    MethodSubject mainMethod = testSubject.mainMethod();
-    assertThat(mainMethod, isPresent());
-
-    List<InstructionSubject> javaInvokeStatics = mainMethod
-        .streamInstructions()
+    List<InstructionSubject> javaInvokeStatics = testSubject.allMethods()
+        .stream()
+        // Do not count @IgnoreInvokes-annotated methods.
+        .filter(i -> !i.annotation(IgnoreInvokes.class.getName()).isPresent())
+        .flatMap(MethodSubject::streamInstructions)
         .filter(InstructionSubject::isInvoke)
         .filter(is -> is.getMethod().holder.toSourceString().equals(targetClass.getName()))
         .collect(toList());
@@ -116,6 +117,19 @@ abstract class AbstractBackportTest extends TestBase {
     static void assertEquals(double expected, double actual) {
       if (Double.compare(expected, actual) != 0) {
         throw new AssertionError("Expected <" + expected + "> but was <" + actual + '>');
+      }
+    }
+
+    static void assertEquals(Object expected, Object actual) {
+      if (expected != actual && (expected == null || !expected.equals(actual))) {
+        throw new AssertionError("Expected <" + expected + "> but was <" + actual + '>');
+      }
+    }
+
+    static void assertSame(Object expected, Object actual) {
+      if (expected != actual) {
+        throw new AssertionError(
+            "Expected <" + expected + "> to be same instance as <" + actual + '>');
       }
     }
   }

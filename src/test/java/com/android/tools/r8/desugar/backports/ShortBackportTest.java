@@ -28,10 +28,19 @@ public final class ShortBackportTest extends AbstractBackportTest {
 
   static final class Main extends MiniAssert {
     public static void main(String[] args) {
+      testHashCode();
+      testCompare();
+      testToUnsignedInt();
+      testToUnsignedLong();
+    }
+
+    private static void testHashCode() {
       for (int i = Short.MIN_VALUE; i < Short.MAX_VALUE; i++) {
         assertEquals(i, Short.hashCode((short) i));
       }
+    }
 
+    private static void testCompare() {
       // signum() normalizes result to [-1, 1] since the values differ across VMs but signs match.
       assertEquals(1, signum(Short.compare((short) 1, (short) 0)));
       assertEquals(0, signum(Short.compare((short) 0, (short) 0)));
@@ -40,12 +49,16 @@ public final class ShortBackportTest extends AbstractBackportTest {
       assertEquals(1, signum(Short.compare(Short.MAX_VALUE, Short.MIN_VALUE)));
       assertEquals(0, signum(Short.compare(Short.MIN_VALUE, Short.MIN_VALUE)));
       assertEquals(0, signum(Short.compare(Short.MAX_VALUE, Short.MAX_VALUE)));
+    }
 
+    private static void testToUnsignedInt() {
       assertEquals(0, Short.toUnsignedInt((short) 0));
       assertEquals(32767, Short.toUnsignedInt(Short.MAX_VALUE));
       assertEquals(32768, Short.toUnsignedInt(Short.MIN_VALUE));
       assertEquals(65535, Short.toUnsignedInt((short) -1));
+    }
 
+    private static void testToUnsignedLong() {
       assertEquals(0L, Short.toUnsignedLong((short) 0));
       assertEquals(32767L, Short.toUnsignedLong(Short.MAX_VALUE));
       assertEquals(32768L, Short.toUnsignedLong(Short.MIN_VALUE));

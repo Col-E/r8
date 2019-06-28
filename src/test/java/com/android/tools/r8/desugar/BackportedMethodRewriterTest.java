@@ -45,9 +45,9 @@ public class BackportedMethodRewriterTest extends TestBase {
         .run(TestMethods.class)
         .assertSuccessWithOutput(expectedOutput);
 
-    assertDesugaring(AndroidApiLevel.O, 45);
-    assertDesugaring(AndroidApiLevel.N, 28);
-    assertDesugaring(AndroidApiLevel.K, 16);
+    assertDesugaring(AndroidApiLevel.O, 17);
+    assertDesugaring(AndroidApiLevel.N, 10);
+    assertDesugaring(AndroidApiLevel.K, 2);
     assertDesugaring(AndroidApiLevel.J_MR2, 0);
   }
 
@@ -133,17 +133,6 @@ public class BackportedMethodRewriterTest extends TestBase {
   }
 
   static class TestMethods {
-    // Defined as a static method on this class to avoid affecting invoke-static counts in main().
-    private static <T> Comparator<T> reverse() {
-      return Collections.reverseOrder();
-    }
-
-    // Defined as a static method on this class to avoid affecting invoke-static counts in main().
-    @SafeVarargs
-    private static <T> List<T> listOf(T... values) {
-      return Arrays.asList(values);
-    }
-
     public static void main(String[] args) {
       int[] aInts = new int[]{42, 1, -1, Integer.MAX_VALUE, Integer.MIN_VALUE};
       int[] bInts = new int[]{43, 1, -1, Integer.MAX_VALUE, Integer.MIN_VALUE};
@@ -176,81 +165,6 @@ public class BackportedMethodRewriterTest extends TestBase {
           System.out.println(Long.remainderUnsigned(aLong, bLong));
           System.out.println(Long.compareUnsigned(aLong, bLong));
         }
-      }
-
-      System.out.println(String.join(", "));
-      System.out.println(String.join(", ", "one", "two", "three"));
-      System.out.println(String.join("", "one", "two", "three"));
-      try {
-        throw new AssertionError(String.join(null, "one", "two", "three"));
-      } catch (NullPointerException expected) {
-      }
-      try {
-        throw new AssertionError(String.join(", ", (CharSequence[]) null));
-      } catch (NullPointerException expected) {
-      }
-
-      System.out.println(String.join(", ", listOf()));
-      System.out.println(String.join(", ", listOf("one", "two", "three")));
-      System.out.println(String.join("", listOf("one", "two", "three")));
-      try {
-        throw new AssertionError(String.join(null, listOf("one", "two", "three")));
-      } catch (NullPointerException expected) {
-      }
-      try {
-        throw new AssertionError(String.join(", ", (Iterable<CharSequence>) null));
-      } catch (NullPointerException expected) {
-      }
-
-      System.out.println(Objects.compare("a", "b", reverse()));
-      System.out.println(Objects.compare("b", "a", reverse()));
-      System.out.println(Objects.compare("a", "a", reverse()));
-
-      Object[] objects = {
-          new byte[] { 42, 1, -1, Byte.MAX_VALUE, Byte.MIN_VALUE }, new boolean[] { true, false },
-          new char[] { 's', 'u', 'p', Character.MAX_VALUE, Character.MIN_VALUE }, new double[] {
-          42.0, 1.1, -1.1, Double.MAX_VALUE, Double.MIN_NORMAL, Double.NaN,
-          Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY
-      }, new float[] {
-          42.0f, 1.1f, -1.1f, Float.MAX_VALUE, Float.MIN_NORMAL, Float.NaN, Float.POSITIVE_INFINITY,
-          Float.NEGATIVE_INFINITY
-      }, aInts, aLongs, new short[] { 42, 1, -1, Short.MAX_VALUE, Short.MIN_VALUE }, "a", null
-      };
-      for (Object aObject : objects) {
-        for (Object bObject : objects) {
-          System.out.println(Objects.deepEquals(aObject, bObject));
-          System.out.println(Objects.equals(aObject, bObject));
-        }
-      }
-
-      // Use explicit boxing to avoid valueOf method calls which affect invoke-static counts.
-      System.out.println(
-          Objects.hash(new Integer(1), "2", new Double(3), new Float(4), new Long(5)));
-
-      // Runtime conditionals to prevent any null analysis. Will always evaluate to false branch.
-      Object maybeNullButNot = args.length == 1000 ? null : "non-null";
-      Object maybeNullButIs = args.length == 2000 ? "non-null" : null;
-
-      System.out.println(Objects.isNull(maybeNullButNot));
-      System.out.println(Objects.isNull(maybeNullButIs));
-
-      System.out.println(Objects.nonNull(maybeNullButNot));
-      System.out.println(Objects.nonNull(maybeNullButIs));
-
-      System.out.println(Objects.toString(maybeNullButNot));
-      System.out.println(Objects.toString(maybeNullButIs));
-
-      System.out.println(Objects.toString(maybeNullButNot, "null default"));
-      System.out.println(Objects.toString(maybeNullButIs, "null default"));
-
-      System.out.println(Objects.hashCode(maybeNullButNot));
-      System.out.println(Objects.hashCode(maybeNullButIs));
-
-      System.out.println(Objects.requireNonNull(maybeNullButNot, "unexpected"));
-      try {
-        throw new AssertionError(Objects.requireNonNull(maybeNullButIs, "expected"));
-      } catch (NullPointerException e) {
-        System.out.println(e.getMessage().contains("expected"));
       }
     }
   }

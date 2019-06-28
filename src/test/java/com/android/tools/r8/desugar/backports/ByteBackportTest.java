@@ -28,10 +28,19 @@ public final class ByteBackportTest extends AbstractBackportTest {
 
   static final class Main extends MiniAssert {
     public static void main(String[] args) {
+      testHashCode();
+      testCompare();
+      testToUnsignedInt();
+      testToUnsignedLong();
+    }
+
+    private static void testHashCode() {
       for (int i = Byte.MIN_VALUE; i < Byte.MAX_VALUE; i++) {
         assertEquals(i, Byte.hashCode((byte) i));
       }
+    }
 
+    private static void testCompare() {
       // signum() normalizes result to [-1, 1] since the values differ across VMs but signs match.
       assertEquals(1, signum(Byte.compare((byte) 1, (byte) 0)));
       assertEquals(0, signum(Byte.compare((byte) 0, (byte) 0)));
@@ -40,12 +49,16 @@ public final class ByteBackportTest extends AbstractBackportTest {
       assertEquals(1, signum(Byte.compare(Byte.MAX_VALUE, Byte.MIN_VALUE)));
       assertEquals(0, signum(Byte.compare(Byte.MIN_VALUE, Byte.MIN_VALUE)));
       assertEquals(0, signum(Byte.compare(Byte.MAX_VALUE, Byte.MAX_VALUE)));
+    }
 
+    private static void testToUnsignedInt() {
       assertEquals(0, Byte.toUnsignedInt((byte) 0));
       assertEquals(127, Byte.toUnsignedInt(Byte.MAX_VALUE));
       assertEquals(128, Byte.toUnsignedInt(Byte.MIN_VALUE));
       assertEquals(255, Byte.toUnsignedInt((byte) -1));
+    }
 
+    private static void testToUnsignedLong() {
       assertEquals(0L, Byte.toUnsignedLong((byte) 0));
       assertEquals(127L, Byte.toUnsignedLong(Byte.MAX_VALUE));
       assertEquals(128L, Byte.toUnsignedLong(Byte.MIN_VALUE));

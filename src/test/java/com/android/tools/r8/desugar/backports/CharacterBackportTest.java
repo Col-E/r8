@@ -27,10 +27,17 @@ public final class CharacterBackportTest extends AbstractBackportTest {
 
   static final class Main extends MiniAssert {
     public static void main(String[] args) {
+      testHashCode();
+      testCompare();
+    }
+
+    private static void testHashCode() {
       for (int i = Character.MIN_VALUE; i < Character.MAX_VALUE; i++) {
         assertEquals(i, Character.hashCode((char) i));
       }
+    }
 
+    private static void testCompare() {
       // signum() normalizes result to [-1, 1] since the values differ across VMs but signs match.
       assertEquals(1, signum(Character.compare('b', 'a')));
       assertEquals(0, signum(Character.compare('a', 'a')));

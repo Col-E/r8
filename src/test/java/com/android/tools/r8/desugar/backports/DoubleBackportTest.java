@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.desugar.backports;
 
-import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import org.junit.runner.RunWith;
@@ -37,29 +36,45 @@ public final class DoubleBackportTest extends AbstractBackportTest {
     };
 
     public static void main(String[] args) {
+      testHashCode();
+      isFinite();
+      testMax();
+      testMin();
+      testSum();
+    }
+
+    private static void testHashCode() {
       for (double value : interestingValues) {
         assertEquals(expectedHashCode(value), Double.hashCode(value));
       }
+    }
 
+    private static void isFinite() {
       assertTrue(Double.isFinite(0d));
       assertTrue(Double.isFinite(Double.MIN_VALUE));
       assertTrue(Double.isFinite(Double.MAX_VALUE));
       assertFalse(Double.isFinite(Double.NaN));
       assertFalse(Double.isFinite(Double.POSITIVE_INFINITY));
       assertFalse(Double.isFinite(Double.NEGATIVE_INFINITY));
+    }
 
+    private static void testMax() {
       for (double x : interestingValues) {
         for (double y : interestingValues) {
           assertEquals(Math.max(x, y), Double.max(x, y));
         }
       }
+    }
 
+    private static void testMin() {
       for (double x : interestingValues) {
         for (double y : interestingValues) {
           assertEquals(Math.min(x, y), Double.min(x, y));
         }
       }
+    }
 
+    private static void testSum() {
       for (double x : interestingValues) {
         for (double y : interestingValues) {
           assertEquals(x + y, Double.sum(x, y));
@@ -67,7 +82,7 @@ public final class DoubleBackportTest extends AbstractBackportTest {
       }
     }
 
-    @NeverInline // Avoid changing invoke counts in main().
+    @IgnoreInvokes
     private static int expectedHashCode(double d) {
       return Double.valueOf(d).hashCode();
     }

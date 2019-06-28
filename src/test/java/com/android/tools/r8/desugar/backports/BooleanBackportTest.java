@@ -25,24 +25,40 @@ public final class BooleanBackportTest extends AbstractBackportTest {
 
   static final class Main extends MiniAssert {
     public static void main(String[] args) {
+      testHashCode();
+      testCompare();
+      testLogicalAnd();
+      testLogicalOr();
+      testLogicalXor();
+    }
+
+    private static void testHashCode() {
       assertEquals(1231, Boolean.hashCode(true));
       assertEquals(1237, Boolean.hashCode(false));
+    }
 
+    private static void testCompare() {
       assertEquals(1, Boolean.compare(true, false));
       assertEquals(0, Boolean.compare(true, true));
       assertEquals(0, Boolean.compare(false, false));
       assertEquals(-1, Boolean.compare(false, true));
+    }
 
+    private static void testLogicalAnd() {
       assertTrue(Boolean.logicalAnd(true, true));
       assertFalse(Boolean.logicalAnd(true, false));
       assertFalse(Boolean.logicalAnd(false, true));
       assertFalse(Boolean.logicalAnd(false, false));
+    }
 
+    private static void testLogicalOr() {
       assertTrue(Boolean.logicalOr(true, true));
       assertTrue(Boolean.logicalOr(true, false));
       assertTrue(Boolean.logicalOr(false, true));
       assertFalse(Boolean.logicalOr(false, false));
+    }
 
+    private static void testLogicalXor() {
       assertFalse(Boolean.logicalXor(true, true));
       assertTrue(Boolean.logicalXor(true, false));
       assertTrue(Boolean.logicalXor(false, true));
