@@ -24,6 +24,9 @@ def ParseOptions():
   result.add_option('--dry-run', '--dry_run',
       help='Build only, no upload.',
       default=False, action='store_true')
+  result.add_option('--dry-run-output', '--dry_run_output',
+      help='Output directory for \'build only, no upload\'.',
+      type="string", action="store")
   return result.parse_args()
 
 def GetToolVersion(jar_path):
@@ -107,7 +110,15 @@ def PrintResourceInfo():
 def Main():
   (options, args) = ParseOptions()
   if not utils.is_bot() and not options.dry_run:
-    raise Exception('You are not a bot, don\'t archive builds')
+    raise Exception('You are not a bot, don\'t archive builds. '
+      + 'Use --dry-run to test locally')
+  if options.dry_run_output and not options.dry_run:
+    raise Exception('Option --dry-run-output require --dry-run.')
+  if (options.dry_run_output and
+      (not os.path.exists(options.dry_run_output) or
+       not os.path.isdir(options.dry_run_output))):
+    raise Exception(options.dry_run_output
+        + ' does not exist or is not a directory')
 
   if utils.is_bot():
     SetRLimitToMax()
@@ -149,8 +160,14 @@ def Main():
     version_file = os.path.join(temp, 'r8-version.properties')
     with open(version_file,'w') as version_writer:
       version_writer.write('version.sha=' + GetGitHash() + '\n')
-      version_writer.write(
-          'releaser=go/r8bot (' + os.environ.get('SWARMING_BOT_ID') + ')\n')
+      if not os.environ.get('SWARMING_BOT_ID') and not options.dry_run:
+        raise Exception('Environment variable SWARMING_BOT_ID not set')
+
+      releaser = \
+          ("<local developer build>" if options.dry_run
+            else 'releaser=go/r8bot ('
+                + os.environ.get('SWARMING_BOT_ID') + ')\n')
+      version_writer.write(releaser)
       version_writer.write('version-file.version.code=1\n')
 
     for file in [
@@ -181,7 +198,13 @@ def Main():
       destination = GetUploadDestination(version, file_name, is_master)
       print('Uploading %s to %s' % (tagged_jar, destination))
       if options.dry_run:
-        print('Dry run, not actually uploading')
+        if options.dry_run_output:
+          dry_run_destination = os.path.join(options.dry_run_output, file_name)
+          print('Dry run, not actually uploading. Copying to '
+            + dry_run_destination)
+          shutil.copyfile(tagged_jar, dry_run_destination)
+        else:
+          print('Dry run, not actually uploading')
       else:
         utils.upload_file_to_cloud_storage(tagged_jar, destination)
         print('File available at: %s' % GetUrl(version, file_name, is_master))

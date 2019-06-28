@@ -23,6 +23,14 @@ DEPENDENCYTEMPLATE = Template(
         <version>$version</version>
     </dependency>""")
 
+LICENSETEMPLATE = Template(
+"""
+    <license>
+      <name>$name</name>
+      <url>$url</url>
+      <distribution>repo</distribution>
+    </license>""")
+
 POMTEMPLATE = Template(
 """<project
     xmlns="http://maven.apache.org/POM/4.0.0"
@@ -43,7 +51,7 @@ POMTEMPLATE = Template(
       <name>BSD-3-Clause</name>
       <url>https://opensource.org/licenses/BSD-3-Clause</url>
       <distribution>repo</distribution>
-    </license>
+    </license>$library_licenses
   </licenses>
   <dependencies>$dependencies
   </dependencies>
@@ -82,25 +90,35 @@ def determine_version():
   raise Exception('Unable to determine version.')
 
 def generate_library_licenses():
+  artifact_prefix = '- artifact: '
   license_prefix = 'license: '
   licenses = []
   license_url_prefix = 'licenseUrl: '
   license_urls = []
   with open('LIBRARY-LICENSE', 'r') as file:
+    name = None
+    url = None
     for line in file:
       trimmed = line.strip()
+      # Collect license name and url for each artifact. They must come in
+      # pairs for each artifact.
+      if trimmed.startswith(artifact_prefix):
+        assert not name
+        assert not url
       if trimmed.startswith(license_prefix):
-        # Assert checking that licenses come in name/url pairs.
-        assert len(licenses) == len(license_urls)
         name = trimmed[len(license_prefix):]
-        if not name in licenses:
-          licenses.append(name)
       if trimmed.startswith(license_url_prefix):
         url = trimmed[len(license_url_prefix):]
-        if not url in license_urls:
+      # Licenses come in name/url pairs. When both are present add pair
+      # to collected licenses if either name or url has not been recorded yet,
+      # as some licenses with slightly different names point to the same url.
+      if name and url:
+        if (not name in licenses) or (not url in license_urls):
+          licenses.append(name)
           license_urls.append(url)
-        # Assert checking that licenses come in name/url pairs.
-        assert len(licenses) == len(license_urls)
+        name = None
+        url = None
+      assert len(licenses) == len(license_urls)
   result = ''
   for i in range(len(licenses)):
     name = licenses[i]
@@ -176,8 +194,9 @@ def generate_dependencies():
 
 def write_pom_file(version, pom_file, exclude_dependencies):
   dependencies = "" if exclude_dependencies else generate_dependencies()
+  library_licenses = generate_library_licenses() if exclude_dependencies else ""
   version_pom = POMTEMPLATE.substitute(
-      version=version, dependencies=dependencies)
+      version=version, dependencies=dependencies, library_licenses=library_licenses)
   with open(pom_file, 'w') as file:
     file.write(version_pom)
 
