@@ -45,7 +45,6 @@ public class ReservedFieldNameInSuperClassTest extends TestBase {
     CodeInspector inspector =
         testForR8(Backend.DEX)
             .addProgramClasses(A.class, ASub1.class, ASub2.class, TestClass.class)
-            .enableClassInliningAnnotations()
             .addKeepMainRule(TestClass.class)
             .addKeepRules(
                 reserveName
@@ -78,7 +77,6 @@ public class ReservedFieldNameInSuperClassTest extends TestBase {
         .addProgramClasses(ASub1.class, ASub2.class, TestClass.class)
         .addLibraryClasses(A.class)
         .addLibraryFiles(runtimeJar(Backend.DEX))
-        .enableClassInliningAnnotations()
         .addKeepMainRule(TestClass.class)
         .compile()
         .addRunClasspathFiles(testForD8().addProgramClasses(A.class).compile().writeToZip())

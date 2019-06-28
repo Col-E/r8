@@ -163,6 +163,11 @@ public abstract class TestCompileResult<
     return file;
   }
 
+  public CR writeToZip(Consumer<Path> fn) throws IOException {
+    fn.accept(writeToZip());
+    return self();
+  }
+
   public CR writeToZip(Path file) throws IOException {
     app.writeToZip(file, getOutputMode());
     return self();

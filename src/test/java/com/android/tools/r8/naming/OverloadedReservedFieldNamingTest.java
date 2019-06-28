@@ -47,7 +47,6 @@ public class OverloadedReservedFieldNamingTest extends TestBase {
         .addKeepRules(
             "-keep class " + A.class.getTypeName() + " { boolean a; }",
             overloadAggressively ? "-overloadaggressively" : "")
-        .enableMergeAnnotations()
         .setMinApi(parameters.getRuntime())
         .compile()
         .inspect(this::verifyAggressiveOverloading)

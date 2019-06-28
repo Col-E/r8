@@ -8,6 +8,4 @@
   public static void main(...);
 }
 
--keep class org.junit.** { *; }
--keep class org.mockito.** { *; }
 -keep @**.RunWith class * { *; }

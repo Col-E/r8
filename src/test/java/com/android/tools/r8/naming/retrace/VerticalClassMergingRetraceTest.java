@@ -5,11 +5,12 @@ package com.android.tools.r8.naming.retrace;
 
 import static com.android.tools.r8.naming.retrace.StackTrace.isSameExceptForFileName;
 import static com.android.tools.r8.naming.retrace.StackTrace.isSameExceptForFileNameAndLineNumber;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.naming.retrace.StackTrace.StackTraceLine;
 import com.google.common.collect.ImmutableList;
@@ -32,6 +33,11 @@ public class VerticalClassMergingRetraceTest extends RetraceTestBase {
 
   public VerticalClassMergingRetraceTest(Backend backend, CompilationMode mode) {
     super(backend, mode);
+  }
+
+  @Override
+  public void configure(R8FullTestBuilder builder) {
+    builder.enableInliningAnnotations();
   }
 
   @Override

@@ -28,10 +28,7 @@ public abstract class TestCompilerBuilder<
     extends TestBaseBuilder<C, B, CR, RR, T> {
 
   public static final Consumer<InternalOptions> DEFAULT_OPTIONS =
-      new Consumer<InternalOptions>() {
-        @Override
-        public void accept(InternalOptions options) {}
-      };
+      options -> options.testing.allowUnusedProguardConfigurationRules = false;
 
   final Backend backend;
 

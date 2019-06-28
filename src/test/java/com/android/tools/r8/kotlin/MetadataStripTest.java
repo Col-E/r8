@@ -52,7 +52,6 @@ public class MetadataStripTest extends KotlinTestBase {
             .addProgramFiles(getKotlinJarFile(folder))
             .addProgramFiles(getJavaJarFile(folder))
             .addProgramFiles(ToolHelper.getKotlinReflectJar())
-            .enableInliningAnnotations()
             .addKeepMainRule(mainClassName)
             .addKeepRules(KEEP_ANNOTATIONS)
             .addKeepRules("-keep class kotlin.Metadata")

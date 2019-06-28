@@ -197,13 +197,13 @@ public class InvalidTypesTest extends JasminTestBase {
             .addKeepRules(
                 "-keep class TestClass { public static I g; }",
                 "-neverinline class TestClass { public static void m(); }")
+            .enableProguardTestOptions()
             .addOptionsModification(
                 options -> {
                   if (mode == Mode.INVOKE_UNVERIFIABLE_METHOD) {
                     options.testing.allowTypeErrors = true;
                   }
                 })
-            .enableInliningAnnotations()
             .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), mainClass.name);
     checkTestRunResult(r8Result, Compiler.R8);

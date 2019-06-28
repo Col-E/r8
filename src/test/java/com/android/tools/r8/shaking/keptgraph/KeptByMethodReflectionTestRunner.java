@@ -63,7 +63,6 @@ public class KeptByMethodReflectionTestRunner extends TestBase {
     GraphInspector inspector =
         testForR8(backend)
             .enableGraphInspector(consumer)
-            .enableInliningAnnotations()
             .addProgramClasses(CLASSES)
             .addKeepMainRule(CLASS)
             .run(CLASS)

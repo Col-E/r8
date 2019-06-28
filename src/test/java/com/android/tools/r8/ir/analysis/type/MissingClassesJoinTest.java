@@ -70,7 +70,6 @@ public class MissingClassesJoinTest extends TestBase {
               .addProgramClasses(A.class, ASub1.class, Box.class, TestClass.class)
               .addKeepAllClassesRule()
               .addOptionsModification(options -> options.testing.allowTypeErrors = allowTypeErrors)
-              .enableInliningAnnotations()
               .enableMergeAnnotations()
               .setMinApi(parameters.getRuntime())
               .compile()

@@ -533,6 +533,7 @@ public class RootSetBuilder {
 
     private void materializeIfRule(ProguardIfRule rule, Set<DexReference> preconditions) {
       ProguardIfRule materializedRule = rule.materialize(preconditions);
+      rule.markAsUsed();
 
       // We need to abort class inlining of classes that could be matched by the condition of this
       // -if rule.
@@ -1051,6 +1052,7 @@ public class RootSetBuilder {
           dependentKeepClassCompatRule
               .computeIfAbsent(precondition.asDexClass().getType(), i -> new HashSet<>())
               .add(keepRule);
+          context.markAsUsed();
         }
       }
       if (!modifiers.allowsShrinking) {
@@ -1062,26 +1064,35 @@ public class RootSetBuilder {
         } else {
           noShrinking.computeIfAbsent(item.toReference(), i -> new HashSet<>()).add(keepRule);
         }
+        context.markAsUsed();
       }
       if (!modifiers.allowsOptimization) {
         noOptimization.add(item.toReference());
+        context.markAsUsed();
       }
       if (!modifiers.allowsObfuscation) {
         noObfuscation.add(item.toReference());
+        context.markAsUsed();
       }
       if (modifiers.includeDescriptorClasses) {
         includeDescriptorClasses(item, keepRule);
+        context.markAsUsed();
       }
     } else if (context instanceof ProguardAssumeMayHaveSideEffectsRule) {
       mayHaveSideEffects.put(item.toReference(), rule);
+      context.markAsUsed();
     } else if (context instanceof ProguardAssumeNoSideEffectRule) {
       noSideEffects.put(item.toReference(), rule);
+      context.markAsUsed();
     } else if (context instanceof ProguardWhyAreYouKeepingRule) {
       reasonAsked.computeIfAbsent(item.toReference(), i -> i);
+      context.markAsUsed();
     } else if (context instanceof ProguardAssumeValuesRule) {
       assumedValues.put(item.toReference(), rule);
+      context.markAsUsed();
     } else if (context instanceof ProguardCheckDiscardRule) {
       checkDiscarded.computeIfAbsent(item.toReference(), i -> i);
+      context.markAsUsed();
     } else if (context instanceof InlineRule) {
       if (item.isDexEncodedMethod()) {
         switch (((InlineRule) context).getType()) {
@@ -1097,6 +1108,7 @@ public class RootSetBuilder {
           default:
             throw new Unreachable();
         }
+        context.markAsUsed();
       }
     } else if (context instanceof ClassInlineRule) {
       switch (((ClassInlineRule) context).getType()) {
@@ -1108,6 +1120,7 @@ public class RootSetBuilder {
         default:
           throw new Unreachable();
       }
+      context.markAsUsed();
     } else if (context instanceof ClassMergingRule) {
       switch (((ClassMergingRule) context).getType()) {
         case NEVER:
@@ -1118,6 +1131,7 @@ public class RootSetBuilder {
         default:
           throw new Unreachable();
       }
+      context.markAsUsed();
     } else if (context instanceof MemberValuePropagationRule) {
       switch (((MemberValuePropagationRule) context).getType()) {
         case NEVER:
@@ -1127,11 +1141,13 @@ public class RootSetBuilder {
             DexEncodedField field = item.asDexEncodedField();
             if (field.isProgramField(appView)) {
               neverPropagateValue.add(item.asDexEncodedField().field);
+              context.markAsUsed();
             }
           } else if (item.isDexEncodedMethod()) {
             DexEncodedMethod method = item.asDexEncodedMethod();
             if (method.isProgramMethod(appView)) {
               neverPropagateValue.add(item.asDexEncodedMethod().method);
+              context.markAsUsed();
             }
           }
           break;
@@ -1141,17 +1157,23 @@ public class RootSetBuilder {
     } else if (context instanceof ProguardIdentifierNameStringRule) {
       if (item.isDexEncodedField()) {
         identifierNameStrings.add(item.asDexEncodedField().field);
+        context.markAsUsed();
       } else if (item.isDexEncodedMethod()) {
         identifierNameStrings.add(item.asDexEncodedMethod().method);
+        context.markAsUsed();
       }
     } else if (context instanceof ConstantArgumentRule) {
       if (item.isDexEncodedMethod()) {
         keepParametersWithConstantValue.add(item.asDexEncodedMethod().method);
+        context.markAsUsed();
       }
     } else if (context instanceof UnusedArgumentRule) {
       if (item.isDexEncodedMethod()) {
         keepUnusedArguments.add(item.asDexEncodedMethod().method);
+        context.markAsUsed();
       }
+    } else {
+      throw new Unreachable();
     }
   }
 
@@ -1254,8 +1276,22 @@ public class RootSetBuilder {
       this.ifRules = Collections.unmodifiableSet(previous.ifRules);
     }
 
-    public RootSet rewrittenWithLense(GraphLense lense) {
-      return new RootSet(this, lense);
+    public void checkAllRulesAreUsed(InternalOptions options) {
+      List<ProguardConfigurationRule> rules = options.getProguardConfiguration().getRules();
+      if (rules != null) {
+        for (ProguardConfigurationRule rule : rules) {
+          if (!rule.isUsed()) {
+            String message =
+                "Proguard configuration rule does not match anything: `" + rule.toString() + "`";
+            StringDiagnostic diagnostic = new StringDiagnostic(message, rule.getOrigin());
+            if (options.testing.allowUnusedProguardConfigurationRules) {
+              options.reporter.info(diagnostic);
+            } else {
+              throw options.reporter.fatalError(diagnostic);
+            }
+          }
+        }
+      }
     }
 
     private static <T extends DexReference, S> Map<T, Map<T, S>> rewriteDependentReferenceKeys(

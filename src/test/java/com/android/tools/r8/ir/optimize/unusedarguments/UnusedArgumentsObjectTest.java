@@ -8,6 +8,7 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
@@ -105,6 +106,11 @@ public class UnusedArgumentsObjectTest extends UnusedArgumentsTestBase {
       System.out.print(
           instance.publicMethod(new TestObject("4"), new TestObject("5"), new TestObject("6")));
     }
+  }
+
+  @Override
+  public void configure(R8FullTestBuilder builder) {
+    builder.enableClassInliningAnnotations().enableInliningAnnotations();
   }
 
   @Override

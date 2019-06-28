@@ -193,11 +193,6 @@ public final class ConstructorRelaxationTest extends AccessRelaxationTestBase {
                 "-keep class " + mainClass.getCanonicalName() + "{",
                 "  public static void main(java.lang.String[]);",
                 "}",
-                "",
-                "-keep class *.L* {",
-                "  <init>(...);",
-                "}",
-                "",
                 "-allowaccessmodification")
             .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), mainClass);

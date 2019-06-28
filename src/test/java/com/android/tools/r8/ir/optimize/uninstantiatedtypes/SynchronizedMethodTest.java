@@ -29,7 +29,6 @@ public class SynchronizedMethodTest extends TestBase {
             .addInnerClasses(SynchronizedMethodTest.class)
             .addKeepMainRule(TestClass.class)
             .enableInliningAnnotations()
-            .enableMergeAnnotations()
             .run(TestClass.class)
             .assertSuccessWithOutput(expectedOutput)
             .inspector();

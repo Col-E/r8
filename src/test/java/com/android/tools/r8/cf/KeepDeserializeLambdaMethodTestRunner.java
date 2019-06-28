@@ -6,6 +6,7 @@ package com.android.tools.r8.cf;
 
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.R8CompatTestBuilder;
@@ -48,6 +49,9 @@ public class KeepDeserializeLambdaMethodTestRunner extends TestBase {
 
   @Test
   public void testKeepRuleCf() throws Exception {
+    // Only run for CF runtimes, since the keep rule does not match anything when compiling for the
+    // DEX.
+    assumeTrue(parameters.isCfRuntime());
     test(true);
   }
 

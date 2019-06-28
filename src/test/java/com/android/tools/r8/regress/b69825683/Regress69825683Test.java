@@ -76,7 +76,6 @@ public class Regress69825683Test extends TestBase {
             .addProgramFiles(ToolHelper.getClassFilesForTestPackage(clazz.getPackage()))
             .addKeepMainRule(clazz)
             .enableInliningAnnotations()
-            .enableSideEffectAnnotations()
             .addKeepRules(
                 "-assumemayhavesideeffects class " + clazz.getName() + " {",
                 "  void <init>(...);",

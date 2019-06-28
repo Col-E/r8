@@ -85,7 +85,6 @@ public class EnclosingMethodTest extends TestBase {
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramFiles(classPaths)
-        .enableInliningAnnotations()
         .addOptionsModification(this::configure)
         .addKeepMainRule(MAIN)
         .addKeepRules("-keep class **.GetName*")

@@ -5,6 +5,7 @@
 package com.android.tools.r8.naming.retrace;
 
 import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.google.common.collect.ImmutableList;
@@ -23,6 +24,8 @@ public abstract class RetraceTestBase extends TestBase {
   }
 
   public StackTrace expectedStackTrace;
+
+  public void configure(R8FullTestBuilder builder) {}
 
   public Collection<Class<?>> getClasses() {
     return ImmutableList.of(getMainClass());
@@ -48,11 +51,10 @@ public abstract class RetraceTestBase extends TestBase {
         testForR8(backend)
             .setMode(mode)
             .enableProguardTestOptions()
-            .enableMergeAnnotations()
-            .enableInliningAnnotations()
             .addProgramClasses(getClasses())
             .addKeepMainRule(getMainClass())
             .addKeepRules(keepRules)
+            .apply(this::configure)
             .run(getMainClass())
             .assertFailure();
 

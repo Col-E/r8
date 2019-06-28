@@ -873,6 +873,7 @@ public class InternalOptions {
 
     public boolean allowTypeErrors =
         !Version.isDev() || System.getProperty("com.android.tools.r8.allowTypeErrors") != null;
+    public boolean allowUnusedProguardConfigurationRules = true;
     public boolean alwaysUsePessimisticRegisterAllocation = false;
     public boolean enableDeadSwitchCaseElimination = false;
     public boolean enableSwitchToIfRewriting = true;

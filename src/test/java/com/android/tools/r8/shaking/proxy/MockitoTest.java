@@ -6,7 +6,7 @@ package com.android.tools.r8.shaking.proxy;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
 import static org.hamcrest.CoreMatchers.not;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
@@ -74,5 +74,4 @@ public class MockitoTest extends TestBase {
     assertThat(mtd, isPresent());
     assertThat(mtd, not(isRenamed()));
   }
-
 }

@@ -12,6 +12,9 @@ import java.util.List;
 import java.util.stream.StreamSupport;
 
 public abstract class ProguardConfigurationRule extends ProguardClassSpecification {
+
+  private boolean used = false;
+
   ProguardConfigurationRule(
       Origin origin,
       Position position,
@@ -29,6 +32,14 @@ public abstract class ProguardConfigurationRule extends ProguardClassSpecificati
     super(origin, position, source, classAnnotation, classAccessFlags, negatedClassAccessFlags,
         classTypeNegated, classType, classNames, inheritanceAnnotation, inheritanceClassName,
         inheritanceIsExtends, memberRules);
+  }
+
+  public boolean isUsed() {
+    return used;
+  }
+
+  public void markAsUsed() {
+    used = true;
   }
 
   abstract String typeString();

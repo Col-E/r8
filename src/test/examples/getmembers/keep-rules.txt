@@ -11,10 +11,6 @@
   <methods>;
 }
 
--alwaysinline class getmembers.B {
-  private String toBeInlined();
-}
-
 # This will be added to CompatProguard by default.
 # We are testing whether R8 shows the same behavior.
 -identifiernamestring public class java.lang.Class {

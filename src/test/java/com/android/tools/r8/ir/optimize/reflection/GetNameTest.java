@@ -267,7 +267,6 @@ public class GetNameTest extends GetNameTestBase {
     R8TestRunResult result =
         testForR8(parameters.getBackend())
             .addProgramFiles(classPaths)
-            .enableInliningAnnotations()
             .addKeepMainRule(MAIN)
             .addKeepRules("-keep class **.GetName0*")
             .addKeepRules("-keepattributes InnerClasses,EnclosingMethod")
@@ -286,7 +285,6 @@ public class GetNameTest extends GetNameTestBase {
     R8TestRunResult result =
         testForR8(parameters.getBackend())
             .addProgramFiles(classPaths)
-            .enableInliningAnnotations()
             .addKeepMainRule(MAIN)
             .addKeepRules("-keep,allowobfuscation class **.GetName0*")
             .addKeepRules("-keepattributes InnerClasses,EnclosingMethod")

@@ -135,7 +135,6 @@ public class NoRelaxationForSerializableTest extends AccessRelaxationTestBase {
   public void testR8_withKeepRules() throws Exception {
     R8TestCompileResult result = testForR8(parameters.getBackend())
         .addProgramClasses(CLASSES)
-        .enableClassInliningAnnotations()
         .enableInliningAnnotations()
         .addKeepRuleFiles(configuration)
         .addKeepRules(KEEPMEMBER_RULES)
@@ -165,7 +164,6 @@ public class NoRelaxationForSerializableTest extends AccessRelaxationTestBase {
   public void testR8_withoutKeepRules() throws Exception {
     R8TestCompileResult result = testForR8(parameters.getBackend())
         .addProgramClasses(CLASSES)
-        .enableClassInliningAnnotations()
         .enableInliningAnnotations()
         .addKeepRuleFiles(configuration)
         .setMinApi(parameters.getRuntime())

@@ -10,8 +10,8 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPublic;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isStatic;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
@@ -46,6 +46,8 @@ public class IfRuleWithInterfaceMethodDesugaringTest extends TestBase {
                 "  !public !static void virtualMethod();",
                 "}",
                 "-keep class " + Unused2.class.getTypeName())
+            .addOptionsModification(
+                options -> options.testing.allowUnusedProguardConfigurationRules = true)
             .enableInliningAnnotations()
             .enableClassInliningAnnotations()
             .enableMergeAnnotations()

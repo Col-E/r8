@@ -51,6 +51,9 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
               options.enableGeneratedMessageLiteShrinking = true;
               options.enableGeneratedExtensionRegistryShrinking = true;
               options.enableStringSwitchConversion = true;
+
+              // Because there are unused rules in lite_proguard.pgcfg.
+              options.testing.allowUnusedProguardConfigurationRules = true;
             })
         .minification(enableMinification)
         .setMinApi(parameters.getRuntime())

@@ -78,8 +78,6 @@ public class ReservedFieldNameInSuperInterfaceTest extends TestBase {
         .addProgramClasses(TestClass.class, A.class, J.class)
         .addLibraryClasses(I.class)
         .addLibraryFiles(runtimeJar(Backend.DEX))
-        .enableMemberValuePropagationAnnotations()
-        .enableMergeAnnotations()
         .addKeepMainRule(TestClass.class)
         .compile()
         .addRunClasspathFiles(testForD8().addProgramClasses(I.class).compile().writeToZip())

@@ -14,21 +14,21 @@ import org.junit.Test;
 public class LineDeltaTest extends TestBase {
   public String runTest(Backend backend) throws Exception {
     return testForR8(backend)
-        .enableInliningAnnotations()
+        .enableForceInliningAnnotations()
         .addProgramClasses(LineDeltaTestClass.class)
         .addKeepMainRule(LineDeltaTestClass.class)
         .addKeepRules("-keepattributes LineNumberTable")
         .run(LineDeltaTestClass.class)
-        .assertSuccessWithOutput(StringUtils.lines(
-            "In test1() - 1",
-            "In test1() - 2",
-            "In test1() - 3",
-            "In test1() - 4",
-            "In test2() - 1",
-            "In test2() - 2",
-            "In test2() - 3",
-            "In test2() - 4"
-        ))
+        .assertSuccessWithOutput(
+            StringUtils.lines(
+                "In test1() - 1",
+                "In test1() - 2",
+                "In test1() - 3",
+                "In test1() - 4",
+                "In test2() - 1",
+                "In test2() - 2",
+                "In test2() - 3",
+                "In test2() - 4"))
         .proguardMap();
   }
 

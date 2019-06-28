@@ -185,8 +185,20 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     if (!enableInliningAnnotations) {
       enableInliningAnnotations = true;
       addInternalKeepRules(
-          "-forceinline class * { @" + annotationPackageName + ".ForceInline *; }",
           "-neverinline class * { @" + annotationPackageName + ".NeverInline *; }");
+    }
+    return self();
+  }
+
+  public T enableForceInliningAnnotations() {
+    return enableForceInliningAnnotations(ForceInline.class.getPackage().getName());
+  }
+
+  public T enableForceInliningAnnotations(String annotationPackageName) {
+    if (!enableInliningAnnotations) {
+      enableInliningAnnotations = true;
+      addInternalKeepRules(
+          "-forceinline class * { @" + annotationPackageName + ".ForceInline *; }");
     }
     return self();
   }

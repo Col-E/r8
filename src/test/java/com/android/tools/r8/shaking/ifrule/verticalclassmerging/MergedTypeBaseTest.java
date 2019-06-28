@@ -9,10 +9,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
@@ -67,6 +67,11 @@ public abstract class MergedTypeBaseTest extends TestBase {
         getTestParameters().withAllRuntimes().build(), BooleanUtils.values());
   }
 
+  public void configure(R8FullTestBuilder builder) {
+    builder.addOptionsModification(
+        options -> options.enableVerticalClassMerging = enableVerticalClassMerging);
+  }
+
   public abstract Class<?> getTestClass();
 
   public String getAdditionalKeepRules() {
@@ -100,16 +105,10 @@ public abstract class MergedTypeBaseTest extends TestBase {
             "-keep class " + Unused.class.getTypeName(),
             getAdditionalKeepRules())
         .noMinification()
-        .addOptionsModification(this::configure)
-        .enableClassInliningAnnotations()
-        .enableSideEffectAnnotations()
         .setMinApi(parameters.getRuntime())
+        .apply(this::configure)
         .run(parameters.getRuntime(), getTestClass())
         .assertSuccessWithOutput(expected)
         .inspect(this::inspect);
-  }
-
-  public void configure(InternalOptions options) {
-    options.enableVerticalClassMerging = enableVerticalClassMerging;
   }
 }

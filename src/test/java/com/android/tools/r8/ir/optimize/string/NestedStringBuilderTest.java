@@ -66,7 +66,7 @@ public class NestedStringBuilderTest extends TestBase {
     R8TestCompileResult result =
         testForR8(parameters.getBackend())
             .addProgramClasses(MAIN)
-            .enableInliningAnnotations()
+            .enableForceInliningAnnotations()
             .addKeepMainRule(MAIN)
             .setMinApi(parameters.getRuntime())
             .compile();

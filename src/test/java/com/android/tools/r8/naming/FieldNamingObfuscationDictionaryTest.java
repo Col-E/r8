@@ -92,7 +92,6 @@ public class FieldNamingObfuscationDictionaryTest extends TestBase {
 
     testForR8(parameters.getBackend())
         .addInnerClasses(FieldNamingObfuscationDictionaryTest.class)
-        .enableInliningAnnotations()
         .addKeepRules("-overloadaggressively", "-obfuscationdictionary " + dictionary.toString())
         .addKeepMainRule(Runner.class)
         .setMinApi(parameters.getRuntime())

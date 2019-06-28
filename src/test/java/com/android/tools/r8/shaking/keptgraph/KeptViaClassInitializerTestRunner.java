@@ -91,7 +91,6 @@ public class KeptViaClassInitializerTestRunner extends TestBase {
     GraphInspector inspector =
         testForR8(backend)
             .enableGraphInspector(consumer)
-            .enableInliningAnnotations()
             .addProgramClassesAndInnerClasses(Main.class, A.class, T.class)
             .addKeepMethodRules(mainMethod)
             .setMinApi(AndroidApiLevel.N)

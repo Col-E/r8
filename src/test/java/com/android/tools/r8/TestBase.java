@@ -750,14 +750,6 @@ public class TestBase {
         + keepMainProguardConfiguration(clazz);
   }
 
-  public static String keepMainProguardConfigurationWithInliningAnnotation(String clazz) {
-    return "-forceinline class * { @com.android.tools.r8.ForceInline *; }"
-        + System.lineSeparator()
-        + "-neverinline class * { @com.android.tools.r8.NeverInline *; }"
-        + System.lineSeparator()
-        + keepMainProguardConfiguration(clazz);
-  }
-
   public static String neverMergeRule() {
     return "-nevermerge @com.android.tools.r8.NeverMerge class *";
   }

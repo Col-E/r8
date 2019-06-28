@@ -4,21 +4,15 @@
 package com.android.tools.r8.ir.optimize.checkcast;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
-import com.android.tools.r8.ClassFileConsumer;
-import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.DexIndexedConsumer;
-import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.R8Command;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.debug.CfDebugTestConfig;
 import com.android.tools.r8.debug.DebugTestBase;
 import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.debug.DexDebugTestConfig;
-import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -33,45 +27,46 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class CheckCastDebugTestRunner extends DebugTestBase {
+
   private static final Class<?> MAIN = CheckCastDebugTest.class;
-  private final Backend backend;
+
+  private final TestParameters parameters;
 
   private Path r8Out;
   private CodeInspector inspector;
 
-  @Parameterized.Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimes().build();
   }
 
-  public CheckCastDebugTestRunner(Backend backend) {
-    this.backend = backend;
+  public CheckCastDebugTestRunner(TestParameters parameters) {
+    this.parameters = parameters;
   }
-
-  private static int testCounter = 0;
 
   @Before
   public void setUp() throws Exception {
-    AndroidApp app = readClasses(NeverInline.class, A.class, B.class, C.class, MAIN);
-    r8Out = temp.newFile(String.format("r8Out-%s-%d.zip", backend, testCounter++)).toPath();
-    R8Command.Builder builder = ToolHelper.prepareR8CommandBuilder(app);
-    if (backend == Backend.DEX) {
-      builder.setProgramConsumer(new DexIndexedConsumer.ArchiveConsumer(r8Out));
-    } else {
-      assert backend == Backend.CF;
-      builder.setProgramConsumer(new ClassFileConsumer.ArchiveConsumer(r8Out));
-    }
-    builder.addProguardConfiguration(
-        ImmutableList.of(
-            "-dontobfuscate",
-            keepMainProguardConfigurationWithInliningAnnotation(MAIN)),
-        Origin.unknown());
-    builder.setMode(CompilationMode.DEBUG);
-    ToolHelper.allowTestProguardOptions(builder);
-    ToolHelper.runR8(builder.build(), o -> o.enableVerticalClassMerging = false);
-    inspector = new CodeInspector(r8Out);
+    inspector =
+        testForR8(parameters.getBackend())
+            .addProgramClassesAndInnerClasses(A.class, B.class, C.class, MAIN)
+            .addKeepMainRule(MAIN)
+            .addOptionsModification(options -> options.enableVerticalClassMerging = false)
+            .debug()
+            .enableInliningAnnotations()
+            .noMinification()
+            .setMinApi(parameters.getRuntime())
+            .compile()
+            .writeToZip(this::setR8Out)
+            .run(parameters.getRuntime(), MAIN)
+            .assertSuccess()
+            .inspector();
+
     ClassSubject classSubject = inspector.clazz(MAIN);
     assertThat(classSubject, isPresent());
+  }
+
+  private void setR8Out(Path path) {
+    this.r8Out = path;
   }
 
   @Test
@@ -83,9 +78,8 @@ public class CheckCastDebugTestRunner extends DebugTestBase {
         Streams.stream(method.iterateInstructions(InstructionSubject::isCheckCast)).count();
     assertEquals(0, count);
 
-    DebugTestConfig config = backend == Backend.CF
-        ? new CfDebugTestConfig()
-        : new DexDebugTestConfig();
+    DebugTestConfig config =
+        parameters.isCfRuntime() ? new CfDebugTestConfig() : new DexDebugTestConfig();
     config.addPaths(r8Out);
     runDebugTest(config, MAIN.getCanonicalName(),
         // Object obj = new C();
@@ -136,9 +130,8 @@ public class CheckCastDebugTestRunner extends DebugTestBase {
         Streams.stream(method.iterateInstructions(InstructionSubject::isCheckCast)).count();
     assertEquals(0, count);
 
-    DebugTestConfig config = backend == Backend.CF
-        ? new CfDebugTestConfig()
-        : new DexDebugTestConfig();
+    DebugTestConfig config =
+        parameters.isCfRuntime() ? new CfDebugTestConfig() : new DexDebugTestConfig();
     config.addPaths(r8Out);
     runDebugTest(config, MAIN.getCanonicalName(),
         // Object obj = new C();

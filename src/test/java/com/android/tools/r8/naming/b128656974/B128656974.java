@@ -5,8 +5,8 @@ package com.android.tools.r8.naming.b128656974;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
@@ -28,7 +28,6 @@ public class B128656974 extends TestBase {
         .addProgramClasses(
             Greeting.class, Greeting.getGreetingBase(), TestClassSub.class, main)
         .enableClassInliningAnnotations()
-        .enableInliningAnnotations()
         .enableMergeAnnotations()
         .addKeepMainRule(main)
         .addKeepRules(

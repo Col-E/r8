@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.optimize.unusedarguments;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -26,6 +27,10 @@ public abstract class UnusedArgumentsTestBase extends TestBase {
   @Parameters(name = "minification:{0}")
   public static Collection<Object[]> data() {
     return ImmutableList.of(new Object[] {true}, new Object[] {false});
+  }
+
+  public void configure(R8FullTestBuilder builder) {
+    builder.enableInliningAnnotations();
   }
 
   public abstract Class<?> getTestClass();
@@ -56,9 +61,8 @@ public abstract class UnusedArgumentsTestBase extends TestBase {
         .addProgramClasses(getAdditionalClasses())
         .addKeepMainRule(getTestClass())
         .minification(minification)
-        .enableInliningAnnotations()
-        .enableClassInliningAnnotations()
         .addOptionsModification(options -> options.enableSideEffectAnalysis = false)
+        .apply(this::configure)
         .compile()
         .run(getTestClass())
         .inspect(this::inspect)

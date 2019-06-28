@@ -128,7 +128,6 @@ public class MethodNameMinificationPrivateNamedLastTest extends TestBase {
         .addInnerClasses(MethodNameMinificationPrivateNamedLastTest.class)
         .enableMergeAnnotations()
         .enableInliningAnnotations()
-        .enableClassInliningAnnotations()
         .addKeepMainRule(Runner.class)
         .setMinApi(parameters.getRuntime())
         .compile()

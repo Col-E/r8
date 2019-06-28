@@ -8,8 +8,6 @@
   public static void main(...);
 }
 
--keep class org.junit.** { *; }
--keep class org.mockito.** { *; }
 -keep @**.RunWith class * { *; }
 
 # Mockito generates mocks of interface types at runtime. If interface methods are optimized, i.e.,

@@ -36,7 +36,16 @@ public class InnerClassNameSeparatorTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    TestRunResult<?> result = runTest(testForR8(parameters.getBackend()));
+    TestRunResult<?> result =
+        runTest(
+            testForR8(parameters.getBackend())
+                .addOptionsModification(
+                    options -> {
+                      if (separator.equals(".")) {
+                        // R8 currently does not recognize the '.' as an inner class name separator.
+                        options.testing.allowUnusedProguardConfigurationRules = true;
+                      }
+                    }));
     if (separator.equals("$")) {
       result.assertSuccessWithOutputLines("Hello world!");
     } else {

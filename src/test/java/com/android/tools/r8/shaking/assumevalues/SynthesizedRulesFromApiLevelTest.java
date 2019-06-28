@@ -6,14 +6,16 @@ package com.android.tools.r8.shaking.assumevalues;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.OutputMode;
+import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.jasmin.JasminBuilder;
@@ -154,9 +156,11 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
       AndroidApiLevel runtimeApiLevel,
       AndroidApiLevel nativeApiLevel,
       String expectedOutput,
+      ThrowableConsumer<R8FullTestBuilder> configuration,
       Consumer<CodeInspector> inspector,
       List<String> additionalKeepRules,
-      SynthesizedRule synthesizedRule) throws Exception{
+      SynthesizedRule synthesizedRule)
+      throws Exception {
     assertTrue(runtimeApiLevel.getLevel() >= buildApiLevel.getLevel());
     if (backend == Backend.DEX) {
       testForR8(backend)
@@ -166,6 +170,7 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
           .addKeepRules("-neverinline class " + compatLibraryClassName + " { *; }")
           .addKeepMainRule(mainClassName)
           .addKeepRules(additionalKeepRules)
+          .apply(configuration)
           .compile()
           .inspectSyntheticProguardRules(
               syntheticProguardRules ->
@@ -180,6 +185,7 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
           .addProgramFiles(buildApp(nativeApiLevel))
           .addKeepMainRule(mainClassName)
           .addKeepRules(additionalKeepRules)
+          .apply(configuration)
           .compile()
           .inspectSyntheticProguardRules(this::noSynthesizedRules)
           .addRunClasspathFiles(
@@ -200,6 +206,7 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
         runtimeApiLevel,
         nativeApiLevel,
         expectedOutput,
+        null,
         inspector,
         ImmutableList.of(),
         SynthesizedRule.PRESENT);
@@ -266,24 +273,32 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
         AndroidApiLevel.O_MR1,
         AndroidApiLevel.O_MR1,
         expectedResultForNative(AndroidApiLevel.O_MR1),
+        builder ->
+            builder.addOptionsModification(
+                options ->
+                    // android.os.Build$VERSION only exists in the Android runtime.
+                    options.testing.allowUnusedProguardConfigurationRules = backend == Backend.CF),
         this::compatCodeNotPresent,
         ImmutableList.of(
             "-assumevalues class android.os.Build$VERSION { public static final int SDK_INT return "
-            + AndroidApiLevel.O_MR1.getLevel() + "..1000; }"),
+                + AndroidApiLevel.O_MR1.getLevel()
+                + "..1000; }"),
         SynthesizedRule.NOT_PRESENT);
   }
 
   @Test
   public void testExplicitAssumeValuesRulesWhichMatchAndKeepCompat() throws Exception {
     Assume.assumeTrue(ToolHelper.getDexVm().isNewerThan(DexVm.ART_7_0_0_HOST));
-    String[] rules = new String[] {
-        "-assumevalues class * { int SDK_INT return 1..1000; }",
-        "-assumevalues class * { % SDK_INT return 1..1000; }",
-        "-assumevalues class * { int * return 1..1000; }",
-        "-assumevalues class * extends java.lang.Object { int SDK_INT return 1..1000; }",
-        "-assumevalues class * { <fields>; }",
-        "-assumevalues class * { *; }"
-    };
+    String[] rules =
+        new String[] {
+          "-assumevalues class android.os.Build$VERSION { int SDK_INT return 1..1000; }",
+          "-assumevalues class android.os.Build$VERSION { % SDK_INT return 1..1000; }",
+          "-assumevalues class android.os.Build$VERSION { int * return 1..1000; }",
+          "-assumevalues class android.os.Build$VERSION extends java.lang.Object { int SDK_INT"
+              + " return 1..1000; }",
+          "-assumevalues class android.os.Build$VERSION { <fields>; }",
+          "-assumevalues class android.os.Build$VERSION { *; }"
+        };
 
     for (String rule : rules) {
       runTest(
@@ -291,6 +306,9 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
           AndroidApiLevel.O_MR1,
           AndroidApiLevel.O_MR1,
           expectedResultForNative(AndroidApiLevel.O_MR1),
+          builder ->
+              builder.addOptionsModification(
+                  options -> options.testing.allowUnusedProguardConfigurationRules = true),
           this::compatCodePresent,
           ImmutableList.of(rule),
           SynthesizedRule.NOT_PRESENT);
@@ -313,6 +331,9 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
           AndroidApiLevel.O_MR1,
           AndroidApiLevel.O_MR1,
           expectedResultForNative(AndroidApiLevel.O_MR1),
+          builder ->
+              builder.addOptionsModification(
+                  options -> options.testing.allowUnusedProguardConfigurationRules = true),
           this::compatCodeNotPresent,
           ImmutableList.of(rule),
           SynthesizedRule.PRESENT);

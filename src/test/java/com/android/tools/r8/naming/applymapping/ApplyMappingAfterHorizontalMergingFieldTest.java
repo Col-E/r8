@@ -90,7 +90,6 @@ public class ApplyMappingAfterHorizontalMergingFieldTest extends TestBase {
   @Test
   public void b121042934() throws Exception {
     R8TestCompileResult libraryResult = testForR8(backend)
-        .enableInliningAnnotations()
         .addProgramClasses(LIBRARY_CLASSES)
         .addKeepMainRule(LibraryMain.class)
         .compile();
