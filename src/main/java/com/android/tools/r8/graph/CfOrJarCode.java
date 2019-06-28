@@ -14,5 +14,8 @@ public interface CfOrJarCode {
       GraphLense graphLense,
       DexType invocationContext);
 
+
+  void markReachabilitySensitive();
+
   void makeStatic(String protoDescriptor);
 }

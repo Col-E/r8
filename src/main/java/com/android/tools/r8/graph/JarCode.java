@@ -68,6 +68,7 @@ public class JarCode extends Code implements CfOrJarCode {
     context.codeList.add(this);
   }
 
+  @Override
   public void markReachabilitySensitive() {
     // We need to mark before we have reparsed so that the method code is reparsed
     // including debug information.

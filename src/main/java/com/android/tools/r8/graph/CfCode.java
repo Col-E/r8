@@ -14,6 +14,7 @@ import com.android.tools.r8.cf.code.CfReturnVoid;
 import com.android.tools.r8.cf.code.CfTryCatch;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
 import com.android.tools.r8.errors.Unimplemented;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
@@ -279,6 +280,11 @@ public class CfCode extends Code implements CfOrJarCode {
       }
     }
     return true;
+  }
+
+  @Override
+  public void markReachabilitySensitive() {
+    throw new Unreachable("Invalid attempt to mark parsed code as reachability sensitive");
   }
 
   @Override
