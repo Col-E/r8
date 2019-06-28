@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -823,6 +824,18 @@ public abstract class DexClass extends DexDefinition {
       }
     }
     return null;
+  }
+
+  public void replaceInnerClassAttributeForThisClass(InnerClassAttribute newInnerClassAttribute) {
+    ListIterator<InnerClassAttribute> iterator = getInnerClasses().listIterator();
+    while (iterator.hasNext()) {
+      InnerClassAttribute innerClassAttribute = iterator.next();
+      if (type == innerClassAttribute.getInner()) {
+        iterator.set(newInnerClassAttribute);
+        return;
+      }
+    }
+    throw new Unreachable();
   }
 
   public boolean isLocalClass() {

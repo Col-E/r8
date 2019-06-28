@@ -3,12 +3,17 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.optimize;
 
+import static com.android.tools.r8.dex.Constants.ACC_PRIVATE;
+import static com.android.tools.r8.dex.Constants.ACC_PROTECTED;
+import static com.android.tools.r8.dex.Constants.ACC_PUBLIC;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.ir.optimize.MethodPoolCollection;
 import com.android.tools.r8.optimize.PublicizerLense.PublicizedLenseBuilder;
@@ -70,7 +75,11 @@ public final class ClassAndMemberPublicizer {
     DexClass clazz = application.definitionFor(type);
     if (clazz != null && clazz.isProgramClass()) {
       clazz.accessFlags.promoteToPublic();
+
+      // Publicize fields.
       clazz.forEachField(field -> field.accessFlags.promoteToPublic());
+
+      // Publicize methods.
       Set<DexEncodedMethod> privateInstanceEncodedMethods = new LinkedHashSet<>();
       clazz.forEachMethod(encodedMethod -> {
         if (publicizeMethod(clazz, encodedMethod)) {
@@ -79,6 +88,15 @@ public final class ClassAndMemberPublicizer {
       });
       if (!privateInstanceEncodedMethods.isEmpty()) {
         clazz.virtualizeMethods(privateInstanceEncodedMethods);
+      }
+
+      // Publicize inner class attribute.
+      InnerClassAttribute attr = clazz.getInnerClassAttributeForThisClass();
+      if (attr != null) {
+        int accessFlags = ((attr.getAccess() | ACC_PUBLIC) & ~ACC_PRIVATE) & ~ACC_PROTECTED;
+        clazz.replaceInnerClassAttributeForThisClass(
+            new InnerClassAttribute(
+                accessFlags, attr.getInner(), attr.getOuter(), attr.getInnerName()));
       }
     }
 
