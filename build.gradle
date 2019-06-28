@@ -1709,6 +1709,12 @@ test {
         assert project.hasProperty('HEAD_sha1')
         systemProperty 'test_git_HEAD_sha1', project.property('HEAD_sha1')
     }
+
+    if (project.hasProperty('alternative_frontend')) {
+        println "NOTE: Running with alternative frontend"
+        systemProperty 'com.android.tools.r8.useAlternativeFrontend', true
+    }
+
     dependsOn getJarsFromSupportLibs
     // R8.jar is required for running bootstrap tests.
     dependsOn R8

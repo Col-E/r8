@@ -363,7 +363,15 @@ public class InternalOptions {
   public boolean disableAssertions = true;
   public boolean configurationDebugging = false;
   // Read input classes into CfCode format (instead of JarCode).
-  public boolean enableCfFrontend = false;
+  public final boolean defaultCfFrontend = false;
+  public boolean enableCfFrontend = flipIfAlternativeFrontendFlagIsSet(defaultCfFrontend);
+  private static boolean flipIfAlternativeFrontendFlagIsSet(boolean value) {
+    if (System.getProperty("com.android.tools.r8.useAlternativeFrontend") == null) {
+      return value;
+    }
+    return !value;
+  }
+
   // Don't convert Code objects to IRCode.
   public boolean skipIR = false;
 
