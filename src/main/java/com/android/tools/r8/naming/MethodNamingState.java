@@ -88,11 +88,16 @@ class MethodNamingState<KeyType> {
   }
 
   DexString assignNewNameFor(DexMethod source, DexString original, DexProto proto) {
+    return assignNewNameFor(source, original, proto, candidate -> !isAvailable(proto, candidate));
+  }
+
+  DexString assignNewNameFor(
+      DexMethod source, DexString original, DexProto proto, Predicate<DexString> isUsed) {
     KeyType key = keyTransform.apply(proto);
     DexString result = getAssignedNameFor(original, key);
     if (result == null) {
       InternalNewNameState state = getOrCreateNewNameStateFor(key);
-      result = state.getNewNameFor(source);
+      result = state.getNewNameFor(source, isUsed);
     }
     return result;
   }
@@ -254,7 +259,6 @@ class MethodNamingState<KeyType> {
 
     private final InternalNewNameState parentInternalState;
     private final InternalReservationState reservationState;
-    private final Predicate<DexString> isUsed;
 
     private static final int INITIAL_NAME_COUNT = 1;
     private static final int INITIAL_DICTIONARY_INDEX = 0;
@@ -274,7 +278,6 @@ class MethodNamingState<KeyType> {
       this.virtualNameCount =
           parentInternalState == null ? INITIAL_NAME_COUNT : parentInternalState.virtualNameCount;
       assert reservationState != null;
-      isUsed = newName -> !reservationState.isAvailable(newName);
     }
 
     @Override
@@ -309,7 +312,7 @@ class MethodNamingState<KeyType> {
       }
     }
 
-    private DexString getNewNameFor(DexMethod source) {
+    private DexString getNewNameFor(DexMethod source, Predicate<DexString> isUsed) {
       DexString next = strategy.next(source, this, isUsed);
       assert reservationState.isAvailable(next);
       return next;

@@ -178,8 +178,7 @@ class MethodNameMinifier {
     //          states that may hold an implementation.
     timing.begin("Phase 2");
     InterfaceMethodNameMinifier interfaceMethodNameMinifier =
-        new InterfaceMethodNameMinifier(
-            appView, desugaredCallSites, equivalence, frontierState, minifierState);
+        new InterfaceMethodNameMinifier(appView, desugaredCallSites, frontierState, minifierState);
     timing.end();
     timing.begin("Phase 3");
     interfaceMethodNameMinifier.assignNamesToInterfaceMethods(timing, interfaces);

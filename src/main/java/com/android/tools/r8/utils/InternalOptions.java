@@ -29,7 +29,6 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.optimize.Inliner;
-import com.android.tools.r8.naming.InterfaceMethodNameMinifier;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.references.Reference;
@@ -909,12 +908,12 @@ public class InternalOptions {
 
       public Comparator<DexMethod> interfaceMethodOrdering = null;
 
-      public Comparator<Wrapper<DexMethod>> createInterfaceMethodOrdering(
-          InterfaceMethodNameMinifier minifier) {
+      public Comparator<Wrapper<DexMethod>> getInterfaceMethodOrderingOrDefault(
+          Comparator<Wrapper<DexMethod>> comparator) {
         if (interfaceMethodOrdering != null) {
           return (a, b) -> interfaceMethodOrdering.compare(a.get(), b.get());
         }
-        return minifier.createDefaultInterfaceMethodOrdering();
+        return comparator;
       }
     }
   }
