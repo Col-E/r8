@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoFieldTypeFactory;
+import com.android.tools.r8.ir.analysis.proto.schema.ProtoMessageInfo;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
@@ -31,14 +32,20 @@ import java.util.List;
 public class GeneratedMessageLiteShrinker {
 
   private final AppView<AppInfoWithLiveness> appView;
+  private final RawMessageInfoDecoder decoder;
+  private final RawMessageInfoEncoder encoder;
   private final ProtoReferences references;
+  private final TypeLatticeElement stringType;
   private final ThrowingInfo throwingInfo;
 
   private final ProtoFieldTypeFactory factory = new ProtoFieldTypeFactory();
 
   public GeneratedMessageLiteShrinker(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
+    this.decoder = new RawMessageInfoDecoder(factory);
+    this.encoder = new RawMessageInfoEncoder(appView.dexItemFactory());
     this.references = appView.protoShrinker().references;
+    this.stringType = TypeLatticeElement.stringClassType(appView, Nullability.definitelyNotNull());
     this.throwingInfo = ThrowingInfo.defaultForConstString(appView.options());
   }
 
@@ -62,28 +69,14 @@ public class GeneratedMessageLiteShrinker {
       return;
     }
 
-    List<ConstString> rewritingCandidates = new ArrayList<>();
+    InvokeStatic newMessageInfoInvoke = null;
     for (Instruction instruction : code.instructions()) {
       if (instruction.isInvokeStatic()) {
         InvokeStatic invoke = instruction.asInvokeStatic();
-        if (invoke.getInvokedMethod() != references.newMessageInfoMethod) {
-          continue;
+        if (invoke.getInvokedMethod() == references.newMessageInfoMethod) {
+          newMessageInfoInvoke = invoke;
+          break;
         }
-        Value infoValue = invoke.inValues().get(1);
-        Value objectsValue = invoke.inValues().get(2);
-        for (Instruction user : objectsValue.uniqueUsers()) {
-          if (!user.isArrayPut()) {
-            continue;
-          }
-          Value rewritingCandidate = user.asArrayPut().value().getAliasedValue();
-          if (rewritingCandidate.isPhi() || !rewritingCandidate.definition.isConstString()) {
-            continue;
-          }
-          rewritingCandidates.add(rewritingCandidate.definition.asConstString());
-        }
-
-        // For now, just verify that we can actually decode the raw message info from the IR.
-        assert new RawMessageInfoDecoder(factory, infoValue, objectsValue).run() != null;
       }
 
       // Implicitly check that the method newMessageInfo() has not been inlined. In that case,
@@ -93,24 +86,54 @@ public class GeneratedMessageLiteShrinker {
           || instruction.asNewInstance().clazz != references.rawMessageInfoType;
     }
 
-    boolean changed = false;
-    for (ConstString rewritingCandidate : rewritingCandidates) {
-      DexString fieldName = rewritingCandidate.getValue();
-      DexField field = uniqueInstanceFieldWithName(clazz, fieldName, code.origin);
-      if (field == null) {
-        continue;
-      }
-      Value newValue =
-          code.createValue(
-              TypeLatticeElement.stringClassType(appView, Nullability.definitelyNotNull()));
-      rewritingCandidate.replace(
-          new DexItemBasedConstString(
-              newValue, field, FieldNameComputationInfo.forFieldName(), throwingInfo));
-      changed = true;
-    }
+    if (newMessageInfoInvoke != null) {
+      Value infoValue = newMessageInfoInvoke.inValues().get(1).getAliasedValue();
+      Value objectsValue = newMessageInfoInvoke.inValues().get(2).getAliasedValue();
 
-    if (changed) {
-      method.getMutableOptimizationInfo().markUseIdentifierNameString();
+      // TODO(b/112437944): If we regenerate the arguments to newMessageInfo() entirely, then we can
+      //  simply generate DexItemBasedConstString instructions at that point. That way the block
+      //  below will not be needed.
+      {
+        List<ConstString> identifierNameStringCandidates = new ArrayList<>();
+        for (Instruction user : objectsValue.uniqueUsers()) {
+          if (user.isArrayPut()) {
+            Value rewritingCandidate = user.asArrayPut().value().getAliasedValue();
+            if (!rewritingCandidate.isPhi() && rewritingCandidate.definition.isConstString()) {
+              identifierNameStringCandidates.add(rewritingCandidate.definition.asConstString());
+            }
+          }
+        }
+
+        boolean changed = false;
+        for (ConstString rewritingCandidate : identifierNameStringCandidates) {
+          DexString fieldName = rewritingCandidate.getValue();
+          DexField field = uniqueInstanceFieldWithName(clazz, fieldName, code.origin);
+          if (field == null) {
+            continue;
+          }
+          Value newValue = code.createValue(stringType);
+          rewritingCandidate.replace(
+              new DexItemBasedConstString(
+                  newValue, field, FieldNameComputationInfo.forFieldName(), throwingInfo));
+          changed = true;
+        }
+
+        if (changed) {
+          method.getMutableOptimizationInfo().markUseIdentifierNameString();
+        }
+      }
+
+      // Decode the arguments passed to newMessageInfo().
+      ProtoMessageInfo protoMessageInfo = decoder.run(infoValue, objectsValue);
+      if (protoMessageInfo != null) {
+        // Rewrite the arguments to newMessageInfo().
+        infoValue.definition.replace(
+            new ConstString(
+                code.createValue(stringType), encoder.encodeInfo(protoMessageInfo), throwingInfo));
+      } else {
+        // We should generally be able to decode the arguments passed to newMessageInfo().
+        assert false;
+      }
     }
   }
 

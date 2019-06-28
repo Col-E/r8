@@ -175,20 +175,23 @@ public class DexString extends IndexedDexItem implements PresortedComparable<Dex
 
   // Inspired from /dex/src/main/java/com/android/dex/Mutf8.java
   private static int countBytes(String string) {
-    int result = 0;
+    // We need an extra byte for the terminating '0'.
+    int result = 1;
     for (int i = 0; i < string.length(); ++i) {
-      char ch = string.charAt(i);
-      if (ch != 0 && ch <= 127) { // U+0000 uses two bytes.
-        ++result;
-      } else if (ch <= 2047) {
-        result += 2;
-      } else {
-        result += 3;
-      }
+      result += countBytes(string.charAt(i));
       assert result > 0;
     }
-    // We need an extra byte for the terminating '0'.
-    return result + 1;
+    return result;
+  }
+
+  public static int countBytes(char ch) {
+    if (ch != 0 && ch <= 127) { // U+0000 uses two bytes.
+      return 1;
+    }
+    if (ch <= 2047) {
+      return 2;
+    }
+    return 3;
   }
 
   // Inspired from /dex/src/main/java/com/android/dex/Mutf8.java
@@ -196,20 +199,24 @@ public class DexString extends IndexedDexItem implements PresortedComparable<Dex
     byte[] result = new byte[countBytes(string)];
     int offset = 0;
     for (int i = 0; i < string.length(); i++) {
-      char ch = string.charAt(i);
-      if (ch != 0 && ch <= 127) { // U+0000 uses two bytes.
-        result[offset++] = (byte) ch;
-      } else if (ch <= 2047) {
-        result[offset++] = (byte) (0xc0 | (0x1f & (ch >> 6)));
-        result[offset++] = (byte) (0x80 | (0x3f & ch));
-      } else {
-        result[offset++] = (byte) (0xe0 | (0x0f & (ch >> 12)));
-        result[offset++] = (byte) (0x80 | (0x3f & (ch >> 6)));
-        result[offset++] = (byte) (0x80 | (0x3f & ch));
-      }
+      offset = encodeToMutf8(string.charAt(i), result, offset);
     }
     result[offset] = 0;
     return result;
+  }
+
+  public static int encodeToMutf8(char ch, byte[] array, int offset) {
+    if (ch != 0 && ch <= 127) { // U+0000 uses two bytes.
+      array[offset++] = (byte) ch;
+    } else if (ch <= 2047) {
+      array[offset++] = (byte) (0xc0 | (0x1f & (ch >> 6)));
+      array[offset++] = (byte) (0x80 | (0x3f & ch));
+    } else {
+      array[offset++] = (byte) (0xe0 | (0x0f & (ch >> 12)));
+      array[offset++] = (byte) (0x80 | (0x3f & (ch >> 6)));
+      array[offset++] = (byte) (0x80 | (0x3f & ch));
+    }
+    return offset;
   }
 
   @Override

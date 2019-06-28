@@ -24,4 +24,21 @@ public class ProtoFieldInfo {
     this.auxData = auxData;
     this.objects = objects;
   }
+
+  public boolean hasAuxData() {
+    return auxData.isPresent();
+  }
+
+  public int getAuxData() {
+    assert hasAuxData();
+    return auxData.getAsInt();
+  }
+
+  public int getNumber() {
+    return number;
+  }
+
+  public ProtoFieldType getType() {
+    return type;
+  }
 }

@@ -49,19 +49,16 @@ public class RawMessageInfoDecoder {
   private static final int IS_PROTO_2_MASK = 0x1;
 
   private final ProtoFieldTypeFactory factory;
-  private final Value infoValue;
-  private final Value objectsValue;
 
-  public RawMessageInfoDecoder(ProtoFieldTypeFactory factory, Value infoValue, Value objectsValue) {
+  RawMessageInfoDecoder(ProtoFieldTypeFactory factory) {
     this.factory = factory;
-    this.infoValue = infoValue.getAliasedValue();
-    this.objectsValue = objectsValue.getAliasedValue();
   }
 
-  public ProtoMessageInfo run() {
+  public ProtoMessageInfo run(Value infoValue, Value objectsValue) {
     try {
       ProtoMessageInfo.Builder builder = ProtoMessageInfo.builder();
-      ThrowingIntIterator<InvalidRawMessageInfoException> infoIterator = createInfoIterator();
+      ThrowingIntIterator<InvalidRawMessageInfoException> infoIterator =
+          createInfoIterator(infoValue);
 
       // flags := info[0].
       int flags = infoIterator.nextIntComputeIfAbsent(this::invalidInfoFailure);
@@ -86,11 +83,13 @@ public class RawMessageInfoDecoder {
       // repeatedFieldCount := info[8].
       // checkInitialized   := info[9].
       for (int i = 4; i < 10; i++) {
+        // No need to store these values, since they can be computed from the rest (and need to be
+        // recomputed if the proto is changed).
         infoIterator.nextIntComputeIfAbsent(this::invalidInfoFailure);
       }
 
       ThrowingIterator<Value, InvalidRawMessageInfoException> objectIterator =
-          createObjectIterator();
+          createObjectIterator(objectsValue);
 
       if (numberOfOneOfObjects > 0) {
         builder.setNumberOfOneOfObjects(numberOfOneOfObjects);
@@ -153,8 +152,8 @@ public class RawMessageInfoDecoder {
     throw new InvalidRawMessageInfoException();
   }
 
-  private ThrowingIntIterator<InvalidRawMessageInfoException> createInfoIterator()
-      throws InvalidRawMessageInfoException {
+  private static ThrowingIntIterator<InvalidRawMessageInfoException> createInfoIterator(
+      Value infoValue) throws InvalidRawMessageInfoException {
     if (!infoValue.isPhi() && infoValue.definition.isConstString()) {
       return createInfoIterator(infoValue.definition.asConstString().getValue());
     }
@@ -162,7 +161,8 @@ public class RawMessageInfoDecoder {
   }
 
   /** Returns an iterator that yields the integers that results from decoding the given string. */
-  private ThrowingIntIterator<InvalidRawMessageInfoException> createInfoIterator(DexString info) {
+  private static ThrowingIntIterator<InvalidRawMessageInfoException> createInfoIterator(
+      DexString info) {
     return new ThrowingIntIterator<InvalidRawMessageInfoException>() {
 
       private final ThrowingCharIterator<UTFDataFormatException> charIterator = info.iterator();
@@ -207,8 +207,8 @@ public class RawMessageInfoDecoder {
    * passed to GeneratedMessageLite.newMessageInfo(). The array values are returned in-order, i.e.,
    * the value objects[i] will be returned prior to the value objects[i+1].
    */
-  private ThrowingIterator<Value, InvalidRawMessageInfoException> createObjectIterator()
-      throws InvalidRawMessageInfoException {
+  private static ThrowingIterator<Value, InvalidRawMessageInfoException> createObjectIterator(
+      Value objectsValue) throws InvalidRawMessageInfoException {
     if (objectsValue.isPhi() || !objectsValue.definition.isNewArrayEmpty()) {
       throw new InvalidRawMessageInfoException();
     }

@@ -81,4 +81,28 @@ public class ProtoMessageInfo {
   public static ProtoMessageInfo.Builder builder() {
     return new ProtoMessageInfo.Builder();
   }
+
+  public List<ProtoFieldInfo> fields() {
+    return fields;
+  }
+
+  public int flags() {
+    return flags;
+  }
+
+  public boolean hasFields() {
+    return fields != null && !fields.isEmpty();
+  }
+
+  public int numberOfFields() {
+    return fields != null ? fields.size() : 0;
+  }
+
+  public int numberOfHasBitsObjects() {
+    return hasBitsObjects != null ? hasBitsObjects.size() : 0;
+  }
+
+  public int numberOfOneOfObjects() {
+    return oneOfObjects != null ? oneOfObjects.size() : 0;
+  }
 }
