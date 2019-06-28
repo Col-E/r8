@@ -75,6 +75,12 @@ public class JarCode extends Code implements CfOrJarCode {
     this.reachabilitySensitive = true;
   }
 
+  @Override
+  public void makeStatic(String protoDescriptor) {
+    node.access |= Opcodes.ACC_STATIC;
+    node.desc = protoDescriptor;
+  }
+
   public MethodNode getNode() {
     triggerDelayedParsingIfNeccessary();
     return node;

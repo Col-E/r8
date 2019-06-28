@@ -76,8 +76,6 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.tree.MethodNode;
 
 /**
  * Merges Supertypes with a single implementation into their single subtype.
@@ -1412,10 +1410,8 @@ public class VerticalClassMerger {
       method.accessFlags.setStatic();
 
       Code code = method.getCode();
-      if (code.isJarCode()) {
-        MethodNode node = code.asJarCode().getNode();
-        node.access |= Opcodes.ACC_STATIC;
-        node.desc = method.method.proto.toDescriptorString();
+      if (code.isCfOrJarCode()) {
+        code.asCfOrJarCode().makeStatic(method.method.proto.toDescriptorString());
       } else {
         // Due to member rebinding we may have inserted bridge methods with synthesized code.
         // Currently, there is no easy way to make such code static.

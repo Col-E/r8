@@ -110,6 +110,11 @@ public class CfCode extends Code implements CfOrJarCode {
     this.localVariables = localVariables;
   }
 
+  @Override
+  public void makeStatic(String protoDescriptor) {
+    // Cf does not cache the access flags or proto, so nothing to do.
+  }
+
   public DexType getOriginalHolder() {
     return originalHolder;
   }

@@ -111,6 +111,11 @@ public class LazyCfCode extends Code implements CfOrJarCode {
   }
 
   @Override
+  public void makeStatic(String protoDescriptor) {
+    asCfCode().makeStatic(protoDescriptor);
+  }
+
+  @Override
   public CfCode asCfCode() {
     if (code == null) {
       ReparseContext context = this.context;

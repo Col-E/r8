@@ -13,4 +13,6 @@ public interface CfOrJarCode {
       AppView<AppInfoWithLiveness> appView,
       GraphLense graphLense,
       DexType invocationContext);
+
+  void makeStatic(String protoDescriptor);
 }
