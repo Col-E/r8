@@ -5,6 +5,7 @@
 package com.android.tools.r8;
 
 import static com.android.tools.r8.TestCondition.JAVA_RUNTIME;
+import static com.android.tools.r8.TestCondition.R8DEX_COMPILER;
 import static com.android.tools.r8.TestCondition.R8_COMPILER;
 import static com.android.tools.r8.TestCondition.and;
 import static com.android.tools.r8.TestCondition.any;
@@ -1746,17 +1747,17 @@ public class JctfTestSpecifications {
           // The following StringBuffer/StringBuilder tests fails because we remove, e.g.,
           // new StringBuffer(-5) if it is dead code (but it should trow), see b/133745205
           .put("lang.StringBuffer.ConstructorLjava_lang_String.StringBuffer_Constructor_A02",
-              match(R8_COMPILER))
+              match(R8DEX_COMPILER))
           .put("lang.StringBuffer.ConstructorLjava_lang_CharSequence.StringBuffer_Constructor_A02",
-              match(R8_COMPILER))
+              match(R8DEX_COMPILER))
           .put("lang.StringBuffer.ConstructorI.StringBuffer_Constructor_A02",
-              match(R8_COMPILER))
+              match(R8DEX_COMPILER))
           .put("lang.StringBuilder.ConstructorI.StringBuilder_Constructor_A02",
-                match(R8_COMPILER))
+                match(R8DEX_COMPILER))
           .put("lang.StringBuilder.ConstructorLjava_lang_CharSequence.StringBuilder_Constructor_A02",
-              match(R8_COMPILER))
+              match(R8DEX_COMPILER))
           .put("lang.StringBuilder.ConstructorLjava_lang_String.StringBuilder_Constructor_A02",
-              match(R8_COMPILER))
+              match(R8DEX_COMPILER))
           .build();
 
   public static final Multimap<String, TestCondition> flakyWhenRun =
