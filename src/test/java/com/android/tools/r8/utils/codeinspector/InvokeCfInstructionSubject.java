@@ -28,7 +28,7 @@ public class InvokeCfInstructionSubject extends CfInstructionSubject
   public DexMethod invokedMethod() {
     if (isInvokeDynamic()) {
       throw new Unimplemented(
-          "invokeMethod is not implemented for the INVOKEDYNAMIC CF instruction.");
+          "invokedMethod is not implemented for the INVOKEDYNAMIC CF instruction.");
     }
     return ((CfInvoke) instruction).getMethod();
   }
