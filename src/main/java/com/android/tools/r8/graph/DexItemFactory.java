@@ -195,6 +195,7 @@ public class DexItemFactory {
   public final DexString enumDescriptor = createString("Ljava/lang/Enum;");
   public final DexString annotationDescriptor = createString("Ljava/lang/annotation/Annotation;");
   public final DexString objectsDescriptor = createString("Ljava/util/Objects;");
+  public final DexString collectionsDescriptor = createString("Ljava/util/Collections;");
   public final DexString iterableDescriptor = createString("Ljava/lang/Iterable;");
   public final DexString mathDescriptor = createString("Ljava/lang/Math;");
   public final DexString strictMathDescriptor = createString("Ljava/lang/StrictMath;");
@@ -369,6 +370,8 @@ public class DexItemFactory {
   public final DexType callSiteType = createType("Ljava/lang/invoke/CallSite;");
   public final DexType lookupType = createType("Ljava/lang/invoke/MethodHandles$Lookup;");
   public final DexType iteratorType = createType("Ljava/util/Iterator;");
+  public final DexType listIteratorType = createType("Ljava/util/ListIterator;");
+  public final DexType enumerationType = createType("Ljava/util/Enumeration;");
   public final DexType serializableType = createType("Ljava/io/Serializable;");
   public final DexType externalizableType = createType("Ljava/io/Externalizable;");
   public final DexType comparableType = createType("Ljava/lang/Comparable;");

@@ -32,6 +32,7 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.backports.BooleanMethods;
 import com.android.tools.r8.ir.desugar.backports.ByteMethods;
 import com.android.tools.r8.ir.desugar.backports.CharacterMethods;
+import com.android.tools.r8.ir.desugar.backports.CollectionsMethods;
 import com.android.tools.r8.ir.desugar.backports.DoubleMethods;
 import com.android.tools.r8.ir.desugar.backports.FloatMethods;
 import com.android.tools.r8.ir.desugar.backports.IntegerMethods;
@@ -323,6 +324,24 @@ public final class BackportedMethodRewriter {
       proto = factory.createProto(factory.stringType, factory.objectType, factory.stringType);
       addProvider(
           new MethodGenerator(clazz, method, proto, ObjectsMethods::new, "toStringDefault"));
+
+      // Collections
+      clazz = factory.collectionsDescriptor;
+
+      // Enumeration<T> Collections.emptyEnumeration();
+      method = factory.createString("emptyEnumeration");
+      proto = factory.createProto(factory.enumerationType);
+      addGenerator(new MethodGenerator(clazz, method, proto, CollectionsMethods::new));
+
+      // Iterator<T> Collections.emptyIterator();
+      method = factory.createString("emptyIterator");
+      proto = factory.createProto(factory.iteratorType);
+      addGenerator(new MethodGenerator(clazz, method, proto, CollectionsMethods::new));
+
+      // ListIterator<T> Collections.emptyListIterator();
+      method = factory.createString("emptyListIterator");
+      proto = factory.createProto(factory.listIteratorType);
+      addGenerator(new MethodGenerator(clazz, method, proto, CollectionsMethods::new));
     }
 
     private void initializeJava8SignedOperations(DexItemFactory factory) {
