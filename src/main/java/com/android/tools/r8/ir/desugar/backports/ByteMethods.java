@@ -14,11 +14,11 @@ public final class ByteMethods extends TemplateMethodCode {
   }
 
   public static int hashCode(byte i) {
-    return Byte.valueOf(i).hashCode();
+    return i;
   }
 
   public static int compare(byte a, byte b) {
-    return Byte.valueOf(a).compareTo(Byte.valueOf(b));
+    return (int) a - (int) b;
   }
 
   public static int toUnsignedInt(byte value) {

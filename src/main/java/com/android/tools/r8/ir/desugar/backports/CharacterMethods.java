@@ -14,10 +14,10 @@ public final class CharacterMethods extends TemplateMethodCode {
   }
 
   public static int hashCode(char i) {
-    return Character.valueOf(i).hashCode();
+    return i;
   }
 
   public static int compare(char a, char b) {
-    return Character.valueOf(a).compareTo(Character.valueOf(b));
+    return (int) a - (int) b;
   }
 }

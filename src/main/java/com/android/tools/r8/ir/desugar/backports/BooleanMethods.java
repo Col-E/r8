@@ -14,11 +14,11 @@ public final class BooleanMethods extends TemplateMethodCode {
   }
 
   public static int hashCode(boolean b) {
-    return Boolean.valueOf(b).hashCode();
+    return b ? 1231 : 1237;
   }
 
   public static int compare(boolean a, boolean b) {
-    return Boolean.valueOf(a).compareTo(Boolean.valueOf(b));
+    return a == b ? 0 : a ? 1 : -1;
   }
 
   public static boolean logicalAnd(boolean a, boolean b) {

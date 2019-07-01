@@ -13,8 +13,8 @@ public final class LongMethods extends TemplateMethodCode {
     super(options, method, methodName, method.proto.toDescriptorString());
   }
 
-  public static int hashCode(long i) {
-    return Long.valueOf(i).hashCode();
+  public static int hashCode(long l) {
+    return (int) (l ^ (l >>> 32));
   }
 
   public static long max(long a, long b) {

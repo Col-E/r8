@@ -13,8 +13,8 @@ public final class FloatMethods extends TemplateMethodCode {
     super(options, method, methodName, method.proto.toDescriptorString());
   }
 
-  public static int hashCode(float d) {
-    return Float.valueOf(d).hashCode();
+  public static int hashCode(float f) {
+    return Float.floatToIntBits(f);
   }
 
   public static float max(float a, float b) {
@@ -29,8 +29,7 @@ public final class FloatMethods extends TemplateMethodCode {
     return a + b;
   }
 
-  public static boolean isFinite(float d) {
-    Float boxed = Float.valueOf(d);
-    return !boxed.isInfinite() && !boxed.isNaN();
+  public static boolean isFinite(float f) {
+    return !Float.isInfinite(f) && !Float.isNaN(f);
   }
 }

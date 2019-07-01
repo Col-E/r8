@@ -14,11 +14,11 @@ public final class ShortMethods extends TemplateMethodCode {
   }
 
   public static int hashCode(short i) {
-    return Short.valueOf(i).hashCode();
+    return i;
   }
 
   public static int compare(short a, short b) {
-    return Short.valueOf(a).compareTo(Short.valueOf(b));
+    return (int) a - (int) b;
   }
 
   public static int toUnsignedInt(short value) {

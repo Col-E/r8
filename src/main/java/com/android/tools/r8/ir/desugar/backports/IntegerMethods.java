@@ -14,11 +14,11 @@ public final class IntegerMethods extends TemplateMethodCode {
   }
 
   public static int hashCode(int i) {
-    return Integer.valueOf(i).hashCode();
+    return i;
   }
 
   public static int compare(int a, int b) {
-    return Integer.valueOf(a).compareTo(Integer.valueOf(b));
+    return a == b ? 0 : a < b ? -1 : 1;
   }
 
   public static int max(int a, int b) {

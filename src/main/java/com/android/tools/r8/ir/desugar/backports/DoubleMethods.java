@@ -14,7 +14,8 @@ public final class DoubleMethods extends TemplateMethodCode {
   }
 
   public static int hashCode(double d) {
-    return Double.valueOf(d).hashCode();
+    long l = Double.doubleToLongBits(d);
+    return (int) (l ^ (l >>> 32));
   }
 
   public static double max(double a, double b) {
@@ -30,7 +31,6 @@ public final class DoubleMethods extends TemplateMethodCode {
   }
 
   public static boolean isFinite(double d) {
-    Double boxed = Double.valueOf(d);
-    return !boxed.isInfinite() && !boxed.isNaN();
+    return !Double.isInfinite(d) && !Double.isNaN(d);
   }
 }
