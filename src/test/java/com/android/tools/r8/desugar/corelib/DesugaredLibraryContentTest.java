@@ -5,14 +5,20 @@
 package com.android.tools.r8.desugar.corelib;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
+import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.google.common.collect.ImmutableSet;
+import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -69,6 +75,34 @@ public class DesugaredLibraryContentTest extends CoreLibDesugarTestBase {
                 System.out.println(clazz.getOriginalName());
               }
             });
+
+    if (requiresCoreLibDesugaring(parameters)) {
+      InstructionSubject long8Invoke =
+          inspector
+              .clazz("j$.util.stream.LongStream$-CC")
+              .uniqueMethodWithName("range")
+              .streamInstructions()
+              .filter(InstructionSubject::isInvokeStatic)
+              .collect(Collectors.toList())
+              .get(1);
+      assertFalse(long8Invoke.toString().contains("Long8;->"));
+      assertTrue(long8Invoke.toString().contains("backportedMethods"));
+      for (FoundClassSubject clazz : inspector.allClasses()) {
+        if (!(clazz.getOriginalName().equals("j$.lang.Long8")
+            || clazz.getOriginalName().equals("j$.lang.Integer8")
+            || clazz.getOriginalName().equals("j$.lang.Double8"))) {
+          for (FoundMethodSubject method : clazz.allMethods()) {
+            if (!method.isAbstract()) {
+              assertTrue(method.streamInstructions().noneMatch(instr -> instr.isInvoke() && (
+                  instr.toString().contains("Double8")
+                      || instr.toString().contains("Integer8")
+                      || instr.toString().contains("Long8"))
+              ));
+            }
+          }
+        }
+      }
+    }
 
     // TODO(134732760): This should be a 0 count.
     assertEquals(

@@ -364,6 +364,7 @@ public class InternalOptions {
   // Read input classes into CfCode format (instead of JarCode).
   public final boolean defaultCfFrontend = false;
   public boolean enableCfFrontend = flipIfAlternativeFrontendFlagIsSet(defaultCfFrontend);
+
   private static boolean flipIfAlternativeFrontendFlagIsSet(boolean value) {
     if (System.getProperty("com.android.tools.r8.useAlternativeFrontend") == null) {
       return value;
@@ -393,6 +394,7 @@ public class InternalOptions {
   public Map<String, String> rewritePrefix = ImmutableMap.of();
   public Map<String, String> emulateLibraryInterface = ImmutableMap.of();
   public Map<String, String> retargetCoreLibMember = ImmutableMap.of();
+  public Map<String, String> backportCoreLibraryMembers = ImmutableMap.of();
   public List<String> dontRewriteInvocations = ImmutableList.of();
 
   public LineNumberOptimization lineNumberOptimization = LineNumberOptimization.ON;

@@ -44,6 +44,7 @@ import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -59,6 +60,7 @@ public final class BackportedMethodRewriter {
   private final IRConverter converter;
   private final DexItemFactory factory;
   private final RewritableMethods rewritableMethods;
+  private final Map<DexType, DexType> backportCoreLibraryMembers = new IdentityHashMap<>();
 
   private Map<DexMethod, MethodGenerator> methodGenerators = new ConcurrentHashMap<>();
 
@@ -67,6 +69,15 @@ public final class BackportedMethodRewriter {
     this.converter = converter;
     this.factory = appView.dexItemFactory();
     this.rewritableMethods = new RewritableMethods(factory, appView.options());
+    for (String coreLibMember : appView.options().backportCoreLibraryMembers.keySet()) {
+      DexType extraCoreLibMemberType =
+          factory.createType(DescriptorUtils.javaTypeToDescriptor(coreLibMember));
+      DexType coreLibMemberType =
+          factory.createType(
+              DescriptorUtils.javaTypeToDescriptor(
+                  appView.options().backportCoreLibraryMembers.get(coreLibMember)));
+      this.backportCoreLibraryMembers.put(extraCoreLibMemberType, coreLibMemberType);
+    }
   }
 
   public void desugar(IRCode code) {
@@ -171,6 +182,12 @@ public final class BackportedMethodRewriter {
   private MethodGenerator getMethodGeneratorOrNull(DexMethod method) {
     DexMethod original = appView.graphLense().getOriginalMethodSignature(method);
     assert original != null;
+    if (backportCoreLibraryMembers.containsKey(original.holder)) {
+      return rewritableMethods.getGenerator(
+          backportCoreLibraryMembers.get(original.holder).descriptor,
+          original.name,
+          original.proto);
+    }
     return rewritableMethods.getGenerator(
         original.holder.descriptor, original.name, original.proto);
   }

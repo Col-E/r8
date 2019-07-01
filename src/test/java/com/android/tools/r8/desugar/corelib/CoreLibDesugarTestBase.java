@@ -24,7 +24,7 @@ public class CoreLibDesugarTestBase extends TestBase {
         // Extra flags for R8
         .put("java.io.DesugarBufferedReader", "j$.io.DesugarBufferedReader")
         .put("java.io.UncheckedIOException", "j$.io.UncheckedIOException")
-        // TODO (b/134732760): Rewrite java.lang.*8 to java.lang.*
+        // Bazel flags.
         .put("java.lang.Double8", "j$.lang.Double8")
         .put("java.lang.Integer8", "j$.lang.Integer8")
         .put("java.lang.Long8", "j$.lang.Long8")
@@ -54,10 +54,10 @@ public class CoreLibDesugarTestBase extends TestBase {
   private Map<String, String> buildPrefixRewritingForProgramCompilation() {
     return ImmutableMap.<String, String>builder()
         // --rewrite_core_library_prefix.
-        // TODO (b/134732760): Rewrite java.lang.*8 to java.lang.*
-        .put("java.lang.Double8", "j$.lang.Double8")
-        .put("java.lang.Integer8", "j$.lang.Integer8")
-        .put("java.lang.Long8", "j$.lang.Long8")
+        // Following flags are ignored (already desugared).
+        // .put("java.lang.Double8", "j$.lang.Double8")
+        // .put("java.lang.Integer8", "j$.lang.Integer8")
+        // .put("java.lang.Long8", "j$.lang.Long8")
         .put("java.lang.Math8", "j$.lang.Math8")
         .put("java.util.stream.", "j$.util.stream.")
         .put("java.util.function.", "j$.util.function.")
@@ -81,6 +81,15 @@ public class CoreLibDesugarTestBase extends TestBase {
     return ImmutableMap.of("java/util/LinkedHashSet#spliterator", "j$/util/DesugarLinkedHashSet");
   }
 
+  private Map<String, String> buildBackportCoreLibraryMembers() {
+    // R8 specific to deal with *8 removal.
+    return ImmutableMap.<String, String>builder()
+        .put("java.lang.Double8", "java.lang.Double")
+        .put("java.lang.Integer8", "java.lang.Integer")
+        .put("java.lang.Long8", "java.lang.Long")
+        .build();
+  }
+
   private Map<String, String> buildRetargetCoreLibraryMemberForProgramCompilation() {
     // --retarget_core_library_member.
     return ImmutableMap.<String, String>builder()
@@ -95,7 +104,7 @@ public class CoreLibDesugarTestBase extends TestBase {
         // .put("java/lang/Long#max", "j$/lang/Long")
         // .put("java/lang/Long#min", "j$/lang/Long")
         // .put("java/lang/Long#sum", "j$/lang/Long")
-        // .put("java/lang/Math#toIntExact", "j$/lang/Math8")
+        .put("java/lang/Math#toIntExact", "j$/lang/Math8")
         .put("java/util/Arrays#stream", "j$/util/DesugarArrays")
         .put("java/util/Arrays#spliterator", "j$/util/DesugarArrays")
         .put("java/util/Calendar#toInstant", "j$/util/DesugarCalendar")
@@ -178,6 +187,7 @@ public class CoreLibDesugarTestBase extends TestBase {
 
   protected void configureCoreLibDesugarForCoreLibCompilation(InternalOptions options) {
     options.coreLibraryCompilation = true;
+    options.backportCoreLibraryMembers = buildBackportCoreLibraryMembers();
     options.retargetCoreLibMember = buildRetargetCoreLibraryMemberForCoreLibCompilation();
     options.dontRewriteInvocations = buildDontRewriteInvocations();
     options.rewritePrefix = buildPrefixRewritingForCoreLibCompilation();
