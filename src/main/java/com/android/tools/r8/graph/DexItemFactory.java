@@ -196,6 +196,8 @@ public class DexItemFactory {
   public final DexString annotationDescriptor = createString("Ljava/lang/annotation/Annotation;");
   public final DexString objectsDescriptor = createString("Ljava/util/Objects;");
   public final DexString iterableDescriptor = createString("Ljava/lang/Iterable;");
+  public final DexString mathDescriptor = createString("Ljava/lang/Math;");
+  public final DexString strictMathDescriptor = createString("Ljava/lang/StrictMath;");
 
   public final DexString stringBuilderDescriptor = createString("Ljava/lang/StringBuilder;");
   public final DexString stringBufferDescriptor = createString("Ljava/lang/StringBuffer;");

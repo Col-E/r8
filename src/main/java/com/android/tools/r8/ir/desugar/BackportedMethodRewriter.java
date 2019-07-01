@@ -33,6 +33,7 @@ import com.android.tools.r8.ir.desugar.backports.ByteMethods;
 import com.android.tools.r8.ir.desugar.backports.CharacterMethods;
 import com.android.tools.r8.ir.desugar.backports.DoubleMethods;
 import com.android.tools.r8.ir.desugar.backports.FloatMethods;
+import com.android.tools.r8.ir.desugar.backports.MathMethods;
 import com.android.tools.r8.ir.desugar.backports.ObjectsMethods;
 import com.android.tools.r8.ir.desugar.backports.ShortMethods;
 import com.android.tools.r8.ir.desugar.backports.StringMethods;
@@ -609,6 +610,118 @@ public final class BackportedMethodRewriter {
       method = factory.createString("nonNull");
       proto = factory.createProto(factory.booleanType, factory.objectType);
       addGenerator(new MethodGenerator(clazz, method, proto, ObjectsMethods::new));
+
+      // Math & StrictMath, which have some symmetric, binary-compatible APIs
+      DexString[] mathClasses = { factory.mathDescriptor, factory.strictMathDescriptor };
+      for (DexString mathClass : mathClasses) {
+        clazz = mathClass;
+
+        // int {Math,StrictMath}.addExact(int, int)
+        method = factory.createString("addExact");
+        proto = factory.createProto(factory.intType, factory.intType, factory.intType);
+        addGenerator(new MethodGenerator(clazz, method, proto, MathMethods::new, "addExactInt"));
+
+        // long {Math,StrictMath}.addExact(long, long)
+        method = factory.createString("addExact");
+        proto = factory.createProto(factory.longType, factory.longType, factory.longType);
+        addGenerator(new MethodGenerator(clazz, method, proto, MathMethods::new, "addExactLong"));
+
+        // int {Math,StrictMath}.floorDiv(int, int)
+        method = factory.createString("floorDiv");
+        proto = factory.createProto(factory.intType, factory.intType, factory.intType);
+        addGenerator(new MethodGenerator(clazz, method, proto, MathMethods::new, "floorDivInt"));
+
+        // long {Math,StrictMath}.floorDiv(long)
+        method = factory.createString("floorDiv");
+        proto = factory.createProto(factory.longType, factory.longType, factory.longType);
+        addGenerator(new MethodGenerator(clazz, method, proto, MathMethods::new, "floorDivLong"));
+
+        // int {Math,StrictMath}.floorMod(int, int)
+        method = factory.createString("floorMod");
+        proto = factory.createProto(factory.intType, factory.intType, factory.intType);
+        addGenerator(new MethodGenerator(clazz, method, proto, MathMethods::new, "floorModInt"));
+
+        // long {Math,StrictMath}.floorMod(long)
+        method = factory.createString("floorMod");
+        proto = factory.createProto(factory.longType, factory.longType, factory.longType);
+        addGenerator(new MethodGenerator(clazz, method, proto, MathMethods::new, "floorModLong"));
+
+        // int {Math,StrictMath}.multiplyExact(int, int)
+        method = factory.createString("multiplyExact");
+        proto = factory.createProto(factory.intType, factory.intType, factory.intType);
+        addGenerator(
+            new MethodGenerator(clazz, method, proto, MathMethods::new, "multiplyExactInt"));
+
+        // long {Math,StrictMath}.multiplyExact(long)
+        method = factory.createString("multiplyExact");
+        proto = factory.createProto(factory.longType, factory.longType, factory.longType);
+        addGenerator(
+            new MethodGenerator(clazz, method, proto, MathMethods::new, "multiplyExactLong"));
+
+        // double {Math,StrictMath}.nextDown(double)
+        method = factory.createString("nextDown");
+        proto = factory.createProto(factory.doubleType, factory.doubleType);
+        addGenerator(new MethodGenerator(clazz, method, proto, MathMethods::new, "nextDownDouble"));
+
+        // float {Math,StrictMath}.nextDown(float)
+        method = factory.createString("nextDown");
+        proto = factory.createProto(factory.floatType, factory.floatType);
+        addGenerator(new MethodGenerator(clazz, method, proto, MathMethods::new, "nextDownFloat"));
+
+        // int {Math,StrictMath}.subtractExact(int, int)
+        method = factory.createString("subtractExact");
+        proto = factory.createProto(factory.intType, factory.intType, factory.intType);
+        addGenerator(
+            new MethodGenerator(clazz, method, proto, MathMethods::new, "subtractExactInt"));
+
+        // long {Math,StrictMath}.subtractExact(long, long)
+        method = factory.createString("subtractExact");
+        proto = factory.createProto(factory.longType, factory.longType, factory.longType);
+        addGenerator(
+            new MethodGenerator(clazz, method, proto, MathMethods::new, "subtractExactLong"));
+
+        // int {Math,StrictMath}.toIntExact(long)
+        method = factory.createString("toIntExact");
+        proto = factory.createProto(factory.intType, factory.longType);
+        addGenerator(new MethodGenerator(clazz, method, proto, MathMethods::new));
+      }
+
+      // Math (APIs which are not mirrored by StrictMath)
+      clazz = factory.mathDescriptor;
+
+      // int Math.decrementExact(int)
+      method = factory.createString("decrementExact");
+      proto = factory.createProto(factory.intType, factory.intType);
+      addGenerator(
+          new MethodGenerator(clazz, method, proto, MathMethods::new, "decrementExactInt"));
+
+      // long Math.decrementExact(long)
+      method = factory.createString("decrementExact");
+      proto = factory.createProto(factory.longType, factory.longType);
+      addGenerator(
+          new MethodGenerator(clazz, method, proto, MathMethods::new, "decrementExactLong"));
+
+      // int Math.incrementExact(int)
+      method = factory.createString("incrementExact");
+      proto = factory.createProto(factory.intType, factory.intType);
+      addGenerator(
+          new MethodGenerator(clazz, method, proto, MathMethods::new, "incrementExactInt"));
+
+      // long Math.incrementExact(long)
+      method = factory.createString("incrementExact");
+      proto = factory.createProto(factory.longType, factory.longType);
+      addGenerator(
+          new MethodGenerator(clazz, method, proto, MathMethods::new, "incrementExactLong"));
+
+      // int Math.negateExact(int)
+      method = factory.createString("negateExact");
+      proto = factory.createProto(factory.intType, factory.intType);
+      addGenerator(new MethodGenerator(clazz, method, proto, MathMethods::new, "negateExactInt"));
+
+      // long Math.negateExact(long)
+      method = factory.createString("negateExact");
+      proto = factory.createProto(factory.longType, factory.longType);
+      addGenerator(new MethodGenerator(clazz, method, proto, MathMethods::new, "negateExactLong"));
     }
 
     private void initializeJava8UnsignedOperations(DexItemFactory factory) {
