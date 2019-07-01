@@ -857,6 +857,12 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
         newMethod, accessFlags, DexAnnotationSet.empty(), ParameterAnnotationsList.empty(), code);
   }
 
+  public DexEncodedMethod toRenamedHolderMethod(DexType newHolderType, DexItemFactory factory) {
+    DexEncodedMethod.Builder builder = DexEncodedMethod.builder(this);
+    builder.setMethod(factory.createMethod(newHolderType, method.proto, method.name));
+    return builder.build();
+  }
+
   public DexEncodedMethod toEmulateInterfaceLibraryMethod(
       DexMethod newMethod,
       DexMethod companionMethod,

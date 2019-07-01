@@ -29,6 +29,7 @@ import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableSet;
@@ -80,9 +81,15 @@ public class LambdaRewriter {
   // NOTE: synchronize concurrent access on `knownLambdaClasses`.
   private final Map<DexType, LambdaClass> knownLambdaClasses = new IdentityHashMap<>();
 
+  private final Map<String, String> prefixRewritingLambdas = new IdentityHashMap<>();
+
   // Checks if the type starts with lambda-class prefix.
   public static boolean hasLambdaClassPrefix(DexType clazz) {
     return clazz.getName().startsWith(LAMBDA_CLASS_NAME_PREFIX);
+  }
+
+  public Map<String, String> getPrefixRewritingLambdas() {
+    return prefixRewritingLambdas;
   }
 
   public LambdaRewriter(AppView<?> appView, IRConverter converter) {
@@ -265,12 +272,32 @@ public class LambdaRewriter {
               knownLambdaClasses,
               lambdaClassType,
               new LambdaClass(this, accessedFrom, lambdaClassType, descriptor));
+      if (appView.options().coreLibraryCompilation) {
+        Pair<String, String> rewriting =
+            accessedFrom.rewritingPrefixIn(appView.options().rewritePrefix);
+        if (rewriting == null) {
+          rewriting = accessedFrom.rewritingPrefixIn(appView.options().emulateLibraryInterface);
+        }
+        if (rewriting != null) {
+          addRewritingPrefix(rewriting, lambdaClassType);
+        }
+      }
     }
     lambdaClass.addSynthesizedFrom(appView.definitionFor(accessedFrom).asProgramClass());
     if (isInMainDexList(accessedFrom)) {
       lambdaClass.addToMainDexList.set(true);
     }
     return lambdaClass;
+  }
+
+  private void addRewritingPrefix(Pair<String, String> rewriting, DexType lambdaClassType) {
+    String javaName = lambdaClassType.toString();
+    String actualPrefix = rewriting.getFirst().substring(0, rewriting.getFirst().lastIndexOf('.'));
+    String actualRewrittenPrefix =
+        rewriting.getSecond().substring(0, rewriting.getSecond().lastIndexOf('.'));
+    assert javaName.startsWith(actualPrefix);
+    prefixRewritingLambdas.put(
+        javaName, actualRewrittenPrefix + javaName.substring(actualPrefix.length()));
   }
 
   private static <K, V> V getKnown(Map<K, V> map, K key) {

@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.desugar;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppInfo.ResolutionResult;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexAnnotationSet;
@@ -308,19 +309,19 @@ public final class InterfaceMethodRewriter {
           }
         }
 
-        if (instruction.isInvokeInterface() && !appView.options().coreLibraryCompilation) {
-          // If in the core library we can keep invokeInterface (desugared through companion).
+        if (instruction.isInvokeInterface()) {
           InvokeInterface invokeInterface = instruction.asInvokeInterface();
           DexMethod invokedMethod = invokeInterface.getInvokedMethod();
-          if (emulatedInterfaces.containsKey(invokedMethod.holder)) {
-            // If the method called on the interface is redefined in the core library,
-            // call the redefined method instead.
-            DexType implementingInterface =
-                lookupEmulatedMethod(invokedMethod, invokedMethod.holder);
-            if (implementingInterface != null) {
+          ResolutionResult resolutionResult =
+              appView.appInfo().resolveMethodOnInterface(invokedMethod.holder, invokedMethod);
+          // We are looking for non abstract methods in library classes. Resolution has to succeed
+          // with a single non abstract target.
+          if (resolutionResult.hasSingleTarget()) {
+            DexEncodedMethod result = resolutionResult.asResultOfResolve();
+            if (emulatedInterfaces.containsKey(result.method.holder) && !result.isAbstract()) {
               instructions.replaceCurrentInstruction(
                   new InvokeStatic(
-                      emulateInterfaceLibraryMethod(invokedMethod, implementingInterface, factory),
+                      emulateInterfaceLibraryMethod(invokedMethod, result.method.holder, factory),
                       invokeInterface.outValue(),
                       invokeInterface.arguments()));
             }
@@ -328,29 +329,6 @@ public final class InterfaceMethodRewriter {
         }
       }
     }
-  }
-
-  private DexType lookupEmulatedMethod(DexMethod method, DexType interfaceType) {
-    // Finds the emulated interface which implements the emulated method.
-    if (!emulatedInterfaces.containsKey(interfaceType)) {
-      return null;
-    }
-    DexClass emulatedItf = appView.definitionFor(interfaceType);
-    assert emulatedItf.isLibraryClass();
-    DexEncodedMethod foundMethod = emulatedItf.lookupVirtualMethod(method);
-    if (foundMethod == null) {
-      for (DexType superInterfaceType : emulatedItf.interfaces.values) {
-        DexType result = lookupEmulatedMethod(method, superInterfaceType);
-        if (result != null) {
-          return result;
-        }
-      }
-      return null;
-    }
-    if (foundMethod.isAbstract()) {
-      return null;
-    }
-    return interfaceType;
   }
 
   private void warnMissingEmulatedInterface(DexType interfaceType) {
@@ -363,6 +341,7 @@ public final class InterfaceMethodRewriter {
   }
 
   private void generateEmulateInterfaceLibrary(Builder<?> builder) {
+    // Emulated library interfaces should generate the Emulated Library EL dispatch class.
     Map<DexType, List<DexType>> emulatedInterfacesHierarchy = processEmulatedInterfaceHierarchy();
     for (DexType interfaceType : emulatedInterfaces.keySet()) {
       DexClass theInterface = appView.definitionFor(interfaceType);
@@ -381,6 +360,7 @@ public final class InterfaceMethodRewriter {
   }
 
   private Map<DexType, List<DexType>> processEmulatedInterfaceHierarchy() {
+    // TODO(b/134732760): deal with retarget-core-library-member.
     Map<DexType, List<DexType>> emulatedInterfacesHierarchy = new IdentityHashMap<>();
     Set<DexType> processed = Sets.newIdentityHashSet();
     for (DexType interfaceType : emulatedInterfaces.keySet()) {
@@ -455,7 +435,7 @@ public final class InterfaceMethodRewriter {
             assert subInterfaceClass != null; // Else computation of subInterface would have failed.
             // if the method is implemented, extra dispatch is required.
             DexEncodedMethod result = subInterfaceClass.lookupVirtualMethod(method.method);
-            if (result != null) {
+            if (result != null && !result.isAbstract()) {
               extraDispatchCases.add(
                   new Pair<>(
                       subInterfaceClass.type,
@@ -647,6 +627,83 @@ public final class InterfaceMethodRewriter {
     return privateAsMethodOfCompanionClass(method, factory);
   }
 
+  private void renameEmulatedInterfaces() {
+    // Rename manually the emulated interfaces, we do not use the PrefixRenamingLens
+    // because both the normal and emulated interfaces are used.
+    for (DexClass clazz : appView.appInfo().classes()) {
+      if (clazz.isInterface()) {
+        DexType newType = inferEmulatedInterfaceName(clazz);
+        if (newType != null
+            && clazz.type.rewritingPrefixIn(appView.options().rewritePrefix) == null) {
+          // We do not rewrite if it is already going to be rewritten using the a rewritingPrefix.
+          renameEmulatedInterfaces(clazz, newType);
+        }
+      }
+    }
+  }
+
+  private DexType inferEmulatedInterfaceName(DexClass subInterface) {
+    DexType newType = emulatedInterfaces.get(subInterface.type);
+    if (newType != null) {
+      return newType;
+    }
+    LinkedList<DexType> workList = new LinkedList<>(Arrays.asList(subInterface.interfaces.values));
+    while (!workList.isEmpty()) {
+      DexType next = workList.removeFirst();
+      if (emulatedInterfaces.get(next) != null) {
+        return inferEmulatedInterfaceName(subInterface.type, next);
+      }
+      DexClass nextClass = appView.definitionFor(next);
+      if (nextClass != null) {
+        workList.addAll(Arrays.asList(nextClass.interfaces.values));
+      }
+    }
+    return null;
+  }
+
+  private DexType inferEmulatedInterfaceName(DexType subInterfaceType, DexType interfaceType) {
+    String initialPrefix = interfaceType.getPackageName();
+    String rewrittenPrefix = emulatedInterfaces.get(interfaceType).getPackageName();
+    String suffix = subInterfaceType.toString().substring(initialPrefix.length());
+    return factory.createType(DescriptorUtils.javaTypeToDescriptor(rewrittenPrefix + suffix));
+  }
+
+  private void renameEmulatedInterfaces(DexClass theInterface, DexType renamedInterface) {
+    theInterface.type = renamedInterface;
+    theInterface.setVirtualMethods(renameHolder(theInterface.virtualMethods(), renamedInterface));
+    theInterface.setDirectMethods(renameHolder(theInterface.directMethods(), renamedInterface));
+  }
+
+  private DexEncodedMethod[] renameHolder(List<DexEncodedMethod> methods, DexType newName) {
+    DexEncodedMethod[] newMethods = new DexEncodedMethod[methods.size()];
+    for (int i = 0; i < newMethods.length; i++) {
+      newMethods[i] = methods.get(i).toRenamedHolderMethod(newName, factory);
+    }
+    return newMethods;
+  }
+
+  private void duplicateEmulatedInterfaces() {
+    // All classes implementing an emulated interface now implements the interface and the
+    // emulated one.
+    for (DexClass clazz : appView.appInfo().classes()) {
+      List<DexType> extraInterfaces = new ArrayList<>();
+      for (DexType type : clazz.interfaces.values) {
+        if (emulatedInterfaces.containsKey(type)) {
+          extraInterfaces.add(emulatedInterfaces.get(type));
+        }
+      }
+      if (!extraInterfaces.isEmpty()) {
+        DexType[] newInterfaces =
+            Arrays.copyOf(
+                clazz.interfaces.values, clazz.interfaces.size() + extraInterfaces.size());
+        for (int i = clazz.interfaces.size(); i < newInterfaces.length; i++) {
+          newInterfaces[i] = extraInterfaces.get(i - clazz.interfaces.size());
+        }
+        clazz.interfaces = new DexTypeList(newInterfaces);
+      }
+    }
+  }
+
   /**
    * Move static and default interface methods to companion classes, add missing methods to forward
    * to moved default methods implementation.
@@ -656,10 +713,10 @@ public final class InterfaceMethodRewriter {
       Flavor flavour,
       ExecutorService executorService)
       throws ExecutionException {
-    // Emulated library interfaces should generate the Emulated Library EL dispatch class
     if (appView.options().coreLibraryCompilation) {
       generateEmulateInterfaceLibrary(builder);
     }
+    duplicateEmulatedInterfaces();
 
     // Process all classes first. Add missing forwarding methods to
     // replace desugared default interface methods.
@@ -676,6 +733,10 @@ public final class InterfaceMethodRewriter {
       DexProgramClass synthesizedClass = entry.getValue();
       builder.addSynthesizedClass(synthesizedClass, isInMainDexList(entry.getKey()));
       appInfo.addSynthesizedClass(synthesizedClass);
+    }
+
+    if (appView.options().coreLibraryCompilation) {
+      renameEmulatedInterfaces();
     }
 
     converter.optimizeSynthesizedMethodsConcurrently(synthesizedMethods, executorService);

@@ -72,7 +72,7 @@ public class DesugaredLibraryContentTest extends CoreLibDesugarTestBase {
 
     // TODO(134732760): This should be a 0 count.
     assertEquals(
-        24,
+        requiresCoreLibDesugaring(parameters) ? 0 : 5,
         inspector.allClasses().stream()
             .map(ClassSubject::getOriginalName)
             .filter(name -> name.startsWith("java."))
@@ -81,7 +81,7 @@ public class DesugaredLibraryContentTest extends CoreLibDesugarTestBase {
 
     // TODO(134732760): Remove this when above is a 0 count.
     assertEquals(
-        5,
+        requiresCoreLibDesugaring(parameters) ? 0 : 5,
         inspector.allClasses().stream()
             .map(ClassSubject::getOriginalName)
             .filter(name -> name.startsWith("java."))

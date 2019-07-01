@@ -24,10 +24,13 @@ import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -57,6 +60,11 @@ public class EmulateLibraryInterfaceTest extends CoreLibDesugarTestBase {
                         .getOriginalName()
                         .contains(InterfaceMethodRewriter.EMULATE_LIBRARY_CLASS_NAME_SUFFIX))
             .collect(Collectors.toList());
+    List<FoundClassSubject> java =
+        inspector.allClasses().stream()
+            .filter(x -> x.getOriginalName().startsWith("java"))
+            .collect(Collectors.toList());
+    System.out.println(java);
     int numDispatchClasses =
         requiresCoreLibDesugaring(parameters) ? buildEmulateLibraryInterface().size() : 0;
     assertEquals(numDispatchClasses, dispatchClasses.size());
@@ -107,13 +115,20 @@ public class EmulateLibraryInterfaceTest extends CoreLibDesugarTestBase {
     assertTrue(invokes.get(2).toString().contains("Collection$-EL;->"));
     assertTrue(invokes.get(3).isInvokeInterface());
     assertTrue(invokes.get(3).toString().contains("Set;->"));
+    assertTrue(invokes.get(4).isInvokeStatic());
+    assertTrue(invokes.get(4).toString().contains("Collection$-EL;->"));
   }
 
   @Test
   public void testProgram() throws Exception {
+    Assume.assumeTrue("TODO(134732760): Fix Android 7+.", requiresCoreLibDesugaring(parameters));
     String expectedOutput =
         StringUtils.lines(
-            "java.util.HashMap$KeySpliterator", "java.util.ArrayList$ArrayListSpliterator");
+            "j$.util.Spliterators$IteratorSpliterator",
+            "j$.util.Spliterators$IteratorSpliterator",
+            "j$.util.stream.ReferencePipeline$Head",
+            "java.util.HashMap$KeyIterator",
+            "j$.util.stream.ReferencePipeline$Head");
     testForD8()
         .addProgramClasses(TestClass.class)
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
@@ -121,16 +136,16 @@ public class EmulateLibraryInterfaceTest extends CoreLibDesugarTestBase {
         .addOptionsModification(this::configureCoreLibDesugarForProgramCompilation)
         .compile()
         .inspect(this::checkRewrittenInvokes)
-        .addRunClasspathFiles(buildDesugaredLibrary(parameters.getRuntime()));
-    // TODO (b/134732760): Fails because java.util.* are ambiguous.
-    // .run(parameters.getRuntime(), TestClass.class)
-    // .assertSuccessWithOutput(expectedOutput);
+        .addRunClasspathFiles(buildDesugaredLibrary(parameters.getRuntime()))
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(expectedOutput);
   }
 
   static class TestClass {
     public static void main(String[] args) {
       Set<Object> set = new HashSet<>();
       List<Object> list = new ArrayList<>();
+      Queue<Object> queue = new LinkedList<>();
       // They both should be rewritten to invokeStatic to the dispatch class.
       System.out.println(set.spliterator().getClass().getName());
       System.out.println(list.spliterator().getClass().getName());
@@ -138,6 +153,8 @@ public class EmulateLibraryInterfaceTest extends CoreLibDesugarTestBase {
       System.out.println(set.stream().getClass().getName());
       // Following should not be rewritten.
       System.out.println(set.iterator().getClass().getName());
+      // Following should be rewritten to invokeStatic to Collection dispatch class.
+      System.out.println(queue.stream().getClass().getName());
     }
   }
 }

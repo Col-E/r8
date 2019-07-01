@@ -96,7 +96,6 @@ import com.android.tools.r8.utils.Timing;
 import com.google.common.base.Predicates;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
@@ -104,6 +103,7 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -281,11 +281,14 @@ public class IRConverter {
   }
 
   public Map<String, String> getAdditionalRewritePrefix() {
+    Map<String, String> extraRewritePrefix = new HashMap<>();
     if (interfaceMethodRewriter != null) {
-      return interfaceMethodRewriter.getPrefixRewritingInterfaces();
-    } else {
-      return ImmutableMap.of();
+      extraRewritePrefix.putAll(interfaceMethodRewriter.getPrefixRewritingInterfaces());
     }
+    if (lambdaRewriter != null) {
+      extraRewritePrefix.putAll(lambdaRewriter.getPrefixRewritingLambdas());
+    }
+    return extraRewritePrefix;
   }
 
   /** Create an IR converter for processing methods with full program optimization disabled. */
