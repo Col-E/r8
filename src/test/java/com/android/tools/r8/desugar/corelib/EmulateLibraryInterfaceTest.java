@@ -24,6 +24,7 @@ import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -117,6 +118,8 @@ public class EmulateLibraryInterfaceTest extends CoreLibDesugarTestBase {
     assertTrue(invokes.get(3).toString().contains("Set;->"));
     assertTrue(invokes.get(4).isInvokeStatic());
     assertTrue(invokes.get(4).toString().contains("Collection$-EL;->"));
+    assertTrue(invokes.get(8).isInvokeInterface());
+    assertTrue(invokes.get(8).toString().contains("Iterator;->"));
   }
 
   @Test
@@ -155,6 +158,11 @@ public class EmulateLibraryInterfaceTest extends CoreLibDesugarTestBase {
       System.out.println(set.iterator().getClass().getName());
       // Following should be rewritten to invokeStatic to Collection dispatch class.
       System.out.println(queue.stream().getClass().getName());
+      // Remove follows the don't rewrite rule.
+      list.add(new Object());
+      Iterator iterator = list.iterator();
+      iterator.next();
+      iterator.remove();
     }
   }
 }

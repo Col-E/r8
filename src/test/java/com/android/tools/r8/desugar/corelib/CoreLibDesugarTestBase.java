@@ -145,7 +145,7 @@ public class CoreLibDesugarTestBase extends TestBase {
 
   private List<String> buildDontRewriteInvocations() {
     // --dont_rewrite_core_library_invocation "java/util/Iterator#remove".
-    return ImmutableList.of("java/util/Iterator#remove");
+    return ImmutableList.of("java.util.Iterator#remove");
   }
 
   protected Map<String, String> buildEmulateLibraryInterface() {

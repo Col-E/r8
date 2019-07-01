@@ -21,6 +21,7 @@ import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DexValue;
@@ -99,10 +100,8 @@ public final class InterfaceMethodRewriter {
   private final InternalOptions options;
   final DexItemFactory factory;
   private final Map<DexType, DexType> emulatedInterfaces = new IdentityHashMap<>();
-  // In emulatedInterfacesHierarchy, keys are interfaces and values the list of emulated
-  // interfaces the interface implements. The list is in a specific order (top-down).
+  private final List<Pair<DexType, DexString>> dontRewriteCoreInvocations = new ArrayList<>();
   private final Map<String, String> prefixRewritingInterfaces = new IdentityHashMap<>();
-
   // All forwarding methods generated during desugaring. We don't synchronize access
   // to this collection since it is only filled in ClassProcessor running synchronously.
   private final Set<DexEncodedMethod> synthesizedMethods = Sets.newIdentityHashSet();
@@ -147,6 +146,14 @@ public final class InterfaceMethodRewriter {
                   options.emulateLibraryInterface.get(interfaceName)));
       emulatedInterfaces.put(interfaceType, rewrittenType);
       addRewritePrefix(interfaceType, rewrittenType.toSourceString());
+    }
+    for (String dontRewrite : options.dontRewriteInvocations) {
+      int index = dontRewrite.lastIndexOf('#');
+      dontRewriteCoreInvocations.add(
+          new Pair<>(
+              factory.createType(
+                  DescriptorUtils.javaTypeToDescriptor(dontRewrite.substring(0, index))),
+              factory.createString(dontRewrite.substring(index + 1))));
     }
   }
 
@@ -318,7 +325,9 @@ public final class InterfaceMethodRewriter {
           // with a single non abstract target.
           if (resolutionResult.hasSingleTarget()) {
             DexEncodedMethod result = resolutionResult.asResultOfResolve();
-            if (emulatedInterfaces.containsKey(result.method.holder) && !result.isAbstract()) {
+            if (emulatedInterfaces.containsKey(result.method.holder)
+                && !result.isAbstract()
+                && !dontRewrite(result.method)) {
               instructions.replaceCurrentInstruction(
                   new InvokeStatic(
                       emulateInterfaceLibraryMethod(invokedMethod, result.method.holder, factory),
@@ -329,6 +338,15 @@ public final class InterfaceMethodRewriter {
         }
       }
     }
+  }
+
+  private boolean dontRewrite(DexMethod method) {
+    for (Pair<DexType, DexString> dontRewrite : dontRewriteCoreInvocations) {
+      if (method.holder == dontRewrite.getFirst() && method.name == dontRewrite.getSecond()) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private void warnMissingEmulatedInterface(DexType interfaceType) {
