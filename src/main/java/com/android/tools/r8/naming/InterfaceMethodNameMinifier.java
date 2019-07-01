@@ -33,7 +33,6 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Assigning names to interface methods can be done in different ways, but here we try to assign the
@@ -41,52 +40,57 @@ import org.jetbrains.annotations.NotNull;
  * work out of the box if they implement multiple interfaces and the penalty of not having more
  * locality is insignificant in DEX because the proto will only be listed once in the DEX file.
  *
- * <p>----------- Library -----------
+ * ----------- Library -----------
  *
- * <p>class A { }
+ * class A { }
  *
- * <p>class Z extends A { a(); }
+ * class Z extends A { a(); }
  *
- * <p>----------- Program -----------
+ * ----------- Program -----------
  *
- * <p>interface I { x(); c() }
+ *      interface I { x(); c() }
  *
- * <p>/ \ / \ / \ v v
+ *          /                 \
+ *         /                   \
+ *        /                     \
+ *       v                       v
  *
- * <p>interface J { b() } interface K { d() } interface L { b() }
+ *  interface J { b() }     interface K { d() }           interface L { b() }
  *
- * <p>B extends A implements J { }
+ * B extends A implements J { }
  *
- * <p>C extends B implements K { }
+ * C extends B implements K { }
  *
- * <p>-keep L { *; }
+ * -keep L { *; }
  *
- * <p>Because of the way this algorithm work, we will try to bundle the naming together into groups.
- * In the example above, the group states should identify that:
+ * Because of the way this algorithm work, we will try to bundle the naming together into groups. In
+ * the example above, the group states should identify that:
  *
- * <p>- We are bundling J.b() with L.b() so we need to keep the name of both - When giving name to
- * I.x() or I.c() we cannot use b() because those names would collide in C.
+ * - We are bundling J.b() with L.b() so we need to keep the name of both
+ * - When giving name to I.x() or I.c() we cannot use b() because those names would collide in C.
  *
- * <p>A further complication is that call sites can implement methods with the same name but
- * different proto's. The canonical example of this is the identity function. We compute all
- * callsites that needs to be named together by using union-find.
+ * A further complication is that call sites can implement methods with the same name but different
+ * proto's. The canonical example of this is the identity function. We compute all callsites that
+ * needs to be named together by using union-find.
  *
- * <p>A small sample of the state of the above example could be like so: Group a() -> { State(A) }
- * Group a(Object) -> { State(J), State(I), State(A) } Group b() -> { State(J), State(I), State(L),
- * State(A) } Group c() -> { State(J), State(I), State(A) }
+ * A small sample of the state of the above example could be like so:
+ * Group a()       -> { State(A) }
+ * Group a(Object) -> { State(J), State(I), State(A) }
+ * Group b()       -> { State(J), State(I), State(L), State(A) }
+ * Group c()       -> { State(J), State(I), State(A) }
  *
- * <p>Because of the frontier state computation in {@link MethodNameMinifier}, all reservations are
+ * Because of the frontier state computation in {@link MethodNameMinifier}, all reservations are
  * bubbled up to the library frontier and naming is top-down to not re-use the same names. The
  * {@link InterfaceMethodNameMinifier} is run after ordinary method reservation but before new
  * method name assignment. Thus each group only has to keep track of the states in the interface
  * inheritance tree and the frontiers of their implementations.
  *
- * <p>To cache all interface reservation states we use interfaceStateMap that maps each type to its
+ * To cache all interface reservation states we use interfaceStateMap that maps each type to its
  * {@link InterfaceReservationState} that allows for querying and updating the interface inheritance
  * tree. This caching is crucial for the time spent computing interface names beceause most states
  * will not have a high depth.
  *
- * <p>We then map each group from Equivalence(Method) to {@link InterfaceMethodGroupState} that
+ * We then map each group from Equivalence(Method) to {@link InterfaceMethodGroupState} that
  * maintains a collection of {@link InterfaceReservationState} for each method the group represent.
  */
 class InterfaceMethodNameMinifier {
@@ -306,7 +310,7 @@ class InterfaceMethodNameMinifier {
     }
 
     @Override
-    public int compareTo(@NotNull InterfaceMethodGroupState o) {
+    public int compareTo(InterfaceMethodGroupState o) {
       // Sort by most naming states to smallest.
       return o.methodStates.size() - methodStates.size();
     }
