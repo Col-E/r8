@@ -633,6 +633,13 @@ public abstract class R8RunArtTestsTest {
               TestCondition.match(
                   TestCondition.D8_COMPILER,
                   TestCondition.runtimesUpTo(DexVm.Version.V4_4_4)))
+          // Fails because the code has to be desugared to run on art <= 6.0.1
+          // When running from dx code we don't desugar.
+          .put("530-checker-lse2",
+              TestCondition.match(
+                  TestCondition.tools(DexTool.DX),
+                  TestCondition.D8_COMPILER,
+                  TestCondition.runtimesUpTo(DexVm.Version.V6_0_1)))
           .put("534-checker-bce-deoptimization",
               TestCondition
                   .match(TestCondition.D8_COMPILER, TestCondition.runtimes(DexVm.Version.V6_0_1)))
