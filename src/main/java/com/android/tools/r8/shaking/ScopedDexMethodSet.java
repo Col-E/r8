@@ -51,7 +51,11 @@ class ScopedDexMethodSet {
   public boolean addMethodIfMoreVisible(DexEncodedMethod method) {
     Wrapper<DexMethod> wrapped = METHOD_EQUIVALENCE.wrap(method.method);
     DexEncodedMethod existing = lookup(wrapped);
-    if (existing == null || method.accessFlags.isMoreVisibleThan(existing.accessFlags)) {
+    if (existing == null
+        || method.accessFlags.isMoreVisibleThan(
+            existing.accessFlags,
+            method.method.holder.getPackageName(),
+            existing.method.holder.getPackageName())) {
       items.put(wrapped, method);
       return true;
     }

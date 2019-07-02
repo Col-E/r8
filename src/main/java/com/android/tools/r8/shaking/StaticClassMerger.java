@@ -364,7 +364,10 @@ public class StaticClassMerger {
     Representative packageRepresentative = representatives.get(key);
     if (packageRepresentative != null) {
       if (isValidRepresentative(clazz)
-          && clazz.accessFlags.isMoreVisibleThan(packageRepresentative.clazz.accessFlags)) {
+          && clazz.accessFlags.isMoreVisibleThan(
+              packageRepresentative.clazz.accessFlags,
+              clazz.type.getPackageName(),
+              packageRepresentative.clazz.type.getPackageName())) {
         // Use `clazz` as a representative for this package instead.
         Representative newRepresentative = getOrCreateRepresentative(key, clazz);
         newRepresentative.include(packageRepresentative.clazz);
@@ -486,6 +489,7 @@ public class StaticClassMerger {
           targetClass.type.toSourceString());
     }
 
+    // TODO(b/136457753) This check is a bit weird for protected, since it is moving access.
     assert targetClass.accessFlags.isAtLeastAsVisibleAs(sourceClass.accessFlags);
     assert sourceClass.instanceFields().size() == 0;
     assert targetClass.instanceFields().size() == 0;

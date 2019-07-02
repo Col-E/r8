@@ -83,8 +83,18 @@ public abstract class AccessFlags<T extends AccessFlags<T>> {
     return originalFlags | modifiedFlags;
   }
 
-  public boolean isMoreVisibleThan(AccessFlags other) {
-    return visibilityOrdinal() > other.visibilityOrdinal();
+  public boolean isMoreVisibleThan(
+      AccessFlags other, String packageNameThis, String packageNameOther) {
+    int visibilityOrdinal = visibilityOrdinal();
+    if (visibilityOrdinal > other.visibilityOrdinal()) {
+      return true;
+    }
+    if (visibilityOrdinal == other.visibilityOrdinal()
+        && isVisibilityDependingOnPackage()
+        && !packageNameThis.equals(packageNameOther)) {
+      return true;
+    }
+    return false;
   }
 
   public boolean isAtLeastAsVisibleAs(AccessFlags other) {
@@ -104,6 +114,10 @@ public abstract class AccessFlags<T extends AccessFlags<T>> {
     }
     // Package-private
     return 1;
+  }
+
+  public boolean isVisibilityDependingOnPackage() {
+    return visibilityOrdinal() == 1 || visibilityOrdinal() == 2;
   }
 
   public boolean isPublic() {
