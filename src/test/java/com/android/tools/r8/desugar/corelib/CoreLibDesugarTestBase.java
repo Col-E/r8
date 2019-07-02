@@ -58,7 +58,7 @@ public class CoreLibDesugarTestBase extends TestBase {
         // .put("java.lang.Double8", "j$.lang.Double8")
         // .put("java.lang.Integer8", "j$.lang.Integer8")
         // .put("java.lang.Long8", "j$.lang.Long8")
-        .put("java.lang.Math8", "j$.lang.Math8")
+        // .put("java.lang.Math8", "j$.lang.Math8")
         .put("java.util.stream.", "j$.util.stream.")
         .put("java.util.function.", "j$.util.function.")
         .put("java.util.Desugar", "j$.util.Desugar")
@@ -78,7 +78,7 @@ public class CoreLibDesugarTestBase extends TestBase {
 
   private Map<String, String> buildRetargetCoreLibraryMemberForCoreLibCompilation() {
     // --retarget_core_library_member.
-    return ImmutableMap.of("java/util/LinkedHashSet#spliterator", "j$/util/DesugarLinkedHashSet");
+    return ImmutableMap.of("java.util.LinkedHashSet#spliterator", "java.util.DesugarLinkedHashSet");
   }
 
   private Map<String, String> buildBackportCoreLibraryMembers() {
@@ -95,60 +95,60 @@ public class CoreLibDesugarTestBase extends TestBase {
     return ImmutableMap.<String, String>builder()
         // We ignore the following flags required by Bazel because desugaring of these methods
         // is done separately.
-        // .put("java/lang/Double#max", "j$/lang/Double8")
-        // .put("java/lang/Double#min", "j$/lang/Double8")
-        // .put("java/lang/Double#sum", "j$/lang/Double8")
-        // .put("java/lang/Integer#max", "j$/lang/Integer8")
-        // .put("java/lang/Integer#min", "j$/lang/Integer8")
-        // .put("java/lang/Integer#sum", "j$/lang/Integer8")
-        // .put("java/lang/Long#max", "j$/lang/Long")
-        // .put("java/lang/Long#min", "j$/lang/Long")
-        // .put("java/lang/Long#sum", "j$/lang/Long")
-        .put("java/lang/Math#toIntExact", "j$/lang/Math8")
-        .put("java/util/Arrays#stream", "j$/util/DesugarArrays")
-        .put("java/util/Arrays#spliterator", "j$/util/DesugarArrays")
-        .put("java/util/Calendar#toInstant", "j$/util/DesugarCalendar")
-        .put("java/util/Date#from", "j$/util/DesugarDate")
-        .put("java/util/Date#toInstant", "j$/util/DesugarDate")
-        .put("java/util/GregorianCalendar#from", "j$/util/DesugarGregorianCalendar")
-        .put("java/util/GregorianCalendar#toZonedDateTime", "j$/util/DesugarGregorianCalendar")
-        .put("java/util/LinkedHashSet#spliterator", "j$/util/DesugarLinkedHashSet")
+        // .put("java.lang.Double#max", "java.lang.Double8")
+        // .put("java.lang.Double#min", "java.lang.Double8")
+        // .put("java.lang.Double#sum", "java.lang.Double8")
+        // .put("java.lang.Integer#max", "java.lang.Integer8")
+        // .put("java.lang.Integer#min", "java.lang.Integer8")
+        // .put("java.lang.Integer#sum", "java.lang.Integer8")
+        // .put("java.lang.Long#max", "java.lang.Long")
+        // .put("java.lang.Long#min", "java.lang.Long")
+        // .put("java.lang.Long#sum", "java.lang.Long")
+        // .put("java.lang.Math#toIntExact", "java.lang.Math8")
+        .put("java.util.Arrays#stream", "java.util.DesugarArrays")
+        .put("java.util.Arrays#spliterator", "java.util.DesugarArrays")
+        .put("java.util.Calendar#toInstant", "java.util.DesugarCalendar")
+        .put("java.util.Date#from", "java.util.DesugarDate")
+        .put("java.util.Date#toInstant", "java.util.DesugarDate")
+        .put("java.util.GregorianCalendar#from", "java.util.DesugarGregorianCalendar")
+        .put("java.util.GregorianCalendar#toZonedDateTime", "java.util.DesugarGregorianCalendar")
+        .put("java.util.LinkedHashSet#spliterator", "java.util.DesugarLinkedHashSet")
         .put(
-            "java/util/concurrent/atomic/AtomicInteger#getAndUpdate",
-            "j$/util/concurrent/atomic/DesugarAtomicInteger")
+            "java.util.concurrent.atomic.AtomicInteger#getAndUpdate",
+            "java.util.concurrent.atomic.DesugarAtomicInteger")
         .put(
-            "java/util/concurrent/atomic/AtomicInteger#updateAndGet",
-            "j$/util/concurrent/atomic/DesugarAtomicInteger")
+            "java.util.concurrent.atomic.AtomicInteger#updateAndGet",
+            "java.util.concurrent.atomic.DesugarAtomicInteger")
         .put(
-            "java/util/concurrent/atomic/AtomicInteger#getAndAccumulate",
-            "j$/util/concurrent/atomic/DesugarAtomicInteger")
+            "java.util.concurrent.atomic.AtomicInteger#getAndAccumulate",
+            "java.util.concurrent.atomic.DesugarAtomicInteger")
         .put(
-            "java/util/concurrent/atomic/AtomicInteger#accumulateAndGet",
-            "j$/util/concurrent/atomic/DesugarAtomicInteger")
+            "java.util.concurrent.atomic.AtomicInteger#accumulateAndGet",
+            "java.util.concurrent.atomic.DesugarAtomicInteger")
         .put(
-            "java/util/concurrent/atomic/AtomicLong#getAndUpdate",
-            "j$/util/concurrent/atomic/DesugarAtomicLong")
+            "java.util.concurrent.atomic.AtomicLong#getAndUpdate",
+            "java.util.concurrent.atomic.DesugarAtomicLong")
         .put(
-            "java/util/concurrent/atomic/AtomicLong#updateAndGet",
-            "j$/util/concurrent/atomic/DesugarAtomicLong")
+            "java.util.concurrent.atomic.AtomicLong#updateAndGet",
+            "java.util.concurrent.atomic.DesugarAtomicLong")
         .put(
-            "java/util/concurrent/atomic/AtomicLong#getAndAccumulate",
-            "j$/util/concurrent/atomic/DesugarAtomicLong")
+            "java.util.concurrent.atomic.AtomicLong#getAndAccumulate",
+            "java.util.concurrent.atomic.DesugarAtomicLong")
         .put(
-            "java/util/concurrent/atomic/AtomicLong#accumulateAndGet",
-            "j$/util/concurrent/atomic/DesugarAtomicLong")
+            "java.util.concurrent.atomic.AtomicLong#accumulateAndGet",
+            "java.util.concurrent.atomic.DesugarAtomicLong")
         .put(
-            "java/util/concurrent/atomic/AtomicReference#getAndUpdate",
-            "j$/util/concurrent/atomic/DesugarAtomicReference")
+            "java.util.concurrent.atomic.AtomicReference#getAndUpdate",
+            "java.util.concurrent.atomic.DesugarAtomicReference")
         .put(
-            "java/util/concurrent/atomic/AtomicReference#updateAndGet",
-            "j$/util/concurrent/atomic/DesugarAtomicReference")
+            "java.util.concurrent.atomic.AtomicReference#updateAndGet",
+            "java.util.concurrent.atomic.DesugarAtomicReference")
         .put(
-            "java/util/concurrent/atomic/AtomicReference#getAndAccumulate",
-            "j$/util/concurrent/atomic/DesugarAtomicReference")
+            "java.util.concurrent.atomic.AtomicReference#getAndAccumulate",
+            "java.util.concurrent.atomic.DesugarAtomicReference")
         .put(
-            "java/util/concurrent/atomic/AtomicReference#accumulateAndGet",
-            "j$/util/concurrent/atomic/DesugarAtomicReference")
+            "java.util.concurrent.atomic.AtomicReference#accumulateAndGet",
+            "java.util.concurrent.atomic.DesugarAtomicReference")
         .build();
   }
 

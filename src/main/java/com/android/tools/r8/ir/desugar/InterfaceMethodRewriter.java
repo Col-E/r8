@@ -102,6 +102,8 @@ public final class InterfaceMethodRewriter {
   private final Map<DexType, DexType> emulatedInterfaces = new IdentityHashMap<>();
   private final List<Pair<DexType, DexString>> dontRewriteCoreInvocations = new ArrayList<>();
   private final Map<String, String> prefixRewritingInterfaces = new IdentityHashMap<>();
+  private final Map<DexType, Pair<DexString, DexType>> retargetCoreMember = new IdentityHashMap<>();
+
   // All forwarding methods generated during desugaring. We don't synchronize access
   // to this collection since it is only filled in ClassProcessor running synchronously.
   private final Set<DexEncodedMethod> synthesizedMethods = Sets.newIdentityHashSet();
@@ -147,8 +149,15 @@ public final class InterfaceMethodRewriter {
       emulatedInterfaces.put(interfaceType, rewrittenType);
       addRewritePrefix(interfaceType, rewrittenType.toSourceString());
     }
+    if (appView.options().coreLibraryCompilation) {
+      InternalOptions.populateRetargetCoreLibMember(factory, options, retargetCoreMember);
+    }
     for (String dontRewrite : options.dontRewriteInvocations) {
       int index = dontRewrite.lastIndexOf('#');
+      if (index <= 0 || index >= dontRewrite.length() - 1) {
+        throw new CompilationError(
+            "Invalid retarget core library member specification (# position).");
+      }
       dontRewriteCoreInvocations.add(
           new Pair<>(
               factory.createType(
@@ -415,6 +424,21 @@ public final class InterfaceMethodRewriter {
     }
   }
 
+  private boolean implementsInterface(DexClass clazz, DexType interfaceType) {
+    LinkedList<DexType> workList = new LinkedList<>(Arrays.asList(clazz.interfaces.values));
+    while (!workList.isEmpty()) {
+      DexType next = workList.removeLast();
+      if (interfaceType == next) {
+        return true;
+      }
+      DexClass nextClass = appView.definitionFor(next);
+      if (nextClass != null) {
+        workList.addAll(Arrays.asList(nextClass.interfaces.values));
+      }
+    }
+    return false;
+  }
+
   private static DexMethod emulateInterfaceLibraryMethod(
       DexMethod method, DexType holder, DexItemFactory factory) {
     return factory.createMethod(
@@ -447,6 +471,23 @@ public final class InterfaceMethodRewriter {
         // hence reverse iteration.
         List<DexType> subInterfaces = emulatedInterfacesHierarchy.get(theInterface.type);
         List<Pair<DexType, DexMethod>> extraDispatchCases = new ArrayList<>();
+        // In practice, there is usually a single case, so we do not bother to
+        // make the following loop more clever.
+        for (DexType retarget : retargetCoreMember.keySet()) {
+          if (method.method.name == retargetCoreMember.get(retarget).getFirst()) {
+            DexClass retargetClass = appView.definitionFor(retarget);
+            if (retargetClass != null && implementsInterface(retargetClass, theInterface.type)) {
+              extraDispatchCases.add(
+                  new Pair<>(
+                      retarget,
+                      factory.createMethod(
+                          retargetCoreMember.get(retarget).getSecond(),
+                          factory.protoWithDifferentFirstParameter(
+                              originalCompanionMethod.proto, retarget),
+                          originalCompanionMethod.name)));
+            }
+          }
+        }
         if (subInterfaces != null) {
           for (int i = subInterfaces.size() - 1; i >= 0; i--) {
             DexClass subInterfaceClass = appView.definitionFor(subInterfaces.get(i));

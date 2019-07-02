@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
@@ -81,7 +82,7 @@ public class LambdaRewriter {
   // NOTE: synchronize concurrent access on `knownLambdaClasses`.
   private final Map<DexType, LambdaClass> knownLambdaClasses = new IdentityHashMap<>();
 
-  private final Map<String, String> prefixRewritingLambdas = new IdentityHashMap<>();
+  private final Map<String, String> prefixRewritingLambdas = new ConcurrentHashMap<>();
 
   // Checks if the type starts with lambda-class prefix.
   public static boolean hasLambdaClassPrefix(DexType clazz) {

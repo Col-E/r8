@@ -24,6 +24,7 @@ import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -88,7 +89,7 @@ public class EmulateLibraryInterfaceTest extends CoreLibDesugarTestBase {
                     .filter(Instruction::isCheckCast)
                     .count();
         if (method.qualifiedName().contains("spliterator")) {
-          assertTrue(numCheckCast > 1);
+          assertEquals(5, numCheckCast);
         } else {
           assertEquals(1, numCheckCast);
         }
@@ -118,8 +119,10 @@ public class EmulateLibraryInterfaceTest extends CoreLibDesugarTestBase {
     assertTrue(invokes.get(3).toString().contains("Set;->"));
     assertTrue(invokes.get(4).isInvokeStatic());
     assertTrue(invokes.get(4).toString().contains("Collection$-EL;->"));
-    assertTrue(invokes.get(8).isInvokeInterface());
-    assertTrue(invokes.get(8).toString().contains("Iterator;->"));
+    assertTrue(invokes.get(5).isInvokeStatic());
+    assertTrue(invokes.get(5).toString().contains("DesugarLinkedHashSet;->"));
+    assertTrue(invokes.get(9).isInvokeInterface());
+    assertTrue(invokes.get(9).toString().contains("Iterator;->"));
   }
 
   @Test
@@ -131,7 +134,8 @@ public class EmulateLibraryInterfaceTest extends CoreLibDesugarTestBase {
             "j$.util.Spliterators$IteratorSpliterator",
             "j$.util.stream.ReferencePipeline$Head",
             "java.util.HashMap$KeyIterator",
-            "j$.util.stream.ReferencePipeline$Head");
+            "j$.util.stream.ReferencePipeline$Head",
+            "j$.util.Spliterators$IteratorSpliterator");
     testForD8()
         .addProgramClasses(TestClass.class)
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
@@ -149,6 +153,7 @@ public class EmulateLibraryInterfaceTest extends CoreLibDesugarTestBase {
       Set<Object> set = new HashSet<>();
       List<Object> list = new ArrayList<>();
       Queue<Object> queue = new LinkedList<>();
+      LinkedHashSet<Object> lhs = new LinkedHashSet<>();
       // They both should be rewritten to invokeStatic to the dispatch class.
       System.out.println(set.spliterator().getClass().getName());
       System.out.println(list.spliterator().getClass().getName());
@@ -158,6 +163,8 @@ public class EmulateLibraryInterfaceTest extends CoreLibDesugarTestBase {
       System.out.println(set.iterator().getClass().getName());
       // Following should be rewritten to invokeStatic to Collection dispatch class.
       System.out.println(queue.stream().getClass().getName());
+      // Following should be rewritten as retarget core lib member.
+      System.out.println(lhs.spliterator().getClass().getName());
       // Remove follows the don't rewrite rule.
       list.add(new Object());
       Iterator iterator = list.iterator();

@@ -26,6 +26,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.optimize.Inliner;
@@ -396,6 +397,25 @@ public class InternalOptions {
   public Map<String, String> retargetCoreLibMember = ImmutableMap.of();
   public Map<String, String> backportCoreLibraryMembers = ImmutableMap.of();
   public List<String> dontRewriteInvocations = ImmutableList.of();
+
+  public static Map<DexType, Pair<DexString, DexType>> populateRetargetCoreLibMember(
+      DexItemFactory factory, InternalOptions options, Map<DexType, Pair<DexString, DexType>> map) {
+    for (String retarget : options.retargetCoreLibMember.keySet()) {
+      int index = retarget.lastIndexOf('#');
+      if (index <= 0 || index >= retarget.length() - 1) {
+        throw new CompilationError(
+            "Invalid retarget core library member specification (# position).");
+      }
+      map.put(
+          factory.createType(DescriptorUtils.javaTypeToDescriptor(retarget.substring(0, index))),
+          new Pair<>(
+              factory.createString(retarget.substring(index + 1)),
+              factory.createType(
+                  DescriptorUtils.javaTypeToDescriptor(
+                      options.retargetCoreLibMember.get(retarget)))));
+    }
+    return map;
+  }
 
   public LineNumberOptimization lineNumberOptimization = LineNumberOptimization.ON;
 
