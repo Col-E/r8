@@ -87,7 +87,7 @@ class FieldNameMinifier {
     for (DexClass clazz : appView.appInfo().app().asDirect().allClasses()) {
       ReservedFieldNamingState reservedNames = null;
       for (DexEncodedField field : clazz.fields()) {
-        DexString reservedName = strategy.getReservedNameOrDefault(field, clazz, null);
+        DexString reservedName = strategy.getReservedName(field, clazz);
         if (reservedName != null) {
           if (reservedNames == null) {
             reservedNames = getOrCreateReservedFieldNamingState(clazz.type);

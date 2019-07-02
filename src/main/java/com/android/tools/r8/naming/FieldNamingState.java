@@ -20,7 +20,7 @@ public class FieldNamingState extends FieldNamingStateBase<InternalState> implem
 
   private final ReservedFieldNamingState reservedNames;
   private final MemberNamingStrategy strategy;
-  private final BiPredicate<DexString, DexType> isUsed;
+  private final BiPredicate<DexString, DexType> isAvailable;
 
   public FieldNamingState(AppView<?> appView, MemberNamingStrategy strategy) {
     this(appView, strategy, new ReservedFieldNamingState(appView));
@@ -39,7 +39,7 @@ public class FieldNamingState extends FieldNamingStateBase<InternalState> implem
     super(appView, internalStates);
     this.reservedNames = reservedNames;
     this.strategy = strategy;
-    this.isUsed = (newName, fieldType) -> reservedNames.isReserved(newName, fieldType);
+    this.isAvailable = (newName, fieldType) -> !reservedNames.isReserved(newName, fieldType);
   }
 
   public FieldNamingState createChildState(ReservedFieldNamingState reservedNames) {
@@ -56,7 +56,7 @@ public class FieldNamingState extends FieldNamingStateBase<InternalState> implem
       if (clazz == null) {
         return field.name;
       }
-      DexString reservedName = strategy.getReservedNameOrDefault(encodedField, clazz, null);
+      DexString reservedName = strategy.getReservedName(encodedField, clazz);
       if (reservedName != null) {
         return reservedName;
       }
@@ -98,7 +98,7 @@ public class FieldNamingState extends FieldNamingStateBase<InternalState> implem
     }
 
     public DexString createNewName(DexField field) {
-      DexString name = strategy.next(field, this, isUsed);
+      DexString name = strategy.next(field, this, isAvailable);
       assert !reservedNames.isReserved(name, field.type);
       return name;
     }

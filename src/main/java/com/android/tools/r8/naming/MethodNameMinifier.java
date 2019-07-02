@@ -8,19 +8,16 @@ import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.MethodJavaSignatureEquivalence;
-import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.Timing;
-import com.google.common.base.Equivalence;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableMap;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -30,14 +27,16 @@ import java.util.function.Function;
  * A pass to rename methods using common, short names.
  *
  * <p>To assign names, we model the scopes of methods names and overloading/shadowing based on the
- * subtyping tree of classes. Such a naming scope is encoded by {@link MethodNamingState}. It keeps
- * track of its parent node, names that have been reserved (due to keep annotations or otherwise)
- * and what names have been used for renaming so far.
+ * subtyping tree of classes. Such a naming scope is encoded by {@link MethodReservationState} and
+ * {@link MethodNamingState}. {@link MethodReservationState} keeps track of reserved names in the
+ * library and pulls reservations on classpath and program path to the library frontier. It keeps
+ * track of names that are are reserved (due to keep annotations or otherwise) where {@link
+ * MethodNamingState} keeps track of all renamed names to ensure freshness.
  *
  * <p>As in the Dalvik VM method dispatch takes argument and return types of methods into account,
  * we can further reuse names if the prototypes of two methods differ. For this, we store the above
  * state separately for each proto using a map from protos to {@link
- * MethodNamingState.InternalReservationState} objects. These internal state objects are also
+ * MethodReservationState.InternalReservationState} objects. These internal state objects are also
  * linked.
  *
  * <p>Name assignment happens in 4 stages. In the first stage, we record all names that are used by
@@ -90,63 +89,56 @@ class MethodNameMinifier {
   // from the method name minifier to the interface method name minifier.
   class State {
 
-    DexString getRenaming(DexMethod key) {
-      return renaming.get(key);
-    }
-
     void putRenaming(DexMethod key, DexString value) {
       renaming.put(key, value);
     }
 
-    MethodNamingState<?> getState(DexType type) {
-      return states.get(type);
+    MethodReservationState<?> getReservationState(DexType type) {
+      return reservationStates.get(type);
     }
 
-    DexType getStateKey(MethodNamingState<?> state) {
-      return states.inverse().get(state);
+    MethodNamingState<?> getNamingState(DexType type) {
+      return getOrAllocateMethodNamingStates(type);
     }
 
-    boolean isReservedInGlobalState(DexString name, DexProto state) {
-      return globalState.isReserved(name, state);
+    void allocateReservationStateAndReserve(DexType type, DexType frontier) {
+      MethodNameMinifier.this.allocateReservationStateAndReserve(type, frontier, null);
+    }
+
+    DexType getFrontier(DexType type) {
+      return frontiers.getOrDefault(type, type);
     }
   }
 
   private final AppView<AppInfoWithLiveness> appView;
-  private final Equivalence<DexMethod> equivalence;
   private final MemberNamingStrategy strategy;
 
   private final Map<DexMethod, DexString> renaming = new IdentityHashMap<>();
-  private final MethodNamingState<?> globalState;
 
   private final State minifierState = new State();
-  private final FrontierState frontierState = new FrontierState();
 
   // The use of a bidirectional map allows us to map a naming state to the type it represents,
   // which is useful for debugging.
-  private final BiMap<DexType, MethodNamingState<?>> states = HashBiMap.create();
+  private final BiMap<DexType, MethodReservationState<?>> reservationStates = HashBiMap.create();
+  private final Map<DexType, MethodNamingState<?>> namingStates = new HashMap<>();
+  private final Map<DexType, DexType> frontiers = new IdentityHashMap<>();
+
+  private final MethodNamingState<?> rootNamingState;
 
   MethodNameMinifier(AppView<AppInfoWithLiveness> appView, MemberNamingStrategy strategy) {
     this.appView = appView;
-    this.equivalence =
-        appView.options().getProguardConfiguration().isOverloadAggressively()
-            ? MethodSignatureEquivalence.get()
-            : MethodJavaSignatureEquivalence.get();
-    this.globalState = MethodNamingState.createRoot(getKeyTransform(), strategy);
     this.strategy = strategy;
+    rootNamingState = MethodNamingState.createRoot(getKeyTransform(), strategy);
+    namingStates.put(null, rootNamingState);
   }
 
-  private MethodNamingState<?> computeStateIfAbsent(
-      DexType type, Function<DexType, MethodNamingState<?>> f) {
-    return states.computeIfAbsent(type, f);
-  }
-
-  private Function<DexProto, ?> getKeyTransform() {
+  private Function<DexMethod, ?> getKeyTransform() {
     if (appView.options().getProguardConfiguration().isOverloadAggressively()) {
       // Use the full proto as key, hence reuse names based on full signature.
-      return a -> a;
+      return method -> method.proto;
     } else {
       // Only use the parameters as key, hence do not reuse names on return type.
-      return proto -> proto.parameters;
+      return method -> method.proto.parameters;
     }
   }
 
@@ -178,20 +170,27 @@ class MethodNameMinifier {
     //          states that may hold an implementation.
     timing.begin("Phase 2");
     InterfaceMethodNameMinifier interfaceMethodNameMinifier =
-        new InterfaceMethodNameMinifier(appView, desugaredCallSites, frontierState, minifierState);
+        new InterfaceMethodNameMinifier(appView, desugaredCallSites, minifierState);
     timing.end();
     timing.begin("Phase 3");
     interfaceMethodNameMinifier.assignNamesToInterfaceMethods(timing, interfaces);
     timing.end();
     // Phase 4: Assign names top-down by traversing the subtype hierarchy.
     timing.begin("Phase 4");
-    assignNamesToClassesMethods(appView.dexItemFactory().objectType);
+    assignNamesToClassesMethods(appView.dexItemFactory().objectType, rootNamingState);
     timing.end();
 
     return new MethodRenaming(renaming, interfaceMethodNameMinifier.getCallSiteRenamings());
   }
 
-  private void assignNamesToClassesMethods(DexType type) {
+  private void assignNamesToClassesMethods(DexType type, MethodNamingState<?> parentNamingState) {
+    MethodReservationState<?> reservationState =
+        reservationStates.get(frontiers.getOrDefault(type, type));
+    assert reservationState != null;
+    MethodNamingState<?> namingState = namingStates.get(type);
+    if (namingState == null) {
+      namingState = parentNamingState.createChild(reservationState);
+    }
     // The names for direct methods should not contribute to the naming of methods in sub-types:
     // class A {
     //   public int foo() { ... }   --> a
@@ -204,42 +203,29 @@ class MethodNameMinifier {
     //
     // A simple way to ensure this is to process virtual methods first and then direct methods.
     DexClass holder = appView.definitionFor(type);
-    boolean shouldAssignName = holder != null && strategy.allowMemberRenaming(holder);
-    if (shouldAssignName) {
-      MethodNamingState<?> state =
-          computeStateIfAbsent(type, k -> minifierState.getState(holder.superType).createChild());
+    if (holder != null && strategy.allowMemberRenaming(holder)) {
       for (DexEncodedMethod method : holder.virtualMethodsSorted()) {
-        assignNameToMethod(method, state, holder);
+        assignNameToMethod(method, namingState);
       }
       for (DexEncodedMethod method : holder.directMethodsSorted()) {
-        assignNameToMethod(method, state, holder);
+        assignNameToMethod(method, namingState);
       }
     }
-
-    appView.appInfo().forAllExtendsSubtypes(type, this::assignNamesToClassesMethods);
+    for (DexType subType : appView.appInfo().allExtendsSubtypes(type)) {
+      assignNamesToClassesMethods(subType, namingState);
+    }
   }
 
-  private void assignNameToMethod(
-      DexEncodedMethod encodedMethod, MethodNamingState<?> state, DexClass holder) {
+  private void assignNameToMethod(DexEncodedMethod encodedMethod, MethodNamingState<?> state) {
     if (encodedMethod.accessFlags.isConstructor()) {
       return;
     }
-    DexMethod method = encodedMethod.method;
-    DexString reservedName = strategy.getReservedNameOrDefault(encodedMethod, holder, method.name);
-    if (state.isReserved(reservedName, method.proto)) {
-      return;
+    DexString newName = state.newOrReservedNameFor(encodedMethod.method);
+    if (encodedMethod.method.name != newName) {
+      renaming.put(encodedMethod.method, newName);
     }
-    DexString newName = state.assignNewNameFor(method, method.name, method.proto);
-    addRenaming(encodedMethod, state, newName);
-  }
-
-  private void addRenaming(
-      DexEncodedMethod encodedMethod, MethodNamingState<?> state, DexString renamedName) {
-    if (encodedMethod.method.name != renamedName) {
-      renaming.put(encodedMethod.method, renamedName);
-    }
-    if (!encodedMethod.accessFlags.isPrivate()) {
-      state.addRenaming(encodedMethod.method.name, encodedMethod.method.proto, renamedName);
+    if (!encodedMethod.isPrivateMethod()) {
+      state.addRenaming(newName, encodedMethod.method);
     }
   }
 
@@ -249,91 +235,76 @@ class MethodNameMinifier {
   }
 
   private void reserveNamesInClasses(
-      DexType type, DexType libraryFrontier, MethodNamingState<?> parent) {
+      DexType type, DexType libraryFrontier, MethodReservationState<?> parentReservationState) {
     assert appView.isInterface(type).isFalse();
 
-    MethodNamingState<?> state =
-        frontierState.allocateNamingStateAndReserve(type, libraryFrontier, parent);
+    MethodReservationState<?> reservationState =
+        allocateReservationStateAndReserve(type, libraryFrontier, parentReservationState);
 
     // If this is a library class (or effectively a library class as it is missing) move the
-    // frontier forward.
+    // frontier forward. This will ensure all reservations are put on the library frontier for
+    // classpath and program path.
     DexClass holder = appView.definitionFor(type);
     for (DexType subtype : appView.appInfo().allExtendsSubtypes(type)) {
       reserveNamesInClasses(
-          subtype, holder == null || holder.isNotProgramClass() ? subtype : libraryFrontier, state);
+          subtype,
+          holder == null || holder.isLibraryClass() ? subtype : libraryFrontier,
+          reservationState);
     }
   }
 
-  class FrontierState {
+  private MethodReservationState<?> allocateReservationStateAndReserve(
+      DexType type, DexType frontier, MethodReservationState<?> parent) {
+    if (frontier != type) {
+      frontiers.put(type, frontier);
+    }
 
-    private final Map<DexType, DexType> frontiers = new IdentityHashMap<>();
+    MethodReservationState<?> state =
+        reservationStates.computeIfAbsent(
+            frontier,
+            ignore ->
+                parent == null
+                    ? MethodReservationState.createRoot(getKeyTransform())
+                    : parent.createChild());
 
-    MethodNamingState<?> allocateNamingStateAndReserve(
-        DexType type, DexType frontier, MethodNamingState<?> parent) {
-      if (frontier != type) {
-        frontiers.put(type, frontier);
-      }
-
-      MethodNamingState<?> state =
-          computeStateIfAbsent(
-              frontier,
-              ignore ->
-                  parent == null
-                      ? MethodNamingState.createRoot(getKeyTransform(), strategy)
-                      : parent.createChild());
-
-      DexClass holder = appView.definitionFor(type);
-      if (holder != null) {
-        for (DexEncodedMethod method : shuffleMethods(holder.methods(), appView.options())) {
-          DexString reservedName = strategy.getReservedNameOrDefault(method, holder, null);
-          if (reservedName != null) {
-            // If the mapping is incorrect, we might try to map a method to an existing name.
-            // class A {
-            //   int m1(String foo) { ... }
-            // }
-            //
-            // class B extends A {
-            //   int m2(String bar) { ... }
-            // }
-            //
-            // and the following reservations (mapping):
-            // A -> a:
-            //   int m1(String foo) -> a
-            // B -> b:
-            //   int m2(String foo) -> a <- ERROR
-            //
-            // In the example, the mapping file specifies that A.m1() should become a.a() and that
-            // B.m2() should become b.a(). This should not be allowed, since b.a() now overrides
-            // a.a(), unlike in the original program.
-            DexString previouslyReservedOriginalName =
-                state.getReservedOriginalName(reservedName, method.method.proto);
-            if (previouslyReservedOriginalName != null
-                && previouslyReservedOriginalName != method.method.name) {
-              strategy.reportReservationError(method.method, reservedName);
-            }
-            state.reserveName(reservedName, method.method.proto, method.method.name);
-            globalState.reserveName(reservedName, method.method.proto, method.method.name);
-            addRenaming(method, state, reservedName);
-          }
+    DexClass holder = appView.definitionFor(type);
+    if (holder != null) {
+      for (DexEncodedMethod method : shuffleMethods(holder.methods(), appView.options())) {
+        DexString reservedName = strategy.getReservedName(method, holder);
+        if (reservedName != null) {
+          state.reserveName(reservedName, method.method);
         }
       }
-
-      return state;
     }
 
-    public DexType get(DexType type) {
-      return frontiers.getOrDefault(type, type);
-    }
+    return state;
+  }
 
-    public DexType put(DexType type, DexType frontier) {
-      assert frontier != type;
-      return frontiers.put(type, frontier);
+  private MethodNamingState<?> getOrAllocateMethodNamingStates(DexType type) {
+    MethodNamingState<?> namingState = namingStates.get(type);
+    if (namingState == null) {
+      MethodNamingState<?> parentState;
+      if (type == appView.dexItemFactory().objectType) {
+        parentState = rootNamingState;
+      } else {
+        DexClass holder = appView.definitionFor(type);
+        if (holder == null) {
+          parentState = getOrAllocateMethodNamingStates(appView.dexItemFactory().objectType);
+        } else {
+          parentState = getOrAllocateMethodNamingStates(holder.superType);
+        }
+      }
+      MethodReservationState<?> reservationState = reservationStates.get(type);
+      assert reservationState != null;
+      namingState = parentState.createChild(reservationState);
+      namingStates.put(type, namingState);
     }
+    return namingState;
   }
 
   // Shuffles the given methods if assertions are enabled and deterministic debugging is disabled.
   // Used to ensure that the generated output is deterministic.
-  static Iterable<DexEncodedMethod> shuffleMethods(
+  private static Iterable<DexEncodedMethod> shuffleMethods(
       Iterable<DexEncodedMethod> methods, InternalOptions options) {
     return options.testing.irOrdering.order(methods);
   }

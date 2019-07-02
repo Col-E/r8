@@ -384,18 +384,33 @@ public class ProguardMapMinifier {
 
     @Override
     public DexString next(
-        DexMethod method, InternalNamingState internalState, Predicate<DexString> isUsed) {
+        DexMethod method,
+        InternalNamingState internalState,
+        BiPredicate<DexString, DexMethod> isAvailable) {
+      MemberNaming memberNaming = mappedNames.get(method);
+      if (memberNaming != null) {
+        DexString mappedName = factory.createString(mappedNames.get(method).getRenamedName());
+        if (isAvailable.test(mappedName, method)) {
+          return mappedName;
+        }
+        reportReservationError(method, mappedName);
+        return mappedName;
+      }
       assert !mappedNames.containsKey(method);
       return canMinify(method, method.holder)
-          ? super.next(method, internalState, isUsed)
+          ? super.next(method, internalState, isAvailable)
           : method.name;
     }
 
     @Override
     public DexString next(
-        DexField field, InternalNamingState internalState, BiPredicate<DexString, DexType> isUsed) {
+        DexField field,
+        InternalNamingState internalState,
+        BiPredicate<DexString, DexType> isAvailable) {
       assert !mappedNames.containsKey(field);
-      return canMinify(field, field.holder) ? super.next(field, internalState, isUsed) : field.name;
+      return canMinify(field, field.holder)
+          ? super.next(field, internalState, isAvailable)
+          : field.name;
     }
 
     private boolean canMinify(DexReference reference, DexType type) {
@@ -410,21 +425,19 @@ public class ProguardMapMinifier {
     }
 
     @Override
-    public DexString getReservedNameOrDefault(
-        DexEncodedMethod method, DexClass holder, DexString nullValue) {
+    public DexString getReservedName(DexEncodedMethod method, DexClass holder) {
       if (mappedNames.containsKey(method.method)) {
         return factory.createString(mappedNames.get(method.method).getRenamedName());
       }
-      return nullValue;
+      return null;
     }
 
     @Override
-    public DexString getReservedNameOrDefault(
-        DexEncodedField field, DexClass holder, DexString nullValue) {
+    public DexString getReservedName(DexEncodedField field, DexClass holder) {
       if (mappedNames.containsKey(field.field)) {
         return factory.createString(mappedNames.get(field.field).getRenamedName());
       }
-      return nullValue;
+      return null;
     }
 
     @Override
@@ -432,8 +445,7 @@ public class ProguardMapMinifier {
       return true;
     }
 
-    @Override
-    public void reportReservationError(DexReference source, DexString name) {
+    void reportReservationError(DexReference source, DexString name) {
       MemberNaming memberNaming = mappedNames.get(source);
       assert source.isDexMethod() || source.isDexField();
       ApplyMappingError applyMappingError =

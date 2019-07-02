@@ -14,7 +14,6 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.ClassNameMinifier.ClassNamingStrategy;
@@ -213,25 +212,29 @@ public class Minifier {
 
     @Override
     public DexString next(
-        DexMethod method, InternalNamingState internalState, Predicate<DexString> isUsed) {
+        DexMethod method,
+        InternalNamingState internalState,
+        BiPredicate<DexString, DexMethod> isAvailable) {
       assert checkAllowMemberRenaming(method.holder);
       DexEncodedMethod encodedMethod = appView.definitionFor(method);
       boolean isDirectOrStatic = encodedMethod.isDirectMethod() || encodedMethod.isStatic();
       DexString candidate;
       do {
         candidate = getNextName(internalState, isDirectOrStatic);
-      } while (isUsed.test(candidate));
+      } while (!isAvailable.test(candidate, method));
       return candidate;
     }
 
     @Override
     public DexString next(
-        DexField field, InternalNamingState internalState, BiPredicate<DexString, DexType> isUsed) {
+        DexField field,
+        InternalNamingState internalState,
+        BiPredicate<DexString, DexType> isAvailable) {
       assert checkAllowMemberRenaming(field.holder);
       DexString candidate;
       do {
         candidate = getNextName(internalState, false);
-      } while (isUsed.test(candidate, field.type));
+      } while (!isAvailable.test(candidate, field.type));
       return candidate;
     }
 
@@ -240,24 +243,22 @@ public class Minifier {
     }
 
     @Override
-    public DexString getReservedNameOrDefault(
-        DexEncodedMethod method, DexClass holder, DexString defaultValue) {
+    public DexString getReservedName(DexEncodedMethod method, DexClass holder) {
       if (!allowMemberRenaming(holder)
           || holder.accessFlags.isAnnotation()
           || method.accessFlags.isConstructor()
           || appView.rootSet().mayNotBeMinified(method.method, appView)) {
         return method.method.name;
       }
-      return defaultValue;
+      return null;
     }
 
     @Override
-    public DexString getReservedNameOrDefault(
-        DexEncodedField field, DexClass holder, DexString defaultValue) {
+    public DexString getReservedName(DexEncodedField field, DexClass holder) {
       if (holder.isLibraryClass() || appView.rootSet().mayNotBeMinified(field.field, appView)) {
         return field.field.name;
       }
-      return defaultValue;
+      return null;
     }
 
     @Override
@@ -269,12 +270,6 @@ public class Minifier {
       DexClass clazz = appView.definitionFor(holder);
       assert clazz != null && allowMemberRenaming(clazz);
       return true;
-    }
-
-    @Override
-    public void reportReservationError(DexReference source, DexString name) {
-      assert false;
-      // This should only happen when applymapping is used and will be caught in that strategy.
     }
   }
 }

@@ -10,7 +10,6 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.naming.MethodNameMinifier.FrontierState;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.MethodJavaSignatureEquivalence;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
@@ -111,8 +110,8 @@ class InterfaceMethodNameMinifier {
               s -> {
                 for (DexType reservationType : s.reservationTypes) {
                   if (minifierState
-                      .getState(reservationType)
-                      .isReserved(method.name, method.proto)) {
+                      .getReservationState(reservationType)
+                      .isReserved(method.name, method)) {
                     return true;
                   }
                 }
@@ -126,9 +125,9 @@ class InterfaceMethodNameMinifier {
           s -> {
             s.reservationTypes.forEach(
                 resType -> {
-                  MethodNamingState<?> state = minifierState.getState(resType);
-                  if (!state.isReserved(reservedName, method.proto)) {
-                    state.reserveName(reservedName, method.proto, reservedName);
+                  MethodReservationState<?> state = minifierState.getReservationState(resType);
+                  if (!state.isReserved(reservedName, method)) {
+                    state.reserveName(reservedName, method);
                   }
                 });
           });
@@ -139,8 +138,8 @@ class InterfaceMethodNameMinifier {
           forAny(
               s -> {
                 for (DexType resType : s.reservationTypes) {
-                  MethodNamingState<?> state = minifierState.getState(resType);
-                  if (!state.isAvailable(method.proto, candidate)) {
+                  MethodNamingState<?> state = minifierState.getNamingState(resType);
+                  if (!state.isAvailable(candidate, method)) {
                     return false;
                   }
                 }
@@ -154,9 +153,8 @@ class InterfaceMethodNameMinifier {
           s -> {
             s.reservationTypes.forEach(
                 resType -> {
-                  MethodNamingState<?> state = minifierState.getState(resType);
-                  assert !state.isReserved(newName, method.proto);
-                  state.addRenaming(method.name, method.proto, newName);
+                  MethodNamingState<?> state = minifierState.getNamingState(resType);
+                  state.addRenaming(newName, method);
                 });
           });
     }
@@ -319,7 +317,6 @@ class InterfaceMethodNameMinifier {
   private final AppView<AppInfoWithLiveness> appView;
   private final Set<DexCallSite> desugaredCallSites;
   private final Equivalence<DexMethod> equivalence;
-  private final FrontierState frontierState;
   private final MethodNameMinifier.State minifierState;
 
   private final Map<DexCallSite, DexString> callSiteRenamings = new IdentityHashMap<>();
@@ -333,11 +330,9 @@ class InterfaceMethodNameMinifier {
   InterfaceMethodNameMinifier(
       AppView<AppInfoWithLiveness> appView,
       Set<DexCallSite> desugaredCallSites,
-      FrontierState frontierState,
       MethodNameMinifier.State minifierState) {
     this.appView = appView;
     this.desugaredCallSites = desugaredCallSites;
-    this.frontierState = frontierState;
     this.minifierState = minifierState;
     this.equivalence =
         appView.options().getProguardConfiguration().isOverloadAggressively()
@@ -356,7 +351,7 @@ class InterfaceMethodNameMinifier {
   private void reserveNamesInInterfaces(Collection<DexClass> interfaces) {
     for (DexClass iface : interfaces) {
       assert iface.isInterface();
-      frontierState.allocateNamingStateAndReserve(iface.type, iface.type, null);
+      minifierState.allocateReservationStateAndReserve(iface.type, iface.type);
       InterfaceReservationState iFaceState = new InterfaceReservationState(iface);
       iFaceState.reservationTypes.add(iface.type);
       interfaceStateMap.put(iface.type, iFaceState);
@@ -526,11 +521,11 @@ class InterfaceMethodNameMinifier {
     assert groupState.getReservedName() == null;
     assert groupState.methodStates.containsKey(method);
     assert groupState.containsReservation(method, method.holder);
-    MethodNamingState<?> namingState = minifierState.getState(method.holder);
+    MethodNamingState<?> namingState = minifierState.getNamingState(method.holder);
     // Check if the name is available in all states.
     DexString newName =
-        namingState.assignNewNameFor(
-            method, method.name, method.proto, candidate -> !groupState.isAvailable(candidate));
+        namingState.newOrReservedNameFor(
+            method, (candidate, ignore) -> groupState.isAvailable(candidate));
     groupState.addRenaming(newName, minifierState);
     return newName;
   }
@@ -552,8 +547,8 @@ class InterfaceMethodNameMinifier {
         for (DexType directlyImplemented : appView.appInfo().implementedInterfaces(clazz.type)) {
           InterfaceReservationState iState = interfaceStateMap.get(directlyImplemented);
           if (iState != null) {
-            DexType frontierType = frontierState.get(clazz.type);
-            assert minifierState.getState(frontierType) != null;
+            DexType frontierType = minifierState.getFrontier(clazz.type);
+            assert minifierState.getReservationState(frontierType) != null;
             iState.reservationTypes.add(frontierType);
           }
         }

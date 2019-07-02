@@ -9,26 +9,25 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import java.util.function.BiPredicate;
-import java.util.function.Predicate;
 
 public interface MemberNamingStrategy {
 
-  DexString next(DexMethod method, InternalNamingState internalState, Predicate<DexString> isUsed);
+  DexString next(
+      DexMethod method,
+      InternalNamingState internalState,
+      BiPredicate<DexString, DexMethod> isAvailable);
 
   DexString next(
-      DexField field, InternalNamingState internalState, BiPredicate<DexString, DexType> isUsed);
+      DexField field,
+      InternalNamingState internalState,
+      BiPredicate<DexString, DexType> isAvailable);
 
-  DexString getReservedNameOrDefault(
-      DexEncodedMethod method, DexClass holder, DexString defaultValue);
+  DexString getReservedName(DexEncodedMethod method, DexClass holder);
 
-  DexString getReservedNameOrDefault(
-      DexEncodedField field, DexClass holder, DexString defaultValue);
+  DexString getReservedName(DexEncodedField field, DexClass holder);
 
   boolean allowMemberRenaming(DexClass holder);
-
-  void reportReservationError(DexReference source, DexString name);
 }
