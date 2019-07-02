@@ -6,6 +6,7 @@ package com.android.tools.r8.shaking;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.utils.StringUtils;
 import java.nio.charset.StandardCharsets;
 
 class UsagePrinter {
@@ -31,7 +32,7 @@ class UsagePrinter {
 
   void printUnusedClass(DexProgramClass clazz) {
     writer.append(clazz.toSourceString());
-    writer.append('\n');
+    writer.append(StringUtils.LINE_SEPARATOR);
   }
 
   // Visiting methods and fields of the given clazz.
@@ -50,7 +51,7 @@ class UsagePrinter {
     assert enclosingClazz != null;
     if (!clazzPrefixPrinted) {
       writer.append(enclosingClazz.toSourceString());
-      writer.append('\n');
+      writer.append(StringUtils.LINE_SEPARATOR);
       clazzPrefixPrinted = true;
     }
   }
@@ -72,7 +73,7 @@ class UsagePrinter {
       writer.append(method.method.proto.parameters.values[i].toSourceString());
     }
     writer.append(')');
-    writer.append('\n');
+    writer.append(StringUtils.LINE_SEPARATOR);
   }
 
   void printUnusedField(DexEncodedField field) {
@@ -84,7 +85,7 @@ class UsagePrinter {
     }
     writer.append(field.field.type.toSourceString()).append(" ");
     writer.append(field.field.name.toSourceString());
-    writer.append('\n');
+    writer.append(StringUtils.LINE_SEPARATOR);
   }
 
   // Empty implementation to silently ignore printing dead code.
