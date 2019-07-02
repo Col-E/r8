@@ -1000,7 +1000,7 @@ public class JctfTestSpecifications {
               "lang.SecurityManager.checkMulticastLjava_net_InetAddress.SecurityManager_checkMulticast_A01",
               anyDexVm())
           .put("lang.SecurityManager.Constructor.SecurityManager_Constructor_A01", anyDexVm())
-          .put("lang.SecurityManager.getClassContext.SecurityManager_getClassContext_A01", any())
+          .put("lang.SecurityManager.getClassContext.SecurityManager_getClassContext_A01", anyDexVm())
           .put(
               "lang.SecurityManager.checkMemberAccessLjava_lang_ClassI.SecurityManager_checkMemberAccess_A03",
               anyDexVm())
@@ -1117,13 +1117,13 @@ public class JctfTestSpecifications {
           .put(
               "lang.SecurityManager.checkLinkLjava_lang_String.SecurityManager_checkLink_A02",
               anyDexVm())
-          .put("lang.SecurityManager.classLoaderDepth.SecurityManager_classLoaderDepth_A01", any())
+          .put("lang.SecurityManager.classLoaderDepth.SecurityManager_classLoaderDepth_A01", anyDexVm())
           .put(
               "lang.SecurityManager.checkPermissionLjava_security_Permission.SecurityManager_checkPermission_A02",
               anyDexVm())
           .put(
               "lang.SecurityManager.currentLoadedClass.SecurityManager_currentLoadedClass_A01",
-              any())
+              anyDexVm())
           .put(
               "lang.SecurityManager.checkSecurityAccessLjava_lang_String.SecurityManager_checkSecurityAccess_A03",
               anyDexVm())
@@ -1152,7 +1152,7 @@ public class JctfTestSpecifications {
           .put(
               "lang.SecurityManager.checkLinkLjava_lang_String.SecurityManager_checkLink_A01",
               anyDexVm())
-          .put("lang.Throwable.getStackTrace.Throwable_getStackTrace_A01", any())
+          .put("lang.Throwable.getStackTrace.Throwable_getStackTrace_A01", anyDexVm())
           .put(
               "lang.SecurityManager.checkSystemClipboardAccess.SecurityManager_checkSystemClipboardAccess_A01",
               anyDexVm())
@@ -1712,7 +1712,6 @@ public class JctfTestSpecifications {
           .put(
               "lang.ClassLoader.definePackageLjava_lang_String6Ljava_net_URL.ClassLoader_definePackage_A03",
               cf())
-          .put("lang.ClassLoader.getPackages.ClassLoader_getPackages_A01", cf())
           .put("lang.Package.getImplementationVersion.Package_getImplementationVersion_A01", cf())
           .put(
               "lang.SecurityManager.checkAwtEventQueueAccess.SecurityManager_checkAwtEventQueueAccess_A01",
