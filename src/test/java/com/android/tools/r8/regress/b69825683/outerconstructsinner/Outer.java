@@ -22,7 +22,7 @@ public class Outer {
   public static void main(String args[]) {
     new Outer();
     for (java.lang.reflect.Constructor m : Outer.Inner.class.getDeclaredConstructors()) {
-      System.out.println(m);
+      System.out.println(m.getName());
     }
   }
 }

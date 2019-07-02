@@ -38,7 +38,12 @@ public class TreeShakingInliningTest extends TreeShakingTest {
 
   @Test
   public void testKeeprulesdiscard() throws Exception {
+    // On the cf backend, we don't inline into constructors, see: b/136250031
+    List<String> keepRules = getBackend() == Backend.CF
+        ? ImmutableList.of("src/test/examples/inlining/keep-rules-discard.txt")
+        : ImmutableList.of("src/test/examples/inlining/keep-rules-discard.txt",
+            "src/test/examples/inlining/keep-rules-discard-constructor.txt");
     runTest(
-        null, null, null, ImmutableList.of("src/test/examples/inlining/keep-rules-discard.txt"));
+        null, null, null, keepRules);
   }
 }

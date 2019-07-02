@@ -23,7 +23,7 @@ public class Outer {
     Inner builder = new Inner();
     builder.build();
     for (java.lang.reflect.Constructor m : Outer.class.getDeclaredConstructors()) {
-      System.out.println(m);
+      System.out.println(m.getName());
     }
   }
 }

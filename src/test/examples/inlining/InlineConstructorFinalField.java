@@ -7,7 +7,7 @@ public class InlineConstructorFinalField {
 
   public final int number;
 
-  @CheckDiscarded
+  @CheckDiscardedConstructor
   InlineConstructorFinalField(int value) {
     number = value;
   }

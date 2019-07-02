@@ -171,6 +171,14 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       return false;
     }
 
+    // We don't inline into constructors when producing class files since this can mess up
+    // the stackmap, see b/136250031
+    if (method.isInitializer()
+        && appView.options().isGeneratingClassFiles()
+        && reason != Reason.FORCE) {
+      return false;
+    }
+
     if (method == candidate) {
       // Cannot handle recursive inlining at this point.
       // Force inlined method should never be recursive.

@@ -9,7 +9,7 @@ class InlineConstructorOfInner {
 
     int a;
 
-    @CheckDiscarded
+    @CheckDiscardedConstructor
     Inner(int a) {
       this.a = a;
     }
