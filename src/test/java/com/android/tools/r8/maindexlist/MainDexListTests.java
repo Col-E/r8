@@ -864,6 +864,7 @@ public class MainDexListTests extends TestBase {
             options,
             null,
             null,
+            null,
             GraphLense.getIdentityLense(),
             NamingLens.getIdentityLens(),
             null);

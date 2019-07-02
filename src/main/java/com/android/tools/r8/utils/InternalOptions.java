@@ -54,6 +54,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import org.objectweb.asm.Opcodes;
 
@@ -187,6 +188,8 @@ public class InternalOptions {
   // TODO(b/114002137): Enable this when it is worthwhile, e.g., support non-String args.
   public boolean enableStringConcatenationOptimization = false;
   public boolean enableTreeShakingOfLibraryMethodOverrides = false;
+  public boolean encodeChecksums = false;
+  public BiPredicate<String, Long> dexClassChecksumFilter = (name, checksum) -> true;
 
   // This defines the max depth threshold for the cycle eliminator. If the length of a call chain
   // exceeds the threshold, we treat it as if we have found a cycle. This ensures that we won't run

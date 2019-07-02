@@ -215,6 +215,7 @@ public final class D8 {
               null,
               options,
               marker == null ? null : ImmutableList.copyOf(markers),
+              app.getChecksums(),
               null,
               GraphLense.getIdentityLense(),
               PrefixRewritingNamingLens.createPrefixRewritingNamingLens(

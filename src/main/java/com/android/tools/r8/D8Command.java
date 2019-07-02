@@ -13,6 +13,7 @@ import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.function.BiPredicate;
 
 /**
  * Immutable command structure for an invocation of the {@link D8} compiler.
@@ -164,8 +165,10 @@ public final class D8Command extends BaseCompilerCommand {
           getMinApiLevel(),
           getReporter(),
           !getDisableDesugaring(),
+          getIncludeClassesChecksum(),
           intermediate,
-          isOptimizeMultidexForLinearAlloc());
+          isOptimizeMultidexForLinearAlloc(),
+          getDexClassChecksumFilter());
     }
   }
 
@@ -221,8 +224,10 @@ public final class D8Command extends BaseCompilerCommand {
       int minApiLevel,
       Reporter diagnosticsHandler,
       boolean enableDesugaring,
+      boolean encodeChecksum,
       boolean intermediate,
-      boolean optimizeMultidexForLinearAlloc) {
+      boolean optimizeMultidexForLinearAlloc,
+      BiPredicate<String, Long> dexClassChecksumFilter) {
     super(
         inputApp,
         mode,
@@ -231,7 +236,9 @@ public final class D8Command extends BaseCompilerCommand {
         minApiLevel,
         diagnosticsHandler,
         enableDesugaring,
-        optimizeMultidexForLinearAlloc);
+        encodeChecksum,
+        optimizeMultidexForLinearAlloc,
+        dexClassChecksumFilter);
     this.intermediate = intermediate;
   }
 
@@ -270,6 +277,8 @@ public final class D8Command extends BaseCompilerCommand {
     assert !internal.enableTreeShakingOfLibraryMethodOverrides;
 
     internal.enableDesugaring = getEnableDesugaring();
+    internal.encodeChecksums = getIncludeClassesChecksum();
+    internal.dexClassChecksumFilter = getDexClassChecksumFilter();
     internal.enableInheritanceClassInDexDistributor = isOptimizeMultidexForLinearAlloc();
     // This is currently only used for testing.
     assert internal.rewritePrefix.isEmpty();
