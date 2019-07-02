@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.desugar.backports;
 
-import static java.lang.Integer.signum;
-
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import org.junit.runner.RunWith;
@@ -41,14 +39,13 @@ public final class ByteBackportTest extends AbstractBackportTest {
     }
 
     private static void testCompare() {
-      // signum() normalizes result to [-1, 1] since the values differ across VMs but signs match.
-      assertEquals(1, signum(Byte.compare((byte) 1, (byte) 0)));
-      assertEquals(0, signum(Byte.compare((byte) 0, (byte) 0)));
-      assertEquals(-1, signum(Byte.compare((byte) 0, (byte) 1)));
-      assertEquals(-1, signum(Byte.compare(Byte.MIN_VALUE, Byte.MAX_VALUE)));
-      assertEquals(1, signum(Byte.compare(Byte.MAX_VALUE, Byte.MIN_VALUE)));
-      assertEquals(0, signum(Byte.compare(Byte.MIN_VALUE, Byte.MIN_VALUE)));
-      assertEquals(0, signum(Byte.compare(Byte.MAX_VALUE, Byte.MAX_VALUE)));
+      assertTrue(Byte.compare((byte) 1, (byte) 0) > 0);
+      assertTrue(Byte.compare((byte) 0, (byte) 0) == 0);
+      assertTrue(Byte.compare((byte) 0, (byte) 1) < 0);
+      assertTrue(Byte.compare(Byte.MIN_VALUE, Byte.MAX_VALUE) < 0);
+      assertTrue(Byte.compare(Byte.MAX_VALUE, Byte.MIN_VALUE) > 0);
+      assertTrue(Byte.compare(Byte.MIN_VALUE, Byte.MIN_VALUE) == 0);
+      assertTrue(Byte.compare(Byte.MAX_VALUE, Byte.MAX_VALUE) == 0);
     }
 
     private static void testToUnsignedInt() {

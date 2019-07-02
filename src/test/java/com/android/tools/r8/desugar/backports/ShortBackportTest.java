@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.desugar.backports;
 
-import static java.lang.Integer.signum;
-
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import org.junit.runner.RunWith;
@@ -41,14 +39,13 @@ public final class ShortBackportTest extends AbstractBackportTest {
     }
 
     private static void testCompare() {
-      // signum() normalizes result to [-1, 1] since the values differ across VMs but signs match.
-      assertEquals(1, signum(Short.compare((short) 1, (short) 0)));
-      assertEquals(0, signum(Short.compare((short) 0, (short) 0)));
-      assertEquals(-1, signum(Short.compare((short) 0, (short) 1)));
-      assertEquals(-1, signum(Short.compare(Short.MIN_VALUE, Short.MAX_VALUE)));
-      assertEquals(1, signum(Short.compare(Short.MAX_VALUE, Short.MIN_VALUE)));
-      assertEquals(0, signum(Short.compare(Short.MIN_VALUE, Short.MIN_VALUE)));
-      assertEquals(0, signum(Short.compare(Short.MAX_VALUE, Short.MAX_VALUE)));
+      assertTrue(Short.compare((short) 1, (short) 0) > 0);
+      assertTrue(Short.compare((short) 0, (short) 0) == 0);
+      assertTrue(Short.compare((short) 0, (short) 1) < 0);
+      assertTrue(Short.compare(Short.MIN_VALUE, Short.MAX_VALUE) < 0);
+      assertTrue(Short.compare(Short.MAX_VALUE, Short.MIN_VALUE) > 0);
+      assertTrue(Short.compare(Short.MIN_VALUE, Short.MIN_VALUE) == 0);
+      assertTrue(Short.compare(Short.MAX_VALUE, Short.MAX_VALUE) == 0);
     }
 
     private static void testToUnsignedInt() {

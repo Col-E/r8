@@ -38,10 +38,10 @@ public final class BooleanBackportTest extends AbstractBackportTest {
     }
 
     private static void testCompare() {
-      assertEquals(1, Boolean.compare(true, false));
-      assertEquals(0, Boolean.compare(true, true));
-      assertEquals(0, Boolean.compare(false, false));
-      assertEquals(-1, Boolean.compare(false, true));
+      assertTrue(Boolean.compare(true, false) > 0);
+      assertTrue(Boolean.compare(true, true) == 0);
+      assertTrue(Boolean.compare(false, false) == 0);
+      assertTrue(Boolean.compare(false, true) < 0);
     }
 
     private static void testLogicalAnd() {

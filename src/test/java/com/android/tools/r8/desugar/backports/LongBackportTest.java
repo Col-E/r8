@@ -54,13 +54,13 @@ public final class LongBackportTest extends AbstractBackportTest {
     }
 
     private static void testCompare() {
-      assertEquals(1, Long.compare(1, 0));
-      assertEquals(0, Long.compare(0, 0));
-      assertEquals(-1, Long.compare(0, 1));
-      assertEquals(-1, Long.compare(Long.MIN_VALUE, Long.MAX_VALUE));
-      assertEquals(1, Long.compare(Long.MAX_VALUE, Long.MIN_VALUE));
-      assertEquals(0, Long.compare(Long.MIN_VALUE, Long.MIN_VALUE));
-      assertEquals(0, Long.compare(Long.MAX_VALUE, Long.MAX_VALUE));
+      assertTrue(Long.compare(1, 0) > 0);
+      assertTrue(Long.compare(0, 0) == 0);
+      assertTrue(Long.compare(0, 1) < 0);
+      assertTrue(Long.compare(Long.MIN_VALUE, Long.MAX_VALUE) < 0);
+      assertTrue(Long.compare(Long.MAX_VALUE, Long.MIN_VALUE) > 0);
+      assertTrue(Long.compare(Long.MIN_VALUE, Long.MIN_VALUE) == 0);
+      assertTrue(Long.compare(Long.MAX_VALUE, Long.MAX_VALUE) == 0);
     }
 
     private static void testMax() {

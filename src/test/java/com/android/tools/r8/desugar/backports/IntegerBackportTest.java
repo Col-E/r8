@@ -61,13 +61,13 @@ public final class IntegerBackportTest extends AbstractBackportTest {
     }
 
     private static void testCompare() {
-      assertEquals(1, Integer.compare(1, 0));
-      assertEquals(0, Integer.compare(0, 0));
-      assertEquals(-1, Integer.compare(0, 1));
-      assertEquals(-1, Integer.compare(Integer.MIN_VALUE, Integer.MAX_VALUE));
-      assertEquals(1, Integer.compare(Integer.MAX_VALUE, Integer.MIN_VALUE));
-      assertEquals(0, Integer.compare(Integer.MIN_VALUE, Integer.MIN_VALUE));
-      assertEquals(0, Integer.compare(Integer.MAX_VALUE, Integer.MAX_VALUE));
+      assertTrue(Integer.compare(1, 0) > 0);
+      assertTrue(Integer.compare(0, 0) == 0);
+      assertTrue(Integer.compare(0, 1) < 0);
+      assertTrue(Integer.compare(Integer.MIN_VALUE, Integer.MAX_VALUE) < 0);
+      assertTrue(Integer.compare(Integer.MAX_VALUE, Integer.MIN_VALUE) > 0);
+      assertTrue(Integer.compare(Integer.MIN_VALUE, Integer.MIN_VALUE) == 0);
+      assertTrue(Integer.compare(Integer.MAX_VALUE, Integer.MAX_VALUE) == 0);
     }
 
     private static void testMax() {

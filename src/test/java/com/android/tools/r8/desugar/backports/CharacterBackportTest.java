@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.desugar.backports;
 
-import static java.lang.Integer.signum;
-
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import org.junit.runner.RunWith;
@@ -38,14 +36,13 @@ public final class CharacterBackportTest extends AbstractBackportTest {
     }
 
     private static void testCompare() {
-      // signum() normalizes result to [-1, 1] since the values differ across VMs but signs match.
-      assertEquals(1, signum(Character.compare('b', 'a')));
-      assertEquals(0, signum(Character.compare('a', 'a')));
-      assertEquals(-1, signum(Character.compare('a', 'b')));
-      assertEquals(-1, signum(Character.compare(Character.MIN_VALUE, Character.MAX_VALUE)));
-      assertEquals(1, signum(Character.compare(Character.MAX_VALUE, Character.MIN_VALUE)));
-      assertEquals(0, signum(Character.compare(Character.MIN_VALUE, Character.MIN_VALUE)));
-      assertEquals(0, signum(Character.compare(Character.MAX_VALUE, Character.MAX_VALUE)));
+      assertTrue(Character.compare('b', 'a') > 0);
+      assertTrue(Character.compare('a', 'a') == 0);
+      assertTrue(Character.compare('a', 'b') < 0);
+      assertTrue(Character.compare(Character.MIN_VALUE, Character.MAX_VALUE) < 0);
+      assertTrue(Character.compare(Character.MAX_VALUE, Character.MIN_VALUE) > 0);
+      assertTrue(Character.compare(Character.MIN_VALUE, Character.MIN_VALUE) == 0);
+      assertTrue(Character.compare(Character.MAX_VALUE, Character.MAX_VALUE) == 0);
     }
   }
 }
