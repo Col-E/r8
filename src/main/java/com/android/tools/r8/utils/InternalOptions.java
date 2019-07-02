@@ -524,6 +524,10 @@ public class InternalOptions {
   // If non-null, it must be and is passed to the consumer.
   public StringConsumer usageInformationConsumer = null;
 
+  public boolean hasUsageInformationConsumer() {
+    return usageInformationConsumer != null;
+  }
+
   // If null, no proguad seeds info needs to be computed.
   // If non null it must be and passed to the consumer.
   public StringConsumer proguardSeedsConsumer = null;

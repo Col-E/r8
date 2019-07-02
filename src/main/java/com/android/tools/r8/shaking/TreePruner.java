@@ -40,9 +40,8 @@ public class TreePruner {
     this.application = application;
     this.appView = appView;
 
-    ProguardConfiguration proguardConfiguration = appView.options().getProguardConfiguration();
     this.usagePrinter =
-        proguardConfiguration != null && proguardConfiguration.isPrintUsage()
+        appView.options().hasUsageInformationConsumer()
             ? new UsagePrinter()
             : UsagePrinter.DONT_PRINT;
   }
