@@ -331,17 +331,17 @@ public final class BackportedMethodRewriter {
       // Enumeration<T> Collections.emptyEnumeration();
       method = factory.createString("emptyEnumeration");
       proto = factory.createProto(factory.enumerationType);
-      addGenerator(new MethodGenerator(clazz, method, proto, CollectionsMethods::new));
+      addProvider(new MethodGenerator(clazz, method, proto, CollectionsMethods::new));
 
       // Iterator<T> Collections.emptyIterator();
       method = factory.createString("emptyIterator");
       proto = factory.createProto(factory.iteratorType);
-      addGenerator(new MethodGenerator(clazz, method, proto, CollectionsMethods::new));
+      addProvider(new MethodGenerator(clazz, method, proto, CollectionsMethods::new));
 
       // ListIterator<T> Collections.emptyListIterator();
       method = factory.createString("emptyListIterator");
       proto = factory.createProto(factory.listIteratorType);
-      addGenerator(new MethodGenerator(clazz, method, proto, CollectionsMethods::new));
+      addProvider(new MethodGenerator(clazz, method, proto, CollectionsMethods::new));
     }
 
     private void initializeJava8SignedOperations(DexItemFactory factory) {
