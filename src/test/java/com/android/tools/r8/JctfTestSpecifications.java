@@ -1789,7 +1789,8 @@ public class JctfTestSpecifications {
               match(
                   and(
                       runtimes(Runtime.ART_V9_0_0, Runtime.ART_V8_1_0),
-                      artRuntimesUpTo(Runtime.ART_V4_4_4))))
+                      artRuntimesUpTo(Runtime.ART_V4_4_4),
+                      JAVA_RUNTIME)))
           .put("lang.ref.WeakReference.isEnqueued.WeakReference_isEnqueued_A01", anyDexVm())
           .put(
               "lang.ref.WeakReference.enqueue.WeakReference_enqueue_A01",
