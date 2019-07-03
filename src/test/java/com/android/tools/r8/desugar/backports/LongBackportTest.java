@@ -88,25 +88,25 @@ public final class LongBackportTest extends AbstractBackportTest {
     }
 
     private static void testCompareUnsigned() {
-      assertEquals(0, Long.compareUnsigned(0, 0));
-      assertEquals(-1, Long.compareUnsigned(0, Long.MAX_VALUE));
-      assertEquals(-1, Long.compareUnsigned(0, Long.MIN_VALUE));
-      assertEquals(-1, Long.compareUnsigned(0, -1));
+      assertTrue(Long.compareUnsigned(0, 0) == 0);
+      assertTrue(Long.compareUnsigned(0, Long.MAX_VALUE) < 0);
+      assertTrue(Long.compareUnsigned(0, Long.MIN_VALUE) < 0);
+      assertTrue(Long.compareUnsigned(0, -1) < 0);
 
-      assertEquals(1, Long.compareUnsigned(Long.MAX_VALUE, 0));
-      assertEquals(0, Long.compareUnsigned(Long.MAX_VALUE, Long.MAX_VALUE));
-      assertEquals(-1, Long.compareUnsigned(Long.MAX_VALUE, Long.MIN_VALUE));
-      assertEquals(-1, Long.compareUnsigned(Long.MAX_VALUE, -1));
+      assertTrue(Long.compareUnsigned(Long.MAX_VALUE, 0) > 0);
+      assertTrue(Long.compareUnsigned(Long.MAX_VALUE, Long.MAX_VALUE) == 0);
+      assertTrue(Long.compareUnsigned(Long.MAX_VALUE, Long.MIN_VALUE) < 0);
+      assertTrue(Long.compareUnsigned(Long.MAX_VALUE, -1) < 0);
 
-      assertEquals(1, Long.compareUnsigned(Long.MIN_VALUE, 0));
-      assertEquals(1, Long.compareUnsigned(Long.MIN_VALUE, Long.MAX_VALUE));
-      assertEquals(0, Long.compareUnsigned(Long.MIN_VALUE, Long.MIN_VALUE));
-      assertEquals(-1, Long.compareUnsigned(Long.MIN_VALUE, -1));
+      assertTrue(Long.compareUnsigned(Long.MIN_VALUE, 0) > 0);
+      assertTrue(Long.compareUnsigned(Long.MIN_VALUE, Long.MAX_VALUE) > 0);
+      assertTrue(Long.compareUnsigned(Long.MIN_VALUE, Long.MIN_VALUE) == 0);
+      assertTrue(Long.compareUnsigned(Long.MIN_VALUE, -1) < 0);
 
-      assertEquals(1, Long.compareUnsigned(-1, 0));
-      assertEquals(1, Long.compareUnsigned(-1, Long.MAX_VALUE));
-      assertEquals(1, Long.compareUnsigned(-1, Long.MIN_VALUE));
-      assertEquals(0, Long.compareUnsigned(-1, -1));
+      assertTrue(Long.compareUnsigned(-1, 0) > 0);
+      assertTrue(Long.compareUnsigned(-1, Long.MAX_VALUE) > 0);
+      assertTrue(Long.compareUnsigned(-1, Long.MIN_VALUE) > 0);
+      assertTrue(Long.compareUnsigned(-1, -1) == 0);
     }
 
     private static void testDivideUnsigned() {

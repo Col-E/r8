@@ -95,25 +95,25 @@ public final class IntegerBackportTest extends AbstractBackportTest {
     }
 
     private static void testCompareUnsigned() {
-      assertEquals(0, Integer.compareUnsigned(0, 0));
-      assertEquals(-1, Integer.compareUnsigned(0, Integer.MAX_VALUE));
-      assertEquals(-1, Integer.compareUnsigned(0, Integer.MIN_VALUE));
-      assertEquals(-1, Integer.compareUnsigned(0, -1));
+      assertTrue(Integer.compareUnsigned(0, 0) == 0);
+      assertTrue(Integer.compareUnsigned(0, Integer.MAX_VALUE) < 0);
+      assertTrue(Integer.compareUnsigned(0, Integer.MIN_VALUE) < 0);
+      assertTrue(Integer.compareUnsigned(0, -1) < 0);
 
-      assertEquals(1, Integer.compareUnsigned(Integer.MAX_VALUE, 0));
-      assertEquals(0, Integer.compareUnsigned(Integer.MAX_VALUE, Integer.MAX_VALUE));
-      assertEquals(-1, Integer.compareUnsigned(Integer.MAX_VALUE, Integer.MIN_VALUE));
-      assertEquals(-1, Integer.compareUnsigned(Integer.MAX_VALUE, -1));
+      assertTrue(Integer.compareUnsigned(Integer.MAX_VALUE, 0) > 0);
+      assertTrue(Integer.compareUnsigned(Integer.MAX_VALUE, Integer.MAX_VALUE) == 0);
+      assertTrue(Integer.compareUnsigned(Integer.MAX_VALUE, Integer.MIN_VALUE) < 0);
+      assertTrue(Integer.compareUnsigned(Integer.MAX_VALUE, -1) < 0);
 
-      assertEquals(1, Integer.compareUnsigned(Integer.MIN_VALUE, 0));
-      assertEquals(1, Integer.compareUnsigned(Integer.MIN_VALUE, Integer.MAX_VALUE));
-      assertEquals(0, Integer.compareUnsigned(Integer.MIN_VALUE, Integer.MIN_VALUE));
-      assertEquals(-1, Integer.compareUnsigned(Integer.MIN_VALUE, -1));
+      assertTrue(Integer.compareUnsigned(Integer.MIN_VALUE, 0) > 0);
+      assertTrue(Integer.compareUnsigned(Integer.MIN_VALUE, Integer.MAX_VALUE) > 0);
+      assertTrue(Integer.compareUnsigned(Integer.MIN_VALUE, Integer.MIN_VALUE) == 0);
+      assertTrue(Integer.compareUnsigned(Integer.MIN_VALUE, -1) < 0);
 
-      assertEquals(1, Integer.compareUnsigned(-1, 0));
-      assertEquals(1, Integer.compareUnsigned(-1, Integer.MAX_VALUE));
-      assertEquals(1, Integer.compareUnsigned(-1, Integer.MIN_VALUE));
-      assertEquals(0, Integer.compareUnsigned(-1, -1));
+      assertTrue(Integer.compareUnsigned(-1, 0) > 0);
+      assertTrue(Integer.compareUnsigned(-1, Integer.MAX_VALUE) > 0);
+      assertTrue(Integer.compareUnsigned(-1, Integer.MIN_VALUE) > 0);
+      assertTrue(Integer.compareUnsigned(-1, -1) == 0);
     }
 
     private static void testDivideUnsigned() {
