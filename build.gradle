@@ -715,6 +715,7 @@ task r8WithRelocatedDeps(type: ShadowJar) {
     from repackageDeps.outputs.files
     configureRelocations(it)
     exclude "META-INF/*.kotlin_module"
+    exclude "**/*.kotlin_metadata"
 }
 
 task r8WithRelocatedDeps11(type: ShadowJar) {
@@ -729,6 +730,7 @@ task r8WithRelocatedDeps11(type: ShadowJar) {
     from repackageDeps.outputs.files
     configureRelocations(it)
     exclude "META-INF/*.kotlin_module"
+    exclude "**/*.kotlin_metadata"
 }
 
 task r8WithoutDeps(type: ShadowJar) {
@@ -759,6 +761,7 @@ task R8(type: ShadowJar) {
         from sourceSets.main.output
     }
     exclude "META-INF/*.kotlin_module"
+    exclude "**/*.kotlin_metadata"
 }
 
 task R8NoManifestNoDeps(type: ShadowJar) {
@@ -783,6 +786,7 @@ task R8NoManifest(type: ShadowJar) {
         from sourceSets.main.output
     }
     exclude "META-INF/*.kotlin_module"
+    exclude "**/*.kotlin_metadata"
 }
 
 task D8(type: ShadowJar) {
