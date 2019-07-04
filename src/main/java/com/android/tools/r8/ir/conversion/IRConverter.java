@@ -262,7 +262,7 @@ public class IRConverter {
       this.uninstantiatedTypeOptimization = null;
       this.typeChecker = null;
       this.d8NestBasedAccessDesugaring =
-          options.enableNestBasedAccessDesugaring ? new D8NestBasedAccessDesugaring(appView) : null;
+          options.shouldDesugarNests() ? new D8NestBasedAccessDesugaring(appView) : null;
     }
     this.deadCodeRemover = new DeadCodeRemover(appView, codeRewriter);
     this.idempotentFunctionCallCanonicalizer = new IdempotentFunctionCallCanonicalizer(appView);

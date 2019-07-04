@@ -33,7 +33,7 @@ import org.junit.runners.Parameterized.Parameters;
  * and identical.
  */
 @RunWith(Parameterized.class)
-public class Java11BootstrapTest extends TestBase {
+public class Java11R8BootstrapTest extends TestBase {
 
   private static final Path MAIN_KEEP = Paths.get("src/main/keep.txt");
   private static final String[] HELLO_KEEP = {
@@ -43,7 +43,7 @@ public class Java11BootstrapTest extends TestBase {
   private static Path r8Lib11NoDesugar;
   private static Path r8Lib11Desugar;
 
-  public Java11BootstrapTest(TestParameters parameters) {
+  public Java11R8BootstrapTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 

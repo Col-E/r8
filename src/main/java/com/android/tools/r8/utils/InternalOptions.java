@@ -299,6 +299,13 @@ public class InternalOptions {
     }
   }
 
+  public boolean shouldDesugarNests() {
+    if (testing.enableForceNestBasedAccessDesugaringForTest) {
+      return true;
+    }
+    return enableNestBasedAccessDesugaring && !canUseNestBasedAccess();
+  }
+
   public Set<String> extensiveLoggingFilter = getExtensiveLoggingFilter();
   public Set<String> extensiveFieldMinifierLoggingFilter = getExtensiveFieldMinifierLoggingFilter();
   public Set<String> extensiveInterfaceMethodMinifierLoggingFilter =
@@ -580,12 +587,6 @@ public class InternalOptions {
 
   /** A set of dexitems we have reported missing to dedupe warnings. */
   private final Set<DexItem> reportedMissingForDesugaring = Sets.newConcurrentHashSet();
-
-  public enum NestReportType {
-    FATAL_ERROR,
-    DESUGAR_WARNING,
-    WARNING
-  }
 
   public void errorMissingClassMissingNestHost(DexClass compiledClass) {
     throw reporter.fatalError(messageErrorMissingNestHost(compiledClass));

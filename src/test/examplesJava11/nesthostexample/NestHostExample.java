@@ -36,6 +36,12 @@ public class NestHostExample {
     return new StaticNestMemberInner(field);
   }
 
+  public enum ExampleEnumCompilation {
+    CASE1,
+    CASE2,
+    CASE3;
+  }
+
   public NestMemberInner createNestMemberInner(String field) {
     return new NestMemberInner(field);
   }
@@ -312,5 +318,7 @@ public class NestHostExample {
     System.out.println(o2.accessPrivateInterface(i1));
     System.out.println(o4.accessPrivateInterface(i1));
     System.out.println(i1.accessPrivateInterface(i1));
+
+    System.out.println(ExampleEnumCompilation.values().length);
   }
 }

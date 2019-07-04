@@ -65,7 +65,8 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
         if (instruction.isInvokeMethod() && !instruction.isInvokeSuper()) {
           InvokeMethod invokeMethod = instruction.asInvokeMethod();
           DexMethod methodCalled = invokeMethod.getInvokedMethod();
-          DexEncodedMethod encodedMethodCalled = appView.definitionFor(methodCalled);
+          DexEncodedMethod encodedMethodCalled =
+              methodCalled.holder.isClassType() ? appView.definitionFor(methodCalled) : null;
           if (encodedMethodCalled != null
               && invokeRequiresRewriting(encodedMethodCalled, currentClass)) {
             DexMethod bridge = ensureInvokeBridge(encodedMethodCalled);

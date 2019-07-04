@@ -65,7 +65,8 @@ public class NestAccessControlTestUtils {
           "NestHostExample$NestMemberInner$NestMemberInnerInner",
           "NestHostExample$StaticNestMemberInner",
           "NestHostExample$StaticNestMemberInner$StaticNestMemberInnerInner",
-          "NestHostExample$StaticNestInterfaceInner");
+          "NestHostExample$StaticNestInterfaceInner",
+          "NestHostExample$ExampleEnumCompilation");
   public static final int NUMBER_OF_TEST_CLASSES = CLASS_NAMES.size();
 
   // The following map use ids, i.e., strings which represents respectively
@@ -142,7 +143,8 @@ public class NestAccessControlTestUtils {
                   "staticInterfaceMethodstaticStaticInterfaceMethod",
                   "staticInterfaceMethodstaticStaticInterfaceMethod",
                   "staticInterfaceMethodstaticStaticInterfaceMethod",
-                  "staticInterfaceMethodstaticStaticInterfaceMethod"))
+                  "staticInterfaceMethodstaticStaticInterfaceMethod",
+                  "3"))
           .put(
               "pvtCallInlined",
               StringUtils.lines(
