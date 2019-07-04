@@ -1791,7 +1791,7 @@ public class JctfTestSpecifications {
                       runtimes(Runtime.ART_V9_0_0, Runtime.ART_V8_1_0),
                       artRuntimesUpTo(Runtime.ART_V4_4_4),
                       JAVA_RUNTIME)))
-          .put("lang.ref.WeakReference.isEnqueued.WeakReference_isEnqueued_A01", anyDexVm())
+          .put("lang.ref.WeakReference.isEnqueued.WeakReference_isEnqueued_A01", any())
           .put(
               "lang.ref.WeakReference.enqueue.WeakReference_enqueue_A01",
               match(artRuntimesUpTo(Runtime.ART_V4_4_4)))
@@ -1800,10 +1800,11 @@ public class JctfTestSpecifications {
               match(
                   and(
                       runtimes(Runtime.ART_V9_0_0, Runtime.ART_V8_1_0),
-                      artRuntimesUpTo(Runtime.ART_V4_4_4))))
+                      artRuntimesUpTo(Runtime.ART_V4_4_4),
+                      JAVA_RUNTIME)))
           .put(
               "lang.ref.SoftReference.enqueue.SoftReference_enqueue_A01",
-              match(artRuntimesUpTo(Runtime.ART_V4_4_4)))
+              match(and(artRuntimesUpTo(Runtime.ART_V4_4_4), JAVA_RUNTIME)))
           .put(
               "lang.ref.ReferenceQueue.poll.ReferenceQueue_poll_A01",
               match(artRuntimesUpTo(Runtime.ART_V4_4_4)))
@@ -1812,6 +1813,9 @@ public class JctfTestSpecifications {
           .put(
               "util.concurrent.AbstractExecutorService.invokeAllLjava_util_CollectionJLjava_util_concurrent_TimeUnit.AbstractExecutorService_invokeAll_A06",
               match(runtimes(Runtime.ART_V4_0_4)))
+          .put("lang.ref.SoftReference.get.SoftReference_get_A01", cf())
+          .put("lang.ref.WeakReference.get.WeakReference_get_A01", cf())
+
           .build(); // end of flakyWhenRun
 
   public static final Multimap<String, TestCondition> timeoutsWhenRun =
