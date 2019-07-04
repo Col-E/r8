@@ -6,8 +6,9 @@ package com.android.tools.r8.naming;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.naming.MethodNamingState.InternalNewNameState;
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
@@ -69,8 +70,8 @@ class MethodNamingState<KeyType> extends MethodNamingStateBase<KeyType, Internal
   }
 
   boolean isAvailable(DexString candidate, DexMethod method) {
-    DexString usedBy = getUsedBy(candidate, method);
-    if (usedBy != null && usedBy.equals(method.name)) {
+    Set<DexString> usedBy = getUsedBy(candidate, method);
+    if (usedBy != null && usedBy.contains(method.name)) {
       return true;
     }
     boolean isReserved = reservationState.isReserved(candidate, method);
@@ -86,9 +87,9 @@ class MethodNamingState<KeyType> extends MethodNamingStateBase<KeyType, Internal
     return false;
   }
 
-  private DexString getUsedBy(DexString name, DexMethod method) {
+  private Set<DexString> getUsedBy(DexString name, DexMethod method) {
     InternalNewNameState internalState = getInternalState(method);
-    DexString nameUsedBy = null;
+    Set<DexString> nameUsedBy = null;
     if (internalState != null) {
       nameUsedBy = internalState.getUsedBy(name);
     }
@@ -122,7 +123,8 @@ class MethodNamingState<KeyType> extends MethodNamingStateBase<KeyType, Internal
   static class InternalNewNameState implements InternalNamingState {
 
     private final InternalNewNameState parentInternalState;
-    private BiMap<DexString, DexString> originalToRenamedNames = HashBiMap.create();
+    private Map<DexString, DexString> originalToRenamedNames = new HashMap<>();
+    private Map<DexString, Set<DexString>> usedBy = new HashMap<>();
 
     private static final int INITIAL_NAME_COUNT = 1;
     private static final int INITIAL_DICTIONARY_INDEX = 0;
@@ -151,8 +153,8 @@ class MethodNamingState<KeyType> extends MethodNamingStateBase<KeyType, Internal
       return dictionaryIndex++;
     }
 
-    DexString getUsedBy(DexString name) {
-      return originalToRenamedNames.inverse().get(name);
+    Set<DexString> getUsedBy(DexString name) {
+      return usedBy.get(name);
     }
 
     DexString getAssignedName(DexString originalName) {
@@ -161,6 +163,7 @@ class MethodNamingState<KeyType> extends MethodNamingStateBase<KeyType, Internal
 
     void addRenaming(DexString newName, DexMethod method) {
       originalToRenamedNames.put(method.name, newName);
+      usedBy.computeIfAbsent(newName, ignore -> new HashSet<>()).add(method.name);
     }
 
     private boolean checkParentPublicNameCountIsLessThanOrEqual() {

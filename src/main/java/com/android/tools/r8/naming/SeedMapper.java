@@ -107,20 +107,21 @@ public class SeedMapper implements ProguardMap {
                 descriptorToInternalName(classNaming.renamedName),
                 classNaming.position));
       }
-      Map<Signature, MemberNaming> seenMembers = new HashMap<>();
-      classNaming.forAllMemberNaming(
-          memberNaming -> {
-            MemberNaming existingMember =
-                seenMembers.put(memberNaming.renamedSignature, memberNaming);
-            if (existingMember != null) {
-              reporter.error(
-                  ProguardMapError.duplicateTargetSignature(
-                      existingMember.signature,
-                      memberNaming.signature,
-                      memberNaming.getRenamedName(),
-                      memberNaming.position));
-            }
-          });
+      // TODO(b/136694827) Enable when we have proper support
+      // Map<Signature, MemberNaming> seenMembers = new HashMap<>();
+      // classNaming.forAllMemberNaming(
+      //     memberNaming -> {
+      //       MemberNaming existingMember =
+      //           seenMembers.put(memberNaming.renamedSignature, memberNaming);
+      //       if (existingMember != null) {
+      //         reporter.error(
+      //             ProguardMapError.duplicateTargetSignature(
+      //                 existingMember.signature,
+      //                 memberNaming.signature,
+      //                 memberNaming.getRenamedName(),
+      //                 memberNaming.position));
+      //       }
+      //     });
     }
     reporter.failIfPendingErrors();
   }
