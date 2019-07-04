@@ -54,4 +54,30 @@ public final class IntegerMethods extends TemplateMethodCode {
   public static long toUnsignedLong(int value) {
     return value & 0xffffffffL;
   }
+
+  public static int parseUnsignedInt(String s) {
+    return Integer.parseUnsignedInt(s, 10);
+  }
+
+  public static int parseUnsignedIntWithRadix(String s, int radix) {
+    if (s.length() > 1 && s.charAt(0) == '+') {
+      // Long.parseLong on Dalvik VMs prior to 5.0 failed to handle plus sign-prefixes.
+      s = s.substring(1);
+    }
+    long result = Long.parseLong(s, radix);
+    if ((result & 0xffffffffL) != result) {
+      throw new NumberFormatException(
+          "Input " + s + " in base " + radix + " is not in the range of an unsigned integer");
+    }
+    return (int) result;
+  }
+
+  public static String toUnsignedString(int i) {
+    return Integer.toUnsignedString(i, 10);
+  }
+
+  public static String toUnsignedStringWithRadix(int i, int radix) {
+    long asLong = i & 0xffffffffL;
+    return Long.toString(asLong, radix);
+  }
 }

@@ -666,6 +666,28 @@ public final class BackportedMethodRewriter {
       proto = factory.createProto(factory.longType, factory.intType);
       addProvider(new MethodGenerator(clazz, method, proto, IntegerMethods::new));
 
+      // int Integer.parseUnsignedInt(String value)
+      method = factory.createString("parseUnsignedInt");
+      proto = factory.createProto(factory.intType, factory.stringType);
+      addProvider(new MethodGenerator(clazz, method, proto, IntegerMethods::new));
+
+      // int Integer.parseUnsignedInt(String value, int radix)
+      method = factory.createString("parseUnsignedInt");
+      proto = factory.createProto(factory.intType, factory.stringType, factory.intType);
+      addProvider(new MethodGenerator(clazz, method, proto, IntegerMethods::new,
+          "parseUnsignedIntWithRadix"));
+
+      // String Integer.toUnsignedString(int value)
+      method = factory.createString("toUnsignedString");
+      proto = factory.createProto(factory.stringType, factory.intType);
+      addProvider(new MethodGenerator(clazz, method, proto, IntegerMethods::new));
+
+      // String Integer.toUnsignedString(int value, int radix)
+      method = factory.createString("toUnsignedString");
+      proto = factory.createProto(factory.stringType, factory.intType, factory.intType);
+      addProvider(new MethodGenerator(clazz, method, proto, IntegerMethods::new,
+          "toUnsignedStringWithRadix"));
+
       // Long
       clazz = factory.boxedLongDescriptor;
 
@@ -683,6 +705,28 @@ public final class BackportedMethodRewriter {
       method = factory.createString("compareUnsigned");
       proto = factory.createProto(factory.intType, factory.longType, factory.longType);
       addProvider(new MethodGenerator(clazz, method, proto, LongMethods::new));
+
+      // long Long.parseUnsignedLong(String value)
+      method = factory.createString("parseUnsignedLong");
+      proto = factory.createProto(factory.longType, factory.stringType);
+      addProvider(new MethodGenerator(clazz, method, proto, LongMethods::new));
+
+      // long Long.parseUnsignedLong(String value, int radix)
+      method = factory.createString("parseUnsignedLong");
+      proto = factory.createProto(factory.longType, factory.stringType, factory.intType);
+      addProvider(new MethodGenerator(clazz, method, proto, LongMethods::new,
+          "parseUnsignedLongWithRadix"));
+
+      // String Long.toUnsignedString(long value)
+      method = factory.createString("toUnsignedString");
+      proto = factory.createProto(factory.stringType, factory.longType);
+      addProvider(new MethodGenerator(clazz, method, proto, LongMethods::new));
+
+      // String Long.toUnsignedString(long value, int radix)
+      method = factory.createString("toUnsignedString");
+      proto = factory.createProto(factory.stringType, factory.longType, factory.intType);
+      addProvider(new MethodGenerator(clazz, method, proto, LongMethods::new,
+          "toUnsignedStringWithRadix"));
 
       // String
       clazz = factory.stringDescriptor;

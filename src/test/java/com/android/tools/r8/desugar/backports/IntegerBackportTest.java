@@ -20,7 +20,7 @@ public final class IntegerBackportTest extends AbstractBackportTest {
 
   public IntegerBackportTest(TestParameters parameters) {
     super(parameters, Integer.class, Main.class);
-    registerTarget(AndroidApiLevel.O, 35);
+    registerTarget(AndroidApiLevel.O, 51);
     registerTarget(AndroidApiLevel.N, 11);
     registerTarget(AndroidApiLevel.K, 7);
   }
@@ -45,6 +45,10 @@ public final class IntegerBackportTest extends AbstractBackportTest {
       testCompareUnsigned();
       testDivideUnsigned();
       testRemainderUnsigned();
+      testParseUnsignedInt();
+      testParseUnsignedIntWithRadix();
+      testToUnsignedString();
+      testToUnsignedStringWithRadix();
     }
 
     private static void testHashCode() {
@@ -151,6 +155,85 @@ public final class IntegerBackportTest extends AbstractBackportTest {
       try {
         throw new AssertionError(Integer.divideUnsigned(1, 0));
       } catch (ArithmeticException expected) {
+      }
+    }
+
+    private static void testParseUnsignedInt() {
+      for (int value : interestingValues) {
+        String valueString = Long.toString(value & 0xffffffffL);
+        assertEquals(value, Integer.parseUnsignedInt(valueString));
+        assertEquals(value, Integer.parseUnsignedInt("+" + valueString));
+      }
+
+      try {
+        throw new AssertionError(Integer.parseUnsignedInt("4294967296"));
+      } catch (NumberFormatException expected) {
+      }
+      try {
+        throw new AssertionError(Integer.parseUnsignedInt(""));
+      } catch (NumberFormatException expected) {
+      }
+      try {
+        throw new AssertionError(Integer.parseUnsignedInt("+"));
+      } catch (NumberFormatException expected) {
+      }
+    }
+
+    private static void testParseUnsignedIntWithRadix() {
+      for (int value : interestingValues) {
+        for (int radix = Character.MIN_RADIX; radix <= Character.MAX_RADIX; radix++) {
+          String valueString = Long.toString(value & 0xffffffffL, radix);
+          assertEquals(value, Integer.parseUnsignedInt(valueString, radix));
+          assertEquals(value, Integer.parseUnsignedInt("+" + valueString, radix));
+        }
+      }
+
+      try {
+        throw new AssertionError(Integer.parseUnsignedInt("0", Character.MIN_RADIX - 1));
+      } catch (IllegalArgumentException expected) {
+      }
+      try {
+        throw new AssertionError(Integer.parseUnsignedInt("0", Character.MAX_RADIX + 1));
+      } catch (IllegalArgumentException expected) {
+      }
+
+      try {
+        throw new AssertionError(Integer.parseUnsignedInt("", 16));
+      } catch (NumberFormatException expected) {
+      }
+      try {
+        throw new AssertionError(Integer.parseUnsignedInt("+", 16));
+      } catch (NumberFormatException expected) {
+      }
+
+      long overflow = 4_294_967_296L;
+      for (int radix = Character.MIN_RADIX; radix <= Character.MAX_RADIX; radix++) {
+        String overflowString = Long.toString(overflow, radix);
+        try {
+          throw new AssertionError(Integer.parseUnsignedInt(overflowString, radix));
+        } catch (NumberFormatException expected) {
+        }
+      }
+    }
+
+    private static void testToUnsignedString() {
+      for (int value : interestingValues) {
+        assertEquals(Long.toString(value & 0xffffffffL), Integer.toUnsignedString(value));
+      }
+    }
+
+    private static void testToUnsignedStringWithRadix() {
+      for (int value : interestingValues) {
+        for (int radix = Character.MIN_RADIX; radix <= Character.MAX_RADIX; radix++) {
+          assertEquals(Long.toString(value & 0xffffffffL, radix),
+              Integer.toUnsignedString(value, radix));
+        }
+
+        // Invalid radix values are ignored and 10 is used.
+        assertEquals(Long.toString(value & 0xffffffffL),
+            Integer.toUnsignedString(value, Character.MIN_RADIX - 1));
+        assertEquals(Long.toString(value & 0xffffffffL),
+            Integer.toUnsignedString(value, Character.MAX_RADIX + 1));
       }
     }
   }
