@@ -136,6 +136,7 @@ public class VerticalClassMerger {
     PINNED_SOURCE,
     RESOLUTION_FOR_FIELDS_MAY_CHANGE,
     RESOLUTION_FOR_METHODS_MAY_CHANGE,
+    SERVICE_LOADER,
     STATIC_INITIALIZERS,
     UNHANDLED_INVOKE_DIRECT,
     UNHANDLED_INVOKE_SUPER,
@@ -178,6 +179,9 @@ public class VerticalClassMerger {
           break;
         case RESOLUTION_FOR_METHODS_MAY_CHANGE:
           message = "it could affect method resolution";
+          break;
+        case SERVICE_LOADER:
+          message = "it is used by a service loader";
           break;
         case STATIC_INITIALIZERS:
           message = "merging of static initializers are not supported";
@@ -366,6 +370,12 @@ public class VerticalClassMerger {
         || appInfo.isPinned(clazz.type)
         || pinnedTypes.contains(clazz.type)
         || appInfo.neverMerge.contains(clazz.type)) {
+      return false;
+    }
+    if (appView.appServices().allServiceTypes().contains(clazz.type)) {
+      if (Log.ENABLED) {
+        AbortReason.SERVICE_LOADER.printLogMessageForClass(clazz);
+      }
       return false;
     }
     // Note that the property "singleSubtype == null" cannot change during merging, since we visit
