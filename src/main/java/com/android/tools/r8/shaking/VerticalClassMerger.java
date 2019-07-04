@@ -372,12 +372,6 @@ public class VerticalClassMerger {
         || appInfo.neverMerge.contains(clazz.type)) {
       return false;
     }
-    if (appView.appServices().allServiceTypes().contains(clazz.type)) {
-      if (Log.ENABLED) {
-        AbortReason.SERVICE_LOADER.printLogMessageForClass(clazz);
-      }
-      return false;
-    }
     // Note that the property "singleSubtype == null" cannot change during merging, since we visit
     // classes in a top-down order.
     DexType singleSubtype = appInfo.getSingleSubtype(clazz.type);
@@ -385,6 +379,14 @@ public class VerticalClassMerger {
       // TODO(christofferqa): Even if [clazz] has multiple subtypes, we could still merge it into
       // its subclass if [clazz] is not live. This should only be done, though, if it does not
       // lead to members being duplicated.
+      return false;
+    }
+    if (singleSubtype != null
+        && appView.appServices().allServiceTypes().contains(clazz.type)
+        && appInfo.isPinned(singleSubtype)) {
+      if (Log.ENABLED) {
+        AbortReason.SERVICE_LOADER.printLogMessageForClass(clazz);
+      }
       return false;
     }
     if (appInfo.isSerializable(singleSubtype) && !appInfo.isSerializable(clazz.type)) {
