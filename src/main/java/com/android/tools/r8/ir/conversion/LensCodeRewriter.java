@@ -627,7 +627,10 @@ public class LensCodeRewriter {
       // Most likely due to a missing class, or invoke is already as specific as it gets.
       return target;
     }
-    if (!canInvokeTargetWithInvokeVirtual(newTarget)
+    DexClass newTargetClass = appView.definitionFor(newTarget.method.holder);
+    if (newTargetClass == null
+        || newTargetClass.isLibraryClass()
+        || !canInvokeTargetWithInvokeVirtual(newTarget)
         || !hasAccessToInvokeTargetFromContext(newTarget, context)) {
       // Not safe to invoke `newTarget` with virtual invoke from the current context.
       return target;
