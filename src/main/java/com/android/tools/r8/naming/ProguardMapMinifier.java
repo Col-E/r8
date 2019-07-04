@@ -208,17 +208,22 @@ public class ProguardMapMinifier {
                   .dexItemFactory()
                   .createMethod(type, parentReference.proto, parentReference.name);
           addMemberNaming(
-              key, parentReferenceOnCurrentType, parentMembers, additionalMethodNamings);
+              parentReferenceOnCurrentType, parentMembers.get(key), additionalMethodNamings);
         } else {
           DexField parentReference = key.asDexField();
           DexField parentReferenceOnCurrentType =
               appView
                   .dexItemFactory()
                   .createField(type, parentReference.type, parentReference.name);
-          addMemberNaming(key, parentReferenceOnCurrentType, parentMembers, additionalFieldNamings);
+          addMemberNaming(
+              parentReferenceOnCurrentType, parentMembers.get(key), additionalFieldNamings);
         }
       }
     }
+
+    // We do not visit interfaces, but their members can also be targeted on implementing abstract
+    // classes, so we have to build their names up as well.
+    addNonPrivateInterfaceMappings(dexClass, nonPrivateMembers);
 
     if (nonPrivateMembers.size() > 0) {
       buildUpNames.addLast(nonPrivateMembers);
@@ -233,16 +238,40 @@ public class ProguardMapMinifier {
     }
   }
 
+  private void addNonPrivateInterfaceMappings(
+      DexClass dexClass, Map<DexReference, MemberNaming> nonPrivateMembers) {
+    if (dexClass != null && dexClass.isAbstract()) {
+      for (DexType value : dexClass.interfaces.values) {
+        ClassNamingForMapApplier interfaceNaming = seedMapper.getClassNaming(value);
+        if (interfaceNaming == null) {
+          continue;
+        }
+        interfaceNaming.forAllMemberNaming(
+            memberNaming -> {
+              Signature signature = memberNaming.getOriginalSignature();
+              assert !signature.isQualified();
+              if (signature instanceof MethodSignature) {
+                DexMethod member =
+                    ((MethodSignature) signature)
+                        .toDexMethod(appView.dexItemFactory(), dexClass.type);
+                addMemberNaming(member, memberNaming, additionalMethodNamings);
+              } else {
+                DexField member =
+                    ((FieldSignature) signature)
+                        .toDexField(appView.dexItemFactory(), dexClass.type);
+                addMemberNaming(member, memberNaming, additionalFieldNamings);
+              }
+            });
+      }
+    }
+  }
+
   private <T extends DexReference> void addMemberNaming(
-      DexReference key,
-      T member,
-      Map<DexReference, MemberNaming> parentMembers,
-      Map<T, DexString> additionalMemberNamings) {
+      T member, MemberNaming memberNaming, Map<T, DexString> additionalMemberNamings) {
     // We might have overridden a naming in the direct class namings above.
     if (!memberNames.containsKey(member)) {
-      DexString renamedName =
-          appView.dexItemFactory().createString(parentMembers.get(key).getRenamedName());
-      memberNames.put(member, parentMembers.get(key));
+      DexString renamedName = appView.dexItemFactory().createString(memberNaming.getRenamedName());
+      memberNames.put(member, memberNaming);
       additionalMemberNamings.put(member, renamedName);
     }
   }
