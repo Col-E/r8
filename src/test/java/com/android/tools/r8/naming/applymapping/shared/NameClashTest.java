@@ -20,6 +20,7 @@ import java.nio.file.Path;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
@@ -291,6 +292,7 @@ public class NameClashTest extends TestBase {
   }
 
   @Test
+  @Ignore("b/136697829")
   public void testR8_prgMethodRenamedToExistingName() throws Exception {
     FileUtils.writeTextFile(mappingFile, mappingToExistingMethodName());
     try {
@@ -320,6 +322,7 @@ public class NameClashTest extends TestBase {
   }
 
   @Test
+  @Ignore("b/136697829")
   public void testR8_originalLibMethodRenamedToExistingName() throws Exception {
     FileUtils.writeTextFile(mappingFile, mappingToExistingMethodName());
     try {
@@ -350,6 +353,7 @@ public class NameClashTest extends TestBase {
   }
 
   @Test
+  @Ignore("b/136697829")
   public void testR8_prgMethodRenamedToSameName() throws Exception {
     FileUtils.writeTextFile(mappingFile, mappingToTheSameMethodName());
     try {
@@ -379,6 +383,7 @@ public class NameClashTest extends TestBase {
   }
 
   @Test
+  @Ignore("b/136697829")
   public void testR8_originalLibMethodRenamedToSameName() throws Exception {
     FileUtils.writeTextFile(mappingFile, mappingToTheSameMethodName());
     try {

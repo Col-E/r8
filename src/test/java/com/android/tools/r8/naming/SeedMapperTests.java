@@ -16,6 +16,7 @@ import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.Reporter;
 import java.io.IOException;
 import java.nio.file.Path;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class SeedMapperTests extends TestBase {
@@ -141,6 +142,7 @@ public class SeedMapperTests extends TestBase {
   }
 
   @Test
+  @Ignore("b/136697829")
   public void testDuplicateMethodTargets() throws IOException {
     Path applyMappingFile =
         getApplyMappingFile(

@@ -6,6 +6,7 @@ package com.android.tools.r8.naming.applymapping;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -93,6 +94,12 @@ public class ApplyMappingMultipleInterfacesTest extends TestBase {
   @Test
   public void testApplyMappingCorrectNamingImplements()
       throws ExecutionException, CompilationFailedException, IOException {
+    R8TestCompileResult libraryResult =
+        testForR8(parameters.getBackend())
+            .addProgramClasses(I2Minified.class, I3Minified.class)
+            .addKeepAllClassesRule()
+            .setMinApi(parameters.getRuntime())
+            .compile();
     testForR8(parameters.getBackend())
         .addClasspathClasses(I2.class, I3.class)
         .addProgramClasses(MainForImplements.class, ImplementsI2I3.class, ImplementsI3.class)
@@ -103,8 +110,9 @@ public class ApplyMappingMultipleInterfacesTest extends TestBase {
             I3.class.getTypeName() + " -> " + I3Minified.class.getTypeName() + ":\n" +
                 "  java.lang.String foo(java.lang.String) -> a"
         )
+        .setMinApi(parameters.getRuntime())
         .compile()
-        .addRunClasspathClasses(I2Minified.class, I3Minified.class)
+        .addRunClasspathFiles(libraryResult.writeToZip())
         .run(parameters.getRuntime(), MainForImplements.class)
         .assertSuccessWithOutput("Hello World!");
   }
@@ -112,6 +120,12 @@ public class ApplyMappingMultipleInterfacesTest extends TestBase {
   @Test
   public void testApplyMappingCorrectNamingLambda()
       throws ExecutionException, CompilationFailedException, IOException {
+    R8TestCompileResult libraryResult =
+        testForR8(parameters.getBackend())
+            .addProgramClasses(I1Minified.class, I2Minified.class)
+            .addKeepAllClassesRule()
+            .setMinApi(parameters.getRuntime())
+            .compile();
     testForR8(parameters.getBackend())
         .addClasspathClasses(I1.class, I2.class)
         .addProgramClasses(MainWithLambda.class)
@@ -122,8 +136,9 @@ public class ApplyMappingMultipleInterfacesTest extends TestBase {
             I2.class.getTypeName() + " -> " + I2Minified.class.getTypeName() + ":\n" +
             "  java.lang.String foo(java.lang.String) -> a"
         )
+        .setMinApi(parameters.getRuntime())
         .compile()
-        .addRunClasspathClasses(I1Minified.class, I2Minified.class)
+        .addRunClasspathFiles(libraryResult.writeToZip())
         .run(parameters.getRuntime(), MainWithLambda.class)
         .assertSuccessWithOutput("Hello World!");
   }
