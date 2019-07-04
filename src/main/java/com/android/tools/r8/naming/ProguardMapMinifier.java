@@ -94,12 +94,7 @@ public class ProguardMapMinifier {
     // We have to compute interfaces
     Set<DexClass> interfaces = new TreeSet<>((a, b) -> a.type.slowCompareTo(b.type));
     for (DexClass dexClass : appView.appInfo().computeReachableInterfaces(desugaredCallSites)) {
-      ClassNamingForMapApplier classNaming = seedMapper.getClassNaming(dexClass.type);
-      if (classNaming != null) {
-        DexString mappedName = appView.dexItemFactory().createString(classNaming.renamedName);
-        checkAndAddMappedNames(dexClass.type, mappedName, classNaming.position);
-      }
-      mappedClasses.add(dexClass);
+      computeMapping(dexClass.type, new ArrayDeque<>());
       interfaces.add(dexClass);
     }
     timing.end();
@@ -253,7 +248,8 @@ public class ProguardMapMinifier {
   }
 
   private void checkAndAddMappedNames(DexType type, DexString mappedName, Position position) {
-    if (mappedNames.inverse().containsKey(mappedName)) {
+    if (mappedNames.inverse().containsKey(mappedName)
+        && mappedNames.inverse().get(mappedName) != type) {
       appView
           .options()
           .reporter
