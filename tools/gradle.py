@@ -26,6 +26,9 @@ else:
 
 def ParseOptions():
   parser = argparse.ArgumentParser(description = 'Call gradle.')
+  parser.add_argument('--no-internal', '--no_internal',
+      help='Do not build with support for Google internal tests.',
+      default=False, action='store_true')
   parser.add_argument('--java-home', '--java_home',
       help='Use a custom java version to run gradle.')
   return parser.parse_known_args()
@@ -96,6 +99,8 @@ def Main():
   (options, args) = ParseOptions()
   if options.java_home:
     args.append('-Dorg.gradle.java.home=' + options.java_home)
+  if options.no_internal:
+    args.append('-Pno_internal')
   return RunGradle(args)
 
 if __name__ == '__main__':
