@@ -384,6 +384,25 @@ public class CfSourceCode implements SourceCode {
     state.buildPrelude(canonicalPositions.getPreamblePosition());
     setLocalVariableLists();
     DexSourceCode.buildArgumentsWithUnusedArgumentStubs(builder, 0, method, state::write);
+    // Add debug information for all locals at the initial label.
+    Int2ObjectMap<DebugLocalInfo> locals = getLocalVariables(0).locals;
+    if (!locals.isEmpty()) {
+      int firstLocalIndex = 0;
+      if (!method.isStatic()) {
+        firstLocalIndex++;
+      }
+      for (DexType value : method.method.proto.parameters.values) {
+        firstLocalIndex++;
+        if (value.isLongType() || value.isDoubleType()) {
+          firstLocalIndex++;
+        }
+      }
+      for (Entry<DebugLocalInfo> entry : locals.int2ObjectEntrySet()) {
+        if (firstLocalIndex <= entry.getIntKey()) {
+          builder.addDebugLocalStart(entry.getIntKey(), entry.getValue());
+        }
+      }
+    }
     if (needsGeneratedMethodSynchronization) {
       buildMethodEnterSynchronization(builder);
     }

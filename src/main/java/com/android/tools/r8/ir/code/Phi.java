@@ -28,7 +28,6 @@ public class Phi extends Value implements InstructionOrPhi {
   public enum RegisterReadType {
     NORMAL,
     DEBUG,
-    NORMAL_AND_DEBUG
   }
 
   private final BasicBlock block;
@@ -90,38 +89,14 @@ public class Phi extends Value implements InstructionOrPhi {
         ValueTypeConstraint constraint =
             TypeConstraintResolver.constraintForType(operand.getTypeLattice());
         if (constrainedType(constraint) == null) {
-          // If the phi has been requested from instructions and from local info, throw out locals
-          // and retry compilation.
-          if (readType == RegisterReadType.NORMAL_AND_DEBUG) {
-            throw new InvalidDebugInfoException(
-                "Type information in locals-table is inconsistent with instructions."
-                    + " Value of type "
-                    + operand.getTypeLattice()
-                    + " cannot be used as local of type "
-                    + typeLattice
-                    + ".");
-          }
-          // Otherwise only local info requested the phi and we replace with an uninitialized value.
-          assert readType == RegisterReadType.DEBUG;
-          BasicBlock block = getBlock();
-          InstructionListIterator it = block.listIterator();
-          assert readConstraint.isPrecise();
-          TypeLatticeElement type =
-              readConstraint.isObject()
-                  ? TypeLatticeElement.NULL
-                  : readConstraint.toPrimitiveTypeLattice();
-          Value value = new Value(builder.getValueNumberGenerator().next(), type, null);
-          Position position = block.getPosition();
-          Instruction definition = new DebugLocalUninitialized(value);
-          definition.setBlock(block);
-          definition.setPosition(position);
-          it.add(definition);
-          // Update current definition and all users.
-          block.updateCurrentDefinition(register, value, EdgeType.NON_EDGE);
-          replaceUsers(value);
-          // Remove the phi from the block.
-          block.removePhi(this);
-          return;
+          // If the phi has been requested from local info, throw out locals and retry compilation.
+          throw new InvalidDebugInfoException(
+              "Type information in locals-table is inconsistent."
+                  + " Value of type "
+                  + operand.getTypeLattice()
+                  + " cannot be used as local of type "
+                  + typeLattice
+                  + ".");
         }
       }
     }
@@ -155,9 +130,7 @@ public class Phi extends Value implements InstructionOrPhi {
 
   @Override
   public void markNonDebugLocalRead() {
-    if (readType == RegisterReadType.DEBUG) {
-      readType = RegisterReadType.NORMAL_AND_DEBUG;
-    }
+    readType = RegisterReadType.NORMAL;
   }
 
   private void throwUndefinedValueError() {

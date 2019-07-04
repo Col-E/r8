@@ -19,6 +19,24 @@ public class TestDiagnosticMessagesImpl implements DiagnosticsHandler, TestDiagn
   private final List<Diagnostic> errors = new ArrayList<>();
 
   @Override
+  public String toString() {
+    StringBuilder builder = new StringBuilder();
+    builder.append("Infos: ").append('\n');
+    for (Diagnostic info : infos) {
+      builder.append("  - ").append(info.getDiagnosticMessage()).append('\n');
+    }
+    builder.append("Warnings: ").append('\n');
+    for (Diagnostic warning : warnings) {
+      builder.append("  - ").append(warning.getDiagnosticMessage()).append('\n');
+    }
+    builder.append("Errors: ").append('\n');
+    for (Diagnostic error : errors) {
+      builder.append("  - ").append(error.getDiagnosticMessage()).append('\n');
+    }
+    return builder.toString();
+  }
+
+  @Override
   public void info(Diagnostic info) {
     infos.add(info);
   }
