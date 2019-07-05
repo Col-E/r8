@@ -228,6 +228,9 @@ public final class BackportedMethodRewriter {
       if (!options.canUseJava8UnsignedOperations()) {
         initializeJava8UnsignedOperations(factory);
       }
+      if (!options.canUseJava9UnsignedOperations()) {
+        initializeJava9UnsignedOperations(factory);
+      }
       // interface method desugaring also toggles library emulation.
       if (options.isInterfaceMethodDesugaringEnabled()) {
         initializeRetargetCoreLibraryMembers(appView);
@@ -742,6 +745,24 @@ public final class BackportedMethodRewriter {
       proto =
           factory.createProto(factory.stringType, factory.charSequenceType, factory.iterableType);
       addProvider(new MethodGenerator(clazz, method, proto, StringMethods::new, "joinIterable"));
+    }
+
+    private void initializeJava9UnsignedOperations(DexItemFactory factory) {
+      // Byte
+      DexString clazz = factory.boxedByteDescriptor;
+
+      // int Byte.compareUnsigned(byte, byte)
+      DexString method = factory.createString("compareUnsigned");
+      DexProto proto = factory.createProto(factory.intType, factory.byteType, factory.byteType);
+      addProvider(new MethodGenerator(clazz, method, proto, ByteMethods::new));
+
+      // Short
+      clazz = factory.boxedShortDescriptor;
+
+      // int Short.compareUnsigned(short, short)
+      method = factory.createString("compareUnsigned");
+      proto = factory.createProto(factory.intType, factory.shortType, factory.shortType);
+      addProvider(new MethodGenerator(clazz, method, proto, ShortMethods::new));
     }
 
     private void warnMissingRetargetCoreLibraryMember(DexType type, AppView<?> appView) {

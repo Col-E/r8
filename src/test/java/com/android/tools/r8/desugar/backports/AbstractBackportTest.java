@@ -9,6 +9,9 @@ import static java.util.stream.Collectors.toList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.D8TestBuilder;
+import com.android.tools.r8.D8TestCompileResult;
+import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -16,6 +19,7 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.NavigableMap;
 import java.util.TreeMap;
@@ -26,13 +30,29 @@ abstract class AbstractBackportTest extends TestBase {
   private final TestParameters parameters;
   private final Class<?> targetClass;
   private final Class<?> testClass;
+  private final Path testJar;
+  private final String testClassName;
   private final NavigableMap<AndroidApiLevel, Integer> invokeStaticCounts = new TreeMap<>();
 
   AbstractBackportTest(TestParameters parameters, Class<?> targetClass,
       Class<?> testClass) {
+    this(parameters, targetClass, testClass, null, null);
+  }
+
+  AbstractBackportTest(TestParameters parameters, Class<?> targetClass,
+      Path testJar, String testClassName) {
+    this(parameters, targetClass, null, testJar, testClassName);
+  }
+
+  private AbstractBackportTest(TestParameters parameters, Class<?> targetClass,
+      Class<?> testClass, Path testJar, String testClassName) {
     this.parameters = parameters;
     this.targetClass = targetClass;
     this.testClass = testClass;
+    this.testJar = testJar;
+    this.testClassName = testClassName;
+    assert testClass != null ^ testJar != null; // No test class requires a test path.
+    assert testJar == null || testClassName != null; // Test jar path requires a main class.
 
     // Assume all method calls will be rewritten on the lowest API level.
     invokeStaticCounts.put(AndroidApiLevel.B, 0);
@@ -44,18 +64,32 @@ abstract class AbstractBackportTest extends TestBase {
 
   @Test
   public void desugaring() throws Exception {
-    testForD8()
-        .addProgramClasses(MiniAssert.class, IgnoreInvokes.class)
-        .addProgramClassesAndInnerClasses(testClass)
+    D8TestBuilder builder = testForD8()
         .setMinApi(parameters.getRuntime().asDex().getMinApiLevel())
-        .compile()
-        .run(parameters.getRuntime(), testClass)
-        .assertSuccess()
-        .inspect(this::assertDesugaring);
+        .addProgramClasses(MiniAssert.class, IgnoreInvokes.class);
+    if (testClass != null) {
+      builder.addProgramClassesAndInnerClasses(testClass);
+    } else {
+      builder.addProgramFiles(testJar);
+    }
+    D8TestCompileResult compileResult = builder.compile();
+
+    D8TestRunResult runResult;
+    if (testClass != null) {
+      runResult = compileResult.run(parameters.getRuntime(), testClass);
+    } else {
+      runResult = compileResult.run(parameters.getRuntime(), testClassName);
+    }
+    runResult.assertSuccess().inspect(this::assertDesugaring);
   }
 
   private void assertDesugaring(CodeInspector inspector) {
-    ClassSubject testSubject = inspector.clazz(testClass);
+    ClassSubject testSubject;
+    if (testClass != null) {
+      testSubject = inspector.clazz(testClass);
+    } else {
+      testSubject = inspector.clazz(testClassName);
+    }
     assertThat(testSubject, isPresent());
 
     List<InstructionSubject> javaInvokeStatics = testSubject.allMethods()

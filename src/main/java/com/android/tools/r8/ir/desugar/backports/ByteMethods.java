@@ -28,4 +28,8 @@ public final class ByteMethods extends TemplateMethodCode {
   public static long toUnsignedLong(byte value) {
     return value & 0xffL;
   }
+
+  public static int compareUnsigned(byte a, byte b) {
+    return (a & 0xff) - (b & 0xff);
+  }
 }

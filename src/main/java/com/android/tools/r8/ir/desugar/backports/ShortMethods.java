@@ -28,4 +28,8 @@ public final class ShortMethods extends TemplateMethodCode {
   public static long toUnsignedLong(short value) {
     return value & 0xffffL;
   }
+
+  public static int compareUnsigned(short a, short b) {
+    return (a & 0xffff) - (b & 0xffff);
+  }
 }
