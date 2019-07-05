@@ -374,7 +374,7 @@ public class CfSourceCode implements SourceCode {
       return new int[] {targetIndex};
     }
     assert instruction.isConditionalJump();
-    return new int[] {instructionIndex + 1, targetIndex};
+    return new int[] {targetIndex, instructionIndex + 1};
   }
 
   @Override
