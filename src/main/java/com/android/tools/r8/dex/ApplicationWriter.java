@@ -233,7 +233,8 @@ public class ApplicationWriter {
         buffer.putLong(inputChecksums.get(from.getType().descriptor.toASCIIString()));
       }
       CRC32 crc = new CRC32();
-      crc.update(buffer.array());
+      byte[] array = buffer.array();
+      crc.update(array, 0, array.length);
       synthesizedChecksums.put(clazz.getType().descriptor.toASCIIString(), crc.getValue());
     }
 
