@@ -483,9 +483,8 @@ public class PeepholeOptimizer {
               registerToNumber.put(outRegister, current.asConstNumber());
               if (current.outType().isWide()) {
                 registerToNumber.remove(outRegister + 1);
-              } else {
-                removeWideConstantCovering(registerToNumber, outRegister);
               }
+              removeWideConstantCovering(registerToNumber, outRegister);
             }
           } else {
             // This instruction writes registers with a non-constant value. Remove the registers
