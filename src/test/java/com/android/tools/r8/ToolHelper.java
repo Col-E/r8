@@ -107,6 +107,7 @@ public class ToolHelper {
   public static final String GENERATED_PROTO_BUILD_DIR = GENERATED_TEST_BUILD_DIR + "proto/";
   public static final String SMALI_DIR = TESTS_DIR + "smali/";
   public static final String SMALI_BUILD_DIR = TESTS_BUILD_DIR + "smali/";
+  public static final String JAVA_CLASSES_DIR = BUILD_DIR + "classes/java/";
 
   public static final String LINE_SEPARATOR = StringUtils.LINE_SEPARATOR;
   public static final String CLASSPATH_SEPARATOR = File.pathSeparator;

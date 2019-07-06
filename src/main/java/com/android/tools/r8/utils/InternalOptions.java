@@ -1002,6 +1002,11 @@ public class InternalOptions {
     return false;
   }
 
+  public boolean canUseJava9SignedOperations() {
+    assert isGeneratingDex();
+    return false;
+  }
+
   public boolean canUsePrivateInterfaceMethods() {
     return isGeneratingClassFiles() || hasMinApi(AndroidApiLevel.N);
   }

@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexAnnotationSet;
@@ -141,6 +140,7 @@ public final class BackportedMethodRewriter {
     if (holders.isEmpty()) {
       return;
     }
+    // Compute referencing classes ignoring references in-between utility classes.
     Set<DexProgramClass> referencingClasses = Sets.newConcurrentHashSet();
     for (DexType holder : holders) {
       DexClass definitionFor = appView.definitionFor(holder);
@@ -152,15 +152,22 @@ public final class BackportedMethodRewriter {
         referencingClasses.add(definitionFor.asProgramClass());
       }
     }
+
     MethodAccessFlags flags = MethodAccessFlags.fromSharedAccessFlags(
         Constants.ACC_PUBLIC | Constants.ACC_STATIC | Constants.ACC_SYNTHETIC, false);
     ClassAccessFlags classAccessFlags =
         ClassAccessFlags.fromSharedAccessFlags(Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC);
-
-    for (MethodProvider provider : methodProviders.values()) {
+    // Generate the utility classes in a loop since utility classes can require the
+    // the creation of other utility classes.
+    // Function multiplyExact(long int) calls multiplyExact(long long) for example.
+    while (!methodProviders.isEmpty()) {
+      DexMethod key = methodProviders.keySet().iterator().next();
+      MethodProvider provider = methodProviders.get(key);
+      methodProviders.remove(key);
       assert provider.requiresGenerationOfCode();
       DexMethod method = provider.provideMethod(factory);
-      // The utility class could have been synthesized, e.g., running R8 then D8.
+      // The utility class could have been synthesized, e.g., running R8 then D8,
+      // or if already processed in this while loop.
       if (appView.definitionFor(method.holder) != null) {
         continue;
       }
@@ -189,12 +196,13 @@ public final class BackportedMethodRewriter {
               factory.getSkipNameValidationForTesting(),
               referencingClasses);
       code.setUpContext(utilityClass);
-      AppInfo appInfo = appView.appInfo();
       boolean addToMainDexList =
-          referencingClasses.stream().anyMatch(clazz -> appInfo.isInMainDexList(clazz.type));
-      appInfo.addSynthesizedClass(utilityClass);
-      converter.optimizeSynthesizedClass(utilityClass, executorService);
+          referencingClasses.stream()
+              .anyMatch(clazz -> appView.appInfo().isInMainDexList(clazz.type));
+      appView.appInfo().addSynthesizedClass(utilityClass);
       builder.addSynthesizedClass(utilityClass, addToMainDexList);
+      // The following may add elements to methodsProviders.
+      converter.optimizeSynthesizedClass(utilityClass, executorService);
     }
   }
 
@@ -230,6 +238,9 @@ public final class BackportedMethodRewriter {
       }
       if (!options.canUseJava9UnsignedOperations()) {
         initializeJava9UnsignedOperations(factory);
+      }
+      if (!options.canUseJava9SignedOperations()) {
+        initializeJava9SignedOperations(factory);
       }
       // interface method desugaring also toggles library emulation.
       if (options.isInterfaceMethodDesugaringEnabled()) {
@@ -528,7 +539,7 @@ public final class BackportedMethodRewriter {
         proto = factory.createProto(factory.intType, factory.intType, factory.intType);
         addProvider(new MethodGenerator(clazz, method, proto, MathMethods::new, "floorDivInt"));
 
-        // long {Math,StrictMath}.floorDiv(long)
+        // long {Math,StrictMath}.floorDiv(long, long)
         method = factory.createString("floorDiv");
         proto = factory.createProto(factory.longType, factory.longType, factory.longType);
         addProvider(new MethodGenerator(clazz, method, proto, MathMethods::new, "floorDivLong"));
@@ -538,7 +549,7 @@ public final class BackportedMethodRewriter {
         proto = factory.createProto(factory.intType, factory.intType, factory.intType);
         addProvider(new MethodGenerator(clazz, method, proto, MathMethods::new, "floorModInt"));
 
-        // long {Math,StrictMath}.floorMod(long)
+        // long {Math,StrictMath}.floorMod(long, long)
         method = factory.createString("floorMod");
         proto = factory.createProto(factory.longType, factory.longType, factory.longType);
         addProvider(new MethodGenerator(clazz, method, proto, MathMethods::new, "floorModLong"));
@@ -549,7 +560,7 @@ public final class BackportedMethodRewriter {
         addProvider(
             new MethodGenerator(clazz, method, proto, MathMethods::new, "multiplyExactInt"));
 
-        // long {Math,StrictMath}.multiplyExact(long)
+        // long {Math,StrictMath}.multiplyExact(long, long)
         method = factory.createString("multiplyExact");
         proto = factory.createProto(factory.longType, factory.longType, factory.longType);
         addProvider(
@@ -677,8 +688,9 @@ public final class BackportedMethodRewriter {
       // int Integer.parseUnsignedInt(String value, int radix)
       method = factory.createString("parseUnsignedInt");
       proto = factory.createProto(factory.intType, factory.stringType, factory.intType);
-      addProvider(new MethodGenerator(clazz, method, proto, IntegerMethods::new,
-          "parseUnsignedIntWithRadix"));
+      addProvider(
+          new MethodGenerator(
+              clazz, method, proto, IntegerMethods::new, "parseUnsignedIntWithRadix"));
 
       // String Integer.toUnsignedString(int value)
       method = factory.createString("toUnsignedString");
@@ -688,8 +700,9 @@ public final class BackportedMethodRewriter {
       // String Integer.toUnsignedString(int value, int radix)
       method = factory.createString("toUnsignedString");
       proto = factory.createProto(factory.stringType, factory.intType, factory.intType);
-      addProvider(new MethodGenerator(clazz, method, proto, IntegerMethods::new,
-          "toUnsignedStringWithRadix"));
+      addProvider(
+          new MethodGenerator(
+              clazz, method, proto, IntegerMethods::new, "toUnsignedStringWithRadix"));
 
       // Long
       clazz = factory.boxedLongDescriptor;
@@ -717,8 +730,9 @@ public final class BackportedMethodRewriter {
       // long Long.parseUnsignedLong(String value, int radix)
       method = factory.createString("parseUnsignedLong");
       proto = factory.createProto(factory.longType, factory.stringType, factory.intType);
-      addProvider(new MethodGenerator(clazz, method, proto, LongMethods::new,
-          "parseUnsignedLongWithRadix"));
+      addProvider(
+          new MethodGenerator(
+              clazz, method, proto, LongMethods::new, "parseUnsignedLongWithRadix"));
 
       // String Long.toUnsignedString(long value)
       method = factory.createString("toUnsignedString");
@@ -728,8 +742,8 @@ public final class BackportedMethodRewriter {
       // String Long.toUnsignedString(long value, int radix)
       method = factory.createString("toUnsignedString");
       proto = factory.createProto(factory.stringType, factory.longType, factory.intType);
-      addProvider(new MethodGenerator(clazz, method, proto, LongMethods::new,
-          "toUnsignedStringWithRadix"));
+      addProvider(
+          new MethodGenerator(clazz, method, proto, LongMethods::new, "toUnsignedStringWithRadix"));
 
       // String
       clazz = factory.stringDescriptor;
@@ -745,6 +759,29 @@ public final class BackportedMethodRewriter {
       proto =
           factory.createProto(factory.stringType, factory.charSequenceType, factory.iterableType);
       addProvider(new MethodGenerator(clazz, method, proto, StringMethods::new, "joinIterable"));
+    }
+
+    private void initializeJava9SignedOperations(DexItemFactory factory) {
+      DexString[] mathClasses = {factory.mathDescriptor, factory.strictMathDescriptor};
+      for (DexString mathClass : mathClasses) {
+        DexString clazz = mathClass;
+
+        // long {Math,StrictMath}.multiplyExact(long, int)
+        DexString method = factory.createString("multiplyExact");
+        DexProto proto = factory.createProto(factory.longType, factory.longType, factory.intType);
+        addProvider(
+            new MethodGenerator(clazz, method, proto, MathMethods::new, "multiplyExactLongInt"));
+
+        // long {Math,StrictMath}.floorDiv(long, int)
+        method = factory.createString("floorDiv");
+        proto = factory.createProto(factory.longType, factory.longType, factory.intType);
+        addProvider(new MethodGenerator(clazz, method, proto, MathMethods::new, "floorDivLongInt"));
+
+        // int {Math,StrictMath}.floorMod(long, int)
+        method = factory.createString("floorMod");
+        proto = factory.createProto(factory.intType, factory.longType, factory.intType);
+        addProvider(new MethodGenerator(clazz, method, proto, MathMethods::new, "floorModLongInt"));
+      }
     }
 
     private void initializeJava9UnsignedOperations(DexItemFactory factory) {

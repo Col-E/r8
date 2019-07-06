@@ -72,6 +72,10 @@ public final class MathMethods extends TemplateMethodCode {
     return signum < 0L ? div - 1L : div;
   }
 
+  public static long floorDivLongInt(long dividend, int divisor) {
+    return Math.floorDiv(dividend, (long) divisor);
+  }
+
   public static int floorModInt(int dividend, int divisor) {
     int rem = dividend % divisor;
     if (rem == 0) {
@@ -96,6 +100,10 @@ public final class MathMethods extends TemplateMethodCode {
     // signum is 1 if dividend and divisor are both nonnegative or negative, and -1 otherwise.
     long signum = 1L | ((dividend ^ divisor) >> (Long.SIZE - 1));
     return signum > 0L ? rem : rem + divisor;
+  }
+
+  public static int floorModLongInt(long dividend, int divisor) {
+    return (int) Math.floorMod(dividend, (long) divisor);
   }
 
   public static int incrementExactInt(int value) {
@@ -147,6 +155,10 @@ public final class MathMethods extends TemplateMethodCode {
       }
     }
     throw new ArithmeticException();
+  }
+
+  public static long multiplyExactLongInt(long x, int y) {
+    return Math.multiplyExact(x, (long) y);
   }
 
   public static int negateExactInt(int value) {

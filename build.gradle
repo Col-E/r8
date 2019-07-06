@@ -115,16 +115,25 @@ sourceSets {
     }
     examplesJava9 {
         java {
-            srcDirs = [
-                    'src/test/examplesJava9'
-            ]
+            srcDirs = ['src/test/examplesJava9']
         }
     }
     examplesJava11 {
         java {
-            srcDirs = [
-                    'src/test/examplesJava11'
-            ]
+            srcDirs = ['src/test/examplesJava11']
+        }
+    }
+    jdk11MathTests {
+        java {
+            srcDirs = ['third_party/openjdk/jdk-11-test/java/lang/Math']
+            include '**DivModTests.java'
+            include '**ExactArithTests.java'
+        }
+    }
+    jdk11StrictMathTests {
+        java {
+            srcDirs = ['third_party/openjdk/jdk-11-test/java/lang/StrictMath']
+            include '**ExactArithTests.java'
         }
     }
     examplesKotlin {
@@ -258,7 +267,6 @@ dependencies {
 }
 
 def r8LibPath = "$buildDir/libs/r8lib.jar"
-def r8LibPath11 = "$buildDir/libs/r8lib11.jar"
 def r8LibExludeDepsPath = "$buildDir/libs/r8lib-exclude-deps.jar"
 def r8LibGeneratedKeepRulesPath = "$buildDir/generated/keep.txt"
 def r8LibGeneratedKeepRulesExcludeDepsPath = "$buildDir/generated/keep-exclude-deps.txt"
@@ -526,20 +534,26 @@ tasks.named(sourceSets.examplesJava9.compileJavaTaskName).get().configure {
     targetCompatibility = JavaVersion.VERSION_1_9
 }
 
-tasks.named(sourceSets.examplesJava11.compileJavaTaskName).get().configure {
-    def jdkDir = 'third_party/openjdk/jdk-11/'
-    options.fork = true
-    options.forkOptions.jvmArgs = []
-    if (OperatingSystem.current().isLinux()) {
-        options.forkOptions.javaHome = file(jdkDir + 'Linux')
-    } else if (OperatingSystem.current().isMacOsX()) {
-        options.forkOptions.javaHome = file(jdkDir + 'Mac/Contents/Home')
-    } else {
-        options.forkOptions.javaHome = file(jdkDir + 'Windows')
+def setJava11Compilation(sourceSet) {
+    tasks.named(sourceSet).get().configure {
+        def jdkDir = 'third_party/openjdk/jdk-11/'
+        options.fork = true
+        options.forkOptions.jvmArgs = []
+        if (OperatingSystem.current().isLinux()) {
+            options.forkOptions.javaHome = file(jdkDir + 'Linux')
+        } else if (OperatingSystem.current().isMacOsX()) {
+            options.forkOptions.javaHome = file(jdkDir + 'Mac/Contents/Home')
+        } else {
+            options.forkOptions.javaHome = file(jdkDir + 'Windows')
+        }
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
-    sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_11
 }
+
+setJava11Compilation(sourceSets.examplesJava11.compileJavaTaskName)
+setJava11Compilation(sourceSets.jdk11MathTests.compileJavaTaskName)
+setJava11Compilation(sourceSets.jdk11StrictMathTests.compileJavaTaskName)
 
 task compileMainWithJava11 (type: JavaCompile) {
     def jdkDir = 'third_party/openjdk/jdk-11/'
@@ -1846,6 +1860,8 @@ test {
         dependsOn buildDebugInfoExamplesDex
         dependsOn buildPreNJdwpTestsJar
         dependsOn buildPreNJdwpTestsDex
+        dependsOn sourceSets.jdk11MathTests.output
+        dependsOn sourceSets.jdk11StrictMathTests.output
     } else {
         logger.lifecycle("WARNING: Testing in not supported on your platform. Testing is only fully supported on " +
             "Linux and partially supported on Mac OS and Windows. Art does not run on other platforms.")
