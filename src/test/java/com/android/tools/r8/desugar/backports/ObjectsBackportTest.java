@@ -17,7 +17,7 @@ import static java.util.Collections.reverseOrder;
 
 @RunWith(Parameterized.class) public final class ObjectsBackportTest extends AbstractBackportTest {
   @Parameters(name = "{0}") public static Iterable<?> data() {
-    return getTestParameters().withDexRuntimes().build();
+    return getTestParameters().withAllRuntimes().build();
   }
 
   public ObjectsBackportTest(TestParameters parameters) {

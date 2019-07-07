@@ -15,7 +15,7 @@ import org.junit.runners.Parameterized.Parameters;
 public final class LongBackportTest extends AbstractBackportTest {
   @Parameters(name = "{0}")
   public static Iterable<?> data() {
-    return getTestParameters().withDexRuntimes().build();
+    return getTestParameters().withAllRuntimes().build();
   }
 
   public LongBackportTest(TestParameters parameters) {

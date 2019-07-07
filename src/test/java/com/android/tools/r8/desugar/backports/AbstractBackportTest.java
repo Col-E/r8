@@ -9,16 +9,15 @@ import static java.util.stream.Collectors.toList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.D8TestBuilder;
-import com.android.tools.r8.D8TestCompileResult;
-import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.NavigableMap;
@@ -50,9 +49,16 @@ abstract class AbstractBackportTest extends TestBase {
     this.targetClass = targetClass;
     this.testClass = testClass;
     this.testJar = testJar;
-    this.testClassName = testClassName;
-    assert testClass != null ^ testJar != null; // No test class requires a test path.
-    assert testJar == null || testClassName != null; // Test jar path requires a main class.
+
+    if (testClass != null) {
+      assert testJar == null;
+      assert testClassName == null;
+      this.testClassName = testClass.getName();
+    } else {
+      assert testJar != null;
+      assert testClassName != null;
+      this.testClassName = testClassName;
+    }
 
     // Assume all method calls will be rewritten on the lowest API level.
     invokeStaticCounts.put(AndroidApiLevel.B, 0);
@@ -62,34 +68,35 @@ abstract class AbstractBackportTest extends TestBase {
     invokeStaticCounts.put(apiLevel, invokeStaticCount);
   }
 
-  @Test
-  public void desugaring() throws Exception {
-    D8TestBuilder builder = testForD8()
-        .setMinApi(parameters.getRuntime().asDex().getMinApiLevel())
-        .addProgramClasses(MiniAssert.class, IgnoreInvokes.class);
+  private void configureProgram(TestBuilder<?, ?> builder) throws IOException {
+    builder.addProgramClasses(MiniAssert.class, IgnoreInvokes.class);
     if (testClass != null) {
       builder.addProgramClassesAndInnerClasses(testClass);
     } else {
       builder.addProgramFiles(testJar);
     }
-    D8TestCompileResult compileResult = builder.compile();
+  }
 
-    D8TestRunResult runResult;
-    if (testClass != null) {
-      runResult = compileResult.run(parameters.getRuntime(), testClass);
+  @Test
+  public void desugaring() throws Exception {
+    if (parameters.isCfRuntime()) {
+      testForJvm()
+          .apply(this::configureProgram)
+          .run(parameters.getRuntime(), testClassName)
+          .assertSuccess();
     } else {
-      runResult = compileResult.run(parameters.getRuntime(), testClassName);
+      testForD8()
+          .setMinApi(parameters.getRuntime())
+          .apply(this::configureProgram)
+          .compile()
+          .run(parameters.getRuntime(), testClassName)
+          .assertSuccess()
+          .inspect(this::assertDesugaring);
     }
-    runResult.assertSuccess().inspect(this::assertDesugaring);
   }
 
   private void assertDesugaring(CodeInspector inspector) {
-    ClassSubject testSubject;
-    if (testClass != null) {
-      testSubject = inspector.clazz(testClass);
-    } else {
-      testSubject = inspector.clazz(testClassName);
-    }
+    ClassSubject testSubject = inspector.clazz(testClassName);
     assertThat(testSubject, isPresent());
 
     List<InstructionSubject> javaInvokeStatics = testSubject.allMethods()
