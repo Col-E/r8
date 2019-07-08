@@ -6,6 +6,7 @@ package com.android.tools.r8.shaking.definitelynull;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Path;
 import java.util.Collections;
@@ -22,7 +23,12 @@ public class DefinitelyNullTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().withAllApiLevels().build();
+    return getTestParameters()
+        .withCfRuntimes()
+        // Pre 5 runtimes will hit verification errors due to the two definitions of A.
+        .withDexRuntimesStartingFromIncluding(Version.V5_1_1)
+        .withAllApiLevels()
+        .build();
   }
 
   public DefinitelyNullTest(TestParameters parameters) {
@@ -32,7 +38,15 @@ public class DefinitelyNullTest extends TestBase {
   @Test
   public void testR8() throws Exception {
     Path classpath = temp.newFolder().toPath().resolve("classpath.jar");
-    writeClassesToJar(classpath, Collections.singletonList(A.class));
+    if (parameters.isCfRuntime()) {
+      writeClassesToJar(classpath, Collections.singletonList(A.class));
+    } else {
+      testForD8()
+          .setMinApi(parameters.getApiLevel())
+          .addProgramClasses(A.class)
+          .compile()
+          .writeToZip(classpath);
+    }
     testForR8(parameters.getBackend())
         // Disable minification so that A still refers to A given on the classpath below.
         .noMinification()
