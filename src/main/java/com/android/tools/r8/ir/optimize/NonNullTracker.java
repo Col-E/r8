@@ -83,13 +83,13 @@ public class NonNullTracker {
           // non_null_rcv <- non-null(rcv)
           // ...
           // another_rcv <- non-null(non_null_rcv)
-          if (knownToBeNonNullValue != null && isNonNullCandidate(knownToBeNonNullValue)) {
+          if (knownToBeNonNullValue != null && isNullableReferenceType(knownToBeNonNullValue)) {
             knownToBeNonNullValues.add(knownToBeNonNullValue);
           }
         }
         if (current.throwsOnNullInput()) {
           Value couldBeNonNull = current.getNonNullInput();
-          if (isNonNullCandidate(couldBeNonNull)) {
+          if (isNullableReferenceType(couldBeNonNull)) {
             knownToBeNonNullValues.add(couldBeNonNull);
           }
         }
@@ -120,7 +120,7 @@ public class NonNullTracker {
             for (int i = 0; i < current.inValues().size(); i++) {
               if (facts.get(i)) {
                 Value knownToBeNonNullValue = current.inValues().get(i);
-                if (isNonNullCandidate(knownToBeNonNullValue)) {
+                if (isNullableReferenceType(knownToBeNonNullValue)) {
                   knownToBeNonNullValues.add(knownToBeNonNullValue);
                 }
               }
@@ -166,7 +166,7 @@ public class NonNullTracker {
         If theIf = block.exit().asIf();
         Value knownToBeNonNullValue = theIf.inValues().get(0);
         // Avoid adding redundant non-null instruction.
-        if (isNonNullCandidate(knownToBeNonNullValue)) {
+        if (isNullableReferenceType(knownToBeNonNullValue)) {
           BasicBlock target = theIf.targetFromNonNullObject();
           // Ignore uncommon empty blocks.
           if (!target.isEmpty()) {
@@ -346,9 +346,9 @@ public class NonNullTracker {
     return predecessorIndexes;
   }
 
-  private static boolean isNonNullCandidate(Value couldBeNonNullValue) {
+  private static boolean isNullableReferenceType(Value couldBeNonNullValue) {
     TypeLatticeElement typeLattice = couldBeNonNullValue.getTypeLattice();
-    return typeLattice.isReference() && !typeLattice.isNullType() && typeLattice.isNullable();
+    return typeLattice.isReference() && typeLattice.asReferenceTypeLatticeElement().isNullable();
   }
 
   public void computeNonNullParamOnNormalExits(OptimizationFeedback feedback, IRCode code) {
