@@ -373,7 +373,7 @@ public class InternalOptions {
   public boolean disableAssertions = true;
   public boolean configurationDebugging = false;
   // Read input classes into CfCode format (instead of JarCode).
-  public final boolean defaultCfFrontend = true;
+  public final boolean defaultCfFrontend = false;
   public boolean enableCfFrontend = flipIfAlternativeFrontendFlagIsSet(defaultCfFrontend);
 
   private static boolean flipIfAlternativeFrontendFlagIsSet(boolean value) {
