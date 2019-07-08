@@ -10,6 +10,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Objects;
+import java.util.function.Supplier;
 
 public final class ObjectsMethods extends TemplateMethodCode {
   public ObjectsMethods(InternalOptions options, DexMethod method, String methodName) {
@@ -80,11 +81,51 @@ public final class ObjectsMethods extends TemplateMethodCode {
     return obj;
   }
 
+  public static <T> T requireNonNullElse(T obj, T defaultObj) {
+    if (obj != null) return obj;
+    return Objects.requireNonNull(defaultObj, "defaultObj");
+  }
+
+  public static <T> T requireNonNullElseGet(T obj, Supplier<? extends T> supplier) {
+    if (obj != null) return obj;
+    T defaultObj = Objects.requireNonNull(supplier, "supplier").get();
+    return Objects.requireNonNull(defaultObj, "supplier.get()");
+  }
+
   public static String toString(Object o) {
     return Objects.toString(o, "null");
   }
 
   public static String toStringDefault(Object o, String nullDefault) {
     return o == null ? nullDefault : o.toString();
+  }
+
+  public static int checkIndex(int index, int length) {
+    if (index < 0 || index >= length) {
+      throw new IndexOutOfBoundsException("Index " + index + " out of bounds for length " + length);
+    }
+    return index;
+  }
+
+  public static int checkFromToIndex(int fromIndex, int toIndex, int length) {
+    if (fromIndex < 0 || fromIndex > toIndex || toIndex > length) {
+      throw new IndexOutOfBoundsException(
+          "Range [" + fromIndex + ", " + toIndex + ") out of bounds for length " + length);
+    }
+    return fromIndex;
+  }
+
+  public static int checkFromIndexSize(int fromIndex, int size, int length) {
+    if (fromIndex < 0 || size < 0 || length < 0 || fromIndex > length - size) {
+      throw new IndexOutOfBoundsException("Range ["
+          + fromIndex
+          + ", "
+          + fromIndex
+          + " + "
+          + size
+          + ") out of bounds for length "
+          + length);
+    }
+    return fromIndex;
   }
 }

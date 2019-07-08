@@ -800,6 +800,36 @@ public final class BackportedMethodRewriter {
       method = factory.createString("compareUnsigned");
       proto = factory.createProto(factory.intType, factory.shortType, factory.shortType);
       addProvider(new MethodGenerator(clazz, method, proto, ShortMethods::new));
+
+      // Objects
+      clazz = factory.objectsDescriptor;
+
+      // T Objects.requireNonNullElse(T, T)
+      method = factory.createString("requireNonNullElse");
+      proto = factory.createProto(factory.objectType, factory.objectType, factory.objectType);
+      addProvider(new MethodGenerator(clazz, method, proto, ObjectsMethods::new));
+
+      // T Objects.requireNonNullElseGet(T, Supplier<? extends T>)
+      method = factory.createString("requireNonNullElseGet");
+      proto = factory.createProto(factory.objectType, factory.objectType, factory.supplierType);
+      addProvider(new MethodGenerator(clazz, method, proto, ObjectsMethods::new));
+
+      // int Objects.checkIndex(int, int)
+      method = factory.createString("checkIndex");
+      proto = factory.createProto(factory.intType, factory.intType, factory.intType);
+      addProvider(new MethodGenerator(clazz, method, proto, ObjectsMethods::new));
+
+      // int Objects.checkFromToIndex(int, int, int)
+      method = factory.createString("checkFromToIndex");
+      proto =
+          factory.createProto(factory.intType, factory.intType, factory.intType, factory.intType);
+      addProvider(new MethodGenerator(clazz, method, proto, ObjectsMethods::new));
+
+      // int Objects.checkFromIndexSize(int, int, int)
+      method = factory.createString("checkFromIndexSize");
+      proto =
+          factory.createProto(factory.intType, factory.intType, factory.intType, factory.intType);
+      addProvider(new MethodGenerator(clazz, method, proto, ObjectsMethods::new));
     }
 
     private void warnMissingRetargetCoreLibraryMember(DexType type, AppView<?> appView) {

@@ -215,6 +215,7 @@ public class DexItemFactory {
   public final DexString listDescriptor = createString("Ljava/util/List;");
   public final DexString comparatorDescriptor = createString("Ljava/util/Comparator;");
   public final DexString callableDescriptor = createString("Ljava/util/concurrent/Callable;");
+  public final DexString supplierDescriptor = createString("Ljava/util/function/Supplier;");
 
   public final DexString throwableDescriptor = createString(throwableDescriptorString);
   public final DexString illegalAccessErrorDescriptor =
@@ -294,6 +295,7 @@ public class DexItemFactory {
   public final DexType listType = createType(listDescriptor);
   public final DexType comparatorType = createType(comparatorDescriptor);
   public final DexType callableType = createType(callableDescriptor);
+  public final DexType supplierType = createType(supplierDescriptor);
 
   public final DexType throwableType = createType(throwableDescriptor);
   public final DexType illegalAccessErrorType = createType(illegalAccessErrorDescriptor);
