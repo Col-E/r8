@@ -8,7 +8,7 @@ public class BottomTypeLatticeElement extends TypeLatticeElement {
 
   @Override
   public Nullability nullability() {
-    return Nullability.maybeNull();
+    return Nullability.bottom();
   }
 
   static BottomTypeLatticeElement getInstance() {
