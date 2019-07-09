@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
@@ -197,12 +198,14 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
       AppView<? extends AppInfoWithSubtyping> appView,
       IRCode code,
       ListIterator<BasicBlock> blockIterator,
-      Set<BasicBlock> blocksToRemove) {
+      Set<BasicBlock> blocksToRemove,
+      Set<Value> affectedValues) {
     if (current == null) {
       throw new IllegalStateException();
     }
     BasicBlock block = current.getBlock();
     assert !blocksToRemove.contains(block);
+    assert affectedValues != null;
 
     BasicBlock normalSuccessorBlock = split(code, blockIterator);
     previous();
@@ -210,7 +213,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
     // Unlink all blocks that are dominated by successor.
     {
       DominatorTree dominatorTree = new DominatorTree(code, MAY_HAVE_UNREACHABLE_BLOCKS);
-      blocksToRemove.addAll(block.unlink(normalSuccessorBlock, dominatorTree));
+      blocksToRemove.addAll(block.unlink(normalSuccessorBlock, dominatorTree, affectedValues));
     }
 
     // Insert constant null before the instruction.
@@ -244,7 +247,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
               // TODO(christofferqa): Consider updating previous dominator tree instead of
               //   rebuilding it from scratch.
               DominatorTree dominatorTree = new DominatorTree(code, MAY_HAVE_UNREACHABLE_BLOCKS);
-              blocksToRemove.addAll(block.unlink(target, dominatorTree));
+              blocksToRemove.addAll(block.unlink(target, dominatorTree, affectedValues));
             }
           });
     }
@@ -586,7 +589,9 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
     if (normalExits.isEmpty()) {
       assert inlineeCanThrow;
       DominatorTree dominatorTree = new DominatorTree(code, MAY_HAVE_UNREACHABLE_BLOCKS);
-      blocksToRemove.addAll(invokePredecessor.unlink(invokeBlock, dominatorTree));
+      Set<Value> affectedValues = new HashSet<>();
+      blocksToRemove.addAll(invokePredecessor.unlink(invokeBlock, dominatorTree, affectedValues));
+      new TypeAnalysis(appView).narrowing(affectedValues);
     }
 
     // Position the iterator after the invoke block.

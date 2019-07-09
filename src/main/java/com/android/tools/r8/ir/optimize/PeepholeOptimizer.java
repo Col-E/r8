@@ -420,7 +420,7 @@ public class PeepholeOptimizer {
             pred.getInstructions().clear();
             equivalence.clearComputedHash(pred);
             for (BasicBlock succ : pred.getSuccessors()) {
-              succ.removePredecessor(pred);
+              succ.removePredecessor(pred, null);
             }
             pred.getMutableSuccessors().clear();
             pred.getMutableSuccessors().add(otherPred);

@@ -272,7 +272,7 @@ class StringSwitchConverter {
     void createAndInsertStringSwitch() {
       // Remove outgoing control flow edges from `insertionBlock`.
       for (BasicBlock successor : insertionBlock.getNormalSuccessors()) {
-        successor.removePredecessor(insertionBlock);
+        successor.removePredecessor(insertionBlock, null);
       }
       insertionBlock.removeAllNormalSuccessors();
 

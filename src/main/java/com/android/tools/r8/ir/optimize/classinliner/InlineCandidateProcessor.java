@@ -436,7 +436,7 @@ final class InlineCandidateProcessor {
         assert newBlock != blockToRemove;
 
         block.replaceSuccessor(blockToRemove, newBlock);
-        blockToRemove.removePredecessor(block);
+        blockToRemove.removePredecessor(block, null);
         assert block.exit().isGoto();
         assert block.exit().asGoto().getTarget() == newBlock;
         needToRemoveUnreachableBlocks = true;

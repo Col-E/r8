@@ -46,9 +46,10 @@ public class LinearFlowInstructionIterator implements InstructionIterator, Instr
       AppView<? extends AppInfoWithSubtyping> appView,
       IRCode code,
       ListIterator<BasicBlock> blockIterator,
-      Set<BasicBlock> blocksToRemove) {
+      Set<BasicBlock> blocksToRemove,
+      Set<Value> affectedValues) {
     currentBlockIterator.replaceCurrentInstructionWithThrowNull(
-        appView, code, blockIterator, blocksToRemove);
+        appView, code, blockIterator, blocksToRemove, affectedValues);
   }
 
   @Override

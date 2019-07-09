@@ -82,7 +82,7 @@ public class StringSwitchRemover {
 
     // Remove outgoing control flow edges from the block containing the string switch.
     for (BasicBlock successor : block.getNormalSuccessors()) {
-      successor.removePredecessor(block);
+      successor.removePredecessor(block, null);
     }
     block.removeAllNormalSuccessors();
 

@@ -63,12 +63,14 @@ public interface InstructionListIterator
    *     <code>blockIterator</code>. When iterating using <code>blockIterator</code> after then
    *     method returns the blocks in this set must be skipped when iterating with the active
    *     <code>blockIterator</code> and ultimately removed.
+   * @param affectedValues set passed where values depending on detached blocks will be added.
    */
   void replaceCurrentInstructionWithThrowNull(
       AppView<? extends AppInfoWithSubtyping> appView,
       IRCode code,
       ListIterator<BasicBlock> blockIterator,
-      Set<BasicBlock> blocksToRemove);
+      Set<BasicBlock> blocksToRemove,
+      Set<Value> affectedValues);
 
   /**
    * Split the block into two blocks at the point of the {@link ListIterator} cursor. The existing

@@ -25,6 +25,7 @@ import com.android.tools.r8.graph.GraphLense.RewrittenPrototypeDescription.Remov
 import com.android.tools.r8.graph.TopDownClassHierarchyTraversal;
 import com.android.tools.r8.ir.analysis.AbstractError;
 import com.android.tools.r8.ir.analysis.TypeChecker;
+import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
@@ -372,6 +373,7 @@ public class UninstantiatedTypeOptimization {
   public void rewrite(IRCode code) {
     Set<BasicBlock> blocksToBeRemoved = Sets.newIdentityHashSet();
     ListIterator<BasicBlock> blockIterator = code.listIterator();
+    Set<Value> valuesToNarrow = new HashSet<>();
     while (blockIterator.hasNext()) {
       BasicBlock block = blockIterator.next();
       if (blocksToBeRemoved.contains(block)) {
@@ -398,7 +400,7 @@ public class UninstantiatedTypeOptimization {
               assert false;
             }
             instructionIterator.replaceCurrentInstructionWithThrowNull(
-                appView, code, blockIterator, blocksToBeRemoved);
+                appView, code, blockIterator, blocksToBeRemoved, valuesToNarrow);
             continue;
           }
         }
@@ -415,9 +417,13 @@ public class UninstantiatedTypeOptimization {
               blockIterator,
               instructionIterator,
               code,
-              blocksToBeRemoved);
+              blocksToBeRemoved,
+              valuesToNarrow);
         }
       }
+    }
+    if (!valuesToNarrow.isEmpty()) {
+      new TypeAnalysis(appView).narrowing(valuesToNarrow);
     }
     code.removeBlocks(blocksToBeRemoved);
     code.removeAllTrivialPhis();
@@ -529,7 +535,8 @@ public class UninstantiatedTypeOptimization {
       ListIterator<BasicBlock> blockIterator,
       InstructionListIterator instructionIterator,
       IRCode code,
-      Set<BasicBlock> blocksToBeRemoved) {
+      Set<BasicBlock> blocksToBeRemoved,
+      Set<Value> affectedValues) {
     DexEncodedMethod target = invoke.lookupSingleTarget(appView, code.method.method.holder);
     if (target == null) {
       return;
@@ -541,7 +548,7 @@ public class UninstantiatedTypeOptimization {
         Value argument = invoke.arguments().get(i);
         if (argument.isAlwaysNull(appView) && facts.get(i)) {
           instructionIterator.replaceCurrentInstructionWithThrowNull(
-              appView, code, blockIterator, blocksToBeRemoved);
+              appView, code, blockIterator, blocksToBeRemoved, affectedValues);
           ++numberOfInvokesWithNullArgument;
           return;
         }

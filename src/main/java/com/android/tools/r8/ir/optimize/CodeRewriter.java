@@ -1770,7 +1770,11 @@ public class CodeRewriter {
               iterator.removeOrReplaceByDebugLocalRead();
             } else if (obj.isAlwaysNull(appView) && appView.appInfo().hasSubtyping()) {
               iterator.replaceCurrentInstructionWithThrowNull(
-                  appView.withSubtyping(), code, blockIterator, blocksToBeRemoved);
+                  appView.withSubtyping(),
+                  code,
+                  blockIterator,
+                  blocksToBeRemoved,
+                  needToNarrowValues);
             }
           } else if (outValue != null && !outValue.hasLocalInfo()) {
             if (appView

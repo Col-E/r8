@@ -76,7 +76,7 @@ class SwitchCaseEliminator {
     for (int i = 0; i < block.getSuccessors().size(); i++) {
       if (successorHasBecomeDeadPredicate.test(i)) {
         BasicBlock successor = block.getSuccessors().get(i);
-        successor.removePredecessor(block);
+        successor.removePredecessor(block, null);
         successorIndicesToBeRemoved.add(i);
         if (successor.getPredecessors().isEmpty()) {
           mayHaveIntroducedUnreachableBlocks = true;

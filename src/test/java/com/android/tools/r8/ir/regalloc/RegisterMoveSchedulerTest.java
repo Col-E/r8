@@ -54,10 +54,11 @@ public class RegisterMoveSchedulerTest {
 
     @Override
     public void replaceCurrentInstructionWithThrowNull(
-      AppView<? extends AppInfoWithSubtyping> appView,
-      IRCode code,
-      ListIterator<BasicBlock> blockIterator,
-      Set<BasicBlock> blocksToRemove) {
+        AppView<? extends AppInfoWithSubtyping> appView,
+        IRCode code,
+        ListIterator<BasicBlock> blockIterator,
+        Set<BasicBlock> blocksToRemove,
+        Set<Value> affectedValues) {
       throw new Unimplemented();
     }
 

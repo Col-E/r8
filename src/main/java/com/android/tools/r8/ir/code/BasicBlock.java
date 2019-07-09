@@ -35,6 +35,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -253,7 +254,7 @@ public class BasicBlock {
     removeSuccessorsByIndex(new IntArrayList(new int[] {index}));
   }
 
-  public void removePredecessor(BasicBlock block) {
+  public void removePredecessor(BasicBlock block, Set<Value> affectedValues) {
     int index = predecessors.indexOf(block);
     assert index >= 0 : "removePredecessor did not find the predecessor to remove";
     getMutablePredecessors().remove(index);
@@ -266,6 +267,9 @@ public class BasicBlock {
       for (Phi phi : getPhis()) {
         if (phi.isTrivialPhi()) {
           trivials.add(phi);
+          if (affectedValues != null) {
+            affectedValues.addAll(phi.affectedValues());
+          }
         }
       }
       for (Phi phi : trivials) {
@@ -779,13 +783,15 @@ public class BasicBlock {
     getMutableSuccessors().clear();
   }
 
-  public List<BasicBlock> unlink(BasicBlock successor, DominatorTree dominator) {
+  public List<BasicBlock> unlink(
+      BasicBlock successor, DominatorTree dominator, Set<Value> affectedValues) {
+    assert affectedValues != null;
     assert successors.contains(successor);
     assert successor.predecessors.size() == 1; // There are no critical edges.
     assert successor.predecessors.get(0) == this;
     List<BasicBlock> removedBlocks = new ArrayList<>();
     for (BasicBlock dominated : dominator.dominatedBlocks(successor)) {
-      dominated.cleanForRemoval();
+      affectedValues.addAll(dominated.cleanForRemoval());
       removedBlocks.add(dominated);
     }
     assert blocksClean(removedBlocks);
@@ -793,9 +799,10 @@ public class BasicBlock {
   }
 
   public Set<Value> cleanForRemoval() {
-    ImmutableSet.Builder<Value> affectValuesBuilder = ImmutableSet.builder();
+    Set<Value> affectedValues = new HashSet<>();
     for (BasicBlock block : successors) {
-      block.removePredecessor(this);
+      affectedValues.addAll(block.getPhis());
+      block.removePredecessor(this, affectedValues);
     }
     getMutableSuccessors().clear();
     for (BasicBlock block : predecessors) {
@@ -803,7 +810,7 @@ public class BasicBlock {
     }
     getMutablePredecessors().clear();
     for (Phi phi : getPhis()) {
-      affectValuesBuilder.addAll(phi.affectedValues());
+      affectedValues.addAll(phi.affectedValues());
       for (Value operand : phi.getOperands()) {
         operand.removePhiUser(phi);
       }
@@ -811,7 +818,7 @@ public class BasicBlock {
     getPhis().clear();
     for (Instruction instruction : getInstructions()) {
       if (instruction.outValue() != null) {
-        affectValuesBuilder.addAll(instruction.outValue().affectedValues());
+        affectedValues.addAll(instruction.outValue().affectedValues());
         instruction.outValue().clearUsers();
         instruction.setOutValue(null);
       }
@@ -822,7 +829,7 @@ public class BasicBlock {
         value.removeDebugUser(instruction);
       }
     }
-    return affectValuesBuilder.build();
+    return affectedValues;
   }
 
   public void linkCatchSuccessors(List<DexType> guards, List<BasicBlock> targets) {
@@ -1568,7 +1575,7 @@ public class BasicBlock {
     List<BasicBlock> catchSuccessors = appendCatchHandlers(fromBlock);
     for (BasicBlock successor : catchSuccessors) {
       fromBlock.getMutableSuccessors().remove(successor);
-      successor.removePredecessor(fromBlock);
+      successor.removePredecessor(fromBlock, null);
     }
     fromBlock.catchHandlers = CatchHandlers.EMPTY_INDICES;
   }
