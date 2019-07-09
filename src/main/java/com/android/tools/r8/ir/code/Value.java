@@ -983,8 +983,7 @@ public class Value {
   }
 
   /**
-   * Overwrites the current type lattice value without any assertions. Should only be used by the
-   * LensCodeRewriter.
+   * Overwrites the current type lattice value without any assertions.
    *
    * @param newType The new type lattice element
    */

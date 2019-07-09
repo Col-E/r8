@@ -406,7 +406,8 @@ public class LensCodeRewriter {
       code.removeUnreachableBlocks();
     }
     if (!newSSAValues.isEmpty()) {
-      new TypeAnalysis(appView).narrowing(newSSAValues);
+      // TODO(b/136001982) Ideally, this should narrow.
+      new TypeAnalysis(appView).jump(newSSAValues);
     }
     assert code.isConsistentSSA();
     assert code.hasNoVerticallyMergedClasses(appView);

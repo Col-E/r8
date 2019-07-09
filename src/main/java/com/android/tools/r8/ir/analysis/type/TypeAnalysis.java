@@ -27,6 +27,8 @@ public class TypeAnalysis {
 
   private enum Mode {
     UNSET,
+    JUMP,      // new assignment of types that has no relationship with the previous value, used by
+               // the lenscoderewriter.
     WIDENING,  // initial analysis, including fixed-point iteration for phis and updating with less
                // specific info, e.g., removing assume nodes.
     NARROWING  // updating with more specific info, e.g., passing the return value of the inlinee.
@@ -60,6 +62,10 @@ public class TypeAnalysis {
     assert worklist.isEmpty();
     code.topologicallySortedBlocks().forEach(b -> analyzeBasicBlock(context, encodedMethod, b));
     analyze();
+  }
+
+  public void jump(Iterable<Value> values) {
+    analyzeValues(values, Mode.JUMP);
   }
 
   public void widening(Iterable<Value> values) {
@@ -147,7 +153,9 @@ public class TypeAnalysis {
       return;
     }
 
-    if (mode == Mode.WIDENING) {
+    if (mode == Mode.JUMP) {
+      value.setTypeLattice(type);
+    } else if (mode == Mode.WIDENING) {
       value.widening(appView, type);
     } else {
       assert mode == Mode.NARROWING;

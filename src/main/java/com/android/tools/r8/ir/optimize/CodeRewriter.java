@@ -2002,6 +2002,11 @@ public class CodeRewriter {
         && storeValue.asPhi().getOperands().contains(falseValue);
   }
 
+  enum RemoveCheckCastInstructionIfTrivialResult {
+    NO_REMOVALS,
+    REMOVED_CAST_DO_NARROW
+  }
+
   public void removeTrivialCheckCastAndInstanceOfInstructions(IRCode code) {
     if (!appView.enableWholeProgramOptimizations()) {
       return;
@@ -2031,18 +2036,22 @@ public class CodeRewriter {
       Instruction current = it.next();
       if (current.isCheckCast()) {
         boolean hasPhiUsers = current.outValue().numberOfPhiUsers() != 0;
-        if (removeCheckCastInstructionIfTrivial(current.asCheckCast(), it, code, affectedValues)) {
+        RemoveCheckCastInstructionIfTrivialResult removeResult =
+            removeCheckCastInstructionIfTrivial(current.asCheckCast(), it, code, affectedValues);
+        if (removeResult != RemoveCheckCastInstructionIfTrivialResult.NO_REMOVALS) {
           needToRemoveTrivialPhis |= hasPhiUsers;
+          if (removeResult == RemoveCheckCastInstructionIfTrivialResult.REMOVED_CAST_DO_NARROW) {
+            typeAnalysis.narrowing(affectedValues);
+          } else {
+            typeAnalysis.widening(affectedValues);
+          }
+          affectedValues.clear();
         }
       } else if (current.isInstanceOf()) {
         boolean hasPhiUsers = current.outValue().numberOfPhiUsers() != 0;
         if (removeInstanceOfInstructionIfTrivial(current.asInstanceOf(), it, code)) {
           needToRemoveTrivialPhis |= hasPhiUsers;
         }
-      }
-      if (!affectedValues.isEmpty()) {
-        typeAnalysis.narrowing(affectedValues);
-        affectedValues.clear();
       }
     }
     // ... v1
@@ -2058,7 +2067,7 @@ public class CodeRewriter {
   }
 
   // Returns true if the given check-cast instruction was removed.
-  private boolean removeCheckCastInstructionIfTrivial(
+  private RemoveCheckCastInstructionIfTrivialResult removeCheckCastInstructionIfTrivial(
       CheckCast checkCast, InstructionIterator it, IRCode code, Set<Value> affectedValues) {
     Value inValue = checkCast.object();
     Value outValue = checkCast.outValue();
@@ -2068,7 +2077,7 @@ public class CodeRewriter {
     // in order to preserve IllegalAccessError. Note that JVM and ART behave differently: see
     // {@link com.android.tools.r8.ir.optimize.checkcast.IllegalAccessErrorTest}.
     if (isTypeInaccessibleInCurrentContext(castType, code.method)) {
-      return false;
+      return RemoveCheckCastInstructionIfTrivialResult.NO_REMOVALS;
     }
 
     // If the in-value is `null` and the cast-type is a float-array type, then trivial check-cast
@@ -2077,30 +2086,8 @@ public class CodeRewriter {
       if (inValue.getTypeLattice().isNullType()
           && castType.isArrayType()
           && castType.toBaseType(dexItemFactory).isFloatType()) {
-        return false;
+        return RemoveCheckCastInstructionIfTrivialResult.NO_REMOVALS;
       }
-    }
-
-    // We might see chains of casts on subtypes. It suffices to cast to the lowest subtype,
-    // as that will fail if a cast on a supertype would have failed.
-    Predicate<Instruction> isCheckcastToSubtype =
-        user ->
-            user.isCheckCast()
-                && appView.isSubtype(user.asCheckCast().getType(), castType).isTrue();
-    if (!checkCast.getBlock().hasCatchHandlers()
-        && outValue.numberOfPhiUsers() == 0
-        && outValue.numberOfUsers() > 0
-        && outValue.uniqueUsers().stream().allMatch(isCheckcastToSubtype)) {
-      // The removeOrReplaceByDebugLocalWrite will propagate the incoming value for the CheckCast
-      // to the users of the CheckCast's out value.
-      //
-      // v2 = CheckCast A v1  ~~>  DebugLocalWrite $v0 <- v1
-      //
-      // The DebugLocalWrite is not a user of the outvalue, we therefore have to wait and take the
-      // CheckCast invalue users that includes the potential DebugLocalWrite.
-      removeOrReplaceByDebugLocalWrite(checkCast, it, inValue, outValue);
-      affectedValues.addAll(inValue.affectedValues());
-      return true;
     }
 
     TypeLatticeElement inTypeLattice = inValue.getTypeLattice();
@@ -2128,7 +2115,7 @@ public class CodeRewriter {
       // CheckCast invalue users that includes the potential DebugLocalWrite.
       removeOrReplaceByDebugLocalWrite(checkCast, it, inValue, outValue);
       affectedValues.addAll(inValue.affectedValues());
-      return true;
+      return RemoveCheckCastInstructionIfTrivialResult.REMOVED_CAST_DO_NARROW;
     }
 
     // Otherwise, keep the checkcast to preserve verification errors. E.g., down-cast:
@@ -2138,7 +2125,7 @@ public class CodeRewriter {
     // a'' = (A) a';  // this should remain for runtime verification.
     assert !inTypeLattice.isDefinitelyNull();
     assert outTypeLattice.equalUpToNullability(castTypeLattice);
-    return false;
+    return RemoveCheckCastInstructionIfTrivialResult.NO_REMOVALS;
   }
 
   private boolean isTypeInaccessibleInCurrentContext(DexType type, DexEncodedMethod context) {
