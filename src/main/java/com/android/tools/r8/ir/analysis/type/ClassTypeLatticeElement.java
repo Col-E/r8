@@ -7,6 +7,7 @@ import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLense;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayDeque;
 import java.util.Collections;
@@ -127,6 +128,25 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
   public int hashCode() {
     // The interfaces of a type do not contribute to its hashCode as they are lazily computed.
     return Objects.hash(nullability, type);
+  }
+
+  @Override
+  public TypeLatticeElement substitute(
+      GraphLense substituteMap, AppView<? extends AppInfoWithSubtyping> appView) {
+    DexType mappedType = substituteMap.lookupType(type);
+    if (mappedType != type) {
+      return fromDexType(mappedType, nullability, appView, false);
+    }
+    // If the lazyinterfaces are already computed ensure they are not referring to any types in the
+    // substitution map.
+    if (lazyInterfaces != null && !lazyInterfaces.isEmpty()) {
+      for (DexType iface : lazyInterfaces) {
+        if (iface != substituteMap.lookupType(iface)) {
+          return fromDexType(mappedType, nullability, appView, false);
+        }
+      }
+    }
+    return this;
   }
 
   ClassTypeLatticeElement join(ClassTypeLatticeElement other, AppView<?> appView) {

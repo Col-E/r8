@@ -30,6 +30,7 @@ import com.android.tools.r8.graph.GraphLense.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.GraphLense.RewrittenPrototypeDescription.RemovedArgumentsInfo;
 import com.android.tools.r8.graph.UseRegistry.MethodHandleUse;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.CheckCast;
@@ -53,6 +54,7 @@ import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.MoveException;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.NewInstance;
+import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
@@ -85,16 +87,27 @@ public class LensCodeRewriter {
     if (insn.outValue() == null) {
       return null;
     } else {
-      Value newValue = code.createValue(insn.outValue().getTypeLattice(), insn.getLocalInfo());
+      TypeLatticeElement typeLattice = substitute(insn.outValue().getTypeLattice(), appView);
+      Value newValue = code.createValue(typeLattice, insn.getLocalInfo());
       collector.add(newValue);
       return newValue;
     }
   }
 
+  private static TypeLatticeElement substitute(
+      TypeLatticeElement latticeElement, AppView<? extends AppInfoWithSubtyping> appView) {
+    if (latticeElement.isReference() && !latticeElement.isNullType()) {
+      return latticeElement
+          .asReferenceTypeLatticeElement()
+          .substitute(appView.graphLense(), appView);
+    }
+    return latticeElement;
+  }
+
   /** Replace type appearances, invoke targets and field accesses with actual definitions. */
   public void rewrite(IRCode code, DexEncodedMethod method) {
     GraphLense graphLense = appView.graphLense();
-    Set<Value> newSSAValues = Sets.newIdentityHashSet();
+    Set<Value> updatedValues = Sets.newIdentityHashSet();
     ListIterator<BasicBlock> blocks = code.listIterator();
     boolean mayHaveUnreachableBlocks = false;
     while (blocks.hasNext()) {
@@ -152,7 +165,7 @@ public class LensCodeRewriter {
               handle, method, NOT_ARGUMENT_TO_LAMBDA_METAFACTORY);
           if (newHandle != handle) {
             ConstMethodHandle newInstruction =
-                new ConstMethodHandle(makeOutValue(current, code, newSSAValues), newHandle);
+                new ConstMethodHandle(makeOutValue(current, code, updatedValues), newHandle);
             iterator.replaceCurrentInstruction(newInstruction);
           }
         } else if (current.isInvokeMethod()) {
@@ -176,7 +189,7 @@ public class LensCodeRewriter {
                       VIRTUAL,
                       actualTarget,
                       null,
-                      makeOutValue(invoke, code, newSSAValues),
+                      makeOutValue(invoke, code, updatedValues),
                       invoke.inValues());
               iterator.replaceCurrentInstruction(newInvoke);
             }
@@ -213,7 +226,7 @@ public class LensCodeRewriter {
             Value newOutValue =
                 prototypeChanges.hasBeenChangedToReturnVoid()
                     ? null
-                    : makeOutValue(invoke, code, newSSAValues);
+                    : makeOutValue(invoke, code, updatedValues);
 
             List<Value> newInValues;
             if (removedArgumentsInfo.hasRemovedArguments()) {
@@ -284,7 +297,7 @@ public class LensCodeRewriter {
           } else if (actualField != field) {
             InstanceGet newInstanceGet =
                 new InstanceGet(
-                    makeOutValue(instanceGet, code, newSSAValues),
+                    makeOutValue(instanceGet, code, updatedValues),
                     instanceGet.object(),
                     actualField);
             iterator.replaceCurrentInstruction(newInstanceGet);
@@ -314,7 +327,7 @@ public class LensCodeRewriter {
                 new InvokeStatic(replacementMethod, current.outValue(), current.inValues()));
           } else if (actualField != field) {
             StaticGet newStaticGet =
-                new StaticGet(makeOutValue(staticGet, code, newSSAValues), actualField);
+                new StaticGet(makeOutValue(staticGet, code, updatedValues), actualField);
             iterator.replaceCurrentInstruction(newStaticGet);
           }
         } else if (current.isStaticPut()) {
@@ -334,24 +347,26 @@ public class LensCodeRewriter {
           CheckCast checkCast = current.asCheckCast();
           DexType newType = graphLense.lookupType(checkCast.getType());
           if (newType != checkCast.getType()) {
-            CheckCast newCheckCast = new CheckCast(
-                makeOutValue(checkCast, code, newSSAValues), checkCast.object(), newType);
+            CheckCast newCheckCast =
+                new CheckCast(
+                    makeOutValue(checkCast, code, updatedValues), checkCast.object(), newType);
             iterator.replaceCurrentInstruction(newCheckCast);
           }
         } else if (current.isConstClass()) {
           ConstClass constClass = current.asConstClass();
           DexType newType = graphLense.lookupType(constClass.getValue());
           if (newType != constClass.getValue()) {
-            ConstClass newConstClass = new ConstClass(
-                makeOutValue(constClass, code, newSSAValues), newType);
+            ConstClass newConstClass =
+                new ConstClass(makeOutValue(constClass, code, updatedValues), newType);
             iterator.replaceCurrentInstruction(newConstClass);
           }
         } else if (current.isInstanceOf()) {
           InstanceOf instanceOf = current.asInstanceOf();
           DexType newType = graphLense.lookupType(instanceOf.type());
           if (newType != instanceOf.type()) {
-            InstanceOf newInstanceOf = new InstanceOf(
-                makeOutValue(instanceOf, code, newSSAValues), instanceOf.value(), newType);
+            InstanceOf newInstanceOf =
+                new InstanceOf(
+                    makeOutValue(instanceOf, code, updatedValues), instanceOf.value(), newType);
             iterator.replaceCurrentInstruction(newInstanceOf);
           }
         } else if (current.isInvokeMultiNewArray()) {
@@ -361,7 +376,7 @@ public class LensCodeRewriter {
             InvokeMultiNewArray newMultiNewArray =
                 new InvokeMultiNewArray(
                     newType,
-                    makeOutValue(multiNewArray, code, newSSAValues),
+                    makeOutValue(multiNewArray, code, updatedValues),
                     multiNewArray.inValues());
             iterator.replaceCurrentInstruction(newMultiNewArray);
           }
@@ -369,8 +384,9 @@ public class LensCodeRewriter {
           InvokeNewArray newArray = current.asInvokeNewArray();
           DexType newType = graphLense.lookupType(newArray.getArrayType());
           if (newType != newArray.getArrayType()) {
-            InvokeNewArray newNewArray = new InvokeNewArray(
-                newType, makeOutValue(newArray, code, newSSAValues), newArray.inValues());
+            InvokeNewArray newNewArray =
+                new InvokeNewArray(
+                    newType, makeOutValue(newArray, code, updatedValues), newArray.inValues());
             iterator.replaceCurrentInstruction(newNewArray);
           }
         } else if (current.isMoveException()) {
@@ -379,7 +395,7 @@ public class LensCodeRewriter {
           if (newExceptionType != moveException.getExceptionType()) {
             iterator.replaceCurrentInstruction(
                 new MoveException(
-                    makeOutValue(moveException, code, newSSAValues),
+                    makeOutValue(moveException, code, updatedValues),
                     newExceptionType,
                     appView.options()));
           }
@@ -387,27 +403,46 @@ public class LensCodeRewriter {
           NewArrayEmpty newArrayEmpty = current.asNewArrayEmpty();
           DexType newType = graphLense.lookupType(newArrayEmpty.type);
           if (newType != newArrayEmpty.type) {
-            NewArrayEmpty newNewArray = new NewArrayEmpty(
-                makeOutValue(newArrayEmpty, code, newSSAValues), newArrayEmpty.size(), newType);
+            NewArrayEmpty newNewArray =
+                new NewArrayEmpty(
+                    makeOutValue(newArrayEmpty, code, updatedValues),
+                    newArrayEmpty.size(),
+                    newType);
             iterator.replaceCurrentInstruction(newNewArray);
           }
         } else if (current.isNewInstance()) {
           NewInstance newInstance = current.asNewInstance();
           DexType newClazz = graphLense.lookupType(newInstance.clazz);
           if (newClazz != newInstance.clazz) {
-            NewInstance newNewInstance = new NewInstance(
-                newClazz, makeOutValue(newInstance, code, newSSAValues));
+            NewInstance newNewInstance =
+                new NewInstance(newClazz, makeOutValue(newInstance, code, updatedValues));
             iterator.replaceCurrentInstruction(newNewInstance);
           }
+        } else if (current.outValue() != null) {
+          // For all other instructions, substitute any changed type.
+          TypeLatticeElement typeLattice = current.outValue().getTypeLattice();
+          TypeLatticeElement substituted = substitute(typeLattice, appView);
+          if (substituted != typeLattice) {
+            current.outValue().setTypeLattice(substituted);
+            updatedValues.add(current.outValue());
+          }
+        }
+      }
+      for (Phi phi : block.getPhis()) {
+        TypeLatticeElement phiTypeLattice = phi.getTypeLattice();
+        TypeLatticeElement substituted = substitute(phiTypeLattice, appView);
+        if (substituted != phiTypeLattice) {
+          phi.setTypeLattice(substituted);
+          updatedValues.add(phi);
         }
       }
     }
     if (mayHaveUnreachableBlocks) {
       code.removeUnreachableBlocks();
     }
-    if (!newSSAValues.isEmpty()) {
+    if (!updatedValues.isEmpty()) {
       // TODO(b/136001982) Ideally, this should narrow.
-      new TypeAnalysis(appView).jump(newSSAValues);
+      new TypeAnalysis(appView).jump(updatedValues);
     }
     assert code.isConsistentSSA();
     assert code.hasNoVerticallyMergedClasses(appView);
