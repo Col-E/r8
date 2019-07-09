@@ -59,6 +59,7 @@ public class CoreLibDesugarTestBase extends TestBase {
         // .put("java.lang.Integer8", "j$.lang.Integer8")
         // .put("java.lang.Long8", "j$.lang.Long8")
         // .put("java.lang.Math8", "j$.lang.Math8")
+        .put("java.time.", "j$.time.")
         .put("java.util.stream.", "j$.util.stream.")
         .put("java.util.function.", "j$.util.function.")
         .put("java.util.Desugar", "j$.util.Desugar")

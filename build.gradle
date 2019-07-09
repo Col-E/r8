@@ -46,6 +46,7 @@ ext {
     kotlinExtMetadataJVMVersion = '0.0.4'
     smaliVersion = '2.2b4'
     errorproneVersion = '2.3.2'
+    testngVersion = '6.10'
 }
 
 apply from: 'copyAdditionalJctfCommonFiles.gradle'
@@ -140,6 +141,20 @@ sourceSets {
         java {
             srcDirs = ['third_party/openjdk/jdk-11-test/java/lang/StrictMath']
             include '**ExactArithTests.java'
+        }
+    }
+    jdk11TimeTests {
+        java {
+            srcDirs = [
+                    'third_party/openjdk/jdk-11-test/java/time/tck',
+                    'third_party/openjdk/jdk-11-test/java/time/test'
+            ]
+            exclude '**/TestZoneTextPrinterParser.java'
+        }
+    }
+    testNGRunner {
+        java {
+            srcDirs = ['src/test/testngrunner']
         }
     }
     examplesKotlin {
@@ -246,6 +261,8 @@ dependencies {
     implementation group: 'org.ow2.asm', name: 'asm-tree', version: asmVersion
     implementation group: 'org.ow2.asm', name: 'asm-analysis', version: asmVersion
     implementation group: 'org.ow2.asm', name: 'asm-util', version: asmVersion
+    jdk11TimeTestsCompile group: 'org.testng', name: 'testng', version: testngVersion
+    testNGRunnerCompile group: 'org.testng', name: 'testng', version: testngVersion
     testCompile sourceSets.examples.output
     testCompile "junit:junit:$junitVersion"
     testCompile group: 'org.smali', name: 'smali', version: smaliVersion
@@ -561,6 +578,8 @@ setJava11Compilation(sourceSets.examplesJava11.compileJavaTaskName)
 setJava11Compilation(sourceSets.jdk11MathTests.compileJavaTaskName)
 setJava11Compilation(sourceSets.jdk11ObjectsTests.compileJavaTaskName)
 setJava11Compilation(sourceSets.jdk11StrictMathTests.compileJavaTaskName)
+setJava11Compilation(sourceSets.testNGRunner.compileJavaTaskName)
+setJava11Compilation(sourceSets.jdk11TimeTests.compileJavaTaskName)
 
 task compileMainWithJava11 (type: JavaCompile) {
     def jdkDir = 'third_party/openjdk/jdk-11/'
@@ -1464,6 +1483,28 @@ task buildExampleJava11Jars {
     }
 }
 
+task provideJdk11TestsDependencies(type: org.gradle.api.tasks.Copy) {
+    from sourceSets.jdk11TimeTests.compileClasspath
+    include "**/**.jar"
+    into file("build/test/jdk11Tests")
+}
+
+task buildJdk11TimeTestsJar {
+    def exampleOutputDir = file("build/test/jdk11Tests");
+    def jarName = "jdk11TimeTests.jar"
+    dependsOn "jar_jdk11TimeTests"
+    dependsOn provideJdk11TestsDependencies
+    task "jar_jdk11TimeTests"(type: Jar) {
+        archiveName = jarName
+        destinationDir = exampleOutputDir
+        from sourceSets.testNGRunner.output
+        include "**.class"
+        from sourceSets.jdk11TimeTests.output
+        include "**.class"
+        include "**/**.class"
+    }
+}
+
 task buildExamplesKotlin {
     if (OperatingSystem.current().isMacOsX() || OperatingSystem.current().isWindows()) {
         logger.lifecycle("WARNING: Testing (including building kotlin examples) is only partially" +
@@ -1870,6 +1911,7 @@ test {
         dependsOn sourceSets.jdk11MathTests.output
         dependsOn sourceSets.jdk11ObjectsTests.output
         dependsOn sourceSets.jdk11StrictMathTests.output
+        dependsOn buildJdk11TimeTestsJar
     } else {
         logger.lifecycle("WARNING: Testing in not supported on your platform. Testing is only fully supported on " +
             "Linux and partially supported on Mac OS and Windows. Art does not run on other platforms.")
