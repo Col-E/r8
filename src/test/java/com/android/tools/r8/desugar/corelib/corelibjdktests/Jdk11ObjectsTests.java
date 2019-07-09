@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.desugar.corelib.corelibjdktests;
 
+import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
+import static com.android.tools.r8.utils.FileUtils.JAVA_EXTENSION;
+
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -13,6 +16,7 @@ import com.android.tools.r8.ToolHelper.DexVm;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.junit.Assume;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -21,13 +25,14 @@ import org.junit.runners.Parameterized;
 public class Jdk11ObjectsTests extends TestBase {
 
   private static final Path JDK_11_OBJECTS_TESTS_DIR =
-      Paths.get(ToolHelper.JAVA_CLASSES_DIR + "jdk11ObjectsTests");
-  private static final String BASICOBJECTSTEST = "BasicObjectsTest";
-  private static final String CLASS_SUFFIX = ".class";
+      Paths.get(ToolHelper.JDK_11_TESTS_CLASSES_DIR + "Objects");
+  private static final String BASIC_OBJECTS_TEST = "BasicObjectsTest";
   private static final Path[] JDK_11_OBJECTS_TEST_CLASS_FILES =
       new Path[] {
-          JDK_11_OBJECTS_TESTS_DIR.resolve(BASICOBJECTSTEST + CLASS_SUFFIX),
+        JDK_11_OBJECTS_TESTS_DIR.resolve(BASIC_OBJECTS_TEST + CLASS_EXTENSION),
       };
+  private static final Path JDK_11_OBJECTS_JAVA_DIR =
+      Paths.get(ToolHelper.JDK_11_TESTS_DIR + "java/util/Objects");
 
   private final TestParameters parameters;
 
@@ -44,13 +49,22 @@ public class Jdk11ObjectsTests extends TestBase {
     this.parameters = parameters;
   }
 
+  @BeforeClass
+  public static void compileObjectsClass() throws Exception {
+    ToolHelper.runJavac(
+        CfVm.JDK11,
+        null,
+        JDK_11_OBJECTS_TESTS_DIR,
+        JDK_11_OBJECTS_JAVA_DIR.resolve(BASIC_OBJECTS_TEST + JAVA_EXTENSION));
+  }
+
   @Test
   public void testD8Objects() throws Exception {
     Assume.assumeTrue(parameters.isDexRuntime());
     testForD8()
         .addProgramFiles(JDK_11_OBJECTS_TEST_CLASS_FILES)
         .setMinApi(parameters.getRuntime())
-        .run(parameters.getRuntime(), BASICOBJECTSTEST)
+        .run(parameters.getRuntime(), BASIC_OBJECTS_TEST)
         .assertSuccessWithOutput("");
   }
 
@@ -64,10 +78,10 @@ public class Jdk11ObjectsTests extends TestBase {
     }
     testForR8(parameters.getBackend())
         .addLibraryFiles(libraryJar)
-        .addKeepMainRule(BASICOBJECTSTEST)
+        .addKeepMainRule(BASIC_OBJECTS_TEST)
         .addProgramFiles(JDK_11_OBJECTS_TEST_CLASS_FILES)
         .setMinApi(parameters.getRuntime())
-        .run(parameters.getRuntime(), BASICOBJECTSTEST)
+        .run(parameters.getRuntime(), BASIC_OBJECTS_TEST)
         .assertSuccessWithOutput("");
   }
 }

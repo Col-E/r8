@@ -4,16 +4,18 @@
 
 package com.android.tools.r8.desugar.corelib.corelibjdktests;
 
+import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
+import static com.android.tools.r8.utils.FileUtils.JAVA_EXTENSION;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.junit.Assume;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -21,20 +23,34 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class Jdk11MathTests extends TestBase {
 
-  private static final Path JDK_11_MATH_TESTS_DIR =
-      Paths.get(ToolHelper.JAVA_CLASSES_DIR + "jdk11MathTests");
-  private static final Path JDK_11_STRICT_MATH_TESTS_DIR =
-      Paths.get(ToolHelper.JAVA_CLASSES_DIR + "jdk11StrictMathTests");
   private static final String DIVMOD = "DivModTests";
   private static final String EXACTARITH = "ExactArithTests";
-  private static final String CLASS_SUFFIX = ".class";
+
+  // Build test constants.
+  private static final Path JDK_11_MATH_TESTS_DIR =
+      Paths.get(ToolHelper.JDK_11_TESTS_CLASSES_DIR + "Math");
+  private static final Path JDK_11_STRICT_MATH_TESTS_DIR =
+      Paths.get(ToolHelper.JDK_11_TESTS_CLASSES_DIR + "StrictMath");
   private static final Path[] JDK_11_MATH_TEST_CLASS_FILES =
       new Path[] {
-        JDK_11_MATH_TESTS_DIR.resolve(DIVMOD + CLASS_SUFFIX),
-        JDK_11_MATH_TESTS_DIR.resolve(EXACTARITH + CLASS_SUFFIX)
+        JDK_11_MATH_TESTS_DIR.resolve(DIVMOD + CLASS_EXTENSION),
+        JDK_11_MATH_TESTS_DIR.resolve(EXACTARITH + CLASS_EXTENSION)
       };
   private static final Path[] JDK_11_STRICT_MATH_TEST_CLASS_FILES =
-      new Path[] {JDK_11_STRICT_MATH_TESTS_DIR.resolve(EXACTARITH + CLASS_SUFFIX)};
+      new Path[] {JDK_11_STRICT_MATH_TESTS_DIR.resolve(EXACTARITH + CLASS_EXTENSION)};
+
+  // JDK 11 test constants.
+  private static final Path JDK_11_MATH_JAVA_DIR =
+      Paths.get(ToolHelper.JDK_11_TESTS_DIR + "java/lang/Math");
+  private static final Path JDK_11_STRICT_MATH_JAVA_DIR =
+      Paths.get(ToolHelper.JDK_11_TESTS_DIR + "java/lang/StrictMath");
+  private static final Path[] JDK_11_MATH_JAVA_FILES =
+      new Path[] {
+        JDK_11_MATH_JAVA_DIR.resolve(DIVMOD + JAVA_EXTENSION),
+        JDK_11_MATH_JAVA_DIR.resolve(EXACTARITH + JAVA_EXTENSION)
+      };
+  private static final Path[] JDK_11_STRICT_MATH_JAVA_FILES =
+      new Path[] {JDK_11_STRICT_MATH_JAVA_DIR.resolve(EXACTARITH + JAVA_EXTENSION)};
 
   private final TestParameters parameters;
 
@@ -45,6 +61,13 @@ public class Jdk11MathTests extends TestBase {
 
   public Jdk11MathTests(TestParameters parameters) {
     this.parameters = parameters;
+  }
+
+  @BeforeClass
+  public static void compileMathClasses() throws Exception {
+    ToolHelper.runJavac(CfVm.JDK11, null, JDK_11_MATH_TESTS_DIR, JDK_11_MATH_JAVA_FILES);
+    ToolHelper.runJavac(
+        CfVm.JDK11, null, JDK_11_STRICT_MATH_TESTS_DIR, JDK_11_STRICT_MATH_JAVA_FILES);
   }
 
   @Test

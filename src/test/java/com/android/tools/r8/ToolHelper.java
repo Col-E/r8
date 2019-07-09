@@ -109,6 +109,7 @@ public class ToolHelper {
   public static final String SMALI_DIR = TESTS_DIR + "smali/";
   public static final String SMALI_BUILD_DIR = TESTS_BUILD_DIR + "smali/";
   public static final String JAVA_CLASSES_DIR = BUILD_DIR + "classes/java/";
+  public static final String JDK_11_TESTS_CLASSES_DIR = JAVA_CLASSES_DIR + "jdk11Tests/";
 
   public static final String LINE_SEPARATOR = StringUtils.LINE_SEPARATOR;
   public static final String CLASSPATH_SEPARATOR = File.pathSeparator;
@@ -122,6 +123,8 @@ public class ToolHelper {
   public static final String KT_REFLECT = "third_party/kotlin/kotlinc/lib/kotlin-reflect.jar";
   private static final String ANDROID_JAR_PATTERN = "third_party/android_jar/lib-v%d/android.jar";
   private static final AndroidApiLevel DEFAULT_MIN_SDK = AndroidApiLevel.I;
+
+  public static final String JDK_11_TESTS_DIR = "third_party/openjdk/jdk-11-test/";
 
   private static final String PROGUARD5_2_1 = "third_party/proguard/proguard5.2.1/bin/proguard";
   private static final String PROGUARD6_0_1 = "third_party/proguard/proguard6.0.1/bin/proguard";
@@ -1155,6 +1158,31 @@ public class ToolHelper {
   public static ProcessResult runJava(CfVm runtime, List<Path> classpath, String... args)
       throws IOException {
     return runJava(runtime, ImmutableList.of(), classpath, args);
+  }
+
+  public static ProcessResult runJavac(
+      CfVm runtime, Path classPath, Path directoryToCompileInto, Path... classesToCompile)
+      throws IOException {
+    String[] strings = Arrays.stream(classesToCompile).map(Path::toString).toArray(String[]::new);
+    String cp = classPath == null ? null : classPath.toString();
+    return runJavac(runtime, cp, directoryToCompileInto.toString(), strings);
+  }
+
+  public static ProcessResult runJavac(
+      CfVm runtime, String classPath, String directoryToCompileInto, String... classesToCompile)
+      throws IOException {
+    List<String> cmdline =
+        new ArrayList<String>(
+            Collections.singletonList(TestRuntime.getCheckInJDKPathFor(runtime).toString() + "c"));
+    Collections.addAll(cmdline, classesToCompile);
+    if (classPath != null) {
+      cmdline.add("-cp");
+      cmdline.add(classPath);
+    }
+    cmdline.add("-d");
+    cmdline.add(directoryToCompileInto);
+    ProcessBuilder builder = new ProcessBuilder(cmdline);
+    return ToolHelper.runProcess(builder);
   }
 
   public static ProcessResult runJava(

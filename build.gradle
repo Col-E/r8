@@ -124,25 +124,6 @@ sourceSets {
             srcDirs = ['src/test/examplesJava11']
         }
     }
-    jdk11MathTests {
-        java {
-            srcDirs = ['third_party/openjdk/jdk-11-test/java/lang/Math']
-            include '**DivModTests.java'
-            include '**ExactArithTests.java'
-        }
-    }
-    jdk11ObjectsTests {
-        java {
-            srcDirs = ['third_party/openjdk/jdk-11-test/java/util/Objects']
-            include '**BasicObjectsTest.java'
-        }
-    }
-    jdk11StrictMathTests {
-        java {
-            srcDirs = ['third_party/openjdk/jdk-11-test/java/lang/StrictMath']
-            include '**ExactArithTests.java'
-        }
-    }
     jdk11TimeTests {
         java {
             srcDirs = [
@@ -575,9 +556,6 @@ def setJava11Compilation(sourceSet) {
 }
 
 setJava11Compilation(sourceSets.examplesJava11.compileJavaTaskName)
-setJava11Compilation(sourceSets.jdk11MathTests.compileJavaTaskName)
-setJava11Compilation(sourceSets.jdk11ObjectsTests.compileJavaTaskName)
-setJava11Compilation(sourceSets.jdk11StrictMathTests.compileJavaTaskName)
 setJava11Compilation(sourceSets.testNGRunner.compileJavaTaskName)
 setJava11Compilation(sourceSets.jdk11TimeTests.compileJavaTaskName)
 
@@ -1908,9 +1886,6 @@ test {
         dependsOn buildDebugInfoExamplesDex
         dependsOn buildPreNJdwpTestsJar
         dependsOn buildPreNJdwpTestsDex
-        dependsOn sourceSets.jdk11MathTests.output
-        dependsOn sourceSets.jdk11ObjectsTests.output
-        dependsOn sourceSets.jdk11StrictMathTests.output
         dependsOn buildJdk11TimeTestsJar
     } else {
         logger.lifecycle("WARNING: Testing in not supported on your platform. Testing is only fully supported on " +
