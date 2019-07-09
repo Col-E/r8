@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.checkcast;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.StringContains.containsString;
 
 import com.android.tools.r8.CompilationFailedException;
@@ -77,32 +78,38 @@ public class CheckCastChainRemovalTest extends TestBase {
   @Test
   public void testDescendingChainWillProvideCorrectStacktrace()
       throws IOException, CompilationFailedException, ExecutionException {
-    testForR8(parameters.getBackend())
-        .addProgramClasses(A.class, B.class, MainDescendingRunner.class)
-        .addKeepAllClassesRule()
-        .addKeepMainRule(MainDescendingRunner.class)
-        .enableInliningAnnotations()
-        .setMinApi(parameters.getRuntime())
-        .run(parameters.getRuntime(), MainDescendingRunner.class)
-        .assertFailureWithErrorThatMatches(
-            containsString(
-                "java.lang.String cannot be cast to"
-                    + " com.android.tools.r8.ir.optimize.checkcast.CheckCastChainRemovalTest$B"));
+    String stdErr =
+        testForR8(parameters.getBackend())
+            .addProgramClasses(A.class, B.class, MainDescendingRunner.class)
+            .addKeepAllClassesRule()
+            .addKeepMainRule(MainDescendingRunner.class)
+            .enableInliningAnnotations()
+            .setMinApi(parameters.getRuntime())
+            .run(parameters.getRuntime(), MainDescendingRunner.class)
+            .assertFailure()
+            .getStdErr();
+    assertThat(stdErr, containsString("ClassCastException"));
+    assertThat(
+        stdErr,
+        containsString("com.android.tools.r8.ir.optimize.checkcast.CheckCastChainRemovalTest$B"));
   }
 
   @Test
   public void testAscendingChainWillProvideCorrectStacktrace()
       throws IOException, CompilationFailedException, ExecutionException {
-    testForR8(parameters.getBackend())
-        .addProgramClasses(A.class, B.class, MainAscendingRunner.class)
-        .addKeepAllClassesRule()
-        .addKeepMainRule(MainAscendingRunner.class)
-        .enableInliningAnnotations()
-        .setMinApi(parameters.getRuntime())
-        .run(parameters.getRuntime(), MainAscendingRunner.class)
-        .assertFailureWithErrorThatMatches(
-            containsString(
-                "java.lang.String cannot be cast to"
-                    + " com.android.tools.r8.ir.optimize.checkcast.CheckCastChainRemovalTest$A"));
+    String stdErr =
+        testForR8(parameters.getBackend())
+            .addProgramClasses(A.class, B.class, MainAscendingRunner.class)
+            .addKeepAllClassesRule()
+            .addKeepMainRule(MainAscendingRunner.class)
+            .enableInliningAnnotations()
+            .setMinApi(parameters.getRuntime())
+            .run(parameters.getRuntime(), MainAscendingRunner.class)
+            .assertFailure()
+            .getStdErr();
+    assertThat(stdErr, containsString("ClassCastException"));
+    assertThat(
+        stdErr,
+        containsString("com.android.tools.r8.ir.optimize.checkcast.CheckCastChainRemovalTest$A"));
   }
 }
