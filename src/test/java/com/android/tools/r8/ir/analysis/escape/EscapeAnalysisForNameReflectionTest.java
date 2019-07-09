@@ -11,6 +11,7 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.analysis.AnalysisTestBase;
 import com.android.tools.r8.ir.code.IRCode;
@@ -66,21 +67,15 @@ public class EscapeAnalysisForNameReflectionTest extends AnalysisTestBase {
           EscapeAnalysis escapeAnalysis =
               new EscapeAnalysis(
                   appView,
-                  StringOptimizer.StringOptimizerEscapeAnalysisConfiguration.getInstance());
+                  StringOptimizerEscapeAnalysisConfigurationForTesting.getInstance());
           Set<Instruction> escapeRoutes = escapeAnalysis.computeEscapeRoutes(code, v);
-          assertEquals(1, escapeRoutes.size());
+          assertEquals(2, escapeRoutes.size());
           assertTrue(
-              escapeRoutes.stream()
-                  .allMatch(
-                      instr ->
-                          instr.isThrow()
-                              || (instr.isInvokeDirect()
-                                  && instr
-                                      .asInvokeDirect()
-                                      .getInvokedMethod()
-                                      .name
-                                      .toString()
-                                      .equals("<init>"))));
+              escapeRoutes.stream().allMatch(
+                  instr ->
+                      instr.isThrow()
+                          || (instr.isInvokeDirect()
+                          && invokesMethodWithName("<init>").test(instr))));
         });
   }
 
@@ -112,22 +107,14 @@ public class EscapeAnalysisForNameReflectionTest extends AnalysisTestBase {
   public void testEscapeViaListPut() throws Exception {
     buildAndCheckIR(
         "escapeViaListPut",
-        checkEscapingName(
-            false,
-            instr -> {
-              throw new Unreachable();
-            }));
+        checkEscapingName(true, invokesMethodWithName("add")));
   }
 
   @Test
   public void testEscapeViaListArgumentPut() throws Exception {
     buildAndCheckIR(
         "escapeViaListArgumentPut",
-        checkEscapingName(
-            false,
-            instr -> {
-              throw new Unreachable();
-            }));
+        checkEscapingName(true, invokesMethodWithName("add")));
   }
 
   @Test
@@ -161,6 +148,44 @@ public class EscapeAnalysisForNameReflectionTest extends AnalysisTestBase {
             true, instr -> instr.isReturn() || invokesMethodWithName("toString").test(instr)));
   }
 
+  static class StringOptimizerEscapeAnalysisConfigurationForTesting
+      implements EscapeAnalysisConfiguration {
+
+    private static final StringOptimizerEscapeAnalysisConfigurationForTesting INSTANCE =
+        new StringOptimizerEscapeAnalysisConfigurationForTesting();
+
+    private StringOptimizerEscapeAnalysisConfigurationForTesting() {}
+
+    static StringOptimizerEscapeAnalysisConfigurationForTesting getInstance() {
+      return INSTANCE;
+    }
+
+    @Override
+    public boolean isLegitimateEscapeRoute(
+        AppView<?> appView,
+        EscapeAnalysis escapeAnalysis,
+        Instruction escapeRoute,
+        DexMethod context) {
+      if (escapeRoute.isReturn() || escapeRoute.isThrow() || escapeRoute.isStaticPut()) {
+        return false;
+      }
+      if (escapeRoute.isInvokeMethod()) {
+        DexMethod invokedMethod = escapeRoute.asInvokeMethod().getInvokedMethod();
+        // Heuristic: if the call target has the same method name, it could be still local.
+        if (invokedMethod.name == context.name) {
+          return true;
+        }
+        // It's not legitimate during testing, except for recursion calls.
+        return false;
+      }
+      if (escapeRoute.isArrayPut()) {
+        return !escapeRoute.asArrayPut().array().isArgument();
+      }
+      // All other cases are not legitimate.
+      return false;
+    }
+  }
+
   private Consumer<IRCode> checkEscapingName(
       boolean expectedHeuristicResult, Predicate<Instruction> instructionTester) {
     assert instructionTester != null;
@@ -171,7 +196,7 @@ public class EscapeAnalysisForNameReflectionTest extends AnalysisTestBase {
       assertNotNull(v);
       EscapeAnalysis escapeAnalysis =
           new EscapeAnalysis(
-              appView, StringOptimizer.StringOptimizerEscapeAnalysisConfiguration.getInstance());
+              appView, StringOptimizerEscapeAnalysisConfigurationForTesting.getInstance());
       Set<Instruction> escapeRoutes = escapeAnalysis.computeEscapeRoutes(code, v);
       assertNotEquals(expectedHeuristicResult, escapeRoutes.isEmpty());
       assertTrue(escapeRoutes.stream().allMatch(instructionTester));

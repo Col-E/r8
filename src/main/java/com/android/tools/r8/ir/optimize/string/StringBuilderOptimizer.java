@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize.string;
 
+import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
+
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
@@ -11,17 +13,33 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.escape.EscapeAnalysis;
 import com.android.tools.r8.ir.analysis.escape.EscapeAnalysisConfiguration;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
+import com.android.tools.r8.ir.code.ConstString;
+import com.android.tools.r8.ir.code.DominatorTree;
+import com.android.tools.r8.ir.code.DominatorTree.Assumption;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.InstructionIterator;
+import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.logging.Log;
+import com.android.tools.r8.utils.StringUtils;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.objects.Object2IntArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -58,7 +76,10 @@ public class StringBuilderOptimizer {
 
   private final AppView<?> appView;
   private final DexItemFactory factory;
-  private final StringBuilderOptimizationConfiguration optimizationConfiguration;
+  private final ThrowingInfo throwingInfo;
+  @VisibleForTesting
+  StringConcatenationAnalysis analysis;
+  final StringBuilderOptimizationConfiguration optimizationConfiguration;
 
   private int numberOfBuildersWithMultipleToString = 0;
   private int numberOfBuildersWithoutToString = 0;
@@ -66,19 +87,50 @@ public class StringBuilderOptimizer {
   private int numberOfBuildersWhoseResultIsInterned = 0;
   private int numberOfBuildersWithNonTrivialStateChange = 0;
   private int numberOfBuildersWithNonStringArg = 0;
+  private int numberOfBuildersWithMergingPoints = 0;
+  private int numberOfBuildersWithNonDeterministicArg = 0;
+  private int numberOfBuildersSimplified = 0;
+  private final Object2IntMap<Integer> histogramOfLengthOfAppendChains;
+  private final Object2IntMap<Integer> histogramOfLengthOfEndResult;
+  private final Object2IntMap<Integer> histogramOfLengthOfPartialAppendChains;
+  private final Object2IntMap<Integer> histogramOfLengthOfPartialResult;
 
   @VisibleForTesting
   StringBuilderOptimizer(
       AppView<? extends AppInfo> appView, StringBuilderOptimizationConfiguration configuration) {
     this.appView = appView;
     this.factory = appView.dexItemFactory();
+    this.throwingInfo = ThrowingInfo.defaultForConstString(appView.options());
     this.optimizationConfiguration = configuration;
+    if (Log.ENABLED) {
+      histogramOfLengthOfAppendChains = new Object2IntArrayMap<>();
+      histogramOfLengthOfEndResult = new Object2IntArrayMap<>();
+      histogramOfLengthOfPartialAppendChains = new Object2IntArrayMap<>();
+      histogramOfLengthOfPartialResult = new Object2IntArrayMap<>();
+    } else {
+      histogramOfLengthOfAppendChains = null;
+      histogramOfLengthOfEndResult = null;
+      histogramOfLengthOfPartialAppendChains = null;
+      histogramOfLengthOfPartialResult = null;
+    }
   }
 
   public StringBuilderOptimizer(AppView<? extends AppInfo> appView) {
     this.appView = appView;
     this.factory = appView.dexItemFactory();
+    this.throwingInfo = ThrowingInfo.defaultForConstString(appView.options());
     this.optimizationConfiguration = new DefaultStringBuilderOptimizationConfiguration();
+    if (Log.ENABLED) {
+      histogramOfLengthOfAppendChains = new Object2IntArrayMap<>();
+      histogramOfLengthOfEndResult = new Object2IntArrayMap<>();
+      histogramOfLengthOfPartialAppendChains = new Object2IntArrayMap<>();
+      histogramOfLengthOfPartialResult = new Object2IntArrayMap<>();
+    } else {
+      histogramOfLengthOfAppendChains = null;
+      histogramOfLengthOfEndResult = null;
+      histogramOfLengthOfPartialAppendChains = null;
+      histogramOfLengthOfPartialResult = null;
+    }
   }
 
   public void logResults() {
@@ -95,23 +147,62 @@ public class StringBuilderOptimizer {
         "# builders w/ non-trivial state change: %s", numberOfBuildersWithNonTrivialStateChange);
     Log.info(getClass(),
         "# builders w/ non-string arg: %s", numberOfBuildersWithNonStringArg);
+    Log.info(getClass(),
+        "# builders w/ merging points: %s", numberOfBuildersWithMergingPoints);
+    Log.info(getClass(),
+        "# builders w/ non-deterministic arg: %s", numberOfBuildersWithNonDeterministicArg);
+    Log.info(getClass(),
+        "# builders simplified: %s", numberOfBuildersSimplified);
+    assert histogramOfLengthOfAppendChains != null;
+    Log.info(getClass(), "------ histogram of StringBuilder append chain lengths ------");
+    histogramOfLengthOfAppendChains.forEach((chainSize, count) -> {
+      Log.info(getClass(),
+          "%s: %s (%s)", chainSize, StringUtils.times("*", Math.min(count, 53)), count);
+    });
+    assert histogramOfLengthOfEndResult != null;
+    Log.info(getClass(), "------ histogram of StringBuilder result lengths ------");
+    histogramOfLengthOfEndResult.forEach((length, count) -> {
+      Log.info(getClass(),
+          "%s: %s (%s)", length, StringUtils.times("*", Math.min(count, 53)), count);
+    });
+    assert histogramOfLengthOfPartialAppendChains != null;
+    Log.info(getClass(), "------ histogram of StringBuilder append chain lengths (partial) ------");
+    histogramOfLengthOfPartialAppendChains.forEach((chainSize, count) -> {
+      Log.info(getClass(),
+          "%s: %s (%s)", chainSize, StringUtils.times("*", Math.min(count, 53)), count);
+    });
+    assert histogramOfLengthOfPartialResult != null;
+    Log.info(getClass(), "------ histogram of StringBuilder partial result lengths ------");
+    histogramOfLengthOfPartialResult.forEach((length, count) -> {
+      Log.info(getClass(),
+          "%s: %s (%s)", length, StringUtils.times("*", Math.min(count, 53)), count);
+    });
   }
 
-  public Set<Value> computeTrivialStringConcatenation(IRCode code) {
+  public void computeTrivialStringConcatenation(IRCode code) {
     StringConcatenationAnalysis analysis = new StringConcatenationAnalysis(code);
+    // Only for testing purpose, where we ran the analysis for only one method.
+    // Using `this.analysis` is not thread-safe, of course.
+    this.analysis = analysis;
     Set<Value> builders =
         analysis.findAllLocalBuilders()
             .stream()
             .filter(analysis::canBeOptimized)
             .collect(Collectors.toSet());
-    // TODO(b/114002137): compute const-string for candidate builders.
-    return builders;
+    if (builders.isEmpty()) {
+      return;
+    }
+    analysis
+        .buildBuilderStateGraph(builders)
+        .applyConcatenationResults()
+        .removeTrivialBuilders();
   }
 
   class StringConcatenationAnalysis {
 
     // Inspired by {@link JumboStringTest}. Some code intentionally may have too many append(...).
     private static final int CONCATENATION_THRESHOLD = 200;
+    private static final String ANY_STRING = "*";
 
     private final IRCode code;
 
@@ -220,6 +311,343 @@ public class StringBuilderOptimizer {
               appView, new StringBuilderOptimizerEscapeAnalysisConfiguration(builder));
       return !escapeAnalysis.isEscaping(code, builder);
     }
+
+    // A map from SSA Value of StringBuilder type to its internal state per instruction.
+    final Map<Value, Map<Instruction, BuilderState>> builderStates = new HashMap<>();
+
+    // Create a builder state, only used when visiting new-instance instructions.
+    private Map<Instruction, BuilderState> createBuilderState(Value builder) {
+      // By using LinkedHashMap, we want to visit instructions in the order of their insertions.
+      return builderStates.computeIfAbsent(builder, ignore -> new LinkedHashMap<>());
+    }
+
+    // Get a builder state, used for all other cases except for new-instance instructions.
+    private Map<Instruction, BuilderState> getBuilderState(Value builder) {
+      return builderStates.get(builder);
+    }
+
+    // Suppose a simple, trivial chain:
+    //   new StringBuilder().append("a").append("b").toString();
+    //
+    // the resulting graph would be:
+    //   [s1, root, "", {s2}],
+    //   [s2, s1, "a", {s3}],
+    //   [s3, s2, "b", {}].
+    //
+    // For each meaningful IR (init, append, toString), the corresponding state will be bound:
+    // <init> -> s1, 1st append -> s2, 2nd append -> s3, toString -> s3.
+    //
+    // Suppose an example with a phi:
+    //   StringBuilder b = flag ? new StringBuilder("x") : new StringBuilder("y");
+    //   b.append("z").toString();
+    //
+    // the resulting graph would be:
+    //   [s1, root, "", {s2, s3, s4}],
+    //   [s2, s1, "x", {}],
+    //   [s3, s1, "y", {}],
+    //   [s4, s1, "z", {}].
+    //
+    // Note that neither s2 nor s3 can dominate s4, and thus all of s{2..4} are linked to s1.
+    // An alternative graph shape would be: [s4, {s2, s3}, "z", {}] (and proper successor update in
+    // s2 and s3, of course). But, from the point of the view of finding the trivial chain, there is
+    // no difference. The current graph construction relies on and resembles dominator tree.
+    private StringConcatenationAnalysis buildBuilderStateGraph(Set<Value> candidateBuilders) {
+      DominatorTree dominatorTree = new DominatorTree(code, Assumption.MAY_HAVE_UNREACHABLE_BLOCKS);
+      for (BasicBlock block : code.topologicallySortedBlocks()) {
+        InstructionIterator it = block.listIterator();
+        while (it.hasNext()) {
+          Instruction instr = it.next();
+
+          if (instr.isNewInstance()
+              && optimizationConfiguration.isBuilderType(instr.asNewInstance().clazz)) {
+            Value builder = instr.asNewInstance().dest();
+            if (!candidateBuilders.contains(builder)) {
+              continue;
+            }
+            Map<Instruction, BuilderState> perInstrState = createBuilderState(builder);
+            perInstrState.put(instr, BuilderState.createRoot());
+            continue;
+          }
+
+          if (instr.isInvokeDirect()
+              && optimizationConfiguration.isBuilderInit(
+                  instr.asInvokeDirect().getInvokedMethod())) {
+            InvokeDirect invoke = instr.asInvokeDirect();
+            Value builder = invoke.getReceiver();
+            if (!candidateBuilders.contains(builder)) {
+              continue;
+            }
+            // builder initialization with the initial content.
+            if (invoke.inValues().size() > 1) {
+              assert invoke.inValues().size() == 2;
+              Value arg = invoke.inValues().get(1);
+              String addition = extractConstantArgument(arg);
+              Map<Instruction, BuilderState> perInstrState = getBuilderState(builder);
+              BuilderState dominantState = findDominantState(dominatorTree, perInstrState, instr);
+              if (dominantState != null) {
+                BuilderState currentState = dominantState.createChild(addition);
+                perInstrState.put(instr, currentState);
+              }
+            }
+            continue;
+          }
+
+          if (!instr.isInvokeMethodWithReceiver()) {
+            continue;
+          }
+
+          InvokeMethodWithReceiver invoke = instr.asInvokeMethodWithReceiver();
+          if (optimizationConfiguration.isAppendMethod(invoke.getInvokedMethod())) {
+            Value builder = invoke.getReceiver().getAliasedValue();
+            // If `builder` is phi, itself and predecessors won't be tracked.
+            // Not being tracked means that they won't be optimized, which is intentional.
+            if (!candidateBuilders.contains(builder)) {
+              continue;
+            }
+            Value arg = invoke.inValues().get(1);
+            String addition = extractConstantArgument(arg);
+            Map<Instruction, BuilderState> perInstrState = getBuilderState(builder);
+            BuilderState dominantState = findDominantState(dominatorTree, perInstrState, instr);
+            if (dominantState != null) {
+              BuilderState currentState = dominantState.createChild(addition);
+              perInstrState.put(instr, currentState);
+            } else {
+              // TODO(b/114002137): if we want to utilize partial results, don't remove it here.
+              candidateBuilders.remove(builder);
+            }
+          }
+          if (optimizationConfiguration.isToStringMethod(invoke.getInvokedMethod())) {
+            Value builder = invoke.getReceiver().getAliasedValue();
+            // If `builder` is phi, itself and predecessors won't be tracked.
+            // Not being tracked means that they won't be optimized, which is intentional.
+            if (!candidateBuilders.contains(builder)) {
+              continue;
+            }
+            Map<Instruction, BuilderState> perInstrState = getBuilderState(builder);
+            BuilderState dominantState = findDominantState(dominatorTree, perInstrState, instr);
+            if (dominantState != null) {
+              perInstrState.put(instr, dominantState);
+            } else {
+              // TODO(b/114002137): if we want to utilize partial results, don't remove it here.
+              candidateBuilders.remove(builder);
+            }
+          }
+        }
+      }
+
+      return this;
+    }
+
+    private String extractConstantArgument(Value arg) {
+      String addition = ANY_STRING;
+      if (!arg.isPhi()) {
+        // TODO(b/114002137): Improve arg extraction and type conversion.
+        if (arg.definition.isConstString()) {
+          addition = arg.definition.asConstString().getValue().toString();
+        }
+      }
+      return addition;
+    }
+
+    private BuilderState findDominantState(
+        DominatorTree dominatorTree,
+        Map<Instruction, BuilderState> perInstrState,
+        Instruction current) {
+      BuilderState result = null;
+      BasicBlock lastDominantBlock = null;
+      for (Instruction instr : perInstrState.keySet()) {
+        BasicBlock block = instr.getBlock();
+        if (!dominatorTree.dominatedBy(current.getBlock(), block)) {
+          continue;
+        }
+        if (lastDominantBlock == null
+            || dominatorTree.dominatedBy(block, lastDominantBlock)) {
+          result = perInstrState.get(instr);
+          lastDominantBlock = block;
+        }
+      }
+      return result;
+    }
+
+    private void logHistogramOfChains(List<String> contents, boolean isPartial) {
+      if (contents == null || contents.isEmpty()) {
+        return;
+      }
+      String result = StringUtils.join(contents, "");
+      Integer size = Integer.valueOf(contents.size());
+      Integer length = Integer.valueOf(result.length());
+      if (isPartial) {
+        synchronized (histogramOfLengthOfPartialAppendChains) {
+          int count = histogramOfLengthOfPartialAppendChains.getOrDefault(size, 0);
+          histogramOfLengthOfPartialAppendChains.put(size, count + 1);
+        }
+        synchronized (histogramOfLengthOfPartialResult) {
+          int count = histogramOfLengthOfPartialResult.getOrDefault(length, 0);
+          histogramOfLengthOfPartialResult.put(length, count + 1);
+        }
+      } else {
+        synchronized (histogramOfLengthOfAppendChains) {
+          int count = histogramOfLengthOfAppendChains.getOrDefault(size, 0);
+          histogramOfLengthOfAppendChains.put(size, count + 1);
+        }
+        synchronized (histogramOfLengthOfEndResult) {
+          int count = histogramOfLengthOfEndResult.getOrDefault(length, 0);
+          histogramOfLengthOfEndResult.put(length, count + 1);
+        }
+      }
+    }
+
+    // StringBuilders that are simplified by this analysis. Will be used to clean up uses of the
+    // builders, such as creation, <init>, and append calls.
+    final Set<Value> simplifiedBuilders = new HashSet<>();
+
+    private StringConcatenationAnalysis applyConcatenationResults() {
+      InstructionIterator it = code.instructionIterator();
+      while (it.hasNext()) {
+        Instruction instr = it.nextUntil(this::isToStringOfInterest);
+        if (instr == null) {
+          break;
+        }
+        InvokeVirtual invoke = instr.asInvokeVirtual();
+        assert invoke.inValues().size() == 1;
+        Value builder = invoke.getReceiver().getAliasedValue();
+        Map<Instruction, BuilderState> perInstrState = builderStates.get(builder);
+        assert perInstrState != null;
+        BuilderState builderState = perInstrState.get(instr);
+        assert builderState != null;
+        String element = toCompileTimeString(builderState);
+        assert element != null;
+        Value stringValue =
+            code.createValue(
+                TypeLatticeElement.stringClassType(appView, definitelyNotNull()),
+                invoke.getLocalInfo());
+        it.replaceCurrentInstruction(
+            new ConstString(stringValue, factory.createString(element), throwingInfo));
+        simplifiedBuilders.add(builder);
+        numberOfBuildersSimplified++;
+      }
+      return this;
+    }
+
+    private boolean isToStringOfInterest(Instruction instr) {
+      if (!instr.isInvokeVirtual()) {
+        return false;
+      }
+      InvokeVirtual invoke = instr.asInvokeVirtual();
+      if (!invoke.hasOutValue()) {
+        return false;
+      }
+      DexMethod invokedMethod = invoke.getInvokedMethod();
+      if (optimizationConfiguration.isToStringMethod(invokedMethod)) {
+        assert invoke.inValues().size() == 1;
+        Value builder = invoke.getReceiver().getAliasedValue();
+        Map<Instruction, BuilderState> perInstrState = builderStates.get(builder);
+        if (perInstrState == null) {
+          return false;
+        }
+        BuilderState builderState = perInstrState.get(instr);
+        if (builderState == null) {
+          return false;
+        }
+        String element = toCompileTimeString(builderState);
+        if (element == null) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    // Find the trivial chain of builder-append*-toString.
+    // Note that we can't determine a compile-time constant string if there are any ambiguity.
+    @VisibleForTesting
+    String toCompileTimeString(BuilderState state) {
+      boolean continuedForLogging = false;
+      LinkedList<String> contents = new LinkedList<>();
+      while (state != null) {
+        // Not a single chain if there are multiple successors.
+        if (state.nexts != null && state.nexts.size() > 1) {
+          numberOfBuildersWithMergingPoints++;
+          if (Log.ENABLED && Log.isLoggingEnabledFor(StringBuilderOptimizer.class)) {
+            logHistogramOfChains(contents, true);
+            continuedForLogging = true;
+            contents.clear();
+            state = state.previous;
+            continue;
+          }
+          return null;
+        }
+        // Reaching the root.
+        if (state.addition == null) {
+          break;
+        }
+        // A non-deterministic argument is appended.
+        // TODO(b/129200243): Even though it's ambiguous, if the chain length is 2, and the 1st one
+        //   is definitely non-null, we can convert it to String#concat.
+        if (state.addition.equals(ANY_STRING)) {
+          numberOfBuildersWithNonDeterministicArg++;
+          if (Log.ENABLED && Log.isLoggingEnabledFor(StringBuilderOptimizer.class)) {
+            logHistogramOfChains(contents, true);
+            continuedForLogging = true;
+            contents.clear();
+            state = state.previous;
+            continue;
+          }
+          return null;
+        }
+        contents.push(state.addition);
+        state = state.previous;
+      }
+      if (continuedForLogging) {
+        logHistogramOfChains(contents, true);
+        return null;
+      }
+      if (Log.ENABLED && Log.isLoggingEnabledFor(StringBuilderOptimizer.class)) {
+        logHistogramOfChains(contents, false);
+      }
+      return contents.isEmpty() ? null : StringUtils.join(contents, "");
+    }
+
+    void removeTrivialBuilders() {
+      if (simplifiedBuilders.isEmpty()) {
+        return;
+      }
+      // All instructions that refer to simplified builders are dead.
+      // Here, we remove append(...) calls, <init>, and new-instance in order.
+      InstructionIterator it = code.instructionIterator();
+      while (it.hasNext()) {
+        Instruction instr = it.next();
+        if (instr.isInvokeVirtual()) {
+          InvokeVirtual invoke = instr.asInvokeVirtual();
+          DexMethod invokedMethod = invoke.getInvokedMethod();
+          if (optimizationConfiguration.isAppendMethod(invokedMethod)
+              && simplifiedBuilders.contains(invoke.getReceiver())) {
+            it.removeOrReplaceByDebugLocalRead();
+          }
+        }
+      }
+      it = code.instructionIterator();
+      while (it.hasNext()) {
+        Instruction instr = it.next();
+        if (instr.isInvokeDirect()) {
+          InvokeDirect invoke = instr.asInvokeDirect();
+          DexMethod invokedMethod = invoke.getInvokedMethod();
+          if (optimizationConfiguration.isBuilderInit(invokedMethod)
+              && simplifiedBuilders.contains(invoke.getReceiver())) {
+            it.removeOrReplaceByDebugLocalRead();
+          }
+        }
+      }
+      it = code.instructionIterator();
+      while (it.hasNext()) {
+        Instruction instr = it.next();
+        if (instr.isNewInstance()
+            && optimizationConfiguration.isBuilderType(instr.asNewInstance().clazz)
+            && instr.hasOutValue()
+            && simplifiedBuilders.contains(instr.outValue())) {
+          it.removeOrReplaceByDebugLocalRead();
+        }
+      }
+    }
   }
 
   class DefaultStringBuilderOptimizationConfiguration
@@ -231,8 +659,14 @@ public class StringBuilderOptimizer {
     }
 
     @Override
-    public boolean isBuilderInit(DexType builderType, DexMethod method) {
+    public boolean isBuilderInit(DexMethod method, DexType builderType) {
       return builderType == method.holder
+          && factory.isConstructor(method);
+    }
+
+    @Override
+    public boolean isBuilderInit(DexMethod method) {
+      return isBuilderType(method.holder)
           && factory.isConstructor(method);
     }
 
@@ -271,7 +705,7 @@ public class StringBuilderOptimizer {
       // TODO(b/113859361): passed to another builder should be an eligible case.
       // TODO(b/114002137): Improve arg extraction and type conversion.
       //   For now, skip any append(arg) that receives non-string types.
-      return argType != factory.stringType && argType != factory.charSequenceType;
+      return argType == factory.stringType || argType == factory.charSequenceType;
     }
   }
 
@@ -372,7 +806,7 @@ public class StringBuilderOptimizer {
           return false;
         }
         // <init> is legitimate.
-        if (optimizationConfiguration.isBuilderInit(builderType, invokedMethod)) {
+        if (optimizationConfiguration.isBuilderInit(invokedMethod, builderType)) {
           return true;
         }
         if (optimizationConfiguration.isToStringMethod(invokedMethod)) {
@@ -413,6 +847,34 @@ public class StringBuilderOptimizer {
       // All other cases are not legitimate.
       logEscapingRoute(false);
       return false;
+    }
+  }
+
+  // A chain of builder's internal state changes.
+  static class BuilderState {
+    BuilderState previous;
+    String addition;
+    Set<BuilderState> nexts;
+
+    private BuilderState() {
+      previous = null;
+      addition = null;
+      nexts = null;
+    }
+
+    static BuilderState createRoot() {
+      return new BuilderState();
+    }
+
+    BuilderState createChild(String addition) {
+      BuilderState newState = new BuilderState();
+      newState.previous = this;
+      newState.addition = addition;
+      if (this.nexts == null) {
+        this.nexts = new HashSet<>();
+      }
+      this.nexts.add(newState);
+      return newState;
     }
   }
 }

@@ -10,7 +10,9 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 interface StringBuilderOptimizationConfiguration {
   boolean isBuilderType(DexType type);
 
-  boolean isBuilderInit(DexType builderType, DexMethod method);
+  boolean isBuilderInit(DexMethod method, DexType builderType);
+
+  boolean isBuilderInit(DexMethod method);
 
   boolean isAppendMethod(DexMethod method);
 

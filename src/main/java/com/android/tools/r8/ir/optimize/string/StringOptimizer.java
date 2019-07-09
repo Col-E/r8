@@ -449,7 +449,8 @@ public class StringOptimizer {
       if (escapeRoute.isArrayPut()) {
         return !escapeRoute.asArrayPut().array().isArgument();
       }
-      return true;
+      // All other cases are not legitimate.
+      return false;
     }
   }
 }

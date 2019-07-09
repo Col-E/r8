@@ -11,9 +11,11 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.AnalysisTestBase;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
-import java.util.Set;
+import com.android.tools.r8.ir.optimize.string.StringBuilderOptimizer.BuilderState;
+import java.util.Map;
 import java.util.function.Consumer;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -37,46 +39,68 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
 
   @Test
   public void testTrivialSequence() throws Exception {
-    buildAndCheckIR("trivialSequence", checkBuilderDetection(builders -> {
-      assertEquals(1, builders.size());
+    buildAndCheckIR("trivialSequence", checkOptimizerStates(optimizer -> {
+      assertEquals(1, optimizer.analysis.builderStates.size());
+      for (Value builder : optimizer.analysis.builderStates.keySet()) {
+        Map<Instruction, BuilderState> perBuilderState =
+            optimizer.analysis.builderStates.get(builder);
+        checkBuilderState(optimizer, perBuilderState, "xyz", true);
+      }
+      assertEquals(1, optimizer.analysis.simplifiedBuilders.size());
     }));
   }
 
   @Test
   public void testNonStringArgs() throws Exception {
-    buildAndCheckIR("nonStringArgs", checkBuilderDetection(builders -> {
+    buildAndCheckIR("nonStringArgs", checkOptimizerStates(optimizer -> {
       // TODO(b/114002137): Improve arg extraction and type conversion.
-      assertEquals(0, builders.size());
+      assertEquals(0, optimizer.analysis.builderStates.size());
+      assertEquals(0, optimizer.analysis.simplifiedBuilders.size());
     }));
   }
 
   @Test
   public void testTypeConversion() throws Exception {
-    buildAndCheckIR("typeConversion", checkBuilderDetection(builders -> {
+    buildAndCheckIR("typeConversion", checkOptimizerStates(optimizer -> {
       // TODO(b/114002137): Improve arg extraction and type conversion.
-      assertEquals(0, builders.size());
+      assertEquals(0, optimizer.analysis.builderStates.size());
+      assertEquals(0, optimizer.analysis.simplifiedBuilders.size());
     }));
   }
 
   @Test
   public void testNestedBuilders_appendBuilderItself() throws Exception {
-    buildAndCheckIR("nestedBuilders_appendBuilderItself", checkBuilderDetection(builders -> {
-      assertEquals(1, builders.size());
+    buildAndCheckIR("nestedBuilders_appendBuilderItself", checkOptimizerStates(optimizer -> {
+      assertEquals(1, optimizer.analysis.builderStates.size());
+      for (Value builder : optimizer.analysis.builderStates.keySet()) {
+        Map<Instruction, BuilderState> perBuilderState =
+            optimizer.analysis.builderStates.get(builder);
+        checkBuilderState(optimizer, perBuilderState, null, true);
+      }
+      assertEquals(0, optimizer.analysis.simplifiedBuilders.size());
     }));
   }
 
   @Test
   public void testNestedBuilders_appendBuilderResult() throws Exception {
-    buildAndCheckIR("nestedBuilders_appendBuilderResult", checkBuilderDetection(builders -> {
-      assertEquals(2, builders.size());
+    buildAndCheckIR("nestedBuilders_appendBuilderResult", checkOptimizerStates(optimizer -> {
+      assertEquals(2, optimizer.analysis.builderStates.size());
+      for (Value builder : optimizer.analysis.builderStates.keySet()) {
+        Map<Instruction, BuilderState> perBuilderState =
+            optimizer.analysis.builderStates.get(builder);
+        String expectedResult =
+            optimizer.analysis.simplifiedBuilders.contains(builder) ? "R8" : null;
+        checkBuilderState(optimizer, perBuilderState, expectedResult, true);
+      }
+      assertEquals(1, optimizer.analysis.simplifiedBuilders.size());
     }));
   }
 
   @Test
   public void testSimplePhi() throws Exception {
-    buildAndCheckIR("simplePhi", checkBuilderDetection(builders -> {
+    buildAndCheckIR("simplePhi", checkOptimizerStates(optimizer -> {
       // TODO(b/114002137): Improve arg extraction and type conversion.
-      assertEquals(0, builders.size());
+      assertEquals(0, optimizer.analysis.simplifiedBuilders.size());
     }));
   }
 
@@ -84,41 +108,83 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
   @Ignore("b/114002137")
   @Test
   public void testPhiAtInit() throws Exception {
-    buildAndCheckIR("phiAtInit", checkBuilderDetection(builders -> {
-      assertEquals(2, builders.size());
+    buildAndCheckIR("phiAtInit", checkOptimizerStates(optimizer -> {
+      assertEquals(2, optimizer.analysis.builderStates.size());
+      for (Value builder : optimizer.analysis.builderStates.keySet()) {
+        Map<Instruction, BuilderState> perBuilderState =
+            optimizer.analysis.builderStates.get(builder);
+        checkBuilderState(optimizer, perBuilderState, null, false);
+      }
+      assertEquals(0, optimizer.analysis.simplifiedBuilders.size());
     }));
   }
 
   @Test
   public void testPhiWithDifferentInits() throws Exception {
-    buildAndCheckIR("phiWithDifferentInits", checkBuilderDetection(builders -> {
-      assertEquals(2, builders.size());
+    buildAndCheckIR("phiWithDifferentInits", checkOptimizerStates(optimizer -> {
+      assertEquals(2, optimizer.analysis.builderStates.size());
+      for (Value builder : optimizer.analysis.builderStates.keySet()) {
+        Map<Instruction, BuilderState> perBuilderState =
+            optimizer.analysis.builderStates.get(builder);
+        checkBuilderState(optimizer, perBuilderState, null, false);
+      }
+      assertEquals(0, optimizer.analysis.simplifiedBuilders.size());
     }));
   }
 
   @Test
   public void testLoop() throws Exception {
-    buildAndCheckIR("loop", checkBuilderDetection(builders -> {
-      assertEquals(2, builders.size());
+    buildAndCheckIR("loop", checkOptimizerStates(optimizer -> {
+      assertEquals(2, optimizer.analysis.builderStates.size());
+      for (Value builder : optimizer.analysis.builderStates.keySet()) {
+        Map<Instruction, BuilderState> perBuilderState =
+            optimizer.analysis.builderStates.get(builder);
+        checkBuilderState(optimizer, perBuilderState, null, true);
+      }
+      assertEquals(0, optimizer.analysis.simplifiedBuilders.size());
     }));
   }
 
   @Test
   public void testLoopWithBuilder() throws Exception {
-    buildAndCheckIR("loopWithBuilder", checkBuilderDetection(builders -> {
-      assertEquals(1, builders.size());
+    buildAndCheckIR("loopWithBuilder", checkOptimizerStates(optimizer -> {
+      assertEquals(1, optimizer.analysis.builderStates.size());
+      for (Value builder : optimizer.analysis.builderStates.keySet()) {
+        Map<Instruction, BuilderState> perBuilderState =
+            optimizer.analysis.builderStates.get(builder);
+        checkBuilderState(optimizer, perBuilderState, null, true);
+      }
+      assertEquals(0, optimizer.analysis.simplifiedBuilders.size());
     }));
   }
 
   // TODO(b/114002137): later, test what const-string is computed for builders.
-  private Consumer<IRCode> checkBuilderDetection(Consumer<Set<Value>> builderConsumer) {
+  private Consumer<IRCode> checkOptimizerStates(
+      Consumer<StringBuilderOptimizer> optimizerConsumer) {
     return code -> {
       StringBuilderOptimizer optimizer =
           new StringBuilderOptimizer(
               appView, new StringBuilderOptimizationConfigurationForTesting());
-      Set<Value> builders = optimizer.computeTrivialStringConcatenation(code);
-      builderConsumer.accept(builders);
+      optimizer.computeTrivialStringConcatenation(code);
+      optimizerConsumer.accept(optimizer);
     };
+  }
+
+  private void checkBuilderState(
+      StringBuilderOptimizer optimizer,
+      Map<Instruction, BuilderState> perBuilderState,
+      String expectedConstString,
+      boolean expectToSeeToString) {
+    boolean metToString = false;
+    for (Map.Entry<Instruction, BuilderState> entry : perBuilderState.entrySet()) {
+      if (entry.getKey().isInvokeMethod()
+        && optimizer.optimizationConfiguration.isToStringMethod(
+            entry.getKey().asInvokeMethod().getInvokedMethod())) {
+        metToString = true;
+        assertEquals(expectedConstString, optimizer.analysis.toCompileTimeString(entry.getValue()));
+      }
+    }
+    assertEquals(expectToSeeToString, metToString);
   }
 
   class StringBuilderOptimizationConfigurationForTesting
@@ -131,8 +197,14 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
     }
 
     @Override
-    public boolean isBuilderInit(DexType builderType, DexMethod method) {
+    public boolean isBuilderInit(DexMethod method, DexType builderType) {
       return builderType == method.holder
+          && method.name.toString().equals("<init>");
+    }
+
+    @Override
+    public boolean isBuilderInit(DexMethod method) {
+      return isBuilderType(method.holder)
           && method.name.toString().equals("<init>");
     }
 

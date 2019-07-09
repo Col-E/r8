@@ -154,8 +154,7 @@ public class StringConcatenationTest extends TestBase {
             .addOptionsModification(this::configure)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
-    // TODO(b/114002137): could be 1, 4, and 3.
-    test(result, 3, 4, 4);
+    test(result, 1, 4, 3);
   }
 
   @Test
@@ -172,8 +171,7 @@ public class StringConcatenationTest extends TestBase {
             .addOptionsModification(this::configure)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
-    // TODO(b/114002137): could be 1, 4, and 3.
-    test(result, 3, 4, 4);
+    test(result, 1, 4, 3);
   }
 
   // TODO(b/114002137): Once enabled, remove this test-specific setting.
