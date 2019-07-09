@@ -862,10 +862,6 @@ public class IRCode {
     return createValue(typeLattice, null);
   }
 
-  public Value createValue(DebugLocalInfo local) {
-    return createValue(TypeLatticeElement.BOTTOM, local);
-  }
-
   public ConstNumber createIntConstant(int value) {
     Value out = createValue(TypeLatticeElement.INT);
     return new ConstNumber(out, value);

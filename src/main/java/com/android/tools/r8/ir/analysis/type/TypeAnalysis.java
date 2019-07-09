@@ -27,8 +27,9 @@ public class TypeAnalysis {
 
   private enum Mode {
     UNSET,
-    WIDENING,   // initial analysis, including fixed-point iteration for phis.
-    NARROWING,  // updating with more specific info, e.g., passing the return value of the inlinee.
+    WIDENING,  // initial analysis, including fixed-point iteration for phis and updating with less
+               // specific info, e.g., removing assume nodes.
+    NARROWING  // updating with more specific info, e.g., passing the return value of the inlinee.
   }
 
   private final boolean mayHaveImpreciseTypes;
@@ -62,10 +63,7 @@ public class TypeAnalysis {
   }
 
   public void widening(Iterable<Value> values) {
-    mode = Mode.WIDENING;
-    assert worklist.isEmpty();
-    values.forEach(this::enqueue);
-    analyze();
+    analyzeValues(values, Mode.WIDENING);
   }
 
   public void narrowing(Iterable<Value> values) {
@@ -73,9 +71,13 @@ public class TypeAnalysis {
     //  removed when the bug is fixed.
     List<Value> sortedValues = Lists.newArrayList(values);
     sortedValues.sort(Comparator.comparingInt(Value::getNumber));
-    mode = Mode.NARROWING;
+    analyzeValues(sortedValues, Mode.NARROWING);
+  }
+
+  private void analyzeValues(Iterable<Value> values, Mode mode) {
+    this.mode = mode;
     assert worklist.isEmpty();
-    sortedValues.forEach(this::enqueue);
+    values.forEach(this::enqueue);
     analyze();
   }
 
@@ -144,6 +146,7 @@ public class TypeAnalysis {
     if (type.isBottom()) {
       return;
     }
+
     if (mode == Mode.WIDENING) {
       value.widening(appView, type);
     } else {

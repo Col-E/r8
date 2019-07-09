@@ -94,7 +94,6 @@ public class LensCodeRewriter {
   /** Replace type appearances, invoke targets and field accesses with actual definitions. */
   public void rewrite(IRCode code, DexEncodedMethod method) {
     GraphLense graphLense = appView.graphLense();
-
     Set<Value> newSSAValues = Sets.newIdentityHashSet();
     ListIterator<BasicBlock> blocks = code.listIterator();
     boolean mayHaveUnreachableBlocks = false;
@@ -407,7 +406,7 @@ public class LensCodeRewriter {
       code.removeUnreachableBlocks();
     }
     if (!newSSAValues.isEmpty()) {
-      new TypeAnalysis(appView).widening(newSSAValues);
+      new TypeAnalysis(appView).narrowing(newSSAValues);
     }
     assert code.isConsistentSSA();
     assert code.hasNoVerticallyMergedClasses(appView);

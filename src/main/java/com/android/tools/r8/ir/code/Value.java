@@ -982,23 +982,39 @@ public class Value {
         && getConstInstruction().asConstNumber().isZero();
   }
 
+  /**
+   * Overwrites the current type lattice value without any assertions. Should only be used by the
+   * LensCodeRewriter.
+   *
+   * @param newType The new type lattice element
+   */
+  public void setTypeLattice(TypeLatticeElement newType) {
+    typeLattice = newType;
+  }
+
   public void widening(AppView<?> appView, TypeLatticeElement newType) {
-    // TODO(b/72693244): Enable assertion.
     // During WIDENING (due to fix-point iteration), type update is monotonically upwards,
     //   i.e., towards something wider.
-    //assert !TypeLatticeElement.strictlyLessThan(appInfo, newType, typeLattice)
-    //    : "During WIDENING, " + newType + " < " + typeLattice
-    //    + " at " + (isPhi() ? asPhi().printPhi() : definition.toString());
+    assert this.typeLattice.lessThanOrEqual(newType, appView)
+        : "During WIDENING, "
+            + typeLattice
+            + " < "
+            + newType
+            + " at "
+            + (isPhi() ? asPhi().printPhi() : definition.toString());
     typeLattice = newType;
   }
 
   public void narrowing(AppView<?> appView, TypeLatticeElement newType) {
-    // TODO(b/72693244): Enable assertion.
     // During NARROWING (e.g., after inlining), type update is monotonically downwards,
     //   i.e., towards something narrower, with more specific type info.
-    //assert !TypeLatticeElement.strictlyLessThan(appInfo, typeLattice, newType)
-    //    : "During NARROWING, " + typeLattice + " < " + newType
-    //    + " at " + (isPhi() ? asPhi().printPhi() : definition.toString());
+    assert !this.typeLattice.strictlyLessThan(newType, appView)
+        : "During NARROWING, "
+            + typeLattice
+            + " < "
+            + newType
+            + " at "
+            + (isPhi() ? asPhi().printPhi() : definition.toString());
     typeLattice = newType;
   }
 

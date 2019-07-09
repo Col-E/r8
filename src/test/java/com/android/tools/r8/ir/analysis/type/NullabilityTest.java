@@ -12,7 +12,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.ArrayGet;
@@ -50,11 +49,8 @@ public class NullabilityTest extends NonNullTrackerTestBase {
     AppView<?> appView = build(mainClass);
     CodeInspector codeInspector = new CodeInspector(appView.appInfo().app());
     MethodSubject fooSubject = codeInspector.clazz(mainClass.getName()).method(signature);
-    DexEncodedMethod foo = codeInspector.clazz(mainClass.getName()).method(signature).getMethod();
     IRCode irCode = fooSubject.buildIR();
     new NonNullTracker(appView).addNonNull(irCode);
-    TypeAnalysis analysis = new TypeAnalysis(appView);
-    analysis.widening(foo, foo, irCode);
     inspector.accept(appView, irCode);
     verifyLastInvoke(irCode, npeCaught);
   }

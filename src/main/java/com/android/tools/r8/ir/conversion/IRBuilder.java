@@ -1599,11 +1599,17 @@ public class IRBuilder {
     assert invoke.outValue() == null;
     assert invoke.instructionTypeCanThrow();
     DexType outType = invoke.getReturnType();
-    Value outValue =
-        writeRegister(
-            dest,
-            TypeLatticeElement.fromDexType(outType, maybeNull(), appView),
-            ThrowingInfo.CAN_THROW);
+    Nullability nullability =
+        invoke.isInvokeNewArray() || invoke.isInvokeMultiNewArray()
+            ? definitelyNotNull()
+            : maybeNull();
+    // InvokeCustom.evaluate will look into the metadata of the callsite which will provide more
+    // information than just looking at the type.
+    TypeLatticeElement typeLatticeElement =
+        invoke.isInvokeCustom()
+            ? invoke.evaluate(appView)
+            : TypeLatticeElement.fromDexType(outType, nullability, appView);
+    Value outValue = writeRegister(dest, typeLatticeElement, ThrowingInfo.CAN_THROW);
     invoke.setOutValue(outValue);
   }
 
@@ -2218,6 +2224,7 @@ public class IRBuilder {
   }
 
   private void addInstruction(Instruction ir, Position position) {
+    assert verifyOutValueType(ir);
     hasImpreciseValues |= ir.outValue() != null && !ir.outValue().getTypeLattice().isPreciseType();
     ir.setPosition(position);
     attachLocalValues(ir);
@@ -2246,6 +2253,17 @@ public class IRBuilder {
         currentBlock.linkCatchSuccessors(catchHandlers.getGuards(), targets);
       }
     }
+  }
+
+  private boolean verifyOutValueType(Instruction ir) {
+    assert ir.outValue() == null
+        || ir.isArrayGet()
+        || ir.evaluate(appView) == ir.outValue().getTypeLattice();
+    assert ir.outValue() == null
+        || !ir.isArrayGet()
+        || ir.evaluate(appView) == ir.outValue().getTypeLattice()
+        || (ir.outValue().getTypeLattice().isBottom() && ir.evaluate(appView).isReference());
+    return true;
   }
 
   private void attachLocalValues(Instruction ir) {
