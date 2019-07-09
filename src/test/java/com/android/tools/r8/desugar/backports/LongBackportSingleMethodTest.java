@@ -25,7 +25,7 @@ public final class LongBackportSingleMethodTest extends AbstractBackportTest {
 
   public LongBackportSingleMethodTest(TestParameters parameters) {
     super(parameters, Long.class, Main.class);
-    registerTarget(AndroidApiLevel.O, 10);
+    registerTarget(AndroidApiLevel.O, 2);
   }
 
   static final class Main extends MiniAssert {
