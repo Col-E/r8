@@ -47,10 +47,12 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.Sets;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -115,9 +117,10 @@ public final class BackportedMethodRewriter {
       }
       iterator.replaceCurrentInstruction(
           new InvokeStatic(provider.provideMethod(factory), invoke.outValue(), invoke.inValues()));
-      assert provider.requiresGenerationOfCode();
-      methodProviders.putIfAbsent(provider.provideMethod(factory), provider);
-      holders.add(code.method.method.holder);
+      if (provider.requiresGenerationOfCode()) {
+        methodProviders.putIfAbsent(provider.provideMethod(factory), provider);
+        holders.add(code.method.method.holder);
+      }
     }
   }
 
@@ -852,20 +855,27 @@ public final class BackportedMethodRewriter {
         } else {
           DexType newHolder = retargetCoreLibMember.get(type).getSecond();
           DexString methodName = retargetCoreLibMember.get(type).getFirst();
-          DexProto proto = findProto(methodName, typeClass);
-          addProvider(
-              new RetargetCoreLibraryMethodProvider(newHolder, type.descriptor, methodName, proto));
+          List<DexEncodedMethod> found = findDexEncodedMethodsWithName(methodName, typeClass);
+          for (DexEncodedMethod encodedMethod : found) {
+            DexProto proto = encodedMethod.method.proto;
+            addProvider(
+                new RetargetCoreLibraryMethodProvider(
+                    newHolder, type.descriptor, methodName, proto, encodedMethod.isStatic()));
+          }
         }
       }
     }
 
-    private DexProto findProto(DexString method, DexClass clazz) {
+    private List<DexEncodedMethod> findDexEncodedMethodsWithName(
+        DexString methodName, DexClass clazz) {
+      List<DexEncodedMethod> found = new ArrayList<>();
       for (DexEncodedMethod encodedMethod : clazz.methods()) {
-        if (encodedMethod.method.name == method) {
-          return encodedMethod.method.proto;
+        if (encodedMethod.method.name == methodName) {
+          found.add(encodedMethod);
         }
       }
-      throw new Unreachable("Should have found a method (library specifications).");
+      assert found.size() > 0 : "Should have found a method (library specifications).";
+      return found;
     }
 
     private void addProvider(MethodProvider generator) {
@@ -911,11 +921,13 @@ public final class BackportedMethodRewriter {
 
     private final DexType newHolder;
     private DexMethod dexMethod;
+    private boolean isStatic;
 
     public RetargetCoreLibraryMethodProvider(
-        DexType newHolder, DexString clazz, DexString method, DexProto proto) {
+        DexType newHolder, DexString clazz, DexString method, DexProto proto, boolean isStatic) {
       super(clazz, method, proto);
       this.newHolder = newHolder;
+      this.isStatic = isStatic;
     }
 
     @Override
@@ -923,7 +935,8 @@ public final class BackportedMethodRewriter {
       if (dexMethod != null) {
         return dexMethod;
       }
-      DexProto newProto = factory.prependTypeToProto(factory.createType(clazz), proto);
+      DexProto newProto =
+          isStatic ? proto : factory.prependTypeToProto(factory.createType(clazz), proto);
       return dexMethod = factory.createMethod(newHolder, newProto, method);
     }
 
@@ -989,3 +1002,4 @@ public final class BackportedMethodRewriter {
     TemplateMethodCode create(InternalOptions options, DexMethod method, String name);
   }
 }
+

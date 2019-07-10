@@ -484,7 +484,7 @@ public final class InterfaceMethodRewriter {
                           retargetCoreMember.get(retarget).getSecond(),
                           factory.protoWithDifferentFirstParameter(
                               originalCompanionMethod.proto, retarget),
-                          originalCompanionMethod.name)));
+                          method.method.name)));
             }
           }
         }

@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -23,9 +24,10 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -109,20 +111,25 @@ public class EmulateLibraryInterfaceTest extends CoreLibDesugarTestBase {
             .streamInstructions()
             .filter(instr -> instr.isInvokeInterface() || instr.isInvokeStatic())
             .collect(Collectors.toList());
+    assertEquals(12, invokes.size());
     assertTrue(invokes.get(0).isInvokeStatic());
-    assertTrue(invokes.get(0).toString().contains("Set$-EL;->"));
+    assertTrue(invokes.get(0).toString().contains("Set$-EL;->spliterator"));
     assertTrue(invokes.get(1).isInvokeStatic());
-    assertTrue(invokes.get(1).toString().contains("List$-EL;->"));
+    assertTrue(invokes.get(1).toString().contains("List$-EL;->spliterator"));
     assertTrue(invokes.get(2).isInvokeStatic());
-    assertTrue(invokes.get(2).toString().contains("Collection$-EL;->"));
+    assertTrue(invokes.get(2).toString().contains("Collection$-EL;->stream"));
     assertTrue(invokes.get(3).isInvokeInterface());
-    assertTrue(invokes.get(3).toString().contains("Set;->"));
+    assertTrue(invokes.get(3).toString().contains("Set;->iterator"));
     assertTrue(invokes.get(4).isInvokeStatic());
-    assertTrue(invokes.get(4).toString().contains("Collection$-EL;->"));
+    assertTrue(invokes.get(4).toString().contains("Collection$-EL;->stream"));
     assertTrue(invokes.get(5).isInvokeStatic());
-    assertTrue(invokes.get(5).toString().contains("DesugarLinkedHashSet;->"));
+    assertTrue(invokes.get(5).toString().contains("DesugarLinkedHashSet;->spliterator"));
     assertTrue(invokes.get(9).isInvokeInterface());
-    assertTrue(invokes.get(9).toString().contains("Iterator;->"));
+    assertTrue(invokes.get(9).toString().contains("Iterator;->remove"));
+    assertTrue(invokes.get(10).isInvokeStatic());
+    assertTrue(invokes.get(10).toString().contains("DesugarArrays;->spliterator"));
+    assertTrue(invokes.get(11).isInvokeStatic());
+    assertTrue(invokes.get(11).toString().contains("DesugarArrays;->spliterator"));
   }
 
   @Test
@@ -135,17 +142,22 @@ public class EmulateLibraryInterfaceTest extends CoreLibDesugarTestBase {
             "j$.util.stream.ReferencePipeline$Head",
             "java.util.HashMap$KeyIterator",
             "j$.util.stream.ReferencePipeline$Head",
-            "j$.util.Spliterators$IteratorSpliterator");
-    testForD8()
-        .addProgramClasses(TestClass.class)
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
-        .setMinApi(parameters.getRuntime())
-        .addOptionsModification(this::configureCoreLibDesugarForProgramCompilation)
-        .compile()
-        .inspect(this::checkRewrittenInvokes)
-        .addRunClasspathFiles(buildDesugaredLibrary(parameters.getRuntime()))
-        .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutput(expectedOutput);
+            "j$.util.Spliterators$IteratorSpliterator",
+            "j$.util.Spliterators$ArraySpliterator",
+            "j$.util.Spliterators$ArraySpliterator");
+    String stdErr =
+        testForD8()
+            .addProgramClasses(TestClass.class)
+            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+            .setMinApi(parameters.getRuntime())
+            .addOptionsModification(this::configureCoreLibDesugarForProgramCompilation)
+            .compile()
+            .inspect(this::checkRewrittenInvokes)
+            .addRunClasspathFiles(buildDesugaredLibrary(parameters.getRuntime()))
+            .run(parameters.getRuntime(), TestClass.class)
+            .assertSuccessWithOutput(expectedOutput)
+            .getStdErr();
+    assertFalse(stdErr.contains("Could not find method"));
   }
 
   static class TestClass {
@@ -170,6 +182,10 @@ public class EmulateLibraryInterfaceTest extends CoreLibDesugarTestBase {
       Iterator iterator = list.iterator();
       iterator.next();
       iterator.remove();
+      // Static methods (same name, different signatures).
+      System.out.println(Arrays.spliterator(new Object[] {new Object()}).getClass().getName());
+      System.out.println(
+          Arrays.spliterator(new Object[] {new Object()}, 0, 0).getClass().getName());
     }
   }
 }
