@@ -145,7 +145,6 @@ public class SharedClassWritingTest {
             options,
             null,
             null,
-            null,
             GraphLense.getIdentityLense(),
             NamingLens.getIdentityLens(),
             null);

@@ -39,7 +39,6 @@ public abstract class TestCompilerBuilder<
   private AndroidApiLevel defaultMinApiLevel = ToolHelper.getMinApiLevelForDexVm();
   private Consumer<InternalOptions> optionsConsumer = DEFAULT_OPTIONS;
   private PrintStream stdout = null;
-  protected OutputMode outputMode = OutputMode.DexIndexed;
 
   TestCompilerBuilder(TestState state, B builder, Backend backend) {
     super(state, builder);
@@ -214,11 +213,6 @@ public abstract class TestCompilerBuilder<
   public T setMainDexListConsumer(StringConsumer consumer) {
     assert consumer != null;
     this.mainDexListConsumer = consumer;
-    return self();
-  }
-
-  public T setIncludeClassesChecksum(boolean include) {
-    builder.setIncludeClassesChecksum(include);
     return self();
   }
 

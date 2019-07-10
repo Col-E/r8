@@ -227,7 +227,6 @@ public class R8 {
                 appView,
                 options,
                 Collections.singletonList(marker),
-                null,
                 deadCode,
                 graphLense,
                 namingLens,

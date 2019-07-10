@@ -59,7 +59,6 @@ public class ApplicationReader {
   private final DexItemFactory itemFactory;
   private final Timing timing;
   private final AndroidApp inputApp;
-  private final ClassesChecksum checksums = new ClassesChecksum();
 
   public interface ProgramClassConflictResolver {
     DexProgramClass resolveClassConflict(DexProgramClass a, DexProgramClass b);
@@ -122,12 +121,8 @@ public class ApplicationReader {
       readProguardMap(proguardMap, builder, executorService, futures);
       readMainDexList(builder, executorService, futures);
       ClassReader classReader = new ClassReader(executorService, futures);
-      JarClassFileReader jcf = classReader.readSources();
+      classReader.readSources();
       ThreadUtils.awaitFutures(futures);
-      // Merge all the checksum gathered from the class file's CRC as well as the marker
-      // implanted into the dex file.
-      builder.mergeChecksums(jcf.getChecksums());
-      builder.mergeChecksums(classReader.application.options.itemFactory.extractChecksum());
       classReader.initializeLazyClassCollection(builder);
       for (ProgramResourceProvider provider : inputApp.getProgramResourceProviders()) {
         DataResourceProvider dataResourceProvider = provider.getDataResourceProvider();
@@ -241,7 +236,6 @@ public class ApplicationReader {
           }
           dexParsers.add(new DexParser(dexReader, classKind, options));
         }
-
         options.minApiLevel = computedMinApiLevel;
         for (DexParser dexParser : dexParsers) {
           dexParser.populateIndexTables();
@@ -258,7 +252,7 @@ public class ApplicationReader {
       }
     }
 
-    private <T extends DexClass> JarClassFileReader readClassSources(
+    private <T extends DexClass> void readClassSources(
         List<ProgramResource> classSources, ClassKind classKind, Queue<T> classes) {
       JarClassFileReader reader = new JarClassFileReader(
           application, classKind.bridgeConsumer(classes::add));
@@ -276,10 +270,9 @@ public class ApplicationReader {
                   return null;
                 }));
       }
-      return reader;
     }
 
-    JarClassFileReader readSources() throws IOException, ResourceException {
+    void readSources() throws IOException, ResourceException {
       Collection<ProgramResource> resources = inputApp.computeAllProgramResources();
       List<ProgramResource> dexResources = new ArrayList<>(resources.size());
       List<ProgramResource> cfResources = new ArrayList<>(resources.size());
@@ -292,7 +285,7 @@ public class ApplicationReader {
         }
       }
       readDexSources(dexResources, PROGRAM, programClasses);
-      return readClassSources(cfResources, PROGRAM, programClasses);
+      readClassSources(cfResources, PROGRAM, programClasses);
     }
 
     private <T extends DexClass> ClassProvider<T> buildClassProvider(ClassKind classKind,

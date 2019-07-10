@@ -33,8 +33,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.BiFunction;
-import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 
 /**
@@ -93,7 +91,6 @@ public final class R8Command extends BaseCompilerCommand {
     private StringConsumer proguardConfigurationConsumer = null;
     private GraphConsumer keptGraphConsumer = null;
     private GraphConsumer mainDexKeptGraphConsumer = null;
-    private BiFunction<String, Long, Boolean> dexClassChecksumFilter = (name, checksum) -> true;
 
     // Internal compatibility mode for use from CompatProguard tool.
     Path proguardCompatibilityRulesOutput = null;
@@ -493,7 +490,6 @@ public final class R8Command extends BaseCompilerCommand {
               getMinApiLevel(),
               reporter,
               desugaring,
-              getIncludeClassesChecksum(),
               configuration.isShrinking(),
               configuration.isObfuscating(),
               disableVerticalClassMerging,
@@ -506,8 +502,7 @@ public final class R8Command extends BaseCompilerCommand {
               keptGraphConsumer,
               mainDexKeptGraphConsumer,
               syntheticProguardRulesConsumer,
-              isOptimizeMultidexForLinearAlloc(),
-              getDexClassChecksumFilter());
+              isOptimizeMultidexForLinearAlloc());
 
       return command;
     }
@@ -645,7 +640,6 @@ public final class R8Command extends BaseCompilerCommand {
       int minApiLevel,
       Reporter reporter,
       boolean enableDesugaring,
-      boolean encodeChecksum,
       boolean enableTreeShaking,
       boolean enableMinification,
       boolean disableVerticalClassMerging,
@@ -658,8 +652,7 @@ public final class R8Command extends BaseCompilerCommand {
       GraphConsumer keptGraphConsumer,
       GraphConsumer mainDexKeptGraphConsumer,
       Consumer<List<ProguardConfigurationRule>> syntheticProguardRulesConsumer,
-      boolean optimizeMultidexForLinearAlloc,
-      BiPredicate<String, Long> dexClassChecksumFilter) {
+      boolean optimizeMultidexForLinearAlloc) {
     super(
         inputApp,
         mode,
@@ -668,9 +661,7 @@ public final class R8Command extends BaseCompilerCommand {
         minApiLevel,
         reporter,
         enableDesugaring,
-        encodeChecksum,
-        optimizeMultidexForLinearAlloc,
-        dexClassChecksumFilter);
+        optimizeMultidexForLinearAlloc);
     assert proguardConfiguration != null;
     assert mainDexKeepRules != null;
     this.mainDexKeepRules = mainDexKeepRules;

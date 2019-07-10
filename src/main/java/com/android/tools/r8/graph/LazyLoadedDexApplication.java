@@ -8,7 +8,6 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.DataResourceProvider;
 import com.android.tools.r8.dex.ApplicationReader.ProgramClassConflictResolver;
-import com.android.tools.r8.dex.ClassesChecksum;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.ClasspathClassCollection;
 import com.android.tools.r8.utils.InternalOptions;
@@ -37,7 +36,6 @@ public class LazyLoadedDexApplication extends DexApplication {
       LibraryClassCollection libraryClasses,
       ImmutableSet<DexType> mainDexList,
       String deadCode,
-      ClassesChecksum checksum,
       InternalOptions options,
       DexString highestSortingString,
       Timing timing) {
@@ -46,7 +44,6 @@ public class LazyLoadedDexApplication extends DexApplication {
         dataResourceProviders,
         mainDexList,
         deadCode,
-        checksum,
         options,
         highestSortingString,
         timing);
@@ -239,7 +236,6 @@ public class LazyLoadedDexApplication extends DexApplication {
           libraryClasses,
           ImmutableSet.copyOf(mainDexList),
           deadCode,
-          checksums,
           options,
           highestSortingString,
           timing);

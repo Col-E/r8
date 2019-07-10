@@ -187,7 +187,7 @@ public class Bisect {
     AndroidAppConsumers compatSink = new AndroidAppConsumers(options);
     ApplicationWriter writer =
         new ApplicationWriter(
-            app, null, options, null, null, null, null, NamingLens.getIdentityLens(), null);
+            app, null, options, null, null, null, NamingLens.getIdentityLens(), null);
     writer.write(executor);
     options.signalFinishedToConsumers();
     compatSink.build().writeToDirectory(output, OutputMode.DexIndexed);
