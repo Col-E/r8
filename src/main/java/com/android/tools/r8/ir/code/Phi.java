@@ -8,13 +8,16 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock.EdgeType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.TypeConstraintResolver;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -67,6 +70,30 @@ public class Phi extends Value implements InstructionOrPhi {
     return block;
   }
 
+  @Override
+  public void constrainType(
+      ValueTypeConstraint constraint, DexMethod method, Origin origin, Reporter reporter) {
+    if (readType == RegisterReadType.DEBUG) {
+      abortOnInvalidDebugInfo(constraint);
+    }
+    super.constrainType(constraint, method, origin, reporter);
+  }
+
+  private void abortOnInvalidDebugInfo(ValueTypeConstraint constraint) {
+    if (constrainedType(constraint) == null) {
+      // If the phi has been requested from local info, throw out locals and retry compilation.
+      throw new InvalidDebugInfoException(
+          "Type information in locals-table is inconsistent."
+              + " Cannot constrain type: "
+              + typeLattice
+              + " for value: "
+              + this
+              + " by constraint "
+              + constraint
+              + ".");
+    }
+  }
+
   public void addOperands(IRBuilder builder, int register) {
     // Phi operands are only filled in once to complete the phi. Some phis are incomplete for a
     // period of time to break cycles. When the cycle has been resolved they are completed
@@ -86,18 +113,9 @@ public class Phi extends Value implements InstructionOrPhi {
 
     if (readType != RegisterReadType.NORMAL) {
       for (Value operand : operands) {
-        ValueTypeConstraint constraint =
-            TypeConstraintResolver.constraintForType(operand.getTypeLattice());
-        if (constrainedType(constraint) == null) {
-          // If the phi has been requested from local info, throw out locals and retry compilation.
-          throw new InvalidDebugInfoException(
-              "Type information in locals-table is inconsistent."
-                  + " Value of type "
-                  + operand.getTypeLattice()
-                  + " cannot be used as local of type "
-                  + typeLattice
-                  + ".");
-        }
+        TypeLatticeElement type = operand.getTypeLattice();
+        ValueTypeConstraint constraint = TypeConstraintResolver.constraintForType(type);
+        abortOnInvalidDebugInfo(constraint);
       }
     }
 
