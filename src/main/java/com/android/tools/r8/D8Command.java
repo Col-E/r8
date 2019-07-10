@@ -250,6 +250,7 @@ public final class D8Command extends BaseCompilerCommand {
     internal.minApiLevel = getMinApiLevel();
     internal.intermediate = intermediate;
     internal.readCompileTimeAnnotations = intermediate;
+
     // Assert and fixup defaults.
     assert !internal.isShrinking();
     assert !internal.isMinifying();
@@ -269,6 +270,8 @@ public final class D8Command extends BaseCompilerCommand {
     assert !internal.enableLambdaMerging;
     assert !internal.enableTreeShakingOfLibraryMethodOverrides;
 
+    // TODO(b/137168535) Disable non-null tracking for now.
+    internal.enableNonNullTracking = false;
     internal.enableDesugaring = getEnableDesugaring();
     internal.enableInheritanceClassInDexDistributor = isOptimizeMultidexForLinearAlloc();
     // This is currently only used for testing.
