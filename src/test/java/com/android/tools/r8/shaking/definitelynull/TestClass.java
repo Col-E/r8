@@ -17,7 +17,8 @@ public class TestClass {
   public static void main(String[] args) throws ReflectiveOperationException {
     // There are no visible instantiations of A, so the value of 'a' is concluded to be 'null'.
     A a = getInstance();
-    System.out.println("null: " + a == null); // This is expected to print 'true'.
+    System.out.println("value: " + a);
+    System.out.println("null: " + (a == null)); // This is expected to print 'true'.
     try {
       System.out.println("call: " + a.foo()); // This is expected to throw due to null receiver.
     } catch (NullPointerException e) {

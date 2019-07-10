@@ -17,7 +17,7 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class DefinitelyNullTest extends TestBase {
 
-  static final String EXPECTED = StringUtils.lines("false", "call: NPE");
+  static final String EXPECTED = StringUtils.lines("value: null", "null: true", "call: NPE");
 
   private final TestParameters parameters;
 
@@ -57,7 +57,6 @@ public class DefinitelyNullTest extends TestBase {
         // Prepend the full definition of class A since the compiler will have mostly eliminated it.
         .addRunClasspathFiles(classpath)
         .run(parameters.getRuntime(), TestClass.class)
-        // TODO(b/136974947): Should print "true" then "call: NPE".
         .assertSuccessWithOutput(EXPECTED);
   }
 }
