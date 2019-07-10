@@ -35,6 +35,7 @@ public class SimplifyIfNotNullTest extends TestBase {
     CodeInspector codeInspector =
         testForD8()
             .addProgramClasses(testClass)
+            .addOptionsModification(options -> options.enableNonNullTracking = true)
             .compile()
             .inspector();
     verifyAbsenceOfIf(codeInspector, testClass, signatures);
