@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.OptionalBool;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
@@ -14,7 +15,6 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
-import com.google.common.collect.Streams;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -44,6 +44,8 @@ public abstract class DexClass extends DexDefinition {
   public DexType superType;
   public DexTypeList interfaces;
   public DexString sourceFile;
+
+  private OptionalBool isResolvable = OptionalBool.unknown();
 
   /** Access has to be synchronized during concurrent collection/writing phase. */
   protected DexEncodedField[] staticFields = DexEncodedField.EMPTY_ARRAY;
@@ -708,10 +710,23 @@ public abstract class DexClass extends DexDefinition {
   }
 
   public boolean isResolvable(AppView<?> appView) {
-    if (!isProgramClass()) {
-      return appView.dexItemFactory().libraryTypesAssumedToBePresent.contains(type);
+    if (isResolvable.isUnknown()) {
+      boolean resolvable;
+      if (!isProgramClass()) {
+        resolvable = appView.dexItemFactory().libraryTypesAssumedToBePresent.contains(type);
+      } else {
+        resolvable = true;
+        for (DexType supertype : allImmediateSupertypes()) {
+          resolvable &= supertype.isResolvable(appView);
+          if (!resolvable) {
+            break;
+          }
+        }
+      }
+      isResolvable = OptionalBool.of(resolvable);
     }
-    return Streams.stream(allImmediateSupertypes()).allMatch(type -> type.isResolvable(appView));
+    assert !isResolvable.isUnknown();
+    return isResolvable.isTrue();
   }
 
   public boolean isSerializable(AppView<? extends AppInfoWithSubtyping> appView) {
