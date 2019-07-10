@@ -219,6 +219,7 @@ public class StringValueOfTest extends TestBase {
             .debug()
             .addProgramClassesAndInnerClasses(MAIN)
             .setMinApi(parameters.getRuntime())
+            .addOptionsModification(options -> options.enableNonNullTracking = true)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 7, 1, 0, 1, 0);
@@ -228,6 +229,7 @@ public class StringValueOfTest extends TestBase {
             .release()
             .addProgramClassesAndInnerClasses(MAIN)
             .setMinApi(parameters.getRuntime())
+            .addOptionsModification(options -> options.enableNonNullTracking = true)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 5, 1, 1, 1, 0);
