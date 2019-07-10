@@ -238,11 +238,9 @@ public final class BackportedMethodRewriter {
       if (!options.canUseJava8UnsignedOperations()) {
         initializeJava8UnsignedOperations(factory);
       }
-      if (!options.canUseJava9UnsignedOperations()) {
-        initializeJava9UnsignedOperations(factory);
-      }
-      if (!options.canUseJava9SignedOperations()) {
-        initializeJava9SignedOperations(factory);
+      if (!options.canUseJava9AndNewerOperations()) {
+        initializeJava9Operations(factory);
+        initializeJava11Operations(factory);
       }
       // interface method desugaring also toggles library emulation.
       if (options.isInterfaceMethodDesugaringEnabled()) {
@@ -763,7 +761,8 @@ public final class BackportedMethodRewriter {
       addProvider(new MethodGenerator(clazz, method, proto, StringMethods::new, "joinIterable"));
     }
 
-    private void initializeJava9SignedOperations(DexItemFactory factory) {
+    private void initializeJava9Operations(DexItemFactory factory) {
+      // Math & StrictMath, which have some symmetric, binary-compatible APIs
       DexString[] mathClasses = {factory.mathDescriptor, factory.strictMathDescriptor};
       for (DexString mathClass : mathClasses) {
         DexString clazz = mathClass;
@@ -784,9 +783,7 @@ public final class BackportedMethodRewriter {
         proto = factory.createProto(factory.intType, factory.longType, factory.intType);
         addProvider(new MethodGenerator(clazz, method, proto, MathMethods::new, "floorModLongInt"));
       }
-    }
 
-    private void initializeJava9UnsignedOperations(DexItemFactory factory) {
       // Byte
       DexString clazz = factory.boxedByteDescriptor;
 
@@ -832,6 +829,17 @@ public final class BackportedMethodRewriter {
       proto =
           factory.createProto(factory.intType, factory.intType, factory.intType, factory.intType);
       addProvider(new MethodGenerator(clazz, method, proto, ObjectsMethods::new));
+    }
+
+    private void initializeJava11Operations(DexItemFactory factory) {
+      // Character
+      DexString clazz = factory.boxedCharDescriptor;
+
+      // String Character.toString(int)
+      DexString method = factory.createString("toString");
+      DexProto proto = factory.createProto(factory.stringType, factory.intType);
+      addProvider(
+          new MethodGenerator(clazz, method, proto, CharacterMethods::new, "toStringCodepoint"));
     }
 
     private void warnMissingRetargetCoreLibraryMember(DexType type, AppView<?> appView) {

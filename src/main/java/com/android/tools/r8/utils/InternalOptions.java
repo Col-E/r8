@@ -996,14 +996,9 @@ public class InternalOptions {
     return hasMinApi(AndroidApiLevel.O);
   }
 
-  public boolean canUseJava9UnsignedOperations() {
+  public boolean canUseJava9AndNewerOperations() {
     assert isGeneratingDex();
-    return false;
-  }
-
-  public boolean canUseJava9SignedOperations() {
-    assert isGeneratingDex();
-    return false;
+    return false; // These are currently not implemented at any API level in Android.
   }
 
   public boolean canUsePrivateInterfaceMethods() {

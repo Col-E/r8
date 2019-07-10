@@ -20,4 +20,8 @@ public final class CharacterMethods extends TemplateMethodCode {
   public static int compare(char a, char b) {
     return (int) a - (int) b;
   }
+
+  public static String toStringCodepoint(int codepoint) {
+    return new String(Character.toChars(codepoint));
+  }
 }
