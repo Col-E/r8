@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.analysis.type;
 
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
@@ -137,13 +138,43 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
     if (mappedType != type) {
       return fromDexType(mappedType, nullability, appView, false);
     }
-    // If the lazyinterfaces are already computed ensure they are not referring to any types in the
-    // substitution map.
-    if (lazyInterfaces != null && !lazyInterfaces.isEmpty()) {
-      for (DexType iface : lazyInterfaces) {
-        if (iface != substituteMap.lookupType(iface)) {
-          return fromDexType(mappedType, nullability, appView, false);
+    // If the mapped type is not object and no computation of interfaces, we can return early.
+    if (mappedType != appView.dexItemFactory().objectType && lazyInterfaces == null) {
+      return this;
+    }
+
+    // For most types there will not have been a change thus we iterate without allocating a new
+    // set for holding modified interfaces.
+    boolean hasChangedInterfaces = false;
+    DexClass interfaceToClassChange = null;
+    for (DexType iface : getInterfaces()) {
+      DexType substitutedType = substituteMap.lookupType(iface);
+      if (iface != substitutedType) {
+        hasChangedInterfaces = true;
+        DexClass mappedClass = appView.definitionFor(substitutedType);
+        if (!mappedClass.isInterface()) {
+          if (interfaceToClassChange != null && mappedClass != interfaceToClassChange) {
+            throw new CompilationError(
+                "More than one interface has changed to a class: "
+                    + interfaceToClassChange
+                    + " and "
+                    + mappedClass);
+          }
+          interfaceToClassChange = mappedClass;
         }
+      }
+    }
+    if (hasChangedInterfaces) {
+      if (interfaceToClassChange != null) {
+        assert !interfaceToClassChange.isInterface();
+        assert type == appView.dexItemFactory().objectType;
+        return create(interfaceToClassChange.type, nullability, appView);
+      } else {
+        Set<DexType> newInterfaces = new HashSet<>();
+        for (DexType iface : lazyInterfaces) {
+          newInterfaces.add(substituteMap.lookupType(iface));
+        }
+        return create(mappedType, nullability, newInterfaces);
       }
     }
     return this;
