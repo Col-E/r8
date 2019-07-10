@@ -44,7 +44,6 @@ import com.android.tools.r8.ir.synthetic.TemplateMethodCode;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -845,22 +844,24 @@ public final class BackportedMethodRewriter {
     }
 
     private void initializeRetargetCoreLibraryMembers(AppView<?> appView) {
-      Map<DexType, Pair<DexString, DexType>> retargetCoreLibMember = new IdentityHashMap<>();
-      InternalOptions.populateRetargetCoreLibMember(
-          appView.dexItemFactory(), appView.options(), retargetCoreLibMember);
-      for (DexType type : retargetCoreLibMember.keySet()) {
-        DexClass typeClass = appView.definitionFor(type);
-        if (typeClass == null) {
-          warnMissingRetargetCoreLibraryMember(type, appView);
-        } else {
-          DexType newHolder = retargetCoreLibMember.get(type).getSecond();
-          DexString methodName = retargetCoreLibMember.get(type).getFirst();
-          List<DexEncodedMethod> found = findDexEncodedMethodsWithName(methodName, typeClass);
-          for (DexEncodedMethod encodedMethod : found) {
-            DexProto proto = encodedMethod.method.proto;
-            addProvider(
-                new RetargetCoreLibraryMethodProvider(
-                    newHolder, type.descriptor, methodName, proto, encodedMethod.isStatic()));
+      Map<DexString, Map<DexType, DexType>> retargetCoreLibMember = new IdentityHashMap<>();
+      appView
+          .options()
+          .populateRetargetCoreLibMember(appView.dexItemFactory(), retargetCoreLibMember);
+      for (DexString methodName : retargetCoreLibMember.keySet()) {
+        for (DexType inType : retargetCoreLibMember.get(methodName).keySet()) {
+          DexClass typeClass = appView.definitionFor(inType);
+          if (typeClass == null) {
+            warnMissingRetargetCoreLibraryMember(inType, appView);
+          } else {
+            DexType newHolder = retargetCoreLibMember.get(methodName).get(inType);
+            List<DexEncodedMethod> found = findDexEncodedMethodsWithName(methodName, typeClass);
+            for (DexEncodedMethod encodedMethod : found) {
+              DexProto proto = encodedMethod.method.proto;
+              addProvider(
+                  new RetargetCoreLibraryMethodProvider(
+                      newHolder, inType.descriptor, methodName, proto, encodedMethod.isStatic()));
+            }
           }
         }
       }

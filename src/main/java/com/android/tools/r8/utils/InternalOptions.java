@@ -50,6 +50,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -389,12 +390,11 @@ public class InternalOptions {
   public List<ProguardConfigurationRule> mainDexKeepRules = ImmutableList.of();
   public boolean minimalMainDex;
   /**
-   * Enable usage of InheritanceClassInDexDistributor for multidex legacy builds.
-   * This allows distribution of classes to minimize DexOpt LinearAlloc usage by minimizing linking
-   * errors during DexOpt and controlling the load of classes with linking issues.
-   * This has the consequence of making minimal main dex not absolutely minimal regarding runtime
-   * execution constraints because it's adding classes in the main dex to satisfy also DexOpt
-   * constraints.
+   * Enable usage of InheritanceClassInDexDistributor for multidex legacy builds. This allows
+   * distribution of classes to minimize DexOpt LinearAlloc usage by minimizing linking errors
+   * during DexOpt and controlling the load of classes with linking issues. This has the consequence
+   * of making minimal main dex not absolutely minimal regarding runtime execution constraints
+   * because it's adding classes in the main dex to satisfy also DexOpt constraints.
    */
   public boolean enableInheritanceClassInDexDistributor = true;
 
@@ -405,23 +405,25 @@ public class InternalOptions {
   public Map<String, String> backportCoreLibraryMembers = ImmutableMap.of();
   public List<String> dontRewriteInvocations = ImmutableList.of();
 
-  public static Map<DexType, Pair<DexString, DexType>> populateRetargetCoreLibMember(
-      DexItemFactory factory, InternalOptions options, Map<DexType, Pair<DexString, DexType>> map) {
-    for (String retarget : options.retargetCoreLibMember.keySet()) {
-      int index = retarget.lastIndexOf('#');
-      if (index <= 0 || index >= retarget.length() - 1) {
+  public void populateRetargetCoreLibMember(
+      DexItemFactory factory, Map<DexString, Map<DexType, DexType>> dest) {
+    for (String inputString : retargetCoreLibMember.keySet()) {
+      int index = inputString.lastIndexOf('#');
+      if (index <= 0 || index >= inputString.length() - 1) {
         throw new CompilationError(
             "Invalid retarget core library member specification (# position).");
       }
-      map.put(
-          factory.createType(DescriptorUtils.javaTypeToDescriptor(retarget.substring(0, index))),
-          new Pair<>(
-              factory.createString(retarget.substring(index + 1)),
-              factory.createType(
-                  DescriptorUtils.javaTypeToDescriptor(
-                      options.retargetCoreLibMember.get(retarget)))));
+      DexString methodName = factory.createString(inputString.substring(index + 1));
+      dest.putIfAbsent(methodName, new IdentityHashMap<>());
+      Map<DexType, DexType> typeMap = dest.get(methodName);
+      DexType originalType =
+          factory.createType(DescriptorUtils.javaTypeToDescriptor(inputString.substring(0, index)));
+      DexType finalType =
+          factory.createType(
+              DescriptorUtils.javaTypeToDescriptor(retargetCoreLibMember.get(inputString)));
+      assert !typeMap.containsKey(originalType);
+      typeMap.put(originalType, finalType);
     }
-    return map;
   }
 
   public LineNumberOptimization lineNumberOptimization = LineNumberOptimization.ON;

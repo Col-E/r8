@@ -111,7 +111,7 @@ public class EmulateLibraryInterfaceTest extends CoreLibDesugarTestBase {
             .streamInstructions()
             .filter(instr -> instr.isInvokeInterface() || instr.isInvokeStatic())
             .collect(Collectors.toList());
-    assertEquals(12, invokes.size());
+    assertEquals(14, invokes.size());
     assertTrue(invokes.get(0).isInvokeStatic());
     assertTrue(invokes.get(0).toString().contains("Set$-EL;->spliterator"));
     assertTrue(invokes.get(1).isInvokeStatic());
@@ -130,6 +130,10 @@ public class EmulateLibraryInterfaceTest extends CoreLibDesugarTestBase {
     assertTrue(invokes.get(10).toString().contains("DesugarArrays;->spliterator"));
     assertTrue(invokes.get(11).isInvokeStatic());
     assertTrue(invokes.get(11).toString().contains("DesugarArrays;->spliterator"));
+    assertTrue(invokes.get(12).isInvokeStatic());
+    assertTrue(invokes.get(12).toString().contains("DesugarArrays;->stream"));
+    assertTrue(invokes.get(13).isInvokeStatic());
+    assertTrue(invokes.get(13).toString().contains("DesugarArrays;->stream"));
   }
 
   @Test
@@ -144,7 +148,9 @@ public class EmulateLibraryInterfaceTest extends CoreLibDesugarTestBase {
             "j$.util.stream.ReferencePipeline$Head",
             "j$.util.Spliterators$IteratorSpliterator",
             "j$.util.Spliterators$ArraySpliterator",
-            "j$.util.Spliterators$ArraySpliterator");
+            "j$.util.Spliterators$ArraySpliterator",
+            "j$.util.stream.ReferencePipeline$Head",
+            "j$.util.stream.ReferencePipeline$Head");
     String stdErr =
         testForD8()
             .addProgramClasses(TestClass.class)
@@ -186,6 +192,8 @@ public class EmulateLibraryInterfaceTest extends CoreLibDesugarTestBase {
       System.out.println(Arrays.spliterator(new Object[] {new Object()}).getClass().getName());
       System.out.println(
           Arrays.spliterator(new Object[] {new Object()}, 0, 0).getClass().getName());
+      System.out.println(Arrays.stream(new Object[] {new Object()}).getClass().getName());
+      System.out.println(Arrays.stream(new Object[] {new Object()}, 0, 0).getClass().getName());
     }
   }
 }
