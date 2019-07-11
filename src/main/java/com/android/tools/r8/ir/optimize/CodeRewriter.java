@@ -2039,12 +2039,9 @@ public class CodeRewriter {
         RemoveCheckCastInstructionIfTrivialResult removeResult =
             removeCheckCastInstructionIfTrivial(current.asCheckCast(), it, code, affectedValues);
         if (removeResult != RemoveCheckCastInstructionIfTrivialResult.NO_REMOVALS) {
+          assert removeResult == RemoveCheckCastInstructionIfTrivialResult.REMOVED_CAST_DO_NARROW;
           needToRemoveTrivialPhis |= hasPhiUsers;
-          if (removeResult == RemoveCheckCastInstructionIfTrivialResult.REMOVED_CAST_DO_NARROW) {
-            typeAnalysis.narrowing(affectedValues);
-          } else {
-            typeAnalysis.widening(affectedValues);
-          }
+          typeAnalysis.narrowing(affectedValues);
           affectedValues.clear();
         }
       } else if (current.isInstanceOf()) {
