@@ -1795,7 +1795,7 @@ public class CodeRewriter {
                   if (argumentIndex >= 0 && checkArgumentType(invoke, argumentIndex)) {
                     Value argument = invoke.arguments().get(argumentIndex);
                     assert outValue.verifyCompatible(argument.outType());
-                    // Make sure that we are only narrowing information here. OBS, in cases where
+                    // Make sure that we are only narrowing information here. Note, in cases where
                     // we cannot find the definition of types, computing lessThanOrEqual will
                     // return false unless it is object.
                     if (argument
