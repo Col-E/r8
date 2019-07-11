@@ -149,6 +149,7 @@ public class B130791310 extends TestBase {
             .addProgramClasses(CLASSES)
             .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
             .addKeepClassAndMembersRules(MAIN)
+            .addOptionsModification(o -> o.enableInliningOfInvokesWithNullableReceivers = true)
             .addKeepRules(RULES);
     if (!enableClassMerging) {
       builder.addOptionsModification(o -> o.enableVerticalClassMerging = false);

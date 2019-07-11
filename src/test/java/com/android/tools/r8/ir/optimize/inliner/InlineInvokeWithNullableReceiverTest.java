@@ -46,6 +46,7 @@ public class InlineInvokeWithNullableReceiverTest extends TestBase {
             .addInnerClasses(InlineInvokeWithNullableReceiverTest.class)
             .addKeepMainRule(TestClass.class)
             .setMinApi(parameters.getRuntime())
+            .addOptionsModification(o -> o.enableInliningOfInvokesWithNullableReceivers = true)
             .compile()
             .inspect(this::verifyMethodHasBeenInlined);
 
