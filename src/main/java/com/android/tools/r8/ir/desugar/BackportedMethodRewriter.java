@@ -42,6 +42,7 @@ import com.android.tools.r8.ir.desugar.backports.ShortMethods;
 import com.android.tools.r8.ir.desugar.backports.StringMethods;
 import com.android.tools.r8.ir.synthetic.TemplateMethodCode;
 import com.android.tools.r8.origin.SynthesizedOrigin;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -229,19 +230,21 @@ public final class BackportedMethodRewriter {
     public RewritableMethods(AppView<?> appView) {
       InternalOptions options = appView.options();
       DexItemFactory factory = appView.dexItemFactory();
-      if (!options.canUseJava7CompareAndObjectsOperations()) {
-        initializeJava7CompareOperations(factory);
+
+      if (options.minApiLevel < AndroidApiLevel.K.getLevel()) {
+        initializeAndroidKMethodProviders(factory);
       }
-      if (!options.canUseJava8SignedOperations()) {
-        initializeJava8SignedOperations(factory);
+      if (options.minApiLevel < AndroidApiLevel.N.getLevel()) {
+        initializeAndroidNMethodProviders(factory);
       }
-      if (!options.canUseJava8UnsignedOperations()) {
-        initializeJava8UnsignedOperations(factory);
+      if (options.minApiLevel < AndroidApiLevel.O.getLevel()) {
+        initializeAndroidOMethodProviders(factory);
       }
-      if (!options.canUseJava9AndNewerOperations()) {
-        initializeJava9Operations(factory);
-        initializeJava11Operations(factory);
-      }
+
+      // These are currently not implemented at any API level in Android.
+      initializeJava9MethodProviders(factory);
+      initializeJava11MethodProviders(factory);
+
       // interface method desugaring also toggles library emulation.
       if (options.isInterfaceMethodDesugaringEnabled()) {
         initializeRetargetCoreLibraryMembers(appView);
@@ -252,7 +255,7 @@ public final class BackportedMethodRewriter {
       return rewritable.isEmpty();
     }
 
-    private void initializeJava7CompareOperations(DexItemFactory factory) {
+    private void initializeAndroidKMethodProviders(DexItemFactory factory) {
       // Note: Long.compare rewriting is handled by CodeRewriter since there is a dedicated
       // bytecode which supports the operation.
 
@@ -358,7 +361,7 @@ public final class BackportedMethodRewriter {
       addProvider(new MethodGenerator(clazz, method, proto, CollectionsMethods::new));
     }
 
-    private void initializeJava8SignedOperations(DexItemFactory factory) {
+    private void initializeAndroidNMethodProviders(DexItemFactory factory) {
       // Byte
       DexString clazz = factory.boxedByteDescriptor;
       // int Byte.hashCode(byte i)
@@ -630,7 +633,7 @@ public final class BackportedMethodRewriter {
       addProvider(new MethodGenerator(clazz, method, proto, MathMethods::new, "negateExactLong"));
     }
 
-    private void initializeJava8UnsignedOperations(DexItemFactory factory) {
+    private void initializeAndroidOMethodProviders(DexItemFactory factory) {
       // Byte
       DexString clazz = factory.boxedByteDescriptor;
 
@@ -761,7 +764,7 @@ public final class BackportedMethodRewriter {
       addProvider(new MethodGenerator(clazz, method, proto, StringMethods::new, "joinIterable"));
     }
 
-    private void initializeJava9Operations(DexItemFactory factory) {
+    private void initializeJava9MethodProviders(DexItemFactory factory) {
       // Math & StrictMath, which have some symmetric, binary-compatible APIs
       DexString[] mathClasses = {factory.mathDescriptor, factory.strictMathDescriptor};
       for (DexString mathClass : mathClasses) {
@@ -831,7 +834,7 @@ public final class BackportedMethodRewriter {
       addProvider(new MethodGenerator(clazz, method, proto, ObjectsMethods::new));
     }
 
-    private void initializeJava11Operations(DexItemFactory factory) {
+    private void initializeJava11MethodProviders(DexItemFactory factory) {
       // Character
       DexString clazz = factory.boxedCharDescriptor;
 
