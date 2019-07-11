@@ -133,7 +133,7 @@ sourceSets {
             exclude '**/TestZoneTextPrinterParser.java'
         }
     }
-    testNGRunner {
+    examplesTestNGRunner {
         java {
             srcDirs = ['src/test/testngrunner']
         }
@@ -243,7 +243,7 @@ dependencies {
     implementation group: 'org.ow2.asm', name: 'asm-analysis', version: asmVersion
     implementation group: 'org.ow2.asm', name: 'asm-util', version: asmVersion
     jdk11TimeTestsCompile group: 'org.testng', name: 'testng', version: testngVersion
-    testNGRunnerCompile group: 'org.testng', name: 'testng', version: testngVersion
+    examplesTestNGRunnerCompile group: 'org.testng', name: 'testng', version: testngVersion
     testCompile sourceSets.examples.output
     testCompile "junit:junit:$junitVersion"
     testCompile group: 'org.smali', name: 'smali', version: smaliVersion
@@ -557,7 +557,7 @@ def setJava11Compilation(sourceSet) {
 }
 
 setJava11Compilation(sourceSets.examplesJava11.compileJavaTaskName)
-setJava11Compilation(sourceSets.testNGRunner.compileJavaTaskName)
+setJava11Compilation(sourceSets.examplesTestNGRunner.compileJavaTaskName)
 setJava11Compilation(sourceSets.jdk11TimeTests.compileJavaTaskName)
 
 task compileMainWithJava11 (type: JavaCompile) {
@@ -1476,7 +1476,7 @@ task buildJdk11TimeTestsJar {
     task "jar_jdk11TimeTests"(type: Jar) {
         archiveName = jarName
         destinationDir = exampleOutputDir
-        from sourceSets.testNGRunner.output
+        from sourceSets.examplesTestNGRunner.output
         include "**.class"
         from sourceSets.jdk11TimeTests.output
         include "**.class"
