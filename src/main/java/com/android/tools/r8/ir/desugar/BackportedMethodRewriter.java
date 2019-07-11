@@ -93,32 +93,26 @@ public final class BackportedMethodRewriter {
     if (rewritableMethods.isEmpty()) {
       return; // Nothing to do!
     }
+
     InstructionIterator iterator = code.instructionIterator();
     while (iterator.hasNext()) {
       Instruction instruction = iterator.next();
-      if (instruction.isInvokeMethod() && !instruction.isInvokeStatic()) {
-        InvokeMethod invoke = instruction.asInvokeMethod();
-        MethodProvider provider = getMethodProviderOrNull(invoke.getInvokedMethod());
-        if (provider != null) {
-          assert !provider.requiresGenerationOfCode();
-          iterator.replaceCurrentInstruction(
-              new InvokeStatic(
-                  provider.provideMethod(factory), invoke.outValue(), invoke.inValues()));
-        }
-        continue;
-      } else if (!instruction.isInvokeStatic()) {
+      if (!instruction.isInvokeMethod()) {
         continue;
       }
-      InvokeStatic invoke = instruction.asInvokeStatic();
-      DexMethod method = invoke.getInvokedMethod();
-      MethodProvider provider = getMethodProviderOrNull(method);
+
+      InvokeMethod invoke = instruction.asInvokeMethod();
+      MethodProvider provider = getMethodProviderOrNull(invoke.getInvokedMethod());
       if (provider == null) {
         continue;
       }
+
+      DexMethod newMethod = provider.provideMethod(factory);
       iterator.replaceCurrentInstruction(
-          new InvokeStatic(provider.provideMethod(factory), invoke.outValue(), invoke.inValues()));
+          new InvokeStatic(newMethod, invoke.outValue(), invoke.inValues()));
+
       if (provider.requiresGenerationOfCode()) {
-        methodProviders.putIfAbsent(provider.provideMethod(factory), provider);
+        methodProviders.putIfAbsent(newMethod, provider);
         holders.add(code.method.method.holder);
       }
     }
