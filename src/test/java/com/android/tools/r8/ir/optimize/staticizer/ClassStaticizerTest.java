@@ -316,6 +316,8 @@ public class ClassStaticizerTest extends TestBase {
   private void configure(InternalOptions options) {
     options.enableClassInlining = false;
     options.enableUninstantiatedTypeOptimization = false;
+    // TODO(119626580): Remove when resolved.
+    options.enableClassStaticizer = true;
   }
 
   @Test

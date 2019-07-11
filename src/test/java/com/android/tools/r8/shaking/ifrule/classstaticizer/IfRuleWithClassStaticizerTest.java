@@ -57,6 +57,8 @@ public class IfRuleWithClassStaticizerTest extends TestBase {
                 "-keep class " + Unused.class.getTypeName())
             .enableInliningAnnotations()
             .enableClassInliningAnnotations()
+            // TODO(119626580): Remove when resolved.
+            .addOptionsModification(options -> options.enableClassStaticizer = true)
             .run(TestClass.class)
             .assertSuccessWithOutput(expectedOutput)
             .inspector();
