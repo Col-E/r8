@@ -1738,8 +1738,7 @@ public class CodeRewriter {
     }
     AssumeDynamicTypeRemover assumeDynamicTypeRemover = new AssumeDynamicTypeRemover(appView, code);
     boolean mayHaveRemovedTrivialPhi = false;
-    Set<Value> needToWidenValues = Sets.newIdentityHashSet();
-    Set<Value> needToNarrowValues = Sets.newIdentityHashSet();
+    Set<Value> affectedValues = Sets.newIdentityHashSet();
     Set<BasicBlock> blocksToBeRemoved = Sets.newIdentityHashSet();
     ListIterator<BasicBlock> blockIterator = code.listIterator();
     while (blockIterator.hasNext()) {
@@ -1765,16 +1764,12 @@ public class CodeRewriter {
               if (outValue != null) {
                 mayHaveRemovedTrivialPhi |= outValue.numberOfPhiUsers() > 0;
                 outValue.replaceUsers(obj);
-                needToNarrowValues.addAll(outValue.affectedValues());
+                affectedValues.addAll(outValue.affectedValues());
               }
               iterator.removeOrReplaceByDebugLocalRead();
             } else if (obj.isAlwaysNull(appView) && appView.appInfo().hasSubtyping()) {
               iterator.replaceCurrentInstructionWithThrowNull(
-                  appView.withSubtyping(),
-                  code,
-                  blockIterator,
-                  blocksToBeRemoved,
-                  needToNarrowValues);
+                  appView.withSubtyping(), code, blockIterator, blocksToBeRemoved, affectedValues);
             }
           } else if (outValue != null && !outValue.hasLocalInfo()) {
             if (appView
@@ -1800,17 +1795,18 @@ public class CodeRewriter {
                   if (argumentIndex >= 0 && checkArgumentType(invoke, argumentIndex)) {
                     Value argument = invoke.arguments().get(argumentIndex);
                     assert outValue.verifyCompatible(argument.outType());
+                    // Make sure that we are only narrowing information here. OBS, in cases where
+                    // we cannot find the definition of types, computing lessThanOrEqual will
+                    // return false unless it is object.
                     if (argument
                         .getTypeLattice()
                         .lessThanOrEqual(outValue.getTypeLattice(), appView)) {
-                      needToNarrowValues.addAll(outValue.affectedValues());
-                    } else {
-                      needToWidenValues.addAll(outValue.affectedValues());
+                      affectedValues.addAll(outValue.affectedValues());
+                      assumeDynamicTypeRemover.markUsersForRemoval(outValue);
+                      mayHaveRemovedTrivialPhi |= outValue.numberOfPhiUsers() > 0;
+                      outValue.replaceUsers(argument);
+                      invoke.setOutValue(null);
                     }
-                    assumeDynamicTypeRemover.markUsersForRemoval(outValue);
-                    mayHaveRemovedTrivialPhi |= outValue.numberOfPhiUsers() > 0;
-                    outValue.replaceUsers(argument);
-                    invoke.setOutValue(null);
                   }
                 }
               }
@@ -1828,16 +1824,8 @@ public class CodeRewriter {
     } else if (mayHaveRemovedTrivialPhi || assumeDynamicTypeRemover.mayHaveIntroducedTrivialPhi()) {
       code.removeAllTrivialPhis();
     }
-    if (!needToWidenValues.isEmpty() || !needToNarrowValues.isEmpty()) {
-      TypeAnalysis analysis = new TypeAnalysis(appView);
-      // If out value of invoke < argument (e.g., losing non-null info), widen users type.
-      if (!needToWidenValues.isEmpty()) {
-        analysis.widening(needToWidenValues);
-      }
-      // Otherwise, i.e., argument has more precise types, narrow users type.
-      if (!needToNarrowValues.isEmpty()) {
-        analysis.narrowing(needToNarrowValues);
-      }
+    if (!affectedValues.isEmpty()) {
+      new TypeAnalysis(appView).narrowing(affectedValues);
     }
     assert code.isConsistentGraph();
   }
