@@ -761,7 +761,8 @@ public class TestBase {
       Consumer<ArtCommandBuilder> cmdBuilder, DexVm version) throws IOException {
     Path out = File.createTempFile("junit", ".zip", temp.getRoot()).toPath();
     app.writeToZip(out, OutputMode.DexIndexed);
-    return ToolHelper.runArtRaw(ImmutableList.of(out.toString()), mainClass, cmdBuilder, version);
+    return ToolHelper.runArtRaw(
+        ImmutableList.of(out.toString()), mainClass, cmdBuilder, version, false);
   }
 
   /**

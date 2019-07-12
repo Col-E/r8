@@ -9,6 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
 import com.android.tools.r8.TestBase.Backend;
+import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.debug.CfDebugTestConfig;
@@ -41,11 +42,23 @@ public abstract class TestCompileResult<
   private final OutputMode outputMode;
   final List<Path> additionalRunClassPath = new ArrayList<>();
   final List<String> vmArguments = new ArrayList<>();
+  private boolean withArt6Plus64BitsLib = false;
+  private boolean withArtFrameworks = true;
 
   TestCompileResult(TestState state, AndroidApp app, OutputMode outputMode) {
     super(state);
     this.app = app;
     this.outputMode = outputMode;
+  }
+
+  public final CR withArt6Plus64BitsLib() {
+    withArt6Plus64BitsLib = true;
+    return self();
+  }
+
+  public final CR withArtFrameworks() {
+    withArtFrameworks = true;
+    return self();
   }
 
   public final Backend getBackend() {
@@ -268,7 +281,13 @@ public abstract class TestCompileResult<
         .addAll(additionalClassPath.stream().map(Path::toString).collect(Collectors.toList()))
         .add(out.toString())
         .build();
-    ProcessResult result = ToolHelper.runArtRaw(classPath, mainClass, dummy -> {}, vm, arguments);
+    Consumer<ArtCommandBuilder> commandConsumer =
+        withArt6Plus64BitsLib && vm.getVersion().isAtLeast(DexVm.Version.V6_0_1)
+            ? builder -> builder.appendArtOption("--64")
+            : builder -> {};
+    ProcessResult result =
+        ToolHelper.runArtRaw(
+            classPath, mainClass, commandConsumer, vm, withArtFrameworks, arguments);
     return createRunResult(result);
   }
 

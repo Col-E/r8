@@ -16,6 +16,7 @@ import com.android.tools.r8.ToolHelper.DexVm.Kind;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AssemblyWriter;
+import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.GraphLense;
@@ -283,6 +284,7 @@ public class ToolHelper {
     protected String mainClass;
     protected List<String> programArguments = new ArrayList<>();
     protected List<String> bootClassPaths = new ArrayList<>();
+    protected String executionDirectory;
 
     public CommandBuilder appendArtOption(String option) {
       options.add(option);
@@ -351,7 +353,11 @@ public class ToolHelper {
     }
 
     public ProcessBuilder asProcessBuilder() {
-      return new ProcessBuilder(command());
+      ProcessBuilder processBuilder = new ProcessBuilder(command());
+      if (executionDirectory != null) {
+        processBuilder.directory(new File(executionDirectory));
+      }
+      return processBuilder;
     }
 
     public String build() {
@@ -366,6 +372,7 @@ public class ToolHelper {
   public static class ArtCommandBuilder extends CommandBuilder {
 
     private DexVm version;
+    private boolean withArtFrameworks;
 
     public ArtCommandBuilder() {
       this.version = getDexVm();
@@ -385,6 +392,12 @@ public class ToolHelper {
 
     @Override
     protected String getExecutable() {
+      if (withArtFrameworks && version.isNewerThan(DexVm.ART_4_4_4_HOST)) {
+        // Run directly Art in its repository, which has been patched by gradle to match expected
+        // path for the frameworks.
+        executionDirectory = getArtDir(version);
+        return getRawArtBinary(version);
+      }
       return version != null ? getArtBinary(version) : getArtBinary();
     }
 
@@ -629,11 +642,15 @@ public class ToolHelper {
   }
 
   public static String getArtBinary(DexVm version) {
+    return getArtDir(version) + "/" + getRawArtBinary(version);
+  }
+
+  public static String getRawArtBinary(DexVm version) {
     String binary = ART_BINARY_VERSIONS.get(version);
     if (binary == null) {
       throw new IllegalStateException("Does not support running with dex vm: " + version);
     }
-    return getArtDir(version) + "/" + binary;
+    return binary;
   }
 
   public static Path getJava8RuntimeJar() {
@@ -1147,26 +1164,48 @@ public class ToolHelper {
   }
 
   public static ProcessResult runJavac(
-      CfVm runtime, Path classPath, Path directoryToCompileInto, Path... classesToCompile)
+      CfVm runtime, List<Path> classPath, Path directoryToCompileInto, Path... classesToCompile)
       throws IOException {
-    String[] strings = Arrays.stream(classesToCompile).map(Path::toString).toArray(String[]::new);
-    String cp = classPath == null ? null : classPath.toString();
-    return runJavac(runtime, cp, directoryToCompileInto.toString(), strings);
+    return runJavac(runtime, classPath, directoryToCompileInto, null, classesToCompile);
   }
 
   public static ProcessResult runJavac(
-      CfVm runtime, String classPath, String directoryToCompileInto, String... classesToCompile)
+      CfVm runtime,
+      List<Path> classPath,
+      Path directoryToCompileInto,
+      List<String> extraOptions,
+      Path... classesToCompile)
+      throws IOException {
+    String[] strings = Arrays.stream(classesToCompile).map(Path::toString).toArray(String[]::new);
+    List<String> cp = classPath == null ? null : classPath.stream().map(Path::toString).collect(
+        Collectors.toList());
+    return runJavac(runtime, cp, directoryToCompileInto.toString(), extraOptions, strings);
+  }
+
+  public static ProcessResult runJavac(
+      CfVm runtime,
+      List<String> classPath,
+      String directoryToCompileInto,
+      List<String> extraOptions,
+      String... classesToCompile)
       throws IOException {
     List<String> cmdline =
-        new ArrayList<String>(
+        new ArrayList<>(
             Collections.singletonList(TestRuntime.getCheckInJDKPathFor(runtime).toString() + "c"));
-    Collections.addAll(cmdline, classesToCompile);
+    if (extraOptions != null) {
+      cmdline.addAll(extraOptions);
+    }
     if (classPath != null) {
       cmdline.add("-cp");
-      cmdline.add(classPath);
+      if (isWindows()){
+        cmdline.add(String.join(";",classPath));
+      } else {
+        cmdline.add(String.join(":",classPath));
+      }
     }
     cmdline.add("-d");
     cmdline.add(directoryToCompileInto);
+    Collections.addAll(cmdline, classesToCompile);
     ProcessBuilder builder = new ProcessBuilder(cmdline);
     return ToolHelper.runProcess(builder);
   }
@@ -1298,7 +1337,7 @@ public class ToolHelper {
   public static ProcessResult runArtRaw(List<String> files, String mainClass,
       Consumer<ArtCommandBuilder> extras)
       throws IOException {
-    return runArtRaw(files, mainClass, extras, null);
+    return runArtRaw(files, mainClass, extras, null, false);
   }
 
   // Index used to name directory aimed at storing dex files and process result
@@ -1311,10 +1350,12 @@ public class ToolHelper {
       String mainClass,
       Consumer<ArtCommandBuilder> extras,
       DexVm version,
+      boolean withArtFrameworks,
       String... args)
       throws IOException {
     ArtCommandBuilder builder =
         version != null ? new ArtCommandBuilder(version) : new ArtCommandBuilder();
+    builder.withArtFrameworks = withArtFrameworks;
     files.forEach(builder::appendClasspath);
     builder.setMainClass(mainClass);
     if (extras != null) {
@@ -1515,7 +1556,7 @@ public class ToolHelper {
       Consumer<ArtCommandBuilder> extras,
       DexVm version)
       throws IOException {
-    ProcessResult result = runArtRaw(files, mainClass, extras, version);
+    ProcessResult result = runArtRaw(files, mainClass, extras, version, false);
     failOnProcessFailure(result);
     failOnVerificationErrors(result);
     return result;

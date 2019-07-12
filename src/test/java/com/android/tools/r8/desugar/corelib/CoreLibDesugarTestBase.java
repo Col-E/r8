@@ -6,7 +6,6 @@ package com.android.tools.r8.desugar.corelib;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
@@ -18,7 +17,7 @@ import java.util.Map;
 
 public class CoreLibDesugarTestBase extends TestBase {
 
-  private Map<String, String> buildPrefixRewritingForCoreLibCompilation() {
+  protected Map<String, String> buildPrefixRewritingForCoreLibCompilation() {
     return ImmutableMap.<String, String>builder()
         // --rewrite_core_library_prefix.
         // Extra flags for R8
@@ -51,7 +50,7 @@ public class CoreLibDesugarTestBase extends TestBase {
         .build();
   }
 
-  private Map<String, String> buildPrefixRewritingForProgramCompilation() {
+  protected Map<String, String> buildPrefixRewritingForProgramCompilation() {
     return ImmutableMap.<String, String>builder()
         // --rewrite_core_library_prefix.
         // Following flags are ignored (already desugared).
@@ -77,12 +76,12 @@ public class CoreLibDesugarTestBase extends TestBase {
         .build();
   }
 
-  private Map<String, String> buildRetargetCoreLibraryMemberForCoreLibCompilation() {
+  protected Map<String, String> buildRetargetCoreLibraryMemberForCoreLibCompilation() {
     // --retarget_core_library_member.
     return ImmutableMap.of("java.util.LinkedHashSet#spliterator", "java.util.DesugarLinkedHashSet");
   }
 
-  private Map<String, String> buildBackportCoreLibraryMembers() {
+  protected Map<String, String> buildBackportCoreLibraryMembers() {
     // R8 specific to deal with *8 removal.
     return ImmutableMap.<String, String>builder()
         .put("java.lang.Double8", "java.lang.Double")
@@ -91,7 +90,7 @@ public class CoreLibDesugarTestBase extends TestBase {
         .build();
   }
 
-  private Map<String, String> buildRetargetCoreLibraryMemberForProgramCompilation() {
+  protected Map<String, String> buildRetargetCoreLibraryMemberForProgramCompilation() {
     // --retarget_core_library_member.
     return ImmutableMap.<String, String>builder()
         // We ignore the following flags required by Bazel because desugaring of these methods
@@ -153,7 +152,7 @@ public class CoreLibDesugarTestBase extends TestBase {
         .build();
   }
 
-  private List<String> buildDontRewriteInvocations() {
+  protected List<String> buildDontRewriteInvocations() {
     // --dont_rewrite_core_library_invocation "java/util/Iterator#remove".
     return ImmutableList.of("java.util.Iterator#remove");
   }
@@ -182,8 +181,7 @@ public class CoreLibDesugarTestBase extends TestBase {
   }
 
   protected boolean requiresCoreLibDesugaring(TestParameters parameters) {
-    return parameters.getRuntime().asDex().getMinApiLevel().getLevel()
-        < AndroidApiLevel.N.getLevel();
+    return parameters.getApiLevel().getLevel() < AndroidApiLevel.N.getLevel();
   }
 
   protected void configureCoreLibDesugarForCoreLibCompilation(InternalOptions options) {
@@ -211,9 +209,5 @@ public class CoreLibDesugarTestBase extends TestBase {
         .setMinApi(apiLevel)
         .compile()
         .writeToZip();
-  }
-
-  protected Path buildDesugaredLibrary(TestRuntime runtime) throws Exception {
-    return buildDesugaredLibrary(runtime.asDex().getMinApiLevel());
   }
 }

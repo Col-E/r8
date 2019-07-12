@@ -33,7 +33,7 @@ public class JavaUtilOptionalTest extends CoreLibDesugarTestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimes().build();
+    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
   }
 
   public JavaUtilOptionalTest(TestParameters parameters) {
@@ -80,7 +80,7 @@ public class JavaUtilOptionalTest extends CoreLibDesugarTestBase {
         .addOptionsModification(this::configureCoreLibDesugarForProgramCompilation)
         .compile()
         .inspect(this::checkRewrittenInvokes)
-        .addRunClasspathFiles(buildDesugaredLibrary(parameters.getRuntime()))
+        .addRunClasspathFiles(buildDesugaredLibrary(parameters.getApiLevel()))
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(expectedOutput);
   }

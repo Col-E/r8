@@ -30,7 +30,7 @@ public class DesugaredLibraryContentTest extends CoreLibDesugarTestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimes().build();
+    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
   }
 
   public DesugaredLibraryContentTest(TestParameters parameters) {
@@ -39,7 +39,7 @@ public class DesugaredLibraryContentTest extends CoreLibDesugarTestBase {
 
   @Test
   public void test() throws Exception {
-    CodeInspector inspector = new CodeInspector(buildDesugaredLibrary(parameters.getRuntime()));
+    CodeInspector inspector = new CodeInspector(buildDesugaredLibrary(parameters.getApiLevel()));
     assertThat(inspector.clazz("j$.util.Optional"), isPresent());
     assertThat(inspector.clazz("j$.util.OptionalInt"), isPresent());
     assertThat(inspector.clazz("j$.util.OptionalLong"), isPresent());

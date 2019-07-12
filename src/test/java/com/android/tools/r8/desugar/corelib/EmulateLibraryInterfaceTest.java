@@ -13,6 +13,7 @@ import static org.junit.Assert.assertFalse;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -46,7 +47,7 @@ public class EmulateLibraryInterfaceTest extends CoreLibDesugarTestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimes().build();
+    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
   }
 
   public EmulateLibraryInterfaceTest(TestParameters parameters) {
@@ -55,7 +56,7 @@ public class EmulateLibraryInterfaceTest extends CoreLibDesugarTestBase {
 
   @Test
   public void testDispatchClasses() throws Exception {
-    CodeInspector inspector = new CodeInspector(buildDesugaredLibrary(parameters.getRuntime()));
+    CodeInspector inspector = new CodeInspector(buildDesugaredLibrary(parameters.getApiLevel()));
     List<FoundClassSubject> dispatchClasses =
         inspector.allClasses().stream()
             .filter(
@@ -138,7 +139,9 @@ public class EmulateLibraryInterfaceTest extends CoreLibDesugarTestBase {
 
   @Test
   public void testProgram() throws Exception {
-    Assume.assumeTrue("TODO(134732760): Fix Android 7+.", requiresCoreLibDesugaring(parameters));
+    Assume.assumeTrue(
+        "TODO(134732760): Fix Android 7+.",
+        parameters.getRuntime().asDex().getVm().getVersion().isOlderThanOrEqual(Version.V6_0_1));
     String expectedOutput =
         StringUtils.lines(
             "j$.util.Spliterators$IteratorSpliterator",
@@ -159,7 +162,7 @@ public class EmulateLibraryInterfaceTest extends CoreLibDesugarTestBase {
             .addOptionsModification(this::configureCoreLibDesugarForProgramCompilation)
             .compile()
             .inspect(this::checkRewrittenInvokes)
-            .addRunClasspathFiles(buildDesugaredLibrary(parameters.getRuntime()))
+            .addRunClasspathFiles(buildDesugaredLibrary(parameters.getApiLevel()))
             .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput(expectedOutput)
             .getStdErr();

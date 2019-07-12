@@ -29,7 +29,7 @@ public class JavaTimeTest extends CoreLibDesugarTestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimes().build();
+    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
   }
 
   public JavaTimeTest(TestParameters parameters) {
@@ -55,7 +55,7 @@ public class JavaTimeTest extends CoreLibDesugarTestBase {
         .addOptionsModification(this::configureCoreLibDesugarForCoreLibCompilation)
         .compile()
         .inspect(this::checkRewrittenInvokes)
-        .addRunClasspathFiles(buildDesugaredLibrary(parameters.getRuntime()))
+        .addRunClasspathFiles(buildDesugaredLibrary(parameters.getApiLevel()))
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(expectedOutput);
   }

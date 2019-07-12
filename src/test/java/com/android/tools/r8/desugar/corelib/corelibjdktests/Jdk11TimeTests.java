@@ -30,7 +30,7 @@ public class Jdk11TimeTests extends CoreLibDesugarTestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimes().build();
+    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
   }
 
   public Jdk11TimeTests(TestParameters parameters) {
@@ -140,7 +140,7 @@ public class Jdk11TimeTests extends CoreLibDesugarTestBase {
             .setMinApi(parameters.getRuntime())
             .addOptionsModification(this::configureCoreLibDesugarForProgramCompilation)
             .compile()
-            .addRunClasspathFiles(buildDesugaredLibrary(parameters.getRuntime()));
+            .addRunClasspathFiles(buildDesugaredLibrary(parameters.getApiLevel()));
     for (String success : successes) {
       D8TestRunResult result =
           compileResult.run(parameters.getRuntime(), "TestNGMainRunner", verbosity, success);

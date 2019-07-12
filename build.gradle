@@ -1462,6 +1462,20 @@ task buildExampleJava11Jars {
     }
 }
 
+task provideArtFrameworksDependencies {
+    cloudDependencies.tools.forEach({ art ->
+        if (art.contains("art")) {
+            def taskName = art.replace('/','_')
+            dependsOn "patch_${taskName}"
+            task "patch_${taskName}"(type: org.gradle.api.tasks.Copy){
+                from "tools/${art}/framework"
+                include "**.jar"
+                into file("tools/${art}/out/host/linux-x86/framework")
+            }
+        }
+    })
+}
+
 task provideJdk11TestsDependencies(type: org.gradle.api.tasks.Copy) {
     from sourceSets.jdk11TimeTests.compileClasspath
     include "**/**.jar"
@@ -1888,6 +1902,7 @@ test {
         dependsOn buildPreNJdwpTestsJar
         dependsOn buildPreNJdwpTestsDex
         dependsOn buildJdk11TimeTestsJar
+        dependsOn provideArtFrameworksDependencies
     } else {
         logger.lifecycle("WARNING: Testing in not supported on your platform. Testing is only fully supported on " +
             "Linux and partially supported on Mac OS and Windows. Art does not run on other platforms.")

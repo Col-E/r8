@@ -27,7 +27,7 @@ public class JavaUtilFunctionTest extends CoreLibDesugarTestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimes().build();
+    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
   }
 
   public JavaUtilFunctionTest(TestParameters parameters) {
@@ -59,7 +59,7 @@ public class JavaUtilFunctionTest extends CoreLibDesugarTestBase {
         .addOptionsModification(this::configureCoreLibDesugarForProgramCompilation)
         .compile()
         .inspect(this::checkRewrittenArguments)
-        .addRunClasspathFiles(buildDesugaredLibrary(parameters.getRuntime()))
+        .addRunClasspathFiles(buildDesugaredLibrary(parameters.getApiLevel()))
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(expectedOutput);
   }
