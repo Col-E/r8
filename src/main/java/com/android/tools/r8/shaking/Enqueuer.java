@@ -786,7 +786,6 @@ public class Enqueuer {
       // We make an assumption that such classes are inherited directly from java.lang.Object
       // and implement all lambda interfaces.
 
-      ScopedDexMethodSet seen = new ScopedDexMethodSet();
       if (directInterfaces == null) {
         return;
       }
@@ -802,6 +801,7 @@ public class Enqueuer {
       // We only have to look at virtual methods here, as only those can actually be executed at
       // runtime. Illegal dispatch situations and the corresponding exceptions are already handled
       // by the reachability logic.
+      ScopedDexMethodSet seen = new ScopedDexMethodSet();
       SetWithReason<DexEncodedMethod> reachableMethods =
           reachableVirtualMethods.get(instantiatedType);
       if (reachableMethods != null) {
