@@ -970,7 +970,7 @@ public class Enqueuer {
             consequentNode, KeepReason.dueToConditionalKeepRule(rule, preconditionReference));
       }
     }
-    // Note: the reason for keeping is reproted above, so this just uses the first.
+    // Note: the reason for keeping is reported above, so this just uses the first.
     ProguardKeepRuleBase reason = reasons.iterator().next();
     internalEnqueueRootItem(
         consequent, KeepReason.dueToConditionalKeepRule(reason, preconditionReference));
