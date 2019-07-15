@@ -216,6 +216,11 @@ public class LensCodeRewriter {
             if (prototypeChanges.hasBeenChangedToReturnVoid() && invoke.outValue() != null) {
               constantReturnMaterializingInstruction =
                   prototypeChanges.getConstantReturn(code, invoke.getPosition());
+              if (invoke.outValue().hasLocalInfo()) {
+                constantReturnMaterializingInstruction
+                    .outValue()
+                    .setLocalInfo(invoke.outValue().getLocalInfo());
+              }
               invoke.outValue().replaceUsers(constantReturnMaterializingInstruction.outValue());
             }
 
