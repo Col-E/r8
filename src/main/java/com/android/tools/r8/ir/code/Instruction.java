@@ -65,6 +65,10 @@ public abstract class Instruction implements InstructionOrPhi {
 
   public abstract <T> T accept(InstructionVisitor<T> visitor);
 
+  final boolean hasPosition() {
+    return position != null;
+  }
+
   public final Position getPosition() {
     assert position != null;
     return position;

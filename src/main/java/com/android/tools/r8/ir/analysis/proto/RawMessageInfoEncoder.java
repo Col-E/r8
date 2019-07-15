@@ -9,9 +9,13 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoFieldInfo;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoFieldType;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoMessageInfo;
+import com.android.tools.r8.ir.analysis.proto.schema.ProtoObject;
+import com.android.tools.r8.utils.Pair;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.ints.IntListIterator;
+import java.util.ArrayList;
+import java.util.List;
 
 public class RawMessageInfoEncoder {
 
@@ -23,7 +27,7 @@ public class RawMessageInfoEncoder {
 
   DexString encodeInfo(ProtoMessageInfo protoMessageInfo) {
     IntList info = new IntArrayList();
-    info.add(protoMessageInfo.flags());
+    info.add(protoMessageInfo.getFlags());
     info.add(protoMessageInfo.numberOfFields());
 
     if (protoMessageInfo.hasFields()) {
@@ -33,7 +37,7 @@ public class RawMessageInfoEncoder {
       int repeatedFieldCount = 0;
       int checkInitialized = 0;
 
-      for (ProtoFieldInfo protoFieldInfo : protoMessageInfo.fields()) {
+      for (ProtoFieldInfo protoFieldInfo : protoMessageInfo.getFields()) {
         int fieldNumber = protoFieldInfo.getNumber();
         if (fieldNumber < minFieldNumber) {
           minFieldNumber = fieldNumber;
@@ -61,7 +65,7 @@ public class RawMessageInfoEncoder {
       info.add(repeatedFieldCount);
       info.add(checkInitialized);
 
-      for (ProtoFieldInfo protoFieldInfo : protoMessageInfo.fields()) {
+      for (ProtoFieldInfo protoFieldInfo : protoMessageInfo.getFields()) {
         info.add(protoFieldInfo.getNumber());
         info.add(protoFieldInfo.getType().serialize());
         if (protoFieldInfo.hasAuxData()) {
@@ -90,6 +94,25 @@ public class RawMessageInfoEncoder {
     }
     result[offset] = 0;
     return dexItemFactory.createString(info.size() + numberOfExtraChars, result);
+  }
+
+  List<ProtoObject> encodeObjects(ProtoMessageInfo protoMessageInfo) {
+    List<ProtoObject> result = new ArrayList<>();
+    if (protoMessageInfo.numberOfOneOfObjects() > 0) {
+      for (Pair<ProtoObject, ProtoObject> oneOfObject : protoMessageInfo.getOneOfObjects()) {
+        result.add(oneOfObject.getFirst());
+        result.add(oneOfObject.getSecond());
+      }
+    }
+    if (protoMessageInfo.numberOfHasBitsObjects() > 0) {
+      result.addAll(protoMessageInfo.getHasBitsObjects());
+    }
+    if (protoMessageInfo.hasFields()) {
+      for (ProtoFieldInfo protoFieldInfo : protoMessageInfo.getFields()) {
+        result.addAll(protoFieldInfo.getObjects());
+      }
+    }
+    return result;
   }
 
   private static int countBytes(IntList info) {

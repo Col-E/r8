@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.analysis.proto.schema;
 
-import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.utils.Pair;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,8 +15,8 @@ public class ProtoMessageInfo {
     private int flags;
 
     private List<ProtoFieldInfo> fields;
-    private List<Value> hasBitsObjects;
-    private List<Pair<Value, Value>> oneOfObjects;
+    private List<ProtoObject> hasBitsObjects;
+    private List<Pair<ProtoObject, ProtoObject>> oneOfObjects;
 
     public void setFlags(int value) {
       this.flags = value;
@@ -30,7 +29,7 @@ public class ProtoMessageInfo {
       fields.add(field);
     }
 
-    public void addHasBitsObject(Value hasBitsObject) {
+    public void addHasBitsObject(ProtoObject hasBitsObject) {
       if (hasBitsObjects == null) {
         hasBitsObjects = new ArrayList<>();
       }
@@ -43,7 +42,7 @@ public class ProtoMessageInfo {
       }
     }
 
-    public void addOneOfObject(Value first, Value second) {
+    public void addOneOfObject(ProtoObject first, ProtoObject second) {
       if (oneOfObjects == null) {
         oneOfObjects = new ArrayList<>();
       }
@@ -64,14 +63,14 @@ public class ProtoMessageInfo {
   private final int flags;
 
   private final List<ProtoFieldInfo> fields;
-  private final List<Value> hasBitsObjects;
-  private final List<Pair<Value, Value>> oneOfObjects;
+  private final List<ProtoObject> hasBitsObjects;
+  private final List<Pair<ProtoObject, ProtoObject>> oneOfObjects;
 
   private ProtoMessageInfo(
       int flags,
       List<ProtoFieldInfo> fields,
-      List<Value> hasBitsObjects,
-      List<Pair<Value, Value>> oneOfObjects) {
+      List<ProtoObject> hasBitsObjects,
+      List<Pair<ProtoObject, ProtoObject>> oneOfObjects) {
     this.flags = flags;
     this.fields = fields;
     this.hasBitsObjects = hasBitsObjects;
@@ -82,12 +81,20 @@ public class ProtoMessageInfo {
     return new ProtoMessageInfo.Builder();
   }
 
-  public List<ProtoFieldInfo> fields() {
+  public List<ProtoFieldInfo> getFields() {
     return fields;
   }
 
-  public int flags() {
+  public int getFlags() {
     return flags;
+  }
+
+  public List<ProtoObject> getHasBitsObjects() {
+    return hasBitsObjects;
+  }
+
+  public List<Pair<ProtoObject, ProtoObject>> getOneOfObjects() {
+    return oneOfObjects;
   }
 
   public boolean hasFields() {

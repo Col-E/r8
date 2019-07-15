@@ -53,6 +53,11 @@ public class RegisterMoveSchedulerTest {
     }
 
     @Override
+    public Value insertConstIntInstruction(IRCode code, InternalOptions options, int value) {
+      throw new Unimplemented();
+    }
+
+    @Override
     public void replaceCurrentInstructionWithThrowNull(
         AppView<? extends AppInfoWithSubtyping> appView,
         IRCode code,

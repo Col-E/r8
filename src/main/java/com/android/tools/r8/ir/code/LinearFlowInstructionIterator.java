@@ -42,6 +42,11 @@ public class LinearFlowInstructionIterator implements InstructionIterator, Instr
   }
 
   @Override
+  public Value insertConstIntInstruction(IRCode code, InternalOptions options, int value) {
+    return currentBlockIterator.insertConstIntInstruction(code, options, value);
+  }
+
+  @Override
   public void replaceCurrentInstructionWithThrowNull(
       AppView<? extends AppInfoWithSubtyping> appView,
       IRCode code,

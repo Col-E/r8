@@ -97,7 +97,7 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
   public void add(Instruction instruction) {
     instruction.setBlock(block);
     assert instruction.getBlock() == block;
-    if (position != null) {
+    if (position != null && !instruction.hasPosition()) {
       instruction.setPosition(position);
     }
     listIterator.add(instruction);
@@ -187,6 +187,15 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
   @Override
   public Value insertConstNullInstruction(IRCode code, InternalOptions options) {
     ConstNumber constNumberInstruction = code.createConstNull();
+    // Note that we only keep position info for throwing instructions in release mode.
+    constNumberInstruction.setPosition(options.debug ? current.getPosition() : Position.none());
+    add(constNumberInstruction);
+    return constNumberInstruction.outValue();
+  }
+
+  @Override
+  public Value insertConstIntInstruction(IRCode code, InternalOptions options, int value) {
+    ConstNumber constNumberInstruction = code.createIntConstant(value);
     // Note that we only keep position info for throwing instructions in release mode.
     constNumberInstruction.setPosition(options.debug ? current.getPosition() : Position.none());
     add(constNumberInstruction);

@@ -21,6 +21,10 @@ public class FieldNameComputationInfo extends NameComputationInfo<DexField> {
     return FIELD_NAME_INSTANCE;
   }
 
+  public boolean isForFieldName() {
+    return true;
+  }
+
   @Override
   public DexString internalComputeNameFor(
       DexField field, DexDefinitionSupplier definitions, NamingLens namingLens) {

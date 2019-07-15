@@ -871,6 +871,12 @@ public class IRCode {
     return blocks.stream().max(Comparator.comparingInt(BasicBlock::getNumber)).get().getNumber();
   }
 
+  public ConstClass createConstClass(AppView<?> appView, DexType type) {
+    Value out =
+        createValue(TypeLatticeElement.fromDexType(type, Nullability.definitelyNotNull(), appView));
+    return new ConstClass(out, type);
+  }
+
   public ConstNumber createConstNull() {
     Value out = createValue(TypeLatticeElement.NULL);
     return new ConstNumber(out, 0);

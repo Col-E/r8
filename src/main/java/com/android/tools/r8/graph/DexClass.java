@@ -550,6 +550,19 @@ public abstract class DexClass extends DexDefinition {
     return lookupTarget(instanceFields, field);
   }
 
+  public DexField lookupUniqueInstanceFieldWithName(DexString name) {
+    DexField field = null;
+    for (DexEncodedField encodedField : instanceFields()) {
+      if (encodedField.field.name == name) {
+        if (field != null) {
+          return null;
+        }
+        field = encodedField.field;
+      }
+    }
+    return field;
+  }
+
   /**
    * Find field in this class matching field.
    */

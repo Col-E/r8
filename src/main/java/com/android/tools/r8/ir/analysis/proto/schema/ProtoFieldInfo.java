@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.analysis.proto.schema;
 
-import com.android.tools.r8.ir.code.Value;
 import java.util.List;
 import java.util.OptionalInt;
 
@@ -14,11 +13,10 @@ public class ProtoFieldInfo {
   private final ProtoFieldType type;
 
   private final OptionalInt auxData;
-  // TODO(b/112437944): Create an abstract representation of the object values to ensure that this
-  //  is detached from the IR.
-  private final List<Value> objects;
+  private final List<ProtoObject> objects;
 
-  public ProtoFieldInfo(int number, ProtoFieldType type, OptionalInt auxData, List<Value> objects) {
+  public ProtoFieldInfo(
+      int number, ProtoFieldType type, OptionalInt auxData, List<ProtoObject> objects) {
     this.number = number;
     this.type = type;
     this.auxData = auxData;
@@ -36,6 +34,10 @@ public class ProtoFieldInfo {
 
   public int getNumber() {
     return number;
+  }
+
+  public List<ProtoObject> getObjects() {
+    return objects;
   }
 
   public ProtoFieldType getType() {

@@ -51,6 +51,8 @@ public interface InstructionListIterator
 
   Value insertConstNullInstruction(IRCode code, InternalOptions options);
 
+  Value insertConstIntInstruction(IRCode code, InternalOptions options, int value);
+
   /**
    * Replace the current instruction with null throwing instructions.
    *

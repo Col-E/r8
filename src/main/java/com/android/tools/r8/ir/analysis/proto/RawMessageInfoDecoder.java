@@ -4,20 +4,35 @@
 
 package com.android.tools.r8.ir.analysis.proto;
 
+import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoFieldInfo;
+import com.android.tools.r8.ir.analysis.proto.schema.ProtoFieldObject;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoFieldType;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoFieldTypeFactory;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoMessageInfo;
+import com.android.tools.r8.ir.analysis.proto.schema.ProtoObject;
+import com.android.tools.r8.ir.analysis.proto.schema.ProtoObjectFromInvokeStatic;
+import com.android.tools.r8.ir.analysis.proto.schema.ProtoObjectFromStaticGet;
+import com.android.tools.r8.ir.analysis.proto.schema.ProtoTypeObject;
 import com.android.tools.r8.ir.code.ArrayPut;
+import com.android.tools.r8.ir.code.ConstClass;
+import com.android.tools.r8.ir.code.ConstString;
+import com.android.tools.r8.ir.code.DexItemBasedConstString;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
+import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
+import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
 import com.android.tools.r8.utils.ThrowingCharIterator;
 import com.android.tools.r8.utils.ThrowingIntIterator;
 import com.android.tools.r8.utils.ThrowingIterator;
 import java.io.UTFDataFormatException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.OptionalInt;
@@ -54,7 +69,7 @@ public class RawMessageInfoDecoder {
     this.factory = factory;
   }
 
-  public ProtoMessageInfo run(Value infoValue, Value objectsValue) {
+  public ProtoMessageInfo run(Value infoValue, Value objectsValue, DexClass context) {
     try {
       ProtoMessageInfo.Builder builder = ProtoMessageInfo.builder();
       ThrowingIntIterator<InvalidRawMessageInfoException> infoIterator =
@@ -95,15 +110,19 @@ public class RawMessageInfoDecoder {
         builder.setNumberOfOneOfObjects(numberOfOneOfObjects);
         for (int i = 0; i < numberOfOneOfObjects; i++) {
           builder.addOneOfObject(
-              objectIterator.computeNextIfAbsent(this::invalidObjectsFailure),
-              objectIterator.computeNextIfAbsent(this::invalidObjectsFailure));
+              createProtoObject(
+                  objectIterator.computeNextIfAbsent(this::invalidObjectsFailure), context),
+              createProtoObject(
+                  objectIterator.computeNextIfAbsent(this::invalidObjectsFailure), context));
         }
       }
 
       if (numberOfHasBitsObjects > 0) {
         builder.setNumberOfHasBitsObjects(numberOfHasBitsObjects);
         for (int i = 0; i < numberOfHasBitsObjects; i++) {
-          builder.addHasBitsObject(objectIterator.computeNextIfAbsent(this::invalidObjectsFailure));
+          builder.addHasBitsObject(
+              createProtoObject(
+                  objectIterator.computeNextIfAbsent(this::invalidObjectsFailure), context));
         }
       }
 
@@ -124,8 +143,11 @@ public class RawMessageInfoDecoder {
         // Extract field-specific portion of "objects" array.
         int numberOfObjects = fieldType.numberOfObjects(isProto2, factory);
         try {
-          List<Value> fieldObjects = objectIterator.take(numberOfObjects);
-          builder.addField(new ProtoFieldInfo(fieldNumber, fieldType, auxData, fieldObjects));
+          List<ProtoObject> objects = new ArrayList<>(numberOfObjects);
+          for (Value value : objectIterator.take(numberOfObjects)) {
+            objects.add(createProtoObject(value, context));
+          }
+          builder.addField(new ProtoFieldInfo(fieldNumber, fieldType, auxData, objects));
         } catch (NoSuchElementException e) {
           throw new InvalidRawMessageInfoException();
         }
@@ -142,6 +164,42 @@ public class RawMessageInfoDecoder {
       assert false;
       return null;
     }
+  }
+
+  private ProtoObject createProtoObject(Value value, DexClass context)
+      throws InvalidRawMessageInfoException {
+    Value root = value.getAliasedValue();
+    if (!root.isPhi()) {
+      Instruction definition = root.definition;
+      if (definition.isConstClass()) {
+        ConstClass constClass = definition.asConstClass();
+        return new ProtoTypeObject(constClass.getValue());
+      } else if (definition.isConstString()) {
+        ConstString constString = definition.asConstString();
+        DexField field = context.lookupUniqueInstanceFieldWithName(constString.getValue());
+        if (field != null) {
+          return new ProtoFieldObject(field);
+        }
+      } else if (definition.isDexItemBasedConstString()) {
+        DexItemBasedConstString constString = definition.asDexItemBasedConstString();
+        DexReference reference = constString.getItem();
+        NameComputationInfo<?> nameComputationInfo = constString.getNameComputationInfo();
+        if (reference.isDexField()
+            && nameComputationInfo.isFieldNameComputationInfo()
+            && nameComputationInfo.asFieldNameComputationInfo().isForFieldName()) {
+          return new ProtoFieldObject(reference.asDexField());
+        }
+      } else if (definition.isInvokeStatic()) {
+        InvokeStatic invoke = definition.asInvokeStatic();
+        if (invoke.arguments().isEmpty()) {
+          return new ProtoObjectFromInvokeStatic(invoke.getInvokedMethod());
+        }
+      } else if (definition.isStaticGet()) {
+        StaticGet staticGet = definition.asStaticGet();
+        return new ProtoObjectFromStaticGet(staticGet.getField());
+      }
+    }
+    throw new InvalidRawMessageInfoException();
   }
 
   private int invalidInfoFailure() throws InvalidRawMessageInfoException {
