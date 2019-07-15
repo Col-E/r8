@@ -98,6 +98,8 @@ final class StaticizingProcessor {
   }
 
   private void finalEligibilityCheck() {
+    Set<Phi> visited = Sets.newIdentityHashSet();
+    Set<Phi> trivialPhis = Sets.newIdentityHashSet();
     Iterator<Entry<DexType, CandidateInfo>> it =
         classStaticizer.candidates.entrySet().iterator();
     while (it.hasNext()) {
@@ -144,6 +146,63 @@ final class StaticizingProcessor {
       // CHECK: no abstract or native instance methods.
       if (Streams.stream(candidateClass.methods()).anyMatch(
           method -> !method.isStatic() && (method.shouldNotHaveCode()))) {
+        it.remove();
+        continue;
+      }
+
+      // CHECK: references to 'this' in instance methods are fixable.
+      boolean fixableThisPointer = true;
+      for (DexEncodedMethod method : candidateClass.methods()) {
+        if (method.isStatic() || factory().isConstructor(method.method)) {
+          continue;
+        }
+        IRCode code = method.buildIR(appView, appView.appInfo().originFor(method.method.holder));
+        assert code != null;
+        Value thisValue = code.getThis();
+        assert thisValue != null;
+        visited.clear();
+        trivialPhis.clear();
+        boolean onlyHasTrivialPhis = testAndCollectPhisComposedOfThis(
+            visited, thisValue.uniquePhiUsers(), thisValue, trivialPhis);
+        if (thisValue.numberOfPhiUsers() != 0 && !onlyHasTrivialPhis) {
+          fixableThisPointer = false;
+          break;
+        }
+      }
+      if (!fixableThisPointer) {
+        it.remove();
+        continue;
+      }
+
+      // CHECK: references to field read usages are fixable.
+      boolean fixableFieldReads = true;
+      for (DexEncodedMethod method : info.referencedFrom) {
+        IRCode code = method.buildIR(appView, appView.appInfo().originFor(method.method.holder));
+        assert code != null;
+        List<StaticGet> singletonFieldReads =
+            Streams.stream(code.instructionIterator())
+                .filter(Instruction::isStaticGet)
+                .map(Instruction::asStaticGet)
+                .filter(get -> get.getField() == info.singletonField.field)
+                .collect(Collectors.toList());
+        boolean fixableFieldReadsPerUsage = true;
+        for (StaticGet read : singletonFieldReads) {
+          Value dest = read.dest();
+          visited.clear();
+          trivialPhis.clear();
+          boolean onlyHasTrivialPhis = testAndCollectPhisComposedOfSameFieldRead(
+              visited, dest.uniquePhiUsers(), read.getField(), trivialPhis);
+          if (dest.numberOfPhiUsers() != 0 && !onlyHasTrivialPhis) {
+            fixableFieldReadsPerUsage = false;
+            break;
+          }
+        }
+        if (!fixableFieldReadsPerUsage) {
+          fixableFieldReads = false;
+          break;
+        }
+      }
+      if (!fixableFieldReads) {
         it.remove();
         continue;
       }
@@ -308,7 +367,7 @@ final class StaticizingProcessor {
     boolean onlyHasTrivialPhis = testAndCollectPhisComposedOfThis(
         Sets.newIdentityHashSet(), thisValue.uniquePhiUsers(), thisValue, trivialPhis);
     assert thisValue.numberOfPhiUsers() == 0 || onlyHasTrivialPhis;
-    assert !onlyHasTrivialPhis || trivialPhis.isEmpty();
+    assert trivialPhis.isEmpty() || onlyHasTrivialPhis;
 
     Set<Instruction> users = SetUtils.newIdentityHashSet(thisValue.uniqueUsers());
     // If that is the case, method calls we want to fix up include users of those phis.
@@ -398,7 +457,7 @@ final class StaticizingProcessor {
     boolean onlyHasTrivialPhis = testAndCollectPhisComposedOfSameFieldRead(
         Sets.newIdentityHashSet(), dest.uniquePhiUsers(), field, trivialPhis);
     assert dest.numberOfPhiUsers() == 0 || onlyHasTrivialPhis;
-    assert !onlyHasTrivialPhis || trivialPhis.isEmpty();
+    assert trivialPhis.isEmpty() || onlyHasTrivialPhis;
 
     Set<Instruction> users = SetUtils.newIdentityHashSet(dest.uniqueUsers());
     // If that is the case, method calls we want to fix up include users of those phis.
