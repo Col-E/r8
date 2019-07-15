@@ -284,6 +284,17 @@ public class Phi extends Value implements InstructionOrPhi {
     block.removePhi(this);
   }
 
+  public void removeDeadPhi() {
+    // First, make sure it is indeed dead, i.e., no non-phi users.
+    assert numberOfUsers() == 0;
+    // Then, manually clean up this from all of the operands.
+    for (Value operand : getOperands()) {
+      operand.removePhiUser(this);
+    }
+    // And remove it from the containing block.
+    getBlock().removePhi(this);
+  }
+
   public String printPhi() {
     StringBuilder builder = new StringBuilder();
     builder.append("v");

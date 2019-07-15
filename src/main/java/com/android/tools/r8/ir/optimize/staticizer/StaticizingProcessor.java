@@ -32,13 +32,13 @@ import com.android.tools.r8.ir.conversion.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.Outliner;
 import com.android.tools.r8.ir.optimize.staticizer.ClassStaticizer.CandidateInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -274,14 +274,55 @@ final class StaticizingProcessor {
     }
   }
 
+  private boolean testAndCollectPhisComposedOfThis(
+      Set<Phi> visited, Set<Phi> phisToCheck, Value thisValue, Set<Phi> trivialPhis) {
+    for (Phi phi : phisToCheck) {
+      if (!visited.add(phi)) {
+        continue;
+      }
+      Set<Phi> chainedPhis = Sets.newIdentityHashSet();
+      for (Value operand : phi.getOperands()) {
+        if (operand.isPhi()) {
+          chainedPhis.add(operand.asPhi());
+        } else {
+          if (operand != thisValue) {
+            return false;
+          }
+        }
+      }
+      if (!chainedPhis.isEmpty()) {
+        if (!testAndCollectPhisComposedOfThis(visited, chainedPhis, thisValue, trivialPhis)) {
+          return false;
+        }
+      }
+      trivialPhis.add(phi);
+    }
+    return true;
+  }
+
   // Fixup `this` usages: rewrites all method calls so that they point to static methods.
   private void fixupStaticizedThisUsers(IRCode code, Value thisValue) {
     assert thisValue != null;
-    assert thisValue.numberOfPhiUsers() == 0;
+    // Depending on other optimizations, e.g., inlining, `this` can be flown to phis.
+    Set<Phi> trivialPhis = Sets.newIdentityHashSet();
+    boolean onlyHasTrivialPhis = testAndCollectPhisComposedOfThis(
+        Sets.newIdentityHashSet(), thisValue.uniquePhiUsers(), thisValue, trivialPhis);
+    assert thisValue.numberOfPhiUsers() == 0 || onlyHasTrivialPhis;
+    assert !onlyHasTrivialPhis || trivialPhis.isEmpty();
 
-    fixupStaticizedValueUsers(code, thisValue.uniqueUsers());
+    Set<Instruction> users = SetUtils.newIdentityHashSet(thisValue.uniqueUsers());
+    // If that is the case, method calls we want to fix up include users of those phis.
+    for (Phi phi : trivialPhis) {
+      users.addAll(phi.uniqueUsers());
+    }
 
-    assert thisValue.numberOfUsers() == 0;
+    fixupStaticizedValueUsers(code, users);
+
+    // We can't directly use Phi#removeTrivialPhi because they still refer to different operands.
+    trivialPhis.forEach(Phi::removeDeadPhi);
+
+    // No matter what, number of phi users should be zero too.
+    assert thisValue.numberOfUsers() == 0 && thisValue.numberOfPhiUsers() == 0;
   }
 
   // Re-processing finalized code may create slightly different IR code than what the examining
@@ -319,8 +360,11 @@ final class StaticizingProcessor {
   // refer to the same singleton field. If so, we can safely relax the assertion; remove uses of
   // field reads; remove quasi-trivial phis; and then remove original field reads.
   private boolean testAndCollectPhisComposedOfSameFieldRead(
-      Set<Phi> phisToCheck, DexField field, Set<Phi> trivialPhis) {
+      Set<Phi> visited, Set<Phi> phisToCheck, DexField field, Set<Phi> trivialPhis) {
     for (Phi phi : phisToCheck) {
+      if (!visited.add(phi)) {
+        continue;
+      }
       Set<Phi> chainedPhis = Sets.newIdentityHashSet();
       for (Value operand : phi.getOperands()) {
         if (operand.isPhi()) {
@@ -335,7 +379,7 @@ final class StaticizingProcessor {
         }
       }
       if (!chainedPhis.isEmpty()) {
-        if (!testAndCollectPhisComposedOfSameFieldRead(chainedPhis, field, trivialPhis)) {
+        if (!testAndCollectPhisComposedOfSameFieldRead(visited, chainedPhis, field, trivialPhis)) {
           return false;
         }
       }
@@ -344,39 +388,28 @@ final class StaticizingProcessor {
     return true;
   }
 
-  // Fixup field read usages. Same as {@link #fixupStaticizedThisUsers} except this one is handling
-  // quasi-trivial phis that might be introduced while re-processing finalized code.
+  // Fixup field read usages. Same as {@link #fixupStaticizedThisUsers} except this one determines
+  // quasi-trivial phis, based on the original field.
   private void fixupStaticizedFieldReadUsers(IRCode code, Value dest, DexField field) {
     assert dest != null;
     // During the examine phase, field reads with any phi users have been invalidated, hence zero.
     // However, it may be not true if re-processing introduces phis after optimizing common suffix.
     Set<Phi> trivialPhis = Sets.newIdentityHashSet();
-    boolean hasTrivialPhis =
-        testAndCollectPhisComposedOfSameFieldRead(dest.uniquePhiUsers(), field, trivialPhis);
-    assert dest.numberOfPhiUsers() == 0 || hasTrivialPhis;
-    Set<Instruction> users = new HashSet<>(dest.uniqueUsers());
+    boolean onlyHasTrivialPhis = testAndCollectPhisComposedOfSameFieldRead(
+        Sets.newIdentityHashSet(), dest.uniquePhiUsers(), field, trivialPhis);
+    assert dest.numberOfPhiUsers() == 0 || onlyHasTrivialPhis;
+    assert !onlyHasTrivialPhis || trivialPhis.isEmpty();
+
+    Set<Instruction> users = SetUtils.newIdentityHashSet(dest.uniqueUsers());
     // If that is the case, method calls we want to fix up include users of those phis.
-    if (hasTrivialPhis) {
-      for (Phi phi : trivialPhis) {
-        users.addAll(phi.uniqueUsers());
-      }
+    for (Phi phi : trivialPhis) {
+      users.addAll(phi.uniqueUsers());
     }
 
     fixupStaticizedValueUsers(code, users);
 
-    if (hasTrivialPhis) {
-      // We can't directly use Phi#removeTrivialPhi because they still refer to different operands.
-      for (Phi phi : trivialPhis) {
-        // First, make sure phi users are indeed uses of field reads and removed via fixup.
-        assert phi.numberOfUsers() == 0;
-        // Then, manually clean up this from all of the operands.
-        for (Value operand : phi.getOperands()) {
-          operand.removePhiUser(phi);
-        }
-        // And remove it from the containing block.
-        phi.getBlock().removePhi(phi);
-      }
-    }
+    // We can't directly use Phi#removeTrivialPhi because they still refer to different operands.
+    trivialPhis.forEach(Phi::removeDeadPhi);
 
     // No matter what, number of phi users should be zero too.
     assert dest.numberOfUsers() == 0 && dest.numberOfPhiUsers() == 0;
