@@ -319,7 +319,16 @@ public class RootSetBuilder {
     for (DexType subType : subTypes) {
       DexMethod referenceInSubType =
           appView.dexItemFactory().createMethod(subType, reference.proto, reference.name);
-      ProguardMemberRule ruleInSubType = assumeRulePool.get(referenceInSubType);
+      // Those rules are bound to definitions, not references. If the current subtype does not
+      // override the method, and when the retrieval of bound rule fails, it is unclear whether it
+      // is due to the lack of the definition or it indeed means no matching rules. Similar to how
+      // we apply those assume rules, here we use a resolved target.
+      DexEncodedMethod target =
+          appView.appInfo().resolveMethod(subType, referenceInSubType).asResultOfResolve();
+      if (target == null) {
+        continue;
+      }
+      ProguardMemberRule ruleInSubType = assumeRulePool.get(target.method);
       // We are looking for the greatest lower bound of assume rules from all sub types.
       // If any subtype doesn't have a matching assume rule, the lower bound is literally nothing.
       if (ruleInSubType == null) {

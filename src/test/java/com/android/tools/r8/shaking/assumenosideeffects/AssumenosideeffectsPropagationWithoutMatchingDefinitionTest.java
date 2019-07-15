@@ -4,8 +4,9 @@
 package com.android.tools.r8.shaking.assumenosideeffects;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverMerge;
@@ -45,6 +46,7 @@ class SubImplementer extends BaseImplementer implements LoggerInterface {
   // We propagated assume* rules only if all the subtypes' corresponding methods have the same rule.
   // The lack of matching definitions in this sub type blocks us from marking methods in the super
   // type, in this example, LoggerInterface#debug(...).
+  // By using a resolved target, we will look up a rule for BaseImplementer#debug(...) instead.
 }
 
 // To bother single target resolution. In fact, not used at all.
@@ -125,8 +127,7 @@ public class AssumenosideeffectsPropagationWithoutMatchingDefinitionTest extends
         .noMinification()
         .setMinApi(parameters.getRuntime())
         .run(parameters.getRuntime(), MAIN)
-        // TODO(b/137038659): should be able to remove logging.
-        .assertSuccessWithOutput(JVM_OUTPUT)
+        .assertSuccessWithOutput(OUTPUT_WITHOUT_LOGGING)
         .inspect(this::inspect);
   }
 
@@ -136,14 +137,12 @@ public class AssumenosideeffectsPropagationWithoutMatchingDefinitionTest extends
 
     MethodSubject mainMethod = main.mainMethod();
     assertThat(mainMethod, isPresent());
-    // TODO(b/137038659): can be zero.
-    assertNotEquals(
+    assertEquals(
         0,
         Streams.stream(mainMethod.iterateInstructions(
             i -> i.isInvoke() && i.getMethod().name.toString().equals("debug"))).count());
 
     MethodSubject testInvokeInterface = main.uniqueMethodWithName("testInvokeInterface");
-    // TODO(b/137038659): can be removed entirely.
-    assertThat(testInvokeInterface, isPresent());
+    assertThat(testInvokeInterface, not(isPresent()));
   }
 }
