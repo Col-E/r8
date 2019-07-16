@@ -141,14 +141,60 @@ public class ArrayPut extends Instruction implements ImpreciseMemberTypeInstruct
 
   @Override
   public boolean instructionMayHaveSideEffects(AppView<?> appView, DexType context) {
-    // ArrayPut has side-effects on input values.
-    return true;
+    // ArrayPut has side-effects on the input array, unless the index is in bounds and the array is
+    // never used.
+    Value array = array().getAliasedValue();
+    if (array.isPhi() || !array.definition.isNewArrayEmpty()) {
+      return true;
+    }
+
+    NewArrayEmpty definition = array.definition.asNewArrayEmpty();
+    Value sizeValue = definition.size().getAliasedValue();
+    if (sizeValue.isPhi() || !sizeValue.definition.isConstNumber()) {
+      return true;
+    }
+
+    Value indexValue = index().getAliasedValue();
+    if (indexValue.isPhi() || !indexValue.definition.isConstNumber()) {
+      return true;
+    }
+
+    long index = indexValue.definition.asConstNumber().getRawValue();
+    long size = sizeValue.definition.asConstNumber().getRawValue();
+    if (index < 0 || index >= size) {
+      return true;
+    }
+
+    // Check for type errors.
+    TypeLatticeElement arrayType = array.getTypeLattice();
+    TypeLatticeElement valueType = value().getTypeLattice();
+    if (!arrayType.isArrayType()) {
+      return true;
+    }
+    TypeLatticeElement memberType =
+        arrayType.asArrayTypeLatticeElement().getArrayMemberTypeAsValueType();
+    if (!valueType.lessThanOrEqualUpToNullability(memberType, appView)) {
+      return true;
+    }
+
+    // Check that all usages of the array are array stores.
+    for (Instruction user : array.uniqueUsers()) {
+      if (!user.isArrayPut() || user.asArrayPut().array() != array) {
+        return true;
+      }
+    }
+
+    if (array.numberOfPhiUsers() > 0) {
+      // The array could be used indirectly.
+      return true;
+    }
+
+    return false;
   }
 
   @Override
   public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
-    // ArrayPut has side-effects on input values.
-    return false;
+    return !instructionMayHaveSideEffects(appView, code.method.method.holder);
   }
 
   @Override

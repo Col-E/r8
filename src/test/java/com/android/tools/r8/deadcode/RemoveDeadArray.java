@@ -4,17 +4,16 @@
 
 package com.android.tools.r8.deadcode;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static junit.framework.TestCase.assertTrue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 
-import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.code.Aput;
-import com.android.tools.r8.code.Instruction;
-import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import java.util.Arrays;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -44,46 +43,47 @@ public class RemoveDeadArray extends TestBase {
     public static class ShouldGoAway { }
   }
 
-  private Backend backend;
+  private final TestParameters parameters;
 
-  public RemoveDeadArray(Backend backend) {
-    this.backend = backend;
+  public RemoveDeadArray(TestParameters parameters) {
+    this.parameters = parameters;
   }
 
-  @Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
     // Todo(ricow): enable unused array removal for cf backend.
-    return new Backend[]{Backend.DEX};
+    return getTestParameters().withDexRuntimes().build();
   }
 
 
   @Test
   public void testDeadArraysRemoved() throws Exception {
-    R8TestCompileResult result =
-        testForR8(backend)
-            .addProgramClasses(TestClass.class, TestClass.ShouldGoAway.class)
-            .addKeepMainRule(TestClass.class)
-            .compile();
-    CodeInspector inspector = result.inspector();
-    assertFalse(inspector.clazz(TestClass.class).clinit().isPresent());
-    MethodSubject main = inspector.clazz(TestClass.class).mainMethod();
-    assertTrue(
-        main.streamInstructions().noneMatch(instructionSubject -> instructionSubject.isNewArray()));
-    runOnArt(result.app, TestClass.class.getName());
+    testForR8(parameters.getBackend())
+        .addProgramClasses(TestClass.class, TestClass.ShouldGoAway.class)
+        .addKeepMainRule(TestClass.class)
+        .compile()
+        .inspect(
+            inspector -> {
+              MethodSubject clinit = inspector.clazz(TestClass.class).clinit();
+              assertThat(clinit, not(isPresent()));
+
+              MethodSubject main = inspector.clazz(TestClass.class).mainMethod();
+              assertTrue(main.streamInstructions().noneMatch(InstructionSubject::isNewArray));
+            })
+        .run(parameters.getRuntime(), TestClass.class.getName());
  }
 
   @Test
   public void testNotRemoveStaticCatch() throws Exception {
-    R8TestCompileResult result =
-        testForR8(backend)
-            .addProgramClasses(TestClassWithCatch.class)
-            .addKeepAllClassesRule()
-            .compile();
-    CodeInspector inspector = result.inspector();
-    MethodSubject clinit = inspector.clazz(TestClassWithCatch.class).clinit();
-    assertTrue(clinit.isPresent());
-    // Ensure that our optimization does not hit, we should still have 4 ArrayPut instructions.
-    long count = clinit.streamInstructions().filter(a -> a.isArrayPut()).count();
-    assertEquals(4, count);
+    testForR8(parameters.getBackend())
+        .addProgramClasses(TestClassWithCatch.class)
+        .addKeepAllClassesRule()
+        .compile()
+        .inspect(
+            inspector -> {
+              MethodSubject clinit = inspector.clazz(TestClassWithCatch.class).clinit();
+              assertThat(clinit, isPresent());
+              assertTrue(clinit.streamInstructions().noneMatch(InstructionSubject::isArrayPut));
+            });
   }
 }
