@@ -13,7 +13,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -96,7 +95,6 @@ public class LibraryBridgeTest extends TestBase {
   }
 
   @Test
-  @Ignore("b/136698023")
   public void testRemovingClone()
       throws ExecutionException, CompilationFailedException, IOException {
     testForR8(parameters.getBackend())
@@ -110,7 +108,6 @@ public class LibraryBridgeTest extends TestBase {
   }
 
   @Test
-  @Ignore("b/136698023")
   public void testRemovingXClone()
       throws ExecutionException, CompilationFailedException, IOException {
     testForR8(parameters.getBackend())
@@ -124,7 +121,6 @@ public class LibraryBridgeTest extends TestBase {
   }
 
   @Test
-  @Ignore("b/136698023")
   public void testRemovingXCloneImpl()
       throws ExecutionException, CompilationFailedException, IOException {
     testForR8(parameters.getBackend())
@@ -138,7 +134,6 @@ public class LibraryBridgeTest extends TestBase {
   }
 
   @Test
-  @Ignore("b/136698023")
   public void testRemovingXCloneWithDefinitionInLibrary()
       throws ExecutionException, CompilationFailedException, IOException {
     R8TestCompileResult library =

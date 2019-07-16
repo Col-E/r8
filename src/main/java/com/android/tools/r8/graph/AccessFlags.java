@@ -101,6 +101,10 @@ public abstract class AccessFlags<T extends AccessFlags<T>> {
     return visibilityOrdinal() >= other.visibilityOrdinal();
   }
 
+  public boolean isSameVisiblity(AccessFlags other) {
+    return visibilityOrdinal() == other.visibilityOrdinal();
+  }
+
   private int visibilityOrdinal() {
     // public > protected > package > private
     if (isPublic()) {

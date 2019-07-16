@@ -13,9 +13,15 @@ import java.util.Map;
 
 class ScopedDexMethodSet {
 
+  public enum AddMethodIfMoreVisibleResult {
+    NOT_ADDED,
+    ADDED_NOT_EXISTING,
+    ADDED_MORE_VISIBLE
+  }
+
   private static final Equivalence<DexMethod> METHOD_EQUIVALENCE = MethodSignatureEquivalence.get();
 
-  private final ScopedDexMethodSet parent;
+  private ScopedDexMethodSet parent;
   private final Map<Wrapper<DexMethod>, DexEncodedMethod> items = new HashMap<>();
 
   public ScopedDexMethodSet() {
@@ -48,21 +54,28 @@ class ScopedDexMethodSet {
     return true;
   }
 
-  public boolean addMethodIfMoreVisible(DexEncodedMethod method) {
+  public AddMethodIfMoreVisibleResult addMethodIfMoreVisible(DexEncodedMethod method) {
     Wrapper<DexMethod> wrapped = METHOD_EQUIVALENCE.wrap(method.method);
     DexEncodedMethod existing = lookup(wrapped);
-    if (existing == null
-        || method.accessFlags.isMoreVisibleThan(
-            existing.accessFlags,
-            method.method.holder.getPackageName(),
-            existing.method.holder.getPackageName())) {
+    if (existing == null) {
       items.put(wrapped, method);
-      return true;
+      return AddMethodIfMoreVisibleResult.ADDED_NOT_EXISTING;
     }
-    return false;
+    if (method.accessFlags.isMoreVisibleThan(
+        existing.accessFlags,
+        method.method.holder.getPackageName(),
+        existing.method.holder.getPackageName())) {
+      items.put(wrapped, method);
+      return AddMethodIfMoreVisibleResult.ADDED_MORE_VISIBLE;
+    }
+    return AddMethodIfMoreVisibleResult.NOT_ADDED;
   }
 
   public ScopedDexMethodSet getParent() {
     return parent;
+  }
+
+  public void setParent(ScopedDexMethodSet parent) {
+    this.parent = parent;
   }
 }

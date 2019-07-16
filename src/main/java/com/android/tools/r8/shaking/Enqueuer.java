@@ -64,6 +64,7 @@ import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.shaking.RootSetBuilder.ConsequentRootSet;
 import com.android.tools.r8.shaking.RootSetBuilder.IfRuleEvaluator;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
+import com.android.tools.r8.shaking.ScopedDexMethodSet.AddMethodIfMoreVisibleResult;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.Timing;
@@ -272,6 +273,14 @@ public class Enqueuer {
    * Set of keep rules generated for Proguard compatibility in Proguard compatibility mode.
    */
   private final ProguardConfiguration.Builder compatibility;
+
+  /**
+   * A cache of ScopedDexMethodSet for each live type used for determining that virtual methods that
+   * cannot be removed because they are widening access for another virtual method defined earlier
+   * in the type hierarchy. See b/136698023 for more information.
+   */
+  private final Map<DexType, ScopedDexMethodSet> scopedMethodsForLiveTypes =
+      new IdentityHashMap<>();
 
   private final GraphConsumer keptGraphConsumer;
 
@@ -868,6 +877,11 @@ public class Enqueuer {
   //
 
   private void markTypeAsLive(DexType type) {
+    markTypeAsLive(
+        type, scopedMethodsForLiveTypes.computeIfAbsent(type, ignore -> new ScopedDexMethodSet()));
+  }
+
+  private void markTypeAsLive(DexType type, ScopedDexMethodSet seen) {
     type = type.toBaseType(appView.dexItemFactory());
     if (!type.isClassType()) {
       // Ignore primitive types.
@@ -886,7 +900,11 @@ public class Enqueuer {
         markInterfaceTypeAsLiveViaInheritanceClause(iface);
       }
       if (holder.superType != null) {
-        markTypeAsLive(holder.superType);
+        ScopedDexMethodSet seenForSuper =
+            scopedMethodsForLiveTypes.computeIfAbsent(
+                holder.superType, ignore -> new ScopedDexMethodSet());
+        seen.setParent(seenForSuper);
+        markTypeAsLive(holder.superType, seenForSuper);
         if (holder.isNotProgramClass()) {
           // Library classes may only extend other implement library classes.
           ensureNotFromProgramOrThrow(holder.superType, type);
@@ -895,9 +913,38 @@ public class Enqueuer {
           }
         }
       }
+
+      KeepReason reason = KeepReason.reachableFromLiveType(type);
+
+      // We cannot remove virtual methods defined earlier in the type hierarchy if it is widening
+      // access and is defined in an interface:
+      //
+      // public interface I {
+      //   void clone();
+      // }
+      //
+      // class Model implements I {
+      //   public void clone() { ... } <-- this cannot be removed
+      // }
+      //
+      // Any class loading of Model with Model.clone() removed will result in an illegal access
+      // error because their exists an existing implementation (here it is Object.clone()). This is
+      // only a problem in the DEX VM. We have to make this check no matter the output because
+      // CF libraries can be used by Android apps. See b/136698023 for more information.
+      holder
+          .virtualMethods()
+          .forEach(
+              m -> {
+                if (seen.addMethodIfMoreVisible(m)
+                        == AddMethodIfMoreVisibleResult.ADDED_MORE_VISIBLE
+                    && holder.isProgramClass()
+                    && appView.appInfo().methodDefinedInInterfaces(m, holder.type)) {
+                  markMethodAsTargeted(m, reason);
+                }
+              });
+
       // We also need to add the corresponding <clinit> to the set of live methods, as otherwise
       // static field initialization (and other class-load-time sideeffects) will not happen.
-      KeepReason reason = KeepReason.reachableFromLiveType(type);
       if (holder.isProgramClass() && holder.hasClassInitializer()) {
         DexEncodedMethod clinit = holder.getClassInitializer();
         if (clinit != null && clinit.getOptimizationInfo().mayHaveSideEffects()) {

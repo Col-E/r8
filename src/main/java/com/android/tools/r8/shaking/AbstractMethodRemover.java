@@ -7,6 +7,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.logging.Log;
+import com.android.tools.r8.shaking.ScopedDexMethodSet.AddMethodIfMoreVisibleResult;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -54,7 +55,7 @@ public class AbstractMethodRemover {
     List<DexEncodedMethod> methods = null;
     for (int i = 0; i < virtualMethods.size(); i++) {
       DexEncodedMethod method = virtualMethods.get(i);
-      if (scope.addMethodIfMoreVisible(method)
+      if (scope.addMethodIfMoreVisible(method) != AddMethodIfMoreVisibleResult.NOT_ADDED
           || !method.accessFlags.isAbstract()
           || appInfo.isPinned(method.method)) {
         if (methods != null) {

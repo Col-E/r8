@@ -323,6 +323,39 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
     return true; // Don't know, there might be.
   }
 
+  public boolean methodDefinedInInterfaces(DexEncodedMethod method, DexType implementingClass) {
+    DexClass holder = definitionFor(implementingClass);
+    if (holder == null) {
+      return false;
+    }
+    for (DexType iface : holder.interfaces.values) {
+      if (methodDefinedInInterface(method, iface)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  public boolean methodDefinedInInterface(DexEncodedMethod method, DexType iface) {
+    DexClass potentialHolder = definitionFor(iface);
+    if (potentialHolder == null) {
+      return false;
+    }
+    assert potentialHolder.isInterface();
+    for (DexEncodedMethod virtualMethod : potentialHolder.virtualMethods) {
+      if (virtualMethod.method.hasSameProtoAndName(method.method)
+          && virtualMethod.accessFlags.isSameVisiblity(method.accessFlags)) {
+        return true;
+      }
+    }
+    for (DexType parentInterface : potentialHolder.interfaces.values) {
+      if (methodDefinedInInterface(method, parentInterface)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   // For mapping invoke interface instruction to target methods.
   public Set<DexEncodedMethod> lookupInterfaceTargets(DexMethod method) {
     assert checkIfObsolete();
