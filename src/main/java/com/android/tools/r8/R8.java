@@ -79,7 +79,6 @@ import com.android.tools.r8.utils.SelfRetraceTest;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
-import com.android.tools.r8.utils.VersionProperties;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.io.ByteStreams;
@@ -179,24 +178,6 @@ public class R8 {
         });
   }
 
-  // Compute the marker to be placed in the main dex file.
-  private static Marker getMarker(InternalOptions options) {
-    if (options.hasMarker()) {
-      return options.getMarker();
-    }
-    Marker marker =
-        new Marker(Tool.R8)
-            .setVersion(Version.LABEL)
-            .setCompilationMode(options.debug ? CompilationMode.DEBUG : CompilationMode.RELEASE);
-    if (!options.isGeneratingClassFiles()) {
-      marker.setMinApi(options.minApiLevel);
-    }
-    if (Version.isDev()) {
-      marker.setSha1(VersionProperties.INSTANCE.getSha());
-    }
-    return marker;
-  }
-
   static void writeApplication(
       ExecutorService executorService,
       DexApplication application,
@@ -208,7 +189,7 @@ public class R8 {
       ProguardMapSupplier proguardMapSupplier)
       throws ExecutionException {
     try {
-      Marker marker = getMarker(options);
+      Marker marker = options.getMarker(Tool.R8);
       assert marker != null;
       if (options.isGeneratingClassFiles()) {
         new CfApplicationWriter(

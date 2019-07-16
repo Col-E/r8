@@ -23,7 +23,6 @@ import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
-import com.android.tools.r8.utils.VersionProperties;
 import com.google.common.collect.ImmutableList;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -141,24 +140,6 @@ public final class D8 {
         });
   }
 
-  // Compute the marker to be placed in the main dex file.
-  static Marker getMarker(InternalOptions options) {
-    if (options.hasMarker()) {
-      return options.getMarker();
-    }
-    if (options.testing.dontCreateMarkerInD8) {
-      return null;
-    }
-    Marker marker = new Marker(Tool.D8)
-        .setVersion(Version.LABEL)
-        .setCompilationMode(options.debug ? CompilationMode.DEBUG : CompilationMode.RELEASE)
-        .setMinApi(options.minApiLevel);
-    if (Version.isDev()) {
-      marker.setSha1(VersionProperties.INSTANCE.getSha());
-    }
-    return marker;
-  }
-
   private static void run(AndroidApp inputApp, InternalOptions options, ExecutorService executor)
       throws IOException {
     Timing timing = new Timing("D8");
@@ -204,7 +185,7 @@ public final class D8 {
           break;
         }
       }
-      Marker marker = getMarker(options);
+      Marker marker = options.getMarker(Tool.D8);
       Set<Marker> markers = new HashSet<>(app.dexItemFactory.extractMarkers());
       if (marker != null && hasClassResources) {
         markers.add(marker);

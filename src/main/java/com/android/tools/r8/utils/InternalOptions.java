@@ -6,6 +6,7 @@ package com.android.tools.r8.utils;
 import static com.google.common.base.Predicates.not;
 
 import com.android.tools.r8.ClassFileConsumer;
+import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.DataResourceConsumer;
 import com.android.tools.r8.DataResourceProvider;
 import com.android.tools.r8.DexFilePerClassFileConsumer;
@@ -14,6 +15,7 @@ import com.android.tools.r8.ProgramConsumer;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.Version;
 import com.android.tools.r8.dex.Marker;
+import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.IncompleteNestNestDesugarDiagnosic;
 import com.android.tools.r8.errors.InterfaceDesugarMissingTypeDiagnostic;
@@ -232,17 +234,33 @@ public class InternalOptions {
   private boolean hasMarker = false;
   private Marker marker;
 
-  public boolean hasMarker() {
-    return hasMarker;
-  }
-
   public void setMarker(Marker marker) {
     this.hasMarker = true;
     this.marker = marker;
   }
 
-  public Marker getMarker() {
-    assert hasMarker();
+  public Marker getMarker(Tool tool) {
+    if (hasMarker) {
+      return marker;
+    }
+    return createMarker(tool);
+  }
+
+  // Compute the marker to be placed in the main dex file.
+  private Marker createMarker(Tool tool) {
+    if (tool == Tool.D8 && testing.dontCreateMarkerInD8) {
+      return null;
+    }
+    Marker marker =
+        new Marker(tool)
+            .setVersion(Version.LABEL)
+            .setCompilationMode(debug ? CompilationMode.DEBUG : CompilationMode.RELEASE);
+    if (!isGeneratingClassFiles()) {
+      marker.setMinApi(minApiLevel);
+    }
+    if (Version.isDev()) {
+      marker.setSha1(VersionProperties.INSTANCE.getSha());
+    }
     return marker;
   }
 
