@@ -44,7 +44,7 @@ public class R8UnreachableCodeTest {
     DirectMappedDexApplication application =
         new ApplicationReader(input, options, timing).read(executorService).toDirect();
     IRConverter converter =
-        new IRConverter(AppView.createForR8(new AppInfoWithSubtyping(application), options));
+        new IRConverter(AppView.createForR8(new AppInfoWithSubtyping(application), options), null);
     converter.optimize();
     DexProgramClass clazz = application.classes().iterator().next();
     assertEquals(4, clazz.directMethods().size());

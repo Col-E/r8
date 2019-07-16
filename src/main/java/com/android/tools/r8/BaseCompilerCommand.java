@@ -8,6 +8,7 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.utils.StringDiagnostic;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -128,6 +129,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     private CompilationMode mode;
     private int minApiLevel = 0;
     private boolean disableDesugaring = false;
+    private String specialLibraryConfiguration;
     private boolean lookupLibraryBeforeProgram = true;
     private boolean optimizeMultidexForLinearAlloc = false;
 
@@ -379,6 +381,12 @@ public abstract class BaseCompilerCommand extends BaseCommand {
       return disableDesugaring;
     }
 
+    /** Special library configuration */
+    public B addSpecialLibraryConfiguration(String configuration) {
+      this.specialLibraryConfiguration = configuration;
+      return self();
+    }
+
     @Override
     void validate() {
       Reporter reporter = getReporter();
@@ -410,6 +418,10 @@ public abstract class BaseCompilerCommand extends BaseCommand {
           builder.append(" ").append(clazz.getName());
         }
         reporter.error(builder.toString());
+      }
+      if (specialLibraryConfiguration != null) {
+        reporter.warning(
+            new StringDiagnostic("Special library configuration is still work in progress"));
       }
       super.validate();
     }

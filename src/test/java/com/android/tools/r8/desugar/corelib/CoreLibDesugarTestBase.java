@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.desugar.corelib;
 
+import com.android.tools.r8.L8;
+import com.android.tools.r8.L8Command;
+import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
@@ -17,40 +20,7 @@ import java.util.Map;
 
 public class CoreLibDesugarTestBase extends TestBase {
 
-  protected Map<String, String> buildPrefixRewritingForCoreLibCompilation() {
-    return ImmutableMap.<String, String>builder()
-        // --rewrite_core_library_prefix.
-        // Extra flags for R8
-        .put("java.io.DesugarBufferedReader", "j$.io.DesugarBufferedReader")
-        .put("java.io.UncheckedIOException", "j$.io.UncheckedIOException")
-        // Bazel flags.
-        .put("java.lang.Double8", "j$.lang.Double8")
-        .put("java.lang.Integer8", "j$.lang.Integer8")
-        .put("java.lang.Long8", "j$.lang.Long8")
-        .put("java.lang.Math8", "j$.lang.Math8")
-        .put("java.time.", "j$.time.")
-        .put("java.util.stream.", "j$.util.stream.")
-        .put("java.util.function.", "j$.util.function.")
-        .put("java.util.Comparators", "j$.util.Comparators")
-        .put("java.util.Desugar", "j$.util.Desugar")
-        .put("java.util.DoubleSummaryStatistics", "j$.util.DoubleSummaryStatistics")
-        .put("java.util.IntSummaryStatistics", "j$.util.IntSummaryStatistics")
-        .put("java.util.LongSummaryStatistics", "j$.util.LongSummaryStatistics")
-        .put("java.util.Objects", "j$.util.Objects")
-        .put("java.util.Optional", "j$.util.Optional")
-        .put("java.util.PrimitiveIterator", "j$.util.PrimitiveIterator")
-        .put("java.util.SortedSet$1", "j$.util.SortedSet$1")
-        .put("java.util.Spliterator", "j$.util.Spliterator")
-        .put("java.util.StringJoiner", "j$.util.StringJoiner")
-        .put("java.util.Tripwire", "j$.util.Tripwire")
-        .put("java.util.concurrent.ConcurrentHashMap", "j$.util.concurrent.ConcurrentHashMap")
-        .put("java.util.concurrent.DesugarUnsafe", "j$.util.concurrent.DesugarUnsafe")
-        .put("java.util.concurrent.ThreadLocalRandom", "j$.util.concurrent.ThreadLocalRandom")
-        .put("java.util.concurrent.atomic.DesugarAtomic", "j$.util.concurrent.atomic.DesugarAtomic")
-        .build();
-  }
-
-  protected Map<String, String> buildPrefixRewritingForProgramCompilation() {
+  private Map<String, String> buildPrefixRewritingForProgramCompilation() {
     return ImmutableMap.<String, String>builder()
         // --rewrite_core_library_prefix.
         // Following flags are ignored (already desugared).
@@ -73,20 +43,6 @@ public class CoreLibDesugarTestBase extends TestBase {
         .put("java.util.concurrent.ConcurrentHashMap", "j$.util.concurrent.ConcurrentHashMap")
         .put("java.util.concurrent.ThreadLocalRandom", "j$.util.concurrent.ThreadLocalRandom")
         .put("java.util.concurrent.atomic.DesugarAtomic", "j$.util.concurrent.atomic.DesugarAtomic")
-        .build();
-  }
-
-  protected Map<String, String> buildRetargetCoreLibraryMemberForCoreLibCompilation() {
-    // --retarget_core_library_member.
-    return ImmutableMap.of("java.util.LinkedHashSet#spliterator", "java.util.DesugarLinkedHashSet");
-  }
-
-  protected Map<String, String> buildBackportCoreLibraryMembers() {
-    // R8 specific to deal with *8 removal.
-    return ImmutableMap.<String, String>builder()
-        .put("java.lang.Double8", "java.lang.Double")
-        .put("java.lang.Integer8", "java.lang.Integer")
-        .put("java.lang.Long8", "java.lang.Long")
         .build();
   }
 
@@ -184,15 +140,6 @@ public class CoreLibDesugarTestBase extends TestBase {
     return parameters.getApiLevel().getLevel() < AndroidApiLevel.N.getLevel();
   }
 
-  protected void configureCoreLibDesugarForCoreLibCompilation(InternalOptions options) {
-    options.coreLibraryCompilation = true;
-    options.backportCoreLibraryMembers = buildBackportCoreLibraryMembers();
-    options.retargetCoreLibMember = buildRetargetCoreLibraryMemberForCoreLibCompilation();
-    options.dontRewriteInvocations = buildDontRewriteInvocations();
-    options.rewritePrefix = buildPrefixRewritingForCoreLibCompilation();
-    options.emulateLibraryInterface = buildEmulateLibraryInterface();
-  }
-
   protected void configureCoreLibDesugarForProgramCompilation(InternalOptions options) {
     options.coreLibraryCompilation = false;
     options.retargetCoreLibMember = buildRetargetCoreLibraryMemberForProgramCompilation();
@@ -202,12 +149,14 @@ public class CoreLibDesugarTestBase extends TestBase {
   }
 
   protected Path buildDesugaredLibrary(AndroidApiLevel apiLevel) throws Exception {
-    return testForD8()
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
-        .addProgramFiles(ToolHelper.getDesugarJDKLibs())
-        .addOptionsModification(this::configureCoreLibDesugarForCoreLibCompilation)
-        .setMinApi(apiLevel)
-        .compile()
-        .writeToZip();
+    Path output = temp.newFolder().toPath().resolve("desugar_jdk_libs.zip");
+    L8.run(
+        L8Command.builder()
+            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+            .addProgramFiles(ToolHelper.getDesugarJDKLibs())
+            .setMinApiLevel(apiLevel.getLevel())
+            .setOutput(output, OutputMode.DexIndexed)
+            .build());
+    return output;
   }
 }

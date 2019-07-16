@@ -809,8 +809,11 @@ public final class R8Command extends BaseCompilerCommand {
 
     internal.enableInheritanceClassInDexDistributor = isOptimizeMultidexForLinearAlloc();
 
-    // This is currently only used for testing.
     assert internal.rewritePrefix.isEmpty();
+    assert internal.emulateLibraryInterface.isEmpty();
+    assert internal.retargetCoreLibMember.isEmpty();
+    assert internal.backportCoreLibraryMembers.isEmpty();
+    assert internal.dontRewriteInvocations.isEmpty();
 
     return internal;
   }

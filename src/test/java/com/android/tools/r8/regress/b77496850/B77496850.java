@@ -466,7 +466,7 @@ public class B77496850 extends TestBase {
 
   @Test
   public void testSupportLibraryPathParser() throws Exception{
-    for (Tool tool : Tool.values()) {
+    for (Tool tool : Tool.valuesR8andD8()) {
       runTestPathParser(tool, PathParser.class, AndroidApiLevel.K, 14, 1);
       runTestPathParser(tool, PathParser.class, AndroidApiLevel.L, 0, 0);
       runTestPathParser(tool, PathParserWithExceptionHandler.class, AndroidApiLevel.K, 14, 1);
@@ -496,7 +496,7 @@ public class B77496850 extends TestBase {
 
   @Test
   public void testReproduction() throws Exception{
-    for (Tool tool : Tool.values()) {
+    for (Tool tool : Tool.valuesR8andD8()) {
       runTestReproduction(tool, Reproduction.class, AndroidApiLevel.K, tool == Tool.D8 ? 1 : 0);
       runTestReproduction(tool, Reproduction.class, AndroidApiLevel.L, 0);
       runTestReproduction(

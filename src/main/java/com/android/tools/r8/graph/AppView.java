@@ -64,6 +64,10 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
     return new AppView<>(appInfo, WholeProgramOptimizations.ON, options);
   }
 
+  public static <T extends AppInfo> AppView<T> createForL8(T appInfo, InternalOptions options) {
+    return createForD8(appInfo, options);
+  }
+
   public T appInfo() {
     return appInfo;
   }

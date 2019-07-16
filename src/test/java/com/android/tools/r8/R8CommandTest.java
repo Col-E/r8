@@ -625,6 +625,18 @@ public class R8CommandTest {
         "Missing parameter", handler -> parse(handler, "--output"));
   }
 
+  @Test
+  public void warnForSpecialLibraryConfiguration() throws Throwable {
+    Path emptyZip = temp.getRoot().toPath().resolve("empty.zip");
+    DiagnosticsChecker.checkWarningsContains(
+        "Special library configuration is still work in progress",
+        handler ->
+            R8Command.builder(handler)
+                .addSpecialLibraryConfiguration("")
+                .setOutput(emptyZip, OutputMode.DexIndexed)
+                .build());
+  }
+
   private R8Command parse(String... args) throws CompilationFailedException {
     return R8Command.parse(args, EmbeddedOrigin.INSTANCE).build();
   }

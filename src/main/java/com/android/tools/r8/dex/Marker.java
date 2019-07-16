@@ -23,12 +23,21 @@ public class Marker {
   public static final String COMPILATION_MODE = "compilation-mode";
   public static final String PG_MAP_ID = "pg-map-id";
 
-  public enum Tool {D8, R8}
+  public enum Tool {
+    D8,
+    R8,
+    L8;
+
+    public static Tool[] valuesR8andD8() {
+      return new Tool[] {Tool.D8, Tool.R8};
+    }
+  }
 
   private static final char PREFIX_CHAR = '~';
   private static final String PREFIX = "~~";
   private static final String D8_PREFIX = PREFIX + Tool.D8 + "{";
   private static final String R8_PREFIX = PREFIX + Tool.R8 + "{";
+  private static final String L8_PREFIX = PREFIX + Tool.L8 + "{";
 
   private final JsonObject jsonObject;
   private final Tool tool;
@@ -52,6 +61,10 @@ public class Marker {
 
   public boolean isR8() {
     return tool == Tool.R8;
+  }
+
+  public boolean isL8() {
+    return tool == Tool.L8;
   }
 
   public String getVersion() {
@@ -141,6 +154,9 @@ public class Marker {
       }
       if (str.startsWith(R8_PREFIX)) {
         return internalParse(Tool.R8, str.substring(R8_PREFIX.length() - 1));
+      }
+      if (str.startsWith(L8_PREFIX)) {
+        return internalParse(Tool.L8, str.substring(L8_PREFIX.length() - 1));
       }
     }
     return null;

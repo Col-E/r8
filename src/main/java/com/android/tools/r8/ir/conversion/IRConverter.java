@@ -292,8 +292,8 @@ public class IRConverter {
   }
 
   /** Create an IR converter for processing methods with full program optimization disabled. */
-  public IRConverter(AppView<?> appView) {
-    this(appView, null, null, MainDexClasses.NONE);
+  public IRConverter(AppView<?> appView, Timing timing) {
+    this(appView, timing, null, MainDexClasses.NONE);
   }
 
   /**
