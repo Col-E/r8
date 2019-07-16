@@ -244,6 +244,10 @@ public class DexType extends DexReference implements PresortedComparable<DexType
     return isPrimitiveType((char) descriptor.content[1]);
   }
 
+  public boolean isWideType() {
+    return isDoubleType() || isLongType();
+  }
+
   public boolean isD8R8SynthesizedClassType() {
     String name = toSourceString();
     return name.contains(COMPANION_CLASS_NAME_SUFFIX)

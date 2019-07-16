@@ -314,15 +314,22 @@ public class MemberRebindingAnalysis {
     }
   }
 
+  public static boolean isTypeVisibleFromContext(
+      AppView<?> appView, DexType context, DexType type) {
+    DexClass clazz = appView.definitionFor(type);
+    return clazz != null && isTypeVisibleFromContext(appView, context, clazz);
+  }
+
+  public static boolean isTypeVisibleFromContext(
+      AppView<?> appView, DexType context, DexClass clazz) {
+    ConstraintWithTarget classVisibility =
+        ConstraintWithTarget.deriveConstraint(context, clazz.type, clazz.accessFlags, appView);
+    return classVisibility != ConstraintWithTarget.NEVER;
+  }
+
   public static boolean isMemberVisibleFromOriginalContext(
       AppView<?> appView, DexType context, DexType holder, AccessFlags<?> memberAccessFlags) {
-    DexClass clazz = appView.definitionFor(holder);
-    if (clazz == null) {
-      return false;
-    }
-    ConstraintWithTarget classVisibility =
-        ConstraintWithTarget.deriveConstraint(context, holder, clazz.accessFlags, appView);
-    if (classVisibility == ConstraintWithTarget.NEVER) {
+    if (!isTypeVisibleFromContext(appView, context, holder)) {
       return false;
     }
     ConstraintWithTarget memberVisibility =

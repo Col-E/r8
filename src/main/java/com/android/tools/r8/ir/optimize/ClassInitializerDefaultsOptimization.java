@@ -382,10 +382,17 @@ public class ClassInitializerDefaultsOptimization {
               // OK, this does not read one of the fields in the enclosing class.
               continue;
             }
-            if (instruction.isInvoke() && instruction.asInvoke().outValue() != null) {
-              // This invoke could return a value that has been computed based on the value of one
-              // of the fields in the enclosing class, so give up.
-              return finalFieldPut.values();
+            // Give up if this invoke-instruction may return a value that has been computed based on
+            // the value of one of the fields in the enclosing class.
+            if (instruction.isInvoke() && instruction.hasOutValue()) {
+              Value outValue = instruction.outValue();
+              if (outValue.numberOfAllUsers() > 0) {
+                if (instruction.isInvokeNewArray() && outValue.isConstantArray()) {
+                  // OK, this value is technically a constant.
+                  continue;
+                }
+                return finalFieldPut.values();
+              }
             }
           }
         }

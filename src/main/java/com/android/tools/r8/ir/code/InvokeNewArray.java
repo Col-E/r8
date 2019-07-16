@@ -3,13 +3,17 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isTypeVisibleFromContext;
+
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.code.FilledNewArray;
 import com.android.tools.r8.code.FilledNewArrayRange;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.AbstractError;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
@@ -128,5 +132,65 @@ public class InvokeNewArray extends Invoke {
 
   private static Unreachable cfUnsupported() {
     throw new Unreachable("InvokeNewArray (non-empty) not supported when compiling to classfiles.");
+  }
+
+  @Override
+  public AbstractError instructionInstanceCanThrow(AppView<?> appView, DexType context) {
+    DexType baseType = type.isArrayType() ? type.toBaseType(appView.dexItemFactory()) : type;
+    if (baseType.isPrimitiveType()) {
+      // Primitives types are known to be present and accessible.
+      assert !type.isWideType() : "The array's contents must be single-word";
+      return AbstractError.bottom();
+    }
+
+    assert baseType.isReferenceType();
+
+    if (baseType == context) {
+      // The enclosing type is known to be present and accessible.
+      return AbstractError.bottom();
+    }
+
+    if (!appView.enableWholeProgramOptimizations()) {
+      // Conservatively bail-out in D8, because we require whole program knowledge to determine if
+      // the type is present and accessible.
+      return AbstractError.top();
+    }
+
+    // Check if the type is guaranteed to be present.
+    DexClass clazz = appView.definitionFor(baseType);
+    if (clazz == null) {
+      return AbstractError.top();
+    }
+
+    if (clazz.isLibraryClass()) {
+      if (!appView.dexItemFactory().libraryTypesAssumedToBePresent.contains(baseType)) {
+        return AbstractError.top();
+      }
+    }
+
+    // Check if the type is guaranteed to be accessible.
+    if (!isTypeVisibleFromContext(appView, context, clazz)) {
+      return AbstractError.top();
+    }
+
+    // Note: Implicitly assuming that all the arguments are of the right type, because the input
+    // code must be valid.
+    return AbstractError.bottom();
+  }
+
+  @Override
+  public boolean instructionMayHaveSideEffects(AppView<?> appView, DexType context) {
+    // Check if the instruction has a side effect on the locals environment.
+    if (hasOutValue() && outValue().hasLocalInfo()) {
+      assert appView.options().debug;
+      return true;
+    }
+
+    return instructionInstanceCanThrow(appView, context).isThrowing();
+  }
+
+  @Override
+  public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
+    return !instructionMayHaveSideEffects(appView, code.method.method.holder);
   }
 }

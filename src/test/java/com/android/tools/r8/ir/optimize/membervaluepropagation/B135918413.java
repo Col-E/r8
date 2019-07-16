@@ -18,6 +18,7 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -37,6 +38,7 @@ public class B135918413 extends TestBase {
     this.parameters = parameters;
   }
 
+  @Ignore("b/135918413")
   @Test
   public void test() throws Exception {
     testForR8(parameters.getBackend())
@@ -60,6 +62,10 @@ public class B135918413 extends TestBase {
     FieldSubject alwaysEmptyFieldSubject = configClassSubject.uniqueFieldWithName("alwaysEmpty");
     assertThat(alwaysEmptyFieldSubject, isPresent());
 
+    FieldSubject alwaysNonEmptyFieldSubject =
+        configClassSubject.uniqueFieldWithName("alwaysNonEmpty");
+    assertThat(alwaysNonEmptyFieldSubject, isPresent());
+
     MethodSubject mainMethodSubject = classSubject.mainMethod();
     assertThat(mainMethodSubject, isPresent());
     assertTrue(
@@ -67,10 +73,12 @@ public class B135918413 extends TestBase {
             .streamInstructions()
             .filter(InstructionSubject::isStaticGet)
             .map(InstructionSubject::getField)
+            .map(field -> field.name.toSourceString())
             .allMatch(
-                field ->
-                    field.name.toSourceString().equals(alwaysEmptyFieldSubject.getFinalName())
-                        || field.name.toSourceString().equals("out")));
+                name ->
+                    name.equals(alwaysEmptyFieldSubject.getFinalName())
+                        || name.equals(alwaysNonEmptyFieldSubject.getFinalName())
+                        || name.equals("out")));
 
     MethodSubject deadMethodSubject = classSubject.uniqueMethodWithName("dead");
     assertThat(deadMethodSubject, not(isPresent()));
@@ -85,8 +93,12 @@ public class B135918413 extends TestBase {
         dead();
       }
       if (Config.alwaysEmpty.length == 0) {
-        System.out.println(" world!");
+        System.out.print(" world");
       }
+      for (String str : Config.alwaysNonEmpty) {
+        System.out.print(str);
+      }
+      System.out.println();
     }
 
     @NeverInline
@@ -99,5 +111,6 @@ public class B135918413 extends TestBase {
 
     public static boolean alwaysTrue = true;
     public static String[] alwaysEmpty = {};
+    public static String[] alwaysNonEmpty = {"!"};
   }
 }

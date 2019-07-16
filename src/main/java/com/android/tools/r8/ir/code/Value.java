@@ -806,7 +806,28 @@ public class Value {
 
   public boolean isConstantArray() {
     Value root = getAliasedValue();
-    return !root.isPhi() && definition.isNewArrayEmpty();
+    if (!root.isPhi()) {
+      if (definition.isNewArrayEmpty()) {
+        // For now, simply check if the created array is empty.
+        NewArrayEmpty newArrayEmpty = definition.asNewArrayEmpty();
+        Value sizeValue = newArrayEmpty.size().getAliasedValue();
+        if (!sizeValue.hasValueRange()) {
+          return false;
+        }
+
+        LongInterval sizeRange = sizeValue.getValueRange();
+        if (!sizeRange.isSingleValue()) {
+          return false;
+        }
+
+        long size = sizeRange.getSingleValue();
+        if (size == 0) {
+          // Empty arrays are always constant.
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   public boolean isPhi() {
