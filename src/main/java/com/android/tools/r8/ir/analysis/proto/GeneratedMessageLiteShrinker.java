@@ -19,6 +19,7 @@ import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
+import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
@@ -73,21 +74,16 @@ public class GeneratedMessageLiteShrinker {
       return;
     }
 
-    InvokeStatic newMessageInfoInvoke = null;
+    InvokeMethod newMessageInfoInvoke = null;
     for (Instruction instruction : code.instructions()) {
       if (instruction.isInvokeStatic()) {
         InvokeStatic invoke = instruction.asInvokeStatic();
-        if (invoke.getInvokedMethod() == references.newMessageInfoMethod) {
+        if (invoke.getInvokedMethod() == references.newMessageInfoMethod
+            || invoke.getInvokedMethod() == references.rawMessageInfoConstructor) {
           newMessageInfoInvoke = invoke;
           break;
         }
       }
-
-      // Implicitly check that the method newMessageInfo() has not been inlined. In that case,
-      // we would need to rewrite the const-string instructions that flow into the constructor
-      // of com.google.protobuf.RawMessageInfo.
-      assert !instruction.isNewInstance()
-          || instruction.asNewInstance().clazz != references.rawMessageInfoType;
     }
 
     if (newMessageInfoInvoke != null) {
@@ -113,7 +109,7 @@ public class GeneratedMessageLiteShrinker {
   private void rewriteArgumentsToNewMessageInfo(
       DexEncodedMethod method,
       IRCode code,
-      InvokeStatic newMessageInfoInvoke,
+      InvokeMethod newMessageInfoInvoke,
       Value infoValue,
       ProtoMessageInfo protoMessageInfo) {
     rewriteInfoArgumentToNewMessageInfo(code, infoValue, protoMessageInfo);
@@ -130,7 +126,7 @@ public class GeneratedMessageLiteShrinker {
   private void rewriteObjectsArgumentToNewMessageInfo(
       DexEncodedMethod method,
       IRCode code,
-      InvokeStatic newMessageInfoInvoke,
+      InvokeMethod newMessageInfoInvoke,
       ProtoMessageInfo protoMessageInfo) {
     // Position iterator immediately before the call to newMessageInfo().
     BasicBlock block = newMessageInfoInvoke.getBlock();

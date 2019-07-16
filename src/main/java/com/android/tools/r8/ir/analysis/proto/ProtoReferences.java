@@ -27,6 +27,7 @@ public class ProtoReferences {
   public final DexProto findLiteExtensionByNumberProto;
 
   public final DexMethod newMessageInfoMethod;
+  public final DexMethod rawMessageInfoConstructor;
 
   public ProtoReferences(DexItemFactory factory) {
     // Types.
@@ -65,6 +66,12 @@ public class ProtoReferences {
             factory.createProto(
                 factory.objectType, messageLiteType, factory.stringType, factory.objectArrayType),
             factory.createString("newMessageInfo"));
+    rawMessageInfoConstructor =
+        factory.createMethod(
+            rawMessageInfoType,
+            factory.createProto(
+                factory.voidType, messageLiteType, factory.stringType, factory.objectArrayType),
+            factory.constructorMethodName);
   }
 
   public boolean isDynamicMethod(DexMethod method) {

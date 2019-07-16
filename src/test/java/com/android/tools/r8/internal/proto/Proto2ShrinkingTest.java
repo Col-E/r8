@@ -39,9 +39,6 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
         .addProgramFiles(PROTO2_EXAMPLES_JAR, PROTO2_PROTO_JAR, PROTOBUF_LITE_JAR)
         .addKeepMainRule("proto2.TestClass")
         .addKeepRules(
-            // TODO(b/112437944): Should rewrite constructor calls to RawMessageInfo when
-            //  newMessageInfo() is inlined.
-            "-neverinline class * { newMessageInfo(...); }",
             // TODO(b/112437944): Do not remove proto fields that are actually used in tree shaking.
             "-keepclassmembers,allowobfuscation class * extends",
             "    com.google.protobuf.GeneratedMessageLite {",
