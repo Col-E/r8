@@ -384,6 +384,9 @@ public final class R8Command extends BaseCompilerCommand {
       if (getProgramConsumer() instanceof ClassFileConsumer && isMinApiLevelSet()) {
         reporter.error("R8 does not support --min-api when compiling to class files");
       }
+      if (getSpecialLibraryConfiguration() != null) {
+        reporter.error("R8 does not support special library configuration");
+      }
       super.validate();
     }
 
@@ -502,7 +505,8 @@ public final class R8Command extends BaseCompilerCommand {
               keptGraphConsumer,
               mainDexKeptGraphConsumer,
               syntheticProguardRulesConsumer,
-              isOptimizeMultidexForLinearAlloc());
+              isOptimizeMultidexForLinearAlloc(),
+              getSpecialLibraryConfiguration());
 
       return command;
     }
@@ -652,7 +656,8 @@ public final class R8Command extends BaseCompilerCommand {
       GraphConsumer keptGraphConsumer,
       GraphConsumer mainDexKeptGraphConsumer,
       Consumer<List<ProguardConfigurationRule>> syntheticProguardRulesConsumer,
-      boolean optimizeMultidexForLinearAlloc) {
+      boolean optimizeMultidexForLinearAlloc,
+      String specialLibraryConfiguration) {
     super(
         inputApp,
         mode,
@@ -661,7 +666,8 @@ public final class R8Command extends BaseCompilerCommand {
         minApiLevel,
         reporter,
         enableDesugaring,
-        optimizeMultidexForLinearAlloc);
+        optimizeMultidexForLinearAlloc,
+        specialLibraryConfiguration);
     assert proguardConfiguration != null;
     assert mainDexKeepRules != null;
     this.mainDexKeepRules = mainDexKeepRules;
@@ -809,6 +815,7 @@ public final class R8Command extends BaseCompilerCommand {
 
     internal.enableInheritanceClassInDexDistributor = isOptimizeMultidexForLinearAlloc();
 
+    // TODO(134732760): This is still work in progress.
     assert internal.rewritePrefix.isEmpty();
     assert internal.emulateLibraryInterface.isEmpty();
     assert internal.retargetCoreLibMember.isEmpty();

@@ -31,6 +31,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
   private final Reporter reporter;
   private final boolean enableDesugaring;
   private final boolean optimizeMultidexForLinearAlloc;
+  private String specialLibraryConfiguration;
 
   BaseCompilerCommand(boolean printHelp, boolean printVersion) {
     super(printHelp, printVersion);
@@ -51,7 +52,8 @@ public abstract class BaseCompilerCommand extends BaseCommand {
       int minApiLevel,
       Reporter reporter,
       boolean enableDesugaring,
-      boolean optimizeMultidexForLinearAlloc) {
+      boolean optimizeMultidexForLinearAlloc,
+      String specialLibraryConfiguration) {
     super(app);
     assert minApiLevel > 0;
     assert mode != null;
@@ -62,6 +64,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     this.reporter = reporter;
     this.enableDesugaring = enableDesugaring;
     this.optimizeMultidexForLinearAlloc = optimizeMultidexForLinearAlloc;
+    this.specialLibraryConfiguration = specialLibraryConfiguration;
   }
 
   /**
@@ -109,6 +112,11 @@ public abstract class BaseCompilerCommand extends BaseCommand {
   Reporter getReporter() {
     return reporter;
   }
+
+  public String getSpecialLibraryConfiguration() {
+    return specialLibraryConfiguration;
+  }
+
   /**
    * Base builder for compilation commands.
    *
@@ -385,6 +393,10 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     public B addSpecialLibraryConfiguration(String configuration) {
       this.specialLibraryConfiguration = configuration;
       return self();
+    }
+
+    public String getSpecialLibraryConfiguration() {
+      return specialLibraryConfiguration;
     }
 
     @Override

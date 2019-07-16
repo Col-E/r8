@@ -77,7 +77,7 @@ public class JavaUtilOptionalTest extends CoreLibDesugarTestBase {
         .addInnerClasses(JavaUtilOptionalTest.class)
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .setMinApi(parameters.getRuntime())
-        .addOptionsModification(this::configureCoreLibDesugarForProgramCompilation)
+        .enableCoreLibraryDesugaring()
         .compile()
         .inspect(this::checkRewrittenInvokes)
         .addRunClasspathFiles(buildDesugaredLibrary(parameters.getApiLevel()))

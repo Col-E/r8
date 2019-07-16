@@ -12,8 +12,7 @@ import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.corelib.CoreLibDesugarTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.InternalOptions;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableList;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -22,7 +21,6 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import org.junit.BeforeClass;
 
 // Provides convenience to use Paths/SafeVarargs which are missing on old Android but
@@ -94,70 +92,9 @@ public class Jdk11CoreLibTestBase extends CoreLibDesugarTestBase {
     assert JDK_11_JAVA_BASE_EXTENSION_COMPILED_FILES.length > 0;
   }
 
-  // TODO(134732760): Remove this and use L8 below.
-  private Map<String, String> buildBackportCoreLibraryMembers() {
-    // R8 specific to deal with *8 removal.
-    return ImmutableMap.<String, String>builder()
-        .put("java.lang.Double8", "java.lang.Double")
-        .put("java.lang.Integer8", "java.lang.Integer")
-        .put("java.lang.Long8", "java.lang.Long")
-        .build();
-  }
-
-  // TODO(134732760): Remove this and use L8 below.
-  private Map<String, String> buildPrefixRewritingForCoreLibCompilation() {
-    return ImmutableMap.<String, String>builder()
-        // --rewrite_core_library_prefix.
-        // Extra flags for R8
-        .put("java.io.DesugarBufferedReader", "j$.io.DesugarBufferedReader")
-        .put("java.io.UncheckedIOException", "j$.io.UncheckedIOException")
-        // Bazel flags.
-        .put("java.lang.Double8", "j$.lang.Double8")
-        .put("java.lang.Integer8", "j$.lang.Integer8")
-        .put("java.lang.Long8", "j$.lang.Long8")
-        .put("java.lang.Math8", "j$.lang.Math8")
-        .put("java.time.", "j$.time.")
-        .put("java.util.stream.", "j$.util.stream.")
-        .put("java.util.function.", "j$.util.function.")
-        .put("java.util.Comparators", "j$.util.Comparators")
-        .put("java.util.Desugar", "j$.util.Desugar")
-        .put("java.util.DoubleSummaryStatistics", "j$.util.DoubleSummaryStatistics")
-        .put("java.util.IntSummaryStatistics", "j$.util.IntSummaryStatistics")
-        .put("java.util.LongSummaryStatistics", "j$.util.LongSummaryStatistics")
-        .put("java.util.Objects", "j$.util.Objects")
-        .put("java.util.Optional", "j$.util.Optional")
-        .put("java.util.PrimitiveIterator", "j$.util.PrimitiveIterator")
-        .put("java.util.SortedSet$1", "j$.util.SortedSet$1")
-        .put("java.util.Spliterator", "j$.util.Spliterator")
-        .put("java.util.StringJoiner", "j$.util.StringJoiner")
-        .put("java.util.Tripwire", "j$.util.Tripwire")
-        .put("java.util.concurrent.ConcurrentHashMap", "j$.util.concurrent.ConcurrentHashMap")
-        .put("java.util.concurrent.DesugarUnsafe", "j$.util.concurrent.DesugarUnsafe")
-        .put("java.util.concurrent.ThreadLocalRandom", "j$.util.concurrent.ThreadLocalRandom")
-        .put("java.util.concurrent.atomic.DesugarAtomic", "j$.util.concurrent.atomic.DesugarAtomic")
-        .build();
-  }
-
-  // TODO(134732760): Remove this and use L8 below.
-  private void configureCoreLibDesugarCompilationWithJavaBaseExtension(InternalOptions options) {
-    options.coreLibraryCompilation = true;
-    options.backportCoreLibraryMembers = buildBackportCoreLibraryMembers();
-    options.retargetCoreLibMember = buildRetargetCoreLibraryMemberForProgramCompilation();
-    options.dontRewriteInvocations = buildDontRewriteInvocations();
-    options.rewritePrefix = buildPrefixRewritingForCoreLibCompilation();
-    options.emulateLibraryInterface = buildEmulateLibraryInterface();
-  }
-
   protected Path buildDesugaredLibraryWithJavaBaseExtension(AndroidApiLevel apiLevel)
       throws Exception {
-    // TODO(134732760): Use L8.
-    return testForD8()
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
-        .addProgramFiles(JDK_11_JAVA_BASE_EXTENSION_COMPILED_FILES)
-        .addProgramFiles(ToolHelper.getDesugarJDKLibs())
-        .addOptionsModification(this::configureCoreLibDesugarCompilationWithJavaBaseExtension)
-        .setMinApi(apiLevel)
-        .compile()
-        .writeToZip();
+    return buildDesugaredLibrary(
+        apiLevel, ImmutableList.copyOf(JDK_11_JAVA_BASE_EXTENSION_COMPILED_FILES));
   }
 }

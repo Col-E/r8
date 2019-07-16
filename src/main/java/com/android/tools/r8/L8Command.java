@@ -71,6 +71,11 @@ public final class L8Command extends BaseCompilerCommand {
     @Override
     void validate() {
       Reporter reporter = getReporter();
+      if (getSpecialLibraryConfiguration() == null) {
+        reporter.error("L8 requires a special library configuration");
+      } else if (!getSpecialLibraryConfiguration().equals("default")) {
+        reporter.error("L8 currently require special library configuration to be \"default\"");
+      }
       if (getProgramConsumer() instanceof ClassFileConsumer) {
         reporter.error("L8 does not support compiling to Java class files");
       }
@@ -97,7 +102,8 @@ public final class L8Command extends BaseCompilerCommand {
           getProgramConsumer(),
           getMainDexListConsumer(),
           getMinApiLevel(),
-          getReporter());
+          getReporter(),
+          getSpecialLibraryConfiguration());
     }
   }
 
@@ -115,7 +121,8 @@ public final class L8Command extends BaseCompilerCommand {
       ProgramConsumer programConsumer,
       StringConsumer mainDexListConsumer,
       int minApiLevel,
-      Reporter diagnosticsHandler) {
+      Reporter diagnosticsHandler,
+      String specialLibraryConfiguration) {
     super(
         inputApp,
         mode,
@@ -124,7 +131,8 @@ public final class L8Command extends BaseCompilerCommand {
         minApiLevel,
         diagnosticsHandler,
         true,
-        false);
+        false,
+        specialLibraryConfiguration);
   }
 
   private L8Command(boolean printHelp, boolean printVersion) {
@@ -141,8 +149,77 @@ public final class L8Command extends BaseCompilerCommand {
   }
 
   private Map<String, String> buildRetargetCoreLibraryMemberForCoreLibCompilation() {
-    // --retarget_core_library_member.
-    return ImmutableMap.of("java.util.LinkedHashSet#spliterator", "java.util.DesugarLinkedHashSet");
+    /*
+      --retarget_core_library_member.
+
+      The bazel configuration only have this single --retarget_core_library_member option:
+
+      --retarget_core_library_member \
+          "java/util/LinkedHashSet#spliterator->java/util/DesugarLinkedHashSet"
+
+      The configuration below is the full configuration for programs using the desugared library.
+      This should fine, as any calls to these re-targeted methods should be rewritten. The main
+      reason for adding all of them is that the additional files added to the desugared library
+      for running some of the JDK 11 tests use these APIs.
+    */
+    return ImmutableMap.<String, String>builder()
+        // We ignore the following flags required by Bazel because desugaring of these methods
+        // is done separately.
+        // .put("java.lang.Double#max", "java.lang.Double8")
+        // .put("java.lang.Double#min", "java.lang.Double8")
+        // .put("java.lang.Double#sum", "java.lang.Double8")
+        // .put("java.lang.Integer#max", "java.lang.Integer8")
+        // .put("java.lang.Integer#min", "java.lang.Integer8")
+        // .put("java.lang.Integer#sum", "java.lang.Integer8")
+        // .put("java.lang.Long#max", "java.lang.Long")
+        // .put("java.lang.Long#min", "java.lang.Long")
+        // .put("java.lang.Long#sum", "java.lang.Long")
+        // .put("java.lang.Math#toIntExact", "java.lang.Math8")
+        .put("java.util.Arrays#stream", "java.util.DesugarArrays")
+        .put("java.util.Arrays#spliterator", "java.util.DesugarArrays")
+        .put("java.util.Calendar#toInstant", "java.util.DesugarCalendar")
+        .put("java.util.Date#from", "java.util.DesugarDate")
+        .put("java.util.Date#toInstant", "java.util.DesugarDate")
+        .put("java.util.GregorianCalendar#from", "java.util.DesugarGregorianCalendar")
+        .put("java.util.GregorianCalendar#toZonedDateTime", "java.util.DesugarGregorianCalendar")
+        .put("java.util.LinkedHashSet#spliterator", "java.util.DesugarLinkedHashSet")
+        .put(
+            "java.util.concurrent.atomic.AtomicInteger#getAndUpdate",
+            "java.util.concurrent.atomic.DesugarAtomicInteger")
+        .put(
+            "java.util.concurrent.atomic.AtomicInteger#updateAndGet",
+            "java.util.concurrent.atomic.DesugarAtomicInteger")
+        .put(
+            "java.util.concurrent.atomic.AtomicInteger#getAndAccumulate",
+            "java.util.concurrent.atomic.DesugarAtomicInteger")
+        .put(
+            "java.util.concurrent.atomic.AtomicInteger#accumulateAndGet",
+            "java.util.concurrent.atomic.DesugarAtomicInteger")
+        .put(
+            "java.util.concurrent.atomic.AtomicLong#getAndUpdate",
+            "java.util.concurrent.atomic.DesugarAtomicLong")
+        .put(
+            "java.util.concurrent.atomic.AtomicLong#updateAndGet",
+            "java.util.concurrent.atomic.DesugarAtomicLong")
+        .put(
+            "java.util.concurrent.atomic.AtomicLong#getAndAccumulate",
+            "java.util.concurrent.atomic.DesugarAtomicLong")
+        .put(
+            "java.util.concurrent.atomic.AtomicLong#accumulateAndGet",
+            "java.util.concurrent.atomic.DesugarAtomicLong")
+        .put(
+            "java.util.concurrent.atomic.AtomicReference#getAndUpdate",
+            "java.util.concurrent.atomic.DesugarAtomicReference")
+        .put(
+            "java.util.concurrent.atomic.AtomicReference#updateAndGet",
+            "java.util.concurrent.atomic.DesugarAtomicReference")
+        .put(
+            "java.util.concurrent.atomic.AtomicReference#getAndAccumulate",
+            "java.util.concurrent.atomic.DesugarAtomicReference")
+        .put(
+            "java.util.concurrent.atomic.AtomicReference#accumulateAndGet",
+            "java.util.concurrent.atomic.DesugarAtomicReference")
+        .build();
   }
 
   private List<String> buildDontRewriteInvocations() {
@@ -206,6 +283,15 @@ public final class L8Command extends BaseCompilerCommand {
         .build();
   }
 
+  private void configureLibraryDesugaring(InternalOptions options) {
+    options.coreLibraryCompilation = true;
+    options.backportCoreLibraryMembers = buildBackportCoreLibraryMembers();
+    options.retargetCoreLibMember = buildRetargetCoreLibraryMemberForCoreLibCompilation();
+    options.dontRewriteInvocations = buildDontRewriteInvocations();
+    options.rewritePrefix = buildPrefixRewritingForCoreLibCompilation();
+    options.emulateLibraryInterface = buildEmulateLibraryInterface();
+  }
+
   @Override
   InternalOptions getInternalOptions() {
     InternalOptions internal = new InternalOptions(new DexItemFactory(), getReporter());
@@ -242,17 +328,14 @@ public final class L8Command extends BaseCompilerCommand {
     assert internal.enableInheritanceClassInDexDistributor;
     internal.enableInheritanceClassInDexDistributor = false;
 
+    // TODO(134732760): This is still work in progress.
     assert internal.rewritePrefix.isEmpty();
     assert internal.emulateLibraryInterface.isEmpty();
     assert internal.retargetCoreLibMember.isEmpty();
     assert internal.backportCoreLibraryMembers.isEmpty();
     assert internal.dontRewriteInvocations.isEmpty();
-    internal.coreLibraryCompilation = true;
-    internal.backportCoreLibraryMembers = buildBackportCoreLibraryMembers();
-    internal.retargetCoreLibMember = buildRetargetCoreLibraryMemberForCoreLibCompilation();
-    internal.dontRewriteInvocations = buildDontRewriteInvocations();
-    internal.rewritePrefix = buildPrefixRewritingForCoreLibCompilation();
-    internal.emulateLibraryInterface = buildEmulateLibraryInterface();
+    assert getSpecialLibraryConfiguration().equals("default");
+    configureLibraryDesugaring(internal);
 
     return internal;
   }

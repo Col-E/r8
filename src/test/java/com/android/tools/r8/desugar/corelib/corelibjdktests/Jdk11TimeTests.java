@@ -138,7 +138,7 @@ public class Jdk11TimeTests extends CoreLibDesugarTestBase {
             .addProgramFiles(Paths.get(JDK_TESTS_BUILD_DIR + "jcommander-1.48.jar"))
             .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .setMinApi(parameters.getRuntime())
-            .addOptionsModification(this::configureCoreLibDesugarForProgramCompilation)
+            .enableCoreLibraryDesugaring()
             .compile()
             .addRunClasspathFiles(buildDesugaredLibrary(parameters.getApiLevel()));
     for (String success : successes) {

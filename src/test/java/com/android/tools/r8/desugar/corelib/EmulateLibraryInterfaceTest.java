@@ -70,8 +70,7 @@ public class EmulateLibraryInterfaceTest extends CoreLibDesugarTestBase {
             .filter(x -> x.getOriginalName().startsWith("java"))
             .collect(Collectors.toList());
     System.out.println(java);
-    int numDispatchClasses =
-        requiresCoreLibDesugaring(parameters) ? buildEmulateLibraryInterface().size() : 0;
+    int numDispatchClasses = requiresCoreLibDesugaring(parameters) ? 10 : 0;
     assertEquals(numDispatchClasses, dispatchClasses.size());
     for (FoundClassSubject clazz : dispatchClasses) {
       assertTrue(
@@ -159,7 +158,7 @@ public class EmulateLibraryInterfaceTest extends CoreLibDesugarTestBase {
             .addProgramClasses(TestClass.class)
             .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .setMinApi(parameters.getRuntime())
-            .addOptionsModification(this::configureCoreLibDesugarForProgramCompilation)
+            .enableCoreLibraryDesugaring()
             .compile()
             .inspect(this::checkRewrittenInvokes)
             .addRunClasspathFiles(buildDesugaredLibrary(parameters.getApiLevel()))

@@ -520,7 +520,7 @@ public class D8CommandTest {
         "Special library configuration is still work in progress",
         handler ->
             D8Command.builder(handler)
-                .addSpecialLibraryConfiguration("")
+                .addSpecialLibraryConfiguration("default")
                 .setOutput(emptyZip, OutputMode.DexIndexed)
                 .build());
   }

@@ -30,7 +30,10 @@ public class L8CommandTest {
   @Test
   public void emptyCommand() throws Throwable {
     verifyEmptyCommand(
-        L8Command.builder().setProgramConsumer(DexIndexedConsumer.emptyConsumer()).build());
+        L8Command.builder()
+            .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+            .addSpecialLibraryConfiguration("default")
+            .build());
   }
 
   private void verifyEmptyCommand(L8Command command) throws Throwable {
@@ -50,6 +53,7 @@ public class L8CommandTest {
             .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .addProgramFiles(ToolHelper.getDesugarJDKLibs())
             .setMinApiLevel(20)
+            .addSpecialLibraryConfiguration("default")
             .setOutput(output, OutputMode.DexIndexed)
             .build());
     Collection<Marker> markers = ExtractMarker.extractMarkerFromDexFile(output);
@@ -96,6 +100,25 @@ public class L8CommandTest {
             prepareBuilder(handler).setProgramConsumer(ClassFileConsumer.emptyConsumer()).build());
   }
 
+  @Test(expected = CompilationFailedException.class)
+  public void specialLibraryConfgurationRequired() throws Throwable {
+    DiagnosticsChecker.checkErrorsContains(
+        "L8 requires a special library configuration",
+        (handler) ->
+            prepareBuilder(handler).setProgramConsumer(DexIndexedConsumer.emptyConsumer()).build());
+  }
+
+  @Test(expected = CompilationFailedException.class)
+  public void specialLibraryConfgurationMustBeDefault() throws Throwable {
+    DiagnosticsChecker.checkErrorsContains(
+        "L8 currently require special library configuration to be \"default\"",
+        (handler) ->
+            prepareBuilder(handler)
+                .addSpecialLibraryConfiguration("not default")
+                .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+                .build());
+  }
+
   @Test
   public void warnForSpecialLibraryConfiguration() throws Throwable {
     DiagnosticsChecker.checkWarningsContains(
@@ -103,7 +126,7 @@ public class L8CommandTest {
         handler ->
             prepareBuilder(handler)
                 .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
-                .addSpecialLibraryConfiguration("")
+                .addSpecialLibraryConfiguration("default")
                 .build());
   }
 }

@@ -256,4 +256,9 @@ public abstract class TestCompilerBuilder<
     stdout = printStream;
     return self();
   }
+
+  public T enableCoreLibraryDesugaring() {
+    builder.addSpecialLibraryConfiguration("default");
+    return self();
+  }
 }

@@ -99,7 +99,7 @@ public class Jdk11StreamTests extends Jdk11CoreLibTestBase {
         .addProgramFiles(Paths.get(JDK_TESTS_BUILD_DIR + "jcommander-1.48.jar"))
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .setMinApi(parameters.getRuntime())
-        .addOptionsModification(this::configureCoreLibDesugarForProgramCompilation)
+        .enableCoreLibraryDesugaring()
         .compile()
         .addRunClasspathFiles(buildDesugaredLibraryWithJavaBaseExtension(parameters.getApiLevel()))
         .withArtFrameworks()

@@ -625,16 +625,17 @@ public class R8CommandTest {
         "Missing parameter", handler -> parse(handler, "--output"));
   }
 
-  @Test
-  public void warnForSpecialLibraryConfiguration() throws Throwable {
+  @Test(expected = CompilationFailedException.class)
+  public void specialLibraryConfigurationNotSupported() throws Throwable {
     Path emptyZip = temp.getRoot().toPath().resolve("empty.zip");
-    DiagnosticsChecker.checkWarningsContains(
-        "Special library configuration is still work in progress",
+    DiagnosticsChecker.checkErrorsContains(
+        "R8 does not support special library configuration",
         handler ->
-            R8Command.builder(handler)
-                .addSpecialLibraryConfiguration("")
-                .setOutput(emptyZip, OutputMode.DexIndexed)
-                .build());
+            R8.run(
+                R8Command.builder(handler)
+                    .addSpecialLibraryConfiguration("default")
+                    .setOutput(emptyZip, OutputMode.DexIndexed)
+                    .build()));
   }
 
   private R8Command parse(String... args) throws CompilationFailedException {
