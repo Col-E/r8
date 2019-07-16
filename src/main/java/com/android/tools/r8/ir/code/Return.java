@@ -56,10 +56,10 @@ public class Return extends JumpInstruction {
     if (returnType.isReference()) {
       return new ReturnObject(register);
     }
-    if (returnType.isSingle()) {
+    if (returnType.isSinglePrimitive()) {
       return new com.android.tools.r8.code.Return(register);
     }
-    if (returnType.isWide()) {
+    if (returnType.isWidePrimitive()) {
       return new ReturnWide(register);
     }
     throw new Unreachable();

@@ -145,10 +145,10 @@ public enum ValueTypeConstraint {
     if (typeLatticeElement.isDouble()) {
       return DOUBLE;
     }
-    if (typeLatticeElement.isSingle()) {
+    if (typeLatticeElement.isSinglePrimitive()) {
       return INT_OR_FLOAT;
     }
-    if (typeLatticeElement.isWide()) {
+    if (typeLatticeElement.isWidePrimitive()) {
       return LONG_OR_DOUBLE;
     }
     if (typeLatticeElement.isTop()) {

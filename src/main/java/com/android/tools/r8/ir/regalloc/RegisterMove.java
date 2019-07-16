@@ -33,7 +33,7 @@ public class RegisterMove implements Comparable<RegisterMove> {
   }
 
   private boolean writes(int register) {
-    if (type.isWide() && (dst + 1) == register) {
+    if (type.isWidePrimitive() && (dst + 1) == register) {
       return true;
     }
     return dst == register;
@@ -48,7 +48,7 @@ public class RegisterMove implements Comparable<RegisterMove> {
         if (writes(valueMap.get(move.src))) {
           return true;
         }
-        if (move.type.isWide()) {
+        if (move.type.isWidePrimitive()) {
           if (writes(valueMap.get(move.src) + 1)) {
             return true;
           }
@@ -85,8 +85,8 @@ public class RegisterMove implements Comparable<RegisterMove> {
     if (type.isPrimitive() != o.type.isPrimitive()) {
       return Boolean.compare(type.isPrimitive(), o.type.isPrimitive());
     }
-    if (type.isWide() != o.type.isWide()) {
-      return Boolean.compare(type.isWide(), o.type.isWide());
+    if (type.isWidePrimitive() != o.type.isWidePrimitive()) {
+      return Boolean.compare(type.isWidePrimitive(), o.type.isWidePrimitive());
     }
     if (type.isReference() != o.type.isReference()) {
       return Boolean.compare(type.isReference(), o.type.isReference());

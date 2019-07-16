@@ -22,7 +22,7 @@ public class FixedRegisterValue extends Value {
   public ValueType outType() {
     TypeLatticeElement type = getTypeLattice();
     if (type.isPrimitive()) {
-      if (type.isSingle()) {
+      if (type.isSinglePrimitive()) {
         if (type.isInt()) {
           return ValueType.INT;
         }
@@ -30,7 +30,7 @@ public class FixedRegisterValue extends Value {
           return ValueType.FLOAT;
         }
       } else {
-        assert type.isWide();
+        assert type.isWidePrimitive();
         if (type.isDouble()) {
           return ValueType.DOUBLE;
         }

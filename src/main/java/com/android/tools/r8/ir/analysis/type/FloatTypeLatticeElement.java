@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.analysis.type;
 
-public class FloatTypeLatticeElement extends SingleTypeLatticeElement {
+public class FloatTypeLatticeElement extends SinglePrimitiveTypeLatticeElement {
   private static final FloatTypeLatticeElement INSTANCE = new FloatTypeLatticeElement();
 
   static FloatTypeLatticeElement getInstance() {

@@ -133,18 +133,18 @@ public abstract class PrimitiveTypeLatticeElement extends TypeLatticeElement {
     if (this == other) {
       return this;
     }
-    if (isSingle()) {
-      if (other.isSingle()) {
+    if (isSinglePrimitive()) {
+      if (other.isSinglePrimitive()) {
         return TypeLatticeElement.SINGLE;
       }
-      assert other.isWide();
+      assert other.isWidePrimitive();
       return TypeLatticeElement.TOP;
     }
-    assert isWide();
-    if (other.isWide()) {
+    assert isWidePrimitive();
+    if (other.isWidePrimitive()) {
       return TypeLatticeElement.WIDE;
     }
-    assert other.isSingle();
+    assert other.isSinglePrimitive();
     return TypeLatticeElement.TOP;
   }
 }

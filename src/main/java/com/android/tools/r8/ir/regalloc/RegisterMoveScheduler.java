@@ -124,9 +124,9 @@ public class RegisterMoveScheduler {
       int moveSrc = valueMap.get(move.src);
       if (moveSrc == src) {
         result.add(move);
-      } else if (move.type.isWide() && (moveSrc + 1) == src) {
+      } else if (move.type.isWidePrimitive() && (moveSrc + 1) == src) {
         result.add(move);
-      } else if (type.isWide() && (moveSrc - 1) == src) {
+      } else if (type.isWidePrimitive() && (moveSrc - 1) == src) {
         result.add(move);
       }
     }
@@ -194,7 +194,7 @@ public class RegisterMoveScheduler {
     // Pick a non-wide move to unblock if possible.
     while (iterator.hasNext()) {
       move = iterator.next();
-      if (!move.type.isWide()) {
+      if (!move.type.isWidePrimitive()) {
         break;
       }
     }

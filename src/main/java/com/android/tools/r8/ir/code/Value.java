@@ -53,7 +53,8 @@ public class Value {
   }
 
   public TypeLatticeElement constrainedType(ValueTypeConstraint constraint) {
-    if (constraint == ValueTypeConstraint.INT_OR_FLOAT_OR_OBJECT && !typeLattice.isWide()) {
+    if (constraint == ValueTypeConstraint.INT_OR_FLOAT_OR_OBJECT
+        && !typeLattice.isWidePrimitive()) {
       return typeLattice;
     }
     switch (constraint) {
@@ -79,12 +80,12 @@ public class Value {
         }
         break;
       case INT:
-        if (typeLattice.isTop() || (typeLattice.isSingle() && !typeLattice.isFloat())) {
+        if (typeLattice.isTop() || (typeLattice.isSinglePrimitive() && !typeLattice.isFloat())) {
           return TypeLatticeElement.INT;
         }
         break;
       case FLOAT:
-        if (typeLattice.isTop() || (typeLattice.isSingle() && !typeLattice.isInt())) {
+        if (typeLattice.isTop() || (typeLattice.isSinglePrimitive() && !typeLattice.isInt())) {
           return TypeLatticeElement.FLOAT;
         }
         break;
@@ -92,22 +93,22 @@ public class Value {
         if (typeLattice.isTop()) {
           return TypeLatticeElement.SINGLE;
         }
-        if (typeLattice.isSingle()) {
+        if (typeLattice.isSinglePrimitive()) {
           return typeLattice;
         }
         break;
       case LONG:
-        if (typeLattice.isWide()) {
+        if (typeLattice.isWidePrimitive()) {
           return TypeLatticeElement.LONG;
         }
         break;
       case DOUBLE:
-        if (typeLattice.isWide()) {
+        if (typeLattice.isWidePrimitive()) {
           return TypeLatticeElement.DOUBLE;
         }
         break;
       case LONG_OR_DOUBLE:
-        if (typeLattice.isWide()) {
+        if (typeLattice.isWidePrimitive()) {
           return typeLattice;
         }
         break;
@@ -747,7 +748,7 @@ public class Value {
       builder.append("(");
       if (isConstant && definition.asConstNumber().outValue != null) {
         ConstNumber constNumber = definition.asConstNumber();
-        if (constNumber.outValue().getTypeLattice().isSingle()) {
+        if (constNumber.outValue().getTypeLattice().isSinglePrimitive()) {
           builder.append((int) constNumber.getRawValue());
         } else {
           builder.append(constNumber.getRawValue());
@@ -926,11 +927,11 @@ public class Value {
 
   public LongInterval getValueRange() {
     if (isConstNumber()) {
-      if (typeLattice.isSingle()) {
+      if (typeLattice.isSinglePrimitive()) {
         int value = getConstInstruction().asConstNumber().getIntValue();
         return new LongInterval(value, value);
       } else {
-        assert typeLattice.isWide();
+        assert typeLattice.isWidePrimitive();
         long value = getConstInstruction().asConstNumber().getLongValue();
         return new LongInterval(value, value);
       }

@@ -71,11 +71,11 @@ public class TypeLatticeTest extends TestBase {
     return TypeLatticeElement.BOTTOM;
   }
 
-  private SingleTypeLatticeElement single() {
+  private SinglePrimitiveTypeLatticeElement single() {
     return TypeLatticeElement.SINGLE;
   }
 
-  private WideTypeLatticeElement wide() {
+  private WidePrimitiveTypeLatticeElement wide() {
     return TypeLatticeElement.WIDE;
   }
 

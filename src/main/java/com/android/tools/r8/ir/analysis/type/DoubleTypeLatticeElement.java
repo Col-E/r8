@@ -3,7 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.analysis.type;
 
-public class DoubleTypeLatticeElement extends WideTypeLatticeElement {
+public class DoubleTypeLatticeElement extends WidePrimitiveTypeLatticeElement {
+
   private static final DoubleTypeLatticeElement INSTANCE = new DoubleTypeLatticeElement();
 
   static DoubleTypeLatticeElement getInstance() {

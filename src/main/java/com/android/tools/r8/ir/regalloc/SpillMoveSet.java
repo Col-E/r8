@@ -201,8 +201,8 @@ class SpillMoveSet {
     TypeLatticeElement toType = to.getValue().getTypeLattice();
     TypeLatticeElement fromType = from.getValue().getTypeLattice();
     if (toType.isReference() || fromType.isReference()) {
-      assert fromType.isReference() || fromType.isSingle();
-      assert toType.isReference() || toType.isSingle();
+      assert fromType.isReference() || fromType.isSinglePrimitive();
+      assert toType.isReference() || toType.isSinglePrimitive();
       return objectType;
     }
     assert toType == fromType;
@@ -370,7 +370,7 @@ class SpillMoveSet {
         // avoid a bug where the index variable could end up being uninitialized.
         if (allocator.options().canHaveBoundsCheckEliminationBug()
             && move.from.getValue().isConstNumber()
-            && move.type.isSingle()
+            && move.type.isSinglePrimitive()
             && allocator.unadjustedRealRegisterFromAllocated(move.to.getRegister()) < 256) {
           scheduler.addMove(
               new RegisterMove(move.to.getRegister(), move.type, move.from.getValue().definition));

@@ -23,10 +23,12 @@ public abstract class TypeLatticeElement {
   static final CharTypeLatticeElement CHAR = CharTypeLatticeElement.getInstance();
   public static final IntTypeLatticeElement INT = IntTypeLatticeElement.getInstance();
   public static final FloatTypeLatticeElement FLOAT = FloatTypeLatticeElement.getInstance();
-  public static final SingleTypeLatticeElement SINGLE = SingleTypeLatticeElement.getInstance();
+  public static final SinglePrimitiveTypeLatticeElement SINGLE =
+      SinglePrimitiveTypeLatticeElement.getInstance();
   public static final LongTypeLatticeElement LONG = LongTypeLatticeElement.getInstance();
   public static final DoubleTypeLatticeElement DOUBLE = DoubleTypeLatticeElement.getInstance();
-  public static final WideTypeLatticeElement WIDE = WideTypeLatticeElement.getInstance();
+  public static final WidePrimitiveTypeLatticeElement WIDE =
+      WidePrimitiveTypeLatticeElement.getInstance();
   public static final ReferenceTypeLatticeElement NULL =
       ReferenceTypeLatticeElement.getNullTypeLatticeElement();
 
@@ -243,11 +245,11 @@ public abstract class TypeLatticeElement {
     return null;
   }
 
-  public boolean isSingle() {
+  public boolean isSinglePrimitive() {
     return false;
   }
 
-  public boolean isWide() {
+  public boolean isWidePrimitive() {
     return false;
   }
 
@@ -328,7 +330,7 @@ public abstract class TypeLatticeElement {
 
   public int requiredRegisters() {
     assert !isBottom() && !isTop();
-    return isWide() ? 2 : 1;
+    return 1;
   }
 
   public static ClassTypeLatticeElement objectClassType(
@@ -375,8 +377,8 @@ public abstract class TypeLatticeElement {
 
   public boolean isValueTypeCompatible(TypeLatticeElement other) {
     return (isReference() && other.isReference())
-        || (isSingle() && other.isSingle())
-        || (isWide() && other.isWide());
+        || (isSinglePrimitive() && other.isSinglePrimitive())
+        || (isWidePrimitive() && other.isWidePrimitive());
   }
 
   @Override

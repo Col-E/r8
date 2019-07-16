@@ -32,8 +32,8 @@ public class Dup2 extends Instruction {
 
   private Dup2(StackValues dest, Value srcBottom, Value srcTop) {
     super(dest, ImmutableList.of(srcBottom, srcTop));
-    assert !srcBottom.getTypeLattice().isWide();
-    assert !srcTop.getTypeLattice().isWide();
+    assert !srcBottom.getTypeLattice().isWidePrimitive();
+    assert !srcTop.getTypeLattice().isWidePrimitive();
     assert dest.getStackValues().length == 4;
     assert srcBottom.isValueOnStack() && !(srcBottom instanceof StackValues);
     assert srcTop.isValueOnStack() && !(srcTop instanceof StackValues);

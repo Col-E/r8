@@ -217,11 +217,11 @@ public class ArrayGet extends Instruction implements ImpreciseMemberTypeInstruct
         return TypeLatticeElement.DOUBLE;
       case INT_OR_FLOAT:
         assert arrayTypeLattice == null
-            || arrayTypeLattice.getArrayMemberTypeAsValueType().isSingle();
+            || arrayTypeLattice.getArrayMemberTypeAsValueType().isSinglePrimitive();
         return checkConstraint(dest(), ValueTypeConstraint.INT_OR_FLOAT);
       case LONG_OR_DOUBLE:
         assert arrayTypeLattice == null
-            || arrayTypeLattice.getArrayMemberTypeAsValueType().isWide();
+            || arrayTypeLattice.getArrayMemberTypeAsValueType().isWidePrimitive();
         return checkConstraint(dest(), ValueTypeConstraint.LONG_OR_DOUBLE);
       default:
         throw new Unreachable("Unexpected member type: " + getMemberType());

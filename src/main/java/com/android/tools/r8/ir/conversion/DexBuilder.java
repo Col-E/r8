@@ -1420,9 +1420,9 @@ public class DexBuilder {
             instruction = new Nop();
             break;
           }
-          if (moveType.isSingle()) {
+          if (moveType.isSinglePrimitive()) {
             instruction = new com.android.tools.r8.code.Move(dest, src);
-          } else if (moveType.isWide()) {
+          } else if (moveType.isWidePrimitive()) {
             instruction = new MoveWide(dest, src);
           } else if (moveType.isReference()) {
             instruction = new MoveObject(dest, src);
@@ -1431,9 +1431,9 @@ public class DexBuilder {
           }
           break;
         case 2:
-          if (moveType.isSingle()) {
+          if (moveType.isSinglePrimitive()) {
             instruction = new MoveFrom16(dest, src);
-          } else if (moveType.isWide()) {
+          } else if (moveType.isWidePrimitive()) {
             instruction = new MoveWideFrom16(dest, src);
           } else if (moveType.isReference()) {
             instruction = new MoveObjectFrom16(dest, src);
@@ -1442,9 +1442,9 @@ public class DexBuilder {
           }
           break;
         case 3:
-          if (moveType.isSingle()) {
+          if (moveType.isSinglePrimitive()) {
             instruction = new Move16(dest, src);
-          } else if (moveType.isWide()) {
+          } else if (moveType.isWidePrimitive()) {
             instruction = new MoveWide16(dest, src);
           } else if (moveType.isReference()) {
             instruction = new MoveObject16(dest, src);

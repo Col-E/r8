@@ -166,9 +166,9 @@ public abstract class Invoke extends Instruction {
       TypeLatticeElement moveType = outValue.getTypeLattice();
       int register = builder.allocatedRegister(outValue, getNumber());
       com.android.tools.r8.code.Instruction moveResult;
-      if (moveType.isSingle()) {
+      if (moveType.isSinglePrimitive()) {
         moveResult = new MoveResult(register);
-      } else if (moveType.isWide()) {
+      } else if (moveType.isWidePrimitive()) {
         moveResult = new MoveResultWide(register);
       } else if (moveType.isReference()) {
         moveResult = new MoveResultObject(register);

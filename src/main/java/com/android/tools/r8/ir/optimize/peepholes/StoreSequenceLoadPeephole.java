@@ -40,7 +40,7 @@ public class StoreSequenceLoadPeephole implements BasicBlockPeephole {
       new Point(
           (i) -> {
             if (!i.isStore()
-                || i.asStore().src().getTypeLattice().isWide()
+                || i.asStore().src().getTypeLattice().isWidePrimitive()
                 || i.outValue().hasLocalInfo()
                 || i.asStore().outValue().numberOfAllUsers() != 1) {
               return false;
@@ -102,7 +102,7 @@ public class StoreSequenceLoadPeephole implements BasicBlockPeephole {
       lastOut = stackValues[stackValues.length - 1];
     }
 
-    if (lastOut == null || lastOut.getTypeLattice().isWide()) {
+    if (lastOut == null || lastOut.getTypeLattice().isWidePrimitive()) {
       return false;
     }
 
