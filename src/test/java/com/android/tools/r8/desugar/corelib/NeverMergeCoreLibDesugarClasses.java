@@ -88,7 +88,7 @@ public class NeverMergeCoreLibDesugarClasses extends CoreLibDesugarTestBase {
         .addInnerClasses(NeverMergeCoreLibDesugarClasses.class)
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .setMinApi(parameters.getRuntime())
-        .addOptionsModification(this::configureCoreLibDesugarForProgramCompilation)
+        .enableCoreLibraryDesugaring()
         .compile()
         .addRunClasspathFiles(buildDesugaredLibrary(parameters.getApiLevel()))
         .run(parameters.getRuntime(), TestClass.class)
