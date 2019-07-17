@@ -157,6 +157,7 @@ public class IRConverter {
   private final UninstantiatedTypeOptimization uninstantiatedTypeOptimization;
   private final TypeChecker typeChecker;
   private final IdempotentFunctionCallCanonicalizer idempotentFunctionCallCanonicalizer;
+  private final List<DexString> neverMergePrefixes;
 
   final DeadCodeRemover deadCodeRemover;
 
@@ -270,6 +271,11 @@ public class IRConverter {
         options.isStringSwitchConversionEnabled()
             ? new StringSwitchRemover(appView, identifierNameStringMarker)
             : null;
+    this.neverMergePrefixes =
+        options.neverMergePrefixes.stream()
+            .map(prefix -> "L" + DescriptorUtils.getPackageBinaryNameFromJavaType(prefix))
+            .map(options.itemFactory::createString)
+            .collect(Collectors.toList());
   }
 
   public Set<DexCallSite> getDesugaredCallSites() {
@@ -513,6 +519,16 @@ public class IRConverter {
           // We do not process in call graph order, so anything could be a leaf.
           rewriteCode(method, simpleOptimizationFeedback, x -> true, CallSiteInformation.empty(),
               Outliner::noProcessing);
+        } else {
+          assert method.getCode().isDexCode();
+          for (DexString neverMergePrefix : neverMergePrefixes) {
+            if (method.method.holder.descriptor.startsWith(neverMergePrefix)) {
+              throw new CompilationError(
+                  "Merging dex file containing classes with prefix '"
+                      + neverMergePrefix.toString().substring(1).replace('/', '.')
+                      + "' is not allowed.");
+            }
+          }
         }
         updateHighestSortingStrings(method);
       }
