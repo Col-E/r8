@@ -51,23 +51,25 @@ import java.util.Set;
 public class PrintUses {
 
   private static final String USAGE =
-      "Arguments: [--keeprules] <rt.jar> <r8.jar> <sample.jar>\n"
+      "Arguments: [--keeprules, --keeprules-allowobfuscation] <rt.jar> <r8.jar> <sample.jar>\n"
           + "\n"
           + "PrintUses prints the classes, interfaces, methods and fields used by <sample.jar>,\n"
           + "restricted to classes and interfaces in <r8.jar> that are not in <sample.jar>.\n"
           + "<rt.jar> and <r8.jar> should point to libraries used by <sample.jar>.\n"
           + "\n"
           + "The output is in the same format as what is printed when specifying -printseeds in\n"
-          + "a ProGuard configuration file. Use --keeprules for outputting proguard keep rules. "
-          + "See also the "
+          + "a ProGuard configuration file. Use --keeprules or --keeprules-allowobfuscation for "
+          + "outputting proguard keep rules. See also the "
           + PrintSeeds.class.getSimpleName()
           + " program in R8.";
 
   private final Set<String> descriptors;
   private final Printer printer;
+  private final boolean allowObfuscation;
   private Set<DexType> types = Sets.newIdentityHashSet();
   private Map<DexType, Set<DexMethod>> methods = Maps.newIdentityHashMap();
   private Map<DexType, Set<DexField>> fields = Maps.newIdentityHashMap();
+  private Set<DexType> noObfuscationTypes = Sets.newIdentityHashSet();
   private final DexApplication application;
   private final AppInfoWithSubtyping appInfo;
   private int errors;
@@ -183,6 +185,10 @@ public class PrintUses {
       addType(field.holder);
       Set<DexField> typeFields = fields.get(field.holder);
       if (typeFields != null) {
+        assert baseField != null;
+        if (!allowObfuscation || baseField.accessFlags.isVisibilityDependingOnPackage()) {
+          noObfuscationTypes.add(field.holder);
+        }
         typeFields.add(field);
       }
     }
@@ -195,6 +201,11 @@ public class PrintUses {
       addType(method.proto.returnType);
       Set<DexMethod> typeMethods = methods.get(method.holder);
       if (typeMethods != null) {
+        DexEncodedMethod encodedMethod = appInfo.definitionFor(method);
+        assert encodedMethod != null;
+        if (!allowObfuscation || encodedMethod.accessFlags.isVisibilityDependingOnPackage()) {
+          noObfuscationTypes.add(method.holder);
+        }
         typeMethods.add(method);
       }
     }
@@ -264,21 +275,31 @@ public class PrintUses {
     }
     int argumentIndex = 0;
     boolean printKeep = false;
-    if (args[0].equals("--keeprules")) {
+    boolean allowObfuscation = false;
+    if (args[0].equals("--keeprules") || args[0].equals("--keeprules-allowobfuscation")) {
       printKeep = true;
       argumentIndex++;
+      allowObfuscation = args[0].equals("--keeprules-allowobfuscation");
+      // Make sure there is only one argument that mentions --keeprules
+      for (int i = 1; i < args.length; i++) {
+        if (args[i].startsWith("-keeprules")) {
+          System.out.println("Use either --keeprules or --keeprules-allowobfuscation, not both.");
+          System.out.println(USAGE.replace("\n", System.lineSeparator()));
+          return;
+        }
+      }
     }
     AndroidApp.Builder builder = AndroidApp.builder();
     Path rtJar = Paths.get(args[argumentIndex++]);
     builder.addLibraryFile(rtJar);
     Path r8Jar = Paths.get(args[argumentIndex++]);
     builder.addLibraryFile(r8Jar);
-    Path sampleJar = Paths.get(args[argumentIndex++]);
+    Path sampleJar = Paths.get(args[argumentIndex]);
     builder.addProgramFile(sampleJar);
     Set<String> descriptors = new HashSet<>(getDescriptors(r8Jar));
     descriptors.removeAll(getDescriptors(sampleJar));
     Printer printer = printKeep ? new KeepPrinter() : new DefaultPrinter();
-    PrintUses printUses = new PrintUses(descriptors, builder.build(), printer);
+    PrintUses printUses = new PrintUses(descriptors, builder.build(), printer, allowObfuscation);
     printUses.analyze();
     printUses.print();
     if (printUses.errors > 0) {
@@ -291,10 +312,12 @@ public class PrintUses {
     return new ArchiveClassFileProvider(path).getClassDescriptors();
   }
 
-  private PrintUses(Set<String> descriptors, AndroidApp inputApp, Printer printer)
+  private PrintUses(
+      Set<String> descriptors, AndroidApp inputApp, Printer printer, boolean allowObfuscation)
       throws Exception {
     this.descriptors = descriptors;
     this.printer = printer;
+    this.allowObfuscation = allowObfuscation;
     InternalOptions options = new InternalOptions();
     application =
         new ApplicationReader(inputApp, options, new Timing("PrintUses")).read().toDirect();
@@ -314,7 +337,7 @@ public class PrintUses {
   }
 
   private void print() {
-    errors = printer.print(application, types, methods, fields);
+    errors = printer.print(application, types, noObfuscationTypes, methods, fields);
   }
 
   private abstract static class Printer {
@@ -359,13 +382,14 @@ public class PrintUses {
       }
     }
 
-    abstract void printTypeHeader(DexClass dexClass);
+    abstract void printTypeHeader(DexClass dexClass, boolean allowObfuscation);
 
     abstract void printTypeFooter();
 
     int print(
         DexApplication application,
         Set<DexType> types,
+        Set<DexType> noObfuscationTypes,
         Map<DexType, Set<DexMethod>> methods,
         Map<DexType, Set<DexField>> fields) {
       int errors = 0;
@@ -378,7 +402,7 @@ public class PrintUses {
           errors++;
           continue;
         }
-        printTypeHeader(dexClass);
+        printTypeHeader(dexClass, !noObfuscationTypes.contains(type));
         List<DexEncodedMethod> methodDefinitions = new ArrayList<>(methods.size());
         for (DexMethod method : methods.get(type)) {
           DexEncodedMethod encodedMethod = dexClass.lookupMethod(method);
@@ -426,7 +450,7 @@ public class PrintUses {
     }
 
     @Override
-    void printTypeHeader(DexClass dexClass) {
+    void printTypeHeader(DexClass dexClass, boolean allowObfuscation) {
       appendLine(dexClass.type.toSourceString());
     }
 
@@ -447,13 +471,14 @@ public class PrintUses {
   private static class KeepPrinter extends Printer {
 
     @Override
-    public void printTypeHeader(DexClass dexClass) {
+    public void printTypeHeader(DexClass dexClass, boolean allowObfuscation) {
+      append(allowObfuscation ? "-keep,allowobfuscation" : "-keep");
       if (dexClass.isInterface()) {
-        append("-keep interface " + dexClass.type.toSourceString() + " {\n");
+        append(" interface " + dexClass.type.toSourceString() + " {\n");
       } else if (dexClass.accessFlags.isEnum()) {
-        append("-keep enum " + dexClass.type.toSourceString() + " {\n");
+        append(" enum " + dexClass.type.toSourceString() + " {\n");
       } else {
-        append("-keep class " + dexClass.type.toSourceString() + " {\n");
+        append(" class " + dexClass.type.toSourceString() + " {\n");
       }
     }
 
