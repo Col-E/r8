@@ -264,6 +264,31 @@ public class IRCode {
     return liveAtEntrySets;
   }
 
+  public boolean controlFlowMayDependOnEnvironment(AppView<?> appView) {
+    DexType context = method.method.holder;
+    for (BasicBlock block : blocks) {
+      if (block.hasCatchHandlers()) {
+        // Whether an instruction throws may generally depend on the environment.
+        return true;
+      }
+      if (block.exit().isIf()) {
+        If ifInstruction = block.exit().asIf();
+        if (ifInstruction.lhs().mayDependOnEnvironment()) {
+          return true;
+        }
+        if (!ifInstruction.isZeroTest() && ifInstruction.rhs().mayDependOnEnvironment()) {
+          return true;
+        }
+      } else if (block.exit().isSwitch()) {
+        Switch switchInstruction = block.exit().asSwitch();
+        if (switchInstruction.value().mayDependOnEnvironment()) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   public void splitCriticalEdges() {
     List<BasicBlock> newBlocks = new ArrayList<>();
     int nextBlockNumber = getHighestBlockNumber() + 1;

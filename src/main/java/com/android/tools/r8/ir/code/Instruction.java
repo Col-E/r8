@@ -1226,12 +1226,15 @@ public abstract class Instruction implements InstructionOrPhi {
     return null;
   }
 
-  public boolean isCreatingInstanceOrArray() {
-    return isNewInstance()
-        || isNewArrayEmpty()
+  public boolean isCreatingArray() {
+    return isNewArrayEmpty()
         || isNewArrayFilledData()
         || isInvokeNewArray()
         || isInvokeMultiNewArray();
+  }
+
+  public boolean isCreatingInstanceOrArray() {
+    return isNewInstance() || isCreatingArray();
   }
 
   /**

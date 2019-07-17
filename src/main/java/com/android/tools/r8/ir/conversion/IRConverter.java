@@ -19,7 +19,6 @@ import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -33,6 +32,8 @@ import com.android.tools.r8.ir.analysis.InitializedClassesOnNormalExitAnalysis;
 import com.android.tools.r8.ir.analysis.TypeChecker;
 import com.android.tools.r8.ir.analysis.constant.SparseConditionalConstantPropagation;
 import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteShrinker;
+import com.android.tools.r8.ir.analysis.sideeffect.ClassInitializerSideEffectAnalysis;
+import com.android.tools.r8.ir.analysis.sideeffect.ClassInitializerSideEffectAnalysis.ClassInitializerSideEffect;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.AlwaysMaterializingDefinition;
@@ -43,7 +44,6 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.NumericType;
-import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
 import com.android.tools.r8.ir.desugar.CovariantReturnTypeAnnotationTransformer;
@@ -1404,34 +1404,14 @@ public class IRConverter {
 
     if (method.isClassInitializer()) {
       // For class initializers, we also wish to compute if the class initializer has observable
-      // side effects. A class initializer has observable side effects if it writes a static field
-      // of another class, or if any non-static-put instructions may have side effects.
-      boolean hasIgnoredStaticPut = false;
-      boolean mayHaveObservableSideEffects = false;
-      for (Instruction instruction : code.instructions()) {
-        if (instruction.isStaticPut()) {
-          StaticPut staticPut = instruction.asStaticPut();
-          DexEncodedField field = appView.appInfo().resolveField(staticPut.getField());
-          if (field == null
-              || field.field.holder != method.method.holder
-              || staticPut.inValue().mayDependOnEnvironment()
-              || instruction.instructionInstanceCanThrow(appView, context).isThrowing()) {
-            mayHaveObservableSideEffects = true;
-            break;
-          }
-          hasIgnoredStaticPut = true;
-          continue;
-        }
-        if (instruction.instructionMayHaveSideEffects(appView, context)) {
-          mayHaveObservableSideEffects = true;
-          break;
-        }
-      }
-      if (!mayHaveObservableSideEffects) {
+      // side effects.
+      ClassInitializerSideEffect classInitializerSideEffect =
+          ClassInitializerSideEffectAnalysis.classInitializerCanBePostponed(appView, code);
+      if (classInitializerSideEffect.isNone()) {
+        feedback.methodMayNotHaveSideEffects(method);
         feedback.unsetClassInitializerMayHaveObservableSideEffects(method);
-        if (!hasIgnoredStaticPut) {
-          feedback.methodMayNotHaveSideEffects(method);
-        }
+      } else if (classInitializerSideEffect.canBePostponed()) {
+        feedback.unsetClassInitializerMayHaveObservableSideEffects(method);
       }
       return;
     }
