@@ -102,7 +102,8 @@ class MethodNameMinifier {
     }
 
     void allocateReservationStateAndReserve(DexType type, DexType frontier) {
-      MethodNameMinifier.this.allocateReservationStateAndReserve(type, frontier, null);
+      MethodNameMinifier.this.allocateReservationStateAndReserve(
+          type, frontier, rootReservationState);
     }
 
     DexType getFrontier(DexType type) {
@@ -124,11 +125,14 @@ class MethodNameMinifier {
   private final Map<DexType, DexType> frontiers = new IdentityHashMap<>();
 
   private final MethodNamingState<?> rootNamingState;
+  private final MethodReservationState<?> rootReservationState;
 
   MethodNameMinifier(AppView<AppInfoWithLiveness> appView, MemberNamingStrategy strategy) {
     this.appView = appView;
     this.strategy = strategy;
-    rootNamingState = MethodNamingState.createRoot(getKeyTransform(), strategy);
+    rootReservationState = MethodReservationState.createRoot(getKeyTransform());
+    rootNamingState =
+        MethodNamingState.createRoot(getKeyTransform(), strategy, rootReservationState);
     namingStates.put(null, rootNamingState);
   }
 
@@ -186,11 +190,10 @@ class MethodNameMinifier {
   private void assignNamesToClassesMethods(DexType type, MethodNamingState<?> parentNamingState) {
     MethodReservationState<?> reservationState =
         reservationStates.get(frontiers.getOrDefault(type, type));
-    assert reservationState != null;
-    MethodNamingState<?> namingState = namingStates.get(type);
-    if (namingState == null) {
-      namingState = parentNamingState.createChild(reservationState);
-    }
+    assert reservationState != null : "Could not find reservation state for " + type.toString();
+    MethodNamingState<?> namingState =
+        namingStates.computeIfAbsent(
+            type, ignore -> parentNamingState.createChild(reservationState));
     // The names for direct methods should not contribute to the naming of methods in sub-types:
     // class A {
     //   public int foo() { ... }   --> a
@@ -231,7 +234,9 @@ class MethodNameMinifier {
 
   private void reserveNamesInClasses() {
     reserveNamesInClasses(
-        appView.dexItemFactory().objectType, appView.dexItemFactory().objectType, null);
+        appView.dexItemFactory().objectType,
+        appView.dexItemFactory().objectType,
+        rootReservationState);
   }
 
   private void reserveNamesInClasses(
@@ -255,17 +260,14 @@ class MethodNameMinifier {
 
   private MethodReservationState<?> allocateReservationStateAndReserve(
       DexType type, DexType frontier, MethodReservationState<?> parent) {
+    assert parent != null;
+
     if (frontier != type) {
       frontiers.put(type, frontier);
     }
 
     MethodReservationState<?> state =
-        reservationStates.computeIfAbsent(
-            frontier,
-            ignore ->
-                parent == null
-                    ? MethodReservationState.createRoot(getKeyTransform())
-                    : parent.createChild());
+        reservationStates.computeIfAbsent(frontier, ignore -> parent.createChild());
 
     DexClass holder = appView.definitionFor(type);
     if (holder != null) {
@@ -295,7 +297,7 @@ class MethodNameMinifier {
         }
       }
       MethodReservationState<?> reservationState = reservationStates.get(type);
-      assert reservationState != null;
+      assert reservationState != null : "Could not find reservation state for " + type.toString();
       namingState = parentState.createChild(reservationState);
       namingStates.put(type, namingState);
     }

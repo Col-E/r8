@@ -31,8 +31,10 @@ class MethodNamingState<KeyType> extends MethodNamingStateBase<KeyType, Internal
   }
 
   static <KeyType> MethodNamingState<KeyType> createRoot(
-      Function<DexMethod, KeyType> keyTransform, MemberNamingStrategy namingStrategy) {
-    return new MethodNamingState<>(null, keyTransform, namingStrategy, null);
+      Function<DexMethod, KeyType> keyTransform,
+      MemberNamingStrategy namingStrategy,
+      MethodReservationState<?> reservationState) {
+    return new MethodNamingState<>(null, keyTransform, namingStrategy, reservationState);
   }
 
   MethodNamingState<KeyType> createChild(MethodReservationState<?> frontierReservationState) {
