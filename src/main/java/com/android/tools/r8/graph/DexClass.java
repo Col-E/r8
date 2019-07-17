@@ -785,7 +785,7 @@ public abstract class DexClass extends DexDefinition {
     if (clinit == null || clinit.getCode() == null) {
       return false;
     }
-    return clinit.getOptimizationInfo().classInitializerMayBePostponed();
+    return !clinit.getOptimizationInfo().classInitializerMayBePostponed();
   }
 
   public Iterable<DexType> allImmediateSupertypes() {
