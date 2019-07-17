@@ -61,6 +61,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.VerticalClassMerger.VerticallyMergedClasses;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -438,7 +439,7 @@ public class LensCodeRewriter {
     }
     if (hasChangedOutValueOrPhi) {
       // We have updated at least one type lattice element which can cause phi's to narrow.
-      Set<Value> affectedValues = new HashSet<>();
+      Set<Value> affectedValues = Sets.newIdentityHashSet();
       code.blocks.forEach(b -> affectedValues.addAll(b.getPhis()));
       new TypeAnalysis(appView).narrowing(affectedValues);
       assert code.verifyTypes(appView);

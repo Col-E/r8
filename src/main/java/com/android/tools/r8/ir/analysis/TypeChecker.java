@@ -7,12 +7,15 @@ package com.android.tools.r8.ir.analysis;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
+import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Throw;
 import com.android.tools.r8.ir.code.Value;
@@ -43,6 +46,11 @@ public class TypeChecker {
         if (!check(instruction.asInstancePut())) {
           return false;
         }
+      } else if (instruction.isReturn()
+          && !appView.options().testing.mayHaveIncorrectTypesForPhis) {
+        if (!check(instruction.asReturn(), code.method)) {
+          return false;
+        }
       } else if (instruction.isStaticPut()) {
         if (!check(instruction.asStaticPut())) {
           return false;
@@ -58,6 +66,28 @@ public class TypeChecker {
 
   public boolean check(InstancePut instruction) {
     return checkFieldPut(instruction);
+  }
+
+  public boolean check(Return instruction, DexEncodedMethod method) {
+    if (instruction.isReturnVoid()) {
+      return true;
+    }
+    TypeLatticeElement valueType = instruction.returnValue().getTypeLattice();
+    TypeLatticeElement returnType =
+        TypeLatticeElement.fromDexType(
+            method.method.proto.returnType, Nullability.maybeNull(), appView);
+    if (isSubtypeOf(valueType, returnType)) {
+      return true;
+    }
+
+    if (returnType.isClassType() && valueType.isReference()) {
+      // Interface types are treated like Object according to the JVM spec.
+      // https://docs.oracle.com/javase/specs/jvms/se9/html/jvms-4.html#jvms-4.10.1.2-100
+      DexClass clazz = appView.definitionFor(method.method.proto.returnType);
+      return clazz != null && clazz.isInterface();
+    }
+
+    return false;
   }
 
   public boolean check(StaticPut instruction) {
