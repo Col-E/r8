@@ -697,6 +697,7 @@ public final class InterfaceMethodRewriter {
         if (newType != null
             && clazz.type.rewritingPrefixIn(appView.options().rewritePrefix) == null) {
           // We do not rewrite if it is already going to be rewritten using the a rewritingPrefix.
+          addRewritePrefix(clazz.type, newType.toString());
           renameEmulatedInterfaces(clazz, newType);
         }
       }

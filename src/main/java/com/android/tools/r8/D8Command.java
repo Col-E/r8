@@ -356,9 +356,6 @@ public final class D8Command extends BaseCompilerCommand {
         // with default methods. Emulated interfaces have their
         // companion class moved to j$ and have a dispatch class.
         // Bazel instead analyzes the class hierarchy.
-        .put(
-            "java.util.concurrent.ConcurrentNavigableMap",
-            "j$.util.concurrent.ConcurrentNavigableMap")
         .put("java.util.List", "j$.util.List")
         .put("java.util.SortedSet", "j$.util.SortedSet")
         .put("java.util.Set", "j$.util.Set")
