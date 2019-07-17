@@ -767,7 +767,7 @@ public abstract class DexClass extends DexDefinition {
         return false;
       }
     }
-    if (hasClassInitializerWithObservableSideEffects()) {
+    if (hasClassInitializerThatCannotBePostponed()) {
       return true;
     }
     if (defaultValuesForStaticFieldsMayTriggerAllocation()) {
@@ -776,7 +776,7 @@ public abstract class DexClass extends DexDefinition {
     return initializationOfParentTypesMayHaveSideEffects(appView, ignore);
   }
 
-  private boolean hasClassInitializerWithObservableSideEffects() {
+  private boolean hasClassInitializerThatCannotBePostponed() {
     if (isLibraryClass()) {
       // We don't know for library classes in general but assume that java.lang.Object is safe.
       return superType != null;
@@ -785,7 +785,7 @@ public abstract class DexClass extends DexDefinition {
     if (clinit == null || clinit.getCode() == null) {
       return false;
     }
-    return clinit.getOptimizationInfo().classInitializerMayHaveObservableSideEffects();
+    return clinit.getOptimizationInfo().classInitializerMayBePostponed();
   }
 
   public Iterable<DexType> allImmediateSupertypes() {

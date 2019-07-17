@@ -149,9 +149,8 @@ public class OptimizationFeedbackDelayed implements OptimizationFeedback {
   }
 
   @Override
-  public synchronized void unsetClassInitializerMayHaveObservableSideEffects(
-      DexEncodedMethod method) {
-    getOptimizationInfoForUpdating(method).unsetClassInitializationMayHaveObservableSideEffects();
+  public synchronized void classInitializerMayBePostponed(DexEncodedMethod method) {
+    getOptimizationInfoForUpdating(method).markClassInitializerMayBePostponed();
   }
 
   public void updateVisibleOptimizationInfo() {

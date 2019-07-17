@@ -1409,9 +1409,9 @@ public class IRConverter {
           ClassInitializerSideEffectAnalysis.classInitializerCanBePostponed(appView, code);
       if (classInitializerSideEffect.isNone()) {
         feedback.methodMayNotHaveSideEffects(method);
-        feedback.unsetClassInitializerMayHaveObservableSideEffects(method);
+        feedback.classInitializerMayBePostponed(method);
       } else if (classInitializerSideEffect.canBePostponed()) {
-        feedback.unsetClassInitializerMayHaveObservableSideEffects(method);
+        feedback.classInitializerMayBePostponed(method);
       }
       return;
     }

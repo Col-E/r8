@@ -1120,7 +1120,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     private DefaultMethodOptimizationInfoImpl() {}
 
     @Override
-    public boolean classInitializerMayHaveObservableSideEffects() {
+    public boolean classInitializerMayBePostponed() {
       return true;
     }
 
@@ -1271,7 +1271,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
   public static class MethodOptimizationInfoImpl implements UpdatableMethodOptimizationInfo {
 
-    private boolean classInitializationMayHaveObservableSideEffects = true;
+    private boolean classInitializerMayBePostponed = false;
     private boolean hasBeenInlinedIntoSingleCallSite = false;
     private Set<DexType> initializedClassesOnNormalExit =
         DefaultMethodOptimizationInfoImpl.UNKNOWN_INITIALIZED_CLASSES_ON_NORMAL_EXIT;
@@ -1354,13 +1354,13 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     }
 
     @Override
-    public boolean classInitializerMayHaveObservableSideEffects() {
-      return classInitializationMayHaveObservableSideEffects;
+    public boolean classInitializerMayBePostponed() {
+      return classInitializerMayBePostponed;
     }
 
     @Override
-    public void unsetClassInitializationMayHaveObservableSideEffects() {
-      classInitializationMayHaveObservableSideEffects = false;
+    public void markClassInitializerMayBePostponed() {
+      classInitializerMayBePostponed = true;
     }
 
     @Override

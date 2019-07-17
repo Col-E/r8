@@ -60,5 +60,5 @@ public interface UpdatableMethodOptimizationInfo extends MethodOptimizationInfo 
 
   void markNeverInline();
 
-  void unsetClassInitializationMayHaveObservableSideEffects();
+  void markClassInitializerMayBePostponed();
 }

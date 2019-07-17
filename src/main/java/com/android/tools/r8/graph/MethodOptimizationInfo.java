@@ -19,7 +19,7 @@ public interface MethodOptimizationInfo {
     Default
   }
 
-  boolean classInitializerMayHaveObservableSideEffects();
+  boolean classInitializerMayBePostponed();
 
   TypeLatticeElement getDynamicReturnType();
 

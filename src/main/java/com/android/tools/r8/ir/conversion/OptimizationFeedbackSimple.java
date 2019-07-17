@@ -126,7 +126,7 @@ public class OptimizationFeedbackSimple implements OptimizationFeedback {
   }
 
   @Override
-  public void unsetClassInitializerMayHaveObservableSideEffects(DexEncodedMethod method) {
+  public void classInitializerMayBePostponed(DexEncodedMethod method) {
     // Ignored.
   }
 }
