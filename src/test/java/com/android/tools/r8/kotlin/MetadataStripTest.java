@@ -55,8 +55,6 @@ public class MetadataStripTest extends KotlinTestBase {
             .addKeepMainRule(mainClassName)
             .addKeepRules(KEEP_ANNOTATIONS)
             .addKeepRules("-keep class kotlin.Metadata")
-            // TODO(119626580): Remove when resolved.
-            .addOptionsModification(options -> options.enableClassStaticizer = true)
             .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), mainClassName);
     CodeInspector inspector = result.inspector();
