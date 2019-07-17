@@ -1121,7 +1121,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
     @Override
     public boolean classInitializerMayBePostponed() {
-      return true;
+      return false;
     }
 
     @Override
