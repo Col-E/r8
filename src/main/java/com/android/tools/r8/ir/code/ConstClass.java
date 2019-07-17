@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.code;
 
+import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isClassTypeVisibleFromContext;
+
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfConstClass;
@@ -112,9 +114,7 @@ public class ConstClass extends ConstInstruction {
       return AbstractError.specific(appView.dexItemFactory().noClassDefFoundErrorType);
     }
     // * IllegalAccessError (not visible from the access context).
-    ConstraintWithTarget classVisibility =
-        ConstraintWithTarget.deriveConstraint(context, baseType, clazz.accessFlags, appView);
-    if (classVisibility == ConstraintWithTarget.NEVER) {
+    if (!isClassTypeVisibleFromContext(appView, context, clazz)) {
       return AbstractError.specific(appView.dexItemFactory().illegalAccessErrorType);
     }
 

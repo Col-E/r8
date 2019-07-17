@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.optimize;
 import static com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query.DIRECTLY;
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
+import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isTypeVisibleFromContext;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
@@ -86,7 +87,6 @@ import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.OptimizationFeedback;
-import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.SwitchUtils.EnumSwitchInfo;
 import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
 import com.android.tools.r8.kotlin.Kotlin;
@@ -2061,7 +2061,7 @@ public class CodeRewriter {
     // If the cast type is not accessible in the current context, we should not remove the cast
     // in order to preserve IllegalAccessError. Note that JVM and ART behave differently: see
     // {@link com.android.tools.r8.ir.optimize.checkcast.IllegalAccessErrorTest}.
-    if (isTypeInaccessibleInCurrentContext(castType, code.method)) {
+    if (!isTypeVisibleFromContext(appView, code.method.method.holder, castType)) {
       return RemoveCheckCastInstructionIfTrivialResult.NO_REMOVALS;
     }
 
@@ -2113,28 +2113,12 @@ public class CodeRewriter {
     return RemoveCheckCastInstructionIfTrivialResult.NO_REMOVALS;
   }
 
-  private boolean isTypeInaccessibleInCurrentContext(DexType type, DexEncodedMethod context) {
-    DexType baseType = type.toBaseType(appView.dexItemFactory());
-    if (baseType.isPrimitiveType()) {
-      return false;
-    }
-    DexClass clazz = appView.definitionFor(baseType);
-    if (clazz == null) {
-      // Conservatively say yes.
-      return true;
-    }
-    ConstraintWithTarget classVisibility =
-        ConstraintWithTarget.deriveConstraint(
-            context.method.holder, baseType, clazz.accessFlags, appView);
-    return classVisibility == ConstraintWithTarget.NEVER;
-  }
-
   // Returns true if the given instance-of instruction was removed.
   private boolean removeInstanceOfInstructionIfTrivial(
       InstanceOf instanceOf, InstructionIterator it, IRCode code) {
     // If the instance-of type is not accessible in the current context, we should not remove the
     // instance-of instruction in order to preserve IllegalAccessError.
-    if (isTypeInaccessibleInCurrentContext(instanceOf.type(), code.method)) {
+    if (!isTypeVisibleFromContext(appView, code.method.method.holder, instanceOf.type())) {
       return false;
     }
 

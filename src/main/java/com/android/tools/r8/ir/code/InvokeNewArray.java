@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
-import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isTypeVisibleFromContext;
+import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isClassTypeVisibleFromContext;
 
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
@@ -169,7 +169,7 @@ public class InvokeNewArray extends Invoke {
     }
 
     // Check if the type is guaranteed to be accessible.
-    if (!isTypeVisibleFromContext(appView, context, clazz)) {
+    if (!isClassTypeVisibleFromContext(appView, context, clazz)) {
       return AbstractError.top();
     }
 

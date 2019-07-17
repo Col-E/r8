@@ -316,11 +316,21 @@ public class MemberRebindingAnalysis {
 
   public static boolean isTypeVisibleFromContext(
       AppView<?> appView, DexType context, DexType type) {
-    DexClass clazz = appView.definitionFor(type);
-    return clazz != null && isTypeVisibleFromContext(appView, context, clazz);
+    DexType baseType = type.toBaseType(appView.dexItemFactory());
+    if (baseType.isPrimitiveType()) {
+      return true;
+    }
+    return isClassTypeVisibleFromContext(appView, context, baseType);
   }
 
-  public static boolean isTypeVisibleFromContext(
+  public static boolean isClassTypeVisibleFromContext(
+      AppView<?> appView, DexType context, DexType type) {
+    assert type.isClassType();
+    DexClass clazz = appView.definitionFor(type);
+    return clazz != null && isClassTypeVisibleFromContext(appView, context, clazz);
+  }
+
+  public static boolean isClassTypeVisibleFromContext(
       AppView<?> appView, DexType context, DexClass clazz) {
     ConstraintWithTarget classVisibility =
         ConstraintWithTarget.deriveConstraint(context, clazz.type, clazz.accessFlags, appView);
@@ -329,7 +339,7 @@ public class MemberRebindingAnalysis {
 
   public static boolean isMemberVisibleFromOriginalContext(
       AppView<?> appView, DexType context, DexType holder, AccessFlags<?> memberAccessFlags) {
-    if (!isTypeVisibleFromContext(appView, context, holder)) {
+    if (!isClassTypeVisibleFromContext(appView, context, holder)) {
       return false;
     }
     ConstraintWithTarget memberVisibility =
