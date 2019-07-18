@@ -85,7 +85,7 @@ public class B135918413 extends TestBase {
   static class TestClass {
 
     public static void main(String[] args) {
-      if (Config.alwaysTrue) {
+      if (Config.alwaysTrueBeforeArray && Config.alwaysTrueAfterArray) {
         System.out.print("Hello");
       } else {
         dead();
@@ -107,8 +107,9 @@ public class B135918413 extends TestBase {
 
   static class Config {
 
-    public static boolean alwaysTrue = true;
+    public static boolean alwaysTrueBeforeArray = true;
     public static String[] alwaysEmpty = {};
     public static String[] alwaysNonEmpty = {"!"};
+    public static boolean alwaysTrueAfterArray = true;
   }
 }

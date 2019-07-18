@@ -17,6 +17,7 @@ import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.VerticalClassMerger.VerticallyMergedClasses;
 import com.android.tools.r8.utils.CfgPrinter;
+import com.android.tools.r8.utils.DequeUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -1025,7 +1026,7 @@ public class IRCode {
   public Set<BasicBlock> getBlocksReachableFromExclusive(BasicBlock source) {
     Set<BasicBlock> result = Sets.newIdentityHashSet();
     int color = reserveMarkingColor();
-    source.getSuccessors().forEach(successor -> markTransitiveSuccessors(successor, color));
+    markTransitiveSuccessors(new ArrayDeque<>(source.getSuccessors()), color);
     for (BasicBlock block : blocks) {
       if (block.isMarked(color)) {
         result.add(block);
@@ -1066,9 +1067,11 @@ public class IRCode {
 
   // Note: It is the responsibility of the caller to return the marking color.
   private void markTransitiveSuccessors(BasicBlock subject, int color) {
+    markTransitiveSuccessors(DequeUtils.newArrayDeque(subject), color);
+  }
+
+  private void markTransitiveSuccessors(Deque<BasicBlock> worklist, int color) {
     assert isMarkingColorInUse(color) && !anyBlocksMarkedWithColor(color);
-    Queue<BasicBlock> worklist = new ArrayDeque<>();
-    worklist.add(subject);
     while (!worklist.isEmpty()) {
       BasicBlock block = worklist.poll();
       if (block.isMarked(color)) {

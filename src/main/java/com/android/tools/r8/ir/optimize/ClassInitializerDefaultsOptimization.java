@@ -29,6 +29,7 @@ import com.android.tools.r8.graph.DexValue.DexValueLong;
 import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.DexValue.DexValueShort;
 import com.android.tools.r8.graph.DexValue.DexValueString;
+import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
@@ -327,7 +328,14 @@ public class ClassInitializerDefaultsOptimization {
         InstructionListIterator it = block.listIterator();
         while (it.hasNext()) {
           Instruction instruction = it.next();
-          if (instruction.isStaticGet()) {
+          if (instruction.isArrayPut()) {
+            // Array stores do not impact our ability to move constants into the class definition,
+            // as long as the instructions do not throw.
+            ArrayPut arrayPut = instruction.asArrayPut();
+            if (arrayPut.instructionInstanceCanThrow(appView, clazz.type).isThrowing()) {
+              return finalFieldPut.values();
+            }
+          } else if (instruction.isStaticGet()) {
             StaticGet get = instruction.asStaticGet();
             DexEncodedField field = appView.appInfo().resolveField(get.getField());
             if (field != null && field.field.holder == clazz.type) {
