@@ -82,8 +82,7 @@ public class RemoveDeadArray extends TestBase {
         .inspect(
             inspector -> {
               MethodSubject clinit = inspector.clazz(TestClassWithCatch.class).clinit();
-              assertThat(clinit, isPresent());
-              assertTrue(clinit.streamInstructions().noneMatch(InstructionSubject::isArrayPut));
+              assertThat(clinit, not(isPresent()));
             });
   }
 }

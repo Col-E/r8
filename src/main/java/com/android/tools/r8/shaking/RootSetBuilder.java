@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
-import static com.android.tools.r8.graph.GraphLense.rewriteMutableReferenceKeys;
 import static com.android.tools.r8.graph.GraphLense.rewriteReferenceKeys;
 
 import com.android.tools.r8.dex.Constants;
@@ -26,7 +25,6 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
-import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.utils.Consumer3;
 import com.android.tools.r8.utils.InternalOptions;
@@ -72,8 +70,6 @@ public class RootSetBuilder {
   private final Set<DexReference> noOptimization = Sets.newIdentityHashSet();
   private final Set<DexReference> noObfuscation = Sets.newIdentityHashSet();
   private final LinkedHashMap<DexReference, DexReference> reasonAsked = new LinkedHashMap<>();
-  private final Set<ProguardConfigurationRule> rulesThatUseExtendsOrImplementsWrong =
-      Sets.newIdentityHashSet();
   private final LinkedHashMap<DexReference, DexReference> checkDiscarded = new LinkedHashMap<>();
   private final Set<DexMethod> alwaysInline = Sets.newIdentityHashSet();
   private final Set<DexMethod> forceInline = Sets.newIdentityHashSet();
@@ -1016,6 +1012,10 @@ public class RootSetBuilder {
     if (context instanceof ProguardKeepRule) {
       if (item.isDexEncodedMethod()) {
         DexEncodedMethod encodedMethod = item.asDexEncodedMethod();
+        if (encodedMethod.isClassInitializer()) {
+          // Don't keep class initializers.
+          return;
+        }
         if (options.isGeneratingDex()
             && encodedMethod.method.isLambdaDeserializeMethod(appView.dexItemFactory())) {
           // Don't keep lambda deserialization methods.
@@ -1242,38 +1242,6 @@ public class RootSetBuilder {
       this.dependentKeepClassCompatRule = dependentKeepClassCompatRule;
       this.identifierNameStrings = Collections.unmodifiableSet(identifierNameStrings);
       this.ifRules = Collections.unmodifiableSet(ifRules);
-    }
-
-    private RootSet(RootSet previous, GraphLense lense) {
-      this.noShrinking = rewriteMutableReferenceKeys(previous.noShrinking, lense::lookupReference);
-      this.noOptimization = lense.rewriteMutableReferencesConservatively(previous.noOptimization);
-      this.noObfuscation = lense.rewriteMutableReferencesConservatively(previous.noObfuscation);
-      this.reasonAsked = lense.rewriteReferencesConservatively(previous.reasonAsked);
-      this.checkDiscarded = lense.rewriteReferencesConservatively(previous.checkDiscarded);
-      this.alwaysInline = lense.rewriteMethodsConservatively(previous.alwaysInline);
-      this.forceInline = lense.rewriteMethodsConservatively(previous.forceInline);
-      this.neverInline = lense.rewriteMutableMethodsConservatively(previous.neverInline);
-      this.keepConstantArguments =
-          lense.rewriteMutableMethodsConservatively(previous.keepConstantArguments);
-      this.keepUnusedArguments =
-          lense.rewriteMutableMethodsConservatively(previous.keepUnusedArguments);
-      this.neverClassInline = lense.rewriteMutableTypesConservatively(previous.neverClassInline);
-      this.neverMerge = lense.rewriteTypesConservatively(previous.neverMerge);
-      this.neverPropagateValue =
-          lense.rewriteMutableReferencesConservatively(previous.neverPropagateValue);
-      this.mayHaveSideEffects =
-          rewriteMutableReferenceKeys(previous.mayHaveSideEffects, lense::lookupReference);
-      this.noSideEffects =
-          rewriteMutableReferenceKeys(previous.noSideEffects, lense::lookupReference);
-      this.assumedValues =
-          rewriteMutableReferenceKeys(previous.assumedValues, lense::lookupReference);
-      this.dependentNoShrinking =
-          rewriteDependentReferenceKeys(previous.dependentNoShrinking, lense::lookupReference);
-      this.dependentKeepClassCompatRule =
-          rewriteReferenceKeys(previous.dependentKeepClassCompatRule, lense::lookupType);
-      this.identifierNameStrings =
-          lense.rewriteReferencesConservatively(previous.identifierNameStrings);
-      this.ifRules = Collections.unmodifiableSet(previous.ifRules);
     }
 
     public void checkAllRulesAreUsed(InternalOptions options) {
