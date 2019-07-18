@@ -103,7 +103,7 @@ public class ProguardMapMinifier {
     timing.end();
 
     timing.begin("MappingClasses");
-    appInfo.forAllExtendsSubtypes(
+    appInfo.forAllImmediateExtendsSubtypes(
         appView.dexItemFactory().objectType,
         subType -> {
           DexClass dexClass = appView.definitionFor(subType);
