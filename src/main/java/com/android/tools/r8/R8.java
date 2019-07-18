@@ -296,7 +296,7 @@ public class R8 {
         ProguardConfiguration.Builder compatibility =
             ProguardConfiguration.builder(application.dexItemFactory, options.reporter);
 
-        // Add synthesized -assumevalues from min api if relevant.
+        // Add synthesized -assumenosideeffects from min api if relevant.
         if (options.isGeneratingDex()) {
           if (!ProguardConfigurationUtils.hasExplicitAssumeValuesOrAssumeNoSideEffectsRuleForMinSdk(
               options.itemFactory, options.getProguardConfiguration().getRules())) {
