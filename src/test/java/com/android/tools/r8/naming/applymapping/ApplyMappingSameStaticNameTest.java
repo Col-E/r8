@@ -9,11 +9,16 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.StringUtils;
+import java.io.IOException;
+import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-/** This test reproduces b/131532229 on d8-1.4. */
+/**
+ * This test reproduces b/131532229 on d8-1.4. This test is basically just testing that we are not
+ * throwing up on the mapping file that has static methods and fields that go to different names.
+ */
 @RunWith(Parameterized.class)
 public class ApplyMappingSameStaticNameTest extends TestBase {
 
@@ -27,19 +32,19 @@ public class ApplyMappingSameStaticNameTest extends TestBase {
           "  int f1 -> d");
 
   public static class A {
-    public static boolean[] a() {
+    public static boolean[] jacocoInit() {
       return null;
     }
 
-    public static int c = 1;
+    public static int f1 = 1;
   }
 
   public static class B extends A {
-    public static boolean[] b() {
+    public static boolean[] jacocoInit() {
       return null;
     }
 
-    public static int d = 2;
+    public static int f1 = 2;
   }
 
   public static class C {}
@@ -56,10 +61,9 @@ public class ApplyMappingSameStaticNameTest extends TestBase {
   }
 
   @Test
-  public void test_b131532229() throws CompilationFailedException {
+  public void test_b131532229() throws CompilationFailedException, IOException, ExecutionException {
     testForR8(parameters.getBackend())
         .noTreeShaking()
-        .noMinification()
         .addLibraryClasses(A.class, B.class)
         .addLibraryFiles(runtimeJar(parameters))
         .addProgramClasses(C.class)

@@ -92,7 +92,7 @@ class FieldNameMinifier {
           if (reservedNames == null) {
             reservedNames = getOrCreateReservedFieldNamingState(clazz.type);
           }
-          reservedNames.markReservedDirectly(reservedName, field.field.type);
+          reservedNames.markReservedDirectly(reservedName, field.field.name, field.field.type);
           if (reservedName != field.field.name) {
             renaming.put(field.field, reservedName);
           }
@@ -189,7 +189,8 @@ class FieldNameMinifier {
         assert clazz.isInterface();
         for (DexEncodedField field : clazz.fields()) {
           DexString newName = renameField(field, state);
-          namesToBeReservedInImplementsSubclasses.markReservedDirectly(newName, field.field.type);
+          namesToBeReservedInImplementsSubclasses.markReservedDirectly(
+              newName, field.field.name, field.field.type);
         }
       }
     }

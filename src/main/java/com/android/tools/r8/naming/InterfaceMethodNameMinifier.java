@@ -467,7 +467,7 @@ class InterfaceMethodNameMinifier {
             .collect(Collectors.toList());
     timing.end();
 
-    assert verifykAllMethodsAreRepresentedIn(interfaceMethodGroups);
+    assert verifyAllMethodsAreRepresentedIn(interfaceMethodGroups);
     assert verifyAllCallSitesAreRepresentedIn(interfaceMethodGroups);
 
     timing.begin("Reserve in groups");
@@ -543,7 +543,8 @@ class InterfaceMethodNameMinifier {
 
   private void computeReservationFrontiersForAllImplementingClasses() {
     for (DexClass clazz : appView.appInfo().app().asDirect().allClasses()) {
-      if (!clazz.isLibraryClass()) {
+      // TODO(b/133091438): Extend the if check to test for !clazz.isLibrary().
+      if (!clazz.isInterface()) {
         for (DexType directlyImplemented : appView.appInfo().implementedInterfaces(clazz.type)) {
           InterfaceReservationState iState = interfaceStateMap.get(directlyImplemented);
           if (iState != null) {
@@ -575,7 +576,7 @@ class InterfaceMethodNameMinifier {
     return true;
   }
 
-  private boolean verifykAllMethodsAreRepresentedIn(List<Wrapper<DexMethod>> groups) {
+  private boolean verifyAllMethodsAreRepresentedIn(List<Wrapper<DexMethod>> groups) {
     Set<Wrapper<DexMethod>> unifiedMethods = new HashSet<>(groups);
     Set<DexMethod> unifiedSeen = new HashSet<>();
     Set<DexMethod> seen = new HashSet<>();

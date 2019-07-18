@@ -232,12 +232,12 @@ public class Minifier {
     public DexString next(
         DexField field,
         InternalNamingState internalState,
-        BiPredicate<DexString, DexType> isAvailable) {
+        BiPredicate<DexString, DexField> isAvailable) {
       assert checkAllowMemberRenaming(field.holder);
       DexString candidate;
       do {
         candidate = getNextName(internalState, false);
-      } while (!isAvailable.test(candidate, field.type));
+      } while (!isAvailable.test(candidate, field));
       return candidate;
     }
 

@@ -20,7 +20,7 @@ public class FieldNamingState extends FieldNamingStateBase<InternalState> implem
 
   private final ReservedFieldNamingState reservedNames;
   private final MemberNamingStrategy strategy;
-  private final BiPredicate<DexString, DexType> isAvailable;
+  private final BiPredicate<DexString, DexField> isAvailable;
 
   public FieldNamingState(AppView<?> appView, MemberNamingStrategy strategy) {
     this(appView, strategy, new ReservedFieldNamingState(appView));
@@ -39,7 +39,7 @@ public class FieldNamingState extends FieldNamingStateBase<InternalState> implem
     super(appView, internalStates);
     this.reservedNames = reservedNames;
     this.strategy = strategy;
-    this.isAvailable = (newName, fieldType) -> !reservedNames.isReserved(newName, fieldType);
+    this.isAvailable = (newName, field) -> !reservedNames.isReserved(newName, field.type);
   }
 
   public FieldNamingState createChildState(ReservedFieldNamingState reservedNames) {

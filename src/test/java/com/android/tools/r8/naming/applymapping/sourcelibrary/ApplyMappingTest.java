@@ -170,13 +170,12 @@ public class ApplyMappingTest extends TestBase {
     AndroidApp outputApp =
         runR8(
             ToolHelper.addProguardConfigurationConsumer(
-                getCommandForApps(out, flag, NAMING001_JAR).setDisableMinification(true),
-                pgConfig -> {
-                  pgConfig.disableShrinking();
-                  pgConfig.disableObfuscation();
-                  pgConfig.setPrintMapping(true);
-                  pgConfig.setPrintMappingFile(proguardMap);
-                })
+                    getCommandForApps(out, flag, NAMING001_JAR),
+                    pgConfig -> {
+                      pgConfig.disableShrinking();
+                      pgConfig.setPrintMapping(true);
+                      pgConfig.setPrintMappingFile(proguardMap);
+                    })
                 .build());
 
     // Make sure the given proguard map is indeed applied.

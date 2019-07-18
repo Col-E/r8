@@ -178,8 +178,7 @@ public class MemberResolutionAsmTest extends AsmTestBase {
             ImmutableList.of(
                 keepMainProguardConfiguration(main),
                 // Do not turn on -allowaccessmodification
-                "-applymapping " + mapPath,
-                "-dontobfuscate"), // to use the renamed names in test-mapping.txt
+                "-applymapping " + mapPath),
             Origin.unknown())
         .addLibraryFiles(runtimeJar(backend));
     AndroidApp processedApp =

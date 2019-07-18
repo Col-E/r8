@@ -29,8 +29,10 @@ import com.android.tools.r8.position.Position;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.Timing;
+import com.android.tools.r8.utils.TriFunction;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.google.common.collect.Maps;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.IdentityHashMap;
@@ -65,12 +67,12 @@ public class ProguardMapMinifier {
   private final BiMap<DexType, DexString> mappedNames = HashBiMap.create();
   // To keep the order deterministic, we sort the classes by their type, which is a unique key.
   private final Set<DexClass> mappedClasses = new TreeSet<>((a, b) -> a.type.slowCompareTo(b.type));
-  private final Map<DexReference, MemberNaming> memberNames = new IdentityHashMap<>();
-  private final Map<DexType, DexString> syntheticCompanionClasses = new IdentityHashMap<>();
+  private final Map<DexReference, MemberNaming> memberNames = Maps.newIdentityHashMap();
+  private final Map<DexType, DexString> syntheticCompanionClasses = Maps.newIdentityHashMap();
   private final Map<DexMethod, DexString> defaultInterfaceMethodImplementationNames =
-      new IdentityHashMap<>();
-  private final Map<DexMethod, DexString> additionalMethodNamings = new IdentityHashMap<>();
-  private final Map<DexField, DexString> additionalFieldNamings = new IdentityHashMap<>();
+      Maps.newIdentityHashMap();
+  private final Map<DexMethod, DexString> additionalMethodNamings = Maps.newIdentityHashMap();
+  private final Map<DexField, DexString> additionalFieldNamings = Maps.newIdentityHashMap();
 
   public ProguardMapMinifier(
       AppView<AppInfoWithLiveness> appView,
@@ -82,21 +84,38 @@ public class ProguardMapMinifier {
   }
 
   public NamingLens run(Timing timing) {
+
+    ArrayDeque<Map<DexReference, MemberNaming>> nonPrivateMembers = new ArrayDeque<>();
+
+    timing.begin("MappingInterfaces");
+    Set<DexClass> interfaces = new TreeSet<>((a, b) -> a.type.slowCompareTo(b.type));
+    AppInfoWithLiveness appInfo = appView.appInfo();
+    for (DexClass dexClass : appInfo.app().asDirect().allClasses()) {
+      if (dexClass.isInterface()) {
+        // Only visit top level interfaces because computeMapping will visit the hierarchy.
+        if (dexClass.interfaces.isEmpty()) {
+          computeMapping(dexClass.type, nonPrivateMembers);
+        }
+        interfaces.add(dexClass);
+      }
+    }
+    assert nonPrivateMembers.isEmpty();
+    timing.end();
+
     timing.begin("MappingClasses");
-    computeMapping(appView.dexItemFactory().objectType, new ArrayDeque<>());
+    appInfo.forAllExtendsSubtypes(
+        appView.dexItemFactory().objectType,
+        subType -> {
+          DexClass dexClass = appView.definitionFor(subType);
+          if (dexClass != null && !dexClass.isInterface()) {
+            computeMapping(subType, nonPrivateMembers);
+          }
+        });
+    assert nonPrivateMembers.isEmpty();
     timing.end();
 
     timing.begin("MappingDefaultInterfaceMethods");
     computeDefaultInterfaceMethodMethods();
-    timing.end();
-
-    timing.begin("ComputeInterfaces");
-    // We have to compute interfaces
-    Set<DexClass> interfaces = new TreeSet<>((a, b) -> a.type.slowCompareTo(b.type));
-    for (DexClass dexClass : appView.appInfo().computeReachableInterfaces(desugaredCallSites)) {
-      computeMapping(dexClass.type, new ArrayDeque<>());
-      interfaces.add(dexClass);
-    }
     timing.end();
 
     appView.options().reporter.failIfPendingErrors();
@@ -160,32 +179,8 @@ public class ProguardMapMinifier {
       DexString mappedName = appView.dexItemFactory().createString(classNaming.renamedName);
       checkAndAddMappedNames(type, mappedName, classNaming.position);
 
-      classNaming.forAllMethodNaming(
-          memberNaming -> {
-            Signature signature = memberNaming.getOriginalSignature();
-            assert !signature.isQualified();
-            DexMethod originalMethod =
-                ((MethodSignature) signature).toDexMethod(appView.dexItemFactory(), type);
-            assert !memberNames.containsKey(originalMethod);
-            memberNames.put(originalMethod, memberNaming);
-            DexEncodedMethod encodedMethod = appView.definitionFor(originalMethod);
-            if (encodedMethod == null || !encodedMethod.accessFlags.isPrivate()) {
-              nonPrivateMembers.put(originalMethod, memberNaming);
-            }
-          });
-      classNaming.forAllFieldNaming(
-          memberNaming -> {
-            Signature signature = memberNaming.getOriginalSignature();
-            assert !signature.isQualified();
-            DexField originalField =
-                ((FieldSignature) signature).toDexField(appView.dexItemFactory(), type);
-            assert !memberNames.containsKey(originalField);
-            memberNames.put(originalField, memberNaming);
-            DexEncodedField encodedField = appView.definitionFor(originalField);
-            if (encodedField == null || !encodedField.accessFlags.isPrivate()) {
-              nonPrivateMembers.put(originalField, memberNaming);
-            }
-          });
+      classNaming.forAllMemberNaming(
+          memberNaming -> addMemberNamings(type, memberNaming, nonPrivateMembers));
     } else {
       // We have to ensure we do not rename to an existing member, that cannot be renamed.
       if (dexClass == null || !appView.options().isMinifying()) {
@@ -204,23 +199,42 @@ public class ProguardMapMinifier {
               appView
                   .dexItemFactory()
                   .createMethod(type, parentReference.proto, parentReference.name);
-          addMemberNaming(
-              parentReferenceOnCurrentType, parentMembers.get(key), additionalMethodNamings);
+          if (!memberNames.containsKey(parentReferenceOnCurrentType)) {
+            addMemberNaming(
+                parentReferenceOnCurrentType, parentMembers.get(key), additionalMethodNamings);
+          } else {
+            DexEncodedMethod encodedMethod = appView.definitionFor(parentReferenceOnCurrentType);
+            assert encodedMethod == null
+                || encodedMethod.accessFlags.isStatic()
+                || memberNames
+                    .get(parentReferenceOnCurrentType)
+                    .getRenamedName()
+                    .equals(parentMembers.get(key).getRenamedName());
+          }
         } else {
           DexField parentReference = key.asDexField();
           DexField parentReferenceOnCurrentType =
               appView
                   .dexItemFactory()
                   .createField(type, parentReference.type, parentReference.name);
-          addMemberNaming(
-              parentReferenceOnCurrentType, parentMembers.get(key), additionalFieldNamings);
+          if (!memberNames.containsKey(parentReferenceOnCurrentType)) {
+            addMemberNaming(
+                parentReferenceOnCurrentType, parentMembers.get(key), additionalFieldNamings);
+          } else {
+            // Fields are allowed to be named differently in the hierarchy.
+          }
         }
       }
     }
 
-    // We do not visit interfaces, but their members can also be targeted on implementing abstract
-    // classes, so we have to build their names up as well.
-    addNonPrivateInterfaceMappings(dexClass, nonPrivateMembers);
+    if (dexClass != null) {
+      // If a class is marked as abstract it is allowed to not implement methods from interfaces
+      // thus the map will not contain a mapping. Also, if an interface is defined in the library
+      // and the class is in the program, we have to build up the correct names to reserve them.
+      if (dexClass.isProgramClass() || dexClass.isAbstract()) {
+        addNonPrivateInterfaceMappings(type, nonPrivateMembers, dexClass.interfaces.values);
+      }
+    }
 
     if (nonPrivateMembers.size() > 0) {
       buildUpNames.addLast(nonPrivateMembers);
@@ -236,41 +250,51 @@ public class ProguardMapMinifier {
   }
 
   private void addNonPrivateInterfaceMappings(
-      DexClass dexClass, Map<DexReference, MemberNaming> nonPrivateMembers) {
-    if (dexClass != null && dexClass.isAbstract()) {
-      for (DexType value : dexClass.interfaces.values) {
-        ClassNamingForMapApplier interfaceNaming = seedMapper.getClassNaming(value);
-        if (interfaceNaming == null) {
-          continue;
-        }
-        interfaceNaming.forAllMemberNaming(
-            memberNaming -> {
-              Signature signature = memberNaming.getOriginalSignature();
-              assert !signature.isQualified();
-              if (signature instanceof MethodSignature) {
-                DexMethod member =
-                    ((MethodSignature) signature)
-                        .toDexMethod(appView.dexItemFactory(), dexClass.type);
-                addMemberNaming(member, memberNaming, additionalMethodNamings);
-              } else {
-                DexField member =
-                    ((FieldSignature) signature)
-                        .toDexField(appView.dexItemFactory(), dexClass.type);
-                addMemberNaming(member, memberNaming, additionalFieldNamings);
-              }
-            });
+      DexType type, Map<DexReference, MemberNaming> nonPrivateMembers, DexType[] interfaces) {
+    for (DexType iface : interfaces) {
+      ClassNamingForMapApplier interfaceNaming = seedMapper.getClassNaming(iface);
+      if (interfaceNaming == null) {
+        continue;
+      }
+      interfaceNaming.forAllMemberNaming(
+          memberNaming -> addMemberNamings(type, memberNaming, nonPrivateMembers));
+      DexClass ifaceClass = appView.definitionFor(iface);
+      if (iface != null) {
+        addNonPrivateInterfaceMappings(type, nonPrivateMembers, ifaceClass.interfaces.values);
+      }
+    }
+  }
+
+  private void addMemberNamings(
+      DexType type, MemberNaming memberNaming, Map<DexReference, MemberNaming> nonPrivateMembers) {
+    Signature signature = memberNaming.getOriginalSignature();
+    assert !signature.isQualified();
+    if (signature instanceof MethodSignature) {
+      DexMethod originalMethod =
+          ((MethodSignature) signature).toDexMethod(appView.dexItemFactory(), type);
+      addMemberNaming(originalMethod, memberNaming, additionalMethodNamings);
+      DexEncodedMethod encodedMethod = appView.definitionFor(originalMethod);
+      if (encodedMethod == null || !encodedMethod.accessFlags.isPrivate()) {
+        nonPrivateMembers.put(originalMethod, memberNaming);
+      }
+    } else {
+      DexField originalField =
+          ((FieldSignature) signature).toDexField(appView.dexItemFactory(), type);
+      addMemberNaming(originalField, memberNaming, additionalFieldNamings);
+      DexEncodedField encodedField = appView.definitionFor(originalField);
+      if (encodedField == null || !encodedField.accessFlags.isPrivate()) {
+        nonPrivateMembers.put(originalField, memberNaming);
       }
     }
   }
 
   private <T extends DexReference> void addMemberNaming(
       T member, MemberNaming memberNaming, Map<T, DexString> additionalMemberNamings) {
-    // We might have overridden a naming in the direct class namings above.
-    if (!memberNames.containsKey(member)) {
-      DexString renamedName = appView.dexItemFactory().createString(memberNaming.getRenamedName());
-      memberNames.put(member, memberNaming);
-      additionalMemberNamings.put(member, renamedName);
-    }
+    assert !memberNames.containsKey(member)
+        || memberNames.get(member).getRenamedName().equals(memberNaming.getRenamedName());
+    DexString renamedName = appView.dexItemFactory().createString(memberNaming.getRenamedName());
+    memberNames.put(member, memberNaming);
+    additionalMemberNamings.put(member, renamedName);
   }
 
   private void checkAndAddMappedNames(DexType type, DexString mappedName, Position position) {
@@ -414,57 +438,59 @@ public class ProguardMapMinifier {
         DexMethod method,
         InternalNamingState internalState,
         BiPredicate<DexString, DexMethod> isAvailable) {
-      MemberNaming memberNaming = mappedNames.get(method);
-      if (memberNaming != null) {
-        DexString mappedName = factory.createString(mappedNames.get(method).getRenamedName());
-        if (isAvailable.test(mappedName, method)) {
-          return mappedName;
-        }
-        reportReservationError(method, mappedName);
-        return mappedName;
-      }
-      assert !mappedNames.containsKey(method);
-      return canMinify(method, method.holder)
-          ? super.next(method, internalState, isAvailable)
-          : method.name;
+      return nextName(method, method.name, method.holder, internalState, isAvailable, super::next);
     }
 
     @Override
     public DexString next(
         DexField field,
         InternalNamingState internalState,
-        BiPredicate<DexString, DexType> isAvailable) {
-      assert !mappedNames.containsKey(field);
-      return canMinify(field, field.holder)
-          ? super.next(field, internalState, isAvailable)
-          : field.name;
+        BiPredicate<DexString, DexField> isAvailable) {
+      return nextName(field, field.name, field.holder, internalState, isAvailable, super::next);
     }
 
-    private boolean canMinify(DexReference reference, DexType type) {
-      if (!appView.options().isMinifying()) {
-        return false;
+    private <T extends DexReference> DexString nextName(
+        T reference,
+        DexString name,
+        DexType holderType,
+        InternalNamingState internalState,
+        BiPredicate<DexString, T> isAvailable,
+        TriFunction<T, InternalNamingState, BiPredicate<DexString, T>, DexString> generateName) {
+      DexClass holder = appView.definitionFor(holderType);
+      assert holder != null;
+      DexString reservedName = getReservedName(reference, name, holder);
+      if (reservedName != null) {
+        if (!isAvailable.test(reservedName, reference)) {
+          reportReservationError(reference, reservedName);
+        }
+        return reservedName;
       }
-      DexClass dexClass = appView.definitionFor(type);
-      if (dexClass == null || dexClass.isNotProgramClass()) {
-        return false;
-      }
-      return appView.rootSet().mayBeMinified(reference, appView);
+      assert !mappedNames.containsKey(reference);
+      assert appView.rootSet().mayBeMinified(reference, appView);
+      return generateName.apply(reference, internalState, isAvailable);
     }
 
     @Override
     public DexString getReservedName(DexEncodedMethod method, DexClass holder) {
-      if (mappedNames.containsKey(method.method)) {
-        return factory.createString(mappedNames.get(method.method).getRenamedName());
-      }
-      return null;
+      return getReservedName(method.method, method.method.name, holder);
     }
 
     @Override
     public DexString getReservedName(DexEncodedField field, DexClass holder) {
-      if (mappedNames.containsKey(field.field)) {
-        return factory.createString(mappedNames.get(field.field).getRenamedName());
+      return getReservedName(field.field, field.field.name, holder);
+    }
+
+    private DexString getReservedName(DexReference reference, DexString name, DexClass holder) {
+      if (holder.isNotProgramClass() && mappedNames.containsKey(reference)) {
+        return factory.createString(mappedNames.get(reference).getRenamedName());
       }
-      return null;
+      if (holder.isProgramClass() && appView.rootSet().mayBeMinified(reference, appView)) {
+        if (mappedNames.containsKey(reference)) {
+          return factory.createString(mappedNames.get(reference).getRenamedName());
+        }
+        return null;
+      }
+      return name;
     }
 
     @Override

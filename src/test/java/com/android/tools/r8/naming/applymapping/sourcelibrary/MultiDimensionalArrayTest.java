@@ -85,8 +85,7 @@ public class MultiDimensionalArrayTest extends TestBase {
         ImmutableList.of(
             keepMainProguardConfiguration(MultiDimensionalArrayTestMain.class),
             "-applymapping " + mapPath,
-            "-allowaccessmodification", // so that 'X' is no longer package-private.
-            "-dontobfuscate"), // to use the renamed names in test-mapping.txt
+            "-allowaccessmodification"), // so that 'X' is no longer package-private.,
         Origin.unknown());
     AndroidApp processedApp = ToolHelper.runR8(builder.build());
 

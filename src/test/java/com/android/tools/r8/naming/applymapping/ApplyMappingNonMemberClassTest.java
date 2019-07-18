@@ -70,11 +70,14 @@ public class ApplyMappingNonMemberClassTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClassesAndInnerClasses(Enclosing.class)
         .addProgramClasses(C.class)
-        .addKeepMainRule(C.class)
+        .addKeepRules(
+            "-keepclassmembers class "
+                + C.class.getName()
+                + "{ public static void main(java.lang.String[]); }")
+        .addKeepClassRulesWithAllowObfuscation(C.class)
         .addKeepRules("-allowaccessmodification")
         .addKeepAttributes("InnerClasses", "EnclosingMethod")
         .enableInliningAnnotations()
-        .noMinification()
         .addApplyMapping(pgMap)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), "Main")
@@ -86,11 +89,14 @@ public class ApplyMappingNonMemberClassTest extends TestBase {
     testForR8Compat(parameters.getBackend())
         .addProgramClassesAndInnerClasses(Enclosing.class)
         .addProgramClasses(C.class)
-        .addKeepMainRule(C.class)
+        .addKeepRules(
+            "-keepclassmembers class "
+                + C.class.getName()
+                + "{ public static void main(java.lang.String[]); }")
+        .addKeepClassRulesWithAllowObfuscation(C.class)
         .addKeepRules("-allowaccessmodification")
         .addKeepAttributes("InnerClasses", "EnclosingMethod")
         .enableInliningAnnotations()
-        .noMinification()
         .addApplyMapping(pgMap)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), "Main")

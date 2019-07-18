@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.naming.applymapping;
 
-import static com.android.tools.r8.references.Reference.methodFromMethod;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -94,7 +93,8 @@ public class ApplyMappingMinificationTest extends TestBase {
         testForR8(parameters.getBackend())
             .addInnerClasses(ApplyMappingMinificationTest.class)
             .addKeepMainRule(C.class)
-            .addKeepMethodRules(methodFromMethod(A.class.getDeclaredMethod("methodC")))
+            .addKeepRules(
+                "-keepclassmembers class " + A.class.getTypeName() + " { void methodC(); }")
             .enableInliningAnnotations()
             .enableClassInliningAnnotations()
             .addApplyMapping(StringUtils.lines(pgMap))

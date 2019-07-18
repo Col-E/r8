@@ -50,8 +50,8 @@ public class ApplyMappingSignatureTest extends TestBase {
       throws IOException, CompilationFailedException, ExecutionException {
     testForR8(parameters.getBackend())
         .addProgramClasses(A.class, SignatureTest.class)
-        .addKeepAllClassesRule()
-        .addKeepMainRule(SignatureTest.class)
+        .addKeepClassRulesWithAllowObfuscation(A.class)
+        .addKeepClassAndMembersRules(SignatureTest.class)
         .addKeepAttributes("Signature", "InnerClasses", "EnclosingMethod")
         .addApplyMapping(A.class.getTypeName() + " -> foo:")
         .setMinApi(parameters.getRuntime())
