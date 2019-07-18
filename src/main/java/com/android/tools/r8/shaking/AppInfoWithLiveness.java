@@ -897,7 +897,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       // For kept types we do not know all subtypes, so abort.
       return DexEncodedMethod.SENTINEL;
     }
-    for (DexType subtype : allExtendsSubtypes(type)) {
+    for (DexType subtype : allImmediateExtendsSubtypes(type)) {
       DexClass clazz = definitionFor(subtype);
       DexEncodedMethod target = clazz.lookupVirtualMethod(method);
       if (target != null && !target.isPrivateMethod()) {

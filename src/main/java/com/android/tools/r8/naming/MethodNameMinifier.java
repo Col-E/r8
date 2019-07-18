@@ -214,7 +214,7 @@ class MethodNameMinifier {
         assignNameToMethod(method, namingState);
       }
     }
-    for (DexType subType : appView.appInfo().allExtendsSubtypes(type)) {
+    for (DexType subType : appView.appInfo().allImmediateExtendsSubtypes(type)) {
       assignNamesToClassesMethods(subType, namingState);
     }
   }
@@ -250,7 +250,7 @@ class MethodNameMinifier {
     // frontier forward. This will ensure all reservations are put on the library frontier for
     // classpath and program path.
     DexClass holder = appView.definitionFor(type);
-    for (DexType subtype : appView.appInfo().allExtendsSubtypes(type)) {
+    for (DexType subtype : appView.appInfo().allImmediateExtendsSubtypes(type)) {
       reserveNamesInClasses(
           subtype,
           holder == null || holder.isLibraryClass() ? subtype : libraryFrontier,

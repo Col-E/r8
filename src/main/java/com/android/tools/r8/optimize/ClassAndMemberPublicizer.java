@@ -100,7 +100,7 @@ public final class ClassAndMemberPublicizer {
       }
     }
 
-    appView.appInfo().forAllExtendsSubtypes(type, this::publicizeType);
+    appView.appInfo().forAllImmediateExtendsSubtypes(type, this::publicizeType);
   }
 
   private boolean publicizeMethod(DexClass holder, DexEncodedMethod encodedMethod) {

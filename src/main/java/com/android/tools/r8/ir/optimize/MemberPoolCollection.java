@@ -136,11 +136,11 @@ public abstract class MemberPoolCollection<T extends Descriptor> {
     Deque<DexClass> worklist = new ArrayDeque<>();
     appView
         .appInfo()
-        .forAllExtendsSubtypes(
+        .forAllImmediateExtendsSubtypes(
             subject.type, type -> addNonNull(worklist, appView.definitionFor(type)));
     appView
         .appInfo()
-        .forAllImplementsSubtypes(
+        .forAllImmediateImplementsSubtypes(
             subject.type, type -> addNonNull(worklist, appView.definitionFor(type)));
     while (!worklist.isEmpty()) {
       DexClass clazz = worklist.pop();
@@ -150,11 +150,11 @@ public abstract class MemberPoolCollection<T extends Descriptor> {
       if (subTypes.add(clazz)) {
         appView
             .appInfo()
-            .forAllExtendsSubtypes(
+            .forAllImmediateExtendsSubtypes(
                 clazz.type, type -> addNonNull(worklist, appView.definitionFor(type)));
         appView
             .appInfo()
-            .forAllImplementsSubtypes(
+            .forAllImmediateImplementsSubtypes(
                 clazz.type, type -> addNonNull(worklist, appView.definitionFor(type)));
       }
     }

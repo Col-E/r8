@@ -597,11 +597,11 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
    * from the dex-file encoding, where subinterfaces "implement" their super interfaces. However, it
    * is consistent with the source language.
    */
-  public void forAllExtendsSubtypes(DexType type, Consumer<DexType> f) {
-    allExtendsSubtypes(type).forEach(f);
+  public void forAllImmediateExtendsSubtypes(DexType type, Consumer<DexType> f) {
+    allImmediateExtendsSubtypes(type).forEach(f);
   }
 
-  public Iterable<DexType> allExtendsSubtypes(DexType type) {
+  public Iterable<DexType> allImmediateExtendsSubtypes(DexType type) {
     TypeInfo info = getTypeInfo(type);
     assert info.hierarchyLevel != UNKNOWN_LEVEL;
     if (info.hierarchyLevel == INTERFACE_LEVEL) {
@@ -621,11 +621,11 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
    * interfaces "implement" their super interfaces. Instead it takes the view of the source
    * language, where interfaces "extend" their superinterface.
    */
-  public void forAllImplementsSubtypes(DexType type, Consumer<DexType> f) {
-    allImplementsSubtypes(type).forEach(f);
+  public void forAllImmediateImplementsSubtypes(DexType type, Consumer<DexType> f) {
+    allImmediateImplementsSubtypes(type).forEach(f);
   }
 
-  public Iterable<DexType> allImplementsSubtypes(DexType type) {
+  public Iterable<DexType> allImmediateImplementsSubtypes(DexType type) {
     TypeInfo info = getTypeInfo(type);
     if (info.hierarchyLevel == INTERFACE_LEVEL) {
       return Iterables.filter(info.directSubtypes, subtype -> !getTypeInfo(subtype).isInterface());

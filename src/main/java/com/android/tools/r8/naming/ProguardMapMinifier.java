@@ -240,12 +240,12 @@ public class ProguardMapMinifier {
       buildUpNames.addLast(nonPrivateMembers);
       appView
           .appInfo()
-          .forAllExtendsSubtypes(type, subType -> computeMapping(subType, buildUpNames));
+          .forAllImmediateExtendsSubtypes(type, subType -> computeMapping(subType, buildUpNames));
       buildUpNames.removeLast();
     } else {
       appView
           .appInfo()
-          .forAllExtendsSubtypes(type, subType -> computeMapping(subType, buildUpNames));
+          .forAllImmediateExtendsSubtypes(type, subType -> computeMapping(subType, buildUpNames));
     }
   }
 

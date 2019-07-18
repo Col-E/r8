@@ -101,7 +101,8 @@ class FieldNameMinifier {
 
       // For interfaces, propagate reserved names to all implementing classes.
       if (clazz.isInterface() && reservedNames != null) {
-        for (DexType implementationType : appView.appInfo().allImplementsSubtypes(clazz.type)) {
+        for (DexType implementationType :
+            appView.appInfo().allImmediateImplementsSubtypes(clazz.type)) {
           DexClass implementation = appView.definitionFor(implementationType);
           if (implementation != null) {
             assert !implementation.isInterface();
@@ -197,7 +198,8 @@ class FieldNameMinifier {
 
     Set<DexType> visited = Sets.newIdentityHashSet();
     for (DexClass clazz : partition) {
-      for (DexType implementationType : appView.appInfo().allImplementsSubtypes(clazz.type)) {
+      for (DexType implementationType :
+          appView.appInfo().allImmediateImplementsSubtypes(clazz.type)) {
         if (!visited.add(implementationType)) {
           continue;
         }
@@ -316,7 +318,7 @@ class FieldNameMinifier {
           if (visited.add(clazz.superType)) {
             worklist.add(clazz.superType);
           }
-          for (DexType subclass : appView.appInfo().allExtendsSubtypes(type)) {
+          for (DexType subclass : appView.appInfo().allImmediateExtendsSubtypes(type)) {
             if (visited.add(subclass)) {
               worklist.add(subclass);
             }

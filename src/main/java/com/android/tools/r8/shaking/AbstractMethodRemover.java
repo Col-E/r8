@@ -43,7 +43,7 @@ public class AbstractMethodRemover {
         holder.setVirtualMethods(newVirtualMethods);
       }
     }
-    appInfo.forAllExtendsSubtypes(type, this::processClass);
+    appInfo.forAllImmediateExtendsSubtypes(type, this::processClass);
     scope = scope.getParent();
   }
 
