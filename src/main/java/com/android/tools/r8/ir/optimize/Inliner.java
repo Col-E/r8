@@ -875,7 +875,7 @@ public class Inliner {
               }
 
               context.copyMetadata(target);
-              code.copyMetadataFromInlinee(inlinee.code);
+              code.mergeMetadataFromInlinee(inlinee.code);
             }
           }
         } else if (current.isAssumeDynamicType()) {

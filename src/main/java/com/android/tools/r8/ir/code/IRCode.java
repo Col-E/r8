@@ -137,10 +137,10 @@ public class IRCode {
     allThrowingInstructionsHavePositions = computeAllThrowingInstructionsHavePositions();
   }
 
-  public void copyMetadataFromInlinee(IRCode inlinee) {
+  public void mergeMetadataFromInlinee(IRCode inlinee) {
     assert !inlinee.hasMonitorInstruction;
     this.hasConstString |= inlinee.hasConstString;
-    this.hasStringSwitch = inlinee.hasStringSwitch;
+    this.hasStringSwitch |= inlinee.hasStringSwitch;
   }
 
   public BasicBlock entryBlock() {
