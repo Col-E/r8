@@ -33,8 +33,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import regress_76025099.Main;
-import regress_76025099.impl.Impl;
 
 @RunWith(Parameterized.class)
 public class B76025099 extends TestBase {
@@ -81,9 +79,9 @@ public class B76025099 extends TestBase {
     tempRoot = temp.getRoot();
     jarPath = Paths.get(PRG);
     originalApp = readJar(jarPath);
-    mainName = Main.class.getCanonicalName();
+    mainName = "regress_76025099.Main";
     pgConfig = File.createTempFile("keep-rules", ".config", tempRoot).toPath();
-    String config = keepMainProguardConfiguration(Main.class);
+    String config = keepMainProguardConfiguration(mainName);
     config += System.lineSeparator() + "-dontobfuscate";
     Files.write(pgConfig, config.getBytes());
     map = File.createTempFile("proguard", ".map", tempRoot).toPath();
@@ -131,7 +129,7 @@ public class B76025099 extends TestBase {
   private void verifyFieldAccess(AndroidApp processedApp, ProcessResult jvmOutput)
       throws Exception {
     CodeInspector inspector = new CodeInspector(processedApp);
-    ClassSubject impl = inspector.clazz(Impl.class);
+    ClassSubject impl = inspector.clazz("regress_76025099.impl.Impl");
     assertThat(impl, isPresent());
     MethodSubject init = impl.init("java.lang.String");
     assertThat(init, isPresent());

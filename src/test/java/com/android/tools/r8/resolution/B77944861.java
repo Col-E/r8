@@ -28,7 +28,6 @@ import java.util.Iterator;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import regress_77944861.SomeView;
 
 @RunWith(Parameterized.class)
 public class B77944861 extends TestBase {
@@ -47,7 +46,7 @@ public class B77944861 extends TestBase {
     this.backend = backend;
   }
 
-  private AndroidApp runR8(AndroidApp app, Class main, Path out) throws Exception {
+  private AndroidApp runR8(AndroidApp app, String main, Path out) throws Exception {
     R8Command command =
         ToolHelper.addProguardConfigurationConsumer(
                 ToolHelper.prepareR8CommandBuilder(app),
@@ -71,10 +70,10 @@ public class B77944861 extends TestBase {
   public void test() throws Exception {
     Path out = temp.getRoot().toPath();
     Path jarPath = Paths.get(PRG);
-    String mainName = SomeView.class.getCanonicalName();
+    String mainName = "regress_77944861.SomeView";
     ProcessResult jvmOutput = ToolHelper.runJava(ImmutableList.of(jarPath), mainName);
     assertEquals(0, jvmOutput.exitCode);
-    AndroidApp processedApp = runR8(readJar(jarPath), SomeView.class, out);
+    AndroidApp processedApp = runR8(readJar(jarPath), mainName, out);
     CodeInspector codeInspector = new CodeInspector(processedApp);
     ClassSubject view = codeInspector.clazz("regress_77944861.SomeView");
     assertThat(view, isPresent());

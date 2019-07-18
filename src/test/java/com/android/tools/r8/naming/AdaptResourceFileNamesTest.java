@@ -87,7 +87,7 @@ public class AdaptResourceFileNamesTest extends ProguardCompatibilityTestBase {
     return String.join(
         System.lineSeparator(),
         adaptResourceFilenamesRule,
-        "-keep class " + adaptresourcefilenames.TestClass.class.getName() + " {",
+        "-keep class adaptresourcefilenames.TestClass {",
         "  public static void main(...);",
         "}");
   }
@@ -96,17 +96,16 @@ public class AdaptResourceFileNamesTest extends ProguardCompatibilityTestBase {
       boolean enableAdaptResourceFileNames, String adaptResourceFileNamesPathFilter) {
     return StringUtils.lines(
         getProguardConfig(enableAdaptResourceFileNames, adaptResourceFileNamesPathFilter),
-        "-neverinline class " + adaptresourcefilenames.A.class.getName() + " {",
+        "-neverinline class adaptresourcefilenames.A {",
         "  public void method();",
         "}",
-        "-neverinline class " + adaptresourcefilenames.B.Inner.class.getName() + " {",
+        "-neverinline class adaptresourcefilenames.B$Inner {",
         "  public void method();",
         "}",
-        "-assumemayhavesideeffects class " + adaptresourcefilenames.pkg.C.class.getName() + " {",
+        "-assumemayhavesideeffects class adaptresourcefilenames.pkg.C {",
         "  void <init>();",
         "}",
-        "-assumemayhavesideeffects class " + adaptresourcefilenames.pkg.innerpkg.D.class.getName(),
-        "{",
+        "-assumemayhavesideeffects class adaptresourcefilenames.pkg.innerpkg.D {",
         "  void <init>();",
         "}",
         "-neverclassinline class *");
