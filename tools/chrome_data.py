@@ -7,6 +7,8 @@ import utils
 
 BASE = os.path.join(utils.THIRD_PARTY, 'chrome')
 
+V180917_BASE = os.path.join(BASE, 'chrome_180917_ffbaa8')
+
 INPUT_JARS = [
     'out/Release/gen/chrome/android/monochrome_public_apk/monochrome_public_apk.jar',
     'out/Release/lib.java/third_party/bazel/desugar/Desugar-runtime.jar',
@@ -236,12 +238,12 @@ LIBRARIES = [
 ]
 
 VERSIONS = {
-  'default': {
+  '180917': {
     'deploy' : {
         'r8-flags': '--no-desugaring',
-        'inputs': [os.path.join(BASE, path) for path in INPUT_JARS],
-        'pgconf': [os.path.join(BASE, path) for path in PG_CONFS],
-        'libraries': [os.path.join(BASE, path) for path in LIBRARIES],
+        'inputs': [os.path.join(V180917_BASE, path) for path in INPUT_JARS],
+        'pgconf': [os.path.join(V180917_BASE, path) for path in PG_CONFS],
+        'libraries': [os.path.join(V180917_BASE, path) for path in LIBRARIES],
     },
   },
 }

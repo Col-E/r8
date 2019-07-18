@@ -39,8 +39,8 @@ third_party/classlib.tar.gz
 third_party/classlib
 third_party/cf_segments.tar.gz
 third_party/cf_segments
-third_party/chrome.tar.gz
-third_party/chrome
+third_party/chrome/chrome_180917_ffbaa8.tar.gz
+third_party/chrome/chrome_180917_ffbaa8
 third_party/dart-sdk
 third_party/dart-sdk.tar.gz
 third_party/desugar/desugar_*/

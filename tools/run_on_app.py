@@ -250,7 +250,7 @@ def run_with_options(options, args, extra_args=None):
     options.version = options.version or '12.22'
     data = youtube_data
   elif options.app == 'chrome':
-    options.version = options.version or 'default'
+    options.version = options.version or '180917'
     data = chrome_data
   elif options.app == 'gmail':
     options.version = options.version or '170604.16'
