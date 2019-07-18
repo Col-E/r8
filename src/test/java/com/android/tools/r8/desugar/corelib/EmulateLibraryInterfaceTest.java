@@ -70,7 +70,7 @@ public class EmulateLibraryInterfaceTest extends CoreLibDesugarTestBase {
             .filter(x -> x.getOriginalName().startsWith("java"))
             .collect(Collectors.toList());
     System.out.println(java);
-    int numDispatchClasses = requiresCoreLibDesugaring(parameters) ? 10 : 0;
+    int numDispatchClasses = requiresCoreLibDesugaring(parameters) ? 9 : 0;
     assertEquals(numDispatchClasses, dispatchClasses.size());
     for (FoundClassSubject clazz : dispatchClasses) {
       assertTrue(
