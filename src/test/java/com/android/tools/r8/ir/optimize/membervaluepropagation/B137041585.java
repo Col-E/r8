@@ -41,11 +41,13 @@ public class B137041585 extends TestBase {
             inspector -> {
               ClassSubject classSubject = inspector.clazz(R.font.class);
               assertThat(classSubject, isPresent());
-              assertThat(classSubject.uniqueFieldWithName("roboto_mono_bold"), not(isPresent()));
-              assertThat(classSubject.uniqueFieldWithName("roboto_mono_regular"), not(isPresent()));
+              // TODO(b/137041585): Should be absent.
+              assertThat(classSubject.uniqueFieldWithName("roboto_mono_bold"), isPresent());
+              // TODO(b/137041585): Should be absent.
+              assertThat(classSubject.uniqueFieldWithName("roboto_mono_regular"), isPresent());
             })
         .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutputLines("1", "2", "1", "2");
+        .assertSuccessWithOutputLines("1", "2", "1", "2", "1");
   }
 
   static class TestClass {
@@ -55,6 +57,7 @@ public class B137041585 extends TestBase {
       System.out.println(R.font.roboto_mono_regular);
       System.out.println(R.font.roboto_mono_weights[0]);
       System.out.println(R.font.roboto_mono_weights[1]);
+      System.out.println(R.font.roboto_mono_weights2[0]);
     }
   }
 
@@ -64,7 +67,10 @@ public class B137041585 extends TestBase {
 
       static int roboto_mono_bold = 1;
       static int roboto_mono_regular = 2;
+      // Uses NewArrayFilledData to populate.
       static int[] roboto_mono_weights = {roboto_mono_bold, roboto_mono_regular};
+      // Uses ArrayPut to populate.
+      static int[] roboto_mono_weights2 = {roboto_mono_bold};
     }
   }
 }
