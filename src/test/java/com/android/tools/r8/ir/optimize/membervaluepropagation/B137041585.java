@@ -1,0 +1,71 @@
+// Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
+// for details. All rights reserved. Use of this source code is governed by a
+// BSD-style license that can be found in the LICENSE file.
+
+package com.android.tools.r8.ir.optimize.membervaluepropagation;
+
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
+
+import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+
+@RunWith(Parameterized.class)
+public class B137041585 extends TestBase {
+
+  private final TestParameters parameters;
+
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimes().build();
+  }
+
+  public B137041585(TestParameters parameters) {
+    this.parameters = parameters;
+  }
+
+  @Test
+  public void test() throws Exception {
+    testForR8(parameters.getBackend())
+        .addInnerClasses(B137041585.class)
+        .addKeepMainRule(TestClass.class)
+        .setMinApi(parameters.getRuntime())
+        .compile()
+        .inspect(
+            inspector -> {
+              ClassSubject classSubject = inspector.clazz(R.font.class);
+              assertThat(classSubject, isPresent());
+              // TODO(b/137041585): Should be absent.
+              assertThat(classSubject.uniqueFieldWithName("roboto_mono_bold"), isPresent());
+              // TODO(b/137041585): Should be absent.
+              assertThat(classSubject.uniqueFieldWithName("roboto_mono_regular"), isPresent());
+            })
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutputLines("1", "2", "1", "2");
+  }
+
+  static class TestClass {
+
+    public static void main(String[] args) {
+      System.out.println(R.font.roboto_mono_bold);
+      System.out.println(R.font.roboto_mono_regular);
+      System.out.println(R.font.roboto_mono_weights[0]);
+      System.out.println(R.font.roboto_mono_weights[1]);
+    }
+  }
+
+  static class R {
+
+    static class font {
+
+      static int roboto_mono_bold = 1;
+      static int roboto_mono_regular = 2;
+      static int[] roboto_mono_weights = {roboto_mono_bold, roboto_mono_regular};
+    }
+  }
+}
