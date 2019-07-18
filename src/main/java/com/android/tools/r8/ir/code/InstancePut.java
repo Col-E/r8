@@ -54,6 +54,11 @@ public class InstancePut extends FieldInstruction {
   }
 
   @Override
+  public Value fieldValue() {
+    return value();
+  }
+
+  @Override
   public void buildDex(DexBuilder builder) {
     com.android.tools.r8.code.Instruction instruction;
     int valueRegister = builder.allocatedRegister(value(), getNumber());

@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize.membervaluepropagation;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestBase;
@@ -40,10 +41,8 @@ public class B137041585 extends TestBase {
             inspector -> {
               ClassSubject classSubject = inspector.clazz(R.font.class);
               assertThat(classSubject, isPresent());
-              // TODO(b/137041585): Should be absent.
-              assertThat(classSubject.uniqueFieldWithName("roboto_mono_bold"), isPresent());
-              // TODO(b/137041585): Should be absent.
-              assertThat(classSubject.uniqueFieldWithName("roboto_mono_regular"), isPresent());
+              assertThat(classSubject.uniqueFieldWithName("roboto_mono_bold"), not(isPresent()));
+              assertThat(classSubject.uniqueFieldWithName("roboto_mono_regular"), not(isPresent()));
             })
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("1", "2", "1", "2");

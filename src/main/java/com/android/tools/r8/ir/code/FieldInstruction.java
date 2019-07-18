@@ -28,6 +28,8 @@ public abstract class FieldInstruction extends Instruction {
     this.field = field;
   }
 
+  public abstract Value fieldValue();
+
   public FieldMemberType getType() {
     return FieldMemberType.fromDexType(field.type);
   }

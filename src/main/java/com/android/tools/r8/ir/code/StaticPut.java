@@ -47,6 +47,11 @@ public class StaticPut extends FieldInstruction {
   }
 
   @Override
+  public Value fieldValue() {
+    return inValue();
+  }
+
+  @Override
   public void buildDex(DexBuilder builder) {
     com.android.tools.r8.code.Instruction instruction;
     int src = builder.allocatedRegister(inValue(), getNumber());

@@ -58,6 +58,11 @@ public class InstanceGet extends FieldInstruction {
   }
 
   @Override
+  public Value fieldValue() {
+    return outValue;
+  }
+
+  @Override
   public boolean couldIntroduceAnAlias() {
     return outValue != null && outValue.getTypeLattice().isReference();
   }
