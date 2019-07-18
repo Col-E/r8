@@ -178,11 +178,8 @@ public class InitMatchingTest extends TestBase {
     } else {
       assertThat(init, not(isPresent()));
     }
+    // We only keep class initializers in debug mode.
     MethodSubject clinit = classSubject.clinit();
-    if (EFFECTIVE_CLINIT_NAMES.contains(initName)) {
-      assertThat(clinit, isPresent());
-    } else {
-      assertThat(clinit, not(isPresent()));
-    }
+    assertThat(clinit, not(isPresent()));
   }
 }

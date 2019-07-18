@@ -1012,7 +1012,7 @@ public class RootSetBuilder {
     if (context instanceof ProguardKeepRule) {
       if (item.isDexEncodedMethod()) {
         DexEncodedMethod encodedMethod = item.asDexEncodedMethod();
-        if (encodedMethod.isClassInitializer()) {
+        if (encodedMethod.isClassInitializer() && !options.debug) {
           // Don't keep class initializers.
           return;
         }
