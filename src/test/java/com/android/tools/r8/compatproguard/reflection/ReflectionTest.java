@@ -48,7 +48,7 @@ class MainTest {
     Method m;
     m = A.class.getMethod("method0");
     m.invoke(a);
-    m = A.class.getMethod("method0", null);
+    m = A.class.getMethod("method0", (Class<?>) null);
     m.invoke(a);
     m = A.class.getMethod("method0", (Class<?>[]) null);
     m.invoke(a);
