@@ -165,8 +165,11 @@ public class Minifier {
     }
 
     @Override
-    public boolean noObfuscation(DexType type) {
-      return appView.rootSet().mayNotBeMinified(type, appView);
+    public DexString reservedDescriptor(DexType type) {
+      if (appView.rootSet().mayNotBeMinified(type, appView)) {
+        return type.descriptor;
+      }
+      return null;
     }
 
     @Override

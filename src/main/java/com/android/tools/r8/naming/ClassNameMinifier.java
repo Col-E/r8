@@ -99,9 +99,10 @@ class ClassNameMinifier {
     // Collect names we have to keep.
     timing.begin("reserve");
     for (DexClass clazz : classes) {
-      if (classNamingStrategy.noObfuscation(clazz.type)) {
+      DexString descriptor = classNamingStrategy.reservedDescriptor(clazz.type);
+      if (descriptor != null) {
         assert !renaming.containsKey(clazz.type);
-        registerClassAsUsed(clazz.type);
+        registerClassAsUsed(clazz.type, descriptor);
       }
     }
     timing.end();
@@ -170,30 +171,29 @@ class ClassNameMinifier {
   }
 
   private void renameDanglingType(DexType type) {
-    if (appView.appInfo().wasPruned(type)
-        && !renaming.containsKey(type)
-        && !classNamingStrategy.noObfuscation(type)) {
+    if (appView.appInfo().wasPruned(type) && !renaming.containsKey(type)) {
       // We have a type that is defined in the program source but is only used in a proto or
       // return type. As we don't need the class, we can rename it to anything as long as it is
       // unique.
       assert appView.definitionFor(type) == null;
-      renaming.put(type, topLevelState.nextTypeName(type));
+      DexString descriptor = classNamingStrategy.reservedDescriptor(type);
+      renaming.put(type, descriptor != null ? descriptor : topLevelState.nextTypeName(type));
     }
   }
 
-  private void registerClassAsUsed(DexType type) {
-    renaming.put(type, type.descriptor);
+  private void registerClassAsUsed(DexType type, DexString descriptor) {
+    renaming.put(type, descriptor);
     registerPackagePrefixesAsUsed(
-        getParentPackagePrefix(getClassBinaryNameFromDescriptor(type.descriptor.toSourceString())));
-    usedTypeNames.add(type.descriptor);
+        getParentPackagePrefix(getClassBinaryNameFromDescriptor(descriptor.toSourceString())));
+    usedTypeNames.add(descriptor);
     if (keepInnerClassStructure) {
       DexType outerClass = getOutClassForType(type);
       if (outerClass != null) {
         if (!renaming.containsKey(outerClass)
-            && !classNamingStrategy.noObfuscation(outerClass)) {
+            && classNamingStrategy.reservedDescriptor(outerClass) == null) {
           // The outer class was not previously kept and will not be kept.
           // We have to force keep the outer class now.
-          registerClassAsUsed(outerClass);
+          registerClassAsUsed(outerClass, outerClass.descriptor);
         }
       }
     }
@@ -411,7 +411,16 @@ class ClassNameMinifier {
     DexString next(
         DexType type, char[] packagePrefix, InternalNamingState state, Predicate<DexString> isUsed);
 
-    boolean noObfuscation(DexType type);
+    /**
+     * Returns the reserved descriptor for a type. If the type is not allowed to be obfuscated
+     * (minified) it will return the original type descriptor. If applymapping is used, it will try
+     * to return the applied name such that it can be reserved. Otherwise, if there are no
+     * reservations, it will return null.
+     *
+     * @param type The type to find a reserved descriptor for
+     * @return The reserved descriptor
+     */
+    DexString reservedDescriptor(DexType type);
 
     boolean isRenamedByApplyMapping(DexType type);
   }

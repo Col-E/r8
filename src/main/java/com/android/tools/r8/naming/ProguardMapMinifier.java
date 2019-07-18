@@ -32,7 +32,6 @@ import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Deque;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -64,7 +63,8 @@ public class ProguardMapMinifier {
   private final SeedMapper seedMapper;
   private final Set<DexCallSite> desugaredCallSites;
   private final BiMap<DexType, DexString> mappedNames = HashBiMap.create();
-  private final List<DexClass> mappedClasses = new ArrayList<>();
+  // To keep the order deterministic, we sort the classes by their type, which is a unique key.
+  private final Set<DexClass> mappedClasses = new TreeSet<>((a, b) -> a.type.slowCompareTo(b.type));
   private final Map<DexReference, MemberNaming> memberNames = new IdentityHashMap<>();
   private final Map<DexType, DexString> syntheticCompanionClasses = new IdentityHashMap<>();
   private final Map<DexMethod, DexString> defaultInterfaceMethodImplementationNames =
@@ -100,9 +100,6 @@ public class ProguardMapMinifier {
     timing.end();
 
     appView.options().reporter.failIfPendingErrors();
-
-    // To keep the order deterministic, we sort the classes by their type, which is a unique key.
-    mappedClasses.sort((a, b) -> a.type.slowCompareTo(b.type));
 
     timing.begin("MinifyClasses");
     ClassNameMinifier classNameMinifier =
@@ -307,7 +304,6 @@ public class ProguardMapMinifier {
             classNaming,
             syntheticCompanionClasses,
             defaultInterfaceMethodImplementationNames);
-        continue;
       }
     }
   }
@@ -353,12 +349,10 @@ public class ProguardMapMinifier {
   static class ApplyMappingClassNamingStrategy extends MinificationClassNamingStrategy {
 
     private final Map<DexType, DexString> mappings;
-    private final boolean isMinifying;
 
     ApplyMappingClassNamingStrategy(AppView<?> appView, Map<DexType, DexString> mappings) {
       super(appView);
       this.mappings = mappings;
-      this.isMinifying = appView.options().isMinifying();
     }
 
     @Override
@@ -367,24 +361,32 @@ public class ProguardMapMinifier {
         char[] packagePrefix,
         InternalNamingState state,
         Predicate<DexString> isUsed) {
-      DexString nextName = mappings.get(type);
-      if (nextName != null) {
-        return nextName;
-      }
-      assert !(isMinifying && noObfuscation(type));
-      return isMinifying ? super.next(type, packagePrefix, state, isUsed) : type.descriptor;
+      assert !mappings.containsKey(type);
+      assert appView.rootSet().mayBeMinified(type, appView);
+      return super.next(type, packagePrefix, state, isUsed);
     }
 
     @Override
-    public boolean noObfuscation(DexType type) {
-      if (mappings.containsKey(type)) {
-        return false;
+    public DexString reservedDescriptor(DexType type) {
+      // TODO(b/136694827): Check for already used and report an error. It seems like this can be
+      //  done already in the reservation step for classes since there is only one 'path', unlike
+      //  members that can be reserved differently in the hierarchy.
+      DexClass clazz = appView.definitionFor(type);
+      assert clazz != null;
+      if (clazz.isNotProgramClass() && mappings.containsKey(type)) {
+        return mappings.get(type);
       }
-      DexClass dexClass = appView.definitionFor(type);
-      if (dexClass == null || dexClass.isNotProgramClass()) {
-        return true;
+      if (clazz.isProgramClass() && appView.rootSet().mayBeMinified(type, appView)) {
+        if (mappings.containsKey(type)) {
+          return mappings.get(type);
+        }
+        return null;
+      } else if (clazz.isProgramClass()
+          && !appView.rootSet().mayBeMinified(type, appView)
+          && mappings.containsKey(type)) {
+        // TODO(b/136694827): Report a warning here since the user may find this not intuitive.
       }
-      return super.noObfuscation(type);
+      return type.descriptor;
     }
 
     @Override
