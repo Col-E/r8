@@ -867,10 +867,20 @@ public final class InterfaceMethodRewriter {
 
   public void warnMissingInterface(
       DexClass classToDesugar, DexClass implementing, DexType missing) {
-    options.warningMissingInterfaceForDesugar(classToDesugar, implementing, missing);
+    // We use contains() on non hashed collection, but we know it's a 8 cases collection.
+    // j$ interfaces won't be missing, they are in the desugared library.
+    if (!emulatedInterfaces.values().contains(missing)) {
+      options.warningMissingInterfaceForDesugar(classToDesugar, implementing, missing);
+    }
   }
 
   private void warnMissingType(DexMethod referencedFrom, DexType missing) {
+    // Companion/Emulated interface classes for desugared library won't be missing,
+    // they are in the desugared library.
+    if (prefixRewritingInterfaces.containsKey(missing.toString())
+        || missing.rewritingPrefixIn(appView.options().rewritePrefix) != null) {
+      return;
+    }
     DexMethod method = appView.graphLense().getOriginalMethodSignature(referencedFrom);
     Origin origin = getMethodOrigin(method);
     MethodPosition position = new MethodPosition(method);
