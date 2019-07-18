@@ -141,8 +141,13 @@ public class ArrayPut extends Instruction implements ImpreciseMemberTypeInstruct
 
   @Override
   public boolean instructionMayHaveSideEffects(AppView<?> appView, DexType context) {
-    // ArrayPut has side-effects on the input array, unless the index is in bounds and the array is
-    // never used.
+    // In debug mode, ArrayPut has a side-effect on the locals.
+    if (appView.options().debug) {
+      return true;
+    }
+
+    // In release mode, ArrayPut has side-effects on the input array, unless the index is in bounds
+    // and the array is never used.
     Value array = array().getAliasedValue();
     if (array.isPhi() || !array.definition.isNewArrayEmpty()) {
       return true;
