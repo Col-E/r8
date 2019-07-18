@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.DominatorTree;
 import com.android.tools.r8.ir.code.FieldInstruction;
@@ -20,11 +21,13 @@ import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Eliminate redundant field loads.
@@ -39,6 +42,9 @@ public class RedundantFieldLoadElimination {
   private final DexEncodedMethod method;
   private final IRCode code;
   private final DominatorTree dominatorTree;
+
+  // Values that may require type propagation.
+  private final Set<Value> affectedValues = Sets.newIdentityHashSet();
 
   // Maps keeping track of fields that have an already loaded value at basic block entry.
   private final Map<BasicBlock, Map<FieldAndObject, FieldInstruction>> activeInstanceFieldsAtEntry =
@@ -163,6 +169,9 @@ public class RedundantFieldLoadElimination {
       }
       propagateActiveFieldsFrom(block);
     }
+    if (!affectedValues.isEmpty()) {
+      new TypeAnalysis(appView).narrowing(affectedValues);
+    }
     assert code.isConsistentSSA();
   }
 
@@ -238,7 +247,8 @@ public class RedundantFieldLoadElimination {
 
   private void eliminateRedundantRead(
       InstructionListIterator it, FieldInstruction redundant, FieldInstruction active) {
-    redundant.outValue().replaceUsers(active.value());
+    affectedValues.addAll(redundant.value().affectedValues());
+    redundant.value().replaceUsers(active.value());
     it.removeOrReplaceByDebugLocalRead();
     active.value().uniquePhiUsers().forEach(Phi::removeTrivialPhi);
   }

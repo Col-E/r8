@@ -222,7 +222,7 @@ public class MemberValuePropagation {
       setValueRangeFromProguardRule(lookup.rule, current.outValue());
       return false;
     }
-    affectedValues.add(replacement.outValue());
+    affectedValues.addAll(current.outValue().affectedValues());
     if (lookup.type == RuleType.ASSUME_NO_SIDE_EFFECTS) {
       iterator.replaceCurrentInstruction(replacement);
     } else {
@@ -309,7 +309,7 @@ public class MemberValuePropagation {
                 code, constant, current.outValue().getTypeLattice(), current.getLocalInfo());
       }
 
-      affectedValues.add(replacement.outValue());
+      affectedValues.addAll(current.outValue().affectedValues());
       current.outValue().replaceUsers(replacement.outValue());
       current.setOutValue(null);
       replacement.setPosition(current.getPosition());
@@ -366,7 +366,7 @@ public class MemberValuePropagation {
     if (!appView.appInfo().isPinned(target.field)) {
       ConstInstruction replacement = target.valueAsConstInstruction(code, current.dest(), appView);
       if (replacement != null) {
-        affectedValues.add(replacement.outValue());
+        affectedValues.addAll(current.outValue().affectedValues());
         iterator.replaceCurrentInstruction(replacement);
         if (replacement.isDexItemBasedConstString()) {
           code.method.getMutableOptimizationInfo().markUseIdentifierNameString();
