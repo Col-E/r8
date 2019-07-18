@@ -363,6 +363,7 @@ public class DexType extends DexReference implements PresortedComparable<DexType
   }
 
   public Pair<String, String> rewritingPrefixIn(Map<String, String> map) {
+    // TODO(b/134732760): Rewrite this to use descriptors and not Strings.
     String javaClassName = this.toString();
     for (String rewritePrefix : map.keySet()) {
       if (javaClassName.startsWith(rewritePrefix)) {

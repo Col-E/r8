@@ -7,7 +7,6 @@ package com.android.tools.r8.ir.desugar;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppInfo;
-import com.android.tools.r8.graph.AppInfo.ResolutionResult;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexAnnotationSet;
@@ -21,6 +20,7 @@ import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
@@ -32,7 +32,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeDirect;
-import com.android.tools.r8.ir.code.InvokeInterface;
+import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeSuper;
 import com.android.tools.r8.ir.conversion.IRConverter;
@@ -103,6 +103,10 @@ public final class InterfaceMethodRewriter {
   private final List<Pair<DexType, DexString>> dontRewriteCoreInvocations = new ArrayList<>();
   private final Map<String, String> prefixRewritingInterfaces = new IdentityHashMap<>();
   private final Map<DexString, Map<DexType, DexType>> retargetCoreMember = new IdentityHashMap<>();
+  // The emulatedMethod set is there to avoid doing the emulated look-up too often.
+  private final Set<DexProto> emulatedMethods = Sets.newIdentityHashSet();
+  private ConcurrentHashMap<DexMethod, DexType> nearestEmulatedInterfaceCache =
+      new ConcurrentHashMap<>();
 
   // All forwarding methods generated during desugaring. We don't synchronize access
   // to this collection since it is only filled in ClassProcessor running synchronously.
@@ -139,6 +143,10 @@ public final class InterfaceMethodRewriter {
     this.converter = converter;
     this.options = appView.options();
     this.factory = appView.dexItemFactory();
+    initializeEmulatedInterfaceVariables();
+  }
+
+  private void initializeEmulatedInterfaceVariables() {
     for (String interfaceName : options.emulateLibraryInterface.keySet()) {
       DexType interfaceType =
           factory.createType(DescriptorUtils.javaTypeToDescriptor(interfaceName));
@@ -148,6 +156,13 @@ public final class InterfaceMethodRewriter {
                   options.emulateLibraryInterface.get(interfaceName)));
       emulatedInterfaces.put(interfaceType, rewrittenType);
       addRewritePrefix(interfaceType, rewrittenType.toSourceString());
+      DexClass emulatedInterfaceClass = appView.definitionFor(interfaceType);
+      if (emulatedInterfaceClass != null) {
+        for (DexEncodedMethod encodedMethod :
+            emulatedInterfaceClass.methods(DexEncodedMethod::isDefaultMethod)) {
+          emulatedMethods.add(encodedMethod.method.proto);
+        }
+      }
     }
     if (appView.options().coreLibraryCompilation) {
       options.populateRetargetCoreLibMember(factory, retargetCoreMember);
@@ -218,7 +233,7 @@ public final class InterfaceMethodRewriter {
             // behavior.
             warnMissingType(encodedMethod.method, method.holder);
           } else if (clazz.isInterface()) {
-            if (clazz.isLibraryClass()) {
+            if (clazz.isLibraryClass() && !isInDesugaredLibrary(clazz)) {
               // NOTE: we intentionally don't desugar static calls into static interface
               // methods coming from android.jar since it is only possible in case v24+
               // version of android.jar is provided.
@@ -251,13 +266,34 @@ public final class InterfaceMethodRewriter {
 
         if (instruction.isInvokeSuper()) {
           InvokeSuper invokeSuper = instruction.asInvokeSuper();
-          DexMethod method = invokeSuper.getInvokedMethod();
-          DexClass clazz = appInfo.definitionFor(method.holder);
+          DexMethod invokedMethod = invokeSuper.getInvokedMethod();
+          DexClass clazz = appInfo.definitionFor(invokedMethod.holder);
           if (clazz == null) {
             // NOTE: leave unchanged those calls to undefined targets. This may lead to runtime
             // exception but we can not report it as error since it can also be the intended
             // behavior.
-            warnMissingType(encodedMethod.method, method.holder);
+            warnMissingType(encodedMethod.method, invokedMethod.holder);
+          } else if (clazz.isInterface() && clazz.isLibraryClass() && isInDesugaredLibrary(clazz)) {
+            // Here we try to avoid doing the expensive look-up on all invokes.
+            boolean rewritten = false;
+            if (emulatedMethods.contains(invokedMethod.proto)) {
+              DexType dexType = nearestEmulatedInterfaceImplementingWithCache(invokedMethod);
+              if (dexType != null) {
+                rewriteCurrentInstructionToEmulatedInterfaceCall(
+                    dexType, invokedMethod, invokeSuper, instructions);
+                rewritten = true;
+              }
+            }
+            if (!rewritten) {
+              DexMethod amendedMethod =
+                  amendDefaultMethod(
+                      appInfo.definitionFor(encodedMethod.method.holder), invokedMethod);
+              instructions.replaceCurrentInstruction(
+                  new InvokeStatic(
+                      defaultAsMethodOfCompanionClass(amendedMethod),
+                      invokeSuper.outValue(),
+                      invokeSuper.arguments()));
+            }
           } else if (clazz.isInterface() && !clazz.isLibraryClass()) {
             // NOTE: we intentionally don't desugar super calls into interface methods
             // coming from android.jar since it is only possible in case v24+ version
@@ -269,7 +305,8 @@ public final class InterfaceMethodRewriter {
             // WARNING: This may result in incorrect code on older platforms!
             // Retarget call to an appropriate method of companion class.
             DexMethod amendedMethod =
-                amendDefaultMethod(appInfo.definitionFor(encodedMethod.method.holder), method);
+                amendDefaultMethod(
+                    appInfo.definitionFor(encodedMethod.method.holder), invokedMethod);
             instructions.replaceCurrentInstruction(
                 new InvokeStatic(defaultAsMethodOfCompanionClass(amendedMethod),
                     invokeSuper.outValue(), invokeSuper.arguments()));
@@ -294,7 +331,6 @@ public final class InterfaceMethodRewriter {
               throw new CompilationError("Unexpected call to a private method " +
                   "defined in library class " + clazz.toSourceString(),
                   getMethodOrigin(encodedMethod.method));
-
             }
 
             // This might be either private method call, or a call to default
@@ -325,28 +361,174 @@ public final class InterfaceMethodRewriter {
           }
         }
 
-        if (instruction.isInvokeInterface()) {
-          InvokeInterface invokeInterface = instruction.asInvokeInterface();
-          DexMethod invokedMethod = invokeInterface.getInvokedMethod();
-          ResolutionResult resolutionResult =
-              appView.appInfo().resolveMethodOnInterface(invokedMethod.holder, invokedMethod);
-          // We are looking for non abstract methods in library classes. Resolution has to succeed
-          // with a single non abstract target.
-          if (resolutionResult.hasSingleTarget()) {
-            DexEncodedMethod result = resolutionResult.asResultOfResolve();
-            if (emulatedInterfaces.containsKey(result.method.holder)
-                && !result.isAbstract()
-                && !dontRewrite(result.method)) {
-              instructions.replaceCurrentInstruction(
-                  new InvokeStatic(
-                      emulateInterfaceLibraryMethod(invokedMethod, result.method.holder, factory),
-                      invokeInterface.outValue(),
-                      invokeInterface.arguments()));
-            }
+        if (instruction.isInvokeVirtual() || instruction.isInvokeInterface()) {
+          // TODO(b/134732760): Investigate if doing this only on clazz.isLibraryClass +
+          // !isInDesugaredLibrary(clazz) is enough.
+          InvokeMethod invokeMethod = instruction.asInvokeMethod();
+          DexMethod invokedMethod = invokeMethod.getInvokedMethod();
+          // Here we try to avoid doing the expensive look-up on all invokes.
+          if (!emulatedMethods.contains(invokedMethod.proto)) {
+            continue;
+          }
+          DexType dexType = nearestEmulatedInterfaceImplementingWithCache(invokedMethod);
+          if (dexType == null) {
+            continue;
+          }
+          rewriteCurrentInstructionToEmulatedInterfaceCall(
+              dexType, invokedMethod, invokeMethod, instructions);
+        }
+      }
+    }
+  }
+
+  private void rewriteCurrentInstructionToEmulatedInterfaceCall(
+      DexType emulatedItf,
+      DexMethod invokedMethod,
+      InvokeMethod invokeMethod,
+      InstructionListIterator instructions) {
+    DexEncodedMethod defaultMethod = appView.definitionFor(emulatedItf).lookupMethod(invokedMethod);
+    if (defaultMethod != null && !dontRewrite(defaultMethod.method)) {
+      assert !defaultMethod.isAbstract();
+      instructions.replaceCurrentInstruction(
+          new InvokeStatic(
+              emulateInterfaceLibraryMethod(invokedMethod, emulatedItf, factory),
+              invokeMethod.outValue(),
+              invokeMethod.arguments()));
+    }
+  }
+
+  private DexType nearestEmulatedInterfaceImplementingWithCache(DexMethod method) {
+    DexType sentinel = DexItemFactory.nullValueType;
+    if (nearestEmulatedInterfaceCache.containsKey(method)) {
+      DexType dexType = nearestEmulatedInterfaceCache.get(method);
+      if (dexType == sentinel) {
+        return null;
+      }
+      return dexType;
+    } else {
+      DexType value = nearestEmulatedInterfaceImplementing(method);
+      DexType putValue = value == null ? sentinel : value;
+      nearestEmulatedInterfaceCache.put(method, putValue);
+      return value;
+    }
+  }
+
+  private DexType nearestEmulatedInterfaceImplementing(DexMethod method) {
+    // Find the nearest emulated interface implementing method in a non abstract way.
+    // Answers null if none.
+    if (!method.holder.isClassType()) {
+      return null;
+    }
+    // 1. Direct match against the interface for invokeInterface.
+    if (isMatchingEmulatedInterface(method.holder, method)) {
+      return method.holder;
+    }
+    List<DexType> foundInterfaces = new ArrayList<>();
+    Set<DexType> foundEmulatedInterfaces = Sets.newIdentityHashSet();
+    // 2. Walk superclass hierarchy to find implemented interfaces, pick the minimal of them.
+    DexType current = method.holder;
+    DexClass currentClass = appView.definitionFor(current);
+    while (currentClass != null) {
+      for (DexType itf : currentClass.interfaces.values) {
+        if (isMatchingEmulatedInterface(itf, method)) {
+          foundEmulatedInterfaces.add(itf);
+        } else if (!foundEmulatedInterfaces.isEmpty()) {
+          foundInterfaces.add(itf);
+        }
+      }
+      current = currentClass.superType;
+      currentClass = current == null ? null : appView.definitionFor(current);
+    }
+    if (!foundEmulatedInterfaces.isEmpty()) {
+      return minimalInterfaceOf(foundEmulatedInterfaces);
+    }
+    // 3. Walk the interfaces hierachies to find implemented interfaces, pick the minimal of them.
+    LinkedList<DexType> workList = new LinkedList<>(foundInterfaces);
+    while (!workList.isEmpty()) {
+      currentClass = appView.definitionFor(workList.removeFirst());
+      if (currentClass != null) {
+        for (DexType itf : currentClass.interfaces.values) {
+          if (isMatchingEmulatedInterface(itf, method)) {
+            foundEmulatedInterfaces.add(itf);
+          } else if (!foundInterfaces.contains(itf)) {
+            foundInterfaces.add(itf);
+            workList.add(itf);
           }
         }
       }
     }
+    if (!foundEmulatedInterfaces.isEmpty()) {
+      return minimalInterfaceOf(foundEmulatedInterfaces);
+    }
+    return null;
+  }
+
+  private boolean isMatchingEmulatedInterface(DexType itf, DexMethod method) {
+    DexClass dexClass = appView.definitionFor(itf);
+    DexEncodedMethod encodedMethod = dexClass == null ? null : dexClass.lookupMethod(method);
+    return emulatedInterfaces.containsKey(itf)
+        && encodedMethod != null
+        && !encodedMethod.isAbstract();
+  }
+
+  private DexType minimalInterfaceOf(Set<DexType> interfaces) {
+    assert interfaces.size() > 0;
+    if (interfaces.size() == 1) {
+      return interfaces.iterator().next();
+    }
+    // We may have two classes which appears unrelated due to a missing interface in the list,
+    // i.e., A implements B implements C, but B is not implementing the method.
+    // We look up interface hierarchy here for all interfaces to determine interfaces with children.
+    // The unique interface without children is returned (nearest interface).
+    final ArrayList<DexType> hasChildren = new ArrayList<>();
+    for (DexType anInterface : interfaces) {
+      LinkedList<DexType> workList = new LinkedList<>();
+      workList.add(anInterface);
+      while (!workList.isEmpty()) {
+        DexType itf = workList.removeFirst();
+        DexClass itfClass = appView.definitionFor(itf);
+        if (itfClass == null) {
+          continue;
+        }
+        for (DexType superItf : itfClass.interfaces.values) {
+          if (interfaces.contains(superItf)) {
+            hasChildren.add(superItf);
+          } else {
+            workList.add(superItf);
+          }
+        }
+      }
+    }
+    DexType result = null;
+    for (DexType anInterface : interfaces) {
+      if (!hasChildren.contains(anInterface)) {
+        if (result != null) {
+          throw new CompilationError(
+              "Multiple emulated interfaces, non related to each other, "
+                  + "implementing the same default method ("
+                  + anInterface
+                  + ","
+                  + result
+                  + ")");
+        }
+        result = anInterface;
+      }
+    }
+    if (result == null) {
+      throw new CompilationError(
+          "All emulated interfaces "
+              + Arrays.toString(interfaces.toArray())
+              + " inherit from each other.");
+    }
+    return result;
+  }
+
+  private boolean isInDesugaredLibrary(DexClass clazz) {
+    assert clazz.isLibraryClass();
+    if (emulatedInterfaces.containsKey(clazz.type)) {
+      return true;
+    }
+    return clazz.type.rewritingPrefixIn(options.rewritePrefix) != null;
   }
 
   private boolean dontRewrite(DexMethod method) {

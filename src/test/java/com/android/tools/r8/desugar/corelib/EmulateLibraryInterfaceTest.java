@@ -10,29 +10,22 @@ import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
 
+import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
+import java.nio.file.Paths;
 import java.util.List;
-import java.util.Queue;
-import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.Assume;
@@ -65,11 +58,6 @@ public class EmulateLibraryInterfaceTest extends CoreLibDesugarTestBase {
                         .getOriginalName()
                         .contains(InterfaceMethodRewriter.EMULATE_LIBRARY_CLASS_NAME_SUFFIX))
             .collect(Collectors.toList());
-    List<FoundClassSubject> java =
-        inspector.allClasses().stream()
-            .filter(x -> x.getOriginalName().startsWith("java"))
-            .collect(Collectors.toList());
-    System.out.println(java);
     int numDispatchClasses = requiresCoreLibDesugaring(parameters) ? 9 : 0;
     assertEquals(numDispatchClasses, dispatchClasses.size());
     for (FoundClassSubject clazz : dispatchClasses) {
@@ -103,7 +91,7 @@ public class EmulateLibraryInterfaceTest extends CoreLibDesugarTestBase {
     if (!requiresCoreLibDesugaring(parameters)) {
       return;
     }
-    ClassSubject classSubject = inspector.clazz(TestClass.class);
+    ClassSubject classSubject = inspector.clazz("stream.TestClass");
     assertThat(classSubject, isPresent());
     List<InstructionSubject> invokes =
         classSubject
@@ -111,7 +99,7 @@ public class EmulateLibraryInterfaceTest extends CoreLibDesugarTestBase {
             .streamInstructions()
             .filter(instr -> instr.isInvokeInterface() || instr.isInvokeStatic())
             .collect(Collectors.toList());
-    assertEquals(14, invokes.size());
+    assertEquals(23, invokes.size());
     assertTrue(invokes.get(0).isInvokeStatic());
     assertTrue(invokes.get(0).toString().contains("Set$-EL;->spliterator"));
     assertTrue(invokes.get(1).isInvokeStatic());
@@ -134,68 +122,56 @@ public class EmulateLibraryInterfaceTest extends CoreLibDesugarTestBase {
     assertTrue(invokes.get(12).toString().contains("DesugarArrays;->stream"));
     assertTrue(invokes.get(13).isInvokeStatic());
     assertTrue(invokes.get(13).toString().contains("DesugarArrays;->stream"));
+    assertTrue(invokes.get(14).isInvokeStatic());
+    assertTrue(invokes.get(14).toString().contains("Collection$-EL;->stream"));
+    assertTrue(invokes.get(15).isInvokeStatic());
+    assertTrue(invokes.get(15).toString().contains("IntStream$-CC;->range"));
+    assertTrue(invokes.get(17).isInvokeStatic());
+    assertTrue(invokes.get(17).toString().contains("Comparator$-CC;->comparingInt"));
+    assertTrue(invokes.get(18).isInvokeStatic());
+    assertTrue(invokes.get(18).toString().contains("List$-EL;->sort"));
+    assertTrue(invokes.get(20).isInvokeStatic());
+    assertTrue(invokes.get(20).toString().contains("Comparator$-CC;->comparingInt"));
+    assertTrue(invokes.get(21).isInvokeStatic());
+    assertTrue(invokes.get(21).toString().contains("List$-EL;->sort"));
+    assertTrue(invokes.get(22).isInvokeStatic());
+    assertTrue(invokes.get(22).toString().contains("Collection$-EL;->stream"));
+    // TODO (b/134732760): Support Java 9 Stream APIs
+    // assertTrue(invokes.get(17).isInvokeStatic());
+    // assertTrue(invokes.get(17).toString().contains("Stream$-CC;->iterate"));
   }
 
   @Test
   public void testProgram() throws Exception {
-    Assume.assumeTrue(
-        "TODO(134732760): Fix Android 7+.",
-        parameters.getRuntime().asDex().getVm().getVersion().isOlderThanOrEqual(Version.V6_0_1));
-    String expectedOutput =
-        StringUtils.lines(
-            "j$.util.Spliterators$IteratorSpliterator",
-            "j$.util.Spliterators$IteratorSpliterator",
-            "j$.util.stream.ReferencePipeline$Head",
-            "java.util.HashMap$KeyIterator",
-            "j$.util.stream.ReferencePipeline$Head",
-            "j$.util.Spliterators$IteratorSpliterator",
-            "j$.util.Spliterators$ArraySpliterator",
-            "j$.util.Spliterators$ArraySpliterator",
-            "j$.util.stream.ReferencePipeline$Head",
-            "j$.util.stream.ReferencePipeline$Head");
-    String stdErr =
+    Assume.assumeTrue("No desugaring for high API levels", requiresCoreLibDesugaring(parameters));
+    D8TestRunResult d8TestRunResult =
         testForD8()
-            .addProgramClasses(TestClass.class)
+            .addProgramFiles(Paths.get(ToolHelper.EXAMPLES_JAVA9_BUILD_DIR + "stream.jar"))
             .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .enableCoreLibraryDesugaring()
             .compile()
             .inspect(this::checkRewrittenInvokes)
             .addRunClasspathFiles(buildDesugaredLibrary(parameters.getApiLevel()))
-            .run(parameters.getRuntime(), TestClass.class)
-            .assertSuccessWithOutput(expectedOutput)
-            .getStdErr();
-    assertFalse(stdErr.contains("Could not find method"));
+            .run(parameters.getRuntime(), "stream.TestClass")
+            .assertSuccess();
+    assertLines2By2Correct(d8TestRunResult.getStdOut());
+    String stdErr = d8TestRunResult.getStdErr();
+    if (parameters.getRuntime().asDex().getVm().isOlderThanOrEqual(DexVm.ART_4_4_4_HOST)) {
+      // Flaky: There might be a missing method on lambda deserialization.
+      assertTrue(
+          !stdErr.contains("Could not find method")
+              || stdErr.contains("Could not find method java.lang.invoke.SerializedLambda"));
+    } else {
+      assertFalse(stdErr.contains("Could not find method"));
+    }
   }
 
-  static class TestClass {
-    public static void main(String[] args) {
-      Set<Object> set = new HashSet<>();
-      List<Object> list = new ArrayList<>();
-      Queue<Object> queue = new LinkedList<>();
-      LinkedHashSet<Object> lhs = new LinkedHashSet<>();
-      // They both should be rewritten to invokeStatic to the dispatch class.
-      System.out.println(set.spliterator().getClass().getName());
-      System.out.println(list.spliterator().getClass().getName());
-      // Following should be rewritten to invokeStatic to Collection dispatch class.
-      System.out.println(set.stream().getClass().getName());
-      // Following should not be rewritten.
-      System.out.println(set.iterator().getClass().getName());
-      // Following should be rewritten to invokeStatic to Collection dispatch class.
-      System.out.println(queue.stream().getClass().getName());
-      // Following should be rewritten as retarget core lib member.
-      System.out.println(lhs.spliterator().getClass().getName());
-      // Remove follows the don't rewrite rule.
-      list.add(new Object());
-      Iterator iterator = list.iterator();
-      iterator.next();
-      iterator.remove();
-      // Static methods (same name, different signatures).
-      System.out.println(Arrays.spliterator(new Object[] {new Object()}).getClass().getName());
-      System.out.println(
-          Arrays.spliterator(new Object[] {new Object()}, 0, 0).getClass().getName());
-      System.out.println(Arrays.stream(new Object[] {new Object()}).getClass().getName());
-      System.out.println(Arrays.stream(new Object[] {new Object()}, 0, 0).getClass().getName());
+  private void assertLines2By2Correct(String stdOut) {
+    String[] lines = stdOut.split("\n");
+    assert lines.length % 2 == 0;
+    for (int i = 0; i < lines.length; i += 2) {
+      assertEquals(lines[i], lines[i + 1]);
     }
   }
 }

@@ -5,7 +5,6 @@
 package com.android.tools.r8.desugar.corelib.corelibjdktests;
 
 import static com.android.tools.r8.ToolHelper.JDK_TESTS_BUILD_DIR;
-import static org.hamcrest.core.StringEndsWith.endsWith;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.D8TestCompileResult;
@@ -14,7 +13,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
-import com.android.tools.r8.desugar.corelib.CoreLibDesugarTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Paths;
@@ -24,13 +22,18 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class Jdk11TimeTests extends CoreLibDesugarTestBase {
+public class Jdk11TimeTests extends Jdk11CoreLibTestBase {
 
   private final TestParameters parameters;
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
+    // TODO(134732760): Support Dalvik VMs, currently fails because libjavacrypto is required and
+    // present only in ART runtimes.
+    return getTestParameters()
+        .withDexRuntimesStartingFromIncluding(Version.V5_1_1)
+        .withAllApiLevels()
+        .build();
   }
 
   public Jdk11TimeTests(TestParameters parameters) {
@@ -64,25 +67,11 @@ public class Jdk11TimeTests extends CoreLibDesugarTestBase {
   // TODO(b/134732760): Investigate why these tests fail.
   private static String[] failuresToTriage =
       new String[] {
-        "tck.java.time.TestIsoChronology",
-        "test.java.time.TestClock_System",
-        "test.java.time.chrono.TestChronologyPerf",
-        "test.java.time.chrono.TestExampleCode",
-        "test.java.time.chrono.TestChronoLocalDate",
-        "test.java.time.chrono.TestUmmAlQuraChronology",
-        "test.java.time.chrono.TestIsoChronoImpl",
         "test.java.time.chrono.TestEraDisplayName",
-        "test.java.time.chrono.TestJapaneseChronology",
-        "test.java.time.temporal.TestIsoWeekFields",
-        "test.java.time.format.TestTextParserWithLocale",
-        "test.java.time.format.TestUnicodeExtension",
-        "test.java.time.format.TestDateTimeFormatterBuilderWithLocale",
-        "test.java.time.format.TestNarrowMonthNamesAndDayNames",
-        "test.java.time.format.TestTextPrinterWithLocale",
         "test.java.time.format.TestDateTimeFormatter",
-        "test.java.time.format.TestReducedPrinter",
-        "test.java.time.format.TestCharLiteralParser",
-        "test.java.time.TestLocalDate"
+        "test.java.time.TestLocalDate",
+        // ForEach problem
+        "test.java.time.format.TestNarrowMonthNamesAndDayNames",
       };
   private static String[] successes =
       new String[] {
@@ -121,45 +110,54 @@ public class Jdk11TimeTests extends CoreLibDesugarTestBase {
         "test.java.time.format.TestDateTimeTextProviderWithLocale",
         "test.java.time.format.TestSettingsParser",
         "test.java.time.format.TestNumberParser",
+        "test.java.time.format.TestTextParserWithLocale",
+        "test.java.time.format.TestTextPrinterWithLocale",
+        "test.java.time.format.TestReducedPrinter",
+        "test.java.time.format.TestCharLiteralParser",
         "test.java.time.TestOffsetDateTime_instants",
+        "test.java.time.chrono.TestChronologyPerf",
+        "test.java.time.chrono.TestExampleCode",
+        "test.java.time.chrono.TestJapaneseChronology",
+        "test.java.time.chrono.TestChronoLocalDate",
+        "test.java.time.chrono.TestIsoChronoImpl",
+        "tck.java.time.TestIsoChronology",
+        "test.java.time.TestClock_System",
+        "test.java.time.chrono.TestUmmAlQuraChronology",
+        "test.java.time.temporal.TestIsoWeekFields",
+        "test.java.time.format.TestUnicodeExtension",
+        "test.java.time.format.TestDateTimeFormatterBuilderWithLocale",
       };
 
   @Test
   public void testTime() throws Exception {
-    Assume.assumeTrue("TODO(b/134732760): Fix Android 7+.", requiresCoreLibDesugaring(parameters));
-    String verbosity = "0";
-    String[] mainParametersSuccesses = new String[successes.length + 1];
-    mainParametersSuccesses[0] = verbosity;
-    System.arraycopy(successes, 0, mainParametersSuccesses, 1, successes.length);
+    Assume.assumeTrue("No desugaring on high API level.", requiresCoreLibDesugaring(parameters));
+    String verbosity = "2";
     D8TestCompileResult compileResult =
         testForD8()
+            .addProgramFiles(getPathsFiles())
             .addProgramFiles(Paths.get(JDK_TESTS_BUILD_DIR + "jdk11TimeTests.jar"))
             .addProgramFiles(Paths.get(JDK_TESTS_BUILD_DIR + "testng-6.10.jar"))
             .addProgramFiles(Paths.get(JDK_TESTS_BUILD_DIR + "jcommander-1.48.jar"))
             .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .enableCoreLibraryDesugaring()
             .compile()
+            .withArt6Plus64BitsLib()
             .addRunClasspathFiles(buildDesugaredLibrary(parameters.getApiLevel()));
     for (String success : successes) {
       D8TestRunResult result =
           compileResult.run(parameters.getRuntime(), "TestNGMainRunner", verbosity, success);
-      if (parameters.getRuntime().asDex().getVm().getVersion() == Version.V4_0_4) {
-        result.assertSuccessWithOutputThatMatches(
-            endsWith(StringUtils.lines(success + ": SUCCESS")));
+      if (result.getStdErr().contains("Couldn't find any tzdata")) {
+        // TODO(b/134732760): fix missing time zone data.
       } else {
-        // TODO(b/134732760): flaky depending on Android versions, triage other versions.
+        assertTrue(result.getStdOut().contains(StringUtils.lines(success + ": SUCCESS")));
       }
     }
-    for (String failure : failuresToTriage) {
-      // TODO(b/134732760): Investigate and fix these failures, fails for various reasons depending
-      // on Android versions (flaky).
+    for (String success : failuresToTriage) {
       D8TestRunResult result =
-          compileResult.run(parameters.getRuntime(), "TestNGMainRunner", verbosity, failure);
+          compileResult.run(parameters.getRuntime(), "TestNGMainRunner", verbosity, success);
       assertTrue(
-          endsWith(StringUtils.lines(failure + ": ERROR")).matches(result.getStdOut())
-              || endsWith(StringUtils.lines(failure + ": FAILURE")).matches(result.getStdOut())
-              || !(result.getStdErr().isEmpty()));
+          result.getStdOut().contains("AssertionError") || result.getStdOut().contains("forEach("));
     }
   }
 }
