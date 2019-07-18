@@ -63,8 +63,10 @@ public class InstanceGet extends FieldInstruction {
   }
 
   @Override
-  public boolean couldIntroduceAnAlias() {
-    return outValue != null && outValue.getTypeLattice().isReference();
+  public boolean couldIntroduceAnAlias(AppView<?> appView, Value root) {
+    assert root != null && root.getTypeLattice().isReference();
+    assert outValue != null;
+    return outValue.getTypeLattice().isReference();
   }
 
   @Override

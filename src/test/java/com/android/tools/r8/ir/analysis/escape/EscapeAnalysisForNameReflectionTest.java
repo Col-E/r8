@@ -10,7 +10,6 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.analysis.AnalysisTestBase;
@@ -19,7 +18,6 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.optimize.string.StringOptimizer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -75,7 +73,7 @@ public class EscapeAnalysisForNameReflectionTest extends AnalysisTestBase {
                   instr ->
                       instr.isThrow()
                           || (instr.isInvokeDirect()
-                          && invokesMethodWithName("<init>").test(instr))));
+                              && invokesMethodWithName("<init>").test(instr))));
         });
   }
 
@@ -85,22 +83,35 @@ public class EscapeAnalysisForNameReflectionTest extends AnalysisTestBase {
   }
 
   @Test
-  public void testEscapeViaInstancePut() throws Exception {
+  public void testEscapeViaInstancePut_local() throws Exception {
     buildAndCheckIR(
-        "escapeViaInstancePut",
+        "escapeViaInstancePut_local",
         checkEscapingName(true, invokesMethodWithName("namingInterfaceConsumer")));
   }
 
   @Test
-  public void testEscapeViaArrayPut() throws Exception {
+  public void testEscapeViaArrayPut_local() throws Exception {
     buildAndCheckIR(
-        "escapeViaArrayPut",
+        "escapeViaArrayPut_local",
         checkEscapingName(true, invokesMethodWithName("namingInterfacesConsumer")));
   }
 
   @Test
-  public void testEscapeViaArrayArgumentPut() throws Exception {
-    buildAndCheckIR("escapeViaArrayArgumentPut", checkEscapingName(true, Instruction::isArrayPut));
+  public void testEscapeViaArrayPut_heap() throws Exception {
+    buildAndCheckIR(
+        "escapeViaArrayPut_heap",
+        checkEscapingName(
+            true,
+            i -> i.isArrayPut() || invokesMethodWithName("namingInterfacesConsumer").test(i)));
+  }
+
+  @Test
+  public void testEscapeViaArrayPut_argument() throws Exception {
+    buildAndCheckIR(
+        "escapeViaArrayPut_argument",
+        checkEscapingName(
+            true,
+            i -> i.isArrayPut() || invokesMethodWithName("namingInterfacesConsumer").test(i)));
   }
 
   @Test
@@ -179,7 +190,12 @@ public class EscapeAnalysisForNameReflectionTest extends AnalysisTestBase {
         return false;
       }
       if (escapeRoute.isArrayPut()) {
-        return !escapeRoute.asArrayPut().array().isArgument();
+        Value array = escapeRoute.asArrayPut().array().getAliasedValue();
+        return !array.isPhi() && array.definition.isCreatingArray();
+      }
+      if (escapeRoute.isInstancePut()) {
+        Value instance = escapeRoute.asInstancePut().object().getAliasedValue();
+        return !instance.isPhi() && instance.definition.isNewInstance();
       }
       // All other cases are not legitimate.
       return false;
@@ -241,6 +257,8 @@ public class EscapeAnalysisForNameReflectionTest extends AnalysisTestBase {
   }
 
   static class TestClass implements NamingInterface {
+    private static NamingInterface[] ARRAY = new NamingInterface[1];
+
     static String tag;
     String id;
 
@@ -280,13 +298,13 @@ public class EscapeAnalysisForNameReflectionTest extends AnalysisTestBase {
       tag = TestClass.class.getSimpleName();
     }
 
-    public static void escapeViaInstancePut() {
+    public static void escapeViaInstancePut_local() {
       TestClass instance = new TestClass();
       instance.id = instance.getClass().getSimpleName();
       Helper.namingInterfaceConsumer(instance);
     }
 
-    public static void escapeViaArrayPut() {
+    public static void escapeViaArrayPut_local() {
       TestClass instance = new TestClass();
       instance.id = instance.getClass().getSimpleName();
       NamingInterface[] array = new NamingInterface[1];
@@ -294,7 +312,14 @@ public class EscapeAnalysisForNameReflectionTest extends AnalysisTestBase {
       Helper.namingInterfacesConsumer(array);
     }
 
-    public static void escapeViaArrayArgumentPut(NamingInterface[] array) {
+    public static void escapeViaArrayPut_heap() {
+      TestClass instance = new TestClass();
+      instance.id = instance.getClass().getSimpleName();
+      ARRAY[0] = instance;
+      Helper.namingInterfacesConsumer(ARRAY);
+    }
+
+    public static void escapeViaArrayPut_argument(NamingInterface[] array) {
       TestClass instance = new TestClass();
       instance.id = instance.getClass().getSimpleName();
       array[0] = instance;

@@ -51,8 +51,23 @@ public class StaticGet extends FieldInstruction {
   }
 
   @Override
-  public boolean couldIntroduceAnAlias() {
-    return outValue != null && outValue.getTypeLattice().isReference();
+  public boolean couldIntroduceAnAlias(AppView<?> appView, Value root) {
+    assert root != null && root.getTypeLattice().isReference();
+    assert outValue != null;
+    TypeLatticeElement outType = outValue.getTypeLattice();
+    if (outType.isPrimitive()) {
+      return false;
+    }
+    if (appView.appInfo().hasSubtyping()) {
+      if (outType.isClassType()
+          && root.getTypeLattice().isClassType()
+          && appView.appInfo().withSubtyping().inDifferentHierarchy(
+              outType.asClassTypeLatticeElement().getClassType(),
+              root.getTypeLattice().asClassTypeLatticeElement().getClassType())) {
+        return false;
+      }
+    }
+    return outType.isReference();
   }
 
   @Override

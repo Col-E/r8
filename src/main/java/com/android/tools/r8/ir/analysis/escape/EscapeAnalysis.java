@@ -144,14 +144,22 @@ public class EscapeAnalysis {
         }
       }
       // Track aliased value.
-      if (user.couldIntroduceAnAlias()) {
+      boolean couldIntroduceTrackedValueAlias = false;
+      for (Value trackedValue : trackedValues) {
+        if (user.couldIntroduceAnAlias(appView, trackedValue)) {
+          couldIntroduceTrackedValueAlias = true;
+          break;
+        }
+      }
+      if (couldIntroduceTrackedValueAlias) {
         Value outValue = user.outValue();
-        assert outValue != null;
+        assert outValue != null && outValue.getTypeLattice().isReference();
         addToWorklist(outValue);
       }
       // Track propagated values through which the value of interest can escape indirectly.
       Value propagatedValue = getPropagatedSubject(alias, user);
       if (propagatedValue != null && propagatedValue != alias) {
+        assert propagatedValue.getTypeLattice().isReference();
         addToWorklist(propagatedValue);
       }
     }
@@ -187,9 +195,15 @@ public class EscapeAnalysis {
       }
       return true;
     }
-    // Storing to the argument array.
+    // Storing to non-local array.
     if (instr.isArrayPut()) {
-      return instr.asArrayPut().array().isArgument();
+      Value array = instr.asArrayPut().array().getAliasedValue();
+      return array.isPhi() || !array.definition.isCreatingArray();
+    }
+    // Storing to non-local instance.
+    if (instr.isInstancePut()) {
+      Value instance = instr.asInstancePut().object().getAliasedValue();
+      return instance.isPhi() || !instance.definition.isNewInstance();
     }
     return false;
   }
@@ -199,14 +213,6 @@ public class EscapeAnalysis {
   }
 
   private static Value getPropagatedSubject(Value src, Instruction instr) {
-    // We may need to bind array index if we want to track array-get precisely:
-    //  array-put arr, idx1, x
-    //  y <- array-get arr, idx2  // y is not what we want to track.
-    //  z <- array-get arr, idx1  // but, z is.
-    // For now, we don't distinguish such cases, which is conservative.
-    if (instr.isArrayGet()) {
-      return instr.asArrayGet().dest();
-    }
     if (instr.isArrayPut()) {
       return instr.asArrayPut().array();
     }

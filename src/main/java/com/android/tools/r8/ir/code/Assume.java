@@ -29,6 +29,7 @@ public class Assume<An extends Assumption> extends Instruction {
     super(dest, src);
     assert assumption != null;
     assert assumption.verifyCorrectnessOfValues(dest, src, appView);
+    assert dest != null;
     this.assumption = assumption;
     this.origin = origin;
   }
@@ -120,13 +121,31 @@ public class Assume<An extends Assumption> extends Instruction {
   }
 
   @Override
-  public boolean isIntroducingAnAlias() {
-    return true;
+  public boolean couldIntroduceAnAlias(AppView<?> appView, Value root) {
+    assert root != null && root.getTypeLattice().isReference();
+    assert outValue != null;
+    TypeLatticeElement outType = outValue.getTypeLattice();
+    if (outType.isPrimitive()) {
+      return false;
+    }
+    if (assumption.isAssumeDynamicType()) {
+      outType = asAssumeDynamicType().assumption.getType();
+    }
+    if (appView.appInfo().hasSubtyping()) {
+      if (outType.isClassType()
+          && root.getTypeLattice().isClassType()
+          && appView.appInfo().withSubtyping().inDifferentHierarchy(
+              outType.asClassTypeLatticeElement().getClassType(),
+              root.getTypeLattice().asClassTypeLatticeElement().getClassType())) {
+        return false;
+      }
+    }
+    return outType.isReference();
   }
 
   @Override
-  public boolean couldIntroduceAnAlias() {
-    return outValue != null && outValue.getTypeLattice().isReference();
+  public boolean isIntroducingAnAlias() {
+    return true;
   }
 
   @Override

@@ -37,8 +37,8 @@ public class Move extends Instruction {
   }
 
   @Override
-  public boolean couldIntroduceAnAlias() {
-    return outValue != null && outValue.getTypeLattice().isReference();
+  public boolean couldIntroduceAnAlias(AppView<?> appView, Value root) {
+    throw new Unreachable("as long as we're analyzing SSA IR.");
   }
 
   @Override

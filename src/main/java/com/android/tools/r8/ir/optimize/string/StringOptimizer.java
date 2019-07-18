@@ -409,7 +409,7 @@ public class StringOptimizer {
     }
   }
 
-  public static class StringOptimizerEscapeAnalysisConfiguration
+  static class StringOptimizerEscapeAnalysisConfiguration
       implements EscapeAnalysisConfiguration {
 
     private static final StringOptimizerEscapeAnalysisConfiguration INSTANCE =
@@ -447,7 +447,12 @@ public class StringOptimizer {
         return false;
       }
       if (escapeRoute.isArrayPut()) {
-        return !escapeRoute.asArrayPut().array().isArgument();
+        Value array = escapeRoute.asArrayPut().array().getAliasedValue();
+        return !array.isPhi() && array.definition.isCreatingArray();
+      }
+      if (escapeRoute.isInstancePut()) {
+        Value instance = escapeRoute.asInstancePut().object().getAliasedValue();
+        return !instance.isPhi() && instance.definition.isNewInstance();
       }
       // All other cases are not legitimate.
       return false;

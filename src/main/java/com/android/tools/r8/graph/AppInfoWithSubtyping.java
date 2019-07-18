@@ -753,4 +753,8 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
     }
     return lubType;
   }
+
+  public boolean inDifferentHierarchy(DexType type1, DexType type2) {
+    return !isSubtype(type1, type2) && !isSubtype(type2, type1);
+  }
 }

@@ -1211,7 +1211,7 @@ public abstract class Instruction implements InstructionOrPhi {
    * <p>This is a conservative version of {@link #isIntroducingAnAlias()} so that other analyses,
    * e.g., escape analysis, can propagate or track aliased values in a conservative manner.
    */
-  public boolean couldIntroduceAnAlias() {
+  public boolean couldIntroduceAnAlias(AppView<?> appView, Value root) {
     return false;
   }
 

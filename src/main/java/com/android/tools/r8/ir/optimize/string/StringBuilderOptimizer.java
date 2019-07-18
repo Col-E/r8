@@ -719,17 +719,6 @@ public class StringBuilderOptimizer {
       builderType = builder.getTypeLattice().asClassTypeLatticeElement().getClassType();
     }
 
-    // Use of Builder#toString is legitimate.
-    // TODO(b/134745277): but, the escape analysis can be filtered this out by types.
-    private boolean isUsingToStringAlias(EscapeAnalysis analysis, Value alias) {
-      if (!alias.isPhi() && alias.definition.isInvokeMethod()) {
-        DexMethod invokedMethod = alias.definition.asInvokeMethod().getInvokedMethod();
-        return optimizationConfiguration.isToStringMethod(invokedMethod)
-            && alias.definition.inValues().stream().anyMatch(analysis::isValueOfInterestOrAlias);
-      }
-      return false;
-    }
-
     private void logEscapingRoute(boolean legitimate) {
       if (!legitimate) {
         numberOfBuildersThatEscape++;
@@ -742,51 +731,11 @@ public class StringBuilderOptimizer {
         EscapeAnalysis escapeAnalysis,
         Instruction escapeRoute,
         DexMethod context) {
-      boolean legitimate;
-      if (escapeRoute.isReturn()) {
-        legitimate = isUsingToStringAlias(escapeAnalysis, escapeRoute.asReturn().returnValue());
-        logEscapingRoute(legitimate);
-        return legitimate;
+      if (escapeRoute.isReturn() || escapeRoute.isThrow() || escapeRoute.isStaticPut()) {
+        logEscapingRoute(false);
+        return false;
       }
-      if (escapeRoute.isThrow()) {
-        legitimate = isUsingToStringAlias(escapeAnalysis, escapeRoute.asThrow().exception());
-        logEscapingRoute(legitimate);
-        return legitimate;
-      }
-      if (escapeRoute.isStaticPut()) {
-        legitimate = isUsingToStringAlias(escapeAnalysis, escapeRoute.asStaticPut().value());
-        logEscapingRoute(legitimate);
-        return legitimate;
-      }
-      if (escapeRoute.isArrayPut()) {
-        if (escapeRoute.asArrayPut().array().isArgument()) {
-          legitimate = isUsingToStringAlias(escapeAnalysis, escapeRoute.asArrayPut().value());
-          logEscapingRoute(legitimate);
-          return legitimate;
-        }
-        // Putting the builder (or aliases) into a local array is legitimate.
-        // If that local array is used again with array-get, the escape analysis will pick up the
-        // out-value of that instruction and keep tracing the value uses anyway.
-        return true;
-      }
-
       if (escapeRoute.isInvokeMethod()) {
-        boolean useBuilder = false;
-        boolean useToStringAlias = false;
-        for (Value arg : escapeRoute.asInvokeMethod().inValues()) {
-          // Direct use of the builder should be caught and examined later.
-          if (arg == builder) {
-            useBuilder = true;
-            break;
-          }
-          useToStringAlias |= isUsingToStringAlias(escapeAnalysis, arg);
-        }
-        // It's legitimate if a call doesn't use the builder directly, but use aliased values of
-        // Builder#toString.
-        if (!useBuilder && useToStringAlias) {
-          return true;
-        }
-
         // Program class may call String#intern(). Only allow library calls.
         // TODO(b/114002137): For now, we allow only library calls to avoid a case like
         //   identity(Builder.toString()).intern(); but it's too restrictive.
@@ -801,7 +750,6 @@ public class StringBuilderOptimizer {
         DexMethod invokedMethod = invoke.getInvokedMethod();
         // Make sure builder's uses are local, i.e., not escaping from the current method.
         if (invokedMethod.holder != builderType) {
-          numberOfBuildersThatEscape++;
           logEscapingRoute(false);
           return false;
         }
@@ -820,7 +768,6 @@ public class StringBuilderOptimizer {
                   && outUser.asInvokeMethodWithReceiver().getInvokedMethod()
                       == factory.stringMethods.intern) {
                 numberOfBuildersWhoseResultIsInterned++;
-                logEscapingRoute(false);
                 return false;
               }
             }
@@ -833,7 +780,6 @@ public class StringBuilderOptimizer {
         // Seeing any of them indicates that this code is not trivial.
         if (!optimizationConfiguration.isAppendMethod(invokedMethod)) {
           numberOfBuildersWithNonTrivialStateChange++;
-          logEscapingRoute(false);
           return false;
         }
         if (!optimizationConfiguration.isSupportedAppendMethod(invoke)) {
@@ -843,7 +789,18 @@ public class StringBuilderOptimizer {
         // Reaching here means that this invocation is part of trivial patterns we're looking for.
         return true;
       }
-
+      if (escapeRoute.isArrayPut()) {
+        Value array = escapeRoute.asArrayPut().array().getAliasedValue();
+        boolean legitimate = !array.isPhi() && array.definition.isCreatingArray();
+        logEscapingRoute(legitimate);
+        return legitimate;
+      }
+      if (escapeRoute.isInstancePut()) {
+        Value instance = escapeRoute.asInstancePut().object().getAliasedValue();
+        boolean legitimate = !instance.isPhi() && instance.definition.isNewInstance();
+        logEscapingRoute(legitimate);
+        return legitimate;
+      }
       // All other cases are not legitimate.
       logEscapingRoute(false);
       return false;

@@ -154,7 +154,9 @@ public class StringConcatenationTest extends TestBase {
             .addOptionsModification(this::configure)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 1, 4, 3);
+    // TODO(b/114002137): The lack of subtyping made the escape analysis to regard
+    //    StringBuilder#toString as an alias-introducing instruction.
+    test(result, 3, 4, 3);
   }
 
   @Test

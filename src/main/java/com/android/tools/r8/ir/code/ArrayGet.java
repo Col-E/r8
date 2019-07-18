@@ -62,6 +62,13 @@ public class ArrayGet extends Instruction implements ImpreciseMemberTypeInstruct
   }
 
   @Override
+  public boolean couldIntroduceAnAlias(AppView<?> appView, Value root) {
+    assert root != null && root.getTypeLattice().isReference();
+    assert outValue != null;
+    return outValue.getTypeLattice().isReference();
+  }
+
+  @Override
   public void buildDex(DexBuilder builder) {
     int dest = builder.allocatedRegister(dest(), getNumber());
     int array = builder.allocatedRegister(array(), getNumber());
