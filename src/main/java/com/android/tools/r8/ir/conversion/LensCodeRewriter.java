@@ -341,7 +341,7 @@ public class LensCodeRewriter {
             iterator.replaceCurrentInstruction(
                 new InvokeStatic(replacementMethod, current.outValue(), current.inValues()));
           } else if (actualField != field) {
-            StaticPut newStaticPut = new StaticPut(staticPut.inValue(), actualField);
+            StaticPut newStaticPut = new StaticPut(staticPut.value(), actualField);
             iterator.replaceCurrentInstruction(newStaticPut);
           }
         } else if (current.isCheckCast()) {

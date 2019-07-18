@@ -18,7 +18,6 @@ import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Throw;
-import com.android.tools.r8.ir.code.Value;
 
 /**
  * Utility to determine if a given IR code object type checks.
@@ -96,11 +95,7 @@ public class TypeChecker {
 
   public boolean checkFieldPut(FieldInstruction instruction) {
     assert instruction.isFieldPut();
-    Value value =
-        instruction.isInstancePut()
-            ? instruction.asInstancePut().value()
-            : instruction.asStaticPut().inValue();
-    TypeLatticeElement valueType = value.getTypeLattice();
+    TypeLatticeElement valueType = instruction.value().getTypeLattice();
     TypeLatticeElement fieldType =
         TypeLatticeElement.fromDexType(
             instruction.getField().type, valueType.nullability(), appView);

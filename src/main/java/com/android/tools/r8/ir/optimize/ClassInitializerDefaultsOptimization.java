@@ -130,7 +130,7 @@ public class ClassInitializerDefaultsOptimization {
     for (StaticPut put : finalFieldPuts) {
       DexEncodedField field = appView.appInfo().resolveField(put.getField());
       DexType fieldType = field.field.type;
-      Value inValue = put.inValue();
+      Value inValue = put.value();
       if (fieldType == dexItemFactory.stringType) {
         fieldsWithStaticValues.put(field, getDexStringValue(inValue, method.method.holder));
       } else if (fieldType.isClassType() || fieldType.isArrayType()) {
@@ -176,7 +176,7 @@ public class ClassInitializerDefaultsOptimization {
         continue;
       }
       // Get a hold of the in-value.
-      Value inValue = instruction.asStaticPut().inValue();
+      Value inValue = instruction.asStaticPut().value();
 
       // Remove the static-put instruction.
       instructionIterator.removeOrReplaceByDebugLocalRead();
@@ -358,12 +358,12 @@ public class ClassInitializerDefaultsOptimization {
                 // instruction to read a different value.
                 continue;
               }
-              if (put.inValue().isDexItemBasedConstStringThatNeedsToComputeClassName()) {
+              if (put.value().isDexItemBasedConstStringThatNeedsToComputeClassName()) {
                 continue;
               }
-              if (put.inValue().isConstant()) {
+              if (put.value().isConstant()) {
                 if ((field.type.isClassType() || field.type.isArrayType())
-                    && put.inValue().isZero()) {
+                    && put.value().isZero()) {
                   finalFieldPut.put(put.getField(), put);
                   puts.add(put);
                 } else if (field.type.isPrimitiveType()
@@ -421,8 +421,8 @@ public class ClassInitializerDefaultsOptimization {
     if (put.getField().type != dexItemFactory.stringType) {
       return false;
     }
-    if (put.inValue().definition != null) {
-      return isClassNameConstantOf(clazz, put.inValue().definition);
+    if (put.value().definition != null) {
+      return isClassNameConstantOf(clazz, put.value().definition);
     }
     return false;
   }

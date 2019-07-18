@@ -46,7 +46,7 @@ public class StaticGet extends FieldInstruction {
   }
 
   @Override
-  public Value fieldValue() {
+  public Value value() {
     return outValue;
   }
 

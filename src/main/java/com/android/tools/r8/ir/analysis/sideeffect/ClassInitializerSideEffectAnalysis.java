@@ -91,7 +91,7 @@ public class ClassInitializerSideEffectAnalysis {
         DexEncodedField field = appView.appInfo().resolveField(staticPut.getField());
         if (field == null
             || field.field.holder != context
-            || staticPut.inValue().mayDependOnEnvironment(appView, code)
+            || staticPut.value().mayDependOnEnvironment(appView, code)
             || instruction.instructionInstanceCanThrow(appView, context).isThrowing()) {
           return ClassInitializerSideEffect.SIDE_EFFECTS_THAT_CANNOT_BE_POSTPONED;
         }

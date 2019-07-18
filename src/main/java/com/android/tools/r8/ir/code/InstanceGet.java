@@ -58,7 +58,7 @@ public class InstanceGet extends FieldInstruction {
   }
 
   @Override
-  public Value fieldValue() {
+  public Value value() {
     return outValue;
   }
 

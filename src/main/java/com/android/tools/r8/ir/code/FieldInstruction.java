@@ -28,7 +28,7 @@ public abstract class FieldInstruction extends Instruction {
     this.field = field;
   }
 
-  public abstract Value fieldValue();
+  public abstract Value value();
 
   public FieldMemberType getType() {
     return FieldMemberType.fromDexType(field.type);

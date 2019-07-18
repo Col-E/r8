@@ -1444,9 +1444,9 @@ public class CodeRewriter {
 
       if (insn.isStaticPut()) {
         StaticPut staticPut = insn.asStaticPut();
-        if (singletonField != null ||
-            createdSingletonInstance == null ||
-            staticPut.inValue() != createdSingletonInstance) {
+        if (singletonField != null
+            || createdSingletonInstance == null
+            || staticPut.value() != createdSingletonInstance) {
           return null;
         }
 

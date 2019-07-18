@@ -49,13 +49,9 @@ public class InstancePut extends FieldInstruction {
     return inValues.get(0);
   }
 
+  @Override
   public Value value() {
     return inValues.get(1);
-  }
-
-  @Override
-  public Value fieldValue() {
-    return value();
   }
 
   @Override

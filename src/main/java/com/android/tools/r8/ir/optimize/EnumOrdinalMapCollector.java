@@ -66,7 +66,7 @@ public class EnumOrdinalMapCollector {
       if (staticPut.getField().type != clazz.type) {
         continue;
       }
-      Instruction newInstance = staticPut.inValue().definition;
+      Instruction newInstance = staticPut.value().definition;
       if (newInstance == null || !newInstance.isNewInstance()) {
         continue;
       }

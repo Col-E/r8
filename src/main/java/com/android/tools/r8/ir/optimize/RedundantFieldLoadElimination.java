@@ -238,8 +238,8 @@ public class RedundantFieldLoadElimination {
 
   private void eliminateRedundantRead(
       InstructionListIterator it, FieldInstruction redundant, FieldInstruction active) {
-    redundant.outValue().replaceUsers(active.fieldValue());
+    redundant.outValue().replaceUsers(active.value());
     it.removeOrReplaceByDebugLocalRead();
-    active.fieldValue().uniquePhiUsers().forEach(Phi::removeTrivialPhi);
+    active.value().uniquePhiUsers().forEach(Phi::removeTrivialPhi);
   }
 }

@@ -140,10 +140,7 @@ public class IdentifierNameStringMarker {
     if (!identifierNameStrings.containsKey(field)) {
       return iterator;
     }
-    Value in =
-        instruction.isStaticPut()
-            ? instruction.asStaticPut().inValue()
-            : instruction.asInstancePut().value();
+    Value in = instruction.value();
     if (!in.isConstString()) {
       warnUndeterminedIdentifierIfNecessary(field, method.method.holder, instruction, null);
       return iterator;

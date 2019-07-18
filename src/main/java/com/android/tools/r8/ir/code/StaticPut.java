@@ -41,20 +41,16 @@ public class StaticPut extends FieldInstruction {
     return visitor.visit(this);
   }
 
-  public Value inValue() {
+  @Override
+  public Value value() {
     assert inValues.size() == 1;
     return inValues.get(0);
   }
 
   @Override
-  public Value fieldValue() {
-    return inValue();
-  }
-
-  @Override
   public void buildDex(DexBuilder builder) {
     com.android.tools.r8.code.Instruction instruction;
-    int src = builder.allocatedRegister(inValue(), getNumber());
+    int src = builder.allocatedRegister(value(), getNumber());
     DexField field = getField();
     switch (getType()) {
       case INT:
@@ -157,7 +153,7 @@ public class StaticPut extends FieldInstruction {
       // If the value being written by this instruction is an array, then make sure that the value
       // being written by the other instruction is the exact same value. Otherwise, the verifier
       // may incorrectly join the types of these arrays to Object[].
-      if (inValue().getTypeLattice().isArrayType() && inValue() != staticPut.inValue()) {
+      if (value().getTypeLattice().isArrayType() && value() != staticPut.value()) {
         return false;
       }
     }

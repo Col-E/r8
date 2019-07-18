@@ -754,7 +754,7 @@ public class StringBuilderOptimizer {
         return legitimate;
       }
       if (escapeRoute.isStaticPut()) {
-        legitimate = isUsingToStringAlias(escapeAnalysis, escapeRoute.asStaticPut().inValue());
+        legitimate = isUsingToStringAlias(escapeAnalysis, escapeRoute.asStaticPut().value());
         logEscapingRoute(legitimate);
         return legitimate;
       }

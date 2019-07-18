@@ -519,7 +519,7 @@ final class StaticizingProcessor {
         StaticPut staticPut = instruction.asStaticPut();
         DexField field = mapFieldIfMoved(staticPut.getField());
         if (field != staticPut.getField()) {
-          it.replaceCurrentInstruction(new StaticPut(staticPut.inValue(), field));
+          it.replaceCurrentInstruction(new StaticPut(staticPut.value(), field));
         }
         continue;
       }
