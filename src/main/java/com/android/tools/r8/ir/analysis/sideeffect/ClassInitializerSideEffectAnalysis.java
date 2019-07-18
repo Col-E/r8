@@ -49,8 +49,8 @@ public class ClassInitializerSideEffectAnalysis {
         Value array = arrayPut.array().getAliasedValue();
         if (array.isPhi()
             || !array.definition.isCreatingArray()
-            || arrayPut.index().mayDependOnEnvironment()
-            || arrayPut.value().mayDependOnEnvironment()
+            || arrayPut.index().mayDependOnEnvironment(appView, code)
+            || arrayPut.value().mayDependOnEnvironment(appView, code)
             || instruction.instructionInstanceCanThrow(appView, context).isThrowing()) {
           return ClassInitializerSideEffect.SIDE_EFFECTS_THAT_CANNOT_BE_POSTPONED;
         }
@@ -72,7 +72,7 @@ public class ClassInitializerSideEffectAnalysis {
           return ClassInitializerSideEffect.SIDE_EFFECTS_THAT_CANNOT_BE_POSTPONED;
         }
         for (Value argument : invokeNewArray.arguments()) {
-          if (argument.mayDependOnEnvironment()) {
+          if (argument.mayDependOnEnvironment(appView, code)) {
             return ClassInitializerSideEffect.SIDE_EFFECTS_THAT_CANNOT_BE_POSTPONED;
           }
         }
@@ -91,7 +91,7 @@ public class ClassInitializerSideEffectAnalysis {
         DexEncodedField field = appView.appInfo().resolveField(staticPut.getField());
         if (field == null
             || field.field.holder != context
-            || staticPut.inValue().mayDependOnEnvironment()
+            || staticPut.inValue().mayDependOnEnvironment(appView, code)
             || instruction.instructionInstanceCanThrow(appView, context).isThrowing()) {
           return ClassInitializerSideEffect.SIDE_EFFECTS_THAT_CANNOT_BE_POSTPONED;
         }

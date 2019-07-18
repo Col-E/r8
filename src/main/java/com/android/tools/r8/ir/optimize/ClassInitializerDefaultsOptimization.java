@@ -387,7 +387,8 @@ public class ClassInitializerDefaultsOptimization {
             if (instruction.isInvoke() && instruction.hasOutValue()) {
               Value outValue = instruction.outValue();
               if (outValue.numberOfAllUsers() > 0) {
-                if (instruction.isInvokeNewArray() && outValue.isConstantArray()) {
+                if (instruction.isInvokeNewArray()
+                    && outValue.isConstantArrayThroughoutMethod(appView, code)) {
                   // OK, this value is technically a constant.
                   continue;
                 }

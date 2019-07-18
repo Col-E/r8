@@ -8,6 +8,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.regalloc.LiveIntervals;
 import com.android.tools.r8.origin.Origin;
@@ -484,12 +485,12 @@ public class Value {
     return false;
   }
 
-  public boolean mayDependOnEnvironment() {
+  public boolean mayDependOnEnvironment(AppView<?> appView, IRCode code) {
     Value root = getAliasedValue();
     if (root.isConstant()) {
       return false;
     }
-    if (root.isConstantArray()) {
+    if (root.isConstantArrayThroughoutMethod(appView, code)) {
       return false;
     }
     return true;
@@ -805,30 +806,143 @@ public class Value {
     return definition.isOutConstant() && !hasLocalInfo();
   }
 
-  public boolean isConstantArray() {
+  public boolean isConstantArrayThroughoutMethod(AppView<?> appView, IRCode code) {
     Value root = getAliasedValue();
-    if (!root.isPhi()) {
-      if (definition.isNewArrayEmpty()) {
-        // For now, simply check if the created array is empty.
-        NewArrayEmpty newArrayEmpty = definition.asNewArrayEmpty();
-        Value sizeValue = newArrayEmpty.size().getAliasedValue();
-        if (!sizeValue.hasValueRange()) {
-          return false;
-        }
+    if (root.isPhi()) {
+      // Would need to track the aliases, just give up.
+      return false;
+    }
 
-        LongInterval sizeRange = sizeValue.getValueRange();
-        if (!sizeRange.isSingleValue()) {
-          return false;
-        }
+    DexType context = code.method.method.holder;
+    Instruction definition = root.definition;
 
-        long size = sizeRange.getSingleValue();
-        if (size == 0) {
-          // Empty arrays are always constant.
-          return true;
+    // Check that it is a constant array with a known size at this point in the IR.
+    long size;
+    if (definition.isInvokeNewArray()) {
+      InvokeNewArray invokeNewArray = definition.asInvokeNewArray();
+      for (Value argument : invokeNewArray.arguments()) {
+        if (!argument.isConstant()) {
+          return false;
         }
       }
+      size = invokeNewArray.arguments().size();
+    } else if (definition.isNewArrayEmpty()) {
+      NewArrayEmpty newArrayEmpty = definition.asNewArrayEmpty();
+      Value sizeValue = newArrayEmpty.size().getAliasedValue();
+      if (!sizeValue.hasValueRange()) {
+        return false;
+      }
+      LongInterval sizeRange = sizeValue.getValueRange();
+      if (!sizeRange.isSingleValue()) {
+        return false;
+      }
+      size = sizeRange.getSingleValue();
+    } else {
+      // Some other array creation.
+      return false;
     }
-    return false;
+
+    if (size < 0) {
+      // Check for NegativeArraySizeException.
+      return false;
+    }
+
+    if (size == 0) {
+      // Empty arrays are always constant.
+      return true;
+    }
+
+    // Allow array stores that immediately follow the array creation.
+    Set<ArrayPut> consumedArrayPuts = Sets.newIdentityHashSet();
+
+    InstructionListIterator instructionIterator = definition.getBlock().listIterator(definition);
+    while (instructionIterator.hasNext()) {
+      Instruction instruction = instructionIterator.next();
+      if (instruction.isArrayPut()) {
+        ArrayPut arrayPut = instruction.asArrayPut();
+        Value array = arrayPut.array().getAliasedValue();
+        if (array != root) {
+          // This ends the chain of array-put instructions that are allowed immediately after the
+          // array creation.
+          break;
+        }
+
+        LongInterval indexRange = arrayPut.index().getValueRange();
+        if (!indexRange.isSingleValue()) {
+          return false;
+        }
+
+        long index = indexRange.getSingleValue();
+        if (index < 0 || index >= size) {
+          return false;
+        }
+
+        if (!arrayPut.value().isConstant()) {
+          return false;
+        }
+
+        consumedArrayPuts.add(arrayPut);
+        continue;
+      }
+
+      if (instruction.instructionMayHaveSideEffects(appView, context)) {
+        // This ends the chain of array-put instructions that are allowed immediately after the
+        // array creation.
+        break;
+      }
+    }
+
+    // Check that the array is not mutated before the end of this method.
+    //
+    // Currently, we only allow the array to flow into static-put instructions that are not
+    // followed by an instruction that may have side effects. Instructions that do not have any
+    // side effects are ignored because they cannot mutate the array.
+    Set<Instruction> visitedFromStaticPut = Sets.newIdentityHashSet();
+    for (Instruction user : root.uniqueUsers()) {
+      if (user.isArrayPut()) {
+        ArrayPut arrayPut = user.asArrayPut();
+        if (!consumedArrayPuts.contains(arrayPut)) {
+          return false;
+        }
+        continue;
+      }
+
+      if (user.isStaticPut()) {
+        StaticPut staticPut = user.asStaticPut();
+        if (visitedFromStaticPut.contains(staticPut)) {
+          // Already visited previously.
+          continue;
+        }
+        for (Instruction instruction : code.getInstructionsReachableFrom(staticPut)) {
+          if (!visitedFromStaticPut.add(instruction)) {
+            // Already visited previously.
+            continue;
+          }
+          if (instruction.isStaticPut()) {
+            StaticPut otherStaticPut = instruction.asStaticPut();
+            if (otherStaticPut.getField().holder == staticPut.getField().holder
+                && instruction.instructionInstanceCanThrow(appView, context).cannotThrow()) {
+              continue;
+            }
+            return false;
+          }
+          if (instruction.instructionMayHaveSideEffects(appView, context)) {
+            return false;
+          }
+        }
+        continue;
+      }
+
+      // Other user than static-put, just give up.
+      return false;
+    }
+
+    if (root.numberOfPhiUsers() > 0) {
+      // Could be mutated indirectly.
+      return false;
+    }
+
+    return true;
   }
 
   public boolean isPhi() {

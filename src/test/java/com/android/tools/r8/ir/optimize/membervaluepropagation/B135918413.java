@@ -18,7 +18,6 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -38,7 +37,6 @@ public class B135918413 extends TestBase {
     this.parameters = parameters;
   }
 
-  @Ignore("b/135918413")
   @Test
   public void test() throws Exception {
     testForR8(parameters.getBackend())

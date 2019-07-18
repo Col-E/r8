@@ -40,6 +40,10 @@ public class AbstractError {
     return new AbstractError(throwable);
   }
 
+  public boolean cannotThrow() {
+    return this == BOTTOM;
+  }
+
   public boolean isThrowing() {
     return this != BOTTOM;
   }

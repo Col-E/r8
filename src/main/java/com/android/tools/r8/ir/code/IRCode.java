@@ -20,6 +20,7 @@ import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -273,15 +274,16 @@ public class IRCode {
       }
       if (block.exit().isIf()) {
         If ifInstruction = block.exit().asIf();
-        if (ifInstruction.lhs().mayDependOnEnvironment()) {
+        if (ifInstruction.lhs().mayDependOnEnvironment(appView, this)) {
           return true;
         }
-        if (!ifInstruction.isZeroTest() && ifInstruction.rhs().mayDependOnEnvironment()) {
+        if (!ifInstruction.isZeroTest()
+            && ifInstruction.rhs().mayDependOnEnvironment(appView, this)) {
           return true;
         }
       } else if (block.exit().isSwitch()) {
         Switch switchInstruction = block.exit().asSwitch();
-        if (switchInstruction.value().mayDependOnEnvironment()) {
+        if (switchInstruction.value().mayDependOnEnvironment(appView, this)) {
           return true;
         }
       }
@@ -993,6 +995,44 @@ public class IRCode {
 
   public boolean noColorsInUse() {
     return usedMarkingColors == 0;
+  }
+
+  public Iterable<Instruction> getInstructionsReachableFrom(Instruction instruction) {
+    BasicBlock source = instruction.getBlock();
+    Set<BasicBlock> blocksReachableFromSource = getBlocksReachableFromExclusive(source);
+    if (blocksReachableFromSource.contains(source)) {
+      Iterable<Instruction> result = null;
+      for (BasicBlock block : blocksReachableFromSource) {
+        result =
+            result != null
+                ? Iterables.concat(result, block.getInstructions())
+                : block.getInstructions();
+      }
+      return result;
+    } else {
+      Iterable<Instruction> result = () -> source.listIterator(instruction);
+      for (BasicBlock block : blocksReachableFromSource) {
+        result = Iterables.concat(result, block.getInstructions());
+      }
+      return result;
+    }
+  }
+
+  /**
+   * Returns the set of blocks that are reachable from the given source. The source itself is only
+   * included if there is a path from the given block to itself.
+   */
+  public Set<BasicBlock> getBlocksReachableFromExclusive(BasicBlock source) {
+    Set<BasicBlock> result = Sets.newIdentityHashSet();
+    int color = reserveMarkingColor();
+    source.getSuccessors().forEach(successor -> markTransitiveSuccessors(successor, color));
+    for (BasicBlock block : blocks) {
+      if (block.isMarked(color)) {
+        result.add(block);
+      }
+    }
+    returnMarkingColor(color);
+    return result;
   }
 
   public Set<BasicBlock> getUnreachableBlocks() {
