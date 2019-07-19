@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexMethodHandle.MethodHandleType;
@@ -62,13 +63,16 @@ import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.VerticalClassMerger.VerticallyMergedClasses;
 import com.google.common.collect.Sets;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiFunction;
 
 public class LensCodeRewriter {
 
@@ -77,20 +81,17 @@ public class LensCodeRewriter {
   private final Map<DexProto, DexProto> protoFixupCache = new ConcurrentHashMap<>();
   private final LambdaRewriter lambdaRewriter;
 
-  public LensCodeRewriter(
-      AppView<? extends AppInfoWithSubtyping> appView, LambdaRewriter lambdaRewriter) {
+  LensCodeRewriter(AppView<? extends AppInfoWithSubtyping> appView, LambdaRewriter lambdaRewriter) {
     this.appView = appView;
     this.lambdaRewriter = lambdaRewriter;
   }
 
   private Value makeOutValue(Instruction insn, IRCode code) {
-    if (insn.outValue() == null) {
-      return null;
-    } else {
+    if (insn.outValue() != null) {
       TypeLatticeElement typeLattice = substitute(insn.outValue().getTypeLattice(), appView);
-      Value newValue = code.createValue(typeLattice, insn.getLocalInfo());
-      return newValue;
+      return code.createValue(typeLattice, insn.getLocalInfo());
     }
+    return null;
   }
 
   private static TypeLatticeElement substitute(
@@ -106,7 +107,10 @@ public class LensCodeRewriter {
   /** Replace type appearances, invoke targets and field accesses with actual definitions. */
   public void rewrite(IRCode code, DexEncodedMethod method) {
     GraphLense graphLense = appView.graphLense();
-    boolean hasChangedOutValueOrPhi = false;
+    DexItemFactory factory = appView.dexItemFactory();
+    // Rewriting types that affects phi can cause us to compute TOP for cyclic phi's. To solve this
+    // we track all phi's that needs to be re-computed.
+    Set<Phi> affectedPhis = Sets.newIdentityHashSet();
     ListIterator<BasicBlock> blocks = code.listIterator();
     boolean mayHaveUnreachableBlocks = false;
     while (blocks.hasNext()) {
@@ -124,16 +128,12 @@ public class LensCodeRewriter {
           InvokeCustom invokeCustom = current.asInvokeCustom();
           DexCallSite callSite = invokeCustom.getCallSite();
           DexProto newMethodProto =
-              appView
-                  .dexItemFactory()
-                  .applyClassMappingToProto(
-                      callSite.methodProto, graphLense::lookupType, protoFixupCache);
+              factory.applyClassMappingToProto(
+                  callSite.methodProto, graphLense::lookupType, protoFixupCache);
           DexMethodHandle newBootstrapMethod = rewriteDexMethodHandle(
               callSite.bootstrapMethod, method, NOT_ARGUMENT_TO_LAMBDA_METAFACTORY);
           boolean isLambdaMetaFactory =
-              appView
-                  .dexItemFactory()
-                  .isLambdaMetafactoryMethod(callSite.bootstrapMethod.asMethod());
+              factory.isLambdaMetafactoryMethod(callSite.bootstrapMethod.asMethod());
           MethodHandleUse methodHandleUse = isLambdaMetaFactory
               ? ARGUMENT_TO_LAMBDA_METAFACTORY
               : NOT_ARGUMENT_TO_LAMBDA_METAFACTORY;
@@ -143,13 +143,16 @@ public class LensCodeRewriter {
               || newBootstrapMethod != callSite.bootstrapMethod
               || !newArgs.equals(callSite.bootstrapArgs)) {
             DexCallSite newCallSite =
-                appView
-                    .dexItemFactory()
-                    .createCallSite(
-                        callSite.methodName, newMethodProto, newBootstrapMethod, newArgs);
-            InvokeCustom newInvokeCustom = new InvokeCustom(newCallSite, invokeCustom.outValue(),
-                invokeCustom.inValues());
+                factory.createCallSite(
+                    callSite.methodName, newMethodProto, newBootstrapMethod, newArgs);
+            Value newOutValue = makeOutValue(invokeCustom, code);
+            InvokeCustom newInvokeCustom =
+                new InvokeCustom(newCallSite, newOutValue, invokeCustom.inValues());
             iterator.replaceCurrentInstruction(newInvokeCustom);
+            if (newOutValue != null
+                && newOutValue.getTypeLattice() != invokeCustom.outValue().getTypeLattice()) {
+              affectedPhis.addAll(newOutValue.uniquePhiUsers());
+            }
           }
           if (lambdaRewriter != null
               && appView.options().testing.desugarLambdasThroughLensCodeRewriter()) {
@@ -163,33 +166,31 @@ public class LensCodeRewriter {
           DexMethodHandle newHandle = rewriteDexMethodHandle(
               handle, method, NOT_ARGUMENT_TO_LAMBDA_METAFACTORY);
           if (newHandle != handle) {
-            ConstMethodHandle newInstruction =
-                new ConstMethodHandle(makeOutValue(current, code), newHandle);
-            iterator.replaceCurrentInstruction(newInstruction);
-            hasChangedOutValueOrPhi = true;
+            Value newOutValue = makeOutValue(current, code);
+            iterator.replaceCurrentInstruction(new ConstMethodHandle(newOutValue, newHandle));
+            if (newOutValue != null
+                && newOutValue.getTypeLattice() != current.outValue().getTypeLattice()) {
+              affectedPhis.addAll(newOutValue.uniquePhiUsers());
+            }
           }
         } else if (current.isInvokeMethod()) {
           InvokeMethod invoke = current.asInvokeMethod();
           DexMethod invokedMethod = invoke.getInvokedMethod();
           DexType invokedHolder = invokedMethod.holder;
           if (invokedHolder.isArrayType()) {
-            DexType baseType = invokedHolder.toBaseType(appView.dexItemFactory());
-            DexType mappedBaseType = graphLense.lookupType(baseType);
-            if (baseType != mappedBaseType) {
-              DexType mappedHolder =
-                  invokedHolder.replaceBaseType(mappedBaseType, appView.dexItemFactory());
-              // Just reuse proto and name, as no methods on array types can be renamed nor
-              // change signature.
-              DexMethod actualTarget =
-                  appView
-                      .dexItemFactory()
-                      .createMethod(mappedHolder, invokedMethod.proto, invokedMethod.name);
-              Invoke newInvoke =
-                  Invoke.create(
-                      VIRTUAL, actualTarget, null, makeOutValue(invoke, code), invoke.inValues());
-              iterator.replaceCurrentInstruction(newInvoke);
-              hasChangedOutValueOrPhi = true;
-            }
+            DexType baseType = invokedHolder.toBaseType(factory);
+            new InstructionReplacer(code, current, iterator, affectedPhis)
+                .replaceInstructionIfTypeChanged(
+                    baseType,
+                    (t, v) -> {
+                      DexType mappedHolder = invokedHolder.replaceBaseType(t, factory);
+                      // Just reuse proto and name, as no methods on array types cant be renamed nor
+                      // change signature.
+                      DexMethod actualTarget =
+                          factory.createMethod(
+                              mappedHolder, invokedMethod.proto, invokedMethod.name);
+                      return Invoke.create(VIRTUAL, actualTarget, null, v, invoke.inValues());
+                    });
             continue;
           }
           if (!invokedHolder.isClassType()) {
@@ -223,6 +224,10 @@ public class LensCodeRewriter {
                     .setLocalInfo(invoke.outValue().getLocalInfo());
               }
               invoke.outValue().replaceUsers(constantReturnMaterializingInstruction.outValue());
+              if (graphLense.lookupType(invoke.getReturnType()) != invoke.getReturnType()) {
+                affectedPhis.addAll(
+                    constantReturnMaterializingInstruction.outValue().uniquePhiUsers());
+              }
             }
 
             Value newOutValue =
@@ -262,7 +267,10 @@ public class LensCodeRewriter {
             Invoke newInvoke =
                 Invoke.create(actualInvokeType, actualTarget, null, newOutValue, newInValues);
             iterator.replaceCurrentInstruction(newInvoke);
-            hasChangedOutValueOrPhi = true;
+            if (newOutValue != null
+                && newOutValue.getTypeLattice() != current.outValue().getTypeLattice()) {
+              affectedPhis.addAll(newOutValue.uniquePhiUsers());
+            }
 
             if (constantReturnMaterializingInstruction != null) {
               if (block.hasCatchHandlers()) {
@@ -293,14 +301,21 @@ public class LensCodeRewriter {
           DexMethod replacementMethod =
               graphLense.lookupGetFieldForMethod(actualField, method.method);
           if (replacementMethod != null) {
+            Value newOutValue = makeOutValue(current, code);
             iterator.replaceCurrentInstruction(
-                new InvokeStatic(replacementMethod, current.outValue(), current.inValues()));
-            hasChangedOutValueOrPhi = true;
+                new InvokeStatic(replacementMethod, newOutValue, current.inValues()));
+            if (newOutValue != null
+                && newOutValue.getTypeLattice() != current.outValue().getTypeLattice()) {
+              affectedPhis.addAll(current.outValue().uniquePhiUsers());
+            }
           } else if (actualField != field) {
-            InstanceGet newInstanceGet =
-                new InstanceGet(makeOutValue(instanceGet, code), instanceGet.object(), actualField);
-            iterator.replaceCurrentInstruction(newInstanceGet);
-            hasChangedOutValueOrPhi = true;
+            Value newOutValue = makeOutValue(instanceGet, code);
+            iterator.replaceCurrentInstruction(
+                new InstanceGet(newOutValue, instanceGet.object(), actualField));
+            if (newOutValue != null
+                && newOutValue.getTypeLattice() != current.outValue().getTypeLattice()) {
+              affectedPhis.addAll(newOutValue.uniquePhiUsers());
+            }
           }
         } else if (current.isInstancePut()) {
           InstancePut instancePut = current.asInstancePut();
@@ -310,7 +325,7 @@ public class LensCodeRewriter {
               graphLense.lookupPutFieldForMethod(actualField, method.method);
           if (replacementMethod != null) {
             iterator.replaceCurrentInstruction(
-                new InvokeStatic(replacementMethod, current.outValue(), current.inValues()));
+                new InvokeStatic(replacementMethod, null, current.inValues()));
           } else if (actualField != field) {
             InstancePut newInstancePut =
                 new InstancePut(actualField, instancePut.object(), instancePut.value());
@@ -323,13 +338,20 @@ public class LensCodeRewriter {
           DexMethod replacementMethod =
               graphLense.lookupGetFieldForMethod(actualField, method.method);
           if (replacementMethod != null) {
+            Value newOutValue = makeOutValue(current, code);
             iterator.replaceCurrentInstruction(
-                new InvokeStatic(replacementMethod, current.outValue(), current.inValues()));
-            hasChangedOutValueOrPhi = true;
+                new InvokeStatic(replacementMethod, newOutValue, current.inValues()));
+            if (newOutValue != null
+                && newOutValue.getTypeLattice() != current.outValue().getTypeLattice()) {
+              affectedPhis.addAll(newOutValue.uniquePhiUsers());
+            }
           } else if (actualField != field) {
-            StaticGet newStaticGet = new StaticGet(makeOutValue(staticGet, code), actualField);
-            iterator.replaceCurrentInstruction(newStaticGet);
-            hasChangedOutValueOrPhi = true;
+            Value newOutValue = makeOutValue(staticGet, code);
+            iterator.replaceCurrentInstruction(new StaticGet(newOutValue, actualField));
+            if (newOutValue != null
+                && newOutValue.getTypeLattice() != current.outValue().getTypeLattice()) {
+              affectedPhis.addAll(newOutValue.uniquePhiUsers());
+            }
           }
         } else if (current.isStaticPut()) {
           StaticPut staticPut = current.asStaticPut();
@@ -346,106 +368,123 @@ public class LensCodeRewriter {
           }
         } else if (current.isCheckCast()) {
           CheckCast checkCast = current.asCheckCast();
-          DexType newType = graphLense.lookupType(checkCast.getType());
-          if (newType != checkCast.getType()) {
-            CheckCast newCheckCast =
-                new CheckCast(makeOutValue(checkCast, code), checkCast.object(), newType);
-            iterator.replaceCurrentInstruction(newCheckCast);
-            hasChangedOutValueOrPhi = true;
-          }
+          new InstructionReplacer(code, current, iterator, affectedPhis)
+              .replaceInstructionIfTypeChanged(
+                  checkCast.getType(), (t, v) -> new CheckCast(v, checkCast.object(), t));
         } else if (current.isConstClass()) {
           ConstClass constClass = current.asConstClass();
-          DexType newType = graphLense.lookupType(constClass.getValue());
-          if (newType != constClass.getValue()) {
-            ConstClass newConstClass = new ConstClass(makeOutValue(constClass, code), newType);
-            iterator.replaceCurrentInstruction(newConstClass);
-            hasChangedOutValueOrPhi = true;
-          }
+          new InstructionReplacer(code, current, iterator, affectedPhis)
+              .replaceInstructionIfTypeChanged(
+                  constClass.getValue(), (t, v) -> new ConstClass(v, t));
         } else if (current.isInstanceOf()) {
           InstanceOf instanceOf = current.asInstanceOf();
-          DexType newType = graphLense.lookupType(instanceOf.type());
-          if (newType != instanceOf.type()) {
-            InstanceOf newInstanceOf =
-                new InstanceOf(makeOutValue(instanceOf, code), instanceOf.value(), newType);
-            iterator.replaceCurrentInstruction(newInstanceOf);
-            hasChangedOutValueOrPhi = true;
-          }
+          new InstructionReplacer(code, current, iterator, affectedPhis)
+              .replaceInstructionIfTypeChanged(
+                  instanceOf.type(), (t, v) -> new InstanceOf(v, instanceOf.value(), t));
         } else if (current.isInvokeMultiNewArray()) {
           InvokeMultiNewArray multiNewArray = current.asInvokeMultiNewArray();
-          DexType newType = graphLense.lookupType(multiNewArray.getArrayType());
-          if (newType != multiNewArray.getArrayType()) {
-            InvokeMultiNewArray newMultiNewArray =
-                new InvokeMultiNewArray(
-                    newType, makeOutValue(multiNewArray, code), multiNewArray.inValues());
-            iterator.replaceCurrentInstruction(newMultiNewArray);
-            hasChangedOutValueOrPhi = true;
-          }
+          new InstructionReplacer(code, current, iterator, affectedPhis)
+              .replaceInstructionIfTypeChanged(
+                  multiNewArray.getArrayType(),
+                  (t, v) -> new InvokeMultiNewArray(t, v, multiNewArray.inValues()));
         } else if (current.isInvokeNewArray()) {
           InvokeNewArray newArray = current.asInvokeNewArray();
-          DexType newType = graphLense.lookupType(newArray.getArrayType());
-          if (newType != newArray.getArrayType()) {
-            InvokeNewArray newNewArray =
-                new InvokeNewArray(newType, makeOutValue(newArray, code), newArray.inValues());
-            iterator.replaceCurrentInstruction(newNewArray);
-            hasChangedOutValueOrPhi = true;
-          }
+          new InstructionReplacer(code, current, iterator, affectedPhis)
+              .replaceInstructionIfTypeChanged(
+                  newArray.getArrayType(), (t, v) -> new InvokeNewArray(t, v, newArray.inValues()));
         } else if (current.isMoveException()) {
           MoveException moveException = current.asMoveException();
-          DexType newExceptionType = graphLense.lookupType(moveException.getExceptionType());
-          if (newExceptionType != moveException.getExceptionType()) {
-            iterator.replaceCurrentInstruction(
-                new MoveException(
-                    makeOutValue(moveException, code), newExceptionType, appView.options()));
-            hasChangedOutValueOrPhi = true;
-          }
+          new InstructionReplacer(code, current, iterator, affectedPhis)
+              .replaceInstructionIfTypeChanged(
+                  moveException.getExceptionType(),
+                  (t, v) -> new MoveException(v, t, appView.options()));
         } else if (current.isNewArrayEmpty()) {
           NewArrayEmpty newArrayEmpty = current.asNewArrayEmpty();
-          DexType newType = graphLense.lookupType(newArrayEmpty.type);
-          if (newType != newArrayEmpty.type) {
-            NewArrayEmpty newNewArray =
-                new NewArrayEmpty(makeOutValue(newArrayEmpty, code), newArrayEmpty.size(), newType);
-            iterator.replaceCurrentInstruction(newNewArray);
-            hasChangedOutValueOrPhi = true;
-          }
+          new InstructionReplacer(code, current, iterator, affectedPhis)
+              .replaceInstructionIfTypeChanged(
+                  newArrayEmpty.type, (t, v) -> new NewArrayEmpty(v, newArrayEmpty.size(), t));
         } else if (current.isNewInstance()) {
-          NewInstance newInstance = current.asNewInstance();
-          DexType newClazz = graphLense.lookupType(newInstance.clazz);
-          if (newClazz != newInstance.clazz) {
-            NewInstance newNewInstance = new NewInstance(newClazz, makeOutValue(newInstance, code));
-            iterator.replaceCurrentInstruction(newNewInstance);
-            hasChangedOutValueOrPhi = true;
-          }
+          DexType type = current.asNewInstance().clazz;
+          new InstructionReplacer(code, current, iterator, affectedPhis)
+              .replaceInstructionIfTypeChanged(type, NewInstance::new);
         } else if (current.outValue() != null) {
           // For all other instructions, substitute any changed type.
           TypeLatticeElement typeLattice = current.outValue().getTypeLattice();
           TypeLatticeElement substituted = substitute(typeLattice, appView);
           if (substituted != typeLattice) {
             current.outValue().setTypeLattice(substituted);
-            hasChangedOutValueOrPhi = true;
+            affectedPhis.addAll(current.outValue().uniquePhiUsers());
           }
-        }
-      }
-      for (Phi phi : block.getPhis()) {
-        TypeLatticeElement phiTypeLattice = phi.getTypeLattice();
-        TypeLatticeElement substituted = substitute(phiTypeLattice, appView);
-        if (substituted != phiTypeLattice) {
-          phi.setTypeLattice(substituted);
-          hasChangedOutValueOrPhi = true;
         }
       }
     }
     if (mayHaveUnreachableBlocks) {
       code.removeUnreachableBlocks();
     }
-    if (hasChangedOutValueOrPhi) {
-      // We have updated at least one type lattice element which can cause phi's to narrow.
-      Set<Value> affectedValues = Sets.newIdentityHashSet();
-      code.blocks.forEach(b -> affectedValues.addAll(b.getPhis()));
-      new TypeAnalysis(appView).narrowing(affectedValues);
+    if (!affectedPhis.isEmpty()) {
+      // We have updated at least one type lattice element which can cause phi's to narrow to a more
+      // precise type. Because cycles in phi's can occur, we have to reset all phi's before
+      // computing the new values.
+      Deque<Phi> worklist = new ArrayDeque<>(affectedPhis);
+      while (!worklist.isEmpty()) {
+        Phi phi = worklist.poll();
+        phi.setTypeLattice(TypeLatticeElement.BOTTOM);
+        for (Phi affectedPhi : phi.uniquePhiUsers()) {
+          if (affectedPhis.add(affectedPhi)) {
+            worklist.add(affectedPhi);
+          }
+        }
+      }
+      assert verifyAllChangedPhisAreScheduled(code, affectedPhis);
+      // Assuming all values have been rewritten correctly above, the non-phi operands to phi's are
+      // replaced with correct types and all other phi operands are BOTTOM.
+      assert verifyAllPhiOperandsAreBottom(affectedPhis, graphLense);
+      worklist.addAll(affectedPhis);
+      while (!worklist.isEmpty()) {
+        Phi phi = worklist.poll();
+        TypeLatticeElement newType = phi.computePhiType(appView);
+        if (!phi.getTypeLattice().equals(newType)) {
+          assert !newType.isBottom();
+          phi.setTypeLattice(newType);
+          worklist.addAll(phi.uniquePhiUsers());
+        }
+      }
+      new TypeAnalysis(appView).narrowing(affectedPhis);
       assert code.verifyTypes(appView);
     }
     assert code.isConsistentSSA();
     assert code.hasNoVerticallyMergedClasses(appView);
+  }
+
+  private boolean verifyAllPhiOperandsAreBottom(Set<Phi> affectedPhis, GraphLense graphLense) {
+    for (Phi phi : affectedPhis) {
+      for (Value operand : phi.getOperands()) {
+        if (operand.isPhi()) {
+          Phi operandPhi = operand.asPhi();
+          TypeLatticeElement operandType = operandPhi.getTypeLattice();
+          assert !affectedPhis.contains(operandPhi) || operandType.isBottom();
+          assert affectedPhis.contains(operandPhi)
+              || operandType.isPrimitive()
+              || (operandType.isReference()
+                  && operandType.asReferenceTypeLatticeElement().substitute(graphLense, appView)
+                      == operandType);
+        }
+      }
+    }
+    return true;
+  }
+
+  private boolean verifyAllChangedPhisAreScheduled(IRCode code, Set<Phi> affectedPhis) {
+    ListIterator<BasicBlock> blocks = code.listIterator();
+    while (blocks.hasNext()) {
+      BasicBlock block = blocks.next();
+      for (Phi phi : block.getPhis()) {
+        TypeLatticeElement phiTypeLattice = phi.getTypeLattice();
+        TypeLatticeElement substituted = substitute(phiTypeLattice, appView);
+        assert substituted == phiTypeLattice || affectedPhis.contains(phi);
+      }
+    }
+    return true;
   }
 
   // If the given invoke is on the form "invoke-direct A.<init>, v0, ..." and the definition of
@@ -696,5 +735,39 @@ public class LensCodeRewriter {
     }
     // If the method is in another package, then the method and its holder must be public.
     return clazz.accessFlags.isPublic() && target.accessFlags.isPublic();
+  }
+
+  class InstructionReplacer {
+
+    private final IRCode code;
+    private final Instruction current;
+    private final InstructionListIterator iterator;
+    private final Set<Phi> affectedPhis;
+
+    InstructionReplacer(
+        IRCode code, Instruction current, InstructionListIterator iterator, Set<Phi> affectedPhis) {
+      this.code = code;
+      this.current = current;
+      this.iterator = iterator;
+      this.affectedPhis = affectedPhis;
+    }
+
+    void replaceInstructionIfTypeChanged(
+        DexType type, BiFunction<DexType, Value, Instruction> constructor) {
+      DexType newType = appView.graphLense().lookupType(type);
+      if (newType != type) {
+        Value newOutValue = makeOutValue(current, code);
+        Instruction newInstruction = constructor.apply(newType, newOutValue);
+        iterator.replaceCurrentInstruction(newInstruction);
+        if (newOutValue != null) {
+          if (newOutValue.getTypeLattice() != current.outValue().getTypeLattice()) {
+            affectedPhis.addAll(newOutValue.uniquePhiUsers());
+          } else {
+            assert current.hasInvariantOutType();
+            assert current.isConstClass() || current.isInstanceOf();
+          }
+        }
+      }
+    }
   }
 }

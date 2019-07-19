@@ -45,8 +45,7 @@ public class TypeChecker {
         if (!check(instruction.asInstancePut())) {
           return false;
         }
-      } else if (instruction.isReturn()
-          && !appView.options().testing.mayHaveIncorrectTypesForPhis) {
+      } else if (instruction.isReturn()) {
         if (!check(instruction.asReturn(), code.method)) {
           return false;
         }

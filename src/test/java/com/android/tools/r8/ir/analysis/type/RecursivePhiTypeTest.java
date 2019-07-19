@@ -8,7 +8,6 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.KeepConstantArguments;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
@@ -34,14 +33,11 @@ public class RecursivePhiTypeTest extends TestBase {
     this.parameters = parameters;
   }
 
-  // TODO(b/137690094): Fix type analysis.
-  @Test(expected = CompilationFailedException.class)
+  @Test
   public void test() throws Exception {
     testForR8(parameters.getBackend())
         .addInnerClasses(RecursivePhiTypeTest.class)
         .addKeepMainRule(TestClass.class)
-        // TODO(b/137690094): Remove the following line when fixed.
-        .addOptionsModification(options -> options.testing.mayHaveIncorrectTypesForPhis = false)
         .enableConstantArgumentAnnotations()
         .enableInliningAnnotations()
         .setMinApi(parameters.getRuntime())
