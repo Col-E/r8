@@ -1144,6 +1144,7 @@ public class Value {
     // During NARROWING (e.g., after inlining), type update is monotonically downwards,
     //   i.e., towards something narrower, with more specific type info.
     assert !this.typeLattice.strictlyLessThan(newType, appView)
+            || !appView.enableWholeProgramOptimizations()
         : "During NARROWING, "
             + typeLattice
             + " < "
