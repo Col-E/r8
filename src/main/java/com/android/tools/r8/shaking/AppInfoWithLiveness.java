@@ -28,6 +28,7 @@ import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.optimize.NestUtils;
 import com.android.tools.r8.utils.CollectionUtils;
+import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
@@ -729,6 +730,34 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     return pinnedItems.contains(reference);
   }
 
+  public boolean isMethodPinnedDirectlyOrInAncestor(DexMethod method) {
+    // Look in all ancestor types.
+    DexClass currentClass = definitionFor(method.holder);
+    if (currentClass == null || !currentClass.isProgramClass()) {
+      return false;
+    }
+    Set<DexType> visited = SetUtils.newIdentityHashSet(currentClass.allImmediateSupertypes());
+    Deque<DexType> worklist = new ArrayDeque<>(visited);
+    while (!worklist.isEmpty()) {
+      DexType type = worklist.removeFirst();
+      assert visited.contains(type);
+      DexClass clazz = definitionFor(type);
+      if (clazz == null || !clazz.isProgramClass()) {
+        continue;
+      }
+      DexEncodedMethod methodInClass = clazz.lookupVirtualMethod(method);
+      if (methodInClass != null && isPinned(methodInClass.method)) {
+        return true;
+      }
+      for (DexType superType : clazz.allImmediateSupertypes()) {
+        if (visited.add(superType)) {
+          worklist.addLast(superType);
+        }
+      }
+    }
+    return false;
+  }
+
   public Iterable<DexReference> getPinnedItems() {
     assert checkIfObsolete();
     return pinnedItems;
@@ -823,11 +852,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     if (method.isSingleVirtualMethodCached(refinedReceiverType)) {
       return method.getSingleVirtualMethodCache(refinedReceiverType);
     }
-    // For kept types we cannot ensure a single target.
-    if (pinnedItems.contains(method.holder)) {
-      method.setSingleVirtualMethodCache(refinedReceiverType, null);
-      return null;
-    }
     // First get the target for the holder type.
     ResolutionResult topMethod = resolveMethod(method.holder, method);
     // We might hit none or multiple targets. Both make this fail at runtime.
@@ -891,12 +915,12 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       DexEncodedMethod candidate,
       boolean candidateIsReachable,
       boolean checkForInterfaceConflicts) {
-    // If the candidate is reachable, we already have a previous result.
-    DexEncodedMethod result = candidateIsReachable ? candidate : null;
-    if (pinnedItems.contains(type)) {
-      // For kept types we do not know all subtypes, so abort.
+    // For kept types we do not know all subtypes, so abort if the method is also kept.
+    if (isPinned(type) && isMethodPinnedDirectlyOrInAncestor(candidate.method)) {
       return DexEncodedMethod.SENTINEL;
     }
+    // If the candidate is reachable, we already have a previous result.
+    DexEncodedMethod result = candidateIsReachable ? candidate : null;
     for (DexType subtype : allImmediateExtendsSubtypes(type)) {
       DexClass clazz = definitionFor(subtype);
       DexEncodedMethod target = clazz.lookupVirtualMethod(method);

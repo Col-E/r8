@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.optimize.outliner.b133215941;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.android.tools.r8.AssumeMayHaveSideEffects;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverMerge;
@@ -63,6 +64,7 @@ public class B133215941 extends TestBase {
         .enableInliningAnnotations()
         .enableClassInliningAnnotations()
         .enableMergeAnnotations()
+        .enableSideEffectAnnotations()
         .addInnerClasses(B133215941.class)
         .addKeepMainRule(TestClass.class)
         .addKeepClassAndMembersRules(ClassWithStaticMethod.class)
@@ -82,6 +84,7 @@ public class B133215941 extends TestBase {
 
   @NeverMerge
   public static class TestClassSuper {
+    @AssumeMayHaveSideEffects
     @NeverInline
     public void superMethod() {}
   }

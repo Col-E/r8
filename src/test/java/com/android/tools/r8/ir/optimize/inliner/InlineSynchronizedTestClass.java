@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.optimize.inliner;
 
+import com.android.tools.r8.NeverInline;
+
 class InlineSynchronizedTestClass {
   private synchronized void normalInlinedSynchronized() {
     System.out.println("InlineSynchronizedTestClass::normalInlinedSynchronized");
@@ -17,6 +19,7 @@ class InlineSynchronizedTestClass {
     System.out.println("InlineSynchronizedTestClass::normalInlinedControl");
   }
 
+  @NeverInline
   public void classInlinedControl() {
     System.out.println("InlineSynchronizedTestClass::classInlinedControl");
   }

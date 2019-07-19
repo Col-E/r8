@@ -6,21 +6,37 @@ package com.android.tools.r8.smali;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.OutputMode;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class RemoveWriteOfUnusedFieldsTest extends SmaliTestBase {
+
+  private final TestParameters parameters;
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withDexRuntimes().build();
+  }
+
+  public RemoveWriteOfUnusedFieldsTest(TestParameters parameters) {
+    this.parameters = parameters;
+  }
 
   @Test
   public void unreadStaticFieldsRemoved() throws Exception {
@@ -71,18 +87,20 @@ public class RemoveWriteOfUnusedFieldsTest extends SmaliTestBase {
     input.writeToZip(inputPath, OutputMode.DexIndexed);
     ToolHelper.runArtNoVerificationErrors(inputPath.toString(), DEFAULT_CLASS_NAME);
 
-    AndroidApp app =
-        compileWithR8(
-            input,
-            keepMainProguardConfiguration("Test"),
-            options -> options.enableInlining = false);
-
-    CodeInspector inspector = new CodeInspector(app);
-    MethodSubject method = inspector.clazz("Test").method("void", "test", ImmutableList.of());
-    assertThat(
-        "Expected method to be removed entirely because it does not have side effects",
-        method,
-        not(isPresent()));
+    testForR8(parameters.getBackend())
+        .addProgramFiles(inputPath)
+        .addKeepMainRule("Test")
+        .setMinApi(parameters.getRuntime())
+        .compile()
+        .inspect(
+            inspector -> {
+              MethodSubject method =
+                  inspector.clazz("Test").method("void", "test", ImmutableList.of());
+              assertThat(
+                  "Expected method to be removed entirely because it does not have side effects",
+                  method,
+                  not(isPresent()));
+            });
   }
 
   @Test
@@ -141,15 +159,18 @@ public class RemoveWriteOfUnusedFieldsTest extends SmaliTestBase {
     input.writeToZip(inputPath, OutputMode.DexIndexed);
     ToolHelper.runArtNoVerificationErrors(inputPath.toString(), DEFAULT_CLASS_NAME);
 
-    AndroidApp app =
-        compileWithR8(
-            input,
-            keepMainProguardConfiguration("Test"),
-            options -> options.enableInlining = false);
-
-    CodeInspector inspector = new CodeInspector(app);
-    MethodSubject method = inspector.clazz("Test").method("void", "test", ImmutableList.of());
-    DexCode code = method.getMethod().getCode().asDexCode();
-    assertTrue(code.isEmptyVoidMethod());
+    testForR8(parameters.getBackend())
+        .addProgramFiles(inputPath)
+        .addKeepMainRule("Test")
+        .addKeepRules("-keep class Test { void test(); }")
+        .setMinApi(parameters.getRuntime())
+        .compile()
+        .inspect(
+            inspector -> {
+              MethodSubject method =
+                  inspector.clazz("Test").method("void", "test", ImmutableList.of());
+              DexCode code = method.getMethod().getCode().asDexCode();
+              assertTrue(code.isEmptyVoidMethod());
+            });
   }
 }

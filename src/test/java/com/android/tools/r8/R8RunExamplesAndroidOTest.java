@@ -35,25 +35,22 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
       "-keepclasseswithmembers public class * {",
       "    public static void main(java.lang.String[]);",
       "}",
-      "",
       "-dontobfuscate",
       "-allowaccessmodification"
   );
 
-  private static final ArrayList<String> PROGUARD_OPTIONS_N_PLUS = Lists.newArrayList(
-      "-keepclasseswithmembers public class * {",
-      "    public static void main(java.lang.String[]);",
-      "}",
-      "",
-      "-keepclasseswithmembers interface lambdadesugaringnplus."
-          + "LambdasWithStaticAndDefaultMethods$B38302860$AnnotatedInterface{",
-      "    *;",
-      "} ",
-      "",
-      "-keepattributes *Annotation*",
-      "-dontobfuscate",
-      "-allowaccessmodification"
-  );
+  private static final ArrayList<String> PROGUARD_OPTIONS_N_PLUS =
+      Lists.newArrayList(
+          "-keepclasseswithmembers public class * {",
+          "    public static void main(java.lang.String[]);",
+          "}",
+          "-keepclasseswithmembers interface lambdadesugaringnplus."
+              + "LambdasWithStaticAndDefaultMethods$B38302860$AnnotatedInterface{",
+          "    *;",
+          "}",
+          "-keepattributes *Annotation*",
+          "-dontobfuscate",
+          "-allowaccessmodification");
 
   private static Map<DexVm.Version, List<String>> alsoFailsOn =
       ImmutableMap.<DexVm.Version, List<String>>builder()
@@ -117,7 +114,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
         // TODO(b/120814598): Should be 24. Some lambdas are not class inlined because parameter
         // usages for lambda methods are not present for the class inliner.
-        .withDexCheck(inspector -> checkLambdaCount(inspector, 44, "lambdadesugaring"))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 38, "lambdadesugaring"))
         .run();
   }
 
@@ -129,6 +126,14 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .withMinApiLevel(ToolHelper.getMinApiLevelForDexVmNoHigherThan(AndroidApiLevel.K))
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
+        .withBuilderTransformation(
+            b ->
+                b.addProguardConfiguration(
+                    ImmutableList.of(
+                        "-keep class lambdadesugaring.LambdaDesugaring {",
+                        "  void testMultipleInterfaces();",
+                        "}"),
+                    Origin.unknown()))
         .withDexCheck(inspector -> checkTestMultipleInterfacesCheckCastCount(inspector, 0))
         .run();
   }
@@ -159,7 +164,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
         // TODO(b/120814598): Should be 24. Some lambdas are not class inlined because parameter
         // usages for lambda methods are not present for the class inliner.
-        .withDexCheck(inspector -> checkLambdaCount(inspector, 44, "lambdadesugaring"))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 38, "lambdadesugaring"))
         .run();
   }
 
@@ -181,7 +186,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
         // TODO(b/120814598): Should be 24. Some lambdas are not class inlined because parameter
         // usages for lambda methods are not present for the class inliner.
-        .withDexCheck(inspector -> checkLambdaCount(inspector, 44, "lambdadesugaring"))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 38, "lambdadesugaring"))
         .run();
   }
 

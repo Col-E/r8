@@ -5,14 +5,13 @@
 package com.android.tools.r8.ir.optimize.inliner;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.utils.BooleanUtils;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -50,18 +49,15 @@ public class InlineSynchronizedTest extends TestBase {
     this.classInlining = classInlining;
   }
 
-  private void configure(InternalOptions options) {
-    options.enableClassInlining = classInlining;
-  }
-
   @Test
   public void test() throws Exception {
     CodeInspector codeInspector =
         testForR8(backend)
             .addProgramClasses(InlineSynchronizedTestClass.class)
-            .addKeepMainRule("com.android.tools.r8.ir.optimize.inliner.InlineSynchronizedTestClass")
-            .addKeepRules("-dontobfuscate")
+            .addKeepMainRule(InlineSynchronizedTestClass.class)
             .addOptionsModification(o -> o.enableClassInlining = classInlining)
+            .enableInliningAnnotations()
+            .noMinification()
             .compile()
             .inspector();
 

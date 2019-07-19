@@ -5,7 +5,6 @@
 package com.android.tools.r8.utils;
 
 import com.google.common.collect.Sets;
-import java.util.Collection;
 import java.util.Set;
 
 public class SetUtils {
@@ -16,9 +15,9 @@ public class SetUtils {
     return result;
   }
 
-  public static <T> Set<T> newIdentityHashSet(Collection<T> c) {
+  public static <T> Set<T> newIdentityHashSet(Iterable<T> c) {
     Set<T> result = Sets.newIdentityHashSet();
-    result.addAll(c);
+    c.forEach(result::add);
     return result;
   }
 }
