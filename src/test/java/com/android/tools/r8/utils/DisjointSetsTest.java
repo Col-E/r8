@@ -20,18 +20,49 @@ public class DisjointSetsTest {
     return ds;
   }
 
-  public void runOddEvenTest(int size) {
+  public void oddEvenJoin(int how, DisjointSets<Integer> ds, int size) {
+    if (how == 0 || how == 1) {
+      for (int i = 2; i < size; i++) {
+        if (i % 2 == 0) {
+          if (how == 0) {
+            ds.union(ds.findSet(0), ds.findSet(i));
+          } else {
+            ds.union(ds.findSet(i), ds.findSet(0));
+          }
+        } else {
+          if (how == 0) {
+            ds.union(ds.findSet(1), ds.findSet(i));
+          } else {
+            ds.union(ds.findSet(i), ds.findSet(1));
+          }
+        }
+      }
+    } else {
+      assert how == 2 || how == 3;
+      for (int i = size - 1; i >= 2; i--) {
+        if (i % 2 == 0) {
+          if (how == 2) {
+            ds.union(ds.findSet(0), ds.findSet(i));
+          } else {
+            ds.union(ds.findSet(i), ds.findSet(0));
+          }
+        } else {
+          if (how == 2) {
+            ds.union(ds.findSet(1), ds.findSet(i));
+          } else {
+            ds.union(ds.findSet(i), ds.findSet(1));
+          }
+        }
+      }
+    }
+  }
+
+  public void runOddEvenTest(int how, int size) {
     DisjointSets<Integer> ds = initTestSet(size);
 
     assertEquals(size, ds.collectSets().size());
 
-    for (int i = 2; i < size; i++) {
-      if (i % 2 == 0) {
-        ds.union(ds.findSet(0), ds.findSet(i));
-      } else {
-        ds.union(ds.findSet(1), ds.findSet(i));
-      }
-    }
+    oddEvenJoin(how, ds, size);
 
     Map<Integer, Set<Integer>> sets = ds.collectSets();
     assertEquals(2, sets.size());
@@ -71,6 +102,12 @@ public class DisjointSetsTest {
 
     ds.union(ds.findSet(size - 2), ds.findSet(size - 1));
     assertEquals(1, ds.collectSets().size());
+  }
+
+  public void runOddEvenTest(int size) {
+    for (int how = 0; how < 4; how++) {
+      runOddEvenTest(how, size);
+    }
   }
 
   @Test
