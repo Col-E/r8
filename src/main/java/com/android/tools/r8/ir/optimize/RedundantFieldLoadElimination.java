@@ -15,6 +15,7 @@ import com.android.tools.r8.ir.code.DominatorTree;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstanceGet;
+import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Phi;
@@ -137,9 +138,14 @@ public class RedundantFieldLoadElimination {
               activeInstanceFields.put(fieldAndObject, instanceGet);
             }
           } else if (instruction.isInstancePut()) {
+            InstancePut instancePut = instruction.asInstancePut();
             // An instance-put instruction can potentially write the given field on all objects
             // because of aliases.
-            killActiveFields(instruction.asFieldInstruction());
+            killActiveFields(instancePut);
+            // ... but at least we know the field value for this particular object.
+            Value object = instancePut.object().getAliasedValue();
+            FieldAndObject fieldAndObject = new FieldAndObject(field, object);
+            activeInstanceFields.put(fieldAndObject, instancePut);
           } else if (instruction.isStaticGet()) {
             StaticGet staticGet = instruction.asStaticGet();
             if (staticGet.outValue().hasLocalInfo()) {

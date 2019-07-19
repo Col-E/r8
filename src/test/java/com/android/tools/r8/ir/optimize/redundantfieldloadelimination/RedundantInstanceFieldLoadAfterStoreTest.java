@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -20,7 +21,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class RedundantFieldLoadAfterFieldStoreTest extends TestBase {
+public class RedundantInstanceFieldLoadAfterStoreTest extends TestBase {
 
   private final TestParameters parameters;
 
@@ -29,15 +30,16 @@ public class RedundantFieldLoadAfterFieldStoreTest extends TestBase {
     return getTestParameters().withAllRuntimes().build();
   }
 
-  public RedundantFieldLoadAfterFieldStoreTest(TestParameters parameters) {
+  public RedundantInstanceFieldLoadAfterStoreTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
   @Test
   public void test() throws Exception {
     testForR8(parameters.getBackend())
-        .addInnerClasses(RedundantFieldLoadAfterFieldStoreTest.class)
+        .addInnerClasses(RedundantInstanceFieldLoadAfterStoreTest.class)
         .addKeepMainRule(TestClass.class)
+        .enableClassInliningAnnotations()
         .setMinApi(parameters.getRuntime())
         .compile()
         .inspect(
@@ -54,23 +56,21 @@ public class RedundantFieldLoadAfterFieldStoreTest extends TestBase {
               MethodSubject methodSubject = classSubject.mainMethod();
               assertThat(methodSubject, isPresent());
               assertTrue(
-                  methodSubject
-                      .streamInstructions()
-                      .filter(InstructionSubject::isStaticGet)
-                      .map(InstructionSubject::getField)
-                      .allMatch(field -> field.name.toSourceString().equals("out")));
+                  methodSubject.streamInstructions().noneMatch(InstructionSubject::isInstanceGet));
             })
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("Hello world!");
   }
 
+  @NeverClassInline
   static class TestClass {
 
-    static String greeting;
+    String greeting;
 
     public static void main(String[] args) {
-      greeting = "Hello world!";
-      String str = greeting;
+      TestClass instance = new TestClass();
+      instance.greeting = "Hello world!";
+      String str = instance.greeting;
       System.out.println(str);
     }
   }

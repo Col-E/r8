@@ -102,7 +102,12 @@ public class MemberRebindingTest {
       builder.setMinApiLevel(minApiLevel);
     }
     ToolHelper.getAppBuilder(builder).addProgramFiles(programFile);
-    ToolHelper.runR8(builder.build(), options -> options.enableInlining = false);
+    ToolHelper.runR8(
+        builder.build(),
+        options -> {
+          options.enableInlining = false;
+          options.enableRedundantFieldLoadElimination = false;
+        });
   }
 
   private static boolean coolInvokes(InstructionSubject instruction) {

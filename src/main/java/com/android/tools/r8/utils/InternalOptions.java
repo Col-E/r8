@@ -213,6 +213,7 @@ public class InternalOptions {
   public boolean enableStringSwitchConversion = false;
   public boolean enableEnumValueOptimization = true;
   public final OutlineOptions outline = new OutlineOptions();
+  public boolean enableRedundantFieldLoadElimination = true;
   public boolean enableValuePropagation = true;
   public boolean enableUninstantiatedTypeOptimization = true;
 
