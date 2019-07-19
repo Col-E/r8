@@ -56,6 +56,19 @@ public class DisjointSetsTest {
     }
     assertEquals(size, ds.collectSet(0).size() + ds.collectSet(1).size());
 
+    int count = 0;
+    for (int i = 0; i < size; i++) {
+      count += ds.isRepresentativeOrNotPresent(i) ? 1 : 0;
+    }
+    assertEquals(2, count);
+    for (int i = -2; i < 0; i++) {
+      count += ds.isRepresentativeOrNotPresent(i) ? 1 : 0;
+    }
+    for (int i = size; i < size + 2; i++) {
+      count += ds.isRepresentativeOrNotPresent(i) ? 1 : 0;
+    }
+    assertEquals(6, count);
+
     ds.union(ds.findSet(size - 2), ds.findSet(size - 1));
     assertEquals(1, ds.collectSets().size());
   }
