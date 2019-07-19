@@ -119,6 +119,8 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   public static final DexEncodedMethod[] EMPTY_ARRAY = {};
   public static final DexEncodedMethod SENTINEL =
       new DexEncodedMethod(null, null, null, ParameterAnnotationsList.empty(), null);
+  public static final DexEncodedMethod ANNOTATION_REFERENCE =
+      new DexEncodedMethod(null, null, null, ParameterAnnotationsList.empty(), null);
   public static final Int2ReferenceMap<DebugLocalInfo> NO_PARAMETER_INFO =
       new Int2ReferenceArrayMap<>(0);
 

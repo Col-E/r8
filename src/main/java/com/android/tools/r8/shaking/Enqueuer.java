@@ -2535,6 +2535,9 @@ public class Enqueuer {
       if (target != null) {
         // There is no dispatch on annotations, so only keep what is directly referenced.
         if (target.field == field) {
+          if (!registerFieldRead(field, DexEncodedMethod.ANNOTATION_REFERENCE)) {
+            return false;
+          }
           markStaticFieldAsLive(field, KeepReason.referencedInAnnotation(annotationHolder));
         }
       } else {
