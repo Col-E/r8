@@ -174,7 +174,7 @@ public class RedundantFieldLoadElimination {
           if (instruction.asMonitor().isEnter()) {
             killAllActiveFields();
           }
-        } else if (instruction.isInvokeMethod()) {
+        } else if (instruction.isInvokeMethod() || instruction.isInvokeCustom()) {
           killAllActiveFields();
         } else if (instruction.isNewInstance()) {
           NewInstance newInstance = instruction.asNewInstance();
@@ -184,6 +184,37 @@ public class RedundantFieldLoadElimination {
               type -> appView.isSubtype(context, type).isTrue())) {
             killAllActiveFields();
           }
+        } else {
+          // If this assertion fails for a new instruction we need to determine if that instruction
+          // has side-effects that can change the value of fields. If so, it must be handled above.
+          // If not, it can be safely added to the assert.
+          assert instruction.isArgument()
+                  || instruction.isArrayGet()
+                  || instruction.isArrayLength()
+                  || instruction.isArrayPut()
+                  || instruction.isAssume()
+                  || instruction.isBinop()
+                  || instruction.isCheckCast()
+                  || instruction.isConstClass()
+                  || instruction.isConstMethodHandle()
+                  || instruction.isConstMethodType()
+                  || instruction.isConstNumber()
+                  || instruction.isConstString()
+                  || instruction.isDebugInstruction()
+                  || instruction.isDexItemBasedConstString()
+                  || instruction.isGoto()
+                  || instruction.isIf()
+                  || instruction.isInstanceOf()
+                  || instruction.isInvokeMultiNewArray()
+                  || instruction.isInvokeNewArray()
+                  || instruction.isMoveException()
+                  || instruction.isNewArrayEmpty()
+                  || instruction.isNewArrayFilledData()
+                  || instruction.isReturn()
+                  || instruction.isSwitch()
+                  || instruction.isThrow()
+                  || instruction.isUnop()
+              : "Unexpected instruction of type " + instruction.getClass().getTypeName();
         }
       }
       propagateActiveFieldsFrom(block);

@@ -1038,6 +1038,7 @@ public abstract class Instruction implements InstructionOrPhi {
   public boolean isDebugInstruction() {
     return isDebugPosition()
         || isDebugLocalsChange()
+        || isDebugLocalRead()
         || isDebugLocalWrite()
         || isDebugLocalUninitialized();
   }
