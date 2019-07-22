@@ -8,6 +8,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
+import com.android.tools.r8.NeverClassInline;
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -19,17 +21,6 @@ import com.google.common.collect.Streams;
 import org.junit.Test;
 import org.junit.runners.Parameterized;
 import org.junit.runner.RunWith;
-
-class TestClassAfterAssumenosideeffects {
-  public static void main(String... args) {
-    TestLogger instance = new TestLoggerImplementer();
-    StringBuilder builder = new StringBuilder();
-    builder.append("Hello");
-    builder.append(args.length == 0 ? ", R8" : args[0]);
-    instance.info("TAG", builder.toString());
-    System.out.println("The end");
-  }
-}
 
 @RunWith(Parameterized.class)
 public class StringBuildersAfterAssumenosideeffectsTest extends TestBase {
@@ -50,12 +41,12 @@ public class StringBuildersAfterAssumenosideeffectsTest extends TestBase {
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .addProgramClasses(MAIN, TestLogger.class, TestLoggerImplementer.class)
+        .addInnerClasses(StringBuildersAfterAssumenosideeffectsTest.class)
         .enableClassInliningAnnotations()
         .enableInliningAnnotations()
         .addKeepMainRule(MAIN)
         .addKeepRules(
-            "-assumenosideeffects class * implements **.TestLogger {",
+            "-assumenosideeffects class * implements " + TestLogger.class.getTypeName() + " {",
             "  void info(...);",
             "}")
         .noMinification()
@@ -82,5 +73,30 @@ public class StringBuildersAfterAssumenosideeffectsTest extends TestBase {
         Streams.stream(mainMethod.iterateInstructions(
             i -> i.isInvoke()
                 && i.getMethod().holder.toDescriptorString().contains("StringBuilder"))));
+  }
+
+  interface TestLogger {
+    void info(String tag, String message);
+  }
+
+  @NeverClassInline
+  static class TestLoggerImplementer implements TestLogger {
+
+    @NeverInline
+    @Override
+    public void info(String tag, String message) {
+      System.out.println(tag + ": " + message);
+    }
+  }
+
+  static class TestClassAfterAssumenosideeffects {
+    public static void main(String... args) {
+      TestLogger instance = new TestLoggerImplementer();
+      StringBuilder builder = new StringBuilder();
+      builder.append("Hello");
+      builder.append(args.length == 0 ? ", R8" : args[0]);
+      instance.info("TAG", builder.toString());
+      System.out.println("The end");
+    }
   }
 }

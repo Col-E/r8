@@ -7,7 +7,6 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
@@ -25,51 +24,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-interface TestLogger {
-  void info(String tag, String message);
-}
-
-@NeverClassInline
-class TestLoggerImplementer implements TestLogger {
-
-  @NeverInline
-  @Override
-  public void info(String tag, String message) {
-    System.out.println(tag + ": " + message);
-  }
-}
-
-@NeverClassInline
-class AnotherImplementer implements TestLogger {
-
-  @NeverInline
-  @Override
-  public void info(String tag, String message) {
-    System.out.println("[" + tag + "] " + message);
-  }
-}
-
-class TestClass {
-  final static String TAG = TestClass.class.getSimpleName();
-
-  @NeverInline
-  private static void testInvokeInterface(TestLogger logger, String message) {
-    logger.info(TAG, message);
-  }
-
-  public static void main(String... args) {
-    TestLogger instance = new TestLoggerImplementer();
-    // invoke-interface, but devirtualized.
-    instance.info(TAG, "message1");
-    // invoke-interface, can be devirtualized with refined receiver type.
-    testInvokeInterface(instance, "message2");
-    AnotherImplementer anotherInstance = new AnotherImplementer();
-    // invoke-virtual, single call target.
-    anotherInstance.info(TAG, "message3");
-    System.out.println("The end");
-  }
-}
-
 @RunWith(Parameterized.class)
 public class AssumenosideeffectsWithMultipleTargetsTest extends TestBase {
   private static final Class<?> MAIN = TestClass.class;
@@ -83,17 +37,17 @@ public class AssumenosideeffectsWithMultipleTargetsTest extends TestBase {
       switch (this) {
         case RULE_THAT_DIRECTLY_REFERS_CLASS:
           return StringUtils.lines(
-              "-assumenosideeffects class **.TestLogger {",
+              "-assumenosideeffects class " + TestLogger.class.getTypeName() + " {",
               "  void info(...);",
               "}");
         case RULE_THAT_DIRECTLY_REFERS_INTERFACE:
           return StringUtils.lines(
-              "-assumenosideeffects interface **.TestLogger {",
+              "-assumenosideeffects interface " + TestLogger.class.getTypeName() + " {",
               "  void info(...);",
               "}");
         case RULE_WITH_IMPLEMENTS:
           return StringUtils.lines(
-              "-assumenosideeffects class * implements **.TestLogger {",
+              "-assumenosideeffects class * implements " + TestLogger.class.getTypeName() + " {",
               "  void info(...);",
               "}");
       }
@@ -104,7 +58,7 @@ public class AssumenosideeffectsWithMultipleTargetsTest extends TestBase {
         "The end"
     );
 
-    public void inspect(CodeInspector inspector, boolean isR8) {
+    public void inspect(CodeInspector inspector) {
       ClassSubject main = inspector.clazz(MAIN);
       assertThat(main, isPresent());
 
@@ -119,11 +73,7 @@ public class AssumenosideeffectsWithMultipleTargetsTest extends TestBase {
       assertThat(testInvokeInterface, not(isPresent()));
 
       FieldSubject tag = main.uniqueFieldWithName("TAG");
-      if (isR8) {
-        assertThat(tag, not(isPresent()));
-      } else {
-        assertThat(tag, isPresent());
-      }
+      assertThat(tag, not(isPresent()));
     }
   }
 
@@ -143,8 +93,7 @@ public class AssumenosideeffectsWithMultipleTargetsTest extends TestBase {
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .addProgramClasses(
-            MAIN, TestLogger.class, TestLoggerImplementer.class, AnotherImplementer.class)
+        .addInnerClasses(AssumenosideeffectsWithMultipleTargetsTest.class)
         .enableClassInliningAnnotations()
         .enableInliningAnnotations()
         .addKeepMainRule(MAIN)
@@ -153,22 +102,51 @@ public class AssumenosideeffectsWithMultipleTargetsTest extends TestBase {
         .setMinApi(parameters.getRuntime())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(TestConfig.OUTPUT_WITHOUT_INFO)
-        .inspect(inspector -> config.inspect(inspector, true));
+        .inspect(config::inspect);
   }
 
-  @Test
-  public void testProguard() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    testForProguard()
-        .addProgramClasses(
-            MAIN, TestLogger.class, TestLoggerImplementer.class, AnotherImplementer.class,
-            NeverClassInline.class, NeverInline.class)
-        .addKeepMainRule(MAIN)
-        .addKeepRules(config.getKeepRule())
-        .noMinification()
-        .run(parameters.getRuntime(), MAIN)
-        .assertSuccessWithOutput(TestConfig.OUTPUT_WITHOUT_INFO)
-        .inspect(inspector -> config.inspect(inspector, false));
+  interface TestLogger {
+    void info(String tag, String message);
   }
 
+  @NeverClassInline
+  static class TestLoggerImplementer implements TestLogger {
+
+    @NeverInline
+    @Override
+    public void info(String tag, String message) {
+      System.out.println(tag + ": " + message);
+    }
+  }
+
+  @NeverClassInline
+  static class AnotherImplementer implements TestLogger {
+
+    @NeverInline
+    @Override
+    public void info(String tag, String message) {
+      System.out.println("[" + tag + "] " + message);
+    }
+  }
+
+  static class TestClass {
+    final static String TAG = TestClass.class.getSimpleName();
+
+    @NeverInline
+    private static void testInvokeInterface(TestLogger logger, String message) {
+      logger.info(TAG, message);
+    }
+
+    public static void main(String... args) {
+      TestLogger instance = new TestLoggerImplementer();
+      // invoke-interface, but devirtualized.
+      instance.info(TAG, "message1");
+      // invoke-interface, can be devirtualized with refined receiver type.
+      testInvokeInterface(instance, "message2");
+      AnotherImplementer anotherInstance = new AnotherImplementer();
+      // invoke-virtual, single call target.
+      anotherInstance.info(TAG, "message3");
+      System.out.println("The end");
+    }
+  }
 }

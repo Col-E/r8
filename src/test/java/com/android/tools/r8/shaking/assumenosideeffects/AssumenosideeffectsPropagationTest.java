@@ -10,140 +10,15 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.StringUtils;
-import com.google.common.collect.ImmutableList;
 import java.util.Collection;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-interface Itf {
-  void info(String message);
-  void debug(String message);
-  void verbose(String message);
-}
-
-class Base1 implements Itf {
-  @Override
-  public void info(String message) {
-    System.out.println("[Base1, info]: " + message);
-  }
-
-  @Override
-  public void debug(String message) {
-    System.out.println("[Base1, debug]: " + message);
-  }
-
-  @Override
-  public void verbose(String message) {
-    System.out.println("[Base1, verbose]: " + message);
-  }
-}
-
-class Sub1 extends Base1 {
-  @Override
-  public void info(String message) {
-    System.out.println("[Sub1, info]: " + message);
-  }
-
-  @Override
-  public void verbose(String message) {
-    System.out.println("[Sub1, verbose]: " + message);
-  }
-}
-
-class Sub2 extends Base1 {
-  @Override
-  public void info(String message) {
-    System.out.println("[Sub2, info]: " + message);
-  }
-
-  @Override
-  public void verbose(String message) {
-    System.out.println("[Sub2, verbose]: " + message);
-  }
-}
-
-class Base2 implements Itf {
-  @Override
-  public void info(String message) {
-    System.out.println("[Base2, info]: " + message);
-  }
-
-  @Override
-  public void debug(String message) {
-    System.out.println("[Base2, debug]: " + message);
-  }
-
-  @Override
-  public void verbose(String message) {
-    System.out.println("[Base2, verbose]: " + message);
-  }
-}
-
-class AnotherSub1 extends Base2 {
-  @Override
-  public void debug(String message) {
-    System.out.println("[AnotherSub1, debug]: " + message);
-  }
-
-  @Override
-  public void verbose(String message) {
-    System.out.println("[AnotherSub1, verbose]: " + message);
-  }
-}
-
-class AnotherSub2 extends Base2 {
-  @Override
-  public void debug(String message) {
-    System.out.println("[AnotherSub2, debug]: " + message);
-  }
-
-  @Override
-  public void verbose(String message) {
-    System.out.println("[AnotherSub2, verbose]: " + message);
-  }
-}
-
-class SubsUser {
-  static Base1 createBase1() {
-    return System.currentTimeMillis() > 0 ? new Sub1() : new Sub2();
-  }
-
-  static Base2 createBase2() {
-    return System.currentTimeMillis() < 0 ? new AnotherSub1() : new AnotherSub2();
-  }
-
-  @NeverInline
-  private static void testInvokeInterface(Itf itf, String message) {
-    itf.info(message);
-    itf.debug(message);
-    itf.verbose(message);
-  }
-
-  public static void main(String... args) {
-    Base1 instance1 = createBase1();
-    testInvokeInterface(instance1, "message00");
-    instance1.info("message1");
-    instance1.debug("message2");
-    instance1.verbose("message3");
-    Base2 instance2 = createBase2();
-    testInvokeInterface(instance2, "message08");
-    instance2.info("message4");
-    instance2.debug("message5");
-    instance2.verbose("message6");
-    System.out.println("The end");
-  }
-}
 
 @RunWith(Parameterized.class)
 public class AssumenosideeffectsPropagationTest extends TestBase {
   private static final Class<?> MAIN = SubsUser.class;
-  private static final List<Class<?>> CLASSES = ImmutableList.of(
-      MAIN, Itf.class,
-      Base1.class, Sub1.class, Sub2.class,
-      Base2.class, AnotherSub1.class, AnotherSub2.class
-  );
 
   private static final String JVM_OUTPUT = StringUtils.lines(
       "[Sub1, info]: message00",
@@ -174,7 +49,7 @@ public class AssumenosideeffectsPropagationTest extends TestBase {
         case SPECIFIC_RULES:
           return StringUtils.lines(
               // Intentionally miss sub types of Base2 for info().
-              "-assumenosideeffects class **.Sub* {",
+              "-assumenosideeffects class **.*$Sub* {",
               "  void info(...); ",
               "}",
               // All debug() and verbose() should be removed.
@@ -186,16 +61,16 @@ public class AssumenosideeffectsPropagationTest extends TestBase {
         case NON_SPECIFIC_RULES_PARTIAL:
           return StringUtils.lines(
               // Intentionally miss sub types of Base2 for debug().
-              "-assumenosideeffects class **.Sub* {",
+              "-assumenosideeffects class **.*$Sub* {",
               "  void debug(...);"
               ,"}",
               // Targeting info() and verbose() in Base1, without wildcards.
-              "-assumenosideeffects class * extends **.Base1 {",
+              "-assumenosideeffects class * extends " + Base1.class.getTypeName() + " {",
               "  void info(...);",
               "  void verbose(...);",
               "}",
               // Targeting info() and verbose() in Base2, with wildcards.
-              "-assumenosideeffects class * extends **.Base2 {",
+              "-assumenosideeffects class * extends " + Base2.class.getTypeName() + " {",
               "  void *o*(java.lang.String);",
               "}"
           );
@@ -210,10 +85,7 @@ public class AssumenosideeffectsPropagationTest extends TestBase {
       }
     }
 
-    public String expectedOutput(boolean isR8) {
-      if (!isR8) {
-        return OUTPUT_WITHOUT_MESSAGES;
-      }
+    public String expectedOutput() {
       switch (this) {
         case SPECIFIC_RULES:
           return StringUtils.lines(
@@ -271,26 +143,132 @@ public class AssumenosideeffectsPropagationTest extends TestBase {
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .addProgramClasses(CLASSES)
+        .addInnerClasses(AssumenosideeffectsPropagationTest.class)
         .addKeepMainRule(MAIN)
         .addKeepRules(config.getKeepRules())
         .enableInliningAnnotations()
         .noMinification()
         .setMinApi(parameters.getRuntime())
         .run(parameters.getRuntime(), MAIN)
-        .assertSuccessWithOutput(config.expectedOutput(true));
+        .assertSuccessWithOutput(config.expectedOutput());
   }
 
-  @Test
-  public void testProguard() throws Exception {
-    assumeTrue(parameters.isCfRuntime());
-    testForProguard()
-        .addProgramClasses(CLASSES)
-        .addProgramClasses(NeverInline.class)
-        .addKeepMainRule(MAIN)
-        .addKeepRules(config.getKeepRules())
-        .noMinification()
-        .run(parameters.getRuntime(), MAIN)
-        .assertSuccessWithOutput(config.expectedOutput(false));
+  interface Itf {
+    void info(String message);
+    void debug(String message);
+    void verbose(String message);
+  }
+
+  static class Base1 implements Itf {
+    @Override
+    public void info(String message) {
+      System.out.println("[Base1, info]: " + message);
+    }
+
+    @Override
+    public void debug(String message) {
+      System.out.println("[Base1, debug]: " + message);
+    }
+
+    @Override
+    public void verbose(String message) {
+      System.out.println("[Base1, verbose]: " + message);
+    }
+  }
+
+  static class Sub1 extends Base1 {
+    @Override
+    public void info(String message) {
+      System.out.println("[Sub1, info]: " + message);
+    }
+
+    @Override
+    public void verbose(String message) {
+      System.out.println("[Sub1, verbose]: " + message);
+    }
+  }
+
+  static class Sub2 extends Base1 {
+    @Override
+    public void info(String message) {
+      System.out.println("[Sub2, info]: " + message);
+    }
+
+    @Override
+    public void verbose(String message) {
+      System.out.println("[Sub2, verbose]: " + message);
+    }
+  }
+
+  static class Base2 implements Itf {
+    @Override
+    public void info(String message) {
+      System.out.println("[Base2, info]: " + message);
+    }
+
+    @Override
+    public void debug(String message) {
+      System.out.println("[Base2, debug]: " + message);
+    }
+
+    @Override
+    public void verbose(String message) {
+      System.out.println("[Base2, verbose]: " + message);
+    }
+  }
+
+  static class AnotherSub1 extends Base2 {
+    @Override
+    public void debug(String message) {
+      System.out.println("[AnotherSub1, debug]: " + message);
+    }
+
+    @Override
+    public void verbose(String message) {
+      System.out.println("[AnotherSub1, verbose]: " + message);
+    }
+  }
+
+  static class AnotherSub2 extends Base2 {
+    @Override
+    public void debug(String message) {
+      System.out.println("[AnotherSub2, debug]: " + message);
+    }
+
+    @Override
+    public void verbose(String message) {
+      System.out.println("[AnotherSub2, verbose]: " + message);
+    }
+  }
+
+  static class SubsUser {
+    static Base1 createBase1() {
+      return System.currentTimeMillis() > 0 ? new Sub1() : new Sub2();
+    }
+
+    static Base2 createBase2() {
+      return System.currentTimeMillis() < 0 ? new AnotherSub1() : new AnotherSub2();
+    }
+
+    @NeverInline
+    private static void testInvokeInterface(Itf itf, String message) {
+      itf.info(message);
+      itf.debug(message);
+      itf.verbose(message);
+    }
+
+    public static void main(String... args) {
+      Base1 instance1 = createBase1();
+      testInvokeInterface(instance1, "message00");
+      instance1.info("message1");
+      instance1.debug("message2");
+      instance1.verbose("message3");
+      Base2 instance2 = createBase2();
+      testInvokeInterface(instance2, "message08");
+      instance2.info("message4");
+      instance2.debug("message5");
+      instance2.verbose("message6");
+      System.out.println("The end");
+    }
   }
 }

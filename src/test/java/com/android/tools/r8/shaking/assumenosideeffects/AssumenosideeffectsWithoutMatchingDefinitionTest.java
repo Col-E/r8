@@ -28,30 +28,6 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-class LibraryBase {
-  boolean isInEditMode() {
-    return System.currentTimeMillis() <= 0;
-  }
-}
-
-class LibrarySub extends LibraryBase {}
-
-class ProgramClass extends LibrarySub {
-  private final String test;
-
-  private ProgramClass() {
-    if (isInEditMode()) {
-      test = "test";
-    } else {
-      test = "production";
-    }
-  }
-
-  public static void main(String... args) {
-    System.out.println(new ProgramClass().test);
-  }
-}
-
 @RunWith(Parameterized.class)
 public class AssumenosideeffectsWithoutMatchingDefinitionTest extends TestBase {
   private static final Class<?> MAIN = ProgramClass.class;
@@ -67,22 +43,22 @@ public class AssumenosideeffectsWithoutMatchingDefinitionTest extends TestBase {
       switch (this) {
         case RULE_THAT_DIRECTLY_REFERS_BASE:
           return StringUtils.lines(
-              "-assumenosideeffects class **.LibraryBase {",
+              "-assumenosideeffects class " + LibraryBase.class.getTypeName() + " {",
               "  boolean isInEditMode() return false;",
               "}");
         case RULE_THAT_DIRECTLY_REFERS_SUB:
           return StringUtils.lines(
-              "-assumenosideeffects class **.LibrarySub {",
+              "-assumenosideeffects class " + LibrarySub.class.getTypeName() + " {",
               "  boolean isInEditMode() return false;",
               "}");
         case RULE_WITH_EXTENDS_BASE:
           return StringUtils.lines(
-              "-assumenosideeffects class * extends **.LibraryBase {",
+              "-assumenosideeffects class * extends " + LibraryBase.class.getTypeName() + " {",
               "  boolean isInEditMode() return false;",
               "}");
         case RULE_WITH_EXTENDS_SUB:
           return StringUtils.lines(
-              "-assumenosideeffects class * extends **.LibrarySub {",
+              "-assumenosideeffects class * extends " + LibrarySub.class.getTypeName() + " {",
               "  boolean isInEditMode() return false;",
               "}");
       }
@@ -149,5 +125,29 @@ public class AssumenosideeffectsWithoutMatchingDefinitionTest extends TestBase {
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(EXPECTED_OUTPUT)
         .inspect(config::inspect);
+  }
+
+  static class LibraryBase {
+    boolean isInEditMode() {
+      return System.currentTimeMillis() <= 0;
+    }
+  }
+
+  static class LibrarySub extends LibraryBase {}
+
+  static class ProgramClass extends LibrarySub {
+    private final String test;
+
+    private ProgramClass() {
+      if (isInEditMode()) {
+        test = "test";
+      } else {
+        test = "production";
+      }
+    }
+
+    public static void main(String... args) {
+      System.out.println(new ProgramClass().test);
+    }
   }
 }
