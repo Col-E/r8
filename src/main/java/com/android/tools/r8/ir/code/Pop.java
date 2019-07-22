@@ -90,4 +90,9 @@ public class Pop extends Instruction {
     // Pop cannot be dead code as it modifies the stack height.
     return false;
   }
+
+  @Override
+  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
+    return false;
+  }
 }

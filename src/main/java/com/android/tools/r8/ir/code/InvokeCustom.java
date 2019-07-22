@@ -190,4 +190,9 @@ public final class InvokeCustom extends Invoke {
   public DexType computeVerificationType(AppView<?> appView, TypeVerificationHelper helper) {
     return getCallSite().methodProto.returnType;
   }
+
+  @Override
+  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
+    return true;
+  }
 }

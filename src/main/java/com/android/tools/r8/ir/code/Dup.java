@@ -8,6 +8,7 @@ import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
@@ -110,5 +111,10 @@ public class Dup extends Instruction {
   @Override
   public Dup asDup() {
     return this;
+  }
+
+  @Override
+  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
+    return false;
   }
 }

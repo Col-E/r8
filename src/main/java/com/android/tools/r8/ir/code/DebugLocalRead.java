@@ -81,4 +81,9 @@ public class DebugLocalRead extends Instruction {
   public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
     // Non-materializing so no stack values are needed.
   }
+
+  @Override
+  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
+    return false;
+  }
 }

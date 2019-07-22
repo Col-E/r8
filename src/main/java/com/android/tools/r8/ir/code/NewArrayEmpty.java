@@ -132,4 +132,9 @@ public class NewArrayEmpty extends Instruction {
   public TypeLatticeElement evaluate(AppView<?> appView) {
     return TypeLatticeElement.fromDexType(type, Nullability.definitelyNotNull(), appView);
   }
+
+  @Override
+  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
+    return false;
+  }
 }

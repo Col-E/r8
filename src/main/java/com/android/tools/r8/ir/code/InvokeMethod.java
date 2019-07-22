@@ -116,4 +116,8 @@ public abstract class InvokeMethod extends Invoke {
     return getReturnType();
   }
 
+  @Override
+  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
+    return true;
+  }
 }

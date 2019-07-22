@@ -149,4 +149,8 @@ public class ArrayLength extends Instruction {
     return array();
   }
 
+  @Override
+  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
+    return false;
+  }
 }

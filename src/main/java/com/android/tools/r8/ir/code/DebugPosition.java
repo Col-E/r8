@@ -82,4 +82,9 @@ public class DebugPosition extends Instruction {
     // All redundant debug positions are removed. Remaining ones must force a pc advance.
     builder.add(new CfNop());
   }
+
+  @Override
+  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
+    return false;
+  }
 }

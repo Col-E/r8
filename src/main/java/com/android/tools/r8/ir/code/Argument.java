@@ -108,4 +108,9 @@ public class Argument extends Instruction {
   public boolean outTypeKnownToBeBoolean(Set<Phi> seen) {
     return knownToBeBoolean;
   }
+
+  @Override
+  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
+    return false;
+  }
 }

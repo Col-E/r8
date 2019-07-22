@@ -175,4 +175,9 @@ public class CheckCast extends Instruction {
   public void buildCf(CfBuilder builder) {
     builder.add(new CfCheckCast(type));
   }
+
+  @Override
+  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
+    return false;
+  }
 }

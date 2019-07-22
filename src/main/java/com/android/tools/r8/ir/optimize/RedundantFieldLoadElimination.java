@@ -185,6 +185,10 @@ public class RedundantFieldLoadElimination {
             killAllActiveFields();
           }
         } else {
+          // If the current instruction could trigger a method invocation, it could also cause field
+          // values to change. In that case, it must be handled above.
+          assert !instruction.instructionMayTriggerMethodInvocation(appView, context);
+
           // If this assertion fails for a new instruction we need to determine if that instruction
           // has side-effects that can change the value of fields. If so, it must be handled above.
           // If not, it can be safely added to the assert.

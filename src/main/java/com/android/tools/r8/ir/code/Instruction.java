@@ -518,6 +518,13 @@ public abstract class Instruction implements InstructionOrPhi {
     return instructionInstanceCanThrow();
   }
 
+  /**
+   * Returns true if this instruction may trigger another method to execute either directly or
+   * indirectly (e.g., via class initialization).
+   */
+  public abstract boolean instructionMayTriggerMethodInvocation(
+      AppView<?> appView, DexType context);
+
   public AbstractError instructionInstanceCanThrow(AppView<?> appView, DexType context) {
     return instructionInstanceCanThrow() ? AbstractError.top() : AbstractError.bottom();
   }

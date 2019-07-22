@@ -178,4 +178,20 @@ public class NewInstance extends Instruction {
   public boolean isSpillingAllowed() {
     return allowSpilling;
   }
+
+  @Override
+  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
+    if (appView.enableWholeProgramOptimizations()) {
+      // In R8, check if the class initialization of the holder or any of its ancestor types may
+      // have side effects.
+      return clazz.classInitializationMayHaveSideEffects(
+          appView,
+          // Types that are a super type of `context` are guaranteed to be initialized already.
+          type -> appView.isSubtype(context, type).isTrue());
+    } else {
+      // In D8, this instruction may trigger class initialization if the holder of the field is
+      // different from the current context.
+      return clazz != context;
+    }
+  }
 }

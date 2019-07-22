@@ -112,4 +112,9 @@ public class Move extends Instruction {
   public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
     throw new Unreachable(ERROR_MESSAGE);
   }
+
+  @Override
+  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
+    return false;
+  }
 }

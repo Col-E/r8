@@ -113,4 +113,9 @@ public class MoveException extends Instruction {
   public DexType getExceptionType() {
     return exceptionType;
   }
+
+  @Override
+  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
+    return false;
+  }
 }

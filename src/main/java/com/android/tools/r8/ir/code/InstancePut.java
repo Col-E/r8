@@ -225,4 +225,9 @@ public class InstancePut extends FieldInstruction {
     return ClassInitializationAnalysis.InstructionUtils.forInstancePut(
         this, clazz, appView, mode, assumption);
   }
+
+  @Override
+  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
+    return false;
+  }
 }

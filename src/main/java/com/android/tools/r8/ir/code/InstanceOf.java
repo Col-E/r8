@@ -110,4 +110,9 @@ public class InstanceOf extends Instruction {
   public boolean outTypeKnownToBeBoolean(Set<Phi> seen) {
     return true;
   }
+
+  @Override
+  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
+    return false;
+  }
 }

@@ -215,4 +215,9 @@ public class InstanceGet extends FieldInstruction {
     return ClassInitializationAnalysis.InstructionUtils.forInstanceGet(
         this, clazz, appView, mode, assumption);
   }
+
+  @Override
+  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
+    return false;
+  }
 }

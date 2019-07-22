@@ -221,6 +221,11 @@ public class Assume<An extends Assumption> extends Instruction {
   }
 
   @Override
+  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
+    return false;
+  }
+
+  @Override
   public String toString() {
     if (isAssumeDynamicType()) {
       return super.toString() + "; type: " + asAssumeDynamicType().getAssumption().type;

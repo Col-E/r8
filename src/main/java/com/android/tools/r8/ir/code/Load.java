@@ -92,4 +92,9 @@ public class Load extends Instruction {
   public boolean hasInvariantOutType() {
     return false;
   }
+
+  @Override
+  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
+    return false;
+  }
 }

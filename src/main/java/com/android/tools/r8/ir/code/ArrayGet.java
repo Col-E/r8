@@ -270,4 +270,9 @@ public class ArrayGet extends Instruction implements ImpreciseMemberTypeInstruct
   public void constrainType(TypeConstraintResolver constraintResolver) {
     constraintResolver.constrainArrayMemberType(type, dest(), array(), t -> type = t);
   }
+
+  @Override
+  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
+    return false;
+  }
 }

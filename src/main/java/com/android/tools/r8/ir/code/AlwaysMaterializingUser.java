@@ -70,4 +70,9 @@ public class AlwaysMaterializingUser extends Instruction {
   public boolean hasInvariantOutType() {
     return true;
   }
+
+  @Override
+  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
+    return false;
+  }
 }

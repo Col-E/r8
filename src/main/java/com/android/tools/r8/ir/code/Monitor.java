@@ -11,6 +11,7 @@ import com.android.tools.r8.cf.code.CfMonitor;
 import com.android.tools.r8.code.MonitorEnter;
 import com.android.tools.r8.code.MonitorExit;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CfBuilder;
@@ -143,5 +144,10 @@ public class Monitor extends Instruction {
   @Override
   public Value getNonNullInput() {
     return object();
+  }
+
+  @Override
+  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
+    return false;
   }
 }

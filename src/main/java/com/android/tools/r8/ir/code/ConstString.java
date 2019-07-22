@@ -143,4 +143,9 @@ public class ConstString extends ConstInstruction {
   public TypeLatticeElement evaluate(AppView<?> appView) {
     return TypeLatticeElement.stringClassType(appView, Nullability.definitelyNotNull());
   }
+
+  @Override
+  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
+    return false;
+  }
 }

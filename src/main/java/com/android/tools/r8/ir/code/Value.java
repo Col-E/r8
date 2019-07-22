@@ -926,7 +926,7 @@ public class Value {
             }
             return false;
           }
-          if (instruction.instructionMayHaveSideEffects(appView, context)) {
+          if (instruction.instructionMayTriggerMethodInvocation(appView, context)) {
             return false;
           }
         }

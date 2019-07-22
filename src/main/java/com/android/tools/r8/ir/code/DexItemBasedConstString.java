@@ -151,4 +151,9 @@ public class DexItemBasedConstString extends ConstInstruction {
       InliningConstraints inliningConstraints, DexType invocationContext) {
     return inliningConstraints.forDexItemBasedConstString(item, invocationContext);
   }
+
+  @Override
+  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
+    return false;
+  }
 }

@@ -193,4 +193,9 @@ public class InvokeNewArray extends Invoke {
   public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
     return !instructionMayHaveSideEffects(appView, code.method.method.holder);
   }
+
+  @Override
+  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
+    return false;
+  }
 }

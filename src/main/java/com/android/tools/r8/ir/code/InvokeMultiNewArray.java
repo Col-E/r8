@@ -101,4 +101,9 @@ public class InvokeMultiNewArray extends Invoke {
   public void buildDex(DexBuilder builder) {
     throw new Unreachable("InvokeNewArray (non-empty) not supported when compiling to dex files.");
   }
+
+  @Override
+  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
+    return false;
+  }
 }

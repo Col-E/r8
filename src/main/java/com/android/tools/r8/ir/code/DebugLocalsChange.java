@@ -128,4 +128,9 @@ public class DebugLocalsChange extends Instruction {
   public void buildCf(CfBuilder builder) {
     throw new Unreachable();
   }
+
+  @Override
+  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
+    return false;
+  }
 }
