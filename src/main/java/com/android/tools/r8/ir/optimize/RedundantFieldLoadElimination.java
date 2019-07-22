@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.DominatorTree;
@@ -18,6 +19,7 @@ import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
+import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
@@ -103,6 +105,7 @@ public class RedundantFieldLoadElimination {
   }
 
   public void run() {
+    DexType context = method.method.holder;
     for (BasicBlock block : dominatorTree.getSortedBlocks()) {
       activeInstanceFields =
           activeInstanceFieldsAtEntry.containsKey(block)
@@ -167,10 +170,20 @@ public class RedundantFieldLoadElimination {
             killActiveFields(staticPut);
             activeStaticFields.put(field, staticPut);
           }
-        }
-        if ((instruction.isMonitor() && instruction.asMonitor().isEnter())
-            || instruction.isInvokeMethod()) {
+        } else if (instruction.isMonitor()) {
+          if (instruction.asMonitor().isEnter()) {
+            killAllActiveFields();
+          }
+        } else if (instruction.isInvokeMethod()) {
           killAllActiveFields();
+        } else if (instruction.isNewInstance()) {
+          NewInstance newInstance = instruction.asNewInstance();
+          if (newInstance.clazz.classInitializationMayHaveSideEffects(
+              appView,
+              // Types that are a super type of `context` are guaranteed to be initialized already.
+              type -> appView.isSubtype(context, type).isTrue())) {
+            killAllActiveFields();
+          }
         }
       }
       propagateActiveFieldsFrom(block);
