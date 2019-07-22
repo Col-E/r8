@@ -250,6 +250,67 @@ public class CodeRewriter {
     return true;
   }
 
+  // Rewrite 'throw new NullPointerException()' to 'throw null'.
+  public void rewriteThrowNullPointerException(IRCode code) {
+    for (BasicBlock block : code.blocks) {
+      InstructionListIterator it = block.listIterator();
+      while (it.hasNext()) {
+        Instruction instruction = it.next();
+        // Check for 'new-instance NullPointerException' with 2 users, not declaring a local and
+        // not ending the scope of any locals.
+        if (instruction.isNewInstance()
+            && instruction.asNewInstance().clazz == dexItemFactory.npeType
+            && instruction.outValue().numberOfAllUsers() == 2
+            && !instruction.outValue().hasLocalInfo()
+            && instruction.getDebugValues().isEmpty()) {
+          if (it.hasNext()) {
+            Instruction instruction2 = it.next();
+            // Check for 'invoke NullPointerException.init() not ending the scope of any locals
+            // and with the result of the first instruction as the argument. Also check that
+            // the two first instructions have the same position.
+            if (instruction2.isInvokeDirect()
+                && instruction2.getDebugValues().isEmpty()) {
+              InvokeDirect invokeDirect = instruction2.asInvokeDirect();
+              if (invokeDirect.getInvokedMethod() == dexItemFactory.npeMethods.init
+                  && invokeDirect.getReceiver() == instruction.outValue()
+                  && invokeDirect.arguments().size() == 1
+                  && invokeDirect.getPosition() == instruction.getPosition()) {
+                if (it.hasNext()) {
+                  Instruction instruction3 = it.next();
+                  // Finally check that the last instruction is a throw of the initialized
+                  // exception object and replace with 'throw null' if so.
+                  if (instruction3.isThrow()
+                      && instruction3.asThrow().exception() == instruction.outValue()) {
+                    // Create const 0 with null type and a throw using that value.
+                    Instruction nullPointer = code.createConstNull();
+                    Instruction throwInstruction = new Throw(nullPointer.outValue());
+                    // Preserve positions: we have checked that the first two original instructions
+                    // have the same position.
+                    assert instruction.getPosition() == instruction2.getPosition();
+                    nullPointer.setPosition(instruction.getPosition());
+                    throwInstruction.setPosition(instruction3.getPosition());
+                    // Copy debug values from original throw to new throw to correctly end scope
+                    // of locals.
+                    instruction3.moveDebugValues(throwInstruction);
+                    // Remove the three original instructions.
+                    it.remove();
+                    it.previous();
+                    it.remove();
+                    it.previous();
+                    it.remove();
+                    // Replace them with 'const 0' and 'throw'.
+                    it.add(nullPointer);
+                    it.add(throwInstruction);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
   public static boolean isFallthroughBlock(BasicBlock block) {
     for (BasicBlock pred : block.getPredecessors()) {
       if (pred.exit().fallthroughBlock() == block) {

@@ -1125,6 +1125,8 @@ public class IRConverter {
       codeRewriter.removeAssumeInstructions(code);
     }
 
+    codeRewriter.rewriteThrowNullPointerException(code);
+
     if (classInitializerDefaultsOptimization != null && !isDebugMode) {
       classInitializerDefaultsOptimization.optimize(method, code);
     }
