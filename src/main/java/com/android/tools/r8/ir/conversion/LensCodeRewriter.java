@@ -764,7 +764,10 @@ public class LensCodeRewriter {
             affectedPhis.addAll(newOutValue.uniquePhiUsers());
           } else {
             assert current.hasInvariantOutType();
-            assert current.isConstClass() || current.isInstanceOf();
+            assert current.isConstClass()
+                || current.isInstanceOf()
+                || (current.isInvokeVirtual()
+                    && current.asInvokeVirtual().getInvokedMethod().holder.isArrayType());
           }
         }
       }
