@@ -190,6 +190,10 @@ public class Jdk11StreamTests extends Jdk11CoreLibTestBase {
 
   @Test
   public void testStream() throws Exception {
+    // TODO(b/137876068): It seems to fail on windows because the method
+    // getAllFilesWithSuffixInDirectory() finds different files on Windows (To be confirmed), so
+    // compilation is then different and raises an error.
+    Assume.assumeFalse(ToolHelper.isWindows());
     Assume.assumeTrue("TODO(134732760): Fix Android 7+.", requiresCoreLibDesugaring(parameters));
     Map<String, String> runnableTests = getRunnableTests();
     String verbosity = "2";
