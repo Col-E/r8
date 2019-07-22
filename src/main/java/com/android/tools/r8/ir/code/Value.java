@@ -1143,8 +1143,9 @@ public class Value {
   public void narrowing(AppView<?> appView, TypeLatticeElement newType) {
     // During NARROWING (e.g., after inlining), type update is monotonically downwards,
     //   i.e., towards something narrower, with more specific type info.
-    assert !this.typeLattice.strictlyLessThan(newType, appView)
-            || !appView.enableWholeProgramOptimizations()
+    assert (!appView.options().testing.enableNarrowingChecksInD8
+                && !appView.enableWholeProgramOptimizations())
+            || !this.typeLattice.strictlyLessThan(newType, appView)
         : "During NARROWING, "
             + typeLattice
             + " < "
