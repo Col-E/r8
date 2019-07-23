@@ -12,6 +12,7 @@ import com.android.tools.r8.utils.StringDiagnostic;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiPredicate;
 
 /**
  * Base class for commands and command builders for compiler applications/tools which besides an
@@ -30,8 +31,10 @@ public abstract class BaseCompilerCommand extends BaseCommand {
   private final int minApiLevel;
   private final Reporter reporter;
   private final boolean enableDesugaring;
+  private final boolean includeClassesChecksum;
   private final boolean optimizeMultidexForLinearAlloc;
   private String specialLibraryConfiguration;
+  private final BiPredicate<String, Long> dexClassChecksumFilter;
 
   BaseCompilerCommand(boolean printHelp, boolean printVersion) {
     super(printHelp, printVersion);
@@ -41,7 +44,9 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     minApiLevel = 0;
     reporter = new Reporter();
     enableDesugaring = true;
+    includeClassesChecksum = false;
     optimizeMultidexForLinearAlloc = false;
+    dexClassChecksumFilter = (name, checksum) -> true;
   }
 
   BaseCompilerCommand(
@@ -53,7 +58,9 @@ public abstract class BaseCompilerCommand extends BaseCommand {
       Reporter reporter,
       boolean enableDesugaring,
       boolean optimizeMultidexForLinearAlloc,
-      String specialLibraryConfiguration) {
+      String specialLibraryConfiguration,
+      boolean includeClassesChecksum,
+      BiPredicate<String, Long> dexClassChecksumFilter) {
     super(app);
     assert minApiLevel > 0;
     assert mode != null;
@@ -65,6 +72,8 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     this.enableDesugaring = enableDesugaring;
     this.optimizeMultidexForLinearAlloc = optimizeMultidexForLinearAlloc;
     this.specialLibraryConfiguration = specialLibraryConfiguration;
+    this.includeClassesChecksum = includeClassesChecksum;
+    this.dexClassChecksumFilter = dexClassChecksumFilter;
   }
 
   /**
@@ -99,6 +108,16 @@ public abstract class BaseCompilerCommand extends BaseCommand {
   /** Get the use-desugaring state. True if enabled, false otherwise. */
   public boolean getEnableDesugaring() {
     return enableDesugaring;
+  }
+
+  /** True if the output dex files has checksum information encoded in it. False otherwise. */
+  public boolean getIncludeClassesChecksum() {
+    return includeClassesChecksum;
+  }
+
+  /** Filter used to skip parsing of certain class in a dex file. */
+  public BiPredicate<String, Long> getDexClassChecksumFilter() {
+    return dexClassChecksumFilter;
   }
 
   /**
@@ -138,8 +157,10 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     private int minApiLevel = 0;
     private boolean disableDesugaring = false;
     private String specialLibraryConfiguration;
+    private boolean includeClassesChecksum = false;
     private boolean lookupLibraryBeforeProgram = true;
     private boolean optimizeMultidexForLinearAlloc = false;
+    private BiPredicate<String, Long> dexClassChecksumFilter = (name, checksum) -> true;
 
     abstract CompilationMode defaultCompilationMode();
 
@@ -216,6 +237,13 @@ public abstract class BaseCompilerCommand extends BaseCommand {
      */
     public StringConsumer getMainDexListConsumer() {
       return mainDexListConsumer;
+    }
+
+    /**
+     * Filter used to skip parsing of certain class in a dex file.
+     */
+    public BiPredicate<String, Long> getDexClassChecksumFilter() {
+      return dexClassChecksumFilter;
     }
 
     /**
@@ -301,6 +329,18 @@ public abstract class BaseCompilerCommand extends BaseCommand {
       this.outputPath = outputPath;
       this.outputMode = outputMode;
       programConsumer = createProgramOutputConsumer(outputPath, outputMode, includeDataResources);
+      return self();
+    }
+
+    /**
+     * Setting a dex class filter.
+     *
+     * A filter is a function that given a name of a class and a checksum can return false the user
+     * decides to skip parsing and ignore that class in the dex file.
+     */
+    public B setDexClassChecksumFilter(BiPredicate<String, Long> filter) {
+      assert filter != null;
+      this.dexClassChecksumFilter = filter;
       return self();
     }
 
@@ -397,6 +437,17 @@ public abstract class BaseCompilerCommand extends BaseCommand {
 
     public String getSpecialLibraryConfiguration() {
       return specialLibraryConfiguration;
+    }
+
+    /** Encodes checksum for each class when generating dex files. */
+    public B setIncludeClassesChecksum(boolean enabled) {
+      this.includeClassesChecksum = enabled;
+      return self();
+    }
+
+    /** Encodes the checksums into the dex output. */
+    public boolean getIncludeClassesChecksum() {
+      return includeClassesChecksum;
     }
 
     @Override

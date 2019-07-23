@@ -125,6 +125,11 @@ public class VirtualFile {
     return prefix;
   }
 
+  public void injectString(DexString string) {
+    transaction.addString(string);
+    commitTransaction();
+  }
+
   private static Map<DexProgramClass, String> computeOriginalNameMapping(
       Collection<DexProgramClass> classes,
       ClassNameMapper proguardMap) {
@@ -520,7 +525,7 @@ public class VirtualFile {
     }
   }
 
-  private static class IndexedItemTransaction implements IndexedItemCollection {
+  public static class IndexedItemTransaction implements IndexedItemCollection {
 
     private final VirtualFileIndexedItemCollection base;
     private final NamingLens namingLens;

@@ -60,6 +60,7 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Pair;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.io.ByteStreams;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
@@ -86,6 +87,7 @@ public class DexParser {
   private int[] stringIDs;
   private final ClassKind classKind;
   private final InternalOptions options;
+  private ImmutableMap<String, Long> checksums;
 
   public static DexSection[] parseMapFrom(Path file) throws IOException {
     return parseMapFrom(Files.newInputStream(file), new PathOrigin(file));
@@ -133,7 +135,11 @@ public class DexParser {
     this.options = options;
   }
 
-  private void ensureCodesInited() {
+  private void ensureCodesInited(int offset) {
+    if (offset == 0) {
+      return;
+    }
+
     if (codes == null) {
       codes = new Int2ObjectOpenHashMap<>();
     }
@@ -146,12 +152,14 @@ public class DexParser {
     if (dexSection.length == 0) {
       return;
     }
-    dexReader.position(dexSection.offset);
-    for (int i = 0; i < dexSection.length; i++) {
-      dexReader.align(4);  // code items are 4 byte aligned.
-      int offset = dexReader.position();
+
+    if (!codes.containsKey(offset)) {
+      int currentPos = dexReader.position();
+      dexReader.position(offset);
+      dexReader.align(4);
       DexCode code = parseCodeItem();
       codes.put(offset, code);  // Update the file local offset to code mapping.
+      dexReader.position(currentPos);
     }
   }
 
@@ -618,6 +626,7 @@ public class DexParser {
       int codeOff = dexReader.getUleb128();
       DexCode code = null;
       if (!skipCodes) {
+        ensureCodesInited(codeOff);
         assert codeOff == 0 || codes.get(codeOff) != null;
         code = codes.get(codeOff);
       }
@@ -642,7 +651,6 @@ public class DexParser {
   }
 
   void addClassDefsTo(Consumer<DexClass> classCollection) {
-    ensureCodesInited();
     final DexSection dexSection = lookupSection(Constants.TYPE_CLASS_DEF_ITEM);
     final int length = dexSection.length;
     indexedItems.initializeClasses(length);
@@ -692,6 +700,14 @@ public class DexParser {
       DexEncodedMethod[] directMethods = DexEncodedMethod.EMPTY_ARRAY;
       DexEncodedMethod[] virtualMethods = DexEncodedMethod.EMPTY_ARRAY;
       AnnotationsDirectory annotationsDirectory = annotationsDirectoryAt(annotationsOffsets[i]);
+
+      if (checksums != null && classDataOffsets[i] != 0) {
+        String desc = type.descriptor.toASCIIString();
+        Long checksum = checksums.get(desc);
+        if (!options.dexClassChecksumFilter.test(desc, checksum)) {
+          continue;
+        }
+      }
       if (classDataOffsets[i] != 0) {
         DexEncodedArray staticValues = encodedArrayAt(staticValuesOffsets[i]);
 
@@ -870,6 +886,7 @@ public class DexParser {
   void populateIndexTables() {
     // Populate structures that are already sorted upon read.
     populateStrings();  // Depends on nothing.
+    populateChecksums(); // Depends on Strings.
     populateTypes();  // Depends on Strings.
     populateFields();  // Depends on Types, and Strings.
     populateProtos();  // Depends on Types and Strings.
@@ -907,6 +924,26 @@ public class DexParser {
     indexedItems.initializeTypes(dexSection.length);
     for (int i = 0; i < dexSection.length; i++) {
       indexedItems.setType(i, typeAt(i));
+    }
+  }
+
+  private void populateChecksums() {
+    ClassesChecksum checksums = null;
+    for (int i = stringIDs.length - 1; i >= 0; i--) {
+      DexString value = indexedItems.getString(i);
+      ClassesChecksum checksum = ClassesChecksum.parse(value);
+      if (checksum != null) {
+        if (checksums == null) {
+          checksums = checksum;
+        } else {
+          checksums.merge(checksum);
+        }
+      } else if (ClassesChecksum.preceedChecksumMarker(value)) {
+        break;
+      }
+    }
+    if (checksums != null) {
+      this.checksums = checksums.getChecksums();
     }
   }
 

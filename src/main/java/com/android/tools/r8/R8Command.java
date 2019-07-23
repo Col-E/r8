@@ -33,6 +33,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 
 /**
@@ -91,6 +93,7 @@ public final class R8Command extends BaseCompilerCommand {
     private StringConsumer proguardConfigurationConsumer = null;
     private GraphConsumer keptGraphConsumer = null;
     private GraphConsumer mainDexKeptGraphConsumer = null;
+    private BiFunction<String, Long, Boolean> dexClassChecksumFilter = (name, checksum) -> true;
 
     // Internal compatibility mode for use from CompatProguard tool.
     Path proguardCompatibilityRulesOutput = null;
@@ -506,7 +509,9 @@ public final class R8Command extends BaseCompilerCommand {
               mainDexKeptGraphConsumer,
               syntheticProguardRulesConsumer,
               isOptimizeMultidexForLinearAlloc(),
-              getSpecialLibraryConfiguration());
+              getSpecialLibraryConfiguration(),
+              getIncludeClassesChecksum(),
+              getDexClassChecksumFilter());
 
       return command;
     }
@@ -657,7 +662,9 @@ public final class R8Command extends BaseCompilerCommand {
       GraphConsumer mainDexKeptGraphConsumer,
       Consumer<List<ProguardConfigurationRule>> syntheticProguardRulesConsumer,
       boolean optimizeMultidexForLinearAlloc,
-      String specialLibraryConfiguration) {
+      String specialLibraryConfiguration,
+      boolean encodeChecksum,
+      BiPredicate<String, Long> dexClassChecksumFilter) {
     super(
         inputApp,
         mode,
@@ -667,7 +674,9 @@ public final class R8Command extends BaseCompilerCommand {
         reporter,
         enableDesugaring,
         optimizeMultidexForLinearAlloc,
-        specialLibraryConfiguration);
+        specialLibraryConfiguration,
+        encodeChecksum,
+        dexClassChecksumFilter);
     assert proguardConfiguration != null;
     assert mainDexKeepRules != null;
     this.mainDexKeepRules = mainDexKeepRules;

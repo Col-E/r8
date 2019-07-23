@@ -132,7 +132,9 @@ public final class L8Command extends BaseCompilerCommand {
         diagnosticsHandler,
         true,
         false,
-        specialLibraryConfiguration);
+        specialLibraryConfiguration,
+        false,
+        (name, checksum) -> true);
   }
 
   private L8Command(boolean printHelp, boolean printVersion) {

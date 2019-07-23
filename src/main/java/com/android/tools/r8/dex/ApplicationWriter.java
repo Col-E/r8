@@ -43,8 +43,12 @@ import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import com.google.common.collect.ObjectArrays;
+import com.google.common.primitives.Longs;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -55,6 +59,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.zip.CRC32;
 
 public class ApplicationWriter {
 
@@ -66,6 +71,8 @@ public class ApplicationWriter {
   public final InternalOptions options;
   public List<Marker> markers;
   public List<DexString> markerStrings;
+  private final ClassesChecksum checksums;
+
   public DexIndexedConsumer programConsumer;
   public final ProguardMapSupplier proguardMapSupplier;
 
@@ -131,6 +138,7 @@ public class ApplicationWriter {
       AppView<?> appView,
       InternalOptions options,
       List<Marker> markers,
+      ClassesChecksum checksums,
       String deadCode,
       GraphLense graphLense,
       NamingLens namingLens,
@@ -140,6 +148,7 @@ public class ApplicationWriter {
         appView,
         options,
         markers,
+        checksums,
         deadCode,
         graphLense,
         namingLens,
@@ -152,6 +161,7 @@ public class ApplicationWriter {
       AppView<?> appView,
       InternalOptions options,
       List<Marker> markers,
+      ClassesChecksum checksums,
       String deadCode,
       GraphLense graphLense,
       NamingLens namingLens,
@@ -163,6 +173,7 @@ public class ApplicationWriter {
     assert options != null;
     this.options = options;
     this.markers = markers;
+    this.checksums = checksums;
     this.deadCode = deadCode;
     this.graphLense = graphLense;
     this.namingLens = namingLens;
@@ -186,7 +197,61 @@ public class ApplicationWriter {
       distributor = new VirtualFile.FillFilesDistributor(this, options, executorService);
     }
 
-    return distributor.run();
+    Iterable<VirtualFile> result = distributor.run();
+    return result;
+  }
+
+  /**
+   * For each class within a virtual file, this function insert a string that contains the
+   * checksum information about that class.
+   *
+   * This needs to be done after distribute but before dex string sorting.
+   */
+  private void encodeChecksums(Iterable<VirtualFile> files) {
+    ImmutableMap<String, Long> inputChecksums = checksums.getChecksums();
+    Map<String, Long> synthesizedChecksums = Maps.newHashMap();
+    for (DexProgramClass clazz : application.classes()) {
+      Collection<DexProgramClass> synthesizedFrom = clazz.getSynthesizedFrom();
+
+      if (synthesizedFrom.isEmpty()) {
+        if (inputChecksums.containsKey(clazz.getType().descriptor.toASCIIString())) {
+          continue;
+        } else {
+          throw new CompilationError(clazz + " from " + clazz.origin +
+              " has no checksum information while checksum encoding is requested");
+        }
+      }
+
+      // Checksum of synthesized classes are compute based off the depending input. This might
+      // create false positives (ie: unchanged lambda class detected as changed even thought only
+      // an unrelated part from a synthesizedFrom class is changed).
+
+      // Ideally, we should use some hashcode of the dex program class that is deterministic across
+      // compiles.
+      ByteBuffer buffer = ByteBuffer.allocate(synthesizedFrom.size() * Longs.BYTES);
+      for (DexProgramClass from : synthesizedFrom) {
+        buffer.putLong(inputChecksums.get(from.getType().descriptor.toASCIIString()));
+      }
+      CRC32 crc = new CRC32();
+      crc.update(buffer.array());
+      synthesizedChecksums.put(clazz.getType().descriptor.toASCIIString(), crc.getValue());
+    }
+
+    for (VirtualFile f : files) {
+      ClassesChecksum toWrite = new ClassesChecksum();
+      for (String desc : f.getClassDescriptors()) {
+        Long checksum = inputChecksums.get(desc);
+        if (checksum == null) {
+          checksum = synthesizedChecksums.get(desc);
+        }
+
+        // All classes should have a checksum from the inputChecksum (previous marker) or it was
+        // computed eariler in the function. Otherwise, we would have throw an compilation error.
+        assert checksum != null;
+        toWrite.addChecksum(desc, checksum);
+      }
+      f.injectString(application.dexItemFactory.createString(toWrite.toString()));
+    }
   }
 
   public void write(ExecutorService executorService) throws IOException, ExecutionException {
@@ -211,6 +276,13 @@ public class ApplicationWriter {
     try {
       insertAttributeAnnotations();
 
+      // Generate the dex file contents.
+      List<Future<Boolean>> dexDataFutures = new ArrayList<>();
+      Iterable<VirtualFile> virtualFiles = distribute(executorService);
+      if (options.encodeChecksums) {
+        encodeChecksums(virtualFiles);
+      }
+
       application.dexItemFactory.sort(namingLens);
       assert markers == null
           || markers.isEmpty()
@@ -219,9 +291,6 @@ public class ApplicationWriter {
       SortAnnotations sortAnnotations = new SortAnnotations();
       application.classes().forEach((clazz) -> clazz.addDependencies(sortAnnotations));
 
-      // Generate the dex file contents.
-      List<Future<Boolean>> dexDataFutures = new ArrayList<>();
-      Iterable<VirtualFile> virtualFiles = distribute(executorService);
       for (VirtualFile virtualFile : virtualFiles) {
         if (virtualFile.isEmpty()) {
           continue;

@@ -17,6 +17,7 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiPredicate;
 
 /**
  * Immutable command structure for an invocation of the {@link D8} compiler.
@@ -174,7 +175,9 @@ public final class D8Command extends BaseCompilerCommand {
           !getDisableDesugaring(),
           intermediate,
           isOptimizeMultidexForLinearAlloc(),
-          getSpecialLibraryConfiguration());
+          getSpecialLibraryConfiguration(),
+          getIncludeClassesChecksum(),
+          getDexClassChecksumFilter());
     }
   }
 
@@ -232,7 +235,9 @@ public final class D8Command extends BaseCompilerCommand {
       boolean enableDesugaring,
       boolean intermediate,
       boolean optimizeMultidexForLinearAlloc,
-      String specialLibraryConfiguration) {
+      String specialLibraryConfiguration,
+      boolean encodeChecksum,
+      BiPredicate<String, Long> dexClassChecksumFilter) {
     super(
         inputApp,
         mode,
@@ -242,7 +247,9 @@ public final class D8Command extends BaseCompilerCommand {
         diagnosticsHandler,
         enableDesugaring,
         optimizeMultidexForLinearAlloc,
-        specialLibraryConfiguration);
+        specialLibraryConfiguration,
+        encodeChecksum,
+        dexClassChecksumFilter);
     this.intermediate = intermediate;
   }
 
@@ -406,6 +413,8 @@ public final class D8Command extends BaseCompilerCommand {
     // TODO(b/137168535) Disable non-null tracking for now.
     internal.enableNonNullTracking = false;
     internal.enableDesugaring = getEnableDesugaring();
+    internal.encodeChecksums = getIncludeClassesChecksum();
+    internal.dexClassChecksumFilter = getDexClassChecksumFilter();
     internal.enableInheritanceClassInDexDistributor = isOptimizeMultidexForLinearAlloc();
 
     // TODO(134732760): This is still work in progress.

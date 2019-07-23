@@ -8,6 +8,7 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.DataResourceProvider;
 import com.android.tools.r8.dex.ApplicationReader.ProgramClassConflictResolver;
+import com.android.tools.r8.dex.ClassesChecksum;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.InternalOptions;
@@ -35,6 +36,7 @@ public abstract class DexApplication {
 
   public final InternalOptions options;
   public final DexItemFactory dexItemFactory;
+  public final ClassesChecksum checksums;
 
   // Information on the lexicographically largest string referenced from code.
   public final DexString highestSortingString;
@@ -45,6 +47,7 @@ public abstract class DexApplication {
       ImmutableList<DataResourceProvider> dataResourceProviders,
       ImmutableSet<DexType> mainDexList,
       String deadCode,
+      ClassesChecksum checksums,
       InternalOptions options,
       DexString highestSortingString,
       Timing timing) {
@@ -52,6 +55,7 @@ public abstract class DexApplication {
     this.dataResourceProviders = dataResourceProviders;
     this.mainDexList = mainDexList;
     this.deadCode = deadCode;
+    this.checksums = checksums;
     this.options = options;
     this.dexItemFactory = options.itemFactory;
     this.highestSortingString = highestSortingString;
@@ -103,6 +107,10 @@ public abstract class DexApplication {
     return classes;
   }
 
+  public ClassesChecksum getChecksums() {
+    return checksums;
+  }
+
   public abstract DexClass definitionFor(DexType type);
 
   public abstract DexProgramClass programDefinitionFor(DexType type);
@@ -128,6 +136,7 @@ public abstract class DexApplication {
 
     public final InternalOptions options;
     public final DexItemFactory dexItemFactory;
+    protected ClassesChecksum checksums;
     ClassNameMapper proguardMap;
     final Timing timing;
 
@@ -142,6 +151,7 @@ public abstract class DexApplication {
       this.timing = timing;
       this.deadCode = null;
       this.synthesizedClasses = new ArrayList<>();
+      this.checksums = null;
     }
 
     abstract T self();
@@ -157,6 +167,7 @@ public abstract class DexApplication {
       mainDexList.addAll(application.mainDexList);
       deadCode = application.deadCode;
       synthesizedClasses = new ArrayList<>();
+      checksums = application.checksums;
     }
 
     public synchronized T setProguardMap(ClassNameMapper proguardMap) {
@@ -225,6 +236,15 @@ public abstract class DexApplication {
 
     public Builder<T> addToMainDexList(Collection<DexType> mainDexList) {
       this.mainDexList.addAll(mainDexList);
+      return this;
+    }
+
+    public Builder<T> mergeChecksums(ClassesChecksum other) {
+      if (checksums == null) {
+        checksums = other;
+      } else {
+        checksums.merge(other);
+      }
       return this;
     }
 

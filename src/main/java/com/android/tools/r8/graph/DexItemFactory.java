@@ -6,6 +6,7 @@ package com.android.tools.r8.graph;
 import static com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement.computeLeastUpperBoundOfInterfaces;
 import static com.google.common.base.Predicates.alwaysTrue;
 
+import com.android.tools.r8.dex.ClassesChecksum;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.graph.DexDebugEvent.AdvanceLine;
@@ -48,6 +49,7 @@ import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
@@ -1153,6 +1155,11 @@ public class DexItemFactory {
       }
     }
     return markers;
+  }
+
+  public synchronized ClassesChecksum extractChecksum() {
+    return strings.keySet().stream().map(s -> ClassesChecksum.parse(s)).filter(Objects::nonNull)
+        .reduce(null, (s1, s2) -> s1 == null ? s2 : s1.merge(s2));
   }
 
   synchronized public DexType createType(DexString descriptor) {

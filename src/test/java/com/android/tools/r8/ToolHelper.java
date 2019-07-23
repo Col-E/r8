@@ -74,6 +74,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.zip.CRC32;
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.rules.TemporaryFolder;
 
@@ -581,6 +583,18 @@ public class ToolHelper {
       outer = outer.getEnclosingClass();
     }
     return ByteStreams.toByteArray(clazz.getResourceAsStream(s));
+  }
+
+  public static long getClassByteCrc(Class clazz) {
+    byte[] bytes = null;
+    try {
+      bytes = getClassAsBytes(clazz);
+    } catch (IOException ioe) {
+      Assert.fail(ioe.toString());
+    }
+    CRC32 crc = new CRC32();
+    crc.update(bytes);
+    return crc.getValue();
   }
 
   public static String getArtDir(DexVm version) {

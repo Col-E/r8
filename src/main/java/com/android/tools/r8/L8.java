@@ -72,6 +72,7 @@ public class L8 {
               options,
               ImmutableList.of(options.getMarker(Tool.L8)),
               null,
+              null,
               GraphLense.getIdentityLense(),
               PrefixRewritingNamingLens.createPrefixRewritingNamingLens(
                   app, converter.getAdditionalRewritePrefix()),
