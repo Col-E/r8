@@ -75,7 +75,14 @@ final class ClassProcessor {
       process(superClass);
     }
 
-    if (clazz.interfaces.isEmpty()) {
+    // When inheriting from a library class, the library class may implement interfaces to
+    // desugar. We therefore need to look the interfaces of the library classes.
+    boolean desugaredLibraryLookup =
+        superClass != null
+            && superClass.isLibraryClass()
+            && appView.options().emulateLibraryInterface.size() > 0;
+
+    if (clazz.interfaces.isEmpty() && !desugaredLibraryLookup) {
       // Since superclass has already been processed and it has all missing methods
       // added, these methods will be inherited by `clazz`, and only need to be revised
       // in case this class has *additional* interfaces implemented, which may change
@@ -84,7 +91,8 @@ final class ClassProcessor {
     }
 
     // Collect the default interface methods to be added to this class.
-    List<DexEncodedMethod> methodsToImplement = collectMethodsToImplement(clazz);
+    List<DexEncodedMethod> methodsToImplement =
+        collectMethodsToImplement(clazz, desugaredLibraryLookup);
     if (methodsToImplement.isEmpty()) {
       return;
     }
@@ -105,7 +113,7 @@ final class ClassProcessor {
     DexClass target = appView.definitionFor(method.holder);
     // NOTE: Never add a forwarding method to methods of classes unknown or coming from android.jar
     // even if this results in invalid code, these classes are never desugared.
-    assert target != null && !target.isLibraryClass();
+    assert target != null && !rewriter.isNonDesugaredLibraryClass(target);
     // New method will have the same name, proto, and also all the flags of the
     // default method, including bridge flag.
     DexMethod newMethod = dexItemFactory.createMethod(clazz.type, method.proto, method.name);
@@ -130,7 +138,8 @@ final class ClassProcessor {
   // For a given class `clazz` inspects all interfaces it implements directly or
   // indirectly and collect a set of all default methods to be implemented
   // in this class.
-  private List<DexEncodedMethod> collectMethodsToImplement(DexClass clazz) {
+  private List<DexEncodedMethod> collectMethodsToImplement(
+      DexClass clazz, boolean desugaredLibraryLookup) {
     DefaultMethodsHelper helper = new DefaultMethodsHelper();
     DexClass current = clazz;
     List<DexEncodedMethod> accumulatedVirtualMethods = new ArrayList<>();
@@ -148,6 +157,8 @@ final class ClassProcessor {
         helper.merge(rewriter.getOrCreateInterfaceInfo(clazz, current, type));
       }
 
+      // TODO(anyone): Using clazz here instead of current looks suspicious, should this be hoisted
+      // out of the loop or changed to current?
       accumulatedVirtualMethods.addAll(clazz.virtualMethods());
 
       List<DexEncodedMethod> defaultMethodsInDirectInterface = helper.createFullList();
@@ -162,13 +173,15 @@ final class ClassProcessor {
       // Remaining methods in defaultMethodsInDirectInterface are those methods we need to look at
       // the hierarchy to know how they should be handled.
       if (toBeImplementedFromDirectInterface.isEmpty()
-          && defaultMethodsInDirectInterface.isEmpty()) {
+          && defaultMethodsInDirectInterface.isEmpty()
+          && !desugaredLibraryLookup) {
         // No interface with default in direct hierarchy, nothing to do: super already has all that
         // is needed.
         return Collections.emptyList();
       }
 
       if (current.superType == null) {
+        // TODO(anyone): Can this ever happen? It seems the loop stops on Object.
         break;
       } else {
         DexClass superClass = appView.definitionFor(current.superType);
@@ -200,6 +213,19 @@ final class ClassProcessor {
     List<DexEncodedMethod> toBeImplemented = new ArrayList<>(candidates.size());
     current = clazz;
     while (true) {
+      // In desugared library look-up, methods from library classes cannot hide methods from
+      // emulated interfaces (the method being desugared implied the implementation is not
+      // present in the library class).
+      if (desugaredLibraryLookup && current.isLibraryClass()) {
+        Iterator<DexEncodedMethod> iterator = candidates.iterator();
+        while (iterator.hasNext()) {
+          DexEncodedMethod candidate = iterator.next();
+          if (rewriter.isEmulatedInterface(candidate.method.holder)) {
+            toBeImplemented.add(candidate);
+            iterator.remove();
+          }
+        }
+      }
       // Hide candidates by virtual method of the class.
       hideCandidates(current.virtualMethods(), candidates, toBeImplemented);
       if (candidates.isEmpty()) {

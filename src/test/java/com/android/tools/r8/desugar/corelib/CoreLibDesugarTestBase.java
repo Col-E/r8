@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.desugar.corelib;
 
+import static junit.framework.TestCase.assertEquals;
+
 import com.android.tools.r8.L8;
 import com.android.tools.r8.L8Command;
 import com.android.tools.r8.OutputMode;
@@ -38,5 +40,13 @@ public class CoreLibDesugarTestBase extends TestBase {
 
   protected Path buildDesugaredLibrary(AndroidApiLevel apiLevel) throws Exception {
     return buildDesugaredLibrary(apiLevel, ImmutableList.of());
+  }
+
+  protected void assertLines2By2Correct(String stdOut) {
+    String[] lines = stdOut.split("\n");
+    assert lines.length % 2 == 0;
+    for (int i = 0; i < lines.length; i += 2) {
+      assertEquals(lines[i], lines[i + 1]);
+    }
   }
 }

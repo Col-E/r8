@@ -166,12 +166,4 @@ public class EmulateLibraryInterfaceTest extends CoreLibDesugarTestBase {
       assertFalse(stdErr.contains("Could not find method"));
     }
   }
-
-  private void assertLines2By2Correct(String stdOut) {
-    String[] lines = stdOut.split("\n");
-    assert lines.length % 2 == 0;
-    for (int i = 0; i < lines.length; i += 2) {
-      assertEquals(lines[i], lines[i + 1]);
-    }
-  }
 }

@@ -20,7 +20,6 @@ import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
@@ -104,7 +103,7 @@ public final class InterfaceMethodRewriter {
   private final Map<String, String> prefixRewritingInterfaces = new IdentityHashMap<>();
   private final Map<DexString, Map<DexType, DexType>> retargetCoreMember = new IdentityHashMap<>();
   // The emulatedMethod set is there to avoid doing the emulated look-up too often.
-  private final Set<DexProto> emulatedMethods = Sets.newIdentityHashSet();
+  private final Set<DexString> emulatedMethods = Sets.newIdentityHashSet();
   private ConcurrentHashMap<DexMethod, DexType> nearestEmulatedInterfaceCache =
       new ConcurrentHashMap<>();
 
@@ -160,7 +159,7 @@ public final class InterfaceMethodRewriter {
       if (emulatedInterfaceClass != null) {
         for (DexEncodedMethod encodedMethod :
             emulatedInterfaceClass.methods(DexEncodedMethod::isDefaultMethod)) {
-          emulatedMethods.add(encodedMethod.method.proto);
+          emulatedMethods.add(encodedMethod.method.name);
         }
       }
     }
@@ -188,6 +187,10 @@ public final class InterfaceMethodRewriter {
     prefixRewritingInterfaces.put(
         getEmulateLibraryInterfaceClassType(interfaceType, factory).toString(),
         rewrittenType + EMULATE_LIBRARY_CLASS_NAME_SUFFIX);
+  }
+
+  boolean isEmulatedInterface(DexType itf) {
+    return emulatedInterfaces.containsKey(itf);
   }
 
   // Rewrites the references to static and default interface methods.
@@ -233,7 +236,7 @@ public final class InterfaceMethodRewriter {
             // behavior.
             warnMissingType(encodedMethod.method, method.holder);
           } else if (clazz.isInterface()) {
-            if (clazz.isLibraryClass() && !isInDesugaredLibrary(clazz)) {
+            if (isNonDesugaredLibraryClass(clazz)) {
               // NOTE: we intentionally don't desugar static calls into static interface
               // methods coming from android.jar since it is only possible in case v24+
               // version of android.jar is provided.
@@ -276,7 +279,7 @@ public final class InterfaceMethodRewriter {
           } else if (clazz.isInterface() && clazz.isLibraryClass() && isInDesugaredLibrary(clazz)) {
             // Here we try to avoid doing the expensive look-up on all invokes.
             boolean rewritten = false;
-            if (emulatedMethods.contains(invokedMethod.proto)) {
+            if (emulatedMethods.contains(invokedMethod.name)) {
               DexType dexType = nearestEmulatedInterfaceImplementingWithCache(invokedMethod);
               if (dexType != null) {
                 rewriteCurrentInstructionToEmulatedInterfaceCall(
@@ -362,12 +365,28 @@ public final class InterfaceMethodRewriter {
         }
 
         if (instruction.isInvokeVirtual() || instruction.isInvokeInterface()) {
-          // TODO(b/134732760): Investigate if doing this only on clazz.isLibraryClass +
-          // !isInDesugaredLibrary(clazz) is enough.
           InvokeMethod invokeMethod = instruction.asInvokeMethod();
           DexMethod invokedMethod = invokeMethod.getInvokedMethod();
           // Here we try to avoid doing the expensive look-up on all invokes.
-          if (!emulatedMethods.contains(invokedMethod.proto)) {
+          if (!emulatedMethods.contains(invokedMethod.name)) {
+            continue;
+          }
+          DexClass dexClass = appView.definitionFor(invokedMethod.holder);
+          // We cannot rewrite the invoke we do not know what the class is.
+          if (dexClass == null) {
+            continue;
+          }
+          // TODO(b/120884788): Make sure program class are looked up before library class for
+          // CoreLib compilation or look again into all desugared library emulation.
+          // Outside of core libraries, only library classes are rewritten. In core libraries,
+          // some classes are present both as program and library class, and definitionFor
+          // answers the program class so this is not true.
+          if (!appView.options().coreLibraryCompilation && !dexClass.isLibraryClass()) {
+            continue;
+          }
+          // We always rewrite interfaces, but classes are rewritten only if they are not already
+          // desugared (CoreLibrary classes efficient implementation).
+          if (!dexClass.isInterface() && isInDesugaredLibrary(dexClass)) {
             continue;
           }
           DexType dexType = nearestEmulatedInterfaceImplementingWithCache(invokedMethod);
@@ -432,7 +451,7 @@ public final class InterfaceMethodRewriter {
       for (DexType itf : currentClass.interfaces.values) {
         if (isMatchingEmulatedInterface(itf, method)) {
           foundEmulatedInterfaces.add(itf);
-        } else if (!foundEmulatedInterfaces.isEmpty()) {
+        } else if (foundEmulatedInterfaces.isEmpty()) {
           foundInterfaces.add(itf);
         }
       }
@@ -523,8 +542,12 @@ public final class InterfaceMethodRewriter {
     return result;
   }
 
+  boolean isNonDesugaredLibraryClass(DexClass clazz) {
+    return clazz.isLibraryClass() && !isInDesugaredLibrary(clazz);
+  }
+
   private boolean isInDesugaredLibrary(DexClass clazz) {
-    assert clazz.isLibraryClass();
+    assert clazz.isLibraryClass() || options.coreLibraryCompilation;
     if (emulatedInterfaces.containsKey(clazz.type)) {
       return true;
     }
@@ -1109,7 +1132,7 @@ public final class InterfaceMethodRewriter {
               + implementing.toString() + "`.");
     }
 
-    if (definedInterface.isLibraryClass()) {
+    if (isNonDesugaredLibraryClass(definedInterface)) {
       // NOTE: We intentionally ignore all candidates coming from android.jar
       // since it is only possible in case v24+ version of android.jar is provided.
       // WARNING: This may result in incorrect code if something else than Android bootclasspath
