@@ -10,6 +10,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.AbstractError;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -79,19 +80,6 @@ public class NewArrayFilledData extends Instruction {
   }
 
   @Override
-  public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
-    if (!src().getTypeLattice().isNullable() && src().numberOfAllUsers() == 1) {
-      // The NewArrayFilledData instruction is only inserted by an R8 optimization following
-      // a NewArrayEmpty when there are more than one entry.
-      assert src().uniqueUsers().iterator().next() == this;
-      assert src().definition != null;
-      assert src().definition.isNewArrayEmpty();
-      return true;
-    }
-    return false;
-  }
-
-  @Override
   public boolean instructionTypeCanThrow() {
     return true;
   }
@@ -123,7 +111,40 @@ public class NewArrayFilledData extends Instruction {
   }
 
   @Override
+  public AbstractError instructionInstanceCanThrow(AppView<?> appView, DexType context) {
+    if (appView.options().debug) {
+      return AbstractError.top();
+    }
+
+    if (src().getTypeLattice().isNullable()) {
+      return AbstractError.top();
+    }
+
+    return AbstractError.bottom();
+  }
+
+  @Override
+  public boolean instructionMayHaveSideEffects(AppView<?> appView, DexType context) {
+    // Treat the instruction as possibly having side-effects if it may throw or the array is used.
+    if (instructionInstanceCanThrow(appView, context).isThrowing()
+        || src().numberOfAllUsers() > 1) {
+      return true;
+    }
+
+    assert src().singleUniqueUser() == this;
+    assert !src().isPhi();
+    assert src().definition.isNewArrayEmpty();
+
+    return false;
+  }
+
+  @Override
   public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
     return false;
+  }
+
+  @Override
+  public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
+    return !instructionMayHaveSideEffects(appView, code.method.method.holder);
   }
 }
