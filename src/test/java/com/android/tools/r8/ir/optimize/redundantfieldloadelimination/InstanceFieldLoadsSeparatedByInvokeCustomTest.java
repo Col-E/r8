@@ -100,7 +100,7 @@ public class InstanceFieldLoadsSeparatedByInvokeCustomTest extends TestBase {
             "()V",
             false);
         methodVisitor.visitInsn(RETURN);
-        methodVisitor.visitMaxs(2, 0);
+        methodVisitor.visitMaxs(2, 1);
         methodVisitor.visitEnd();
       }
       {
