@@ -36,7 +36,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
-import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Collections;
@@ -160,8 +159,19 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
   final Set<DexType> prunedTypes;
   /** A map from switchmap class types to their corresponding switchmaps. */
   final Map<DexField, Int2ReferenceMap<DexField>> switchMaps;
-  /** A map from enum types to their ordinal values. */
-  final Map<DexType, Reference2IntMap<DexField>> ordinalsMaps;
+  /** A map from enum types to their value types and ordinals. */
+  final Map<DexType, Map<DexField, EnumValueInfo>> enumValueInfoMaps;
+
+  public static final class EnumValueInfo {
+    /** The anonymous subtype of this specific value or the enum type. */
+    public final DexType type;
+    public final int ordinal;
+
+    public EnumValueInfo(DexType type, int ordinal) {
+      this.type = type;
+      this.ordinal = ordinal;
+    }
+  }
 
   final ImmutableSortedSet<DexType> instantiatedLambdas;
 
@@ -201,7 +211,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       Object2BooleanMap<DexReference> identifierNameStrings,
       Set<DexType> prunedTypes,
       Map<DexField, Int2ReferenceMap<DexField>> switchMaps,
-      Map<DexType, Reference2IntMap<DexField>> ordinalsMaps,
+      Map<DexType, Map<DexField, EnumValueInfo>> enumValueInfoMaps,
       ImmutableSortedSet<DexType> instantiatedLambdas) {
     super(application);
     this.liveTypes = liveTypes;
@@ -238,7 +248,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.identifierNameStrings = identifierNameStrings;
     this.prunedTypes = prunedTypes;
     this.switchMaps = switchMaps;
-    this.ordinalsMaps = ordinalsMaps;
+    this.enumValueInfoMaps = enumValueInfoMaps;
     this.instantiatedLambdas = instantiatedLambdas;
   }
 
@@ -277,7 +287,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       Object2BooleanMap<DexReference> identifierNameStrings,
       Set<DexType> prunedTypes,
       Map<DexField, Int2ReferenceMap<DexField>> switchMaps,
-      Map<DexType, Reference2IntMap<DexField>> ordinalsMaps,
+      Map<DexType, Map<DexField, EnumValueInfo>> enumValueInfoMaps,
       ImmutableSortedSet<DexType> instantiatedLambdas) {
     super(appInfoWithSubtyping);
     this.liveTypes = liveTypes;
@@ -314,7 +324,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.identifierNameStrings = identifierNameStrings;
     this.prunedTypes = prunedTypes;
     this.switchMaps = switchMaps;
-    this.ordinalsMaps = ordinalsMaps;
+    this.enumValueInfoMaps = enumValueInfoMaps;
     this.instantiatedLambdas = instantiatedLambdas;
   }
 
@@ -366,7 +376,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
             ? previous.prunedTypes
             : CollectionUtils.mergeSets(previous.prunedTypes, removedClasses),
         previous.switchMaps,
-        previous.ordinalsMaps,
+        previous.enumValueInfoMaps,
         previous.instantiatedLambdas);
     copyMetadataFromPrevious(previous);
     assert removedClasses == null || assertNoItemRemoved(previous.pinnedItems, removedClasses);
@@ -448,13 +458,13 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
             .filter(Objects::nonNull)
             .collect(Collectors.toList()));
     this.switchMaps = rewriteReferenceKeys(previous.switchMaps, lense::lookupField);
-    this.ordinalsMaps = rewriteReferenceKeys(previous.ordinalsMaps, lense::lookupType);
+    this.enumValueInfoMaps = rewriteReferenceKeys(previous.enumValueInfoMaps, lense::lookupType);
   }
 
   public AppInfoWithLiveness(
       AppInfoWithLiveness previous,
       Map<DexField, Int2ReferenceMap<DexField>> switchMaps,
-      Map<DexType, Reference2IntMap<DexField>> ordinalsMaps) {
+      Map<DexType, Map<DexField, EnumValueInfo>> enumValueInfoMaps) {
     super(previous);
     this.liveTypes = previous.liveTypes;
     this.instantiatedAnnotationTypes = previous.instantiatedAnnotationTypes;
@@ -491,7 +501,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.identifierNameStrings = previous.identifierNameStrings;
     this.prunedTypes = previous.prunedTypes;
     this.switchMaps = switchMaps;
-    this.ordinalsMaps = ordinalsMaps;
+    this.enumValueInfoMaps = enumValueInfoMaps;
     previous.markObsolete();
   }
 
@@ -563,9 +573,9 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
         items.stream().filter(predicate).collect(Collectors.toList()));
   }
 
-  public Reference2IntMap<DexField> getOrdinalsMapFor(DexType enumClass) {
+  public Map<DexField, EnumValueInfo> getEnumValueInfoMapFor(DexType enumClass) {
     assert checkIfObsolete();
-    return ordinalsMaps.get(enumClass);
+    return enumValueInfoMaps.get(enumClass);
   }
 
   public Int2ReferenceMap<DexField> getSwitchMapFor(DexField field) {
@@ -1057,13 +1067,13 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
   public AppInfoWithLiveness addSwitchMaps(Map<DexField, Int2ReferenceMap<DexField>> switchMaps) {
     assert checkIfObsolete();
     assert this.switchMaps.isEmpty();
-    return new AppInfoWithLiveness(this, switchMaps, ordinalsMaps);
+    return new AppInfoWithLiveness(this, switchMaps, enumValueInfoMaps);
   }
 
-  public AppInfoWithLiveness addEnumOrdinalMaps(
-      Map<DexType, Reference2IntMap<DexField>> ordinalsMaps) {
+  public AppInfoWithLiveness addEnumValueInfoMaps(
+      Map<DexType, Map<DexField, EnumValueInfo>> enumValueInfoMaps) {
     assert checkIfObsolete();
-    assert this.ordinalsMaps.isEmpty();
-    return new AppInfoWithLiveness(this, switchMaps, ordinalsMaps);
+    assert this.enumValueInfoMaps.isEmpty();
+    return new AppInfoWithLiveness(this, switchMaps, enumValueInfoMaps);
   }
 }

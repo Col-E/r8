@@ -28,7 +28,7 @@ import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.analysis.proto.GeneratedExtensionRegistryShrinker;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.R8NestBasedAccessDesugaring;
-import com.android.tools.r8.ir.optimize.EnumOrdinalMapCollector;
+import com.android.tools.r8.ir.optimize.EnumInfoMapCollector;
 import com.android.tools.r8.ir.optimize.MethodPoolCollection;
 import com.android.tools.r8.ir.optimize.NestReducer;
 import com.android.tools.r8.ir.optimize.SwitchMapCollector;
@@ -515,7 +515,7 @@ public class R8 {
       // Collect switch maps and ordinals maps.
       if (options.enableEnumValueOptimization) {
         appViewWithLiveness.setAppInfo(new SwitchMapCollector(appViewWithLiveness).run());
-        appViewWithLiveness.setAppInfo(new EnumOrdinalMapCollector(appViewWithLiveness).run());
+        appViewWithLiveness.setAppInfo(new EnumInfoMapCollector(appViewWithLiveness).run());
       }
 
       appView.setAppServices(appView.appServices().rewrittenWithLens(appView.graphLense()));

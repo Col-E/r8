@@ -14,26 +14,26 @@ import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import it.unimi.dsi.fastutil.objects.Reference2IntArrayMap;
-import it.unimi.dsi.fastutil.objects.Reference2IntMap;
+import com.android.tools.r8.shaking.AppInfoWithLiveness.EnumValueInfo;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
 /**
- * Extracts the ordinal values for all Enum classes from their static initializer.
+ * Extracts the ordinal values and any anonymous subtypes for all Enum classes from their static
+ * initializer.
  * <p>
  * An Enum class has a field for each value. In the class initializer, each field is initialized
  * to a singleton object that represents the value. This code matches on the corresponding call
  * to the constructor (instance initializer) and extracts the value of the second argument, which
- * is the ordinal.
+ * is the ordinal and the holder which is the concrete type.
  */
-public class EnumOrdinalMapCollector {
+public class EnumInfoMapCollector {
 
   private final AppView<AppInfoWithLiveness> appView;
 
-  private final Map<DexType, Reference2IntMap<DexField>> ordinalsMaps = new IdentityHashMap<>();
+  private final Map<DexType, Map<DexField, EnumValueInfo>> valueInfoMaps = new IdentityHashMap<>();
 
-  public EnumOrdinalMapCollector(AppView<AppInfoWithLiveness> appView) {
+  public EnumInfoMapCollector(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
   }
 
@@ -41,8 +41,8 @@ public class EnumOrdinalMapCollector {
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       processClasses(clazz);
     }
-    if (!ordinalsMaps.isEmpty()) {
-      return appView.appInfo().addEnumOrdinalMaps(ordinalsMaps);
+    if (!valueInfoMaps.isEmpty()) {
+      return appView.appInfo().addEnumValueInfoMaps(valueInfoMaps);
     }
     return appView.appInfo();
   }
@@ -54,8 +54,7 @@ public class EnumOrdinalMapCollector {
     }
     DexEncodedMethod initializer = clazz.getClassInitializer();
     IRCode code = initializer.getCode().buildIR(initializer, appView, clazz.origin);
-    Reference2IntMap<DexField> ordinalsMap = new Reference2IntArrayMap<>();
-    ordinalsMap.defaultReturnValue(-1);
+    Map<DexField, EnumValueInfo> valueInfoMap = new IdentityHashMap<>();
     InstructionIterator it = code.instructionIterator();
     while (it.hasNext()) {
       Instruction insn = it.next();
@@ -71,6 +70,7 @@ public class EnumOrdinalMapCollector {
         continue;
       }
       Instruction ordinal = null;
+      DexType type = null;
       for (Instruction ctorCall : newInstance.outValue().uniqueUsers()) {
         if (!ctorCall.isInvokeDirect()) {
           continue;
@@ -81,15 +81,18 @@ public class EnumOrdinalMapCollector {
           continue;
         }
         ordinal = invoke.arguments().get(2).definition;
+        type = invoke.getInvokedMethod().holder;
         break;
       }
-      if (ordinal == null || !ordinal.isConstNumber()) {
+      if (ordinal == null || !ordinal.isConstNumber() || type == null) {
         return;
       }
-      if (ordinalsMap.put(staticPut.getField(), ordinal.asConstNumber().getIntValue()) != -1) {
+
+      EnumValueInfo info = new EnumValueInfo(type, ordinal.asConstNumber().getIntValue());
+      if (valueInfoMap.put(staticPut.getField(), info) != null) {
         return;
       }
     }
-    ordinalsMaps.put(clazz.type, ordinalsMap);
+    valueInfoMaps.put(clazz.type, valueInfoMap);
   }
 }

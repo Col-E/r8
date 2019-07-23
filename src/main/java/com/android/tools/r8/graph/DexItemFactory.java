@@ -589,6 +589,7 @@ public class DexItemFactory {
     public final DexMethod getClass;
     public final DexMethod constructor;
     public final DexMethod finalize;
+    public final DexMethod toString;
 
     private ObjectMethods() {
       getClass = createMethod(objectDescriptor, getClassMethodName, classDescriptor,
@@ -597,6 +598,8 @@ public class DexItemFactory {
           constructorMethodName, voidType.descriptor, DexString.EMPTY_ARRAY);
       finalize = createMethod(objectDescriptor,
           finalizeMethodName, voidType.descriptor, DexString.EMPTY_ARRAY);
+      toString = createMethod(objectDescriptor,
+          toStringMethodName, stringDescriptor, DexString.EMPTY_ARRAY);
     }
   }
 
@@ -687,6 +690,7 @@ public class DexItemFactory {
     public DexMethod valueOf;
     public DexMethod ordinal;
     public DexMethod name;
+    public DexMethod toString;
 
     private EnumMethods() {
       valueOf =
@@ -705,6 +709,12 @@ public class DexItemFactory {
           createMethod(
               enumDescriptor,
               nameMethodName,
+              stringDescriptor,
+              DexString.EMPTY_ARRAY);
+      toString =
+          createMethod(
+              enumDescriptor,
+              toStringMethodName,
               stringDescriptor,
               DexString.EMPTY_ARRAY);
     }

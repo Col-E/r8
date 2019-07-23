@@ -121,6 +121,48 @@ public class EnumOptimizationTest extends TestBase {
     assertNameWasNotReplaced(clazz.uniqueMethodWithName("nonStaticGet"));
   }
 
+  @Test public void toStrings() throws Exception {
+    testForR8(parameters.getBackend())
+        .addLibraryFiles(getDefaultAndroidJar())
+        .addProgramClassesAndInnerClasses(ToStrings.class)
+        .addKeepMainRule(ToStrings.class)
+        .enableInliningAnnotations()
+        .addOptionsModification(options -> options.enableEnumValueOptimization = enableOptimization)
+        .setMinApi(parameters.getRuntime())
+        .compile()
+        .inspect(this::inspectToStrings)
+        .run(parameters.getRuntime(), ToStrings.class)
+        .assertSuccessWithOutputLines("one", "one", "TWO", "TWO", "TWO", "1TWO", "TWO", "SECONDS",
+            "DOWN", "TWO", "TWO", "TWO");
+  }
+
+  private void inspectToStrings(CodeInspector inspector) {
+    ClassSubject clazz = inspector.clazz(ToStrings.class);
+    assertTrue(clazz.isPresent());
+
+    assertToStringWasNotReplaced(clazz.uniqueMethodWithName("typeToString"));
+    assertToStringWasNotReplaced(clazz.uniqueMethodWithName("valueWithToString"));
+    assertToStringWasNotReplaced(clazz.uniqueMethodWithName("valueWithoutToString"));
+
+    if (enableOptimization) {
+      assertToStringReplacedWithConst(clazz.uniqueMethodWithName("noToString"), "TWO");
+      assertToStringReplacedWithConst(clazz.uniqueMethodWithName("local"), "TWO");
+      assertToStringReplacedWithConst(clazz.uniqueMethodWithName("multipleUsages"), "TWO");
+      assertToStringReplacedWithConst(clazz.uniqueMethodWithName("inlined"), "TWO");
+    } else {
+      assertToStringWasNotReplaced(clazz.uniqueMethodWithName("noToString"));
+      assertToStringWasNotReplaced(clazz.uniqueMethodWithName("local"));
+      assertToStringWasNotReplaced(clazz.uniqueMethodWithName("multipleUsages"));
+      assertToStringWasNotReplaced(clazz.uniqueMethodWithName("inlined"));
+    }
+
+    assertToStringWasNotReplaced(clazz.uniqueMethodWithName("libraryType"));
+    assertToStringWasNotReplaced(clazz.uniqueMethodWithName("wrongTypeStaticField"));
+    assertToStringWasNotReplaced(clazz.uniqueMethodWithName("nonValueStaticField"));
+    assertToStringWasNotReplaced(clazz.uniqueMethodWithName("phi"));
+    assertToStringWasNotReplaced(clazz.uniqueMethodWithName("nonStaticGet"));
+  }
+
   private static void assertOrdinalReplacedWithConst(MethodSubject method, int expectedConst) {
     assertTrue(method.isPresent());
     assertEquals(emptyList(), enumInvokes(method, "ordinal"));
@@ -159,6 +201,23 @@ public class EnumOptimizationTest extends TestBase {
   private static void assertNameWasNotReplaced(MethodSubject method) {
     assertTrue(method.isPresent());
     List<InstructionSubject> invokes = enumInvokes(method, "name");
+    assertEquals(invokes.toString(), 1, invokes.size());
+  }
+
+  private static void assertToStringReplacedWithConst(MethodSubject method, String expectedConst) {
+    assertTrue(method.isPresent());
+    assertEquals(emptyList(), enumInvokes(method, "toString"));
+
+    List<String> actualConst = method.streamInstructions()
+        .map(InstructionSubject::getConstString)
+        .filter(Objects::nonNull)
+        .collect(toList());
+    assertEquals(expectedConst, actualConst.get(0));
+  }
+
+  private static void assertToStringWasNotReplaced(MethodSubject method) {
+    assertTrue(method.isPresent());
+    List<InstructionSubject> invokes = enumInvokes(method, "toString");
     assertEquals(invokes.toString(), 1, invokes.size());
   }
 }

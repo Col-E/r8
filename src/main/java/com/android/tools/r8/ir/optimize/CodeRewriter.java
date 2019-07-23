@@ -90,6 +90,7 @@ import com.android.tools.r8.ir.conversion.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.SwitchUtils.EnumSwitchInfo;
 import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
 import com.android.tools.r8.kotlin.Kotlin;
+import com.android.tools.r8.shaking.AppInfoWithLiveness.EnumValueInfo;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOutputMode;
 import com.android.tools.r8.utils.LongInterval;
@@ -1071,9 +1072,10 @@ public class CodeRewriter {
           IntList keys = new IntArrayList(switchInsn.numberOfKeys());
           for (int i = 0; i < switchInsn.numberOfKeys(); i++) {
             assert switchInsn.targetBlockIndices()[i] != switchInsn.getFallthroughBlockIndex();
-            int key = info.ordinalsMap.getInt(info.indexMap.get(switchInsn.getKey(i)));
-            keys.add(key);
-            targetMap.put(key, switchInsn.targetBlockIndices()[i]);
+            EnumValueInfo valueInfo =
+                info.valueInfoMap.get(info.indexMap.get(switchInsn.getKey(i)));
+            keys.add(valueInfo.ordinal);
+            targetMap.put(valueInfo.ordinal, switchInsn.targetBlockIndices()[i]);
           }
           keys.sort(Comparator.naturalOrder());
           int[] targets = new int[keys.size()];
@@ -3649,7 +3651,7 @@ public class CodeRewriter {
     return true;
   }
 
-  public void rewriteConstantEnumOrdinalAndName(IRCode code) {
+  public void rewriteConstantEnumMethodCalls(IRCode code) {
     InstructionIterator iterator = code.instructionIterator();
     while (iterator.hasNext()) {
       Instruction current = iterator.next();
@@ -3661,7 +3663,8 @@ public class CodeRewriter {
       DexMethod invokedMethod = methodWithReceiver.getInvokedMethod();
       boolean isOrdinalInvoke = invokedMethod == dexItemFactory.enumMethods.ordinal;
       boolean isNameInvoke = invokedMethod == dexItemFactory.enumMethods.name;
-      if (!isOrdinalInvoke && !isNameInvoke) {
+      boolean isToStringInvoke = invokedMethod == dexItemFactory.enumMethods.toString;
+      if (!isOrdinalInvoke && !isNameInvoke && !isToStringInvoke) {
         continue;
       }
 
@@ -3675,9 +3678,9 @@ public class CodeRewriter {
       }
       DexField enumField = definition.asStaticGet().getField();
 
-      Reference2IntMap<DexField> ordinalMap =
-          appView.appInfo().withLiveness().getOrdinalsMapFor(enumField.type);
-      if (ordinalMap == null) {
+      Map<DexField, EnumValueInfo> valueInfoMap =
+          appView.appInfo().withLiveness().getEnumValueInfoMapFor(enumField.type);
+      if (valueInfoMap == null) {
         continue;
       }
 
@@ -3685,19 +3688,31 @@ public class CodeRewriter {
       // that it is a static-get to a field whose type is the same as the enclosing class (which
       // is known to be an enum type). An enum may still define a static field using the enum type
       // so ensure the field is present in the ordinal map for final validation.
-      if (!ordinalMap.containsKey(enumField)) {
+      EnumValueInfo valueInfo = valueInfoMap.get(enumField);
+      if (valueInfo == null) {
         continue;
       }
 
       Value outValue = methodWithReceiver.outValue();
-      Instruction newInstruction;
       if (isOrdinalInvoke) {
-        newInstruction = new ConstNumber(outValue, ordinalMap.getInt(enumField));
+        iterator.replaceCurrentInstruction(new ConstNumber(outValue, valueInfo.ordinal));
+      } else if (isNameInvoke) {
+        iterator.replaceCurrentInstruction(
+            new ConstString(outValue, enumField.name, ThrowingInfo.NO_THROW));
       } else {
-        assert isNameInvoke;
-        newInstruction = new ConstString(outValue, enumField.name, ThrowingInfo.NO_THROW);
+        assert isToStringInvoke;
+        DexClass enumClazz = appView.appInfo().definitionFor(enumField.type);
+        if (!enumClazz.accessFlags.isFinal()) {
+          continue;
+        }
+        if (appView.appInfo()
+            .resolveMethodOnClass(valueInfo.type, dexItemFactory.objectMethods.toString)
+            .asResultOfResolve().method != dexItemFactory.enumMethods.toString) {
+          continue;
+        }
+        iterator.replaceCurrentInstruction(
+            new ConstString(outValue, enumField.name, ThrowingInfo.NO_THROW));
       }
-      iterator.replaceCurrentInstruction(newInstruction);
     }
 
     assert code.isConsistentSSA();

@@ -14,8 +14,9 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.AppInfoWithLiveness.EnumValueInfo;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
-import it.unimi.dsi.fastutil.objects.Reference2IntMap;
+import java.util.Map;
 
 public class SwitchUtils {
 
@@ -25,19 +26,19 @@ public class SwitchUtils {
     public final Instruction arrayGet;
     public final Instruction staticGet;
     public final Int2ReferenceMap<DexField> indexMap;
-    public final Reference2IntMap<DexField> ordinalsMap;
+    public final Map<DexField, EnumValueInfo> valueInfoMap;
 
     private EnumSwitchInfo(DexType enumClass,
         Instruction ordinalInvoke,
         Instruction arrayGet, Instruction staticGet,
         Int2ReferenceMap<DexField> indexMap,
-        Reference2IntMap<DexField> ordinalsMap) {
+        Map<DexField, EnumValueInfo> valueInfoMap) {
       this.enumClass = enumClass;
       this.ordinalInvoke = ordinalInvoke;
       this.arrayGet = arrayGet;
       this.staticGet = staticGet;
       this.indexMap = indexMap;
-      this.ordinalsMap = ordinalsMap;
+      this.valueInfoMap = valueInfoMap;
     }
   }
 
@@ -54,7 +55,7 @@ public class SwitchUtils {
    *
    * </blockquote>
    *
-   * and extracts the components and the index and ordinal maps. See {@link EnumOrdinalMapCollector}
+   * and extracts the components and the index and ordinal maps. See {@link EnumInfoMapCollector}
    * and {@link SwitchMapCollector} for details.
    */
   public static EnumSwitchInfo analyzeSwitchOverEnum(
@@ -93,12 +94,12 @@ public class SwitchUtils {
     // Due to member rebinding, only the fields are certain to provide the actual enums
     // class.
     DexType enumType = indexMap.values().iterator().next().holder;
-    Reference2IntMap<DexField> ordinalsMap = appInfo.getOrdinalsMapFor(enumType);
-    if (ordinalsMap == null) {
+    Map<DexField, EnumValueInfo> valueInfoMap = appInfo.getEnumValueInfoMapFor(enumType);
+    if (valueInfoMap == null) {
       return null;
     }
     return new EnumSwitchInfo(enumType, ordinalInvoke, arrayGet, staticGet, indexMap,
-        ordinalsMap);
+        valueInfoMap);
   }
 
 
