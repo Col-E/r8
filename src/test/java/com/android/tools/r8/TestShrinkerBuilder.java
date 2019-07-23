@@ -73,36 +73,61 @@ public abstract class TestShrinkerBuilder<
   }
 
   public T addKeepClassRules(Class<?>... classes) {
-    for (Class<?> clazz : classes) {
-      addKeepRules("-keep class " + clazz.getTypeName());
+    return addKeepClassRules(
+        Arrays.stream(classes).map(Class::getTypeName).toArray(String[]::new));
+  }
+
+  public T addKeepClassRules(String... classes) {
+    for (String clazz : classes) {
+      addKeepRules("-keep class " + clazz);
     }
     return self();
   }
 
   public T addKeepClassRulesWithAllowObfuscation(Class<?>... classes) {
-    for (Class<?> clazz : classes) {
-      addKeepRules("-keep,allowobfuscation class " + clazz.getTypeName());
+    return addKeepClassRulesWithAllowObfuscation(
+        Arrays.stream(classes).map(Class::getTypeName).toArray(String[]::new));
+  }
+
+  public T addKeepClassRulesWithAllowObfuscation(String... classes) {
+    for (String clazz : classes) {
+      addKeepRules("-keep,allowobfuscation class " + clazz);
     }
     return self();
   }
 
   public T addKeepClassAndMembersRules(Class<?>... classes) {
-    for (Class<?> clazz : classes) {
-      addKeepRules("-keep class " + clazz.getTypeName() + " { *; }");
+    return addKeepClassAndMembersRules(
+        Arrays.stream(classes).map(Class::getTypeName).toArray(String[]::new));
+  }
+
+  public T addKeepClassAndMembersRules(String... classes) {
+    for (String clazz : classes) {
+      addKeepRules("-keep class " + clazz + " { *; }");
     }
     return self();
   }
 
   public T addKeepClassAndMembersRulesWithAllowObfuscation(Class<?>... classes) {
-    for (Class<?> clazz : classes) {
-      addKeepRules("-keep,allowobfuscation class " + clazz.getTypeName() + " { *; }");
+    return addKeepClassAndMembersRulesWithAllowObfuscation(
+        Arrays.stream(classes).map(Class::getTypeName).toArray(String[]::new));
+  }
+
+  public T addKeepClassAndMembersRulesWithAllowObfuscation(String... classes) {
+    for (String clazz : classes) {
+      addKeepRules("-keep,allowobfuscation class " + clazz + " { *; }");
     }
     return self();
   }
 
   public T addKeepClassAndDefaultConstructor(Class<?>... classes) {
-    for (Class<?> clazz : classes) {
-      addKeepRules("-keep class " + clazz.getTypeName() + " { <init>(); }");
+    return addKeepClassAndDefaultConstructor(
+        Arrays.stream(classes).map(Class::getTypeName).toArray(String[]::new));
+  }
+
+  public T addKeepClassAndDefaultConstructor(String... classes) {
+    for (String clazz : classes) {
+      addKeepRules("-keep class " + clazz + " { <init>(); }");
     }
     return self();
   }
