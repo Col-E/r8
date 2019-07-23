@@ -1048,6 +1048,20 @@ public class InternalOptions {
     return isGeneratingClassFiles() || hasMinApi(AndroidApiLevel.K);
   }
 
+  public boolean canUseAssertionErrorTwoArgumentConstructor() {
+    return isGeneratingClassFiles() || hasMinApi(AndroidApiLevel.K);
+  }
+
+  // The Apache Harmony-based AssertionError constructor which takes an Object on API 15 and older
+  // calls the Error supertype constructor with null as the exception cause. This prevents
+  // subsequent calls to initCause() because its implementation checks that cause==this before
+  // allowing a cause to be set.
+  //
+  // https://android.googlesource.com/platform/libcore/+/refs/heads/ics-mr1/luni/src/main/java/java/lang/AssertionError.java#56
+  public boolean canInitCauseAfterAssertionErrorObjectConstructor() {
+    return isGeneratingClassFiles() || hasMinApi(AndroidApiLevel.J);
+  }
+
   // Dalvik x86-atom backend had a bug that made it crash on filled-new-array instructions for
   // arrays of objects. This is unfortunate, since this never hits arm devices, but we have
   // to disallow filled-new-array of objects for dalvik until kitkat. The buggy code was

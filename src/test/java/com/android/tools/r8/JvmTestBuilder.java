@@ -9,6 +9,7 @@ import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
+import com.google.common.collect.ObjectArrays;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -43,9 +44,11 @@ public class JvmTestBuilder extends TestBuilder<JvmTestRunResult, JvmTestBuilder
     return new JvmTestRunResult(builder.build(), result);
   }
 
-  public JvmTestRunResult run(TestRuntime runtime, String mainClass) throws IOException {
+  public JvmTestRunResult run(TestRuntime runtime, String mainClass, String... args)
+      throws IOException {
     assert runtime.isCf();
-    ProcessResult result = ToolHelper.runJava(runtime.asCf().getVm(), classpath, mainClass);
+    ProcessResult result =
+        ToolHelper.runJava(runtime.asCf().getVm(), classpath, ObjectArrays.concat(mainClass, args));
     return new JvmTestRunResult(builder.build(), result);
   }
 

@@ -179,6 +179,7 @@ public class DexItemFactory {
   public final DexString invokeMethodName = createString("invoke");
   public final DexString invokeExactMethodName = createString("invokeExact");
 
+  public final DexString assertionErrorDescriptor = createString("Ljava/lang/AssertionError;");
   public final DexString charSequenceDescriptor = createString("Ljava/lang/CharSequence;");
   public final DexString charSequenceArrayDescriptor = createString("[Ljava/lang/CharSequence;");
   public final DexString stringDescriptor = createString("Ljava/lang/String;");
@@ -316,6 +317,7 @@ public class DexItemFactory {
   public final LongMethods longMethods = new LongMethods();
   public final JavaUtilArraysMethods utilArraysMethods = new JavaUtilArraysMethods();
   public final ThrowableMethods throwableMethods = new ThrowableMethods();
+  public final AssertionErrorMethods assertionErrorMethods = new AssertionErrorMethods();
   public final ClassMethods classMethods = new ClassMethods();
   public final ConstructorMethods constructorMethods = new ConstructorMethods();
   public final EnumMethods enumMethods = new EnumMethods();
@@ -556,12 +558,29 @@ public class DexItemFactory {
 
     public final DexMethod addSuppressed;
     public final DexMethod getSuppressed;
+    public final DexMethod initCause;
 
     private ThrowableMethods() {
       addSuppressed = createMethod(throwableDescriptor,
           createString("addSuppressed"), voidDescriptor, new DexString[]{throwableDescriptor});
       getSuppressed = createMethod(throwableDescriptor,
           createString("getSuppressed"), throwableArrayDescriptor, DexString.EMPTY_ARRAY);
+      initCause = createMethod(throwableDescriptor, createString("initCause"), throwableDescriptor,
+          new DexString[] { throwableDescriptor });
+    }
+  }
+
+  public class AssertionErrorMethods {
+    public final DexMethod initMessage;
+    public final DexMethod initMessageAndCause;
+
+    private AssertionErrorMethods() {
+      this.initMessage =
+          createMethod(assertionErrorDescriptor, constructorMethodName, voidDescriptor,
+              new DexString[] { objectDescriptor });
+      this.initMessageAndCause =
+          createMethod(assertionErrorDescriptor, constructorMethodName, voidDescriptor,
+              new DexString[] { stringDescriptor, throwableDescriptor });
     }
   }
 

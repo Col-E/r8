@@ -1088,6 +1088,7 @@ public class IRConverter {
     }
 
     codeRewriter.rewriteLongCompareAndRequireNonNull(code, options);
+    codeRewriter.rewriteAssertionErrorTwoArgumentConstructor(code, options);
     codeRewriter.commonSubexpressionElimination(code);
     codeRewriter.simplifyArrayConstruction(code);
     codeRewriter.rewriteMoveResult(code);

@@ -111,9 +111,9 @@ public abstract class TestCompilerBuilder<
   }
 
   @Override
-  public RR run(TestRuntime runtime, String mainClass)
+  public RR run(TestRuntime runtime, String mainClass, String... args)
       throws CompilationFailedException, ExecutionException, IOException {
-    return compile().run(runtime, mainClass);
+    return compile().run(runtime, mainClass, args);
   }
 
   @Override
