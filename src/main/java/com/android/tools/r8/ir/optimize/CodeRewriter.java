@@ -3201,6 +3201,12 @@ public class CodeRewriter {
    * thereby save a const-number instruction.
    */
   public void redundantConstNumberRemoval(IRCode code) {
+    if (appView.options().canHaveDalvikIntUsedAsNonIntPrimitiveTypeBug()
+        && !appView.options().testing.forceRedundantConstNumberRemoval) {
+      // See also b/124152497.
+      return;
+    }
+
     Supplier<Long2ReferenceMap<List<ConstNumber>>> constantsByValue =
         Suppliers.memoize(() -> getConstantsByValue(code));
     Supplier<DominatorTree> dominatorTree = Suppliers.memoize(() -> new DominatorTree(code));

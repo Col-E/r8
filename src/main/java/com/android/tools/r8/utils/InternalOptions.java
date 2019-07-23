@@ -928,6 +928,7 @@ public class InternalOptions {
     public boolean alwaysUsePessimisticRegisterAllocation = false;
     public boolean enableDeadSwitchCaseElimination = false;
     public boolean enableSwitchToIfRewriting = true;
+    public boolean forceRedundantConstNumberRemoval = false;
     public boolean invertConditionals = false;
     public boolean placeExceptionalBlocksLast = false;
     public boolean dontCreateMarkerInD8 = false;
@@ -1377,13 +1378,17 @@ public class InternalOptions {
     return minApiLevel < AndroidApiLevel.L.getLevel();
   }
 
-  // On dalvik we see issues if we inline the following method into the call site:
-  // public int value;
-  // public boolean getValue() {
-  //   return value;
-  // }
-  // See b/134304597
-  public boolean canHaveDalvikIntUsedAsBooleanBug() {
+  // On dalvik we see issues when using an int value in places where a boolean, byte, char, or short
+  // is expected.
+  //
+  // For example, if we inline the following method into the call site:
+  //   public int value;
+  //   public boolean getValue() {
+  //     return value;
+  //   }
+  //
+  // See also b/134304597 and b/124152497.
+  public boolean canHaveDalvikIntUsedAsNonIntPrimitiveTypeBug() {
     return isGeneratingClassFiles() || minApiLevel < AndroidApiLevel.L.getLevel();
   }
 }

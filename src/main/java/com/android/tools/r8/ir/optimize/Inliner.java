@@ -105,7 +105,7 @@ public class Inliner {
       return ConstraintWithTarget.NEVER;
     }
 
-    if (appView.options().canHaveDalvikIntUsedAsBooleanBug()
+    if (appView.options().canHaveDalvikIntUsedAsNonIntPrimitiveTypeBug()
         && returnsIntAsBoolean(code, method, appView)) {
       return ConstraintWithTarget.NEVER;
     }
