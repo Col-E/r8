@@ -64,6 +64,14 @@ public class Jdk11CoreLibTestBase extends CoreLibDesugarTestBase {
     return ANDROID_SAFE_VAR_ARGS_LOCATION;
   }
 
+  protected static Path[] testNGSupportProgramFiles() {
+    return new Path[] {
+      Paths.get(JDK_TESTS_BUILD_DIR + "testng-6.10.jar"),
+      Paths.get(JDK_TESTS_BUILD_DIR + "jcommander-1.48.jar"),
+      Paths.get(ToolHelper.JAVA_CLASSES_DIR + "examplesTestNGRunner/TestNGMainRunner.class")
+    };
+  }
+
   private static Path[] getJavaBaseExtensionsFiles() throws Exception {
     Path[] files =
         getAllFilesWithSuffixInDirectory(JDK_11_JAVA_BASE_EXTENSION_FILES_DIR, JAVA_EXTENSION);

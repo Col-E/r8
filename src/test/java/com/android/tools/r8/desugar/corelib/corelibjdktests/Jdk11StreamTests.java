@@ -205,12 +205,7 @@ public class Jdk11StreamTests extends Jdk11CoreLibTestBase {
         testForD8()
             .addProgramFiles(getPathsFiles())
             .addProgramFiles(getSafeVarArgsFile())
-            .addProgramFiles(
-                Paths.get(
-                    ToolHelper.JAVA_CLASSES_DIR + "examplesTestNGRunner/TestNGMainRunner.class"))
-            .addProgramFiles(filesToCompile)
-            .addProgramFiles(Paths.get(JDK_TESTS_BUILD_DIR + "testng-6.10.jar"))
-            .addProgramFiles(Paths.get(JDK_TESTS_BUILD_DIR + "jcommander-1.48.jar"))
+            .addProgramFiles(testNGSupportProgramFiles())
             .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .setMinApi(parameters.getApiLevel())
             .enableCoreLibraryDesugaring()
