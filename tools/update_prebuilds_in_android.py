@@ -49,6 +49,10 @@ def parse_arguments():
     action='store_true',
     help="Download proguard maps for jars, use only with '--target lib'.",
   )
+  parser.add_argument(
+    '--java-max-memory-size',
+    '--java_max_memory_size',
+    help='Use a custom max memory size for the gradle java instance, eg, 4g')
   return parser.parse_args()
 
 def copy_targets(root, target_root, srcs, dests, maps=False):
@@ -92,7 +96,10 @@ def Main():
   target_root = args.android_root[0]
   jar_targets = JAR_TARGETS_MAP[args.targets]
   if args.commit_hash == None and args.version == None:
-    gradle.RunGradle(map(lambda t: t[0], jar_targets))
+    gradle_args = map(lambda t: t[0], jar_targets)
+    if args.java_max_memory_size:
+      gradle_args.append('-Dorg.gradle.jvmargs=-Xmx' + args.java_max_memory_size)
+    gradle.RunGradle(gradle_args)
     copy_jar_targets(utils.LIBS, target_root, jar_targets, args.maps)
     copy_other_targets(utils.GENERATED_LICENSE_DIR, target_root)
   else:
