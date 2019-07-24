@@ -203,6 +203,7 @@ public class Jdk11StreamTests extends Jdk11CoreLibTestBase {
             .collect(Collectors.toList());
     D8TestCompileResult compileResult =
         testForD8()
+            .addProgramFiles(filesToCompile)
             .addProgramFiles(getPathsFiles())
             .addProgramFiles(getSafeVarArgsFile())
             .addProgramFiles(testNGSupportProgramFiles())
