@@ -247,7 +247,11 @@ public class Jdk11StreamTests extends Jdk11CoreLibTestBase {
           // TODO(b/134732760): Investigate and fix these issues.
           numHardFailures++;
         } else {
-          fail();
+          String errorMessage = "STDOUT:\n"+
+              result.getStdOut()
+              + "STDERR:\n" +
+              result.getStdErr();
+          fail(errorMessage);
         }
       }
     }
