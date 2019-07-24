@@ -15,6 +15,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -33,7 +34,9 @@ public class NeverMergeCoreLibDesugarClasses extends CoreLibDesugarTestBase {
     this.parameters = parameters;
   }
 
+  // TODO(b/138278440): Forbid to merge j$ classes in a Google3 compliant way (remove @Ignore).
   @Test
+  @Ignore
   public void testMimimalDexFile() throws Exception {
     SmaliBuilder builder = new SmaliBuilder();
     builder.addClass("j$.util.function.Function");
@@ -59,7 +62,9 @@ public class NeverMergeCoreLibDesugarClasses extends CoreLibDesugarTestBase {
     fail("Expected test to fail with CompilationFailedException");
   }
 
+  // TODO(b/138278440): Forbid to merge j$ classes in a Google3 compliant way (remove @Ignore).
   @Test
+  @Ignore
   public void testDesugaredCoreLibrary() throws Exception {
     try {
       testForD8()
