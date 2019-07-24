@@ -41,7 +41,6 @@ import com.google.common.collect.Streams;
 import java.io.PrintStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -762,7 +761,7 @@ public class RootSetBuilder {
   }
 
   private static boolean satisfyAnnotation(ProguardConfigurationRule rule, DexClass clazz) {
-    return containsAnnotation(rule.getClassAnnotation(), clazz.annotations);
+    return containsAnnotation(rule.getClassAnnotation(), clazz);
   }
 
   private boolean satisfyInheritanceRule(DexClass clazz, ProguardConfigurationRule rule) {
@@ -793,7 +792,7 @@ public class RootSetBuilder {
       // the target class? If so, it is sufficient only to apply the annotation-matcher to the
       // annotations of `class`.
       if (rule.getInheritanceClassName().matches(clazz.type, appView)
-          && containsAnnotation(rule.getInheritanceAnnotation(), clazz.annotations)) {
+          && containsAnnotation(rule.getInheritanceAnnotation(), clazz)) {
         return true;
       }
       type = clazz.superType;
@@ -826,7 +825,7 @@ public class RootSetBuilder {
       // the target class? If so, it is sufficient only to apply the annotation-matcher to the
       // annotations of `ifaceClass`.
       if (rule.getInheritanceClassName().matches(iface, appView)
-          && containsAnnotation(rule.getInheritanceAnnotation(), ifaceClass.annotations)) {
+          && containsAnnotation(rule.getInheritanceAnnotation(), ifaceClass)) {
         return true;
       }
       if (anyImplementedInterfaceMatchesImplementsRule(ifaceClass, rule)) {
@@ -889,10 +888,6 @@ public class RootSetBuilder {
     return false;
   }
 
-  private boolean ruleSatisfiedByMethods(ProguardMemberRule rule, DexEncodedMethod[] methods) {
-    return ruleSatisfiedByMethods(rule, Arrays.asList(methods));
-  }
-
   private boolean ruleSatisfiedByFields(ProguardMemberRule rule, Iterable<DexEncodedField> fields) {
     if (rule.getRuleType().includesFields()) {
       for (DexEncodedField field : fields) {
@@ -904,12 +899,28 @@ public class RootSetBuilder {
     return false;
   }
 
-  private boolean ruleSatisfiedByFields(ProguardMemberRule rule, DexEncodedField[] fields) {
-    return ruleSatisfiedByFields(rule, Arrays.asList(fields));
+  static boolean containsAnnotation(ProguardTypeMatcher classAnnotation, DexClass clazz) {
+    return containsAnnotation(classAnnotation, clazz.annotations);
   }
 
-  static boolean containsAnnotation(ProguardTypeMatcher classAnnotation,
-      DexAnnotationSet annotations) {
+  static boolean containsAnnotation(ProguardTypeMatcher classAnnotation, DexEncodedMethod method) {
+    if (containsAnnotation(classAnnotation, method.annotations)) {
+      return true;
+    }
+    for (int i = 0; i < method.parameterAnnotationsList.size(); i++) {
+      if (containsAnnotation(classAnnotation, method.parameterAnnotationsList.get(i))) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  static boolean containsAnnotation(ProguardTypeMatcher classAnnotation, DexEncodedField field) {
+    return containsAnnotation(classAnnotation, field.annotations);
+  }
+
+  private static boolean containsAnnotation(
+      ProguardTypeMatcher classAnnotation, DexAnnotationSet annotations) {
     if (classAnnotation == null) {
       return true;
     }
