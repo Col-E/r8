@@ -202,6 +202,10 @@ public class PrintUsageTest extends TestBase {
     private ClassSubject lastClazz = null;
 
     private void readClazz(String line) {
+      int length = line.length();
+      if (line.charAt(length - 1) == ':') {
+        line = line.substring(0, length - 1);
+      }
       if (printedUsage.containsKey(line)) {
         lastClazz = printedUsage.get(line);
       } else {

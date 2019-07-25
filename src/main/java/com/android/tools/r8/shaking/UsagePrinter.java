@@ -51,6 +51,7 @@ class UsagePrinter {
     assert enclosingClazz != null;
     if (!clazzPrefixPrinted) {
       writer.append(enclosingClazz.toSourceString());
+      writer.append(':');
       writer.append(StringUtils.LINE_SEPARATOR);
       clazzPrefixPrinted = true;
     }
