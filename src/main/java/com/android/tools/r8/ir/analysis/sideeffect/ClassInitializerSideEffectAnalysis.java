@@ -12,6 +12,7 @@ import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeNewArray;
+import com.android.tools.r8.ir.code.NewArrayFilledData;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
 
@@ -51,7 +52,26 @@ public class ClassInitializerSideEffectAnalysis {
             || !array.definition.isCreatingArray()
             || arrayPut.index().mayDependOnEnvironment(appView, code)
             || arrayPut.value().mayDependOnEnvironment(appView, code)
-            || instruction.instructionInstanceCanThrow(appView, context).isThrowing()) {
+            || arrayPut.instructionInstanceCanThrow(appView, context).isThrowing()) {
+          return ClassInitializerSideEffect.SIDE_EFFECTS_THAT_CANNOT_BE_POSTPONED;
+        }
+        if (controlFlowMayDependOnEnvironment.isUnknown()) {
+          controlFlowMayDependOnEnvironment =
+              OptionalBool.of(code.controlFlowMayDependOnEnvironment(appView));
+        }
+        if (controlFlowMayDependOnEnvironment.isTrue()) {
+          return ClassInitializerSideEffect.SIDE_EFFECTS_THAT_CANNOT_BE_POSTPONED;
+        }
+        continue;
+      }
+
+      // NewArrayFilledData is handled similarly to ArrayPut.
+      if (instruction.isNewArrayFilledData()) {
+        NewArrayFilledData newArrayFilledData = instruction.asNewArrayFilledData();
+        Value array = newArrayFilledData.src();
+        if (array.isPhi()
+            || !array.definition.isCreatingArray()
+            || newArrayFilledData.instructionInstanceCanThrow(appView, context).isThrowing()) {
           return ClassInitializerSideEffect.SIDE_EFFECTS_THAT_CANNOT_BE_POSTPONED;
         }
         if (controlFlowMayDependOnEnvironment.isUnknown()) {

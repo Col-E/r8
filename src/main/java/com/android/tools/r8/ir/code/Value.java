@@ -852,8 +852,9 @@ public class Value {
       return true;
     }
 
-    // Allow array stores that immediately follow the array creation.
-    Set<ArrayPut> consumedArrayPuts = Sets.newIdentityHashSet();
+    // Allow array-put and new-array-filled-data instructions that immediately follow the array
+    // creation.
+    Set<Instruction> consumedInstructions = Sets.newIdentityHashSet();
 
     InstructionListIterator instructionIterator = definition.getBlock().listIterator(definition);
     while (instructionIterator.hasNext()) {
@@ -881,7 +882,18 @@ public class Value {
           return false;
         }
 
-        consumedArrayPuts.add(arrayPut);
+        consumedInstructions.add(arrayPut);
+        continue;
+      }
+
+      if (instruction.isNewArrayFilledData()) {
+        NewArrayFilledData newArrayFilledData = instruction.asNewArrayFilledData();
+        Value array = newArrayFilledData.src();
+        if (array != root) {
+          break;
+        }
+
+        consumedInstructions.add(newArrayFilledData);
         continue;
       }
 
@@ -899,11 +911,7 @@ public class Value {
     // side effects are ignored because they cannot mutate the array.
     Set<Instruction> visitedFromStaticPut = Sets.newIdentityHashSet();
     for (Instruction user : root.uniqueUsers()) {
-      if (user.isArrayPut()) {
-        ArrayPut arrayPut = user.asArrayPut();
-        if (!consumedArrayPuts.contains(arrayPut)) {
-          return false;
-        }
+      if (consumedInstructions.contains(user)) {
         continue;
       }
 
