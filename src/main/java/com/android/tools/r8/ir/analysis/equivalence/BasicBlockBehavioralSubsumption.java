@@ -77,9 +77,17 @@ public class BasicBlockBehavioralSubsumption {
           return passesIdenticalValuesForPhis(
               instruction.getBlock(), otherInstruction.getBlock(), targetBlock);
         }
+        if (otherTargetBlock.hasPhis()) {
+          // TODO(b/136162993): handle this case.
+          return false;
+        }
         // Otherwise we continue the search from the two successor blocks.
         otherIterator = otherTargetBlock.iterator();
       } else {
+        if (targetBlock.hasPhis()) {
+          // TODO(b/136162993): handle this case.
+          return false;
+        }
         // Move the cursor backwards to ensure that the recursive call will revisit the current
         // instruction.
         otherIterator.previous();
@@ -104,7 +112,13 @@ public class BasicBlockBehavioralSubsumption {
         return false;
       }
 
-      otherIterator = otherInstruction.asGoto().getTarget().iterator();
+      BasicBlock targetBlock = otherInstruction.asGoto().getTarget();
+      if (targetBlock.hasPhis()) {
+        // TODO(b/136162993): handle this case.
+        return false;
+      }
+
+      otherIterator = targetBlock.iterator();
       otherInstruction =
           otherIterator.nextUntil(
               or(this::instructionMayHaveSideEffects, Instruction::isJumpInstruction));

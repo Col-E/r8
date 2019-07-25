@@ -515,6 +515,10 @@ public class BasicBlock {
     }
   }
 
+  public boolean hasPhis() {
+    return !phis.isEmpty();
+  }
+
   public List<Phi> getPhis() {
     return phis;
   }
