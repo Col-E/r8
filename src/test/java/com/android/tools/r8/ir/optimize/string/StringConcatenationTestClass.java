@@ -85,7 +85,6 @@ class StringConcatenationTestClass {
 
   @NeverInline
   public static void phiAtInit() {
-    // TODO(b/114002137): Use ASM to test two new-instance calls flow into the same <init>
     StringBuilder builder =
         System.currentTimeMillis() > 0 ? new StringBuilder("Hello") : new StringBuilder("Hi");
     builder.append(",R8");

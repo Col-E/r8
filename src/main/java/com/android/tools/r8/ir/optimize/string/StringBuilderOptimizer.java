@@ -184,17 +184,17 @@ public class StringBuilderOptimizer {
     // Only for testing purpose, where we ran the analysis for only one method.
     // Using `this.analysis` is not thread-safe, of course.
     this.analysis = analysis;
-    Set<Value> builders =
+    Set<Value> candidateBuilders =
         analysis.findAllLocalBuilders()
             .stream()
             .filter(analysis::canBeOptimized)
             .collect(Collectors.toSet());
-    if (builders.isEmpty()) {
+    if (candidateBuilders.isEmpty()) {
       return;
     }
     analysis
-        .buildBuilderStateGraph(builders)
-        .applyConcatenationResults()
+        .buildBuilderStateGraph(candidateBuilders)
+        .applyConcatenationResults(candidateBuilders)
         .removeTrivialBuilders();
   }
 
@@ -387,6 +387,9 @@ public class StringBuilderOptimizer {
               if (dominantState != null) {
                 BuilderState currentState = dominantState.createChild(addition);
                 perInstrState.put(instr, currentState);
+              } else {
+                // TODO(b/114002137): if we want to utilize partial results, don't remove it here.
+                candidateBuilders.remove(builder);
               }
             }
             continue;
@@ -501,10 +504,10 @@ public class StringBuilderOptimizer {
     // builders, such as creation, <init>, and append calls.
     final Set<Value> simplifiedBuilders = new HashSet<>();
 
-    private StringConcatenationAnalysis applyConcatenationResults() {
+    private StringConcatenationAnalysis applyConcatenationResults(Set<Value> candidateBuilders) {
       InstructionIterator it = code.instructionIterator();
       while (it.hasNext()) {
-        Instruction instr = it.nextUntil(this::isToStringOfInterest);
+        Instruction instr = it.nextUntil(i -> isToStringOfInterest(candidateBuilders, i));
         if (instr == null) {
           break;
         }
@@ -529,7 +532,7 @@ public class StringBuilderOptimizer {
       return this;
     }
 
-    private boolean isToStringOfInterest(Instruction instr) {
+    private boolean isToStringOfInterest(Set<Value> candidateBuilders, Instruction instr) {
       if (!instr.isInvokeVirtual()) {
         return false;
       }
@@ -541,6 +544,9 @@ public class StringBuilderOptimizer {
       if (optimizationConfiguration.isToStringMethod(invokedMethod)) {
         assert invoke.inValues().size() == 1;
         Value builder = invoke.getReceiver().getAliasedValue();
+        if (!candidateBuilders.contains(builder)) {
+          return false;
+        }
         Map<Instruction, BuilderState> perInstrState = builderStates.get(builder);
         if (perInstrState == null) {
           return false;
