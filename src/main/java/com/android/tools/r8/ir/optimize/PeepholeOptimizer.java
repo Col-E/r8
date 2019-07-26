@@ -18,12 +18,12 @@ import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
 import com.android.tools.r8.ir.regalloc.LiveIntervals;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.google.common.base.Equivalence.Wrapper;
+import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -47,149 +47,186 @@ public class PeepholeOptimizer {
   /** Identify common prefixes in successor blocks and share them. */
   private static void shareIdenticalBlockPrefix(IRCode code, RegisterAllocator allocator) {
     InstructionEquivalence equivalence = new InstructionEquivalence(allocator);
-    Set<BasicBlock> blocksToBeRemoved = new HashSet<>();
+    Set<BasicBlock> blocksToBeRemoved = Sets.newIdentityHashSet();
     for (BasicBlock block : code.blocks) {
-      if (blocksToBeRemoved.contains(block)) {
-        // This block has already been removed entirely.
-        continue;
-      }
+      shareIdenticalBlockPrefixFromNormalSuccessors(
+          block, allocator, blocksToBeRemoved, equivalence);
+    }
+    code.blocks.removeAll(blocksToBeRemoved);
+  }
 
-      List<BasicBlock> normalSuccessors = block.getNormalSuccessors();
-      if (normalSuccessors.size() != 2) {
-        continue;
-      }
+  private static void shareIdenticalBlockPrefixFromNormalSuccessors(
+      BasicBlock block,
+      RegisterAllocator allocator,
+      Set<BasicBlock> blocksToBeRemoved,
+      InstructionEquivalence equivalence) {
+    if (blocksToBeRemoved.contains(block)) {
+      // This block has already been removed entirely.
+      return;
+    }
 
-      // Exactly two normal successors.
-      BasicBlock normalSuccessor = normalSuccessors.get(0);
-      BasicBlock otherNormalSuccessor = normalSuccessors.get(1);
+    if (!mayShareIdenticalBlockPrefix(block)) {
+      // Not eligible.
+      return;
+    }
 
-      // Ensure that the current block is on all paths to the two successor blocks.
-      if (normalSuccessor.getPredecessors().size() != 1
-          || otherNormalSuccessor.getPredecessors().size() != 1) {
-        continue;
-      }
+    // Share instructions from the normal successors one-by-one.
+    List<BasicBlock> normalSuccessors = block.getNormalSuccessors();
+    while (true) {
+      BasicBlock firstNormalSuccessor = normalSuccessors.get(0);
 
-      // Only try to share instructions if the two successors have the same locals state on entry.
-      if (!Objects.equals(
-          normalSuccessor.getLocalsAtEntry(), otherNormalSuccessor.getLocalsAtEntry())) {
-        continue;
-      }
-
-      // Share instructions from the two normal successors one-by-one.
-      while (true) {
-        // Check if all instructions were already removed from the two successors.
-        if (normalSuccessor.isEmpty() || otherNormalSuccessor.isEmpty()) {
-          assert blocksToBeRemoved.contains(normalSuccessor);
-          assert blocksToBeRemoved.contains(otherNormalSuccessor);
-          break;
+      // Check if all instructions were already removed from the normal successors.
+      for (BasicBlock normalSuccessor : normalSuccessors) {
+        if (normalSuccessor.isEmpty()) {
+          assert blocksToBeRemoved.containsAll(normalSuccessors);
+          return;
         }
+      }
 
-        Instruction instruction = normalSuccessor.entry();
+      // If the first instruction in all successors is not the same, we cannot merge them into the
+      // predecessor.
+      Instruction instruction = firstNormalSuccessor.entry();
+      for (int i = 1; i < normalSuccessors.size(); i++) {
+        BasicBlock otherNormalSuccessor = normalSuccessors.get(i);
         Instruction otherInstruction = otherNormalSuccessor.entry();
-
-        // If the two instructions are not the same, we cannot merge them into the predecessor.
         if (!equivalence.doEquivalent(instruction, otherInstruction)) {
-          break;
+          return;
         }
+      }
 
-        // Each block with one or more catch handlers may have at most one throwing instruction.
-        if (instruction.instructionTypeCanThrow() && block.hasCatchHandlers()) {
-          break;
+      // Each block with one or more catch handlers may have at most one throwing instruction.
+      if (instruction.instructionTypeCanThrow() && block.hasCatchHandlers()) {
+        return;
+      }
+
+      // If the instruction can throw and one of the normal successor blocks has a catch handler,
+      // then we cannot merge the instruction into the predecessor, since this would change the
+      // exceptional control flow.
+      if (instruction.instructionInstanceCanThrow()) {
+        for (BasicBlock normalSuccessor : normalSuccessors) {
+          if (normalSuccessor.hasCatchHandlers()) {
+            return;
+          }
         }
+      }
 
-        // If the instruction can throw and one of the normal successor blocks has a catch handler,
-        // then we cannot merge the instruction into the predecessor, since this would change the
-        // exceptional control flow.
-        if (instruction.instructionInstanceCanThrow()
-            && (normalSuccessor.hasCatchHandlers() || otherNormalSuccessor.hasCatchHandlers())) {
-          break;
-        }
-
-        // Check for commutativity (semantics). If the instruction writes to a register, then we
-        // need to make sure that the instruction commutes with the last instruction in the
-        // predecessor. Consider the following example.
-        //
-        //                    <Block A>
-        //   if-eqz r0 then goto Block B else goto Block C
-        //           /                         \
-        //      <Block B>                  <Block C>
-        //     const r0, 1                const r0, 1
-        //       ...                        ...
-        //
-        // In the example, it is not possible to change the order of "if-eqz r0" and
-        // "const r0, 1" without changing the semantics.
-        if (instruction.outValue() != null && instruction.outValue().needsRegister()) {
-          int destinationRegister =
-              allocator.getRegisterForValue(instruction.outValue(), instruction.getNumber());
-          boolean commutative =
-              block.exit().inValues().stream()
-                  .allMatch(
-                      inValue -> {
-                        int operandRegister =
-                            allocator.getRegisterForValue(inValue, block.exit().getNumber());
-                        for (int i = 0; i < instruction.outValue().requiredRegisters(); i++) {
-                          for (int j = 0; j < inValue.requiredRegisters(); j++) {
-                            if (destinationRegister + i == operandRegister + j) {
-                              // Overlap detected, the two instructions do not commute.
-                              return false;
-                            }
+      // Check for commutativity (semantics). If the instruction writes to a register, then we
+      // need to make sure that the instruction commutes with the last instruction in the
+      // predecessor. Consider the following example.
+      //
+      //                    <Block A>
+      //   if-eqz r0 then goto Block B else goto Block C
+      //           /                         \
+      //      <Block B>                  <Block C>
+      //     const r0, 1                const r0, 1
+      //       ...                        ...
+      //
+      // In the example, it is not possible to change the order of "if-eqz r0" and
+      // "const r0, 1" without changing the semantics.
+      if (instruction.outValue() != null && instruction.outValue().needsRegister()) {
+        int destinationRegister =
+            allocator.getRegisterForValue(instruction.outValue(), instruction.getNumber());
+        boolean commutative =
+            block.exit().inValues().stream()
+                .allMatch(
+                    inValue -> {
+                      int operandRegister =
+                          allocator.getRegisterForValue(inValue, block.exit().getNumber());
+                      for (int i = 0; i < instruction.outValue().requiredRegisters(); i++) {
+                        for (int j = 0; j < inValue.requiredRegisters(); j++) {
+                          if (destinationRegister + i == operandRegister + j) {
+                            // Overlap detected, the two instructions do not commute.
+                            return false;
                           }
                         }
-                        return true;
-                      });
-          if (!commutative) {
-            break;
-          }
+                      }
+                      return true;
+                    });
+        if (!commutative) {
+          return;
         }
+      }
 
-        // Check for commutativity (debug info).
-        if (!instruction.getPosition().equals(block.exit().getPosition())
-            && !(block.exit().getPosition().isNone() && !block.exit().getDebugValues().isEmpty())) {
-          break;
-        }
+      // Check for commutativity (debug info).
+      if (!instruction.getPosition().equals(block.exit().getPosition())
+          && !(block.exit().getPosition().isNone() && !block.exit().getDebugValues().isEmpty())) {
+        return;
+      }
 
-        // Remove the instruction from the two normal successors.
+      // Remove the instruction from the normal successors.
+      for (BasicBlock normalSuccessor : normalSuccessors) {
         normalSuccessor.getInstructions().removeFirst();
-        otherNormalSuccessor.getInstructions().removeFirst();
+      }
 
-        // Move the instruction into the predecessor.
-        if (instruction.isJumpInstruction()) {
-          // Replace jump instruction in predecessor with the jump instruction from the two normal
-          // successors.
-          LinkedList<Instruction> instructions = block.getInstructions();
-          instructions.removeLast();
-          instructions.add(instruction);
-          instruction.setBlock(block);
+      // Move the instruction into the predecessor.
+      if (instruction.isJumpInstruction()) {
+        // Replace jump instruction in predecessor with the jump instruction from the normal
+        // successors.
+        LinkedList<Instruction> instructions = block.getInstructions();
+        instructions.removeLast();
+        instructions.add(instruction);
+        instruction.setBlock(block);
 
-          // Update successors of predecessor block.
-          block.detachAllSuccessors();
-          for (BasicBlock newNormalSuccessor : normalSuccessor.getNormalSuccessors()) {
-            block.link(newNormalSuccessor);
-          }
+        // Take a copy of the old normal successors before performing a destructive update.
+        List<BasicBlock> oldNormalSuccessors = new ArrayList<>(normalSuccessors);
 
-          // Detach the two normal successors from the rest of the graph.
-          normalSuccessor.detachAllSuccessors();
-          otherNormalSuccessor.detachAllSuccessors();
+        // Update successors of predecessor block.
+        block.detachAllSuccessors();
+        for (BasicBlock newNormalSuccessor : firstNormalSuccessor.getNormalSuccessors()) {
+          block.link(newNormalSuccessor);
+        }
 
-          // Record that the two normal successors should be removed entirely.
-          blocksToBeRemoved.add(normalSuccessor);
-          blocksToBeRemoved.add(otherNormalSuccessor);
-        } else {
-          // Insert instruction before the jump instruction in the predecessor.
-          block.getInstructions().listIterator(block.getInstructions().size() - 1).add(instruction);
-          instruction.setBlock(block);
+        // Detach the previous normal successors from the rest of the graph.
+        for (BasicBlock oldNormalSuccessor : oldNormalSuccessors) {
+          oldNormalSuccessor.detachAllSuccessors();
+        }
 
-          // Update locals-at-entry if needed.
-          if (instruction.isDebugLocalsChange()) {
-            DebugLocalsChange localsChange = instruction.asDebugLocalsChange();
+        // Record that the previous normal successors should be removed entirely.
+        blocksToBeRemoved.addAll(oldNormalSuccessors);
+
+        if (!mayShareIdenticalBlockPrefix(block)) {
+          return;
+        }
+      } else {
+        // Insert instruction before the jump instruction in the predecessor.
+        block.getInstructions().listIterator(block.getInstructions().size() - 1).add(instruction);
+        instruction.setBlock(block);
+
+        // Update locals-at-entry if needed.
+        if (instruction.isDebugLocalsChange()) {
+          DebugLocalsChange localsChange = instruction.asDebugLocalsChange();
+          for (BasicBlock normalSuccessor : normalSuccessors) {
             localsChange.apply(normalSuccessor.getLocalsAtEntry());
-            localsChange.apply(otherNormalSuccessor.getLocalsAtEntry());
           }
         }
       }
     }
+  }
 
-    code.blocks.removeAll(blocksToBeRemoved);
+  private static boolean mayShareIdenticalBlockPrefix(BasicBlock block) {
+    List<BasicBlock> normalSuccessors = block.getNormalSuccessors();
+    if (normalSuccessors.size() <= 1) {
+      // Nothing to share.
+      return false;
+    }
+
+    // Ensure that the current block is on all paths to the successor blocks.
+    for (BasicBlock normalSuccessor : normalSuccessors) {
+      if (normalSuccessor.getPredecessors().size() != 1) {
+        return false;
+      }
+    }
+
+    // Only try to share instructions if the normal successors have the same locals state on entry.
+    BasicBlock firstNormalSuccessor = normalSuccessors.get(0);
+    for (int i = 1; i < normalSuccessors.size(); i++) {
+      BasicBlock otherNormalSuccessor = normalSuccessors.get(i);
+      if (!Objects.equals(
+          firstNormalSuccessor.getLocalsAtEntry(), otherNormalSuccessor.getLocalsAtEntry())) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /** Identify common suffixes in predecessor blocks and share them. */
