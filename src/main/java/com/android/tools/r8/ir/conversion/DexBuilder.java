@@ -334,7 +334,7 @@ public class DexBuilder {
   // After this pass all remaining debug positions mark places where we must ensure a materializing
   // instruction, eg, for two successive lines without intermediate instructions.
   public static void removeRedundantDebugPositions(IRCode code) {
-    if (!code.hasDebugPositions) {
+    if (!code.mayHaveDebugPositions) {
       return;
     }
     // Current position known to have a materializing instruction associated with it.

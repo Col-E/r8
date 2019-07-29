@@ -106,10 +106,10 @@ public class IRCode {
   private boolean allThrowingInstructionsHavePositions;
 
   // TODO(b/122257895): Update OptimizationInfo to capture instruction kinds of interest.
-  public final boolean hasDebugPositions;
-  public boolean hasConstString;
-  public boolean hasStringSwitch;
-  public final boolean hasMonitorInstruction;
+  public final boolean mayHaveDebugPositions;
+  public boolean mayHaveConstString;
+  public boolean mayHaveStringSwitch;
+  public final boolean mayHaveMonitorInstruction;
 
   private final InternalOptions options;
 
@@ -120,27 +120,27 @@ public class IRCode {
       DexEncodedMethod method,
       LinkedList<BasicBlock> blocks,
       ValueNumberGenerator valueNumberGenerator,
-      boolean hasDebugPositions,
-      boolean hasMonitorInstruction,
-      boolean hasConstString,
+      boolean mayHaveDebugPositions,
+      boolean mayHaveMonitorInstruction,
+      boolean mayHaveConstString,
       Origin origin) {
     assert options != null;
     this.options = options;
     this.method = method;
     this.blocks = blocks;
     this.valueNumberGenerator = valueNumberGenerator;
-    this.hasDebugPositions = hasDebugPositions;
-    this.hasMonitorInstruction = hasMonitorInstruction;
-    this.hasConstString = hasConstString;
+    this.mayHaveDebugPositions = mayHaveDebugPositions;
+    this.mayHaveMonitorInstruction = mayHaveMonitorInstruction;
+    this.mayHaveConstString = mayHaveConstString;
     this.origin = origin;
     // TODO(zerny): Remove or update this property now that all instructions have positions.
     allThrowingInstructionsHavePositions = computeAllThrowingInstructionsHavePositions();
   }
 
   public void mergeMetadataFromInlinee(IRCode inlinee) {
-    assert !inlinee.hasMonitorInstruction;
-    this.hasConstString |= inlinee.hasConstString;
-    this.hasStringSwitch |= inlinee.hasStringSwitch;
+    assert !inlinee.mayHaveMonitorInstruction;
+    this.mayHaveConstString |= inlinee.mayHaveConstString;
+    this.mayHaveStringSwitch |= inlinee.mayHaveStringSwitch;
   }
 
   public BasicBlock entryBlock() {

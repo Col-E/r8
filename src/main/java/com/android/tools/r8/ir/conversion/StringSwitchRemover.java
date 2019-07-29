@@ -47,7 +47,7 @@ public class StringSwitchRemover {
   }
 
   void run(DexEncodedMethod method, IRCode code) {
-    if (!code.hasStringSwitch) {
+    if (!code.mayHaveStringSwitch) {
       assert Streams.stream(code.instructions()).noneMatch(Instruction::isStringSwitch);
       return;
     }

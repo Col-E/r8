@@ -113,7 +113,7 @@ class StringSwitchConverter {
         }
       }
       if (changed) {
-        code.hasStringSwitch = true;
+        code.mayHaveStringSwitch = true;
         code.removeAllTrivialPhis();
         code.removeUnreachableBlocks();
       }

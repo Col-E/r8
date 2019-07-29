@@ -63,7 +63,7 @@ public class StringOptimizer {
   // String String#substring(int)
   // String String#substring(int, int)
   public void computeTrivialOperationsOnConstString(IRCode code) {
-    if (!code.hasConstString) {
+    if (!code.mayHaveConstString) {
       return;
     }
     InstructionIterator it = code.instructionIterator();

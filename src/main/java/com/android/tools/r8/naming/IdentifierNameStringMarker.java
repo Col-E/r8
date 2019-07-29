@@ -92,7 +92,7 @@ public class IdentifierNameStringMarker {
 
   public void decoupleIdentifierNameStringsInBlocks(
       DexEncodedMethod method, IRCode code, Set<BasicBlock> blocks) {
-    if (!code.hasConstString) {
+    if (!code.mayHaveConstString) {
       return;
     }
     ListIterator<BasicBlock> blockIterator = code.listIterator();
