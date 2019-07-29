@@ -5,7 +5,7 @@ package com.android.tools.r8.shaking.assumenosideeffects;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.DexIndexedConsumer.ArchiveConsumer;
 import com.android.tools.r8.TestBase;
@@ -18,7 +18,6 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Streams;
 import java.nio.file.Path;
 import java.util.Collection;
 import org.junit.BeforeClass;
@@ -71,10 +70,7 @@ public class AssumenosideeffectsWithoutMatchingDefinitionTest extends TestBase {
 
       MethodSubject init = main.init();
       assertThat(init, isPresent());
-      assertEquals(
-          0,
-          Streams.stream(init.iterateInstructions(
-              i -> i.isIf() || i.isIfNez() || i.isIfEqz())).count());
+      assertTrue(init.streamInstructions().noneMatch(i -> i.isIf() || i.isIfNez() || i.isIfEqz()));
     }
   }
 

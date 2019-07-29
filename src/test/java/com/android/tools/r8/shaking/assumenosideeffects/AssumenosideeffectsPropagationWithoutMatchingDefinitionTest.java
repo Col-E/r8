@@ -6,7 +6,7 @@ package com.android.tools.r8.shaking.assumenosideeffects;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverMerge;
@@ -17,7 +17,6 @@ import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import com.google.common.collect.Streams;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -64,10 +63,9 @@ public class AssumenosideeffectsPropagationWithoutMatchingDefinitionTest extends
 
     MethodSubject mainMethod = main.mainMethod();
     assertThat(mainMethod, isPresent());
-    assertEquals(
-        0,
-        Streams.stream(mainMethod.iterateInstructions(
-            i -> i.isInvoke() && i.getMethod().name.toString().equals("debug"))).count());
+    assertTrue(
+        mainMethod.streamInstructions().noneMatch(
+            i -> i.isInvoke() && i.getMethod().name.toString().equals("debug")));
 
     MethodSubject testInvokeInterface = main.uniqueMethodWithName("testInvokeInterface");
     assertThat(testInvokeInterface, not(isPresent()));

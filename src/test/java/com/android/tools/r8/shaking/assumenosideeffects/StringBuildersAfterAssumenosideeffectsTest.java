@@ -5,7 +5,7 @@ package com.android.tools.r8.shaking.assumenosideeffects;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverClassInline;
@@ -18,7 +18,6 @@ import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import com.google.common.collect.Streams;
 import org.junit.Test;
 import org.junit.runners.Parameterized;
 import org.junit.runner.RunWith;
@@ -66,16 +65,14 @@ public class StringBuildersAfterAssumenosideeffectsTest extends TestBase {
 
     MethodSubject mainMethod = main.mainMethod();
     assertThat(mainMethod, isPresent());
-    assertEquals(
-        0,
-        Streams.stream(mainMethod.iterateInstructions(
-            i -> i.isInvoke() && i.getMethod().name.toString().equals("info"))).count());
+    assertTrue(
+        mainMethod.streamInstructions().noneMatch(
+            i -> i.isInvoke() && i.getMethod().name.toString().equals("info")));
 
-    assertEquals(
-        0,
-        Streams.stream(mainMethod.iterateInstructions(
+    assertTrue(
+        mainMethod.streamInstructions().noneMatch(
             i -> i.isInvoke()
-                && i.getMethod().holder.toDescriptorString().contains("StringBuilder"))).count());
+                && i.getMethod().holder.toDescriptorString().contains("StringBuilder")));
   }
 
   // TODO(b/114002137): Once enabled, remove this test-specific setting.
