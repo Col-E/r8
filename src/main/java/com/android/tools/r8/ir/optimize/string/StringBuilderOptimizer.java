@@ -35,7 +35,6 @@ import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.objects.Object2IntArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -89,6 +88,7 @@ public class StringBuilderOptimizer {
   private int numberOfBuildersWithNonStringArg = 0;
   private int numberOfBuildersWithMergingPoints = 0;
   private int numberOfBuildersWithNonDeterministicArg = 0;
+  private int numberOfDeadBuilders = 0;
   private int numberOfBuildersSimplified = 0;
   private final Object2IntMap<Integer> histogramOfLengthOfAppendChains;
   private final Object2IntMap<Integer> histogramOfLengthOfEndResult;
@@ -151,8 +151,8 @@ public class StringBuilderOptimizer {
         "# builders w/ merging points: %s", numberOfBuildersWithMergingPoints);
     Log.info(getClass(),
         "# builders w/ non-deterministic arg: %s", numberOfBuildersWithNonDeterministicArg);
-    Log.info(getClass(),
-        "# builders simplified: %s", numberOfBuildersSimplified);
+    Log.info(getClass(), "# dead builders : %s", numberOfDeadBuilders);
+    Log.info(getClass(), "# builders simplified: %s", numberOfBuildersSimplified);
     assert histogramOfLengthOfAppendChains != null;
     Log.info(getClass(), "------ histogram of StringBuilder append chain lengths ------");
     histogramOfLengthOfAppendChains.forEach((chainSize, count) -> {
@@ -500,9 +500,10 @@ public class StringBuilderOptimizer {
       }
     }
 
-    // StringBuilders that are simplified by this analysis. Will be used to clean up uses of the
-    // builders, such as creation, <init>, and append calls.
-    final Set<Value> simplifiedBuilders = new HashSet<>();
+    // StringBuilders that are simplified by this analysis or simply dead (e.g., after applying
+    // -assumenosideeffects to logging calls, then logging messages built by builders are dead).
+    // Will be used to clean up uses of the builders, such as creation, <init>, and append calls.
+    final Set<Value> simplifiedBuilders = Sets.newIdentityHashSet();
 
     private StringConcatenationAnalysis applyConcatenationResults(Set<Value> candidateBuilders) {
       InstructionIterator it = code.instructionIterator();
@@ -514,6 +515,15 @@ public class StringBuilderOptimizer {
         InvokeVirtual invoke = instr.asInvokeVirtual();
         assert invoke.inValues().size() == 1;
         Value builder = invoke.getReceiver().getAliasedValue();
+        assert invoke.hasOutValue();
+        if (invoke.outValue().isDead(appView, code)) {
+          it.removeOrReplaceByDebugLocalRead();
+          // Although this builder is not simplified by this analysis, add that to the set so that
+          // it can be removed at the final clean-up phase.
+          simplifiedBuilders.add(builder);
+          numberOfDeadBuilders++;
+          continue;
+        }
         Map<Instruction, BuilderState> perInstrState = builderStates.get(builder);
         assert perInstrState != null;
         BuilderState builderState = perInstrState.get(instr);
@@ -546,6 +556,11 @@ public class StringBuilderOptimizer {
         Value builder = invoke.getReceiver().getAliasedValue();
         if (!candidateBuilders.contains(builder)) {
           return false;
+        }
+        // If the result of toString() is no longer used, computing the compile-time constant is
+        // even not necessary.
+        if (invoke.outValue().isDead(appView, code)) {
+          return true;
         }
         Map<Instruction, BuilderState> perInstrState = builderStates.get(builder);
         if (perInstrState == null) {
@@ -834,7 +849,7 @@ public class StringBuilderOptimizer {
       newState.previous = this;
       newState.addition = addition;
       if (this.nexts == null) {
-        this.nexts = new HashSet<>();
+        this.nexts = Sets.newIdentityHashSet();
       }
       this.nexts.add(newState);
       return newState;

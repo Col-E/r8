@@ -161,7 +161,7 @@ public class StringConcatenationTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    assumeTrue("CF does not canonicalize constants.", parameters.isDexRuntime());
+    assumeTrue("CF does not rewrite move results.", parameters.isDexRuntime());
 
     R8TestRunResult result =
         testForR8(parameters.getBackend())
@@ -178,6 +178,7 @@ public class StringConcatenationTest extends TestBase {
 
   // TODO(b/114002137): Once enabled, remove this test-specific setting.
   private void configure(InternalOptions options) {
+    assert !options.enableStringConcatenationOptimization;
     options.enableStringConcatenationOptimization = true;
   }
 

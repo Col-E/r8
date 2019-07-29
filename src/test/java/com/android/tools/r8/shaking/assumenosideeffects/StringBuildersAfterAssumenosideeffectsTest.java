@@ -6,13 +6,14 @@ package com.android.tools.r8.shaking.assumenosideeffects;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -40,6 +41,8 @@ public class StringBuildersAfterAssumenosideeffectsTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
+    assumeTrue("CF does not rewrite move results.", parameters.isDexRuntime());
+
     testForR8(parameters.getBackend())
         .addInnerClasses(StringBuildersAfterAssumenosideeffectsTest.class)
         .enableClassInliningAnnotations()
@@ -49,6 +52,7 @@ public class StringBuildersAfterAssumenosideeffectsTest extends TestBase {
             "-assumenosideeffects class * implements " + TestLogger.class.getTypeName() + " {",
             "  void info(...);",
             "}")
+        .addOptionsModification(this::configure)
         .noMinification()
         .setMinApi(parameters.getRuntime())
         .run(parameters.getRuntime(), MAIN)
@@ -67,12 +71,17 @@ public class StringBuildersAfterAssumenosideeffectsTest extends TestBase {
         Streams.stream(mainMethod.iterateInstructions(
             i -> i.isInvoke() && i.getMethod().name.toString().equals("info"))).count());
 
-    // TODO(b/137038659): StringBuilders (and all other calls) can be gone.
-    assertNotEquals(
+    assertEquals(
         0,
         Streams.stream(mainMethod.iterateInstructions(
             i -> i.isInvoke()
-                && i.getMethod().holder.toDescriptorString().contains("StringBuilder"))));
+                && i.getMethod().holder.toDescriptorString().contains("StringBuilder"))).count());
+  }
+
+  // TODO(b/114002137): Once enabled, remove this test-specific setting.
+  private void configure(InternalOptions options) {
+    assert !options.enableStringConcatenationOptimization;
+    options.enableStringConcatenationOptimization = true;
   }
 
   interface TestLogger {
