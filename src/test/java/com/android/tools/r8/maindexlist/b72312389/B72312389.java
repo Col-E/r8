@@ -24,6 +24,7 @@ import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.VmTestRunner;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Paths;
@@ -70,33 +71,28 @@ public class B72312389 extends TestBase {
     diagnostics.assertEmpty();
   }
 
-  private static class StringBox {
-    String content;
-  }
-
   @Test
   public void testR8ForceProguardCompatibility() throws Exception {
-    StringBox mainDexList = new StringBox();
+    Box<String> mainDexList = new Box<>();
     // Build a app with a class extending InstrumentationTestCase and including both the junit
     // and the Android library.
     CollectingDiagnosticHandler diagnostics = new CollectingDiagnosticHandler();
     R8Command.Builder builder = new CompatProguardCommandBuilder(true, diagnostics);
     buildInstrumentationTestCaseApplication(builder);
-    R8Command command = builder
-        .setMinApiLevel(AndroidApiLevel.K.getLevel())
-        // TODO(72793900): This should not be required.
-        .addProguardConfiguration(ImmutableList.of("-keep class ** { *; }"), Origin.unknown())
-        .addProguardConfiguration(ImmutableList.of("-dontobfuscate"), Origin.unknown())
-        .addMainDexRules(keepInstrumentationTestCaseRules, Origin.unknown())
-        .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
-        .setMainDexListConsumer(
-            (string, handler) -> mainDexList.content = string)
-        .build();
+    R8Command command =
+        builder
+            .setMinApiLevel(AndroidApiLevel.K.getLevel())
+            // TODO(72793900): This should not be required.
+            .addProguardConfiguration(ImmutableList.of("-keep class ** { *; }"), Origin.unknown())
+            .addProguardConfiguration(ImmutableList.of("-dontobfuscate"), Origin.unknown())
+            .addMainDexRules(keepInstrumentationTestCaseRules, Origin.unknown())
+            .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+            .setMainDexListConsumer((string, handler) -> mainDexList.set(string))
+            .build();
     CodeInspector inspector = new CodeInspector(ToolHelper.runR8(command));
     assertTrue(inspector.clazz("instrumentationtest.InstrumentationTest").isPresent());
     assertEquals(
-        !lookupLibraryBeforeProgram,
-        mainDexList.content.contains("junit/framework/TestCase.class"));
+        !lookupLibraryBeforeProgram, mainDexList.get().contains("junit/framework/TestCase.class"));
     assertEquals(
         lookupLibraryBeforeProgram ? 0 : 2,
         diagnostics.countLibraryClassExtensdProgramClassWarnings(

@@ -21,6 +21,7 @@ import com.android.tools.r8.shaking.RootSetBuilder;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.shaking.WhyAreYouKeepingConsumer;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -144,22 +145,17 @@ public class GenerateMainDexList {
       throws CompilationFailedException {
     AndroidApp app = command.getInputApp();
     InternalOptions options = command.getInternalOptions();
-    ResultBox result = new ResultBox();
-
+    Box<List<String>> result = new Box<>();
     ExceptionUtils.withMainDexListHandler(
         command.getReporter(),
         () -> {
           try {
-            result.content = new GenerateMainDexList(options).run(app, executor);
+            result.set(new GenerateMainDexList(options).run(app, executor));
           } finally {
             executor.shutdown();
           }
         });
-    return result.content;
-  }
-
-  private static class ResultBox {
-    List<String> content;
+    return result.get();
   }
 
   public static void main(String[] args) throws CompilationFailedException {

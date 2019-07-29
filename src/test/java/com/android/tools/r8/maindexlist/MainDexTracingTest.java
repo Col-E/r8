@@ -17,6 +17,7 @@ import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.shaking.WhyAreYouKeepingConsumer;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -301,30 +302,26 @@ public class MainDexTracingTest extends TestBase {
             .sorted()
             .collect(Collectors.toList());
 
-    class Box {
-
-      String content;
-    }
-
     // Build main-dex list using GenerateMainDexList and test the output from a consumer.
-    final Box mainDexListOutput = new Box();
+    final Box<String> mainDexListOutput = new Box<>();
     mdlCommandBuilder = GenerateMainDexListCommand.builder();
-    mdlCommand = mdlCommandBuilder
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.K))
-        .addProgramFiles(inputJar)
-        .addProgramFiles(Paths.get(EXAMPLE_BUILD_DIR, "multidexfakeframeworks" + JAR_EXTENSION))
-        .addMainDexRulesFiles(mainDexRules)
-        .setMainDexListConsumer((string, handler) -> mainDexListOutput.content = string)
-        .build();
+    mdlCommand =
+        mdlCommandBuilder
+            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.K))
+            .addProgramFiles(inputJar)
+            .addProgramFiles(Paths.get(EXAMPLE_BUILD_DIR, "multidexfakeframeworks" + JAR_EXTENSION))
+            .addMainDexRulesFiles(mainDexRules)
+            .setMainDexListConsumer((string, handler) -> mainDexListOutput.set(string))
+            .build();
     GenerateMainDexList.run(mdlCommand);
     List<String> mainDexGeneratorMainDexListFromConsumer =
-        StringUtils.splitLines(mainDexListOutput.content).stream()
+        StringUtils.splitLines(mainDexListOutput.get()).stream()
             .map(this::mainDexStringToDescriptor)
             .sorted()
             .collect(Collectors.toList());
 
     // Build main-dex list using R8.
-    final Box r8MainDexListOutput = new Box();
+    final Box<String> r8MainDexListOutput = new Box<>();
     testForR8(Backend.DEX)
         .addProgramFiles(inputJar)
         .addProgramFiles(Paths.get(EXAMPLE_BUILD_DIR, "multidexfakeframeworks" + JAR_EXTENSION))
@@ -335,12 +332,12 @@ public class MainDexTracingTest extends TestBase {
         .setMinApi(minSdk)
         .noMinification()
         .noTreeShaking()
-        .setMainDexListConsumer((string, handler) -> r8MainDexListOutput.content = string)
+        .setMainDexListConsumer((string, handler) -> r8MainDexListOutput.set(string))
         .compile()
         .writeToZip(out);
 
     List<String> r8MainDexList =
-        StringUtils.splitLines(r8MainDexListOutput.content).stream()
+        StringUtils.splitLines(r8MainDexListOutput.get()).stream()
             .map(this::mainDexStringToDescriptor)
             .sorted()
             .collect(Collectors.toList());
