@@ -94,8 +94,8 @@ public class B72312389 extends TestBase {
     assertEquals(
         !lookupLibraryBeforeProgram, mainDexList.get().contains("junit/framework/TestCase.class"));
     assertEquals(
-        lookupLibraryBeforeProgram ? 0 : 2,
-        diagnostics.countLibraryClassExtensdProgramClassWarnings(
+        lookupLibraryBeforeProgram ? 0 : 1,
+        diagnostics.countLibraryClassExtendsProgramClassWarnings(
             "android.test.InstrumentationTestCase", "junit.framework.TestCase"));
   }
 
@@ -147,17 +147,18 @@ public class B72312389 extends TestBase {
       assertEquals(0, infos.size());
     }
 
-    private boolean isLibraryClassExtensdProgramClassWarnings(
+    private boolean isLibraryClassExtendsProgramClassWarning(
         String libraryClass, String programClass, Diagnostic diagnostic) {
       return diagnostic.getDiagnosticMessage().equals(
           "Library class "+ libraryClass + " extends program class " + programClass);
     }
 
-    public long countLibraryClassExtensdProgramClassWarnings(
+    public long countLibraryClassExtendsProgramClassWarnings(
         String libraryClass, String programClass) {
       return warnings.stream()
-          .filter(diagnostics ->
-              isLibraryClassExtensdProgramClassWarnings(libraryClass, programClass, diagnostics))
+          .filter(
+              diagnostics ->
+                  isLibraryClassExtendsProgramClassWarning(libraryClass, programClass, diagnostics))
           .count();
     }
   }
