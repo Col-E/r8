@@ -533,6 +533,7 @@ public class IRCode {
     assert consistentPredecessorSuccessors();
     assert consistentCatchHandlers();
     assert consistentBlockInstructions();
+    assert consistentMetadata();
     assert !allThrowingInstructionsHavePositions || computeAllThrowingInstructionsHavePositions();
     return true;
   }
@@ -711,6 +712,21 @@ public class IRCode {
           argumentsAllowed,
           options.debug || method.getOptimizationInfo().isReachabilitySensitive());
       argumentsAllowed = false;
+    }
+    return true;
+  }
+
+  private boolean consistentMetadata() {
+    for (Instruction instruction : instructions()) {
+      if (instruction.isConstString()) {
+        assert mayHaveConstString : "IR metadata should indicate that code has a const-string";
+      } else if (instruction.isDebugPosition()) {
+        assert mayHaveDebugPositions : "IR metadata should indicate that code has a debug position";
+      } else if (instruction.isMonitor()) {
+        assert mayHaveMonitorInstruction : "IR metadata should indicate that code has a monitor";
+      } else if (instruction.isStringSwitch()) {
+        assert mayHaveStringSwitch : "IR metadata should indicate that code has a string-switch";
+      }
     }
     return true;
   }

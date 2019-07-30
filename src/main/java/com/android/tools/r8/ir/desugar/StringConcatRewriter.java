@@ -447,6 +447,7 @@ public class StringConcatRewriter {
                 value,
                 factory.createString(str),
                 ThrowingInfo.defaultForConstString(appView.options())));
+        code.mayHaveConstString = true;
         return value;
       }
     }

@@ -652,11 +652,11 @@ public class IRBuilder {
           current = position;
           hasDebugPositions = hasDebugPositions || position.isSome();
         } else if (instruction.isDebugPosition()) {
-          hasDebugPositions = true;
           if (position.equals(current)) {
             it.removeOrReplaceByDebugLocalRead();
           } else {
             current = position;
+            hasDebugPositions = true;
           }
         } else if (position.isSome() && !position.synthetic && !position.equals(current)) {
           DebugPosition positionChange = new DebugPosition();
@@ -665,6 +665,7 @@ public class IRBuilder {
           it.add(positionChange);
           it.next();
           current = position;
+          hasDebugPositions = true;
         }
       }
     }

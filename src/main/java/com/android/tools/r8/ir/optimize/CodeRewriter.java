@@ -3699,6 +3699,7 @@ public class CodeRewriter {
       } else if (isNameInvoke) {
         iterator.replaceCurrentInstruction(
             new ConstString(outValue, enumField.name, ThrowingInfo.NO_THROW));
+        code.mayHaveConstString = true;
       } else {
         assert isToStringInvoke;
         DexClass enumClazz = appView.appInfo().definitionFor(enumField.type);
@@ -3712,6 +3713,7 @@ public class CodeRewriter {
         }
         iterator.replaceCurrentInstruction(
             new ConstString(outValue, enumField.name, ThrowingInfo.NO_THROW));
+        code.mayHaveConstString = true;
       }
     }
 
@@ -4101,6 +4103,7 @@ public class CodeRewriter {
     }
     // When we fall out of the loop the iterator is in the last eol block.
     iterator.add(new InvokeVirtual(printLn, null, ImmutableList.of(out, empty)));
+    code.mayHaveConstString = true;
   }
 
   public static void ensureDirectStringNewToInit(IRCode code, DexItemFactory dexItemFactory) {

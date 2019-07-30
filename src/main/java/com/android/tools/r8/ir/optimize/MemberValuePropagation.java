@@ -238,6 +238,7 @@ public class MemberValuePropagation {
         iterator.add(replacement);
       }
     }
+    code.mayHaveConstString |= replacement.isConstString();
     return true;
   }
 
@@ -307,6 +308,7 @@ public class MemberValuePropagation {
         replacement =
             createConstStringReplacement(
                 code, constant, current.outValue().getTypeLattice(), current.getLocalInfo());
+        code.mayHaveConstString = true;
       }
 
       affectedValues.addAll(current.outValue().affectedValues());
@@ -368,6 +370,7 @@ public class MemberValuePropagation {
       if (replacement != null) {
         affectedValues.addAll(current.outValue().affectedValues());
         iterator.replaceCurrentInstruction(replacement);
+        code.mayHaveConstString |= replacement.isConstString();
         if (replacement.isDexItemBasedConstString()) {
           code.method.getMutableOptimizationInfo().markUseIdentifierNameString();
         }
@@ -431,6 +434,7 @@ public class MemberValuePropagation {
     if (replacement != null) {
       affectedValues.add(replacement.outValue());
       iterator.replaceCurrentInstruction(replacement);
+      code.mayHaveConstString |= replacement.isConstString();
       if (replacement.isDexItemBasedConstString()) {
         code.method.getMutableOptimizationInfo().markUseIdentifierNameString();
       }

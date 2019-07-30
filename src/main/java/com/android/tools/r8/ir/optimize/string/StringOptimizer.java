@@ -339,6 +339,7 @@ public class StringOptimizer {
                 invoke.getLocalInfo());
         ConstString constString = new ConstString(stringValue, name, throwingInfo);
         it.replaceCurrentInstruction(constString);
+        code.mayHaveConstString = true;
       } else if (deferred != null) {
         it.replaceCurrentInstruction(deferred);
         markUseIdentifierNameString = true;
@@ -376,6 +377,7 @@ public class StringOptimizer {
           ConstString nullString =
               new ConstString(nullStringValue, factory.createString("null"), throwingInfo);
           it.replaceCurrentInstruction(nullString);
+          code.mayHaveConstString = true;
         } else if (inType.nullability().isDefinitelyNotNull()
             && inType.isClassType()
             && inType.asClassTypeLatticeElement().getClassType().equals(factory.stringType)) {
