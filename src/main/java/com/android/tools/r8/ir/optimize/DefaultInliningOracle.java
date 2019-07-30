@@ -145,6 +145,17 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     if (target.getOptimizationInfo().triggersClassInitBeforeAnySideEffect()) {
       return true;
     }
+    if (!method.isStatic()) {
+      boolean targetIsGuaranteedToBeInitialized =
+          appView.withInitializedClassesInInstanceMethods(
+              analysis ->
+                  analysis.isClassDefinitelyLoadedInInstanceMethodsOn(
+                      target.method.holder, method.method.holder),
+              false);
+      if (targetIsGuaranteedToBeInitialized) {
+        return true;
+      }
+    }
     if (classInitializationAnalysis.isClassDefinitelyLoadedBeforeInstruction(
         target.method.holder, invoke)) {
       return true;

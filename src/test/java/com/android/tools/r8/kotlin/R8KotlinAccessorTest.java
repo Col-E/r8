@@ -311,9 +311,10 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
           MemberNaming.MethodSignature getter = testedClass.getGetterForProperty(propertyName);
           checkMethodIsAbsent(companionClass, getter);
 
+          // The accessor is also inlined.
           MemberNaming.MethodSignature getterAccessor =
               testedClass.getGetterAccessorForProperty(propertyName, AccessorKind.FROM_COMPANION);
-          checkMethodIsKept(outerClass, getterAccessor);
+          checkMethodIsRemoved(outerClass, getterAccessor);
         });
   }
 

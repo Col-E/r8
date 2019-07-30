@@ -49,6 +49,7 @@ import com.android.tools.r8.graph.FieldAccessInfoImpl;
 import com.android.tools.r8.graph.KeyedDexItem;
 import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.graph.TopDownClassHierarchyTraversal;
+import com.android.tools.r8.graph.analysis.EnqueuerAnalysis;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.ConstantValueUtils;
 import com.android.tools.r8.ir.code.IRCode;
@@ -113,6 +114,7 @@ public class Enqueuer {
   private final boolean forceProguardCompatibility;
   private boolean tracingMainDex = false;
 
+  private Set<EnqueuerAnalysis> analyses = Sets.newIdentityHashSet();
   private final AppInfoWithSubtyping appInfo;
   private final AppView<? extends AppInfoWithSubtyping> appView;
   private final InternalOptions options;
@@ -303,6 +305,11 @@ public class Enqueuer {
     this.forceProguardCompatibility = options.forceProguardCompatibility;
     this.keptGraphConsumer = keptGraphConsumer;
     this.options = options;
+  }
+
+  public Enqueuer registerAnalysis(EnqueuerAnalysis analysis) {
+    this.analyses.add(analysis);
+    return this;
   }
 
   private Set<DexField> staticFieldsWrittenOnlyInEnclosingStaticInitializer() {
@@ -1165,6 +1172,9 @@ public class Enqueuer {
    * depending on the currently seen invokes and field reads.
    */
   private void processNewlyInstantiatedClass(DexClass clazz, KeepReason reason) {
+    if (!clazz.isProgramClass()) {
+      return;
+    }
     if (!instantiatedTypes.add(clazz.type, reason)) {
       return;
     }
@@ -1181,6 +1191,9 @@ public class Enqueuer {
     transitionFieldsForInstantiatedClass(clazz.type);
     // Add all dependent instance members to the workqueue.
     transitionDependentItemsForInstantiatedClass(clazz);
+    // Notify analyses.
+    analyses.forEach(
+        analysis -> analysis.processNewlyInstantiatedClass(clazz.asProgramClass(), reason));
   }
 
   /**
@@ -1373,10 +1386,7 @@ public class Enqueuer {
     enqueueRootItems(rootSet.getDependentItems(field));
   }
 
-  private void markInstantiated(DexType type, KeepReason keepReason) {
-    if (instantiatedTypes.contains(type)) {
-      return;
-    }
+  private void markInstantiated(DexType type, KeepReason reason) {
     DexClass clazz = appView.definitionFor(type);
     if (clazz == null) {
       reportMissingClass(type);
@@ -1385,7 +1395,7 @@ public class Enqueuer {
     if (Log.ENABLED) {
       Log.verbose(getClass(), "Register new instantiation of `%s`.", clazz);
     }
-    workList.add(Action.markInstantiated(clazz, keepReason));
+    workList.add(Action.markInstantiated(clazz, reason));
   }
 
   private void markLambdaInstantiated(DexType itf, DexEncodedMethod method) {
@@ -1678,6 +1688,7 @@ public class Enqueuer {
   // Returns the set of live types.
   public SortedSet<DexType> traceMainDex(
       RootSet rootSet, ExecutorService executorService, Timing timing) throws ExecutionException {
+    assert analyses.isEmpty();
     this.tracingMainDex = true;
     this.rootSet = rootSet;
     // Translate the result of root-set computation into enqueuer actions.
@@ -1702,6 +1713,7 @@ public class Enqueuer {
         .visit(appView.appInfo().classes(), this::markAllLibraryVirtualMethodsReachable);
     trace(executorService, timing);
     options.reporter.failIfPendingErrors();
+    analyses.forEach(EnqueuerAnalysis::done);
     return createAppInfo(appInfo);
   }
 

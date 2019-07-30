@@ -10,6 +10,7 @@ import com.android.tools.r8.experimental.graphinfo.GraphNode;
 import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItem;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import java.util.Collection;
@@ -92,6 +93,14 @@ public abstract class KeepReason {
 
   public boolean isDueToConditionalKeepRule() {
     return false;
+  }
+
+  public boolean isInstantiatedIn() {
+    return false;
+  }
+
+  public InstatiatedIn asInstantiatedIn() {
+    return null;
   }
 
   public ProguardKeepRuleBase getProguardKeepRule() {
@@ -200,16 +209,30 @@ public abstract class KeepReason {
 
     abstract String getKind();
 
+    public DexMethod getMethod() {
+      return method.method;
+    }
+
     @Override
     public GraphNode getSourceNode(Enqueuer enqueuer) {
       return enqueuer.getMethodGraphNode(method.method);
     }
   }
 
-  private static class InstatiatedIn extends BasedOnOtherMethod {
+  public static class InstatiatedIn extends BasedOnOtherMethod {
 
     private InstatiatedIn(DexEncodedMethod method) {
       super(method);
+    }
+
+    @Override
+    public boolean isInstantiatedIn() {
+      return true;
+    }
+
+    @Override
+    public InstatiatedIn asInstantiatedIn() {
+      return this;
     }
 
     @Override
