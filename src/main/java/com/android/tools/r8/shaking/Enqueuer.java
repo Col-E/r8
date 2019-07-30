@@ -111,8 +111,27 @@ import java.util.stream.Collectors;
  */
 public class Enqueuer {
 
+  enum Mode {
+    INITIAL_TREE_SHAKING,
+    POST_TREE_SHAKING,
+    MAIN_DEX_TRACING,
+    WHY_ARE_YOU_KEEPING;
+
+    boolean isInitialTreeShaking() {
+      return this == INITIAL_TREE_SHAKING;
+    }
+
+    boolean isTracingMainDex() {
+      return this == MAIN_DEX_TRACING;
+    }
+
+    boolean isWhyAreYouKeeping() {
+      return this == WHY_ARE_YOU_KEEPING;
+    }
+  }
+
   private final boolean forceProguardCompatibility;
-  private boolean tracingMainDex = false;
+  private final Mode mode;
 
   private Set<EnqueuerAnalysis> analyses = Sets.newIdentityHashSet();
   private final AppInfoWithSubtyping appInfo;
@@ -286,25 +305,19 @@ public class Enqueuer {
 
   private final GraphConsumer keptGraphConsumer;
 
-  public Enqueuer(
+  Enqueuer(
       AppView<? extends AppInfoWithSubtyping> appView,
-      InternalOptions options,
-      GraphConsumer keptGraphConsumer) {
-    this(appView, options, keptGraphConsumer, null);
-  }
-
-  public Enqueuer(
-      AppView<? extends AppInfoWithSubtyping> appView,
-      InternalOptions options,
       GraphConsumer keptGraphConsumer,
-      ProguardConfiguration.Builder compatibility) {
+      ProguardConfiguration.Builder compatibility,
+      Mode mode) {
     assert appView.appServices() != null;
     this.appInfo = appView.appInfo();
     this.appView = appView;
     this.compatibility = compatibility;
-    this.forceProguardCompatibility = options.forceProguardCompatibility;
+    this.forceProguardCompatibility = appView.options().forceProguardCompatibility;
     this.keptGraphConsumer = keptGraphConsumer;
-    this.options = options;
+    this.mode = mode;
+    this.options = appView.options();
   }
 
   public Enqueuer registerAnalysis(EnqueuerAnalysis analysis) {
@@ -985,7 +998,7 @@ public class Enqueuer {
   }
 
   private void markInterfaceTypeAsLiveViaInheritanceClause(DexType type) {
-    if (appView.options().enableUnusedInterfaceRemoval && !tracingMainDex) {
+    if (appView.options().enableUnusedInterfaceRemoval && !mode.isTracingMainDex()) {
       DexClass clazz = appView.definitionFor(type);
       if (clazz == null || !clazz.isProgramClass()) {
         markTypeAsLive(type);
@@ -1099,7 +1112,7 @@ public class Enqueuer {
   }
 
   private void ensureNotFromProgramOrThrow(DexType type, DexType context) {
-    if (tracingMainDex) {
+    if (!mode.isInitialTreeShaking()) {
       // b/72312389: android.jar contains parts of JUnit and most developers include JUnit in
       // their programs. This leads to library classes extending program classes. When tracing
       // main dex lists we allow this.
@@ -1116,7 +1129,7 @@ public class Enqueuer {
                     + (clazz.isInterface() ? " implements " : " extends ")
                     + "program class "
                     + type.toSourceString());
-        if (tracingMainDex || forceProguardCompatibility) {
+        if (forceProguardCompatibility) {
           options.reporter.warning(message);
         } else {
           options.reporter.error(message);
@@ -1688,7 +1701,7 @@ public class Enqueuer {
   public SortedSet<DexType> traceMainDex(
       RootSet rootSet, ExecutorService executorService, Timing timing) throws ExecutionException {
     assert analyses.isEmpty();
-    this.tracingMainDex = true;
+    assert mode.isTracingMainDex() || mode.isWhyAreYouKeeping();
     this.rootSet = rootSet;
     // Translate the result of root-set computation into enqueuer actions.
     enqueueRootItems(rootSet.noShrinking);

@@ -151,6 +151,8 @@ public class LibraryClassExtendsProgramClassTest extends TestBase {
         "android.test.suitebuilder.TestSuiteBuilder$FailedToCreateTests"
     };
 
+    result.getDiagnosticMessages().assertWarningsCount(libraryClassesExtendingTestCase.length);
+
     for (String name : libraryClassesExtendingTestCase) {
       result
           .assertWarningMessageThatMatches(

@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.shaking.Enqueuer;
+import com.android.tools.r8.shaking.EnqueuerFactory;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.RootSetBuilder;
 import com.android.tools.r8.utils.InternalOptions;
@@ -75,7 +76,7 @@ public abstract class NamingTestBase {
         new RootSetBuilder(appView, program, configuration.getRules()).run(executor));
     appView.setAppServices(AppServices.builder(appView).build());
 
-    Enqueuer enqueuer = new Enqueuer(appView, options, null);
+    Enqueuer enqueuer = EnqueuerFactory.createForInitialTreeShaking(appView);
     appView.setAppInfo(
         enqueuer.traceApplication(
             appView.rootSet(), configuration.getDontWarnPatterns(), executor, timing));

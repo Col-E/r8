@@ -55,6 +55,7 @@ import com.android.tools.r8.shaking.AnnotationRemover;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.DiscardedChecker;
 import com.android.tools.r8.shaking.Enqueuer;
+import com.android.tools.r8.shaking.EnqueuerFactory;
 import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.shaking.MainDexListBuilder;
 import com.android.tools.r8.shaking.ProguardClassFilter;
@@ -316,7 +317,7 @@ public class R8 {
                         options.getProguardConfiguration().getRules(), synthesizedProguardRules))
                 .run(executorService));
 
-        Enqueuer enqueuer = new Enqueuer(appView, options, null, compatibility);
+        Enqueuer enqueuer = EnqueuerFactory.createForInitialTreeShaking(appView, compatibility);
 
         if (appView.options().enableInitializedClassesInInstanceMethodsAnalysis) {
           enqueuer.registerAnalysis(new InitializedClassesInInstanceMethodsAnalysis(appView));
@@ -404,7 +405,7 @@ public class R8 {
             new RootSetBuilder(appView, application, options.mainDexKeepRules).run(executorService);
         // Live types is the tracing result.
         Set<DexType> mainDexBaseClasses =
-            new Enqueuer(appView, options, null)
+            EnqueuerFactory.createForMainDexTracing(appView)
                 .traceMainDex(mainDexRootSet, executorService, timing);
         // Calculate the automatic main dex list according to legacy multidex constraints.
         mainDexClasses = new MainDexListBuilder(mainDexBaseClasses, application).run();
@@ -578,7 +579,8 @@ public class R8 {
           mainDexKeptGraphConsumer = whyAreYouKeepingConsumer;
         }
 
-        Enqueuer enqueuer = new Enqueuer(appView, options, mainDexKeptGraphConsumer);
+        Enqueuer enqueuer =
+            EnqueuerFactory.createForMainDexTracing(appView, mainDexKeptGraphConsumer);
         // Find classes which may have code executed before secondary dex files installation.
         // Live types is the tracing result.
         Set<DexType> mainDexBaseClasses =
@@ -628,7 +630,7 @@ public class R8 {
             }
           }
 
-          Enqueuer enqueuer = new Enqueuer(appView, options, keptGraphConsumer);
+          Enqueuer enqueuer = EnqueuerFactory.createForPostTreeShaking(appView, keptGraphConsumer);
           appView.setAppInfo(
               enqueuer.traceApplication(
                   appView.rootSet(),
@@ -826,7 +828,7 @@ public class R8 {
     // If there is no kept-graph info, re-run the enqueueing to compute it.
     if (whyAreYouKeepingConsumer == null) {
       whyAreYouKeepingConsumer = new WhyAreYouKeepingConsumer(null);
-      enqueuer = new Enqueuer(appView, options, whyAreYouKeepingConsumer);
+      enqueuer = EnqueuerFactory.createForWhyAreYouKeeping(appView, whyAreYouKeepingConsumer);
       if (forMainDex) {
         enqueuer.traceMainDex(rootSet, executorService, timing);
       } else {
