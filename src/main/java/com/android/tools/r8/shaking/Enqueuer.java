@@ -1172,9 +1172,6 @@ public class Enqueuer {
    * depending on the currently seen invokes and field reads.
    */
   private void processNewlyInstantiatedClass(DexClass clazz, KeepReason reason) {
-    if (!clazz.isProgramClass()) {
-      return;
-    }
     if (!instantiatedTypes.add(clazz.type, reason)) {
       return;
     }
@@ -1192,8 +1189,10 @@ public class Enqueuer {
     // Add all dependent instance members to the workqueue.
     transitionDependentItemsForInstantiatedClass(clazz);
     // Notify analyses.
-    analyses.forEach(
-        analysis -> analysis.processNewlyInstantiatedClass(clazz.asProgramClass(), reason));
+    if (clazz.isProgramClass()) {
+      analyses.forEach(
+          analysis -> analysis.processNewlyInstantiatedClass(clazz.asProgramClass(), reason));
+    }
   }
 
   /**
