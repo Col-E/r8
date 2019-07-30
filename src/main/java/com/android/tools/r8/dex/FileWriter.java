@@ -75,6 +75,7 @@ public class FileWriter {
 
   /** Simple pair of a byte buffer and its written length. */
   public static class ByteBufferResult {
+
     // Ownership of the buffer is transferred to the receiver of this result structure.
     public final CompatByteBuffer buffer;
     public final int length;
@@ -92,6 +93,7 @@ public class FileWriter {
   private final NamingLens namingLens;
   private final DexOutputBuffer dest;
   private final MixedSectionOffsets mixedSectionOffsets;
+  private final CodeToKeep desugaredLibraryCodeToKeep;
 
   public FileWriter(
       ByteBufferProvider provider,
@@ -107,6 +109,7 @@ public class FileWriter {
     this.namingLens = namingLens;
     this.dest = new DexOutputBuffer(provider);
     this.mixedSectionOffsets = new MixedSectionOffsets(options, codeMapping);
+    this.desugaredLibraryCodeToKeep = CodeToKeep.createCodeToKeep(options, namingLens);
   }
 
   public static void writeEncodedAnnotation(
@@ -216,6 +219,13 @@ public class FileWriter {
     writeHeader(layout);
     writeSignature(layout);
     writeChecksum(layout);
+
+    // A consumer can manage the generated keep rules (testing only).
+    if (options.testing.desugaredLibraryKeepRuleConsumer != null
+        && !desugaredLibraryCodeToKeep.isNop()) {
+      assert !options.coreLibraryCompilation;
+      desugaredLibraryCodeToKeep.generateKeepRules(options);
+    }
 
     // Wrap backing buffer with actual length.
     return new ByteBufferResult(dest.stealByteBuffer(), layout.getEndOfFile());
@@ -435,7 +445,8 @@ public class FileWriter {
     dest.putInt(
         clazz.sourceFile == null ? Constants.NO_INDEX : mapping.getOffsetFor(clazz.sourceFile));
     dest.putInt(mixedSectionOffsets.getOffsetForAnnotationsDirectory(clazz));
-    dest.putInt(clazz.hasMethodsOrFields() ? mixedSectionOffsets.getOffsetFor(clazz) : Constants.NO_OFFSET);
+    dest.putInt(
+        clazz.hasMethodsOrFields() ? mixedSectionOffsets.getOffsetFor(clazz) : Constants.NO_OFFSET);
     dest.putInt(mixedSectionOffsets.getOffsetFor(clazz.getStaticValues()));
   }
 
@@ -456,7 +467,7 @@ public class FileWriter {
     int insnSizeOffset = dest.position();
     dest.forward(4);
     // Write instruction stream.
-    dest.putInstructions(code.instructions, mapping);
+    dest.putInstructions(code.instructions, mapping, desugaredLibraryCodeToKeep);
     // Compute size and do the backward/forward dance to write the size at the beginning.
     int insnSize = dest.position() - insnSizeOffset - 4;
     dest.rewind(insnSize + 4);
@@ -582,6 +593,7 @@ public class FileWriter {
       dest.putUleb128(nextOffset - currentOffset);
       currentOffset = nextOffset;
       dest.putUleb128(field.accessFlags.getAsDexAccessFlags());
+      desugaredLibraryCodeToKeep.recordField(field.field);
     }
   }
 
@@ -595,6 +607,7 @@ public class FileWriter {
       currentOffset = nextOffset;
       dest.putUleb128(method.accessFlags.getAsDexAccessFlags());
       DexCode code = codeMapping.getCode(method);
+      desugaredLibraryCodeToKeep.recordMethod(method.method);
       if (code == null) {
         assert method.shouldNotHaveCode();
         dest.putUleb128(0);
@@ -1000,9 +1013,8 @@ public class FileWriter {
 
   /**
    * Encapsulates information on the offsets of items in the sections of the mixed data part of the
-   * DEX file.
-   * Initially, items are collected using the {@link MixedSectionCollection} traversal and all
-   * offsets are unset. When writing a section, the offsets of the written items are stored.
+   * DEX file. Initially, items are collected using the {@link MixedSectionCollection} traversal and
+   * all offsets are unset. When writing a section, the offsets of the written items are stored.
    * These offsets are then used to resolve cross-references between items from different sections
    * into a file offset.
    */

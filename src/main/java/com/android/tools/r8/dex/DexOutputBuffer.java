@@ -6,6 +6,8 @@ package com.android.tools.r8.dex;
 import com.android.tools.r8.ByteBufferProvider;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.utils.EncodedValueUtils;
 import com.android.tools.r8.utils.LebUtils;
@@ -90,7 +92,8 @@ public class DexOutputBuffer {
     return EncodedValueUtils.putUnsigned(this, value, expectedSize);
   }
 
-  public void putInstructions(Instruction[] insns, ObjectToOffsetMapping mapping) {
+  public void putInstructions(
+      Instruction[] insns, ObjectToOffsetMapping mapping, CodeToKeep desugaredLibraryCodeToKeep) {
     int size = 0;
     for (Instruction insn : insns) {
       size += insn.getSize();
@@ -99,7 +102,16 @@ public class DexOutputBuffer {
     assert byteBuffer.position() % 2 == 0;
     ShortBuffer shortBuffer = byteBuffer.asShortBuffer();
     for (int i = 0; i < insns.length; i++) {
-      insns[i].write(shortBuffer, mapping);
+      Instruction insn = insns[i];
+      DexMethod method = insn.getMethod();
+      DexField field = insn.getField();
+      if (field != null) {
+        assert method == null;
+        desugaredLibraryCodeToKeep.recordField(field);
+      } else if (method != null) {
+        desugaredLibraryCodeToKeep.recordMethod(method);
+      }
+      insn.write(shortBuffer, mapping);
     }
     byteBuffer.position(byteBuffer.position() + shortBuffer.position() * Short.BYTES);
   }

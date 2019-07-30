@@ -78,6 +78,16 @@ public class PrefixRewritingNamingLens extends NamingLens {
   }
 
   @Override
+  public boolean hasPrefixRewritingLogic() {
+    return true;
+  }
+
+  @Override
+  public DexString prefixRewrittenType(DexType type) {
+    return classRenaming.get(type);
+  }
+
+  @Override
   public DexString lookupDescriptor(DexType type) {
     return classRenaming.getOrDefault(type, type.descriptor);
   }

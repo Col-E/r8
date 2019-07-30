@@ -99,6 +99,14 @@ public abstract class NamingLens {
     return dexItemFactory.createType(lookupDescriptor(type));
   }
 
+  public boolean hasPrefixRewritingLogic() {
+    return false;
+  }
+
+  public DexString prefixRewrittenType(DexType type) {
+    return null;
+  }
+
   public static NamingLens getIdentityLens() {
     return new IdentityLens();
   }

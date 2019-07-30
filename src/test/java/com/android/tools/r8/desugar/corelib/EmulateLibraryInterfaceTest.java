@@ -20,6 +20,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
@@ -100,55 +101,52 @@ public class EmulateLibraryInterfaceTest extends CoreLibDesugarTestBase {
             .filter(instr -> instr.isInvokeInterface() || instr.isInvokeStatic())
             .collect(Collectors.toList());
     assertEquals(23, invokes.size());
-    assertTrue(invokes.get(0).isInvokeStatic());
-    assertTrue(invokes.get(0).toString().contains("Set$-EL;->spliterator"));
-    assertTrue(invokes.get(1).isInvokeStatic());
-    assertTrue(invokes.get(1).toString().contains("List$-EL;->spliterator"));
-    assertTrue(invokes.get(2).isInvokeStatic());
-    assertTrue(invokes.get(2).toString().contains("Collection$-EL;->stream"));
-    assertTrue(invokes.get(3).isInvokeInterface());
-    assertTrue(invokes.get(3).toString().contains("Set;->iterator"));
-    assertTrue(invokes.get(4).isInvokeStatic());
-    assertTrue(invokes.get(4).toString().contains("Collection$-EL;->stream"));
-    assertTrue(invokes.get(5).isInvokeStatic());
-    assertTrue(invokes.get(5).toString().contains("DesugarLinkedHashSet;->spliterator"));
-    assertTrue(invokes.get(9).isInvokeInterface());
-    assertTrue(invokes.get(9).toString().contains("Iterator;->remove"));
-    assertTrue(invokes.get(10).isInvokeStatic());
-    assertTrue(invokes.get(10).toString().contains("DesugarArrays;->spliterator"));
-    assertTrue(invokes.get(11).isInvokeStatic());
-    assertTrue(invokes.get(11).toString().contains("DesugarArrays;->spliterator"));
-    assertTrue(invokes.get(12).isInvokeStatic());
-    assertTrue(invokes.get(12).toString().contains("DesugarArrays;->stream"));
-    assertTrue(invokes.get(13).isInvokeStatic());
-    assertTrue(invokes.get(13).toString().contains("DesugarArrays;->stream"));
-    assertTrue(invokes.get(14).isInvokeStatic());
-    assertTrue(invokes.get(14).toString().contains("Collection$-EL;->stream"));
-    assertTrue(invokes.get(15).isInvokeStatic());
-    assertTrue(invokes.get(15).toString().contains("IntStream$-CC;->range"));
-    assertTrue(invokes.get(17).isInvokeStatic());
-    assertTrue(invokes.get(17).toString().contains("Comparator$-CC;->comparingInt"));
-    assertTrue(invokes.get(18).isInvokeStatic());
-    assertTrue(invokes.get(18).toString().contains("List$-EL;->sort"));
-    assertTrue(invokes.get(20).isInvokeStatic());
-    assertTrue(invokes.get(20).toString().contains("Comparator$-CC;->comparingInt"));
-    assertTrue(invokes.get(21).isInvokeStatic());
-    assertTrue(invokes.get(21).toString().contains("List$-EL;->sort"));
-    assertTrue(invokes.get(22).isInvokeStatic());
-    assertTrue(invokes.get(22).toString().contains("Collection$-EL;->stream"));
+    assertInvokeStaticMatching(invokes, 0, "Set$-EL;->spliterator");
+    assertInvokeStaticMatching(invokes, 1, "List$-EL;->spliterator");
+    assertInvokeStaticMatching(invokes, 2, "Collection$-EL;->stream");
+    assertInvokeInterfaceMatching(invokes, 3, "Set;->iterator");
+    assertInvokeStaticMatching(invokes, 4, "Collection$-EL;->stream");
+    assertInvokeStaticMatching(invokes, 5, "DesugarLinkedHashSet;->spliterator");
+    assertInvokeInterfaceMatching(invokes, 9, "Iterator;->remove");
+    assertInvokeStaticMatching(invokes, 10, "DesugarArrays;->spliterator");
+    assertInvokeStaticMatching(invokes, 11, "DesugarArrays;->spliterator");
+    assertInvokeStaticMatching(invokes, 12, "DesugarArrays;->stream");
+    assertInvokeStaticMatching(invokes, 13, "DesugarArrays;->stream");
+    assertInvokeStaticMatching(invokes, 14, "Collection$-EL;->stream");
+    assertInvokeStaticMatching(invokes, 15, "IntStream$-CC;->range");
+    assertInvokeStaticMatching(invokes, 17, "Comparator$-CC;->comparingInt");
+    assertInvokeStaticMatching(invokes, 18, "List$-EL;->sort");
+    assertInvokeStaticMatching(invokes, 20, "Comparator$-CC;->comparingInt");
+    assertInvokeStaticMatching(invokes, 21, "List$-EL;->sort");
+    assertInvokeStaticMatching(invokes, 22, "Collection$-EL;->stream");
     // TODO (b/134732760): Support Java 9 Stream APIs
     // assertTrue(invokes.get(17).isInvokeStatic());
     // assertTrue(invokes.get(17).toString().contains("Stream$-CC;->iterate"));
   }
 
+  private void assertInvokeInterfaceMatching(List<InstructionSubject> invokes, int i, String s) {
+    assertTrue(invokes.get(i).isInvokeInterface());
+    assertTrue(invokes.get(i).toString().contains(s));
+  }
+
+  private void assertInvokeStaticMatching(List<InstructionSubject> invokes, int i, String s) {
+    assertTrue(invokes.get(i).isInvokeStatic());
+    assertTrue(invokes.get(i).toString().contains(s));
+  }
+
   @Test
   public void testProgram() throws Exception {
     Assume.assumeTrue("No desugaring for high API levels", requiresCoreLibDesugaring(parameters));
+    String[] keepRulesHolder = new String[] {""};
     D8TestRunResult d8TestRunResult =
         testForD8()
             .addProgramFiles(Paths.get(ToolHelper.EXAMPLES_JAVA9_BUILD_DIR + "stream.jar"))
             .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .setMinApi(parameters.getApiLevel())
+            .addOptionsModification(
+                options ->
+                    options.testing.desugaredLibraryKeepRuleConsumer =
+                        (string, handler) -> keepRulesHolder[0] += string)
             .enableCoreLibraryDesugaring()
             .compile()
             .inspect(this::checkRewrittenInvokes)
@@ -156,6 +154,7 @@ public class EmulateLibraryInterfaceTest extends CoreLibDesugarTestBase {
             .run(parameters.getRuntime(), "stream.TestClass")
             .assertSuccess();
     assertLines2By2Correct(d8TestRunResult.getStdOut());
+    assertGeneratedKeepRulesAreCorrect(keepRulesHolder[0]);
     String stdErr = d8TestRunResult.getStdErr();
     if (parameters.getRuntime().asDex().getVm().isOlderThanOrEqual(DexVm.ART_4_4_4_HOST)) {
       // Flaky: There might be a missing method on lambda deserialization.
@@ -165,5 +164,40 @@ public class EmulateLibraryInterfaceTest extends CoreLibDesugarTestBase {
     } else {
       assertFalse(stdErr.contains("Could not find method"));
     }
+  }
+
+  private void assertGeneratedKeepRulesAreCorrect(String keepRules) {
+    String expectedResult =
+        StringUtils.lines(
+            "-keep class j$.util.List$-EL {",
+            "    void sort(java.util.List, java.util.Comparator);",
+            "    j$.util.Spliterator spliterator(java.util.List);",
+            "}",
+            "-keep class j$.util.Collection$-EL {",
+            "    j$.util.stream.Stream stream(java.util.Collection);",
+            "}",
+            "-keep class j$.util.stream.IntStream$-CC {",
+            "    j$.util.stream.IntStream range(int, int);",
+            "}",
+            "-keep class j$.util.Comparator$-CC {",
+            "    java.util.Comparator comparingInt(j$.util.function.ToIntFunction);",
+            "}",
+            "-keep class j$.util.Set$-EL {",
+            "    j$.util.Spliterator spliterator(java.util.Set);",
+            "}",
+            "-keep class j$.util.DesugarArrays {",
+            "    j$.util.Spliterator spliterator(java.lang.Object[]);",
+            "    j$.util.stream.Stream stream(java.lang.Object[], int, int);",
+            "    j$.util.stream.Stream stream(java.lang.Object[]);",
+            "    j$.util.Spliterator spliterator(java.lang.Object[], int, int);",
+            "}",
+            "-keep class j$.util.stream.IntStream",
+            "-keep class j$.util.DesugarLinkedHashSet {",
+            "    j$.util.Spliterator spliterator(java.util.LinkedHashSet);",
+            "}",
+            "-keep class j$.util.stream.Stream",
+            "-keep class j$.util.Spliterator",
+            "-keep class j$.util.function.ToIntFunction");
+    assertEquals(expectedResult, keepRules);
   }
 }

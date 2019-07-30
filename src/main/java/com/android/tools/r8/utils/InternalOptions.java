@@ -945,7 +945,7 @@ public class InternalOptions {
     public boolean disallowLoadStoreOptimization = false;
     public boolean enableNarrowingChecksInD8 = false;
     public Consumer<IRCode> irModifier = null;
-
+    public StringConsumer desugaredLibraryKeepRuleConsumer = null;
     // TODO(b/129458850) When fixed, remove this and change all usages to "true".
     public boolean enableStatefulLambdaCreateInstanceMethod = false;
 
