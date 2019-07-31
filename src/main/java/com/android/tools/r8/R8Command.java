@@ -389,7 +389,7 @@ public final class R8Command extends BaseCompilerCommand {
       }
       if (getSpecialLibraryConfiguration() != null
           && !getSpecialLibraryConfiguration().equals("default")) {
-        reporter.error("R8 currently require the special library configuration to be \"default\"");
+        reporter.error("R8 currently requires the special library configuration to be \"default\"");
       }
       super.validate();
     }

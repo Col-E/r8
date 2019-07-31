@@ -111,7 +111,7 @@ public class L8CommandTest {
   @Test(expected = CompilationFailedException.class)
   public void specialLibraryConfgurationMustBeDefault() throws Throwable {
     DiagnosticsChecker.checkErrorsContains(
-        "L8 currently require special library configuration to be \"default\"",
+        "L8 currently requires the special library configuration to be \"default\"",
         (handler) ->
             prepareBuilder(handler)
                 .addSpecialLibraryConfiguration("not default")

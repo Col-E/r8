@@ -626,15 +626,14 @@ public class R8CommandTest {
   }
 
   @Test(expected = CompilationFailedException.class)
-  public void specialLibraryConfigurationNotSupported() throws Throwable {
-    Path emptyZip = temp.getRoot().toPath().resolve("empty.zip");
+  public void specialLibraryConfgurationMustBeDefault() throws Throwable {
     DiagnosticsChecker.checkErrorsContains(
-        "R8 does not support special library configuration",
+        "R8 currently requires the special library configuration to be \"default\"",
         handler ->
             R8.run(
                 R8Command.builder(handler)
-                    .addSpecialLibraryConfiguration("default")
-                    .setOutput(emptyZip, OutputMode.DexIndexed)
+                    .addSpecialLibraryConfiguration("not default")
+                    .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
                     .build()));
   }
 

@@ -175,8 +175,8 @@ public class EmulateLibraryInterfaceTest extends CoreLibDesugarTestBase {
   @Test
   public void testProgramR8() throws Exception {
     Assume.assumeTrue("No desugaring for high API levels", requiresCoreLibDesugaring(parameters));
-    Box<String> keepRulesHolder = new Box<>("");
     for (Boolean minifying : BooleanUtils.values()) {
+      Box<String> keepRulesHolder = new Box<>("");
       R8TestRunResult r8TestRunResult =
           testForR8(parameters.getBackend())
               .minification(minifying)
