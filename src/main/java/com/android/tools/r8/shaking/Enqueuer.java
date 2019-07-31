@@ -124,10 +124,6 @@ public class Enqueuer {
     boolean isTracingMainDex() {
       return this == MAIN_DEX_TRACING;
     }
-
-    boolean isWhyAreYouKeeping() {
-      return this == WHY_ARE_YOU_KEEPING;
-    }
   }
 
   private final boolean forceProguardCompatibility;
@@ -1701,7 +1697,7 @@ public class Enqueuer {
   public SortedSet<DexType> traceMainDex(
       RootSet rootSet, ExecutorService executorService, Timing timing) throws ExecutionException {
     assert analyses.isEmpty();
-    assert mode.isTracingMainDex() || mode.isWhyAreYouKeeping();
+    assert mode.isTracingMainDex();
     this.rootSet = rootSet;
     // Translate the result of root-set computation into enqueuer actions.
     enqueueRootItems(rootSet.noShrinking);

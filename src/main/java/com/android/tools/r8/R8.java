@@ -828,10 +828,11 @@ public class R8 {
     // If there is no kept-graph info, re-run the enqueueing to compute it.
     if (whyAreYouKeepingConsumer == null) {
       whyAreYouKeepingConsumer = new WhyAreYouKeepingConsumer(null);
-      enqueuer = EnqueuerFactory.createForWhyAreYouKeeping(appView, whyAreYouKeepingConsumer);
       if (forMainDex) {
+        enqueuer = EnqueuerFactory.createForMainDexTracing(appView, whyAreYouKeepingConsumer);
         enqueuer.traceMainDex(rootSet, executorService, timing);
       } else {
+        enqueuer = EnqueuerFactory.createForWhyAreYouKeeping(appView, whyAreYouKeepingConsumer);
         enqueuer.traceApplication(
             rootSet,
             options.getProguardConfiguration().getDontWarnPatterns(),
