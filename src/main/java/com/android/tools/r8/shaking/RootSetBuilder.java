@@ -182,21 +182,25 @@ public class RootSetBuilder {
           markClass(clazz, rule, ifRule);
         } else {
           preconditionSupplier = ImmutableMap.of((definition -> true), clazz);
-          markMatchingVisibleMethods(clazz, memberKeepRules, rule, preconditionSupplier, true, ifRule);
+          markMatchingVisibleMethods(
+              clazz, memberKeepRules, rule, preconditionSupplier, true, ifRule);
           markMatchingOverriddenMethods(
               appView.appInfo(), clazz, memberKeepRules, rule, preconditionSupplier, true, ifRule);
-          markMatchingVisibleFields(clazz, memberKeepRules, rule, preconditionSupplier, true, ifRule);
+          markMatchingVisibleFields(
+              clazz, memberKeepRules, rule, preconditionSupplier, true, ifRule);
         }
       } else if (rule instanceof ProguardWhyAreYouKeepingRule) {
         markClass(clazz, rule, ifRule);
         markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true, ifRule);
-        markMatchingOverriddenMethods(appView.appInfo(), clazz, memberKeepRules, rule, null, true, ifRule);
+        markMatchingOverriddenMethods(
+            appView.appInfo(), clazz, memberKeepRules, rule, null, true, ifRule);
         markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true, ifRule);
       } else if (rule instanceof ProguardAssumeMayHaveSideEffectsRule
           || rule instanceof ProguardAssumeNoSideEffectRule
           || rule instanceof ProguardAssumeValuesRule) {
         markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true, ifRule);
-        markMatchingOverriddenMethods(appView.appInfo(), clazz, memberKeepRules, rule, null, true, ifRule);
+        markMatchingOverriddenMethods(
+            appView.appInfo(), clazz, memberKeepRules, rule, null, true, ifRule);
         markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true, ifRule);
       } else if (rule instanceof ClassMergingRule) {
         if (allRulesSatisfied(memberKeepRules, clazz)) {
@@ -588,8 +592,7 @@ public class RootSetBuilder {
       boolean includeLibraryClasses,
       ProguardIfRule ifRule) {
     Set<Wrapper<DexMethod>> methodsMarked =
-        options.forceProguardCompatibility || rule instanceof ProguardAssumeNoSideEffectRule
-            ? null : new HashSet<>();
+        options.forceProguardCompatibility ? null : new HashSet<>();
     DexClass startingClass = clazz;
     while (clazz != null) {
       if (!includeLibraryClasses && clazz.isNotProgramClass()) {

@@ -80,10 +80,8 @@ public class AssumenosideeffectsVisibleMethodsTest extends TestBase {
               "The end");
         case RULE_THAT_REFERS_PRG_BASE:
           return StringUtils.lines(
-              // TODO(b/137938214): Should not mark LibraryBase's methods.
-              // "Throwing!",
-              "Unless LibraryBase is explicitly mentioned",
-              // "[LibraryBase]: as long as LibraryBase is specified"
+              "Expect to catch RuntimeException",
+              "[LibraryBase]: as long as LibraryBase is specified",
               // TODO(b/137938214): Should we mark ProgramSub's methods?
               //   Those are clearly an instance of ProgramSub type, and invocations with it.
               //   One caveat: ProgramSub#throwing doesn't exist, so ProgramBase#throwing will be
@@ -92,26 +90,22 @@ public class AssumenosideeffectsVisibleMethodsTest extends TestBase {
               "The end");
         case RULE_THAT_REFERS_PRG_SUB:
           return StringUtils.lines(
-              // TODO(b/137938214): Should not mark LibraryBase's methods.
-              // "Throwing!",
-              "Unless LibraryBase is explicitly mentioned",
-              // TODO(b/137938214): Should not mark *Base's #debug(...)
-              // "[LibraryBase]: as long as LibraryBase is specified"
+              "Expect to catch RuntimeException",
+              "[LibraryBase]: as long as LibraryBase is specified",
+              // TODO(b/137938214): Should we do synthetic propagation up to ProgramBase#debug() ?
               // "[ProgramBase]: as long as ProgramBase is specified"
               "The end");
         case RULE_WITH_EXTENDS_LIB_BASE:
           return StringUtils.lines(
-              // TODO(b/137938214): Should not mark LibraryBase's methods.
-              // "Throwing!",
-              "Unless LibraryBase is explicitly mentioned",
-              // "[LibraryBase]: as long as LibraryBase is specified"
+              "Expect to catch RuntimeException",
+              "[LibraryBase]: as long as LibraryBase is specified",
               "The end");
         case RULE_WITH_EXTENDS_PRG_BASE:
           return StringUtils.lines(
-              // TODO(b/137938214): Should not mark LibraryBase's methods.
-              // "Throwing!",
-              "Unless LibraryBase is explicitly mentioned",
-              // "[LibraryBase]: as long as LibraryBase is specified"
+              "Expect to catch RuntimeException",
+              "[LibraryBase]: as long as LibraryBase is specified",
+              // TODO(b/137938214): Should we do synthetic propagation up to ProgramBase#debug() ?
+              // "[ProgramBase]: as long as ProgramBase is specified"
               "The end");
       }
       throw new Unreachable();
