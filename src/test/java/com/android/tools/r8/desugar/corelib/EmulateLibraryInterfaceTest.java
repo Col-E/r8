@@ -8,9 +8,13 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.AnyOf.anyOf;
+import static org.hamcrest.core.IsNot.not;
+import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.D8TestRunResult;
+import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
@@ -20,6 +24,8 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -135,9 +141,9 @@ public class EmulateLibraryInterfaceTest extends CoreLibDesugarTestBase {
   }
 
   @Test
-  public void testProgram() throws Exception {
+  public void testProgramD8() throws Exception {
     Assume.assumeTrue("No desugaring for high API levels", requiresCoreLibDesugaring(parameters));
-    String[] keepRulesHolder = new String[] {""};
+    Box<String> keepRulesHolder = new Box<>("");
     D8TestRunResult d8TestRunResult =
         testForD8()
             .addProgramFiles(Paths.get(ToolHelper.EXAMPLES_JAVA9_BUILD_DIR + "stream.jar"))
@@ -146,7 +152,7 @@ public class EmulateLibraryInterfaceTest extends CoreLibDesugarTestBase {
             .addOptionsModification(
                 options ->
                     options.testing.desugaredLibraryKeepRuleConsumer =
-                        (string, handler) -> keepRulesHolder[0] += string)
+                        (string, handler) -> keepRulesHolder.set(keepRulesHolder.get() + string))
             .enableCoreLibraryDesugaring()
             .compile()
             .inspect(this::checkRewrittenInvokes)
@@ -154,7 +160,7 @@ public class EmulateLibraryInterfaceTest extends CoreLibDesugarTestBase {
             .run(parameters.getRuntime(), "stream.TestClass")
             .assertSuccess();
     assertLines2By2Correct(d8TestRunResult.getStdOut());
-    assertGeneratedKeepRulesAreCorrect(keepRulesHolder[0]);
+    assertGeneratedKeepRulesAreCorrect(keepRulesHolder.get());
     String stdErr = d8TestRunResult.getStdErr();
     if (parameters.getRuntime().asDex().getVm().isOlderThanOrEqual(DexVm.ART_4_4_4_HOST)) {
       // Flaky: There might be a missing method on lambda deserialization.
@@ -163,6 +169,42 @@ public class EmulateLibraryInterfaceTest extends CoreLibDesugarTestBase {
               || stdErr.contains("Could not find method java.lang.invoke.SerializedLambda"));
     } else {
       assertFalse(stdErr.contains("Could not find method"));
+    }
+  }
+
+  @Test
+  public void testProgramR8() throws Exception {
+    Assume.assumeTrue("No desugaring for high API levels", requiresCoreLibDesugaring(parameters));
+    Box<String> keepRulesHolder = new Box<>("");
+    for (Boolean minifying : BooleanUtils.values()) {
+      R8TestRunResult r8TestRunResult =
+          testForR8(parameters.getBackend())
+              .minification(minifying)
+              .addKeepMainRule("stream.TestClass")
+              .addProgramFiles(Paths.get(ToolHelper.EXAMPLES_JAVA9_BUILD_DIR + "stream.jar"))
+              .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+              .setMinApi(parameters.getApiLevel())
+              .addOptionsModification(
+                  options ->
+                      options.testing.desugaredLibraryKeepRuleConsumer =
+                          (string, handler) -> keepRulesHolder.set(keepRulesHolder.get() + string))
+              .enableCoreLibraryDesugaring()
+              .compile()
+              .inspect(this::checkRewrittenInvokes)
+              .addRunClasspathFiles(buildDesugaredLibrary(parameters.getApiLevel()))
+              .run(parameters.getRuntime(), "stream.TestClass")
+              .assertSuccess();
+      assertLines2By2Correct(r8TestRunResult.getStdOut());
+      assertGeneratedKeepRulesAreCorrect(keepRulesHolder.get());
+      if (parameters.getRuntime().asDex().getVm().isOlderThanOrEqual(DexVm.ART_4_4_4_HOST)) {
+        // Flaky: There might be a missing method on lambda deserialization.
+        r8TestRunResult.assertStderrMatches(
+            anyOf(
+                not(containsString("Could not find method")),
+                containsString("Could not find method java.lang.invoke.SerializedLambda")));
+      } else {
+        r8TestRunResult.assertStderrMatches(not(containsString("Could not find method")));
+      }
     }
   }
 

@@ -41,6 +41,7 @@ import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.Minifier;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.naming.PrefixRewritingNamingLens;
 import com.android.tools.r8.naming.ProguardMapMinifier;
 import com.android.tools.r8.naming.ProguardMapSupplier;
 import com.android.tools.r8.naming.SeedMapper;
@@ -97,6 +98,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -528,12 +530,14 @@ public class R8 {
       appView.setAppServices(appView.appServices().rewrittenWithLens(appView.graphLense()));
 
       timing.begin("Create IR");
+      Map<String, String> additionalRewritePrefix;
       Set<DexCallSite> desugaredCallSites;
       CfgPrinter printer = options.printCfg ? new CfgPrinter() : null;
       try {
         IRConverter converter = new IRConverter(appView, timing, printer, mainDexClasses);
         application = converter.optimize(executorService);
         desugaredCallSites = converter.getDesugaredCallSites();
+        additionalRewritePrefix = converter.getAdditionalRewritePrefix();
       } finally {
         timing.end();
       }
@@ -785,7 +789,8 @@ public class R8 {
           appView,
           application.deadCode,
           appView.graphLense(),
-          namingLens,
+          PrefixRewritingNamingLens.createPrefixRewritingNamingLens(
+              options, additionalRewritePrefix, namingLens),
           options,
           proguardMapSupplier);
 

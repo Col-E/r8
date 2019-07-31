@@ -29,14 +29,14 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 /**
- * Implements a translation of the Dex graph from original names to new names produced by
- * the {@link Minifier}.
- * <p>
- * The minifier does not actually rename classes and members but instead only produces a mapping
+ * Implements a translation of the Dex graph from original names to new names produced by the {@link
+ * Minifier}.
+ *
+ * <p>The minifier does not actually rename classes and members but instead only produces a mapping
  * from original ids to renamed ids. When writing the file, the graph has to be interpreted with
  * that mapping in mind, i.e., it should be looked at only through this lens.
- * <p>
- * The translation relies on members being statically dispatched to actual definitions, as done
+ *
+ * <p>The translation relies on members being statically dispatched to actual definitions, as done
  * by the {@link MemberRebindingAnalysis} optimization.
  */
 public abstract class NamingLens {
@@ -99,6 +99,8 @@ public abstract class NamingLens {
     return dexItemFactory.createType(lookupDescriptor(type));
   }
 
+  public abstract boolean verifyNoOverlap(Map<DexType, DexString> map);
+
   public boolean hasPrefixRewritingLogic() {
     return false;
   }
@@ -127,10 +129,9 @@ public abstract class NamingLens {
 
   /**
    * Checks whether the target will be translated properly by this lense.
-   * <p>
-   * Normally, this means that the target corresponds to an actual definition that has been
-   * renamed. For identity renamings, we are more relaxed, as no targets will be translated
-   * anyway.
+   *
+   * <p>Normally, this means that the target corresponds to an actual definition that has been
+   * renamed. For identity renamings, we are more relaxed, as no targets will be translated anyway.
    */
   public abstract boolean checkTargetCanBeTranslated(DexMethod item);
 
@@ -191,6 +192,11 @@ public abstract class NamingLens {
     @Override
     public DexString lookupName(DexField field) {
       return field.name;
+    }
+
+    @Override
+    public boolean verifyNoOverlap(Map<DexType, DexString> map) {
+      return true;
     }
 
     @Override

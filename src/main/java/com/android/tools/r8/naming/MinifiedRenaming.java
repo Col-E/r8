@@ -105,6 +105,16 @@ class MinifiedRenaming extends NamingLens {
   }
 
   @Override
+  public boolean verifyNoOverlap(Map<DexType, DexString> map) {
+    for (DexType alreadyRenamedInOtherLens : map.keySet()) {
+      assert !renaming.containsKey(alreadyRenamedInOtherLens);
+      assert !renaming.containsKey(
+          appView.dexItemFactory().createType(map.get(alreadyRenamedInOtherLens)));
+    }
+    return true;
+  }
+
+  @Override
   void forAllRenamedTypes(Consumer<DexType> consumer) {
     DexReference.filterDexType(DexReference.filterDexReference(renaming.keySet().stream()))
         .forEach(consumer);

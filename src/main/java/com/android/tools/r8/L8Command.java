@@ -10,10 +10,6 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import java.util.List;
-import java.util.Map;
 
 /** Immutable command structure for an invocation of the {@link L8} libray compiler. */
 @Keep
@@ -74,7 +70,7 @@ public final class L8Command extends BaseCompilerCommand {
       if (getSpecialLibraryConfiguration() == null) {
         reporter.error("L8 requires a special library configuration");
       } else if (!getSpecialLibraryConfiguration().equals("default")) {
-        reporter.error("L8 currently require special library configuration to be \"default\"");
+        reporter.error("L8 currently requires the special library configuration to be \"default\"");
       }
       if (getProgramConsumer() instanceof ClassFileConsumer) {
         reporter.error("L8 does not support compiling to Java class files");
@@ -141,154 +137,8 @@ public final class L8Command extends BaseCompilerCommand {
     super(printHelp, printVersion);
   }
 
-  private Map<String, String> buildBackportCoreLibraryMembers() {
-    // R8 specific to deal with *8 removal.
-    return ImmutableMap.<String, String>builder()
-        .put("java.lang.Double8", "java.lang.Double")
-        .put("java.lang.Integer8", "java.lang.Integer")
-        .put("java.lang.Long8", "java.lang.Long")
-        .build();
-  }
-
-  private Map<String, String> buildRetargetCoreLibraryMemberForCoreLibCompilation() {
-    /*
-      --retarget_core_library_member.
-
-      The bazel configuration only have this single --retarget_core_library_member option:
-
-      --retarget_core_library_member \
-          "java/util/LinkedHashSet#spliterator->java/util/DesugarLinkedHashSet"
-
-      The configuration below is the full configuration for programs using the desugared library.
-      This should fine, as any calls to these re-targeted methods should be rewritten. The main
-      reason for adding all of them is that the additional files added to the desugared library
-      for running some of the JDK 11 tests use these APIs.
-    */
-    return ImmutableMap.<String, String>builder()
-        // We ignore the following flags required by Bazel because desugaring of these methods
-        // is done separately.
-        // .put("java.lang.Double#max", "java.lang.Double8")
-        // .put("java.lang.Double#min", "java.lang.Double8")
-        // .put("java.lang.Double#sum", "java.lang.Double8")
-        // .put("java.lang.Integer#max", "java.lang.Integer8")
-        // .put("java.lang.Integer#min", "java.lang.Integer8")
-        // .put("java.lang.Integer#sum", "java.lang.Integer8")
-        // .put("java.lang.Long#max", "java.lang.Long")
-        // .put("java.lang.Long#min", "java.lang.Long")
-        // .put("java.lang.Long#sum", "java.lang.Long")
-        // .put("java.lang.Math#toIntExact", "java.lang.Math8")
-        .put("java.util.Arrays#stream", "java.util.DesugarArrays")
-        .put("java.util.Arrays#spliterator", "java.util.DesugarArrays")
-        .put("java.util.Calendar#toInstant", "java.util.DesugarCalendar")
-        .put("java.util.Date#from", "java.util.DesugarDate")
-        .put("java.util.Date#toInstant", "java.util.DesugarDate")
-        .put("java.util.GregorianCalendar#from", "java.util.DesugarGregorianCalendar")
-        .put("java.util.GregorianCalendar#toZonedDateTime", "java.util.DesugarGregorianCalendar")
-        .put("java.util.LinkedHashSet#spliterator", "java.util.DesugarLinkedHashSet")
-        .put(
-            "java.util.concurrent.atomic.AtomicInteger#getAndUpdate",
-            "java.util.concurrent.atomic.DesugarAtomicInteger")
-        .put(
-            "java.util.concurrent.atomic.AtomicInteger#updateAndGet",
-            "java.util.concurrent.atomic.DesugarAtomicInteger")
-        .put(
-            "java.util.concurrent.atomic.AtomicInteger#getAndAccumulate",
-            "java.util.concurrent.atomic.DesugarAtomicInteger")
-        .put(
-            "java.util.concurrent.atomic.AtomicInteger#accumulateAndGet",
-            "java.util.concurrent.atomic.DesugarAtomicInteger")
-        .put(
-            "java.util.concurrent.atomic.AtomicLong#getAndUpdate",
-            "java.util.concurrent.atomic.DesugarAtomicLong")
-        .put(
-            "java.util.concurrent.atomic.AtomicLong#updateAndGet",
-            "java.util.concurrent.atomic.DesugarAtomicLong")
-        .put(
-            "java.util.concurrent.atomic.AtomicLong#getAndAccumulate",
-            "java.util.concurrent.atomic.DesugarAtomicLong")
-        .put(
-            "java.util.concurrent.atomic.AtomicLong#accumulateAndGet",
-            "java.util.concurrent.atomic.DesugarAtomicLong")
-        .put(
-            "java.util.concurrent.atomic.AtomicReference#getAndUpdate",
-            "java.util.concurrent.atomic.DesugarAtomicReference")
-        .put(
-            "java.util.concurrent.atomic.AtomicReference#updateAndGet",
-            "java.util.concurrent.atomic.DesugarAtomicReference")
-        .put(
-            "java.util.concurrent.atomic.AtomicReference#getAndAccumulate",
-            "java.util.concurrent.atomic.DesugarAtomicReference")
-        .put(
-            "java.util.concurrent.atomic.AtomicReference#accumulateAndGet",
-            "java.util.concurrent.atomic.DesugarAtomicReference")
-        .build();
-  }
-
-  private List<String> buildDontRewriteInvocations() {
-    // --dont_rewrite_core_library_invocation "java/util/Iterator#remove".
-    return ImmutableList.of("java.util.Iterator#remove");
-  }
-
-  private Map<String, String> buildPrefixRewritingForCoreLibCompilation() {
-    return ImmutableMap.<String, String>builder()
-        // --rewrite_core_library_prefix.
-        // Extra flags for R8
-        .put("java.io.DesugarBufferedReader", "j$.io.DesugarBufferedReader")
-        .put("java.io.UncheckedIOException", "j$.io.UncheckedIOException")
-        // Bazel flags.
-        .put("java.lang.Double8", "j$.lang.Double8")
-        .put("java.lang.Integer8", "j$.lang.Integer8")
-        .put("java.lang.Long8", "j$.lang.Long8")
-        .put("java.lang.Math8", "j$.lang.Math8")
-        .put("java.time.", "j$.time.")
-        .put("java.util.stream.", "j$.util.stream.")
-        .put("java.util.function.", "j$.util.function.")
-        .put("java.util.Comparators", "j$.util.Comparators")
-        .put("java.util.Desugar", "j$.util.Desugar")
-        .put("java.util.DoubleSummaryStatistics", "j$.util.DoubleSummaryStatistics")
-        .put("java.util.IntSummaryStatistics", "j$.util.IntSummaryStatistics")
-        .put("java.util.LongSummaryStatistics", "j$.util.LongSummaryStatistics")
-        .put("java.util.Objects", "j$.util.Objects")
-        .put("java.util.Optional", "j$.util.Optional")
-        .put("java.util.PrimitiveIterator", "j$.util.PrimitiveIterator")
-        .put("java.util.SortedSet$1", "j$.util.SortedSet$1")
-        .put("java.util.Spliterator", "j$.util.Spliterator")
-        .put("java.util.StringJoiner", "j$.util.StringJoiner")
-        .put("java.util.Tripwire", "j$.util.Tripwire")
-        .put("java.util.concurrent.ConcurrentHashMap", "j$.util.concurrent.ConcurrentHashMap")
-        .put("java.util.concurrent.DesugarUnsafe", "j$.util.concurrent.DesugarUnsafe")
-        .put("java.util.concurrent.ThreadLocalRandom", "j$.util.concurrent.ThreadLocalRandom")
-        .put("java.util.concurrent.atomic.DesugarAtomic", "j$.util.concurrent.atomic.DesugarAtomic")
-        .build();
-  }
-
-  private Map<String, String> buildEmulateLibraryInterface() {
-    return ImmutableMap.<String, String>builder()
-        // --emulate_core_library_interface.
-        // Bazel flags.
-        .put("java.util.Map$Entry", "j$.util.Map$Entry")
-        .put("java.util.Collection", "j$.util.Collection")
-        .put("java.util.Map", "j$.util.Map")
-        .put("java.util.Iterator", "j$.util.Iterator")
-        .put("java.util.Comparator", "j$.util.Comparator")
-        // Extra flags: in R8 we marked as emulated all interfaces
-        // with default methods. Emulated interfaces have their
-        // companion class moved to j$ and have a dispatch class.
-        // Bazel instead analyzes the class hierarchy.
-        .put("java.util.List", "j$.util.List")
-        .put("java.util.SortedSet", "j$.util.SortedSet")
-        .put("java.util.Set", "j$.util.Set")
-        .put("java.util.concurrent.ConcurrentMap", "j$.util.concurrent.ConcurrentMap")
-        .build();
-  }
-
   private void configureLibraryDesugaring(InternalOptions options) {
-    options.coreLibraryCompilation = true;
-    options.backportCoreLibraryMembers = buildBackportCoreLibraryMembers();
-    options.retargetCoreLibMember = buildRetargetCoreLibraryMemberForCoreLibCompilation();
-    options.dontRewriteInvocations = buildDontRewriteInvocations();
-    options.rewritePrefix = buildPrefixRewritingForCoreLibCompilation();
-    options.emulateLibraryInterface = buildEmulateLibraryInterface();
+    SpecialLibraryConfiguration.configureLibraryDesugaringForLibraryCompilation(options);
   }
 
   @Override

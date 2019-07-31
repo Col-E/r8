@@ -4,8 +4,7 @@
 
 package com.android.tools.r8.naming;
 
-import com.android.tools.r8.errors.Unimplemented;
-import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
@@ -26,21 +25,33 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 // Naming lens for rewriting type prefixes.
 public class PrefixRewritingNamingLens extends NamingLens {
-  Map<DexType, DexString> classRenaming = new IdentityHashMap<>();
+  final Map<DexType, DexString> classRenaming = new IdentityHashMap<>();
+  final NamingLens namingLens;
+  final InternalOptions options;
 
   public static NamingLens createPrefixRewritingNamingLens(
-      DexApplication app, Map<String, String> additionalRewritePrefix) {
-    if (app.options.rewritePrefix.isEmpty() && additionalRewritePrefix.isEmpty()) {
-      return NamingLens.getIdentityLens();
+      InternalOptions options, Map<String, String> additionalRewritePrefix) {
+    return createPrefixRewritingNamingLens(
+        options, additionalRewritePrefix, NamingLens.getIdentityLens());
+  }
+
+  public static NamingLens createPrefixRewritingNamingLens(
+      InternalOptions options, Map<String, String> additionalRewritePrefix, NamingLens namingLens) {
+    if (options.rewritePrefix.isEmpty() && additionalRewritePrefix.isEmpty()) {
+      return namingLens;
     }
-    return new PrefixRewritingNamingLens(app, additionalRewritePrefix);
+    return new PrefixRewritingNamingLens(namingLens, options, additionalRewritePrefix);
   }
 
   public PrefixRewritingNamingLens(
-      DexApplication app, Map<String, String> additionalRewritePrefix) {
+      NamingLens namingLens, InternalOptions options, Map<String, String> additionalRewritePrefix) {
+    this.namingLens = namingLens;
+    this.options = options;
     // Create a map of descriptor prefix remappings.
     Map<String, String> descriptorPrefixRewriting = new TreeMap<>(Collections.reverseOrder());
     BiConsumer<String, String> lambda =
@@ -48,12 +59,11 @@ public class PrefixRewritingNamingLens extends NamingLens {
             descriptorPrefixRewriting.put(
                 "L" + DescriptorUtils.getBinaryNameFromJavaType(from),
                 "L" + DescriptorUtils.getBinaryNameFromJavaType(to));
-    app.options.rewritePrefix.forEach(lambda);
+    options.rewritePrefix.forEach(lambda);
     additionalRewritePrefix.forEach(lambda);
-
     // Run over all types and remap types with matching prefixes.
     // TODO(134732760): Use a more efficient data structure (prefix tree/trie).
-    DexItemFactory itemFactory = app.options.itemFactory;
+    DexItemFactory itemFactory = options.itemFactory;
     itemFactory.forAllTypes(
         type -> {
           String descriptor = type.descriptor.toString();
@@ -75,6 +85,8 @@ public class PrefixRewritingNamingLens extends NamingLens {
             }
           }
         });
+    // Verify that no type would have been renamed by both lenses.
+    assert namingLens.verifyNoOverlap(classRenaming);
   }
 
   @Override
@@ -89,53 +101,103 @@ public class PrefixRewritingNamingLens extends NamingLens {
 
   @Override
   public DexString lookupDescriptor(DexType type) {
-    return classRenaming.getOrDefault(type, type.descriptor);
+    return classRenaming.getOrDefault(type, namingLens.lookupDescriptor(type));
   }
 
   @Override
   public DexString lookupInnerName(InnerClassAttribute attribute, InternalOptions options) {
-    return attribute.getInnerName();
+    if (classRenaming.containsKey(attribute.getInner())) {
+      // Prefix rewriting does not influence the inner name.
+      return attribute.getInnerName();
+    }
+    return namingLens.lookupInnerName(attribute, options);
   }
 
   @Override
   public DexString lookupName(DexMethod method) {
-    return method.name;
+    if (classRenaming.containsKey(method.holder)) {
+      // Prefix rewriting does not influence the method name.
+      return method.name;
+    }
+    return namingLens.lookupName(method);
   }
 
   @Override
   public DexString lookupMethodName(DexCallSite callSite) {
-    return callSite.methodName;
+    if (classRenaming.containsKey(callSite.bootstrapMethod.rewrittenTarget.holder)) {
+      // Prefix rewriting does not influence the inner name.
+      return callSite.methodName;
+    }
+    return namingLens.lookupMethodName(callSite);
   }
 
   @Override
   public DexString lookupName(DexField field) {
-    return field.name;
+    if (classRenaming.containsKey(field.holder)) {
+      // Prefix rewriting does not influence the field name.
+      return field.name;
+    }
+    return namingLens.lookupName(field);
+  }
+
+  @Override
+  public boolean verifyNoOverlap(Map<DexType, DexString> map) {
+    throw new Unreachable("Multiple prefix rewriting lens not supported.");
   }
 
   @Override
   public String lookupPackageName(String packageName) {
-    throw new Unimplemented();
+    // Used for resource shrinking.
+    // Desugared libraries do not have resources.
+    // Hence this call is necessarily for the minifyingLens.
+    // TODO(b/134732760): This assertion does not hold with ressources with renamed prefixes.
+    // Write a test where the assertion does not hold and fix it.
+    assert verifyNotPrefixRewrittenPackage(packageName);
+    return namingLens.lookupPackageName(packageName);
+  }
+
+  private boolean verifyNotPrefixRewrittenPackage(String packageName) {
+    for (DexType dexType : classRenaming.keySet()) {
+      assert !dexType.getPackageDescriptor().equals(packageName);
+    }
+    return true;
   }
 
   @Override
   public void forAllRenamedTypes(Consumer<DexType> consumer) {
-    throw new Unimplemented();
+    // Used for printing the applyMapping map.
+    // If compiling the program using a desugared library, nothing needs to be printed.
+    // If compiling the desugared library, the mapping needs to be printed.
+    // When debugging the program, both mapping files need to be merged.
+    if (options.coreLibraryCompilation) {
+      classRenaming.keySet().forEach(consumer);
+    }
+    namingLens.forAllRenamedTypes(consumer);
   }
 
   @Override
   public <T extends DexItem> Map<String, T> getRenamedItems(
       Class<T> clazz, Predicate<T> predicate, Function<T, String> namer) {
+    Map<String, T> renamedItemsPrefixRewritting;
     if (clazz == DexType.class) {
-      return classRenaming.keySet().stream()
-          .filter(item -> predicate.test(clazz.cast(item)))
-          .map(clazz::cast)
-          .collect(ImmutableMap.toImmutableMap(namer, i -> i));
+      renamedItemsPrefixRewritting =
+          classRenaming.keySet().stream()
+              .filter(item -> predicate.test(clazz.cast(item)))
+              .map(clazz::cast)
+              .collect(ImmutableMap.toImmutableMap(namer, i -> i));
+    } else {
+      renamedItemsPrefixRewritting = ImmutableMap.of();
     }
-    return ImmutableMap.of();
+    Map<String, T> renamedItemsMinifier = namingLens.getRenamedItems(clazz, predicate, namer);
+    // The Collector throws an exception for duplicated keys.
+    return Stream.concat(
+            renamedItemsPrefixRewritting.entrySet().stream(),
+            renamedItemsMinifier.entrySet().stream())
+        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 
   @Override
   public boolean checkTargetCanBeTranslated(DexMethod item) {
-    return true;
+    return namingLens.checkTargetCanBeTranslated(item);
   }
 }

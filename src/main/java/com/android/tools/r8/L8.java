@@ -75,7 +75,7 @@ public class L8 {
               null,
               GraphLense.getIdentityLense(),
               PrefixRewritingNamingLens.createPrefixRewritingNamingLens(
-                  app, converter.getAdditionalRewritePrefix()),
+                  options, converter.getAdditionalRewritePrefix()),
               null)
           .write(executor);
       options.printWarnings();

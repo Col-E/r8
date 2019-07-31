@@ -387,8 +387,9 @@ public final class R8Command extends BaseCompilerCommand {
       if (getProgramConsumer() instanceof ClassFileConsumer && isMinApiLevelSet()) {
         reporter.error("R8 does not support --min-api when compiling to class files");
       }
-      if (getSpecialLibraryConfiguration() != null) {
-        reporter.error("R8 does not support special library configuration");
+      if (getSpecialLibraryConfiguration() != null
+          && !getSpecialLibraryConfiguration().equals("default")) {
+        reporter.error("R8 currently require the special library configuration to be \"default\"");
       }
       super.validate();
     }
@@ -830,8 +831,15 @@ public final class R8Command extends BaseCompilerCommand {
     assert internal.retargetCoreLibMember.isEmpty();
     assert internal.backportCoreLibraryMembers.isEmpty();
     assert internal.dontRewriteInvocations.isEmpty();
+    if (getSpecialLibraryConfiguration() != null) {
+      configureLibraryDesugaring(internal);
+    }
 
     return internal;
+  }
+
+  private void configureLibraryDesugaring(InternalOptions options) {
+    SpecialLibraryConfiguration.configureLibraryDesugaringForProgramCompilation(options);
   }
 
   private static StringConsumer wrapStringConsumer(

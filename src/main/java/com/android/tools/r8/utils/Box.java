@@ -8,6 +8,12 @@ public class Box<T> {
 
   private T value;
 
+  public Box() {}
+
+  public Box(T initialValue) {
+    set(initialValue);
+  }
+
   public T get() {
     return value;
   }
