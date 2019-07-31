@@ -168,6 +168,9 @@ public class LoadStoreHelper {
   }
 
   public void storeOutValue(Instruction instruction, InstructionListIterator it) {
+    if (!instruction.hasOutValue()) {
+      return;
+    }
     assert !(instruction.outValue() instanceof StackValue);
     if (instruction.isConstInstruction()) {
       ConstInstruction constInstruction = instruction.asConstInstruction();
