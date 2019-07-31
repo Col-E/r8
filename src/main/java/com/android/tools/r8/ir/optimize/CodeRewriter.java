@@ -1090,7 +1090,7 @@ public class CodeRewriter {
                   targets,
                   switchInsn.getFallthroughBlockIndex());
           // Replace the switch itself.
-          exit.replace(newSwitch);
+          exit.replace(newSwitch, code.metadata());
           // If the original input to the switch is now unused, remove it too. It is not dead
           // as it might have side-effects but we ignore these here.
           Instruction arrayGet = info.arrayGet;
@@ -3652,7 +3652,7 @@ public class CodeRewriter {
   }
 
   public void rewriteConstantEnumMethodCalls(IRCode code) {
-    InstructionIterator iterator = code.instructionIterator();
+    InstructionIterator iterator = code.instructionIterator().recordChangesToMetadata(code);
     while (iterator.hasNext()) {
       Instruction current = iterator.next();
 
@@ -3699,7 +3699,6 @@ public class CodeRewriter {
       } else if (isNameInvoke) {
         iterator.replaceCurrentInstruction(
             new ConstString(outValue, enumField.name, ThrowingInfo.NO_THROW));
-        code.mayHaveConstString = true;
       } else {
         assert isToStringInvoke;
         DexClass enumClazz = appView.appInfo().definitionFor(enumField.type);
@@ -3713,7 +3712,6 @@ public class CodeRewriter {
         }
         iterator.replaceCurrentInstruction(
             new ConstString(outValue, enumField.name, ThrowingInfo.NO_THROW));
-        code.mayHaveConstString = true;
       }
     }
 
@@ -4103,7 +4101,6 @@ public class CodeRewriter {
     }
     // When we fall out of the loop the iterator is in the last eol block.
     iterator.add(new InvokeVirtual(printLn, null, ImmutableList.of(out, empty)));
-    code.mayHaveConstString = true;
   }
 
   public static void ensureDirectStringNewToInit(IRCode code, DexItemFactory dexItemFactory) {

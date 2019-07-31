@@ -105,12 +105,7 @@ public class IRCode {
   // If this is the case, which holds for javac code, then we want to ensure that it remains so.
   private boolean allThrowingInstructionsHavePositions;
 
-  // TODO(b/122257895): Update OptimizationInfo to capture instruction kinds of interest.
-  public final boolean mayHaveDebugPositions;
-  public boolean mayHaveConstString;
-  public boolean mayHaveStringSwitch;
-  public final boolean mayHaveMonitorInstruction;
-
+  private final IRMetadata metadata;
   private final InternalOptions options;
 
   public final Origin origin;
@@ -120,27 +115,27 @@ public class IRCode {
       DexEncodedMethod method,
       LinkedList<BasicBlock> blocks,
       ValueNumberGenerator valueNumberGenerator,
-      boolean mayHaveDebugPositions,
-      boolean mayHaveMonitorInstruction,
-      boolean mayHaveConstString,
+      IRMetadata metadata,
       Origin origin) {
+    assert metadata != null;
     assert options != null;
     this.options = options;
     this.method = method;
     this.blocks = blocks;
     this.valueNumberGenerator = valueNumberGenerator;
-    this.mayHaveDebugPositions = mayHaveDebugPositions;
-    this.mayHaveMonitorInstruction = mayHaveMonitorInstruction;
-    this.mayHaveConstString = mayHaveConstString;
+    this.metadata = metadata;
     this.origin = origin;
     // TODO(zerny): Remove or update this property now that all instructions have positions.
     allThrowingInstructionsHavePositions = computeAllThrowingInstructionsHavePositions();
   }
 
+  public IRMetadata metadata() {
+    return metadata;
+  }
+
   public void mergeMetadataFromInlinee(IRCode inlinee) {
-    assert !inlinee.mayHaveMonitorInstruction;
-    this.mayHaveConstString |= inlinee.mayHaveConstString;
-    this.mayHaveStringSwitch |= inlinee.mayHaveStringSwitch;
+    assert !inlinee.metadata.mayHaveMonitorInstruction();
+    this.metadata.merge(inlinee.metadata);
   }
 
   public BasicBlock entryBlock() {
@@ -719,13 +714,20 @@ public class IRCode {
   private boolean consistentMetadata() {
     for (Instruction instruction : instructions()) {
       if (instruction.isConstString()) {
-        assert mayHaveConstString : "IR metadata should indicate that code has a const-string";
+        assert metadata.mayHaveConstString()
+            : "IR metadata should indicate that code has a const-string";
       } else if (instruction.isDebugPosition()) {
-        assert mayHaveDebugPositions : "IR metadata should indicate that code has a debug position";
+        assert metadata.mayHaveDebugPosition()
+            : "IR metadata should indicate that code has a debug position";
+      } else if (instruction.isDexItemBasedConstString()) {
+        assert metadata.mayHaveDexItemBasedConstString()
+            : "IR metadata should indicate that code has a dex-item-based-const-string";
       } else if (instruction.isMonitor()) {
-        assert mayHaveMonitorInstruction : "IR metadata should indicate that code has a monitor";
+        assert metadata.mayHaveMonitorInstruction()
+            : "IR metadata should indicate that code has a monitor instruction";
       } else if (instruction.isStringSwitch()) {
-        assert mayHaveStringSwitch : "IR metadata should indicate that code has a string-switch";
+        assert metadata.mayHaveStringSwitch()
+            : "IR metadata should indicate that code has a string-switch";
       }
     }
     return true;

@@ -26,12 +26,14 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
 
-public class BasicBlockInstructionIterator implements InstructionIterator, InstructionListIterator {
+public class BasicBlockInstructionIterator implements InstructionListIterator {
 
   protected final BasicBlock block;
   protected final ListIterator<Instruction> listIterator;
   protected Instruction current;
   protected Position position = null;
+
+  private UpdatableIRMetadata metadata;
 
   BasicBlockInstructionIterator(BasicBlock block) {
     this.block = block;
@@ -46,6 +48,16 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
   BasicBlockInstructionIterator(BasicBlock block, Instruction instruction) {
     this(block);
     nextUntil((x) -> x == instruction);
+  }
+
+  @Override
+  public BasicBlockInstructionIterator recordChangesToMetadata(IRMetadata metadata) {
+    if (metadata.isUpdatableIRMetadata()) {
+      this.metadata = metadata.asUpdatableIRMetadata();
+    } else {
+      assert metadata.isUnknownIRMetadata();
+    }
+    return this;
   }
 
   @Override
@@ -101,6 +113,9 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
       instruction.setPosition(position);
     }
     listIterator.add(instruction);
+    if (metadata != null) {
+      metadata.record(instruction);
+    }
   }
 
   /**
@@ -182,6 +197,9 @@ public class BasicBlockInstructionIterator implements InstructionIterator, Instr
     listIterator.remove();
     listIterator.add(newInstruction);
     current.clearBlock();
+    if (metadata != null) {
+      metadata.record(newInstruction);
+    }
   }
 
   @Override

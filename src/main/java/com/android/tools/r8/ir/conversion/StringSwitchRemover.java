@@ -47,7 +47,7 @@ public class StringSwitchRemover {
   }
 
   void run(DexEncodedMethod method, IRCode code) {
-    if (!code.mayHaveStringSwitch) {
+    if (!code.metadata().mayHaveStringSwitch()) {
       assert Streams.stream(code.instructions()).noneMatch(Instruction::isStringSwitch);
       return;
     }
@@ -112,7 +112,7 @@ public class StringSwitchRemover {
 
       if (previous == null) {
         // Replace the string-switch instruction by a goto instruction.
-        block.exit().replace(new Goto(newBlock));
+        block.exit().replace(new Goto(newBlock), code.metadata());
         block.link(newBlock);
       } else {
         // Set the fallthrough block for the previously added if-instruction.

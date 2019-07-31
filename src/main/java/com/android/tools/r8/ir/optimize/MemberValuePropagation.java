@@ -233,12 +233,11 @@ public class MemberValuePropagation {
       }
       replacement.setPosition(current.getPosition());
       if (current.getBlock().hasCatchHandlers()) {
-        iterator.split(code, blocks).listIterator().add(replacement);
+        iterator.split(code, blocks).listIterator().recordChangesToMetadata(code).add(replacement);
       } else {
         iterator.add(replacement);
       }
     }
-    code.mayHaveConstString |= replacement.isConstString();
     return true;
   }
 
@@ -308,7 +307,6 @@ public class MemberValuePropagation {
         replacement =
             createConstStringReplacement(
                 code, constant, current.outValue().getTypeLattice(), current.getLocalInfo());
-        code.mayHaveConstString = true;
       }
 
       affectedValues.addAll(current.outValue().affectedValues());
@@ -317,7 +315,7 @@ public class MemberValuePropagation {
       replacement.setPosition(current.getPosition());
       current.moveDebugValues(replacement);
       if (current.getBlock().hasCatchHandlers()) {
-        iterator.split(code, blocks).listIterator().add(replacement);
+        iterator.split(code, blocks).listIterator().recordChangesToMetadata(code).add(replacement);
       } else {
         iterator.add(replacement);
       }
@@ -370,7 +368,6 @@ public class MemberValuePropagation {
       if (replacement != null) {
         affectedValues.addAll(current.outValue().affectedValues());
         iterator.replaceCurrentInstruction(replacement);
-        code.mayHaveConstString |= replacement.isConstString();
         if (replacement.isDexItemBasedConstString()) {
           code.method.getMutableOptimizationInfo().markUseIdentifierNameString();
         }
@@ -434,7 +431,6 @@ public class MemberValuePropagation {
     if (replacement != null) {
       affectedValues.add(replacement.outValue());
       iterator.replaceCurrentInstruction(replacement);
-      code.mayHaveConstString |= replacement.isConstString();
       if (replacement.isDexItemBasedConstString()) {
         code.method.getMutableOptimizationInfo().markUseIdentifierNameString();
       }
@@ -461,7 +457,7 @@ public class MemberValuePropagation {
             nonNullValue, knownToBeNonNullValue, current, appView);
     nonNull.setPosition(appView.options().debug ? current.getPosition() : Position.none());
     if (current.getBlock().hasCatchHandlers()) {
-      iterator.split(code, blocks).listIterator().add(nonNull);
+      iterator.split(code, blocks).listIterator().recordChangesToMetadata(code).add(nonNull);
     } else {
       iterator.add(nonNull);
     }
@@ -479,7 +475,7 @@ public class MemberValuePropagation {
     ListIterator<BasicBlock> blocks = code.listIterator();
     while (blocks.hasNext()) {
       BasicBlock block = blocks.next();
-      InstructionListIterator iterator = block.listIterator();
+      InstructionListIterator iterator = block.listIterator().recordChangesToMetadata(code);
       while (iterator.hasNext()) {
         Instruction current = iterator.next();
         if (current.isInvokeMethod()) {

@@ -12,9 +12,21 @@ public class IRCodeInstructionsIterator implements InstructionIterator {
   private final ListIterator<BasicBlock> blockIterator;
   private InstructionListIterator instructionIterator;
 
+  private IRMetadata metadata;
+
   public IRCodeInstructionsIterator(IRCode code) {
     blockIterator = code.listIterator();
     instructionIterator = blockIterator.next().listIterator();
+  }
+
+  @Override
+  public IRCodeInstructionsIterator recordChangesToMetadata(IRMetadata metadata) {
+    if (metadata.isUpdatableIRMetadata()) {
+      this.metadata = metadata.asUpdatableIRMetadata();
+    } else {
+      assert metadata.isUnknownIRMetadata();
+    }
+    return this;
   }
 
   @Override
@@ -67,6 +79,9 @@ public class IRCodeInstructionsIterator implements InstructionIterator {
   @Override
   public void add(Instruction instruction) {
     instructionIterator.add(instruction);
+    if (metadata != null) {
+      metadata.record(instruction);
+    }
   }
 
   @Override
@@ -77,11 +92,17 @@ public class IRCodeInstructionsIterator implements InstructionIterator {
   @Override
   public void set(Instruction instruction) {
     instructionIterator.set(instruction);
+    if (metadata != null) {
+      metadata.record(instruction);
+    }
   }
 
   @Override
   public void replaceCurrentInstruction(Instruction newInstruction) {
     instructionIterator.replaceCurrentInstruction(newInstruction);
+    if (metadata != null) {
+      metadata.record(newInstruction);
+    }
   }
 
   @Override

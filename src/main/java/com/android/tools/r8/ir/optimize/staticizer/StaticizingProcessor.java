@@ -488,8 +488,9 @@ final class StaticizingProcessor {
         }
       }
       List<Value> args = invoke.inValues();
-      invoke.replace(new InvokeStatic(
-          invoke.getInvokedMethod(), newValue, args.subList(1, args.size())));
+      invoke.replace(
+          new InvokeStatic(invoke.getInvokedMethod(), newValue, args.subList(1, args.size())),
+          code.metadata());
     }
   }
 

@@ -272,8 +272,11 @@ public abstract class Instruction implements InstructionOrPhi {
     getBlock().listIterator(this).removeOrReplaceByDebugLocalRead();
   }
 
-  public void replace(Instruction newInstruction) {
-    getBlock().listIterator(this).replaceCurrentInstruction(newInstruction);
+  public void replace(Instruction newInstruction, IRMetadata metadata) {
+    getBlock()
+        .listIterator(this)
+        .recordChangesToMetadata(metadata)
+        .replaceCurrentInstruction(newInstruction);
   }
 
   /**

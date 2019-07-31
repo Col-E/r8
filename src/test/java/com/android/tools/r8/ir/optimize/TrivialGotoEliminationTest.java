@@ -16,6 +16,7 @@ import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.Goto;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.IRMetadata;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.If.Type;
 import com.android.tools.r8.ir.code.Instruction;
@@ -78,9 +79,7 @@ public class TrivialGotoEliminationTest {
             null,
             blocks,
             new ValueNumberGenerator(),
-            false,
-            false,
-            false,
+            IRMetadata.unknown(),
             Origin.unknown());
     CodeRewriter.collapseTrivialGotos(code);
     assertTrue(code.entryBlock().isTrivialGoto());
@@ -165,9 +164,7 @@ public class TrivialGotoEliminationTest {
             null,
             blocks,
             new ValueNumberGenerator(),
-            false,
-            false,
-            false,
+            IRMetadata.unknown(),
             Origin.unknown());
     CodeRewriter.collapseTrivialGotos(code);
     assertTrue(block0.getInstructions().get(1).isIf());

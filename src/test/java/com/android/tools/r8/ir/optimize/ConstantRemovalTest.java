@@ -18,6 +18,7 @@ import com.android.tools.r8.ir.code.Move;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Return;
+import com.android.tools.r8.ir.code.UpdatableIRMetadata;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
@@ -138,9 +139,7 @@ public class ConstantRemovalTest {
             null,
             blocks,
             new ValueNumberGenerator(),
-            false,
-            false,
-            false,
+            UpdatableIRMetadata.unknown(),
             Origin.unknown());
     PeepholeOptimizer.optimize(code, new MockLinearScanRegisterAllocator(appView, code));
 

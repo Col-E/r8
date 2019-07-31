@@ -92,7 +92,7 @@ public class IdentifierNameStringMarker {
 
   public void decoupleIdentifierNameStringsInBlocks(
       DexEncodedMethod method, IRCode code, Set<BasicBlock> blocks) {
-    if (!code.mayHaveConstString) {
+    if (!code.metadata().mayHaveConstString()) {
       return;
     }
     ListIterator<BasicBlock> blockIterator = code.listIterator();
@@ -101,7 +101,7 @@ public class IdentifierNameStringMarker {
       if (blocks != null && !blocks.contains(block)) {
         continue;
       }
-      InstructionListIterator iterator = block.listIterator();
+      InstructionListIterator iterator = block.listIterator().recordChangesToMetadata(code);
       while (iterator.hasNext()) {
         Instruction instruction = iterator.next();
         // v_n <- "x.y.z" // in.definition
@@ -171,7 +171,7 @@ public class IdentifierNameStringMarker {
       iterator = block.listIterator(block.getInstructions().size() - 1);
       iterator.add(decoupled);
       // Restore the cursor and block.
-      iterator = blockWithFieldInstruction.listIterator();
+      iterator = blockWithFieldInstruction.listIterator().recordChangesToMetadata(code);
       assert iterator.peekNext() == fieldPut;
       iterator.next();
     } else {
@@ -239,7 +239,7 @@ public class IdentifierNameStringMarker {
           iterator.replaceCurrentInstruction(decoupled);
           iterator.nextUntil(instruction -> instruction == invoke);
         } else {
-          in.definition.replace(decoupled);
+          in.definition.replace(decoupled, code.metadata());
         }
       } else {
         decoupled.setPosition(invoke.getPosition());
@@ -255,11 +255,12 @@ public class IdentifierNameStringMarker {
             block.hasCatchHandlers() ? iterator.split(code, blocks) : block;
         if (blockWithInvoke != block) {
           // If we split, add const-string at the end of the currently visiting block.
-          iterator = block.listIterator(block.getInstructions().size());
+          iterator =
+              block.listIterator(block.getInstructions().size()).recordChangesToMetadata(code);
           iterator.previous();
           iterator.add(decoupled);
           // Restore the cursor and block.
-          iterator = blockWithInvoke.listIterator();
+          iterator = blockWithInvoke.listIterator().recordChangesToMetadata(code);
           assert iterator.peekNext() == invoke;
           iterator.next();
         } else {
@@ -303,11 +304,12 @@ public class IdentifierNameStringMarker {
             block.hasCatchHandlers() ? iterator.split(code, blocks) : block;
         if (blockWithInvoke != block) {
           // If we split, add const-string at the end of the currently visiting block.
-          iterator = block.listIterator(block.getInstructions().size());
+          iterator =
+              block.listIterator(block.getInstructions().size()).recordChangesToMetadata(code);
           iterator.previous();
           iterator.add(decoupled);
           // Restore the cursor and block.
-          iterator = blockWithInvoke.listIterator();
+          iterator = blockWithInvoke.listIterator().recordChangesToMetadata(code);
           assert iterator.peekNext() == invoke;
           iterator.next();
         } else {

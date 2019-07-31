@@ -92,6 +92,7 @@ import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Sub;
 import com.android.tools.r8.ir.code.Throw;
+import com.android.tools.r8.ir.code.UpdatableIRMetadata;
 import com.android.tools.r8.ir.code.Ushr;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
@@ -414,10 +415,9 @@ public class IRBuilder {
   private boolean hasImpreciseValues = false;
 
   // Flag indicating if a const string is ever loaded.
-  private boolean hasConstString = false;
 
   // Flag indicating if the code has a monitor instruction.
-  private boolean hasMonitorInstruction = false;
+  private final UpdatableIRMetadata metadata = new UpdatableIRMetadata();
 
   public IRBuilder(DexEncodedMethod method, AppView<?> appView, SourceCode source, Origin origin) {
     this(method, appView, source, origin, new ValueNumberGenerator());
@@ -553,7 +553,7 @@ public class IRBuilder {
     assert verifyFilledPredecessors();
 
     // Insert debug positions so all position changes are marked by an explicit instruction.
-    boolean hasDebugPositions = insertDebugPositions();
+    insertDebugPositions();
 
     // Insert definitions for all uninitialized local values.
     if (uninitializedDebugLocalValues != null) {
@@ -584,15 +584,7 @@ public class IRBuilder {
 
     // Package up the IR code.
     IRCode ir =
-        new IRCode(
-            appView.options(),
-            method,
-            blocks,
-            valueNumberGenerator,
-            hasDebugPositions,
-            hasMonitorInstruction,
-            hasConstString,
-            origin);
+        new IRCode(appView.options(), method, blocks, valueNumberGenerator, metadata, origin);
 
     // Verify critical edges are split so we have a place to insert phi moves if necessary.
     assert ir.verifySplitCriticalEdges();
@@ -636,10 +628,9 @@ public class IRBuilder {
     impreciseInstructions.add(instruction);
   }
 
-  private boolean insertDebugPositions() {
-    boolean hasDebugPositions = false;
+  private void insertDebugPositions() {
     if (!isDebugMode()) {
-      return hasDebugPositions;
+      return;
     }
     for (BasicBlock block : blocks) {
       InstructionListIterator it = block.listIterator();
@@ -650,13 +641,12 @@ public class IRBuilder {
         if (instruction.isMoveException()) {
           assert current == null;
           current = position;
-          hasDebugPositions = hasDebugPositions || position.isSome();
         } else if (instruction.isDebugPosition()) {
           if (position.equals(current)) {
             it.removeOrReplaceByDebugLocalRead();
           } else {
             current = position;
-            hasDebugPositions = true;
+            metadata.record(instruction);
           }
         } else if (position.isSome() && !position.synthetic && !position.equals(current)) {
           DebugPosition positionChange = new DebugPosition();
@@ -665,11 +655,10 @@ public class IRBuilder {
           it.add(positionChange);
           it.next();
           current = position;
-          hasDebugPositions = true;
+          metadata.record(positionChange);
         }
       }
     }
-    return hasDebugPositions;
   }
 
   private boolean verifyFilledPredecessors() {
@@ -833,8 +822,8 @@ public class IRBuilder {
    */
   public void add(Instruction ir) {
     assert !ir.isJumpInstruction();
-    hasConstString |= ir.isConstString() || ir.isDexItemBasedConstString();
     addInstruction(ir);
+    metadata.record(ir);
   }
 
   private RemovedArgumentInfo getRemovedArgumentInfo() {
@@ -1168,7 +1157,6 @@ public class IRBuilder {
     Value in = readRegister(monitor, ValueTypeConstraint.OBJECT);
     Monitor monitorEnter = new Monitor(type, in);
     add(monitorEnter);
-    hasMonitorInstruction = true;
     return monitorEnter;
   }
 

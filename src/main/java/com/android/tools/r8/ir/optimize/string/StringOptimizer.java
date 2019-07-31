@@ -63,7 +63,7 @@ public class StringOptimizer {
   // String String#substring(int)
   // String String#substring(int, int)
   public void computeTrivialOperationsOnConstString(IRCode code) {
-    if (!code.mayHaveConstString) {
+    if (!code.metadata().mayHaveConstString()) {
       return;
     }
     InstructionIterator it = code.instructionIterator();
@@ -207,7 +207,7 @@ public class StringOptimizer {
       return;
     }
     boolean markUseIdentifierNameString = false;
-    InstructionIterator it = code.instructionIterator();
+    InstructionIterator it = code.instructionIterator().recordChangesToMetadata(code);
     while (it.hasNext()) {
       Instruction instr = it.next();
       if (!instr.isInvokeVirtual()) {
@@ -339,7 +339,6 @@ public class StringOptimizer {
                 invoke.getLocalInfo());
         ConstString constString = new ConstString(stringValue, name, throwingInfo);
         it.replaceCurrentInstruction(constString);
-        code.mayHaveConstString = true;
       } else if (deferred != null) {
         it.replaceCurrentInstruction(deferred);
         markUseIdentifierNameString = true;
@@ -354,7 +353,7 @@ public class StringOptimizer {
   // String#valueOf(String s) -> s
   // str.toString() -> str
   public void removeTrivialConversions(IRCode code) {
-    InstructionIterator it = code.instructionIterator();
+    InstructionIterator it = code.instructionIterator().recordChangesToMetadata(code);
     while (it.hasNext()) {
       Instruction instr = it.next();
       if (instr.isInvokeStatic()) {
@@ -377,7 +376,6 @@ public class StringOptimizer {
           ConstString nullString =
               new ConstString(nullStringValue, factory.createString("null"), throwingInfo);
           it.replaceCurrentInstruction(nullString);
-          code.mayHaveConstString = true;
         } else if (inType.nullability().isDefinitelyNotNull()
             && inType.isClassType()
             && inType.asClassTypeLatticeElement().getClassType().equals(factory.stringType)) {

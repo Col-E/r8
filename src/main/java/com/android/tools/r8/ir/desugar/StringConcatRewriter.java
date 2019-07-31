@@ -117,7 +117,7 @@ public class StringConcatRewriter {
     ListIterator<BasicBlock> blocks = code.listIterator();
     while (blocks.hasNext()) {
       BasicBlock block = blocks.next();
-      InstructionListIterator instructions = block.listIterator();
+      InstructionListIterator instructions = block.listIterator().recordChangesToMetadata(code);
       while (instructions.hasNext()) {
         Instruction instruction = instructions.next();
         if (!instruction.isInvokeCustom()) {
@@ -447,7 +447,6 @@ public class StringConcatRewriter {
                 value,
                 factory.createString(str),
                 ThrowingInfo.defaultForConstString(appView.options())));
-        code.mayHaveConstString = true;
         return value;
       }
     }

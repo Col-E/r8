@@ -120,7 +120,7 @@ public class ConstantCanonicalizer {
         // That could lead to unbalanced locking and could lead to situations where OOM exceptions
         // could leave a synchronized method without unlocking the monitor.
         if ((current.isConstString() || current.isDexItemBasedConstString())
-            && code.mayHaveMonitorInstruction) {
+            && code.metadata().mayHaveMonitorInstruction()) {
           continue;
         }
         // Constants with local info must not be canonicalized and must be filtered.

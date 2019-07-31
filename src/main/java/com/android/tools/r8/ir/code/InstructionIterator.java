@@ -4,10 +4,21 @@
 
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.errors.Unreachable;
 import java.util.ListIterator;
 
 public interface InstructionIterator
     extends ListIterator<Instruction>, NextUntilIterator<Instruction> {
+
+  default InstructionIterator recordChangesToMetadata(IRCode code) {
+    return recordChangesToMetadata(code.metadata());
+  }
+
+  default InstructionIterator recordChangesToMetadata(IRMetadata metadata) {
+    throw new Unreachable(
+        "Method recordChangesToMetadata(IRMetadata) not implemented for "
+            + getClass().getTypeName());
+  }
   /**
    * Replace the current instruction (aka the {@link Instruction} returned by the previous call to
    * {@link #next} with the passed in <code>newInstruction</code>.

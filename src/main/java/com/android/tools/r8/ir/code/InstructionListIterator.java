@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
@@ -43,6 +44,18 @@ public interface InstructionListIterator
       previous();
     }
     return next;
+  }
+
+  @Override
+  default InstructionListIterator recordChangesToMetadata(IRCode code) {
+    return recordChangesToMetadata(code.metadata());
+  }
+
+  @Override
+  default InstructionListIterator recordChangesToMetadata(IRMetadata metadata) {
+    throw new Unreachable(
+        "Method recordChangesToMetadata(IRMetadata) not implemented for "
+            + getClass().getTypeName());
   }
 
   default void setInsertionPosition(Position position) {

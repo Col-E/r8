@@ -120,7 +120,8 @@ public class GeneratedMessageLiteShrinker {
       IRCode code, Value infoValue, ProtoMessageInfo protoMessageInfo) {
     infoValue.definition.replace(
         new ConstString(
-            code.createValue(stringType), encoder.encodeInfo(protoMessageInfo), throwingInfo));
+            code.createValue(stringType), encoder.encodeInfo(protoMessageInfo), throwingInfo),
+        code.metadata());
   }
 
   private void rewriteObjectsArgumentToNewMessageInfo(
@@ -130,7 +131,8 @@ public class GeneratedMessageLiteShrinker {
       ProtoMessageInfo protoMessageInfo) {
     // Position iterator immediately before the call to newMessageInfo().
     BasicBlock block = newMessageInfoInvoke.getBlock();
-    InstructionListIterator instructionIterator = block.listIterator(newMessageInfoInvoke);
+    InstructionListIterator instructionIterator =
+        block.listIterator(newMessageInfoInvoke).recordChangesToMetadata(code);
     Instruction previous = instructionIterator.previous();
     instructionIterator.setInsertionPosition(newMessageInfoInvoke.getPosition());
     assert previous == newMessageInfoInvoke;
