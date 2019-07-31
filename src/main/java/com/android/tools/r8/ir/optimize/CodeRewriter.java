@@ -4001,7 +4001,7 @@ public class CodeRewriter {
   public void logArgumentTypes(DexEncodedMethod method, IRCode code) {
     List<Value> arguments = code.collectArguments();
     BasicBlock block = code.entryBlock();
-    InstructionListIterator iterator = block.listIterator();
+    InstructionListIterator iterator = block.listIterator().recordChangesToMetadata(code);
 
     // Attach some synthetic position to all inserted code.
     Position position = Position.synthetic(1, method.method, null);
