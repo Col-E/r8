@@ -22,7 +22,6 @@ import com.android.tools.r8.ir.optimize.InliningOracle;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Collection;
 import java.util.List;
-import org.objectweb.asm.Opcodes;
 
 public class InvokePolymorphic extends InvokeMethod {
 
@@ -31,6 +30,11 @@ public class InvokePolymorphic extends InvokeMethod {
   public InvokePolymorphic(DexMethod target, DexProto proto, Value result, List<Value> arguments) {
     super(target, result, arguments);
     this.proto = proto;
+  }
+
+  @Override
+  public int opcode() {
+    return Opcodes.INVOKE_POLYMORPHIC;
   }
 
   @Override
@@ -92,7 +96,7 @@ public class InvokePolymorphic extends InvokeMethod {
     // To translate InvokePolymorphic back into InvokeVirtual, use the original prototype
     // that is stored in getProto().
     DexMethod method = factory.createMethod(dexMethod.holder, getProto(), dexMethod.name);
-    builder.add(new CfInvoke(Opcodes.INVOKEVIRTUAL, method, false));
+    builder.add(new CfInvoke(org.objectweb.asm.Opcodes.INVOKEVIRTUAL, method, false));
   }
 
   @Override

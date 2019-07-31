@@ -25,6 +25,11 @@ public class Rem extends ArithmeticBinop {
   }
 
   @Override
+  public int opcode() {
+    return Opcodes.REM;
+  }
+
+  @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);
   }

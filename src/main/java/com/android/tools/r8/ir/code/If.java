@@ -80,6 +80,11 @@ public class If extends JumpInstruction {
   }
 
   @Override
+  public int opcode() {
+    return Opcodes.IF;
+  }
+
+  @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);
   }

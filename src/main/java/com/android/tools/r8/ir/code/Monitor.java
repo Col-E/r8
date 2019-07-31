@@ -33,6 +33,11 @@ public class Monitor extends Instruction {
   }
 
   @Override
+  public int opcode() {
+    return Opcodes.MONITOR;
+  }
+
+  @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);
   }

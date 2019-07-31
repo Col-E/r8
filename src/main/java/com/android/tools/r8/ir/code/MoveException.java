@@ -27,6 +27,11 @@ public class MoveException extends Instruction {
   }
 
   @Override
+  public int opcode() {
+    return Opcodes.MOVE_EXCEPTION;
+  }
+
+  @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);
   }

@@ -26,6 +26,11 @@ public class Not extends Unop {
   }
 
   @Override
+  public int opcode() {
+    return Opcodes.NOT;
+  }
+
+  @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);
   }

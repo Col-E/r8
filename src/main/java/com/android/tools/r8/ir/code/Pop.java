@@ -20,6 +20,11 @@ public class Pop extends Instruction {
   }
 
   @Override
+  public int opcode() {
+    return Opcodes.POP;
+  }
+
+  @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);
   }

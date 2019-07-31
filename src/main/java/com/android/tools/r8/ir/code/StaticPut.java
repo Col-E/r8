@@ -28,12 +28,16 @@ import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardMemberRule;
-import org.objectweb.asm.Opcodes;
 
 public class StaticPut extends FieldInstruction {
 
   public StaticPut(Value source, DexField field) {
     super(field, null, source);
+  }
+
+  @Override
+  public int opcode() {
+    return Opcodes.STATIC_PUT;
   }
 
   @Override
@@ -199,7 +203,8 @@ public class StaticPut extends FieldInstruction {
   @Override
   public void buildCf(CfBuilder builder) {
     builder.add(
-        new CfFieldInstruction(Opcodes.PUTSTATIC, getField(), builder.resolveField(getField())));
+        new CfFieldInstruction(
+            org.objectweb.asm.Opcodes.PUTSTATIC, getField(), builder.resolveField(getField())));
   }
 
   @Override

@@ -63,6 +63,8 @@ public abstract class Instruction implements InstructionOrPhi {
     setOutValue(outValue);
   }
 
+  public abstract int opcode();
+
   public abstract <T> T accept(InstructionVisitor<T> visitor);
 
   final boolean hasPosition() {

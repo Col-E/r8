@@ -24,6 +24,11 @@ public class Store extends Instruction {
   }
 
   @Override
+  public int opcode() {
+    return Opcodes.STORE;
+  }
+
+  @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);
   }

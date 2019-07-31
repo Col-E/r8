@@ -24,6 +24,11 @@ public class Move extends Instruction {
   }
 
   @Override
+  public int opcode() {
+    return Opcodes.MOVE;
+  }
+
+  @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);
   }

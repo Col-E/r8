@@ -20,6 +20,11 @@ public class DebugLocalRead extends Instruction {
   }
 
   @Override
+  public int opcode() {
+    return Opcodes.DEBUG_LOCAL_READ;
+  }
+
+  @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);
   }

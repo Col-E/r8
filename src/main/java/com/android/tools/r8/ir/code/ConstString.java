@@ -29,6 +29,11 @@ public class ConstString extends ConstInstruction {
   }
 
   @Override
+  public int opcode() {
+    return Opcodes.CONST_STRING;
+  }
+
+  @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);
   }

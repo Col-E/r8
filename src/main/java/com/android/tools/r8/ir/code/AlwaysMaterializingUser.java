@@ -19,6 +19,11 @@ public class AlwaysMaterializingUser extends Instruction {
   }
 
   @Override
+  public int opcode() {
+    return Opcodes.ALWAYS_MATERIALIZING_USER;
+  }
+
+  @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);
   }

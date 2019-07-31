@@ -23,6 +23,11 @@ public class Load extends Instruction {
   }
 
   @Override
+  public int opcode() {
+    return Opcodes.LOAD;
+  }
+
+  @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);
   }

@@ -20,6 +20,11 @@ public class And extends LogicalBinop {
   }
 
   @Override
+  public int opcode() {
+    return Opcodes.AND;
+  }
+
+  @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);
   }

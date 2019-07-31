@@ -26,6 +26,11 @@ public class InstanceOf extends Instruction {
   }
 
   @Override
+  public int opcode() {
+    return Opcodes.INSTANCE_OF;
+  }
+
+  @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);
   }

@@ -21,12 +21,16 @@ import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Collection;
 import java.util.List;
-import org.objectweb.asm.Opcodes;
 
 public class InvokeInterface extends InvokeMethodWithReceiver {
 
   public InvokeInterface(DexMethod target, Value result, List<Value> arguments) {
     super(target, result, arguments);
+  }
+
+  @Override
+  public int opcode() {
+    return Opcodes.INVOKE_INTERFACE;
   }
 
   @Override
@@ -107,7 +111,7 @@ public class InvokeInterface extends InvokeMethodWithReceiver {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfInvoke(Opcodes.INVOKEINTERFACE, getInvokedMethod(), true));
+    builder.add(new CfInvoke(org.objectweb.asm.Opcodes.INVOKEINTERFACE, getInvokedMethod(), true));
   }
 
   @Override

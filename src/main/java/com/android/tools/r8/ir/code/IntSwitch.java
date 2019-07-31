@@ -35,6 +35,11 @@ public class IntSwitch extends Switch {
   }
 
   @Override
+  public int opcode() {
+    return Opcodes.INT_SWITCH;
+  }
+
+  @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);
   }

@@ -27,6 +27,11 @@ public class ConstMethodHandle extends ConstInstruction {
   }
 
   @Override
+  public int opcode() {
+    return Opcodes.CONST_METHOD_HANDLE;
+  }
+
+  @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);
   }

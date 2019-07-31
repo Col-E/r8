@@ -27,6 +27,11 @@ public class InvokeMultiNewArray extends Invoke {
   }
 
   @Override
+  public int opcode() {
+    return Opcodes.INVOKE_MULTI_NEW_ARRAY;
+  }
+
+  @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);
   }

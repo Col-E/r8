@@ -29,6 +29,11 @@ public class Return extends JumpInstruction {
   }
 
   @Override
+  public int opcode() {
+    return Opcodes.RETURN;
+  }
+
+  @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);
   }

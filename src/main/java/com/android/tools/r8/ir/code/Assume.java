@@ -44,6 +44,11 @@ public class Assume<An extends Assumption> extends Instruction {
     return new Assume<>(new DynamicTypeAssumption(type), dest, src, origin, appView);
   }
 
+  @Override
+  public int opcode() {
+    return Opcodes.ASSUME;
+  }
+
   public boolean verifyInstructionIsNeeded(AppView<?> appView) {
     if (isAssumeDynamicType()) {
       assert assumption.verifyCorrectnessOfValues(outValue(), src(), appView);

@@ -30,12 +30,16 @@ import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import java.util.Set;
-import org.objectweb.asm.Opcodes;
 
 public class InstanceGet extends FieldInstruction {
 
   public InstanceGet(Value dest, Value object, DexField field) {
     super(field, dest, object);
+  }
+
+  @Override
+  public int opcode() {
+    return Opcodes.INSTANCE_GET;
   }
 
   @Override
@@ -187,7 +191,8 @@ public class InstanceGet extends FieldInstruction {
   @Override
   public void buildCf(CfBuilder builder) {
     builder.add(
-        new CfFieldInstruction(Opcodes.GETFIELD, getField(), builder.resolveField(getField())));
+        new CfFieldInstruction(
+            org.objectweb.asm.Opcodes.GETFIELD, getField(), builder.resolveField(getField())));
   }
 
   @Override

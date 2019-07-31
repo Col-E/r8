@@ -30,7 +30,6 @@ import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Arrays;
-import org.objectweb.asm.Opcodes;
 
 public class InstancePut extends FieldInstruction {
 
@@ -38,6 +37,11 @@ public class InstancePut extends FieldInstruction {
     super(field, null, Arrays.asList(object, value));
     assert object().verifyCompatible(ValueType.OBJECT);
     assert value().verifyCompatible(ValueType.fromDexType(field.type));
+  }
+
+  @Override
+  public int opcode() {
+    return Opcodes.INSTANCE_PUT;
   }
 
   @Override
@@ -197,7 +201,8 @@ public class InstancePut extends FieldInstruction {
   @Override
   public void buildCf(CfBuilder builder) {
     builder.add(
-        new CfFieldInstruction(Opcodes.PUTFIELD, getField(), builder.resolveField(getField())));
+        new CfFieldInstruction(
+            org.objectweb.asm.Opcodes.PUTFIELD, getField(), builder.resolveField(getField())));
   }
 
   @Override

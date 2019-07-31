@@ -34,6 +34,11 @@ public class NewInstance extends Instruction {
   }
 
   @Override
+  public int opcode() {
+    return Opcodes.NEW_INSTANCE;
+  }
+
+  @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);
   }

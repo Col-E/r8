@@ -37,6 +37,11 @@ public class DexItemBasedConstString extends ConstInstruction {
   }
 
   @Override
+  public int opcode() {
+    return Opcodes.DEX_ITEM_BASED_CONST_STRING;
+  }
+
+  @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);
   }

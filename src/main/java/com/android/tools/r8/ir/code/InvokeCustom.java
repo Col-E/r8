@@ -33,6 +33,11 @@ public final class InvokeCustom extends Invoke {
   }
 
   @Override
+  public int opcode() {
+    return Opcodes.INVOKE_CUSTOM;
+  }
+
+  @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);
   }

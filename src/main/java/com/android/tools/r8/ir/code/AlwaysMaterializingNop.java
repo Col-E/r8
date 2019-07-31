@@ -20,6 +20,11 @@ public class AlwaysMaterializingNop extends Instruction {
   }
 
   @Override
+  public int opcode() {
+    return Opcodes.ALWAYS_MATERIALIZING_NOP;
+  }
+
+  @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);
   }

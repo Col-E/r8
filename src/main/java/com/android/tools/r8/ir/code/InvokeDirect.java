@@ -27,7 +27,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
-import org.objectweb.asm.Opcodes;
 
 public class InvokeDirect extends InvokeMethodWithReceiver {
 
@@ -43,6 +42,11 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
     // invoke-direct <init> should have no out value.
     assert !target.name.toString().equals(Constants.INSTANCE_INITIALIZER_NAME)
         || result == null;
+  }
+
+  @Override
+  public int opcode() {
+    return Opcodes.INVOKE_DIRECT;
   }
 
   public boolean isInterface() {
@@ -136,7 +140,7 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfInvoke(Opcodes.INVOKESPECIAL, getInvokedMethod(), itf));
+    builder.add(new CfInvoke(org.objectweb.asm.Opcodes.INVOKESPECIAL, getInvokedMethod(), itf));
   }
 
   @Override

@@ -28,6 +28,11 @@ public class Inc extends Unop {
   }
 
   @Override
+  public int opcode() {
+    return Opcodes.INC;
+  }
+
+  @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);
   }

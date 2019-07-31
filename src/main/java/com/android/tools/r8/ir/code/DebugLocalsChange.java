@@ -30,6 +30,11 @@ public class DebugLocalsChange extends Instruction {
   }
 
   @Override
+  public int opcode() {
+    return Opcodes.DEBUG_LOCALS_CHANGE;
+  }
+
+  @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);
   }

@@ -21,7 +21,6 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import org.objectweb.asm.Opcodes;
 
 public class InvokeSuper extends InvokeMethodWithReceiver {
 
@@ -30,6 +29,11 @@ public class InvokeSuper extends InvokeMethodWithReceiver {
   public InvokeSuper(DexMethod target, Value result, List<Value> arguments, boolean itf) {
     super(target, result, arguments);
     this.itf = itf;
+  }
+
+  @Override
+  public int opcode() {
+    return Opcodes.INVOKE_SUPER;
   }
 
   @Override
@@ -73,7 +77,7 @@ public class InvokeSuper extends InvokeMethodWithReceiver {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfInvoke(Opcodes.INVOKESPECIAL, getInvokedMethod(), itf));
+    builder.add(new CfInvoke(org.objectweb.asm.Opcodes.INVOKESPECIAL, getInvokedMethod(), itf));
   }
 
   @Override

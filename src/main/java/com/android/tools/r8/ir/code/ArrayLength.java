@@ -25,6 +25,11 @@ public class ArrayLength extends Instruction {
   }
 
   @Override
+  public int opcode() {
+    return Opcodes.ARRAY_LENGTH;
+  }
+
+  @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);
   }

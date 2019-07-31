@@ -32,6 +32,11 @@ public class CheckCast extends Instruction {
   }
 
   @Override
+  public int opcode() {
+    return Opcodes.CHECK_CAST;
+  }
+
+  @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);
   }

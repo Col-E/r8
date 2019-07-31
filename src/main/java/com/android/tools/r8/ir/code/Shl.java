@@ -18,6 +18,11 @@ public class Shl extends LogicalBinop {
   }
 
   @Override
+  public int opcode() {
+    return Opcodes.SHL;
+  }
+
+  @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);
   }

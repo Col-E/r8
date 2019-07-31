@@ -24,12 +24,16 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Predicate;
-import org.objectweb.asm.Opcodes;
 
 public class InvokeVirtual extends InvokeMethodWithReceiver {
 
   public InvokeVirtual(DexMethod target, Value result, List<Value> arguments) {
     super(target, result, arguments);
+  }
+
+  @Override
+  public int opcode() {
+    return Opcodes.INVOKE_VIRTUAL;
   }
 
   @Override
@@ -110,7 +114,7 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfInvoke(Opcodes.INVOKEVIRTUAL, getInvokedMethod(), false));
+    builder.add(new CfInvoke(org.objectweb.asm.Opcodes.INVOKEVIRTUAL, getInvokedMethod(), false));
   }
 
   @Override

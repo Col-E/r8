@@ -39,6 +39,11 @@ public class NumberConversion extends Unop {
   }
 
   @Override
+  public int opcode() {
+    return Opcodes.NUMBER_CONVERSION;
+  }
+
+  @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);
   }

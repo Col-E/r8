@@ -18,6 +18,11 @@ public class Ushr extends LogicalBinop {
   }
 
   @Override
+  public int opcode() {
+    return Opcodes.USHR;
+  }
+
+  @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);
   }

@@ -43,6 +43,11 @@ public class ConstNumber extends ConstInstruction {
   }
 
   @Override
+  public int opcode() {
+    return Opcodes.CONST_NUMBER;
+  }
+
+  @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);
   }

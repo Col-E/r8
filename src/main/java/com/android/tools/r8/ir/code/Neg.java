@@ -28,6 +28,11 @@ public class Neg extends Unop {
   }
 
   @Override
+  public int opcode() {
+    return Opcodes.NEG;
+  }
+
+  @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);
   }

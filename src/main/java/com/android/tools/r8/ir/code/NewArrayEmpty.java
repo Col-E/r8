@@ -27,6 +27,11 @@ public class NewArrayEmpty extends Instruction {
   }
 
   @Override
+  public int opcode() {
+    return Opcodes.NEW_ARRAY_EMPTY;
+  }
+
+  @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);
   }

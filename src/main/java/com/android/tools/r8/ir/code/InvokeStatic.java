@@ -26,7 +26,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
-import org.objectweb.asm.Opcodes;
 
 public class InvokeStatic extends InvokeMethod {
 
@@ -40,6 +39,11 @@ public class InvokeStatic extends InvokeMethod {
   public InvokeStatic(DexMethod target, Value result, List<Value> arguments, boolean itf) {
     super(target, result, arguments);
     this.itf = itf;
+  }
+
+  @Override
+  public int opcode() {
+    return Opcodes.INVOKE_STATIC;
   }
 
   @Override
@@ -126,7 +130,7 @@ public class InvokeStatic extends InvokeMethod {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    builder.add(new CfInvoke(Opcodes.INVOKESTATIC, getInvokedMethod(), itf));
+    builder.add(new CfInvoke(org.objectweb.asm.Opcodes.INVOKESTATIC, getInvokedMethod(), itf));
   }
 
   @Override

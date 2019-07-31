@@ -19,6 +19,11 @@ public class AlwaysMaterializingDefinition extends ConstInstruction {
   }
 
   @Override
+  public int opcode() {
+    return Opcodes.ALWAYS_MATERIALIZING_DEFINITION;
+  }
+
+  @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);
   }

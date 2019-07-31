@@ -34,6 +34,11 @@ public class NewArrayFilledData extends Instruction {
   }
 
   @Override
+  public int opcode() {
+    return Opcodes.NEW_ARRAY_FILLED_DATA;
+  }
+
+  @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);
   }

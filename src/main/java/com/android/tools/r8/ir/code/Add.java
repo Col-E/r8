@@ -23,6 +23,11 @@ public class Add extends ArithmeticBinop {
   }
 
   @Override
+  public int opcode() {
+    return Opcodes.ADD;
+  }
+
+  @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);
   }

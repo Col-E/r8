@@ -41,6 +41,11 @@ public class Dup2 extends Instruction {
   }
 
   @Override
+  public int opcode() {
+    return Opcodes.DUP2;
+  }
+
+  @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);
   }

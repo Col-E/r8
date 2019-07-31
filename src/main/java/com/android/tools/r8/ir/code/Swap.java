@@ -30,6 +30,11 @@ public class Swap extends Instruction {
   }
 
   @Override
+  public int opcode() {
+    return Opcodes.SWAP;
+  }
+
+  @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);
   }

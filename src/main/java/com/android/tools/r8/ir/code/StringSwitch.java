@@ -24,6 +24,11 @@ public class StringSwitch extends Switch {
   }
 
   @Override
+  public int opcode() {
+    return Opcodes.STRING_SWITCH;
+  }
+
+  @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);
   }
