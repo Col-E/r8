@@ -21,11 +21,7 @@ public class IRCodeInstructionsIterator implements InstructionIterator {
 
   @Override
   public IRCodeInstructionsIterator recordChangesToMetadata(IRMetadata metadata) {
-    if (metadata.isUpdatableIRMetadata()) {
-      this.metadata = metadata.asUpdatableIRMetadata();
-    } else {
-      assert metadata.isUnknownIRMetadata();
-    }
+    this.metadata = metadata;
     return this;
   }
 

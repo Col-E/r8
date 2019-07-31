@@ -33,7 +33,7 @@ public class BasicBlockInstructionIterator implements InstructionListIterator {
   protected Instruction current;
   protected Position position = null;
 
-  private UpdatableIRMetadata metadata;
+  private IRMetadata metadata;
 
   BasicBlockInstructionIterator(BasicBlock block) {
     this.block = block;
@@ -52,11 +52,7 @@ public class BasicBlockInstructionIterator implements InstructionListIterator {
 
   @Override
   public BasicBlockInstructionIterator recordChangesToMetadata(IRMetadata metadata) {
-    if (metadata.isUpdatableIRMetadata()) {
-      this.metadata = metadata.asUpdatableIRMetadata();
-    } else {
-      assert metadata.isUnknownIRMetadata();
-    }
+    this.metadata = metadata;
     return this;
   }
 

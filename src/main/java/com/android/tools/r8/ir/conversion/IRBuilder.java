@@ -57,6 +57,7 @@ import com.android.tools.r8.ir.code.DexItemBasedConstString;
 import com.android.tools.r8.ir.code.Div;
 import com.android.tools.r8.ir.code.Goto;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.IRMetadata;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.ImpreciseMemberTypeInstruction;
 import com.android.tools.r8.ir.code.InstanceGet;
@@ -92,7 +93,6 @@ import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Sub;
 import com.android.tools.r8.ir.code.Throw;
-import com.android.tools.r8.ir.code.UpdatableIRMetadata;
 import com.android.tools.r8.ir.code.Ushr;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
@@ -417,7 +417,7 @@ public class IRBuilder {
   // Flag indicating if a const string is ever loaded.
 
   // Flag indicating if the code has a monitor instruction.
-  private final UpdatableIRMetadata metadata = new UpdatableIRMetadata();
+  private final IRMetadata metadata = new IRMetadata();
 
   public IRBuilder(DexEncodedMethod method, AppView<?> appView, SourceCode source, Origin origin) {
     this(method, appView, source, origin, new ValueNumberGenerator());

@@ -4,35 +4,70 @@
 
 package com.android.tools.r8.ir.code;
 
-public abstract class IRMetadata {
+public class IRMetadata {
+
+  private long first;
+  private long second;
+
+  public IRMetadata() {}
+
+  private IRMetadata(long first, long second) {
+    this.first = first;
+    this.second = second;
+  }
 
   public static IRMetadata unknown() {
-    return UnknownIRMetadata.getInstance();
+    return new IRMetadata(0xFFFFFFFFFFFFFFFFL, 0xFFFFFFFFFFFFFFFFL);
   }
 
-  public boolean isUpdatableIRMetadata() {
-    return false;
+  private boolean get(int bit) {
+    long masked;
+    if (bit < 64) {
+      masked = first & (1 << bit);
+    } else {
+      assert bit < 128;
+      int adjusted = bit - 64;
+      masked = second & (1 << adjusted);
+    }
+    return masked != 0;
   }
 
-  public UpdatableIRMetadata asUpdatableIRMetadata() {
-    return null;
+  private void set(int bit) {
+    if (bit < 64) {
+      first |= (1 << bit);
+    } else {
+      assert bit < 128;
+      int adjusted = bit - 64;
+      second |= (1 << adjusted);
+    }
   }
 
-  public boolean isUnknownIRMetadata() {
-    return false;
+  public void record(Instruction instruction) {
+    set(instruction.opcode());
   }
 
-  public abstract void record(Instruction instruction);
+  public void merge(IRMetadata metadata) {
+    first |= metadata.first;
+    second |= metadata.second;
+  }
 
-  public abstract void merge(IRMetadata metadata);
+  public boolean mayHaveConstString() {
+    return get(Opcodes.CONST_STRING);
+  }
 
-  public abstract boolean mayHaveConstString();
+  public boolean mayHaveDebugPosition() {
+    return get(Opcodes.DEBUG_POSITION);
+  }
 
-  public abstract boolean mayHaveDebugPosition();
+  public boolean mayHaveDexItemBasedConstString() {
+    return get(Opcodes.DEX_ITEM_BASED_CONST_STRING);
+  }
 
-  public abstract boolean mayHaveDexItemBasedConstString();
+  public boolean mayHaveMonitorInstruction() {
+    return get(Opcodes.MONITOR);
+  }
 
-  public abstract boolean mayHaveMonitorInstruction();
-
-  public abstract boolean mayHaveStringSwitch();
+  public boolean mayHaveStringSwitch() {
+    return get(Opcodes.STRING_SWITCH);
+  }
 }
