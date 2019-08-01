@@ -1507,15 +1507,15 @@ public class BasicBlock {
   }
 
   public InstructionIterator iterator() {
-    return new BasicBlockInstructionIterator(this);
+    return new BasicBlockInstructionListIterator(this);
   }
 
   public InstructionListIterator listIterator() {
-    return new BasicBlockInstructionIterator(this);
+    return new BasicBlockInstructionListIterator(this);
   }
 
   public InstructionListIterator listIterator(int index) {
-    return new BasicBlockInstructionIterator(this, index);
+    return new BasicBlockInstructionListIterator(this, index);
   }
 
   /**
@@ -1526,7 +1526,7 @@ public class BasicBlock {
    * <code>previous</code> will return <code>instruction</code>.
    */
   public InstructionListIterator listIterator(Instruction instruction) {
-    return new BasicBlockInstructionIterator(this, instruction);
+    return new BasicBlockInstructionListIterator(this, instruction);
   }
 
   /**

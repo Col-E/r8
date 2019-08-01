@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
 
-public class BasicBlockInstructionIterator implements InstructionListIterator {
+public class BasicBlockInstructionListIterator implements InstructionListIterator {
 
   protected final BasicBlock block;
   protected final ListIterator<Instruction> listIterator;
@@ -35,23 +35,23 @@ public class BasicBlockInstructionIterator implements InstructionListIterator {
 
   private IRMetadata metadata;
 
-  BasicBlockInstructionIterator(BasicBlock block) {
+  BasicBlockInstructionListIterator(BasicBlock block) {
     this.block = block;
     this.listIterator = block.getInstructions().listIterator();
   }
 
-  BasicBlockInstructionIterator(BasicBlock block, int index) {
+  BasicBlockInstructionListIterator(BasicBlock block, int index) {
     this.block = block;
     this.listIterator = block.getInstructions().listIterator(index);
   }
 
-  BasicBlockInstructionIterator(BasicBlock block, Instruction instruction) {
+  BasicBlockInstructionListIterator(BasicBlock block, Instruction instruction) {
     this(block);
     nextUntil((x) -> x == instruction);
   }
 
   @Override
-  public BasicBlockInstructionIterator recordChangesToMetadata(IRMetadata metadata) {
+  public BasicBlockInstructionListIterator recordChangesToMetadata(IRMetadata metadata) {
     this.metadata = metadata;
     return this;
   }
