@@ -367,27 +367,23 @@ public class StringBuilderOptimizer {
           }
 
           if (instr.isInvokeDirect()
-              && optimizationConfiguration.isBuilderInit(
-                  instr.asInvokeDirect().getInvokedMethod())) {
+              && optimizationConfiguration.isBuilderInitWithInitialValue(instr.asInvokeDirect())) {
             InvokeDirect invoke = instr.asInvokeDirect();
             Value builder = invoke.getReceiver();
             if (!candidateBuilders.contains(builder)) {
               continue;
             }
-            // builder initialization with the initial content.
-            if (invoke.inValues().size() > 1) {
-              assert invoke.inValues().size() == 2;
-              Value arg = invoke.inValues().get(1);
-              String addition = extractConstantArgument(arg);
-              Map<Instruction, BuilderState> perInstrState = getBuilderState(builder);
-              BuilderState dominantState = findDominantState(dominatorTree, perInstrState, instr);
-              if (dominantState != null) {
-                BuilderState currentState = dominantState.createChild(addition);
-                perInstrState.put(instr, currentState);
-              } else {
-                // TODO(b/114002137): if we want to utilize partial results, don't remove it here.
-                candidateBuilders.remove(builder);
-              }
+            assert invoke.inValues().size() == 2;
+            Value arg = invoke.inValues().get(1);
+            String addition = extractConstantArgument(arg);
+            Map<Instruction, BuilderState> perInstrState = getBuilderState(builder);
+            BuilderState dominantState = findDominantState(dominatorTree, perInstrState, instr);
+            if (dominantState != null) {
+              BuilderState currentState = dominantState.createChild(addition);
+              perInstrState.put(instr, currentState);
+            } else {
+              // TODO(b/114002137): if we want to utilize partial results, don't remove it here.
+              candidateBuilders.remove(builder);
             }
             continue;
           }
@@ -686,6 +682,13 @@ public class StringBuilderOptimizer {
     public boolean isBuilderInit(DexMethod method) {
       return isBuilderType(method.holder)
           && factory.isConstructor(method);
+    }
+
+    @Override
+    public boolean isBuilderInitWithInitialValue(InvokeMethod invoke) {
+      return isBuilderInit(invoke.getInvokedMethod())
+          && invoke.inValues().size() == 2
+          && !invoke.inValues().get(1).getTypeLattice().isPrimitive();
     }
 
     @Override

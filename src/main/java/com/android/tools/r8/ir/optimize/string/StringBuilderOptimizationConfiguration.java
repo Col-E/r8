@@ -14,6 +14,8 @@ interface StringBuilderOptimizationConfiguration {
 
   boolean isBuilderInit(DexMethod method);
 
+  boolean isBuilderInitWithInitialValue(InvokeMethod invoke);
+
   boolean isAppendMethod(DexMethod method);
 
   boolean isSupportedAppendMethod(InvokeMethod invoke);

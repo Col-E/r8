@@ -54,6 +54,36 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
   }
 
   @Test
+  public void testBuilderWithInitialValue() throws Exception {
+    buildAndCheckIR(
+        "builderWithInitialValue",
+        checkOptimizerStates(appView, optimizer -> {
+          assertEquals(1, optimizer.analysis.builderStates.size());
+          for (Value builder : optimizer.analysis.builderStates.keySet()) {
+            Map<Instruction, BuilderState> perBuilderState =
+                optimizer.analysis.builderStates.get(builder);
+            checkBuilderState(optimizer, perBuilderState, "Hello,R8", true);
+          }
+          assertEquals(1, optimizer.analysis.simplifiedBuilders.size());
+        }));
+  }
+
+  @Test
+  public void testBuilderWithCapacity() throws Exception {
+    buildAndCheckIR(
+        "builderWithCapacity",
+        checkOptimizerStates(appView, optimizer -> {
+          assertEquals(1, optimizer.analysis.builderStates.size());
+          for (Value builder : optimizer.analysis.builderStates.keySet()) {
+            Map<Instruction, BuilderState> perBuilderState =
+                optimizer.analysis.builderStates.get(builder);
+            checkBuilderState(optimizer, perBuilderState, "42", true);
+          }
+          assertEquals(1, optimizer.analysis.simplifiedBuilders.size());
+        }));
+  }
+
+  @Test
   public void testNonStringArgs() throws Exception {
     buildAndCheckIR(
         "nonStringArgs",
@@ -239,6 +269,13 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
     public boolean isBuilderInit(DexMethod method) {
       return isBuilderType(method.holder)
           && method.name.toString().equals("<init>");
+    }
+
+    @Override
+    public boolean isBuilderInitWithInitialValue(InvokeMethod invoke) {
+      return isBuilderInit(invoke.getInvokedMethod())
+          && invoke.inValues().size() == 2
+          && !invoke.inValues().get(1).getTypeLattice().isPrimitive();
     }
 
     @Override

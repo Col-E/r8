@@ -15,6 +15,23 @@ class StringConcatenationTestClass {
   }
 
   @NeverInline
+  public static void builderWithInitialValue() {
+    StringBuilder builder = new StringBuilder("Hello");
+    builder.append(",");
+    builder.append("R8");
+    System.out.println(builder.toString());
+  }
+
+  @NeverInline
+  public static void builderWithCapacity() {
+    StringBuilder builder = new StringBuilder(3);
+    // TODO(b/114002137): switch to use the integer.
+    builder.append("4");
+    builder.append("2");
+    System.out.println(builder.toString());
+  }
+
+  @NeverInline
   public static void nonStringArgs() {
     StringBuilder builder = new StringBuilder();
     builder.append(4);
@@ -121,6 +138,8 @@ class StringConcatenationTestClass {
 
   public static void main(String[] args) {
     trivialSequence();
+    builderWithInitialValue();
+    builderWithCapacity();
     nonStringArgs();
     typeConversion();
     nestedBuilders_appendBuilderItself();
