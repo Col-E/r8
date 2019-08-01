@@ -71,10 +71,10 @@ public abstract class AnalysisTestBase extends TestBase {
     appView = AppView.createForR8(new AppInfoWithSubtyping(application), options);
   }
 
-  public void buildAndCheckIR(String methodName, Consumer<IRCode> irInspector) throws Exception {
-    CodeInspector inspector = new CodeInspector(app);
+  public void buildAndCheckIR(String methodName, Consumer<IRCode> irInspector) {
+    CodeInspector inspector = new CodeInspector(appView.appInfo().app());
     MethodSubject methodSubject = inspector.clazz(className).uniqueMethodWithName(methodName);
-    irInspector.accept(methodSubject.buildIR());
+    irInspector.accept(methodSubject.buildIR(appView.dexItemFactory()));
   }
 
   @SuppressWarnings("unchecked")

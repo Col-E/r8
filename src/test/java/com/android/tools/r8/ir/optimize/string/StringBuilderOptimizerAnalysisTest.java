@@ -9,12 +9,9 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.AnalysisTestBase;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.string.StringBuilderOptimizer.BuilderState;
 import java.util.Map;
@@ -219,9 +216,7 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
   static Consumer<IRCode> checkOptimizerStates(
       AppView<?> appView, Consumer<StringBuilderOptimizer> optimizerConsumer) {
     return code -> {
-      StringBuilderOptimizer optimizer =
-          new StringBuilderOptimizer(
-              appView, new StringBuilderOptimizationConfigurationForTesting(appView));
+      StringBuilderOptimizer optimizer = new StringBuilderOptimizer(appView);
       optimizer.computeTrivialStringConcatenation(code);
       optimizerConsumer.accept(optimizer);
     };
@@ -242,71 +237,5 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
       }
     }
     assertEquals(expectToSeeToString, metToString);
-  }
-
-  static class StringBuilderOptimizationConfigurationForTesting
-      implements StringBuilderOptimizationConfiguration {
-    AppView<?> appView;
-
-    StringBuilderOptimizationConfigurationForTesting(AppView<?> appView) {
-      this.appView = appView;
-    }
-
-    @Override
-    public boolean isBuilderType(DexType type) {
-      String descriptor = type.toDescriptorString();
-      return descriptor.equals(appView.dexItemFactory().stringBuilderType.toDescriptorString())
-          || descriptor.equals(appView.dexItemFactory().stringBufferType.toDescriptorString());
-    }
-
-    @Override
-    public boolean isBuilderInit(DexMethod method, DexType builderType) {
-      return builderType == method.holder
-          && method.name.toString().equals("<init>");
-    }
-
-    @Override
-    public boolean isBuilderInit(DexMethod method) {
-      return isBuilderType(method.holder)
-          && method.name.toString().equals("<init>");
-    }
-
-    @Override
-    public boolean isBuilderInitWithInitialValue(InvokeMethod invoke) {
-      return isBuilderInit(invoke.getInvokedMethod())
-          && invoke.inValues().size() == 2
-          && !invoke.inValues().get(1).getTypeLattice().isPrimitive();
-    }
-
-    @Override
-    public boolean isAppendMethod(DexMethod method) {
-      return isBuilderType(method.holder) && method.name.toString().equals("append");
-    }
-
-    @Override
-    public boolean isSupportedAppendMethod(InvokeMethod invoke) {
-      DexMethod invokedMethod = invoke.getInvokedMethod();
-      assert isAppendMethod(invokedMethod);
-      if (invoke.inValues().size() > 2) {
-        return false;
-      }
-      for (DexType argType : invokedMethod.proto.parameters.values) {
-        if (!canHandleArgumentType(argType)) {
-          return false;
-        }
-      }
-      return true;
-    }
-
-    @Override
-    public boolean isToStringMethod(DexMethod method) {
-      return isBuilderType(method.holder) && method.name.toString().equals("toString");
-    }
-
-    private boolean canHandleArgumentType(DexType argType) {
-      String descriptor = argType.toDescriptorString();
-      return descriptor.equals(appView.dexItemFactory().stringType.toDescriptorString())
-          || descriptor.equals(appView.dexItemFactory().charSequenceType.toDescriptorString());
-    }
   }
 }

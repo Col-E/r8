@@ -95,26 +95,6 @@ public class StringBuilderOptimizer {
   private final Object2IntMap<Integer> histogramOfLengthOfPartialAppendChains;
   private final Object2IntMap<Integer> histogramOfLengthOfPartialResult;
 
-  @VisibleForTesting
-  StringBuilderOptimizer(
-      AppView<? extends AppInfo> appView, StringBuilderOptimizationConfiguration configuration) {
-    this.appView = appView;
-    this.factory = appView.dexItemFactory();
-    this.throwingInfo = ThrowingInfo.defaultForConstString(appView.options());
-    this.optimizationConfiguration = configuration;
-    if (Log.ENABLED) {
-      histogramOfLengthOfAppendChains = new Object2IntArrayMap<>();
-      histogramOfLengthOfEndResult = new Object2IntArrayMap<>();
-      histogramOfLengthOfPartialAppendChains = new Object2IntArrayMap<>();
-      histogramOfLengthOfPartialResult = new Object2IntArrayMap<>();
-    } else {
-      histogramOfLengthOfAppendChains = null;
-      histogramOfLengthOfEndResult = null;
-      histogramOfLengthOfPartialAppendChains = null;
-      histogramOfLengthOfPartialResult = null;
-    }
-  }
-
   public StringBuilderOptimizer(AppView<? extends AppInfo> appView) {
     this.appView = appView;
     this.factory = appView.dexItemFactory();
