@@ -23,22 +23,22 @@ public class IRMetadata {
   private boolean get(int bit) {
     long masked;
     if (bit < 64) {
-      masked = first & (1 << bit);
+      masked = first & (1L << bit);
     } else {
       assert bit < 128;
       int adjusted = bit - 64;
-      masked = second & (1 << adjusted);
+      masked = second & (1L << adjusted);
     }
     return masked != 0;
   }
 
   private void set(int bit) {
     if (bit < 64) {
-      first |= (1 << bit);
+      first |= (1L << bit);
     } else {
       assert bit < 128;
       int adjusted = bit - 64;
-      second |= (1 << adjusted);
+      second |= (1L << adjusted);
     }
   }
 
