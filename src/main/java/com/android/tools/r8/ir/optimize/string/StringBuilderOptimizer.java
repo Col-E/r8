@@ -21,7 +21,7 @@ import com.android.tools.r8.ir.code.DominatorTree;
 import com.android.tools.r8.ir.code.DominatorTree.Assumption;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.InstructionIterator;
+import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
@@ -354,10 +354,7 @@ public class StringBuilderOptimizer {
     private StringConcatenationAnalysis buildBuilderStateGraph(Set<Value> candidateBuilders) {
       DominatorTree dominatorTree = new DominatorTree(code, Assumption.MAY_HAVE_UNREACHABLE_BLOCKS);
       for (BasicBlock block : code.topologicallySortedBlocks()) {
-        InstructionIterator it = block.listIterator();
-        while (it.hasNext()) {
-          Instruction instr = it.next();
-
+        for (Instruction instr : block.getInstructions()) {
           if (instr.isNewInstance()
               && optimizationConfiguration.isBuilderType(instr.asNewInstance().clazz)) {
             Value builder = instr.asNewInstance().dest();
@@ -506,7 +503,7 @@ public class StringBuilderOptimizer {
     final Set<Value> simplifiedBuilders = Sets.newIdentityHashSet();
 
     private StringConcatenationAnalysis applyConcatenationResults(Set<Value> candidateBuilders) {
-      InstructionIterator it = code.instructionIterator();
+      InstructionListIterator it = code.instructionListIterator();
       while (it.hasNext()) {
         Instruction instr = it.nextUntil(i -> isToStringOfInterest(candidateBuilders, i));
         if (instr == null) {
@@ -634,7 +631,7 @@ public class StringBuilderOptimizer {
       }
       // All instructions that refer to simplified builders are dead.
       // Here, we remove append(...) calls, <init>, and new-instance in order.
-      InstructionIterator it = code.instructionIterator();
+      InstructionListIterator it = code.instructionListIterator();
       while (it.hasNext()) {
         Instruction instr = it.next();
         if (instr.isInvokeVirtual()) {
@@ -646,7 +643,7 @@ public class StringBuilderOptimizer {
           }
         }
       }
-      it = code.instructionIterator();
+      it = code.instructionListIterator();
       while (it.hasNext()) {
         Instruction instr = it.next();
         if (instr.isInvokeDirect()) {
@@ -658,7 +655,7 @@ public class StringBuilderOptimizer {
           }
         }
       }
-      it = code.instructionIterator();
+      it = code.instructionListIterator();
       while (it.hasNext()) {
         Instruction instr = it.next();
         if (instr.isNewInstance()

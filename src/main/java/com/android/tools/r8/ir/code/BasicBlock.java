@@ -93,8 +93,8 @@ public class BasicBlock {
     return localsAtEntry;
   }
 
-  public void replaceLastInstruction(Instruction instruction) {
-    InstructionListIterator iterator = listIterator(getInstructions().size());
+  public void replaceLastInstruction(Instruction instruction, IRCode code) {
+    InstructionListIterator iterator = listIterator(code, getInstructions().size());
     iterator.previous();
     iterator.replaceCurrentInstruction(instruction);
   }
@@ -562,6 +562,10 @@ public class BasicBlock {
     return instructions;
   }
 
+  public Iterable<Instruction> instructionsAfter(Instruction instruction) {
+    return () -> iterator(instruction);
+  }
+
   public boolean isEmpty() {
     return instructions.isEmpty();
   }
@@ -578,7 +582,7 @@ public class BasicBlock {
 
   public Instruction exceptionalExit() {
     assert hasCatchHandlers();
-    ListIterator<Instruction> it = listIterator(instructions.size());
+    InstructionIterator it = iterator(instructions.size());
     while (it.hasPrevious()) {
       Instruction instruction = it.previous();
       if (instruction.instructionTypeCanThrow()) {
@@ -1321,7 +1325,7 @@ public class BasicBlock {
    *
    * @param blockNumber the block number of the block
    * @param theIf the if instruction
-   * @param instruction the instruction to place before the if instruction
+   * @param instructions the instructions to place before the if instruction
    */
   public static BasicBlock createIfBlock(int blockNumber, If theIf, Instruction... instructions) {
     BasicBlock block = new BasicBlock();
@@ -1494,7 +1498,7 @@ public class BasicBlock {
   // visible to exceptional successors.
   private boolean verifyNoValuesAfterThrowingInstruction() {
     if (hasCatchHandlers()) {
-      ListIterator<Instruction> iterator = listIterator(instructions.size());
+      InstructionIterator iterator = iterator(instructions.size());
       while (iterator.hasPrevious()) {
         Instruction instruction = iterator.previous();
         if (instruction.instructionTypeCanThrow()) {
@@ -1507,26 +1511,38 @@ public class BasicBlock {
   }
 
   public InstructionIterator iterator() {
-    return new BasicBlockInstructionListIterator(this);
+    return new BasicBlockInstructionIterator(this);
   }
 
-  public InstructionListIterator listIterator() {
-    return new BasicBlockInstructionListIterator(this);
+  public InstructionIterator iterator(int index) {
+    return new BasicBlockInstructionIterator(this, index);
   }
 
-  public InstructionListIterator listIterator(int index) {
-    return new BasicBlockInstructionListIterator(this, index);
+  public InstructionIterator iterator(Instruction instruction) {
+    return new BasicBlockInstructionIterator(this, instruction);
+  }
+
+  public InstructionListIterator listIterator(IRCode code) {
+    return listIterator(code.metadata());
+  }
+
+  public InstructionListIterator listIterator(IRMetadata metadata) {
+    return new BasicBlockInstructionListIterator(metadata, this);
+  }
+
+  public InstructionListIterator listIterator(IRCode code, int index) {
+    return new BasicBlockInstructionListIterator(code.metadata(), this, index);
   }
 
   /**
    * Creates an instruction list iterator starting at <code>instruction</code>.
    *
-   * The cursor will be positioned after <code>instruction</code>. Calling <code>next</code> on
+   * <p>The cursor will be positioned after <code>instruction</code>. Calling <code>next</code> on
    * the returned iterator will return the instruction after <code>instruction</code>. Calling
    * <code>previous</code> will return <code>instruction</code>.
    */
-  public InstructionListIterator listIterator(Instruction instruction) {
-    return new BasicBlockInstructionListIterator(this, instruction);
+  public InstructionListIterator listIterator(IRCode code, Instruction instruction) {
+    return new BasicBlockInstructionListIterator(code.metadata(), this, instruction);
   }
 
   /**

@@ -52,6 +52,7 @@ import java.util.function.Predicate;
  *   // Update users of vx, vy, and vz.
  */
 public class IdempotentFunctionCallCanonicalizer {
+
   // Threshold to limit the number of invocation canonicalization.
   private static final int MAX_CANONICALIZED_CALL = 15;
 
@@ -80,10 +81,14 @@ public class IdempotentFunctionCallCanonicalizer {
         "# invoke canonicalization (program): %s", numberOfProgramCallCanonicalization);
     assert histogramOfCanonicalizationCandidatesPerMethod != null;
     Log.info(getClass(), "------ histogram of invoke canonicalization candidates ------");
-    histogramOfCanonicalizationCandidatesPerMethod.forEach((length, count) -> {
-      Log.info(getClass(),
-          "%s: %s (%s)", length, StringUtils.times("*", Math.min(count, 53)), count);
-    });
+    histogramOfCanonicalizationCandidatesPerMethod.forEach(
+        (length, count) ->
+            Log.info(
+                getClass(),
+                "%s: %s (%s)",
+                length,
+                StringUtils.times("*", Math.min(count, 53)),
+                count));
   }
 
   public void canonicalize(IRCode code) {
@@ -108,9 +113,7 @@ public class IdempotentFunctionCallCanonicalizer {
     DexType context = code.method.method.holder;
     // Collect invocations along with arguments.
     for (BasicBlock block : code.blocks) {
-      InstructionListIterator it = block.listIterator();
-      while (it.hasNext()) {
-        Instruction current = it.next();
+      for (Instruction current : block.getInstructions()) {
         if (!current.isInvokeMethod()) {
           continue;
         }
@@ -228,7 +231,7 @@ public class IdempotentFunctionCallCanonicalizer {
 
     if (!deadInvocations.isEmpty()) {
       for (BasicBlock block : code.blocks) {
-        InstructionListIterator it = block.listIterator();
+        InstructionListIterator it = block.listIterator(code);
         while (it.hasNext()) {
           Instruction current = it.next();
           if (!current.isInvokeMethod()) {
@@ -264,7 +267,7 @@ public class IdempotentFunctionCallCanonicalizer {
     BasicBlock entryBlock = code.entryBlock();
     // Insert the canonicalized invoke after in values.
     int numberOfInValuePassed = 0;
-    InstructionListIterator it = entryBlock.listIterator();
+    InstructionListIterator it = entryBlock.listIterator(code);
     while (it.hasNext()) {
       Instruction current = it.next();
       if (current.hasOutValue() && canonicalizedInvoke.inValues().contains(current.outValue())) {
@@ -287,7 +290,7 @@ public class IdempotentFunctionCallCanonicalizer {
     BasicBlock entryBlock = code.entryBlock();
     // Insert the canonicalized invocation at the start of the block right after the argument
     // instructions.
-    InstructionListIterator it = entryBlock.listIterator();
+    InstructionListIterator it = entryBlock.listIterator(code);
     while (it.hasNext()) {
       if (!it.next().isArgument()) {
         it.previous();

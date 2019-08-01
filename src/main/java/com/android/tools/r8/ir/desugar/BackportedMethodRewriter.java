@@ -24,7 +24,7 @@ import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.InstructionIterator;
+import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.conversion.IRConverter;
@@ -94,7 +94,7 @@ public final class BackportedMethodRewriter {
       return; // Nothing to do!
     }
 
-    InstructionIterator iterator = code.instructionIterator();
+    InstructionListIterator iterator = code.instructionListIterator();
     while (iterator.hasNext()) {
       Instruction instruction = iterator.next();
       if (!instruction.isInvokeMethod()) {

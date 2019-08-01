@@ -12,7 +12,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.InstructionIterator;
+import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeInterface;
 import com.android.tools.r8.ir.code.InvokeMethod;
@@ -43,7 +43,7 @@ public class NestUtils {
   public static void rewriteNestCallsForInlining(
       IRCode code, DexType callerHolder, AppView<?> appView) {
     // This method is called when inlining code into the nest member callerHolder.
-    InstructionIterator iterator = code.instructionIterator();
+    InstructionListIterator iterator = code.instructionListIterator();
     DexClass callerHolderClass = appView.definitionFor(callerHolder);
     assert callerHolderClass != null;
     assert code.method.method.holder != callerHolder;

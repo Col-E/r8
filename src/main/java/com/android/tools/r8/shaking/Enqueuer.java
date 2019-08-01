@@ -54,6 +54,7 @@ import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.ConstantValueUtils;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
@@ -85,7 +86,6 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -2102,7 +2102,7 @@ public class Enqueuer {
     DexType originHolder = method.method.holder;
     Origin origin = appInfo.originFor(originHolder);
     IRCode code = method.buildIR(appView, origin);
-    Iterator<Instruction> iterator = code.instructionIterator();
+    InstructionIterator iterator = code.instructionIterator();
     while (iterator.hasNext()) {
       Instruction instruction = iterator.next();
       handleReflectiveBehavior(method, instruction);

@@ -856,9 +856,7 @@ public class Value {
     // creation.
     Set<Instruction> consumedInstructions = Sets.newIdentityHashSet();
 
-    InstructionListIterator instructionIterator = definition.getBlock().listIterator(definition);
-    while (instructionIterator.hasNext()) {
-      Instruction instruction = instructionIterator.next();
+    for (Instruction instruction : definition.getBlock().instructionsAfter(definition)) {
       if (instruction.isArrayPut()) {
         ArrayPut arrayPut = instruction.asArrayPut();
         Value array = arrayPut.array().getAliasedValue();

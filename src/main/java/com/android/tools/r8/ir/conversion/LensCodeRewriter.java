@@ -121,7 +121,7 @@ public class LensCodeRewriter {
           mayHaveUnreachableBlocks |= unlinkDeadCatchHandlers(block);
         }
       }
-      InstructionListIterator iterator = block.listIterator();
+      InstructionListIterator iterator = block.listIterator(code);
       while (iterator.hasNext()) {
         Instruction current = iterator.next();
         if (current.isInvokeCustom()) {
@@ -277,7 +277,7 @@ public class LensCodeRewriter {
                 // Split the block to ensure no instructions after throwing instructions.
                 iterator
                     .split(code, blocks)
-                    .listIterator()
+                    .listIterator(code)
                     .add(constantReturnMaterializingInstruction);
               } else {
                 iterator.add(constantReturnMaterializingInstruction);

@@ -22,7 +22,7 @@ import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.InstructionIterator;
+import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.synthetic.TemplateMethodCode;
@@ -76,7 +76,7 @@ public final class TwrCloseResourceRewriter {
 
   // Rewrites calls to $closeResource() method. Can be invoked concurrently.
   public void rewriteMethodCode(IRCode code) {
-    InstructionIterator iterator = code.instructionIterator();
+    InstructionListIterator iterator = code.instructionListIterator();
     AppInfo appInfo = appView.appInfo();
     while (iterator.hasNext()) {
       Instruction instruction = iterator.next();

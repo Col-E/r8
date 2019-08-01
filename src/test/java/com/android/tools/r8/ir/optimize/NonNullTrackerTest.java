@@ -35,22 +35,22 @@ public class NonNullTrackerTest extends NonNullTrackerTestBase {
     AppView<?> appView = build(testClass);
     CodeInspector codeInspector = new CodeInspector(appView.appInfo().app());
     MethodSubject fooSubject = codeInspector.clazz(testClass.getName()).method(signature);
-    IRCode irCode = fooSubject.buildIR();
-    checkCountOfNonNull(irCode, 0);
+    IRCode code = fooSubject.buildIR();
+    checkCountOfNonNull(code, 0);
 
     NonNullTracker nonNullTracker = new NonNullTracker(appView);
 
-    nonNullTracker.addNonNull(irCode);
-    assertTrue(irCode.isConsistentSSA());
-    checkCountOfNonNull(irCode, expectedNumberOfNonNull);
+    nonNullTracker.addNonNull(code);
+    assertTrue(code.isConsistentSSA());
+    checkCountOfNonNull(code, expectedNumberOfNonNull);
 
     if (testAugmentedIRCode != null) {
-      testAugmentedIRCode.accept(irCode);
+      testAugmentedIRCode.accept(code);
     }
 
-    new CodeRewriter(appView, null).removeAssumeInstructions(irCode);
-    assertTrue(irCode.isConsistentSSA());
-    checkCountOfNonNull(irCode, 0);
+    new CodeRewriter(appView, null).removeAssumeInstructions(code);
+    assertTrue(code.isConsistentSSA());
+    checkCountOfNonNull(code, 0);
   }
 
   private static void checkCountOfNonNull(IRCode code, int expectedOccurrences) {
@@ -75,16 +75,16 @@ public class NonNullTrackerTest extends NonNullTrackerTestBase {
     assertEquals(expectedOccurrences, count);
   }
 
-  private void checkInvokeGetsNonNullReceiver(IRCode irCode) {
-    checkInvokeReceiver(irCode, true);
+  private void checkInvokeGetsNonNullReceiver(IRCode code) {
+    checkInvokeReceiver(code, true);
   }
 
-  private void checkInvokeGetsNullReceiver(IRCode irCode) {
-    checkInvokeReceiver(irCode, false);
+  private void checkInvokeGetsNullReceiver(IRCode code) {
+    checkInvokeReceiver(code, false);
   }
 
-  private void checkInvokeReceiver(IRCode irCode, boolean isNotNull) {
-    InstructionIterator it = irCode.instructionIterator();
+  private void checkInvokeReceiver(IRCode code, boolean isNotNull) {
+    InstructionIterator it = code.instructionIterator();
     boolean metInvokeWithReceiver = false;
     while (it.hasNext()) {
       Instruction instruction = it.nextUntil(Instruction::isInvokeMethodWithReceiver);
@@ -146,10 +146,10 @@ public class NonNullTrackerTest extends NonNullTrackerTestBase {
         NonNullAfterFieldAccess.class,
         signature,
         1,
-        ircode -> {
+        code -> {
           // There are two InstancePut instructions of interest.
           int count = 0;
-          InstructionIterator it = ircode.instructionIterator();
+          InstructionIterator it = code.instructionIterator();
           while (it.hasNext()) {
             Instruction instruction = it.nextUntil(Instruction::isInstancePut);
             if (instruction == null) {

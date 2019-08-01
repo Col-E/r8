@@ -14,7 +14,6 @@ import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Throw;
@@ -38,9 +37,7 @@ public class TypeChecker {
   }
 
   public boolean check(IRCode code) {
-    InstructionIterator instructionIterator = code.instructionIterator();
-    while (instructionIterator.hasNext()) {
-      Instruction instruction = instructionIterator.next();
+    for (Instruction instruction : code.instructions()) {
       if (instruction.isInstancePut()) {
         if (!check(instruction.asInstancePut())) {
           return false;

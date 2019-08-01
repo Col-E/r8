@@ -99,7 +99,7 @@ public class LoadStoreHelper {
     clonableConstants = new IdentityHashMap<>();
     blockIterator = code.listIterator();
     while (blockIterator.hasNext()) {
-      InstructionListIterator it = blockIterator.next().listIterator();
+      InstructionListIterator it = blockIterator.next().listIterator(code);
       while (it.hasNext()) {
         it.next().insertLoadAndStores(it, this);
       }
@@ -128,7 +128,7 @@ public class LoadStoreHelper {
               moves.add(new PhiMove(phi, value));
             }
           }
-          InstructionListIterator it = pred.listIterator(pred.getInstructions().size());
+          InstructionListIterator it = pred.listIterator(code, pred.getInstructions().size());
           Instruction exit = it.previous();
           assert pred.exit() == exit;
           movePhis(moves, it, exit.getPosition());
@@ -201,7 +201,7 @@ public class LoadStoreHelper {
     boolean hasCatchHandlers = instruction.getBlock().hasCatchHandlers();
     if (hasCatchHandlers && instruction.instructionTypeCanThrow()) {
       storeBlock = it.split(this.code, this.blockIterator);
-      it = storeBlock.listIterator();
+      it = storeBlock.listIterator(code);
     }
     add(store, storeBlock, instruction.getPosition(), it);
     if (hasCatchHandlers && !instruction.instructionTypeCanThrow()) {
@@ -223,7 +223,7 @@ public class LoadStoreHelper {
     BasicBlock insertBlock = instruction.getBlock();
     if (insertBlock.hasCatchHandlers() && instruction.instructionTypeCanThrow()) {
       insertBlock = it.split(this.code, this.blockIterator);
-      it = insertBlock.listIterator();
+      it = insertBlock.listIterator(code);
     }
     instruction.swapOutValue(newOutValue);
     add(new Pop(newOutValue), insertBlock, instruction.getPosition(), it);

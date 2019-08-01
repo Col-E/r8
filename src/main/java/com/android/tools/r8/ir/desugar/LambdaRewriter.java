@@ -117,7 +117,7 @@ public class LambdaRewriter {
     ListIterator<BasicBlock> blocks = code.listIterator();
     while (blocks.hasNext()) {
       BasicBlock block = blocks.next();
-      InstructionListIterator instructions = block.listIterator();
+      InstructionListIterator instructions = block.listIterator(code);
       while (instructions.hasNext()) {
         Instruction instruction = instructions.next();
         if (instruction.isInvokeCustom()) {

@@ -19,7 +19,6 @@ import com.android.tools.r8.ir.code.Assume;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.NewInstance;
@@ -82,10 +81,8 @@ public class NullabilityTest extends NonNullTrackerTestBase {
   }
 
   private void verifyLastInvoke(IRCode code, boolean npeCaught) {
-    InstructionIterator it = code.instructionIterator();
     boolean metInvokeVirtual = false;
-    while (it.hasNext()) {
-      Instruction instruction = it.next();
+    for (Instruction instruction : code.instructions()) {
       if (instruction.isInvokeMethodWithReceiver()) {
         InvokeMethodWithReceiver invoke = instruction.asInvokeMethodWithReceiver();
         if (invoke.getInvokedMethod().name.toString().contains("hash")) {

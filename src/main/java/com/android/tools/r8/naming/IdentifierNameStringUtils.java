@@ -21,7 +21,7 @@ import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.ConstantValueUtils;
 import com.android.tools.r8.ir.code.DexItemBasedConstString;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.InstructionListIterator;
+import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeVirtual;
@@ -401,7 +401,7 @@ public final class IdentifierNameStringUtils {
     // put into the array. Conservatively bail out if the content of the array cannot be statically
     // computed.
     BasicBlock block = newArray.getBlock();
-    InstructionListIterator iterator = block.listIterator();
+    InstructionIterator iterator = block.iterator();
     iterator.nextUntil(i -> i == newArray);
     do {
       while (iterator.hasNext()) {
@@ -453,7 +453,7 @@ public final class IdentifierNameStringUtils {
       if (block.getPredecessors().size() != 1) {
         return null;
       }
-      iterator = block.listIterator();
+      iterator = block.iterator();
     } while (iterator != null);
     return null;
   }

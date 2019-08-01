@@ -10,7 +10,6 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -55,9 +54,7 @@ public class EnumInfoMapCollector {
     DexEncodedMethod initializer = clazz.getClassInitializer();
     IRCode code = initializer.getCode().buildIR(initializer, appView, clazz.origin);
     Map<DexField, EnumValueInfo> valueInfoMap = new IdentityHashMap<>();
-    InstructionIterator it = code.instructionIterator();
-    while (it.hasNext()) {
-      Instruction insn = it.next();
+    for (Instruction insn : code.instructions()) {
       if (!insn.isStaticPut()) {
         continue;
       }

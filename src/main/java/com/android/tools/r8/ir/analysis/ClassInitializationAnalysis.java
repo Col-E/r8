@@ -24,6 +24,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeInterface;
 import com.android.tools.r8.ir.code.InvokeStatic;
@@ -38,7 +39,6 @@ import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.Iterator;
 import java.util.Set;
 
 /**
@@ -119,7 +119,7 @@ public class ClassInitializationAnalysis {
     // Visit all the instructions in all the blocks that dominate `block`.
     for (BasicBlock dominator : dominatorTree.dominatorBlocks(block, Inclusive.NO)) {
       AnalysisAssumption assumption = getAssumptionForDominator(dominator, block);
-      Iterator<Instruction> instructionIterator = dominator.iterator();
+      InstructionIterator instructionIterator = dominator.iterator();
       while (instructionIterator.hasNext()) {
         Instruction previous = instructionIterator.next();
         if (previous.definitelyTriggersClassInitialization(

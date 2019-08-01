@@ -414,9 +414,10 @@ public class IRBuilder {
   // Flag indicating if any values have imprecise types.
   private boolean hasImpreciseValues = false;
 
-  // Flag indicating if a const string is ever loaded.
-
-  // Flag indicating if the code has a monitor instruction.
+  // Information about which kinds of instructions that may be present in the IR. This information
+  // is sound (i.e., if the IR has a const-string instruction then metadata.mayHaveConstString()
+  // returns true) but not necessarily complete (i.e., if metadata.mayHaveConstString() returns true
+  // then the IR does not necessarily contain a const-string instruction).
   private final IRMetadata metadata = new IRMetadata();
 
   public IRBuilder(DexEncodedMethod method, AppView<?> appView, SourceCode source, Origin origin) {
@@ -558,7 +559,7 @@ public class IRBuilder {
     // Insert definitions for all uninitialized local values.
     if (uninitializedDebugLocalValues != null) {
       Position position = entryBlock.getPosition();
-      InstructionListIterator it = entryBlock.listIterator();
+      InstructionListIterator it = entryBlock.listIterator(metadata);
       it.nextUntil(i -> !i.isArgument());
       it.previous();
       for (List<Value> values : uninitializedDebugLocalValues.values()) {
@@ -633,7 +634,7 @@ public class IRBuilder {
       return;
     }
     for (BasicBlock block : blocks) {
-      InstructionListIterator it = block.listIterator();
+      InstructionListIterator it = block.listIterator(metadata);
       Position current = null;
       while (it.hasNext()) {
         Instruction instruction = it.next();
@@ -646,7 +647,6 @@ public class IRBuilder {
             it.removeOrReplaceByDebugLocalRead();
           } else {
             current = position;
-            metadata.record(instruction);
           }
         } else if (position.isSome() && !position.synthetic && !position.equals(current)) {
           DebugPosition positionChange = new DebugPosition();
@@ -655,7 +655,6 @@ public class IRBuilder {
           it.add(positionChange);
           it.next();
           current = position;
-          metadata.record(positionChange);
         }
       }
     }
@@ -823,7 +822,6 @@ public class IRBuilder {
   public void add(Instruction ir) {
     assert !ir.isJumpInstruction();
     addInstruction(ir);
-    metadata.record(ir);
   }
 
   private RemovedArgumentInfo getRemovedArgumentInfo() {
@@ -2210,6 +2208,7 @@ public class IRBuilder {
   // Private instruction helpers.
   private void addInstruction(Instruction ir) {
     addInstruction(ir, source.getCurrentPosition());
+    metadata.record(ir);
   }
 
   private void addInstruction(Instruction ir, Position position) {

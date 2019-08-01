@@ -328,7 +328,7 @@ public class PeepholeOptimizer {
         || (successorBlock == null && first.exit().isReturn());
     BasicBlock newBlock = new BasicBlock();
     newBlock.setNumber(blockNumber);
-    InstructionListIterator from = first.listIterator(first.getInstructions().size());
+    InstructionIterator from = first.iterator(first.getInstructions().size());
     Int2ReferenceMap<DebugLocalInfo> newBlockEntryLocals = null;
     if (first.getLocalsAtEntry() != null) {
       newBlockEntryLocals = new Int2ReferenceOpenHashMap<>(first.getLocalsAtEntry());
@@ -411,8 +411,8 @@ public class PeepholeOptimizer {
     if (!Objects.equals(localsAtBlockExit(block0), localsAtBlockExit(block1))) {
       return 0;
     }
-    InstructionListIterator it0 = block0.listIterator(block0.getInstructions().size());
-    InstructionListIterator it1 = block1.listIterator(block1.getInstructions().size());
+    InstructionIterator it0 = block0.iterator(block0.getInstructions().size());
+    InstructionIterator it1 = block1.iterator(block1.getInstructions().size());
     int suffixSize = 0;
     while (it0.hasPrevious() && it1.hasPrevious()) {
       Instruction i0 = it0.previous();
@@ -492,11 +492,11 @@ public class PeepholeOptimizer {
       // the same register.
       Map<Integer, ConstNumber> registerToNumber = new HashMap<>();
       MoveEliminator moveEliminator = new MoveEliminator(allocator);
-      ListIterator<Instruction> iterator = block.getInstructions().listIterator();
+      InstructionListIterator iterator = block.listIterator(code);
       while (iterator.hasNext()) {
         Instruction current = iterator.next();
         if (moveEliminator.shouldBeEliminated(current)) {
-          iterator.remove();
+          iterator.removeInstructionIgnoreOutValue();
         } else if (current.outValue() != null && current.outValue().needsRegister()) {
           Value outValue = current.outValue();
           int instructionNumber = current.getNumber();
@@ -504,7 +504,7 @@ public class PeepholeOptimizer {
             if (constantSpilledAtDefinition(current.asConstNumber())) {
               // Remove constant instructions that are spilled at their definition and are
               // therefore unused.
-              iterator.remove();
+              iterator.removeInstructionIgnoreOutValue();
               continue;
             }
             int outRegister = allocator.getRegisterForValue(outValue, instructionNumber);
@@ -513,7 +513,7 @@ public class PeepholeOptimizer {
                 && numberInRegister.identicalNonValueNonPositionParts(current)) {
               // This instruction is not needed, the same constant is already in this register.
               // We don't consider the positions of the two (non-throwing) instructions.
-              iterator.remove();
+              iterator.removeInstructionIgnoreOutValue();
             } else {
               // Insert the current constant in the mapping. Make sure to clobber the second
               // register if wide and register-1 if that defines a wide value.

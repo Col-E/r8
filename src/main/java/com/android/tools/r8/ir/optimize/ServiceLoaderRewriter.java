@@ -17,7 +17,7 @@ import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.InstructionIterator;
+import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeInterface;
 import com.android.tools.r8.ir.code.InvokeStatic;
@@ -63,7 +63,7 @@ public class ServiceLoaderRewriter {
 
   public static void rewrite(IRCode code, AppView<? extends AppInfoWithLiveness> appView) {
     DexItemFactory factory = appView.dexItemFactory();
-    InstructionIterator instructionIterator = code.instructionIterator();
+    InstructionListIterator instructionIterator = code.instructionListIterator();
     while (instructionIterator.hasNext()) {
       Instruction instruction = instructionIterator.next();
 
@@ -188,7 +188,7 @@ public class ServiceLoaderRewriter {
     private final IRCode code;
     private final InvokeStatic serviceLoaderLoad;
 
-    private InstructionIterator iterator;
+    private InstructionListIterator iterator;
     private MemberType memberType;
     private Value valueArray;
     private int index = 0;
@@ -196,7 +196,7 @@ public class ServiceLoaderRewriter {
     public Rewriter(
         AppView appView,
         IRCode code,
-        InstructionIterator iterator,
+        InstructionListIterator iterator,
         InvokeStatic serviceLoaderLoad) {
       this.appView = appView;
       this.factory = appView.dexItemFactory();

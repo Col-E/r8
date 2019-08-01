@@ -121,7 +121,7 @@ public class GeneratedMessageLiteShrinker {
     infoValue.definition.replace(
         new ConstString(
             code.createValue(stringType), encoder.encodeInfo(protoMessageInfo), throwingInfo),
-        code.metadata());
+        code);
   }
 
   private void rewriteObjectsArgumentToNewMessageInfo(
@@ -131,8 +131,7 @@ public class GeneratedMessageLiteShrinker {
       ProtoMessageInfo protoMessageInfo) {
     // Position iterator immediately before the call to newMessageInfo().
     BasicBlock block = newMessageInfoInvoke.getBlock();
-    InstructionListIterator instructionIterator =
-        block.listIterator(newMessageInfoInvoke).recordChangesToMetadata(code);
+    InstructionListIterator instructionIterator = block.listIterator(code, newMessageInfoInvoke);
     Instruction previous = instructionIterator.previous();
     instructionIterator.setInsertionPosition(newMessageInfoInvoke.getPosition());
     assert previous == newMessageInfoInvoke;

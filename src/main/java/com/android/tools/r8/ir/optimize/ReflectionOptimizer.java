@@ -14,7 +14,7 @@ import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.InstructionIterator;
+import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -24,7 +24,7 @@ public class ReflectionOptimizer {
 
   // Rewrite getClass() call to const-class if the type of the given instance is effectively final.
   public static void rewriteGetClass(AppView<AppInfoWithLiveness> appView, IRCode code) {
-    InstructionIterator it = code.instructionIterator();
+    InstructionListIterator it = code.instructionListIterator();
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     while (it.hasNext()) {
       Instruction current = it.next();

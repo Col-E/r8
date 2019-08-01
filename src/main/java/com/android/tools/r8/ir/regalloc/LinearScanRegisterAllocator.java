@@ -222,9 +222,9 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     // locals alive for their entire live range. In release mode the liveness is all that matters
     // and we do not actually want locals information in the output.
     if (options().debug) {
-      computeDebugInfo(blocks, liveIntervals, this, liveAtEntrySets);
+      computeDebugInfo(code, blocks, liveIntervals, this, liveAtEntrySets);
     } else if (code.method.getOptimizationInfo().isReachabilitySensitive()) {
-      InstructionIterator it = code.instructionIterator();
+      InstructionListIterator it = code.instructionListIterator();
       while (it.hasNext()) {
         Instruction instruction = it.next();
         if (instruction.isDebugLocalRead()) {
@@ -238,6 +238,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   }
 
   public static void computeDebugInfo(
+      IRCode code,
       ImmutableList<BasicBlock> blocks,
       List<LiveIntervals> liveIntervals,
       RegisterAllocator allocator,
@@ -278,7 +279,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
 
     boolean isEntryBlock = true;
     for (BasicBlock block : blocks) {
-      InstructionListIterator instructionIterator = block.listIterator();
+      InstructionListIterator instructionIterator = block.listIterator(code);
       Set<Value> liveLocalValues = new HashSet<>(liveAtEntrySets.get(block).liveLocalValues);
       // Skip past arguments and open argument and phi locals.
       if (isEntryBlock) {
@@ -746,7 +747,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
 
   private void removeSpillAndPhiMoves() {
     for (BasicBlock block : code.blocks) {
-      InstructionListIterator it = block.listIterator();
+      InstructionListIterator it = block.listIterator(code);
       while (it.hasNext()) {
         Instruction instruction = it.next();
         if (isSpillInstruction(instruction)) {
@@ -2549,8 +2550,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
         }
         addLiveRange(value, block, end, liveIntervals, options);
       }
-      ListIterator<Instruction> iterator =
-          block.getInstructions().listIterator(block.getInstructions().size());
+      InstructionIterator iterator = block.iterator(block.getInstructions().size());
       while (iterator.hasPrevious()) {
         Instruction instruction = iterator.previous();
         Value definition = instruction.outValue();
@@ -2663,7 +2663,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
   private void transformBridgeMethod() {
     assert implementationIsBridge(code);
     BasicBlock entry = code.entryBlock();
-    InstructionListIterator iterator = entry.listIterator();
+    InstructionIterator iterator = entry.iterator();
     // Create a mapping from argument values to their index, while scanning over the arguments.
     Reference2IntMap<Value> argumentIndices = new Reference2IntArrayMap<>();
     while (iterator.peekNext().isArgument()) {
@@ -2720,7 +2720,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     if (code.blocks.size() > 1) {
       return false;
     }
-    InstructionListIterator iterator = code.entryBlock().listIterator();
+    InstructionIterator iterator = code.entryBlock().iterator();
     // Move forward to the first instruction after the definition of the arguments.
     while (iterator.hasNext() && iterator.peekNext().isArgument()) {
       iterator.next();
@@ -2913,7 +2913,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
 
   private void insertRangeInvokeMoves() {
     for (BasicBlock block : code.blocks) {
-      InstructionListIterator it = block.listIterator();
+      InstructionListIterator it = block.listIterator(code);
       while (it.hasNext()) {
         Instruction instruction = it.next();
         if (instruction.isInvoke()) {

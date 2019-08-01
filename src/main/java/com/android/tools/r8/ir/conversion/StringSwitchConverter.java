@@ -289,8 +289,7 @@ class StringSwitchConverter {
       insertionBlock.link(fallthroughBlock);
       JumpInstruction exit = insertionBlock.exit();
       exit.replace(
-          new StringSwitch(value, keys, targetBlockIndices, i + numberOfCatchHandlers),
-          code.metadata());
+          new StringSwitch(value, keys, targetBlockIndices, i + numberOfCatchHandlers), code);
     }
   }
 

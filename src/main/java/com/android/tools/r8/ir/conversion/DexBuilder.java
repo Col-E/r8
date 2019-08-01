@@ -50,6 +50,7 @@ import com.android.tools.r8.ir.code.DebugPosition;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.InstructionIterator;
+import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.IntSwitch;
 import com.android.tools.r8.ir.code.JumpInstruction;
 import com.android.tools.r8.ir.code.Move;
@@ -203,9 +204,8 @@ public class DexBuilder {
 
       // Compute offsets.
       offset = 0;
-      InstructionIterator it = ir.instructionIterator();
-      while (it.hasNext()) {
-        Info info = getInfo(it.next());
+      for (com.android.tools.r8.ir.code.Instruction instruction : ir.instructions()) {
+        Info info = getInfo(instruction);
         info.setOffset(offset);
         offset += info.computeSize(this);
         ++numberOfInstructions;
@@ -216,19 +216,17 @@ public class DexBuilder {
     DexDebugEventBuilder debugEventBuilder = new DexDebugEventBuilder(ir, options);
     List<Instruction> dexInstructions = new ArrayList<>(numberOfInstructions);
     int instructionOffset = 0;
-    InstructionIterator instructionIterator = ir.instructionIterator();
-    while (instructionIterator.hasNext()) {
-      com.android.tools.r8.ir.code.Instruction ir = instructionIterator.next();
-      Info info = getInfo(ir);
+    for (com.android.tools.r8.ir.code.Instruction irInstruction : ir.instructions()) {
+      Info info = getInfo(irInstruction);
       int previousInstructionCount = dexInstructions.size();
       info.addInstructions(this, dexInstructions);
       int instructionStartOffset = instructionOffset;
       while (previousInstructionCount < dexInstructions.size()) {
-        Instruction instruction = dexInstructions.get(previousInstructionCount++);
-        instruction.setOffset(instructionOffset);
-        instructionOffset += instruction.getSize();
+        Instruction dexInstruction = dexInstructions.get(previousInstructionCount++);
+        dexInstruction.setOffset(instructionOffset);
+        instructionOffset += dexInstruction.getSize();
       }
-      debugEventBuilder.add(instructionStartOffset, instructionOffset, ir);
+      debugEventBuilder.add(instructionStartOffset, instructionOffset, irInstruction);
     }
 
     // Workaround dalvik tracing bug, where the dalvik tracing JIT can end up tracing
@@ -397,9 +395,7 @@ public class DexBuilder {
       BasicBlock nextBlock =
           blockIndex + 1 < code.blocks.size() ? code.blocks.get(blockIndex + 1) : null;
 
-      InstructionIterator iterator = currentBlock.iterator();
-      while (iterator.hasNext()) {
-        com.android.tools.r8.ir.code.Instruction instruction = iterator.next();
+      for (com.android.tools.r8.ir.code.Instruction instruction : currentBlock.getInstructions()) {
         if (instruction.isDebugPosition()) {
           if (unresolvedPosition == null
               && currentMaterializedPosition == instruction.getPosition()) {
@@ -444,7 +440,7 @@ public class DexBuilder {
     }
     // Remove all unneeded positions.
     if (!toRemove.isEmpty()) {
-      InstructionIterator it = code.instructionIterator();
+      InstructionListIterator it = code.instructionListIterator();
       int i = 0;
       while (it.hasNext() && i < toRemove.size()) {
         if (it.next() == toRemove.get(i)) {

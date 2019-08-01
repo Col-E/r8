@@ -4,6 +4,10 @@
 
 package com.android.tools.r8.utils;
 
+import com.android.tools.r8.errors.Unimplemented;
+import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.InstructionIterator;
+import com.android.tools.r8.ir.code.InstructionListIterator;
 import java.util.Iterator;
 import java.util.ListIterator;
 import java.util.function.Predicate;
@@ -33,6 +37,16 @@ public class IteratorUtils {
         iterator.remove();
       }
     }
+  }
+
+  /** @deprecated Use {@link #removeIf(InstructionListIterator, Predicate)} instead. */
+  @Deprecated
+  public static void removeIf(InstructionIterator iterator, Predicate<Instruction> predicate) {
+    throw new Unimplemented();
+  }
+
+  public static void removeIf(InstructionListIterator iterator, Predicate<Instruction> predicate) {
+    removeIf((Iterator<Instruction>) iterator, predicate);
   }
 
   public static <T> boolean allRemainingMatch(ListIterator<T> iterator, Predicate<T> predicate) {

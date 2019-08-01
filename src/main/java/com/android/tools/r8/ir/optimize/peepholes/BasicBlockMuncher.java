@@ -7,7 +7,7 @@ package com.android.tools.r8.ir.optimize.peepholes;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstructionListIterator;
-import com.android.tools.r8.ir.code.LinearFlowInstructionIterator;
+import com.android.tools.r8.ir.code.LinearFlowInstructionListIterator;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.ListIterator;
@@ -39,21 +39,22 @@ public class BasicBlockMuncher {
     while (blocksIterator.hasPrevious()) {
       BasicBlock currentBlock = blocksIterator.previous();
       InstructionListIterator it =
-          new LinearFlowInstructionIterator(currentBlock, currentBlock.getInstructions().size());
+          new LinearFlowInstructionListIterator(
+              code, currentBlock, currentBlock.getInstructions().size());
       boolean matched = false;
       while (matched || it.hasPrevious()) {
         if (!it.hasPrevious()) {
           matched = false;
           it =
-              new LinearFlowInstructionIterator(
-                  currentBlock, currentBlock.getInstructions().size());
+              new LinearFlowInstructionListIterator(
+                  code, currentBlock, currentBlock.getInstructions().size());
         }
         for (BasicBlockPeephole peepHole : peepholes) {
           boolean localMatch = peepHole.match(it);
           if (localMatch && peepHole.resetAfterMatch()) {
             it =
-                new LinearFlowInstructionIterator(
-                    currentBlock, currentBlock.getInstructions().size());
+                new LinearFlowInstructionListIterator(
+                    code, currentBlock, currentBlock.getInstructions().size());
           } else {
             matched |= localMatch;
           }

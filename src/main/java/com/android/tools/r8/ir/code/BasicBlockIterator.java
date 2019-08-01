@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.code;
 
-import java.util.Iterator;
 import java.util.ListIterator;
 
 public class BasicBlockIterator implements ListIterator<BasicBlock> {
@@ -79,7 +78,7 @@ public class BasicBlockIterator implements ListIterator<BasicBlock> {
       throw new IllegalStateException();
     }
     // Remove all instructions from the block before removing the block.
-    Iterator<Instruction> iterator = current.iterator();
+    InstructionListIterator iterator = current.listIterator(code);
     while (iterator.hasNext()) {
       Instruction instruction = iterator.next();
       instruction.clearDebugValues();

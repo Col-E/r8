@@ -31,7 +31,6 @@ import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
@@ -198,9 +197,9 @@ public class IRCode {
       // normal successor.
       assert liveStack.isEmpty()
           || block.getSuccessors().size() - exceptionalSuccessors.size() == 1;
-      Iterator<Instruction> iterator = block.getInstructions().descendingIterator();
-      while (iterator.hasNext()) {
-        Instruction instruction = iterator.next();
+      InstructionIterator iterator = block.listIterator(this, block.getInstructions().size());
+      while (iterator.hasPrevious()) {
+        Instruction instruction = iterator.previous();
         Value outValue = instruction.outValue();
         if (outValue != null) {
           if (outValue instanceof StackValue) {
@@ -703,7 +702,7 @@ public class IRCode {
   private boolean consistentBlockInstructions() {
     boolean argumentsAllowed = true;
     for (BasicBlock block : blocks) {
-      block.consistentBlockInstructions(
+      assert block.consistentBlockInstructions(
           argumentsAllowed,
           options.debug || method.getOptimizationInfo().isReachabilitySensitive());
       argumentsAllowed = false;
@@ -823,6 +822,10 @@ public class IRCode {
   }
 
   public InstructionIterator instructionIterator() {
+    return new IRCodeInstructionIterator(this);
+  }
+
+  public InstructionListIterator instructionListIterator() {
     return new IRCodeInstructionListIterator(this);
   }
 
@@ -853,11 +856,9 @@ public class IRCode {
   }
 
   public int numberRemainingInstructions() {
-    InstructionIterator it = instructionIterator();
-    while (it.hasNext()) {
-      Instruction i = it.next();
-      if (i.getNumber() == -1) {
-        i.setNumber(nextInstructionNumber);
+    for (Instruction instruction : instructions()) {
+      if (instruction.getNumber() == -1) {
+        instruction.setNumber(nextInstructionNumber);
         nextInstructionNumber += INSTRUCTION_NUMBER_DELTA;
       }
     }
@@ -874,7 +875,7 @@ public class IRCode {
 
   public List<Value> collectArguments(boolean ignoreReceiver) {
     final List<Value> arguments = new ArrayList<>();
-    Iterator<Instruction> iterator = entryBlock().iterator();
+    InstructionIterator iterator = entryBlock().iterator();
     while (iterator.hasNext()) {
       Instruction instruction = iterator.next();
       if (instruction.isArgument()) {
@@ -893,7 +894,7 @@ public class IRCode {
     if (method.accessFlags.isStatic()) {
       return null;
     }
-    Instruction firstArg = entryBlock().listIterator().nextUntil(Instruction::isArgument);
+    Instruction firstArg = entryBlock().iterator().nextUntil(Instruction::isArgument);
     assert firstArg != null;
     Value thisValue = firstArg.asArgument().outValue();
     assert thisValue.isThis();
@@ -942,9 +943,7 @@ public class IRCode {
   }
 
   private boolean computeAllThrowingInstructionsHavePositions() {
-    InstructionIterator it = instructionIterator();
-    while (it.hasNext()) {
-      Instruction instruction = it.next();
+    for (Instruction instruction : instructions()) {
       if (instruction.instructionTypeCanThrow()
           && !instruction.isConstString()
           && !instruction.isDexItemBasedConstString()
@@ -1029,7 +1028,7 @@ public class IRCode {
       }
       return result;
     } else {
-      Iterable<Instruction> result = () -> source.listIterator(instruction);
+      Iterable<Instruction> result = () -> source.iterator(instruction);
       for (BasicBlock block : blocksReachableFromSource) {
         result = Iterables.concat(result, block.getInstructions());
       }
@@ -1129,7 +1128,7 @@ public class IRCode {
 
   public Position findFirstNonNonePosition() {
     Instruction rightAfterArguments =
-        entryBlock().listIterator().nextUntil(instr -> !instr.isArgument());
+        entryBlock().iterator().nextUntil(instr -> !instr.isArgument());
     Position firstNonArgumentPosition = rightAfterArguments.getPosition();
     Set<BasicBlock> visitedBlocks = new HashSet<>();
     while (rightAfterArguments != null) {

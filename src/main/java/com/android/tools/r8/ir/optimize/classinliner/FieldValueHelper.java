@@ -13,7 +13,7 @@ import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.InstructionListIterator;
+import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Phi.RegisterReadType;
 import com.android.tools.r8.ir.code.Value;
@@ -115,8 +115,8 @@ final class FieldValueHelper {
   }
 
   private Value getValueDefinedInTheBlock(BasicBlock block, Instruction stopAt) {
-    InstructionListIterator iterator = stopAt == null ?
-        block.listIterator(block.getInstructions().size()) : block.listIterator(stopAt);
+    InstructionIterator iterator =
+        stopAt == null ? block.iterator(block.getInstructions().size()) : block.iterator(stopAt);
 
     Instruction valueProducingInsn = null;
     while (iterator.hasPrevious()) {

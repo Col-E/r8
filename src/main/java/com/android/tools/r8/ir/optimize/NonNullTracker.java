@@ -18,6 +18,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.If.Type;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
@@ -69,7 +70,7 @@ public class NonNullTracker {
       // 1) invocations that call non-overridable library methods that are known to return non null.
       // 2) instructions that implicitly indicate receiver/array is not null.
       // 3) parameters that are not null after the invocation.
-      InstructionListIterator iterator = block.listIterator();
+      InstructionListIterator iterator = block.listIterator(code);
       while (iterator.hasNext()) {
         Instruction current = iterator.next();
         if (current.isInvokeMethod()
@@ -201,7 +202,7 @@ public class NonNullTracker {
                 Assume<NonNullAssumption> nonNull =
                     Assume.createAssumeNonNullInstruction(
                         nonNullValue, knownToBeNonNullValue, theIf, appView);
-                InstructionListIterator targetIterator = target.listIterator();
+                InstructionListIterator targetIterator = target.listIterator(code);
                 nonNull.setPosition(targetIterator.next().getPosition());
                 targetIterator.previous();
                 targetIterator.add(nonNull);
@@ -261,7 +262,7 @@ public class NonNullTracker {
       Set<BasicBlock> dominatedBlocks = Sets.newIdentityHashSet();
       for (BasicBlock dominatee : dominatorTree.dominatedBlocks(blockWithNonNullInstruction)) {
         dominatedBlocks.add(dominatee);
-        InstructionListIterator dominateeIterator = dominatee.listIterator();
+        InstructionIterator dominateeIterator = dominatee.iterator();
         if (dominatee == blockWithNonNullInstruction && !split) {
           // In the block where the non null instruction will be inserted, skip instructions up to
           // and including the insertion point.
@@ -307,7 +308,7 @@ public class NonNullTracker {
         nonNull.setPosition(current.getPosition());
         if (blockWithNonNullInstruction != block) {
           // If we split, add non-null IR on top of the new split block.
-          blockWithNonNullInstruction.listIterator().add(nonNull);
+          blockWithNonNullInstruction.listIterator(code).add(nonNull);
         } else {
           // Otherwise, just add it to the current block at the position of the iterator.
           iterator.add(nonNull);

@@ -36,7 +36,6 @@ import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Inc;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.JumpInstruction;
@@ -221,7 +220,7 @@ public class CfBuilder {
 
   private void rewriteNots() {
     for (BasicBlock block : code.blocks) {
-      InstructionListIterator it = block.listIterator();
+      InstructionListIterator it = block.listIterator(code);
       while (it.hasNext()) {
         Instruction current = it.next();
         if (!current.isNot()) {
@@ -357,7 +356,7 @@ public class CfBuilder {
 
   private void rewriteIincPatterns() {
     for (BasicBlock block : code.blocks) {
-      ListIterator<Instruction> it = block.getInstructions().listIterator();
+      InstructionListIterator it = block.listIterator(code);
       // Test that we have enough instructions for iinc.
       while (IINC_PATTERN_SIZE <= block.getInstructions().size() - it.nextIndex()) {
         Instruction loadOrConst1 = it.next();
@@ -403,11 +402,11 @@ public class CfBuilder {
             || position != store.getPosition()) {
           continue;
         }
-        it.remove();
+        it.removeInstructionIgnoreOutValue();
         it.next();
-        it.remove();
+        it.removeInstructionIgnoreOutValue();
         it.next();
-        it.remove();
+        it.removeInstructionIgnoreOutValue();
         it.next();
         Inc inc = new Inc(store.outValue(), load.inValues().get(0), increment);
         inc.setPosition(position);
@@ -430,9 +429,7 @@ public class CfBuilder {
         pendingFrame = null;
       }
     }
-    InstructionIterator it = block.iterator();
-    while (it.hasNext()) {
-      Instruction instruction = it.next();
+    for (Instruction instruction : block.getInstructions()) {
       if (fallthrough && instruction.isGoto()) {
         assert block.exit() == instruction;
         return;

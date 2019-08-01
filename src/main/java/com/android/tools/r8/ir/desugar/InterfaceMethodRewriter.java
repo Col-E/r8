@@ -204,7 +204,7 @@ public final class InterfaceMethodRewriter {
     AppInfo appInfo = appView.appInfo();
     while (blocks.hasNext()) {
       BasicBlock block = blocks.next();
-      InstructionListIterator instructions = block.listIterator();
+      InstructionListIterator instructions = block.listIterator(code);
       while (instructions.hasNext()) {
         Instruction instruction = instructions.next();
 

@@ -379,7 +379,7 @@ public class UninstantiatedTypeOptimization {
       if (blocksToBeRemoved.contains(block)) {
         continue;
       }
-      InstructionListIterator instructionIterator = block.listIterator();
+      InstructionListIterator instructionIterator = block.listIterator(code);
       while (instructionIterator.hasNext()) {
         Instruction instruction = instructionIterator.next();
         if (instruction.throwsOnNullInput()) {

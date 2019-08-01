@@ -117,7 +117,7 @@ public class StringConcatRewriter {
     ListIterator<BasicBlock> blocks = code.listIterator();
     while (blocks.hasNext()) {
       BasicBlock block = blocks.next();
-      InstructionListIterator instructions = block.listIterator().recordChangesToMetadata(code);
+      InstructionListIterator instructions = block.listIterator(code);
       while (instructions.hasNext()) {
         Instruction instruction = instructions.next();
         if (!instruction.isInvokeCustom()) {
@@ -382,7 +382,7 @@ public class StringConcatRewriter {
       // located right before the iterator point and new blocks created while copying
       // handles break this expectation.
       List<BasicBlock> newBlocks = new ArrayList<>();
-      InstructionListIterator it = currentBlock.listIterator();
+      InstructionListIterator it = currentBlock.listIterator(code);
       while (it.hasNext()) {
         Instruction instruction = it.next();
         if (instruction.instructionTypeCanThrow() && it.hasNext()) {
@@ -391,7 +391,7 @@ public class StringConcatRewriter {
           BasicBlock newBlock = it.split(code, blocks);
           newBlocks.add(newBlock);
           // Follow with the next block.
-          it = newBlock.listIterator();
+          it = newBlock.listIterator(code);
         }
       }
       // Copy catch handlers after all blocks are split.

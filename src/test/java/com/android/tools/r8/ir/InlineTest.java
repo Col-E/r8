@@ -38,7 +38,7 @@ import org.junit.Test;
 
 public class InlineTest extends IrInjectionTestBase {
 
-  public TestApplication buildTestApplication(
+  private TestApplication buildTestApplication(
       DexApplication application,
       InternalOptions options,
       MethodSubject method,
@@ -134,7 +134,7 @@ public class InlineTest extends IrInjectionTestBase {
 
     // Run code inlining a.
     test = codeForMethodReplaceTest(a, b);
-    iterator = test.code.entryBlock().listIterator();
+    iterator = test.code.entryBlock().listIterator(test.code);
     iterator.nextUntil(Instruction::isInvoke);
     iterator.previous();
     iterator.inlineInvoke(test.appView, test.code, test.additionalCode.get(0));
@@ -143,7 +143,7 @@ public class InlineTest extends IrInjectionTestBase {
 
     // Run code inlining b (where a is actually called).
     test = codeForMethodReplaceTest(a, b);
-    iterator = test.code.entryBlock().listIterator();
+    iterator = test.code.entryBlock().listIterator(test.code);
     iterator.nextUntil(Instruction::isInvoke);
     iterator.previous();
     iterator.inlineInvoke(test.appView, test.code, test.additionalCode.get(1));
@@ -213,7 +213,7 @@ public class InlineTest extends IrInjectionTestBase {
 
     // Run code inlining a.
     test = codeForMethodReplaceReturnVoidTest(1, 2);
-    iterator = test.code.entryBlock().listIterator();
+    iterator = test.code.entryBlock().listIterator(test.code);
     iterator.nextUntil(Instruction::isInvoke);
     iterator.previous();
     iterator.inlineInvoke(test.appView, test.code, test.additionalCode.get(0));
@@ -305,7 +305,7 @@ public class InlineTest extends IrInjectionTestBase {
     Set<BasicBlock> blocksToRemove = Sets.newIdentityHashSet();
     while (blocksIterator.hasNext()) {
       BasicBlock block = blocksIterator.next();
-      iterator = block.listIterator();
+      iterator = block.listIterator(test.code);
       Instruction invoke = iterator.nextUntil(Instruction::isInvoke);
       if (invoke != null) {
         iterator.previous();
@@ -323,7 +323,7 @@ public class InlineTest extends IrInjectionTestBase {
     inlinee = test.additionalCode.listIterator(3);  // IR code for b's
     while (blocksIterator.hasNext()) {
       BasicBlock block = blocksIterator.next();
-      iterator = block.listIterator();
+      iterator = block.listIterator(test.code);
       Instruction invoke = iterator.nextUntil(Instruction::isInvoke);
       if (invoke != null) {
         iterator.previous();
@@ -427,7 +427,7 @@ public class InlineTest extends IrInjectionTestBase {
 
     // Run code inlining a.
     test = codeForMethodReplaceTestWithCatchHandler(a, b, twoGuards);
-    iterator = test.code.blocks.get(1).listIterator();
+    iterator = test.code.blocks.get(1).listIterator(test.code);
     iterator.nextUntil(Instruction::isInvoke);
     iterator.previous();
     iterator.inlineInvoke(test.appView, test.code, test.additionalCode.get(0));
@@ -436,7 +436,7 @@ public class InlineTest extends IrInjectionTestBase {
 
     // Run code inlining b (where a is actually called).
     test = codeForMethodReplaceTestWithCatchHandler(a, b, twoGuards);
-    iterator = test.code.blocks.get(1).listIterator();
+    iterator = test.code.blocks.get(1).listIterator(test.code);
     iterator.nextUntil(Instruction::isInvoke);
     iterator.previous();
     iterator.inlineInvoke(test.appView, test.code, test.additionalCode.get(1));
@@ -540,7 +540,7 @@ public class InlineTest extends IrInjectionTestBase {
 
     // Run code inlining a.
     test = codeForInlineCanThrow(a, b, twoGuards);
-    iterator = test.code.entryBlock().listIterator();
+    iterator = test.code.entryBlock().listIterator(test.code);
     iterator.nextUntil(Instruction::isInvoke);
     iterator.previous();
     iterator.inlineInvoke(test.appView, test.code, test.additionalCode.get(0));
@@ -549,7 +549,7 @@ public class InlineTest extends IrInjectionTestBase {
 
     // Run code inlining b (where a is actually called).
     test = codeForInlineCanThrow(a, b, twoGuards);
-    iterator = test.code.entryBlock().listIterator();
+    iterator = test.code.entryBlock().listIterator(test.code);
     iterator.nextUntil(Instruction::isInvoke);
     iterator.previous();
     iterator.inlineInvoke(test.appView, test.code, test.additionalCode.get(1));
@@ -651,7 +651,7 @@ public class InlineTest extends IrInjectionTestBase {
 
     // Run code inlining a.
     test = codeForInlineAlwaysThrows(twoGuards);
-    iterator = test.code.entryBlock().listIterator();
+    iterator = test.code.entryBlock().listIterator(test.code);
     iterator.nextUntil(Instruction::isInvoke);
     iterator.previous();
     iterator.inlineInvoke(test.appView, test.code, test.additionalCode.get(0));
@@ -661,7 +661,7 @@ public class InlineTest extends IrInjectionTestBase {
 
     // Run code inlining b (where a is actually called).
     test = codeForInlineAlwaysThrows(twoGuards);
-    iterator = test.code.entryBlock().listIterator();
+    iterator = test.code.entryBlock().listIterator(test.code);
     iterator.nextUntil(Instruction::isInvoke);
     iterator.previous();
     iterator.inlineInvoke(test.appView, test.code, test.additionalCode.get(1));
@@ -780,7 +780,7 @@ public class InlineTest extends IrInjectionTestBase {
         if (blocksToRemove.contains(block)) {
           continue;
         }
-        iterator = block.listIterator();
+        iterator = block.listIterator(test.code);
         Instruction invoke = iterator.nextUntil(Instruction::isInvoke);
         if (invoke != null) {
           iterator.previous();
@@ -804,7 +804,7 @@ public class InlineTest extends IrInjectionTestBase {
         if (blocksToRemove.contains(block)) {
           continue;
         }
-        iterator = block.listIterator();
+        iterator = block.listIterator(test.code);
         Instruction invoke = iterator.nextUntil(Instruction::isInvoke);
         if (invoke != null) {
           iterator.previous();
@@ -936,7 +936,7 @@ public class InlineTest extends IrInjectionTestBase {
         if (blocksToRemove.contains(block)) {
           continue;
         }
-        iterator = block.listIterator();
+        iterator = block.listIterator(test.code);
         Instruction invoke = iterator.nextUntil(Instruction::isInvoke);
         if (invoke != null) {
           iterator.previous();
@@ -960,7 +960,7 @@ public class InlineTest extends IrInjectionTestBase {
         if (blocksToRemove.contains(block)) {
           continue;
         }
-        iterator = block.listIterator();
+        iterator = block.listIterator(test.code);
         Instruction invoke = iterator.nextUntil(Instruction::isInvoke);
         if (invoke != null) {
           iterator.previous();
@@ -1169,7 +1169,7 @@ public class InlineTest extends IrInjectionTestBase {
     // Run code inlining a.
     test = codeForInlineWithHandlersCanThrow(
         a, b, c, twoGuards, callerHasCatchAll, inlineeHasCatchAll);
-    iterator = test.code.blocks.get(1).listIterator();
+    iterator = test.code.blocks.get(1).listIterator(test.code);
     iterator.nextUntil(Instruction::isInvoke);
     iterator.previous();
     iterator.inlineInvoke(test.appView, test.code, test.additionalCode.get(0));
@@ -1179,7 +1179,7 @@ public class InlineTest extends IrInjectionTestBase {
     // Run code inlining b (where a is actually called).
     test = codeForInlineWithHandlersCanThrow(
         a, b, c, twoGuards, callerHasCatchAll, inlineeHasCatchAll);
-    iterator = test.code.blocks.get(1).listIterator();
+    iterator = test.code.blocks.get(1).listIterator(test.code);
     iterator.nextUntil(Instruction::isInvoke);
     iterator.previous();
     iterator.inlineInvoke(test.appView, test.code, test.additionalCode.get(1));

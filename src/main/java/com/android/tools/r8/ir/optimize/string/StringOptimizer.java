@@ -26,7 +26,7 @@ import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.DexItemBasedConstString;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.InstructionIterator;
+import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
@@ -66,7 +66,7 @@ public class StringOptimizer {
     if (!code.metadata().mayHaveConstString()) {
       return;
     }
-    InstructionIterator it = code.instructionIterator();
+    InstructionListIterator it = code.instructionListIterator();
     while (it.hasNext()) {
       Instruction instr = it.next();
       if (!instr.isInvokeVirtual()) {
@@ -207,7 +207,7 @@ public class StringOptimizer {
       return;
     }
     boolean markUseIdentifierNameString = false;
-    InstructionIterator it = code.instructionIterator().recordChangesToMetadata(code);
+    InstructionListIterator it = code.instructionListIterator();
     while (it.hasNext()) {
       Instruction instr = it.next();
       if (!instr.isInvokeVirtual()) {
@@ -353,7 +353,7 @@ public class StringOptimizer {
   // String#valueOf(String s) -> s
   // str.toString() -> str
   public void removeTrivialConversions(IRCode code) {
-    InstructionIterator it = code.instructionIterator().recordChangesToMetadata(code);
+    InstructionListIterator it = code.instructionListIterator();
     while (it.hasNext()) {
       Instruction instr = it.next();
       if (instr.isInvokeStatic()) {

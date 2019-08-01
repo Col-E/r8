@@ -20,7 +20,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.InstructionIterator;
+import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.Phi;
@@ -278,9 +278,7 @@ final class StaticizingProcessor {
     assert candidateInfo != null;
 
     // Find and remove instantiation and its users.
-    InstructionIterator iterator = code.instructionIterator();
-    while (iterator.hasNext()) {
-      Instruction instruction = iterator.next();
+    for (Instruction instruction : code.instructions()) {
       if (instruction.isNewInstance() &&
           instruction.asNewInstance().clazz == candidateInfo.candidate.type) {
         // Remove all usages
@@ -293,8 +291,8 @@ final class StaticizingProcessor {
 
         Value singletonValue = instruction.outValue();
         assert singletonValue != null;
-        singletonValue.uniqueUsers().forEach(Instruction::removeOrReplaceByDebugLocalRead);
-        instruction.removeOrReplaceByDebugLocalRead();
+        singletonValue.uniqueUsers().forEach(user -> user.removeOrReplaceByDebugLocalRead(code));
+        instruction.removeOrReplaceByDebugLocalRead(code);
         return;
       }
     }
@@ -315,18 +313,19 @@ final class StaticizingProcessor {
             .filter(get -> singletonFields.containsKey(get.getField()))
             .collect(Collectors.toList());
 
-    singletonFieldReads.forEach(read -> {
-      DexField field = read.getField();
-      CandidateInfo candidateInfo = singletonFields.get(field);
-      assert candidateInfo != null;
-      Value value = read.dest();
-      if (value != null) {
-        fixupStaticizedFieldReadUsers(code, value, field);
-      }
-      if (!candidateInfo.preserveRead.get()) {
-        read.removeOrReplaceByDebugLocalRead();
-      }
-    });
+    singletonFieldReads.forEach(
+        read -> {
+          DexField field = read.getField();
+          CandidateInfo candidateInfo = singletonFields.get(field);
+          assert candidateInfo != null;
+          Value value = read.dest();
+          if (value != null) {
+            fixupStaticizedFieldReadUsers(code, value, field);
+          }
+          if (!candidateInfo.preserveRead.get()) {
+            read.removeOrReplaceByDebugLocalRead(code);
+          }
+        });
 
     if (!candidateToHostMapping.isEmpty()) {
       remapMovedCandidates(code);
@@ -490,12 +489,12 @@ final class StaticizingProcessor {
       List<Value> args = invoke.inValues();
       invoke.replace(
           new InvokeStatic(invoke.getInvokedMethod(), newValue, args.subList(1, args.size())),
-          code.metadata());
+          code);
     }
   }
 
   private void remapMovedCandidates(IRCode code) {
-    InstructionIterator it = code.instructionIterator();
+    InstructionListIterator it = code.instructionListIterator();
     while (it.hasNext()) {
       Instruction instruction = it.next();
 

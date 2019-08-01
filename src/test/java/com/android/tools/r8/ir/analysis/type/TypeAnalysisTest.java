@@ -22,7 +22,6 @@ import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstanceOf;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.NewInstance;
@@ -160,11 +159,9 @@ public class TypeAnalysisTest extends SmaliTestBase {
   private static void fillArrayData(AppView<?> appView, CodeInspector inspector) {
     MethodSubject test1Subject =
         inspector.clazz("Test").method(new MethodSignature("test1", "int[]", ImmutableList.of()));
-    IRCode irCode = test1Subject.buildIR();
+    IRCode code = test1Subject.buildIR();
     Value array = null;
-    InstructionIterator iterator = irCode.instructionIterator();
-    while (iterator.hasNext()) {
-      Instruction instruction = iterator.next();
+    for (Instruction instruction : code.instructions()) {
       if (instruction instanceof NewArrayEmpty) {
         array = instruction.outValue();
         break;
@@ -172,26 +169,26 @@ public class TypeAnalysisTest extends SmaliTestBase {
     }
     assertNotNull(array);
     final Value finalArray = array;
-    forEachOutValue(irCode, (v, l) -> {
-      if (v == finalArray) {
-        assertTrue(l.isArrayType());
-        ArrayTypeLatticeElement lattice = l.asArrayTypeLatticeElement();
-        assertTrue(lattice.getArrayMemberTypeAsMemberType().isPrimitive());
-        assertEquals(1, lattice.getNesting());
-        assertFalse(lattice.isNullable());
-      }
-    });
+    forEachOutValue(
+        code,
+        (v, l) -> {
+          if (v == finalArray) {
+            assertTrue(l.isArrayType());
+            ArrayTypeLatticeElement lattice = l.asArrayTypeLatticeElement();
+            assertTrue(lattice.getArrayMemberTypeAsMemberType().isPrimitive());
+            assertEquals(1, lattice.getNesting());
+            assertFalse(lattice.isNullable());
+          }
+        });
   }
 
   // filled-new-array
   private static void filledNewArray(AppView<?> appView, CodeInspector inspector) {
     MethodSubject test4Subject =
         inspector.clazz("Test").method(new MethodSignature("test4", "int[]", ImmutableList.of()));
-    IRCode irCode = test4Subject.buildIR();
+    IRCode code = test4Subject.buildIR();
     Value array = null;
-    InstructionIterator iterator = irCode.instructionIterator();
-    while (iterator.hasNext()) {
-      Instruction instruction = iterator.next();
+    for (Instruction instruction : code.instructions()) {
       if (instruction instanceof InvokeNewArray) {
         array = instruction.outValue();
         break;
@@ -199,15 +196,17 @@ public class TypeAnalysisTest extends SmaliTestBase {
     }
     assertNotNull(array);
     final Value finalArray = array;
-    forEachOutValue(irCode, (v, l) -> {
-      if (v == finalArray) {
-        assertTrue(l.isArrayType());
-        ArrayTypeLatticeElement lattice = l.asArrayTypeLatticeElement();
-        assertTrue(lattice.getArrayMemberTypeAsMemberType().isPrimitive());
-        assertEquals(1, lattice.getNesting());
-        assertFalse(lattice.isNullable());
-      }
-    });
+    forEachOutValue(
+        code,
+        (v, l) -> {
+          if (v == finalArray) {
+            assertTrue(l.isArrayType());
+            ArrayTypeLatticeElement lattice = l.asArrayTypeLatticeElement();
+            assertTrue(lattice.getArrayMemberTypeAsMemberType().isPrimitive());
+            assertEquals(1, lattice.getNesting());
+            assertFalse(lattice.isNullable());
+          }
+        });
   }
 
   // Make sure the analysis does not hang.

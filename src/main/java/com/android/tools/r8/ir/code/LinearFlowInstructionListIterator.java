@@ -11,18 +11,21 @@ import com.android.tools.r8.utils.InternalOptions;
 import java.util.ListIterator;
 import java.util.Set;
 
-public class LinearFlowInstructionIterator implements InstructionIterator, InstructionListIterator {
+public class LinearFlowInstructionListIterator implements InstructionListIterator {
+
+  private final IRCode code;
 
   private BasicBlock currentBlock;
   private InstructionListIterator currentBlockIterator;
 
-  public LinearFlowInstructionIterator(BasicBlock block) {
-    this(block, 0);
+  public LinearFlowInstructionListIterator(IRCode code, BasicBlock block) {
+    this(code, block, 0);
   }
 
-  public LinearFlowInstructionIterator(BasicBlock block, int index) {
+  public LinearFlowInstructionListIterator(IRCode code, BasicBlock block, int index) {
+    this.code = code;
     this.currentBlock = block;
-    this.currentBlockIterator = block.listIterator(index);
+    this.currentBlockIterator = block.listIterator(code, index);
     // If index is pointing after the last instruction, and it is a goto with a linear edge,
     // we have to move the pointer. This is achieved by calling previous and next.
     if (index > 0) {
@@ -119,7 +122,7 @@ public class LinearFlowInstructionIterator implements InstructionIterator, Instr
       target = candidate;
     }
     currentBlock = target;
-    currentBlockIterator = currentBlock.listIterator();
+    currentBlockIterator = currentBlock.listIterator(code);
     return currentBlockIterator.next();
   }
 
@@ -156,7 +159,7 @@ public class LinearFlowInstructionIterator implements InstructionIterator, Instr
       return currentBlockIterator.previous();
     }
     currentBlock = target;
-    currentBlockIterator = currentBlock.listIterator(currentBlock.getInstructions().size());
+    currentBlockIterator = currentBlock.listIterator(code, currentBlock.getInstructions().size());
     // Iterate over the jump.
     currentBlockIterator.previous();
     return currentBlockIterator.previous();

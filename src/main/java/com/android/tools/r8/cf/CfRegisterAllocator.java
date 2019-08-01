@@ -156,15 +156,14 @@ public class CfRegisterAllocator implements RegisterAllocator {
     // locals alive for their entire live range. In release mode the liveness is all that matters
     // and we do not actually want locals information in the output.
     if (appView.options().debug) {
-      LinearScanRegisterAllocator.computeDebugInfo(blocks, liveIntervals, this, liveAtEntrySets);
+      LinearScanRegisterAllocator.computeDebugInfo(
+          code, blocks, liveIntervals, this, liveAtEntrySets);
     }
   }
 
   private void computeNeedsRegister() {
-    InstructionIterator it = code.instructionIterator();
-    while (it.hasNext()) {
-      Instruction next = it.next();
-      Value outValue = next.outValue();
+    for (Instruction instruction : code.instructions()) {
+      Value outValue = instruction.outValue();
       if (outValue != null) {
         boolean isStackValue =
             (outValue instanceof StackValue) || (outValue instanceof StackValues);
@@ -505,10 +504,10 @@ public class CfRegisterAllocator implements RegisterAllocator {
 
   private void applyInstructionsBackwardsToRegisterLiveness(
       BasicBlock block, IntSet liveRegisters, int suffixSize) {
-    Iterator<Instruction> iterator = block.getInstructions().descendingIterator();
+    InstructionIterator iterator = block.iterator(block.getInstructions().size());
     int instructionsLeft = suffixSize;
-    while (--instructionsLeft >= 0 && iterator.hasNext()) {
-      Instruction current = iterator.next();
+    while (--instructionsLeft >= 0 && iterator.hasPrevious()) {
+      Instruction current = iterator.previous();
       Value outValue = current.outValue();
       if (outValue != null && outValue.needsRegister()) {
         int register = getRegisterForValue(outValue);

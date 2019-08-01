@@ -22,7 +22,7 @@ import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.DexItemBasedConstString;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.InstructionListIterator;
+import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.StaticGet;
@@ -283,7 +283,7 @@ public class RawMessageInfoDecoder {
     }
 
     // Create an iterator for the block of interest.
-    InstructionListIterator instructionIterator = newArrayEmpty.getBlock().listIterator();
+    InstructionIterator instructionIterator = newArrayEmpty.getBlock().iterator();
     instructionIterator.nextUntil(instruction -> instruction == newArrayEmpty);
 
     return new ThrowingIterator<Value, InvalidRawMessageInfoException>() {

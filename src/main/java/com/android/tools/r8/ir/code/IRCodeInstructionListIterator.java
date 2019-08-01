@@ -18,11 +18,12 @@ public class IRCodeInstructionListIterator implements InstructionListIterator {
   private final ListIterator<BasicBlock> blockIterator;
   private InstructionListIterator instructionIterator;
 
-  private IRMetadata metadata;
+  private final IRCode code;
 
   public IRCodeInstructionListIterator(IRCode code) {
-    blockIterator = code.listIterator();
-    instructionIterator = blockIterator.next().listIterator();
+    this.blockIterator = code.listIterator();
+    this.code = code;
+    this.instructionIterator = blockIterator.next().listIterator(code);
   }
 
   @Override
@@ -67,12 +68,6 @@ public class IRCodeInstructionListIterator implements InstructionListIterator {
   }
 
   @Override
-  public IRCodeInstructionListIterator recordChangesToMetadata(IRMetadata metadata) {
-    this.metadata = metadata;
-    return this;
-  }
-
-  @Override
   public boolean hasNext() {
     return instructionIterator.hasNext() || blockIterator.hasNext();
   }
@@ -85,7 +80,7 @@ public class IRCodeInstructionListIterator implements InstructionListIterator {
     if (!blockIterator.hasNext()) {
       throw new NoSuchElementException();
     }
-    instructionIterator = blockIterator.next().listIterator();
+    instructionIterator = blockIterator.next().listIterator(code);
     assert instructionIterator.hasNext();
     return instructionIterator.next();
   }
@@ -104,7 +99,7 @@ public class IRCodeInstructionListIterator implements InstructionListIterator {
       throw new NoSuchElementException();
     }
     BasicBlock block = blockIterator.previous();
-    instructionIterator = block.listIterator(block.getInstructions().size());
+    instructionIterator = block.listIterator(code, block.getInstructions().size());
     assert instructionIterator.hasPrevious();
     return instructionIterator.previous();
   }
@@ -122,9 +117,6 @@ public class IRCodeInstructionListIterator implements InstructionListIterator {
   @Override
   public void add(Instruction instruction) {
     instructionIterator.add(instruction);
-    if (metadata != null) {
-      metadata.record(instruction);
-    }
   }
 
   @Override
@@ -135,17 +127,11 @@ public class IRCodeInstructionListIterator implements InstructionListIterator {
   @Override
   public void set(Instruction instruction) {
     instructionIterator.set(instruction);
-    if (metadata != null) {
-      metadata.record(instruction);
-    }
   }
 
   @Override
   public void replaceCurrentInstruction(Instruction newInstruction) {
     instructionIterator.replaceCurrentInstruction(newInstruction);
-    if (metadata != null) {
-      metadata.record(newInstruction);
-    }
   }
 
   @Override

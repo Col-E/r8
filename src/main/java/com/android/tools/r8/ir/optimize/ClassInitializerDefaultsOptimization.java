@@ -37,7 +37,6 @@ import com.android.tools.r8.ir.code.DexItemBasedConstString;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.StaticGet;
@@ -168,7 +167,7 @@ public class ClassInitializerDefaultsOptimization {
 
     // Note: Traversing code.instructions(), and not unnecessaryStaticPuts(), to ensure
     // deterministic iteration order.
-    InstructionIterator instructionIterator = code.instructionIterator();
+    InstructionListIterator instructionIterator = code.instructionListIterator();
     while (instructionIterator.hasNext()) {
       Instruction instruction = instructionIterator.next();
       if (!instruction.isStaticPut()
@@ -196,7 +195,7 @@ public class ClassInitializerDefaultsOptimization {
 
     // Remove the instructions collected for removal.
     if (unnecessaryInstructions.size() > 0) {
-      IteratorUtils.removeIf(code.instructionIterator(), unnecessaryInstructions::contains);
+      IteratorUtils.removeIf(code.instructionListIterator(), unnecessaryInstructions::contains);
     }
 
     // If we are in R8, and we have removed all static-put instructions to some field, then record
@@ -325,9 +324,7 @@ public class ClassInitializerDefaultsOptimization {
       BasicBlock block = code.entryBlock();
       while (!block.isMarked(color) && block.getPredecessors().size() <= 1) {
         block.mark(color);
-        InstructionListIterator it = block.listIterator();
-        while (it.hasNext()) {
-          Instruction instruction = it.next();
+        for (Instruction instruction : block.getInstructions()) {
           if (instruction.isArrayPut()) {
             // Array stores do not impact our ability to move constants into the class definition,
             // as long as the instructions do not throw.

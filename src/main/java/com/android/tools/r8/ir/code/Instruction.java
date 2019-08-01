@@ -270,15 +270,12 @@ public abstract class Instruction implements InstructionOrPhi {
     block = null;
   }
 
-  public void removeOrReplaceByDebugLocalRead() {
-    getBlock().listIterator(this).removeOrReplaceByDebugLocalRead();
+  public void removeOrReplaceByDebugLocalRead(IRCode code) {
+    getBlock().listIterator(code, this).removeOrReplaceByDebugLocalRead();
   }
 
-  public void replace(Instruction newInstruction, IRMetadata metadata) {
-    getBlock()
-        .listIterator(this)
-        .recordChangesToMetadata(metadata)
-        .replaceCurrentInstruction(newInstruction);
+  public void replace(Instruction newInstruction, IRCode code) {
+    getBlock().listIterator(code, this).replaceCurrentInstruction(newInstruction);
   }
 
   /**

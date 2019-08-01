@@ -1587,7 +1587,7 @@ public class IRConverter {
     // Only if the constructor contains a super constructor call taking only parameters as
     // inputs.
     for (BasicBlock block : code.blocks) {
-      InstructionListIterator it = block.listIterator();
+      InstructionListIterator it = block.listIterator(code);
       Instruction superConstructorCall = it.nextUntil((i) ->
           i.isInvokeDirect() &&
           i.asInvokeDirect().getInvokedMethod().name == options.itemFactory.constructorMethodName &&
@@ -1630,7 +1630,7 @@ public class IRConverter {
                     factory.intDescriptor,
                     new DexString[] {factory.longDescriptor}));
     for (BasicBlock block : code.blocks) {
-      InstructionListIterator it = block.listIterator();
+      InstructionListIterator it = block.listIterator(code);
       Instruction firstMaterializing = it.nextUntil(IRConverter::isNotPseudoInstruction);
       if (!isLongMul(firstMaterializing)) {
         continue;
@@ -1645,7 +1645,7 @@ public class IRConverter {
       Value outOfMul = firstMaterializing.outValue();
       for (Value inOfAddOrSub : secondMaterializing.inValues()) {
         if (isAliasOf(inOfAddOrSub, outOfMul)) {
-          it = block.listIterator();
+          it = block.listIterator(code);
           it.nextUntil(i -> i == firstMaterializing);
           Value longValue = firstMaterializing.inValues().get(0);
           InvokeStatic invokeLongSignum =
@@ -1707,7 +1707,7 @@ public class IRConverter {
       BasicBlock split = it.split(code);
       assert split.hasCatchHandlers();
       assert !block.hasCatchHandlers();
-      it = block.listIterator(block.getInstructions().size() - 1);
+      it = block.listIterator(code, block.getInstructions().size() - 1);
     }
     instruction.setPosition(addBefore.getPosition());
     it.add(instruction);

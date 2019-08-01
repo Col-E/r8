@@ -115,7 +115,7 @@ public class RedundantFieldLoadElimination {
           activeStaticFieldsAtEntry.containsKey(block)
               ? activeStaticFieldsAtEntry.get(block)
               : new IdentityHashMap<>();
-      InstructionListIterator it = block.listIterator();
+      InstructionListIterator it = block.listIterator(code);
       while (it.hasNext()) {
         Instruction instruction = it.next();
         if (instruction.isFieldInstruction()) {

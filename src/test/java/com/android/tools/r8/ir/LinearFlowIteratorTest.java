@@ -11,7 +11,7 @@ import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
-import com.android.tools.r8.ir.code.LinearFlowInstructionIterator;
+import com.android.tools.r8.ir.code.LinearFlowInstructionListIterator;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.utils.AndroidApp;
@@ -22,7 +22,7 @@ import org.junit.Test;
 
 public class LinearFlowIteratorTest extends TestBase {
 
-  IRCode branchingCode() throws Exception {
+  private IRCode branchingCode() throws Exception {
 
     JasminBuilder jasminBuilder = new JasminBuilder();
 
@@ -58,14 +58,14 @@ public class LinearFlowIteratorTest extends TestBase {
     IRCode code = methodSubject.buildIR();
     ListIterator<BasicBlock> blocks = code.listIterator();
     blocks.next();
-    InstructionListIterator iter = blocks.next().listIterator();
+    InstructionListIterator iter = blocks.next().listIterator(code);
     iter.nextUntil(i -> !i.isConstNumber());
     iter.previous();
     iter.split(code, blocks);
     return code;
   }
 
-  IRCode simpleCode() throws Exception {
+  private IRCode simpleCode() throws Exception {
 
     JasminBuilder jasminBuilder = new JasminBuilder();
 
@@ -92,7 +92,7 @@ public class LinearFlowIteratorTest extends TestBase {
     MethodSubject method = getMethodSubject(app, "foo", "void", "bar", ImmutableList.of("int"));
     IRCode code = method.buildIR();
     ListIterator<BasicBlock> blocks = code.listIterator();
-    InstructionListIterator iter = blocks.next().listIterator();
+    InstructionListIterator iter = blocks.next().listIterator(code);
     iter.nextUntil(i -> !i.isArgument());
     iter.split(code, 0, blocks);
     return code;
@@ -101,35 +101,33 @@ public class LinearFlowIteratorTest extends TestBase {
   @Test
   public void hasNextWillCheckNextBlock() throws Exception {
     IRCode code = simpleCode();
-    InstructionListIterator it = new LinearFlowInstructionIterator(code.entryBlock());
-    Instruction current = it.next();
-    current = it.next();
+    InstructionListIterator it = new LinearFlowInstructionListIterator(code, code.entryBlock());
+    it.next();
+    it.next();
     assert it.hasNext();
   }
 
   @Test
   public void nextWillContinueThroughGotoBlocks() throws Exception {
     IRCode code = simpleCode();
-    InstructionListIterator it = new LinearFlowInstructionIterator(code.entryBlock());
-    Instruction current;
-    current = it.next(); // Argument
-    current = it.next(); // ConstNumber 0/NULL
-    current = it.next(); // ArrayGet
-    current = it.next(); // Return;
-    assert current.isReturn();
+    InstructionListIterator it = new LinearFlowInstructionListIterator(code, code.entryBlock());
+    it.next(); // Argument
+    it.next(); // ConstNumber 0/NULL
+    it.next(); // ArrayGet
+    assert it.next().isReturn(); // Return
   }
 
   @Test
   public void hasPreviousWillCheckPreviousBlock() throws Exception {
     IRCode code = simpleCode();
-    InstructionListIterator it = new LinearFlowInstructionIterator(code.blocks.get(2));
+    InstructionListIterator it = new LinearFlowInstructionListIterator(code, code.blocks.get(2));
     assert it.hasPrevious();
   }
 
   @Test
   public void hasPreviousWillJumpOverGotos() throws Exception {
     IRCode code = simpleCode();
-    InstructionListIterator it = new LinearFlowInstructionIterator(code.blocks.get(2));
+    InstructionListIterator it = new LinearFlowInstructionListIterator(code, code.blocks.get(2));
     assert it.previous().isConstNumber();
   }
 
@@ -137,7 +135,7 @@ public class LinearFlowIteratorTest extends TestBase {
   public void GoToFrontAndBackIsSameAmountOfInstructions() throws Exception {
     IRCode code = simpleCode();
     int moves = 0;
-    InstructionListIterator it = new LinearFlowInstructionIterator(code.entryBlock());
+    InstructionListIterator it = new LinearFlowInstructionListIterator(code, code.entryBlock());
     while (it.hasNext()) {
       it.next();
       moves++;
@@ -153,7 +151,7 @@ public class LinearFlowIteratorTest extends TestBase {
   @Test
   public void moveFromEmptyBlock() throws Exception {
     IRCode code = simpleCode();
-    InstructionListIterator it = new LinearFlowInstructionIterator(code.blocks.get(1));
+    InstructionListIterator it = new LinearFlowInstructionListIterator(code, code.blocks.get(1));
     Instruction current = it.previous();
     assertTrue(current.isConstNumber() && current.outValue().getTypeLattice().isReference());
     it.next();
@@ -164,23 +162,23 @@ public class LinearFlowIteratorTest extends TestBase {
   @Test
   public void doNotChangeToNextBlockWhenNotLinearFlow() throws Exception {
     IRCode code = branchingCode();
-    InstructionListIterator it = new LinearFlowInstructionIterator(code.entryBlock());
+    InstructionListIterator it = new LinearFlowInstructionListIterator(code, code.entryBlock());
     it.nextUntil((i) -> !i.isArgument());
-    Instruction current = it.next();
+    it.next();
     assert !it.hasNext();
   }
 
   @Test
   public void doNotChangeToPreviousBlockWhenNotLinearFlow() throws Exception {
     IRCode code = branchingCode();
-    InstructionListIterator it = new LinearFlowInstructionIterator(code.blocks.get(4));
+    InstructionListIterator it = new LinearFlowInstructionListIterator(code, code.blocks.get(4));
     assert !it.hasPrevious();
   }
 
   @Test
   public void followLinearSubPathDown() throws Exception {
     IRCode code = branchingCode();
-    InstructionListIterator it = new LinearFlowInstructionIterator(code.blocks.get(1));
+    InstructionListIterator it = new LinearFlowInstructionListIterator(code, code.blocks.get(1));
     Instruction current = null;
     while (it.hasNext()) {
       current = it.next();
@@ -191,7 +189,7 @@ public class LinearFlowIteratorTest extends TestBase {
   @Test
   public void followLinearSubPathUp() throws Exception {
     IRCode code = branchingCode();
-    InstructionListIterator it = new LinearFlowInstructionIterator(code.blocks.get(2));
+    InstructionListIterator it = new LinearFlowInstructionListIterator(code, code.blocks.get(2));
     Instruction current = null;
     while (it.hasPrevious()) {
       current = it.previous();

@@ -80,36 +80,38 @@ public class SparseConditionalConstantPropagation {
     List<BasicBlock> blockToAnalyze = new ArrayList<>();
 
     mapping.entrySet().stream()
-        .filter((entry) -> entry.getValue().isConst())
-        .forEach((entry) -> {
-          Value value = entry.getKey();
-          ConstNumber evaluatedConst = entry.getValue().asConst().getConstNumber();
-          if (value.definition != evaluatedConst) {
-            if (value.isPhi()) {
-              // D8 relies on dead code removal to get rid of the dead phi itself.
-              if (value.numberOfAllUsers() != 0) {
-                BasicBlock block = value.asPhi().getBlock();
-                blockToAnalyze.add(block);
-                // Create a new constant, because it can be an existing constant that flow directly
-                // into the phi.
-                ConstNumber newConst = ConstNumber.copyOf(code, evaluatedConst);
-                InstructionListIterator iterator = block.listIterator();
-                Instruction inst = iterator.nextUntil((i) -> !i.isMoveException());
-                newConst.setPosition(inst.getPosition());
-                if (!inst.isDebugPosition()) {
-                  iterator.previous();
+        .filter(entry -> entry.getValue().isConst())
+        .forEach(
+            entry -> {
+              Value value = entry.getKey();
+              ConstNumber evaluatedConst = entry.getValue().asConst().getConstNumber();
+              if (value.definition != evaluatedConst) {
+                if (value.isPhi()) {
+                  // D8 relies on dead code removal to get rid of the dead phi itself.
+                  if (value.numberOfAllUsers() != 0) {
+                    BasicBlock block = value.asPhi().getBlock();
+                    blockToAnalyze.add(block);
+                    // Create a new constant, because it can be an existing constant that flow
+                    // directly
+                    // into the phi.
+                    ConstNumber newConst = ConstNumber.copyOf(code, evaluatedConst);
+                    InstructionListIterator iterator = block.listIterator(code);
+                    Instruction inst = iterator.nextUntil(i -> !i.isMoveException());
+                    newConst.setPosition(inst.getPosition());
+                    if (!inst.isDebugPosition()) {
+                      iterator.previous();
+                    }
+                    iterator.add(newConst);
+                    value.replaceUsers(newConst.outValue());
+                  }
+                } else {
+                  BasicBlock block = value.definition.getBlock();
+                  InstructionListIterator iterator = block.listIterator(code);
+                  iterator.nextUntil(i -> i == value.definition);
+                  iterator.replaceCurrentInstruction(evaluatedConst);
                 }
-                iterator.add(newConst);
-                value.replaceUsers(newConst.outValue());
               }
-            } else {
-              BasicBlock block = value.definition.getBlock();
-              InstructionListIterator iterator = block.listIterator();
-              Instruction toReplace = iterator.nextUntil((i) -> i == value.definition);
-              iterator.replaceCurrentInstruction(evaluatedConst);
-            }
-          }
-        });
+            });
 
     for (BasicBlock block : blockToAnalyze) {
       block.deduplicatePhis();

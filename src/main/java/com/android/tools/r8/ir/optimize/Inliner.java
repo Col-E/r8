@@ -106,16 +106,14 @@ public class Inliner {
     }
 
     if (appView.options().canHaveDalvikIntUsedAsNonIntPrimitiveTypeBug()
-        && returnsIntAsBoolean(code, method, appView)) {
+        && returnsIntAsBoolean(code, method)) {
       return ConstraintWithTarget.NEVER;
     }
 
     ConstraintWithTarget result = ConstraintWithTarget.ALWAYS;
     InliningConstraints inliningConstraints =
         new InliningConstraints(appView, GraphLense.getIdentityLense());
-    InstructionIterator it = code.instructionIterator();
-    while (it.hasNext()) {
-      Instruction instruction = it.next();
+    for (Instruction instruction : code.instructions()) {
       ConstraintWithTarget state =
           instructionAllowedForInlining(instruction, inliningConstraints, method.method.holder);
       if (state == ConstraintWithTarget.NEVER) {
@@ -128,12 +126,12 @@ public class Inliner {
     return result;
   }
 
-  private boolean returnsIntAsBoolean(IRCode code, DexEncodedMethod method, AppView appView) {
+  private boolean returnsIntAsBoolean(IRCode code, DexEncodedMethod method) {
     DexType returnType = method.method.proto.returnType;
     for (BasicBlock basicBlock : code.blocks) {
-      InstructionListIterator instructionListIterator = basicBlock.listIterator();
-      while (instructionListIterator.hasNext()) {
-        Instruction instruction = instructionListIterator.nextUntil(Instruction::isReturn);
+      InstructionIterator instructionIterator = basicBlock.iterator();
+      while (instructionIterator.hasNext()) {
+        Instruction instruction = instructionIterator.nextUntil(Instruction::isReturn);
         if (instruction != null) {
           if (returnType.isBooleanType() && !instruction.inValues().get(0).knownToBeBoolean()) {
             return true;
@@ -576,7 +574,8 @@ public class Inliner {
 
             // Insert a new block between the last argument instruction and the first actual
             // instruction of the method.
-            BasicBlock throwBlock = entryBlock.listIterator(arguments.size()).split(code, 0, null);
+            BasicBlock throwBlock =
+                entryBlock.listIterator(code, arguments.size()).split(code, 0, null);
             assert !throwBlock.hasCatchHandlers();
 
             // Link the entry block to the successor of the newly inserted block.
@@ -587,12 +586,12 @@ public class Inliner {
             // with an `if-eqz` instruction that jumps to the newly inserted block if the receiver
             // is null.
             If ifInstruction = new If(If.Type.EQ, receiver);
-            entryBlock.replaceLastInstruction(ifInstruction);
+            entryBlock.replaceLastInstruction(ifInstruction, code);
             assert ifInstruction.getTrueTarget() == throwBlock;
             assert ifInstruction.fallthroughBlock() == continuationBlock;
 
             // Replace the single goto instruction in the newly inserted block by `throw null`.
-            InstructionListIterator iterator = throwBlock.listIterator();
+            InstructionListIterator iterator = throwBlock.listIterator(code);
             Value nullValue = iterator.insertConstNullInstruction(code, appView.options());
             iterator.next();
             iterator.replaceCurrentInstruction(new Throw(nullValue));
@@ -804,7 +803,7 @@ public class Inliner {
       if (blocksToRemove.contains(block)) {
         continue;
       }
-      InstructionListIterator iterator = block.listIterator();
+      InstructionListIterator iterator = block.listIterator(code);
       while (iterator.hasNext()) {
         Instruction current = iterator.next();
         if (current.isInvokeMethod()) {

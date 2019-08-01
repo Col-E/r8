@@ -112,7 +112,7 @@ public class StringSwitchRemover {
 
       if (previous == null) {
         // Replace the string-switch instruction by a goto instruction.
-        block.exit().replace(new Goto(newBlock), code.metadata());
+        block.exit().replace(new Goto(newBlock), code);
         block.link(newBlock);
       } else {
         // Set the fallthrough block for the previously added if-instruction.

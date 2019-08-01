@@ -21,7 +21,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
@@ -33,27 +32,24 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
   protected Instruction current;
   protected Position position = null;
 
-  private IRMetadata metadata;
+  private final IRMetadata metadata;
 
-  BasicBlockInstructionListIterator(BasicBlock block) {
+  BasicBlockInstructionListIterator(IRMetadata metadata, BasicBlock block) {
     this.block = block;
     this.listIterator = block.getInstructions().listIterator();
+    this.metadata = metadata;
   }
 
-  BasicBlockInstructionListIterator(BasicBlock block, int index) {
+  BasicBlockInstructionListIterator(IRMetadata metadata, BasicBlock block, int index) {
     this.block = block;
     this.listIterator = block.getInstructions().listIterator(index);
-  }
-
-  BasicBlockInstructionListIterator(BasicBlock block, Instruction instruction) {
-    this(block);
-    nextUntil((x) -> x == instruction);
-  }
-
-  @Override
-  public BasicBlockInstructionListIterator recordChangesToMetadata(IRMetadata metadata) {
     this.metadata = metadata;
-    return this;
+  }
+
+  BasicBlockInstructionListIterator(
+      IRMetadata metadata, BasicBlock block, Instruction instruction) {
+    this(metadata, block);
+    nextUntil(x -> x == instruction);
   }
 
   @Override
@@ -94,10 +90,10 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
   }
 
   /**
-   * Adds an instruction to the block. The instruction will be added just before the current
-   * cursor position.
+   * Adds an instruction to the block. The instruction will be added just before the current cursor
+   * position.
    *
-   * The instruction will be assigned to the block it is added to.
+   * <p>The instruction will be assigned to the block it is added to.
    *
    * @param instruction The instruction to add.
    */
@@ -109,16 +105,14 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
       instruction.setPosition(position);
     }
     listIterator.add(instruction);
-    if (metadata != null) {
-      metadata.record(instruction);
-    }
+    metadata.record(instruction);
   }
 
   /**
-   * Replaces the last instruction returned by {@link #next} or {@link #previous} with the
-   * specified instruction.
+   * Replaces the last instruction returned by {@link #next} or {@link #previous} with the specified
+   * instruction.
    *
-   * The instruction will be assigned to the block it is added to.
+   * <p>The instruction will be assigned to the block it is added to.
    *
    * @param instruction The instruction to replace with.
    */
@@ -133,10 +127,10 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
    * Remove the current instruction (aka the {@link Instruction} returned by the previous call to
    * {@link #next}.
    *
-   * The current instruction will be completely detached from the instruction stream with uses
-   * of its in-values removed.
+   * <p>The current instruction will be completely detached from the instruction stream with uses of
+   * its in-values removed.
    *
-   * If the current instruction produces an out-value this out value must not have any users.
+   * <p>If the current instruction produces an out-value this out value must not have any users.
    */
   @Override
   public void remove() {
@@ -158,6 +152,15 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
       for (Instruction user : current.outValue().debugUsers()) {
         user.removeDebugValue(current.outValue());
       }
+    }
+    listIterator.remove();
+    current = null;
+  }
+
+  @Override
+  public void removeInstructionIgnoreOutValue() {
+    if (current == null) {
+      throw new IllegalStateException();
     }
     listIterator.remove();
     current = null;
@@ -193,9 +196,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
     listIterator.remove();
     listIterator.add(newInstruction);
     current.clearBlock();
-    if (metadata != null) {
-      metadata.record(newInstruction);
-    }
+    metadata.record(newInstruction);
   }
 
   @Override
@@ -327,7 +328,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
     BasicBlock newBlock = split(code, blocksIterator);
     assert blocksIterator == null || IteratorUtils.peekPrevious(blocksIterator) == newBlock;
     // Skip the requested number of instructions and split again.
-    InstructionListIterator iterator = newBlock.listIterator();
+    InstructionListIterator iterator = newBlock.listIterator(code);
     for (int i = 0; i < instructions; i++) {
       iterator.next();
     }
@@ -337,7 +338,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
   }
 
   private boolean canThrow(IRCode code) {
-    Iterator<Instruction> iterator = code.instructionIterator();
+    InstructionIterator iterator = code.instructionIterator();
     while (iterator.hasNext()) {
       boolean throwing = iterator.next().instructionTypeCanThrow();
       if (throwing) {
@@ -357,7 +358,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
     // one throwing instruction in each block.
     // NOTE: This iterator is replaced in the loop below, so that the iteration continues in
     // the new block after the iterated block is split.
-    InstructionListIterator instructionsIterator = inlinedBlock.listIterator();
+    InstructionListIterator instructionsIterator = inlinedBlock.listIterator(code);
     BasicBlock currentBlock = inlinedBlock;
     while (currentBlock != null && instructionsIterator.hasNext()) {
       assert !currentBlock.hasCatchHandlers();
@@ -383,7 +384,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
           BasicBlock b = blocksIterator.next();
           assert b == nextBlock;
           // Switch iteration to the split block.
-          instructionsIterator = nextBlock.listIterator();
+          instructionsIterator = nextBlock.listIterator(code);
         } else {
           instructionsIterator = null;
         }
@@ -497,15 +498,15 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
         // the inlinee (by the call to appendCatchHandlers() later in this method), so we don't
         // need to do anything about that here.
         BasicBlock inlineEntry = entryBlock;
-        entryBlock = entryBlock.listIterator().split(inlinee);
-        entryBlockIterator = entryBlock.listIterator();
+        entryBlock = entryBlock.listIterator(code).split(inlinee);
+        entryBlockIterator = entryBlock.listIterator(code);
         // Insert cast instruction into the new block.
         inlineEntry.getInstructions().addFirst(castInstruction);
         castInstruction.setBlock(inlineEntry);
         assert castInstruction.getBlock().getInstructions().size() == 2;
       } else {
         castInstruction.setBlock(entryBlock);
-        entryBlockIterator = entryBlock.listIterator();
+        entryBlockIterator = entryBlock.listIterator(code);
         entryBlockIterator.add(castInstruction);
       }
 
@@ -516,7 +517,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
       removeArgumentInstruction(entryBlockIterator, argument);
       i++;
     } else {
-      entryBlockIterator = entryBlock.listIterator();
+      entryBlockIterator = entryBlock.listIterator(code);
     }
 
     // Map the remaining argument values.
@@ -560,16 +561,16 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
       // Split before return and unlink return.
       BasicBlock returnBlock = inlineeIterator.split(inlinee);
       inlineExit = returnBlock.unlinkSinglePredecessor();
-      InstructionListIterator returnBlockIterator = returnBlock.listIterator();
+      InstructionListIterator returnBlockIterator = returnBlock.listIterator(code);
       returnBlockIterator.next();
-      returnBlockIterator.remove();  // This clears out the users from the return.
+      returnBlockIterator.remove(); // This clears out the users from the return.
       assert !returnBlockIterator.hasNext();
       inlinee.blocks.remove(returnBlock);
 
       // Leaving the invoke block in the graph as an empty block. Still unlink its predecessor as
       // the exit block of the inlinee will become its new predecessor.
       invokeBlock.unlinkSinglePredecessor();
-      InstructionListIterator invokeBlockIterator = invokeBlock.listIterator();
+      InstructionListIterator invokeBlockIterator = invokeBlock.listIterator(code);
       invokeBlockIterator.next();
       invokeBlockIterator.remove();
       invokeSuccessor = invokeBlock;
@@ -633,7 +634,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
   private InstructionListIterator ensureSingleReturnInstruction(
       AppView<?> appView, IRCode code, List<BasicBlock> normalExits) {
     if (normalExits.size() == 1) {
-      InstructionListIterator it = normalExits.get(0).listIterator();
+      InstructionListIterator it = normalExits.get(0).listIterator(code);
       it.nextUntil(Instruction::isReturn);
       it.previous();
       return it;
@@ -673,7 +674,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
     newReturn.setPosition(Position.none());
     newExitBlock.add(newReturn);
     for (BasicBlock exitBlock : normalExits) {
-      InstructionListIterator it = exitBlock.listIterator(exitBlock.getInstructions().size());
+      InstructionListIterator it = exitBlock.listIterator(code, exitBlock.getInstructions().size());
       Instruction oldExit = it.previous();
       assert oldExit.isReturn();
       it.replaceCurrentInstruction(new Goto());
@@ -682,6 +683,6 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
     newExitBlock.close(null);
     code.blocks.add(newExitBlock);
     assert code.isConsistentSSA();
-    return newExitBlock.listIterator();
+    return newExitBlock.listIterator(code);
   }
 }

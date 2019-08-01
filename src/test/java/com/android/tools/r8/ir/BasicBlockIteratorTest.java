@@ -61,7 +61,7 @@ public class BasicBlockIteratorTest extends SmaliTestBase {
     MethodSubject methodSubject = getMethodSubject(application, signature);
     IRCode code = methodSubject.buildIR();
     ListIterator<BasicBlock> blocks = code.listIterator();
-    InstructionListIterator iter = blocks.next().listIterator();
+    InstructionListIterator iter = blocks.next().listIterator(code);
     iter.nextUntil(i -> !i.isArgument());
     iter.previous();
     iter.split(code, 1, blocks);

@@ -52,7 +52,7 @@ public class DynamicTypeOptimization {
   //  instructions.
   private void insertAssumeDynamicTypeInstructionsInBlock(
       IRCode code, ListIterator<BasicBlock> blockIterator, BasicBlock block) {
-    InstructionListIterator instructionIterator = block.listIterator();
+    InstructionListIterator instructionIterator = block.listIterator(code);
     while (instructionIterator.hasNext()) {
       Instruction current = instructionIterator.next();
       if (current.isInvokeMethod()) {
@@ -103,7 +103,7 @@ public class DynamicTypeOptimization {
         if (insertionBlock == block) {
           instructionIterator.add(assumeInstruction);
         } else {
-          insertionBlock.listIterator().add(assumeInstruction);
+          insertionBlock.listIterator(code).add(assumeInstruction);
         }
       }
     }

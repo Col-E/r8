@@ -86,7 +86,7 @@ public class DeadCodeRemover {
   }
 
   private void removeDeadInstructions(Queue<BasicBlock> worklist, IRCode code, BasicBlock block) {
-    InstructionListIterator iterator = block.listIterator(block.getInstructions().size());
+    InstructionListIterator iterator = block.listIterator(code, block.getInstructions().size());
     while (iterator.hasPrevious()) {
       Instruction current = iterator.previous();
       // Remove unused invoke results.

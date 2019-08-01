@@ -17,11 +17,11 @@ import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.util.List;
-import java.util.ListIterator;
 import org.junit.Test;
 
 /**
@@ -91,17 +91,17 @@ public class TryRangeTestRunner extends TestBase {
     BasicBlock entryBlock = code.entryBlock();
     BasicBlock tryBlock = code.blocks.get(1);
     assertTrue(tryBlock.hasCatchHandlers());
-    ListIterator<Instruction> it = entryBlock.getInstructions().listIterator();
+    InstructionListIterator it = entryBlock.listIterator(code);
     Instruction constNumber = it.next();
     while (!constNumber.isConstNumber()) {
       constNumber = it.next();
     }
-    it.remove();
+    it.removeInstructionIgnoreOutValue();
     Instruction add = it.next();
     while (!add.isAdd()) {
       add = it.next();
     }
-    it.remove();
+    it.removeInstructionIgnoreOutValue();
     constNumber.setBlock(tryBlock);
     add.setBlock(tryBlock);
     tryBlock.getInstructions().add(0, add);

@@ -6,7 +6,6 @@ package com.android.tools.r8.ir;
 
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
-import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
@@ -50,7 +49,7 @@ public class InstructionIteratorTest extends SmaliTestBase {
     MethodSubject methodSubject = getMethodSubject(application, signature);
     IRCode code = methodSubject.buildIR();
     ListIterator<BasicBlock> blocks = code.listIterator();
-    InstructionListIterator iter = blocks.next().listIterator();
+    InstructionListIterator iter = blocks.next().listIterator(code);
     iter.nextUntil(i -> !i.isArgument());
     iter.previous();
     iter.split(code, 1, blocks);
@@ -62,7 +61,7 @@ public class InstructionIteratorTest extends SmaliTestBase {
     IRCode code = simpleCode();
 
     ListIterator<BasicBlock> blocks = code.listIterator();
-    ListIterator<Instruction> instructions = blocks.next().listIterator();
+    InstructionListIterator instructions = blocks.next().listIterator(code);
     thrown.expect(IllegalStateException.class);
     instructions.remove();
   }
@@ -73,7 +72,7 @@ public class InstructionIteratorTest extends SmaliTestBase {
 
     ListIterator<BasicBlock> blocks = code.listIterator();
     blocks.next();
-    ListIterator<Instruction> instructions = blocks.next().listIterator();
+    InstructionListIterator instructions = blocks.next().listIterator(code);
     instructions.next();
     instructions.remove();
     thrown.expect(IllegalStateException.class);

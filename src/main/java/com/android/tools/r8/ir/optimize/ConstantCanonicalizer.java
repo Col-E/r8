@@ -99,46 +99,43 @@ public class ConstantCanonicalizer {
             });
 
     // Collect usages of constants that can be canonicalized.
-    for (BasicBlock block : code.blocks) {
-      InstructionListIterator it = block.listIterator();
-      while (it.hasNext()) {
-        Instruction current = it.next();
-        // Interested in ConstNumber, (DexItemBased)?ConstString, and ConstClass
-        if (!current.isConstNumber()
-            && !current.isConstString()
-            && !current.isDexItemBasedConstString()
-            && !current.isConstClass()) {
-          continue;
-        }
-        // Do not canonicalize ConstClass that may have side effects. Its original instructions
-        // will not be removed by dead code remover due to the side effects.
-        if (current.isConstClass()
-            && current.instructionMayHaveSideEffects(appView, code.method.method.holder)) {
-          continue;
-        }
-        // Do not canonicalize ConstString instructions if there are monitor operations in the code.
-        // That could lead to unbalanced locking and could lead to situations where OOM exceptions
-        // could leave a synchronized method without unlocking the monitor.
-        if ((current.isConstString() || current.isDexItemBasedConstString())
-            && code.metadata().mayHaveMonitorInstruction()) {
-          continue;
-        }
-        // Constants with local info must not be canonicalized and must be filtered.
-        if (current.outValue().hasLocalInfo()) {
-          continue;
-        }
-        // Constants that are used by invoke range are not canonicalized to be compliant with the
-        // optimization splitRangeInvokeConstant that gives the register allocator more freedom in
-        // assigning register to ranged invokes which can greatly reduce the number of register
-        // needed (and thereby code size as well). Thus no need to do a transformation that should
-        // be removed later by another optimization.
-        if (constantUsedByInvokeRange(current.asConstInstruction())) {
-          continue;
-        }
-        List<Value> oldValuesDefinedByConstant = valuesDefinedByConstant.computeIfAbsent(
-            current.asConstInstruction(), k -> new ArrayList<>());
-        oldValuesDefinedByConstant.add(current.outValue());
+    for (Instruction current : code.instructions()) {
+      // Interested in ConstNumber, (DexItemBased)?ConstString, and ConstClass
+      if (!current.isConstNumber()
+          && !current.isConstString()
+          && !current.isDexItemBasedConstString()
+          && !current.isConstClass()) {
+        continue;
       }
+      // Do not canonicalize ConstClass that may have side effects. Its original instructions
+      // will not be removed by dead code remover due to the side effects.
+      if (current.isConstClass()
+          && current.instructionMayHaveSideEffects(appView, code.method.method.holder)) {
+        continue;
+      }
+      // Do not canonicalize ConstString instructions if there are monitor operations in the code.
+      // That could lead to unbalanced locking and could lead to situations where OOM exceptions
+      // could leave a synchronized method without unlocking the monitor.
+      if ((current.isConstString() || current.isDexItemBasedConstString())
+          && code.metadata().mayHaveMonitorInstruction()) {
+        continue;
+      }
+      // Constants with local info must not be canonicalized and must be filtered.
+      if (current.outValue().hasLocalInfo()) {
+        continue;
+      }
+      // Constants that are used by invoke range are not canonicalized to be compliant with the
+      // optimization splitRangeInvokeConstant that gives the register allocator more freedom in
+      // assigning register to ranged invokes which can greatly reduce the number of register
+      // needed (and thereby code size as well). Thus no need to do a transformation that should
+      // be removed later by another optimization.
+      if (constantUsedByInvokeRange(current.asConstInstruction())) {
+        continue;
+      }
+      List<Value> oldValuesDefinedByConstant =
+          valuesDefinedByConstant.computeIfAbsent(
+              current.asConstInstruction(), k -> new ArrayList<>());
+      oldValuesDefinedByConstant.add(current.outValue());
     }
 
     if (valuesDefinedByConstant.isEmpty()) {
@@ -210,7 +207,7 @@ public class ConstantCanonicalizer {
     // Insert the constant instruction at the start of the block right after the argument
     // instructions. It is important that the const instruction is put before any instruction
     // that can throw exceptions (since the value could be used on the exceptional edge).
-    InstructionListIterator it = entryBlock.listIterator();
+    InstructionListIterator it = entryBlock.listIterator(code);
     while (it.hasNext()) {
       if (!it.next().isArgument()) {
         it.previous();

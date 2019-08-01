@@ -1237,7 +1237,7 @@ public class Outliner {
           // and none had a position. The code no longer has the previous property.
           code.setAllThrowingInstructionsHavePositions(false);
         }
-        InstructionListIterator endIterator = block.listIterator(end - 1);
+        InstructionListIterator endIterator = block.listIterator(code, end - 1);
         Instruction instructionBeforeEnd = endIterator.next();
         invalidateInstructionArray(); // Because we're about to modify the original linked list.
         instructionBeforeEnd.clearBlock();

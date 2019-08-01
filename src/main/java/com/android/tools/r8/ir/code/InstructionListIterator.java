@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.ir.code;
 
-import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
@@ -14,49 +14,40 @@ import java.util.ListIterator;
 import java.util.Set;
 
 public interface InstructionListIterator
-    extends InstructionIterator, PreviousUntilIterator<Instruction> {
+    extends InstructionIterator, ListIterator<Instruction>, PreviousUntilIterator<Instruction> {
 
   /**
-   * Peek the previous instruction.
+   * Replace the current instruction (aka the {@link Instruction} returned by the previous call to
+   * {@link #next} with the passed in <code>newInstruction</code>.
    *
-   * @return what will be returned by calling {@link #previous}. If there is no previous instruction
-   * <code>null</code> is returned.
+   * <p>The current instruction will be completely detached from the instruction stream with uses of
+   * its in-values removed.
+   *
+   * <p>If the current instruction produces an out-value the new instruction must also produce an
+   * out-value, and all uses of the current instructions out-value will be replaced by the new
+   * instructions out-value.
+   *
+   * <p>The debug information of the current instruction will be attached to the new instruction.
+   *
+   * @param newInstruction the instruction to insert instead of the current.
    */
-  default Instruction peekPrevious() {
-    Instruction previous = null;
-    if (hasPrevious()) {
-      previous = previous();
-      next();
-    }
-    return previous;
+  void replaceCurrentInstruction(Instruction newInstruction);
+
+  // Do not show a deprecation warning for InstructionListIterator.remove().
+  @SuppressWarnings("deprecation")
+  @Override
+  void remove();
+
+  // Removes the current instruction, even if it has an out-value that is used.
+  default void removeInstructionIgnoreOutValue() {
+    throw new Unimplemented();
   }
 
   /**
-   * Peek the next instruction.
-   *
-   * @return what will be returned by calling {@link #next}. If there is no next instruction
-   * <code>null</code> is returned.
+   * Safe removal function that will insert a DebugLocalRead to take over the debug values if any
+   * are associated with the current instruction.
    */
-  default Instruction peekNext() {
-    Instruction next = null;
-    if (hasNext()) {
-      next = next();
-      previous();
-    }
-    return next;
-  }
-
-  @Override
-  default InstructionListIterator recordChangesToMetadata(IRCode code) {
-    return recordChangesToMetadata(code.metadata());
-  }
-
-  @Override
-  default InstructionListIterator recordChangesToMetadata(IRMetadata metadata) {
-    throw new Unreachable(
-        "Method recordChangesToMetadata(IRMetadata) not implemented for "
-            + getClass().getTypeName());
-  }
+  void removeOrReplaceByDebugLocalRead();
 
   default void setInsertionPosition(Position position) {
     // Intentionally empty.

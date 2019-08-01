@@ -10,7 +10,7 @@ import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
-import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.conversion.IRConverter;
@@ -27,7 +27,6 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.io.IOException;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.concurrent.ExecutionException;
 import org.antlr.runtime.RecognitionException;
 
@@ -98,7 +97,7 @@ public class IrInjectionTestBase extends SmaliTestBase {
 
     public int countArgumentInstructions() {
       int count = 0;
-      ListIterator<Instruction> iterator = code.entryBlock().listIterator();
+      InstructionIterator iterator = code.entryBlock().iterator();
       while (iterator.next().isArgument()) {
         count++;
       }
@@ -106,7 +105,7 @@ public class IrInjectionTestBase extends SmaliTestBase {
     }
 
     public InstructionListIterator listIteratorAt(BasicBlock block, int index) {
-      InstructionListIterator iterator = block.listIterator();
+      InstructionListIterator iterator = block.listIterator(code);
       for (int i = 0; i < index; i++) {
         iterator.next();
       }

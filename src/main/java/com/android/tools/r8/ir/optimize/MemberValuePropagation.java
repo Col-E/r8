@@ -233,7 +233,7 @@ public class MemberValuePropagation {
       }
       replacement.setPosition(current.getPosition());
       if (current.getBlock().hasCatchHandlers()) {
-        iterator.split(code, blocks).listIterator().recordChangesToMetadata(code).add(replacement);
+        iterator.split(code, blocks).listIterator(code).add(replacement);
       } else {
         iterator.add(replacement);
       }
@@ -315,7 +315,7 @@ public class MemberValuePropagation {
       replacement.setPosition(current.getPosition());
       current.moveDebugValues(replacement);
       if (current.getBlock().hasCatchHandlers()) {
-        iterator.split(code, blocks).listIterator().recordChangesToMetadata(code).add(replacement);
+        iterator.split(code, blocks).listIterator(code).add(replacement);
       } else {
         iterator.add(replacement);
       }
@@ -457,7 +457,7 @@ public class MemberValuePropagation {
             nonNullValue, knownToBeNonNullValue, current, appView);
     nonNull.setPosition(appView.options().debug ? current.getPosition() : Position.none());
     if (current.getBlock().hasCatchHandlers()) {
-      iterator.split(code, blocks).listIterator().recordChangesToMetadata(code).add(nonNull);
+      iterator.split(code, blocks).listIterator(code).add(nonNull);
     } else {
       iterator.add(nonNull);
     }
@@ -475,7 +475,7 @@ public class MemberValuePropagation {
     ListIterator<BasicBlock> blocks = code.listIterator();
     while (blocks.hasNext()) {
       BasicBlock block = blocks.next();
-      InstructionListIterator iterator = block.listIterator().recordChangesToMetadata(code);
+      InstructionListIterator iterator = block.listIterator(code);
       while (iterator.hasNext()) {
         Instruction current = iterator.next();
         if (current.isInvokeMethod()) {
