@@ -823,7 +823,7 @@ public class IRCode {
   }
 
   public InstructionIterator instructionIterator() {
-    return new IRCodeInstructionsIterator(this);
+    return new IRCodeInstructionListIterator(this);
   }
 
   public List<BasicBlock> computeNormalExitBlocks() {

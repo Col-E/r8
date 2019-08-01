@@ -4,23 +4,70 @@
 
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.errors.Unimplemented;
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.utils.InternalOptions;
 import java.util.ListIterator;
 import java.util.NoSuchElementException;
+import java.util.Set;
 
-public class IRCodeInstructionsIterator implements InstructionIterator {
+public class IRCodeInstructionListIterator implements InstructionListIterator {
 
   private final ListIterator<BasicBlock> blockIterator;
   private InstructionListIterator instructionIterator;
 
   private IRMetadata metadata;
 
-  public IRCodeInstructionsIterator(IRCode code) {
+  public IRCodeInstructionListIterator(IRCode code) {
     blockIterator = code.listIterator();
     instructionIterator = blockIterator.next().listIterator();
   }
 
   @Override
-  public IRCodeInstructionsIterator recordChangesToMetadata(IRMetadata metadata) {
+  public Value insertConstNullInstruction(IRCode code, InternalOptions options) {
+    return instructionIterator.insertConstNullInstruction(code, options);
+  }
+
+  @Override
+  public Value insertConstIntInstruction(IRCode code, InternalOptions options, int value) {
+    return instructionIterator.insertConstIntInstruction(code, options, value);
+  }
+
+  @Override
+  public void replaceCurrentInstructionWithThrowNull(
+      AppView<? extends AppInfoWithSubtyping> appView,
+      IRCode code,
+      ListIterator<BasicBlock> blockIterator,
+      Set<BasicBlock> blocksToRemove,
+      Set<Value> affectedValues) {
+    throw new Unimplemented();
+  }
+
+  @Override
+  public BasicBlock split(IRCode code, ListIterator<BasicBlock> blockIterator) {
+    throw new Unimplemented();
+  }
+
+  @Override
+  public BasicBlock split(IRCode code, int instructions, ListIterator<BasicBlock> blockIterator) {
+    throw new Unimplemented();
+  }
+
+  @Override
+  public BasicBlock inlineInvoke(
+      AppView<?> appView,
+      IRCode code,
+      IRCode inlinee,
+      ListIterator<BasicBlock> blockIterator,
+      Set<BasicBlock> blocksToRemove,
+      DexType downcast) {
+    throw new Unimplemented();
+  }
+
+  @Override
+  public IRCodeInstructionListIterator recordChangesToMetadata(IRMetadata metadata) {
     this.metadata = metadata;
     return this;
   }
