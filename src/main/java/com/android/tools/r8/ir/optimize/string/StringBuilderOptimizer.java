@@ -509,7 +509,8 @@ public class StringBuilderOptimizer {
         assert invoke.inValues().size() == 1;
         Value builder = invoke.getReceiver().getAliasedValue();
         assert invoke.hasOutValue();
-        if (invoke.outValue().isDead(appView, code)) {
+        // TODO(b/114002137): Can be extended to potentially dead code.
+        if (!invoke.outValue().isUsed()) {
           it.removeOrReplaceByDebugLocalRead();
           // Although this builder is not simplified by this analysis, add that to the set so that
           // it can be removed at the final clean-up phase.
@@ -544,29 +545,31 @@ public class StringBuilderOptimizer {
         return false;
       }
       DexMethod invokedMethod = invoke.getInvokedMethod();
-      if (optimizationConfiguration.isToStringMethod(invokedMethod)) {
-        assert invoke.inValues().size() == 1;
-        Value builder = invoke.getReceiver().getAliasedValue();
-        if (!candidateBuilders.contains(builder)) {
-          return false;
-        }
-        // If the result of toString() is no longer used, computing the compile-time constant is
-        // even not necessary.
-        if (invoke.outValue().isDead(appView, code)) {
-          return true;
-        }
-        Map<Instruction, BuilderState> perInstrState = builderStates.get(builder);
-        if (perInstrState == null) {
-          return false;
-        }
-        BuilderState builderState = perInstrState.get(instr);
-        if (builderState == null) {
-          return false;
-        }
-        String element = toCompileTimeString(builderState);
-        if (element == null) {
-          return false;
-        }
+      if (!optimizationConfiguration.isToStringMethod(invokedMethod)) {
+        return false;
+      }
+      assert invoke.inValues().size() == 1;
+      Value builder = invoke.getReceiver().getAliasedValue();
+      if (!candidateBuilders.contains(builder)) {
+        return false;
+      }
+      // If the result of toString() is no longer used, computing the compile-time constant is
+      // even not necessary.
+      // TODO(b/114002137): Can be extended to potentially dead code.
+      if (!invoke.outValue().isUsed()) {
+        return true;
+      }
+      Map<Instruction, BuilderState> perInstrState = builderStates.get(builder);
+      if (perInstrState == null) {
+        return false;
+      }
+      BuilderState builderState = perInstrState.get(instr);
+      if (builderState == null) {
+        return false;
+      }
+      String element = toCompileTimeString(builderState);
+      if (element == null) {
+        return false;
       }
       return true;
     }
