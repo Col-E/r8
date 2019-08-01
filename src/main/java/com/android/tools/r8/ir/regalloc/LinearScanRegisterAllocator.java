@@ -55,6 +55,7 @@ import it.unimi.dsi.fastutil.objects.Reference2IntArrayMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -221,7 +222,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     // locals alive for their entire live range. In release mode the liveness is all that matters
     // and we do not actually want locals information in the output.
     if (options().debug) {
-      computeDebugInfo(blocks);
+      computeDebugInfo(blocks, liveIntervals, this, liveAtEntrySets);
     } else if (code.method.getOptimizationInfo().isReachabilitySensitive()) {
       InstructionIterator it = code.instructionIterator();
       while (it.hasNext()) {
@@ -234,26 +235,6 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     }
     clearUserInfo();
     clearState();
-  }
-
-  private static Integer nextInRange(int start, int end, List<Integer> points) {
-    while (!points.isEmpty() && points.get(0) < start) {
-      points.remove(0);
-    }
-    if (points.isEmpty()) {
-      return null;
-    }
-    Integer next = points.get(0);
-    assert start <= next;
-    if (next < end) {
-      points.remove(0);
-      return next;
-    }
-    return null;
-  }
-
-  private void computeDebugInfo(ImmutableList<BasicBlock> blocks) {
-    computeDebugInfo(blocks, liveIntervals, this, liveAtEntrySets);
   }
 
   public static void computeDebugInfo(
@@ -274,7 +255,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
         assert child.getSplitChildren() == null || child.getSplitChildren().isEmpty();
         liveRanges.addAll(child.getRanges());
       }
-      liveRanges.sort((r1, r2) -> Integer.compare(r1.start, r2.start));
+      liveRanges.sort(Comparator.comparingInt(r -> r.start));
       for (LiveRange liveRange : liveRanges) {
         int start = liveRange.start;
         int end = liveRange.end;
