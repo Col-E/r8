@@ -129,7 +129,6 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -1067,24 +1066,23 @@ public class CodeRewriter {
         EnumSwitchInfo info = SwitchUtils.analyzeSwitchOverEnum(switchInsn, appView.withLiveness());
         if (info != null) {
           Int2IntMap targetMap = new Int2IntArrayMap();
-          IntList keys = new IntArrayList(switchInsn.numberOfKeys());
           for (int i = 0; i < switchInsn.numberOfKeys(); i++) {
             assert switchInsn.targetBlockIndices()[i] != switchInsn.getFallthroughBlockIndex();
             EnumValueInfo valueInfo =
                 info.valueInfoMap.get(info.indexMap.get(switchInsn.getKey(i)));
-            keys.add(valueInfo.ordinal);
             targetMap.put(valueInfo.ordinal, switchInsn.targetBlockIndices()[i]);
           }
-          keys.sort(Comparator.naturalOrder());
-          int[] targets = new int[keys.size()];
-          for (int i = 0; i < keys.size(); i++) {
-            targets[i] = targetMap.get(keys.getInt(i));
+          int[] keys = targetMap.keySet().toIntArray();
+          Arrays.sort(keys);
+          int[] targets = new int[keys.length];
+          for (int i = 0; i < keys.length; i++) {
+            targets[i] = targetMap.get(keys[i]);
           }
 
           IntSwitch newSwitch =
               new IntSwitch(
                   info.ordinalInvoke.outValue(),
-                  keys.toIntArray(),
+                  keys,
                   targets,
                   switchInsn.getFallthroughBlockIndex());
           // Replace the switch itself.
