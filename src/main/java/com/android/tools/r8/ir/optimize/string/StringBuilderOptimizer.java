@@ -16,6 +16,7 @@ import com.android.tools.r8.ir.analysis.escape.EscapeAnalysisConfiguration;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
+import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.DominatorTree;
 import com.android.tools.r8.ir.code.DominatorTree.Assumption;
@@ -26,7 +27,9 @@ import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.InvokeVirtual;
+import com.android.tools.r8.ir.code.NumberConversion;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.annotations.VisibleForTesting;
@@ -85,7 +88,7 @@ public class StringBuilderOptimizer {
   private int numberOfBuildersThatEscape = 0;
   private int numberOfBuildersWhoseResultIsInterned = 0;
   private int numberOfBuildersWithNonTrivialStateChange = 0;
-  private int numberOfBuildersWithNonStringArg = 0;
+  private int numberOfBuildersWithUnsupportedArg = 0;
   private int numberOfBuildersWithMergingPoints = 0;
   private int numberOfBuildersWithNonDeterministicArg = 0;
   private int numberOfDeadBuilders = 0;
@@ -126,7 +129,7 @@ public class StringBuilderOptimizer {
     Log.info(getClass(),
         "# builders w/ non-trivial state change: %s", numberOfBuildersWithNonTrivialStateChange);
     Log.info(getClass(),
-        "# builders w/ non-string arg: %s", numberOfBuildersWithNonStringArg);
+        "# builders w/ unsupported arg: %s", numberOfBuildersWithUnsupportedArg);
     Log.info(getClass(),
         "# builders w/ merging points: %s", numberOfBuildersWithMergingPoints);
     Log.info(getClass(),
@@ -354,8 +357,9 @@ public class StringBuilderOptimizer {
               continue;
             }
             assert invoke.inValues().size() == 2;
-            Value arg = invoke.inValues().get(1);
-            String addition = extractConstantArgument(arg);
+            Value arg = invoke.inValues().get(1).getAliasedValue();
+            DexType argType = invoke.getInvokedMethod().proto.parameters.values[0];
+            String addition = extractConstantArgument(arg, argType);
             Map<Instruction, BuilderState> perInstrState = getBuilderState(builder);
             BuilderState dominantState = findDominantState(dominatorTree, perInstrState, instr);
             if (dominantState != null) {
@@ -380,8 +384,9 @@ public class StringBuilderOptimizer {
             if (!candidateBuilders.contains(builder)) {
               continue;
             }
-            Value arg = invoke.inValues().get(1);
-            String addition = extractConstantArgument(arg);
+            Value arg = invoke.inValues().get(1).getAliasedValue();
+            DexType argType = invoke.getInvokedMethod().proto.parameters.values[0];
+            String addition = extractConstantArgument(arg, argType);
             Map<Instruction, BuilderState> perInstrState = getBuilderState(builder);
             BuilderState dominantState = findDominantState(dominatorTree, perInstrState, instr);
             if (dominantState != null) {
@@ -414,15 +419,84 @@ public class StringBuilderOptimizer {
       return this;
     }
 
-    private String extractConstantArgument(Value arg) {
+    private String extractConstantArgument(Value arg, DexType argType) {
       String addition = ANY_STRING;
       if (!arg.isPhi()) {
-        // TODO(b/114002137): Improve arg extraction and type conversion.
         if (arg.definition.isConstString()) {
           addition = arg.definition.asConstString().getValue().toString();
+        } else if (arg.definition.isConstNumber() || arg.definition.isNumberConversion()) {
+          Number number = extractConstantNumber(arg);
+          if (number == null) {
+            return addition;
+          }
+          if (arg.getTypeLattice().isPrimitive()) {
+            if (argType == factory.booleanType) {
+              addition = String.valueOf(number.intValue() != 0);
+            } else if (argType == factory.byteType) {
+              addition = String.valueOf(number.byteValue());
+            } else if (argType == factory.shortType) {
+              addition = String.valueOf(number.shortValue());
+            } else if (argType == factory.charType) {
+              addition = String.valueOf((char) number.intValue());
+            } else if (argType == factory.intType) {
+              addition = String.valueOf(number.intValue());
+            } else if (argType == factory.longType) {
+              addition = String.valueOf(number.longValue());
+            } else if (argType == factory.floatType) {
+              addition = String.valueOf(number.floatValue());
+            } else if (argType == factory.doubleType) {
+              addition = String.valueOf(number.doubleValue());
+            }
+          } else if (arg.getTypeLattice().isNullType()) {
+            assert number.intValue() == 0;
+            addition = "null";
+          }
         }
       }
       return addition;
+    }
+
+    private Number extractConstantNumber(Value arg) {
+      assert !arg.isPhi();
+      if (arg.definition.isConstNumber()) {
+        ConstNumber cst = arg.definition.asConstNumber();
+        if (cst.outType() == ValueType.LONG) {
+          return cst.getLongValue();
+        } else if (cst.outType() == ValueType.FLOAT) {
+          return cst.getFloatValue();
+        } else if (cst.outType() == ValueType.DOUBLE) {
+          return cst.getDoubleValue();
+        } else {
+          assert cst.outType() == ValueType.INT || cst.outType() == ValueType.OBJECT;
+          return cst.getIntValue();
+        }
+      } else if (arg.definition.isNumberConversion()) {
+        NumberConversion conversion = arg.definition.asNumberConversion();
+        assert conversion.inValues().size() == 1;
+        Number temp = extractConstantNumber(conversion.inValues().get(0));
+        if (temp == null) {
+          return null;
+        }
+        DexType conversionType = conversion.to.dexTypeFor(factory);
+        if (conversionType == factory.booleanType) {
+          return temp.intValue() != 0 ? 1 : 0;
+        } else if (conversionType == factory.byteType) {
+          return temp.byteValue();
+        } else if (conversionType == factory.shortType) {
+          return temp.shortValue();
+        } else if (conversionType == factory.charType) {
+          return temp.intValue();
+        } else if (conversionType == factory.intType) {
+          return temp.intValue();
+        } else if (conversionType == factory.longType) {
+          return temp.longValue();
+        } else if (conversionType == factory.floatType) {
+          return temp.floatValue();
+        } else if (conversionType == factory.doubleType) {
+          return temp.doubleValue();
+        }
+      }
+      return null;
     }
 
     private BuilderState findDominantState(
@@ -690,11 +764,15 @@ public class StringBuilderOptimizer {
         numberOfBuildersWithNonTrivialStateChange++;
         return false;
       }
-      for (DexType argType : invokedMethod.proto.parameters.values) {
-        if (!canHandleArgumentType(argType)) {
-          numberOfBuildersWithNonStringArg++;
-          return false;
-        }
+      assert invoke.inValues().size() == 2;
+      TypeLatticeElement argType = invoke.inValues().get(1).getTypeLattice();
+      if (!argType.isPrimitive() && !argType.isClassType() && !argType.isNullType()) {
+        numberOfBuildersWithUnsupportedArg++;
+        return false;
+      }
+      if (argType.isClassType()) {
+        DexType argClassType = argType.asClassTypeLatticeElement().getClassType();
+        return canHandleArgumentType(argClassType);
       }
       return true;
     }
@@ -707,8 +785,6 @@ public class StringBuilderOptimizer {
 
     private boolean canHandleArgumentType(DexType argType) {
       // TODO(b/113859361): passed to another builder should be an eligible case.
-      // TODO(b/114002137): Improve arg extraction and type conversion.
-      //   For now, skip any append(arg) that receives non-string types.
       return argType == factory.stringType || argType == factory.charSequenceType;
     }
   }

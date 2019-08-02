@@ -16,6 +16,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.string.StringBuilderOptimizer.BuilderState;
 import java.util.Map;
 import java.util.function.Consumer;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -85,9 +86,13 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
     buildAndCheckIR(
         "nonStringArgs",
         checkOptimizerStates(appView, optimizer -> {
-          // TODO(b/114002137): Improve arg extraction and type conversion.
-          assertEquals(0, optimizer.analysis.builderStates.size());
-          assertEquals(0, optimizer.analysis.simplifiedBuilders.size());
+          assertEquals(1, optimizer.analysis.builderStates.size());
+          for (Value builder : optimizer.analysis.builderStates.keySet()) {
+            Map<Instruction, BuilderState> perBuilderState =
+                optimizer.analysis.builderStates.get(builder);
+            checkBuilderState(optimizer, perBuilderState, "42", true);
+          }
+          assertEquals(1, optimizer.analysis.simplifiedBuilders.size());
         }));
   }
 
@@ -96,12 +101,17 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
     buildAndCheckIR(
         "typeConversion",
         checkOptimizerStates(appView, optimizer -> {
-          // TODO(b/114002137): Improve arg extraction and type conversion.
-          assertEquals(0, optimizer.analysis.builderStates.size());
-          assertEquals(0, optimizer.analysis.simplifiedBuilders.size());
+          assertEquals(1, optimizer.analysis.builderStates.size());
+          for (Value builder : optimizer.analysis.builderStates.keySet()) {
+            Map<Instruction, BuilderState> perBuilderState =
+                optimizer.analysis.builderStates.get(builder);
+            checkBuilderState(optimizer, perBuilderState, "0.14 0 false null", true);
+          }
+          assertEquals(1, optimizer.analysis.simplifiedBuilders.size());
         }));
   }
 
+  @Ignore("TODO(b/113859361): passed to another builder should be an eligible case.")
   @Test
   public void testNestedBuilders_appendBuilderItself() throws Exception {
     buildAndCheckIR(
@@ -139,7 +149,7 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
     buildAndCheckIR(
         "simplePhi",
         checkOptimizerStates(appView, optimizer -> {
-          // TODO(b/114002137): Improve arg extraction and type conversion.
+          assertEquals(0, optimizer.analysis.builderStates.size());
           assertEquals(0, optimizer.analysis.simplifiedBuilders.size());
         }));
   }

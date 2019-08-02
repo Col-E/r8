@@ -25,9 +25,8 @@ class StringConcatenationTestClass {
   @NeverInline
   public static void builderWithCapacity() {
     StringBuilder builder = new StringBuilder(3);
-    // TODO(b/114002137): switch to use the integer.
-    builder.append("4");
-    builder.append("2");
+    builder.append(4);
+    builder.append(2);
     System.out.println(builder.toString());
   }
 
@@ -64,8 +63,7 @@ class StringConcatenationTestClass {
     b1.append(",");
     StringBuilder b2 = new StringBuilder();
     b2.append("R");
-    // TODO(b/114002137): switch to use the integer.
-    b2.append("8");
+    b2.append(8);
     b1.append(b2);
     System.out.println(b1.toString());
   }
@@ -77,8 +75,7 @@ class StringConcatenationTestClass {
     b1.append(",");
     StringBuilder b2 = new StringBuilder();
     b2.append("R");
-    // TODO(b/114002137): switch to use the integer.
-    b2.append("8");
+    b2.append(8);
     b1.append(b2.toString());
     System.out.println(b1.toString());
   }
@@ -95,8 +92,7 @@ class StringConcatenationTestClass {
     } else {
       builder.append("R");
     }
-    // TODO(b/114002137): switch to use the integer.
-    builder.append("8");
+    builder.append(8);
     System.out.println(builder.toString());
   }
 

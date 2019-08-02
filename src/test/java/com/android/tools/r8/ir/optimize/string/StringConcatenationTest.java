@@ -69,6 +69,8 @@ public class StringConcatenationTest extends TestBase {
       int expectedStringCountInTrivialSequence,
       int expectedStringCountInBuilderWithInitialValue,
       int expectedStringCountInBuilderWithCapacity,
+      int expectedStringCountInNonStringArgs,
+      int expectedStringCountInTypeConversion,
       int expectedStringCountInNestedBuilderAppendItself,
       int expectedStringCountInNestedBuilderAppendResult)
       throws Exception {
@@ -97,13 +99,13 @@ public class StringConcatenationTest extends TestBase {
     assertThat(method, isPresent());
     count = Streams.stream(method.iterateInstructions(
         i -> i.isConstString(JumboStringMode.ALLOW))).count();
-    assertEquals(0, count);
+    assertEquals(expectedStringCountInNonStringArgs, count);
 
     method = mainClass.uniqueMethodWithName("typeConversion");
     assertThat(method, isPresent());
     count = Streams.stream(method.iterateInstructions(
         i -> i.isConstString(JumboStringMode.ALLOW))).count();
-    assertEquals(0, count);
+    assertEquals(expectedStringCountInTypeConversion, count);
 
     method = mainClass.uniqueMethodWithName("nestedBuilders_appendBuilderItself");
     assertThat(method, isPresent());
@@ -121,7 +123,7 @@ public class StringConcatenationTest extends TestBase {
     assertThat(method, isPresent());
     count = Streams.stream(method.iterateInstructions(
         i -> i.isConstString(JumboStringMode.ALLOW))).count();
-    assertEquals(5, count);
+    assertEquals(4, count);
 
     method = mainClass.uniqueMethodWithName("phiAtInit");
     assertThat(method, isPresent());
@@ -160,7 +162,7 @@ public class StringConcatenationTest extends TestBase {
             .addOptionsModification(this::configure)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 3, 3, 2, 4, 4);
+    test(result, 3, 3, 0, 0, 0, 3, 3);
 
     result =
         testForD8()
@@ -172,7 +174,7 @@ public class StringConcatenationTest extends TestBase {
             .assertSuccessWithOutput(JAVA_OUTPUT);
     // TODO(b/114002137): The lack of subtyping made the escape analysis to regard
     //    StringBuilder#toString as an alias-introducing instruction.
-    test(result, 3, 3, 2, 4, 3);
+    test(result, 3, 3, 0, 0, 0, 3, 3);
   }
 
   @Test
@@ -189,7 +191,7 @@ public class StringConcatenationTest extends TestBase {
             .addOptionsModification(this::configure)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 1, 1, 1, 4, 3);
+    test(result, 1, 1, 1, 1, 1, 3, 3);
   }
 
   // TODO(b/114002137): Once enabled, remove this test-specific setting.
