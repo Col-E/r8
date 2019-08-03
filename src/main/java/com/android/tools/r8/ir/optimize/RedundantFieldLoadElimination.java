@@ -67,6 +67,11 @@ public class RedundantFieldLoadElimination {
     dominatorTree = new DominatorTree(code);
   }
 
+  public static boolean shouldRun(AppView<?> appView, IRCode code) {
+    return appView.options().enableRedundantFieldLoadElimination
+        && code.metadata().mayHaveFieldGet();
+  }
+
   private static class FieldAndObject {
     private final DexField field;
     private final Value object;

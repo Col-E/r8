@@ -21,15 +21,21 @@ public class IRMetadata {
   }
 
   private boolean get(int bit) {
-    long masked;
     if (bit < 64) {
-      masked = first & (1L << bit);
+      return isAnySetInFirst(1L << bit);
     } else {
       assert bit < 128;
       int adjusted = bit - 64;
-      masked = second & (1L << adjusted);
+      return isAnySetInSecond(1L << adjusted);
     }
-    return masked != 0;
+  }
+
+  private boolean isAnySetInFirst(long mask) {
+    return (first & mask) != 0;
+  }
+
+  private boolean isAnySetInSecond(long mask) {
+    return (second & mask) != 0;
   }
 
   private void set(int bit) {
@@ -51,6 +57,14 @@ public class IRMetadata {
     second |= metadata.second;
   }
 
+  public boolean mayHaveCheckCast() {
+    return get(Opcodes.CHECK_CAST);
+  }
+
+  public boolean mayHaveConstNumber() {
+    return get(Opcodes.CONST_NUMBER);
+  }
+
   public boolean mayHaveConstString() {
     return get(Opcodes.CONST_STRING);
   }
@@ -63,8 +77,98 @@ public class IRMetadata {
     return get(Opcodes.DEX_ITEM_BASED_CONST_STRING);
   }
 
+  public boolean mayHaveFieldGet() {
+    return mayHaveInstanceGet() || mayHaveStaticGet();
+  }
+
+  public boolean mayHaveInstanceGet() {
+    return get(Opcodes.INSTANCE_GET);
+  }
+
+  public boolean mayHaveInstanceOf() {
+    return get(Opcodes.INSTANCE_OF);
+  }
+
+  public boolean mayHaveIntSwitch() {
+    return get(Opcodes.INT_SWITCH);
+  }
+
+  public boolean mayHaveInvokeDirect() {
+    return get(Opcodes.INVOKE_DIRECT);
+  }
+
+  public boolean mayHaveInvokeInterface() {
+    return get(Opcodes.INVOKE_INTERFACE);
+  }
+
+  @SuppressWarnings("ConstantConditions")
+  public boolean mayHaveInvokeMethod() {
+    assert Opcodes.INVOKE_DIRECT <= 64;
+    assert Opcodes.INVOKE_INTERFACE <= 64;
+    assert Opcodes.INVOKE_POLYMORPHIC <= 64;
+    assert Opcodes.INVOKE_STATIC <= 64;
+    assert Opcodes.INVOKE_SUPER <= 64;
+    assert Opcodes.INVOKE_VIRTUAL <= 64;
+    long mask =
+        (1L << Opcodes.INVOKE_DIRECT)
+            | (1L << Opcodes.INVOKE_INTERFACE)
+            | (1L << Opcodes.INVOKE_POLYMORPHIC)
+            | (1L << Opcodes.INVOKE_STATIC)
+            | (1L << Opcodes.INVOKE_SUPER)
+            | (1L << Opcodes.INVOKE_VIRTUAL);
+    boolean result = isAnySetInFirst(mask);
+    assert result
+        == (mayHaveInvokeDirect()
+            || mayHaveInvokeInterface()
+            || mayHaveInvokePolymorphic()
+            || mayHaveInvokeStatic()
+            || mayHaveInvokeSuper()
+            || mayHaveInvokeVirtual());
+    return result;
+  }
+
+  @SuppressWarnings("ConstantConditions")
+  public boolean mayHaveInvokeMethodWithReceiver() {
+    assert Opcodes.INVOKE_DIRECT <= 64;
+    assert Opcodes.INVOKE_INTERFACE <= 64;
+    assert Opcodes.INVOKE_SUPER <= 64;
+    assert Opcodes.INVOKE_VIRTUAL <= 64;
+    long mask =
+        (1L << Opcodes.INVOKE_DIRECT)
+            | (1L << Opcodes.INVOKE_INTERFACE)
+            | (1L << Opcodes.INVOKE_SUPER)
+            | (1L << Opcodes.INVOKE_VIRTUAL);
+    boolean result = isAnySetInFirst(mask);
+    assert result
+        == (mayHaveInvokeDirect()
+            || mayHaveInvokeInterface()
+            || mayHaveInvokeSuper()
+            || mayHaveInvokeVirtual());
+    return result;
+  }
+
+  public boolean mayHaveInvokePolymorphic() {
+    return get(Opcodes.INVOKE_POLYMORPHIC);
+  }
+
+  public boolean mayHaveInvokeStatic() {
+    return get(Opcodes.INVOKE_STATIC);
+  }
+
+  public boolean mayHaveInvokeSuper() {
+    return get(Opcodes.INVOKE_SUPER);
+  }
+
+  public boolean mayHaveInvokeVirtual() {
+    return get(Opcodes.INVOKE_VIRTUAL);
+  }
+
   public boolean mayHaveMonitorInstruction() {
     return get(Opcodes.MONITOR);
+  }
+
+  public boolean mayHaveStaticGet() {
+    return get(Opcodes.STATIC_GET);
   }
 
   public boolean mayHaveStringSwitch() {

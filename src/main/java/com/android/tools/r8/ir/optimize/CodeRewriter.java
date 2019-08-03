@@ -857,6 +857,10 @@ public class CodeRewriter {
   }
 
   public void rewriteSwitch(IRCode code) {
+    if (!code.metadata().mayHaveIntSwitch()) {
+      return;
+    }
+
     boolean needToRemoveUnreachableBlocks = false;
     ListIterator<BasicBlock> blocksIterator = code.listIterator();
     while (blocksIterator.hasNext()) {
@@ -2051,6 +2055,12 @@ public class CodeRewriter {
     if (!appView.enableWholeProgramOptimizations()) {
       return;
     }
+
+    IRMetadata metadata = code.metadata();
+    if (!metadata.mayHaveCheckCast() && !metadata.mayHaveInstanceOf()) {
+      return;
+    }
+
     // If we can remove a CheckCast it is due to us having at least as much information about the
     // type as the CheckCast gives. We then need to propagate that information to the users of
     // the CheckCast to ensure further optimizations and removals of CheckCast:
@@ -3191,6 +3201,10 @@ public class CodeRewriter {
       return;
     }
 
+    if (!code.metadata().mayHaveConstNumber()) {
+      return;
+    }
+
     Supplier<Long2ReferenceMap<List<ConstNumber>>> constantsByValue =
         Suppliers.memoize(() -> getConstantsByValue(code));
     Supplier<DominatorTree> dominatorTree = Suppliers.memoize(() -> new DominatorTree(code));
@@ -3657,6 +3671,10 @@ public class CodeRewriter {
   }
 
   public void rewriteConstantEnumMethodCalls(IRCode code) {
+    if (!code.metadata().mayHaveInvokeMethodWithReceiver()) {
+      return;
+    }
+
     InstructionListIterator iterator = code.instructionListIterator();
     while (iterator.hasNext()) {
       Instruction current = iterator.next();

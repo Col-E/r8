@@ -713,7 +713,13 @@ public class IRCode {
 
   private boolean consistentMetadata() {
     for (Instruction instruction : instructions()) {
-      if (instruction.isConstString()) {
+      if (instruction.isCheckCast()) {
+        assert metadata.mayHaveCheckCast()
+            : "IR metadata should indicate that code has a check-cast";
+      } else if (instruction.isConstNumber()) {
+        assert metadata.mayHaveConstNumber()
+            : "IR metadata should indicate that code has a const-number";
+      } else if (instruction.isConstString()) {
         assert metadata.mayHaveConstString()
             : "IR metadata should indicate that code has a const-string";
       } else if (instruction.isDebugPosition()) {
@@ -722,9 +728,39 @@ public class IRCode {
       } else if (instruction.isDexItemBasedConstString()) {
         assert metadata.mayHaveDexItemBasedConstString()
             : "IR metadata should indicate that code has a dex-item-based-const-string";
+      } else if (instruction.isInstanceGet()) {
+        assert metadata.mayHaveInstanceGet()
+            : "IR metadata should indicate that code has an instance-get";
+      } else if (instruction.isInstanceOf()) {
+        assert metadata.mayHaveInstanceOf()
+            : "IR metadata should indicate that code has an instance-of";
+      } else if (instruction.isIntSwitch()) {
+        assert metadata.mayHaveIntSwitch()
+            : "IR metadata should indicate that code has an int-switch";
+      } else if (instruction.isInvokeDirect()) {
+        assert metadata.mayHaveInvokeDirect()
+            : "IR metadata should indicate that code has an invoke-direct";
+      } else if (instruction.isInvokeInterface()) {
+        assert metadata.mayHaveInvokeInterface()
+            : "IR metadata should indicate that code has an invoke-interface";
+      } else if (instruction.isInvokePolymorphic()) {
+        assert metadata.mayHaveInvokePolymorphic()
+            : "IR metadata should indicate that code has an invoke-polymorphic";
+      } else if (instruction.isInvokeStatic()) {
+        assert metadata.mayHaveInvokeStatic()
+            : "IR metadata should indicate that code has an invoke-static";
+      } else if (instruction.isInvokeSuper()) {
+        assert metadata.mayHaveInvokeSuper()
+            : "IR metadata should indicate that code has an invoke-super";
+      } else if (instruction.isInvokeVirtual()) {
+        assert metadata.mayHaveInvokeVirtual()
+            : "IR metadata should indicate that code has an invoke-virtual";
       } else if (instruction.isMonitor()) {
         assert metadata.mayHaveMonitorInstruction()
             : "IR metadata should indicate that code has a monitor instruction";
+      } else if (instruction.isStaticGet()) {
+        assert metadata.mayHaveStaticGet()
+            : "IR metadata should indicate that code has a static-get";
       } else if (instruction.isStringSwitch()) {
         assert metadata.mayHaveStringSwitch()
             : "IR metadata should indicate that code has a string-switch";

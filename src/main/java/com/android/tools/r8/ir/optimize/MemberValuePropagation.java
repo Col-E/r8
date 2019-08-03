@@ -26,6 +26,7 @@ import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.IRMetadata;
 import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
@@ -471,6 +472,11 @@ public class MemberValuePropagation {
    */
   public void rewriteWithConstantValues(
       IRCode code, DexType callingContext, Predicate<DexEncodedMethod> isProcessedConcurrently) {
+    IRMetadata metadata = code.metadata();
+    if (!metadata.mayHaveFieldGet() && !metadata.mayHaveInvokeMethod()) {
+      return;
+    }
+
     Set<Value> affectedValues = Sets.newIdentityHashSet();
     ListIterator<BasicBlock> blocks = code.listIterator();
     while (blocks.hasNext()) {

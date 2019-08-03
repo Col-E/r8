@@ -684,7 +684,6 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
     }
     newExitBlock.close(null);
     code.blocks.add(newExitBlock);
-    assert code.isConsistentSSA();
     return newExitBlock.listIterator(code);
   }
 }
