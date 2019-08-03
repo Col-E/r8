@@ -50,11 +50,6 @@ public class InitializedClassesInInstanceMethodsTest extends TestBase {
             options -> {
               options.enableInitializedClassesInInstanceMethodsAnalysis =
                   enableInitializedClassesInInstanceMethodsAnalysis;
-
-              // TODO(b/137174854): No need to explicitly turn this on when it gets enabled by
-              //  default.
-              assert !options.enableInliningOfInvokesWithNullableReceivers;
-              options.enableInliningOfInvokesWithNullableReceivers = true;
             })
         .enableClassInliningAnnotations()
         .enableInliningAnnotations()

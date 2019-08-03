@@ -53,7 +53,6 @@ public class NestMethodInlinedTest extends TestBase {
               options.enableValuePropagation = false;
               options.enableClassInlining = false;
               options.enableVerticalClassMerging = false;
-              options.enableInliningOfInvokesWithNullableReceivers = true;
             })
         .enableInliningAnnotations("nesthostexample")
         .setMinApi(parameters.getApiLevel())
