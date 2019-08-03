@@ -54,6 +54,7 @@ import com.android.tools.r8.ir.code.DebugLocalsChange;
 import com.android.tools.r8.ir.code.DominatorTree;
 import com.android.tools.r8.ir.code.Goto;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.IRMetadata;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.If.Type;
 import com.android.tools.r8.ir.code.InstanceOf;
@@ -491,7 +492,7 @@ public class CodeRewriter {
       return this;
     }
 
-    public BasicBlock build() {
+    public BasicBlock build(IRMetadata metadata) {
       final int NOT_FOUND = -1;
       Object2IntMap<BasicBlock> targetToSuccessorIndex = new Object2IntLinkedOpenHashMap<>();
       targetToSuccessorIndex.defaultReturnValue(NOT_FOUND);
@@ -514,7 +515,7 @@ public class CodeRewriter {
           targetToSuccessorIndex.computeIfAbsent(fallthrough, b -> targetToSuccessorIndex.size());
       IntSwitch newSwitch = new IntSwitch(value, keys, targetBlockIndices, fallthroughIndex);
       newSwitch.setPosition(position);
-      BasicBlock newSwitchBlock = BasicBlock.createSwitchBlock(blockNumber, newSwitch);
+      BasicBlock newSwitchBlock = BasicBlock.createSwitchBlock(blockNumber, newSwitch, metadata);
       for (BasicBlock successor : targetToSuccessorIndex.keySet()) {
         newSwitchBlock.link(successor);
       }
@@ -568,10 +569,10 @@ public class CodeRewriter {
         ConstNumber rightConst = code.createIntConstant(right);
         rightConst.setPosition(position);
         newIf = new If(Type.EQ, ImmutableList.of(left, rightConst.dest()));
-        ifBlock = BasicBlock.createIfBlock(blockNumber, newIf, rightConst);
+        ifBlock = BasicBlock.createIfBlock(blockNumber, newIf, code.metadata(), rightConst);
       } else {
         newIf = new If(Type.EQ, left);
-        ifBlock = BasicBlock.createIfBlock(blockNumber, newIf);
+        ifBlock = BasicBlock.createIfBlock(blockNumber, newIf, code.metadata());
       }
       newIf.setPosition(position);
       ifBlock.link(target);
@@ -631,7 +632,7 @@ public class CodeRewriter {
       switchBuilder
           .setFallthrough(fallthroughBlock)
           .setBlockNumber(nextBlockNumber++);
-      BasicBlock newSwitchBlock = switchBuilder.build();
+      BasicBlock newSwitchBlock = switchBuilder.build(code.metadata());
       newBlocks.addFirst(newSwitchBlock);
       fallthroughBlock = newSwitchBlock;
     }
@@ -4052,7 +4053,7 @@ public class CodeRewriter {
       iterator.add(new InvokeVirtual(print, null, ImmutableList.of(out, indent)));
 
       // Add a block for end-of-line printing.
-      BasicBlock eol = BasicBlock.createGotoBlock(code.blocks.size(), position);
+      BasicBlock eol = BasicBlock.createGotoBlock(code.blocks.size(), position, code.metadata());
       code.blocks.add(eol);
 
       BasicBlock successor = block.unlinkSingleSuccessor();
@@ -4067,12 +4068,14 @@ public class CodeRewriter {
         successor = block.unlinkSingleSuccessor();
         If theIf = new If(Type.NE, argument);
         theIf.setPosition(position);
-        BasicBlock ifBlock = BasicBlock.createIfBlock(code.blocks.size(), theIf);
+        BasicBlock ifBlock = BasicBlock.createIfBlock(code.blocks.size(), theIf, code.metadata());
         code.blocks.add(ifBlock);
         // Fallthrough block must be added right after the if.
-        BasicBlock isNullBlock = BasicBlock.createGotoBlock(code.blocks.size(), position);
+        BasicBlock isNullBlock =
+            BasicBlock.createGotoBlock(code.blocks.size(), position, code.metadata());
         code.blocks.add(isNullBlock);
-        BasicBlock isNotNullBlock = BasicBlock.createGotoBlock(code.blocks.size(), position);
+        BasicBlock isNotNullBlock =
+            BasicBlock.createGotoBlock(code.blocks.size(), position, code.metadata());
         code.blocks.add(isNotNullBlock);
 
         // Link the added blocks together.

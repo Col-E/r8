@@ -31,7 +31,7 @@ import org.junit.Test;
 public class ConstantRemovalTest {
 
   private static class MockLinearScanRegisterAllocator extends LinearScanRegisterAllocator {
-    public MockLinearScanRegisterAllocator(AppView<?> appView, IRCode code) {
+    MockLinearScanRegisterAllocator(AppView<?> appView, IRCode code) {
       super(appView, code);
     }
 
@@ -42,7 +42,7 @@ public class ConstantRemovalTest {
   }
 
   private static class MockLiveIntervals extends LiveIntervals {
-    public MockLiveIntervals(Value value) {
+    MockLiveIntervals(Value value) {
       super(value);
     }
 
@@ -72,6 +72,8 @@ public class ConstantRemovalTest {
     // is needed and the value 10 is *not* still in register 0 at that point.
     BasicBlock block = new BasicBlock();
     block.setNumber(0);
+
+    IRMetadata metadata = IRMetadata.unknown();
     Position position = Position.testingPosition();
 
     Value v3 = new Value(3, TypeLatticeElement.LONG, null);
@@ -79,51 +81,51 @@ public class ConstantRemovalTest {
     new MockLiveIntervals(v3);
     Instruction instruction = new ConstNumber(v3, 0);
     instruction.setPosition(position);
-    block.add(instruction);
+    block.add(instruction, metadata);
 
     Value v0 = new Value(0, TypeLatticeElement.LONG, null);
     v0.setNeedsRegister(true);
     new MockLiveIntervals(v0);
     instruction = new ConstNumber(v0, 10);
     instruction.setPosition(position);
-    block.add(instruction);
+    block.add(instruction, metadata);
 
     instruction = new Div(NumericType.LONG, v3, v3, v0);
     instruction.setPosition(position);
-    block.add(instruction);
+    block.add(instruction, metadata);
 
     Value v2 = new Value(2, TypeLatticeElement.INT, null);
     v2.setNeedsRegister(true);
     new MockLiveIntervals(v2);
     instruction = new ConstNumber(v2, 10);
     instruction.setPosition(position);
-    block.add(instruction);
+    block.add(instruction, metadata);
 
     Value v1 = new Value(1, TypeLatticeElement.INT, null);
     v1.setNeedsRegister(true);
     new MockLiveIntervals(v1);
     instruction = new Move(v1 ,v2);
     instruction.setPosition(position);
-    block.add(instruction);
+    block.add(instruction, metadata);
 
     instruction = new Div(NumericType.INT, v1, v1, v1);
     instruction.setPosition(position);
-    block.add(instruction);
+    block.add(instruction, metadata);
 
     Value v0_2 = new Value(0, TypeLatticeElement.LONG, null);
     v0_2.setNeedsRegister(true);
     new MockLiveIntervals(v0_2);
     instruction = new ConstNumber(v0_2, 10);
     instruction.setPosition(position);
-    block.add(instruction);
+    block.add(instruction, metadata);
 
     instruction = new Div(NumericType.LONG, v3, v3, v0_2);
     instruction.setPosition(position);
-    block.add(instruction);
+    block.add(instruction, metadata);
 
     Instruction ret = new Return();
     ret.setPosition(position);
-    block.add(ret);
+    block.add(ret, metadata);
     block.setFilledForTesting();
 
     LinkedList<BasicBlock> blocks = new LinkedList<>();

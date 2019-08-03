@@ -19,7 +19,6 @@ import com.android.tools.r8.ir.code.Phi.RegisterReadType;
 import com.android.tools.r8.ir.code.Value;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -146,9 +145,7 @@ final class FieldValueHelper {
           code.createValue(TypeLatticeElement.fromDexType(field.type, maybeNull(), appView));
       ConstNumber defaultValueInsn = new ConstNumber(defaultValue, 0);
       defaultValueInsn.setPosition(root.getPosition());
-      LinkedList<Instruction> instructions = block.getInstructions();
-      instructions.add(instructions.indexOf(root) + 1, defaultValueInsn);
-      defaultValueInsn.setBlock(block);
+      block.listIterator(code, root).add(defaultValueInsn);
     }
     return defaultValue;
   }

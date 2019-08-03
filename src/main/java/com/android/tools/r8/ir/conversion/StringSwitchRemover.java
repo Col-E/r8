@@ -105,7 +105,11 @@ public class StringSwitchRemover {
 
       BasicBlock newBlock =
           BasicBlock.createIfBlock(
-              code.blocks.size(), ifInstruction, constStringInstruction, invokeInstruction);
+              code.blocks.size(),
+              ifInstruction,
+              code.metadata(),
+              constStringInstruction,
+              invokeInstruction);
       newBlock.link(entry.getValue());
       blockIterator.add(newBlock);
       newBlocks.add(newBlock);

@@ -652,9 +652,14 @@ public class BasicBlock {
         : "Attempt to remove Phi " + phi + " which is present in currentDefinitions";
   }
 
-  public void add(Instruction next) {
+  public void add(Instruction next, IRCode code) {
+    add(next, code.metadata());
+  }
+
+  public void add(Instruction next, IRMetadata metadata) {
     assert !isFilled();
     instructions.add(next);
+    metadata.record(next);
     next.setBlock(this);
   }
 
@@ -1280,8 +1285,9 @@ public class BasicBlock {
    * @param blockNumber the block number of the goto block
    * @param target the target of the goto block
    */
-  public static BasicBlock createGotoBlock(int blockNumber, Position position, BasicBlock target) {
-    BasicBlock block = createGotoBlock(blockNumber, position);
+  public static BasicBlock createGotoBlock(
+      int blockNumber, Position position, IRMetadata metadata, BasicBlock target) {
+    BasicBlock block = createGotoBlock(blockNumber, position, metadata);
     block.getMutableSuccessors().add(target);
     return block;
   }
@@ -1293,9 +1299,10 @@ public class BasicBlock {
    *
    * @param blockNumber the block number of the goto block
    */
-  public static BasicBlock createGotoBlock(int blockNumber, Position position) {
+  public static BasicBlock createGotoBlock(
+      int blockNumber, Position position, IRMetadata metadata) {
     BasicBlock block = new BasicBlock();
-    block.add(new Goto());
+    block.add(new Goto(), metadata);
     block.close(null);
     block.setNumber(blockNumber);
     block.entry().setPosition(position);
@@ -1310,9 +1317,9 @@ public class BasicBlock {
    * @param blockNumber the block number of the block
    * @param theIf the if instruction
    */
-  public static BasicBlock createIfBlock(int blockNumber, If theIf) {
+  public static BasicBlock createIfBlock(int blockNumber, If theIf, IRMetadata metadata) {
     BasicBlock block = new BasicBlock();
-    block.add(theIf);
+    block.add(theIf, metadata);
     block.close(null);
     block.setNumber(blockNumber);
     return block;
@@ -1327,20 +1334,22 @@ public class BasicBlock {
    * @param theIf the if instruction
    * @param instructions the instructions to place before the if instruction
    */
-  public static BasicBlock createIfBlock(int blockNumber, If theIf, Instruction... instructions) {
+  public static BasicBlock createIfBlock(
+      int blockNumber, If theIf, IRMetadata metadata, Instruction... instructions) {
     BasicBlock block = new BasicBlock();
     for (Instruction instruction : instructions) {
-      block.add(instruction);
+      block.add(instruction, metadata);
     }
-    block.add(theIf);
+    block.add(theIf, metadata);
     block.close(null);
     block.setNumber(blockNumber);
     return block;
   }
 
-  public static BasicBlock createSwitchBlock(int blockNumber, IntSwitch theSwitch) {
+  public static BasicBlock createSwitchBlock(
+      int blockNumber, IntSwitch theSwitch, IRMetadata metadata) {
     BasicBlock block = new BasicBlock();
-    block.add(theSwitch);
+    block.add(theSwitch, metadata);
     block.close(null);
     block.setNumber(blockNumber);
     return block;
@@ -1359,8 +1368,8 @@ public class BasicBlock {
     moveException.setPosition(position);
     Throw throwInstruction = new Throw(moveException.outValue);
     throwInstruction.setPosition(position);
-    block.add(moveException);
-    block.add(throwInstruction);
+    block.add(moveException, code);
+    block.add(throwInstruction, code);
     block.close(null);
     block.setNumber(code.getHighestBlockNumber() + 1);
     return block;
@@ -1624,32 +1633,26 @@ public class BasicBlock {
     // one new phi to merge the two exception values, and all other phis don't need
     // to be changed.
     for (BasicBlock catchSuccessor : catchSuccessors) {
-      catchSuccessor.splitCriticalExceptionEdges(
-          code.getHighestBlockNumber() + 1,
-          code.valueNumberGenerator,
-          blockIterator::add,
-          options);
+      catchSuccessor.splitCriticalExceptionEdges(code, blockIterator::add, options);
     }
   }
 
   /**
-   * Assumes that `this` block is a catch handler target (note that it does not have to
-   * start with MoveException instruction, since the instruction can be removed by
-   * optimizations like dead code remover.
+   * Assumes that `this` block is a catch handler target (note that it does not have to start with
+   * MoveException instruction, since the instruction can be removed by optimizations like dead code
+   * remover.
    *
-   * Introduces new blocks on all incoming edges and clones MoveException instruction to
-   * these blocks if it exists. All exception values introduced in newly created blocks
-   * are combined in a phi added to `this` block.
+   * <p>Introduces new blocks on all incoming edges and clones MoveException instruction to these
+   * blocks if it exists. All exception values introduced in newly created blocks are combined in a
+   * phi added to `this` block.
    *
-   * Note that if there are any other phis defined on this block, they remain valid, since
-   * this method does not affect incoming edges in any way, and just adds new blocks with
-   * MoveException and Goto.
+   * <p>Note that if there are any other phis defined on this block, they remain valid, since this
+   * method does not affect incoming edges in any way, and just adds new blocks with MoveException
+   * and Goto.
    */
   public int splitCriticalExceptionEdges(
-      int nextBlockNumber,
-      ValueNumberGenerator valueNumberGenerator,
-      Consumer<BasicBlock> onNewBlock,
-      InternalOptions options) {
+      IRCode code, Consumer<BasicBlock> onNewBlock, InternalOptions options) {
+    int nextBlockNumber = code.getHighestBlockNumber() + 1;
     List<BasicBlock> predecessors = getMutablePredecessors();
     boolean hasMoveException = entry().isMoveException();
     TypeLatticeElement exceptionTypeLattice = null;
@@ -1676,18 +1679,16 @@ public class BasicBlock {
       newBlock.setNumber(nextBlockNumber++);
       newPredecessors.add(newBlock);
       if (hasMoveException) {
-        Value value = new Value(
-            valueNumberGenerator.next(),
-            exceptionTypeLattice,
-            move.getLocalInfo());
+        Value value =
+            new Value(code.valueNumberGenerator.next(), exceptionTypeLattice, move.getLocalInfo());
         values.add(value);
         MoveException newMove = new MoveException(value, exceptionType, options);
-        newBlock.add(newMove);
+        newBlock.add(newMove, code);
         newMove.setPosition(position);
       }
       Goto next = new Goto();
       next.setPosition(position);
-      newBlock.add(next);
+      newBlock.add(next, code);
       newBlock.close(null);
       newBlock.getMutableSuccessors().add(this);
       newBlock.getMutablePredecessors().add(predecessor);
@@ -1702,7 +1703,7 @@ public class BasicBlock {
     if (hasMoveException) {
       Phi phi =
           new Phi(
-              valueNumberGenerator.next(),
+              code.valueNumberGenerator.next(),
               this,
               exceptionTypeLattice,
               move.getLocalInfo(),

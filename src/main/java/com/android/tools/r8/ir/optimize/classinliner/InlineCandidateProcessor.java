@@ -47,7 +47,6 @@ import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -381,9 +380,8 @@ final class InlineCandidateProcessor {
 
       ConstNumber nullValue = code.createConstNull();
       nullValue.setPosition(invoke.getPosition());
-      LinkedList<Instruction> instructions = block.getInstructions();
-      instructions.add(instructions.indexOf(invoke), nullValue);
-      nullValue.setBlock(block);
+      block.listIterator(code, invoke).add(nullValue);
+      assert nullValue.getBlock() == block;
 
       int argIndex = unusedArgument.getSecond() + (invoke.isInvokeMethodWithReceiver() ? 1 : 0);
       invoke.replaceValue(argIndex, nullValue.outValue());

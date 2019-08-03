@@ -497,7 +497,8 @@ public class DexBuilder {
         If theIf = block.exit().asIf();
         BasicBlock trueTarget = theIf.getTrueTarget();
         BasicBlock newBlock =
-            BasicBlock.createGotoBlock(ir.blocks.size(), theIf.getPosition(), trueTarget);
+            BasicBlock.createGotoBlock(
+                ir.blocks.size(), theIf.getPosition(), ir.metadata(), trueTarget);
         theIf.setTrueTarget(newBlock);
         theIf.invert();
         it.add(newBlock);

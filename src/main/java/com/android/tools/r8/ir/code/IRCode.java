@@ -309,7 +309,8 @@ public class IRCode {
           // at the end of the list of blocks disregarding branching
           // structure.
           BasicBlock newBlock =
-              BasicBlock.createGotoBlock(nextBlockNumber++, pred.exit().getPosition(), block);
+              BasicBlock.createGotoBlock(
+                  nextBlockNumber++, pred.exit().getPosition(), metadata, block);
           newBlocks.add(newBlock);
           pred.replaceSuccessor(block, newBlock);
           newBlock.getMutablePredecessors().add(pred);
@@ -367,7 +368,7 @@ public class IRCode {
         if (fallthrough != null) {
           BasicBlock newFallthrough =
               BasicBlock.createGotoBlock(
-                  nextBlockNumber++, current.exit().getPosition(), fallthrough);
+                  nextBlockNumber++, current.exit().getPosition(), metadata, fallthrough);
           current.exit().setFallthroughBlock(newFallthrough);
           newFallthrough.getMutablePredecessors().add(current);
           fallthrough.replacePredecessor(current, newFallthrough);

@@ -33,6 +33,9 @@ import java.util.LinkedList;
 import org.junit.Test;
 
 public class TrivialGotoEliminationTest {
+
+  private final IRMetadata metadata = IRMetadata.unknown();
+
   @Test
   public void trivialGotoInEntryBlock() {
     // Setup silly block structure:
@@ -47,22 +50,22 @@ public class TrivialGotoEliminationTest {
     Position position = Position.testingPosition();
     BasicBlock block2 = new BasicBlock();
     block2.setNumber(2);
-    BasicBlock block0 = BasicBlock.createGotoBlock(0, position, block2);
+    BasicBlock block0 = BasicBlock.createGotoBlock(0, position, metadata, block2);
     block0.setFilledForTesting();
     block2.getMutablePredecessors().add(block0);
     Instruction ret = new Return();
     ret.setPosition(position);
-    block2.add(ret);
+    block2.add(ret, metadata);
     block2.setFilledForTesting();
     BasicBlock block1 = new BasicBlock();
     block1.setNumber(1);
     Value value = new Value(0, TypeLatticeElement.INT, null);
     Instruction number = new ConstNumber(value, 0);
     number.setPosition(position);
-    block1.add(number);
+    block1.add(number, metadata);
     Instruction throwing = new Throw(value);
     throwing.setPosition(position);
-    block1.add(throwing);
+    block1.add(throwing, metadata);
     block1.setFilledForTesting();
     LinkedList<BasicBlock> blocks = new LinkedList<>();
     blocks.add(block0);
@@ -111,18 +114,18 @@ public class TrivialGotoEliminationTest {
     block2.setNumber(2);
     Instruction ret = new Return();
     ret.setPosition(position);
-    block2.add(ret);
+    block2.add(ret, metadata);
     block2.setFilledForTesting();
 
     BasicBlock block3 = new BasicBlock();
     block3.setNumber(3);
     Instruction instruction = new Goto();
     instruction.setPosition(position);
-    block3.add(instruction);
+    block3.add(instruction, metadata);
     block3.setFilledForTesting();
     block3.getMutableSuccessors().add(block3);
 
-    BasicBlock block1 = BasicBlock.createGotoBlock(1, position);
+    BasicBlock block1 = BasicBlock.createGotoBlock(1, position, metadata);
     block1.getMutableSuccessors().add(block3);
     block1.setFilledForTesting();
 
@@ -136,10 +139,10 @@ public class TrivialGotoEliminationTest {
             null);
     instruction = new Argument(value, false);
     instruction.setPosition(position);
-    block0.add(instruction);
+    block0.add(instruction, metadata);
     instruction = new If(Type.EQ, value);
     instruction.setPosition(position);
-    block0.add(instruction);
+    block0.add(instruction, metadata);
     block0.getMutableSuccessors().add(block2);
     block0.getMutableSuccessors().add(block1);
     block0.setFilledForTesting();

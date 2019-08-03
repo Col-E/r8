@@ -783,7 +783,7 @@ public class IRBuilder {
       MoveException moveException =
           new MoveException(out, moveExceptionItem.guard, appView.options());
       moveException.setPosition(position);
-      currentBlock.add(moveException);
+      currentBlock.add(moveException, metadata);
     }
     // The block-transfer for exceptional edges needs to inform that this is an exceptional transfer
     // so that local ends become implicit. The reason for this issue is that the "split block" for
@@ -2208,7 +2208,6 @@ public class IRBuilder {
   // Private instruction helpers.
   private void addInstruction(Instruction ir) {
     addInstruction(ir, source.getCurrentPosition());
-    metadata.record(ir);
   }
 
   private void addInstruction(Instruction ir, Position position) {
@@ -2216,7 +2215,7 @@ public class IRBuilder {
     hasImpreciseValues |= ir.outValue() != null && !ir.outValue().getTypeLattice().isPreciseType();
     ir.setPosition(position);
     attachLocalValues(ir);
-    currentBlock.add(ir);
+    currentBlock.add(ir, metadata);
     if (ir.instructionTypeCanThrow()) {
       assert source.verifyCurrentInstructionCanThrow();
       CatchHandlers<Integer> catchHandlers = source.getCurrentCatchHandlers(this);
@@ -2519,7 +2518,7 @@ public class IRBuilder {
             if (joinBlock == null) {
               joinBlock =
                   BasicBlock.createGotoBlock(
-                      blocks.size() + blocksToAdd.size(), block.getPosition(), block);
+                      blocks.size() + blocksToAdd.size(), block.getPosition(), metadata, block);
               joinBlocks.put(otherPredecessorIndex, joinBlock);
               blocksToAdd.add(joinBlock);
               BasicBlock otherPredecessor = block.getPredecessors().get(otherPredecessorIndex);

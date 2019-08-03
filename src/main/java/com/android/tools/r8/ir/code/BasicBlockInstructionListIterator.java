@@ -121,6 +121,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
     instruction.setBlock(block);
     assert instruction.getBlock() == block;
     listIterator.set(instruction);
+    metadata.record(instruction);
   }
 
   /**
@@ -501,7 +502,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
         entryBlock = entryBlock.listIterator(code).split(inlinee);
         entryBlockIterator = entryBlock.listIterator(code);
         // Insert cast instruction into the new block.
-        inlineEntry.getInstructions().addFirst(castInstruction);
+        inlineEntry.listIterator(code).add(castInstruction);
         castInstruction.setBlock(inlineEntry);
         assert castInstruction.getBlock().getInstructions().size() == 2;
       } else {
@@ -628,6 +629,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
         || IteratorUtils.anyRemainingMatch(
             blocksIterator, remaining -> remaining == finalInvokeSuccessor);
 
+    code.metadata().merge(inlinee.metadata());
     return invokeSuccessor;
   }
 
@@ -672,7 +674,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
     }
     // The newly constructed return will be eliminated as part of inlining so we set position none.
     newReturn.setPosition(Position.none());
-    newExitBlock.add(newReturn);
+    newExitBlock.add(newReturn, metadata);
     for (BasicBlock exitBlock : normalExits) {
       InstructionListIterator it = exitBlock.listIterator(code, exitBlock.getInstructions().size());
       Instruction oldExit = it.previous();
