@@ -465,6 +465,7 @@ public class LensCodeRewriter {
           assert !affectedPhis.contains(operandPhi) || operandType.isBottom();
           assert affectedPhis.contains(operandPhi)
               || operandType.isPrimitive()
+              || operandType.isNullType()
               || (operandType.isReference()
                   && operandType.asReferenceTypeLatticeElement().substitute(graphLense, appView)
                       == operandType);
