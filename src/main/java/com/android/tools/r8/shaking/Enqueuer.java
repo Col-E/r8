@@ -1181,6 +1181,13 @@ public class Enqueuer {
    * depending on the currently seen invokes and field reads.
    */
   private void processNewlyInstantiatedClass(DexClass clazz, KeepReason reason) {
+    // Notify analyses. This is done even if `clazz` has already been marked as instantiated,
+    // because each analysis may depend on seeing all the (clazz, reason) pairs. Thus, not doing so
+    // could lead to nondeterminism.
+    if (clazz.isProgramClass()) {
+      analyses.forEach(
+          analysis -> analysis.processNewlyInstantiatedClass(clazz.asProgramClass(), reason));
+    }
     if (!instantiatedTypes.add(clazz.type, reason)) {
       return;
     }
@@ -1197,11 +1204,6 @@ public class Enqueuer {
     transitionFieldsForInstantiatedClass(clazz.type);
     // Add all dependent instance members to the workqueue.
     transitionDependentItemsForInstantiatedClass(clazz);
-    // Notify analyses.
-    if (clazz.isProgramClass()) {
-      analyses.forEach(
-          analysis -> analysis.processNewlyInstantiatedClass(clazz.asProgramClass(), reason));
-    }
   }
 
   /**
