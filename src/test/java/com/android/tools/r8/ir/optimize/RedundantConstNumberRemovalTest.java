@@ -57,6 +57,8 @@ public class RedundantConstNumberRemovalTest extends TestBase {
             .addInnerClasses(RedundantConstNumberRemovalTest.class)
             .addKeepClassAndMembersRules(TestClass.class)
             .enableInliningAnnotations()
+            .addOptionsModification(
+                internalOptions -> internalOptions.enableRedundantConstNumberOptimization = true)
             .run(TestClass.class)
             .assertSuccessWithOutput(expectedOutput);
 

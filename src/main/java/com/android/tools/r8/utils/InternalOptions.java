@@ -218,6 +218,8 @@ public class InternalOptions {
   public boolean enableRedundantFieldLoadElimination = true;
   public boolean enableValuePropagation = true;
   public boolean enableUninstantiatedTypeOptimization = true;
+  // TODO(b/138917494): Disable until we have numbers on potential performance penalties.
+  public boolean enableRedundantConstNumberOptimization = false;
 
   // Number of threads to use while processing the dex files.
   public int numberOfThreads = DETERMINISTIC_DEBUGGING ? 1 : ThreadUtils.NOT_SPECIFIED;

@@ -61,6 +61,7 @@ public class B124152497 extends TestBase {
                   if (forceRedundantConstNumberRemovalOnDalvik) {
                     assertTrue(isDalvik());
                     options.testing.forceRedundantConstNumberRemoval = true;
+                    options.enableRedundantConstNumberOptimization = true;
                   }
                 })
             .enableInliningAnnotations()
