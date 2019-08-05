@@ -22,7 +22,6 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.Streams;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -43,7 +42,6 @@ public class RedundantConstNumberRemovalTest extends TestBase {
   }
 
   @Test
-  @Ignore("b/123284765")
   public void test() throws Exception {
     String expectedOutput =
         StringUtils.lines(
@@ -57,7 +55,7 @@ public class RedundantConstNumberRemovalTest extends TestBase {
     R8TestRunResult result =
         testForR8(backend)
             .addInnerClasses(RedundantConstNumberRemovalTest.class)
-            .addKeepMainRule(TestClass.class)
+            .addKeepClassAndMembersRules(TestClass.class)
             .enableInliningAnnotations()
             .run(TestClass.class)
             .assertSuccessWithOutput(expectedOutput);
