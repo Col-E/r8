@@ -58,10 +58,10 @@ public class B124152497 extends TestBase {
             .addKeepMainRule(clazz)
             .addOptionsModification(
                 options -> {
+                  options.enableRedundantConstNumberOptimization = true;
                   if (forceRedundantConstNumberRemovalOnDalvik) {
                     assertTrue(isDalvik());
                     options.testing.forceRedundantConstNumberRemoval = true;
-                    options.enableRedundantConstNumberOptimization = true;
                   }
                 })
             .enableInliningAnnotations()
