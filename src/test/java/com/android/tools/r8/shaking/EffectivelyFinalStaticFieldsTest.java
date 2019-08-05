@@ -66,10 +66,11 @@ public class EffectivelyFinalStaticFieldsTest extends TestBase {
           assertTrue(
               mainMethod.streamInstructions().noneMatch(
                   i -> i.isConstString("Dead code: 1", JumboStringMode.ALLOW)));
-          assertTrue(
+          // TODO(b/138913138): effectively final, and default value is set.
+          assertFalse(
               mainMethod.streamInstructions().noneMatch(
                   i -> i.isConstString("Dead code: 2", JumboStringMode.ALLOW)));
-          // TODO(b/138913138): not trivial; assigned only once in <init>
+          // TODO(b/138913138): not trivial; assigned multiple times, but can determine the value.
           assertFalse(
               mainMethod.streamInstructions().noneMatch(
                   i -> i.isConstString("Dead code: 3", JumboStringMode.ALLOW)));
@@ -92,9 +93,7 @@ public class EffectivelyFinalStaticFieldsTest extends TestBase {
                   i -> i.isConstString("Dead code: 8", JumboStringMode.ALLOW)));
         })
         .run(parameters.getRuntime(), MAIN)
-        .assertSuccess();
-        // TODO(b/138912149): should not be shrunk.
-        //.assertSuccessWithOutputLines("The end");
+        .assertSuccessWithOutputLines("The end");
   }
 
   static class TestClass {
@@ -102,9 +101,11 @@ public class EffectivelyFinalStaticFieldsTest extends TestBase {
       if (StaticFieldWithoutInitialization_Z.alwaysFalse) {
         System.out.println("Dead code: 1");
       }
+      StaticFieldWithInitialization_Z.not_clinit();
       if (StaticFieldWithInitialization_Z.alwaysFalse) {
         System.out.println("Dead code: 2");
       }
+      StaticFieldWithNonTrivialInitialization_Z.not_clinit();
       if (StaticFieldWithNonTrivialInitialization_Z.alwaysFalse
           || !StaticFieldWithNonTrivialInitialization_Z.alwaysTrue) {
         System.out.println("Dead code: 3");
@@ -140,7 +141,8 @@ public class EffectivelyFinalStaticFieldsTest extends TestBase {
   @NeverMerge
   static class StaticFieldWithInitialization_Z {
     static boolean alwaysFalse;
-    static {
+    @NeverInline
+    static void not_clinit() {
       alwaysFalse = false;
     }
   }
@@ -149,9 +151,9 @@ public class EffectivelyFinalStaticFieldsTest extends TestBase {
   static class StaticFieldWithNonTrivialInitialization_Z
       extends StaticFieldWithInitialization_Z {
     static boolean alwaysTrue;
-    static {
+    @NeverInline
+    static void not_clinit() {
       alwaysTrue = alwaysFalse;
-      // TODO(b/138912149): should not be shrunk.
       alwaysTrue = true;
     }
   }
