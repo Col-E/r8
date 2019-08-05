@@ -1,0 +1,200 @@
+// Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
+// for details. All rights reserved. Use of this source code is governed by a
+// BSD-style license that can be found in the LICENSE file.
+package com.android.tools.r8.shaking;
+
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
+
+import com.android.tools.r8.NeverClassInline;
+import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject.JumboStringMode;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+
+@RunWith(Parameterized.class)
+public class EffectivelyFinalStaticFieldsTest extends TestBase {
+  private static final Class<?> MAIN = TestClass.class;
+
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimes().build();
+  }
+
+  private final TestParameters parameters;
+
+  public EffectivelyFinalStaticFieldsTest(TestParameters parameters) {
+    this.parameters = parameters;
+  }
+
+  @Test
+  public void testJVMOutput() throws Exception {
+    assumeTrue("Only run JVM reference on CF runtimes", parameters.isCfRuntime());
+    testForJvm()
+        .addTestClasspath()
+        .run(parameters.getRuntime(), MAIN)
+        .assertSuccessWithOutputLines("The end");
+  }
+
+  @Test
+  public void testR8() throws Exception {
+    testForR8(parameters.getBackend())
+        .addInnerClasses(EffectivelyFinalStaticFieldsTest.class)
+        .addKeepMainRule(MAIN)
+        .enableInliningAnnotations()
+        .enableClassInliningAnnotations()
+        .enableMergeAnnotations()
+        .setMinApi(parameters.getRuntime())
+        .compile()
+        .inspect(codeInspector -> {
+          ClassSubject main = codeInspector.clazz(MAIN);
+          assertThat(main, isPresent());
+
+          MethodSubject mainMethod = main.mainMethod();
+          assertThat(mainMethod, isPresent());
+
+          assertTrue(
+              mainMethod.streamInstructions().noneMatch(
+                  i -> i.isConstString("Dead code: 1", JumboStringMode.ALLOW)));
+          assertTrue(
+              mainMethod.streamInstructions().noneMatch(
+                  i -> i.isConstString("Dead code: 2", JumboStringMode.ALLOW)));
+          // TODO(b/138913138): not trivial; assigned only once in <init>
+          assertFalse(
+              mainMethod.streamInstructions().noneMatch(
+                  i -> i.isConstString("Dead code: 3", JumboStringMode.ALLOW)));
+          assertTrue(
+              mainMethod.streamInstructions().noneMatch(
+                  i -> i.isConstString("Dead code: 4", JumboStringMode.ALLOW)));
+          assertTrue(
+              mainMethod.streamInstructions().noneMatch(
+                  i -> i.isConstString("Dead code: 5", JumboStringMode.ALLOW)));
+          // TODO(b/138913138): not trivial; assigned multiple times, but within a certain range.
+          assertFalse(
+              mainMethod.streamInstructions().noneMatch(
+                  i -> i.isConstString("Dead code: 6", JumboStringMode.ALLOW)));
+          assertTrue(
+              mainMethod.streamInstructions().noneMatch(
+                  i -> i.isConstString("Dead code: 7", JumboStringMode.ALLOW)));
+          // TODO(b/138913138): effectively final, and default value is set.
+          assertFalse(
+              mainMethod.streamInstructions().noneMatch(
+                  i -> i.isConstString("Dead code: 8", JumboStringMode.ALLOW)));
+        })
+        .run(parameters.getRuntime(), MAIN)
+        .assertSuccess();
+        // TODO(b/138912149): should not be shrunk.
+        //.assertSuccessWithOutputLines("The end");
+  }
+
+  static class TestClass {
+    public static void main(String... args) {
+      if (StaticFieldWithoutInitialization_Z.alwaysFalse) {
+        System.out.println("Dead code: 1");
+      }
+      if (StaticFieldWithInitialization_Z.alwaysFalse) {
+        System.out.println("Dead code: 2");
+      }
+      if (StaticFieldWithNonTrivialInitialization_Z.alwaysFalse
+          || !StaticFieldWithNonTrivialInitialization_Z.alwaysTrue) {
+        System.out.println("Dead code: 3");
+      }
+      if (StaticFieldWithoutInitialization_I.alwaysZero != 0) {
+        System.out.println("Dead code: 4");
+      }
+      if (StaticFieldWithInitialization_I.alwaysZero != 0) {
+        System.out.println("Dead code: 5");
+      }
+      StaticFieldWithRange_I.foo();
+      StaticFieldWithRange_I.bar();
+      if (StaticFieldWithRange_I.alwaysLessThanEight >= 8) {
+        System.out.println("Dead code: 6");
+      }
+      if (StaticFieldWithoutInitialization_L.alwaysNull != null) {
+        System.out.println("Dead code: 7");
+      }
+      StaticFieldWithInitialization_L.not_clinit();
+      if (StaticFieldWithInitialization_L.alwaysNull != null) {
+        System.out.println("Dead code: 8");
+      }
+      System.out.println("The end");
+    }
+  }
+
+  @NeverClassInline
+  static class StaticFieldWithoutInitialization_Z {
+    static boolean alwaysFalse;
+  }
+
+  @NeverClassInline
+  @NeverMerge
+  static class StaticFieldWithInitialization_Z {
+    static boolean alwaysFalse;
+    static {
+      alwaysFalse = false;
+    }
+  }
+
+  @NeverClassInline
+  static class StaticFieldWithNonTrivialInitialization_Z
+      extends StaticFieldWithInitialization_Z {
+    static boolean alwaysTrue;
+    static {
+      alwaysTrue = alwaysFalse;
+      // TODO(b/138912149): should not be shrunk.
+      alwaysTrue = true;
+    }
+  }
+
+  @NeverClassInline
+  static class StaticFieldWithoutInitialization_I {
+    static int alwaysZero;
+  }
+
+  @NeverClassInline
+  static class StaticFieldWithInitialization_I {
+    static int alwaysZero;
+    static {
+      alwaysZero = 0;
+    }
+  }
+
+  @NeverClassInline
+  static class StaticFieldWithRange_I {
+    static int alwaysLessThanEight;
+
+    @NeverInline
+    static void foo() {
+      alwaysLessThanEight = 4;
+    }
+
+    @NeverInline
+    static void bar() {
+      alwaysLessThanEight = 2;
+    }
+  }
+
+  @NeverClassInline
+  static class StaticFieldWithoutInitialization_L {
+    static Object alwaysNull;
+  }
+
+  @NeverClassInline
+  static class StaticFieldWithInitialization_L {
+    static Object alwaysNull;
+    @NeverInline
+    static void not_clinit() {
+      alwaysNull = null;
+    }
+  }
+}
