@@ -70,7 +70,7 @@ public class DisjointSets<T> {
     if (representative == null) {
       return null;
     }
-    HashSet<T> result = new HashSet<>();
+    Set<T> result = new HashSet<>();
     for (T t : parent.keySet()) {
       // Find root with path-compression.
       if (findSet(t).equals(representative)) {

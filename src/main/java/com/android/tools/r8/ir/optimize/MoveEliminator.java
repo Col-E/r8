@@ -8,9 +8,10 @@ import com.android.tools.r8.ir.code.Move;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import java.util.HashSet;
+import java.util.Set;
 
 class MoveEliminator {
-  private final HashSet<Move> activeMoves = new HashSet<>();
+  private final Set<Move> activeMoves = new HashSet<>();
   private final RegisterAllocator allocator;
 
   MoveEliminator(RegisterAllocator allocator) {

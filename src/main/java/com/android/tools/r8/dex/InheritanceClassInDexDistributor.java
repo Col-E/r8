@@ -421,7 +421,7 @@ public class InheritanceClassInDexDistributor {
     VirtualFileCycler cycler = new VirtualFileCycler(dexes, namingLens, dexIndexOffset);
     // Don't modify input dexBlackList. Think about modifying the input collection considering this
     // is private API.
-    HashSet<VirtualFile> currentBlackList = new HashSet<>(dexBlackList);
+    Set<VirtualFile> currentBlackList = new HashSet<>(dexBlackList);
     // Don't put class expected to fail linking in the main dex, save main dex space for classes
     // that may benefit to be in the main dex.
     currentBlackList.add(mainDex);
@@ -620,7 +620,7 @@ public class InheritanceClassInDexDistributor {
     int assignedClasses = 0;
     int dexInitialSize = dex.classes().size();
     boolean isLayerFullyAssigned = true;
-    HashSet<DexProgramClass> remaining = new HashSet<>(classes);
+    Set<DexProgramClass> remaining = new HashSet<>(classes);
     while (isLayerFullyAssigned && !remaining.isEmpty()) {
       Set<DexProgramClass> toProcess = remaining;
       remaining = new HashSet<>();
