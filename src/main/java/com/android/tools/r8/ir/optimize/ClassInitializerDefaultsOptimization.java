@@ -116,7 +116,7 @@ public class ClassInitializerDefaultsOptimization {
     // the field initial value.
     Set<StaticPut> unnecessaryStaticPuts = Sets.newIdentityHashSet();
     Collection<StaticPut> finalFieldPuts =
-        computeUnnecessaryStaticPuts(code, clazz, unnecessaryStaticPuts);
+        findFinalFieldPutsWhileCollectingUnnecessaryStaticPuts(code, clazz, unnecessaryStaticPuts);
 
     // Return eagerly if there is nothing to optimize.
     if (unnecessaryStaticPuts.isEmpty()) {
@@ -315,9 +315,10 @@ public class ClassInitializerDefaultsOptimization {
     return null;
   }
 
-  private Collection<StaticPut> computeUnnecessaryStaticPuts(
-      IRCode code, DexClass clazz, Set<StaticPut> puts) {
-    Map<DexField, StaticPut> finalFieldPut = Maps.newIdentityHashMap();
+  private Collection<StaticPut> findFinalFieldPutsWhileCollectingUnnecessaryStaticPuts(
+      IRCode code, DexClass clazz, Set<StaticPut> unnecessaryStaticPuts) {
+    Map<DexField, StaticPut> finalFieldPuts = Maps.newIdentityHashMap();
+    Map<DexField, Set<StaticPut>> isWrittenBefore = Maps.newIdentityHashMap();
     Set<DexField> isReadBefore = Sets.newIdentityHashSet();
     final int color = code.reserveMarkingColor();
     try {
@@ -330,7 +331,7 @@ public class ClassInitializerDefaultsOptimization {
             // as long as the instructions do not throw.
             ArrayPut arrayPut = instruction.asArrayPut();
             if (arrayPut.instructionInstanceCanThrow(appView, clazz.type).isThrowing()) {
-              return finalFieldPut.values();
+              return validateFinalFieldPuts(finalFieldPuts, isWrittenBefore);
             }
           } else if (instruction.isStaticGet()) {
             StaticGet get = instruction.asStaticGet();
@@ -339,14 +340,14 @@ public class ClassInitializerDefaultsOptimization {
               isReadBefore.add(field.field);
             } else if (instruction.instructionMayHaveSideEffects(appView, clazz.type)) {
               // Reading another field is only OK if the read does not have side-effects.
-              return finalFieldPut.values();
+              return validateFinalFieldPuts(finalFieldPuts, isWrittenBefore);
             }
           } else if (instruction.isStaticPut()) {
             StaticPut put = instruction.asStaticPut();
             if (put.getField().holder != clazz.type) {
               // Can cause clinit on another class which can read uninitialized static fields
               // of this class.
-              return finalFieldPut.values();
+              return validateFinalFieldPuts(finalFieldPuts, isWrittenBefore);
             }
             DexField field = put.getField();
             if (clazz.definesStaticField(field)) {
@@ -359,27 +360,54 @@ public class ClassInitializerDefaultsOptimization {
                 continue;
               }
               if (put.value().isConstant()) {
-                if ((field.type.isClassType() || field.type.isArrayType())
-                    && put.value().isZero()) {
-                  finalFieldPut.put(put.getField(), put);
-                  puts.add(put);
+                if (field.type.isReferenceType() && put.value().isZero()) {
+                  finalFieldPuts.put(field, put);
+                  unnecessaryStaticPuts.add(put);
+                  // If this field has been written before, those static-put's up to this point are
+                  // redundant. We should remove them all together; otherwise, remaining static-put
+                  // that is not constant can change the program semantics. See b/138912149.
+                  if (isWrittenBefore.containsKey(field)) {
+                    unnecessaryStaticPuts.addAll(isWrittenBefore.get(field));
+                    isWrittenBefore.remove(field);
+                  }
+                  continue;
                 } else if (field.type.isPrimitiveType()
                     || field.type == dexItemFactory.stringType) {
-                  finalFieldPut.put(put.getField(), put);
-                  puts.add(put);
+                  finalFieldPuts.put(field, put);
+                  unnecessaryStaticPuts.add(put);
+                  if (isWrittenBefore.containsKey(field)) {
+                    unnecessaryStaticPuts.addAll(isWrittenBefore.get(field));
+                    isWrittenBefore.remove(field);
+                  }
+                  continue;
                 }
+                // Still constant, but not able to represent it as static encoded values, e.g.,
+                // const-class, const-method-handle, etc. This static-put can be redundant if the
+                // field is rewritten with another constant. Will fall through and track static-put.
               } else if (isClassNameConstantOf(clazz, put)) {
                 // Collect put of class name constant as a potential default value.
-                finalFieldPut.put(put.getField(), put);
-                puts.add(put);
+                finalFieldPuts.put(field, put);
+                unnecessaryStaticPuts.add(put);
+                if (isWrittenBefore.containsKey(field)) {
+                  unnecessaryStaticPuts.addAll(isWrittenBefore.get(field));
+                  isWrittenBefore.remove(field);
+                }
+                continue;
               }
+              // static-put that is reaching here can be redundant if the corresponding field is
+              // rewritten with another constant (of course before being read).
+              // However, if static-put is still remaining in `isWrittenBefore`, that indicates
+              // the previous candidate as final field put is no longer valid.
+              isWrittenBefore
+                  .computeIfAbsent(field, ignore -> Sets.newIdentityHashSet())
+                  .add(put);
             } else {
               // Writing another field is not OK.
-              return finalFieldPut.values();
+              return validateFinalFieldPuts(finalFieldPuts, isWrittenBefore);
             }
           } else if (instruction.instructionMayHaveSideEffects(appView, clazz.type)) {
             // Some other instruction that has side-effects. Stop here.
-            return finalFieldPut.values();
+            return validateFinalFieldPuts(finalFieldPuts, isWrittenBefore);
           } else {
             // TODO(b/120138731): This check should be removed when the Class.get*Name()
             // optimizations become enabled.
@@ -397,7 +425,7 @@ public class ClassInitializerDefaultsOptimization {
                   // OK, this value is technically a constant.
                   continue;
                 }
-                return finalFieldPut.values();
+                return validateFinalFieldPuts(finalFieldPuts, isWrittenBefore);
               }
             }
           }
@@ -409,7 +437,33 @@ public class ClassInitializerDefaultsOptimization {
     } finally {
       code.returnMarkingColor(color);
     }
-    return finalFieldPut.values();
+    return validateFinalFieldPuts(finalFieldPuts, isWrittenBefore);
+  }
+
+  private Collection<StaticPut> validateFinalFieldPuts(
+      Map<DexField, StaticPut> finalFieldPuts,
+      Map<DexField, Set<StaticPut>> isWrittenBefore) {
+    // If a field is rewritten again with other values that we can't represent as static encoded
+    // values, that would be recorded at `isWrittenBefore`, which is used to collect and remove
+    // redundant static-puts. The remnant indicates that the candidate for final field put is not
+    // valid anymore, so remove it.
+    //
+    // For example,
+    //   static String x;
+    //
+    //   static {
+    //     x = "constant";     // will be in finalFieldPut
+    //     x = <non-constant>  // will be added to isWrittenBefore
+    //     // x = "another-constant"
+    //   }
+    // If there is another static-put with a constant, static-put stored in `isWrittenBefore` is
+    // used to remove redundant static-put together. (And the previous constant is overwritten.)
+    // If not, `x` has "constant" as a default value, whereas static-put with non-constant is
+    // remaining. If other optimizations (most likely member value propagation) rely on encoded
+    // values, leaving it can cause incorrect optimizations. Thus, we invalidate candidates of
+    // final field puts at all.
+    isWrittenBefore.keySet().forEach(finalFieldPuts::remove);
+    return finalFieldPuts.values();
   }
 
   // Check if the static put is a constant derived from the class holding the method.
