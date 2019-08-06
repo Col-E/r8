@@ -20,25 +20,39 @@ import java.util.List;
 public class CoreLibDesugarTestBase extends TestBase {
 
   protected boolean requiresCoreLibDesugaring(TestParameters parameters) {
+    // TODO(b/134732760): Use the two other APIS instead.
+    return requiresEmulatedInterfaceCoreLibDesugaring(parameters)
+        && requiresRetargetCoreLibMemberDesugaring(parameters);
+  }
+
+  protected boolean requiresEmulatedInterfaceCoreLibDesugaring(TestParameters parameters) {
     return parameters.getApiLevel().getLevel() < AndroidApiLevel.N.getLevel();
   }
 
-  protected Path buildDesugaredLibrary(AndroidApiLevel apiLevel, List<Path> additionalProgramFiles)
-      throws Exception {
-    Path output = temp.newFolder().toPath().resolve("desugar_jdk_libs.zip");
-    L8.run(
-        L8Command.builder()
-            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
-            .addProgramFiles(ToolHelper.getDesugarJDKLibs())
-            .addProgramFiles(additionalProgramFiles)
-            .addSpecialLibraryConfiguration("default")
-            .setMinApiLevel(apiLevel.getLevel())
-            .setOutput(output, OutputMode.DexIndexed)
-            .build());
-    return output;
+  protected boolean requiresRetargetCoreLibMemberDesugaring(TestParameters parameters) {
+    return parameters.getApiLevel().getLevel() < AndroidApiLevel.P.getLevel();
   }
 
-  protected Path buildDesugaredLibrary(AndroidApiLevel apiLevel) throws Exception {
+  protected Path buildDesugaredLibrary(
+      AndroidApiLevel apiLevel, List<Path> additionalProgramFiles) {
+    try {
+      Path output = temp.newFolder().toPath().resolve("desugar_jdk_libs.zip");
+      L8.run(
+          L8Command.builder()
+              .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+              .addProgramFiles(ToolHelper.getDesugarJDKLibs())
+              .addProgramFiles(additionalProgramFiles)
+              .addSpecialLibraryConfiguration("default")
+              .setMinApiLevel(apiLevel.getLevel())
+              .setOutput(output, OutputMode.DexIndexed)
+              .build());
+      return output;
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  protected Path buildDesugaredLibrary(AndroidApiLevel apiLevel) {
     return buildDesugaredLibrary(apiLevel, ImmutableList.of());
   }
 

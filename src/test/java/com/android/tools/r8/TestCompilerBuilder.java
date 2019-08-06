@@ -266,8 +266,17 @@ public abstract class TestCompilerBuilder<
     return self();
   }
 
+  @Deprecated
   public T enableCoreLibraryDesugaring() {
-    builder.addSpecialLibraryConfiguration("default");
+    // TODO(b/134732760): Use the other API instead.
+    return enableCoreLibraryDesugaring(AndroidApiLevel.B);
+  }
+
+  public T enableCoreLibraryDesugaring(AndroidApiLevel minAPILevel) {
+    if (minAPILevel.getLevel() < AndroidApiLevel.P.getLevel()) {
+      builder.addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P));
+      builder.addSpecialLibraryConfiguration("default");
+    }
     return self();
   }
 }

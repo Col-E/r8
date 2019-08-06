@@ -16,6 +16,7 @@ import com.android.tools.r8.debug.CfDebugTestConfig;
 import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.debug.DexDebugTestConfig;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -31,6 +32,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.hamcrest.Matcher;
 
@@ -160,6 +162,14 @@ public abstract class TestCompileResult<
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  public CR addDesugaredCoreLibraryRunClassPath(
+      Function<AndroidApiLevel, Path> classPathSupplier, AndroidApiLevel minAPILevel) {
+    if (minAPILevel.getLevel() < AndroidApiLevel.P.getLevel()) {
+      addRunClasspathFiles(classPathSupplier.apply(minAPILevel));
+    }
+    return self();
   }
 
   public CR enableRuntimeAssertions() {

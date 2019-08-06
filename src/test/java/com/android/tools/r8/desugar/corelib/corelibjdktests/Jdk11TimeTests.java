@@ -140,10 +140,11 @@ public class Jdk11TimeTests extends Jdk11CoreLibTestBase {
             .addProgramFiles(Paths.get(JDK_TESTS_BUILD_DIR + "jcommander-1.48.jar"))
             .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .setMinApi(parameters.getApiLevel())
-            .enableCoreLibraryDesugaring()
+            .enableCoreLibraryDesugaring(parameters.getApiLevel())
             .compile()
             .withArt6Plus64BitsLib()
-            .addRunClasspathFiles(buildDesugaredLibrary(parameters.getApiLevel()));
+            .addDesugaredCoreLibraryRunClassPath(
+                this::buildDesugaredLibrary, parameters.getApiLevel());
     for (String success : successes) {
       D8TestRunResult result =
           compileResult.run(parameters.getRuntime(), "TestNGMainRunner", verbosity, success);

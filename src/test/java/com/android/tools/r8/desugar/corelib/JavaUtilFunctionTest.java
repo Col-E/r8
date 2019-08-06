@@ -35,6 +35,9 @@ public class JavaUtilFunctionTest extends CoreLibDesugarTestBase {
   }
 
   private void checkRewrittenArguments(CodeInspector inspector) {
+    if (!requiresEmulatedInterfaceCoreLibDesugaring(parameters)) {
+      return;
+    }
     ClassSubject classSubject = inspector.clazz(TestClass.class);
     assertThat(classSubject, isPresent());
     assertEquals(
@@ -50,12 +53,12 @@ public class JavaUtilFunctionTest extends CoreLibDesugarTestBase {
   }
 
   @Test
-  public void testJavaUtilOptional() throws Exception {
+  public void testJavaUtilFunction() throws Exception {
     String expectedOutput = StringUtils.lines("Hello, world", "Hello, world");
     testForD8()
         .addInnerClasses(JavaUtilFunctionTest.class)
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring()
         .compile()
         .inspect(this::checkRewrittenArguments)

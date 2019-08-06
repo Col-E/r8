@@ -4,7 +4,9 @@
 
 package com.android.tools.r8;
 
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.List;
@@ -42,6 +44,16 @@ public class SpecialLibraryConfiguration {
         .build();
   }
 
+  private static Map<String, String> buildPrefixRewritingForProgramCompilationAndroidNPlus() {
+    // From Android O, emulated interfaces are not supported and are not required.
+    // Prefix rewriting is different to avoid rewriting classes to j$ while they should not,
+    // else Android cannot find the library methods because they use the incorrect types.
+    return ImmutableMap.<String, String>builder()
+        .put("java.time.", "j$.time.")
+        .put("java.util.Desugar", "j$.util.Desugar")
+        .build();
+  }
+
   private static Map<String, String> buildPrefixRewritingForCoreLibCompilation() {
     return ImmutableMap.<String, String>builder()
         // --rewrite_core_library_prefix.
@@ -72,6 +84,18 @@ public class SpecialLibraryConfiguration {
         .put("java.util.concurrent.DesugarUnsafe", "j$.util.concurrent.DesugarUnsafe")
         .put("java.util.concurrent.ThreadLocalRandom", "j$.util.concurrent.ThreadLocalRandom")
         .put("java.util.concurrent.atomic.DesugarAtomic", "j$.util.concurrent.atomic.DesugarAtomic")
+        .build();
+  }
+
+  private static Map<String, String>
+      buildRetargetCoreLibraryMemberForProgramCompilationAndroidNPlus() {
+    // --retarget_core_library_member.
+    return ImmutableMap.<String, String>builder()
+        .put("java.util.Calendar#toInstant", "java.util.DesugarCalendar")
+        .put("java.util.Date#from", "java.util.DesugarDate")
+        .put("java.util.Date#toInstant", "java.util.DesugarDate")
+        .put("java.util.GregorianCalendar#from", "java.util.DesugarGregorianCalendar")
+        .put("java.util.GregorianCalendar#toZonedDateTime", "java.util.DesugarGregorianCalendar")
         .build();
   }
 
@@ -246,19 +270,38 @@ public class SpecialLibraryConfiguration {
   }
 
   public static void configureLibraryDesugaringForProgramCompilation(InternalOptions options) {
+    // TODO(b/134732760): Make assertions in D8/R8 commands.
+    if (options.minApiLevel >= AndroidApiLevel.P.getLevel()) {
+      options.reporter.warning(
+          new StringDiagnostic(
+              "Desugaring core libraries for Android P and over is possible but not required."));
+    }
     options.coreLibraryCompilation = false;
-    options.retargetCoreLibMember = buildRetargetCoreLibraryMemberForProgramCompilation();
-    options.dontRewriteInvocations = buildDontRewriteInvocations();
-    options.rewritePrefix = buildPrefixRewritingForProgramCompilation();
-    options.emulateLibraryInterface = buildEmulateLibraryInterface();
+    if (options.minApiLevel < AndroidApiLevel.N.getLevel()) {
+      options.rewritePrefix = buildPrefixRewritingForProgramCompilation();
+      options.retargetCoreLibMember = buildRetargetCoreLibraryMemberForProgramCompilation();
+      options.emulateLibraryInterface = buildEmulateLibraryInterface();
+      options.dontRewriteInvocations = buildDontRewriteInvocations();
+    } else {
+      options.rewritePrefix = buildPrefixRewritingForProgramCompilationAndroidNPlus();
+      options.retargetCoreLibMember =
+          buildRetargetCoreLibraryMemberForProgramCompilationAndroidNPlus();
+    }
   }
 
   public static void configureLibraryDesugaringForLibraryCompilation(InternalOptions options) {
+    // TODO(b/134732760): Make assertions in L8 commands.
+    if (options.minApiLevel >= AndroidApiLevel.P.getLevel()) {
+      options.reporter.warning(
+          new StringDiagnostic(
+              "Desugaring core libraries for Android P and over is possible but not required."));
+    }
     options.coreLibraryCompilation = true;
     options.backportCoreLibraryMembers = buildBackportCoreLibraryMembers();
     options.retargetCoreLibMember = buildRetargetCoreLibraryMemberForCoreLibCompilation();
-    options.dontRewriteInvocations = buildDontRewriteInvocations();
     options.rewritePrefix = buildPrefixRewritingForCoreLibCompilation();
+    // The following is ignored starting from Android O.
+    options.dontRewriteInvocations = buildDontRewriteInvocations();
     options.emulateLibraryInterface = buildEmulateLibraryInterface();
   }
 }

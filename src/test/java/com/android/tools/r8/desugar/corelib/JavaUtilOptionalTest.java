@@ -41,6 +41,9 @@ public class JavaUtilOptionalTest extends CoreLibDesugarTestBase {
   }
 
   private void checkRewrittenInvokes(CodeInspector inspector) {
+    if (!requiresEmulatedInterfaceCoreLibDesugaring(parameters)) {
+      return;
+    }
     ClassSubject classSubject = inspector.clazz(TestClass.class);
     assertThat(classSubject, isPresent());
     Iterator<InvokeInstructionSubject> iterator =
@@ -76,7 +79,7 @@ public class JavaUtilOptionalTest extends CoreLibDesugarTestBase {
     testForD8()
         .addInnerClasses(JavaUtilOptionalTest.class)
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring()
         .compile()
         .inspect(this::checkRewrittenInvokes)

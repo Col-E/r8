@@ -10,8 +10,6 @@ import static org.junit.Assert.fail;
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject.JumboStringMode;
@@ -21,7 +19,6 @@ import java.util.stream.Stream;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -45,19 +42,21 @@ public class CustomCollectionTest extends CoreLibDesugarTestBase {
 
   @Test
   public void testCustomCollection() throws Exception {
-    Assume.assumeTrue("No desugaring for high API levels", requiresCoreLibDesugaring(parameters));
     D8TestRunResult d8TestRunResult =
         testForD8()
             .addInnerClasses(CustomCollectionTest.class)
-            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .setMinApi(parameters.getApiLevel())
-            .enableCoreLibraryDesugaring()
+            .enableCoreLibraryDesugaring(parameters.getApiLevel())
             .compile()
             .inspect(this::assertCustomCollectionCallsCorrect)
-            .addRunClasspathFiles(buildDesugaredLibrary(parameters.getApiLevel()))
+            .addDesugaredCoreLibraryRunClassPath(
+                this::buildDesugaredLibrary, parameters.getApiLevel())
             .run(parameters.getRuntime(), EXECUTOR)
             .assertSuccess();
-    assertLines2By2Correct(d8TestRunResult.getStdOut());
+    if (requiresEmulatedInterfaceCoreLibDesugaring(parameters)) {
+      // Expected output is emulated interfaces expected output.
+      assertLines2By2Correct(d8TestRunResult.getStdOut());
+    }
     String[] split = d8TestRunResult.getStdErr().split("Could not find method");
     if (split.length > 2) {
       fail("Could not find multiple methods");
@@ -72,6 +71,11 @@ public class CustomCollectionTest extends CoreLibDesugarTestBase {
     Assert.assertFalse(
         direct.streamInstructions().anyMatch(instr -> instr.toString().contains("$-EL")));
     MethodSubject inherited = inspector.clazz(EXECUTOR).uniqueMethodWithName("inheritedTypes");
+    if (!requiresEmulatedInterfaceCoreLibDesugaring(parameters)) {
+      assertTrue(
+          inherited.streamInstructions().noneMatch(instr -> instr.toString().contains("$-EL")));
+      return;
+    }
     assertTrue(
         inherited
             .streamInstructions()
