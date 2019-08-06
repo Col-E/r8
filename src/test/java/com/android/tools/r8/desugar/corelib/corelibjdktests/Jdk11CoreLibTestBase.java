@@ -103,6 +103,6 @@ public class Jdk11CoreLibTestBase extends CoreLibDesugarTestBase {
   protected Path buildDesugaredLibraryWithJavaBaseExtension(AndroidApiLevel apiLevel)
       throws Exception {
     return buildDesugaredLibrary(
-        apiLevel, "", false, ImmutableList.copyOf(JDK_11_JAVA_BASE_EXTENSION_COMPILED_FILES));
+        apiLevel, ImmutableList.copyOf(JDK_11_JAVA_BASE_EXTENSION_COMPILED_FILES));
   }
 }

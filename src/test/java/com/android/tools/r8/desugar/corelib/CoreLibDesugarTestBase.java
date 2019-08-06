@@ -10,21 +10,14 @@ import com.android.tools.r8.L8;
 import com.android.tools.r8.L8Command;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class CoreLibDesugarTestBase extends TestBase {
-
-  private static Map<CacheEntry, TestCompileResult> computedLibraryCache =
-      new ConcurrentHashMap<>();
 
   protected boolean requiresCoreLibDesugaring(TestParameters parameters) {
     // TODO(b/134732760): Use the two other APIS instead.
@@ -40,45 +33,10 @@ public class CoreLibDesugarTestBase extends TestBase {
     return parameters.getApiLevel().getLevel() < AndroidApiLevel.P.getLevel();
   }
 
-  protected Path buildDesugaredLibrary(AndroidApiLevel apiLevel) throws RuntimeException {
-    return buildDesugaredLibrary(apiLevel, "", false);
-  }
-
-  protected Path buildDesugaredLibrary(AndroidApiLevel apiLevel, String keepRules)
-      throws RuntimeException {
-    return buildDesugaredLibrary(apiLevel, keepRules, true);
-  }
-
-  protected Path buildDesugaredLibrary(AndroidApiLevel apiLevel, String keepRules, boolean shrink)
-      throws RuntimeException {
-    return buildDesugaredLibrary(apiLevel, keepRules, shrink, ImmutableList.of());
-  }
-
   protected Path buildDesugaredLibrary(
-      AndroidApiLevel apiLevel, String keepRules, boolean shrink, List<Path> additionalProgramFiles)
-      throws RuntimeException {
-    // We wrap exceptions in a RuntimeException to call this from a lambda.
+      AndroidApiLevel apiLevel, List<Path> additionalProgramFiles) {
     try {
-      Path output = temp.newFolder().toPath().resolve("desugar_jdk_libs_dex.zip");
-      CacheEntry cacheEntry = new CacheEntry(apiLevel, keepRules, shrink, additionalProgramFiles);
-      TestCompileResult testCompileResult =
-          computedLibraryCache.computeIfAbsent(
-              cacheEntry,
-              key -> compileDesugaredLibrary(apiLevel, keepRules, shrink, additionalProgramFiles));
-      testCompileResult.writeToZip(output);
-      return output;
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  private TestCompileResult compileDesugaredLibrary(
-      AndroidApiLevel apiLevel, String keepRules, boolean shrink, List<Path> additionalProgramFiles)
-      throws RuntimeException {
-    // We wrap exceptions in a RuntimeException to call this from a lambda.
-    try {
-      // TODO(b/138922694): Known performance issue here.
-      Path cfDesugaredLib = temp.newFolder().toPath().resolve("desugar_jdk_libs_cf.zip");
+      Path output = temp.newFolder().toPath().resolve("desugar_jdk_libs.zip");
       L8.run(
           L8Command.builder()
               .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
@@ -86,64 +44,16 @@ public class CoreLibDesugarTestBase extends TestBase {
               .addProgramFiles(additionalProgramFiles)
               .addSpecialLibraryConfiguration("default")
               .setMinApiLevel(apiLevel.getLevel())
-              .setOutput(cfDesugaredLib, OutputMode.ClassFile)
+              .setOutput(output, OutputMode.DexIndexed)
               .build());
-      if (shrink) {
-        return testForR8(Backend.DEX)
-            .addProgramFiles(cfDesugaredLib)
-            .noMinification()
-            .addKeepRules(keepRules)
-            // We still need P+ library files to resolve classes.
-            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
-            .setMinApi(apiLevel)
-            .compile();
-      }
-      return testForD8()
-          .addProgramFiles(cfDesugaredLib)
-          .setMinApi(apiLevel)
-          // We still need P+ library files to resolve classes.
-          .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
-          .compile();
+      return output;
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
   }
 
-  private static class CacheEntry {
-
-    private int apiLevel;
-    private String keepRules;
-    private boolean shrink;
-    private List<Path> additionalProgramFiles;
-
-    private CacheEntry(
-        AndroidApiLevel apiLevel,
-        String keepRules,
-        boolean shrink,
-        List<Path> additionalProgramFiles) {
-      this.apiLevel = apiLevel.getLevel();
-      this.keepRules = keepRules;
-      this.shrink = shrink;
-      this.additionalProgramFiles = additionalProgramFiles;
-    }
-
-    @Override
-    public int hashCode() {
-      // In practice there are only 2 sets of additionalProgramFiles with different sizes.
-      return Objects.hash(apiLevel, keepRules, shrink, additionalProgramFiles.size());
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (!(o instanceof CacheEntry)) {
-        return false;
-      }
-      CacheEntry other = (CacheEntry) o;
-      return apiLevel == other.apiLevel
-          && keepRules.equals(other.keepRules)
-          && shrink == other.shrink
-          && additionalProgramFiles.equals(other.additionalProgramFiles);
-    }
+  protected Path buildDesugaredLibrary(AndroidApiLevel apiLevel) {
+    return buildDesugaredLibrary(apiLevel, ImmutableList.of());
   }
 
   protected void assertLines2By2Correct(String stdOut) {

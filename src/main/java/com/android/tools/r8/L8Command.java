@@ -72,8 +72,8 @@ public final class L8Command extends BaseCompilerCommand {
       } else if (!getSpecialLibraryConfiguration().equals("default")) {
         reporter.error("L8 currently requires the special library configuration to be \"default\"");
       }
-      if (getProgramConsumer() instanceof DexIndexedConsumer) {
-        reporter.error("L8 does not support compiling to dex");
+      if (getProgramConsumer() instanceof ClassFileConsumer) {
+        reporter.error("L8 does not support compiling to Java class files");
       }
       if (getProgramConsumer() instanceof DexFilePerClassFileConsumer) {
         reporter.error("L8 does not support compiling to dex per class");

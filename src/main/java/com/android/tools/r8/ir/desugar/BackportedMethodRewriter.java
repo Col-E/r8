@@ -239,7 +239,8 @@ public final class BackportedMethodRewriter {
       initializeJava9MethodProviders(factory);
       initializeJava11MethodProviders(factory);
 
-      if (!options.retargetCoreLibMember.isEmpty()) {
+      // interface method desugaring also toggles library emulation.
+      if (options.isInterfaceMethodDesugaringEnabled()) {
         initializeRetargetCoreLibraryMembers(appView);
       }
     }

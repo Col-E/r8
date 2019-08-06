@@ -232,7 +232,7 @@ final class LambdaMainMethodSourceCode extends SynthesizedLambdaSourceCode {
                 methodToCall.proto,
                 argValueTypes,
                 argRegisters,
-                target.holderIsInterface()));
+                false /* isInterface */));
 
     // Does the method have return value?
     if (enforcedReturnType.isVoidType()) {

@@ -153,7 +153,7 @@ public final class D8 {
       final CfgPrinter printer = options.printCfg ? new CfgPrinter() : null;
 
       IRConverter converter = new IRConverter(appInfo, options, timing, printer);
-      app = converter.convert(app, executor);
+      app = converter.convertToDex(app, executor);
 
       if (options.printCfg) {
         if (options.printCfgFile == null || options.printCfgFile.isEmpty()) {
@@ -225,7 +225,7 @@ public final class D8 {
     final CfgPrinter printer = options.printCfg ? new CfgPrinter() : null;
 
     IRConverter converter = new IRConverter(appInfo, options, timing, printer);
-    application = converter.convert(application, executor);
+    application = converter.convertToDex(application, executor);
 
     if (options.printCfg) {
       if (options.printCfgFile == null || options.printCfgFile.isEmpty()) {

@@ -117,7 +117,7 @@ public class CfApplicationWriter {
     }
     String markerString = marker.toString();
     for (DexProgramClass clazz : application.classes()) {
-      if (clazz.getSynthesizedFrom().isEmpty() || options.coreLibraryCompilation) {
+      if (clazz.getSynthesizedFrom().isEmpty()) {
         writeClass(clazz, consumer, markerString);
       } else {
         throw new Unimplemented("No support for synthetics in the Java bytecode backend.");
@@ -205,8 +205,7 @@ public class CfApplicationWriter {
     if (!method.hasClassFileVersion()) {
       // In this case bridges have been introduced for the Cf back-end,
       // which do not have class file version.
-      assert options.testing.enableForceNestBasedAccessDesugaringForTest
-          || options.coreLibraryCompilation;
+      assert options.testing.enableForceNestBasedAccessDesugaringForTest;
       return 0;
     }
     return method.getClassFileVersion();

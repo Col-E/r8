@@ -286,10 +286,6 @@ public class InternalOptions {
     throw new UnsupportedOperationException("Cannot find internal output mode.");
   }
 
-  public boolean shouldKeepStackMapTable() {
-    return coreLibraryCompilation || getProguardConfiguration().getKeepAttributes().stackMapTable;
-  }
-
   public boolean isGeneratingDex() {
     return isGeneratingDexIndexed() || isGeneratingDexFilePerClassFile();
   }

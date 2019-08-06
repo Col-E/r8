@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexLibraryClass;
@@ -86,7 +87,11 @@ final class InterfaceProcessor {
         MethodAccessFlags newFlags = virtual.accessFlags.copy();
         newFlags.unsetBridge();
         newFlags.promoteToStatic();
-        DexEncodedMethod.setDebugInfoWithFakeThisParameter(code, companionMethod.getArity(), appView);
+        DexCode dexCode = code.asDexCode();
+        dexCode.setDebugInfo(dexCode.debugInfoWithFakeThisParameter(rewriter.factory));
+        assert (dexCode.getDebugInfo() == null)
+            || (companionMethod.getArity() == dexCode.getDebugInfo().parameters.length);
+
         DexEncodedMethod implMethod = new DexEncodedMethod(
             companionMethod, newFlags, virtual.annotations, virtual.parameterAnnotationsList, code);
         virtual.setDefaultInterfaceMethodImplementation(implMethod);
@@ -138,7 +143,11 @@ final class InterfaceProcessor {
             throw new CompilationError("Code is missing for private instance "
                 + "interface method: " + oldMethod.toSourceString(), iface.origin);
           }
-          DexEncodedMethod.setDebugInfoWithFakeThisParameter(code, companionMethod.getArity(), appView);
+          DexCode dexCode = code.asDexCode();
+          dexCode.setDebugInfo(dexCode.debugInfoWithFakeThisParameter(rewriter.factory));
+          assert (dexCode.getDebugInfo() == null)
+              || (companionMethod.getArity() == dexCode.getDebugInfo().parameters.length);
+
           companionMethods.add(new DexEncodedMethod(companionMethod,
               newFlags, direct.annotations, direct.parameterAnnotationsList, code));
           graphLensBuilder.move(oldMethod, companionMethod);
@@ -223,7 +232,7 @@ final class InterfaceProcessor {
       forwardSourceCodeBuilder
           .setTarget(origMethod)
           .setInvokeType(Type.STATIC)
-          .setIsInterface(false); // We forward to the Companion class, not an interface.
+          .setIsInterface(true);
       DexEncodedMethod newEncodedMethod =
           new DexEncodedMethod(
               newMethod,
