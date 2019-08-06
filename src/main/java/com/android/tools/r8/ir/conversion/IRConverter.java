@@ -132,6 +132,10 @@ public class IRConverter {
   private final GeneratedMessageLiteShrinker generatedMessageLiteShrinker;
   private final LibraryMethodOverrideAnalysis libraryMethodOverrideAnalysis;
   private final StringConcatRewriter stringConcatRewriter;
+  private final StringOptimizer stringOptimizer;
+  private final StringBuilderOptimizer stringBuilderOptimizer;
+  private final IdempotentFunctionCallCanonicalizer idempotentFunctionCallCanonicalizer;
+  private final List<DexString> neverMergePrefixes;
   private final LambdaRewriter lambdaRewriter;
   private final D8NestBasedAccessDesugaring d8NestBasedAccessDesugaring;
   private final InterfaceMethodRewriter interfaceMethodRewriter;
@@ -151,13 +155,9 @@ public class IRConverter {
   private final IdentifierNameStringMarker identifierNameStringMarker;
   private final Devirtualizer devirtualizer;
   private final CovariantReturnTypeAnnotationTransformer covariantReturnTypeAnnotationTransformer;
-  private final StringOptimizer stringOptimizer;
-  private final StringBuilderOptimizer stringBuilderOptimizer;
   private final StringSwitchRemover stringSwitchRemover;
   private final UninstantiatedTypeOptimization uninstantiatedTypeOptimization;
   private final TypeChecker typeChecker;
-  private final IdempotentFunctionCallCanonicalizer idempotentFunctionCallCanonicalizer;
-  private final List<DexString> neverMergePrefixes;
 
   final DeadCodeRemover deadCodeRemover;
 
@@ -187,6 +187,46 @@ public class IRConverter {
     this.classInitializerDefaultsOptimization =
         options.debug ? null : new ClassInitializerDefaultsOptimization(appView, this);
     this.stringConcatRewriter = new StringConcatRewriter(appView);
+    this.stringOptimizer = new StringOptimizer(appView);
+    this.stringBuilderOptimizer = new StringBuilderOptimizer(appView);
+    this.deadCodeRemover = new DeadCodeRemover(appView, codeRewriter);
+    this.idempotentFunctionCallCanonicalizer = new IdempotentFunctionCallCanonicalizer(appView);
+    this.neverMergePrefixes =
+        options.neverMergePrefixes.stream()
+            .map(prefix -> "L" + DescriptorUtils.getPackageBinaryNameFromJavaType(prefix))
+            .map(options.itemFactory::createString)
+            .collect(Collectors.toList());
+    if (options.coreLibraryCompilation) {
+      // Specific L8 Settings.
+      // BackportedMethodRewriter is needed for retarget core library members and backports.
+      // InterfaceMethodRewriter is needed for emulated interfaces.
+      // LambdaRewriter is needed because if it is missing there are invoke custom on
+      // default/static interface methods, and this is not supported by the compiler.
+      // The rest is nulled out.
+      this.backportedMethodRewriter = new BackportedMethodRewriter(appView, this);
+      this.interfaceMethodRewriter = new InterfaceMethodRewriter(appView, this);
+      this.lambdaRewriter = new LambdaRewriter(appView, this);
+      this.twrCloseResourceRewriter = null;
+      this.lambdaMerger = null;
+      this.covariantReturnTypeAnnotationTransformer = null;
+      this.nonNullTracker = null;
+      this.classInliner = null;
+      this.classStaticizer = null;
+      this.dynamicTypeOptimization = null;
+      this.generatedMessageLiteShrinker = null;
+      this.libraryMethodOverrideAnalysis = null;
+      this.inliner = null;
+      this.outliner = null;
+      this.memberValuePropagation = null;
+      this.lensCodeRewriter = null;
+      this.identifierNameStringMarker = null;
+      this.devirtualizer = null;
+      this.uninstantiatedTypeOptimization = null;
+      this.typeChecker = null;
+      this.d8NestBasedAccessDesugaring = null;
+      this.stringSwitchRemover = null;
+      return;
+    }
     this.lambdaRewriter = options.enableDesugaring ? new LambdaRewriter(appView, this) : null;
     this.interfaceMethodRewriter =
         options.isInterfaceMethodDesugaringEnabled()
@@ -205,8 +245,6 @@ public class IRConverter {
         options.processCovariantReturnTypeAnnotations
             ? new CovariantReturnTypeAnnotationTransformer(this, appView.dexItemFactory())
             : null;
-    this.stringOptimizer = new StringOptimizer(appView);
-    this.stringBuilderOptimizer = new StringBuilderOptimizer(appView);
     this.nonNullTracker = options.enableNonNullTracking ? new NonNullTracker(appView) : null;
     if (appView.enableWholeProgramOptimizations()) {
       assert appView.appInfo().hasLiveness();
@@ -265,17 +303,10 @@ public class IRConverter {
       this.d8NestBasedAccessDesugaring =
           options.shouldDesugarNests() ? new D8NestBasedAccessDesugaring(appView) : null;
     }
-    this.deadCodeRemover = new DeadCodeRemover(appView, codeRewriter);
-    this.idempotentFunctionCallCanonicalizer = new IdempotentFunctionCallCanonicalizer(appView);
     this.stringSwitchRemover =
         options.isStringSwitchConversionEnabled()
             ? new StringSwitchRemover(appView, identifierNameStringMarker)
             : null;
-    this.neverMergePrefixes =
-        options.neverMergePrefixes.stream()
-            .map(prefix -> "L" + DescriptorUtils.getPackageBinaryNameFromJavaType(prefix))
-            .map(options.itemFactory::createString)
-            .collect(Collectors.toList());
   }
 
   public Set<DexCallSite> getDesugaredCallSites() {
@@ -390,12 +421,12 @@ public class IRConverter {
     }
   }
 
-  public DexApplication convertToDex(DexApplication application, ExecutorService executor)
+  public DexApplication convert(DexApplication application, ExecutorService executor)
       throws ExecutionException {
     removeLambdaDeserializationMethods();
 
     timing.begin("IR conversion");
-    convertClassesToDex(application.classes(), executor);
+    convertClasses(application.classes(), executor);
 
     // Build a new application with jumbo string info,
     Builder<?> builder = application.builder();
@@ -482,22 +513,22 @@ public class IRConverter {
     }
   }
 
-  private void convertClassesToDex(Iterable<DexProgramClass> classes,
-      ExecutorService executor) throws ExecutionException {
+  private void convertClasses(Iterable<DexProgramClass> classes, ExecutorService executor)
+      throws ExecutionException {
     List<Future<?>> futures = new ArrayList<>();
     for (DexProgramClass clazz : classes) {
-      futures.add(executor.submit(() -> convertMethodsToDex(clazz)));
+      futures.add(executor.submit(() -> convertMethods(clazz)));
     }
     ThreadUtils.awaitFutures(futures);
   }
 
-  private void convertMethodsToDex(DexProgramClass clazz) {
+  private void convertMethods(DexProgramClass clazz) {
     boolean isReachabilitySensitive = clazz.hasReachabilitySensitiveAnnotation(options.itemFactory);
     // When converting all methods on a class always convert <clinit> first.
     for (DexEncodedMethod method : clazz.directMethods()) {
       if (method.isClassInitializer()) {
         method.getMutableOptimizationInfo().setReachabilitySensitive(isReachabilitySensitive);
-        convertMethodToDex(method);
+        convertMethod(method);
         break;
       }
     }
@@ -505,17 +536,17 @@ public class IRConverter {
         method -> {
           if (!method.isClassInitializer()) {
             method.getMutableOptimizationInfo().setReachabilitySensitive(isReachabilitySensitive);
-            convertMethodToDex(method);
+            convertMethod(method);
           }
         });
   }
 
-  private void convertMethodToDex(DexEncodedMethod method) {
-    assert options.isGeneratingDex();
+  private void convertMethod(DexEncodedMethod method) {
     if (method.getCode() != null) {
       boolean matchesMethodFilter = options.methodMatchesFilter(method);
       if (matchesMethodFilter) {
-        if (!(options.passthroughDexCode && method.getCode().isDexCode())) {
+        if (options.isGeneratingClassFiles()
+            || !(options.passthroughDexCode && method.getCode().isDexCode())) {
           // We do not process in call graph order, so anything could be a leaf.
           rewriteCode(method, simpleOptimizationFeedback, x -> true, CallSiteInformation.empty(),
               Outliner::noProcessing);
@@ -530,7 +561,9 @@ public class IRConverter {
             }
           }
         }
-        updateHighestSortingStrings(method);
+        if (!options.isGeneratingClassFiles()) {
+          updateHighestSortingStrings(method);
+        }
       }
     }
   }

@@ -17,7 +17,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.stream.IntStream;
 
-public class TestClass {
+public class ProgramRewritingTestClass {
 
   // Each print to the console is immediately followed by the expected result so the tests
   // can assert the results by checking the lines 2 by 2.

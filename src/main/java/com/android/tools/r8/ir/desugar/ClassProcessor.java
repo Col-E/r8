@@ -126,7 +126,7 @@ final class ClassProcessor {
         .setReceiver(clazz.type)
         .setTarget(rewriter.defaultAsMethodOfCompanionClass(method))
         .setInvokeType(Invoke.Type.STATIC)
-        .setIsInterface(target.isInterface());
+        .setIsInterface(false); // Holder is companion class, not an interface.
     return new DexEncodedMethod(
         newMethod,
         newFlags,

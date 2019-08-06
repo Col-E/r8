@@ -47,20 +47,27 @@ public class MergingJ$Test extends Jdk11CoreLibTestBase {
   }
 
   private Path buildSplitDesugaredLibraryPart1() throws Exception {
-    Path output = temp.newFolder().toPath().resolve("merger-input.zip");
+    Path outputCf = temp.newFolder().toPath().resolve("merger-input-cf.zip");
+    Path outputDex = temp.newFolder().toPath().resolve("merger-input-dex.zip");
     L8.run(
         L8Command.builder()
             .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .addProgramFiles(ToolHelper.getDesugarJDKLibs())
             .addSpecialLibraryConfiguration("default")
             .setMinApiLevel(AndroidApiLevel.B.getLevel())
-            .setOutput(output, OutputMode.DexIndexed)
+            .setOutput(outputCf, OutputMode.ClassFile)
             .build());
-    return output;
+    testForD8()
+        .addProgramFiles(outputCf)
+        .setMinApi(AndroidApiLevel.B)
+        .compile()
+        .writeToZip(outputDex);
+    return outputDex;
   }
 
   private Path buildSplitDesugaredLibraryPart2() throws Exception {
-    Path output = temp.newFolder().toPath().resolve("merger-input-split.zip");
+    Path outputCf = temp.newFolder().toPath().resolve("merger-input-split-cf.zip");
+    Path outputDex = temp.newFolder().toPath().resolve("merger-input-split-dex.zip");
     L8.run(
         L8Command.builder()
             .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
@@ -68,8 +75,13 @@ public class MergingJ$Test extends Jdk11CoreLibTestBase {
             .addClasspathFiles(ToolHelper.getDesugarJDKLibs())
             .addSpecialLibraryConfiguration("default")
             .setMinApiLevel(AndroidApiLevel.B.getLevel())
-            .setOutput(output, OutputMode.DexIndexed)
+            .setOutput(outputCf, OutputMode.ClassFile)
             .build());
-    return output;
+    testForD8()
+        .addProgramFiles(outputCf)
+        .setMinApi(AndroidApiLevel.B)
+        .compile()
+        .writeToZip(outputDex);
+    return outputDex;
   }
 }

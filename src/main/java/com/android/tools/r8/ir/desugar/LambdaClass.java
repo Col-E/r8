@@ -10,7 +10,6 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -39,22 +38,19 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 /**
- * Represents lambda class generated for a lambda descriptor in context
- * of lambda instantiation point.
+ * Represents lambda class generated for a lambda descriptor in context of lambda instantiation
+ * point.
  *
- * Even though call sites, and thus lambda descriptors, are canonicalized
- * across the application, the context may require several lambda classes
- * to be generated for the same lambda descriptor.
+ * <p>Even though call sites, and thus lambda descriptors, are canonicalized across the application,
+ * the context may require several lambda classes to be generated for the same lambda descriptor.
  *
- * One reason is that we always generate a lambda class in the same package
- * lambda instantiation point is located in, so if same call site is used in
- * two classes from different packages (which can happen if same public method
- * is being references via method reference expression) we generate separate
- * lambda classes in those packages.
+ * <p>One reason is that we always generate a lambda class in the same package lambda instantiation
+ * point is located in, so if same call site is used in two classes from different packages (which
+ * can happen if same public method is being references via method reference expression) we generate
+ * separate lambda classes in those packages.
  *
- * Another reason is that if we generate an accessor, we generate it in the
- * class referencing the call site, and thus two such classes will require two
- * separate lambda classes.
+ * <p>Another reason is that if we generate an accessor, we generate it in the class referencing the
+ * call site, and thus two such classes will require two separate lambda classes.
  */
 final class LambdaClass {
 
@@ -397,9 +393,11 @@ final class LambdaClass {
       // To avoid potential conflicts on the name of the lambda method once dispatch becomes virtual
       // we add the method-holder name as suffix to the lambda-method name.
       return new InstanceLambdaImplTarget(
-            rewriter.factory.createMethod(implMethod.holder, implMethod.proto,
-                rewriter.factory.createString(
-                    implMethod.name.toString() + "$" + implMethod.holder.getName())));
+          rewriter.factory.createMethod(
+              implMethod.holder,
+              implMethod.proto,
+              rewriter.factory.createString(
+                  implMethod.name.toString() + "$" + implMethod.holder.getName())));
     }
   }
 
@@ -510,6 +508,13 @@ final class LambdaClass {
     DexProgramClass programDefinitionFor(DexType type) {
       return rewriter.converter.appView.appInfo().app().programDefinitionFor(type);
     }
+
+    boolean holderIsInterface() {
+      DexMethod implMethod = descriptor.implHandle.asMethod();
+      DexClass implMethodHolder = definitionFor(implMethod.holder);
+      assert implMethodHolder != null;
+      return implMethodHolder.isInterface();
+    }
   }
 
   // Used for targeting methods referenced directly without creating accessors.
@@ -581,10 +586,9 @@ final class LambdaClass {
                   encodedMethod.getCode());
           newMethod.copyMetadata(encodedMethod);
           rewriter.methodMapping.put(encodedMethod.method, callTarget);
-          DexCode dexCode = newMethod.getCode().asDexCode();
-          dexCode.setDebugInfo(dexCode.debugInfoWithFakeThisParameter(rewriter.factory));
-          assert (dexCode.getDebugInfo() == null)
-              || (callTarget.getArity() == dexCode.getDebugInfo().parameters.length);
+
+          DexEncodedMethod.setDebugInfoWithFakeThisParameter(
+              newMethod.getCode(), callTarget.getArity(), rewriter.converter.appView);
           implMethodHolder.setDirectMethod(i, newMethod);
           return true;
         }

@@ -78,6 +78,7 @@ import java.util.function.IntPredicate;
 import org.objectweb.asm.Opcodes;
 
 public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements ResolutionResult {
+
   public static final String CONFIGURATION_DEBUGGING_PREFIX = "Shaking error: Missing method in ";
 
   /**
@@ -679,6 +680,18 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     }
   }
 
+  public static void setDebugInfoWithFakeThisParameter(Code code, int arity, AppView<?> appView) {
+    if (code.isDexCode()) {
+      DexCode dexCode = code.asDexCode();
+      dexCode.setDebugInfo(dexCode.debugInfoWithFakeThisParameter(appView.dexItemFactory()));
+      assert (dexCode.getDebugInfo() == null)
+          || (arity == dexCode.getDebugInfo().parameters.length);
+    } else {
+      // TODO(b/134732760): Patch Cf debug info.
+      assert appView.options().coreLibraryCompilation;
+    }
+  }
+
   private DexEncodedMethod toMethodThatLogsErrorDexCode(DexItemFactory itemFactory) {
     checkIfObsolete();
     Signature signature = MethodSignature.fromDexMethod(method);
@@ -1066,6 +1079,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   }
 
   public static class ClassInlinerEligibility {
+
     public final boolean returnsReceiver;
 
     public ClassInlinerEligibility(boolean returnsReceiver) {
@@ -1074,12 +1088,14 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   }
 
   public static class TrivialInitializer {
+
     private TrivialInitializer() {
     }
 
     // Defines instance trivial initialized, see details in comments
     // to CodeRewriter::computeInstanceInitializerInfo(...)
     public static final class TrivialInstanceInitializer extends TrivialInitializer {
+
       public static final TrivialInstanceInitializer INSTANCE =
           new TrivialInstanceInitializer();
     }
@@ -1087,6 +1103,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     // Defines class trivial initialized, see details in comments
     // to CodeRewriter::computeClassInitializerInfo(...)
     public static final class TrivialClassInitializer extends TrivialInitializer {
+
       public final DexField field;
 
       public TrivialClassInitializer(DexField field) {
@@ -1096,6 +1113,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   }
 
   public static class DefaultMethodOptimizationInfoImpl implements MethodOptimizationInfo {
+
     public static final MethodOptimizationInfo DEFAULT_INSTANCE =
         new DefaultMethodOptimizationInfoImpl();
 

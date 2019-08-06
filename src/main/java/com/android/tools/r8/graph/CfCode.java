@@ -40,6 +40,7 @@ import org.objectweb.asm.MethodVisitor;
 public class CfCode extends Code implements CfOrJarCode {
 
   public static class LocalVariableInfo {
+
     private final int index;
     private final DebugLocalInfo local;
     private final CfLabel start;
@@ -207,8 +208,7 @@ public class CfCode extends Code implements CfOrJarCode {
     for (CfInstruction instruction : instructions) {
       if (instruction instanceof CfFrame
           && (classFileVersion <= 49
-              || (classFileVersion == 50
-                  && !options.getProguardConfiguration().getKeepAttributes().stackMapTable))) {
+              || (classFileVersion == 50 && !options.shouldKeepStackMapTable()))) {
         continue;
       }
       instruction.write(visitor, namingLens);
