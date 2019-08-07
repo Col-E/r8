@@ -13,6 +13,7 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import java.nio.file.Path;
 import java.util.Collection;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -31,7 +32,7 @@ public class L8CommandTest {
   public void emptyCommand() throws Throwable {
     verifyEmptyCommand(
         L8Command.builder()
-            .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+            .setProgramConsumer(ClassFileConsumer.emptyConsumer())
             .addSpecialLibraryConfiguration("default")
             .build());
   }
@@ -39,13 +40,15 @@ public class L8CommandTest {
   private void verifyEmptyCommand(L8Command command) throws Throwable {
     assertEquals(CompilationMode.DEBUG, command.getMode());
     assertEquals(AndroidVersion.DEFAULT.getApiLevel(), command.getMinApiLevel());
-    assertTrue(command.getProgramConsumer() instanceof DexIndexedConsumer);
+    assertTrue(command.getProgramConsumer() instanceof ClassFileConsumer);
     AndroidApp app = ToolHelper.getApp(command);
     assertEquals(0, app.getDexProgramResourcesForTesting().size());
     assertEquals(0, app.getClassProgramResourcesForTesting().size());
   }
 
+  // We ignore this test since L8 is currently Cf to Cf.
   @Test
+  @Ignore
   public void testMarker() throws Throwable {
     Path output = temp.newFolder().toPath().resolve("desugar_jdk_libs.zip");
     L8.run(
@@ -54,7 +57,7 @@ public class L8CommandTest {
             .addProgramFiles(ToolHelper.getDesugarJDKLibs())
             .setMinApiLevel(20)
             .addSpecialLibraryConfiguration("default")
-            .setOutput(output, OutputMode.DexIndexed)
+            .setOutput(output, OutputMode.ClassFile)
             .build());
     Collection<Marker> markers = ExtractMarker.extractMarkerFromDexFile(output);
     assertEquals(1, markers.size());
@@ -93,11 +96,11 @@ public class L8CommandTest {
   }
 
   @Test(expected = CompilationFailedException.class)
-  public void classFileOutputNotSupported() throws Throwable {
+  public void dexFileOutputNotSupported() throws Throwable {
     DiagnosticsChecker.checkErrorsContains(
-        "L8 does not support compiling to Java class files",
+        "L8 does not support compiling to dex",
         (handler) ->
-            prepareBuilder(handler).setProgramConsumer(ClassFileConsumer.emptyConsumer()).build());
+            prepareBuilder(handler).setProgramConsumer(DexIndexedConsumer.emptyConsumer()).build());
   }
 
   @Test(expected = CompilationFailedException.class)
@@ -105,7 +108,7 @@ public class L8CommandTest {
     DiagnosticsChecker.checkErrorsContains(
         "L8 requires a special library configuration",
         (handler) ->
-            prepareBuilder(handler).setProgramConsumer(DexIndexedConsumer.emptyConsumer()).build());
+            prepareBuilder(handler).setProgramConsumer(ClassFileConsumer.emptyConsumer()).build());
   }
 
   @Test(expected = CompilationFailedException.class)
@@ -125,7 +128,7 @@ public class L8CommandTest {
         "Special library configuration is still work in progress",
         handler ->
             prepareBuilder(handler)
-                .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+                .setProgramConsumer(ClassFileConsumer.emptyConsumer())
                 .addSpecialLibraryConfiguration("default")
                 .build());
   }

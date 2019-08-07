@@ -19,6 +19,7 @@ import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.google.common.collect.ImmutableSet;
 import java.util.stream.Collectors;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -39,6 +40,7 @@ public class DesugaredLibraryContentTest extends CoreLibDesugarTestBase {
 
   @Test
   public void test() throws Exception {
+    Assume.assumeTrue(requiresCoreLibDesugaring(parameters));
     CodeInspector inspector = new CodeInspector(buildDesugaredLibrary(parameters.getApiLevel()));
     assertThat(inspector.clazz("j$.util.Optional"), isPresent());
     assertThat(inspector.clazz("j$.util.OptionalInt"), isPresent());

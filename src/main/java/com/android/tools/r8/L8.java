@@ -6,20 +6,19 @@ package com.android.tools.r8;
 import static com.android.tools.r8.utils.ExceptionUtils.unwrapExecutionException;
 
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.naming.PrefixRewritingNamingLens;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
-import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -60,24 +59,24 @@ public class L8 {
 
       AppView<?> appView = AppView.createForL8(appInfo, options);
       IRConverter converter = new IRConverter(appView, timing);
-      app = converter.convertToDex(app, executor);
+
+      app = converter.convert(app, executor);
       assert appView.appInfo() == appInfo;
 
       // Close any internal archive providers now the application is fully processed.
       inputApp.closeInternalArchiveProviders();
 
-      new ApplicationWriter(
+      new CfApplicationWriter(
               app,
-              null,
+              appView,
               options,
-              ImmutableList.of(options.getMarker(Tool.L8)),
-              null,
+              options.getMarker(Tool.L8),
               null,
               GraphLense.getIdentityLense(),
               PrefixRewritingNamingLens.createPrefixRewritingNamingLens(
                   options, converter.getAdditionalRewritePrefix()),
               null)
-          .write(executor);
+          .write(options.getClassFileConsumer(), executor);
       options.printWarnings();
     } catch (ExecutionException e) {
       throw unwrapExecutionException(e);
