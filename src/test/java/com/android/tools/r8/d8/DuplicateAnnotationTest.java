@@ -6,6 +6,7 @@ package com.android.tools.r8.d8;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.fail;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DexFilePerClassFileConsumer.ArchiveConsumer;
@@ -120,6 +121,7 @@ public class DuplicateAnnotationTest extends TestBase {
           .setIntermediate(true)
           .setProgramConsumer(new ArchiveConsumer(dex1))
           .compile();
+      fail("Expected to fail due to multiple annotations");
     } catch (CompilationFailedException e) {
       assertThat(e.getCause().getMessage(), containsString("Multiple annotations"));
       assertThat(e.getCause().getMessage(), containsString(TestKeep.class.getName()));
