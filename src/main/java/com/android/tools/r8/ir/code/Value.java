@@ -49,7 +49,7 @@ public class Value {
               origin,
               new MethodPosition(method)));
     } else if (constrainedType != typeLattice) {
-      typeLattice = constrainedType;
+      setTypeLattice(constrainedType);
     }
   }
 
@@ -99,12 +99,12 @@ public class Value {
         }
         break;
       case LONG:
-        if (typeLattice.isWidePrimitive()) {
+        if (typeLattice.isWidePrimitive() && !typeLattice.isDouble()) {
           return TypeLatticeElement.LONG;
         }
         break;
       case DOUBLE:
-        if (typeLattice.isWidePrimitive()) {
+        if (typeLattice.isWidePrimitive() && !typeLattice.isLong()) {
           return TypeLatticeElement.DOUBLE;
         }
         break;
@@ -1143,7 +1143,7 @@ public class Value {
             + newType
             + " at "
             + (isPhi() ? asPhi().printPhi() : definition.toString());
-    typeLattice = newType;
+    setTypeLattice(newType);
   }
 
   public void narrowing(AppView<?> appView, TypeLatticeElement newType) {
@@ -1158,7 +1158,7 @@ public class Value {
             + newType
             + " at "
             + (isPhi() ? asPhi().printPhi() : definition.toString());
-    typeLattice = newType;
+    setTypeLattice(newType);
   }
 
   public TypeLatticeElement getTypeLattice() {

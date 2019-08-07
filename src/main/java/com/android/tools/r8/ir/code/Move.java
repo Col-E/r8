@@ -73,7 +73,7 @@ public class Move extends Instruction {
 
   @Override
   public String toString() {
-    return super.toString() + " (" + outType() + ")";
+    return super.toString() + " (" + outValue().getTypeLattice() + ")";
   }
 
   @Override
