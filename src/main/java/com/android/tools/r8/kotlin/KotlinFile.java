@@ -4,9 +4,6 @@
 
 package com.android.tools.r8.kotlin;
 
-import kotlinx.metadata.KmFunctionVisitor;
-import kotlinx.metadata.KmPackageVisitor;
-import kotlinx.metadata.KmPropertyVisitor;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
 
 public final class KotlinFile extends KotlinInfo<KotlinClassMetadata.FileFacade> {
@@ -23,23 +20,10 @@ public final class KotlinFile extends KotlinInfo<KotlinClassMetadata.FileFacade>
   }
 
   @Override
-  void processMetadata(KotlinClassMetadata.FileFacade metadata) {
-    // To avoid lazy parsing/verifying metadata.
-    // TODO(jsjeon): once migration is complete, use #toKmPackage and store a mutable model.
-    metadata.accept(new PackageVisitorForNonNullParameterHints());
-  }
-
-  private static class PackageVisitorForNonNullParameterHints extends KmPackageVisitor {
-    @Override
-    public KmFunctionVisitor visitFunction(int functionFlags, String functionName) {
-      return null;
-    }
-
-    @Override
-    public KmPropertyVisitor visitProperty(
-        int propertyFlags, String name, int getterFlags, int setterFlags) {
-      return null;
-    }
+  void processMetadata() {
+    assert !isProcessed;
+    isProcessed = true;
+    // TODO(b/70169921): once migration is complete, use #toKmPackage and store a mutable model.
   }
 
   @Override

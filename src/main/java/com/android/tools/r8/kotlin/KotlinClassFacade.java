@@ -20,8 +20,10 @@ public final class KotlinClassFacade extends KotlinInfo<KotlinClassMetadata.Mult
   }
 
   @Override
-  void processMetadata(KotlinClassMetadata.MultiFileClassFacade metadata) {
-    // No worries about lazy parsing/verifying, since no API to explore metadata details.
+  void processMetadata() {
+    assert !isProcessed;
+    isProcessed = true;
+    // No API to explore metadata details, hence nothing to do further.
   }
 
   @Override

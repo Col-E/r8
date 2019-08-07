@@ -5,8 +5,6 @@
 package com.android.tools.r8.kotlin;
 
 import com.android.tools.r8.graph.DexClass;
-import kotlinx.metadata.KmFunctionVisitor;
-import kotlinx.metadata.KmLambdaVisitor;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
 
 public final class KotlinSyntheticClass extends KotlinInfo<KotlinClassMetadata.SyntheticClass> {
@@ -38,18 +36,11 @@ public final class KotlinSyntheticClass extends KotlinInfo<KotlinClassMetadata.S
   }
 
   @Override
-  void processMetadata(KotlinClassMetadata.SyntheticClass metadata) {
+  void processMetadata() {
+    assert !isProcessed;
+    isProcessed = true;
     if (metadata.isLambda()) {
-      // To avoid lazy parsing/verifying metadata.
-      // TODO(jsjeon): once migration is complete, use #toKmLambda and store a mutable model.
-      metadata.accept(new LambdaVisitorForNonNullParameterHints());
-    }
-  }
-
-  private static class LambdaVisitorForNonNullParameterHints extends KmLambdaVisitor {
-    @Override
-    public KmFunctionVisitor visitFunction(int functionFlags, String functionName) {
-      return null;
+      // TODO(b/70169921): once migration is complete, use #toKmLambda and store a mutable model.
     }
   }
 

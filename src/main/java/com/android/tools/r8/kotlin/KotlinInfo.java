@@ -9,21 +9,21 @@ import kotlinx.metadata.jvm.KotlinClassMetadata;
 
 // Provides access to kotlin information.
 public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
-  MetadataKind metadata;
-  DexClass clazz;
+  final MetadataKind metadata;
+  final DexClass clazz;
+  boolean isProcessed;
 
   KotlinInfo(MetadataKind metadata) {
     this(metadata, null);
   }
 
   KotlinInfo(MetadataKind metadata, DexClass clazz) {
-    this.clazz = clazz;
-    processMetadata(metadata);
     this.metadata = metadata;
+    this.clazz = clazz;
   }
 
   // Subtypes will define how to process the given metadata.
-  abstract void processMetadata(MetadataKind metadata);
+  abstract void processMetadata();
 
   public enum Kind {
     Class, File, Synthetic, Part, Facade

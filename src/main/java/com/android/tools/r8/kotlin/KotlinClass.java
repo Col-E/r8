@@ -5,10 +5,6 @@
 package com.android.tools.r8.kotlin;
 
 import com.android.tools.r8.graph.DexClass;
-import kotlinx.metadata.KmClassVisitor;
-import kotlinx.metadata.KmConstructorVisitor;
-import kotlinx.metadata.KmFunctionVisitor;
-import kotlinx.metadata.KmPropertyVisitor;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
 
 public class KotlinClass extends KotlinInfo<KotlinClassMetadata.Class> {
@@ -25,28 +21,10 @@ public class KotlinClass extends KotlinInfo<KotlinClassMetadata.Class> {
   }
 
   @Override
-  void processMetadata(KotlinClassMetadata.Class metadata) {
-    // To avoid lazy parsing/verifying metadata.
-    // TODO(jsjeon): once migration is complete, use #toKmClass and store a mutable model.
-    metadata.accept(new ClassVisitorForNonNullParameterHints());
-  }
-
-  private static class ClassVisitorForNonNullParameterHints extends KmClassVisitor {
-    @Override
-    public KmFunctionVisitor visitFunction(int functionFlags, String functionName) {
-      return null;
-    }
-
-    @Override
-    public KmConstructorVisitor visitConstructor(int ctorFlags) {
-      return null;
-    }
-
-    @Override
-    public KmPropertyVisitor visitProperty(
-        int propertyFlags, String name, int getterFlags, int setterFlags) {
-      return null;
-    }
+  void processMetadata() {
+    assert !isProcessed;
+    isProcessed = true;
+    // TODO(b/70169921): once migration is complete, use #toKmClass and store a mutable model.
   }
 
   @Override
