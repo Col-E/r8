@@ -41,14 +41,15 @@ public final class KotlinSyntheticClass extends KotlinInfo<KotlinClassMetadata.S
   void processMetadata(KotlinClassMetadata.SyntheticClass metadata) {
     if (metadata.isLambda()) {
       // To avoid lazy parsing/verifying metadata.
+      // TODO(jsjeon): once migration is complete, use #toKmLambda and store a mutable model.
       metadata.accept(new LambdaVisitorForNonNullParameterHints());
     }
   }
 
-  private class LambdaVisitorForNonNullParameterHints extends KmLambdaVisitor {
+  private static class LambdaVisitorForNonNullParameterHints extends KmLambdaVisitor {
     @Override
     public KmFunctionVisitor visitFunction(int functionFlags, String functionName) {
-      return new NonNullParameterHintCollector.FunctionVisitor(nonNullparamHints);
+      return null;
     }
   }
 

@@ -5,18 +5,12 @@
 package com.android.tools.r8.kotlin;
 
 import com.android.tools.r8.graph.DexClass;
-import com.google.common.collect.HashBasedTable;
-import java.util.BitSet;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
 
 // Provides access to kotlin information.
 public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
   MetadataKind metadata;
   DexClass clazz;
-  final HashBasedTable<String, String, BitSet> nonNullparamHints = HashBasedTable.create();
-
-  KotlinInfo() {
-  }
 
   KotlinInfo(MetadataKind metadata) {
     this(metadata, null);
@@ -75,13 +69,5 @@ public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
 
   public KotlinClassFacade asClassFacade() {
     return null;
-  }
-
-  public boolean hasNonNullParameterHints() {
-    return !nonNullparamHints.isEmpty();
-  }
-
-  public BitSet lookupNonNullParameterHint(String name, String descriptor) {
-    return nonNullparamHints.get(name, descriptor);
   }
 }

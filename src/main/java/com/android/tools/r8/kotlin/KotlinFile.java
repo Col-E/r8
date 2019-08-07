@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.kotlin;
 
-import static kotlinx.metadata.Flag.Property.IS_VAR;
-
 import kotlinx.metadata.KmFunctionVisitor;
 import kotlinx.metadata.KmPackageVisitor;
 import kotlinx.metadata.KmPropertyVisitor;
@@ -27,21 +25,19 @@ public final class KotlinFile extends KotlinInfo<KotlinClassMetadata.FileFacade>
   @Override
   void processMetadata(KotlinClassMetadata.FileFacade metadata) {
     // To avoid lazy parsing/verifying metadata.
+    // TODO(jsjeon): once migration is complete, use #toKmPackage and store a mutable model.
     metadata.accept(new PackageVisitorForNonNullParameterHints());
   }
 
-  private class PackageVisitorForNonNullParameterHints extends KmPackageVisitor {
+  private static class PackageVisitorForNonNullParameterHints extends KmPackageVisitor {
     @Override
     public KmFunctionVisitor visitFunction(int functionFlags, String functionName) {
-      return new NonNullParameterHintCollector.FunctionVisitor(nonNullparamHints);
+      return null;
     }
 
     @Override
     public KmPropertyVisitor visitProperty(
         int propertyFlags, String name, int getterFlags, int setterFlags) {
-      if (IS_VAR.invoke(propertyFlags)) {
-        return new NonNullParameterHintCollector.PropertyVisitor(nonNullparamHints);
-      }
       return null;
     }
   }
