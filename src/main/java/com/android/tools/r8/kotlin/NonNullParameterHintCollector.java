@@ -131,7 +131,6 @@ class NonNullParameterHintCollector {
       return new JvmConstructorExtensionVisitor() {
         @Override
         public void visit(JvmMethodSignature desc) {
-          assert name.equals(desc.getName());
           descriptor = desc.getDesc();
         }
       };
