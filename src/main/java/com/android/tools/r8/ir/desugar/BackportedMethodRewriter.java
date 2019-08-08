@@ -107,7 +107,7 @@ public final class BackportedMethodRewriter {
         continue;
       }
 
-      DexMethod newMethod = provider.provideMethod(factory);
+      DexMethod newMethod = provider.provideMethod(appView);
       iterator.replaceCurrentInstruction(
           new InvokeStatic(newMethod, invoke.outValue(), invoke.inValues()));
 
@@ -162,7 +162,7 @@ public final class BackportedMethodRewriter {
       MethodProvider provider = methodProviders.get(key);
       methodProviders.remove(key);
       assert provider.requiresGenerationOfCode();
-      DexMethod method = provider.provideMethod(factory);
+      DexMethod method = provider.provideMethod(appView);
       // The utility class could have been synthesized, e.g., running R8 then D8,
       // or if already processed in this while loop.
       if (appView.definitionFor(method.holder) != null) {
@@ -914,7 +914,7 @@ public final class BackportedMethodRewriter {
       this.proto = proto;
     }
 
-    public abstract DexMethod provideMethod(DexItemFactory factory);
+    public abstract DexMethod provideMethod(AppView<?> appView);
 
     public abstract TemplateMethodCode generateTemplateMethod(
         InternalOptions options, DexMethod method);
@@ -936,10 +936,11 @@ public final class BackportedMethodRewriter {
     }
 
     @Override
-    public DexMethod provideMethod(DexItemFactory factory) {
+    public DexMethod provideMethod(AppView<?> appView) {
       if (dexMethod != null) {
         return dexMethod;
       }
+      DexItemFactory factory = appView.dexItemFactory();
       DexProto newProto =
           isStatic ? proto : factory.prependTypeToProto(factory.createType(clazz), proto);
       return dexMethod = factory.createMethod(newHolder, newProto, method);
@@ -978,14 +979,23 @@ public final class BackportedMethodRewriter {
     }
 
     @Override
-    public DexMethod provideMethod(DexItemFactory factory) {
+    public DexMethod provideMethod(AppView<?> appView) {
       if (dexMethod != null) {
         return dexMethod;
       }
+      DexItemFactory factory = appView.dexItemFactory();
       String unqualifiedName =
           DescriptorUtils.getUnqualifiedClassNameFromDescriptor(clazz.toString());
+      // Avoid duplicate class names between core lib dex file and program dex files.
+      String coreLibUtilitySuffix = appView.options().coreLibraryCompilation ? "$corelib" : "";
       String descriptor =
-          UTILITY_CLASS_DESCRIPTOR_PREFIX + '$' + unqualifiedName + '$' + methodName + ';';
+          UTILITY_CLASS_DESCRIPTOR_PREFIX
+              + '$'
+              + unqualifiedName
+              + coreLibUtilitySuffix
+              + '$'
+              + methodName
+              + ';';
       DexType clazz = factory.createType(descriptor);
       dexMethod = factory.createMethod(clazz, proto, method);
       return dexMethod;
