@@ -111,6 +111,21 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
         }));
   }
 
+  @Test
+  public void testTypeConversion_withPhis() throws Exception {
+    buildAndCheckIR(
+        "typeConversion_withPhis",
+        checkOptimizerStates(appView, optimizer -> {
+          assertEquals(1, optimizer.analysis.builderStates.size());
+          for (Value builder : optimizer.analysis.builderStates.keySet()) {
+            Map<Instruction, BuilderState> perBuilderState =
+                optimizer.analysis.builderStates.get(builder);
+            checkBuilderState(optimizer, perBuilderState, null, true);
+          }
+          assertEquals(0, optimizer.analysis.simplifiedBuilders.size());
+        }));
+  }
+
   @Ignore("TODO(b/113859361): passed to another builder should be an eligible case.")
   @Test
   public void testNestedBuilders_appendBuilderItself() throws Exception {

@@ -57,6 +57,22 @@ class StringConcatenationTestClass {
   }
 
   @NeverInline
+  public static void typeConversion_withPhis() {
+    StringBuilder builder = new StringBuilder();
+    float pi = 3.14f;
+    float f = 0.14f;
+    float phi = System.currentTimeMillis() > 0 ? pi : f;
+    builder.append(phi);
+    builder.append(' ');
+    int i_phi = (int) phi;
+    builder.append(i_phi);
+    builder.append(' ');
+    int another_i_phi = System.currentTimeMillis() > 0 ? (int) f : (int) pi;
+    builder.append(another_i_phi);
+    System.out.println(builder.toString());
+  }
+
+  @NeverInline
   public static void nestedBuilders_appendBuilderItself() {
     StringBuilder b1 = new StringBuilder();
     b1.append("Hello");
@@ -138,6 +154,7 @@ class StringConcatenationTestClass {
     builderWithCapacity();
     nonStringArgs();
     typeConversion();
+    typeConversion_withPhis();
     nestedBuilders_appendBuilderItself();
     nestedBuilders_appendBuilderResult();
     simplePhi();

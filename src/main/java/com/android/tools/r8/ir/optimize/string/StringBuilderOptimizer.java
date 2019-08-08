@@ -421,43 +421,46 @@ public class StringBuilderOptimizer {
 
     private String extractConstantArgument(Value arg, DexType argType) {
       String addition = ANY_STRING;
-      if (!arg.isPhi()) {
-        if (arg.definition.isConstString()) {
-          addition = arg.definition.asConstString().getValue().toString();
-        } else if (arg.definition.isConstNumber() || arg.definition.isNumberConversion()) {
-          Number number = extractConstantNumber(arg);
-          if (number == null) {
-            return addition;
+      if (arg.isPhi()) {
+        return addition;
+      }
+      if (arg.definition.isConstString()) {
+        addition = arg.definition.asConstString().getValue().toString();
+      } else if (arg.definition.isConstNumber() || arg.definition.isNumberConversion()) {
+        Number number = extractConstantNumber(arg);
+        if (number == null) {
+          return addition;
+        }
+        if (arg.getTypeLattice().isPrimitive()) {
+          if (argType == factory.booleanType) {
+            addition = String.valueOf(number.intValue() != 0);
+          } else if (argType == factory.byteType) {
+            addition = String.valueOf(number.byteValue());
+          } else if (argType == factory.shortType) {
+            addition = String.valueOf(number.shortValue());
+          } else if (argType == factory.charType) {
+            addition = String.valueOf((char) number.intValue());
+          } else if (argType == factory.intType) {
+            addition = String.valueOf(number.intValue());
+          } else if (argType == factory.longType) {
+            addition = String.valueOf(number.longValue());
+          } else if (argType == factory.floatType) {
+            addition = String.valueOf(number.floatValue());
+          } else if (argType == factory.doubleType) {
+            addition = String.valueOf(number.doubleValue());
           }
-          if (arg.getTypeLattice().isPrimitive()) {
-            if (argType == factory.booleanType) {
-              addition = String.valueOf(number.intValue() != 0);
-            } else if (argType == factory.byteType) {
-              addition = String.valueOf(number.byteValue());
-            } else if (argType == factory.shortType) {
-              addition = String.valueOf(number.shortValue());
-            } else if (argType == factory.charType) {
-              addition = String.valueOf((char) number.intValue());
-            } else if (argType == factory.intType) {
-              addition = String.valueOf(number.intValue());
-            } else if (argType == factory.longType) {
-              addition = String.valueOf(number.longValue());
-            } else if (argType == factory.floatType) {
-              addition = String.valueOf(number.floatValue());
-            } else if (argType == factory.doubleType) {
-              addition = String.valueOf(number.doubleValue());
-            }
-          } else if (arg.getTypeLattice().isNullType()) {
-            assert number.intValue() == 0;
-            addition = "null";
-          }
+        } else if (arg.getTypeLattice().isNullType()) {
+          assert number.intValue() == 0;
+          addition = "null";
         }
       }
       return addition;
     }
 
     private Number extractConstantNumber(Value arg) {
-      assert !arg.isPhi();
+      if (arg.isPhi()) {
+        return null;
+      }
       if (arg.definition.isConstNumber()) {
         ConstNumber cst = arg.definition.asConstNumber();
         if (cst.outType() == ValueType.LONG) {

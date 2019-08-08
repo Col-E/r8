@@ -34,6 +34,7 @@ public class StringConcatenationTest extends TestBase {
       "42",
       "42",
       "0.14 0 false null",
+      "3.14 3 0",
       "Hello,R8",
       "Hello,R8",
       "Hello,",
@@ -106,6 +107,12 @@ public class StringConcatenationTest extends TestBase {
     count = Streams.stream(method.iterateInstructions(
         i -> i.isConstString(JumboStringMode.ALLOW))).count();
     assertEquals(expectedStringCountInTypeConversion, count);
+
+    method = mainClass.uniqueMethodWithName("typeConversion_withPhis");
+    assertThat(method, isPresent());
+    count = Streams.stream(method.iterateInstructions(
+        i -> i.isConstString(JumboStringMode.ALLOW))).count();
+    assertEquals(0, count);
 
     method = mainClass.uniqueMethodWithName("nestedBuilders_appendBuilderItself");
     assertThat(method, isPresent());
