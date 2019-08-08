@@ -21,15 +21,18 @@ import java.util.concurrent.ConcurrentHashMap;
 public abstract class CodeToKeep {
 
   static CodeToKeep createCodeToKeep(InternalOptions options, NamingLens namingLens) {
-    if (!namingLens.hasPrefixRewritingLogic() || options.coreLibraryCompilation) {
+    if ((!namingLens.hasPrefixRewritingLogic() && options.emulateLibraryInterface.isEmpty())
+        || options.coreLibraryCompilation) {
       return new NopCodeToKeep();
     }
-    return new DesugaredLibraryCodeToKeep(namingLens);
+    return new DesugaredLibraryCodeToKeep(namingLens, options);
   }
 
   abstract void recordMethod(DexMethod method);
 
   abstract void recordField(DexField field);
+
+  abstract void recordClass(DexType type);
 
   abstract boolean isNop();
 
@@ -38,15 +41,25 @@ public abstract class CodeToKeep {
   public static class DesugaredLibraryCodeToKeep extends CodeToKeep {
 
     private final NamingLens namingLens;
+    private final Set<DexType> emulatedInterfaces = Sets.newIdentityHashSet();
     private final Map<DexType, Pair<Set<DexField>, Set<DexMethod>>> toKeep =
         new ConcurrentHashMap<>();
 
-    public DesugaredLibraryCodeToKeep(NamingLens namingLens) {
+    public DesugaredLibraryCodeToKeep(NamingLens namingLens, InternalOptions options) {
+      // Any class implementing one interface should implement the other one.
+      // Interface method desugaring should have created the types if emulatedLibraryInterfaces
+      // are set.
+      for (String rewrittenName : options.emulateLibraryInterface.values()) {
+        emulatedInterfaces.add(
+            options.itemFactory.lookupType(
+                options.itemFactory.lookupString(
+                    DescriptorUtils.javaTypeToDescriptor(rewrittenName))));
+      }
       this.namingLens = namingLens;
     }
 
     private boolean shouldKeep(DexType type) {
-      return namingLens.prefixRewrittenType(type) != null;
+      return namingLens.prefixRewrittenType(type) != null || emulatedInterfaces.contains(type);
     }
 
     @Override
@@ -73,6 +86,13 @@ public abstract class CodeToKeep {
       }
       if (shouldKeep(field.type)) {
         keepClass(field.type);
+      }
+    }
+
+    @Override
+    void recordClass(DexType type) {
+      if (shouldKeep(type)) {
+        keepClass(type);
       }
     }
 
@@ -141,6 +161,9 @@ public abstract class CodeToKeep {
 
     @Override
     void recordField(DexField field) {}
+
+    @Override
+    void recordClass(DexType type) {}
 
     @Override
     boolean isNop() {

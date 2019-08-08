@@ -26,6 +26,7 @@ public class CoreLibDesugarTestBase extends TestBase {
   private static Map<CacheEntry, TestCompileResult> computedLibraryCache =
       new ConcurrentHashMap<>();
 
+  @Deprecated
   protected boolean requiresCoreLibDesugaring(TestParameters parameters) {
     // TODO(b/134732760): Use the two other APIS instead.
     return requiresEmulatedInterfaceCoreLibDesugaring(parameters)
@@ -38,6 +39,10 @@ public class CoreLibDesugarTestBase extends TestBase {
 
   protected boolean requiresRetargetCoreLibMemberDesugaring(TestParameters parameters) {
     return parameters.getApiLevel().getLevel() < AndroidApiLevel.P.getLevel();
+  }
+
+  protected boolean requiresAnyCoreLibDesugaring(TestParameters parameters) {
+    return requiresRetargetCoreLibMemberDesugaring(parameters);
   }
 
   protected Path buildDesugaredLibrary(AndroidApiLevel apiLevel) throws RuntimeException {

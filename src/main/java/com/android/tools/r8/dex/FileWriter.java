@@ -622,6 +622,10 @@ public class FileWriter {
 
   private void writeClassData(DexProgramClass clazz) {
     assert clazz.hasMethodsOrFields();
+    desugaredLibraryCodeToKeep.recordClass(clazz.superType);
+    for (DexType itf : clazz.interfaces.values) {
+      desugaredLibraryCodeToKeep.recordClass(itf);
+    }
     mixedSectionOffsets.setOffsetFor(clazz, dest.position());
     dest.putUleb128(clazz.staticFields().size());
     dest.putUleb128(clazz.instanceFields().size());

@@ -44,7 +44,7 @@ public class EmulatedInterfacesTest extends CoreLibDesugarTestBase {
 
   @Test
   public void testEmulatedInterface() throws Exception {
-    Assume.assumeTrue((requiresCoreLibDesugaring(parameters)));
+    Assume.assumeTrue(requiresEmulatedInterfaceCoreLibDesugaring(parameters));
     CodeInspector inspector =
         new CodeInspector(
             buildDesugaredLibrary(

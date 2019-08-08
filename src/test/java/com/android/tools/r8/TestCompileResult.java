@@ -19,6 +19,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.TriFunction;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
@@ -168,6 +169,17 @@ public abstract class TestCompileResult<
       Function<AndroidApiLevel, Path> classPathSupplier, AndroidApiLevel minAPILevel) {
     if (minAPILevel.getLevel() < AndroidApiLevel.P.getLevel()) {
       addRunClasspathFiles(classPathSupplier.apply(minAPILevel));
+    }
+    return self();
+  }
+
+  public CR addDesugaredCoreLibraryRunClassPath(
+      TriFunction<AndroidApiLevel, String, Boolean, Path> classPathSupplier,
+      AndroidApiLevel minAPILevel,
+      String keepRules,
+      boolean shrink) {
+    if (minAPILevel.getLevel() < AndroidApiLevel.P.getLevel()) {
+      addRunClasspathFiles(classPathSupplier.apply(minAPILevel, keepRules, shrink));
     }
     return self();
   }

@@ -7,18 +7,11 @@ package com.android.tools.r8.desugar.corelib;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
-import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
-import com.android.tools.r8.utils.codeinspector.InstructionSubject;
-import com.google.common.collect.ImmutableSet;
-import java.util.stream.Collectors;
 import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -39,8 +32,8 @@ public class DesugaredLibraryContentTest extends CoreLibDesugarTestBase {
   }
 
   @Test
-  public void test() throws Exception {
-    Assume.assumeTrue(requiresCoreLibDesugaring(parameters));
+  public void testDesugaredLibraryContent() throws Exception {
+    Assume.assumeTrue(requiresAnyCoreLibDesugaring(parameters));
     CodeInspector inspector = new CodeInspector(buildDesugaredLibrary(parameters.getApiLevel()));
     assertThat(inspector.clazz("j$.util.Optional"), isPresent());
     assertThat(inspector.clazz("j$.util.OptionalInt"), isPresent());
@@ -48,82 +41,14 @@ public class DesugaredLibraryContentTest extends CoreLibDesugarTestBase {
     assertThat(inspector.clazz("j$.util.OptionalDouble"), isPresent());
     assertThat(inspector.clazz("j$.util.function.Function"), isPresent());
     assertThat(inspector.clazz("j$.time.Clock"), isPresent());
-
-    ImmutableSet interfaces =
-        ImmutableSet.of(
-            "java.util.List",
-            "java.util.concurrent.TransferQueue",
-            "java.util.concurrent.ConcurrentMap",
-            "java.util.Queue",
-            "java.util.concurrent.ConcurrentNavigableMap",
-            "java.util.NavigableMap",
-            "java.util.ListIterator",
-            "java.util.SortedMap",
-            "java.util.Set",
-            "java.util.List",
-            "java.util.NavigableSet",
-            "java.util.SortedSet",
-            "java.util.Deque",
-            "java.util.concurrent.BlockingDeque",
-            "java.util.concurrent.BlockingQueue");
-
-    // TODO(134732760): Remove this debugging code.
     inspector
         .allClasses()
         .forEach(
-            clazz -> {
-              if (clazz.getOriginalName().startsWith("java.")
-                  && !interfaces.contains(clazz.getOriginalName())) {
-                System.out.println(clazz.getOriginalName());
-              }
-            });
-
-    if (requiresCoreLibDesugaring(parameters)) {
-      InstructionSubject long8Invoke =
-          inspector
-              .clazz("j$.util.stream.LongStream$-CC")
-              .uniqueMethodWithName("range")
-              .streamInstructions()
-              .filter(InstructionSubject::isInvokeStatic)
-              .collect(Collectors.toList())
-              .get(1);
-      assertFalse(long8Invoke.toString().contains("Long8;->"));
-      assertTrue(long8Invoke.toString().contains("backportedMethods"));
-      for (FoundClassSubject clazz : inspector.allClasses()) {
-        if (!(clazz.getOriginalName().equals("j$.lang.Long8")
-            || clazz.getOriginalName().equals("j$.lang.Integer8")
-            || clazz.getOriginalName().equals("j$.lang.Double8"))) {
-          for (FoundMethodSubject method : clazz.allMethods()) {
-            if (!method.isAbstract()) {
-              assertTrue(method.streamInstructions().noneMatch(instr -> instr.isInvoke() && (
-                  instr.toString().contains("Double8")
-                      || instr.toString().contains("Integer8")
-                      || instr.toString().contains("Long8"))
-              ));
-            }
-          }
-        }
-      }
-    }
-
-    // TODO(134732760): This should be a 0 count.
-    assertEquals(
-        requiresCoreLibDesugaring(parameters) ? 0 : 5,
-        inspector.allClasses().stream()
-            .map(ClassSubject::getOriginalName)
-            .filter(name -> name.startsWith("java."))
-            .filter(name -> !interfaces.contains(name))
-            .count());
-
-    // TODO(134732760): Remove this when above is a 0 count.
-    assertEquals(
-        requiresCoreLibDesugaring(parameters) ? 0 : 5,
-        inspector.allClasses().stream()
-            .map(ClassSubject::getOriginalName)
-            .filter(name -> name.startsWith("java."))
-            .filter(name -> !interfaces.contains(name))
-            .filter(name -> !name.contains("$-CC"))
-            .filter(name -> !name.contains("-$$Lambda"))
-            .count());
+            clazz ->
+                assertTrue(
+                    clazz.getOriginalName().startsWith("j$.")
+                        || clazz
+                            .getOriginalName()
+                            .contains(BackportedMethodRewriter.UTILITY_CLASS_NAME_PREFIX)));
   }
 }

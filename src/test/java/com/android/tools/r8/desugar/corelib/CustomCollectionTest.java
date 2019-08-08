@@ -9,7 +9,8 @@ import static org.junit.Assert.fail;
 
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject.JumboStringMode;
@@ -22,18 +23,22 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class CustomCollectionTest extends CoreLibDesugarTestBase {
 
   private final TestParameters parameters;
+  private final boolean shrinkCoreLibrary;
 
-  @Parameterized.Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
+  @Parameters(name = "{1}, shrinkCoreLibrary: {0}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        BooleanUtils.values(), getTestParameters().withDexRuntimes().withAllApiLevels().build());
   }
 
-  public CustomCollectionTest(TestParameters parameters) {
+  public CustomCollectionTest(boolean shrinkDesugaredLibrary, TestParameters parameters) {
+    this.shrinkCoreLibrary = shrinkDesugaredLibrary;
     this.parameters = parameters;
   }
 
@@ -42,15 +47,23 @@ public class CustomCollectionTest extends CoreLibDesugarTestBase {
 
   @Test
   public void testCustomCollection() throws Exception {
+    Box<String> keepRulesHolder = new Box<>("");
     D8TestRunResult d8TestRunResult =
         testForD8()
             .addInnerClasses(CustomCollectionTest.class)
             .setMinApi(parameters.getApiLevel())
+            .addOptionsModification(
+                options ->
+                    options.testing.desugaredLibraryKeepRuleConsumer =
+                        (string, handler) -> keepRulesHolder.set(keepRulesHolder.get() + string))
             .enableCoreLibraryDesugaring(parameters.getApiLevel())
             .compile()
             .inspect(this::assertCustomCollectionCallsCorrect)
             .addDesugaredCoreLibraryRunClassPath(
-                this::buildDesugaredLibrary, parameters.getApiLevel())
+                this::buildDesugaredLibrary,
+                parameters.getApiLevel(),
+                keepRulesHolder.get(),
+                shrinkCoreLibrary)
             .run(parameters.getRuntime(), EXECUTOR)
             .assertSuccess();
     if (requiresEmulatedInterfaceCoreLibDesugaring(parameters)) {
