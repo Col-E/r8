@@ -417,6 +417,33 @@ public class JarClassFileReader {
               directMethods.toArray(DexEncodedMethod.EMPTY_ARRAY),
               virtualMethods.toArray(DexEncodedMethod.EMPTY_ARRAY),
               application.getFactory().getSkipNameValidationForTesting());
+      InnerClassAttribute innerClassAttribute = clazz.getInnerClassAttributeForThisClass();
+      // A member class should not be a local or anonymous class.
+      if (innerClassAttribute != null && innerClassAttribute.getOuter() != null) {
+        if (innerClassAttribute.isAnonymous()) {
+          assert innerClassAttribute.getInnerName() == null;
+          // If the enclosing member is not null, the intention would be an anonymous class, and
+          // thus the outer-class reference should have been null.
+          // If the enclosing member is null, it is likely due to the missing enclosing member, and
+          // we will warn that below. In either case, we can recover InnerClasses attribute by
+          // erasing the outer-class reference.
+          application.options.warningInvalidNonMemberClasses(
+              origin, enclosingMember, innerClassAttribute);
+          InnerClassAttribute recoveredAttribute = new InnerClassAttribute(
+              innerClassAttribute.getAccess(), innerClassAttribute.getInner(), null, null);
+          clazz.replaceInnerClassAttributeForThisClass(recoveredAttribute);
+        } else if (enclosingMember != null) {
+          assert innerClassAttribute.isNamed();
+          // It is unclear whether the intention was a member class or a local class. Fail hard.
+          throw new CompilationError(
+              StringUtils.lines(
+                  "A member class should be a (non-member) local class at the same time.",
+                  "This is likely due to invalid EnclosingMethod and InnerClasses attributes:",
+                  enclosingMember.toString(),
+                  innerClassAttribute.toString()),
+              origin);
+        }
+      }
       if (enclosingMember == null
           && (clazz.isLocalClass() || clazz.isAnonymousClass())
           && getMajorVersion() > V1_6) {

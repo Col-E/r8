@@ -30,6 +30,8 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.EnclosingMethodAttribute;
+import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.origin.Origin;
@@ -538,6 +540,30 @@ public class InternalOptions {
     return ImmutableSet.of();
   }
 
+  private static class InvalidNonMemberClassInfo {
+    final EnclosingMethodAttribute enclosingMember;
+    final InnerClassAttribute innerClassAttribute;
+
+    InvalidNonMemberClassInfo(
+        EnclosingMethodAttribute enclosingMember,
+        InnerClassAttribute innerClassAttribute) {
+      this.enclosingMember = enclosingMember;
+      this.innerClassAttribute = innerClassAttribute;
+    }
+
+    @Override
+    public String toString() {
+      List<String> attrs = new ArrayList<>();
+      if (enclosingMember != null) {
+        attrs.add("    EnclosingMethod: " + enclosingMember.toString());
+      }
+      if (innerClassAttribute != null) {
+        attrs.add("    InnerClasses: " + innerClassAttribute.toString());
+      }
+      return StringUtils.join(attrs, System.lineSeparator());
+    }
+  }
+
   public static class InvalidParameterAnnotationInfo {
 
     final DexMethod method;
@@ -564,6 +590,9 @@ public class InternalOptions {
   }
 
   private final Map<Origin, List<TypeVersionPair>> missingEnclosingMembers = new HashMap<>();
+
+  private final Map<Origin, InvalidNonMemberClassInfo> warningInvalidNonMemberClasses =
+      new HashMap<>();
 
   private final Map<Origin, List<InvalidParameterAnnotationInfo>> warningInvalidParameterAnnotations
       = new HashMap<>();
@@ -771,6 +800,17 @@ public class InternalOptions {
     }
   }
 
+  public void warningInvalidNonMemberClasses(
+      Origin origin,
+      EnclosingMethodAttribute enclosingMethodAttribute,
+      InnerClassAttribute innerClassAttribute) {
+    InvalidNonMemberClassInfo info =
+        new InvalidNonMemberClassInfo(enclosingMethodAttribute, innerClassAttribute);
+    synchronized (warningInvalidNonMemberClasses) {
+      warningInvalidNonMemberClasses.put(origin, info);
+    }
+  }
+
   public void warningInvalidParameterAnnotations(
       DexMethod method, Origin origin, int expected, int actual) {
     InvalidParameterAnnotationInfo info =
@@ -836,6 +876,21 @@ public class InternalOptions {
       }
       printed = true;
       printOutdatedToolchain = true;
+    }
+    if (warningInvalidNonMemberClasses.size() > 0) {
+      reporter.info(
+          new StringDiagnostic(
+              "A member class should not be a local or anonymous class at the same time."
+                  + " Such InnerClasses attributes are recovered."));
+      for (Origin origin : new TreeSet<>(warningInvalidNonMemberClasses.keySet())) {
+        StringBuilder builder =
+            new StringBuilder("Invalid EnclosingMethod/InnerClasses attributes:");
+        InvalidNonMemberClassInfo info = warningInvalidNonMemberClasses.get(origin);
+        builder.append(System.lineSeparator());
+        builder.append(info.toString());
+        reporter.info(new StringDiagnostic(builder.toString(), origin));
+      }
+      printed = true;
     }
     if (missingEnclosingMembers.size() > 0) {
       reporter.info(
