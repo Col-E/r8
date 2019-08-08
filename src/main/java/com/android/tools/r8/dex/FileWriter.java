@@ -755,9 +755,10 @@ public class FileWriter {
     dest.moveTo(0);
     dest.putBytes(Constants.DEX_FILE_MAGIC_PREFIX);
     dest.putBytes(
-        DexVersion
-            .getDexVersion(AndroidApiLevel.getAndroidApiLevel(options.minApiLevel))
-            .getBytes());
+        options.testing.forceDexVersionBytes != null
+            ? options.testing.forceDexVersionBytes
+            : DexVersion.getDexVersion(AndroidApiLevel.getAndroidApiLevel(options.minApiLevel))
+                .getBytes());
     dest.putByte(Constants.DEX_FILE_MAGIC_SUFFIX);
     // Leave out checksum and signature for now.
     dest.moveTo(Constants.FILE_SIZE_OFFSET);

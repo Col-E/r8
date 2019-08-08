@@ -305,6 +305,9 @@ public class JarClassFileReader {
     public void visit(int version, int access, String name, String signature, String superName,
         String[] interfaces) {
       this.version = version;
+      if (InternalOptions.SUPPORTED_CF_MAJOR_VERSION < getMajorVersion()) {
+        throw new CompilationError("Unsupported class file version: " + getMajorVersion(), origin);
+      }
       accessFlags = ClassAccessFlags.fromCfAccessFlags(cleanAccessFlags(access));
       type = application.getTypeFromName(name);
       // Check if constraints from

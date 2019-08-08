@@ -4,6 +4,7 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.errors.Unreachable;
+import java.util.Optional;
 
 /**
  * Android dex version
@@ -75,18 +76,25 @@ public enum DexVersion {
     }
   }
 
-  public static DexVersion getDexVersion(int intValue) {
+  public static Optional<DexVersion> getDexVersion(int intValue) {
     switch (intValue) {
       case 35:
-        return V35;
+        return Optional.of(V35);
       case 37:
-        return V37;
+        return Optional.of(V37);
       case 38:
-        return V38;
+        return Optional.of(V38);
       case 39:
-        return V39;
+        return Optional.of(V39);
       default:
-        throw new Unreachable();
+        return Optional.empty();
     }
+  }
+
+  public static Optional<DexVersion> getDexVersion(char b0, char b1, char b2) {
+    if (b0 != '0' || b1 != '3' || b2 < '5' || '9' < b2) {
+      return Optional.empty();
+    }
+    return getDexVersion(100 * (b0 - '0') + 10 * (b1 - '0') + (b2 - '0'));
   }
 }

@@ -13,13 +13,14 @@ import com.android.tools.r8.utils.DexVersion;
 import java.io.IOException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteOrder;
+import java.util.Optional;
 
 /**
  * {@link BinaryReader} for Dex content.
  */
 public class DexReader extends BinaryReader {
 
-  private final int version;
+  private final DexVersion version;
 
   public DexReader(ProgramResource resource) throws ResourceException, IOException {
     super(resource);
@@ -37,7 +38,7 @@ public class DexReader extends BinaryReader {
   }
 
   // Parse the magic header and determine the dex file version.
-  private int parseMagic(CompatByteBuffer buffer) {
+  private DexVersion parseMagic(CompatByteBuffer buffer) {
     try {
       buffer.get();
       buffer.rewind();
@@ -50,31 +51,24 @@ public class DexReader extends BinaryReader {
         throw new CompilationError("Dex file has invalid header", origin);
       }
     }
-    if (buffer.get(index++) != '0' || buffer.get(index++) != '3') {
-      throw new CompilationError("Dex file has invalid version number", origin);
-    }
-    byte versionByte = buffer.get(index++);
-    int version;
-    switch (versionByte) {
-      case '9':
-        version = DexVersion.V39.getIntValue();
-        break;
-      case '8':
-        version =  DexVersion.V38.getIntValue();
-        break;
-      case '7':
-        version =  DexVersion.V37.getIntValue();
-        break;
-      case '5':
-        version =  DexVersion.V35.getIntValue();
-        break;
-      default:
-        throw new CompilationError("Dex file has invalid version number", origin);
+
+    char versionByte0 = (char) buffer.get(index++);
+    char versionByte1 = (char) buffer.get(index++);
+    char versionByte2 = (char) buffer.get(index++);
+    Optional<DexVersion> maybeVersion =
+        DexVersion.getDexVersion(versionByte0, versionByte1, versionByte2);
+    if (!maybeVersion.isPresent()) {
+      throw new CompilationError(
+          "Unsupported DEX file version: "
+              + versionByte0
+              + versionByte1
+              + versionByte2,
+          origin);
     }
     if (buffer.get(index++) != '\0') {
       throw new CompilationError("Dex file has invalid header", origin);
     }
-    return version;
+    return maybeVersion.get();
   }
 
   @Override
@@ -91,7 +85,7 @@ public class DexReader extends BinaryReader {
     }
   }
 
-  int getDexVersion() {
+  DexVersion getDexVersion() {
     return version;
   }
 }

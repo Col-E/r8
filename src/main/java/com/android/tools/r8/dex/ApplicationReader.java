@@ -161,7 +161,7 @@ public class ApplicationReader {
   }
 
   private int validateOrComputeMinApiLevel(int computedMinApiLevel, DexReader dexReader) {
-    DexVersion version = DexVersion.getDexVersion(dexReader.getDexVersion());
+    DexVersion version = dexReader.getDexVersion();
     if (options.minApiLevel == AndroidApiLevel.getDefault().getLevel()) {
       computedMinApiLevel = Math
           .max(computedMinApiLevel, AndroidApiLevel.getMinAndroidApiLevel(version).getLevel());

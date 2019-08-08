@@ -72,6 +72,10 @@ public class InternalOptions {
     ON
   }
 
+  public static final int SUPPORTED_CF_MAJOR_VERSION = Opcodes.V11;
+  public static final int SUPPORTED_DEX_VERSION =
+      AndroidApiLevel.LATEST.getDexVersion().getIntValue();
+
   public static final int ASM_VERSION = Opcodes.ASM7;
 
   public final DexItemFactory itemFactory;
@@ -908,6 +912,9 @@ public class InternalOptions {
   }
 
   public static class TestingOptions {
+
+    // Force writing the specified bytes as the DEX version content.
+    public byte[] forceDexVersionBytes = null;
 
     public IROrdering irOrdering =
         InternalOptions.assertionsEnabled() && !InternalOptions.DETERMINISTIC_DEBUGGING
