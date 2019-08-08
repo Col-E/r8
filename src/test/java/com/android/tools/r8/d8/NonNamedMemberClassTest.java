@@ -5,21 +5,46 @@ package com.android.tools.r8.d8;
 
 import static org.hamcrest.CoreMatchers.containsString;
 
+import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper.DexVm;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
+@RunWith(Parameterized.class)
 public class NonNamedMemberClassTest extends TestBase {
+
+  private final TestParameters parameters;
+
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withDexRuntimes().build();
+  }
+
+  public NonNamedMemberClassTest(TestParameters parameters) {
+    this.parameters = parameters;
+  }
 
   @Test
   public void testD8() throws Exception {
-    testForD8()
-        .addProgramClassFileData(Dump.dump())
-        .compile()
-        .assertOnlyInfos()
+    D8TestCompileResult result =
+        testForD8()
+            .addProgramClassFileData(Dump.dump())
+            .setMinApi(parameters.getRuntime())
+            .compile();
+    if (parameters.getRuntime().asDex().getVm().isOlderThanOrEqual(DexVm.ART_6_0_1_HOST)) {
+      result.assertWarningMessageThatMatches(containsString("desugaring"));
+    } else {
+      result.assertOnlyInfos();
+    }
+    result
         .assertInfoMessageThatMatches(containsString("InnerClasses attributes are recovered"))
         .assertInfoMessageThatMatches(containsString("inner: LWebContext$Companion;"))
         .assertInfoMessageThatMatches(containsString("outer: LWebContext;"))

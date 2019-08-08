@@ -10,19 +10,36 @@ import static org.junit.Assert.fail;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
+@RunWith(Parameterized.class)
 public class MemberAndLocalClassTest extends TestBase {
+
+  private final TestParameters parameters;
+
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withDexRuntimes().build();
+  }
+
+  public MemberAndLocalClassTest(TestParameters parameters) {
+    this.parameters = parameters;
+  }
 
   @Test
   public void testD8() throws Exception {
     try {
       testForD8()
           .addProgramClassFileData(Dump.dump())
+          .setMinApi(parameters.getRuntime())
           .compile();
       fail("Expected to fail due to invalid EnclosingMethod attribute");
     } catch (CompilationFailedException e) {
