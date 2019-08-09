@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.desugar;
 
+import com.android.tools.r8.DesugarGraphConsumer;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppInfo;
@@ -1125,7 +1126,6 @@ public final class InterfaceMethodRewriter {
       warnMissingInterface(classToDesugar, implementing, iface);
       return helper.wrapInCollection();
     }
-
     if (!definedInterface.isInterface()) {
       throw new CompilationError(
           "Type " + iface.toSourceString() + " is referenced as an interface from `"
@@ -1138,6 +1138,12 @@ public final class InterfaceMethodRewriter {
       // WARNING: This may result in incorrect code if something else than Android bootclasspath
       // classes are given as libraries!
       return helper.wrapInCollection();
+    }
+
+    // At this point we likely have a non-library type that may depend on default method information
+    // from its interfaces and the dependency should be reported.
+    if (!definedInterface.isLibraryClass()) {
+      reportDependencyEdge(definedInterface, implementing, appView);
     }
 
     // Merge information from all superinterfaces.
@@ -1158,5 +1164,17 @@ public final class InterfaceMethodRewriter {
     }
 
     return helper.wrapInCollection();
+  }
+
+  public static void reportDependencyEdge(
+      DexClass dependency, DexClass dependent, AppView<?> appView) {
+    DesugarGraphConsumer consumer = appView.options().desugarGraphConsumer;
+    if (consumer != null) {
+      Origin dependencyOrigin = dependency.getOrigin();
+      Origin dependentOrigin = dependent.getOrigin();
+      if (dependencyOrigin != dependentOrigin) {
+        consumer.accept(dependencyOrigin, dependentOrigin);
+      }
+    }
   }
 }

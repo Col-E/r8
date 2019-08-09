@@ -9,6 +9,7 @@ import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.DataResourceConsumer;
 import com.android.tools.r8.DataResourceProvider;
+import com.android.tools.r8.DesugarGraphConsumer;
 import com.android.tools.r8.DexFilePerClassFileConsumer;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.ProgramConsumer;
@@ -637,6 +638,10 @@ public class InternalOptions {
   // in the main-dex output. If non-null, each edge pertaining to kept parts in the main-dex output
   // of the resulting program must be reported to the consumer.
   public GraphConsumer mainDexKeptGraphConsumer = null;
+
+  // If null, no desugaring dependencies need to be provided. If non-null, each dependency between
+  // code objects needed for correct desugaring needs to be provided to the consumer.
+  public DesugarGraphConsumer desugarGraphConsumer = null;
 
   public Path proguardCompatibilityRulesOutput = null;
   public Consumer<List<ProguardConfigurationRule>> syntheticProguardRulesConsumer = null;

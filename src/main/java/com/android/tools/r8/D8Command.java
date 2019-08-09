@@ -64,6 +64,7 @@ public final class D8Command extends BaseCompilerCommand {
   public static class Builder extends BaseCompilerCommand.Builder<D8Command, Builder> {
 
     private boolean intermediate = false;
+    private DesugarGraphConsumer desugarGraphConsumer = null;
 
     private Builder() {
       this(new DefaultD8DiagnosticsHandler());
@@ -109,6 +110,21 @@ public final class D8Command extends BaseCompilerCommand {
      */
     public Builder setIntermediate(boolean value) {
       this.intermediate = value;
+      return self();
+    }
+
+    /** Get the consumer that will receive dependency information for desugaring. */
+    public DesugarGraphConsumer getDesugarGraphConsumer() {
+      return desugarGraphConsumer;
+    }
+
+    /**
+     * Set the consumer that will receive dependency information for desugaring.
+     *
+     * <p>Setting the consumer will clear any previously set consumer.
+     */
+    public Builder setDesugarGraphConsumer(DesugarGraphConsumer desugarGraphConsumer) {
+      this.desugarGraphConsumer = desugarGraphConsumer;
       return self();
     }
 
@@ -173,13 +189,15 @@ public final class D8Command extends BaseCompilerCommand {
           isOptimizeMultidexForLinearAlloc(),
           getSpecialLibraryConfiguration(),
           getIncludeClassesChecksum(),
-          getDexClassChecksumFilter());
+          getDexClassChecksumFilter(),
+          getDesugarGraphConsumer());
     }
   }
 
   static final String USAGE_MESSAGE = D8CommandParser.USAGE_MESSAGE;
 
-  private boolean intermediate = false;
+  private final boolean intermediate;
+  private final DesugarGraphConsumer desugarGraphConsumer;
 
   public static Builder builder() {
     return new Builder();
@@ -233,7 +251,8 @@ public final class D8Command extends BaseCompilerCommand {
       boolean optimizeMultidexForLinearAlloc,
       String specialLibraryConfiguration,
       boolean encodeChecksum,
-      BiPredicate<String, Long> dexClassChecksumFilter) {
+      BiPredicate<String, Long> dexClassChecksumFilter,
+      DesugarGraphConsumer desugarGraphConsumer) {
     super(
         inputApp,
         mode,
@@ -247,10 +266,13 @@ public final class D8Command extends BaseCompilerCommand {
         encodeChecksum,
         dexClassChecksumFilter);
     this.intermediate = intermediate;
+    this.desugarGraphConsumer = desugarGraphConsumer;
   }
 
   private D8Command(boolean printHelp, boolean printVersion) {
     super(printHelp, printVersion);
+    intermediate = false;
+    desugarGraphConsumer = null;
   }
 
   private void configureLibraryDesugaring(InternalOptions options) {
@@ -268,6 +290,7 @@ public final class D8Command extends BaseCompilerCommand {
     internal.minApiLevel = getMinApiLevel();
     internal.intermediate = intermediate;
     internal.readCompileTimeAnnotations = intermediate;
+    internal.desugarGraphConsumer = desugarGraphConsumer;
 
     // Assert and fixup defaults.
     assert !internal.isShrinking();

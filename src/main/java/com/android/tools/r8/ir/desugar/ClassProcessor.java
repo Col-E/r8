@@ -186,6 +186,8 @@ final class ClassProcessor {
       } else {
         DexClass superClass = appView.definitionFor(current.superType);
         if (superClass != null) {
+          // TODO(b/138988172): Can we avoid traversing the full hierarchy for each type?
+          InterfaceMethodRewriter.reportDependencyEdge(superClass, current, appView);
           current = superClass;
         } else {
           String message = "Default method desugaring of `" + clazz.toSourceString() + "` failed";
