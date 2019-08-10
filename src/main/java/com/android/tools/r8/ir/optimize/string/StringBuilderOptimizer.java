@@ -186,6 +186,7 @@ public class StringBuilderOptimizer {
     // Inspired by {@link JumboStringTest}. Some code intentionally may have too many append(...).
     private static final int CONCATENATION_THRESHOLD = 200;
     private static final String ANY_STRING = "*";
+    private static final String DUMMY = "$dummy$";
 
     private final IRCode code;
 
@@ -553,6 +554,7 @@ public class StringBuilderOptimizer {
     // StringBuilders that are simplified by this analysis or simply dead (e.g., after applying
     // -assumenosideeffects to logging calls, then logging messages built by builders are dead).
     // Will be used to clean up uses of the builders, such as creation, <init>, and append calls.
+    final Set<Value> deadBuilders = Sets.newIdentityHashSet();
     final Set<Value> simplifiedBuilders = Sets.newIdentityHashSet();
 
     private StringConcatenationAnalysis applyConcatenationResults(Set<Value> candidateBuilders) {
@@ -566,12 +568,22 @@ public class StringBuilderOptimizer {
         assert invoke.inValues().size() == 1;
         Value builder = invoke.getReceiver().getAliasedValue();
         assert invoke.hasOutValue();
-        // TODO(b/114002137): Can be extended to potentially dead code.
-        if (!invoke.outValue().isUsed()) {
-          it.removeOrReplaceByDebugLocalRead();
+        Value outValue = invoke.outValue();
+        if (outValue.isDead(appView, code)) {
+          // If the out value is still used but potentially dead, replace it with a dummy string.
+          if (outValue.isUsed()) {
+            Value dummy =
+                code.createValue(
+                    TypeLatticeElement.stringClassType(appView, definitelyNotNull()),
+                    invoke.getLocalInfo());
+            it.replaceCurrentInstruction(
+                new ConstString(dummy, factory.createString(DUMMY), throwingInfo));
+          } else {
+            it.removeOrReplaceByDebugLocalRead();
+          }
           // Although this builder is not simplified by this analysis, add that to the set so that
           // it can be removed at the final clean-up phase.
-          simplifiedBuilders.add(builder);
+          deadBuilders.add(builder);
           numberOfDeadBuilders++;
           continue;
         }
@@ -612,8 +624,7 @@ public class StringBuilderOptimizer {
       }
       // If the result of toString() is no longer used, computing the compile-time constant is
       // even not necessary.
-      // TODO(b/114002137): Can be extended to potentially dead code.
-      if (!invoke.outValue().isUsed()) {
+      if (invoke.outValue().isDead(appView, code)) {
         return true;
       }
       Map<Instruction, BuilderState> perInstrState = builderStates.get(builder);
@@ -682,35 +693,47 @@ public class StringBuilderOptimizer {
     }
 
     void removeTrivialBuilders() {
-      if (simplifiedBuilders.isEmpty()) {
+      if (deadBuilders.isEmpty() && simplifiedBuilders.isEmpty()) {
         return;
       }
-      // All instructions that refer to simplified builders are dead.
-      // Here, we remove append(...) calls, <init>, and new-instance in order.
+      Set<Value> buildersToRemove = Sets.union(deadBuilders, simplifiedBuilders);
+      // All instructions that refer to dead/simplified builders are dead.
+      // Here, we remove toString() calls, append(...) calls, <init>, and new-instance in order.
       InstructionListIterator it = code.instructionListIterator();
       while (it.hasNext()) {
         Instruction instr = it.next();
         if (instr.isInvokeVirtual()) {
           InvokeVirtual invoke = instr.asInvokeVirtual();
           DexMethod invokedMethod = invoke.getInvokedMethod();
-          if (optimizationConfiguration.isAppendMethod(invokedMethod)
-              && simplifiedBuilders.contains(invoke.getReceiver())) {
+          if (optimizationConfiguration.isToStringMethod(invokedMethod)
+              && buildersToRemove.contains(invoke.getReceiver())) {
             it.removeOrReplaceByDebugLocalRead();
           }
         }
       }
+      // append(...) and <init> don't have out values, so removing them won't bother each other.
       it = code.instructionListIterator();
       while (it.hasNext()) {
         Instruction instr = it.next();
+        if (instr.isInvokeVirtual()) {
+          InvokeVirtual invoke = instr.asInvokeVirtual();
+          DexMethod invokedMethod = invoke.getInvokedMethod();
+          if (optimizationConfiguration.isAppendMethod(invokedMethod)
+              && buildersToRemove.contains(invoke.getReceiver())) {
+            it.removeOrReplaceByDebugLocalRead();
+          }
+        }
         if (instr.isInvokeDirect()) {
           InvokeDirect invoke = instr.asInvokeDirect();
           DexMethod invokedMethod = invoke.getInvokedMethod();
           if (optimizationConfiguration.isBuilderInit(invokedMethod)
-              && simplifiedBuilders.contains(invoke.getReceiver())) {
+              && buildersToRemove.contains(invoke.getReceiver())) {
             it.removeOrReplaceByDebugLocalRead();
           }
         }
       }
+      // new-instance should be removed at last, since it will check the out value, builder, is not
+      // used anywhere, which we've removed so far.
       it = code.instructionListIterator();
       while (it.hasNext()) {
         Instruction instr = it.next();
@@ -721,6 +744,7 @@ public class StringBuilderOptimizer {
           it.removeOrReplaceByDebugLocalRead();
         }
       }
+      assert code.isConsistentSSA();
     }
   }
 

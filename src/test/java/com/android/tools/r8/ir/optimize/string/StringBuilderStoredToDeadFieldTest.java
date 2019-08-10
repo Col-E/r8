@@ -5,7 +5,7 @@ package com.android.tools.r8.ir.optimize.string;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
@@ -14,6 +14,7 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject.JumboStringMode;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -56,11 +57,13 @@ public class StringBuilderStoredToDeadFieldTest extends TestBase {
     MethodSubject mainMethod = main.mainMethod();
     assertThat(main, isPresent());
 
-    // TODO(b/114002137): can remove builder usage, which is linked to potentially dead code.
-    assertFalse(
+    assertTrue(
         mainMethod.streamInstructions().noneMatch(
             i -> i.isInvoke()
                 && i.getMethod().holder.toDescriptorString().contains("StringBuilder")));
+    assertTrue(
+        mainMethod.streamInstructions().noneMatch(
+            i -> i.isConstString(JumboStringMode.ALLOW)));
   }
 
   // TODO(b/114002137): Once enabled, remove this test-specific setting.
@@ -75,8 +78,7 @@ public class StringBuilderStoredToDeadFieldTest extends TestBase {
     public static void main(String... args) {
       StringBuilder b = new StringBuilder();
       b.append("CurrentTimeMillis: ");
-      // TODO(b/114002137): switch to use Long value as-is.
-      b.append(String.valueOf(System.currentTimeMillis()));
+      b.append(System.currentTimeMillis());
       neverRead = b.toString();
     }
   }
