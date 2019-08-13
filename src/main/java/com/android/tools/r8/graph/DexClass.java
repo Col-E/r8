@@ -536,16 +536,12 @@ public abstract class DexClass extends DexDefinition {
     return result;
   }
 
-  /**
-   * Find static field in this class matching field
-   */
+  /** Find static field in this class matching {@param field}. */
   public DexEncodedField lookupStaticField(DexField field) {
     return lookupTarget(staticFields, field);
   }
 
-  /**
-   * Find instance field in this class matching field.
-   */
+  /** Find instance field in this class matching {@param field}. */
   public DexEncodedField lookupInstanceField(DexField field) {
     return lookupTarget(instanceFields, field);
   }
@@ -563,31 +559,23 @@ public abstract class DexClass extends DexDefinition {
     return field;
   }
 
-  /**
-   * Find field in this class matching field.
-   */
+  /** Find field in this class matching {@param field}. */
   public DexEncodedField lookupField(DexField field) {
     DexEncodedField result = lookupInstanceField(field);
     return result == null ? lookupStaticField(field) : result;
   }
 
-  /**
-   * Find direct method in this class matching method.
-   */
+  /** Find direct method in this class matching {@param method}. */
   public DexEncodedMethod lookupDirectMethod(DexMethod method) {
     return lookupTarget(directMethods, method);
   }
 
-  /**
-   * Find virtual method in this class matching method.
-   */
+  /** Find virtual method in this class matching {@param method}. */
   public DexEncodedMethod lookupVirtualMethod(DexMethod method) {
     return lookupTarget(virtualMethods, method);
   }
 
-  /**
-   * Find method in this class matching method.
-   */
+  /** Find method in this class matching {@param method}. */
   public DexEncodedMethod lookupMethod(DexMethod method) {
     DexEncodedMethod result = lookupDirectMethod(method);
     return result == null ? lookupVirtualMethod(method) : result;
