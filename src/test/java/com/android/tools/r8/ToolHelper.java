@@ -16,7 +16,6 @@ import com.android.tools.r8.ToolHelper.DexVm.Kind;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AssemblyWriter;
-import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.GraphLense;
@@ -576,13 +575,7 @@ public class ToolHelper {
   }
 
   public static byte[] getClassAsBytes(Class clazz) throws IOException {
-    String s = clazz.getSimpleName() + ".class";
-    Class outer = clazz.getEnclosingClass();
-    while (outer != null) {
-      s = outer.getSimpleName() + '$' + s;
-      outer = outer.getEnclosingClass();
-    }
-    return ByteStreams.toByteArray(clazz.getResourceAsStream(s));
+    return Files.readAllBytes(getClassFileForTestClass(clazz));
   }
 
   public static long getClassByteCrc(Class clazz) {
