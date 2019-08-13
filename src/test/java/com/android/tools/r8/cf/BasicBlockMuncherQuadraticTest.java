@@ -17,11 +17,8 @@ public class BasicBlockMuncherQuadraticTest extends TestBase {
         .addKeepMainRule(MethodHolder.class)
         .addInnerClasses(BasicBlockMuncherQuadraticTest.class)
         .noMinification()
+        .addOptionsModification(options -> options.testing.basicBlockMuncherIterationLimit = 50000)
         .compile();
-    long end = System.currentTimeMillis();
-    if (end - start > 1000) {
-      System.out.println("WARNING: compilation of this method took " + (end - start) + " ms.");
-    }
   }
 
   public static class MethodHolder {

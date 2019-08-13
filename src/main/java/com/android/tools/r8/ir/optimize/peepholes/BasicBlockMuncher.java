@@ -4,10 +4,14 @@
 
 package com.android.tools.r8.ir.optimize.peepholes;
 
+import static com.android.tools.r8.utils.InternalOptions.TestingOptions.NO_LIMIT;
+
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.LinearFlowInstructionListIterator;
+import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.ListIterator;
@@ -29,13 +33,15 @@ public class BasicBlockMuncher {
         new StoreLoadToDupStorePeephole());
   }
 
-  public static void optimize(IRCode code) {
-    runPeepholes(code, nonDestructivePeepholes());
-    runPeepholes(code, destructivePeepholes());
+  public static void optimize(IRCode code, InternalOptions options) {
+    runPeepholes(code, nonDestructivePeepholes(), options);
+    runPeepholes(code, destructivePeepholes(), options);
   }
 
-  private static void runPeepholes(IRCode code, List<BasicBlockPeephole> peepholes) {
+  private static void runPeepholes(
+      IRCode code, List<BasicBlockPeephole> peepholes, InternalOptions options) {
     ListIterator<BasicBlock> blocksIterator = code.listIterator(code.blocks.size());
+    int iterations = 0;
     while (blocksIterator.hasPrevious()) {
       BasicBlock currentBlock = blocksIterator.previous();
       InstructionListIterator it =
@@ -60,6 +66,12 @@ public class BasicBlockMuncher {
           }
         }
         if (it.hasPrevious()) {
+          if (options.testing.basicBlockMuncherIterationLimit != NO_LIMIT) {
+            if (iterations > options.testing.basicBlockMuncherIterationLimit) {
+              throw new CompilationError("Too many iterations in BasicBlockMuncher");
+            }
+            iterations++;
+          }
           it.previous();
         }
       }

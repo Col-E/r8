@@ -973,6 +973,8 @@ public class InternalOptions {
 
   public static class TestingOptions {
 
+    public static int NO_LIMIT = -1;
+
     // Force writing the specified bytes as the DEX version content.
     public byte[] forceDexVersionBytes = null;
 
@@ -1018,6 +1020,7 @@ public class InternalOptions {
     public StringConsumer desugaredLibraryKeepRuleConsumer = null;
     // TODO(b/129458850) When fixed, remove this and change all usages to "true".
     public boolean enableStatefulLambdaCreateInstanceMethod = false;
+    public int basicBlockMuncherIterationLimit = NO_LIMIT;
 
     // Flag to turn on/off JDK11+ nest-access control even when not required (Cf backend)
     public boolean enableForceNestBasedAccessDesugaringForTest = false;

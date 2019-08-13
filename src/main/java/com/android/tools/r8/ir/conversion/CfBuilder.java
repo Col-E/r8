@@ -142,7 +142,7 @@ public class CfBuilder {
       boolean reachedFixpoint = false;
       phiOptimizations.optimize(code);
       while (!reachedFixpoint) {
-        BasicBlockMuncher.optimize(code);
+        BasicBlockMuncher.optimize(code, appView.options());
         reachedFixpoint = !phiOptimizations.optimize(code);
       }
     }

@@ -85,8 +85,10 @@ public class MoveLoadUpPeephole implements BasicBlockPeephole {
 
     // Find the place to insert a new load.
     Instruction current = it.previous();
+    int moves = 1;
     while (current != insertPosition) {
       current = it.previous();
+      moves++;
     }
 
     // Insert directly above the other load.
@@ -94,8 +96,11 @@ public class MoveLoadUpPeephole implements BasicBlockPeephole {
     newLoad.setPosition(insertPosition.getPosition());
     it.add(newLoad);
 
-    // Do not reset the instruction pointer because the iterator should reset.
-    return true;
+    // This will run in a loop where we are only going backwards and there is no need to iterate
+    // the same instructions again since the StoreLoad peephole will not change the level of the
+    // stack.
+    PeepholeHelper.resetPrevious(it, moves + 1);
+    return false;
   }
 
   private static boolean isPotentionalIncInstruction(InstructionListIterator it) {
@@ -127,7 +132,7 @@ public class MoveLoadUpPeephole implements BasicBlockPeephole {
 
   @Override
   public boolean resetAfterMatch() {
-    return true;
+    return false;
   }
 
 }
