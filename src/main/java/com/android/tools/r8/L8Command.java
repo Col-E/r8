@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import java.util.ArrayList;
@@ -152,6 +153,8 @@ public final class L8Command extends BaseCompilerCommand {
   @Keep
   public static class Builder extends BaseCompilerCommand.Builder<L8Command, Builder> {
 
+    private final List<Pair<List<String>, Origin>> proguardConfigs = new ArrayList<>();
+
     private Builder() {
       this(new DefaultL8DiagnosticsHandler());
     }
@@ -161,8 +164,8 @@ public final class L8Command extends BaseCompilerCommand {
     }
 
     public boolean isShrinking() {
-      // TODO(b/134732760): Answers true if keep rules, even empty, are provided.
-      return false;
+      // Answers true if keep rules, even empty, are provided.
+      return !proguardConfigs.isEmpty();
     }
 
     @Override
@@ -173,6 +176,12 @@ public final class L8Command extends BaseCompilerCommand {
     @Override
     CompilationMode defaultCompilationMode() {
       return CompilationMode.DEBUG;
+    }
+
+    /** Add proguard configuration. */
+    public Builder addProguardConfiguration(List<String> lines, Origin origin) {
+      proguardConfigs.add(new Pair<>(lines, origin));
+      return this;
     }
 
     @Override
@@ -214,16 +223,22 @@ public final class L8Command extends BaseCompilerCommand {
       DesugaredLibrary desugaredLibrary = new DesugaredLibrary();
 
       if (isShrinking()) {
-        // TODO(b/134732760): Support R8 is incomplete.
         R8Command.Builder r8Builder =
             R8Command.builder()
                 .addProgramResourceProvider(desugaredLibrary)
                 .setMinApiLevel(getMinApiLevel())
+                // We disable minification in Core libraries since it breaks class initialization
+                // of the core library at runtime.
+                // TODO(b/134732760) Enable minification in Core libraries.
+                .setDisableMinification(true)
                 .setMode(getMode())
                 .setProgramConsumer(getProgramConsumer());
         for (ClassFileResourceProvider libraryResourceProvider :
             inputs.getLibraryResourceProviders()) {
           r8Builder.addLibraryResourceProvider(libraryResourceProvider);
+        }
+        for (Pair<List<String>, Origin> proguardConfig : proguardConfigs) {
+          r8Builder.addProguardConfiguration(proguardConfig.getFirst(), proguardConfig.getSecond());
         }
         r8Command = r8Builder.makeCommand();
       } else {

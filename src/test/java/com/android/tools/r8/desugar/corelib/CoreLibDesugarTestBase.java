@@ -12,9 +12,11 @@ import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.List;
 
 public class CoreLibDesugarTestBase extends TestBase {
@@ -59,15 +61,19 @@ public class CoreLibDesugarTestBase extends TestBase {
     // We wrap exceptions in a RuntimeException to call this from a lambda.
     try {
       Path desugaredLib = temp.newFolder().toPath().resolve("desugar_jdk_libs_dex.zip");
-      L8.run(
+      L8Command.Builder l8Builder =
           L8Command.builder()
               .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
               .addProgramFiles(ToolHelper.getDesugarJDKLibs())
               .addProgramFiles(additionalProgramFiles)
               .addSpecialLibraryConfiguration("default")
               .setMinApiLevel(apiLevel.getLevel())
-              .setOutput(desugaredLib, OutputMode.DexIndexed)
-              .build());
+              .setOutput(desugaredLib, OutputMode.DexIndexed);
+      if (shrink) {
+        l8Builder.addProguardConfiguration(
+            Arrays.asList(keepRules.split(System.lineSeparator())), Origin.unknown());
+      }
+      L8.run(l8Builder.build());
       return desugaredLib;
     } catch (Exception e) {
       throw new RuntimeException(e);
