@@ -6,12 +6,15 @@ package com.android.tools.r8.naming;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashSet;
+import java.util.Set;
 
 public class DictionaryReader implements AutoCloseable {
 
@@ -56,10 +59,16 @@ public class DictionaryReader implements AutoCloseable {
 
   public static ImmutableList<String> readAllNames(Path path, Reporter reporter) {
     if (path != null) {
+      Set<String> seenNames = new HashSet<>();
       Builder<String> namesBuilder = new ImmutableList.Builder<String>();
       try (DictionaryReader reader = new DictionaryReader(path);) {
         String name = reader.readName();
         while (!name.isEmpty()) {
+          if (!seenNames.add(name)) {
+            reporter.error(
+                new StringDiagnostic(
+                    "Duplicate entry for '" + name + "' in dictionary", new PathOrigin(path)));
+          }
           namesBuilder.add(name);
           name = reader.readName();
         }
