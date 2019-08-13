@@ -167,7 +167,7 @@ public abstract class TestCompileResult<
 
   public CR addDesugaredCoreLibraryRunClassPath(
       Function<AndroidApiLevel, Path> classPathSupplier, AndroidApiLevel minAPILevel) {
-    if (minAPILevel.getLevel() < AndroidApiLevel.P.getLevel()) {
+    if (minAPILevel.getLevel() < AndroidApiLevel.O.getLevel()) {
       addRunClasspathFiles(classPathSupplier.apply(minAPILevel));
     }
     return self();
@@ -178,7 +178,7 @@ public abstract class TestCompileResult<
       AndroidApiLevel minAPILevel,
       String keepRules,
       boolean shrink) {
-    if (minAPILevel.getLevel() < AndroidApiLevel.P.getLevel()) {
+    if (minAPILevel.getLevel() < AndroidApiLevel.O.getLevel()) {
       addRunClasspathFiles(classPathSupplier.apply(minAPILevel, keepRules, shrink));
     }
     return self();

@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.android.tools.r8.D8TestRunResult;
+import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.Box;
@@ -46,7 +47,7 @@ public class CustomCollectionTest extends CoreLibDesugarTestBase {
       "com.android.tools.r8.desugar.corelib.CustomCollectionTest$Executor";
 
   @Test
-  public void testCustomCollection() throws Exception {
+  public void testCustomCollectionD8() throws Exception {
     Box<String> keepRulesHolder = new Box<>("");
     D8TestRunResult d8TestRunResult =
         testForD8()
@@ -58,7 +59,7 @@ public class CustomCollectionTest extends CoreLibDesugarTestBase {
                         (string, handler) -> keepRulesHolder.set(keepRulesHolder.get() + string))
             .enableCoreLibraryDesugaring(parameters.getApiLevel())
             .compile()
-            .inspect(this::assertCustomCollectionCallsCorrect)
+            .inspect(inspector -> this.assertCustomCollectionCallsCorrect(inspector, false))
             .addDesugaredCoreLibraryRunClassPath(
                 this::buildDesugaredLibrary,
                 parameters.getApiLevel(),
@@ -79,10 +80,61 @@ public class CustomCollectionTest extends CoreLibDesugarTestBase {
     }
   }
 
-  private void assertCustomCollectionCallsCorrect(CodeInspector inspector) {
+  @Test
+  public void testCustomCollectionR8() throws Exception {
+    Box<String> keepRulesHolder = new Box<>("");
+    R8TestRunResult r8TestRunResult =
+        testForR8(Backend.DEX)
+            .addInnerClasses(CustomCollectionTest.class)
+            .setMinApi(parameters.getApiLevel())
+            .addKeepClassAndMembersRules(Executor.class)
+            .addOptionsModification(
+                options ->
+                    options.testing.desugaredLibraryKeepRuleConsumer =
+                        (string, handler) -> keepRulesHolder.set(keepRulesHolder.get() + string))
+            .enableCoreLibraryDesugaring(parameters.getApiLevel())
+            .compile()
+            .inspect(inspector -> this.assertCustomCollectionCallsCorrect(inspector, true))
+            .addDesugaredCoreLibraryRunClassPath(
+                this::buildDesugaredLibrary,
+                parameters.getApiLevel(),
+                keepRulesHolder.get(),
+                shrinkCoreLibrary)
+            .run(parameters.getRuntime(), EXECUTOR)
+            .assertSuccess();
+    if (requiresEmulatedInterfaceCoreLibDesugaring(parameters)) {
+      // Expected output is emulated interfaces expected output.
+      assertLines2By2Correct(r8TestRunResult.getStdOut());
+    }
+    String[] split = r8TestRunResult.getStdErr().split("Could not find method");
+    if (split.length > 2) {
+      fail("Could not find multiple methods");
+    } else if (split.length == 2) {
+      // On some VMs the Serialized lambda code is missing.
+      assertTrue(r8TestRunResult.getStdErr().contains("SerializedLambda"));
+    }
+  }
+
+  private void assertCustomCollectionCallsCorrect(CodeInspector inspector, boolean r8) {
     MethodSubject direct = inspector.clazz(EXECUTOR).uniqueMethodWithName("directTypes");
-    Assert.assertFalse(
-        direct.streamInstructions().anyMatch(instr -> instr.toString().contains("$-EL")));
+    // TODO(b/134732760): Due to memberRebinding, R8 is not as precise as D8 regarding
+    // desugaring of invokes. This will be fixed when creation of desugared method is moved
+    // ahead of R8 compilation pipeline.
+    if (!r8) {
+      Assert.assertFalse(
+          direct.streamInstructions().anyMatch(instr -> instr.toString().contains("$-EL")));
+    } else if (requiresEmulatedInterfaceCoreLibDesugaring(parameters)) {
+      assertTrue(
+          direct
+              .streamInstructions()
+              .filter(InstructionSubject::isInvokeStatic)
+              .allMatch(
+                  instr ->
+                      instr.toString().contains("$-EL")
+                          || instr.toString().contains("Comparator$-CC")));
+    } else {
+      assertTrue(direct.streamInstructions().noneMatch(instr -> instr.toString().contains("$-EL")));
+    }
     MethodSubject inherited = inspector.clazz(EXECUTOR).uniqueMethodWithName("inheritedTypes");
     if (!requiresEmulatedInterfaceCoreLibDesugaring(parameters)) {
       assertTrue(

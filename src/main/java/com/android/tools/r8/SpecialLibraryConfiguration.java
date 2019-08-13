@@ -26,6 +26,7 @@ public class SpecialLibraryConfiguration {
         // .put("java.lang.Integer8", "j$.lang.Integer8")
         // .put("java.lang.Long8", "j$.lang.Long8")
         // .put("java.lang.Math8", "j$.lang.Math8")
+        // .put("java.util.Objects", "j$.util.Objects")
         .put("java.time.", "j$.time.")
         .put("java.util.stream.", "j$.util.stream.")
         .put("java.util.function.", "j$.util.function.")
@@ -33,7 +34,6 @@ public class SpecialLibraryConfiguration {
         .put("java.util.DoubleSummaryStatistics", "j$.util.DoubleSummaryStatistics")
         .put("java.util.IntSummaryStatistics", "j$.util.IntSummaryStatistics")
         .put("java.util.LongSummaryStatistics", "j$.util.LongSummaryStatistics")
-        .put("java.util.Objects", "j$.util.Objects")
         .put("java.util.Optional", "j$.util.Optional")
         .put("java.util.PrimitiveIterator", "j$.util.PrimitiveIterator")
         .put("java.util.Spliterator", "j$.util.Spliterator")
@@ -271,10 +271,10 @@ public class SpecialLibraryConfiguration {
 
   public static void configureLibraryDesugaringForProgramCompilation(InternalOptions options) {
     // TODO(b/134732760): Make assertions in D8/R8 commands.
-    if (options.minApiLevel >= AndroidApiLevel.P.getLevel()) {
+    if (options.minApiLevel >= AndroidApiLevel.O.getLevel()) {
       options.reporter.warning(
           new StringDiagnostic(
-              "Desugaring core libraries for Android P and over is possible but not required."));
+              "Desugaring core libraries for Android O and over is possible but not required."));
     }
     options.coreLibraryCompilation = false;
     if (options.minApiLevel < AndroidApiLevel.N.getLevel()) {
@@ -291,10 +291,10 @@ public class SpecialLibraryConfiguration {
 
   public static void configureLibraryDesugaringForLibraryCompilation(InternalOptions options) {
     // TODO(b/134732760): Make assertions in L8 commands.
-    if (options.minApiLevel >= AndroidApiLevel.P.getLevel()) {
+    if (options.minApiLevel >= AndroidApiLevel.O.getLevel()) {
       options.reporter.warning(
           new StringDiagnostic(
-              "Desugaring core libraries for Android P and over is possible but not required."));
+              "Desugaring core libraries for Android O and over is possible but not required."));
     }
     options.coreLibraryCompilation = true;
     options.backportCoreLibraryMembers = buildBackportCoreLibraryMembers();

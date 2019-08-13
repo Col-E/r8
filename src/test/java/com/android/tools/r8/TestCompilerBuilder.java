@@ -273,8 +273,8 @@ public abstract class TestCompilerBuilder<
   }
 
   public T enableCoreLibraryDesugaring(AndroidApiLevel minAPILevel) {
-    if (minAPILevel.getLevel() < AndroidApiLevel.P.getLevel()) {
-      builder.addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P));
+    if (minAPILevel.getLevel() < AndroidApiLevel.O.getLevel()) {
+      builder.addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.O));
       builder.addSpecialLibraryConfiguration("default");
     }
     return self();

@@ -233,6 +233,8 @@ public final class L8Command extends BaseCompilerCommand {
                 .setDisableMinification(true)
                 .setMode(getMode())
                 .setProgramConsumer(getProgramConsumer());
+        // TODO(b/134732760) Investigate why vertical class merging crashes and enable it.
+        r8Builder.setDisableVerticalClassMerging(true);
         for (ClassFileResourceProvider libraryResourceProvider :
             inputs.getLibraryResourceProviders()) {
           r8Builder.addLibraryResourceProvider(libraryResourceProvider);

@@ -33,7 +33,7 @@ public class CoreLibDesugarTestBase extends TestBase {
   }
 
   protected boolean requiresRetargetCoreLibMemberDesugaring(TestParameters parameters) {
-    return parameters.getApiLevel().getLevel() < AndroidApiLevel.P.getLevel();
+    return parameters.getApiLevel().getLevel() < AndroidApiLevel.O.getLevel();
   }
 
   protected boolean requiresAnyCoreLibDesugaring(TestParameters parameters) {
@@ -57,7 +57,6 @@ public class CoreLibDesugarTestBase extends TestBase {
   protected Path buildDesugaredLibrary(
       AndroidApiLevel apiLevel, String keepRules, boolean shrink, List<Path> additionalProgramFiles)
       throws RuntimeException {
-    // TODO(b/134732760): Support Shrinking.
     // We wrap exceptions in a RuntimeException to call this from a lambda.
     try {
       Path desugaredLib = temp.newFolder().toPath().resolve("desugar_jdk_libs_dex.zip");

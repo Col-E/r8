@@ -9,34 +9,42 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.InvokeInstructionSubject;
 import java.util.Iterator;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class JavaTimeTest extends CoreLibDesugarTestBase {
 
   private final TestParameters parameters;
+  private final boolean shrinkCoreLibrary;
+  private static final String expectedOutput = StringUtils.lines("Hello, world");
 
-  @Parameterized.Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
+  @Parameters(name = "{1}, shrinkCoreLibrary: {0}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        BooleanUtils.values(), getTestParameters().withDexRuntimes().withAllApiLevels().build());
   }
 
-  public JavaTimeTest(TestParameters parameters) {
+  public JavaTimeTest(boolean shrinkDesugaredLibrary, TestParameters parameters) {
+    this.shrinkCoreLibrary = shrinkDesugaredLibrary;
     this.parameters = parameters;
   }
 
   private void checkRewrittenInvokes(CodeInspector inspector) {
+    if (parameters.getApiLevel().getLevel() >= 26) {
+      return;
+    }
     ClassSubject classSubject = inspector.clazz(TestClass.class);
     assertThat(classSubject, isPresent());
     Iterator<InvokeInstructionSubject> iterator =
@@ -46,16 +54,46 @@ public class JavaTimeTest extends CoreLibDesugarTestBase {
   }
 
   @Test
-  public void test() throws Exception {
-    String expectedOutput = StringUtils.lines("Hello, world");
+  public void testTimeD8() throws Exception {
+    Box<String> keepRulesHolder = new Box<>("");
     testForD8()
         .addInnerClasses(JavaTimeTest.class)
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
-        .setMinApi(parameters.getRuntime())
-        .enableCoreLibraryDesugaring()
+        .setMinApi(parameters.getApiLevel())
+        .enableCoreLibraryDesugaring(parameters.getApiLevel())
+        .addOptionsModification(
+            options ->
+                options.testing.desugaredLibraryKeepRuleConsumer =
+                    (string, handler) -> keepRulesHolder.set(keepRulesHolder.get() + string))
         .compile()
         .inspect(this::checkRewrittenInvokes)
-        .addRunClasspathFiles(buildDesugaredLibrary(parameters.getApiLevel()))
+        .addDesugaredCoreLibraryRunClassPath(
+            this::buildDesugaredLibrary,
+            parameters.getApiLevel(),
+            keepRulesHolder.get(),
+            shrinkCoreLibrary)
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(expectedOutput);
+  }
+
+  @Test
+  public void testTimeR8() throws Exception {
+    Box<String> keepRulesHolder = new Box<>("");
+    testForR8(parameters.getBackend())
+        .addInnerClasses(JavaTimeTest.class)
+        .addKeepMainRule(TestClass.class)
+        .setMinApi(parameters.getApiLevel())
+        .enableCoreLibraryDesugaring(parameters.getApiLevel())
+        .addOptionsModification(
+            options ->
+                options.testing.desugaredLibraryKeepRuleConsumer =
+                    (string, handler) -> keepRulesHolder.set(keepRulesHolder.get() + string))
+        .compile()
+        .inspect(this::checkRewrittenInvokes)
+        .addDesugaredCoreLibraryRunClassPath(
+            this::buildDesugaredLibrary,
+            parameters.getApiLevel(),
+            keepRulesHolder.get(),
+            shrinkCoreLibrary)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(expectedOutput);
   }
