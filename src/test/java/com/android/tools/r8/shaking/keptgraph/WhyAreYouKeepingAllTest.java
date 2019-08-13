@@ -4,6 +4,7 @@
 package com.android.tools.r8.shaking.keptgraph;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestBase;
@@ -38,7 +39,10 @@ public class WhyAreYouKeepingAllTest extends TestBase {
         .redirectStdOut(new PrintStream(baos))
         .compile();
     assertThat(baos.toString(), containsString("referenced in keep rule"));
+
     // TODO(b/124655065): We should always know the reason for keeping.
-    assertThat(baos.toString(), containsString("kept for unknown reasons"));
+    // It is OK if this starts failing while the kept-graph API is incomplete, in which case replace
+    // the 'not(containsString(' by just 'containsString('.
+    assertThat(baos.toString(), not(containsString("kept for unknown reasons")));
   }
 }

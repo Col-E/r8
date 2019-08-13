@@ -27,10 +27,10 @@ import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.shaking.CollectingGraphConsumer;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.google.common.collect.ImmutableSet;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -225,6 +225,8 @@ public class GraphInspector {
           isSatisfiedBy(node));
       return this;
     }
+
+    public abstract String getKeptGraphString();
   }
 
   private static class AbsentQueryNode extends QueryNode {
@@ -233,6 +235,11 @@ public class GraphInspector {
     public AbsentQueryNode(String failedQueryNodeDescription) {
       assert failedQueryNodeDescription != null;
       this.failedQueryNodeDescription = failedQueryNodeDescription;
+    }
+
+    @Override
+    public String getKeptGraphString() {
+      return "<not kept>";
     }
 
     @Override
@@ -391,6 +398,39 @@ public class GraphInspector {
       }
       QueryNodeImpl impl = (QueryNodeImpl) node;
       return filterSources((source, infos) -> impl.graphNode == source).findFirst().isPresent();
+    }
+
+    @Override
+    public String getKeptGraphString() {
+      StringBuilder builder = new StringBuilder();
+      getKeptGraphString(graphNode, inspector, builder, "", ImmutableSet.of());
+      return builder.toString();
+    }
+
+    private static void getKeptGraphString(
+        GraphNode graphNode,
+        GraphInspector inspector,
+        StringBuilder builder,
+        String indent,
+        Set<GraphNode> seen) {
+      builder.append(graphNode);
+      if (seen.contains(graphNode)) {
+        builder.append(" <CYCLE>");
+        return;
+      }
+      seen = ImmutableSet.<GraphNode>builder().addAll(seen).add(graphNode).build();
+      Map<GraphNode, Set<GraphEdgeInfo>> sources =
+          inspector.consumer.getSourcesTargeting(graphNode);
+      if (sources == null) {
+        builder.append(" <ROOT>");
+        return;
+      }
+      for (Entry<GraphNode, Set<GraphEdgeInfo>> entry : sources.entrySet()) {
+        GraphNode source = entry.getKey();
+        Set<GraphEdgeInfo> reasons = entry.getValue();
+        builder.append('\n').append(indent).append("<- ");
+        getKeptGraphString(source, inspector, builder, indent + "  ", seen);
+      }
     }
 
     private Stream<GraphNode> filterSources(BiPredicate<GraphNode, Set<GraphEdgeInfo>> test) {

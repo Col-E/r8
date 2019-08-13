@@ -1080,7 +1080,15 @@ public class Enqueuer {
     // Only mark methods for which invocation will succeed at runtime live.
     DexEncodedMethod targetMethod = appInfo.dispatchStaticInvoke(resolutionResult);
     if (targetMethod != null) {
+      registerClassInitializer(targetMethod.method.holder, reason);
       markDirectStaticOrConstructorMethodAsLive(targetMethod, reason);
+    }
+  }
+
+  private void registerClassInitializer(DexType holder, KeepReason reason) {
+    DexClass definition = appView.definitionFor(holder);
+    if (definition != null && definition.hasClassInitializer()) {
+      registerMethod(definition.getClassInitializer(), reason);
     }
   }
 
@@ -1337,6 +1345,7 @@ public class Enqueuer {
   private void markStaticFieldAsLive(
       DexField field, KeepReason reason, DexEncodedField encodedField) {
     // Mark the type live here, so that the class exists at runtime.
+    registerClassInitializer(field.holder, reason);
     markTypeAsLive(field.holder);
     markTypeAsLive(field.type);
 

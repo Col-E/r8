@@ -10,6 +10,7 @@ import com.google.common.collect.MapMaker;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentMap;
 
@@ -160,6 +161,10 @@ public final class Reference {
       builder.add(typeFromClass(parameterType));
     }
     return method(classFromClass(holderClass), "<init>", builder.build(), null);
+  }
+
+  public static MethodReference classConstructor(ClassReference type) {
+    return method(type, "<clinit>", Collections.emptyList(), null);
   }
 
   /** Get a field reference from its full reference specification. */

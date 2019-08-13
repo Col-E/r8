@@ -67,6 +67,7 @@ public class KeptViaClassInitializerTestRunner extends TestBase {
     }
   }
 
+  private static final String CLASS_NAME = KeptViaClassInitializerTestRunner.class.getTypeName();
   private static final String EXPECTED = StringUtils.lines("I'm an A");
 
   private final Backend backend;
@@ -79,6 +80,15 @@ public class KeptViaClassInitializerTestRunner extends TestBase {
   public KeptViaClassInitializerTestRunner(Backend backend) {
     this.backend = backend;
   }
+
+  public static String KEPT_REASON_SUFFIX = StringUtils.lines(
+      // The full reason is not shared between CF and DEX due to desugaring.
+      "|  void " + CLASS_NAME + "$T.<clinit>()",
+      "|- is referenced from:",
+      "|  void " + CLASS_NAME + "$Main.main(java.lang.String[])",
+      "|- is referenced in keep rule:",
+      "|  -keep class " + CLASS_NAME + "$Main { void main(java.lang.String[]); }"
+  );
 
   @Test
   public void testKeptMethod() throws Exception {
@@ -110,9 +120,7 @@ public class KeptViaClassInitializerTestRunner extends TestBase {
 
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     consumer.printWhyAreYouKeeping(classFromClass(A.class), new PrintStream(baos));
-
-    // TODO(b/124501298): Currently the rooted path is not found.
-    assertThat(baos.toString(), containsString("is kept for unknown reason"));
+    assertThat(baos.toString(), containsString(KEPT_REASON_SUFFIX));
 
     // TODO(b/124499108): Currently synthetic lambda classes are referenced,
     //  should be their originating context.
