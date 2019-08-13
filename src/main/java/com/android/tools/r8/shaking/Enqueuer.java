@@ -36,7 +36,6 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -1727,9 +1726,10 @@ public class Enqueuer {
     this.dontWarnPatterns = dontWarnPatterns;
     // Translate the result of root-set computation into enqueuer actions.
     enqueueRootItems(rootSet.noShrinking);
-    TopDownClassHierarchyTraversal.forLibraryClasses(appView)
+    TopDownClassHierarchyTraversal.forLibraryAndClasspathClasses(appView)
         // TODO(b/131813793): Would be beneficial to have `appView.appInfo().rootClasses()`.
-        .visit(appView.appInfo().classes(), this::markAllLibraryVirtualMethodsReachable);
+        .visit(
+            appView.appInfo().classes(), this::markAllLibraryAndClasspathVirtualMethodsReachable);
     trace(executorService, timing);
     options.reporter.failIfPendingErrors();
     analyses.forEach(EnqueuerAnalysis::done);
@@ -1980,7 +1980,7 @@ public class Enqueuer {
     }
   }
 
-  private void markAllLibraryVirtualMethodsReachable(DexLibraryClass clazz) {
+  private void markAllLibraryAndClasspathVirtualMethodsReachable(DexClass clazz) {
     if (Log.ENABLED) {
       Log.verbose(
           getClass(), "Marking all methods of library class `%s` as reachable.", clazz.type);

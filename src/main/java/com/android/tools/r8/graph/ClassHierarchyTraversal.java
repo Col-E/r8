@@ -18,6 +18,7 @@ abstract class ClassHierarchyTraversal<
   enum Scope {
     ALL_CLASSES,
     ONLY_LIBRARY_CLASSES,
+    ONLY_LIBRARY_AND_CLASSPATH_CLASSES,
     ONLY_PROGRAM_CLASSES;
 
     public boolean shouldBePassedToVisitor(DexClass clazz) {
@@ -27,6 +28,9 @@ abstract class ClassHierarchyTraversal<
 
         case ONLY_LIBRARY_CLASSES:
           return clazz.isLibraryClass();
+
+        case ONLY_LIBRARY_AND_CLASSPATH_CLASSES:
+          return clazz.isLibraryClass() || clazz.isClasspathClass();
 
         case ONLY_PROGRAM_CLASSES:
           return clazz.isProgramClass();

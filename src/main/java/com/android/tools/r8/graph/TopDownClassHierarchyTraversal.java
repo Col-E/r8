@@ -24,12 +24,21 @@ public class TopDownClassHierarchyTraversal<T extends DexClass>
   }
 
   /**
-   * Returns a visitor that can be used to visit all the program classes that are reachable from a
+   * Returns a visitor that can be used to visit all the library classes that are reachable from a
    * given set of sources.
    */
   public static TopDownClassHierarchyTraversal<DexLibraryClass> forLibraryClasses(
       AppView<? extends AppInfoWithSubtyping> appView) {
     return new TopDownClassHierarchyTraversal<>(appView, Scope.ONLY_LIBRARY_CLASSES);
+  }
+
+  /**
+   * Returns a visitor that can be used to visit all the library and classpath classes that are
+   * reachable from a given set of sources.
+   */
+  public static TopDownClassHierarchyTraversal<DexClass> forLibraryAndClasspathClasses(
+      AppView<? extends AppInfoWithSubtyping> appView) {
+    return new TopDownClassHierarchyTraversal<>(appView, Scope.ONLY_LIBRARY_AND_CLASSPATH_CLASSES);
   }
 
   /**
@@ -86,8 +95,8 @@ public class TopDownClassHierarchyTraversal<T extends DexClass>
     switch (scope) {
       case ALL_CLASSES:
       case ONLY_LIBRARY_CLASSES:
+      case ONLY_LIBRARY_AND_CLASSPATH_CLASSES:
         return true;
-
       case ONLY_PROGRAM_CLASSES:
         return clazz.isProgramClass();
 
