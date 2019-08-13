@@ -77,7 +77,7 @@ public class PreserveDesugaredLambdaTest extends TestBase {
                         .anyMatch(
                             c -> {
                               if (c.getOriginalName()
-                                  .contains("-$$Lambda$KeepDesugaredLambdaTest$Main")) {
+                                  .contains("-$$Lambda$PreserveDesugaredLambdaTest$Main")) {
                                 assertThat(c.uniqueMethodWithName("computeTheFoo"), isPresent());
                                 return true;
                               }
