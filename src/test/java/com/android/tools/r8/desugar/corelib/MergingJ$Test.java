@@ -27,7 +27,11 @@ public class MergingJ$Test extends Jdk11CoreLibTestBase {
     CodeInspector codeInspectorOutput = null;
     try {
       codeInspectorOutput =
-          testForD8().addProgramFiles(mergerInputPart1, mergerInputPart2).compile().inspector();
+          testForD8()
+              .addProgramFiles(mergerInputPart1, mergerInputPart2)
+              .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+              .compile()
+              .inspector();
     } catch (Exception e) {
       if (e.getCause().getMessage().contains("Merging dex file containing classes with prefix")) {
         // TODO(b/138278440): Forbid to merge j$ classes in a Google3 compliant way.
@@ -47,7 +51,6 @@ public class MergingJ$Test extends Jdk11CoreLibTestBase {
   }
 
   private Path buildSplitDesugaredLibraryPart1() throws Exception {
-    Path outputCf = temp.newFolder().toPath().resolve("merger-input-cf.zip");
     Path outputDex = temp.newFolder().toPath().resolve("merger-input-dex.zip");
     L8.run(
         L8Command.builder()
@@ -55,13 +58,8 @@ public class MergingJ$Test extends Jdk11CoreLibTestBase {
             .addProgramFiles(ToolHelper.getDesugarJDKLibs())
             .addSpecialLibraryConfiguration("default")
             .setMinApiLevel(AndroidApiLevel.B.getLevel())
-            .setOutput(outputCf, OutputMode.ClassFile)
+            .setOutput(outputDex, OutputMode.DexIndexed)
             .build());
-    testForD8()
-        .addProgramFiles(outputCf)
-        .setMinApi(AndroidApiLevel.B)
-        .compile()
-        .writeToZip(outputDex);
     return outputDex;
   }
 
@@ -75,7 +73,7 @@ public class MergingJ$Test extends Jdk11CoreLibTestBase {
             .addClasspathFiles(ToolHelper.getDesugarJDKLibs())
             .addSpecialLibraryConfiguration("default")
             .setMinApiLevel(AndroidApiLevel.B.getLevel())
-            .setOutput(outputCf, OutputMode.ClassFile)
+            .setOutput(outputCf, OutputMode.DexIndexed)
             .build());
     testForD8()
         .addProgramFiles(outputCf)

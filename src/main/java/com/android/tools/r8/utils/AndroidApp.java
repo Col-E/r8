@@ -534,6 +534,9 @@ public class AndroidApp {
      * Add library resource provider.
      */
     public Builder addLibraryResourceProvider(ClassFileResourceProvider provider) {
+      if (provider instanceof InternalArchiveClassFileProvider) {
+        archiveProvidersToClose.add((InternalArchiveClassFileProvider) provider);
+      }
       libraryResourceProviders.add(provider);
       return this;
     }

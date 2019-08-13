@@ -17,6 +17,7 @@ import com.android.tools.r8.naming.PrefixRewritingNamingLens;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
@@ -33,23 +34,30 @@ public class L8 {
    * @param command L8 command.
    */
   public static void run(L8Command command) throws CompilationFailedException {
-    AndroidApp app = command.getInputApp();
-    InternalOptions options = command.getInternalOptions();
-    ExecutorService executor = ThreadUtils.getExecutorService(options);
-    ExceptionUtils.withD8CompilationHandler(
-        command.getReporter(),
-        () -> {
-          try {
-            run(app, options, executor);
-          } finally {
-            executor.shutdown();
-          }
-        });
+    ExecutorService executor =
+        ThreadUtils.getExecutorService(command.getInternalOptions().numberOfThreads);
+    try {
+      ExceptionUtils.withD8CompilationHandler(
+          command.getReporter(),
+          () -> {
+            desugar(command.getInputApp(), command.getInternalOptions(), executor);
+          });
+      if (command.isShrinking()) {
+        command
+            .getReporter()
+            .warning(new StringDiagnostic("Shrinking of desugared library is work in progress."));
+        R8.run(command.getR8Command(), executor);
+      } else {
+        D8.run(command.getD8Command(), executor);
+      }
+    } finally {
+      executor.shutdown();
+    }
   }
 
-  private static void run(AndroidApp inputApp, InternalOptions options, ExecutorService executor)
-      throws IOException {
-    Timing timing = new Timing("L8");
+  private static void desugar(
+      AndroidApp inputApp, InternalOptions options, ExecutorService executor) throws IOException {
+    Timing timing = new Timing("L8 desugaring");
     try {
       // Disable global optimizations.
       options.disableGlobalOptimizations();

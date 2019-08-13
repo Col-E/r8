@@ -4,16 +4,13 @@
 package com.android.tools.r8;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import com.android.sdklib.AndroidVersion;
 import com.android.tools.r8.dex.Marker;
-import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.AndroidApp;
 import java.nio.file.Path;
 import java.util.Collection;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -32,23 +29,20 @@ public class L8CommandTest {
   public void emptyCommand() throws Throwable {
     verifyEmptyCommand(
         L8Command.builder()
-            .setProgramConsumer(ClassFileConsumer.emptyConsumer())
+            .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
             .addSpecialLibraryConfiguration("default")
             .build());
   }
 
-  private void verifyEmptyCommand(L8Command command) throws Throwable {
-    assertEquals(CompilationMode.DEBUG, command.getMode());
-    assertEquals(AndroidVersion.DEFAULT.getApiLevel(), command.getMinApiLevel());
+  private void verifyEmptyCommand(L8Command command) {
+    BaseCompilerCommand compilationCommand =
+        command.getD8Command() == null ? command.getR8Command() : command.getD8Command();
+    assertNotNull(compilationCommand);
     assertTrue(command.getProgramConsumer() instanceof ClassFileConsumer);
-    AndroidApp app = ToolHelper.getApp(command);
-    assertEquals(0, app.getDexProgramResourcesForTesting().size());
-    assertEquals(0, app.getClassProgramResourcesForTesting().size());
+    assertTrue(compilationCommand.getProgramConsumer() instanceof DexIndexedConsumer);
   }
 
-  // We ignore this test since L8 is currently Cf to Cf.
   @Test
-  @Ignore
   public void testMarker() throws Throwable {
     Path output = temp.newFolder().toPath().resolve("desugar_jdk_libs.zip");
     L8.run(
@@ -57,13 +51,12 @@ public class L8CommandTest {
             .addProgramFiles(ToolHelper.getDesugarJDKLibs())
             .setMinApiLevel(20)
             .addSpecialLibraryConfiguration("default")
-            .setOutput(output, OutputMode.ClassFile)
+            .setOutput(output, OutputMode.DexIndexed)
             .build());
     Collection<Marker> markers = ExtractMarker.extractMarkerFromDexFile(output);
-    assertEquals(1, markers.size());
+    // TODO(b/134732760): Shouldn't we remove the D8/R8 marker?
+    assertEquals(2, markers.size());
     Marker marker = markers.iterator().next();
-    assertEquals(20, marker.getMinApi().intValue());
-    assertEquals(Tool.L8, marker.getTool());
   }
 
   private L8Command.Builder prepareBuilder(DiagnosticsHandler handler) {
@@ -96,11 +89,11 @@ public class L8CommandTest {
   }
 
   @Test(expected = CompilationFailedException.class)
-  public void dexFileOutputNotSupported() throws Throwable {
+  public void classFileOutputNotSupported() throws Throwable {
     DiagnosticsChecker.checkErrorsContains(
-        "L8 does not support compiling to dex",
+        "L8 does not support compiling to class files",
         (handler) ->
-            prepareBuilder(handler).setProgramConsumer(DexIndexedConsumer.emptyConsumer()).build());
+            prepareBuilder(handler).setProgramConsumer(ClassFileConsumer.emptyConsumer()).build());
   }
 
   @Test(expected = CompilationFailedException.class)
@@ -112,7 +105,7 @@ public class L8CommandTest {
   }
 
   @Test(expected = CompilationFailedException.class)
-  public void specialLibraryConfgurationMustBeDefault() throws Throwable {
+  public void specialLibraryConfigurationMustBeDefault() throws Throwable {
     DiagnosticsChecker.checkErrorsContains(
         "L8 currently requires the special library configuration to be \"default\"",
         (handler) ->
@@ -128,7 +121,7 @@ public class L8CommandTest {
         "Special library configuration is still work in progress",
         handler ->
             prepareBuilder(handler)
-                .setProgramConsumer(ClassFileConsumer.emptyConsumer())
+                .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
                 .addSpecialLibraryConfiguration("default")
                 .build());
   }
