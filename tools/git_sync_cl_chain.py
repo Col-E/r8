@@ -44,8 +44,10 @@ def ParseOptions(argv):
   result.add_option('--rebase',
                     help='To use `git pull --rebase` instead of `git pull`',
                     action='store_true')
+  result.add_option('--no_upload', '--no-upload',
+                    help='Disable uploading to Gerrit', action='store_true')
   (options, args) = result.parse_args(argv)
-  print(options)
+  options.upload = not options.no_upload
   assert options.message, 'A message for the patchset is required.'
   assert len(args) == 0
   return options
@@ -81,7 +83,8 @@ def main(argv):
       print('Syncing ' + branch.name)
       utils.RunCmd(['git', 'checkout', branch.name], quiet=True)
       utils.RunCmd(['git', 'pull'] + rebase_args, quiet=True)
-      utils.RunCmd(['git', 'cl', 'upload', '-m', options.message], quiet=True)
+      if options.upload:
+        utils.RunCmd(['git', 'cl', 'upload', '-m', options.message], quiet=True)
 
     utils.RunCmd(['git', 'cl', 'issue'])
 
