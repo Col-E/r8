@@ -112,8 +112,6 @@ def Main():
   if not utils.is_bot() and not options.dry_run:
     raise Exception('You are not a bot, don\'t archive builds. '
       + 'Use --dry-run to test locally')
-  if options.dry_run_output and not options.dry_run:
-    raise Exception('Option --dry-run-output require --dry-run.')
   if (options.dry_run_output and
       (not os.path.exists(options.dry_run_output) or
        not os.path.isdir(options.dry_run_output))):
@@ -210,7 +208,7 @@ def Main():
         print('File available at: %s' % GetUrl(version, file_name, is_master))
       if file == utils.R8_JAR:
         # Upload R8 to a maven compatible location.
-        maven_dst = GetUploadDestination(utils.get_maven_path(version),
+        maven_dst = GetUploadDestination(utils.get_maven_path('r8', version),
                                          'r8-%s.jar' % version, is_master)
         if options.dry_run:
           print('Dry run, not actually creating maven repo')

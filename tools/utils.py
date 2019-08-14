@@ -78,6 +78,8 @@ SAMPLE_LIBRARIES_SHA_FILE = os.path.join(
 OPENSOURCE_APPS_SHA_FILE = os.path.join(
     THIRD_PARTY, 'opensource_apps.tar.gz.sha1')
 OPENSOURCE_APPS_FOLDER = os.path.join(THIRD_PARTY, 'opensource_apps')
+BAZEL_SHA_FILE = os.path.join(THIRD_PARTY, 'bazel.tar.gz.sha1')
+BAZEL_TOOL = os.path.join(THIRD_PARTY, 'bazel')
 
 ANDROID_HOME_ENVIROMENT_NAME = "ANDROID_HOME"
 ANDROID_TOOLS_VERSION_ENVIRONMENT_NAME = "ANDROID_TOOLS_VERSION"
@@ -471,8 +473,8 @@ def getCfSegmentSizes(cfFile):
 
   return result
 
-def get_maven_path(version):
-  return os.path.join('com', 'android', 'tools', 'r8', version)
+def get_maven_path(artifact, version):
+  return os.path.join('com', 'android', 'tools', artifact, version)
 
 def print_cfsegments(prefix, cf_files):
   for cf_file in cf_files:

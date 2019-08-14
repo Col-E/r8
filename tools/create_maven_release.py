@@ -232,7 +232,7 @@ def run(out, is_r8lib=False):
   # Create directory structure for this version.
   version = determine_version()
   with utils.TempDir() as tmp_dir:
-    version_dir = join(tmp_dir, utils.get_maven_path(version))
+    version_dir = join(tmp_dir, utils.get_maven_path('r8', version))
     makedirs(version_dir)
     # Write the pom file.
     pom_file = join(version_dir, 'r8-' + version + '.pom')
