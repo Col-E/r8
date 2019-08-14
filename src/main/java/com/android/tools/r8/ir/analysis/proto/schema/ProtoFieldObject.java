@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
+import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.DexItemBasedConstString;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -28,10 +29,11 @@ public class ProtoFieldObject extends ProtoObject {
     Value value =
         code.createValue(
             TypeLatticeElement.stringClassType(appView, Nullability.definitelyNotNull()));
-    return new DexItemBasedConstString(
-        value,
-        field,
-        FieldNameComputationInfo.forFieldName(),
-        ThrowingInfo.defaultForConstString(appView.options()));
+    ThrowingInfo throwingInfo = ThrowingInfo.defaultForConstString(appView.options());
+    if (appView.options().isMinifying()) {
+      return new DexItemBasedConstString(
+          value, field, FieldNameComputationInfo.forFieldName(), throwingInfo);
+    }
+    return new ConstString(value, field.name, throwingInfo);
   }
 }
