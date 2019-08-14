@@ -38,7 +38,6 @@ public class ApplyMappingInterfaceTest extends TestBase {
 
     public static void action(Interface perform) {
       perform.foo();
-      ;
     }
   }
 
