@@ -7,7 +7,6 @@ package com.android.tools.r8.ir.analysis.proto;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.ir.analysis.proto.schema.ProtoFieldTypeFactory;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoMessageInfo;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoObject;
 import com.android.tools.r8.ir.analysis.type.Nullability;
@@ -38,11 +37,9 @@ public class GeneratedMessageLiteShrinker {
   private final TypeLatticeElement objectArrayType;
   private final TypeLatticeElement stringType;
 
-  private final ProtoFieldTypeFactory factory = new ProtoFieldTypeFactory();
-
   public GeneratedMessageLiteShrinker(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
-    this.decoder = new RawMessageInfoDecoder(factory);
+    this.decoder = appView.protoShrinker().decoder;
     this.encoder = new RawMessageInfoEncoder(appView.dexItemFactory());
     this.references = appView.protoShrinker().references;
     this.throwingInfo = ThrowingInfo.defaultForConstString(appView.options());
@@ -74,7 +71,7 @@ public class GeneratedMessageLiteShrinker {
       return;
     }
 
-    InvokeMethod newMessageInfoInvoke = getNewMessageInfoInvoke(code);
+    InvokeMethod newMessageInfoInvoke = getNewMessageInfoInvoke(code, references);
     if (newMessageInfoInvoke != null) {
       // If this invoke is targeting RawMessageInfo.<init>(...) then `info` and `objects` is at
       // positions 2 and 3, respectively, and not position 1 and 2 as when calling the static method
@@ -88,7 +85,7 @@ public class GeneratedMessageLiteShrinker {
       Value objectsValue = newMessageInfoInvoke.inValues().get(2 + adjustment).getAliasedValue();
 
       // Decode the arguments passed to newMessageInfo().
-      ProtoMessageInfo protoMessageInfo = decoder.run(infoValue, objectsValue, context);
+      ProtoMessageInfo protoMessageInfo = decoder.run(context, infoValue, objectsValue);
       if (protoMessageInfo != null) {
         // Rewrite the arguments to newMessageInfo().
         rewriteArgumentsToNewMessageInfo(
@@ -166,7 +163,7 @@ public class GeneratedMessageLiteShrinker {
     }
   }
 
-  private InvokeMethod getNewMessageInfoInvoke(IRCode code) {
+  public static InvokeMethod getNewMessageInfoInvoke(IRCode code, ProtoReferences references) {
     for (Instruction instruction : code.instructions()) {
       if (instruction.isInvokeMethod()) {
         InvokeMethod invoke = instruction.asInvokeMethod();

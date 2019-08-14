@@ -10,6 +10,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.kotlin.KotlinInfo;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.PredicateUtils;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
@@ -573,6 +574,11 @@ public abstract class DexClass extends DexDefinition {
   /** Find virtual method in this class matching {@param method}. */
   public DexEncodedMethod lookupVirtualMethod(DexMethod method) {
     return lookupTarget(virtualMethods, method);
+  }
+
+  /** Find virtual method in this class matching {@param predicate}. */
+  public DexEncodedMethod lookupVirtualMethod(Predicate<DexEncodedMethod> predicate) {
+    return PredicateUtils.findFirst(virtualMethods, predicate);
   }
 
   /** Find method in this class matching {@param method}. */

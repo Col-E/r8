@@ -24,6 +24,10 @@ public class ProtoFieldObject extends ProtoObject {
     this.field = field;
   }
 
+  public DexField getField() {
+    return field;
+  }
+
   @Override
   public Instruction buildIR(AppView<?> appView, IRCode code) {
     Value value =
@@ -35,5 +39,15 @@ public class ProtoFieldObject extends ProtoObject {
           value, field, FieldNameComputationInfo.forFieldName(), throwingInfo);
     }
     return new ConstString(value, field.name, throwingInfo);
+  }
+
+  @Override
+  public boolean isProtoFieldObject() {
+    return true;
+  }
+
+  @Override
+  public ProtoFieldObject asProtoFieldObject() {
+    return this;
   }
 }

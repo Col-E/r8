@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.analysis.proto;
 
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
@@ -76,6 +77,10 @@ public class ProtoReferences {
 
   public boolean isDynamicMethod(DexMethod method) {
     return method.name == dynamicMethodName && method.proto == dynamicMethodProto;
+  }
+
+  public boolean isDynamicMethod(DexEncodedMethod encodedMethod) {
+    return isDynamicMethod(encodedMethod.method);
   }
 
   public boolean isFindLiteExtensionByNumberMethod(DexMethod method) {

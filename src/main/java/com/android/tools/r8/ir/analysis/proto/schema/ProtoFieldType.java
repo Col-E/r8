@@ -67,12 +67,36 @@ public class ProtoFieldType {
     return id;
   }
 
+  public boolean isGroup() {
+    return id == GROUP_ID;
+  }
+
+  public boolean isGroupList() {
+    return id == GROUP_LIST_ID;
+  }
+
+  public boolean isMap() {
+    return id == MAP_ID;
+  }
+
   public boolean isMapFieldWithProto2EnumValue() {
     return isMapFieldWithProto2EnumValue;
   }
 
+  public boolean isMessage() {
+    return id == MESSAGE_ID;
+  }
+
+  public boolean isMessageList() {
+    return id == MESSAGE_LIST_ID;
+  }
+
   public boolean isOneOf() {
     return false;
+  }
+
+  public ProtoOneOfFieldType asOneOf() {
+    return null;
   }
 
   public boolean isRequired() {

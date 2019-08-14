@@ -4,11 +4,15 @@
 
 package com.android.tools.r8.ir.analysis.proto.schema;
 
+import static com.android.tools.r8.ir.analysis.proto.RawMessageInfoDecoder.IS_PROTO_2_MASK;
+
 import com.android.tools.r8.utils.Pair;
 import java.util.ArrayList;
 import java.util.List;
 
 public class ProtoMessageInfo {
+
+  public static final int BITS_PER_HAS_BITS_WORD = 32;
 
   public static class Builder {
 
@@ -79,6 +83,10 @@ public class ProtoMessageInfo {
 
   public static ProtoMessageInfo.Builder builder() {
     return new ProtoMessageInfo.Builder();
+  }
+
+  public boolean isProto2() {
+    return (flags & IS_PROTO_2_MASK) != 0;
   }
 
   public List<ProtoFieldInfo> getFields() {

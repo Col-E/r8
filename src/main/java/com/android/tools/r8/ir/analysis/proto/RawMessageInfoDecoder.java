@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.ir.analysis.proto;
 
+import static com.android.tools.r8.ir.analysis.proto.ProtoUtils.getInfoValueFromMessageInfoConstructionInvoke;
+import static com.android.tools.r8.ir.analysis.proto.ProtoUtils.getObjectsValueFromMessageInfoConstructionInvoke;
+
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexReference;
@@ -23,6 +26,7 @@ import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.DexItemBasedConstString;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
+import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.StaticGet;
@@ -61,15 +65,24 @@ import java.util.OptionalInt;
  */
 public class RawMessageInfoDecoder {
 
-  private static final int IS_PROTO_2_MASK = 0x1;
+  public static final int IS_PROTO_2_MASK = 0x1;
 
   private final ProtoFieldTypeFactory factory;
+  private final ProtoReferences references;
 
-  RawMessageInfoDecoder(ProtoFieldTypeFactory factory) {
+  RawMessageInfoDecoder(ProtoFieldTypeFactory factory, ProtoReferences references) {
     this.factory = factory;
+    this.references = references;
   }
 
-  public ProtoMessageInfo run(Value infoValue, Value objectsValue, DexClass context) {
+  public ProtoMessageInfo run(DexClass context, InvokeMethod invoke) {
+    assert references.isMessageInfoConstructionMethod(invoke.getInvokedMethod());
+    Value infoValue = getInfoValueFromMessageInfoConstructionInvoke(invoke, references);
+    Value objectsValue = getObjectsValueFromMessageInfoConstructionInvoke(invoke, references);
+    return run(context, infoValue, objectsValue);
+  }
+
+  public ProtoMessageInfo run(DexClass context, Value infoValue, Value objectsValue) {
     try {
       ProtoMessageInfo.Builder builder = ProtoMessageInfo.builder();
       ThrowingIntIterator<InvalidRawMessageInfoException> infoIterator =

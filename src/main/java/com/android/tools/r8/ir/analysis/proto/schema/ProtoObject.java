@@ -11,4 +11,20 @@ import com.android.tools.r8.ir.code.Instruction;
 public abstract class ProtoObject {
 
   public abstract Instruction buildIR(AppView<?> appView, IRCode code);
+
+  public boolean isProtoFieldObject() {
+    return false;
+  }
+
+  public ProtoFieldObject asProtoFieldObject() {
+    return null;
+  }
+
+  public boolean isProtoTypeObject() {
+    return false;
+  }
+
+  public ProtoTypeObject asProtoTypeObject() {
+    return null;
+  }
 }

@@ -33,6 +33,11 @@ public class ProtoOneOfFieldType extends ProtoFieldType {
   }
 
   @Override
+  public ProtoOneOfFieldType asOneOf() {
+    return this;
+  }
+
+  @Override
   public boolean isSingular() {
     return true;
   }

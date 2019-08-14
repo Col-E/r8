@@ -5,15 +5,21 @@
 package com.android.tools.r8.ir.analysis.proto;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.ir.analysis.proto.schema.ProtoFieldTypeFactory;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public class ProtoShrinker {
 
+  public final RawMessageInfoDecoder decoder;
+  public final ProtoFieldTypeFactory factory;
   public final GeneratedExtensionRegistryShrinker generatedExtensionRegistryShrinker;
   public final ProtoReferences references;
 
   public ProtoShrinker(AppView<AppInfoWithLiveness> appView) {
+    ProtoFieldTypeFactory factory = new ProtoFieldTypeFactory();
     ProtoReferences references = new ProtoReferences(appView.dexItemFactory());
+    this.decoder = new RawMessageInfoDecoder(factory, references);
+    this.factory = factory;
     this.generatedExtensionRegistryShrinker =
         appView.options().enableGeneratedExtensionRegistryShrinking
             ? new GeneratedExtensionRegistryShrinker(appView, references)

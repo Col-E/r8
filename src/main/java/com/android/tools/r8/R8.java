@@ -634,7 +634,7 @@ public class R8 {
             }
           }
 
-          Enqueuer enqueuer = EnqueuerFactory.createForPostTreeShaking(appView, keptGraphConsumer);
+          Enqueuer enqueuer = EnqueuerFactory.createForFinalTreeShaking(appView, keptGraphConsumer);
           appView.setAppInfo(
               enqueuer.traceApplication(
                   appView.rootSet(),

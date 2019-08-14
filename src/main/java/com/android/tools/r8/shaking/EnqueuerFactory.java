@@ -22,9 +22,9 @@ public class EnqueuerFactory {
     return new Enqueuer(appView, null, compatibility, Mode.INITIAL_TREE_SHAKING);
   }
 
-  public static Enqueuer createForPostTreeShaking(
+  public static Enqueuer createForFinalTreeShaking(
       AppView<? extends AppInfoWithSubtyping> appView, GraphConsumer keptGraphConsumer) {
-    return new Enqueuer(appView, keptGraphConsumer, null, Mode.POST_TREE_SHAKING);
+    return new Enqueuer(appView, keptGraphConsumer, null, Mode.FINAL_TREE_SHAKING);
   }
 
   public static Enqueuer createForMainDexTracing(AppView<? extends AppInfoWithSubtyping> appView) {

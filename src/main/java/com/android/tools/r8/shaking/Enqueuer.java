@@ -49,6 +49,7 @@ import com.android.tools.r8.graph.KeyedDexItem;
 import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.graph.TopDownClassHierarchyTraversal;
 import com.android.tools.r8.graph.analysis.EnqueuerAnalysis;
+import com.android.tools.r8.ir.analysis.proto.schema.ProtoEnqueuerExtension;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.ConstantValueUtils;
 import com.android.tools.r8.ir.code.IRCode;
@@ -110,17 +111,25 @@ import java.util.stream.Collectors;
  */
 public class Enqueuer {
 
-  enum Mode {
+  public enum Mode {
     INITIAL_TREE_SHAKING,
-    POST_TREE_SHAKING,
+    FINAL_TREE_SHAKING,
     MAIN_DEX_TRACING,
     WHY_ARE_YOU_KEEPING;
 
-    boolean isInitialTreeShaking() {
+    public boolean isInitialTreeShaking() {
       return this == INITIAL_TREE_SHAKING;
     }
 
-    boolean isTracingMainDex() {
+    public boolean isFinalTreeShaking() {
+      return this == FINAL_TREE_SHAKING;
+    }
+
+    public boolean isInitialOrFinalTreeShaking() {
+      return isInitialTreeShaking() || isFinalTreeShaking();
+    }
+
+    public boolean isTracingMainDex() {
       return this == MAIN_DEX_TRACING;
     }
   }
@@ -304,13 +313,22 @@ public class Enqueuer {
       ProguardConfiguration.Builder compatibility,
       Mode mode) {
     assert appView.appServices() != null;
+    InternalOptions options = appView.options();
     this.appInfo = appView.appInfo();
     this.appView = appView;
     this.compatibility = compatibility;
-    this.forceProguardCompatibility = appView.options().forceProguardCompatibility;
+    this.forceProguardCompatibility = options.forceProguardCompatibility;
     this.keptGraphConsumer = keptGraphConsumer;
     this.mode = mode;
-    this.options = appView.options();
+    this.options = options;
+
+    if (options.enableGeneratedMessageLiteShrinking && mode.isInitialOrFinalTreeShaking()) {
+      registerAnalysis(new ProtoEnqueuerExtension(appView));
+    }
+  }
+
+  public Mode getMode() {
+    return mode;
   }
 
   public Enqueuer registerAnalysis(EnqueuerAnalysis analysis) {
@@ -450,6 +468,12 @@ public class Enqueuer {
 
   private boolean registerFieldWrite(DexField field, DexEncodedMethod context) {
     return registerFieldAccess(field, context, false);
+  }
+
+  public boolean registerFieldAccess(DexField field, DexEncodedMethod context) {
+    boolean changed = registerFieldAccess(field, context, true);
+    changed |= registerFieldAccess(field, context, false);
+    return changed;
   }
 
   private boolean registerFieldAccess(DexField field, DexEncodedMethod context, boolean isRead) {
@@ -1479,6 +1503,10 @@ public class Enqueuer {
       }
       workList.add(Action.markMethodLive(method, reason));
     }
+  }
+
+  public boolean isFieldLive(DexEncodedField field) {
+    return liveFields.contains(field);
   }
 
   private boolean isInstantiatedOrHasInstantiatedSubtype(DexType type) {

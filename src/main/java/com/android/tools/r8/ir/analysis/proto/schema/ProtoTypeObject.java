@@ -17,8 +17,22 @@ public class ProtoTypeObject extends ProtoObject {
     this.type = type;
   }
 
+  public DexType getType() {
+    return type;
+  }
+
   @Override
   public Instruction buildIR(AppView<?> appView, IRCode code) {
     return code.createConstClass(appView, type);
+  }
+
+  @Override
+  public boolean isProtoTypeObject() {
+    return true;
+  }
+
+  @Override
+  public ProtoTypeObject asProtoTypeObject() {
+    return this;
   }
 }
