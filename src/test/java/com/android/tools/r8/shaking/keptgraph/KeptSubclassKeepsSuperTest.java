@@ -11,7 +11,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersBuilder;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.graphinspector.GraphInspector;
@@ -46,7 +45,6 @@ public class KeptSubclassKeepsSuperTest extends TestBase {
             .enableMergeAnnotations()
             .addProgramClasses(CLASS, Foo.class, Bar.class)
             .addKeepMainRule(CLASS)
-            .noMinification()
             .run(parameters.getRuntime(), CLASS)
             .assertSuccessWithOutput(EXPECTED)
             .graphInspector();
@@ -58,10 +56,8 @@ public class KeptSubclassKeepsSuperTest extends TestBase {
     QueryNode fooClass = inspector.clazz(Reference.classFromClass(Foo.class));
     fooClass.assertPresent();
 
-    ClassReference barClassRef = Reference.classFromClass(Bar.class);
-    QueryNode barClass = inspector.clazz(barClassRef);
-    // TODO(b/135474075): No edge is reported for the super class!
-    barClass.assertAbsent();
+    QueryNode barClass = inspector.clazz(Reference.classFromClass(Bar.class));
+    barClass.assertPresent().assertKeptBy(fooClass);
   }
 
   @NeverMerge

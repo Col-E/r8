@@ -919,6 +919,10 @@ public class Enqueuer {
             scopedMethodsForLiveTypes.computeIfAbsent(
                 holder.superType, ignore -> new ScopedDexMethodSet());
         seen.setParent(seenForSuper);
+        DexClass holderSuper = appView.definitionFor(holder.superType);
+        if (holderSuper != null && holderSuper.isProgramClass()) {
+          registerType(holder.superType, KeepReason.reachableFromLiveType(type));
+        }
         markTypeAsLive(holder.superType, seenForSuper);
         if (holder.isNotProgramClass()) {
           // Library classes may only extend other implement library classes.
