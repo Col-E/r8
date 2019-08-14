@@ -39,7 +39,7 @@ public class WhyAreYouKeepingOverriddenMethodTest extends TestBase {
   }
 
   private void testViaConfig(
-      Class<?> main, Class<?> targetClass, Class<?> subClass) throws Exception {
+      Class<?> main, Class<?> targetClass, Class<?> subClass, boolean isExtends) throws Exception {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     testForR8(Backend.DEX)
         .addInnerClasses(WhyAreYouKeepingOverriddenMethodTest.class)
@@ -55,7 +55,11 @@ public class WhyAreYouKeepingOverriddenMethodTest extends TestBase {
         .redirectStdOut(new PrintStream(baos))
         .compile();
     String output = new String(baos.toByteArray(), StandardCharsets.UTF_8);
-    assertEquals(expectedMessageForConfig(main, targetClass, subClass), output);
+    assertEquals(
+        isExtends
+            ? expectedMessageForConfig_extends(main, targetClass, subClass)
+            : expectedMessageForConfig_implements(main, targetClass, subClass),
+        output);
   }
 
   private void testViaConsumer(
@@ -79,16 +83,37 @@ public class WhyAreYouKeepingOverriddenMethodTest extends TestBase {
     assertEquals(expectedMessageForConsumer(main, targetClass, subClass), output);
   }
 
-  private String expectedMessageForConfig(
+  private static final String MAIN_SIG = "main(java.lang.String[])";
+
+  private String expectedMessageForConfig_extends(
+      Class<?> main, Class<?> targetClass, Class<?> subClass) {
+    return StringUtils.lines(
+        targetClass.getTypeName(),
+        "|- is reachable from:",
+        "|  " + subClass.getTypeName(),
+        "|- is instantiated in:",
+        "|  void " + main.getTypeName() + "." + MAIN_SIG,
+        "|- is referenced in keep rule:",
+        "|  -keep class " + main.getTypeName() + " { public static void " + MAIN_SIG + "; }",
+        "Nothing is keeping void " + targetClass.getTypeName() + ".gone()",
+        "void " + subClass.getTypeName() + ".gone()",
+        "|- is invoked from:",
+        "|  void " + main.getTypeName() + "." + MAIN_SIG,
+        "|- is referenced in keep rule:",
+        "|  -keep class " + main.getTypeName() + " { public static void " + MAIN_SIG + "; }"
+    );
+  }
+
+  private String expectedMessageForConfig_implements(
       Class<?> main, Class<?> targetClass, Class<?> subClass) {
     return StringUtils.lines(
         "Nothing is keeping " + targetClass.getTypeName(),
         "Nothing is keeping void " + targetClass.getTypeName() + ".gone()",
         "void " + subClass.getTypeName() + ".gone()",
         "|- is invoked from:",
-        "|  void " + main.getTypeName() + ".main(java.lang.String[])",
+        "|  void " + main.getTypeName() + "." + MAIN_SIG,
         "|- is referenced in keep rule:",
-        "|  -keep class " + main.getTypeName() + " { public static void main(java.lang.String[]); }"
+        "|  -keep class " + main.getTypeName() + " { public static void " + MAIN_SIG + "; }"
     );
   }
 
@@ -102,7 +127,7 @@ public class WhyAreYouKeepingOverriddenMethodTest extends TestBase {
 
   @Test
   public void testExtends_config() throws Exception {
-    testViaConfig(TestMain1.class, Base.class, Sub.class);
+    testViaConfig(TestMain1.class, Base.class, Sub.class, true);
   }
 
   @Test
@@ -112,7 +137,7 @@ public class WhyAreYouKeepingOverriddenMethodTest extends TestBase {
 
   @Test
   public void testImplements_config() throws Exception {
-    testViaConfig(TestMain2.class, Itf.class, Impl.class);
+    testViaConfig(TestMain2.class, Itf.class, Impl.class, false);
   }
 
   @Test
