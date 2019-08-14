@@ -6,6 +6,8 @@ package com.android.tools.r8.graph;
 public abstract class Descriptor<T extends DexItem, S extends Descriptor<T,S>>
     extends DexReference implements PresortedComparable<S> {
 
+  public abstract boolean match(S entry);
+
   public abstract boolean match(T entry);
 
   @Override

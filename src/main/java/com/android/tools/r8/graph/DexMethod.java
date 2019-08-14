@@ -148,8 +148,13 @@ public class DexMethod extends Descriptor<DexEncodedMethod, DexMethod>
   }
 
   @Override
-  public boolean match(DexEncodedMethod entry) {
-    return entry.method.name == name && entry.method.proto == proto;
+  public boolean match(DexMethod method) {
+    return method.name == name && method.proto == proto;
+  }
+
+  @Override
+  public boolean match(DexEncodedMethod encodedMethod) {
+    return match(encodedMethod.method);
   }
 
   public String qualifiedName() {

@@ -82,4 +82,8 @@ public class ProtoReferences {
     return method.proto == findLiteExtensionByNumberProto
         && method.name.startsWith(findLiteExtensionByNumberName);
   }
+
+  public boolean isMessageInfoConstructionMethod(DexMethod method) {
+    return method.match(newMessageInfoMethod) || method == rawMessageInfoConstructor;
+  }
 }

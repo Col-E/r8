@@ -20,11 +20,11 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
-import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.BooleanUtils;
 import java.util.List;
 
 public class GeneratedMessageLiteShrinker {
@@ -74,21 +74,18 @@ public class GeneratedMessageLiteShrinker {
       return;
     }
 
-    InvokeMethod newMessageInfoInvoke = null;
-    for (Instruction instruction : code.instructions()) {
-      if (instruction.isInvokeStatic()) {
-        InvokeStatic invoke = instruction.asInvokeStatic();
-        if (invoke.getInvokedMethod() == references.newMessageInfoMethod
-            || invoke.getInvokedMethod() == references.rawMessageInfoConstructor) {
-          newMessageInfoInvoke = invoke;
-          break;
-        }
-      }
-    }
-
+    InvokeMethod newMessageInfoInvoke = getNewMessageInfoInvoke(code);
     if (newMessageInfoInvoke != null) {
-      Value infoValue = newMessageInfoInvoke.inValues().get(1).getAliasedValue();
-      Value objectsValue = newMessageInfoInvoke.inValues().get(2).getAliasedValue();
+      // If this invoke is targeting RawMessageInfo.<init>(...) then `info` and `objects` is at
+      // positions 2 and 3, respectively, and not position 1 and 2 as when calling the static method
+      // GeneratedMessageLite.newMessageInfo().
+      int adjustment = BooleanUtils.intValue(newMessageInfoInvoke.isInvokeDirect());
+      assert adjustment == 0
+          ? newMessageInfoInvoke.getInvokedMethod().match(references.newMessageInfoMethod)
+          : newMessageInfoInvoke.getInvokedMethod() == references.rawMessageInfoConstructor;
+
+      Value infoValue = newMessageInfoInvoke.inValues().get(1 + adjustment).getAliasedValue();
+      Value objectsValue = newMessageInfoInvoke.inValues().get(2 + adjustment).getAliasedValue();
 
       // Decode the arguments passed to newMessageInfo().
       ProtoMessageInfo protoMessageInfo = decoder.run(infoValue, objectsValue, context);
@@ -159,11 +156,25 @@ public class GeneratedMessageLiteShrinker {
       }
     }
 
-    // Pass the newly created `objects` array to newMessageInfo().
-    newMessageInfoInvoke.replaceValue(2, newObjectsValue);
+    // Pass the newly created `objects` array to RawMessageInfo.<init>(...) or
+    // GeneratedMessageLite.newMessageInfo().
+    int adjustment = BooleanUtils.intValue(newMessageInfoInvoke.isInvokeDirect());
+    newMessageInfoInvoke.replaceValue(2 + adjustment, newObjectsValue);
 
     if (hasIntroducedIdentifierNameString) {
       method.getMutableOptimizationInfo().markUseIdentifierNameString();
     }
+  }
+
+  private InvokeMethod getNewMessageInfoInvoke(IRCode code) {
+    for (Instruction instruction : code.instructions()) {
+      if (instruction.isInvokeMethod()) {
+        InvokeMethod invoke = instruction.asInvokeMethod();
+        if (references.isMessageInfoConstructionMethod(invoke.getInvokedMethod())) {
+          return invoke;
+        }
+      }
+    }
+    return null;
   }
 }

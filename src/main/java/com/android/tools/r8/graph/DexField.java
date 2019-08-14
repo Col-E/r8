@@ -118,8 +118,13 @@ public class DexField extends Descriptor<DexEncodedField, DexField> implements
   }
 
   @Override
-  public boolean match(DexEncodedField entry) {
-    return entry.field.name == name && entry.field.type == type;
+  public boolean match(DexField field) {
+    return field.name == name && field.type == type;
+  }
+
+  @Override
+  public boolean match(DexEncodedField encodedField) {
+    return match(encodedField.field);
   }
 
   public String qualifiedName() {
