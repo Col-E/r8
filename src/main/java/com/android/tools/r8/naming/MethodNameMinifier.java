@@ -109,6 +109,10 @@ class MethodNameMinifier {
     DexType getFrontier(DexType type) {
       return frontiers.getOrDefault(type, type);
     }
+
+    DexString getReservedName(DexEncodedMethod method, DexClass holder) {
+      return strategy.getReservedName(method, holder);
+    }
   }
 
   private final AppView<AppInfoWithLiveness> appView;
@@ -208,10 +212,10 @@ class MethodNameMinifier {
     DexClass holder = appView.definitionFor(type);
     if (holder != null && strategy.allowMemberRenaming(holder)) {
       for (DexEncodedMethod method : holder.virtualMethodsSorted()) {
-        assignNameToMethod(method, namingState);
+        assignNameToMethod(holder, method, namingState);
       }
       for (DexEncodedMethod method : holder.directMethodsSorted()) {
-        assignNameToMethod(method, namingState);
+        assignNameToMethod(holder, method, namingState);
       }
     }
     for (DexType subType : appView.appInfo().allImmediateExtendsSubtypes(type)) {
@@ -219,11 +223,18 @@ class MethodNameMinifier {
     }
   }
 
-  private void assignNameToMethod(DexEncodedMethod encodedMethod, MethodNamingState<?> state) {
+  private void assignNameToMethod(
+      DexClass holder, DexEncodedMethod encodedMethod, MethodNamingState<?> state) {
     if (encodedMethod.accessFlags.isConstructor()) {
       return;
     }
-    DexString newName = state.newOrReservedNameFor(encodedMethod.method);
+    // The strategy may have an explicit naming for this member which we query first. It may be that
+    // the strategy will return the identity name, for which we have to look into a previous
+    // renaming tracked by the state.
+    DexString newName = strategy.getReservedName(encodedMethod, holder);
+    if (newName == null || newName == encodedMethod.method.name) {
+      newName = state.newOrReservedNameFor(encodedMethod.method);
+    }
     if (encodedMethod.method.name != newName) {
       renaming.put(encodedMethod.method, newName);
     }
@@ -246,14 +257,14 @@ class MethodNameMinifier {
     MethodReservationState<?> reservationState =
         allocateReservationStateAndReserve(type, libraryFrontier, parentReservationState);
 
-    // If this is a library class (or effectively a library class as it is missing) move the
-    // frontier forward. This will ensure all reservations are put on the library frontier for
-    // classpath and program path.
+    // If this is not a program class (or effectively a library class as it is missing) move the
+    // frontier forward. This will ensure all reservations are put on the library or classpath
+    // frontier for the program path.
     DexClass holder = appView.definitionFor(type);
     for (DexType subtype : appView.appInfo().allImmediateExtendsSubtypes(type)) {
       reserveNamesInClasses(
           subtype,
-          holder == null || holder.isLibraryClass() ? subtype : libraryFrontier,
+          holder == null || holder.isNotProgramClass() ? subtype : libraryFrontier,
           reservationState);
     }
   }

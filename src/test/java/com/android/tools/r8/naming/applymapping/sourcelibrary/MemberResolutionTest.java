@@ -122,7 +122,6 @@ public class MemberResolutionTest extends TestBase {
             .addKeepMainRule(MemberResolutionTestMain.class)
             .addKeepRules("-applymapping " + mapPath)
             .enableMergeAnnotations()
-            .noMinification()
             .addOptionsModification(options -> options.enableInlining = false)
             .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), MemberResolutionTestMain.class)

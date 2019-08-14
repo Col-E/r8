@@ -62,6 +62,7 @@ import java.util.function.Predicate;
 public class ProguardMapMinifier {
 
   private final AppView<AppInfoWithLiveness> appView;
+  private final DexItemFactory factory;
   private final SeedMapper seedMapper;
   private final Set<DexCallSite> desugaredCallSites;
   private final BiMap<DexType, DexString> mappedNames = HashBiMap.create();
@@ -79,6 +80,7 @@ public class ProguardMapMinifier {
       SeedMapper seedMapper,
       Set<DexCallSite> desugaredCallSites) {
     this.appView = appView;
+    this.factory = appView.dexItemFactory();
     this.seedMapper = seedMapper;
     this.desugaredCallSites = desugaredCallSites;
   }
@@ -104,7 +106,7 @@ public class ProguardMapMinifier {
 
     timing.begin("MappingClasses");
     appInfo.forAllImmediateExtendsSubtypes(
-        appView.dexItemFactory().objectType,
+        factory.objectType,
         subType -> {
           DexClass dexClass = appView.definitionFor(subType);
           if (dexClass != null && !dexClass.isInterface()) {
@@ -176,11 +178,11 @@ public class ProguardMapMinifier {
 
     if (classNaming != null) {
       // TODO(b/133091438) assert that !dexClass.isLibaryClass();
-      DexString mappedName = appView.dexItemFactory().createString(classNaming.renamedName);
+      DexString mappedName = factory.createString(classNaming.renamedName);
       checkAndAddMappedNames(type, mappedName, classNaming.position);
 
       classNaming.forAllMemberNaming(
-          memberNaming -> addMemberNamings(type, memberNaming, nonPrivateMembers));
+          memberNaming -> addMemberNamings(type, memberNaming, nonPrivateMembers, false));
     } else {
       // We have to ensure we do not rename to an existing member, that cannot be renamed.
       if (dexClass == null || !appView.options().isMinifying()) {
@@ -196,9 +198,7 @@ public class ProguardMapMinifier {
         if (key.isDexMethod()) {
           DexMethod parentReference = key.asDexMethod();
           DexMethod parentReferenceOnCurrentType =
-              appView
-                  .dexItemFactory()
-                  .createMethod(type, parentReference.proto, parentReference.name);
+              factory.createMethod(type, parentReference.proto, parentReference.name);
           if (!memberNames.containsKey(parentReferenceOnCurrentType)) {
             addMemberNaming(
                 parentReferenceOnCurrentType, parentMembers.get(key), additionalMethodNamings);
@@ -214,9 +214,7 @@ public class ProguardMapMinifier {
         } else {
           DexField parentReference = key.asDexField();
           DexField parentReferenceOnCurrentType =
-              appView
-                  .dexItemFactory()
-                  .createField(type, parentReference.type, parentReference.name);
+              factory.createField(type, parentReference.type, parentReference.name);
           if (!memberNames.containsKey(parentReferenceOnCurrentType)) {
             addMemberNaming(
                 parentReferenceOnCurrentType, parentMembers.get(key), additionalFieldNamings);
@@ -257,30 +255,33 @@ public class ProguardMapMinifier {
         continue;
       }
       interfaceNaming.forAllMemberNaming(
-          memberNaming -> addMemberNamings(type, memberNaming, nonPrivateMembers));
+          memberNaming -> addMemberNamings(type, memberNaming, nonPrivateMembers, true));
       DexClass ifaceClass = appView.definitionFor(iface);
-      if (iface != null) {
+      if (ifaceClass != null) {
         addNonPrivateInterfaceMappings(type, nonPrivateMembers, ifaceClass.interfaces.values);
       }
     }
   }
 
   private void addMemberNamings(
-      DexType type, MemberNaming memberNaming, Map<DexReference, MemberNaming> nonPrivateMembers) {
+      DexType type,
+      MemberNaming memberNaming,
+      Map<DexReference, MemberNaming> nonPrivateMembers,
+      boolean addToAdditionalMaps) {
     Signature signature = memberNaming.getOriginalSignature();
     assert !signature.isQualified();
     if (signature instanceof MethodSignature) {
-      DexMethod originalMethod =
-          ((MethodSignature) signature).toDexMethod(appView.dexItemFactory(), type);
-      addMemberNaming(originalMethod, memberNaming, additionalMethodNamings);
+      DexMethod originalMethod = ((MethodSignature) signature).toDexMethod(factory, type);
+      addMemberNaming(
+          originalMethod, memberNaming, addToAdditionalMaps ? additionalMethodNamings : null);
       DexEncodedMethod encodedMethod = appView.definitionFor(originalMethod);
       if (encodedMethod == null || !encodedMethod.accessFlags.isPrivate()) {
         nonPrivateMembers.put(originalMethod, memberNaming);
       }
     } else {
-      DexField originalField =
-          ((FieldSignature) signature).toDexField(appView.dexItemFactory(), type);
-      addMemberNaming(originalField, memberNaming, additionalFieldNamings);
+      DexField originalField = ((FieldSignature) signature).toDexField(factory, type);
+      addMemberNaming(
+          originalField, memberNaming, addToAdditionalMaps ? additionalFieldNamings : null);
       DexEncodedField encodedField = appView.definitionFor(originalField);
       if (encodedField == null || !encodedField.accessFlags.isPrivate()) {
         nonPrivateMembers.put(originalField, memberNaming);
@@ -292,9 +293,11 @@ public class ProguardMapMinifier {
       T member, MemberNaming memberNaming, Map<T, DexString> additionalMemberNamings) {
     assert !memberNames.containsKey(member)
         || memberNames.get(member).getRenamedName().equals(memberNaming.getRenamedName());
-    DexString renamedName = appView.dexItemFactory().createString(memberNaming.getRenamedName());
     memberNames.put(member, memberNaming);
-    additionalMemberNamings.put(member, renamedName);
+    if (additionalMemberNamings != null) {
+      DexString renamedName = factory.createString(memberNaming.getRenamedName());
+      additionalMemberNamings.put(member, renamedName);
+    }
   }
 
   private void checkAndAddMappedNames(DexType type, DexString mappedName, Position position) {
@@ -314,8 +317,7 @@ public class ProguardMapMinifier {
   private void computeDefaultInterfaceMethodMethods() {
     for (String key : seedMapper.getKeyset()) {
       ClassNamingForMapApplier classNaming = seedMapper.getMapping(key);
-      DexType type =
-          appView.dexItemFactory().lookupType(appView.dexItemFactory().createString(key));
+      DexType type = factory.lookupType(factory.createString(key));
       if (type == null) {
         // The map contains additional mapping of classes compared to what we have seen. This should
         // have no effect.
@@ -343,13 +345,11 @@ public class ProguardMapMinifier {
       return;
     }
     DexClass interfaceType =
-        appView.definitionFor(
-            InterfaceMethodRewriter.getInterfaceClassType(type, appView.dexItemFactory()));
+        appView.definitionFor(InterfaceMethodRewriter.getInterfaceClassType(type, factory));
     if (interfaceType == null || !interfaceType.isClasspathClass()) {
       return;
     }
-    syntheticCompanionClasses.put(
-        type, appView.dexItemFactory().createString(classNaming.renamedName));
+    syntheticCompanionClasses.put(type, factory.createString(classNaming.renamedName));
     for (List<MemberNaming> namings : classNaming.getQualifiedMethodMembers().values()) {
       // If the qualified name has been mapped to multiple names we can't compute a mapping (and it
       // should not be possible that this is a default interface method in that case.)
@@ -361,11 +361,10 @@ public class ProguardMapMinifier {
       if (signature.name.startsWith(interfaceType.type.toSourceString())) {
         DexMethod defaultMethod =
             InterfaceMethodRewriter.defaultAsMethodOfCompanionClass(
-                signature.toUnqualified().toDexMethod(appView.dexItemFactory(), interfaceType.type),
-                appView.dexItemFactory());
+                signature.toUnqualified().toDexMethod(factory, interfaceType.type), factory);
         assert defaultMethod.holder == type;
         defaultInterfaceMethodImplementationNames.put(
-            defaultMethod, appView.dexItemFactory().createString(naming.getRenamedName()));
+            defaultMethod, factory.createString(naming.getRenamedName()));
       }
     }
   }
@@ -481,6 +480,7 @@ public class ProguardMapMinifier {
     }
 
     private DexString getReservedName(DexReference reference, DexString name, DexClass holder) {
+      // Always consult the mapping for renamed members that are not on program path.
       if (holder.isNotProgramClass() && mappedNames.containsKey(reference)) {
         return factory.createString(mappedNames.get(reference).getRenamedName());
       }

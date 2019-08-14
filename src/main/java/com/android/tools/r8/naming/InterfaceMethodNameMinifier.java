@@ -17,6 +17,7 @@ import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -87,7 +88,7 @@ import java.util.stream.Collectors;
  *
  * To cache all interface reservation states we use interfaceStateMap that maps each type to its
  * {@link InterfaceReservationState} that allows for querying and updating the interface inheritance
- * tree. This caching is crucial for the time spent computing interface names beceause most states
+ * tree. This caching is crucial for the time spent computing interface names because most states
  * will not have a high depth.
  *
  * We then map each group from Equivalence(Method) to {@link InterfaceMethodGroupState} that
@@ -97,28 +98,47 @@ class InterfaceMethodNameMinifier {
 
   class InterfaceReservationState {
 
+    // Used for iterating the parent hierarchy tree.
     final DexClass iface;
-    final Set<DexType> reservationTypes = new HashSet<>();
+    // Used for iterating the sub trees that has this node as root.
     final Set<DexType> children = new HashSet<>();
+    // Collection of the frontier reservation types and the interface type itself.
+    final Set<DexType> reservationTypes = new HashSet<>();
 
     InterfaceReservationState(DexClass iface) {
       this.iface = iface;
     }
 
-    boolean getReserved(DexMethod method) {
-      Boolean result =
+    DexString getReservedName(DexMethod method) {
+      // If an interface is kept and we are using applymapping, the renamed name for this method
+      // is tracked on this level.
+      if (appView.options().getProguardConfiguration().hasApplyMappingFile()) {
+        DexEncodedMethod encodedMethod = appView.definitionFor(method);
+        if (encodedMethod != null) {
+          DexString reservedName = minifierState.getReservedName(encodedMethod, iface);
+          if (reservedName != null) {
+            return reservedName;
+          }
+        }
+      }
+      // Otherwise, we just search the hierarchy for the first identity reservation since
+      // applymapping is no longer in effect.
+      Boolean isReserved =
           forAny(
               s -> {
                 for (DexType reservationType : s.reservationTypes) {
-                  if (minifierState
-                      .getReservationState(reservationType)
-                      .isReserved(method.name, method)) {
+                  Set<DexString> reservedNamesFor =
+                      minifierState
+                          .getReservationState(reservationType)
+                          .getReservedNamesFor(method);
+                  assert reservedNamesFor == null || !reservedNamesFor.isEmpty();
+                  if (reservedNamesFor != null && reservedNamesFor.contains(method.name)) {
                     return true;
                   }
                 }
                 return null;
               });
-      return result == null ? false : result;
+      return isReserved == null ? null : method.name;
     }
 
     void reserveName(DexString reservedName, DexMethod method) {
@@ -127,9 +147,7 @@ class InterfaceMethodNameMinifier {
             s.reservationTypes.forEach(
                 resType -> {
                   MethodReservationState<?> state = minifierState.getReservationState(resType);
-                  if (!state.isReserved(reservedName, method)) {
-                    state.reserveName(reservedName, method);
-                  }
+                  state.reserveName(reservedName, method);
                 });
           });
     }
@@ -160,7 +178,7 @@ class InterfaceMethodNameMinifier {
           });
     }
 
-    void forAll(Consumer<InterfaceReservationState> action) {
+    <T> void forAll(Consumer<InterfaceReservationState> action) {
       forAny(
           s -> {
             action.accept(s);
@@ -242,17 +260,42 @@ class InterfaceMethodNameMinifier {
     }
 
     DexString getReservedName() {
-      return forAnyState(
-          (m, s) -> {
-            if (s.getReserved(m)) {
-              return m.name;
-            }
-            return null;
-          });
+      if (methodStates.isEmpty()) {
+        return null;
+      }
+      // It is perfectly fine to have multiple reserved names inside a group. If we have an identity
+      // reservation, we have to prioritize that over the others, otherwise we just propose the
+      // first ordered reserved name since we do not allow overwriting the name.
+      List<DexMethod> sortedMethods = Lists.newArrayList(methodStates.keySet());
+      sortedMethods.sort(DexMethod::slowCompareTo);
+      DexString reservedName = null;
+      for (DexMethod method : sortedMethods) {
+        for (InterfaceReservationState state : methodStates.get(method)) {
+          DexString stateReserved = state.getReservedName(method);
+          if (stateReserved == method.name) {
+            return method.name;
+          } else if (stateReserved != null) {
+            reservedName = stateReserved;
+          }
+        }
+      }
+      return reservedName;
     }
 
     void reserveName(DexString reservedName) {
-      forEachState((m, s) -> s.reserveName(reservedName, m));
+      // The proposed reserved name is basically a suggestion. Try to reserve it in as many states
+      // as possible.
+      forEachState(
+          (method, state) -> {
+            DexString stateReserved = state.getReservedName(method);
+            if (stateReserved != null) {
+              state.reserveName(stateReserved, method);
+              minifierState.putRenaming(method, stateReserved);
+            } else {
+              state.reserveName(reservedName, method);
+              minifierState.putRenaming(method, reservedName);
+            }
+          });
     }
 
     boolean isAvailable(DexString candidate) {
