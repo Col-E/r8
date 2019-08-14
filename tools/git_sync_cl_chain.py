@@ -83,6 +83,8 @@ def main(argv):
       utils.RunCmd(['git', 'pull'] + rebase_args, quiet=True)
       utils.RunCmd(['git', 'cl', 'upload', '-m', options.message], quiet=True)
 
+    utils.RunCmd(['git', 'cl', 'issue'])
+
 def get_branch_with_name(name, branches):
   for branch in branches:
     if branch.name == name:
