@@ -6,6 +6,7 @@
 # Convenience script for triggering bots on specific commits.
 
 import json
+import git_utils
 import optparse
 import os
 import re
@@ -21,6 +22,8 @@ LUCI_SCHEDULE = os.path.join(utils.REPO_ROOT, 'infra', 'config', 'global',
 #   triggers: "BUILDER_NAME"
 TRIGGERS_RE = r'^  triggers: "(\w.*)"'
 
+DESUGAR_BOT = 'archive_lib_desugar'
+
 def ParseOptions():
   result = optparse.OptionParser()
   result.add_option('--release',
@@ -30,10 +33,14 @@ def ParseOptions():
                     help='Run the specified cl on the bots. This should be '
                     'the full url, e.g., '
                     'https://r8-review.googlesource.com/c/r8/+/37420/1')
+  result.add_option('--desugar',
+                    help='Run the library desugar and archiving bot.',
+                    default=False, action='store_true')
   result.add_option('--builder', help='Trigger specific builder')
   return result.parse_args()
 
 def get_builders():
+
   is_release = False
   master_builders = []
   release_builders = []
@@ -51,6 +58,9 @@ def get_builders():
         else:
           assert 'release' not in builder
           master_builders.append(builder)
+  assert DESUGAR_BOT in master_builders
+  print 'Desugar builder:\n  ' + DESUGAR_BOT
+  master_builders.remove(DESUGAR_BOT)
   print 'Master builders:\n  ' + '\n  '.join(master_builders)
   print 'Release builders:\n  ' + '\n  '.join(release_builders)
   return (master_builders, release_builders)
@@ -74,7 +84,7 @@ def trigger_cl(builders, cl_url):
 
 def Main():
   (options, args) = ParseOptions()
-  if len(args) != 1 and not options.cl:
+  if len(args) != 1 and not options.cl and not options.desugar:
     print 'Takes exactly one argument, the commit to run'
     return 1
 
@@ -82,13 +92,21 @@ def Main():
     print 'You can\'t run cls on the release bots'
     return 1
 
-  commit = None if options.cl else args[0]
+  if options.cl and options.desugar:
+    print 'You can\'t run cls on the desugar bot'
+    return 1
+
+  commit = None if (options.cl or options.desugar)  else args[0]
   (master_builders, release_builders) = get_builders()
   builders = release_builders if options.release else master_builders
   if options.builder:
     builder = options.builder
     assert builder in master_builders or builder in release_builders
     builders = [options.builder]
+  if options.desugar:
+    builders = [DESUGAR_BOT]
+    trigger_builders(
+        builders, git_utils.GetHeadRevision(utils.REPO_ROOT, use_master=True))
   if options.cl:
     trigger_cl(builders, options.cl)
   else:

@@ -11,8 +11,9 @@ def GitClone(url, checkout_dir):
   utils.PrintCmd(cmd)
   return subprocess.check_call(cmd)
 
-def GetHeadRevision(checkout_dir):
-  cmd = ['git', 'rev-parse', 'HEAD']
+def GetHeadRevision(checkout_dir, use_master=False):
+  revision_from = 'origin/master' if use_master else 'HEAD'
+  cmd = ['git', 'rev-parse', revision_from]
   utils.PrintCmd(cmd)
-  with ChangedWorkingDirectory(checkout_dir):
+  with utils.ChangedWorkingDirectory(checkout_dir):
     return subprocess.check_output(cmd).strip()
