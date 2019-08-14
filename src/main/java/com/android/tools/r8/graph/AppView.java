@@ -7,6 +7,7 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.OptionalBool;
 import com.android.tools.r8.graph.analysis.InitializedClassesInInstanceMethodsAnalysis.InitializedClassesInInstanceMethods;
 import com.android.tools.r8.ir.analysis.proto.GeneratedExtensionRegistryShrinker;
+import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteShrinker;
 import com.android.tools.r8.ir.analysis.proto.ProtoShrinker;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
@@ -164,6 +165,12 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
       return fn.apply(protoShrinker.generatedExtensionRegistryShrinker);
     }
     return defaultValue;
+  }
+
+  public void withGeneratedMessageLiteShrinker(Consumer<GeneratedMessageLiteShrinker> consumer) {
+    if (protoShrinker != null && protoShrinker.generatedMessageLiteShrinker != null) {
+      consumer.accept(protoShrinker.generatedMessageLiteShrinker);
+    }
   }
 
   public GraphLense graphLense() {

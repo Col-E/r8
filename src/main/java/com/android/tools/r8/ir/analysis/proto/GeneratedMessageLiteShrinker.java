@@ -37,11 +37,14 @@ public class GeneratedMessageLiteShrinker {
   private final TypeLatticeElement objectArrayType;
   private final TypeLatticeElement stringType;
 
-  public GeneratedMessageLiteShrinker(AppView<AppInfoWithLiveness> appView) {
+  public GeneratedMessageLiteShrinker(
+      AppView<AppInfoWithLiveness> appView,
+      RawMessageInfoDecoder decoder,
+      ProtoReferences references) {
     this.appView = appView;
-    this.decoder = appView.protoShrinker().decoder;
+    this.decoder = decoder;
     this.encoder = new RawMessageInfoEncoder(appView.dexItemFactory());
-    this.references = appView.protoShrinker().references;
+    this.references = references;
     this.throwingInfo = ThrowingInfo.defaultForConstString(appView.options());
 
     // Types.
