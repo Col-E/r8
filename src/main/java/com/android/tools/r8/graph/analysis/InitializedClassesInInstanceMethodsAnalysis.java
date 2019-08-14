@@ -13,7 +13,7 @@ import com.android.tools.r8.shaking.KeepReason;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
-public class InitializedClassesInInstanceMethodsAnalysis implements EnqueuerAnalysis {
+public class InitializedClassesInInstanceMethodsAnalysis extends EnqueuerAnalysis {
 
   // A simple structure that stores the result of the analysis.
   public static class InitializedClassesInInstanceMethods {

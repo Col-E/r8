@@ -248,10 +248,8 @@ public class Enqueuer {
   private final SetWithReason<DexType> instantiatedLambdas =
       new SetWithReason<>(this::registerType);
 
-  /**
-   * A queue of items that need processing. Different items trigger different actions:
-   */
-  private final Queue<Action> workList = Queues.newArrayDeque();
+  /** A queue of items that need processing. Different items trigger different actions. */
+  private final EnqueuerWorklist workList = new EnqueuerWorklist();
 
   /**
    * A queue of items that have been added to try to keep Proguard compatibility.
@@ -611,7 +609,7 @@ public class Enqueuer {
         Log.verbose(getClass(), "Register Iput `%s`.", field);
       }
       // TODO(herhut): We have to add this, but DCR should eliminate dead writes.
-      workList.add(Action.markReachableField(field, KeepReason.fieldReferencedIn(currentMethod)));
+      workList.enqueueMarkReachableFieldAction(field, KeepReason.fieldReferencedIn(currentMethod));
       return true;
     }
 
@@ -623,7 +621,7 @@ public class Enqueuer {
       if (Log.ENABLED) {
         Log.verbose(getClass(), "Register Iget `%s`.", field);
       }
-      workList.add(Action.markReachableField(field, KeepReason.fieldReferencedIn(currentMethod)));
+      workList.enqueueMarkReachableFieldAction(field, KeepReason.fieldReferencedIn(currentMethod));
       return true;
     }
 
@@ -1391,6 +1389,9 @@ public class Enqueuer {
 
     // Add all dependent members to the workqueue.
     enqueueRootItems(rootSet.getDependentItems(encodedField));
+
+    // Notify analyses.
+    analyses.forEach(analysis -> analysis.processNewlyLiveField(encodedField));
   }
 
   private void markInstanceFieldAsLive(DexEncodedField field, KeepReason reason) {
@@ -1404,8 +1405,12 @@ public class Enqueuer {
     processAnnotations(field, field.annotations.annotations);
     liveFields.add(field, reason);
     collectProguardCompatibilityRule(reason);
+
     // Add all dependent members to the workqueue.
     enqueueRootItems(rootSet.getDependentItems(field));
+
+    // Notify analyses.
+    analyses.forEach(analysis -> analysis.processNewlyLiveField(field));
   }
 
   private void markInstantiated(DexType type, KeepReason reason) {
@@ -1894,17 +1899,31 @@ public class Enqueuer {
           }
         }
 
-        // Continue fix-point processing while there are additional work items to ensure
-        // items that are passed to Java reflections are traced.
-        if (proguardCompatibilityWorkList.isEmpty()
-            && pendingReflectiveUses.isEmpty()) {
-          break;
+        // Continue fix-point processing while there are additional work items to ensure items that
+        // are passed to Java reflections are traced.
+        if (!pendingReflectiveUses.isEmpty()) {
+          pendingReflectiveUses.forEach(this::handleReflectiveBehavior);
+          pendingReflectiveUses.clear();
         }
-        pendingReflectiveUses.forEach(this::handleReflectiveBehavior);
-        workList.addAll(proguardCompatibilityWorkList);
-        proguardCompatibilityWorkList.clear();
-        pendingReflectiveUses.clear();
+        if (!proguardCompatibilityWorkList.isEmpty()) {
+          workList.addAll(proguardCompatibilityWorkList);
+          proguardCompatibilityWorkList.clear();
+        }
+        if (!workList.isEmpty()) {
+          continue;
+        }
+
+        // Notify each analysis that a fixpoint has been reached, and give each analysis an
+        // opportunity to add items to the worklist.
+        analyses.forEach(analysis -> analysis.notifyFixpoint(this, workList));
+        if (!workList.isEmpty()) {
+          continue;
+        }
+
+        // Reached the fixpoint.
+        break;
       }
+
       if (Log.ENABLED) {
         Set<DexEncodedMethod> allLive = Sets.newIdentityHashSet();
         for (Entry<DexType, SetWithReason<DexEncodedMethod>> entry : reachableVirtualMethods
@@ -2068,8 +2087,12 @@ public class Enqueuer {
             annotation -> processAnnotation(method, annotation));
       }
       method.registerCodeReferences(new UseRegistry(options.itemFactory, method));
+
       // Add all dependent members to the workqueue.
       enqueueRootItems(rootSet.getDependentItems(method));
+
+      // Notify analyses.
+      analyses.forEach(analysis -> analysis.processNewlyLiveMethod(method));
     }
   }
 
@@ -2430,7 +2453,7 @@ public class Enqueuer {
     }
   }
 
-  private static class Action {
+  static class Action {
 
     final Kind kind;
     final DexItem target;
