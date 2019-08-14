@@ -70,7 +70,7 @@ def main(argv):
       return
 
     stack = []
-    while True:
+    while current_branch:
       stack.append(current_branch)
       if current_branch.upstream is None or current_branch.upstream == 'master':
         break
