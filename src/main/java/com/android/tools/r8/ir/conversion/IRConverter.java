@@ -1077,8 +1077,8 @@ public class IRConverter {
     previous = printMethod(code, "IR after inlining (SSA)", previous);
 
     if (appView.appInfo().hasLiveness()) {
-      // Reflection optimization 1. getClass() -> const-class
-      ReflectionOptimizer.rewriteGetClass(appView.withLiveness(), code);
+      // Reflection optimization 1. getClass() / forName() -> const-class
+      ReflectionOptimizer.rewriteGetClassOrForNameToConstClass(appView.withLiveness(), code);
     }
 
     if (!isDebugMode) {

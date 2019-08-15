@@ -476,7 +476,11 @@ public class DexItemFactory {
   // Library methods listed here are based on their original implementations. That is, we assume
   // these cannot be overridden.
   public final Set<DexMethod> libraryMethodsReturningNonNull =
-      ImmutableSet.of(classMethods.getName, classMethods.getSimpleName, stringMethods.valueOf);
+      ImmutableSet.of(
+          classMethods.getName,
+          classMethods.getSimpleName,
+          classMethods.forName,
+          stringMethods.valueOf);
 
   // We assume library methods listed here are `public`, i.e., free from visibility side effects.
   // If not, that library method should not be added here because it literally has side effects.

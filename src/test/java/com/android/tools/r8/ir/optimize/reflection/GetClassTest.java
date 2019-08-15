@@ -13,18 +13,14 @@ import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestRunResult;
-import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Streams;
 import java.util.concurrent.Callable;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -110,7 +106,7 @@ class GetClassTestMain implements Callable<Class<?>> {
 }
 
 @RunWith(Parameterized.class)
-public class GetClassTest extends TestBase {
+public class GetClassTest extends ReflectionOptimizerTestBase {
   private static final String JAVA_OUTPUT = StringUtils.lines(
       "class com.android.tools.r8.ir.optimize.reflection.GetClassTestMain$Base",
       "class com.android.tools.r8.ir.optimize.reflection.GetClassTestMain$Base",
@@ -144,25 +140,6 @@ public class GetClassTest extends TestBase {
         .assertSuccessWithOutput(JAVA_OUTPUT);
   }
 
-  private static boolean isGetClass(DexMethod method) {
-    return method.getArity() == 0
-        && method.proto.returnType.toDescriptorString().equals("Ljava/lang/Class;")
-        && method.name.toString().equals("getClass");
-  }
-
-  private long countGetClass(MethodSubject method) {
-    return Streams.stream(method.iterateInstructions(instructionSubject -> {
-      if (instructionSubject.isInvoke()) {
-        return isGetClass(instructionSubject.getMethod());
-      }
-      return false;
-    })).count();
-  }
-
-  private long countConstClass(MethodSubject method) {
-    return Streams.stream(method.iterateInstructions(InstructionSubject::isConstClass)).count();
-  }
-
   private void test(
       TestRunResult result,
       int expectedGetClassCount,
@@ -190,7 +167,7 @@ public class GetClassTest extends TestBase {
     assertEquals(expectedConstClassCountForCall, countConstClass(call));
   }
 
-    @Test
+  @Test
   public void testD8() throws Exception {
     assumeTrue("Only run D8 for Dex backend", parameters.isDexRuntime());
 
@@ -222,7 +199,6 @@ public class GetClassTest extends TestBase {
         testForR8(parameters.getBackend())
             .debug()
             .addProgramClassesAndInnerClasses(MAIN)
-            .enableProguardTestOptions()
             .enableInliningAnnotations()
             .addKeepMainRule(MAIN)
             .noMinification()
@@ -238,7 +214,6 @@ public class GetClassTest extends TestBase {
     result =
         testForR8(parameters.getBackend())
             .addProgramClassesAndInnerClasses(MAIN)
-            .enableProguardTestOptions()
             .enableInliningAnnotations()
             .addKeepMainRule(MAIN)
             .noMinification()
@@ -251,7 +226,6 @@ public class GetClassTest extends TestBase {
     result =
         testForR8(parameters.getBackend())
             .addProgramClassesAndInnerClasses(MAIN)
-            .enableProguardTestOptions()
             .enableInliningAnnotations()
             .addKeepMainRule(MAIN)
             .setMinApi(parameters.getRuntime())
@@ -259,5 +233,4 @@ public class GetClassTest extends TestBase {
             .run(parameters.getRuntime(), MAIN);
     test(result, 0, expectedConstClassCount, 0, 1);
   }
-
 }
