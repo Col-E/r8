@@ -67,8 +67,6 @@ import java.util.OptionalInt;
  */
 public class RawMessageInfoDecoder {
 
-  public static final int IS_PROTO_2_MASK = 0x1;
-
   private final ProtoFieldTypeFactory factory;
   private final ProtoReferences references;
 
@@ -135,7 +133,7 @@ public class RawMessageInfoDecoder {
                 objectIterator.computeNextIfAbsent(this::invalidObjectsFailure), context));
       }
 
-      boolean isProto2 = (flags & IS_PROTO_2_MASK) != 0;
+      boolean isProto2 = ProtoUtils.isProto2(flags);
       for (int i = 0; i < fieldCount; i++) {
         // Extract field-specific portion of "info" string.
         int fieldNumber = infoIterator.nextIntComputeIfAbsent(this::invalidInfoFailure);

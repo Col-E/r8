@@ -4,9 +4,10 @@
 
 package com.android.tools.r8.ir.analysis.proto.schema;
 
-import static com.android.tools.r8.ir.analysis.proto.RawMessageInfoDecoder.IS_PROTO_2_MASK;
-
+import com.android.tools.r8.ir.analysis.proto.ProtoUtils;
 import com.android.tools.r8.utils.Pair;
+import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
+import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import java.util.Iterator;
@@ -72,44 +73,64 @@ public class ProtoMessageInfo {
     }
 
     private void removeUnusedSharedData() {
+      if (fields == null || fields.isEmpty()) {
+        oneOfObjects = null;
+        hasBitsObjects = null;
+        return;
+      }
+
       // Gather used "oneof" and "hasbits" indices.
-      IntList usedOneofIndices = new IntArrayList();
+      IntList usedOneOfIndices = new IntArrayList();
       IntList usedHasBitsIndices = new IntArrayList();
-      if (fields != null) {
-        for (ProtoFieldInfo field : fields) {
-          if (field.hasAuxData()) {
-            if (field.getType().isOneOf()) {
-              usedOneofIndices.add(field.getAuxData());
-            } else {
-              usedHasBitsIndices.add(field.getAuxData() / BITS_PER_HAS_BITS_WORD);
-            }
+      for (ProtoFieldInfo field : fields) {
+        if (field.hasAuxData()) {
+          if (field.getType().isOneOf()) {
+            usedOneOfIndices.add(field.getAuxData());
+          } else {
+            assert ProtoUtils.isProto2(flags) && field.getType().isSingular();
+            usedHasBitsIndices.add(field.getAuxData() / BITS_PER_HAS_BITS_WORD);
           }
         }
       }
 
       // Remove unused parts of "oneof" vector.
+      Int2IntMap newOneOfObjectIndices = new Int2IntArrayMap();
       if (oneOfObjects != null) {
         Iterator<Pair<ProtoObject, ProtoObject>> oneOfObjectIterator = oneOfObjects.iterator();
-        for (int i = 0; i < oneOfObjects.size(); i++) {
+        for (int i = 0, numberOfRemovedOneOfObjects = 0; i < oneOfObjects.size(); i++) {
           oneOfObjectIterator.next();
-          if (!usedOneofIndices.contains(i)) {
+          if (usedOneOfIndices.contains(i)) {
+            newOneOfObjectIndices.put(i, i - numberOfRemovedOneOfObjects);
+          } else {
             oneOfObjectIterator.remove();
+            numberOfRemovedOneOfObjects++;
           }
         }
       }
 
       // Remove unused parts of "hasbits" vector.
+      Int2IntMap newHasBitsObjectIndices = new Int2IntArrayMap();
       if (hasBitsObjects != null) {
         Iterator<ProtoObject> hasBitsObjectIterator = hasBitsObjects.iterator();
-        for (int i = 0; i < hasBitsObjects.size(); i++) {
+        for (int i = 0, numberOfRemovedHasBitsObjects = 0; i < hasBitsObjects.size(); i++) {
           hasBitsObjectIterator.next();
-          if (!usedHasBitsIndices.contains(i)) {
+          if (usedHasBitsIndices.contains(i)) {
+            newHasBitsObjectIndices.put(i, i - numberOfRemovedHasBitsObjects);
+          } else {
             hasBitsObjectIterator.remove();
+            numberOfRemovedHasBitsObjects++;
           }
         }
       }
 
-      // TODO(b/112437944): Fix up references + add a test that fails when references are not fixed.
+      // Fix up references.
+      for (ProtoFieldInfo field : fields) {
+        if (field.hasAuxData()) {
+          Int2IntMap indexMapping =
+              field.getType().isOneOf() ? newOneOfObjectIndices : newHasBitsObjectIndices;
+          field.setAuxData(indexMapping.get(field.getAuxData()));
+        }
+      }
     }
   }
 
@@ -135,7 +156,7 @@ public class ProtoMessageInfo {
   }
 
   public boolean isProto2() {
-    return (flags & IS_PROTO_2_MASK) != 0;
+    return ProtoUtils.isProto2(flags);
   }
 
   public List<ProtoFieldInfo> getFields() {

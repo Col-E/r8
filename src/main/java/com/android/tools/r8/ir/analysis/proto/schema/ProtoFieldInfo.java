@@ -20,7 +20,7 @@ public class ProtoFieldInfo {
    * Index into {@link ProtoMessageInfo#oneOfObjects} or {@link ProtoMessageInfo#hasBitsObjects}.
    * Only used for oneof and proto2 singular fields.
    */
-  private final OptionalInt auxData;
+  private OptionalInt auxData;
 
   /**
    * For any non-oneof field, the first entry will be a reference to a java.lang.String literal. For
@@ -44,6 +44,11 @@ public class ProtoFieldInfo {
   public int getAuxData() {
     assert hasAuxData();
     return auxData.getAsInt();
+  }
+
+  void setAuxData(int value) {
+    assert hasAuxData();
+    auxData = OptionalInt.of(value);
   }
 
   public int getNumber() {

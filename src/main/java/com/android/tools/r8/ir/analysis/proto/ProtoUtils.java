@@ -10,6 +10,8 @@ import com.android.tools.r8.utils.BooleanUtils;
 
 public class ProtoUtils {
 
+  public static final int IS_PROTO_2_MASK = 0x1;
+
   static Value getInfoValueFromMessageInfoConstructionInvoke(
       InvokeMethod invoke, ProtoReferences references) {
     assert references.isMessageInfoConstructionMethod(invoke.getInvokedMethod());
@@ -29,5 +31,9 @@ public class ProtoUtils {
     assert references.isMessageInfoConstructionMethod(invoke.getInvokedMethod());
     int adjustment = BooleanUtils.intValue(invoke.isInvokeDirect());
     invoke.replaceValue(2 + adjustment, newObjectsValue);
+  }
+
+  public static boolean isProto2(int flags) {
+    return (flags & IS_PROTO_2_MASK) != 0;
   }
 }
