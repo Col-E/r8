@@ -1,3 +1,2 @@
 CODE_REVIEW_SERVER: https://r8.googlesource.com/
 GERRIT_HOST: True
-GERRIT_SQUASH_UPLOADS: True
