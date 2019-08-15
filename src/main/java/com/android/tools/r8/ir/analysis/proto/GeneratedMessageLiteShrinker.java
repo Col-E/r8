@@ -4,9 +4,15 @@
 
 package com.android.tools.r8.ir.analysis.proto;
 
+import static com.android.tools.r8.ir.analysis.proto.ProtoUtils.getInfoValueFromMessageInfoConstructionInvoke;
+import static com.android.tools.r8.ir.analysis.proto.ProtoUtils.getObjectsValueFromMessageInfoConstructionInvoke;
+import static com.android.tools.r8.ir.analysis.proto.ProtoUtils.setObjectsValueForMessageInfoConstructionInvoke;
+import static com.google.common.base.Predicates.alwaysFalse;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoMessageInfo;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoObject;
 import com.android.tools.r8.ir.analysis.type.Nullability;
@@ -22,9 +28,13 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.CallSiteInformation;
+import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.conversion.OptimizationFeedbackIgnore;
+import com.android.tools.r8.ir.optimize.Outliner;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.BooleanUtils;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class GeneratedMessageLiteShrinker {
 
@@ -55,8 +65,28 @@ public class GeneratedMessageLiteShrinker {
   }
 
   public void run(DexEncodedMethod method, IRCode code) {
-    if (appView.options().isMinifying() && references.isDynamicMethod(method.method)) {
+    if (references.isDynamicMethod(method.method)) {
       rewriteDynamicMethod(method, code);
+    }
+  }
+
+  public void postOptimizeDynamicMethods(IRConverter converter) {
+    forEachDynamicMethod(
+        method ->
+            converter.processMethod(
+                method,
+                OptimizationFeedbackIgnore.getInstance(),
+                alwaysFalse(),
+                CallSiteInformation.empty(),
+                Outliner::noProcessing));
+  }
+
+  private void forEachDynamicMethod(Consumer<DexEncodedMethod> consumer) {
+    for (DexProgramClass clazz : appView.appInfo().classes()) {
+      DexEncodedMethod dynamicMethod = clazz.lookupVirtualMethod(references::isDynamicMethod);
+      if (dynamicMethod != null) {
+        consumer.accept(dynamicMethod);
+      }
     }
   }
 
@@ -76,16 +106,10 @@ public class GeneratedMessageLiteShrinker {
 
     InvokeMethod newMessageInfoInvoke = getNewMessageInfoInvoke(code, references);
     if (newMessageInfoInvoke != null) {
-      // If this invoke is targeting RawMessageInfo.<init>(...) then `info` and `objects` is at
-      // positions 2 and 3, respectively, and not position 1 and 2 as when calling the static method
-      // GeneratedMessageLite.newMessageInfo().
-      int adjustment = BooleanUtils.intValue(newMessageInfoInvoke.isInvokeDirect());
-      assert adjustment == 0
-          ? newMessageInfoInvoke.getInvokedMethod().match(references.newMessageInfoMethod)
-          : newMessageInfoInvoke.getInvokedMethod() == references.rawMessageInfoConstructor;
-
-      Value infoValue = newMessageInfoInvoke.inValues().get(1 + adjustment).getAliasedValue();
-      Value objectsValue = newMessageInfoInvoke.inValues().get(2 + adjustment).getAliasedValue();
+      Value infoValue =
+          getInfoValueFromMessageInfoConstructionInvoke(newMessageInfoInvoke, references);
+      Value objectsValue =
+          getObjectsValueFromMessageInfoConstructionInvoke(newMessageInfoInvoke, references);
 
       // Decode the arguments passed to newMessageInfo().
       ProtoMessageInfo protoMessageInfo = decoder.run(context, infoValue, objectsValue);
@@ -158,8 +182,8 @@ public class GeneratedMessageLiteShrinker {
 
     // Pass the newly created `objects` array to RawMessageInfo.<init>(...) or
     // GeneratedMessageLite.newMessageInfo().
-    int adjustment = BooleanUtils.intValue(newMessageInfoInvoke.isInvokeDirect());
-    newMessageInfoInvoke.replaceValue(2 + adjustment, newObjectsValue);
+    setObjectsValueForMessageInfoConstructionInvoke(
+        newMessageInfoInvoke, newObjectsValue, references);
 
     if (hasIntroducedIdentifierNameString) {
       method.getMutableOptimizationInfo().markUseIdentifierNameString();

@@ -16,7 +16,17 @@ public class ProtoFieldInfo {
   private final int number;
   private final ProtoFieldType type;
 
+  /**
+   * Index into {@link ProtoMessageInfo#oneOfObjects} or {@link ProtoMessageInfo#hasBitsObjects}.
+   * Only used for oneof and proto2 singular fields.
+   */
   private final OptionalInt auxData;
+
+  /**
+   * For any non-oneof field, the first entry will be a reference to a java.lang.String literal. For
+   * repeated message fields, the second entry will be a reference to java.lang.Class for the
+   * message.
+   */
   private final List<ProtoObject> objects;
 
   public ProtoFieldInfo(
@@ -162,5 +172,24 @@ public class ProtoFieldInfo {
             : objects.get(0);
     assert object.isProtoFieldObject();
     return object.asProtoFieldObject().getField();
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder builder =
+        new StringBuilder("ProtoFieldInfo(number=")
+            .append(number)
+            .append(", type=")
+            .append(type)
+            .append(", aux data=")
+            .append(auxData)
+            .append(", objects=[");
+    if (objects.size() > 0) {
+      builder.append(objects.get(0));
+      for (int i = 1; i < objects.size(); i++) {
+        builder.append(", ").append(objects.get(i));
+      }
+    }
+    return builder.append("])").toString();
   }
 }

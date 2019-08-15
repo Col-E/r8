@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.analysis.EnqueuerAnalysis;
 import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteShrinker;
 import com.android.tools.r8.ir.analysis.proto.ProtoReferences;
+import com.android.tools.r8.ir.analysis.proto.ProtoShrinker;
 import com.android.tools.r8.ir.analysis.proto.RawMessageInfoDecoder;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InvokeMethod;
@@ -55,10 +56,11 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
       new IdentityHashMap<>();
 
   public ProtoEnqueuerExtension(AppView<?> appView) {
+    ProtoShrinker protoShrinker = appView.protoShrinker();
     this.appView = appView;
-    this.decoder = appView.protoShrinker().decoder;
-    this.factory = appView.protoShrinker().factory;
-    this.references = appView.protoShrinker().references;
+    this.decoder = protoShrinker.decoder;
+    this.factory = protoShrinker.factory;
+    this.references = protoShrinker.references;
   }
 
   /**

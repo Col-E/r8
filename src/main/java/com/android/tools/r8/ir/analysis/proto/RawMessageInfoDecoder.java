@@ -8,9 +8,11 @@ import static com.android.tools.r8.ir.analysis.proto.ProtoUtils.getInfoValueFrom
 import static com.android.tools.r8.ir.analysis.proto.ProtoUtils.getObjectsValueFromMessageInfoConstructionInvoke;
 
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.ir.analysis.proto.schema.DeadProtoFieldObject;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoFieldInfo;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoFieldObject;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoFieldType;
@@ -119,24 +121,18 @@ public class RawMessageInfoDecoder {
       ThrowingIterator<Value, InvalidRawMessageInfoException> objectIterator =
           createObjectIterator(objectsValue);
 
-      if (numberOfOneOfObjects > 0) {
-        builder.setNumberOfOneOfObjects(numberOfOneOfObjects);
-        for (int i = 0; i < numberOfOneOfObjects; i++) {
-          builder.addOneOfObject(
-              createProtoObject(
-                  objectIterator.computeNextIfAbsent(this::invalidObjectsFailure), context),
-              createProtoObject(
-                  objectIterator.computeNextIfAbsent(this::invalidObjectsFailure), context));
-        }
+      for (int i = 0; i < numberOfOneOfObjects; i++) {
+        builder.addOneOfObject(
+            createProtoObject(
+                objectIterator.computeNextIfAbsent(this::invalidObjectsFailure), context),
+            createProtoObject(
+                objectIterator.computeNextIfAbsent(this::invalidObjectsFailure), context));
       }
 
-      if (numberOfHasBitsObjects > 0) {
-        builder.setNumberOfHasBitsObjects(numberOfHasBitsObjects);
-        for (int i = 0; i < numberOfHasBitsObjects; i++) {
-          builder.addHasBitsObject(
-              createProtoObject(
-                  objectIterator.computeNextIfAbsent(this::invalidObjectsFailure), context));
-        }
+      for (int i = 0; i < numberOfHasBitsObjects; i++) {
+        builder.addHasBitsObject(
+            createProtoObject(
+                objectIterator.computeNextIfAbsent(this::invalidObjectsFailure), context));
       }
 
       boolean isProto2 = (flags & IS_PROTO_2_MASK) != 0;
@@ -193,6 +189,9 @@ public class RawMessageInfoDecoder {
         if (field != null) {
           return new ProtoFieldObject(field);
         }
+        // This const-string refers to a field that no longer exists. In this case, we create a
+        // special dead-object instead of failing with an InvalidRawMessageInfoException below.
+        return new DeadProtoFieldObject(context.type, constString.getValue());
       } else if (definition.isDexItemBasedConstString()) {
         DexItemBasedConstString constString = definition.asDexItemBasedConstString();
         DexReference reference = constString.getItem();
@@ -200,7 +199,14 @@ public class RawMessageInfoDecoder {
         if (reference.isDexField()
             && nameComputationInfo.isFieldNameComputationInfo()
             && nameComputationInfo.asFieldNameComputationInfo().isForFieldName()) {
-          return new ProtoFieldObject(reference.asDexField());
+          DexField field = reference.asDexField();
+          DexEncodedField encodedField = context.lookupInstanceField(field);
+          if (encodedField != null) {
+            return new ProtoFieldObject(field);
+          }
+          // This const-string refers to a field that no longer exists. In this case, we create a
+          // special dead-object instead of failing with an InvalidRawMessageInfoException below.
+          return new DeadProtoFieldObject(context.type, field.name);
         }
       } else if (definition.isInvokeStatic()) {
         InvokeStatic invoke = definition.asInvokeStatic();

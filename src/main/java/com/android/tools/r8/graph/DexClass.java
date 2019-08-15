@@ -526,17 +526,6 @@ public abstract class DexClass extends DexDefinition {
     return true;
   }
 
-  public DexEncodedField[] allFieldsSorted() {
-    int iLen = instanceFields.length;
-    int sLen = staticFields.length;
-    DexEncodedField[] result = new DexEncodedField[iLen + sLen];
-    System.arraycopy(instanceFields, 0, result, 0, iLen);
-    System.arraycopy(staticFields, 0, result, iLen, sLen);
-    Arrays.sort(result,
-        (DexEncodedField a, DexEncodedField b) -> a.field.slowCompareTo(b.field));
-    return result;
-  }
-
   /** Find static field in this class matching {@param field}. */
   public DexEncodedField lookupStaticField(DexField field) {
     return lookupTarget(staticFields, field);

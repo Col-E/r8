@@ -39,11 +39,6 @@ public class Proto3ShrinkingTest extends ProtoShrinkingTestBase {
         .addProgramFiles(PROTO3_EXAMPLES_JAR, PROTO3_PROTO_JAR, PROTOBUF_LITE_JAR)
         .addKeepMainRule("proto3.TestClass")
         .addKeepRules(
-            // TODO(b/112437944): Do not remove proto fields that are actually used in tree shaking.
-            "-keepclassmembers,allowobfuscation class * extends",
-            "    com.google.protobuf.GeneratedMessageLite {",
-            "  <fields>;",
-            "}",
             allowAccessModification ? "-allowaccessmodification" : "")
         .addKeepRuleFiles(PROTOBUF_LITE_PROGUARD_RULES)
         .addOptionsModification(

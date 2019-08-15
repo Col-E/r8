@@ -50,4 +50,9 @@ public class ProtoFieldObject extends ProtoObject {
   public ProtoFieldObject asProtoFieldObject() {
     return this;
   }
+
+  @Override
+  public String toString() {
+    return "ProtoFieldObject(" + field.toSourceString() + ")";
+  }
 }
