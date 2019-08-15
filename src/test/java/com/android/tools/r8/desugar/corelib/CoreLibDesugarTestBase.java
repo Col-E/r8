@@ -5,11 +5,12 @@
 package com.android.tools.r8.desugar.corelib;
 
 import static junit.framework.TestCase.assertEquals;
+import static junit.framework.TestCase.assertTrue;
 
-import com.android.tools.r8.L8;
 import com.android.tools.r8.L8Command;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.origin.Origin;
@@ -59,9 +60,14 @@ public class CoreLibDesugarTestBase extends TestBase {
       throws RuntimeException {
     // We wrap exceptions in a RuntimeException to call this from a lambda.
     try {
+      // If we compile extended library here, it means we use TestNG.
+      // TestNG requires annotations, hence we disable AnnotationRemoval.
+      // This implies that extra warning are generated if this is set.
+      boolean disableL8AnnotationRemovalForTesting = !additionalProgramFiles.isEmpty();
+      TestDiagnosticMessagesImpl diagnosticsHandler = new TestDiagnosticMessagesImpl();
       Path desugaredLib = temp.newFolder().toPath().resolve("desugar_jdk_libs_dex.zip");
       L8Command.Builder l8Builder =
-          L8Command.builder()
+          L8Command.builder(diagnosticsHandler)
               .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
               .addProgramFiles(ToolHelper.getDesugarJDKLibs())
               .addProgramFiles(additionalProgramFiles)
@@ -72,7 +78,23 @@ public class CoreLibDesugarTestBase extends TestBase {
         l8Builder.addProguardConfiguration(
             Arrays.asList(keepRules.split(System.lineSeparator())), Origin.unknown());
       }
-      L8.run(l8Builder.build());
+      ToolHelper.runL8(
+          l8Builder.build(),
+          options -> {
+            if (disableL8AnnotationRemovalForTesting) {
+              options.testing.disableL8AnnotationRemoval = true;
+            }
+          });
+      if (!disableL8AnnotationRemovalForTesting) {
+        assertTrue(
+            diagnosticsHandler.getInfos().stream()
+                .noneMatch(
+                    string ->
+                        string
+                            .getDiagnosticMessage()
+                            .startsWith(
+                                "Invalid parameter counts in MethodParameter attributes.")));
+      }
       return desugaredLib;
     } catch (Exception e) {
       throw new RuntimeException(e);

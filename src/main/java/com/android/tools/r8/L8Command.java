@@ -224,7 +224,7 @@ public final class L8Command extends BaseCompilerCommand {
 
       if (isShrinking()) {
         R8Command.Builder r8Builder =
-            R8Command.builder()
+            R8Command.builder(getReporter())
                 .addProgramResourceProvider(desugaredLibrary)
                 .setMinApiLevel(getMinApiLevel())
                 // We disable minification in Core libraries since it breaks class initialization
@@ -245,7 +245,7 @@ public final class L8Command extends BaseCompilerCommand {
         r8Command = r8Builder.makeCommand();
       } else {
         D8Command.Builder d8Builder =
-            D8Command.builder()
+            D8Command.builder(getReporter())
                 .addProgramResourceProvider(desugaredLibrary)
                 .setMinApiLevel(getMinApiLevel())
                 .setMode(getMode())

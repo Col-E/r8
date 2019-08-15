@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.naming.PrefixRewritingNamingLens;
+import com.android.tools.r8.shaking.AnnotationRemover;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -34,21 +35,34 @@ public class L8 {
    * @param command L8 command.
    */
   public static void run(L8Command command) throws CompilationFailedException {
-    ExecutorService executor =
-        ThreadUtils.getExecutorService(command.getInternalOptions().numberOfThreads);
+    runForTesting(
+        command.getInputApp(),
+        command.getInternalOptions(),
+        command.isShrinking(),
+        command.getD8Command(),
+        command.getR8Command());
+  }
+
+  static void runForTesting(
+      AndroidApp app,
+      InternalOptions options,
+      boolean shrink,
+      D8Command d8Command,
+      R8Command r8Command)
+      throws CompilationFailedException {
+    ExecutorService executor = ThreadUtils.getExecutorService(options);
     try {
       ExceptionUtils.withD8CompilationHandler(
-          command.getReporter(),
+          options.reporter,
           () -> {
-            desugar(command.getInputApp(), command.getInternalOptions(), executor);
+            desugar(app, options, executor);
           });
-      if (command.isShrinking()) {
-        command
-            .getReporter()
-            .warning(new StringDiagnostic("Shrinking of desugared library is work in progress."));
-        R8.run(command.getR8Command(), executor);
+      if (shrink) {
+        options.reporter.warning(
+            new StringDiagnostic("Shrinking of desugared library is work in progress."));
+        R8.run(r8Command, executor);
       } else {
-        D8.run(command.getD8Command(), executor);
+        D8.run(d8Command, executor);
       }
     } finally {
       executor.shutdown();
@@ -68,6 +82,9 @@ public class L8 {
       AppView<?> appView = AppView.createForL8(appInfo, options);
       IRConverter converter = new IRConverter(appView, timing);
 
+      if (!options.testing.disableL8AnnotationRemoval) {
+        AnnotationRemover.clearAnnotations(appView);
+      }
       app = converter.convert(app, executor);
       assert appView.appInfo() == appInfo;
 

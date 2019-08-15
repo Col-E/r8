@@ -1072,6 +1072,18 @@ public class ToolHelper {
     return compatSink.build();
   }
 
+  public static void runL8(L8Command command, Consumer<InternalOptions> optionsModifier)
+      throws CompilationFailedException {
+    InternalOptions internalOptions = command.getInternalOptions();
+    optionsModifier.accept(internalOptions);
+    L8.runForTesting(
+        command.getInputApp(),
+        internalOptions,
+        command.isShrinking(),
+        command.getD8Command(),
+        command.getR8Command());
+  }
+
   public static void addFilteredAndroidJar(BaseCommand.Builder builder, AndroidApiLevel apiLevel) {
     addFilteredAndroidJar(getAppBuilder(builder), apiLevel);
   }
@@ -1204,10 +1216,10 @@ public class ToolHelper {
     }
     if (classPath != null) {
       cmdline.add("-cp");
-      if (isWindows()){
-        cmdline.add(String.join(";",classPath));
+      if (isWindows()) {
+        cmdline.add(String.join(";", classPath));
       } else {
-        cmdline.add(String.join(":",classPath));
+        cmdline.add(String.join(":", classPath));
       }
     }
     cmdline.add("-d");
@@ -1434,8 +1446,11 @@ public class ToolHelper {
     assert headSha1 != null;
 
     return Files.createDirectories(
-         Paths.get(destDir.getAbsolutePath(), headSha1, testClassName, testName + "-" + String
-             .format("%03d", testOutputPathIndex)));
+        Paths.get(
+            destDir.getAbsolutePath(),
+            headSha1,
+            testClassName,
+            testName + "-" + String.format("%03d", testOutputPathIndex)));
   }
 
   private static List<File> unzipDexFilesArchive(File zipFile) throws IOException {

@@ -8,6 +8,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationElement;
+import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedAnnotation;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -349,6 +350,18 @@ public class AnnotationRemover {
       // reflection. (Note that clearing these attributes can enable more vertical class merging.)
       clazz.clearEnclosingMethod();
       clazz.clearInnerClasses();
+    }
+  }
+
+  public static void clearAnnotations(AppView<?> appView) {
+    for (DexProgramClass clazz : appView.appInfo().classes()) {
+      clazz.annotations = DexAnnotationSet.empty();
+      for (DexEncodedMethod method : clazz.methods()) {
+        method.annotations = DexAnnotationSet.empty();
+      }
+      for (DexEncodedField field : clazz.fields()) {
+        field.annotations = DexAnnotationSet.empty();
+      }
     }
   }
 }
