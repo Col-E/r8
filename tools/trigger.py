@@ -105,8 +105,7 @@ def Main():
     builders = [options.builder]
   if options.desugar:
     builders = [DESUGAR_BOT]
-    trigger_builders(
-        builders, git_utils.GetHeadRevision(utils.REPO_ROOT, use_master=True))
+    commit = git_utils.GetHeadRevision(utils.REPO_ROOT, use_master=True)
   if options.cl:
     trigger_cl(builders, options.cl)
   else:
