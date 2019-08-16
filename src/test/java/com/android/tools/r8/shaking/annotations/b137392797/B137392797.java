@@ -10,10 +10,10 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import java.util.Collection;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -29,14 +29,17 @@ import org.objectweb.asm.Type;
 public class B137392797 extends TestBase implements Opcodes {
 
   private final TestParameters parameters;
+  private final boolean defaultEnumValueInAnnotation;
 
-  @Parameterized.Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+  @Parameterized.Parameters(name = "Backend: {0}, default value in annotation: {1}")
+  public static Collection<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withAllRuntimes().withAllApiLevels().build(), BooleanUtils.values());
   }
 
-  public B137392797(TestParameters parameters) {
+  public B137392797(TestParameters parameters, boolean defaultEnumValueInAnnotation) {
     this.parameters = parameters;
+    this.defaultEnumValueInAnnotation = defaultEnumValueInAnnotation;
   }
 
   private void checkEnumUses(CodeInspector inspector) {
@@ -45,24 +48,26 @@ public class B137392797 extends TestBase implements Opcodes {
     // Only 2 of the 5 enum values are actually used:
     //   * REQUIRED: annotation for Test.field1
     //   * OPTIONAL: default value of WireField.label
-    // One more: values[]
-    assertEquals(3, classSubject.allFields().size());
+    // When generating class file the field values[] is also present as values() is kept.
+    assertEquals(
+        parameters.isCfRuntime() && defaultEnumValueInAnnotation ? 3 : 2,
+        classSubject.allFields().size());
+    // Methods <clinit>, <init> always present. values() present if generating class file.
+    assertEquals(
+        parameters.isCfRuntime() && defaultEnumValueInAnnotation ? 3 : 2,
+        classSubject.allMethods().size());
   }
 
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .addProgramClassFileData(classWireField(), classWireFieldLabel(), classTest())
+        .addProgramClassFileData(
+            classWireField(defaultEnumValueInAnnotation),
+            classWireFieldLabel(),
+            classTest(defaultEnumValueInAnnotation))
         .addProgramClasses(TestClass.class)
         .addKeepClassAndMembersRules(
-            "com.squareup.wire.WireField",
-            "com.squareup.demo.myapplication.Test")
-        // TODO(b/138156533): Need to trace enum values() if an instance is used as default value
-        //   for an annotation field.
-        .addKeepRules(StringUtils.lines(
-            "-keepclassmembers class com.squareup.wire.WireField$Label {",
-            "  public static *** values();",
-            "}"))
+            "com.squareup.wire.WireField", "com.squareup.demo.myapplication.Test")
         .addKeepMainRule(TestClass.class)
         .addKeepAttributes("*Annotation*")
         .setMinApi(parameters.getRuntime())
@@ -133,7 +138,7 @@ public class B137392797 extends TestBase implements Opcodes {
    )
 
   */
-  public static byte[] classWireField() throws Exception {
+  public static byte[] classWireField(boolean defaultEnumValueInAnnotation) throws Exception {
 
     ClassWriter classWriter = new ClassWriter(0);
     MethodVisitor methodVisitor;
@@ -220,9 +225,11 @@ public class B137392797 extends TestBase implements Opcodes {
               null,
               null);
       {
-        annotationVisitor0 = methodVisitor.visitAnnotationDefault();
-        annotationVisitor0.visitEnum(null, "Lcom/squareup/wire/WireField$Label;", "OPTIONAL");
-        annotationVisitor0.visitEnd();
+        if (defaultEnumValueInAnnotation) {
+          annotationVisitor0 = methodVisitor.visitAnnotationDefault();
+          annotationVisitor0.visitEnum(null, "Lcom/squareup/wire/WireField$Label;", "OPTIONAL");
+          annotationVisitor0.visitEnd();
+        }
       }
       methodVisitor.visitEnd();
     }
@@ -637,7 +644,7 @@ public class B137392797 extends TestBase implements Opcodes {
     return classWriter.toByteArray();
   }
 
-  public static byte[] classTest() throws Exception {
+  public static byte[] classTest(boolean defaultEnumValueInAnnotation) throws Exception {
 
     ClassWriter classWriter = new ClassWriter(0);
     FieldVisitor fieldVisitor;
@@ -691,6 +698,9 @@ public class B137392797 extends TestBase implements Opcodes {
         annotationVisitor0 = fieldVisitor.visitAnnotation("Lcom/squareup/wire/WireField;", true);
         annotationVisitor0.visit("tag", new Integer(1));
         annotationVisitor0.visit("adapter", "com.squareup.wire.ProtoAdapter#STRING");
+        if (!defaultEnumValueInAnnotation) {
+          annotationVisitor0.visitEnum("label", "Lcom/squareup/wire/WireField$Label;", "OPTIONAL");
+        }
         annotationVisitor0.visitEnd();
       }
       {

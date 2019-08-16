@@ -1692,7 +1692,7 @@ public class Enqueuer {
     DexEncodedMethod valuesMethod = clazz.lookupMethod(generatedEnumValuesMethod(clazz));
     if (valuesMethod != null) {
       // TODO(sgjesse): Does this have to be enqueued as a root item? Right now it is done as the
-      // marking of not renaming it in the root set.
+      // marking for not renaming it is in the root set.
       enqueueRootItem(valuesMethod, reason);
       rootSet.shouldNotBeMinified(valuesMethod.toReference());
     }
@@ -2625,6 +2625,15 @@ public class Enqueuer {
             return false;
           }
           markStaticFieldAsLive(field, KeepReason.referencedInAnnotation(annotationHolder));
+          // When an annotation has a field of an enum type with a default value then Java VM
+          // will use the values() method on that enum class.
+          if (options.isGeneratingClassFiles()
+              && annotationHolder == dexItemFactory.annotationDefault) {
+            DexClass clazz = appView.definitionFor(field.type);
+            if (clazz != null && clazz.isProgramClass() && clazz.accessFlags.isEnum()) {
+              markEnumValuesAsReachable(clazz, KeepReason.referencedInAnnotation(annotationHolder));
+            }
+          }
         }
       } else {
         target = holder.lookupInstanceField(field);
