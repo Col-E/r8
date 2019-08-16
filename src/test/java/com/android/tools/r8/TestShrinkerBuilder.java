@@ -157,6 +157,13 @@ public abstract class TestShrinkerBuilder<
     return self();
   }
 
+  public T allowAccessModification(boolean allowAccessModification) {
+    if (allowAccessModification) {
+      return addKeepRules("-allowaccessmodification");
+    }
+    return self();
+  }
+
   public T addKeepAttributes(String... attributes) {
     return addKeepRules("-keepattributes " + String.join(",", attributes));
   }

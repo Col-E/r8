@@ -1094,14 +1094,24 @@ public class TestBase {
   }
 
   protected long countCall(MethodSubject method, String className, String methodName) {
-    return Streams.stream(method.iterateInstructions(instructionSubject -> {
+    return method.streamInstructions().filter(instructionSubject -> {
       if (instructionSubject.isInvoke()) {
         DexMethod invokedMethod = instructionSubject.getMethod();
         return invokedMethod.holder.toString().contains(className)
             && invokedMethod.name.toString().contains(methodName);
       }
       return false;
-    })).count();
+    }).count();
+  }
+
+  protected long countCall(MethodSubject method, String methodName) {
+    return method.streamInstructions().filter(instructionSubject -> {
+      if (instructionSubject.isInvoke()) {
+        DexMethod invokedMethod = instructionSubject.getMethod();
+        return invokedMethod.name.toString().contains(methodName);
+      }
+      return false;
+    }).count();
   }
 
   public enum MinifyMode {
