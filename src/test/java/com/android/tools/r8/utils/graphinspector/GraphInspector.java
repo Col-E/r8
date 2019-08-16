@@ -46,6 +46,8 @@ public class GraphInspector {
     public static final EdgeKindPredicate invokedFrom = new EdgeKindPredicate(EdgeKind.InvokedFrom);
     public static final EdgeKindPredicate reflectedFrom =
         new EdgeKindPredicate(EdgeKind.ReflectiveUseFrom);
+    public static final EdgeKindPredicate isLibraryMethod =
+        new EdgeKindPredicate(EdgeKind.IsLibraryMethod);
 
     private final EdgeKind edgeKind;
 
@@ -130,6 +132,8 @@ public class GraphInspector {
     public abstract boolean isReflectedFrom(MethodReference method);
 
     public abstract boolean isKeptBy(QueryNode node);
+
+    public abstract boolean isKeptByLibraryMethod(QueryNode node);
 
     public abstract boolean isSatisfiedBy(QueryNode node);
 
@@ -226,6 +230,17 @@ public class GraphInspector {
       return this;
     }
 
+    public QueryNode assertKeptByLibraryMethod(QueryNode node) {
+      assertTrue(
+          "Invalid call to assertKeptBy with: " + node.getNodeDescription(), node.isPresent());
+      assertTrue(
+          errorMessage(
+              "kept by library method on " + node.getNodeDescription(),
+              "was not kept by a library method"),
+          isKeptByLibraryMethod(node));
+      return this;
+    }
+
     public abstract String getKeptGraphString();
   }
 
@@ -290,6 +305,12 @@ public class GraphInspector {
     @Override
     public boolean isKeptBy(QueryNode node) {
       fail("Invalid call to isKeptBy on " + getNodeDescription());
+      throw new Unreachable();
+    }
+
+    @Override
+    public boolean isKeptByLibraryMethod(QueryNode node) {
+      fail("Invalid call to isKeptByLibrary on " + getNodeDescription());
       throw new Unreachable();
     }
 
@@ -386,6 +407,20 @@ public class GraphInspector {
       }
       QueryNodeImpl impl = (QueryNodeImpl) node;
       return filterSources((source, infos) -> impl.graphNode == source).findFirst().isPresent();
+    }
+
+    @Override
+    public boolean isKeptByLibraryMethod(QueryNode node) {
+      assert graphNode instanceof MethodGraphNode;
+      if (!(node instanceof QueryNodeImpl)) {
+        return false;
+      }
+      QueryNodeImpl impl = (QueryNodeImpl) node;
+      return filterSources(
+              (source, infos) ->
+                  impl.graphNode == source && EdgeKindPredicate.isLibraryMethod.test(infos))
+          .findFirst()
+          .isPresent();
     }
 
     @Override

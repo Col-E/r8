@@ -67,8 +67,8 @@ public abstract class KeepReason {
     return new InvokedFromLambdaCreatedIn(method);
   }
 
-  public static KeepReason isLibraryMethod() {
-    return IsLibraryMethod.getInstance();
+  public static KeepReason isLibraryMethod(DexType implementer, DexType libraryType) {
+    return new IsLibraryMethod(implementer, libraryType);
   }
 
   public static KeepReason fieldReferencedIn(DexEncodedMethod method) {
@@ -350,14 +350,14 @@ public abstract class KeepReason {
     }
   }
 
-  private static class IsLibraryMethod extends KeepReason {
+  public static class IsLibraryMethod extends KeepReason {
 
-    private static final IsLibraryMethod instance = new IsLibraryMethod();
+    private final DexType implementer;
+    private final DexType libraryType;
 
-    private IsLibraryMethod() {}
-
-    public static IsLibraryMethod getInstance() {
-      return instance;
+    private IsLibraryMethod(DexType implementer, DexType libraryType) {
+      this.implementer = implementer;
+      this.libraryType = libraryType;
     }
 
     @Override
@@ -367,7 +367,7 @@ public abstract class KeepReason {
 
     @Override
     public GraphNode getSourceNode(Enqueuer enqueuer) {
-      return null;
+      return enqueuer.getClassGraphNode(implementer);
     }
   }
 

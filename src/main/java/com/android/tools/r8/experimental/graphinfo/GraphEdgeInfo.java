@@ -72,7 +72,8 @@ public class GraphEdgeInfo {
       case ReferencedInAnnotation:
         return "referenced in annotation";
       case IsLibraryMethod:
-        return "defined in library";
+        // TODO(b/120959039): It would be good to also surface the defining library type.
+        return "defined in library method overridden by";
       case MethodHandleUseFrom:
         return "referenced by method handle";
       default:
