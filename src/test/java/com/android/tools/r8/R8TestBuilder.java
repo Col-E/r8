@@ -98,8 +98,7 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
         box.proguardConfiguration,
         box.syntheticProguardRules,
         proguardMapBuilder.toString(),
-        graphConsumer,
-        null);
+        graphConsumer);
   }
 
   public Builder getBuilder() {

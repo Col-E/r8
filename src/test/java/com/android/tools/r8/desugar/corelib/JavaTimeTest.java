@@ -55,15 +55,21 @@ public class JavaTimeTest extends CoreLibDesugarTestBase {
 
   @Test
   public void testTimeD8() throws Exception {
+    Box<String> keepRulesHolder = new Box<>("");
     testForD8()
         .addInnerClasses(JavaTimeTest.class)
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel())
+        .addOptionsModification(
+            options ->
+                options.testing.desugaredLibraryKeepRuleConsumer =
+                    (string, handler) -> keepRulesHolder.set(keepRulesHolder.get() + string))
         .compile()
         .inspect(this::checkRewrittenInvokes)
         .addDesugaredCoreLibraryRunClassPath(
             this::buildDesugaredLibrary,
             parameters.getApiLevel(),
+            keepRulesHolder.get(),
             shrinkCoreLibrary)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(expectedOutput);
@@ -71,16 +77,22 @@ public class JavaTimeTest extends CoreLibDesugarTestBase {
 
   @Test
   public void testTimeR8() throws Exception {
+    Box<String> keepRulesHolder = new Box<>("");
     testForR8(parameters.getBackend())
         .addInnerClasses(JavaTimeTest.class)
         .addKeepMainRule(TestClass.class)
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel())
+        .addOptionsModification(
+            options ->
+                options.testing.desugaredLibraryKeepRuleConsumer =
+                    (string, handler) -> keepRulesHolder.set(keepRulesHolder.get() + string))
         .compile()
         .inspect(this::checkRewrittenInvokes)
         .addDesugaredCoreLibraryRunClassPath(
             this::buildDesugaredLibrary,
             parameters.getApiLevel(),
+            keepRulesHolder.get(),
             shrinkCoreLibrary)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(expectedOutput);

@@ -6,13 +6,10 @@ package com.android.tools.r8;
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.Box;
 
 public class D8TestCompileResult extends TestCompileResult<D8TestCompileResult, D8TestRunResult> {
-
-  D8TestCompileResult(
-      TestState state, AndroidApp app, OutputMode outputMode, Box<String> keepRulesHolder) {
-    super(state, app, outputMode, keepRulesHolder);
+  D8TestCompileResult(TestState state, AndroidApp app, OutputMode outputMode) {
+    super(state, app, outputMode);
     assert ToolHelper.verifyValidOutputMode(Backend.DEX, outputMode);
   }
 

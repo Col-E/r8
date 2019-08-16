@@ -8,35 +8,29 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import java.util.List;
 import java.util.function.Function;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class JavaUtilFunctionTest extends CoreLibDesugarTestBase {
 
   private final TestParameters parameters;
-  private final boolean shrinkCoreLibrary;
-  private static final String expectedOutput = StringUtils.lines("Hello, world", "Hello, world");
 
-  @Parameters(name = "{1}, shrinkCoreLibrary: {0}")
-  public static List<Object[]> data() {
-    return buildParameters(
-        BooleanUtils.values(), getTestParameters().withDexRuntimes().withAllApiLevels().build());
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
   }
 
-  public JavaUtilFunctionTest(boolean shrinkDesugaredLibrary, TestParameters parameters) {
-    this.shrinkCoreLibrary = shrinkDesugaredLibrary;
+  public JavaUtilFunctionTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
@@ -59,42 +53,22 @@ public class JavaUtilFunctionTest extends CoreLibDesugarTestBase {
   }
 
   @Test
-  public void testJavaUtilFunctionD8() throws Exception {
+  public void testJavaUtilFunction() throws Exception {
+    String expectedOutput = StringUtils.lines("Hello, world", "Hello, world");
     testForD8()
         .addInnerClasses(JavaUtilFunctionTest.class)
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(parameters.getApiLevel())
+        .enableCoreLibraryDesugaring()
         .compile()
         .inspect(this::checkRewrittenArguments)
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibrary, parameters.getApiLevel(), shrinkCoreLibrary)
-        .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutput(expectedOutput);
-  }
-
-  @Test
-  public void testJavaUtilFunctionR8() throws Exception {
-    // TODO(b/139398549): Enable test on API 26+.
-    Assume.assumeTrue(parameters.getApiLevel().getLevel() < 26);
-    testForR8(parameters.getBackend())
-        // Following two for checkRewrittenArguments.
-        .enableInliningAnnotations()
-        .noMinification()
-        .addKeepMainRule(TestClass.class)
-        .addInnerClasses(JavaUtilFunctionTest.class)
-        .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(parameters.getApiLevel())
-        .compile()
-        .inspect(this::checkRewrittenArguments)
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibrary, parameters.getApiLevel(), shrinkCoreLibrary)
+        .addRunClasspathFiles(buildDesugaredLibrary(parameters.getApiLevel()))
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(expectedOutput);
   }
 
   static class TestClass {
 
-    @NeverInline
     private static String applyFunction(Function<String, String> f) {
       return f.apply("Hello, world");
     }
