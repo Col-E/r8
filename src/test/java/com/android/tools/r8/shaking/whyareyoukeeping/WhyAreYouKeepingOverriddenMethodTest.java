@@ -3,7 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking.whyareyoukeeping;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
@@ -38,8 +39,8 @@ public class WhyAreYouKeepingOverriddenMethodTest extends TestBase {
     this.minification = minification;
   }
 
-  private void testViaConfig(
-      Class<?> main, Class<?> targetClass, Class<?> subClass, boolean isExtends) throws Exception {
+  private void testViaConfig(Class<?> main, Class<?> targetClass, Class<?> subClass)
+      throws Exception {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     testForR8(Backend.DEX)
         .addInnerClasses(WhyAreYouKeepingOverriddenMethodTest.class)
@@ -55,11 +56,7 @@ public class WhyAreYouKeepingOverriddenMethodTest extends TestBase {
         .redirectStdOut(new PrintStream(baos))
         .compile();
     String output = new String(baos.toByteArray(), StandardCharsets.UTF_8);
-    assertEquals(
-        isExtends
-            ? expectedMessageForConfig_extends(main, targetClass, subClass)
-            : expectedMessageForConfig_implements(main, targetClass, subClass),
-        output);
+    assertThat(output, containsString(expectedMessage(main, targetClass, subClass)));
   }
 
   private void testViaConsumer(
@@ -77,57 +74,30 @@ public class WhyAreYouKeepingOverriddenMethodTest extends TestBase {
         .compile();
 
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    PrintStream printStream = new PrintStream(baos);
     graphConsumer.printWhyAreYouKeeping(
-        Reference.methodFromMethod(targetClass.getMethod("gone")), new PrintStream(baos));
+        Reference.methodFromMethod(targetClass.getMethod("gone")), printStream);
+    graphConsumer.printWhyAreYouKeeping(
+        Reference.methodFromMethod(subClass.getMethod("gone")), printStream);
     String output = new String(baos.toByteArray(), StandardCharsets.UTF_8);
-    assertEquals(expectedMessageForConsumer(main, targetClass, subClass), output);
+    assertThat(output, containsString(expectedMessage(main, targetClass, subClass)));
   }
 
   private static final String MAIN_SIG = "main(java.lang.String[])";
 
-  private String expectedMessageForConfig_extends(
-      Class<?> main, Class<?> targetClass, Class<?> subClass) {
+  private String expectedMessage(Class<?> main, Class<?> targetClass, Class<?> subClass) {
     return StringUtils.lines(
-        targetClass.getTypeName(),
-        "|- is reachable from:",
-        "|  " + subClass.getTypeName(),
-        "|- is instantiated in:",
-        "|  void " + main.getTypeName() + "." + MAIN_SIG,
-        "|- is referenced in keep rule:",
-        "|  -keep class " + main.getTypeName() + " { public static void " + MAIN_SIG + "; }",
         "Nothing is keeping void " + targetClass.getTypeName() + ".gone()",
         "void " + subClass.getTypeName() + ".gone()",
         "|- is invoked from:",
         "|  void " + main.getTypeName() + "." + MAIN_SIG,
         "|- is referenced in keep rule:",
-        "|  -keep class " + main.getTypeName() + " { public static void " + MAIN_SIG + "; }"
-    );
-  }
-
-  private String expectedMessageForConfig_implements(
-      Class<?> main, Class<?> targetClass, Class<?> subClass) {
-    return StringUtils.lines(
-        "Nothing is keeping " + targetClass.getTypeName(),
-        "Nothing is keeping void " + targetClass.getTypeName() + ".gone()",
-        "void " + subClass.getTypeName() + ".gone()",
-        "|- is invoked from:",
-        "|  void " + main.getTypeName() + "." + MAIN_SIG,
-        "|- is referenced in keep rule:",
-        "|  -keep class " + main.getTypeName() + " { public static void " + MAIN_SIG + "; }"
-    );
-  }
-
-  // TODO(b/120959039): This should be same as configuration output.
-  private String expectedMessageForConsumer(
-      Class<?> main, Class<?> targetClass, Class<?> subClass) {
-    return StringUtils.lines(
-        "Nothing is keeping void " + targetClass.getTypeName() + ".gone()"
-    );
+        "|  -keep class " + main.getTypeName() + " { public static void " + MAIN_SIG + "; }");
   }
 
   @Test
   public void testExtends_config() throws Exception {
-    testViaConfig(TestMain1.class, Base.class, Sub.class, true);
+    testViaConfig(TestMain1.class, Base.class, Sub.class);
   }
 
   @Test
@@ -137,7 +107,7 @@ public class WhyAreYouKeepingOverriddenMethodTest extends TestBase {
 
   @Test
   public void testImplements_config() throws Exception {
-    testViaConfig(TestMain2.class, Itf.class, Impl.class, false);
+    testViaConfig(TestMain2.class, Itf.class, Impl.class);
   }
 
   @Test
