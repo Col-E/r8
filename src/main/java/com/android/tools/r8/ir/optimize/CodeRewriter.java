@@ -37,6 +37,7 @@ import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.AlwaysMaterializingNop;
+import com.android.tools.r8.ir.code.ArrayLength;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.Assume;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -3738,6 +3739,41 @@ public class CodeRewriter {
       }
     }
 
+    assert code.isConsistentSSA();
+  }
+
+  public void rewriteKnownArrayLengthCalls(IRCode code) {
+    InstructionListIterator iterator = code.instructionListIterator();
+    while (iterator.hasNext()) {
+      Instruction current = iterator.next();
+      if (!current.isArrayLength()) {
+        continue;
+      }
+
+      ArrayLength arrayLength = current.asArrayLength();
+      if (arrayLength.hasOutValue() && arrayLength.outValue().hasLocalInfo()) {
+        continue;
+      }
+
+      Value array = arrayLength.array().getAliasedValue();
+      if (array.isPhi() || !array.isNeverNull() || array.hasLocalInfo()) {
+        continue;
+      }
+
+      Instruction arrayDefinition = array.getDefinition();
+      assert arrayDefinition != null;
+
+      if (arrayDefinition.isNewArrayEmpty()) {
+        Value size = arrayDefinition.asNewArrayEmpty().size();
+        arrayLength.outValue().replaceUsers(size);
+        iterator.removeOrReplaceByDebugLocalRead();
+      } else if (arrayDefinition.isNewArrayFilledData()) {
+        int size = (int) arrayDefinition.asNewArrayFilledData().size;
+        ConstNumber constSize = code.createIntConstant(size);
+        iterator.replaceCurrentInstruction(constSize);
+      }
+      // TODO(139489070): static-get of constant array
+    }
     assert code.isConsistentSSA();
   }
 

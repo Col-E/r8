@@ -1109,6 +1109,7 @@ public class IRConverter {
       codeRewriter.rewriteConstantEnumMethodCalls(code);
     }
 
+    codeRewriter.rewriteKnownArrayLengthCalls(code);
     codeRewriter.rewriteLongCompareAndRequireNonNull(code, options);
     codeRewriter.rewriteAssertionErrorTwoArgumentConstructor(code, options);
     codeRewriter.commonSubexpressionElimination(code);
