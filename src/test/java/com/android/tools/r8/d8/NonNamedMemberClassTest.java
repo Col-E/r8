@@ -44,11 +44,7 @@ public class NonNamedMemberClassTest extends TestBase {
     } else {
       result.assertOnlyInfos();
     }
-    result
-        .assertInfoMessageThatMatches(containsString("InnerClasses attributes are recovered"))
-        .assertInfoMessageThatMatches(containsString("inner: LWebContext$Companion;"))
-        .assertInfoMessageThatMatches(containsString("outer: LWebContext;"))
-        .assertInfoMessageThatMatches(containsString("innerName: (anonymous)"));
+    result.assertInfoMessageThatMatches(containsString("missing EnclosingMethod"));
   }
 
   // Compiled the following kt code:

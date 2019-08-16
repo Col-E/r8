@@ -423,12 +423,9 @@ public class JarClassFileReader {
         if (innerClassAttribute.isAnonymous()) {
           assert innerClassAttribute.getInnerName() == null;
           // If the enclosing member is not null, the intention would be an anonymous class, and
-          // thus the outer-class reference should have been null.
-          // If the enclosing member is null, it is likely due to the missing enclosing member, and
-          // we will warn that below. In either case, we can recover InnerClasses attribute by
-          // erasing the outer-class reference.
-          application.options.warningInvalidNonMemberClasses(
-              origin, enclosingMember, innerClassAttribute);
+          // thus the outer-class reference should have been null.  If the enclosing member is null,
+          // it is likely due to the missing enclosing member.  In either case, we can recover
+          // InnerClasses attribute by erasing the outer-class reference.
           InnerClassAttribute recoveredAttribute = new InnerClassAttribute(
               innerClassAttribute.getAccess(), innerClassAttribute.getInner(), null, null);
           clazz.replaceInnerClassAttributeForThisClass(recoveredAttribute);

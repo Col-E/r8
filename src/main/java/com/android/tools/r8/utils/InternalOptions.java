@@ -592,9 +592,6 @@ public class InternalOptions {
 
   private final Map<Origin, List<TypeVersionPair>> missingEnclosingMembers = new HashMap<>();
 
-  private final Map<Origin, InvalidNonMemberClassInfo> warningInvalidNonMemberClasses =
-      new HashMap<>();
-
   private final Map<Origin, List<InvalidParameterAnnotationInfo>> warningInvalidParameterAnnotations
       = new HashMap<>();
 
@@ -805,17 +802,6 @@ public class InternalOptions {
     }
   }
 
-  public void warningInvalidNonMemberClasses(
-      Origin origin,
-      EnclosingMethodAttribute enclosingMethodAttribute,
-      InnerClassAttribute innerClassAttribute) {
-    InvalidNonMemberClassInfo info =
-        new InvalidNonMemberClassInfo(enclosingMethodAttribute, innerClassAttribute);
-    synchronized (warningInvalidNonMemberClasses) {
-      warningInvalidNonMemberClasses.put(origin, info);
-    }
-  }
-
   public void warningInvalidParameterAnnotations(
       DexMethod method, Origin origin, int expected, int actual) {
     InvalidParameterAnnotationInfo info =
@@ -882,28 +868,14 @@ public class InternalOptions {
       printed = true;
       printOutdatedToolchain = true;
     }
-    if (warningInvalidNonMemberClasses.size() > 0) {
-      reporter.info(
-          new StringDiagnostic(
-              "A member class should not be a local or anonymous class at the same time."
-                  + " Such InnerClasses attributes are recovered."));
-      for (Origin origin : new TreeSet<>(warningInvalidNonMemberClasses.keySet())) {
-        StringBuilder builder =
-            new StringBuilder("Invalid EnclosingMethod/InnerClasses attributes:");
-        InvalidNonMemberClassInfo info = warningInvalidNonMemberClasses.get(origin);
-        builder.append(System.lineSeparator());
-        builder.append(info.toString());
-        reporter.info(new StringDiagnostic(builder.toString(), origin));
-      }
-      printed = true;
-    }
     if (missingEnclosingMembers.size() > 0) {
       reporter.info(
           new StringDiagnostic(
-              "InnerClass annotations are missing corresponding EnclosingMember annotations."
-                  + " Such InnerClass annotations are ignored."));
+              "InnerClasses attribute has entries missing a corresponding "
+                  + "EnclosingMethod attribute. "
+                  + "Such InnerClasses attribute entries are ignored."));
       for (Origin origin : new TreeSet<>(missingEnclosingMembers.keySet())) {
-        StringBuilder builder = new StringBuilder("Classes with missing enclosing members: ");
+        StringBuilder builder = new StringBuilder("Classes with missing EnclosingMethod: ");
         boolean first = true;
         for (TypeVersionPair pair : missingEnclosingMembers.get(origin)) {
           if (first) {
