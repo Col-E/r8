@@ -48,22 +48,16 @@ public class CustomCollectionTest extends CoreLibDesugarTestBase {
 
   @Test
   public void testCustomCollectionD8() throws Exception {
-    Box<String> keepRulesHolder = new Box<>("");
     D8TestRunResult d8TestRunResult =
         testForD8()
             .addInnerClasses(CustomCollectionTest.class)
             .setMinApi(parameters.getApiLevel())
-            .addOptionsModification(
-                options ->
-                    options.testing.desugaredLibraryKeepRuleConsumer =
-                        (string, handler) -> keepRulesHolder.set(keepRulesHolder.get() + string))
             .enableCoreLibraryDesugaring(parameters.getApiLevel())
             .compile()
             .inspect(inspector -> this.assertCustomCollectionCallsCorrect(inspector, false))
             .addDesugaredCoreLibraryRunClassPath(
                 this::buildDesugaredLibrary,
                 parameters.getApiLevel(),
-                keepRulesHolder.get(),
                 shrinkCoreLibrary)
             .run(parameters.getRuntime(), EXECUTOR)
             .assertSuccess();
@@ -82,23 +76,17 @@ public class CustomCollectionTest extends CoreLibDesugarTestBase {
 
   @Test
   public void testCustomCollectionR8() throws Exception {
-    Box<String> keepRulesHolder = new Box<>("");
     R8TestRunResult r8TestRunResult =
         testForR8(Backend.DEX)
             .addInnerClasses(CustomCollectionTest.class)
             .setMinApi(parameters.getApiLevel())
             .addKeepClassAndMembersRules(Executor.class)
-            .addOptionsModification(
-                options ->
-                    options.testing.desugaredLibraryKeepRuleConsumer =
-                        (string, handler) -> keepRulesHolder.set(keepRulesHolder.get() + string))
             .enableCoreLibraryDesugaring(parameters.getApiLevel())
             .compile()
             .inspect(inspector -> this.assertCustomCollectionCallsCorrect(inspector, true))
             .addDesugaredCoreLibraryRunClassPath(
                 this::buildDesugaredLibrary,
                 parameters.getApiLevel(),
-                keepRulesHolder.get(),
                 shrinkCoreLibrary)
             .run(parameters.getRuntime(), EXECUTOR)
             .assertSuccess();

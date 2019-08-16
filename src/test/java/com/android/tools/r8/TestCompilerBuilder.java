@@ -8,6 +8,7 @@ import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.base.Suppliers;
 import java.io.IOException;
@@ -43,6 +44,7 @@ public abstract class TestCompilerBuilder<
   private Consumer<InternalOptions> optionsConsumer = DEFAULT_OPTIONS;
   private PrintStream stdout = null;
   protected OutputMode outputMode = OutputMode.DexIndexed;
+  protected Box<String> keepRulesHolder;
 
   TestCompilerBuilder(TestState state, B builder, Backend backend) {
     super(state, builder);
@@ -276,6 +278,11 @@ public abstract class TestCompilerBuilder<
     if (minAPILevel.getLevel() < AndroidApiLevel.O.getLevel()) {
       builder.addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.O));
       builder.addSpecialLibraryConfiguration("default");
+      keepRulesHolder = new Box<>("");
+      this.addOptionsModification(
+          options ->
+              options.testing.desugaredLibraryKeepRuleConsumer =
+                  (string, handler) -> this.keepRulesHolder.set(keepRulesHolder.get() + string));
     }
     return self();
   }

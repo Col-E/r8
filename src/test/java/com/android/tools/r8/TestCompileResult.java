@@ -18,6 +18,7 @@ import com.android.tools.r8.debug.DexDebugTestConfig;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.TriFunction;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -47,11 +48,18 @@ public abstract class TestCompileResult<
   final List<String> vmArguments = new ArrayList<>();
   private boolean withArt6Plus64BitsLib = false;
   private boolean withArtFrameworks = true;
+  private final String desugaredLibraryKeepRules;
 
   TestCompileResult(TestState state, AndroidApp app, OutputMode outputMode) {
+    this(state, app, outputMode, null);
+  }
+
+  TestCompileResult(
+      TestState state, AndroidApp app, OutputMode outputMode, Box<String> keepRulesHolder) {
     super(state);
     this.app = app;
     this.outputMode = outputMode;
+    this.desugaredLibraryKeepRules = keepRulesHolder == null ? null : keepRulesHolder.get();
   }
 
   public final CR withArt6Plus64BitsLib() {
@@ -62,6 +70,10 @@ public abstract class TestCompileResult<
   public final CR withArtFrameworks() {
     withArtFrameworks = true;
     return self();
+  }
+
+  public String getDesugaredLibraryKeepRules() {
+    return desugaredLibraryKeepRules;
   }
 
   public final Backend getBackend() {
@@ -176,10 +188,9 @@ public abstract class TestCompileResult<
   public CR addDesugaredCoreLibraryRunClassPath(
       TriFunction<AndroidApiLevel, String, Boolean, Path> classPathSupplier,
       AndroidApiLevel minAPILevel,
-      String keepRules,
       boolean shrink) {
     if (minAPILevel.getLevel() < AndroidApiLevel.O.getLevel()) {
-      addRunClasspathFiles(classPathSupplier.apply(minAPILevel, keepRules, shrink));
+      addRunClasspathFiles(classPathSupplier.apply(minAPILevel, desugaredLibraryKeepRules, shrink));
     }
     return self();
   }

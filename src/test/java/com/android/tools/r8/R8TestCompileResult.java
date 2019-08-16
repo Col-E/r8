@@ -8,6 +8,7 @@ import com.android.tools.r8.shaking.CollectingGraphConsumer;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.graphinspector.GraphInspector;
 import java.io.IOException;
@@ -29,8 +30,9 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
       ProguardConfiguration proguardConfiguration,
       List<ProguardConfigurationRule> syntheticProguardRules,
       String proguardMap,
-      CollectingGraphConsumer graphConsumer) {
-    super(state, app, outputMode);
+      CollectingGraphConsumer graphConsumer,
+      Box<String> keepRulesHolder) {
+    super(state, app, outputMode, keepRulesHolder);
     this.proguardConfiguration = proguardConfiguration;
     this.syntheticProguardRules = syntheticProguardRules;
     this.proguardMap = proguardMap;
