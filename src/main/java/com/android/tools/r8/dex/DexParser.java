@@ -1238,7 +1238,7 @@ public class DexParser {
     DexString shorty = indexedItems.getString(shortyIndex);
     DexType returnType = indexedItems.getType(returnTypeIndex);
     DexTypeList parameters = typeListAt(parametersOffsetIndex);
-    return dexItemFactory.createProto(returnType, shorty, parameters);
+    return dexItemFactory.createProto(returnType, parameters, shorty);
   }
 
   private DexMethod methodAt(int index) {

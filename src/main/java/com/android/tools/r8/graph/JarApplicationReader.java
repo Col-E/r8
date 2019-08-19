@@ -118,10 +118,11 @@ public class JarApplicationReader {
     for (int i = 0; i < argumentDescriptors.length; i++) {
       shortyDescriptor.append(getShortyDescriptor(argumentDescriptors[i]));
     }
-    DexProto proto = options.itemFactory.createProto(
-        getTypeFromDescriptor(returnTypeDescriptor),
-        getString(shortyDescriptor.toString()),
-        getTypeListFromDescriptors(argumentDescriptors));
+    DexProto proto =
+        options.itemFactory.createProto(
+            getTypeFromDescriptor(returnTypeDescriptor),
+            getTypeListFromDescriptors(argumentDescriptors),
+            getString(shortyDescriptor.toString()));
     return proto;
   }
 

@@ -1203,7 +1203,7 @@ public class DexItemFactory {
     return createField(clazz, type, createString(name));
   }
 
-  public DexProto createProto(DexType returnType, DexString shorty, DexTypeList parameters) {
+  public DexProto createProto(DexType returnType, DexTypeList parameters, DexString shorty) {
     assert !sorted;
     DexProto proto = new DexProto(shorty, returnType, parameters);
     return canonicalize(protos, proto);
@@ -1211,8 +1211,10 @@ public class DexItemFactory {
 
   public DexProto createProto(DexType returnType, DexType... parameters) {
     assert !sorted;
-    return createProto(returnType, createShorty(returnType, parameters),
-        parameters.length == 0 ? DexTypeList.empty() : new DexTypeList(parameters));
+    return createProto(
+        returnType,
+        parameters.length == 0 ? DexTypeList.empty() : new DexTypeList(parameters),
+        createShorty(returnType, parameters));
   }
 
   public DexProto createProto(DexType returnType, List<DexType> parameters) {
