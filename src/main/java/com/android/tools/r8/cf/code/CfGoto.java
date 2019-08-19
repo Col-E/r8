@@ -35,6 +35,11 @@ public class CfGoto extends CfInstruction {
   }
 
   @Override
+  public boolean isJump() {
+    return true;
+  }
+
+  @Override
   public CfLabel getTarget() {
     return target;
   }

@@ -49,6 +49,11 @@ public class CfReturn extends CfInstruction {
   }
 
   @Override
+  public boolean isJump() {
+    return true;
+  }
+
+  @Override
   public void write(MethodVisitor visitor, NamingLens lens) {
     visitor.visitInsn(getOpcode());
   }

@@ -80,6 +80,11 @@ public class CfIf extends CfInstruction {
   }
 
   @Override
+  public boolean isJump() {
+    return true;
+  }
+
+  @Override
   public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
     int value = state.pop().register;
     int trueTargetOffset = code.getLabelOffset(target);

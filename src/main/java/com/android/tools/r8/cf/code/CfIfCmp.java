@@ -80,6 +80,11 @@ public class CfIfCmp extends CfInstruction {
   }
 
   @Override
+  public boolean isJump() {
+    return true;
+  }
+
+  @Override
   public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
     int right = state.pop().register;
     int left = state.pop().register;

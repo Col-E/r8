@@ -119,6 +119,12 @@ public abstract class CfInstruction {
     return false;
   }
 
+  /** Return true if this instruction is CfIf, CfIfCmp, CfSwitch, CfGoto, CfThrow,
+   * CfReturn or CfReturnVoid. */
+  public boolean isJump() {
+    return false;
+  }
+
   /** Return true if this instruction or its DEX equivalent can throw. */
   public boolean canThrow() {
     return false;

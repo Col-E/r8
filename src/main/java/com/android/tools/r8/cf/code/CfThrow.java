@@ -20,6 +20,11 @@ import org.objectweb.asm.Opcodes;
 public class CfThrow extends CfInstruction {
 
   @Override
+  public boolean isJump() {
+    return true;
+  }
+
+  @Override
   public void write(MethodVisitor visitor, NamingLens lens) {
     visitor.visitInsn(Opcodes.ATHROW);
   }

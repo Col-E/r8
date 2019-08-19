@@ -65,6 +65,11 @@ public class CfSwitch extends CfInstruction {
   }
 
   @Override
+  public boolean isJump() {
+    return true;
+  }
+
+  @Override
   public void write(MethodVisitor visitor, NamingLens lens) {
     Label[] labels = new Label[targets.size()];
     for (int i = 0; i < targets.size(); i++) {

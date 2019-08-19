@@ -101,7 +101,7 @@ public class ClassInitializerAssertionEnablingAnalysis extends EnqueuerAnalysis 
         }
       }
       // Only check initial straight line code.
-      if (isJumpInstruction(instruction)) {
+      if (instruction.isJump()) {
         return false;
       }
     }
@@ -150,11 +150,5 @@ public class ClassInitializerAssertionEnablingAnalysis extends EnqueuerAnalysis 
     return nextExpectedInstructionIndex == sequence.size()
         ? instruction.asFieldInstruction()
         : null;
-  }
-
-  private boolean isJumpInstruction(CfInstruction instruction) {
-    return instruction.isConditionalJump()
-        || instruction.isGoto()
-        || instruction.isSwitch();
   }
 }
