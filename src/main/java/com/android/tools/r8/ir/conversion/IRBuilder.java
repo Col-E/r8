@@ -391,6 +391,8 @@ public class IRBuilder {
   final RewrittenPrototypeDescription prototypeChanges;
   private ListIterator<RemovedArgumentInfo> removedArgumentsIterator;
   private int argumentCount = 0;
+  private Value receiverValue;
+  private List<Value> argumentValues;
 
   private List<Instruction> pendingArgumentInstructions;
 
@@ -472,6 +474,15 @@ public class IRBuilder {
 
   public Int2ReferenceSortedMap<BlockInfo> getCFG() {
     return targets;
+  }
+
+  public List<Value> getArgumentValues() {
+    assert pendingArgumentInstructions == null || pendingArgumentInstructions.isEmpty();
+    return argumentValues;
+  }
+
+  public Value getReceiverValue() {
+    return receiverValue;
   }
 
   private void addToWorklist(BasicBlock block, int firstInstructionIndex) {
@@ -834,16 +845,21 @@ public class IRBuilder {
     return null;
   }
 
-  public void addThisArgument(int register) {
+  void addThisArgument(int register) {
+    boolean receiverCouldBeNull = context != null && context != method;
+    Nullability nullability = receiverCouldBeNull ? maybeNull() : definitelyNotNull();
+    TypeLatticeElement receiverType =
+        TypeLatticeElement.fromDexType(method.method.holder, nullability, appView);
+    addThisArgument(register, receiverType);
+  }
+
+  public void addThisArgument(int register, TypeLatticeElement receiverType) {
     RemovedArgumentInfo removedArgumentInfo = getRemovedArgumentInfo();
     assert removedArgumentInfo == null; // Removal of receiver not yet supported.
     DebugLocalInfo local = getOutgoingLocal(register);
-    boolean receiverCouldBeNull = context != null && context != method;
-    Nullability nullability = receiverCouldBeNull ? maybeNull() : definitelyNotNull();
-    TypeLatticeElement receiver =
-        TypeLatticeElement.fromDexType(method.method.holder, nullability, appView);
-    Value value = writeRegister(register, receiver, ThrowingInfo.NO_THROW, local);
+    Value value = writeRegister(register, receiverType, ThrowingInfo.NO_THROW, local);
     addInstruction(new Argument(value, false));
+    receiverValue = value;
     value.markAsThis();
   }
 
@@ -852,7 +868,7 @@ public class IRBuilder {
     if (removedArgumentInfo == null) {
       DebugLocalInfo local = getOutgoingLocal(register);
       Value value = writeRegister(register, typeLattice, ThrowingInfo.NO_THROW, local);
-      addInstruction(new Argument(value, false));
+      addNonThisArgument(new Argument(value, false));
     } else {
       handleConstantOrUnusedArgument(register, removedArgumentInfo);
     }
@@ -863,11 +879,18 @@ public class IRBuilder {
     if (removedArgumentInfo == null) {
       DebugLocalInfo local = getOutgoingLocal(register);
       Value value = writeRegister(register, INT, ThrowingInfo.NO_THROW, local);
-
-      addInstruction(new Argument(value, true));
+      addNonThisArgument(new Argument(value, true));
     } else {
       assert removedArgumentInfo.isNeverUsed();
     }
+  }
+
+  private void addNonThisArgument(Argument argument) {
+    if (argumentValues == null) {
+      argumentValues = new ArrayList<>();
+    }
+    addInstruction(argument);
+    argumentValues.add(argument.outValue());
   }
 
   public void addConstantOrUnusedArgument(int register) {

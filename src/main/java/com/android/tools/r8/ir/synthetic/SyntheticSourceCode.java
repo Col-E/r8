@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.ir.synthetic;
 
-import static com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo.NO_THROW;
-
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexMethod;
@@ -13,10 +11,8 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
-import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.Position;
-import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.SourceCode;
@@ -40,10 +36,6 @@ public abstract class SyntheticSourceCode implements SourceCode {
   // Registers for receiver and parameters
   private final int receiverRegister;
   private int[] paramRegisters;
-  // Values representing receiver and parameters will be filled in
-  // buildPrelude() and should only be accessed via appropriate methods
-  private Value receiverValue;
-  private Value[] paramValues;
 
   // Instruction constructors
   private List<Consumer<IRBuilder>> constructors = new ArrayList<>();
@@ -68,7 +60,6 @@ public abstract class SyntheticSourceCode implements SourceCode {
     DexType[] params = proto.parameters.values;
     int paramCount = params.length;
     this.paramRegisters = new int[paramCount];
-    this.paramValues = new Value[paramCount];
     for (int i = 0; i < paramCount; i++) {
       this.paramRegisters[i] = nextRegister(ValueType.fromDexType(params[i]));
     }
@@ -91,26 +82,10 @@ public abstract class SyntheticSourceCode implements SourceCode {
     return value;
   }
 
-  protected final Value getReceiverValue() {
-    assert receiver != null;
-    assert receiverValue != null;
-    return receiverValue;
-  }
-
   protected final int getReceiverRegister() {
     assert receiver != null;
     assert receiverRegister >= 0;
     return receiverRegister;
-  }
-
-  protected final Value getParamValue(int paramIndex) {
-    assert paramIndex >= 0;
-    assert paramIndex < paramValues.length;
-    return paramValues[paramIndex];
-  }
-
-  protected final int getParamCount() {
-    return paramValues.length;
   }
 
   protected final int getParamRegister(int paramIndex) {
@@ -177,33 +152,22 @@ public abstract class SyntheticSourceCode implements SourceCode {
     constructors = null;
     traceEvents = null;
     paramRegisters = null;
-    paramValues = null;
-    receiverValue = null;
   }
 
   @Override
   public final void buildPrelude(IRBuilder builder) {
     if (receiver != null) {
-      // TODO(zerny): Why does this not call builder.addThisArgument?
-      receiverValue =
-          builder.writeRegister(
-              receiverRegister,
-              TypeLatticeElement.fromDexType(
-                  receiver, Nullability.definitelyNotNull(), builder.appView),
-              NO_THROW);
-      builder.add(new Argument(receiverValue, false));
-      receiverValue.markAsThis();
+      builder.addThisArgument(
+          receiverRegister,
+          TypeLatticeElement.fromDexType(
+              receiver, Nullability.definitelyNotNull(), builder.appView));
     }
-
     // Fill in the Argument instructions in the argument block.
     DexType[] parameters = proto.parameters.values;
     for (int i = 0; i < parameters.length; i++) {
-      // TODO(zerny): Why does this not call builder.addNonThisArgument?
       TypeLatticeElement typeLattice =
           TypeLatticeElement.fromDexType(parameters[i], Nullability.maybeNull(), builder.appView);
-      Value paramValue = builder.writeRegister(paramRegisters[i], typeLattice, NO_THROW);
-      paramValues[i] = paramValue;
-      builder.add(new Argument(paramValue, parameters[i].isBooleanType()));
+      builder.addNonThisArgument(paramRegisters[i], typeLattice);
     }
   }
 

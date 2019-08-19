@@ -23,11 +23,12 @@ final class LambdaCreateInstanceSourceCode extends SynthesizedLambdaSourceCode {
     // Create and initialize an instance.
     int instance = nextRegister(ValueType.OBJECT);
     add(builder -> builder.addNewInstance(instance, lambda.type));
-    List<ValueType> types = new ArrayList<>(getParamCount() + 1);
-    List<Integer> registers = new ArrayList<>(getParamCount() + 1);
+    int paramCount = proto.parameters.values.length;
+    List<ValueType> types = new ArrayList<>(paramCount + 1);
+    List<Integer> registers = new ArrayList<>(paramCount + 1);
     types.add(ValueType.OBJECT);
     registers.add(instance);
-    for (int i = 0; i < getParamCount(); ++i) {
+    for (int i = 0; i < paramCount; ++i) {
       types.add(ValueType.fromDexType(proto.parameters.values[i]));
       registers.add(getParamRegister(i));
     }

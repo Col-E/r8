@@ -39,9 +39,6 @@ final class KotlinLambdaVirtualMethodSourceCode extends SyntheticSourceCode {
   @Override
   protected void prepareInstructions() {
     int implMethodCount = implMethods.size();
-    int paramCount = getParamCount();
-    List<Value> arguments = new ArrayList<>(paramCount + 1);
-
     // We generate a single switch on lambda $id value read from appropriate
     // field, and for each lambda id generate a call to appropriate method of
     // the lambda class. Since this methods are marked as 'force inline',
@@ -73,6 +70,8 @@ final class KotlinLambdaVirtualMethodSourceCode extends SyntheticSourceCode {
     add(builder -> builder.addNullConst(nullRegister));
     add(builder -> builder.addThrow(nullRegister), endsBlock);
 
+    List<Value> arguments = new ArrayList<>(proto.parameters.values.length + 1);
+
     // Blocks for each lambda id.
     for (int i = 0; i < implMethodCount; i++) {
       keys[i] = i;
@@ -88,10 +87,10 @@ final class KotlinLambdaVirtualMethodSourceCode extends SyntheticSourceCode {
       add(
           builder -> {
             if (arguments.isEmpty()) {
-              // Late initialization of argument list.
-              arguments.add(getReceiverValue());
-              for (int index = 0; index < paramCount; index++) {
-                arguments.add(getParamValue(index));
+              arguments.add(builder.getReceiverValue());
+              List<Value> argumentValues = builder.getArgumentValues();
+              if (argumentValues != null) {
+                arguments.addAll(builder.getArgumentValues());
               }
             }
             builder.addInvoke(
