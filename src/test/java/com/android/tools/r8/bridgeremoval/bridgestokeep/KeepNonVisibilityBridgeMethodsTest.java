@@ -4,54 +4,63 @@
 
 package com.android.tools.r8.bridgeremoval.bridgestokeep;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import com.google.common.collect.ImmutableList;
-import java.lang.reflect.Method;
 import java.util.List;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class KeepNonVisibilityBridgeMethodsTest extends TestBase {
 
-  private String keepMainAllowAccessModification(Class<?> clazz, boolean obfuscate) {
-    return "-keep public class " + clazz.getCanonicalName() + " {\n"
-        + "  public static void main(java.lang.String[]);\n"
-        + "}\n"
-        + "-allowaccessmodification\n"
-        + (obfuscate ? "-printmapping" : "-dontobfuscate\n");
+  private final boolean minification;
+  private final TestParameters parameters;
+
+  @Parameters(name = "{1}, minification: {0}")
+  public static List<Object[]> data() {
+    return buildParameters(BooleanUtils.values(), getTestParameters().withDexRuntimes().build());
   }
 
-  private void run(boolean obfuscate) throws Exception {
-    List<Class<?>> classes =
-        ImmutableList.of(
+  public KeepNonVisibilityBridgeMethodsTest(boolean minification, TestParameters parameters) {
+    this.minification = minification;
+    this.parameters = parameters;
+  }
+
+  @Test
+  public void test() throws Exception {
+    testForR8(parameters.getBackend())
+        .addProgramClassesAndInnerClasses(
             DataAdapter.class,
             SimpleDataAdapter.class,
             ObservableList.class,
             SimpleObservableList.class,
-            Main.class);
-    String proguardConfig = keepMainAllowAccessModification(Main.class, obfuscate);
-    CodeInspector inspector = new CodeInspector(compileWithR8(classes, proguardConfig));
+            Main.class)
+        .addKeepMainRule(Main.class)
+        .allowAccessModification()
+        // TODO(b/120764902): MemberSubject.getOriginalName() is not working without the @NeverMerge
+        //  annotation on DataAdapter.Observer.
+        .enableMergeAnnotations()
+        .minification(minification)
+        .setMinApi(parameters.getRuntime())
+        .compile()
+        .inspect(
+            inspector -> {
+              ClassSubject classSubject = inspector.clazz(SimpleDataAdapter.class);
+              assertThat(classSubject, isPresent());
 
-    // The bridge for registerObserver cannot be removed.
-    Method registerObserver =
-        SimpleDataAdapter.class.getMethod("registerObserver", DataAdapter.Observer.class);
-    MethodSubject subject = inspector.method(registerObserver);
-    assertTrue(subject.isPresent());
-    // The method is there, but it might be unmarked as a bridge if
-    // another method is inlined into it.
-    // assertTrue(subject.isBridge());
-  }
-
-  @Test
-  public void testWithObfuscation() throws Exception {
-    run(true);
-  }
-
-  @Test
-  public void testWithoutObfuscation() throws Exception {
-    run(false);
+              MethodSubject subject = classSubject.uniqueMethodWithName("registerObserver");
+              assertTrue(subject.isPresent());
+            })
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccess();
   }
 }

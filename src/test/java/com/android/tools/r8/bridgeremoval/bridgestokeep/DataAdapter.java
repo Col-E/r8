@@ -4,10 +4,12 @@
 
 package com.android.tools.r8.bridgeremoval.bridgestokeep;
 
+import com.android.tools.r8.NeverMerge;
+
 public interface DataAdapter {
 
-  interface Observer extends ObservableList.Observer {
-  }
+  @NeverMerge
+  interface Observer extends ObservableList.Observer {}
 
   void registerObserver(Observer observer);
 }
