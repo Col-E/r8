@@ -838,25 +838,25 @@ def baseR8CommandLine(args = []) {
             "-ea", "-jar", r8WithRelocatedDeps.outputs.files[0]] + args
 }
 
-def r8CfCommandLine(input, output, pgconf, args = [], libs = []) {
-    return baseR8CommandLine([
-            "--classfile", "--release",
+def r8CfCommandLine(input, output, pgConfs = [], args = ["--release"], libs = []) {
+    def allArgs = [
+            "--classfile",
             input,
             "--output", output,
-            "--pg-conf", pgconf,
             "--pg-map-output", output + ".map",
             "--lib", "third_party/openjdk/openjdk-rt-1.8/rt.jar"
-        ] + args + libs.collectMany { ["--lib", it] })
+    ] + args + libs.collectMany { ["--lib", it] } + pgConfs.collectMany { ["--pg-conf", it] }
+    return baseR8CommandLine(allArgs)
 }
 
-def r8LibCreateTask(name, pgConf, r8Task, output, args = [], libs = []) {
+def r8LibCreateTask(name, pgConfs = [], r8Task, output, args = ["--release"], libs = []) {
     return tasks.create("r8Lib${name}", Exec) {
-        inputs.files ([pgConf, r8WithRelocatedDeps.outputs, r8Task.outputs])
+        inputs.files ([pgConfs, r8WithRelocatedDeps.outputs, r8Task.outputs, libs])
         outputs.file output
         dependsOn downloadOpenJDKrt
         dependsOn r8WithRelocatedDeps
         dependsOn r8Task
-        commandLine r8CfCommandLine(r8Task.outputs.files[0], output, pgConf, args, libs)
+        commandLine r8CfCommandLine(r8Task.outputs.files[0], output, pgConfs, args, libs)
         workingDir = projectDir
     }
 }
@@ -864,11 +864,9 @@ def r8LibCreateTask(name, pgConf, r8Task, output, args = [], libs = []) {
 task testJar(type: ShadowJar, dependsOn: testClasses) {
     baseName = "r8tests"
     from sourceSets.test.output
-}
-
-task testJarNoDeps(type: ShadowJar, dependsOn: testClasses) {
-    baseName = "r8tests-exclude-deps"
-    from sourceSets.test.output
+    // We only want to include tests that use R8 when generating keep rules for applymapping.
+    include "com/android/tools/r8/**"
+    include "dalvik/**"
 }
 
 def generateR8LibKeepRules(name, r8Source, testSource, output) {
@@ -884,7 +882,7 @@ def generateR8LibKeepRules(name, r8Source, testSource, output) {
         outputs.file output
         commandLine baseR8CommandLine([
                 "printuses",
-                "--keeprules",
+                "--keeprules-allowobfuscation",
                 "third_party/openjdk/openjdk-rt-1.8/rt.jar",
                 r8Source.outputs.files[0],
                 testSource.outputs.files[0]])
@@ -893,7 +891,7 @@ def generateR8LibKeepRules(name, r8Source, testSource, output) {
 }
 
 task R8LibApiOnly {
-    dependsOn r8LibCreateTask("Api", "src/main/keep.txt", R8NoManifest, r8LibPath)
+    dependsOn r8LibCreateTask("Api", ["src/main/keep.txt"], R8NoManifest, r8LibPath)
     outputs.file r8LibPath
 }
 
@@ -905,10 +903,9 @@ task R8Lib {
             r8LibGeneratedKeepRulesPath)
     dependsOn r8LibCreateTask(
             "Main",
-            "src/main/keep.txt",
+            ["src/main/keep.txt", "src/main/keep-applymapping.txt", genRulesTask.outputs.files[0]],
             R8NoManifest,
             r8LibPath,
-            ["--pg-conf", genRulesTask.outputs.files[0]]
     ).dependsOn(genRulesTask)
     outputs.file r8LibPath
 }
@@ -917,15 +914,14 @@ task R8LibNoDeps {
     def genRulesTask = generateR8LibKeepRules(
             "NoDeps",
             R8NoManifestNoDeps,
-            testJarNoDeps,
+            testJar,
             r8LibGeneratedKeepRulesExcludeDepsPath
     )
     dependsOn r8LibCreateTask(
             "NoDeps",
-            "src/main/keep.txt",
+            ["src/main/keep.txt", "src/main/keep-applymapping.txt", genRulesTask.outputs.files[0]],
             R8NoManifestNoDeps,
             r8LibExludeDepsPath,
-            ["--pg-conf", genRulesTask.outputs.files[0]],
             repackageDepsNoRelocate.outputs.files
     ).dependsOn(repackageDepsNoRelocate, genRulesTask)
     outputs.file r8LibExludeDepsPath
@@ -933,13 +929,13 @@ task R8LibNoDeps {
 
 task CompatDxLib {
     dependsOn r8LibCreateTask(
-            "CompatDx", "src/main/keep-compatdx.txt", CompatDx, "build/libs/compatdxlib.jar")
+            "CompatDx", ["src/main/keep-compatdx.txt"], CompatDx, "build/libs/compatdxlib.jar")
 }
 
 task CompatProguardLib {
     dependsOn r8LibCreateTask(
             "CompatPg",
-            "src/main/keep-compatproguard.txt",
+            ["src/main/keep-compatproguard.txt"],
             CompatProguard,
             "build/libs/compatproguardlib.jar")
 }
@@ -1704,6 +1700,14 @@ task buildPreNJdwpTestsDex(type: Exec, dependsOn: "buildPreNJdwpTestsJar") {
 task getJarsFromSupportLibs(type: GetJarsFromConfiguration) {
     setConfiguration(configurations.supportLibs)
 }
+def getR8LibSourceTask() {
+    if (project.hasProperty('r8lib')) {
+        return R8NoManifest
+    } else if (project.hasProperty('r8lib_no_deps')) {
+        return R8NoManifestNoDeps
+    }
+    return null
+}
 
 def getR8LibTask() {
     if (project.hasProperty('r8lib')) {
@@ -1714,16 +1718,62 @@ def getR8LibTask() {
     return null
 }
 
+task generateR8TestKeepRules {
+    def path = "build/generated/r8tests-keep.txt"
+    outputs.file path
+    if (getR8LibTask() != null) {
+        dependsOn getR8LibTask()
+        doLast {
+            file(path).write """-keep class ** { *; }
+-dontshrink
+-dontoptimize
+-keepattributes *
+-applymapping ${getR8LibTask().outputs.files[0]}.map
+"""
+        }
+    }
+}
+
+task buildR8LibCfTestDeps(type: Exec) {
+    if (getR8LibTask() == null) {
+        return
+    }
+    def outputPath = "build/libs/r8libtestdeps-cf.jar"
+    dependsOn downloadDeps
+    dependsOn getR8LibTask()
+    dependsOn getR8LibSourceTask()
+    dependsOn generateR8TestKeepRules
+    dependsOn testJar
+    // Take all .jar files as libraries and append the generated test classes in classes/java/test.
+    def addedLibraries = sourceSets.test.runtimeClasspath.findAll { pkg ->
+        return pkg.toString().endsWith(".jar")
+    } + ["${buildDir}/classes/java/test"]
+    inputs.files testJar.outputs.files +
+            generateR8TestKeepRules.outputs.files +
+            getR8LibTask().outputs
+    commandLine = r8CfCommandLine(
+            testJar.outputs.files[0],
+            outputPath,
+            [generateR8TestKeepRules.outputs.files[0]],
+            ["--debug", "--classpath", getR8LibSourceTask().outputs.files[0]],
+            getR8LibSourceTask().outputs.files + addedLibraries)
+    workingDir = projectDir
+    outputs.file outputPath
+}
+
 task configureTestForR8Lib(type: Copy) {
     dependsOn testJar
-    inputs.files files("$buildDir/libs/r8tests.jar")
+    inputs.files buildR8LibCfTestDeps.outputs
     if (getR8LibTask() != null) {
         dependsOn getR8LibTask()
         delete r8LibTestPath
-        from zipTree(testJar.outputs.files[0])
+        from zipTree(buildR8LibCfTestDeps.outputs.files[0])
+        def examplesDir = file("build/test")
+        examplesDir.eachDir { dir ->
+            from ("${buildDir}/test/${dir.getName()}/classes")
+        }
+        from ("${buildDir}/runtime/examples")
         into r8LibTestPath
-        include "com/android/tools/r8/**"
-        include "dalvik/**"
     }
     outputs.dir r8LibTestPath
 }
@@ -1871,12 +1921,12 @@ test {
     }
     if (project.hasProperty('r8lib') || project.hasProperty('r8lib_no_deps')) {
         dependsOn configureTestForR8Lib
-        // We remove build/classes/test from classpath and rely on configureTestForR8Lib to provide
-        // all needed tests in r8LibTestPath.
-        classpath = files([r8LibPath, r8LibTestPath]) +
-                sourceSets.test.runtimeClasspath -
-                sourceSets.main.output -
-                files(['build/classes/test'])
+        // R8lib should be used instead of the main output and all the tests in r8 should be mapped
+        // and exists in r8LibtestPath.
+        classpath = sourceSets.test.runtimeClasspath.filter {
+            !it.getAbsolutePath().contains("/build/")
+        }
+        classpath += files([r8LibPath, r8LibTestPath])
         testClassesDirs = files(r8LibTestPath)
     }
     if (OperatingSystem.current().isLinux()
