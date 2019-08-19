@@ -62,7 +62,7 @@ public class JavaTimeTest extends CoreLibDesugarTestBase {
         .enableCoreLibraryDesugaring(parameters.getApiLevel())
         .addOptionsModification(
             options ->
-                options.testing.desugaredLibraryKeepRuleConsumer =
+                options.desugaredLibraryKeepRuleConsumer =
                     (string, handler) -> keepRulesHolder.set(keepRulesHolder.get() + string))
         .compile()
         .inspect(this::checkRewrittenInvokes)
@@ -85,7 +85,7 @@ public class JavaTimeTest extends CoreLibDesugarTestBase {
         .enableCoreLibraryDesugaring(parameters.getApiLevel())
         .addOptionsModification(
             options ->
-                options.testing.desugaredLibraryKeepRuleConsumer =
+                options.desugaredLibraryKeepRuleConsumer =
                     (string, handler) -> keepRulesHolder.set(keepRulesHolder.get() + string))
         .compile()
         .inspect(this::checkRewrittenInvokes)

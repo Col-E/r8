@@ -55,7 +55,7 @@ public class CustomCollectionTest extends CoreLibDesugarTestBase {
             .setMinApi(parameters.getApiLevel())
             .addOptionsModification(
                 options ->
-                    options.testing.desugaredLibraryKeepRuleConsumer =
+                    options.desugaredLibraryKeepRuleConsumer =
                         (string, handler) -> keepRulesHolder.set(keepRulesHolder.get() + string))
             .enableCoreLibraryDesugaring(parameters.getApiLevel())
             .compile()
@@ -90,7 +90,7 @@ public class CustomCollectionTest extends CoreLibDesugarTestBase {
             .addKeepClassAndMembersRules(Executor.class)
             .addOptionsModification(
                 options ->
-                    options.testing.desugaredLibraryKeepRuleConsumer =
+                    options.desugaredLibraryKeepRuleConsumer =
                         (string, handler) -> keepRulesHolder.set(keepRulesHolder.get() + string))
             .enableCoreLibraryDesugaring(parameters.getApiLevel())
             .compile()

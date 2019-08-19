@@ -220,9 +220,8 @@ public class FileWriter {
     writeSignature(layout);
     writeChecksum(layout);
 
-    // A consumer can manage the generated keep rules (testing only).
-    if (options.testing.desugaredLibraryKeepRuleConsumer != null
-        && !desugaredLibraryCodeToKeep.isNop()) {
+    // A consumer can manage the generated keep rules.
+    if (options.desugaredLibraryKeepRuleConsumer != null && !desugaredLibraryCodeToKeep.isNop()) {
       assert !options.coreLibraryCompilation;
       desugaredLibraryCodeToKeep.generateKeepRules(options);
     }

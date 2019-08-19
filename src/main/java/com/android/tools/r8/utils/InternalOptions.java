@@ -626,6 +626,10 @@ public class InternalOptions {
   // If non-null, configuration must be passed to the consumer.
   public StringConsumer configurationConsumer = null;
 
+  // If null, no keep rules are recorded.
+  // If non null it records desugared library APIs used by the program.
+  public StringConsumer desugaredLibraryKeepRuleConsumer = null;
+
   // If null, no graph information needs to be provided for the keep/inclusion of classes
   // in the output. If non-null, each edge pertaining to kept parts of the resulting program
   // must be reported to the consumer.
@@ -990,7 +994,6 @@ public class InternalOptions {
     public boolean disallowLoadStoreOptimization = false;
     public boolean enableNarrowingChecksInD8 = false;
     public Consumer<IRCode> irModifier = null;
-    public StringConsumer desugaredLibraryKeepRuleConsumer = null;
     // TODO(b/129458850) When fixed, remove this and change all usages to "true".
     public boolean enableStatefulLambdaCreateInstanceMethod = false;
     public int basicBlockMuncherIterationLimit = NO_LIMIT;

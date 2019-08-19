@@ -82,6 +82,7 @@ public final class R8Command extends BaseCompilerCommand {
     private final List<ProguardConfigurationSource> mainDexRules = new ArrayList<>();
     private Consumer<ProguardConfiguration.Builder> proguardConfigurationConsumerForTesting = null;
     private Consumer<List<ProguardConfigurationRule>> syntheticProguardRulesConsumer = null;
+    private StringConsumer desugaredLibraryKeepRuleConsumer = null;
     private final List<ProguardConfigurationSource> proguardConfigs = new ArrayList<>();
     private boolean disableTreeShaking = false;
     private boolean disableMinification = false;
@@ -239,6 +240,17 @@ public final class R8Command extends BaseCompilerCommand {
      */
     public Builder setProguardMapConsumer(StringConsumer proguardMapConsumer) {
       this.proguardMapConsumer = proguardMapConsumer;
+      return self();
+    }
+
+    /**
+     * Set a consumer for receiving the keep rules to use when compiling the desugared library for
+     * the program being compiled in this compilation.
+     *
+     * @param keepRuleConsumer Consumer to receive the content once produced.
+     */
+    public Builder setDesugaredLibraryKeepRuleConsumer(StringConsumer keepRuleConsumer) {
+      this.desugaredLibraryKeepRuleConsumer = keepRuleConsumer;
       return self();
     }
 
@@ -512,7 +524,8 @@ public final class R8Command extends BaseCompilerCommand {
               isOptimizeMultidexForLinearAlloc(),
               getSpecialLibraryConfiguration(),
               getIncludeClassesChecksum(),
-              getDexClassChecksumFilter());
+              getDexClassChecksumFilter(),
+              desugaredLibraryKeepRuleConsumer);
 
       return command;
     }
@@ -592,6 +605,7 @@ public final class R8Command extends BaseCompilerCommand {
   private final GraphConsumer keptGraphConsumer;
   private final GraphConsumer mainDexKeptGraphConsumer;
   private final Consumer<List<ProguardConfigurationRule>> syntheticProguardRulesConsumer;
+  private final StringConsumer desugaredLibraryKeepRuleConsumer;
 
   /** Get a new {@link R8Command.Builder}. */
   public static Builder builder() {
@@ -665,7 +679,8 @@ public final class R8Command extends BaseCompilerCommand {
       boolean optimizeMultidexForLinearAlloc,
       String specialLibraryConfiguration,
       boolean encodeChecksum,
-      BiPredicate<String, Long> dexClassChecksumFilter) {
+      BiPredicate<String, Long> dexClassChecksumFilter,
+      StringConsumer desugaredLibraryKeepRuleConsumer) {
     super(
         inputApp,
         mode,
@@ -694,6 +709,7 @@ public final class R8Command extends BaseCompilerCommand {
     this.keptGraphConsumer = keptGraphConsumer;
     this.mainDexKeptGraphConsumer = mainDexKeptGraphConsumer;
     this.syntheticProguardRulesConsumer = syntheticProguardRulesConsumer;
+    this.desugaredLibraryKeepRuleConsumer = desugaredLibraryKeepRuleConsumer;
   }
 
   private R8Command(boolean printHelp, boolean printVersion) {
@@ -712,6 +728,7 @@ public final class R8Command extends BaseCompilerCommand {
     keptGraphConsumer = null;
     mainDexKeptGraphConsumer = null;
     syntheticProguardRulesConsumer = null;
+    desugaredLibraryKeepRuleConsumer = null;
   }
 
   /** Get the enable-tree-shaking state. */
@@ -834,6 +851,8 @@ public final class R8Command extends BaseCompilerCommand {
     if (getSpecialLibraryConfiguration() != null) {
       configureLibraryDesugaring(internal);
     }
+
+    internal.desugaredLibraryKeepRuleConsumer = desugaredLibraryKeepRuleConsumer;
 
     return internal;
   }

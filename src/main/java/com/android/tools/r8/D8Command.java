@@ -65,6 +65,7 @@ public final class D8Command extends BaseCompilerCommand {
 
     private boolean intermediate = false;
     private DesugarGraphConsumer desugarGraphConsumer = null;
+    private StringConsumer desugaredLibraryKeepRuleConsumer = null;
 
     private Builder() {
       this(new DefaultD8DiagnosticsHandler());
@@ -110,6 +111,17 @@ public final class D8Command extends BaseCompilerCommand {
      */
     public Builder setIntermediate(boolean value) {
       this.intermediate = value;
+      return self();
+    }
+
+    /**
+     * Set a consumer for receiving the keep rules to use when compiling the desugared library for
+     * the program being compiled in this compilation.
+     *
+     * @param keepRuleConsumer Consumer to receive the content once produced.
+     */
+    public Builder setDesugaredLibraryKeepRuleConsumer(StringConsumer keepRuleConsumer) {
+      this.desugaredLibraryKeepRuleConsumer = keepRuleConsumer;
       return self();
     }
 
@@ -190,7 +202,8 @@ public final class D8Command extends BaseCompilerCommand {
           getSpecialLibraryConfiguration(),
           getIncludeClassesChecksum(),
           getDexClassChecksumFilter(),
-          getDesugarGraphConsumer());
+          getDesugarGraphConsumer(),
+          desugaredLibraryKeepRuleConsumer);
     }
   }
 
@@ -198,6 +211,7 @@ public final class D8Command extends BaseCompilerCommand {
 
   private final boolean intermediate;
   private final DesugarGraphConsumer desugarGraphConsumer;
+  private final StringConsumer desugaredLibraryKeepRuleConsumer;
 
   public static Builder builder() {
     return new Builder();
@@ -252,7 +266,8 @@ public final class D8Command extends BaseCompilerCommand {
       String specialLibraryConfiguration,
       boolean encodeChecksum,
       BiPredicate<String, Long> dexClassChecksumFilter,
-      DesugarGraphConsumer desugarGraphConsumer) {
+      DesugarGraphConsumer desugarGraphConsumer,
+      StringConsumer desugaredLibraryKeepRuleConsumer) {
     super(
         inputApp,
         mode,
@@ -267,12 +282,14 @@ public final class D8Command extends BaseCompilerCommand {
         dexClassChecksumFilter);
     this.intermediate = intermediate;
     this.desugarGraphConsumer = desugarGraphConsumer;
+    this.desugaredLibraryKeepRuleConsumer = desugaredLibraryKeepRuleConsumer;
   }
 
   private D8Command(boolean printHelp, boolean printVersion) {
     super(printHelp, printVersion);
     intermediate = false;
     desugarGraphConsumer = null;
+    desugaredLibraryKeepRuleConsumer = null;
   }
 
   private void configureLibraryDesugaring(InternalOptions options) {
@@ -329,6 +346,8 @@ public final class D8Command extends BaseCompilerCommand {
     if (getSpecialLibraryConfiguration() != null) {
       configureLibraryDesugaring(internal);
     }
+
+    internal.desugaredLibraryKeepRuleConsumer = desugaredLibraryKeepRuleConsumer;
 
     return internal;
   }

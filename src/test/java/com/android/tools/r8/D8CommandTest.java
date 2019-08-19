@@ -9,6 +9,7 @@ import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import com.android.sdklib.AndroidVersion;
@@ -20,6 +21,7 @@ import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.collect.ImmutableList;
@@ -81,6 +83,18 @@ public class D8CommandTest {
   @Test(expected = CompilationFailedException.class)
   public void disallowClassFileConsumer() throws Throwable {
     D8Command.builder().setProgramConsumer(ClassFileConsumer.emptyConsumer()).build();
+  }
+
+  @Test
+  public void desugaredLibraryKeepRuleConsumer() throws Exception {
+    Box<String> holder = new Box<>("");
+    StringConsumer stringConsumer = (string, handler) -> holder.set(holder.get() + string);
+    D8Command command =
+        D8Command.builder()
+            .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+            .setDesugaredLibraryKeepRuleConsumer(stringConsumer)
+            .build();
+    assertSame(command.getInternalOptions().desugaredLibraryKeepRuleConsumer, stringConsumer);
   }
 
   @Test

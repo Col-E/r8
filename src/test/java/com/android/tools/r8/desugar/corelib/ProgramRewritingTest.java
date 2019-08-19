@@ -64,7 +64,7 @@ public class ProgramRewritingTest extends CoreLibDesugarTestBase {
             .setMinApi(parameters.getApiLevel())
             .addOptionsModification(
                 options ->
-                    options.testing.desugaredLibraryKeepRuleConsumer =
+                    options.desugaredLibraryKeepRuleConsumer =
                         (string, handler) -> keepRulesHolder.set(keepRulesHolder.get() + string))
             .enableCoreLibraryDesugaring()
             .compile()
@@ -101,7 +101,7 @@ public class ProgramRewritingTest extends CoreLibDesugarTestBase {
               .setMinApi(parameters.getApiLevel())
               .addOptionsModification(
                   options ->
-                      options.testing.desugaredLibraryKeepRuleConsumer =
+                      options.desugaredLibraryKeepRuleConsumer =
                           (string, handler) -> keepRulesHolder.set(keepRulesHolder.get() + string))
               .enableCoreLibraryDesugaring()
               .compile()
