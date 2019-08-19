@@ -697,7 +697,8 @@ public class VerticalClassMerger {
           // can be mapped to the implementation method.
           DexMethod implementationMethod =
               ((SynthesizedBridgeCode) encodedMethod.getCode()).invocationTarget;
-          DexMethod originalImplementationMethod = graphLense.getOriginalMethodSignature(method);
+          DexMethod originalImplementationMethod =
+              graphLense.getOriginalMethodSignature(implementationMethod);
           assert originalMethod == originalImplementationMethod;
           assert implementationMethod == renamedMethod;
         } else {
