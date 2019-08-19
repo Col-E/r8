@@ -249,29 +249,24 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       return false;
     }
 
-    // Attempt to inline a candidate that is only called twice.
-    if ((reason == Reason.DUAL_CALLER) && (inliner.doubleInlining(method, candidate) == null)) {
-      if (info != null) {
-        info.exclude(invoke, "target is not ready for double inlining");
-      }
-      return false;
-    }
-
-    if (reason == Reason.SIMPLE) {
-      // If we are looking for a simple method, only inline if actually simple.
-      Code code = candidate.getCode();
-      int instructionLimit = computeInstructionLimit(invoke, candidate);
-      if (!code.estimatedSizeForInliningAtMost(instructionLimit)) {
-        if (info != null) {
-          info.exclude(
-              invoke,
-              "instruction limit exceeds: "
-                  + code.estimatedSizeForInlining()
-                  + " <= "
-                  + instructionLimit);
+    if (reason == Reason.DUAL_CALLER) {
+      if (satisfiesRequirementsForSimpleInlining(invoke, candidate)) {
+        // When we have a method with two call sites, we simply inline the method as we normally do
+        // when the method is small. We still need to ensure that the other call site is also
+        // inlined, though. Therefore, we record here that we have seen one of the two call sites
+        // as we normally do.
+        inliner.recordDoubleInliningCandidate(method, candidate);
+      } else {
+        if (inliner.satisfiesRequirementsForDoubleInlining(method, candidate)) {
+          if (info != null) {
+            info.exclude(invoke, "target is not ready for double inlining");
+          }
+          return false;
         }
-        return false;
       }
+    } else if (reason == Reason.SIMPLE
+        && !satisfiesRequirementsForSimpleInlining(invoke, candidate)) {
+      return false;
     }
 
     if (!inliner.mainDexClasses.isEmpty()) {
@@ -289,6 +284,25 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     }
 
     return true;
+  }
+
+  private boolean satisfiesRequirementsForSimpleInlining(
+      InvokeMethod invoke, DexEncodedMethod target) {
+    // If we are looking for a simple method, only inline if actually simple.
+    Code code = target.getCode();
+    int instructionLimit = computeInstructionLimit(invoke, target);
+    if (code.estimatedSizeForInliningAtMost(instructionLimit)) {
+      return true;
+    }
+    if (info != null) {
+      info.exclude(
+          invoke,
+          "instruction limit exceeds: "
+              + code.estimatedSizeForInlining()
+              + " <= "
+              + instructionLimit);
+    }
+    return false;
   }
 
   private int computeInstructionLimit(InvokeMethod invoke, DexEncodedMethod candidate) {

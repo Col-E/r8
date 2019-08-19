@@ -171,27 +171,33 @@ public class Inliner {
         || doubleInlineSelectedTargets.contains(candidate);
   }
 
-  synchronized DexEncodedMethod doubleInlining(DexEncodedMethod method,
-      DexEncodedMethod target) {
-    if (!applyDoubleInlining) {
-      if (doubleInlineeCandidates.containsKey(target)) {
-        // Both calls can be inlined.
-        doubleInlineCallers.add(doubleInlineeCandidates.get(target));
-        doubleInlineCallers.add(method);
-        doubleInlineSelectedTargets.add(target);
-      } else {
-        // First call can be inlined.
-        doubleInlineeCandidates.put(target, method);
-      }
-      // Just preparing for double inlining.
-      return null;
-    } else {
+  synchronized boolean satisfiesRequirementsForDoubleInlining(
+      DexEncodedMethod method, DexEncodedMethod target) {
+    if (applyDoubleInlining) {
       // Don't perform the actual inlining if this was not selected.
-      if (!doubleInlineSelectedTargets.contains(target)) {
-        return null;
-      }
+      return doubleInlineSelectedTargets.contains(target);
     }
-    return target;
+
+    // Just preparing for double inlining.
+    recordDoubleInliningCandidate(method, target);
+    return false;
+  }
+
+  synchronized void recordDoubleInliningCandidate(
+      DexEncodedMethod method, DexEncodedMethod target) {
+    if (applyDoubleInlining) {
+      return;
+    }
+
+    if (doubleInlineeCandidates.containsKey(target)) {
+      // Both calls can be inlined.
+      doubleInlineCallers.add(doubleInlineeCandidates.get(target));
+      doubleInlineCallers.add(method);
+      doubleInlineSelectedTargets.add(target);
+    } else {
+      // First call can be inlined.
+      doubleInlineeCandidates.put(target, method);
+    }
   }
 
   public void processDoubleInlineCallers(

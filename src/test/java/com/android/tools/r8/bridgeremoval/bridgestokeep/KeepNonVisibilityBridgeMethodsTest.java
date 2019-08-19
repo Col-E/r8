@@ -45,10 +45,15 @@ public class KeepNonVisibilityBridgeMethodsTest extends TestBase {
             SimpleObservableList.class,
             Main.class)
         .addKeepMainRule(Main.class)
+        .addKeepRules(
+            "-neverinline class " + SimpleDataAdapter.class.getTypeName() + " {",
+            "  synthetic void registerObserver(...);",
+            "}")
         .allowAccessModification()
         // TODO(b/120764902): MemberSubject.getOriginalName() is not working without the @NeverMerge
         //  annotation on DataAdapter.Observer.
         .enableMergeAnnotations()
+        .enableProguardTestOptions()
         .minification(minification)
         .setMinApi(parameters.getRuntime())
         .compile()
