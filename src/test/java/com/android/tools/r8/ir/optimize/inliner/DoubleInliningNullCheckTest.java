@@ -45,8 +45,7 @@ public class DoubleInliningNullCheckTest extends TestBase {
           assertThat(main, isPresent());
           MethodSubject mainMethod = main.mainMethod();
           assertThat(mainMethod, isPresent());
-          // TODO(b/139432507): can be 0 if it's inlined to contains and indexOf.
-          assertEquals(2, countCall(mainMethod, "checkParameterIsNotNull"));
+          assertEquals(0, countCall(mainMethod, "checkParameterIsNotNull"));
         });
   }
 

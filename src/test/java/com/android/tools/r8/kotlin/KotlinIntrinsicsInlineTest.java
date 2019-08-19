@@ -6,6 +6,7 @@ package com.android.tools.r8.kotlin;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
@@ -14,7 +15,6 @@ import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.util.Collection;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runners.Parameterized;
 
@@ -74,12 +74,13 @@ public class KotlinIntrinsicsInlineTest extends AbstractR8KotlinTestBase {
 
   @Test
   public void b139432507_isSupported() throws Exception {
+    assumeTrue("Different inlining behavior on CF backend", parameters.isDexRuntime());
     testSingle("isSupported");
   }
 
-  @Ignore("b/139432507: due to double inlining, checkParameterIsNotNull is not fully inlined.")
   @Test
   public void b139432507_containsArray() throws Exception {
+    assumeTrue("Different inlining behavior on CF backend", parameters.isDexRuntime());
     testSingle("containsArray");
   }
 
@@ -100,8 +101,12 @@ public class KotlinIntrinsicsInlineTest extends AbstractR8KotlinTestBase {
 
           MethodSubject method = main.uniqueMethodWithName(methodName);
           assertThat(method, isPresent());
+          int arity = method.getMethod().method.getArity();
+          // One from the method's own argument, if any, and
+          // Two from Array utils, `contains` and `indexOf`, if inlined with access relaxation.
           assertEquals(
-              allowAccessModification, countCall(method, "checkParameterIsNotNull") == 0);
+              allowAccessModification ? 0 : arity + 2,
+              countCall(method, "checkParameterIsNotNull"));
         });
   }
 }
