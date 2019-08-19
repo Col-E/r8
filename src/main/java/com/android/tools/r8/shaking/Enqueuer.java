@@ -83,6 +83,7 @@ import it.unimi.dsi.fastutil.objects.Object2BooleanArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import java.lang.reflect.InvocationHandler;
 import java.util.ArrayDeque;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
@@ -899,7 +900,7 @@ public class Enqueuer {
   private void transitionReachableVirtualMethods(DexType type, ScopedDexMethodSet seen) {
     SetWithStoredReason<DexEncodedMethod> reachableMethods = reachableVirtualMethods.get(type);
     if (reachableMethods != null) {
-      transitionNonAbstractMethodsToLiveAndShadow(type, reachableMethods, seen);
+      transitionNonAbstractMethodsToLiveAndShadow(reachableMethods, seen);
     }
     Map<DexEncodedMethod, Set<DexType>> libraryMethods =
         reachableVirtualMethodsFromLibraries.get(type);
@@ -1328,18 +1329,13 @@ public class Enqueuer {
   }
 
   private void transitionNonAbstractMethodsToLiveAndShadow(
-      DexType type, SetWithStoredReason<DexEncodedMethod> reachable, ScopedDexMethodSet seen) {
+      SetWithStoredReason<DexEncodedMethod> reachable, ScopedDexMethodSet seen) {
     for (DexEncodedMethod encodedMethod : reachable.getItems()) {
       if (seen.addMethod(encodedMethod)) {
         // Abstract methods do shadow implementations but they cannot be live, as they have no code.
         if (!encodedMethod.accessFlags.isAbstract()) {
-          // TODO(b/120959039): All reasons are reported, remove this once mark does not require it.
-          KeepReason unneededReason = KeepReason.reachableFromLiveType(type);
-          for (KeepReason reason : reachable.getReasons(encodedMethod)) {
-            registerMethod(encodedMethod, reason);
-            unneededReason = reason;
-          }
-          markVirtualMethodAsLive(encodedMethod, unneededReason);
+          markVirtualMethodAsLive(
+              encodedMethod, registerMethod(encodedMethod, reachable.getReasons(encodedMethod)));
         }
       }
     }
@@ -2761,49 +2757,81 @@ public class Enqueuer {
     }
   }
 
-  private void registerType(DexType type, KeepReason reason) {
-    assert getSourceNode(reason) != null;
-    if (keptGraphConsumer == null) {
-      return;
+  /**
+   * Sentinel value indicating that a keep reason has been reported.
+   *
+   * <p>Should only ever be returned by the register* function below.
+   */
+  private static class KeepReasonWitness extends KeepReason {
+
+    private static KeepReasonWitness INSTANCE = new KeepReasonWitness();
+
+    @Override
+    public EdgeKind edgeKind() {
+      throw new Unreachable();
     }
-    registerEdge(getClassGraphNode(type), reason);
-  }
 
-  private void registerAnnotation(DexAnnotation annotation, KeepReason reason) {
-    assert getSourceNode(reason) != null;
-    if (keptGraphConsumer == null) {
-      return;
+    @Override
+    public GraphNode getSourceNode(Enqueuer enqueuer) {
+      throw new Unreachable();
     }
-    registerEdge(getAnnotationGraphNode(annotation.annotation.type), reason);
   }
 
-  private boolean isNonProgramClass(DexType type) {
-    DexClass clazz = appView.definitionFor(type);
-    return clazz == null || clazz.isNotProgramClass();
+  private boolean skipReporting(KeepReason reason) {
+    assert reason != null;
+    if (reason == KeepReasonWitness.INSTANCE) {
+      return true;
+    }
+    assert getSourceNode(reason) != null;
+    return keptGraphConsumer == null;
   }
 
-  private void registerMethod(DexEncodedMethod method, KeepReason reason) {
+  private KeepReasonWitness registerType(DexType type, KeepReason reason) {
+    if (skipReporting(reason)) {
+      return KeepReasonWitness.INSTANCE;
+    }
+    return registerEdge(getClassGraphNode(type), reason);
+  }
+
+  private KeepReasonWitness registerAnnotation(DexAnnotation annotation, KeepReason reason) {
+    if (skipReporting(reason)) {
+      return KeepReasonWitness.INSTANCE;
+    }
+    return registerEdge(getAnnotationGraphNode(annotation.annotation.type), reason);
+  }
+
+  private KeepReasonWitness registerMethod(
+      DexEncodedMethod method, Collection<KeepReason> reasons) {
+    assert !reasons.isEmpty();
+    if (keptGraphConsumer != null) {
+      for (KeepReason reason : reasons) {
+        registerMethod(method, reason);
+      }
+    }
+    return KeepReasonWitness.INSTANCE;
+  }
+
+  private KeepReasonWitness registerMethod(DexEncodedMethod method, KeepReason reason) {
+    if (skipReporting(reason)) {
+      return KeepReasonWitness.INSTANCE;
+    }
     if (reason.edgeKind() == EdgeKind.IsLibraryMethod && isNonProgramClass(method.method.holder)) {
       // Don't report edges to actual library methods.
       // TODO(b/120959039): This should be dead code once no library classes are ever enqueued.
-      return;
+      return KeepReasonWitness.INSTANCE;
     }
-    assert getSourceNode(reason) != null;
-    if (keptGraphConsumer == null) {
-      return;
-    }
-    registerEdge(getMethodGraphNode(method.method), reason);
+    return registerEdge(getMethodGraphNode(method.method), reason);
   }
 
-  private void registerField(DexEncodedField field, KeepReason reason) {
-    assert getSourceNode(reason) != null;
-    if (keptGraphConsumer == null) {
-      return;
+  private KeepReasonWitness registerField(DexEncodedField field, KeepReason reason) {
+    if (skipReporting(reason)) {
+      return KeepReasonWitness.INSTANCE;
     }
-    registerEdge(getFieldGraphNode(field.field), reason);
+    return registerEdge(getFieldGraphNode(field.field), reason);
   }
 
-  private void registerEdge(GraphNode target, KeepReason reason) {
+  private KeepReasonWitness registerEdge(GraphNode target, KeepReason reason) {
+    assert !skipReporting(reason);
     GraphNode sourceNode = getSourceNode(reason);
     // TODO(b/120959039): Make sure we do have edges to nodes deriving library nodes!
     if (!sourceNode.isLibraryNode()) {
@@ -2817,6 +2845,12 @@ public class Enqueuer {
         }
       }
     }
+    return KeepReasonWitness.INSTANCE;
+  }
+
+  private boolean isNonProgramClass(DexType type) {
+    DexClass clazz = appView.definitionFor(type);
+    return clazz == null || clazz.isNotProgramClass();
   }
 
   private GraphNode getSourceNode(KeepReason reason) {
