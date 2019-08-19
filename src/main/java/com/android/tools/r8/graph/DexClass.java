@@ -650,7 +650,7 @@ public abstract class DexClass extends DexDefinition {
     return false;
   }
 
-  public DexEncodedMethod getClassInitializer() {
+  public synchronized DexEncodedMethod getClassInitializer() {
     if (cachedClassInitializer == null) {
       cachedClassInitializer = Optional.empty();
       for (DexEncodedMethod directMethod : directMethods) {
