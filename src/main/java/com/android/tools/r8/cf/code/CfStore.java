@@ -47,6 +47,16 @@ public class CfStore extends CfInstruction {
   }
 
   @Override
+  public CfStore asStore() {
+    return this;
+  }
+
+  @Override
+  public boolean isStore() {
+    return true;
+  }
+
+  @Override
   public void write(MethodVisitor visitor, NamingLens lens) {
     visitor.visitVarInsn(getStoreType(), var);
   }

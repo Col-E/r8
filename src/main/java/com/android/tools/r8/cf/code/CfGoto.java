@@ -25,6 +25,16 @@ public class CfGoto extends CfInstruction {
   }
 
   @Override
+  public CfGoto asGoto() {
+    return this;
+  }
+
+  @Override
+  public boolean isGoto() {
+    return true;
+  }
+
+  @Override
   public CfLabel getTarget() {
     return target;
   }

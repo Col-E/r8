@@ -42,6 +42,16 @@ public class CfFieldInstruction extends CfInstruction {
   }
 
   @Override
+  public CfFieldInstruction asFieldInstruction() {
+    return this;
+  }
+
+  @Override
+  public boolean isFieldInstruction() {
+    return true;
+  }
+
+  @Override
   public void write(MethodVisitor visitor, NamingLens lens) {
     String owner = lens.lookupInternalName(field.holder);
     String name = lens.lookupName(declaringField).toString();

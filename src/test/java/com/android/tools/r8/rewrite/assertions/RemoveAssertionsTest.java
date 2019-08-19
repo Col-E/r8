@@ -8,8 +8,10 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.Constants;
@@ -20,6 +22,7 @@ import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.function.Function;
 import org.junit.ClassRule;
@@ -233,6 +236,45 @@ public class RemoveAssertionsTest extends TestBase {
         compileRegress110887293(RemoveAssertionsTest::identity));
   }
 
+  private void checkResultWithAssertionsPresent(TestCompileResult result) throws Exception {
+    if (parameters.isDexRuntime()) {
+      // Java assertions have no effect on Android (-ea is not implemented).
+      checkResultWithAssertionsRemoved(result);
+    } else {
+      String main = ClassWithAssertions.class.getCanonicalName();
+      result
+          .enableRuntimeAssertions()
+          .run(parameters.getRuntime(), main, "0")
+          .assertFailureWithOutput(StringUtils.lines("1"));
+      // Assertion is not hit.
+      result
+          .enableRuntimeAssertions()
+          .run(parameters.getRuntime(), main, "1")
+          .assertSuccessWithOutput(StringUtils.lines("1", "2"));
+    }
+  }
+
+  private void checkResultWithAssertionsRemoved(TestCompileResult result) throws Exception {
+    String main = ClassWithAssertions.class.getCanonicalName();
+    result
+        .run(parameters.getRuntime(), main, "0")
+        .assertSuccessWithOutput(StringUtils.lines("1", "2"));
+    result
+        .run(parameters.getRuntime(), main, "1")
+        .assertSuccessWithOutput(StringUtils.lines("1", "2"));
+  }
+
+  private void checkResultWithChromiumAssertions(TestCompileResult result) throws Exception {
+    String main = ClassWithAssertions.class.getCanonicalName();
+    result
+        .run(parameters.getRuntime(), main, "0")
+        .assertSuccessWithOutput(
+            StringUtils.lines("1", "Got AssertionError java.lang.AssertionError", "2"));
+    result
+        .run(parameters.getRuntime(), main, "1")
+        .assertSuccessWithOutput(StringUtils.lines("1", "2"));
+  }
+
   @Test
   public void test() throws Exception {
     // TODO(mkroghj) Why does this fail on JDK?
@@ -254,51 +296,81 @@ public class RemoveAssertionsTest extends TestBase {
   @Test
   public void testCfOutput() throws Exception {
     assumeTrue(parameters.isCfRuntime());
-    String main = ClassWithAssertions.class.getCanonicalName();
     CompilationResults results = compilationResults.apply(parameters.getBackend());
     // Assertion is hit.
-    results
-        .withAssertions
-        .enableRuntimeAssertions()
-        .run(parameters.getRuntime(), main, "0")
-        .assertFailureWithOutput(StringUtils.lines("1"));
-    // Assertion is not hit.
-    results
-        .withAssertions
-        .enableRuntimeAssertions()
-        .run(parameters.getRuntime(), main, "1")
-        .assertSuccessWithOutput(StringUtils.lines("1", "2"));
+    checkResultWithAssertionsPresent(results.withAssertions);
     // Assertion is hit, but removed.
-    results
-        .withoutAssertions
-        .enableRuntimeAssertions()
-        .run(parameters.getRuntime(), main, "0")
-        .assertSuccessWithOutput(StringUtils.lines("1", "2"));
+    checkResultWithAssertionsRemoved(results.withoutAssertions);
   }
 
   @Test
   public void regress110887293() throws Exception {
     assumeTrue(parameters.isDexRuntime());
-    String main = ClassWithAssertions.class.getCanonicalName();
     CompilationResults results = compilationResults.apply(parameters.getBackend());
     // Assertions removed for default assertion code.
-    results
-        .withoutAssertions
-        .run(parameters.getRuntime(), main, "0")
-        .assertSuccessWithOutput(StringUtils.lines("1", "2"));
-    results
-        .withoutAssertions
-        .run(parameters.getRuntime(), main, "1")
-        .assertSuccessWithOutput(StringUtils.lines("1", "2"));
+    checkResultWithAssertionsRemoved(results.withoutAssertions);
     // Assertions not removed when default assertion code is not present.
-    results
-        .withAssertions
-        .run(parameters.getRuntime(), main, "0")
-        .assertSuccessWithOutput(
-            StringUtils.lines("1", "Got AssertionError java.lang.AssertionError", "2"));
-    results
-        .withAssertions
-        .run(parameters.getRuntime(), main, "1")
-        .assertSuccessWithOutput(StringUtils.lines("1", "2"));
+    checkResultWithChromiumAssertions(results.withAssertions);
+  }
+
+  private D8TestCompileResult compileD8(boolean disableAssertions)
+      throws CompilationFailedException {
+    return testForD8()
+        .addProgramClassFileData(ClassWithAssertionsDump.dump())
+        .debug()
+        .setMinApi(AndroidApiLevel.B)
+        .addOptionsModification(o -> o.disableAssertions = disableAssertions)
+        .compile();
+  }
+
+  private D8TestCompileResult compileR8FollowedByD8(boolean disableAssertions) throws Exception {
+    Path x =
+        testForR8(Backend.CF)
+            .addProgramClassFileData(ClassWithAssertionsDump.dump())
+            .debug()
+            .setMinApi(AndroidApiLevel.B)
+            .noTreeShaking()
+            .noMinification()
+            .compile()
+            .writeToZip();
+
+    return testForD8()
+        .addProgramFiles(x)
+        .debug()
+        .setMinApi(AndroidApiLevel.B)
+        .addOptionsModification(o -> o.disableAssertions = disableAssertions)
+        .compile();
+  }
+
+  @Test
+  public void testD8() throws Exception {
+    assumeTrue(parameters.isDexRuntime());
+    checkResultWithAssertionsRemoved(compileD8(true));
+    checkResultWithAssertionsPresent(compileD8(false));
+  }
+
+  private D8TestCompileResult compileD8Regress110887293(Function<byte[], byte[]> rewriter)
+      throws CompilationFailedException {
+    return testForD8()
+        .addProgramClassFileData(
+            rewriter.apply(ClassWithAssertionsDump.dump()),
+            rewriter.apply(ChromuimAssertionHookMockDump.dump()))
+        .debug()
+        .setMinApi(AndroidApiLevel.B)
+        .compile();
+  }
+
+  @Test
+  public void testD8Regress110887293() throws Exception {
+    assumeTrue(parameters.isDexRuntime());
+    checkResultWithChromiumAssertions(
+        compileD8Regress110887293(RemoveAssertionsTest::chromiumAssertionEnabler));
+  }
+
+  @Test
+  public void testR8FollowedByD8() throws Exception {
+    assumeTrue(parameters.isDexRuntime());
+    checkResultWithAssertionsRemoved(compileR8FollowedByD8(true));
+    checkResultWithAssertionsPresent(compileR8FollowedByD8(false));
   }
 }

@@ -1932,27 +1932,23 @@ public class CodeRewriter {
    */
   public void disableAssertions(
       AppView<?> appView, DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
+    DexEncodedMethod clinit;
+    // If the <clinit> of this class did not have have code to turn on assertions don't try to
+    // remove assertion code from the method (including <clinit> itself.
     if (method.isClassInitializer()) {
-      if (!hasJavacClinitAssertionCode(code)) {
-        return;
-      }
-      // Mark the clinit as having code to turn on assertions.
-      feedback.setInitializerEnablingJavaAssertions(method);
+      clinit = method;
     } else {
-      // If the clinit of this class did not have have code to turn on assertions don't try to
-      // remove assertion code from the method.
       DexClass clazz = appView.definitionFor(method.method.holder);
       if (clazz == null) {
         return;
       }
-      DexEncodedMethod clinit = clazz.getClassInitializer();
-      if (clinit == null
-          || !clinit.isProcessed()
-          || !clinit.getOptimizationInfo().isInitializerEnablingJavaAssertions()) {
-        return;
-      }
+      clinit = clazz.getClassInitializer();
+    }
+    if (clinit == null || !clinit.getOptimizationInfo().isInitializerEnablingJavaAssertions()) {
+      return;
     }
 
+    // This code will process the assertion code in all methods including <clinit>.
     InstructionListIterator iterator = code.instructionListIterator();
     while (iterator.hasNext()) {
       Instruction current = iterator.next();
@@ -1973,78 +1969,6 @@ public class CodeRewriter {
         }
       }
     }
-  }
-
-  private boolean isClassDesiredAssertionStatusInvoke(Instruction instruction) {
-    return instruction.isInvokeMethod()
-    && instruction.asInvokeMethod().getInvokedMethod()
-        == dexItemFactory.classMethods.desiredAssertionStatus;
-  }
-
-  private boolean isAssertionsDisabledFieldPut(Instruction instruction) {
-    return instruction.isStaticPut()
-        && instruction.asStaticPut().getField().name == dexItemFactory.assertionsDisabled;
-  }
-
-  private boolean isNotDebugInstruction(Instruction instruction) {
-    return !instruction.isDebugInstruction();
-  }
-
-  private Value blockWithSingleConstNumberAndGoto(BasicBlock block) {
-    InstructionIterator iterator = block.iterator();
-    Instruction constNumber = iterator.nextUntil(this::isNotDebugInstruction);
-    if (constNumber == null || !constNumber.isConstNumber()) {
-      return null;
-    }
-    Instruction exit = iterator.nextUntil(this::isNotDebugInstruction);
-    return exit != null && exit.isGoto() ? constNumber.outValue() : null;
-  }
-
-  private Value blockWithAssertionsDisabledFieldPut(BasicBlock block) {
-    InstructionIterator iterator = block.iterator();
-    Instruction fieldPut = iterator.nextUntil(this::isNotDebugInstruction);
-    return fieldPut != null
-        && isAssertionsDisabledFieldPut(fieldPut) ? fieldPut.inValues().get(0) : null;
-  }
-
-  private boolean hasJavacClinitAssertionCode(IRCode code) {
-    InstructionIterator iterator = code.instructionIterator();
-    Instruction current = iterator.nextUntil(this::isClassDesiredAssertionStatusInvoke);
-    if (current == null) {
-      return false;
-    }
-
-    Value DesiredAssertionStatus = current.outValue();
-    assert iterator.hasNext();
-    current = iterator.next();
-    if (!current.isIf()
-        || !current.asIf().isZeroTest()
-        || current.asIf().inValues().get(0) != DesiredAssertionStatus) {
-      return false;
-    }
-
-    If theIf = current.asIf();
-    BasicBlock trueTarget = theIf.getTrueTarget();
-    BasicBlock falseTarget = theIf.fallthroughBlock();
-    if (trueTarget == falseTarget) {
-      return false;
-    }
-
-    Value trueValue = blockWithSingleConstNumberAndGoto(trueTarget);
-    Value falseValue = blockWithSingleConstNumberAndGoto(falseTarget);
-    if (trueValue == null
-        || falseValue == null
-        || (trueTarget.exit().asGoto().getTarget() != falseTarget.exit().asGoto().getTarget())) {
-      return false;
-    }
-
-    BasicBlock target = trueTarget.exit().asGoto().getTarget();
-    Value storeValue = blockWithAssertionsDisabledFieldPut(target);
-    return storeValue != null
-        && storeValue.isPhi()
-        && storeValue.asPhi().getOperands().size() == 2
-        && storeValue.asPhi().getOperands().contains(trueValue)
-        && storeValue.asPhi().getOperands().contains(falseValue);
   }
 
   enum RemoveCheckCastInstructionIfTrivialResult {

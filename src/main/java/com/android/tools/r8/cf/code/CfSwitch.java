@@ -55,6 +55,16 @@ public class CfSwitch extends CfInstruction {
   }
 
   @Override
+  public CfSwitch asSwitch() {
+    return this;
+  }
+
+  @Override
+  public boolean isSwitch() {
+    return true;
+  }
+
+  @Override
   public void write(MethodVisitor visitor, NamingLens lens) {
     Label[] labels = new Label[targets.size()];
     for (int i = 0; i < targets.size(); i++) {

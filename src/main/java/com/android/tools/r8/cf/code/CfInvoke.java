@@ -55,6 +55,16 @@ public class CfInvoke extends CfInstruction {
   }
 
   @Override
+  public CfInvoke asInvoke() {
+    return this;
+  }
+
+  @Override
+  public boolean isInvoke() {
+    return true;
+  }
+
+  @Override
   public void write(MethodVisitor visitor, NamingLens lens) {
     String owner = lens.lookupInternalName(method.holder);
     String name = lens.lookupName(method).toString();

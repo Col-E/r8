@@ -47,6 +47,16 @@ public class CfLoad extends CfInstruction {
   }
 
   @Override
+  public CfLoad asLoad() {
+    return this;
+  }
+
+  @Override
+  public boolean isLoad() {
+    return true;
+  }
+
+  @Override
   public void write(MethodVisitor visitor, NamingLens lens) {
     visitor.visitVarInsn(getLoadType(), var);
   }

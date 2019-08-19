@@ -25,9 +25,11 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.analysis.ClassInitializerAssertionEnablingAnalysis;
 import com.android.tools.r8.graph.analysis.InitializedClassesInInstanceMethodsAnalysis;
 import com.android.tools.r8.ir.analysis.proto.GeneratedExtensionRegistryShrinker;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.conversion.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.desugar.R8NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.optimize.EnumInfoMapCollector;
 import com.android.tools.r8.ir.optimize.MethodPoolCollection;
@@ -323,6 +325,11 @@ public class R8 {
 
         if (appView.options().enableInitializedClassesInInstanceMethodsAnalysis) {
           enqueuer.registerAnalysis(new InitializedClassesInInstanceMethodsAnalysis(appView));
+        }
+        if (appView.options().disableAssertions) {
+          enqueuer.registerAnalysis(
+              (new ClassInitializerAssertionEnablingAnalysis(
+                  appView.dexItemFactory(), new OptimizationFeedbackSimple())));
         }
 
         AppView<AppInfoWithLiveness> appViewWithLiveness =

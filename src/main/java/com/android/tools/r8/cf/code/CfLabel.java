@@ -28,6 +28,16 @@ public class CfLabel extends CfInstruction {
   }
 
   @Override
+  public CfLabel asLabel() {
+    return this;
+  }
+
+  @Override
+  public boolean isLabel() {
+    return true;
+  }
+
+  @Override
   public void print(CfPrinter printer) {
     printer.print(this);
   }

@@ -45,6 +45,62 @@ public abstract class CfInstruction {
     return false;
   }
 
+  public CfFieldInstruction asFieldInstruction() {
+    return null;
+  }
+
+  public boolean isFieldInstruction() {
+    return false;
+  }
+
+  public CfGoto asGoto() {
+    return null;
+  }
+
+  public boolean isGoto() {
+    return false;
+  }
+
+  public CfInvoke asInvoke() {
+    return null;
+  }
+
+  public boolean isInvoke() {
+    return false;
+  }
+
+  public CfLabel asLabel() {
+    return null;
+  }
+
+  public boolean isLabel() {
+    return false;
+  }
+
+  public CfLoad asLoad() {
+    return null;
+  }
+
+  public boolean isLoad() {
+    return false;
+  }
+
+  public CfStore asStore() {
+    return null;
+  }
+
+  public boolean isStore() {
+    return false;
+  }
+
+  public CfSwitch asSwitch() {
+    return null;
+  }
+
+  public boolean isSwitch() {
+    return false;
+  }
+
   public CfDexItemBasedConstString asDexItemBasedConstString() {
     return null;
   }
