@@ -48,6 +48,8 @@ public class GraphInspector {
         new EdgeKindPredicate(EdgeKind.ReflectiveUseFrom);
     public static final EdgeKindPredicate isLibraryMethod =
         new EdgeKindPredicate(EdgeKind.IsLibraryMethod);
+    public static final EdgeKindPredicate overriding =
+        new EdgeKindPredicate(EdgeKind.OverridingMethod);
 
     private final EdgeKind edgeKind;
 
@@ -131,6 +133,8 @@ public class GraphInspector {
 
     public abstract boolean isReflectedFrom(MethodReference method);
 
+    public abstract boolean isOverriding(MethodReference method);
+
     public abstract boolean isKeptBy(QueryNode node);
 
     public abstract boolean isKeptByLibraryMethod(QueryNode node);
@@ -200,6 +204,11 @@ public class GraphInspector {
       assertFalse(
           errorMessage("no reflection from " + method.toString(), "reflection"),
           isReflectedFrom(method));
+      return this;
+    }
+
+    public QueryNode assertOverriding(MethodReference method) {
+      assertTrue(errorMessage("overriding " + method.toString(), "none"), isOverriding(method));
       return this;
     }
 
@@ -303,6 +312,12 @@ public class GraphInspector {
     }
 
     @Override
+    public boolean isOverriding(MethodReference method) {
+      fail("Invalid call to isOverriding on " + getNodeDescription());
+      throw new Unreachable();
+    }
+
+    @Override
     public boolean isKeptBy(QueryNode node) {
       fail("Invalid call to isKeptBy on " + getNodeDescription());
       throw new Unreachable();
@@ -396,6 +411,18 @@ public class GraphInspector {
       }
       return filterSources(
               (node, infos) -> node == sourceMethod && EdgeKindPredicate.reflectedFrom.test(infos))
+          .findFirst()
+          .isPresent();
+    }
+
+    @Override
+    public boolean isOverriding(MethodReference method) {
+      GraphNode sourceMethod = inspector.methods.get(method);
+      if (sourceMethod == null) {
+        return false;
+      }
+      return filterSources(
+              (node, infos) -> node == sourceMethod && EdgeKindPredicate.overriding.test(infos))
           .findFirst()
           .isPresent();
     }

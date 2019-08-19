@@ -29,6 +29,7 @@ public class GraphEdgeInfo {
     ReachableFromLiveType,
     ReferencedInAnnotation,
     IsLibraryMethod,
+    OverridingMethod,
     MethodHandleUseFrom,
     Unknown
   }
@@ -71,6 +72,8 @@ public class GraphEdgeInfo {
         return "reachable from";
       case ReferencedInAnnotation:
         return "referenced in annotation";
+      case OverridingMethod:
+        return "overriding method";
       case IsLibraryMethod:
         // TODO(b/120959039): It would be good to also surface the defining library type.
         return "defined in library method overridden by";

@@ -119,6 +119,10 @@ public abstract class KeepReason {
     return new MethodHandleReferencedFrom(method);
   }
 
+  public static KeepReason overridesMethod(DexEncodedMethod method) {
+    return new OverridesMethod(method);
+  }
+
   public Collection<DexReference> getPreconditions() {
     throw new Unreachable();
   }
@@ -216,6 +220,23 @@ public abstract class KeepReason {
     @Override
     public GraphNode getSourceNode(Enqueuer enqueuer) {
       return enqueuer.getMethodGraphNode(method.method);
+    }
+  }
+
+  private static class OverridesMethod extends BasedOnOtherMethod {
+
+    public OverridesMethod(DexEncodedMethod method) {
+      super(method);
+    }
+
+    @Override
+    public EdgeKind edgeKind() {
+      return EdgeKind.OverridingMethod;
+    }
+
+    @Override
+    String getKind() {
+      return "overrides";
     }
   }
 

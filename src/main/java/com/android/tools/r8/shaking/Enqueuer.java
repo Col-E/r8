@@ -176,8 +176,8 @@ public class Enqueuer {
    * is reachable even if no live subtypes exist, so this is not sufficient for inclusion in the
    * live set.
    */
-  private final Map<DexType, SetWithReason<DexEncodedMethod>> reachableVirtualMethods = Maps
-      .newIdentityHashMap();
+  private final Map<DexType, SetWithStoredReason<DexEncodedMethod>> reachableVirtualMethods =
+      Maps.newIdentityHashMap();
 
   // TODO(b/139464956): Lazily compute library dependencies.
   private final Map<DexType, Map<DexEncodedMethod, Set<DexType>>>
@@ -897,7 +897,7 @@ public class Enqueuer {
   }
 
   private void transitionReachableVirtualMethods(DexType type, ScopedDexMethodSet seen) {
-    SetWithReason<DexEncodedMethod> reachableMethods = reachableVirtualMethods.get(type);
+    SetWithStoredReason<DexEncodedMethod> reachableMethods = reachableVirtualMethods.get(type);
     if (reachableMethods != null) {
       transitionNonAbstractMethodsToLiveAndShadow(type, reachableMethods, seen);
     }
@@ -1328,14 +1328,18 @@ public class Enqueuer {
   }
 
   private void transitionNonAbstractMethodsToLiveAndShadow(
-      DexType type, SetWithReason<DexEncodedMethod> reachable, ScopedDexMethodSet seen) {
+      DexType type, SetWithStoredReason<DexEncodedMethod> reachable, ScopedDexMethodSet seen) {
     for (DexEncodedMethod encodedMethod : reachable.getItems()) {
       if (seen.addMethod(encodedMethod)) {
-        // Abstract methods do shadow implementations but they cannot be live, as they have no
-        // code.
-        // TODO(b/120959039): The reasons need to be stored and then forwarded here!
+        // Abstract methods do shadow implementations but they cannot be live, as they have no code.
         if (!encodedMethod.accessFlags.isAbstract()) {
-          markVirtualMethodAsLive(encodedMethod, KeepReason.reachableFromLiveType(type));
+          // TODO(b/120959039): All reasons are reported, remove this once mark does not require it.
+          KeepReason unneededReason = KeepReason.reachableFromLiveType(type);
+          for (KeepReason reason : reachable.getReasons(encodedMethod)) {
+            registerMethod(encodedMethod, reason);
+            unneededReason = reason;
+          }
+          markVirtualMethodAsLive(encodedMethod, unneededReason);
         }
       }
     }
@@ -1654,10 +1658,12 @@ public class Enqueuer {
         }
         entry.put(encodedPossibleTarget, SetUtils.newIdentityHashSet(method.holder, 2));
       } else {
-        SetWithReason<DexEncodedMethod> reachable =
+        SetWithStoredReason<DexEncodedMethod> reachable =
             reachableVirtualMethods.computeIfAbsent(
-                possibleTarget.holder, ignore -> newSetWithoutReasonReporter());
-        if (!reachable.add(encodedPossibleTarget, reason)) {
+                possibleTarget.holder, ignore -> SetWithStoredReason.create());
+        if (!reachable.add(
+            encodedPossibleTarget,
+            topTarget == encodedPossibleTarget ? reason : KeepReason.overridesMethod(topTarget))) {
           continue;
         }
       }
@@ -1983,8 +1989,8 @@ public class Enqueuer {
 
       if (Log.ENABLED) {
         Set<DexEncodedMethod> allLive = Sets.newIdentityHashSet();
-        for (Entry<DexType, SetWithReason<DexEncodedMethod>> entry : reachableVirtualMethods
-            .entrySet()) {
+        for (Entry<DexType, SetWithStoredReason<DexEncodedMethod>> entry :
+            reachableVirtualMethods.entrySet()) {
           allLive.addAll(entry.getValue().getItems());
         }
         Set<DexEncodedMethod> reachableNotLive = Sets.difference(allLive, liveMethods.getItems());
@@ -2592,6 +2598,30 @@ public class Enqueuer {
 
     Set<T> getItems() {
       return ImmutableSet.copyOf(items);
+    }
+  }
+
+  private static class SetWithStoredReason<T> extends SetWithReason<T> {
+    private final Map<T, Set<KeepReason>> reasons;
+
+    static <T> SetWithStoredReason<T> create() {
+      final Map<T, Set<KeepReason>> reasons = new IdentityHashMap<>();
+      return new SetWithStoredReason<>(register(reasons), reasons);
+    }
+
+    private SetWithStoredReason(
+        BiConsumer<T, KeepReason> register, Map<T, Set<KeepReason>> reasons) {
+      super(register);
+      this.reasons = reasons;
+    }
+
+    private static <T> BiConsumer<T, KeepReason> register(Map<T, Set<KeepReason>> reasons) {
+      return (T item, KeepReason reason) ->
+          reasons.computeIfAbsent(item, k -> new HashSet<>()).add(reason);
+    }
+
+    public Set<KeepReason> getReasons(T item) {
+      return reasons.get(item);
     }
   }
 
