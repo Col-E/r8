@@ -35,6 +35,7 @@ import com.android.tools.r8.ir.desugar.backports.CollectionsMethods;
 import com.android.tools.r8.ir.desugar.backports.DoubleMethods;
 import com.android.tools.r8.ir.desugar.backports.FloatMethods;
 import com.android.tools.r8.ir.desugar.backports.IntegerMethods;
+import com.android.tools.r8.ir.desugar.backports.ListMethods;
 import com.android.tools.r8.ir.desugar.backports.LongMethods;
 import com.android.tools.r8.ir.desugar.backports.MathMethods;
 import com.android.tools.r8.ir.desugar.backports.ObjectsMethods;
@@ -825,6 +826,18 @@ public final class BackportedMethodRewriter {
       proto =
           factory.createProto(factory.intType, factory.intType, factory.intType, factory.intType);
       addProvider(new MethodGenerator(clazz, method, proto, ObjectsMethods::new));
+
+      // List of
+      clazz = factory.listDescriptor;
+      method = factory.createString("of");
+
+      // From 0 to 10 arguments.
+      ArrayList<DexType> parameters = new ArrayList<>();
+      for (int i = 0; i <= 10; i++) {
+        proto = factory.createProto(factory.listType, parameters);
+        addProvider(new MethodGenerator(clazz, method, proto, ListMethods::new));
+        parameters.add(factory.objectType);
+      }
     }
 
     private void initializeJava11MethodProviders(DexItemFactory factory) {
@@ -992,6 +1005,8 @@ public final class BackportedMethodRewriter {
           UTILITY_CLASS_DESCRIPTOR_PREFIX
               + '$'
               + unqualifiedName
+              + '$'
+              + proto.parameters.size()
               + coreLibUtilitySuffix
               + '$'
               + methodName
