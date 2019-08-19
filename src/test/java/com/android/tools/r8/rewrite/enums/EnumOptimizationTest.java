@@ -12,6 +12,7 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -42,13 +43,18 @@ public class EnumOptimizationTest extends TestBase {
     this.parameters = parameters;
   }
 
-  @Test public void ordinals() throws Exception {
+  private void configure(InternalOptions options) {
+    options.enableEnumValueOptimization = enableOptimization;
+  }
+
+  @Test
+  public void ordinals() throws Exception {
     testForR8(parameters.getBackend())
         .addLibraryFiles(getDefaultAndroidJar())
         .addProgramClassesAndInnerClasses(Ordinals.class)
         .addKeepMainRule(Ordinals.class)
         .enableInliningAnnotations()
-        .addOptionsModification(options -> options.enableEnumValueOptimization = enableOptimization)
+        .addOptionsModification(this::configure)
         .setMinApi(parameters.getRuntime())
         .compile()
         .inspect(this::inspectOrdinals)
@@ -63,7 +69,13 @@ public class EnumOptimizationTest extends TestBase {
     if (enableOptimization) {
       assertOrdinalReplacedWithConst(clazz.uniqueMethodWithName("simple"), 1);
       assertOrdinalReplacedWithConst(clazz.uniqueMethodWithName("local"), 1);
-      assertOrdinalReplacedWithConst(clazz.uniqueMethodWithName("multipleUsages"), 1);
+      // String concatenation optimization is enabled for DEX output.
+      // Even replaced ordinal is concatenated (and gone).
+      if (parameters.isDexRuntime()) {
+        assertOrdinalReplacedAndGone(clazz.uniqueMethodWithName("multipleUsages"));
+      } else {
+        assertOrdinalReplacedWithConst(clazz.uniqueMethodWithName("multipleUsages"), 1);
+      }
       assertOrdinalReplacedWithConst(clazz.uniqueMethodWithName("inlined"), 1);
       assertOrdinalReplacedWithConst(clazz.uniqueMethodWithName("inSwitch"), 11);
     } else {
@@ -81,13 +93,14 @@ public class EnumOptimizationTest extends TestBase {
     assertOrdinalWasNotReplaced(clazz.uniqueMethodWithName("nonStaticGet"));
   }
 
-  @Test public void names() throws Exception {
+  @Test
+  public void names() throws Exception {
     testForR8(parameters.getBackend())
         .addLibraryFiles(getDefaultAndroidJar())
         .addProgramClassesAndInnerClasses(Names.class)
         .addKeepMainRule(Names.class)
         .enableInliningAnnotations()
-        .addOptionsModification(options -> options.enableEnumValueOptimization = enableOptimization)
+        .addOptionsModification(this::configure)
         .setMinApi(parameters.getRuntime())
         .compile()
         .inspect(this::inspectNames)
@@ -103,7 +116,9 @@ public class EnumOptimizationTest extends TestBase {
     if (enableOptimization) {
       assertNameReplacedWithConst(clazz.uniqueMethodWithName("simple"), "TWO");
       assertNameReplacedWithConst(clazz.uniqueMethodWithName("local"), "TWO");
-      assertNameReplacedWithConst(clazz.uniqueMethodWithName("multipleUsages"), "TWO");
+      // String concatenation optimization is enabled for DEX output.
+      String expectedConst = parameters.isDexRuntime() ? "1TWO" : "TWO";
+      assertNameReplacedWithConst(clazz.uniqueMethodWithName("multipleUsages"), expectedConst);
       assertNameReplacedWithConst(clazz.uniqueMethodWithName("inlined"), "TWO");
     } else {
       assertNameWasNotReplaced(clazz.uniqueMethodWithName("simple"));
@@ -112,7 +127,7 @@ public class EnumOptimizationTest extends TestBase {
       assertNameWasNotReplaced(clazz.uniqueMethodWithName("inlined"));
     }
 
-    // TODO this should be allowed!
+    // TODO(jakew) this should be allowed!
     assertNameWasNotReplaced(clazz.uniqueMethodWithName("libraryType"));
 
     assertNameWasNotReplaced(clazz.uniqueMethodWithName("wrongTypeStaticField"));
@@ -121,13 +136,14 @@ public class EnumOptimizationTest extends TestBase {
     assertNameWasNotReplaced(clazz.uniqueMethodWithName("nonStaticGet"));
   }
 
-  @Test public void toStrings() throws Exception {
+  @Test
+  public void toStrings() throws Exception {
     testForR8(parameters.getBackend())
         .addLibraryFiles(getDefaultAndroidJar())
         .addProgramClassesAndInnerClasses(ToStrings.class)
         .addKeepMainRule(ToStrings.class)
         .enableInliningAnnotations()
-        .addOptionsModification(options -> options.enableEnumValueOptimization = enableOptimization)
+        .addOptionsModification(this::configure)
         .setMinApi(parameters.getRuntime())
         .compile()
         .inspect(this::inspectToStrings)
@@ -172,6 +188,13 @@ public class EnumOptimizationTest extends TestBase {
         .mapToLong(InstructionSubject::getConstNumber)
         .toArray();
     assertEquals(expectedConst, actualConst[0]);
+  }
+
+  private static void assertOrdinalReplacedAndGone(MethodSubject method) {
+    assertTrue(method.isPresent());
+    assertEquals(emptyList(), enumInvokes(method, "ordinal"));
+    assertTrue(
+        method.streamInstructions().noneMatch(InstructionSubject::isConstNumber));
   }
 
   private static void assertOrdinalWasNotReplaced(MethodSubject method) {

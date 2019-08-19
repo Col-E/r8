@@ -140,6 +140,7 @@ public class InternalOptions {
   void disableAllOptimizations() {
     disableGlobalOptimizations();
     enableNonNullTracking = false;
+    enableStringConcatenationOptimization = false;
   }
 
   public void disableGlobalOptimizations() {
@@ -196,8 +197,7 @@ public class InternalOptions {
   public boolean enableServiceLoaderRewriting = true;
   // TODO(b/120138731): Enable this when it is worthwhile, e.g., combined with Class#forName.
   public boolean enableNameReflectionOptimization = false;
-  // TODO(b/114002137): Enable this when it is worthwhile, e.g., support non-String args.
-  public boolean enableStringConcatenationOptimization = false;
+  public boolean enableStringConcatenationOptimization = true;
   public boolean enableTreeShakingOfLibraryMethodOverrides = false;
   public boolean encodeChecksums = false;
   public BiPredicate<String, Long> dexClassChecksumFilter = (name, checksum) -> true;

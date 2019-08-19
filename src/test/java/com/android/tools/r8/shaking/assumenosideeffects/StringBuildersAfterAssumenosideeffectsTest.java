@@ -13,7 +13,6 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -51,7 +50,6 @@ public class StringBuildersAfterAssumenosideeffectsTest extends TestBase {
             "-assumenosideeffects class * implements " + TestLogger.class.getTypeName() + " {",
             "  void info(...);",
             "}")
-        .addOptionsModification(this::configure)
         .noMinification()
         .setMinApi(parameters.getRuntime())
         .run(parameters.getRuntime(), MAIN)
@@ -73,12 +71,6 @@ public class StringBuildersAfterAssumenosideeffectsTest extends TestBase {
         mainMethod.streamInstructions().noneMatch(
             i -> i.isInvoke()
                 && i.getMethod().holder.toDescriptorString().contains("StringBuilder")));
-  }
-
-  // TODO(b/114002137): Once enabled, remove this test-specific setting.
-  private void configure(InternalOptions options) {
-    assert !options.enableStringConcatenationOptimization;
-    options.enableStringConcatenationOptimization = true;
   }
 
   interface TestLogger {

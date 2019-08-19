@@ -689,7 +689,23 @@ public class StringBuilderOptimizer {
       if (Log.ENABLED && Log.isLoggingEnabledFor(StringBuilderOptimizer.class)) {
         logHistogramOfChains(contents, false);
       }
-      return contents.isEmpty() ? null : StringUtils.join(contents, "");
+      if (contents.isEmpty()) {
+        return null;
+      }
+      String result = StringUtils.join(contents, "");
+      int estimate = estimateSizeReduction(contents);
+      return estimate > result.length() ? result : null;
+    }
+
+    private int estimateSizeReduction(List<String> contents) {
+      int result = 8; // builder initialization
+      for (String content : contents) {
+        result += 4; // builder append()
+        // If a certain string is only used as part of the resulting string, it will be gone.
+        result += (int) (content.length() * 0.5); // Magic number of that chance: 50%.
+      }
+      result += 4; // builder toString()
+      return result;
     }
 
     void removeTrivialBuilders() {

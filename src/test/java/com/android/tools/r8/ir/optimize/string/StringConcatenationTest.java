@@ -14,7 +14,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -166,7 +165,6 @@ public class StringConcatenationTest extends TestBase {
             .debug()
             .addProgramClasses(MAIN)
             .setMinApi(parameters.getRuntime())
-            .addOptionsModification(this::configure)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 3, 3, 0, 0, 0, 3, 3);
@@ -176,7 +174,6 @@ public class StringConcatenationTest extends TestBase {
             .release()
             .addProgramClasses(MAIN)
             .setMinApi(parameters.getRuntime())
-            .addOptionsModification(this::configure)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     // TODO(b/114002137): The lack of subtyping made the escape analysis to regard
@@ -195,16 +192,8 @@ public class StringConcatenationTest extends TestBase {
             .addKeepMainRule(MAIN)
             .noMinification()
             .setMinApi(parameters.getRuntime())
-            .addOptionsModification(this::configure)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 1, 1, 1, 1, 1, 3, 3);
   }
-
-  // TODO(b/114002137): Once enabled, remove this test-specific setting.
-  private void configure(InternalOptions options) {
-    assert !options.enableStringConcatenationOptimization;
-    options.enableStringConcatenationOptimization = true;
-  }
-
 }

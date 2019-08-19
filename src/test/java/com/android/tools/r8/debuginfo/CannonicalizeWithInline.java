@@ -40,6 +40,8 @@ public class CannonicalizeWithInline extends TestBase {
                 "public void call(int);\n" +
             "}"
         )
+        // String concatenation optimization will remove dead builders in foobar.
+        .addOptionsModification(o -> o.enableStringConcatenationOptimization = false)
         .compile();
     Path classesPath = temp.getRoot().toPath();
     result.app.write(classesPath, OutputMode.DexIndexed);

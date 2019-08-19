@@ -65,6 +65,8 @@ public class OutlineTest extends SmaliTestBase {
     return options -> {
       // Disable inlining to make sure that code looks as expected.
       options.enableInlining = false;
+      // Disable string concatenation optimization to not bother outlining of StringBuilder usage.
+      options.enableStringConcatenationOptimization = false;
       // Also apply outline options.
       optionsConsumer.accept(options);
     };
@@ -75,6 +77,8 @@ public class OutlineTest extends SmaliTestBase {
     return options -> {
       // Disable inlining to make sure that code looks as expected.
       options.enableInlining = false;
+      // Disable string concatenation optimization to not bother outlining of StringBuilder usage.
+      options.enableStringConcatenationOptimization = false;
       // Also apply outline options.
       optionsConsumer.accept(options.outline);
     };

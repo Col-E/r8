@@ -11,7 +11,6 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject.JumboStringMode;
@@ -42,7 +41,6 @@ public class StringBuilderStoredToDeadFieldTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(StringBuilderStoredToDeadFieldTest.class)
         .addKeepMainRule(MAIN)
-        .addOptionsModification(this::configure)
         .noMinification()
         .setMinApi(parameters.getRuntime())
         .run(parameters.getRuntime(), MAIN)
@@ -64,12 +62,6 @@ public class StringBuilderStoredToDeadFieldTest extends TestBase {
     assertTrue(
         mainMethod.streamInstructions().noneMatch(
             i -> i.isConstString(JumboStringMode.ALLOW)));
-  }
-
-  // TODO(b/114002137): Once enabled, remove this test-specific setting.
-  private void configure(InternalOptions options) {
-    assert !options.enableStringConcatenationOptimization;
-    options.enableStringConcatenationOptimization = true;
   }
 
   static class TestClass {
