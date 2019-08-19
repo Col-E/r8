@@ -567,11 +567,10 @@ public class StringBuilderOptimizer {
         InvokeVirtual invoke = instr.asInvokeVirtual();
         assert invoke.inValues().size() == 1;
         Value builder = invoke.getReceiver().getAliasedValue();
-        assert invoke.hasOutValue();
         Value outValue = invoke.outValue();
-        if (outValue.isDead(appView, code)) {
+        if (outValue == null || outValue.isDead(appView, code)) {
           // If the out value is still used but potentially dead, replace it with a dummy string.
-          if (outValue.isUsed()) {
+          if (outValue != null && outValue.isUsed()) {
             Value dummy =
                 code.createValue(
                     TypeLatticeElement.stringClassType(appView, definitelyNotNull()),
@@ -610,9 +609,6 @@ public class StringBuilderOptimizer {
         return false;
       }
       InvokeVirtual invoke = instr.asInvokeVirtual();
-      if (!invoke.hasOutValue()) {
-        return false;
-      }
       DexMethod invokedMethod = invoke.getInvokedMethod();
       if (!optimizationConfiguration.isToStringMethod(invokedMethod)) {
         return false;
@@ -624,7 +620,7 @@ public class StringBuilderOptimizer {
       }
       // If the result of toString() is no longer used, computing the compile-time constant is
       // even not necessary.
-      if (invoke.outValue().isDead(appView, code)) {
+      if (!invoke.hasOutValue() || invoke.outValue().isDead(appView, code)) {
         return true;
       }
       Map<Instruction, BuilderState> perInstrState = builderStates.get(builder);

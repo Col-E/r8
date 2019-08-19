@@ -7,6 +7,14 @@ import com.android.tools.r8.NeverInline;
 
 class StringConcatenationTestClass {
   @NeverInline
+  public static void unusedBuilder() {
+    StringBuilder builder = new StringBuilder();
+    builder.append(4);
+    builder.append(2);
+    builder.toString();
+  }
+
+  @NeverInline
   public static void trivialSequence() {
     String x = "x";
     String y = "y";
@@ -149,6 +157,7 @@ class StringConcatenationTestClass {
   }
 
   public static void main(String[] args) {
+    unusedBuilder();
     trivialSequence();
     builderWithInitialValue();
     builderWithCapacity();

@@ -4,6 +4,7 @@
 package com.android.tools.r8.ir.optimize.string;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
@@ -19,7 +20,6 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject.JumboStringMode;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import com.google.common.collect.Streams;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -28,19 +28,32 @@ import org.junit.runners.Parameterized;
 public class StringConcatenationTest extends TestBase {
   private static final Class<?> MAIN = StringConcatenationTestClass.class;
   private static final String JAVA_OUTPUT = StringUtils.lines(
+      // trivialSequence
       "xyz",
+      // builderWithInitialValue
       "Hello,R8",
+      // builderWithCapacity
       "42",
+      // nonStringArgs
       "42",
+      // typeConversion
       "0.14 0 false null",
+      // typeConversion_withPhis
       "3.14 3 0",
+      // nestedBuilders_appendBuilderItself
       "Hello,R8",
+      // nestedBuilders_appendBuilderResult
       "Hello,R8",
+      // simplePhi
       "Hello,",
       "Hello,D8",
+      // phiAtInit
       "Hello,R8",
+      // phiWithDifferentInits
       "Hello,R8",
+      // loop
       "na;na;na;na;na;na;na;na;Batman!",
+      // loopWithBuilder
       "na;na;na;na;na;na;na;na;Batman!"
   );
 
@@ -64,96 +77,92 @@ public class StringConcatenationTest extends TestBase {
         .assertSuccessWithOutput(JAVA_OUTPUT);
   }
 
-  private void test(
-      TestRunResult result,
-      int expectedStringCountInTrivialSequence,
-      int expectedStringCountInBuilderWithInitialValue,
-      int expectedStringCountInBuilderWithCapacity,
-      int expectedStringCountInNonStringArgs,
-      int expectedStringCountInTypeConversion,
-      int expectedStringCountInNestedBuilderAppendItself,
-      int expectedStringCountInNestedBuilderAppendResult)
-      throws Exception {
+  private void test(TestRunResult result, boolean isR8, boolean isReleaseMode) throws Exception {
+    // TODO(b/114002137): The lack of subtyping made the escape analysis to regard
+    //    StringBuilder#toString as an alias-introducing instruction.
+    //    For now, debug v.s. release mode of D8 have the same result.
+
+    // Smaller is better in general. If the counter part is zero, that means non-string arguments
+    // are used, and in that case bigger is better.
+    // If the fixed count is used, that means StringBuilderOptimization should keep things as-is
+    // or there would be no observable differences (# of builders could be different).
+    int expectedCount;
+
     CodeInspector codeInspector = result.inspector();
     ClassSubject mainClass = codeInspector.clazz(MAIN);
 
-    MethodSubject method = mainClass.uniqueMethodWithName("trivialSequence");
+    MethodSubject method = mainClass.uniqueMethodWithName("unusedBuilder");
+    if (isR8) {
+      assertThat(method, not(isPresent()));
+    } else {
+      assertThat(method, isPresent());
+      assertEquals(0, countConstString(method));
+    }
+
+    method = mainClass.uniqueMethodWithName("trivialSequence");
     assertThat(method, isPresent());
-    long count = Streams.stream(method.iterateInstructions(
-        i -> i.isConstString(JumboStringMode.ALLOW))).count();
-    assertEquals(expectedStringCountInTrivialSequence, count);
+    expectedCount = isR8 ? 1 : 3;
+    assertEquals(expectedCount, countConstString(method));
 
     method = mainClass.uniqueMethodWithName("builderWithInitialValue");
     assertThat(method, isPresent());
-    count = Streams.stream(method.iterateInstructions(
-        i -> i.isConstString(JumboStringMode.ALLOW))).count();
-    assertEquals(expectedStringCountInBuilderWithInitialValue, count);
+    expectedCount = isR8 ? 1 : 3;
+    assertEquals(expectedCount, countConstString(method));
 
     method = mainClass.uniqueMethodWithName("builderWithCapacity");
     assertThat(method, isPresent());
-    count = Streams.stream(method.iterateInstructions(
-        i -> i.isConstString(JumboStringMode.ALLOW))).count();
-    assertEquals(expectedStringCountInBuilderWithCapacity, count);
+    expectedCount = isR8 ? 1 : 0;
+    assertEquals(expectedCount, countConstString(method));
 
     method = mainClass.uniqueMethodWithName("nonStringArgs");
     assertThat(method, isPresent());
-    count = Streams.stream(method.iterateInstructions(
-        i -> i.isConstString(JumboStringMode.ALLOW))).count();
-    assertEquals(expectedStringCountInNonStringArgs, count);
+    expectedCount = isR8 ? 1 : 0;
+    assertEquals(expectedCount, countConstString(method));
 
     method = mainClass.uniqueMethodWithName("typeConversion");
     assertThat(method, isPresent());
-    count = Streams.stream(method.iterateInstructions(
-        i -> i.isConstString(JumboStringMode.ALLOW))).count();
-    assertEquals(expectedStringCountInTypeConversion, count);
+    expectedCount = isR8 ? 1 : 0;
+    assertEquals(expectedCount, countConstString(method));
 
     method = mainClass.uniqueMethodWithName("typeConversion_withPhis");
     assertThat(method, isPresent());
-    count = Streams.stream(method.iterateInstructions(
-        i -> i.isConstString(JumboStringMode.ALLOW))).count();
-    assertEquals(0, count);
+    assertEquals(0, countConstString(method));
 
     method = mainClass.uniqueMethodWithName("nestedBuilders_appendBuilderItself");
     assertThat(method, isPresent());
-    count = Streams.stream(method.iterateInstructions(
-        i -> i.isConstString(JumboStringMode.ALLOW))).count();
-    assertEquals(expectedStringCountInNestedBuilderAppendItself, count);
+    // TODO(b/113859361): merge builders
+    expectedCount = 3;
+    assertEquals(expectedCount, countConstString(method));
 
     method = mainClass.uniqueMethodWithName("nestedBuilders_appendBuilderResult");
     assertThat(method, isPresent());
-    count = Streams.stream(method.iterateInstructions(
-        i -> i.isConstString(JumboStringMode.ALLOW))).count();
-    assertEquals(expectedStringCountInNestedBuilderAppendResult, count);
+    // TODO(b/113859361): merge builders
+    expectedCount = 3;
+    assertEquals(expectedCount, countConstString(method));
 
     method = mainClass.uniqueMethodWithName("simplePhi");
     assertThat(method, isPresent());
-    count = Streams.stream(method.iterateInstructions(
-        i -> i.isConstString(JumboStringMode.ALLOW))).count();
-    assertEquals(4, count);
+    assertEquals(4, countConstString(method));
 
     method = mainClass.uniqueMethodWithName("phiAtInit");
     assertThat(method, isPresent());
-    count = Streams.stream(method.iterateInstructions(
-        i -> i.isConstString(JumboStringMode.ALLOW))).count();
-    assertEquals(3, count);
+    assertEquals(3, countConstString(method));
 
     method = mainClass.uniqueMethodWithName("phiWithDifferentInits");
     assertThat(method, isPresent());
-    count = Streams.stream(method.iterateInstructions(
-        i -> i.isConstString(JumboStringMode.ALLOW))).count();
-    assertEquals(3, count);
+    assertEquals(3, countConstString(method));
 
     method = mainClass.uniqueMethodWithName("loop");
     assertThat(method, isPresent());
-    count = Streams.stream(method.iterateInstructions(
-        i -> i.isConstString(JumboStringMode.ALLOW))).count();
-    assertEquals(3, count);
+    assertEquals(3, countConstString(method));
 
     method = mainClass.uniqueMethodWithName("loopWithBuilder");
     assertThat(method, isPresent());
-    count = Streams.stream(method.iterateInstructions(
-        i -> i.isConstString(JumboStringMode.ALLOW))).count();
-    assertEquals(2, count);
+    assertEquals(2, countConstString(method));
+  }
+
+  private long countConstString(MethodSubject method) {
+    return method.streamInstructions().filter(i -> i.isConstString(JumboStringMode.ALLOW)).count();
   }
 
   @Test
@@ -167,7 +176,7 @@ public class StringConcatenationTest extends TestBase {
             .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 3, 3, 0, 0, 0, 3, 3);
+    test(result, false, false);
 
     result =
         testForD8()
@@ -176,9 +185,7 @@ public class StringConcatenationTest extends TestBase {
             .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
-    // TODO(b/114002137): The lack of subtyping made the escape analysis to regard
-    //    StringBuilder#toString as an alias-introducing instruction.
-    test(result, 3, 3, 0, 0, 0, 3, 3);
+    test(result, false, true);
   }
 
   @Test
@@ -194,6 +201,6 @@ public class StringConcatenationTest extends TestBase {
             .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 1, 1, 1, 1, 1, 3, 3);
+    test(result, true, true);
   }
 }

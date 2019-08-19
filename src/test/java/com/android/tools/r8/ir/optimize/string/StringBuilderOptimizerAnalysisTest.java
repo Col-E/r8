@@ -37,6 +37,22 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
   }
 
   @Test
+  public void testUnusedBuilder() throws Exception {
+    buildAndCheckIR(
+        "unusedBuilder",
+        checkOptimizerStates(appView, optimizer -> {
+          assertEquals(1, optimizer.analysis.builderStates.size());
+          for (Value builder : optimizer.analysis.builderStates.keySet()) {
+            Map<Instruction, BuilderState> perBuilderState =
+                optimizer.analysis.builderStates.get(builder);
+            checkBuilderState(optimizer, perBuilderState, "42", true);
+          }
+          assertEquals(1, optimizer.analysis.deadBuilders.size());
+          assertEquals(0, optimizer.analysis.simplifiedBuilders.size());
+        }));
+  }
+
+  @Test
   public void testTrivialSequence() throws Exception {
     buildAndCheckIR(
         "trivialSequence",
