@@ -30,7 +30,12 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.dexitembasedstring.ClassNameComputationInfo;
+import com.android.tools.r8.naming.dexitembasedstring.ClassNameComputationInfo.ClassNameMapping;
+import com.android.tools.r8.utils.StringUtils;
+import it.unimi.dsi.fastutil.objects.Object2IntArrayMap;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -40,10 +45,60 @@ public class StringOptimizer {
   private final DexItemFactory factory;
   private final ThrowingInfo throwingInfo;
 
+  private int numberOfSimplifiedOperations = 0;
+  private final Object2IntMap<ClassNameMapping> numberOfComputedNames;
+  private final Object2IntMap<ClassNameMapping> numberOfDeferredComputationOfNames;
+  private final Object2IntMap<Integer> histogramOfLengthOfNames;
+  private final Object2IntMap<Integer> histogramOfLengthOfDeferredNames;
+  private int numberOfSimplifiedConversions = 0;
+
   public StringOptimizer(AppView<?> appView) {
     this.appView = appView;
     this.factory = appView.dexItemFactory();
     this.throwingInfo = ThrowingInfo.defaultForConstString(appView.options());
+    if (Log.ENABLED) {
+      numberOfComputedNames = new Object2IntArrayMap<>();
+      numberOfDeferredComputationOfNames = new Object2IntArrayMap<>();
+      histogramOfLengthOfNames = new Object2IntArrayMap<>();
+      histogramOfLengthOfDeferredNames = new Object2IntArrayMap<>();
+    } else {
+      numberOfComputedNames = null;
+      numberOfDeferredComputationOfNames = null;
+      histogramOfLengthOfNames = null;
+      histogramOfLengthOfDeferredNames = null;
+    }
+  }
+
+  public void logResult() {
+    assert Log.ENABLED;
+    Log.info(getClass(),
+        "# trivial operations on const-string: %s", numberOfSimplifiedOperations);
+    Log.info(getClass(),
+        "# trivial conversions from/to const-string: %s", numberOfSimplifiedConversions);
+    assert numberOfComputedNames != null;
+    Log.info(getClass(), "------ # of get*Name() computation ------");
+    numberOfComputedNames.forEach((kind, count) -> {
+      Log.info(getClass(),
+          "%s: %s (%s)", kind, StringUtils.times("*", Math.min(count, 53)), count);
+    });
+    assert numberOfDeferredComputationOfNames != null;
+    Log.info(getClass(), "------ # of deferred get*Name() computation ------");
+    numberOfDeferredComputationOfNames.forEach((kind, count) -> {
+      Log.info(getClass(),
+          "%s: %s (%s)", kind, StringUtils.times("*", Math.min(count, 53)), count);
+    });
+    assert histogramOfLengthOfNames != null;
+    Log.info(getClass(), "------ histogram of get*Name() result lengths ------");
+    histogramOfLengthOfNames.forEach((length, count) -> {
+      Log.info(getClass(),
+          "%s: %s (%s)", length, StringUtils.times("*", Math.min(count, 53)), count);
+    });
+    assert histogramOfLengthOfDeferredNames != null;
+    Log.info(getClass(), "------ histogram of original type length for deferred get*Name() ------");
+    histogramOfLengthOfDeferredNames.forEach((length, count) -> {
+      Log.info(getClass(),
+          "%s: %s (%s)", length, StringUtils.times("*", Math.min(count, 53)), count);
+    });
   }
 
   // int String#length()
@@ -119,6 +174,7 @@ public class StringOptimizer {
                 invoke.getLocalInfo());
         it.replaceCurrentInstruction(
             new ConstString(stringValue, factory.createString(sub), throwingInfo));
+        numberOfSimplifiedOperations++;
         continue;
       }
 
@@ -196,6 +252,7 @@ public class StringOptimizer {
         constNumber = code.createIntConstant(v);
       }
 
+      numberOfSimplifiedOperations++;
       it.replaceCurrentInstruction(constNumber);
     }
   }
@@ -280,8 +337,10 @@ public class StringOptimizer {
                   baseType,
                   ClassNameComputationInfo.create(NAME, arrayDepth),
                   throwingInfo);
+          logDeferredNameComputation(NAME);
         } else {
           name = NAME.map(descriptor, holder, factory, arrayDepth);
+          logNameComputation(NAME);
         }
       } else if (invokedMethod == factory.classMethods.getTypeName) {
         // TODO(b/119426668): desugar Type#getTypeName
@@ -305,8 +364,10 @@ public class StringOptimizer {
                     baseType,
                     ClassNameComputationInfo.create(CANONICAL_NAME, arrayDepth),
                     throwingInfo);
+            logDeferredNameComputation(CANONICAL_NAME);
           } else {
             name = CANONICAL_NAME.map(descriptor, holder, factory, arrayDepth);
+            logNameComputation(CANONICAL_NAME);
           }
         }
       } else if (invokedMethod == factory.classMethods.getSimpleName) {
@@ -327,8 +388,10 @@ public class StringOptimizer {
                     baseType,
                     ClassNameComputationInfo.create(SIMPLE_NAME, arrayDepth),
                     throwingInfo);
+            logDeferredNameComputation(SIMPLE_NAME);
           } else {
             name = SIMPLE_NAME.map(descriptor, holder, factory, arrayDepth);
+            logNameComputation(SIMPLE_NAME);
           }
         }
       }
@@ -339,13 +402,55 @@ public class StringOptimizer {
                 invoke.getLocalInfo());
         ConstString constString = new ConstString(stringValue, name, throwingInfo);
         it.replaceCurrentInstruction(constString);
+        logHistogramOfNames(name);
       } else if (deferred != null) {
         it.replaceCurrentInstruction(deferred);
         markUseIdentifierNameString = true;
+        logHistogramOfNames(deferred);
       }
     }
     if (markUseIdentifierNameString) {
       code.method.getMutableOptimizationInfo().markUseIdentifierNameString();
+    }
+  }
+
+  private void logNameComputation(ClassNameMapping kind) {
+    if (Log.ENABLED && Log.isLoggingEnabledFor(StringOptimizer.class)) {
+      synchronized (numberOfComputedNames) {
+        int count = numberOfComputedNames.getOrDefault(kind, 0);
+        numberOfComputedNames.put(kind, count + 1);
+      }
+    }
+  }
+
+  private void logHistogramOfNames(DexString name) {
+    if (Log.ENABLED && Log.isLoggingEnabledFor(StringOptimizer.class)) {
+      Integer length = name.size;
+      synchronized (histogramOfLengthOfNames) {
+        int count = histogramOfLengthOfNames.getOrDefault(length, 0);
+        histogramOfLengthOfNames.put(length, count + 1);
+      }
+    }
+  }
+
+  private void logDeferredNameComputation(ClassNameMapping kind) {
+    if (Log.ENABLED && Log.isLoggingEnabledFor(StringOptimizer.class)) {
+      synchronized (numberOfDeferredComputationOfNames) {
+        int count = numberOfDeferredComputationOfNames.getOrDefault(kind, 0);
+        numberOfDeferredComputationOfNames.put(kind, count + 1);
+      }
+    }
+  }
+
+  private void logHistogramOfNames(DexItemBasedConstString deferred) {
+    if (Log.ENABLED && Log.isLoggingEnabledFor(StringOptimizer.class)) {
+      assert deferred.getItem().isDexType();
+      DexType original = deferred.getItem().asDexType();
+      Integer length = original.descriptor.size;
+      synchronized (histogramOfLengthOfDeferredNames) {
+        int count = histogramOfLengthOfDeferredNames.getOrDefault(length, 0);
+        histogramOfLengthOfDeferredNames.put(length, count + 1);
+      }
     }
   }
 
@@ -376,6 +481,7 @@ public class StringOptimizer {
           ConstString nullString =
               new ConstString(nullStringValue, factory.createString("null"), throwingInfo);
           it.replaceCurrentInstruction(nullString);
+          numberOfSimplifiedConversions++;
         } else if (inType.nullability().isDefinitelyNotNull()
             && inType.isClassType()
             && inType.asClassTypeLatticeElement().getClassType().equals(factory.stringType)) {
@@ -385,6 +491,7 @@ public class StringOptimizer {
           } else {
             it.removeOrReplaceByDebugLocalRead();
           }
+          numberOfSimplifiedConversions++;
         }
       } else if (instr.isInvokeVirtual()) {
         InvokeVirtual invoke = instr.asInvokeVirtual();
@@ -404,6 +511,7 @@ public class StringOptimizer {
           } else {
             it.removeOrReplaceByDebugLocalRead();
           }
+          numberOfSimplifiedConversions++;
         }
       }
     }

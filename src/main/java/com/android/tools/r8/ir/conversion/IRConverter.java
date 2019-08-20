@@ -697,6 +697,9 @@ public class IRConverter {
       if (uninstantiatedTypeOptimization != null) {
         uninstantiatedTypeOptimization.logResults();
       }
+      if (stringOptimizer != null) {
+        stringOptimizer.logResult();
+      }
       if (stringBuilderOptimizer != null) {
         stringBuilderOptimizer.logResults();
       }
