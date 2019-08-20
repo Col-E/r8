@@ -78,6 +78,7 @@ import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.InternalOptions.AssertionProcessing;
 import com.android.tools.r8.utils.LineNumberOptimizer;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.SelfRetraceTest;
@@ -326,7 +327,7 @@ public class R8 {
         if (appView.options().enableInitializedClassesInInstanceMethodsAnalysis) {
           enqueuer.registerAnalysis(new InitializedClassesInInstanceMethodsAnalysis(appView));
         }
-        if (appView.options().disableAssertions) {
+        if (appView.options().assertionProcessing != AssertionProcessing.LEAVE) {
           enqueuer.registerAnalysis(
               (new ClassInitializerAssertionEnablingAnalysis(
                   appView.dexItemFactory(), new OptimizationFeedbackSimple())));

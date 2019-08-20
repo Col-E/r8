@@ -21,6 +21,7 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.InternalOptions.AssertionProcessing;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -827,9 +828,9 @@ public final class R8Command extends BaseCompilerCommand {
 
     // Default is to remove Java assertion code as Dalvik and Art does not reliable support
     // Java assertions. When generation class file output always keep the Java assertions code.
-    assert internal.disableAssertions;
+    assert internal.assertionProcessing == AssertionProcessing.REMOVE;
     if (internal.isGeneratingClassFiles()) {
-      internal.disableAssertions = false;
+      internal.assertionProcessing = AssertionProcessing.LEAVE;
     }
 
     // EXPERIMENTAL flags.

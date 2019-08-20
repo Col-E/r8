@@ -23,6 +23,7 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.InternalOptions.AssertionProcessing;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
@@ -154,7 +155,7 @@ public final class D8 {
 
       final CfgPrinter printer = options.printCfg ? new CfgPrinter() : null;
 
-      if (options.disableAssertions) {
+      if (options.assertionProcessing != AssertionProcessing.LEAVE) {
         // Run analysis to mark all <clinit> methods having the javac generated assertion
         // enabling code.
         ClassInitializerAssertionEnablingAnalysis analysis =

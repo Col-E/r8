@@ -75,6 +75,15 @@ public class InternalOptions {
     ON
   }
 
+  public enum AssertionProcessing {
+    /** Leave the conditional javac generated assertion code untouched. */
+    LEAVE,
+    /** Remove the javac generated assertion code completely. */
+    REMOVE,
+    /** Enable the javac generated assertion code unconditionally at compile time. */
+    ENABLE
+  }
+
   public static final int SUPPORTED_CF_MAJOR_VERSION = Opcodes.V11;
   public static final int SUPPORTED_DEX_VERSION =
       AndroidApiLevel.LATEST.getDexVersion().getIntValue();
@@ -405,7 +414,7 @@ public class InternalOptions {
   public boolean ignoreMissingClasses = false;
   // EXPERIMENTAL flag to get behaviour as close to Proguard as possible.
   public boolean forceProguardCompatibility = false;
-  public boolean disableAssertions = true;
+  public AssertionProcessing assertionProcessing = AssertionProcessing.REMOVE;
   public boolean configurationDebugging = false;
 
   // Don't convert Code objects to IRCode.

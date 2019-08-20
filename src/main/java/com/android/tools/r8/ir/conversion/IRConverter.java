@@ -87,6 +87,7 @@ import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.InternalOptions.AssertionProcessing;
 import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -1050,8 +1051,8 @@ public class IRConverter {
       assert appView.enableWholeProgramOptimizations();
       codeRewriter.removeSwitchMaps(code);
     }
-    if (options.disableAssertions) {
-      codeRewriter.disableAssertions(appView, method, code, feedback);
+    if (options.assertionProcessing != AssertionProcessing.LEAVE) {
+      codeRewriter.processAssertions(appView, method, code, feedback);
     }
 
     previous = printMethod(code, "IR after disable assertions (SSA)", previous);

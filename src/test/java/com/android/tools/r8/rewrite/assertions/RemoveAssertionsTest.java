@@ -18,6 +18,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.InternalOptions.AssertionProcessing;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -147,14 +148,17 @@ class CompilationResults {
   final R8TestCompileResult allowAccess;
   final R8TestCompileResult withAssertions;
   final R8TestCompileResult withoutAssertions;
+  final R8TestCompileResult withCompileTimeAssertions;
 
   CompilationResults(
       R8TestCompileResult allowAccess,
       R8TestCompileResult withAssertions,
-      R8TestCompileResult withoutAssertions) {
+      R8TestCompileResult withoutAssertions,
+      R8TestCompileResult withCompileTimeAssertions) {
     this.allowAccess = allowAccess;
     this.withAssertions = withAssertions;
     this.withoutAssertions = withoutAssertions;
+    this.withCompileTimeAssertions = withCompileTimeAssertions;
   }
 }
 
@@ -192,14 +196,14 @@ public class RemoveAssertionsTest extends TestBase {
         .compile();
   }
 
-  private static R8TestCompileResult compileCf(boolean disableAssertions)
+  private static R8TestCompileResult compileCf(InternalOptions.AssertionProcessing assertionsState)
       throws CompilationFailedException {
     return testForR8(staticTemp, Backend.CF)
         .addProgramClassFileData(ClassWithAssertionsDump.dump())
         .debug()
         .noTreeShaking()
         .noMinification()
-        .addOptionsModification(o -> o.disableAssertions = disableAssertions)
+        .addOptionsModification(o -> o.assertionProcessing = assertionsState)
         .compile();
   }
 
@@ -228,33 +232,47 @@ public class RemoveAssertionsTest extends TestBase {
   private static CompilationResults compileAll(Backend backend) throws CompilationFailedException {
     R8TestCompileResult withAccess = compileWithAccessModification(backend);
     if (backend == Backend.CF) {
-      return new CompilationResults(withAccess, compileCf(false), compileCf(true));
+      return new CompilationResults(
+          withAccess,
+          compileCf(AssertionProcessing.LEAVE),
+          compileCf(AssertionProcessing.REMOVE),
+          compileCf(AssertionProcessing.ENABLE));
     }
     return new CompilationResults(
         withAccess,
         compileRegress110887293(RemoveAssertionsTest::chromiumAssertionEnabler),
-        compileRegress110887293(RemoveAssertionsTest::identity));
+        compileRegress110887293(RemoveAssertionsTest::identity),
+        null);
   }
 
-  private void checkResultWithAssertionsPresent(TestCompileResult result) throws Exception {
-    if (parameters.isDexRuntime()) {
-      // Java assertions have no effect on Android (-ea is not implemented).
-      checkResultWithAssertionsRemoved(result);
-    } else {
-      String main = ClassWithAssertions.class.getCanonicalName();
-      result
-          .enableRuntimeAssertions()
-          .run(parameters.getRuntime(), main, "0")
-          .assertFailureWithOutput(StringUtils.lines("1"));
-      // Assertion is not hit.
-      result
-          .enableRuntimeAssertions()
-          .run(parameters.getRuntime(), main, "1")
-          .assertSuccessWithOutput(StringUtils.lines("1", "2"));
-    }
+  private void checkResultWithAssertionsEnabledAtRuntime(TestCompileResult result)
+      throws Exception {
+    String main = ClassWithAssertions.class.getCanonicalName();
+    // When running on the JVM enable assertions. For Art this is not possible, and assertions
+    // can only be activated at compile time.
+    assert parameters.getRuntime().isCf();
+    result.enableRuntimeAssertions();
+    result
+        .disassemble()
+        .run(parameters.getRuntime(), main, "0")
+        .assertFailureWithOutput(StringUtils.lines("1"));
+    // Assertion is not hit.
+    result
+        .run(parameters.getRuntime(), main, "1")
+        .assertSuccessWithOutput(StringUtils.lines("1", "2"));
   }
 
-  private void checkResultWithAssertionsRemoved(TestCompileResult result) throws Exception {
+  private void checkResultWithAssertionsEnabledAtCompileTime(TestCompileResult result)
+      throws Exception {
+    String main = ClassWithAssertions.class.getCanonicalName();
+    result.run(parameters.getRuntime(), main, "0").assertFailureWithOutput(StringUtils.lines("1"));
+    // Assertion is not hit.
+    result
+        .run(parameters.getRuntime(), main, "1")
+        .assertSuccessWithOutput(StringUtils.lines("1", "2"));
+  }
+
+  private void checkResultWithAssertionsInactive(TestCompileResult result) throws Exception {
     String main = ClassWithAssertions.class.getCanonicalName();
     result
         .run(parameters.getRuntime(), main, "0")
@@ -298,9 +316,11 @@ public class RemoveAssertionsTest extends TestBase {
     assumeTrue(parameters.isCfRuntime());
     CompilationResults results = compilationResults.apply(parameters.getBackend());
     // Assertion is hit.
-    checkResultWithAssertionsPresent(results.withAssertions);
+    checkResultWithAssertionsEnabledAtRuntime(results.withAssertions);
     // Assertion is hit, but removed.
-    checkResultWithAssertionsRemoved(results.withoutAssertions);
+    checkResultWithAssertionsInactive(results.withoutAssertions);
+    // Assertion is hit even without enabling in the JVM.
+    checkResultWithAssertionsEnabledAtCompileTime(results.withCompileTimeAssertions);
   }
 
   @Test
@@ -308,23 +328,24 @@ public class RemoveAssertionsTest extends TestBase {
     assumeTrue(parameters.isDexRuntime());
     CompilationResults results = compilationResults.apply(parameters.getBackend());
     // Assertions removed for default assertion code.
-    checkResultWithAssertionsRemoved(results.withoutAssertions);
+    checkResultWithAssertionsInactive(results.withoutAssertions);
     // Assertions not removed when default assertion code is not present.
     checkResultWithChromiumAssertions(results.withAssertions);
   }
 
-  private D8TestCompileResult compileD8(boolean disableAssertions)
+  private D8TestCompileResult compileD8(InternalOptions.AssertionProcessing assertionsState)
       throws CompilationFailedException {
     return testForD8()
         .addProgramClassFileData(ClassWithAssertionsDump.dump())
         .debug()
         .setMinApi(AndroidApiLevel.B)
-        .addOptionsModification(o -> o.disableAssertions = disableAssertions)
+        .addOptionsModification(o -> o.assertionProcessing = assertionsState)
         .compile();
   }
 
-  private D8TestCompileResult compileR8FollowedByD8(boolean disableAssertions) throws Exception {
-    Path x =
+  private D8TestCompileResult compileR8FollowedByD8(
+      InternalOptions.AssertionProcessing assertionsState) throws Exception {
+    Path program =
         testForR8(Backend.CF)
             .addProgramClassFileData(ClassWithAssertionsDump.dump())
             .debug()
@@ -335,18 +356,19 @@ public class RemoveAssertionsTest extends TestBase {
             .writeToZip();
 
     return testForD8()
-        .addProgramFiles(x)
+        .addProgramFiles(program)
         .debug()
         .setMinApi(AndroidApiLevel.B)
-        .addOptionsModification(o -> o.disableAssertions = disableAssertions)
+        .addOptionsModification(o -> o.assertionProcessing = assertionsState)
         .compile();
   }
 
   @Test
   public void testD8() throws Exception {
     assumeTrue(parameters.isDexRuntime());
-    checkResultWithAssertionsRemoved(compileD8(true));
-    checkResultWithAssertionsPresent(compileD8(false));
+    checkResultWithAssertionsInactive(compileD8(AssertionProcessing.REMOVE));
+    checkResultWithAssertionsInactive(compileD8(AssertionProcessing.LEAVE));
+    checkResultWithAssertionsEnabledAtCompileTime(compileD8(AssertionProcessing.ENABLE));
   }
 
   private D8TestCompileResult compileD8Regress110887293(Function<byte[], byte[]> rewriter)
@@ -370,7 +392,9 @@ public class RemoveAssertionsTest extends TestBase {
   @Test
   public void testR8FollowedByD8() throws Exception {
     assumeTrue(parameters.isDexRuntime());
-    checkResultWithAssertionsRemoved(compileR8FollowedByD8(true));
-    checkResultWithAssertionsPresent(compileR8FollowedByD8(false));
+    checkResultWithAssertionsInactive(compileR8FollowedByD8(AssertionProcessing.REMOVE));
+    checkResultWithAssertionsInactive(compileR8FollowedByD8(AssertionProcessing.LEAVE));
+    checkResultWithAssertionsEnabledAtCompileTime(
+        compileR8FollowedByD8(AssertionProcessing.ENABLE));
   }
 }

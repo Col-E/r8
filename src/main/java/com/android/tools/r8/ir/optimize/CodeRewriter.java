@@ -94,6 +94,7 @@ import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
 import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness.EnumValueInfo;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.InternalOptions.AssertionProcessing;
 import com.android.tools.r8.utils.InternalOutputMode;
 import com.android.tools.r8.utils.LongInterval;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
@@ -1930,8 +1931,9 @@ public class CodeRewriter {
    * }
    * </pre>
    */
-  public void disableAssertions(
+  public void processAssertions(
       AppView<?> appView, DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
+    assert appView.options().assertionProcessing != AssertionProcessing.LEAVE;
     DexEncodedMethod clinit;
     // If the <clinit> of this class did not have have code to turn on assertions don't try to
     // remove assertion code from the method (including <clinit> itself.
@@ -1965,7 +1967,9 @@ public class CodeRewriter {
       } else if (current.isStaticGet()) {
         StaticGet staticGet = current.asStaticGet();
         if (staticGet.getField().name == dexItemFactory.assertionsDisabled) {
-          iterator.replaceCurrentInstruction(code.createIntConstant(1));
+          iterator.replaceCurrentInstruction(
+              code.createIntConstant(
+                  appView.options().assertionProcessing == AssertionProcessing.REMOVE ? 1 : 0));
         }
       }
     }
