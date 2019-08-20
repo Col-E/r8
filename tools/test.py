@@ -124,9 +124,6 @@ def ParseOptions():
   result.add_option('--fail-fast', '--fail_fast',
       default=False, action='store_true',
       help='Stop on first failure. Passes --fail-fast to gradle test runner.')
-  result.add_option('--alternative-frontend', '--alternative_frontend',
-      default=False, action='store_true',
-      help='Use the alternative (eg, non-default) classfile frontend.')
   return result.parse_args()
 
 def archive_failures():
@@ -202,8 +199,6 @@ def Main():
     if not os.path.exists(options.use_golden_files_in):
       os.makedirs(options.use_golden_files_in)
     gradle_args.append('-PHEAD_sha1=' + utils.get_HEAD_sha1())
-  if options.alternative_frontend:
-    gradle_args.append('-Palternative_frontend')
   if (not options.no_r8lib) and options.r8lib_no_deps:
     print('Cannot run tests on r8lib with and without deps. R8lib is now default target.')
     exit(1)
