@@ -10,7 +10,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.JarApplicationReader;
 import com.android.tools.r8.graph.JarClassFileReader.ReparseContext;
-import com.android.tools.r8.graph.JarCode;
+import com.android.tools.r8.graph.LazyCfCode;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.io.ByteStreams;
@@ -19,7 +19,7 @@ import java.util.function.BiFunction;
 
 // Source code representing code of a method generated based on a template.
 @KeepSubclassesForCodeGeneration
-public abstract class TemplateMethodCode extends JarCode {
+public abstract class TemplateMethodCode extends LazyCfCode {
   private final String templateMethodName;
   private final String templateMethodDesc;
 
@@ -37,11 +37,11 @@ public abstract class TemplateMethodCode extends JarCode {
   }
 
   @Override
-  protected BiFunction<String, String, JarCode> createCodeLocator(ReparseContext context) {
+  protected BiFunction<String, String, LazyCfCode> createCodeLocator(ReparseContext context) {
     return this::getCodeOrNull;
   }
 
-  private JarCode getCodeOrNull(String name, String desc) {
+  private LazyCfCode getCodeOrNull(String name, String desc) {
     return name.equals(templateMethodName) && desc.equals(templateMethodDesc) ? this : null;
   }
 

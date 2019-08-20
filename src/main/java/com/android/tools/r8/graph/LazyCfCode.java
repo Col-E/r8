@@ -70,6 +70,7 @@ import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Handle;
@@ -98,7 +99,7 @@ public class LazyCfCode extends Code implements CfOrJarCode {
   private final Origin origin;
   private final JarApplicationReader application;
   private CfCode code;
-  private ReparseContext context;
+  protected ReparseContext context;
   private boolean reachabilitySensitive = false;
 
   @Override
@@ -149,7 +150,8 @@ public class LazyCfCode extends Code implements CfOrJarCode {
 
   public void parseCode(ReparseContext context, boolean useJsrInliner) {
     int parsingOptions = JarCode.getParsingOptions(application, reachabilitySensitive);
-    ClassCodeVisitor classVisitor = new ClassCodeVisitor(context, application, useJsrInliner);
+    ClassCodeVisitor classVisitor =
+        new ClassCodeVisitor(context.owner, createCodeLocator(context), application, useJsrInliner);
     new ClassReader(context.classCache).accept(classVisitor, parsingOptions);
   }
 
@@ -223,17 +225,41 @@ public class LazyCfCode extends Code implements CfOrJarCode {
     return asCfCode().toString(method, naming);
   }
 
-  private static class ClassCodeVisitor extends ClassVisitor {
+  protected BiFunction<String, String, LazyCfCode> createCodeLocator(ReparseContext context) {
+    return new DefaultCodeLocator(context, application);
+  }
 
+  private static class DefaultCodeLocator implements BiFunction<String, String, LazyCfCode> {
     private final ReparseContext context;
     private final JarApplicationReader application;
     private int methodIndex = 0;
+
+    private DefaultCodeLocator(ReparseContext context, JarApplicationReader application) {
+      this.context = context;
+      this.application = application;
+    }
+
+    @Override
+    public LazyCfCode apply(String name, String desc) {
+      return context.codeList.get(methodIndex++).asLazyCfCode();
+    }
+  }
+
+  private static class ClassCodeVisitor extends ClassVisitor {
+
+    private final DexClass clazz;
+    private final BiFunction<String, String, LazyCfCode> codeLocator;
+    private final JarApplicationReader application;
     private boolean usrJsrInliner;
 
     ClassCodeVisitor(
-        ReparseContext context, JarApplicationReader application, boolean useJsrInliner) {
+        DexClass clazz,
+        BiFunction<String, String, LazyCfCode> codeLocator,
+        JarApplicationReader application,
+        boolean useJsrInliner) {
       super(InternalOptions.ASM_VERSION);
-      this.context = context;
+      this.clazz = clazz;
+      this.codeLocator = codeLocator;
       this.application = application;
       this.usrJsrInliner = useJsrInliner;
     }
@@ -243,13 +269,15 @@ public class LazyCfCode extends Code implements CfOrJarCode {
         int access, String name, String desc, String signature, String[] exceptions) {
       MethodAccessFlags flags = JarClassFileReader.createMethodAccessFlags(name, access);
       if (!flags.isAbstract() && !flags.isNative()) {
-        LazyCfCode code = context.codeList.get(methodIndex++).asLazyCfCode();
-        DexMethod method = application.getMethod(context.owner.type, name, desc);
-        MethodCodeVisitor methodVisitor = new MethodCodeVisitor(application, method, code);
-        if (!usrJsrInliner) {
-          return methodVisitor;
+        LazyCfCode code = codeLocator.apply(name, desc);
+        if (code != null) {
+          DexMethod method = application.getMethod(clazz.type, name, desc);
+          MethodCodeVisitor methodVisitor = new MethodCodeVisitor(application, method, code);
+          if (!usrJsrInliner) {
+            return methodVisitor;
+          }
+          return new JSRInlinerAdapter(methodVisitor, access, name, desc, signature, exceptions);
         }
-        return new JSRInlinerAdapter(methodVisitor, access, name, desc, signature, exceptions);
       }
       return null;
     }
@@ -270,6 +298,7 @@ public class LazyCfCode extends Code implements CfOrJarCode {
 
     MethodCodeVisitor(JarApplicationReader application, DexMethod method, LazyCfCode code) {
       super(InternalOptions.ASM_VERSION);
+      assert code != null;
       this.application = application;
       this.factory = application.getFactory();
       this.code = code;
