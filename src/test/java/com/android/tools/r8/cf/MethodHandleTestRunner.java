@@ -19,11 +19,9 @@ import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.cf.MethodHandleTest.C;
 import com.android.tools.r8.cf.MethodHandleTest.I;
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
-import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.io.IOException;
@@ -32,7 +30,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -57,7 +54,7 @@ public class MethodHandleTestRunner extends TestBase {
   private ProcessResult runInput;
   private MinifyMode minifyMode;
 
-  @Parameters(name = "{0}_{1}_{2}_{3}")
+  @Parameters(name = "{0}_{1}_{2}")
   public static List<String[]> data() {
     List<String[]> res = new ArrayList<>();
     for (LookupType lookupType : LookupType.values()) {
@@ -194,20 +191,7 @@ public class MethodHandleTestRunner extends TestBase {
               "}"),
           Origin.unknown());
     }
-    try {
-      ToolHelper.runR8(builder.build());
-    } catch (CompilationError e) {
-      if (compilationMode == CompilationMode.DEBUG) {
-        // TODO(b/79725635): Investigate why these tests fail on the buildbot.
-        // Use a Reporter to extract origin info to standard error.
-        new Reporter().error(e);
-        // Print the stack trace since this is not always printed by JUnit.
-        e.printStackTrace();
-        Assume.assumeNoException(
-            "TODO(b/79725635): Investigate why these tests fail on the buildbot.", e);
-      }
-      throw e;
-    }
+    ToolHelper.runR8(builder.build());
   }
 
   private byte[] getClassAsBytes(Class<?> clazz) throws Exception {
