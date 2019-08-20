@@ -1,0 +1,141 @@
+{
+  "version": 1,
+  "required_compilation_api_level": 26,
+  "library_flags": [
+    {
+      "api_level_below_or_equal": 25,
+      "rewrite_prefix": {
+        "java.time.": "j$.time.",
+        "java.util.Desugar": "j$.util.Desugar"
+      },
+      "retarget_lib_member": {
+        "java.util.Calendar#toInstant": "java.util.DesugarCalendar",
+        "java.util.Date#from": "java.util.DesugarDate",
+        "java.util.Date#toInstant": "java.util.DesugarDate",
+        "java.util.GregorianCalendar#from": "java.util.DesugarGregorianCalendar",
+        "java.util.GregorianCalendar#toZonedDateTime": "java.util.DesugarGregorianCalendar"
+      },
+      "backport": {
+        "java.lang.Double8": "java.lang.Double",
+        "java.lang.Integer8": "java.lang.Integer",
+        "java.lang.Long8": "java.lang.Long",
+        "java.lang.Math8": "java.lang.Math"
+      }
+    },
+    {
+      "api_level_below_or_equal": 23,
+      "rewrite_prefix": {
+        "java.util.stream.": "j$.util.stream.",
+        "java.util.function.": "j$.util.function.",
+        "java.util.Comparators": "j$.util.Comparators",
+        "java.util.DoubleSummaryStatistics": "j$.util.DoubleSummaryStatistics",
+        "java.util.IntSummaryStatistics": "j$.util.IntSummaryStatistics",
+        "java.util.LongSummaryStatistics": "j$.util.LongSummaryStatistics",
+        "java.util.Objects": "j$.util.Objects",
+        "java.util.Optional": "j$.util.Optional",
+        "java.util.PrimitiveIterator": "j$.util.PrimitiveIterator",
+        "java.util.SortedSet$1": "j$.util.SortedSet$1",
+        "java.util.Spliterator": "j$.util.Spliterator",
+        "java.util.StringJoiner": "j$.util.StringJoiner",
+        "java.util.Tripwire": "j$.util.Tripwire",
+        "java.util.concurrent.DesugarUnsafe": "j$.util.concurrent.DesugarUnsafe",
+        "java.util.concurrent.ThreadLocalRandom": "j$.util.concurrent.ThreadLocalRandom",
+        "java.util.concurrent.atomic.DesugarAtomic": "j$.util.concurrent.atomic.DesugarAtomic"
+      },
+      "retarget_lib_member": {
+        "java.util.Arrays#stream": "java.util.DesugarArrays",
+        "java.util.Arrays#spliterator": "java.util.DesugarArrays",
+        "java.util.LinkedHashSet#spliterator": "java.util.DesugarLinkedHashSet"
+      },
+      "dont_rewrite": [
+        "java.util.Iterator#remove"
+      ],
+      "emulate_interface": {
+        "java.util.Map$Entry": "j$.util.Map$Entry",
+        "java.util.Collection": "j$.util.Collection",
+        "java.util.Map": "j$.util.Map",
+        "java.util.Iterator": "j$.util.Iterator",
+        "java.util.Comparator": "j$.util.Comparator",
+        "java.util.List": "j$.util.List",
+        "java.util.SortedSet": "j$.util.SortedSet",
+        "java.util.Set": "j$.util.Set",
+        "java.util.concurrent.ConcurrentMap": "j$.util.concurrent.ConcurrentMap"
+      }
+    },
+    {
+      "api_level_below_or_equal": 22,
+      "rewrite_prefix": {
+        "java.util.concurrent.ConcurrentHashMap": "j$.util.concurrent.ConcurrentHashMap"
+      }
+    }
+  ],
+  "program_flags": [
+    {
+      "api_level_below_or_equal": 25,
+      "rewrite_prefix": {
+        "java.time.": "j$.time.",
+        "java.util.Desugar": "j$.util.Desugar"
+      },
+      "retarget_lib_member": {
+        "java.util.Calendar#toInstant": "java.util.DesugarCalendar",
+        "java.util.Date#from": "java.util.DesugarDate",
+        "java.util.Date#toInstant": "java.util.DesugarDate",
+        "java.util.GregorianCalendar#from": "java.util.DesugarGregorianCalendar",
+        "java.util.GregorianCalendar#toZonedDateTime": "java.util.DesugarGregorianCalendar"
+      }
+    },
+    {
+      "api_level_below_or_equal": 23,
+      "rewrite_prefix": {
+        "java.util.stream.": "j$.util.stream.",
+        "java.util.function.": "j$.util.function.",
+        "java.util.DoubleSummaryStatistics": "j$.util.DoubleSummaryStatistics",
+        "java.util.IntSummaryStatistics": "j$.util.IntSummaryStatistics",
+        "java.util.LongSummaryStatistics": "j$.util.LongSummaryStatistics",
+        "java.util.Optional": "j$.util.Optional",
+        "java.util.PrimitiveIterator": "j$.util.PrimitiveIterator",
+        "java.util.Spliterator": "j$.util.Spliterator",
+        "java.util.StringJoiner": "j$.util.StringJoiner",
+        "java.util.concurrent.ThreadLocalRandom": "j$.util.concurrent.ThreadLocalRandom",
+        "java.util.concurrent.atomic.DesugarAtomic": "j$.util.concurrent.atomic.DesugarAtomic"
+      },
+      "retarget_lib_member": {
+        "java.util.Arrays#stream": "java.util.DesugarArrays",
+        "java.util.Arrays#spliterator": "java.util.DesugarArrays",
+        "java.util.LinkedHashSet#spliterator": "java.util.DesugarLinkedHashSet",
+        "java.util.concurrent.atomic.AtomicInteger#getAndUpdate": "java.util.concurrent.atomic.DesugarAtomicInteger",
+        "java.util.concurrent.atomic.AtomicInteger#updateAndGet": "java.util.concurrent.atomic.DesugarAtomicInteger",
+        "java.util.concurrent.atomic.AtomicInteger#getAndAccumulate": "java.util.concurrent.atomic.DesugarAtomicInteger",
+        "java.util.concurrent.atomic.AtomicInteger#accumulateAndGet": "java.util.concurrent.atomic.DesugarAtomicInteger",
+        "java.util.concurrent.atomic.AtomicLong#getAndUpdate": "java.util.concurrent.atomic.DesugarAtomicLong",
+        "java.util.concurrent.atomic.AtomicLong#updateAndGet": "java.util.concurrent.atomic.DesugarAtomicLong",
+        "java.util.concurrent.atomic.AtomicLong#getAndAccumulate": "java.util.concurrent.atomic.DesugarAtomicLong",
+        "java.util.concurrent.atomic.AtomicLong#accumulateAndGet": "java.util.concurrent.atomic.DesugarAtomicLong",
+        "java.util.concurrent.atomic.AtomicReference#getAndUpdate": "java.util.concurrent.atomic.DesugarAtomicReference",
+        "java.util.concurrent.atomic.AtomicReference#updateAndGet": "java.util.concurrent.atomic.DesugarAtomicReference",
+        "java.util.concurrent.atomic.AtomicReference#getAndAccumulate": "java.util.concurrent.atomic.DesugarAtomicReference",
+        "java.util.concurrent.atomic.AtomicReference#accumulateAndGet": "java.util.concurrent.atomic.DesugarAtomicReference"
+      },
+      "dont_rewrite": [
+        "java.util.Iterator#remove"
+      ],
+      "emulate_interface": {
+        "java.util.Map$Entry": "j$.util.Map$Entry",
+        "java.util.Collection": "j$.util.Collection",
+        "java.util.Map": "j$.util.Map",
+        "java.util.Iterator": "j$.util.Iterator",
+        "java.util.Comparator": "j$.util.Comparator",
+        "java.util.List": "j$.util.List",
+        "java.util.SortedSet": "j$.util.SortedSet",
+        "java.util.Set": "j$.util.Set",
+        "java.util.concurrent.ConcurrentMap": "j$.util.concurrent.ConcurrentMap"
+      }
+    },
+    {
+      "api_level_below_or_equal": 22,
+      "rewrite_prefix": {
+        "java.util.concurrent.ConcurrentHashMap": "j$.util.concurrent.ConcurrentHashMap"
+      }
+    }
+  ]
+}
