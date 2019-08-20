@@ -15,6 +15,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
+import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -89,11 +90,13 @@ public class NeverMergeCoreLibDesugarClasses extends CoreLibDesugarTestBase {
 
   @Test
   public void testTestCodeRuns() throws Exception {
+    // j$.util.Function is not present in recent APIs.
+    Assume.assumeTrue(parameters.getApiLevel().getLevel() < 24);
     testForD8()
         .addInnerClasses(NeverMergeCoreLibDesugarClasses.class)
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .setMinApi(parameters.getRuntime())
-        .enableCoreLibraryDesugaring()
+        .enableCoreLibraryDesugaring(parameters.getApiLevel())
         .compile()
         .addRunClasspathFiles(buildDesugaredLibrary(parameters.getApiLevel()))
         .run(parameters.getRuntime(), TestClass.class)

@@ -15,6 +15,7 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.naming.PrefixRewritingNamingLens;
 import com.android.tools.r8.shaking.AnnotationRemover;
+import com.android.tools.r8.shaking.L8TreePruner;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -77,6 +78,7 @@ public class L8 {
       options.disableGlobalOptimizations();
 
       DexApplication app = new ApplicationReader(inputApp, options, timing).read(executor);
+      app = new L8TreePruner(options).prune(app);
       AppInfo appInfo = new AppInfo(app);
 
       AppView<?> appView = AppView.createForL8(appInfo, options);

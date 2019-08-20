@@ -522,7 +522,15 @@ final class LambdaClass {
       assert rewriter.converter.appView.options().coreLibraryCompilation;
       DexMethod implMethod = descriptor.implHandle.asMethod();
       DexClass implMethodHolder = definitionFor(implMethod.holder);
-      assert implMethodHolder != null;
+      if (implMethodHolder == null) {
+        assert rewriter
+            .converter
+            .appView
+            .options()
+            .backportCoreLibraryMembers
+            .containsKey(implMethod.holder.toString());
+        return false;
+      }
       return implMethodHolder.isInterface();
     }
   }
