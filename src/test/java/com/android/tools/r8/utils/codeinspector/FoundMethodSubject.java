@@ -22,7 +22,6 @@ import com.android.tools.r8.graph.DexDebugInfo;
 import com.android.tools.r8.graph.DexDebugPositionState;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexString;
-import com.android.tools.r8.graph.JarCode;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
@@ -224,9 +223,6 @@ public class FoundMethodSubject extends MethodSubject {
     if (code.isCfCode()) {
       return !code.asCfCode().getLocalVariables().isEmpty();
     }
-    if (code.isJarCode()) {
-      return code.asJarCode().hasLocalVariableTable();
-    }
     throw new Unreachable("Unexpected code type: " + code.getClass().getSimpleName());
   }
 
@@ -239,14 +235,7 @@ public class FoundMethodSubject extends MethodSubject {
     if (code.isCfCode()) {
       return getCfLineNumberTable(code.asCfCode());
     }
-    if (code.isJarCode()) {
-      return getJarLineNumberTable(code.asJarCode());
-    }
     throw new Unreachable("Unexpected code type: " + code.getClass().getSimpleName());
-  }
-
-  private LineNumberTable getJarLineNumberTable(JarCode code) {
-    throw new Unimplemented("No support for inspecting the line number table for JarCode");
   }
 
   private LineNumberTable getCfLineNumberTable(CfCode code) {
@@ -293,14 +282,7 @@ public class FoundMethodSubject extends MethodSubject {
     if (code.isCfCode()) {
       return getCfLocalVariableTable(code.asCfCode());
     }
-    if (code.isJarCode()) {
-      return getJarLocalVariableTable(code.asJarCode());
-    }
     throw new Unreachable("Unexpected code type: " + code.getClass().getSimpleName());
-  }
-
-  private LocalVariableTable getJarLocalVariableTable(JarCode code) {
-    throw new Unimplemented("No support for inspecting the line number table for JarCode");
   }
 
   private LocalVariableTable getCfLocalVariableTable(CfCode code) {

@@ -293,13 +293,20 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
 
   /**
    * Lookup super method following the super chain from the holder of {@code method}.
-   * <p>
-   * This method will resolve the method on the holder of {@code method} and only return a non-null
-   * value if the result of resolution was an instance (i.e. non-static) method.
-   * <p>
-   * Additionally, this will also verify that the invoke super is valid, i.e., it is on the same
-   * type or a super type of the current context. See comment in {@link
-   * com.android.tools.r8.ir.conversion.JarSourceCode#invokeType}.
+   *
+   * <p>This method will resolve the method on the holder of {@code method} and only return a
+   * non-null value if the result of resolution was an instance (i.e. non-static) method.
+   *
+   * <p>Additionally, this will also verify that the invoke super is valid, i.e., it is on the same
+   * type or a super type of the current context. The spec says that it has invoke super semantics,
+   * if the type is a supertype of the current class. If it is the same or a subtype, it has invoke
+   * direct semantics. The latter case is illegal, so we map it to a super call here. In R8, we
+   * abort at a later stage (see. See also <a href=
+   * "https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.invokespecial" </a>
+   * for invokespecial dispatch and <a href="https://docs.oracle.com/javase/specs/jvms/"
+   * "se7/html/jvms-4.html#jvms-4.10.1.9.invokespecial"</a> for verification requirements. In
+   * particular, the requirement isAssignable(class(CurrentClassName, L), class(MethodClassName,
+   * L)). com.android.tools.r8.cf.code.CfInvoke#isInvokeSuper(DexType)}.
    *
    * @param method the method to lookup
    * @param invocationContext the class the invoke is contained in, i.e., the holder of the caller.

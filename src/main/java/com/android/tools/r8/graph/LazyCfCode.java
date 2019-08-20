@@ -56,10 +56,10 @@ import com.android.tools.r8.ir.code.Monitor;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.code.ValueType;
-import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.ProguardConfiguration;
+import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.InternalOptions;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
@@ -80,7 +80,7 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.JSRInlinerAdapter;
 
-public class LazyCfCode extends Code implements CfOrJarCode {
+public class LazyCfCode extends Code {
 
   private static class JsrEncountered extends RuntimeException {
     public JsrEncountered(String s) {
@@ -102,7 +102,6 @@ public class LazyCfCode extends Code implements CfOrJarCode {
   protected ReparseContext context;
   private boolean reachabilitySensitive = false;
 
-  @Override
   public void markReachabilitySensitive() {
     assert code == null;
     reachabilitySensitive = true;
@@ -116,11 +115,6 @@ public class LazyCfCode extends Code implements CfOrJarCode {
   @Override
   public LazyCfCode asLazyCfCode() {
     return this;
-  }
-
-  @Override
-  public void makeStatic(String protoDescriptor) {
-    asCfCode().makeStatic(protoDescriptor);
   }
 
   @Override
@@ -149,7 +143,7 @@ public class LazyCfCode extends Code implements CfOrJarCode {
   }
 
   public void parseCode(ReparseContext context, boolean useJsrInliner) {
-    int parsingOptions = JarCode.getParsingOptions(application, reachabilitySensitive);
+    int parsingOptions = getParsingOptions(application, reachabilitySensitive);
     ClassCodeVisitor classVisitor =
         new ClassCodeVisitor(context.owner, createCodeLocator(context), application, useJsrInliner);
     new ClassReader(context.classCache).accept(classVisitor, parsingOptions);
@@ -918,6 +912,28 @@ public class LazyCfCode extends Code implements CfOrJarCode {
     }
   }
 
+  private static int getParsingOptions(
+      JarApplicationReader application, boolean reachabilitySensitive) {
+    int parsingOptions =
+        application.options.testing.readInputStackMaps
+            ? ClassReader.EXPAND_FRAMES
+            : ClassReader.SKIP_FRAMES;
+
+    ProguardConfiguration configuration = application.options.getProguardConfiguration();
+    if (configuration != null && !configuration.isKeepParameterNames()) {
+      ProguardKeepAttributes keep =
+          application.options.getProguardConfiguration().getKeepAttributes();
+      if (!application.options.getProguardConfiguration().isKeepParameterNames()
+          && !keep.localVariableTable
+          && !keep.localVariableTypeTable
+          && !keep.lineNumberTable
+          && !reachabilitySensitive) {
+        parsingOptions |= ClassReader.SKIP_DEBUG;
+      }
+    }
+    return parsingOptions;
+  }
+
   private static boolean verifyNoReparseContext(DexClass owner) {
     for (DexEncodedMethod method : owner.virtualMethods()) {
       Code code = method.getCode();
@@ -928,16 +944,6 @@ public class LazyCfCode extends Code implements CfOrJarCode {
       assert code == null || !(code instanceof LazyCfCode) || ((LazyCfCode) code).context == null;
     }
     return true;
-  }
-
-  @Override
-  public ConstraintWithTarget computeInliningConstraint(
-      DexEncodedMethod encodedMethod,
-      AppView<AppInfoWithLiveness> appView,
-      GraphLense graphLense,
-      DexType invocationContext) {
-    return asCfCode()
-        .computeInliningConstraint(encodedMethod, appView, graphLense, invocationContext);
   }
 
   @Override

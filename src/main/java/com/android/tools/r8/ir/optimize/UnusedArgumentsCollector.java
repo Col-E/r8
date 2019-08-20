@@ -282,7 +282,7 @@ public class UnusedArgumentsCollector {
       return null;
     }
     // Only process classfile code objects.
-    if (method.getCode() == null || !method.getCode().isCfOrJarCode()) {
+    if (method.getCode() == null || !method.getCode().isCfCode()) {
       return null;
     }
     if (method.isVirtualMethod()) {

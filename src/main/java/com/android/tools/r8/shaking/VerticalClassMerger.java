@@ -9,8 +9,7 @@ import static com.android.tools.r8.ir.code.Invoke.Type.STATIC;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo.ResolutionResult;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.CfOrJarCode;
-import com.android.tools.r8.graph.Code;
+import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
@@ -1415,11 +1414,7 @@ public class VerticalClassMerger {
 
     private void makeStatic(DexEncodedMethod method) {
       method.accessFlags.setStatic();
-
-      Code code = method.getCode();
-      if (code.isCfOrJarCode()) {
-        code.asCfOrJarCode().makeStatic(method.method.proto.toDescriptorString());
-      } else {
+      if (!method.getCode().isCfCode()) {
         // Due to member rebinding we may have inserted bridge methods with synthesized code.
         // Currently, there is no easy way to make such code static.
         abortMerge = true;
@@ -1645,8 +1640,8 @@ public class VerticalClassMerger {
 
   private boolean disallowInlining(DexEncodedMethod method, DexType invocationContext) {
     if (appView.options().enableInlining) {
-      if (method.getCode().isCfOrJarCode()) {
-        CfOrJarCode code = method.getCode().asCfOrJarCode();
+      if (method.getCode().isCfCode()) {
+        CfCode code = method.getCode().asCfCode();
         ConstraintWithTarget constraint =
             code.computeInliningConstraint(
                 method,

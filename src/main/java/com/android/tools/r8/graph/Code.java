@@ -53,10 +53,6 @@ public abstract class Code extends CachedHashValueDexItem {
     return false;
   }
 
-  public boolean isJarCode() {
-    return false;
-  }
-
   public boolean isOutlineCode() {
     return false;
   }
@@ -83,10 +79,6 @@ public abstract class Code extends CachedHashValueDexItem {
     throw new Unreachable(getClass().getCanonicalName() + ".asDexCode()");
   }
 
-  public JarCode asJarCode() {
-    throw new Unreachable(getClass().getCanonicalName() + ".asJarCode()");
-  }
-
   public OutlineCode asOutlineCode() {
     throw new Unreachable(getClass().getCanonicalName() + ".asOutlineCode()");
   }
@@ -103,13 +95,4 @@ public abstract class Code extends CachedHashValueDexItem {
   }
 
   public abstract boolean isEmptyVoidMethod();
-
-  // Transitional methods for replacing 'Jar' by 'Cf' front-end.
-  public boolean isCfOrJarCode() {
-    return isCfCode() || isJarCode();
-  }
-
-  public CfOrJarCode asCfOrJarCode() {
-    return isCfOrJarCode() ? (CfOrJarCode) this : null;
-  }
 }

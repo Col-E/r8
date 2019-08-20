@@ -14,7 +14,6 @@ import com.android.tools.r8.cf.code.CfReturnVoid;
 import com.android.tools.r8.cf.code.CfTryCatch;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
 import com.android.tools.r8.errors.Unimplemented;
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
@@ -37,7 +36,7 @@ import java.util.Map.Entry;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 
-public class CfCode extends Code implements CfOrJarCode {
+public class CfCode extends Code {
 
   public static class LocalVariableInfo {
 
@@ -110,11 +109,6 @@ public class CfCode extends Code implements CfOrJarCode {
     this.instructions = instructions;
     this.tryCatchRanges = tryCatchRanges;
     this.localVariables = localVariables;
-  }
-
-  @Override
-  public void makeStatic(String protoDescriptor) {
-    // Cf does not cache the access flags or proto, so nothing to do.
   }
 
   public DexType getOriginalHolder() {
@@ -280,11 +274,6 @@ public class CfCode extends Code implements CfOrJarCode {
       }
     }
     return true;
-  }
-
-  @Override
-  public void markReachabilitySensitive() {
-    throw new Unreachable("Invalid attempt to mark parsed code as reachability sensitive");
   }
 
   @Override
@@ -488,7 +477,6 @@ public class CfCode extends Code implements CfOrJarCode {
     return new CfPrinter(this, method, naming).toString();
   }
 
-  @Override
   public ConstraintWithTarget computeInliningConstraint(
       DexEncodedMethod encodedMethod,
       AppView<AppInfoWithLiveness> appView,

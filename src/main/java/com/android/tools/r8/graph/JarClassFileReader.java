@@ -467,14 +467,14 @@ public class JarClassFileReader {
       if (hasReachabilitySensitiveMethod || hasReachabilitySensitiveField()) {
         for (DexEncodedMethod method : directMethods) {
           Code code = method.getCode();
-          if (code != null && code.isCfOrJarCode()) {
-            code.asCfOrJarCode().markReachabilitySensitive();
+          if (code != null && code.isCfCode()) {
+            code.asLazyCfCode().markReachabilitySensitive();
           }
         }
         for (DexEncodedMethod method : virtualMethods) {
           Code code = method.getCode();
-          if (code != null && code.isCfOrJarCode()) {
-            code.asCfOrJarCode().markReachabilitySensitive();
+          if (code != null && code.isCfCode()) {
+            code.asLazyCfCode().markReachabilitySensitive();
           }
         }
       }

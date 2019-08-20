@@ -439,7 +439,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     checkIfObsolete();
     // If the locals are not kept, we might still need information to satisfy -keepparameternames.
     // The information needs to be retrieved on the original code object before replacing it.
-    if (code.isCfOrJarCode() && !hasParameterInfo() && !keepLocals(appView.options())) {
+    if (code.isCfCode() && !hasParameterInfo() && !keepLocals(appView.options())) {
       setParameterInfo(code.collectParameterInfo(this, appView));
     }
     code = newCode;

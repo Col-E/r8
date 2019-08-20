@@ -12,7 +12,6 @@ import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationElement;
 import com.android.tools.r8.graph.DexAnnotationSet;
@@ -437,14 +436,7 @@ public class CfApplicationWriter {
   }
 
   private void writeCode(DexEncodedMethod method, MethodVisitor visitor, int classFileVersion) {
-    Code code = method.getCode();
-    if (code.isJarCode()) {
-      assert namingLens.isIdentityLens();
-      code.asJarCode().writeTo(visitor);
-    } else {
-      assert code.isCfCode();
-      code.asCfCode().write(method, visitor, namingLens, appView, classFileVersion);
-    }
+    method.getCode().asCfCode().write(method, visitor, namingLens, appView, classFileVersion);
   }
 
   public static String printCf(byte[] result) {

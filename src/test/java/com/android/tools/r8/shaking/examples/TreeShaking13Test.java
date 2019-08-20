@@ -52,10 +52,6 @@ public class TreeShaking13Test extends TreeShakingTest {
     ClassSubject mainClass = inspector.clazz("shaking13.Shaking");
     MethodSubject testMethod = mainClass.method("void", "fieldTest", Collections.emptyList());
     Assert.assertTrue(testMethod.isPresent());
-    if (testMethod.getMethod().getCode().isJarCode()) {
-      // TODO(mathiasr): Implement iterateInstructions() for JarCode/CfCode
-      return;
-    }
     Iterator<FieldAccessInstructionSubject> iterator =
         testMethod.iterateInstructions(InstructionSubject::isFieldAccess);
     Assert.assertTrue(iterator.hasNext() && iterator.next().holder().is("shakinglib.LibraryClass"));
