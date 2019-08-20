@@ -278,18 +278,27 @@ class StringSwitchConverter {
       // Build new StringSwitch instruction meanwhile inserting new control flow edges.
       DexString[] keys = new DexString[mapping.size()];
       int[] targetBlockIndices = new int[mapping.size()];
+      Reference2IntMap<BasicBlock> emittedTargetBlockIndices = new Reference2IntOpenHashMap<>();
       int i = 0;
-      int numberOfCatchHandlers = insertionBlock.numberOfCatchHandlers();
+      int nextTargetBlockIndex = insertionBlock.numberOfCatchHandlers();
       for (Entry<DexString, BasicBlock> entry : mapping.entrySet()) {
         keys[i] = entry.getKey();
-        targetBlockIndices[i] = i + numberOfCatchHandlers;
-        insertionBlock.link(entry.getValue());
+        BasicBlock targetBlock = entry.getValue();
+        if (emittedTargetBlockIndices.containsKey(targetBlock)) {
+          targetBlockIndices[i] = emittedTargetBlockIndices.getInt(targetBlock);
+        } else {
+          int targetBlockIndex = nextTargetBlockIndex;
+          targetBlockIndices[i] = targetBlockIndex;
+          emittedTargetBlockIndices.put(targetBlock, targetBlockIndex);
+          insertionBlock.link(targetBlock);
+          nextTargetBlockIndex++;
+        }
         i++;
       }
       insertionBlock.link(fallthroughBlock);
       JumpInstruction exit = insertionBlock.exit();
-      exit.replace(
-          new StringSwitch(value, keys, targetBlockIndices, i + numberOfCatchHandlers), code);
+      int fallthroughBlockIndex = nextTargetBlockIndex;
+      exit.replace(new StringSwitch(value, keys, targetBlockIndices, fallthroughBlockIndex), code);
     }
   }
 

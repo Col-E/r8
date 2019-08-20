@@ -23,6 +23,7 @@ import com.android.tools.r8.ir.code.JumpInstruction;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.StringSwitch;
 import com.android.tools.r8.naming.IdentifierNameStringMarker;
+import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
@@ -86,6 +87,16 @@ public class StringSwitchRemover {
     }
     block.removeAllNormalSuccessors();
 
+    Set<BasicBlock> blocksTargetedByMultipleSwitchCases = Sets.newIdentityHashSet();
+    {
+      Set<BasicBlock> seenBefore = SetUtils.newIdentityHashSet(stringToTargetMap.size());
+      for (BasicBlock targetBlock : stringToTargetMap.values()) {
+        if (!seenBefore.add(targetBlock)) {
+          blocksTargetedByMultipleSwitchCases.add(targetBlock);
+        }
+      }
+    }
+
     // Create a String.equals() check for each case in the string-switch instruction.
     BasicBlock previous = null;
     for (Entry<DexString, BasicBlock> entry : stringToTargetMap.entrySet()) {
@@ -103,6 +114,17 @@ public class StringSwitchRemover {
       If ifInstruction = new If(If.Type.NE, invokeInstruction.outValue());
       ifInstruction.setPosition(Position.none());
 
+      BasicBlock targetBlock = entry.getValue();
+      if (blocksTargetedByMultipleSwitchCases.contains(targetBlock)) {
+        // Need an intermediate block to avoid critical edges.
+        BasicBlock intermediateBlock =
+            BasicBlock.createGotoBlock(code.blocks.size(), Position.none(), code.metadata());
+        intermediateBlock.link(targetBlock);
+        blockIterator.add(intermediateBlock);
+        newBlocks.add(intermediateBlock);
+        targetBlock = intermediateBlock;
+      }
+
       BasicBlock newBlock =
           BasicBlock.createIfBlock(
               code.blocks.size(),
@@ -110,7 +132,7 @@ public class StringSwitchRemover {
               code.metadata(),
               constStringInstruction,
               invokeInstruction);
-      newBlock.link(entry.getValue());
+      newBlock.link(targetBlock);
       blockIterator.add(newBlock);
       newBlocks.add(newBlock);
 
