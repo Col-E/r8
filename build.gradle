@@ -834,8 +834,9 @@ task CompatProguard(type: ShadowJar) {
 
 def baseR8CommandLine(args = []) {
     // Execute r8 commands against a stable r8 with relocated dependencies.
+    // TODO(b/139725780): See if we can remove or lower the heap size (-Xmx6g).
     return [org.gradle.internal.jvm.Jvm.current().getJavaExecutable(),
-            "-ea", "-jar", r8WithRelocatedDeps.outputs.files[0]] + args
+            "-Xmx6g", "-ea", "-jar", r8WithRelocatedDeps.outputs.files[0]] + args
 }
 
 def r8CfCommandLine(input, output, pgConfs = [], args = ["--release"], libs = []) {
