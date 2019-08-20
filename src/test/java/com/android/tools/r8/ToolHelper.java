@@ -151,6 +151,28 @@ public class ToolHelper {
         || (backend == Backend.DEX && outputMode != OutputMode.ClassFile);
   }
 
+  public static StringConsumer consumeString(Consumer<String> consumer) {
+    return new StringConsumer() {
+
+      private StringBuilder builder;
+
+      @Override
+      public void accept(String string, DiagnosticsHandler handler) {
+        if (builder == null) {
+          builder = new StringBuilder();
+        }
+        builder.append(string);
+      }
+
+      @Override
+      public void finished(DiagnosticsHandler handler) {
+        if (builder != null) {
+          consumer.accept(builder.toString());
+        }
+      }
+    };
+  }
+
   public enum DexVm {
     ART_4_0_4_TARGET(Version.V4_0_4, Kind.TARGET),
     ART_4_0_4_HOST(Version.V4_0_4, Kind.HOST),

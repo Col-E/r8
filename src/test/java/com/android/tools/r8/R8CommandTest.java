@@ -17,7 +17,6 @@ import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.collect.ImmutableList;
@@ -89,8 +88,7 @@ public class R8CommandTest {
 
   @Test
   public void desugaredLibraryKeepRuleConsumer() throws Exception {
-    Box<String> holder = new Box<>("");
-    StringConsumer stringConsumer = (string, handler) -> holder.set(holder.get() + string);
+    StringConsumer stringConsumer = StringConsumer.emptyConsumer();
     D8Command command =
         D8Command.builder()
             .setProgramConsumer(DexIndexedConsumer.emptyConsumer())

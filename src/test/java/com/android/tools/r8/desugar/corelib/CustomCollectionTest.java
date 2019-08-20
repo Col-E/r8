@@ -10,13 +10,20 @@ import static org.junit.Assert.fail;
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject.JumboStringMode;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.List;
+import java.util.SortedSet;
 import java.util.stream.Stream;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -56,7 +63,7 @@ public class CustomCollectionTest extends CoreLibDesugarTestBase {
             .addOptionsModification(
                 options ->
                     options.desugaredLibraryKeepRuleConsumer =
-                        (string, handler) -> keepRulesHolder.set(keepRulesHolder.get() + string))
+                        ToolHelper.consumeString(keepRulesHolder::set))
             .enableCoreLibraryDesugaring(parameters.getApiLevel())
             .compile()
             .inspect(inspector -> this.assertCustomCollectionCallsCorrect(inspector, false))
@@ -91,7 +98,7 @@ public class CustomCollectionTest extends CoreLibDesugarTestBase {
             .addOptionsModification(
                 options ->
                     options.desugaredLibraryKeepRuleConsumer =
-                        (string, handler) -> keepRulesHolder.set(keepRulesHolder.get() + string))
+                        ToolHelper.consumeString(keepRulesHolder::set))
             .enableCoreLibraryDesugaring(parameters.getApiLevel())
             .compile()
             .inspect(inspector -> this.assertCustomCollectionCallsCorrect(inspector, true))

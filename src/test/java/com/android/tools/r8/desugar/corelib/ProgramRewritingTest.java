@@ -65,7 +65,7 @@ public class ProgramRewritingTest extends CoreLibDesugarTestBase {
             .addOptionsModification(
                 options ->
                     options.desugaredLibraryKeepRuleConsumer =
-                        (string, handler) -> keepRulesHolder.set(keepRulesHolder.get() + string))
+                        ToolHelper.consumeString(keepRulesHolder::set))
             .enableCoreLibraryDesugaring()
             .compile()
             .inspect(this::checkRewrittenInvokes)
@@ -102,7 +102,7 @@ public class ProgramRewritingTest extends CoreLibDesugarTestBase {
               .addOptionsModification(
                   options ->
                       options.desugaredLibraryKeepRuleConsumer =
-                          (string, handler) -> keepRulesHolder.set(keepRulesHolder.get() + string))
+                          ToolHelper.consumeString(keepRulesHolder::set))
               .enableCoreLibraryDesugaring()
               .compile()
               .inspect(this::checkRewrittenInvokes)

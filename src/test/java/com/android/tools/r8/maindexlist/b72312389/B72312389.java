@@ -87,7 +87,7 @@ public class B72312389 extends TestBase {
             .addProguardConfiguration(ImmutableList.of("-dontobfuscate"), Origin.unknown())
             .addMainDexRules(keepInstrumentationTestCaseRules, Origin.unknown())
             .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
-            .setMainDexListConsumer((string, handler) -> mainDexList.set(string))
+            .setMainDexListConsumer(ToolHelper.consumeString(mainDexList::set))
             .build();
     CodeInspector inspector = new CodeInspector(ToolHelper.runR8(command));
     assertTrue(inspector.clazz("instrumentationtest.InstrumentationTest").isPresent());

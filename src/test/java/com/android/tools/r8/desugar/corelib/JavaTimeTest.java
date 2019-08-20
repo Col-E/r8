@@ -9,6 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.StringUtils;
@@ -63,7 +64,7 @@ public class JavaTimeTest extends CoreLibDesugarTestBase {
         .addOptionsModification(
             options ->
                 options.desugaredLibraryKeepRuleConsumer =
-                    (string, handler) -> keepRulesHolder.set(keepRulesHolder.get() + string))
+                    ToolHelper.consumeString(keepRulesHolder::set))
         .compile()
         .inspect(this::checkRewrittenInvokes)
         .addDesugaredCoreLibraryRunClassPath(
@@ -86,7 +87,7 @@ public class JavaTimeTest extends CoreLibDesugarTestBase {
         .addOptionsModification(
             options ->
                 options.desugaredLibraryKeepRuleConsumer =
-                    (string, handler) -> keepRulesHolder.set(keepRulesHolder.get() + string))
+                    ToolHelper.consumeString(keepRulesHolder::set))
         .compile()
         .inspect(this::checkRewrittenInvokes)
         .addDesugaredCoreLibraryRunClassPath(

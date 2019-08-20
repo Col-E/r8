@@ -32,7 +32,7 @@ public class R8GMSCoreLatestTreeShakeJarVerificationTest
             additionalProguardConfiguration,
             options -> {
               options.proguardMapConsumer =
-                  (proguardMap, handler) -> this.proguardMap1 = proguardMap;
+                  ToolHelper.consumeString(proguardMap -> this.proguardMap1 = proguardMap);
             });
     AndroidApp app2 =
         buildAndTreeShakeFromDeployJar(
@@ -43,7 +43,7 @@ public class R8GMSCoreLatestTreeShakeJarVerificationTest
             additionalProguardConfiguration,
             options -> {
               options.proguardMapConsumer =
-                  (proguardMap, handler) -> this.proguardMap2 = proguardMap;
+                  ToolHelper.consumeString(proguardMap -> this.proguardMap2 = proguardMap);
             });
 
     // Verify that the result of the two compilations was the same.

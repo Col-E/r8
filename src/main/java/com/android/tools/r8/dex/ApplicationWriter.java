@@ -370,19 +370,24 @@ public class ApplicationWriter {
       ExceptionUtils.withConsumeResourceHandler(
           options.reporter, options.configurationConsumer,
           options.getProguardConfiguration().getParsedConfiguration());
+      ExceptionUtils.withFinishedResourceHandler(options.reporter, options.configurationConsumer);
     }
     if (options.usageInformationConsumer != null && deadCode != null) {
       ExceptionUtils.withConsumeResourceHandler(
           options.reporter, options.usageInformationConsumer, deadCode);
+      ExceptionUtils.withFinishedResourceHandler(
+          options.reporter, options.usageInformationConsumer);
     }
     if (proguardMapContent != null) {
       assert validateProguardMapParses(proguardMapContent);
       ExceptionUtils.withConsumeResourceHandler(
           options.reporter, options.proguardMapConsumer, proguardMapContent);
+      ExceptionUtils.withFinishedResourceHandler(options.reporter, options.proguardMapConsumer);
     }
     if (options.mainDexListConsumer != null) {
       ExceptionUtils.withConsumeResourceHandler(
           options.reporter, options.mainDexListConsumer, writeMainDexList(application, namingLens));
+      ExceptionUtils.withFinishedResourceHandler(options.reporter, options.mainDexListConsumer);
     }
     DataResourceConsumer dataResourceConsumer = options.dataResourceConsumer;
     if (dataResourceConsumer != null) {
