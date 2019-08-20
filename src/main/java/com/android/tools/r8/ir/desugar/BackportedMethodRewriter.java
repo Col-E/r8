@@ -39,6 +39,7 @@ import com.android.tools.r8.ir.desugar.backports.ListMethods;
 import com.android.tools.r8.ir.desugar.backports.LongMethods;
 import com.android.tools.r8.ir.desugar.backports.MathMethods;
 import com.android.tools.r8.ir.desugar.backports.ObjectsMethods;
+import com.android.tools.r8.ir.desugar.backports.OptionalMethods;
 import com.android.tools.r8.ir.desugar.backports.ShortMethods;
 import com.android.tools.r8.ir.desugar.backports.StringMethods;
 import com.android.tools.r8.ir.synthetic.TemplateMethodCode;
@@ -234,6 +235,15 @@ public final class BackportedMethodRewriter {
       }
       if (options.minApiLevel < AndroidApiLevel.O.getLevel()) {
         initializeAndroidOMethodProviders(factory);
+      }
+
+      if (options.rewritePrefix.containsKey("java.util.Optional")
+          || options.minApiLevel >= AndroidApiLevel.N.getLevel()) {
+        // These are currently not implemented at any API level in Android.
+        // They however require the Optional class to be present, either through
+        // desugared libraries or natively. If Optional class is not present,
+        // we do not desugar to avoid confusion in error messages.
+        initializeOptionalMethodProviders(factory);
       }
 
       // These are currently not implemented at any API level in Android.
@@ -851,6 +861,56 @@ public final class BackportedMethodRewriter {
           new MethodGenerator(clazz, method, proto, CharacterMethods::new, "toStringCodepoint"));
     }
 
+    private void initializeOptionalMethodProviders(DexItemFactory factory) {
+      // Optional
+      DexString clazz = factory.createString("Ljava/util/Optional;");
+      DexType optionalType = factory.createType(clazz);
+
+      // Optional.or(supplier)
+      DexString method = factory.createString("or");
+      DexProto proto = factory.createProto(optionalType, factory.supplierType);
+      addProvider(
+          new StatifyingMethodGenerator(
+              clazz, method, proto, OptionalMethods::new, "or", optionalType));
+
+      // Optional.stream()
+      method = factory.createString("stream");
+      proto = factory.createProto(factory.createType("Ljava/util/stream/Stream;"));
+      addProvider(
+          new StatifyingMethodGenerator(
+              clazz, method, proto, OptionalMethods::new, "stream", optionalType));
+
+      // Optional{void,Int,Long,Double}.ifPresentOrElse(consumer,runnable)
+      DexString[] optionalClasses =
+          new DexString[] {
+            clazz,
+            factory.createString("Ljava/util/OptionalDouble;"),
+            factory.createString("Ljava/util/OptionalLong;"),
+            factory.createString("Ljava/util/OptionalInt;")
+          };
+      DexType[] consumerClasses =
+          new DexType[] {
+            factory.consumerType,
+            factory.createType("Ljava/util/function/DoubleConsumer;"),
+            factory.createType("Ljava/util/function/LongConsumer;"),
+            factory.createType("Ljava/util/function/IntConsumer;")
+          };
+      for (int i = 0; i < optionalClasses.length; i++) {
+        clazz = optionalClasses[i];
+        DexType consumer = consumerClasses[i];
+        method = factory.createString("ifPresentOrElse");
+        proto = factory.createProto(factory.voidType, consumer, factory.runnableType);
+        addProvider(
+            new StatifyingMethodGenerator(
+                clazz,
+                method,
+                proto,
+                OptionalMethods::new,
+                "ifPresentOrElse",
+                factory.createType(clazz)));
+      }
+    }
+
     private void warnMissingRetargetCoreLibraryMember(DexType type, AppView<?> appView) {
       StringDiagnostic warning =
           new StringDiagnostic(
@@ -973,7 +1033,7 @@ public final class BackportedMethodRewriter {
   public static class MethodGenerator extends MethodProvider {
 
     private final TemplateMethodFactory factory;
-    private final String methodName;
+    final String methodName;
 
     public MethodGenerator(
         DexString clazz, DexString method, DexProto proto, TemplateMethodFactory factory) {
@@ -1024,6 +1084,36 @@ public final class BackportedMethodRewriter {
     @Override
     public boolean requiresGenerationOfCode() {
       return true;
+    }
+  }
+
+  // Specific subclass to transform virtual methods into static desugared methods.
+  // To be correct, the method has to be on a final class, and be implemented directly
+  // on the class (no overrides).
+  public static class StatifyingMethodGenerator extends MethodGenerator {
+
+    private final DexType receiverType;
+
+    public StatifyingMethodGenerator(
+        DexString clazz,
+        DexString method,
+        DexProto proto,
+        TemplateMethodFactory factory,
+        String methodName,
+        DexType receiverType) {
+      super(clazz, method, proto, factory, methodName);
+      this.receiverType = receiverType;
+    }
+
+    @Override
+    public DexMethod provideMethod(AppView<?> appView) {
+      if (dexMethod != null) {
+        return dexMethod;
+      }
+      super.provideMethod(appView);
+      DexProto newProto = appView.dexItemFactory().prependTypeToProto(receiverType, proto);
+      dexMethod = appView.dexItemFactory().createMethod(dexMethod.holder, newProto, method);
+      return dexMethod;
     }
   }
 

@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.desugar.corelib;
 
+import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -17,6 +18,7 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.InvokeInstructionSubject;
+import java.nio.file.Paths;
 import java.util.Iterator;
 import java.util.Optional;
 import java.util.OptionalDouble;
@@ -86,6 +88,20 @@ public class JavaUtilOptionalTest extends CoreLibDesugarTestBase {
         .addRunClasspathFiles(buildDesugaredLibrary(parameters.getApiLevel()))
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(expectedOutput);
+  }
+
+  @Test
+  public void testJavaOptionalJava9() throws Exception {
+    testForD8()
+        .addProgramFiles(
+            Paths.get(ToolHelper.EXAMPLES_JAVA9_BUILD_DIR).resolve("backport" + JAR_EXTENSION))
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .setMinApi(parameters.getApiLevel())
+        .enableCoreLibraryDesugaring(parameters.getApiLevel())
+        .compile()
+        .addRunClasspathFiles(buildDesugaredLibrary(parameters.getApiLevel()))
+        .run(parameters.getRuntime(), "backport.OptionalBackportJava9Main")
+        .assertSuccess();
   }
 
   static class TestClass {
