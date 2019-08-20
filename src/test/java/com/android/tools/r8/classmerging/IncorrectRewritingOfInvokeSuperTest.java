@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.classmerging;
 
-import static org.hamcrest.core.StringContains.containsString;
-
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -40,8 +38,7 @@ public class IncorrectRewritingOfInvokeSuperTest extends TestBase {
         .noMinification()
         .setMinApi(parameters.getRuntime())
         .run(parameters.getRuntime(), TestClass.class)
-        // TODO(b/133501933): Should succeed.
-        .assertFailureWithErrorThatMatches(containsString(StackOverflowError.class.getTypeName()));
+        .assertSuccess();
   }
 
   static class TestClass {

@@ -27,7 +27,6 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.GraphLense;
-import com.android.tools.r8.graph.GraphLense.Builder;
 import com.android.tools.r8.graph.GraphLense.GraphLenseLookupResult;
 import com.android.tools.r8.graph.KeyedDexItem;
 import com.android.tools.r8.graph.MethodAccessFlags;
@@ -250,7 +249,7 @@ public class VerticalClassMerger {
     this.appView = appView;
     this.executorService = executorService;
     this.methodPoolCollection = new MethodPoolCollection(appView);
-    this.renamedMembersLense = new VerticalClassMergerGraphLense.Builder();
+    this.renamedMembersLense = new VerticalClassMergerGraphLense.Builder(appView.dexItemFactory());
     this.timing = timing;
     this.mainDexClasses = mainDexClasses;
 
@@ -637,10 +636,15 @@ public class VerticalClassMerger {
 
   public GraphLense run() {
     timing.begin("merge");
-    GraphLense mergingGraphLense = mergeClasses();
+    // Visit the program classes in a top-down order according to the class hierarchy.
+    TopDownClassHierarchyTraversal.forProgramClasses(appView)
+        .visit(mergeCandidates, this::mergeClassIfPossible);
+    if (Log.ENABLED) {
+      Log.debug(getClass(), "Merged %d classes.", mergedClasses.size());
+    }
     timing.end();
     timing.begin("fixup");
-    GraphLense result = new TreeFixer().fixupTypeReferences(mergingGraphLense);
+    GraphLense result = new TreeFixer().fixupTypeReferences();
     timing.end();
     assert result.assertDefinitionsNotModified(
         appInfo.alwaysInline.stream()
@@ -712,16 +716,6 @@ public class VerticalClassMerger {
       }
     }
     return true;
-  }
-
-  private GraphLense mergeClasses() {
-    // Visit the program classes in a top-down order according to the class hierarchy.
-    TopDownClassHierarchyTraversal.forProgramClasses(appView)
-        .visit(mergeCandidates, this::mergeClassIfPossible);
-    if (Log.ENABLED) {
-      Log.debug(getClass(), "Merged %d classes.", mergedClasses.size());
-    }
-    return renamedMembersLense.build(appView.graphLense(), mergedClasses, appView);
   }
 
   private boolean methodResolutionMayChange(DexClass source, DexClass target) {
@@ -891,7 +885,7 @@ public class VerticalClassMerger {
     private final DexClass source;
     private final DexClass target;
     private final VerticalClassMergerGraphLense.Builder deferredRenamings =
-        new VerticalClassMergerGraphLense.Builder();
+        new VerticalClassMergerGraphLense.Builder(appView.dexItemFactory());
     private final List<SynthesizedBridgeCode> synthesizedBridges = new ArrayList<>();
 
     private boolean abortMerge = false;
@@ -1442,10 +1436,12 @@ public class VerticalClassMerger {
 
   private class TreeFixer {
 
-    private final Builder lense = GraphLense.builder();
+    private final VerticalClassMergerGraphLense.Builder lensBuilder =
+        VerticalClassMergerGraphLense.Builder.createBuilderForFixup(
+            renamedMembersLense, mergedClasses);
     private final Map<DexProto, DexProto> protoFixupCache = new IdentityHashMap<>();
 
-    private GraphLense fixupTypeReferences(GraphLense graphLense) {
+    private GraphLense fixupTypeReferences() {
       // Globally substitute merged class types in protos and holders.
       for (DexProgramClass clazz : appInfo.classes()) {
         fixupMethods(clazz.directMethods(), clazz::setDirectMethod);
@@ -1456,11 +1452,7 @@ public class VerticalClassMerger {
       for (SynthesizedBridgeCode synthesizedBridge : synthesizedBridges) {
         synthesizedBridge.updateMethodSignatures(this::fixupMethod);
       }
-      // Record type renamings so check-cast and instance-of checks are also fixed.
-      for (DexType type : mergedClasses.keySet()) {
-        lense.map(type, fixupType(type));
-      }
-      return lense.build(application.dexItemFactory, graphLense);
+      return lensBuilder.build(appView, mergedClasses);
     }
 
     private void fixupMethods(List<DexEncodedMethod> methods, MethodSetter setter) {
@@ -1472,7 +1464,9 @@ public class VerticalClassMerger {
         DexMethod method = encodedMethod.method;
         DexMethod newMethod = fixupMethod(method);
         if (newMethod != method) {
-          lense.move(method, newMethod);
+          if (!lensBuilder.hasOriginalSignatureMappingFor(newMethod)) {
+            lensBuilder.map(method, newMethod).recordMove(method, newMethod);
+          }
           setter.setMethod(i, encodedMethod.toTypeSubstitutedMethod(newMethod));
         }
       }
@@ -1489,7 +1483,9 @@ public class VerticalClassMerger {
         DexType newHolder = fixupType(field.holder);
         DexField newField = application.dexItemFactory.createField(newHolder, newType, field.name);
         if (newField != encodedField.field) {
-          lense.move(encodedField.field, newField);
+          if (!lensBuilder.hasOriginalSignatureMappingFor(newField)) {
+            lensBuilder.map(field, newField);
+          }
           setter.setField(i, encodedField.toTypeSubstitutedField(newField));
         }
       }
