@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize.string;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.D8TestRunResult;
@@ -17,65 +18,14 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import com.google.common.collect.Streams;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-
-class StringLengthTestMain {
-
-  @ForceInline
-  static String simpleInlinable() {
-    return "Shared";
-  }
-
-  @NeverInline
-  static int npe() {
-    String n = null;
-    // Cannot be computed at compile time.
-    return n.length();
-  }
-
-  public static void main(String[] args) {
-    String s1 = "GONE";
-    // Can be computed at compile time: constCount++
-    System.out.println(s1.length());
-
-    String s2 = simpleInlinable();
-    // Depends on inlining: constCount++
-    System.out.println(s2.length());
-    String s3 = simpleInlinable();
-    System.out.println(s3);
-
-    String s4 = "Another_shared";
-    // Can be computed at compile time: constCount++
-    System.out.println(s4.length());
-    System.out.println(s4);
-
-    String s5 = "\uD800\uDC00";  // U+10000
-    // Can be computed at compile time: constCount++
-    System.out.println(s5.length());
-    // Even reusable: should not increase any counts.
-    System.out.println(s5.codePointCount(0, s5.length()));
-    System.out.println(s5);
-
-    // Make sure this is not optimized in DEBUG mode.
-    int l = "ABC".length();
-    System.out.println(l);
-
-    try {
-      npe();
-    } catch (NullPointerException npe) {
-      // expected
-    }
-  }
-}
 
 @RunWith(Parameterized.class)
 public class StringLengthTest extends TestBase {
@@ -90,7 +40,7 @@ public class StringLengthTest extends TestBase {
       "𐀀", // Different output in Windows.
       "3"
   );
-  private static final Class<?> MAIN = StringLengthTestMain.class;
+  private static final Class<?> MAIN = TestClass.class;
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
@@ -115,22 +65,9 @@ public class StringLengthTest extends TestBase {
     }
   }
 
-  private static boolean isStringLength(DexMethod method) {
-    return method.toSourceString().equals("int java.lang.String.length()");
-  }
-
-  private long countStringLength(MethodSubject method) {
-    return Streams.stream(method.iterateInstructions(instructionSubject -> {
-      if (instructionSubject.isInvoke()) {
-        return isStringLength(instructionSubject.getMethod());
-      }
-      return false;
-    })).count();
-  }
-
   private long countNonZeroConstNumber(MethodSubject method) {
-    return Streams.stream(method.iterateInstructions(InstructionSubject::isConstNumber)).count()
-        - Streams.stream(method.iterateInstructions(instr -> instr.isConstNumber(0))).count();
+    return method.streamInstructions().filter(InstructionSubject::isConstNumber).count()
+        - method.streamInstructions().filter(instr -> instr.isConstNumber(0)).count();
   }
 
   private void test(
@@ -140,7 +77,7 @@ public class StringLengthTest extends TestBase {
     ClassSubject mainClass = codeInspector.clazz(MAIN);
     MethodSubject mainMethod = mainClass.mainMethod();
     assertThat(mainMethod, isPresent());
-    assertEquals(expectedStringLengthCount, countStringLength(mainMethod));
+    assertEquals(expectedStringLengthCount, countCall(mainMethod, "String", "length"));
     assertEquals(expectedConstNumberCount, countNonZeroConstNumber(mainMethod));
   }
 
@@ -187,5 +124,55 @@ public class StringLengthTest extends TestBase {
       result.assertSuccessWithOutput(JAVA_OUTPUT);
     }
     test(result, 0, parameters.isDexRuntime() ? 5 : 6);
+  }
+
+  static class TestClass {
+
+    @ForceInline
+    static String simpleInlineable() {
+      return "Shared";
+    }
+
+    @NeverInline
+    static int npe() {
+      String n = null;
+      // Cannot be computed at compile time.
+      return n.length();
+    }
+
+    public static void main(String[] args) {
+      String s1 = "GONE";
+      // Can be computed at compile time: constCount++
+      System.out.println(s1.length());
+
+      String s2 = simpleInlineable();
+      // Depends on inlining: constCount++
+      System.out.println(s2.length());
+      String s3 = simpleInlineable();
+      System.out.println(s3);
+
+      String s4 = "Another_shared";
+      // Can be computed at compile time: constCount++
+      System.out.println(s4.length());
+      System.out.println(s4);
+
+      String s5 = "\uD800\uDC00";  // U+10000
+      // Can be computed at compile time: constCount++
+      System.out.println(s5.length());
+      // Even reusable: should not increase any counts.
+      System.out.println(s5.codePointCount(0, s5.length()));
+      System.out.println(s5);
+
+      // Make sure this is not optimized in DEBUG mode.
+      int l = "ABC".length();
+      System.out.println(l);
+
+      try {
+        npe();
+        fail("Expect to raise NPE");
+      } catch (NullPointerException npe) {
+        // expected
+      }
+    }
   }
 }

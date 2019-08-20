@@ -19,91 +19,9 @@ import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Streams;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-
-class StringContentCheckTestMain {
-
-  @NeverInline
-  static boolean argCouldBeNull(String arg) {
-    return "CONST".contains(arg)
-        && "prefix".startsWith(arg)
-        && "suffix".endsWith(arg)
-        && "CONST".equals(arg)
-        && "CONST".equalsIgnoreCase(arg)
-        && "CONST".contentEquals(arg)
-        && "CONST".indexOf(arg) > 0
-        && "CONST".lastIndexOf(arg) > 0
-        && "CONST".compareTo(arg) > 0
-        && "CONST".compareToIgnoreCase(arg) > 0;
-  }
-
-  public static void main(String[] args) {
-    {
-      String s1 = "prefix-CONST-suffix";
-      System.out.println(s1.contains("CONST"));
-      System.out.println(s1.startsWith("prefix"));
-      System.out.println(s1.endsWith("suffix"));
-      System.out.println(s1.equals("prefix-CONST-suffix"));
-      System.out.println(s1.equalsIgnoreCase("PREFIX-const-SUFFIX"));
-      System.out.println(s1.contentEquals("prefix-CONST-suffix"));
-      System.out.println(s1.contentEquals(new StringBuffer("prefix-CONST-suffix")));
-      System.out.println(s1.indexOf('f'));
-      System.out.println(s1.indexOf("ix"));
-      System.out.println(s1.lastIndexOf('f'));
-      System.out.println(s1.lastIndexOf("ix"));
-      System.out.println(s1.compareTo("prefix-CONST-suffix") == 0);
-      System.out.println(s1.compareToIgnoreCase("PREFIX-const-SUFFIX") == 0);
-      // "prefix" exists
-      System.out.println(s1.substring(0, 6));
-      // "suffix" exists
-      System.out.println(s1.substring(13));
-      // "-suffix" doesn't.
-      System.out.println(s1.substring(12));
-    }
-
-    {
-      // Not compile-time constant string
-      String s2 = args.length > 8 ? "prefix-CONST-suffix" : "PREFIX-const-SUFFIX";
-      System.out.println(s2.contains("CONST"));
-      System.out.println(s2.startsWith("prefix"));
-      System.out.println(s2.endsWith("suffix"));
-      System.out.println(s2.equals("prefix-CONST-suffix"));
-      System.out.println(s2.equalsIgnoreCase("pre-con-suf"));
-      System.out.println(s2.contentEquals("prefix-CONST-suffix"));
-      System.out.println(s2.contentEquals(new StringBuffer("prefix-CONST-suffix")));
-      System.out.println(s2.indexOf('f'));
-      System.out.println(s2.indexOf("ix"));
-      System.out.println(s2.lastIndexOf('f'));
-      System.out.println(s2.lastIndexOf("ix"));
-      System.out.println(s2.compareTo("prefix-CONST-suffix") == 0);
-      System.out.println(s2.compareToIgnoreCase("pre-con-suf") == 0);
-      System.out.println(s2.substring(13));
-    }
-
-    {
-      System.out.println(argCouldBeNull("prefix-CONST-suffix"));
-      try {
-        argCouldBeNull(null);
-        fail("Should raise NullPointerException");
-      } catch (NullPointerException npe) {
-        // expected
-      }
-    }
-
-    {
-      try {
-        System.out.println("qwerty".substring(8));
-        fail("Should raise StringIndexOutOfBoundsException");
-      } catch (StringIndexOutOfBoundsException e) {
-        // expected
-      }
-    }
-  }
-}
 
 @RunWith(Parameterized.class)
 public class StringContentCheckTest extends TestBase {
@@ -172,7 +90,7 @@ public class StringContentCheckTest extends TestBase {
       // argCouldBeNull
       "false"
   );
-  private static final Class<?> MAIN = StringContentCheckTestMain.class;
+  private static final Class<?> MAIN = TestClass.class;
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
@@ -213,12 +131,12 @@ public class StringContentCheckTest extends TestBase {
   }
 
   private long countStringContentChecker(MethodSubject method) {
-    return Streams.stream(method.iterateInstructions(instructionSubject -> {
+    return method.streamInstructions().filter(instructionSubject -> {
       if (instructionSubject.isInvoke()) {
         return isStringContentChecker(instructionSubject.getMethod());
       }
       return false;
-    })).count();
+    }).count();
   }
 
   private void test(TestRunResult result, int expectedStringContentCheckerCount) throws Exception {
@@ -229,8 +147,7 @@ public class StringContentCheckTest extends TestBase {
     long count = countStringContentChecker(mainMethod);
     assertEquals(expectedStringContentCheckerCount, count);
 
-    MethodSubject argCouldBeNull = mainClass.method(
-        "boolean", "argCouldBeNull", ImmutableList.of("java.lang.String"));
+    MethodSubject argCouldBeNull = mainClass.uniqueMethodWithName("argCouldBeNull");
     assertThat(argCouldBeNull, isPresent());
     // Because of nullable argument, all checkers should remain.
     assertEquals(10, countStringContentChecker(argCouldBeNull));
@@ -270,5 +187,85 @@ public class StringContentCheckTest extends TestBase {
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 16);
+  }
+
+  static class TestClass {
+
+    @NeverInline
+    static boolean argCouldBeNull(String arg) {
+      return "CONST".contains(arg)
+          && "prefix".startsWith(arg)
+          && "suffix".endsWith(arg)
+          && "CONST".equals(arg)
+          && "CONST".equalsIgnoreCase(arg)
+          && "CONST".contentEquals(arg)
+          && "CONST".indexOf(arg) > 0
+          && "CONST".lastIndexOf(arg) > 0
+          && "CONST".compareTo(arg) > 0
+          && "CONST".compareToIgnoreCase(arg) > 0;
+    }
+
+    public static void main(String[] args) {
+      {
+        String s1 = "prefix-CONST-suffix";
+        System.out.println(s1.contains("CONST"));
+        System.out.println(s1.startsWith("prefix"));
+        System.out.println(s1.endsWith("suffix"));
+        System.out.println(s1.equals("prefix-CONST-suffix"));
+        System.out.println(s1.equalsIgnoreCase("PREFIX-const-SUFFIX"));
+        System.out.println(s1.contentEquals("prefix-CONST-suffix"));
+        System.out.println(s1.contentEquals(new StringBuffer("prefix-CONST-suffix")));
+        System.out.println(s1.indexOf('f'));
+        System.out.println(s1.indexOf("ix"));
+        System.out.println(s1.lastIndexOf('f'));
+        System.out.println(s1.lastIndexOf("ix"));
+        System.out.println(s1.compareTo("prefix-CONST-suffix") == 0);
+        System.out.println(s1.compareToIgnoreCase("PREFIX-const-SUFFIX") == 0);
+        // "prefix" exists
+        System.out.println(s1.substring(0, 6));
+        // "suffix" exists
+        System.out.println(s1.substring(13));
+        // "-suffix" doesn't.
+        System.out.println(s1.substring(12));
+      }
+
+      {
+        // Not compile-time constant string
+        String s2 = args.length > 8 ? "prefix-CONST-suffix" : "PREFIX-const-SUFFIX";
+        System.out.println(s2.contains("CONST"));
+        System.out.println(s2.startsWith("prefix"));
+        System.out.println(s2.endsWith("suffix"));
+        System.out.println(s2.equals("prefix-CONST-suffix"));
+        System.out.println(s2.equalsIgnoreCase("pre-con-suf"));
+        System.out.println(s2.contentEquals("prefix-CONST-suffix"));
+        System.out.println(s2.contentEquals(new StringBuffer("prefix-CONST-suffix")));
+        System.out.println(s2.indexOf('f'));
+        System.out.println(s2.indexOf("ix"));
+        System.out.println(s2.lastIndexOf('f'));
+        System.out.println(s2.lastIndexOf("ix"));
+        System.out.println(s2.compareTo("prefix-CONST-suffix") == 0);
+        System.out.println(s2.compareToIgnoreCase("pre-con-suf") == 0);
+        System.out.println(s2.substring(13));
+      }
+
+      {
+        System.out.println(argCouldBeNull("prefix-CONST-suffix"));
+        try {
+          argCouldBeNull(null);
+          fail("Should raise NullPointerException");
+        } catch (NullPointerException npe) {
+          // expected
+        }
+      }
+
+      {
+        try {
+          System.out.println("qwerty".substring(8));
+          fail("Should raise StringIndexOutOfBoundsException");
+        } catch (StringIndexOutOfBoundsException e) {
+          // expected
+        }
+      }
+    }
   }
 }
