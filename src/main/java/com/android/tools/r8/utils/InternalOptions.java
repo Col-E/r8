@@ -178,8 +178,7 @@ public class InternalOptions {
   // Flag to toggle if DEX code objects should pass-through without IR processing.
   public boolean passthroughDexCode = false;
   // By default dissalow merging dex files resulting from Java 8 library desugaring.
-  // TODO(b/138278440): Forbid to merge j$ classes in a Google3 compliant way.
-  public Set<String> neverMergePrefixes = ImmutableSet.of();
+  public Set<String> neverMergePrefixes = ImmutableSet.of("j$.");
 
   public boolean libraryInterfacesMayHaveStaticInitialization = false;
 

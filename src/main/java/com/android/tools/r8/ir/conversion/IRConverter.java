@@ -133,7 +133,6 @@ public class IRConverter {
   private final StringOptimizer stringOptimizer;
   private final StringBuilderOptimizer stringBuilderOptimizer;
   private final IdempotentFunctionCallCanonicalizer idempotentFunctionCallCanonicalizer;
-  private final List<DexString> neverMergePrefixes;
   private final LambdaRewriter lambdaRewriter;
   private final D8NestBasedAccessDesugaring d8NestBasedAccessDesugaring;
   private final InterfaceMethodRewriter interfaceMethodRewriter;
@@ -165,6 +164,10 @@ public class IRConverter {
   private DexString highestSortingString;
 
   private List<Action> onWaveDoneActions = null;
+
+  private final List<DexString> neverMergePrefixes;
+  boolean seenNotNeverMergePrefix = false;
+  boolean seenNeverMergePrefix = false;
 
   /**
    * The argument `appView` is used to determine if whole program optimizations are allowed or not
@@ -537,6 +540,33 @@ public class IRConverter {
     if (method.getCode() != null) {
       boolean matchesMethodFilter = options.methodMatchesFilter(method);
       if (matchesMethodFilter) {
+        for (DexString neverMergePrefix : neverMergePrefixes) {
+          // Synthetic classes will always be merged.
+          if (method.method.holder.isD8R8SynthesizedClassType()) {
+            continue;
+          }
+          if (method.method.holder.descriptor.startsWith(neverMergePrefix)) {
+            seenNeverMergePrefix = true;
+          } else {
+            seenNotNeverMergePrefix = true;
+          }
+          // Don't mix.
+          if (seenNeverMergePrefix && seenNotNeverMergePrefix) {
+            StringBuilder message = new StringBuilder();
+            message
+                .append("Merging dex file containing classes with prefix")
+                .append(neverMergePrefixes.size() > 1 ? "es " : " ");
+            for (int i = 0; i < neverMergePrefixes.size(); i++) {
+              message
+                  .append("'")
+                  .append(neverMergePrefixes.get(0).toString().substring(1).replace('/', '.'))
+                  .append("'")
+                  .append(i < neverMergePrefixes.size() - 1 ? ", ": "");
+            }
+            message.append(" with classes with any other prefixes is not allowed.");
+            throw new CompilationError(message.toString());
+          }
+        }
         if (options.isGeneratingClassFiles()
             || !(options.passthroughDexCode && method.getCode().isDexCode())) {
           // We do not process in call graph order, so anything could be a leaf.
@@ -544,14 +574,6 @@ public class IRConverter {
               Outliner::noProcessing);
         } else {
           assert method.getCode().isDexCode();
-          for (DexString neverMergePrefix : neverMergePrefixes) {
-            if (method.method.holder.descriptor.startsWith(neverMergePrefix)) {
-              throw new CompilationError(
-                  "Merging dex file containing classes with prefix '"
-                      + neverMergePrefix.toString().substring(1).replace('/', '.')
-                      + "' is not allowed.");
-            }
-          }
         }
         if (!options.isGeneratingClassFiles()) {
           updateHighestSortingStrings(method);

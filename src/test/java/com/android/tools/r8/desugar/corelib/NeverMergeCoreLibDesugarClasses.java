@@ -16,7 +16,6 @@ import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
 import org.junit.Assume;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -27,7 +26,8 @@ public class NeverMergeCoreLibDesugarClasses extends CoreLibDesugarTestBase {
   private final TestParameters parameters;
 
   @Parameterized.Parameters(name = "{0}")
-  public static TestParametersCollection data() {
+  public static TestParametersCollection
+  data() {
     return getTestParameters().withDexRuntimes().withAllApiLevels().build();
   }
 
@@ -35,9 +35,7 @@ public class NeverMergeCoreLibDesugarClasses extends CoreLibDesugarTestBase {
     this.parameters = parameters;
   }
 
-  // TODO(b/138278440): Forbid to merge j$ classes in a Google3 compliant way (remove @Ignore).
   @Test
-  @Ignore
   public void testMimimalDexFile() throws Exception {
     SmaliBuilder builder = new SmaliBuilder();
     builder.addClass("j$.util.function.Function");
@@ -54,7 +52,8 @@ public class NeverMergeCoreLibDesugarClasses extends CoreLibDesugarTestBase {
             assertThat(
                 message,
                 containsString(
-                    "Merging dex file containing classes with prefix 'j$.' is not allowed."));
+                    "Merging dex file containing classes with prefix 'j$.' "
+                        + "with classes with any other prefixes is not allowed."));
           });
     } catch (CompilationFailedException e) {
       // Expected compilation failed.
@@ -63,9 +62,7 @@ public class NeverMergeCoreLibDesugarClasses extends CoreLibDesugarTestBase {
     fail("Expected test to fail with CompilationFailedException");
   }
 
-  // TODO(b/138278440): Forbid to merge j$ classes in a Google3 compliant way (remove @Ignore).
   @Test
-  @Ignore
   public void testDesugaredCoreLibrary() throws Exception {
     try {
       testForD8()
@@ -79,7 +76,8 @@ public class NeverMergeCoreLibDesugarClasses extends CoreLibDesugarTestBase {
             assertThat(
                 message,
                 containsString(
-                    "Merging dex file containing classes with prefix 'j$.' is not allowed."));
+                    "Merging dex file containing classes with prefix 'j$.' "
+                        + "with classes with any other prefixes is not allowed."));
           });
     } catch (CompilationFailedException e) {
       // Expected compilation failed.
