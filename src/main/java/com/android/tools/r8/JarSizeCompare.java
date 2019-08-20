@@ -79,7 +79,6 @@ public class JarSizeCompare {
     this.inputParameters = inputParameters;
     this.threshold = threshold;
     options = new InternalOptions();
-    options.enableCfFrontend = true;
   }
 
   public void run() throws Exception {

@@ -785,11 +785,7 @@ public class JarClassFileReader {
     public void visitEnd() {
       InternalOptions options = parent.application.options;
       if (!flags.isAbstract() && !flags.isNative() && classRequiresCode()) {
-        if (options.enableCfFrontend) {
-          code = new LazyCfCode(method, parent.origin, parent.context, parent.application);
-        } else {
-          code = new JarCode(method, parent.origin, parent.context, parent.application);
-        }
+        code = new LazyCfCode(method, parent.origin, parent.context, parent.application);
       }
       ParameterAnnotationsList parameterAnnotationsList;
       if (parameterAnnotationsLists == null) {

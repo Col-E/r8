@@ -57,8 +57,7 @@ public class NopDebugTestRunner extends DebugTestBase {
                 ImmutableList.of("-keepattributes SourceFile,LineNumberTable"), Origin.unknown())
             .addProgramFiles(inputJar)
             .setOutput(outputJar, OutputMode.ClassFile)
-            .build(),
-        o -> o.enableCfFrontend = true);
+            .build());
     return outputJar;
   }
 

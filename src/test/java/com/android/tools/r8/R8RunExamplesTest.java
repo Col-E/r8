@@ -105,7 +105,6 @@ public class R8RunExamplesTest extends R8RunExamplesCommon {
               CompilerUnderTest.R8,
               CompilationMode.RELEASE,
               test,
-              Frontend.CF,
               Output.CF));
       fullTestList.add(
           makeTest(
@@ -113,7 +112,6 @@ public class R8RunExamplesTest extends R8RunExamplesCommon {
               CompilerUnderTest.R8,
               CompilationMode.RELEASE,
               test,
-              Frontend.CF,
               Output.DEX));
     }
     return fullTestList;
@@ -125,9 +123,8 @@ public class R8RunExamplesTest extends R8RunExamplesCommon {
       String compiler,
       String mode,
       String mainClass,
-      String frontend,
       String output) {
-    super(pkg, input, compiler, mode, mainClass, frontend, output);
+    super(pkg, input, compiler, mode, mainClass, output);
   }
 
   @Override

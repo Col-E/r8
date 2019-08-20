@@ -84,8 +84,7 @@ public class Regress65432240 extends JasminTestBase {
                 .setDisableMinification(true)
                 .build());
 
-    CodeInspector inspector =
-        new CodeInspector(processedApplication, o -> o.enableCfFrontend = true);
+    CodeInspector inspector = new CodeInspector(processedApplication);
     ClassSubject inspectedClass = inspector.clazz(clazz.name);
     MethodSubject method = inspectedClass.method(signature);
     assertTrue(method.isPresent());

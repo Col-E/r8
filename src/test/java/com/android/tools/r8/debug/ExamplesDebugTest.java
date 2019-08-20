@@ -11,11 +11,9 @@ import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.DebuggeeState;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.FileUtils;
-import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.function.Consumer;
 import java.util.stream.Stream;
 import org.junit.Assume;
 import org.junit.Ignore;
@@ -35,19 +33,11 @@ public class ExamplesDebugTest extends DebugTestBase {
     return streamDebugTest(config, clazzName, ANDROID_FILTER);
   }
 
-  private Stream<DebuggeeState> r8jar() throws Exception {
-    return streamDebugTest(getCfConfig("r8jar.jar", o -> {}), clazzName, ANDROID_FILTER);
-  }
-
   private Stream<DebuggeeState> r8cf() throws Exception {
-    return streamDebugTest(
-        getCfConfig("r8cf.jar", options -> options.enableCfFrontend = true),
-        clazzName,
-        ANDROID_FILTER);
+    return streamDebugTest(getCfConfig("r8cf.jar"), clazzName, ANDROID_FILTER);
   }
 
-  private DebugTestConfig getCfConfig(String outputName, Consumer<InternalOptions> optionsConsumer)
-      throws Exception {
+  private DebugTestConfig getCfConfig(String outputName) throws Exception {
     Path input = inputJar;
     Path output = temp.newFolder().toPath().resolve(outputName);
     ToolHelper.runR8(
@@ -59,8 +49,7 @@ public class ExamplesDebugTest extends DebugTestBase {
             .setDisableTreeShaking(true)
             .setDisableMinification(true)
             .addProguardConfiguration(ImmutableList.of("-keepattributes *"), Origin.unknown())
-            .build(),
-        optionsConsumer);
+            .build());
     return new CfDebugTestConfig(output);
   }
 
@@ -326,7 +315,6 @@ public class ExamplesDebugTest extends DebugTestBase {
     init(pkg, clazz)
         .add("Input", input())
         .add("R8/CfSourceCode", r8cf())
-        .add("R8/JarSourceCode", r8jar())
         .add("D8", d8())
         // When running on CF and DEX runtimes, filter down to states within the test package.
         .setFilter(state -> state.getClassName().startsWith(pkg))
@@ -337,15 +325,13 @@ public class ExamplesDebugTest extends DebugTestBase {
     init(pkg, clazz)
         .add("Input", input())
         .add("R8/CfSourceCode", r8cf())
-        .add("R8/JarSourceCode", r8jar())
         .compare();
   }
 
   private void testDebuggingJvmOutputOnly(String pkg, String clazz) throws Exception {
     init(pkg, clazz)
         .add("R8/CfSourceCode", r8cf())
-        .add("R8/JarSourceCode", r8jar())
-        .compare();
+        .run();
   }
 
   private DebugStreamComparator init(String pkg, String clazz) throws Exception {

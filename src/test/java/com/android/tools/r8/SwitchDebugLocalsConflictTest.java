@@ -29,20 +29,10 @@ public class SwitchDebugLocalsConflictTest extends TestBase {
   }
 
   @Test
-  public void testNewFrontend() throws Exception {
-    runTest(true);
-  }
-
-  @Test
-  public void testOldFrontend() throws Exception {
-    runTest(false);
-  }
-
-  private void runTest(boolean newFrontend) throws CompilationFailedException {
+  public void test() throws CompilationFailedException {
     testForD8()
         .addProgramClassFileData(Dump.dump())
         .noDesugaring()
-        .addOptionsModification(options -> options.enableCfFrontend = newFrontend)
         .compileWithExpectedDiagnostics(
             diagnotics -> {
               diagnotics.assertOnlyInfos();

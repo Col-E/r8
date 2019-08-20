@@ -52,14 +52,8 @@ public class MethodHandleTestRunner extends TestBase {
     MINIFY,
   }
 
-  enum Frontend {
-    JAR,
-    CF,
-  }
-
   private CompilationMode compilationMode;
   private LookupType lookupType;
-  private Frontend frontend;
   private ProcessResult runInput;
   private MinifyMode minifyMode;
 
@@ -67,28 +61,21 @@ public class MethodHandleTestRunner extends TestBase {
   public static List<String[]> data() {
     List<String[]> res = new ArrayList<>();
     for (LookupType lookupType : LookupType.values()) {
-      for (Frontend frontend : Frontend.values()) {
-        for (MinifyMode minifyMode : MinifyMode.values()) {
-          if (lookupType == LookupType.DYNAMIC && minifyMode == MinifyMode.MINIFY) {
-            // Skip because we don't keep the members looked up dynamically.
-            continue;
-          }
-          for (CompilationMode compilationMode : CompilationMode.values()) {
-            res.add(
-                new String[] {
-                  lookupType.name(), frontend.name(), minifyMode.name(), compilationMode.name()
-                });
-          }
+      for (MinifyMode minifyMode : MinifyMode.values()) {
+        if (lookupType == LookupType.DYNAMIC && minifyMode == MinifyMode.MINIFY) {
+          // Skip because we don't keep the members looked up dynamically.
+          continue;
+        }
+        for (CompilationMode compilationMode : CompilationMode.values()) {
+          res.add(new String[] {lookupType.name(), minifyMode.name(), compilationMode.name()});
         }
       }
     }
     return res;
   }
 
-  public MethodHandleTestRunner(
-      String lookupType, String frontend, String minifyMode, String compilationMode) {
+  public MethodHandleTestRunner(String lookupType, String minifyMode, String compilationMode) {
     this.lookupType = LookupType.valueOf(lookupType);
-    this.frontend = Frontend.valueOf(frontend);
     this.minifyMode = MinifyMode.valueOf(minifyMode);
     this.compilationMode = CompilationMode.valueOf(compilationMode);
   }
@@ -208,10 +195,9 @@ public class MethodHandleTestRunner extends TestBase {
           Origin.unknown());
     }
     try {
-      ToolHelper.runR8(
-          builder.build(), options -> options.enableCfFrontend = frontend == Frontend.CF);
+      ToolHelper.runR8(builder.build());
     } catch (CompilationError e) {
-      if (frontend == Frontend.CF && compilationMode == CompilationMode.DEBUG) {
+      if (compilationMode == CompilationMode.DEBUG) {
         // TODO(b/79725635): Investigate why these tests fail on the buildbot.
         // Use a Reporter to extract origin info to standard error.
         new Reporter().error(e);

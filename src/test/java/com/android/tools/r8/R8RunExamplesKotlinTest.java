@@ -20,7 +20,6 @@ public class R8RunExamplesKotlinTest extends R8RunExamplesCommon {
 
   @Override
   protected void configure(InternalOptions options) {
-    options.enableCfFrontend = frontend == Frontend.CF;
     if (output == Output.CF) {
       // Class inliner is not supported with CF backend yet.
       options.enableClassInlining = false;
@@ -100,8 +99,7 @@ public class R8RunExamplesKotlinTest extends R8RunExamplesCommon {
       String compiler,
       String mode,
       String mainClass,
-      String frontend,
       String output) {
-    super(pkg, input, compiler, mode, mainClass, frontend, output);
+    super(pkg, input, compiler, mode, mainClass, output);
   }
 }

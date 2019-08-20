@@ -9,7 +9,6 @@ import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime;
-import com.android.tools.r8.utils.BooleanUtils;
 import java.util.List;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -23,23 +22,18 @@ public class NewArrayTestRunner extends TestBase {
 
   private final TestParameters parameters;
   private final CompilationMode mode;
-  private final boolean newCfFrontend;
 
   private static String referenceOut;
 
-  @Parameterized.Parameters(name = "{0}, {1}, new-cf:{2}")
+  @Parameterized.Parameters(name = "{0}, {1}")
   public static List<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimes().withAllApiLevels().build(),
-        CompilationMode.values(),
-        BooleanUtils.values());
+        getTestParameters().withAllRuntimes().withAllApiLevels().build(), CompilationMode.values());
   }
 
-  public NewArrayTestRunner(
-      TestParameters parameters, CompilationMode mode, boolean newCfFrontend) {
+  public NewArrayTestRunner(TestParameters parameters, CompilationMode mode) {
     this.parameters = parameters;
     this.mode = mode;
-    this.newCfFrontend = newCfFrontend;
   }
 
   @BeforeClass
@@ -58,7 +52,6 @@ public class NewArrayTestRunner extends TestBase {
     testForD8()
         .addProgramClassesAndInnerClasses(CLASS)
         .setMinApi(parameters.getApiLevel())
-        .addOptionsModification(options -> options.enableCfFrontend = newCfFrontend)
         .setMode(mode)
         .run(parameters.getRuntime(), CLASS)
         .assertSuccessWithOutput(referenceOut);
@@ -70,7 +63,6 @@ public class NewArrayTestRunner extends TestBase {
         .addProgramClassesAndInnerClasses(CLASS)
         .addKeepMainRule(CLASS)
         .setMinApi(parameters.getApiLevel())
-        .addOptionsModification(options -> options.enableCfFrontend = newCfFrontend)
         .setMode(mode)
         .run(parameters.getRuntime(), CLASS)
         .assertSuccessWithOutput(referenceOut);

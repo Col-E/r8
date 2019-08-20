@@ -49,8 +49,7 @@ public class NonExitingMethodTestRunner extends DebugTestBase {
             .addProgramFiles(getClassFilePath())
             .setProgramConsumer(new ClassFileConsumer.ArchiveConsumer(path))
             .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
-            .build(),
-        options -> options.enableCfFrontend = true);
+            .build());
     return new CfDebugTestConfig().addPaths(path);
   }
 

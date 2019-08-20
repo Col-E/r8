@@ -116,7 +116,6 @@ public class CodeInspector {
 
   private static InternalOptions runOptionsConsumer(Consumer<InternalOptions> optionsConsumer) {
     InternalOptions internalOptions = new InternalOptions();
-    internalOptions.enableCfFrontend = true;
     if (optionsConsumer != null) {
       optionsConsumer.accept(internalOptions);
     }

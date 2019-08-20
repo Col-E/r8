@@ -3,9 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.debug;
 
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
@@ -18,14 +16,11 @@ import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.DebuggeeState;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.DescriptorUtils;
-import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.function.Consumer;
 import java.util.stream.Stream;
 import org.junit.Assume;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class ArrayDimensionGreaterThanSevenTestRunner extends DebugTestBase {
@@ -33,7 +28,7 @@ public class ArrayDimensionGreaterThanSevenTestRunner extends DebugTestBase {
   private static final Class CLASS = ArrayDimensionGreaterThanSevenTest.class;
   private static final String NAME = CLASS.getCanonicalName();
 
-  private DebugTestConfig getR8CfConfig(String s, Consumer<InternalOptions> optionsConsumer)
+  private DebugTestConfig getR8CfConfig(String s)
       throws IOException, com.android.tools.r8.CompilationFailedException {
     Path cfOut = temp.getRoot().toPath().resolve(s);
     ToolHelper.runR8(
@@ -45,8 +40,7 @@ public class ArrayDimensionGreaterThanSevenTestRunner extends DebugTestBase {
             .setDisableTreeShaking(true)
             .setDisableMinification(true)
             .addProguardConfiguration(ImmutableList.of("-keepattributes *"), Origin.unknown())
-            .build(),
-        optionsConsumer);
+            .build());
     return new CfDebugTestConfig(cfOut);
   }
 
@@ -61,14 +55,10 @@ public class ArrayDimensionGreaterThanSevenTestRunner extends DebugTestBase {
         && !ToolHelper.isWindows());
     DebugTestConfig cfConfig = new CfDebugTestConfig().addPaths(ToolHelper.getClassPathForTests());
     DebugTestConfig d8Config = new D8DebugTestConfig().compileAndAddClasses(temp, CLASS);
-    DebugTestConfig r8JarConfig =
-        getR8CfConfig("r8jar.jar", options -> options.enableCfFrontend = false);
-    DebugTestConfig r8CfConfig =
-        getR8CfConfig("r8cf.jar", options -> options.enableCfFrontend = true);
+    DebugTestConfig r8CfConfig = getR8CfConfig("r8cf.jar");
     new DebugStreamComparator()
         .add("CF", createStream(cfConfig))
         .add("R8/CF", createStream(r8CfConfig))
-        .add("R8/Jar", createStream(r8JarConfig))
         .add("D8", createStream(d8Config))
         .compare();
   }

@@ -61,7 +61,6 @@ public class InlineCmpDoubleTestRunner {
         .build();
 
     AndroidApp app = ToolHelper.runR8(command, options -> {
-          options.enableCfFrontend = true;
           options.enableInlining = enableInlining;
     });
 

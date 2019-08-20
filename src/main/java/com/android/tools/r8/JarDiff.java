@@ -90,7 +90,6 @@ public class JarDiff {
     this.before = before;
     this.after = after;
     InternalOptions options = new InternalOptions();
-    options.enableCfFrontend = true;
     applicationReader = new JarApplicationReader(options);
   }
 

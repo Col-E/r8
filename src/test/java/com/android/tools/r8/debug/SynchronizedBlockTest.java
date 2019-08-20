@@ -5,14 +5,9 @@ package com.android.tools.r8.debug;
 
 import static org.hamcrest.core.IsNot.not;
 
-import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.OutputMode;
-import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
-import com.android.tools.r8.origin.Origin;
 import com.google.common.collect.ImmutableList;
-import java.nio.file.Path;
 import java.util.Collection;
 import org.junit.Assume;
 import org.junit.Test;
@@ -34,33 +29,11 @@ public class SynchronizedBlockTest extends DebugTestBase {
     DelayedDebugTestConfig cf =
         temp -> new CfDebugTestConfig().addPaths(DebugTestBase.DEBUGGEE_JAR);
     DelayedDebugTestConfig r8cf = temp -> new R8CfDebugTestResourcesConfig(temp);
-    DelayedDebugTestConfig r8cfcf =
-        temp -> {
-          Path out = temp.getRoot().toPath().resolve("r8cfcf.jar");
-          try {
-            ToolHelper.runR8(
-                R8Command.builder()
-                    .setOutput(out, OutputMode.ClassFile)
-                    .setMode(CompilationMode.DEBUG)
-                    .addProgramFiles(DebugTestBase.DEBUGGEE_JAR)
-                    .setDisableTreeShaking(true)
-                    .setDisableMinification(true)
-                    .addProguardConfiguration(
-                        ImmutableList.of("-keepattributes SourceFile,LineNumberTable"),
-                        Origin.unknown())
-                    .build(),
-                options -> options.enableCfFrontend = true);
-          } catch (Exception e) {
-            throw new RuntimeException(e);
-          }
-          return new CfDebugTestConfig().addPaths(out);
-        };
     DelayedDebugTestConfig d8 = temp -> new D8DebugTestResourcesConfig(temp);
     return ImmutableList.of(
         new Object[] {"CF", cf},
         new Object[] {"D8", d8},
-        new Object[] {"R8/CF", r8cf},
-        new Object[] {"R8/CF/CF", r8cfcf});
+        new Object[] {"R8/CF", r8cf});
   }
 
   public SynchronizedBlockTest(String name, DelayedDebugTestConfig config) {

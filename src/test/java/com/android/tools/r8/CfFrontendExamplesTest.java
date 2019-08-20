@@ -314,7 +314,6 @@ public class CfFrontendExamplesTest extends TestBase {
         command,
         options -> {
           options.skipIR = true;
-          options.enableCfFrontend = true;
           options.testing.readInputStackMaps = true;
         });
     ArchiveClassFileProvider expected = new ArchiveClassFileProvider(inputJar);

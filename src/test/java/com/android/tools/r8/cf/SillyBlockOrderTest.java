@@ -4,7 +4,6 @@
 package com.android.tools.r8.cf;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -44,23 +43,10 @@ public class SillyBlockOrderTest extends TestBase {
       testForD8()
           .addProgramClasses(TestClass.class)
           .setMinApi(parameters.getApiLevel())
-          .addOptionsModification(options -> options.enableCfFrontend = true)
           .run(parameters.getRuntime(), TestClass.class)
           .assertSuccessWithOutput(EXPECTED)
           .inspect(i -> checkNumberOfGotos(i, 1));
     }
-  }
-
-  @Test
-  public void testJar() throws Exception {
-    assumeTrue(parameters.isDexRuntime());
-    testForD8()
-        .addProgramClasses(TestClass.class)
-        .setMinApi(parameters.getApiLevel())
-        .addOptionsModification(options -> options.enableCfFrontend = false)
-        .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutput(EXPECTED)
-        .inspect(i -> checkNumberOfGotos(i, 1));
   }
 
   private void checkNumberOfGotos(CodeInspector inspector, int expected) {

@@ -37,11 +37,6 @@ public abstract class R8RunExamplesCommon {
     DX, JAVAC, JAVAC_ALL, JAVAC_NONE
   }
 
-  protected enum Frontend {
-    JAR,
-    CF
-  }
-
   protected enum Output {
     DEX,
     CF
@@ -53,21 +48,13 @@ public abstract class R8RunExamplesCommon {
   }
 
   protected static String[] makeTest(
-      Input input, CompilerUnderTest compiler, CompilationMode mode, String clazz, Output output) {
-    return makeTest(input, compiler, mode, clazz, Frontend.JAR, output);
-  }
-
-  protected static String[] makeTest(
       Input input,
       CompilerUnderTest compiler,
       CompilationMode mode,
       String clazz,
-      Frontend frontend,
       Output output) {
     String pkg = clazz.substring(0, clazz.lastIndexOf('.'));
-    return new String[] {
-      pkg, input.name(), compiler.name(), mode.name(), clazz, frontend.name(), output.name()
-    };
+    return new String[] {pkg, input.name(), compiler.name(), mode.name(), clazz, output.name()};
   }
 
   @Rule
@@ -81,7 +68,6 @@ public abstract class R8RunExamplesCommon {
   private final CompilationMode mode;
   private final String pkg;
   private final String mainClass;
-  protected final Frontend frontend;
   protected final Output output;
 
   public R8RunExamplesCommon(
@@ -90,14 +76,12 @@ public abstract class R8RunExamplesCommon {
       String compiler,
       String mode,
       String mainClass,
-      String frontend,
       String output) {
     this.pkg = pkg;
     this.input = Input.valueOf(input);
     this.compiler = CompilerUnderTest.valueOf(compiler);
     this.mode = CompilationMode.valueOf(mode);
     this.mainClass = mainClass;
-    this.frontend = Frontend.valueOf(frontend);
     this.output = Output.valueOf(output);
   }
 
@@ -185,20 +169,13 @@ public abstract class R8RunExamplesCommon {
 
   protected void configure(InternalOptions options) {
     options.lineNumberOptimization = LineNumberOptimization.OFF;
-    options.enableCfFrontend = frontend == Frontend.CF;
-    if (output == Output.CF) {
-      // Class inliner is not supported with CF backend yet.
-      options.enableClassInlining = false;
-    }
   }
 
   private boolean shouldCompileFail() {
     if (output == Output.CF && getFailingCompileCf().contains(mainClass)) {
       return true;
     }
-    if (frontend == Frontend.CF
-        && output == Output.DEX
-        && getFailingCompileCfToDex().contains(mainClass)) {
+    if (output == Output.DEX && getFailingCompileCfToDex().contains(mainClass)) {
       return true;
     }
     return false;
@@ -236,9 +213,7 @@ public abstract class R8RunExamplesCommon {
       thrown.expect(Throwable.class);
     }
 
-    if (frontend == Frontend.CF
-        && output == Output.DEX
-        && getFailingRunCfToDex().contains(mainClass)) {
+    if (output == Output.DEX && getFailingRunCfToDex().contains(mainClass)) {
       thrown.expect(Throwable.class);
     }
 

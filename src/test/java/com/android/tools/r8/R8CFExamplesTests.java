@@ -28,7 +28,6 @@ public class R8CFExamplesTests extends TestBase {
 
   public enum TestMode {
     CF_SKIP_IR,
-    JAR_TO_IR,
     CF_TO_IR,
   }
 
@@ -109,10 +108,7 @@ public class R8CFExamplesTests extends TestBase {
             .addProgramFiles(inputJar)
             .setOutput(outputJar, OutputMode.ClassFile)
             .build(),
-        o -> {
-          o.skipIR = this.testMode == TestMode.CF_SKIP_IR;
-          o.enableCfFrontend = this.testMode != TestMode.JAR_TO_IR;
-        });
+        o -> o.skipIR = this.testMode == TestMode.CF_SKIP_IR);
     return outputJar;
   }
 }

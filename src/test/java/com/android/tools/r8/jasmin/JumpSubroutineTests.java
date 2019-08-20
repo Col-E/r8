@@ -44,8 +44,7 @@ public class JumpSubroutineTests extends JasminTestBase {
             .setDisableTreeShaking(true)
             .setDisableMinification(true)
             .addProguardConfiguration(ImmutableList.of("-keepattributes *"), Origin.unknown())
-            .build(),
-        options -> options.enableCfFrontend = true);
+            .build());
     ProcessResult processResult = ToolHelper.runJava(outputJar, main);
     assertEquals(0, processResult.exitCode);
     return processResult.stdout;
