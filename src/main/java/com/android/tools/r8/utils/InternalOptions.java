@@ -1022,6 +1022,15 @@ public class InternalOptions {
         return comparator;
       }
     }
+
+    public boolean measureProguardIfRuleEvaluations = false;
+    public ProguardIfRuleEvaluationData proguardIfRuleEvaluationData =
+        new ProguardIfRuleEvaluationData();
+
+    public static class ProguardIfRuleEvaluationData {
+      public int numberOfProguardIfRuleClassEvaluations = 0;
+      public int numberOfProguardIfRuleMemberEvaluations = 0;
+    }
   }
 
   private boolean hasMinApi(AndroidApiLevel level) {
