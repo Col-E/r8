@@ -44,6 +44,23 @@ public class L8 {
         command.getR8Command());
   }
 
+  /**
+   * Main API entry for the L8 compiler.
+   *
+   * @param command L8 command.
+   * @param executor executor service from which to get threads for multi-threaded processing.
+   */
+  public static void run(L8Command command, ExecutorService executor)
+      throws CompilationFailedException {
+    run(
+        command.getInputApp(),
+        command.getInternalOptions(),
+        command.isShrinking(),
+        command.getD8Command(),
+        command.getR8Command(),
+        executor);
+  }
+
   static void runForTesting(
       AndroidApp app,
       InternalOptions options,
@@ -51,22 +68,33 @@ public class L8 {
       D8Command d8Command,
       R8Command r8Command)
       throws CompilationFailedException {
-    ExecutorService executor = ThreadUtils.getExecutorService(options);
+    ExecutorService executorService = ThreadUtils.getExecutorService(options);
+    run(app, options, shrink, d8Command, r8Command, executorService);
+  }
+
+  private static void run(
+      AndroidApp app,
+      InternalOptions options,
+      boolean shrink,
+      D8Command d8Command,
+      R8Command r8Command,
+      ExecutorService executorService)
+      throws CompilationFailedException {
     try {
       ExceptionUtils.withD8CompilationHandler(
           options.reporter,
           () -> {
-            desugar(app, options, executor);
+            desugar(app, options, executorService);
           });
       if (shrink) {
         options.reporter.warning(
             new StringDiagnostic("Shrinking of desugared library is work in progress."));
-        R8.run(r8Command, executor);
+        R8.run(r8Command, executorService);
       } else {
-        D8.run(d8Command, executor);
+        D8.run(d8Command, executorService);
       }
     } finally {
-      executor.shutdown();
+      executorService.shutdown();
     }
   }
 
