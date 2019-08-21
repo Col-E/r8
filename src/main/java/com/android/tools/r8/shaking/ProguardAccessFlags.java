@@ -219,17 +219,4 @@ public class ProguardAccessFlags {
     }
     return builder.toString();
   }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (!(obj instanceof ProguardAccessFlags)) {
-      return false;
-    }
-    return this.flags == ((ProguardAccessFlags) obj).flags;
-  }
-
-  @Override
-  public int hashCode() {
-    return flags;
-  }
 }

@@ -9,7 +9,6 @@ import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.Iterables;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.StreamSupport;
 
 public abstract class ProguardConfigurationRule extends ProguardClassSpecification {
@@ -75,21 +74,12 @@ public abstract class ProguardConfigurationRule extends ProguardClassSpecificati
       return false;
     }
     ProguardConfigurationRule that = (ProguardConfigurationRule) o;
-    if (!Objects.equals(typeString(), that.typeString())) {
-      return false;
-    }
-    if (!Objects.equals(modifierString(), that.modifierString())) {
-      return false;
-    }
     return super.equals(that);
   }
 
   @Override
   public int hashCode() {
-    int result = 3 * typeString().hashCode();
-    String modifier = modifierString();
-    result = 3 * result + (modifier != null ? modifier.hashCode() : 0);
-    return result + super.hashCode();
+    return super.hashCode();
   }
 
   @Override

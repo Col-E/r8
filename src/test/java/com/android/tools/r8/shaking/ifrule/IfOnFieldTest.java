@@ -244,7 +244,8 @@ public class IfOnFieldTest extends ProguardCompatibilityTestBase {
 
     CodeInspector codeInspector = inspectAfterShrinking(shrinker, CLASSES, config);
     verifyClassesAbsent(codeInspector, D2.class);
-    verifyClassesPresent(codeInspector, I.class, Impl.class, D1.class);
+    verifyClassesPresent(codeInspector,
+        I.class, Impl.class, D1.class);
   }
 
 }

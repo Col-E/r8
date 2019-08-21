@@ -64,13 +64,13 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.shaking.RootSetBuilder.ConsequentRootSet;
+import com.android.tools.r8.shaking.RootSetBuilder.IfRuleEvaluator;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.shaking.ScopedDexMethodSet.AddMethodIfMoreVisibleResult;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.Timing;
-import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableSet;
@@ -86,10 +86,8 @@ import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -305,9 +303,6 @@ public class Enqueuer {
    * Set of keep rules generated for Proguard compatibility in Proguard compatibility mode.
    */
   private final ProguardConfiguration.Builder compatibility;
-
-  /** Map of active if rules to speed up aapt2 generated keep rules. */
-  private Map<Wrapper<ProguardIfRule>, Set<ProguardIfRule>> activeIfRules;
 
   /**
    * A cache of ScopedDexMethodSet for each live type used for determining that virtual methods that
@@ -1934,27 +1929,14 @@ public class Enqueuer {
         numOfLiveItemsAfterProcessing += (long) liveMethods.items.size();
         numOfLiveItemsAfterProcessing += (long) liveFields.items.size();
         if (numOfLiveItemsAfterProcessing > numOfLiveItems) {
-          // Build the mapping of active if rules. We use a single collection of if-rules to allow
-          // removing if rules that have a constant sequent keep rule when they materialize.
-          if (activeIfRules == null) {
-            activeIfRules = new HashMap<>();
-            IfRuleClassPartEquivalence equivalence = new IfRuleClassPartEquivalence();
-            for (ProguardIfRule ifRule : rootSet.ifRules) {
-              Wrapper<ProguardIfRule> wrap = equivalence.wrap(ifRule);
-              activeIfRules.computeIfAbsent(wrap, ignore -> new LinkedHashSet<>()).add(ifRule);
-            }
-          }
-          RootSetBuilder consequentSetBuilder = new RootSetBuilder(appView, null);
+          RootSetBuilder consequentSetBuilder = new RootSetBuilder(appView, rootSet.ifRules);
           IfRuleEvaluator ifRuleEvaluator =
-              new IfRuleEvaluator(
+              consequentSetBuilder.getIfRuleEvaluator(
                   liveFields.getItems(),
                   liveMethods.getItems(),
                   liveTypes,
                   targetedMethods.getItems(),
-                  activeIfRules,
-                  consequentSetBuilder,
-                  executorService,
-                  appView);
+                  executorService);
           ConsequentRootSet consequentRootSet = ifRuleEvaluator.run();
           // TODO(b/132600955): This modifies the root set. Should the consequent be persistent?
           rootSet.addConsequentRootSet(consequentRootSet);
