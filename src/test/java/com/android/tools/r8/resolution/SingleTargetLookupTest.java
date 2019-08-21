@@ -14,6 +14,10 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.resolution.singletarget.Main;
+import com.android.tools.r8.resolution.singletarget.interfacedefault.A;
+import com.android.tools.r8.resolution.singletarget.interfacedefault.B;
+import com.android.tools.r8.resolution.singletarget.interfacedefault.C;
+import com.android.tools.r8.resolution.singletarget.interfacedefault.I;
 import com.android.tools.r8.resolution.singletarget.one.AbstractSubClass;
 import com.android.tools.r8.resolution.singletarget.one.AbstractTopClass;
 import com.android.tools.r8.resolution.singletarget.one.InterfaceWithDefault;
@@ -81,6 +85,10 @@ public class SingleTargetLookupTest extends AsmTestBase {
       OtherSubSubClassTwo.class,
       ThirdAbstractTopClass.class,
       ThirdSubClassOne.class,
+      A.class,
+      B.class,
+      C.class,
+      I.class,
       Main.class
   );
 
@@ -195,7 +203,9 @@ public class SingleTargetLookupTest extends AsmTestBase {
             ThirdSubClassOne.class),
         singleTarget("instanceMethod", ThirdAbstractTopClass.class, ThirdAbstractTopClass.class),
         singleTarget(
-            "otherInstanceMethod", ThirdAbstractTopClass.class, ThirdAbstractTopClass.class)
+            "otherInstanceMethod", ThirdAbstractTopClass.class, ThirdAbstractTopClass.class),
+        // TODO(b/139823850): Should not include A#confusing. Rather, include default I#confusing.
+        manyTargets("confusing", B.class, A.class, C.class)
     });
   }
 
