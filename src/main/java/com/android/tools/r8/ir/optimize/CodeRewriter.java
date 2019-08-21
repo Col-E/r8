@@ -2433,7 +2433,9 @@ public class CodeRewriter {
       Supplier<DominatorTree> dominatorTreeMemoization,
       Map<BasicBlock, List<Instruction>> addConstantInBlock,
       Predicate<ConstInstruction> selector) {
-    for (Instruction next : block.getInstructions()) {
+    InstructionListIterator iterator = block.listIterator(code);
+    while (iterator.hasNext()) {
+      Instruction next = iterator.next();
       if (!next.isConstInstruction()) {
         continue;
       }
@@ -2441,9 +2443,45 @@ public class CodeRewriter {
       if (!selector.test(instruction) || instruction.outValue().hasLocalInfo()) {
         continue;
       }
+      Set<Instruction> uniqueUsers = instruction.outValue().uniqueUsers();
+      // Here we try to stop wasting time in the common case of large array of constants creation.
+      // We do not want to move a high number of constants up just to move them down because it
+      // takes multiple seconds in some cases (ZoneName clinit for instance).
+      // In array creation, the pattern is something like:
+      //   Const number (the array index)
+      //   Const (the array entry value)
+      //   ArrayPut
+      // And both constants are used only in the put. The heuristic is therefore to check for
+      // constants used only once if the use is within the next two instructions, and only swap
+      // them if that is the case (cannot shorten the live range anyway).
+      // This heuristic drops down the time spent in large array of constant creation in
+      // shortenLiveRanges from multiple seconds to multiple milliseconds.
+      if (uniqueUsers.size() == 1 && instruction.outValue().uniquePhiUsers().size() == 0) {
+        Instruction uniqueUse = uniqueUsers.iterator().next();
+        if (iterator.hasNext()) {
+          Instruction nextNext = iterator.next();
+          if (uniqueUse == nextNext) {
+            assert !uniqueUse.isConstInstruction();
+            continue;
+          }
+          if (nextNext.isConstInstruction()) {
+            Set<Instruction> uniqueUsersNext = nextNext.outValue().uniqueUsers();
+            if (uniqueUsersNext.size() == 1
+                && nextNext.outValue().uniquePhiUsers().size() == 0
+                && iterator.hasNext()) {
+              Instruction nextNextNext = iterator.peekNext();
+              Instruction uniqueUseNext = uniqueUsersNext.iterator().next();
+              if (uniqueUse == nextNextNext && uniqueUseNext == nextNextNext) {
+                continue;
+              }
+            }
+          }
+          iterator.previous();
+        }
+      }
       // Collect the blocks for all users of the constant.
       List<BasicBlock> userBlocks = new LinkedList<>();
-      for (Instruction user : instruction.outValue().uniqueUsers()) {
+      for (Instruction user : uniqueUsers) {
         userBlocks.add(user.getBlock());
       }
       for (Phi phi : instruction.outValue().uniquePhiUsers()) {
@@ -2494,11 +2532,12 @@ public class CodeRewriter {
     InstructionListIterator insertAt = block.listIterator(code);
     // Place the instruction as late in the block as we can. It needs to go before users
     // and if we have catch handlers it needs to be placed before the throwing instruction.
-    insertAt.nextUntil(i ->
-        i.inValues().contains(instruction.outValue())
-            || i.isJumpInstruction()
-            || (hasCatchHandlers && i.instructionTypeCanThrow())
-            || (options.canHaveCmpIfFloatBug() && i.isCmp()));
+    insertAt.nextUntil(
+        i ->
+            instruction.outValue().uniqueUsers().contains(i)
+                || i.isJumpInstruction()
+                || (hasCatchHandlers && i.instructionTypeCanThrow())
+                || (options.canHaveCmpIfFloatBug() && i.isCmp()));
     Instruction next = insertAt.previous();
     instruction.setPosition(next.getPosition());
     insertAt.add(instruction);

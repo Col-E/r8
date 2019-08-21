@@ -384,10 +384,10 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
             ConstString.class,
             InvokeStatic.class,
             ReturnVoid.class));
-    ConstString constString = (ConstString) code.instructions[1];
-    assertEquals(BOO, constString.getString().toString());
-    constString = (ConstString) code.instructions[2];
-    assertEquals("Mixed/form.Boo", constString.getString().toString());
+    String s1 = ((ConstString) code.instructions[1]).getString().toString();
+    String s2 = ((ConstString) code.instructions[2]).getString().toString();
+    assertTrue(BOO.equals(s1) || BOO.equals(s2));
+    assertTrue("Mixed/form.Boo".equals(s1) || "Mixed/form.Boo".equals(s2));
   }
 
   @Test
