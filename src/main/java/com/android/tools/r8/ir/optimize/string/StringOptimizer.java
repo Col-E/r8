@@ -10,6 +10,7 @@ import static com.android.tools.r8.naming.dexitembasedstring.ClassNameComputatio
 import static com.android.tools.r8.naming.dexitembasedstring.ClassNameComputationInfo.ClassNameMapping.SIMPLE_NAME;
 import static com.android.tools.r8.utils.DescriptorUtils.INNER_CLASS_SEPARATOR;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -36,6 +37,7 @@ import com.android.tools.r8.naming.dexitembasedstring.ClassNameComputationInfo.C
 import com.android.tools.r8.utils.StringUtils;
 import it.unimi.dsi.fastutil.objects.Object2IntArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import java.io.UTFDataFormatException;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -101,6 +103,7 @@ public class StringOptimizer {
     });
   }
 
+  // int String#hashCode()
   // int String#length()
   // boolean String#isEmpty()
   // boolean String#startsWith(String)
@@ -178,15 +181,24 @@ public class StringOptimizer {
         continue;
       }
 
-      Function<String, Integer> operatorWithNoArg = null;
-      BiFunction<String, String, Integer> operatorWithString = null;
-      BiFunction<String, Integer, Integer> operatorWithInt = null;
-      if (invokedMethod == factory.stringMethods.length) {
-        operatorWithNoArg = String::length;
+      Function<DexString, Integer> operatorWithNoArg = null;
+      BiFunction<DexString, DexString, Integer> operatorWithString = null;
+      BiFunction<DexString, Integer, Integer> operatorWithInt = null;
+      if (invokedMethod == factory.stringMethods.hashCode) {
+        operatorWithNoArg = rcv -> {
+          try {
+            return rcv.decodedHashCode();
+          } catch (UTFDataFormatException e) {
+            // It is already guaranteed that the string does not throw.
+            throw new Unreachable();
+          }
+        };
+      } else if (invokedMethod == factory.stringMethods.length) {
+        operatorWithNoArg = rcv -> rcv.toString().length();
       } else if (invokedMethod == factory.stringMethods.isEmpty) {
-        operatorWithNoArg = rcv -> rcv.isEmpty() ? 1 : 0;
+        operatorWithNoArg = rcv -> rcv.toString().isEmpty() ? 1 : 0;
       } else if (invokedMethod == factory.stringMethods.contains) {
-        operatorWithString = (rcv, arg) -> rcv.contains(arg) ? 1 : 0;
+        operatorWithString = (rcv, arg) -> rcv.toString().contains(arg.toString()) ? 1 : 0;
       } else if (invokedMethod == factory.stringMethods.startsWith) {
         operatorWithString = (rcv, arg) -> rcv.startsWith(arg) ? 1 : 0;
       } else if (invokedMethod == factory.stringMethods.endsWith) {
@@ -194,27 +206,28 @@ public class StringOptimizer {
       } else if (invokedMethod == factory.stringMethods.equals) {
         operatorWithString = (rcv, arg) -> rcv.equals(arg) ? 1 : 0;
       } else if (invokedMethod == factory.stringMethods.equalsIgnoreCase) {
-        operatorWithString = (rcv, arg) -> rcv.equalsIgnoreCase(arg) ? 1 : 0;
+        operatorWithString = (rcv, arg) -> rcv.toString().equalsIgnoreCase(arg.toString()) ? 1 : 0;
       } else if (invokedMethod == factory.stringMethods.contentEqualsCharSequence) {
-        operatorWithString = (rcv, arg) -> rcv.contentEquals(arg) ? 1 : 0;
+        operatorWithString = (rcv, arg) -> rcv.toString().contentEquals(arg.toString()) ? 1 : 0;
       } else if (invokedMethod == factory.stringMethods.indexOfInt) {
-        operatorWithInt = String::indexOf;
+        operatorWithInt = (rcv, idx) -> rcv.toString().indexOf(idx);
       } else if (invokedMethod == factory.stringMethods.indexOfString) {
-        operatorWithString = String::indexOf;
+        operatorWithString = (rcv, arg) -> rcv.toString().indexOf(arg.toString());
       } else if (invokedMethod == factory.stringMethods.lastIndexOfInt) {
-        operatorWithInt = String::lastIndexOf;
+        operatorWithInt = (rcv, idx) -> rcv.toString().lastIndexOf(idx);
       } else if (invokedMethod == factory.stringMethods.lastIndexOfString) {
-        operatorWithString = String::lastIndexOf;
+        operatorWithString = (rcv, arg) -> rcv.toString().lastIndexOf(arg.toString());
       } else if (invokedMethod == factory.stringMethods.compareTo) {
-        operatorWithString = String::compareTo;
+        operatorWithString = (rcv, arg) -> rcv.toString().compareTo(arg.toString());
       } else if (invokedMethod == factory.stringMethods.compareToIgnoreCase) {
-        operatorWithString = String::compareToIgnoreCase;
+        operatorWithString = (rcv, arg) -> rcv.toString().compareToIgnoreCase(arg.toString());
       } else {
         continue;
       }
       Value rcv = invoke.getReceiver().getAliasedValue();
       if (rcv.definition == null
           || !rcv.definition.isConstString()
+          || rcv.definition.asConstString().instructionInstanceCanThrow()
           || rcv.hasLocalInfo()) {
         continue;
       }
@@ -223,7 +236,7 @@ public class StringOptimizer {
       ConstNumber constNumber;
       if (operatorWithNoArg != null) {
         assert invoke.inValues().size() == 1;
-        int v = operatorWithNoArg.apply(rcvString.toString());
+        int v = operatorWithNoArg.apply(rcvString);
         constNumber = code.createIntConstant(v);
       } else if (operatorWithString != null) {
         assert invoke.inValues().size() == 2;
@@ -233,9 +246,7 @@ public class StringOptimizer {
             || arg.hasLocalInfo()) {
           continue;
         }
-        int v = operatorWithString.apply(
-            rcvString.toString(),
-            arg.definition.asConstString().getValue().toString());
+        int v = operatorWithString.apply(rcvString, arg.definition.asConstString().getValue());
         constNumber = code.createIntConstant(v);
       } else {
         assert operatorWithInt != null;
@@ -246,9 +257,7 @@ public class StringOptimizer {
             || arg.hasLocalInfo()) {
           continue;
         }
-        int v = operatorWithInt.apply(
-            rcvString.toString(),
-            arg.definition.asConstNumber().getIntValue());
+        int v = operatorWithInt.apply(rcvString, arg.definition.asConstNumber().getIntValue());
         constNumber = code.createIntConstant(v);
       }
 

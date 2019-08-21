@@ -142,6 +142,10 @@ public class DexString extends IndexedDexItem implements PresortedComparable<Dex
   }
 
   public int decodedHashCode() throws UTFDataFormatException {
+    if (size == 0) {
+      assert decode().hashCode() == 0;
+      return 0;
+    }
     int h = 0;
     int p = 0;
     while (true) {
