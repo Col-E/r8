@@ -19,6 +19,7 @@ import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.util.Collection;
@@ -186,6 +187,7 @@ public class InnerClassNameTestRunner extends TestBase {
     D8TestCompileResult d8CompileResult =
         testForD8()
             .addProgramClassFileData(InnerClassNameTestDump.dump(config, parameters))
+            .addOptionsModification(this::configure)
             .setMinApi(parameters.getRuntime())
             .compile();
     checkWarningsAboutMalformedAttribute(d8CompileResult);
@@ -210,6 +212,7 @@ public class InnerClassNameTestRunner extends TestBase {
             .addKeepRules("-keepattributes InnerClasses,EnclosingMethod")
             .addProgramClassFileData(InnerClassNameTestDump.dump(config, parameters))
             .minification(minify)
+            .addOptionsModification(this::configure)
             .setMinApi(parameters.getRuntime())
             .compile();
     checkWarningsAboutMalformedAttribute(r8CompileResult);
@@ -299,5 +302,10 @@ public class InnerClassNameTestRunner extends TestBase {
     innerNameFinal = withDollarOnInnerName ? "$" + innerNameFinal : innerNameFinal;
     return getExpected(
         innerClassTypeFinal, outerClassTypeFinal + "." + innerNameFinal, innerNameFinal);
+  }
+
+  private void configure(InternalOptions options) {
+    // Literally testing inner-name computation. Don't optimize get*Name().
+    options.enableNameReflectionOptimization = false;
   }
 }

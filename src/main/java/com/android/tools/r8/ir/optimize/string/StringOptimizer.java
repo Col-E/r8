@@ -290,16 +290,6 @@ public class StringOptimizer {
       if (out == null || out.numberOfAllUsers() == 0) {
         continue;
       }
-      // b/120138731: Filter out local uses, which are likely one-time name computation. In such
-      // case, the result of this optimization can lead to a regression if the corresponding class
-      // is in a deep package hierarchy.
-      if (!appView.options().testing.forceNameReflectionOptimization) {
-        EscapeAnalysis escapeAnalysis =
-            new EscapeAnalysis(appView, StringOptimizerEscapeAnalysisConfiguration.getInstance());
-        if (escapeAnalysis.isEscaping(code, out)) {
-          continue;
-        }
-      }
 
       assert invoke.inValues().size() == 1;
       // In case of handling multiple invocations over the same const-string, all the following
@@ -332,14 +322,28 @@ public class StringOptimizer {
       if (holder == null) {
         continue;
       }
+      boolean mayBeRenamed =
+          appView.options().isMinifying() && appView.rootSet().mayBeMinified(holder.type, appView);
+      // b/120138731: Filter out escaping uses. In such case, the result of this optimization will
+      // be stored somewhere, which can lead to a regression if the corresponding class is in a deep
+      // package hierarchy. For local cases, it is likely a one-time computation, but make sure the
+      // result is used reasonably, such as library calls. For example, if a class may be minified
+      // while its name is used to compute hash code, which won't be optimized, it's better not to
+      // compute the name.
+      if (!appView.options().testing.forceNameReflectionOptimization) {
+        EscapeAnalysis escapeAnalysis =
+            new EscapeAnalysis(appView, StringOptimizerEscapeAnalysisConfiguration.getInstance());
+        if (mayBeRenamed || escapeAnalysis.isEscaping(code, out)) {
+          continue;
+        }
+      }
 
       String descriptor = baseType.toDescriptorString();
       boolean assumeTopLevel = descriptor.indexOf(INNER_CLASS_SEPARATOR) < 0;
       DexItemBasedConstString deferred = null;
       DexString name = null;
       if (invokedMethod == factory.classMethods.getName) {
-        if (appView.options().isMinifying()
-            && appView.rootSet().mayBeMinified(holder.type, appView)) {
+        if (mayBeRenamed) {
           deferred =
               new DexItemBasedConstString(
                   invoke.outValue(),
@@ -365,8 +369,7 @@ public class StringOptimizer {
           if (!assumeTopLevel) {
             continue;
           }
-          if (appView.options().isMinifying()
-              && appView.rootSet().mayBeMinified(holder.type, appView)) {
+          if (mayBeRenamed) {
             deferred =
                 new DexItemBasedConstString(
                     invoke.outValue(),
@@ -389,8 +392,7 @@ public class StringOptimizer {
           if (!assumeTopLevel) {
             continue;
           }
-          if (appView.options().isMinifying()
-              && appView.rootSet().mayBeMinified(holder.type, appView)) {
+          if (mayBeRenamed) {
             deferred =
                 new DexItemBasedConstString(
                     invoke.outValue(),
@@ -549,11 +551,10 @@ public class StringOptimizer {
       }
       if (escapeRoute.isInvokeMethod()) {
         DexMethod invokedMethod = escapeRoute.asInvokeMethod().getInvokedMethod();
-        DexClass holder = appView.definitionFor(invokedMethod.holder);
-        // For most cases, library call is not interesting, e.g.,
-        // System.out.println(...), String.valueOf(...), etc.
-        // If it's too broad, we can introduce black-list.
-        if (holder == null || holder.isNotProgramClass()) {
+        // b/120138731: Only allow known simple operations on const-string
+        if (invokedMethod == appView.dexItemFactory().stringMethods.hashCode
+            || invokedMethod == appView.dexItemFactory().stringMethods.isEmpty
+            || invokedMethod == appView.dexItemFactory().stringMethods.length) {
           return true;
         }
         // Heuristic: if the call target has the same method name, it could be still local.

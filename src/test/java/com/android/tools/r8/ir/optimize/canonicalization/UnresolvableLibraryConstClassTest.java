@@ -13,12 +13,12 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import com.google.common.collect.Streams;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -98,6 +98,7 @@ public class UnresolvableLibraryConstClassTest extends TestBase {
     testForD8()
         .release()
         .addProgramClasses(ProgramClass1.class, ProgramClass2.class, ProgramSubClass.class, MAIN)
+        .addOptionsModification(this::configure)
         .setMinApi(parameters.getRuntime())
         .compile()
         .inspect(this::inspect)
@@ -114,6 +115,7 @@ public class UnresolvableLibraryConstClassTest extends TestBase {
         .addKeepMainRule(MAIN)
         .noMinification()
         .enableMergeAnnotations()
+        .addOptionsModification(this::configure)
         .setMinApi(parameters.getRuntime())
         .compile()
         .inspect(this::inspect)
@@ -136,6 +138,11 @@ public class UnresolvableLibraryConstClassTest extends TestBase {
     // No canonicalization of const-class instructions.
     assertEquals(
         6,
-        Streams.stream(mainMethod.iterateInstructions(InstructionSubject::isConstClass)).count());
+        mainMethod.streamInstructions().filter(InstructionSubject::isConstClass).count());
+  }
+
+  private void configure(InternalOptions options) {
+    // Testing if const-class is not canonicalized. Don't optimize its usage with get*Name().
+    options.enableNameReflectionOptimization = false;
   }
 }

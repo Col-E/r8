@@ -41,6 +41,9 @@ public class InnerClassNameSeparatorTest extends TestBase {
             testForR8(parameters.getBackend())
                 .addOptionsModification(
                     options -> {
+                      // Otherwise, Inner can be shrunk after its only reference, .class.getName(),
+                      // is optimized away.
+                      options.enableNameReflectionOptimization = false;
                       if (separator.equals(".")) {
                         // R8 currently does not recognize the '.' as an inner class name separator.
                         options.testing.allowUnusedProguardConfigurationRules = true;

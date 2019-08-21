@@ -17,12 +17,12 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.ir.optimize.canonicalization.ConstClassMain.Outer;
 import com.android.tools.r8.ir.optimize.canonicalization.ConstClassMain.Outer.Inner;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import com.google.common.collect.Streams;
 import java.nio.file.Path;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -140,9 +140,7 @@ public class ConstClassCanonicalizationTest extends TestBase {
           assertThat(mainMethod, isPresent());
           assertEquals(
               3,
-              Streams.stream(
-                  mainMethod.iterateInstructions(InstructionSubject::isConstClass))
-              .count());
+              mainMethod.streamInstructions().filter(InstructionSubject::isConstClass).count());
         });
   }
 
@@ -154,18 +152,15 @@ public class ConstClassCanonicalizationTest extends TestBase {
     assertThat(mainMethod, isPresent());
     assertEquals(
         mainCount,
-        Streams.stream(
-            mainMethod.iterateInstructions(i -> i.isConstClass(MAIN.getTypeName())))
+        mainMethod.streamInstructions().filter(i -> i.isConstClass(MAIN.getTypeName()))
             .count());
     assertEquals(
         outerCount,
-        Streams.stream(
-            mainMethod.iterateInstructions(i -> i.isConstClass(Outer.class.getTypeName())))
+        mainMethod.streamInstructions().filter(i -> i.isConstClass(Outer.class.getTypeName()))
             .count());
     assertEquals(
         innerCount,
-        Streams.stream(
-            mainMethod.iterateInstructions(i -> i.isConstClass(Inner.class.getTypeName())))
+        mainMethod.streamInstructions().filter(i -> i.isConstClass(Inner.class.getTypeName()))
             .count());
   }
 
@@ -177,6 +172,7 @@ public class ConstClassCanonicalizationTest extends TestBase {
         testForD8()
             .debug()
             .addProgramClassesAndInnerClasses(MAIN)
+            .addOptionsModification(this::configure)
             .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
@@ -186,6 +182,7 @@ public class ConstClassCanonicalizationTest extends TestBase {
         testForD8()
             .release()
             .addProgramClassesAndInnerClasses(MAIN)
+            .addOptionsModification(this::configure)
             .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
@@ -200,6 +197,7 @@ public class ConstClassCanonicalizationTest extends TestBase {
             .addKeepMainRule(MAIN)
             .addKeepAllAttributes()
             .noMinification()
+            .addOptionsModification(this::configure)
             .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
@@ -214,4 +212,8 @@ public class ConstClassCanonicalizationTest extends TestBase {
     test(result, expectedMainCount, expectedOuterCount, expectedInnerCount);
   }
 
+  private void configure(InternalOptions options) {
+    // Literally testing const-class canonicalization. Don't optimize its usage with get*Name().
+    options.enableNameReflectionOptimization = false;
+  }
 }

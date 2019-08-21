@@ -11,12 +11,12 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import com.google.common.collect.Streams;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -75,6 +75,7 @@ public class IllegalAccessConstClassTest extends TestBase {
             IllegalAccessConstClassTestDump.PackagePrivateClassDump.dump())
         .addProgramClassFileData(
             IllegalAccessConstClassTestDump.FakePackagePrivateClassConsumerDump.dump())
+        .addOptionsModification(this::configure)
         .setMinApi(parameters.getRuntime())
         .compile()
         .inspect(this::inspect)
@@ -91,6 +92,7 @@ public class IllegalAccessConstClassTest extends TestBase {
             IllegalAccessConstClassTestDump.FakePackagePrivateClassConsumerDump.dump())
         .addKeepMainRule(MAIN)
         .noMinification()
+        .addOptionsModification(this::configure)
         .setMinApi(parameters.getRuntime())
         .compile()
         .inspect(this::inspect)
@@ -109,6 +111,11 @@ public class IllegalAccessConstClassTest extends TestBase {
     // No canonicalization of const-class instructions.
     assertEquals(
         2,
-        Streams.stream(mainMethod.iterateInstructions(InstructionSubject::isConstClass)).count());
+        mainMethod.streamInstructions().filter(InstructionSubject::isConstClass).count());
+  }
+
+  private void configure(InternalOptions options) {
+    // Testing if const-class is not canonicalized. Don't optimize its usage with get*Name().
+    options.enableNameReflectionOptimization = false;
   }
 }

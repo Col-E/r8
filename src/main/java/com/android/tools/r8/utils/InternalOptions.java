@@ -149,6 +149,7 @@ public class InternalOptions {
   void disableAllOptimizations() {
     disableGlobalOptimizations();
     enableNonNullTracking = false;
+    enableNameReflectionOptimization = false;
     enableStringConcatenationOptimization = false;
   }
 
@@ -203,8 +204,7 @@ public class InternalOptions {
   public boolean enableSideEffectAnalysis = true;
   public boolean enableDeterminismAnalysis = true;
   public boolean enableServiceLoaderRewriting = true;
-  // TODO(b/120138731): Enable this when it is worthwhile, e.g., combined with Class#forName.
-  public boolean enableNameReflectionOptimization = false;
+  public boolean enableNameReflectionOptimization = true;
   public boolean enableStringConcatenationOptimization = true;
   public boolean enableTreeShakingOfLibraryMethodOverrides = false;
   public boolean encodeChecksums = false;
