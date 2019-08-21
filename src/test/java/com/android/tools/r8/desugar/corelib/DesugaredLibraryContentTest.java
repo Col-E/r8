@@ -7,12 +7,13 @@ package com.android.tools.r8.desugar.corelib;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -33,14 +34,7 @@ public class DesugaredLibraryContentTest extends CoreLibDesugarTestBase {
 
   @Test
   public void testDesugaredLibraryContent() throws Exception {
-    Assume.assumeTrue(requiresAnyCoreLibDesugaring(parameters));
     CodeInspector inspector = new CodeInspector(buildDesugaredLibrary(parameters.getApiLevel()));
-    assertThat(inspector.clazz("j$.util.Optional"), isPresent());
-    assertThat(inspector.clazz("j$.util.OptionalInt"), isPresent());
-    assertThat(inspector.clazz("j$.util.OptionalLong"), isPresent());
-    assertThat(inspector.clazz("j$.util.OptionalDouble"), isPresent());
-    assertThat(inspector.clazz("j$.util.function.Function"), isPresent());
-    assertThat(inspector.clazz("j$.time.Clock"), isPresent());
     inspector
         .allClasses()
         .forEach(
@@ -50,5 +44,14 @@ public class DesugaredLibraryContentTest extends CoreLibDesugarTestBase {
                         || clazz
                             .getOriginalName()
                             .contains(BackportedMethodRewriter.UTILITY_CLASS_NAME_PREFIX)));
+    assertThat(inspector.clazz("j$.time.Clock"), isPresent());
+    // Above N the following classes are removed instead of being desugared.
+    if (parameters.getApiLevel().getLevel() >= AndroidApiLevel.N.getLevel()) {
+      assertFalse(inspector.clazz("j$.util.Optional").isPresent());
+      assertFalse(inspector.clazz("j$.util.function.Function").isPresent());
+      return;
+    }
+    assertThat(inspector.clazz("j$.util.Optional"), isPresent());
+    assertThat(inspector.clazz("j$.util.function.Function"), isPresent());
   }
 }

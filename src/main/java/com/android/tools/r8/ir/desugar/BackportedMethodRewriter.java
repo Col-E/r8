@@ -52,7 +52,6 @@ import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -209,10 +208,25 @@ public final class BackportedMethodRewriter {
     DexMethod original = appView.graphLense().getOriginalMethodSignature(method);
     assert original != null;
     if (backportCoreLibraryMembers.containsKey(original.holder)) {
-      return rewritableMethods.getProvider(
-          backportCoreLibraryMembers.get(original.holder).descriptor,
-          original.name,
-          original.proto);
+      DexType newHolder = backportCoreLibraryMembers.get(original.holder);
+      MethodProvider provider =
+          rewritableMethods.getProvider(
+              newHolder.descriptor,
+              original.name,
+              original.proto);
+      if (provider != null) {
+        return provider;
+      }
+      RetargetCoreLibraryMethodProvider extraProvider =
+          new RetargetCoreLibraryMethodProvider(
+              newHolder,
+              original.holder.descriptor,
+              original.name,
+              original.proto,
+              true);
+      // TODO(b/139788786): cache this entry, but without writing into a lock free structure.
+      // rewritableMethods.addProvider(extraProvider);
+      return extraProvider;
     }
     return rewritableMethods.getProvider(original.holder.descriptor, original.name, original.proto);
   }
@@ -221,7 +235,7 @@ public final class BackportedMethodRewriter {
 
     // Map class, method, proto to a provider for creating the code and method.
     private final Map<DexString, Map<DexString, Map<DexProto, MethodProvider>>> rewritable =
-        new HashMap<>();
+        new IdentityHashMap<>();
 
     public RewritableMethods(AppView<?> appView) {
       InternalOptions options = appView.options();
@@ -957,8 +971,9 @@ public final class BackportedMethodRewriter {
     }
 
     private void addProvider(MethodProvider generator) {
-      rewritable.computeIfAbsent(generator.clazz, k -> new HashMap<>())
-          .computeIfAbsent(generator.method, k -> new HashMap<>())
+      rewritable
+          .computeIfAbsent(generator.clazz, k -> new IdentityHashMap<>())
+          .computeIfAbsent(generator.method, k -> new IdentityHashMap<>())
           .put(generator.proto, generator);
     }
 
