@@ -35,7 +35,6 @@ import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import java.io.PrintStream;
@@ -223,7 +222,7 @@ public class RootSetBuilder {
     }
   }
 
-  private void runPerRule(
+  void runPerRule(
       ExecutorService executorService,
       List<Future<?>> futures,
       ProguardConfigurationRule rule,
@@ -351,215 +350,15 @@ public class RootSetBuilder {
     }
   }
 
-  IfRuleEvaluator getIfRuleEvaluator(
-      Set<DexEncodedField> liveFields,
-      Set<DexEncodedMethod> liveMethods,
-      Set<DexType> liveTypes,
-      Set<DexEncodedMethod> targetedMethods,
-      ExecutorService executorService) {
-    return new IfRuleEvaluator(
-        liveFields, liveMethods, liveTypes, targetedMethods, executorService);
-  }
-
-  class IfRuleEvaluator {
-
-    private final Set<DexEncodedField> liveFields;
-    private final Set<DexEncodedMethod> liveMethods;
-    private final Set<DexType> liveTypes;
-
-    private final Set<DexEncodedMethod> targetedMethods;
-
-    private final ExecutorService executorService;
-
-    private final List<Future<?>> futures = new ArrayList<>();
-
-    public IfRuleEvaluator(
-        Set<DexEncodedField> liveFields,
-        Set<DexEncodedMethod> liveMethods,
-        Set<DexType> liveTypes,
-        Set<DexEncodedMethod> targetedMethods,
-        ExecutorService executorService) {
-      this.liveFields = liveFields;
-      this.liveMethods = liveMethods;
-      this.liveTypes = liveTypes;
-      this.targetedMethods = targetedMethods;
-      this.executorService = executorService;
-    }
-
-    public ConsequentRootSet run() throws ExecutionException {
-      application.timing.begin("Find consequent items for -if rules...");
-      try {
-        if (rules != null) {
-          for (ProguardConfigurationRule rule : rules) {
-            assert rule instanceof ProguardIfRule;
-            ProguardIfRule ifRule = (ProguardIfRule) rule;
-            // Depending on which types that trigger the -if rule, the application of the subsequent
-            // -keep rule may vary (due to back references). So, we need to try all pairs of -if
-            // rule and live types.
-            for (DexProgramClass clazz : appView.appInfo().classes()) {
-              if (!isEffectivelyLive(clazz)) {
-                continue;
-              }
-
-              // Check if the class matches the if-rule.
-              evaluateIfRule(ifRule, clazz, clazz);
-
-              // Check if one of the types that have been merged into `clazz` satisfies the if-rule.
-              if (options.enableVerticalClassMerging && appView.verticallyMergedClasses() != null) {
-                Iterable<DexType> sources =
-                    appView.verticallyMergedClasses().getSourcesFor(clazz.type);
-                for (DexType sourceType : sources) {
-                  // Note that, although `sourceType` has been merged into `type`, the dex class for
-                  // `sourceType` is still available until the second round of tree shaking. This
-                  // way
-                  // we can still retrieve the access flags of `sourceType`.
-                  DexClass sourceClass = appView.definitionFor(sourceType);
-                  assert sourceClass != null;
-                  evaluateIfRule(ifRule, sourceClass, clazz);
-                }
-              }
-            }
-          }
-          ThreadUtils.awaitFutures(futures);
-        }
-      } finally {
-        application.timing.end();
-      }
-      return new ConsequentRootSet(
-          neverInline,
-          neverClassInline,
-          noShrinking,
-          noOptimization,
-          noObfuscation,
-          dependentNoShrinking,
-          dependentKeepClassCompatRule);
-    }
-
-    private boolean isEffectivelyLive(DexProgramClass clazz) {
-      // A type is effectively live if (1) it is truly live, (2) the value of one of its fields has
-      // been inlined by the member value propagation, or (3) the return value of one of its methods
-      // has been forwarded by the member value propagation.
-      if (liveTypes.contains(clazz.type)) {
-        return true;
-      }
-      for (DexEncodedField field : clazz.fields()) {
-        if (field.getOptimizationInfo().valueHasBeenPropagated()) {
-          return true;
-        }
-      }
-      for (DexEncodedMethod method : clazz.methods()) {
-        if (method.getOptimizationInfo().returnValueHasBeenPropagated()) {
-          return true;
-        }
-      }
-      return false;
-    }
-
-    /**
-     * Determines if `sourceClass` satisfies the given if-rule. If `sourceClass` has not been merged
-     * into another class, then `targetClass` is the same as `sourceClass`. Otherwise, `targetClass`
-     * denotes the class that `sourceClass` has been merged into.
-     */
-    private void evaluateIfRule(ProguardIfRule rule, DexClass sourceClass, DexClass targetClass) {
-      if (!satisfyClassType(rule, sourceClass)) {
-        return;
-      }
-      if (!satisfyAccessFlag(rule, sourceClass)) {
-        return;
-      }
-      if (!satisfyAnnotation(rule, sourceClass)) {
-        return;
-      }
-      if (!rule.getClassNames().matches(sourceClass.type)) {
-        return;
-      }
-      if (rule.hasInheritanceClassName()) {
-        // Note that, in presence of vertical class merging, we check if the resulting class
-        // (i.e., the target class) satisfies the implements/extends-matcher.
-        if (!satisfyInheritanceRule(targetClass, rule)) {
-          // Try another live type since the current one doesn't satisfy the inheritance rule.
-          return;
-        }
-      }
-      Collection<ProguardMemberRule> memberKeepRules = rule.getMemberRules();
-      if (memberKeepRules.isEmpty()) {
-        materializeIfRule(rule, ImmutableSet.of(sourceClass.toReference()));
-        return;
-      }
-
-      Set<DexDefinition> filteredMembers = Sets.newIdentityHashSet();
-      Iterables.addAll(
-          filteredMembers,
-          targetClass.fields(
-              f ->
-                  (liveFields.contains(f) || f.getOptimizationInfo().valueHasBeenPropagated())
-                      && appView.graphLense().getOriginalFieldSignature(f.field).holder
-                          == sourceClass.type));
-      Iterables.addAll(
-          filteredMembers,
-          targetClass.methods(
-              m ->
-                  (liveMethods.contains(m)
-                          || targetedMethods.contains(m)
-                          || m.getOptimizationInfo().returnValueHasBeenPropagated())
-                      && appView.graphLense().getOriginalMethodSignature(m.method).holder
-                          == sourceClass.type));
-
-      // If the number of member rules to hold is more than live members, we can't make it.
-      if (filteredMembers.size() < memberKeepRules.size()) {
-        return;
-      }
-
-      // Depending on which members trigger the -if rule, the application of the subsequent
-      // -keep rule may vary (due to back references). So, we need to try literally all
-      // combinations of live members. But, we can at least limit the number of elements per
-      // combination as the size of member rules to satisfy.
-      Sets.combinations(filteredMembers, memberKeepRules.size())
-          .forEach(
-              combination -> {
-                Collection<DexEncodedField> fieldsInCombination =
-                    DexDefinition.filterDexEncodedField(combination.stream())
-                        .collect(Collectors.toList());
-                Collection<DexEncodedMethod> methodsInCombination =
-                    DexDefinition.filterDexEncodedMethod(combination.stream())
-                        .collect(Collectors.toList());
-                // Member rules are combined as AND logic: if found unsatisfied member rule, this
-                // combination of live members is not a good fit.
-                boolean satisfied =
-                    memberKeepRules.stream()
-                        .allMatch(
-                            memberRule ->
-                                ruleSatisfiedByFields(memberRule, fieldsInCombination)
-                                    || ruleSatisfiedByMethods(memberRule, methodsInCombination));
-                if (satisfied) {
-                  materializeIfRule(rule, ImmutableSet.of(sourceClass.toReference()));
-                }
-              });
-    }
-
-    private void materializeIfRule(ProguardIfRule rule, Set<DexReference> preconditions) {
-      ProguardIfRule materializedRule = rule.materialize(preconditions);
-      rule.markAsUsed();
-
-      // We need to abort class inlining of classes that could be matched by the condition of this
-      // -if rule.
-      ClassInlineRule neverClassInlineRuleForCondition =
-          materializedRule.neverClassInlineRuleForCondition();
-      if (neverClassInlineRuleForCondition != null) {
-        runPerRule(executorService, futures, neverClassInlineRuleForCondition, null);
-      }
-
-      // If the condition of the -if rule has any members, then we need to keep these members to
-      // ensure that the subsequent rule will be applied again in the second round of tree
-      // shaking.
-      InlineRule neverInlineRuleForCondition = materializedRule.neverInlineRuleForCondition();
-      if (neverInlineRuleForCondition != null) {
-        runPerRule(executorService, futures, neverInlineRuleForCondition, null);
-      }
-
-      // Keep whatever is required by the -if rule.
-      runPerRule(executorService, futures, materializedRule.subsequentRule, materializedRule);
-    }
+  ConsequentRootSet buildConsequentRootSet() {
+    return new ConsequentRootSet(
+        neverInline,
+        neverClassInline,
+        noShrinking,
+        noOptimization,
+        noObfuscation,
+        dependentNoShrinking,
+        dependentKeepClassCompatRule);
   }
 
   private static DexDefinition testAndGetPrecondition(
@@ -752,20 +551,20 @@ public class RootSetBuilder {
     out.close();
   }
 
-  private boolean satisfyClassType(ProguardConfigurationRule rule, DexClass clazz) {
+  static boolean satisfyClassType(ProguardConfigurationRule rule, DexClass clazz) {
     return rule.getClassType().matches(clazz) != rule.getClassTypeNegated();
   }
 
-  private static boolean satisfyAccessFlag(ProguardConfigurationRule rule, DexClass clazz) {
+  static boolean satisfyAccessFlag(ProguardConfigurationRule rule, DexClass clazz) {
     return rule.getClassAccessFlags().containsAll(clazz.accessFlags)
         && rule.getNegatedClassAccessFlags().containsNone(clazz.accessFlags);
   }
 
-  private static boolean satisfyAnnotation(ProguardConfigurationRule rule, DexClass clazz) {
+  static boolean satisfyAnnotation(ProguardConfigurationRule rule, DexClass clazz) {
     return containsAnnotation(rule.getClassAnnotation(), clazz);
   }
 
-  private boolean satisfyInheritanceRule(DexClass clazz, ProguardConfigurationRule rule) {
+  boolean satisfyInheritanceRule(DexClass clazz, ProguardConfigurationRule rule) {
     if (satisfyExtendsRule(clazz, rule)) {
       return true;
     }
@@ -773,7 +572,7 @@ public class RootSetBuilder {
     return satisfyImplementsRule(clazz, rule);
   }
 
-  private boolean satisfyExtendsRule(DexClass clazz, ProguardConfigurationRule rule) {
+  boolean satisfyExtendsRule(DexClass clazz, ProguardConfigurationRule rule) {
     if (anySuperTypeMatchesExtendsRule(clazz.superType, rule)) {
       return true;
     }
@@ -782,7 +581,7 @@ public class RootSetBuilder {
     return anySourceMatchesInheritanceRuleDirectly(clazz, rule, false);
   }
 
-  private boolean anySuperTypeMatchesExtendsRule(DexType type, ProguardConfigurationRule rule) {
+  boolean anySuperTypeMatchesExtendsRule(DexType type, ProguardConfigurationRule rule) {
     while (type != null) {
       DexClass clazz = application.definitionFor(type);
       if (clazz == null) {
@@ -801,7 +600,7 @@ public class RootSetBuilder {
     return false;
   }
 
-  private boolean satisfyImplementsRule(DexClass clazz, ProguardConfigurationRule rule) {
+  boolean satisfyImplementsRule(DexClass clazz, ProguardConfigurationRule rule) {
     if (anyImplementedInterfaceMatchesImplementsRule(clazz, rule)) {
       return true;
     }
@@ -877,8 +676,7 @@ public class RootSetBuilder {
         || ruleSatisfiedByFields(rule, clazz.instanceFields());
   }
 
-  private boolean ruleSatisfiedByMethods(
-      ProguardMemberRule rule, Iterable<DexEncodedMethod> methods) {
+  boolean ruleSatisfiedByMethods(ProguardMemberRule rule, Iterable<DexEncodedMethod> methods) {
     if (rule.getRuleType().includesMethods()) {
       for (DexEncodedMethod method : methods) {
         if (rule.matches(method, appView, dexStringCache)) {
@@ -889,7 +687,7 @@ public class RootSetBuilder {
     return false;
   }
 
-  private boolean ruleSatisfiedByFields(ProguardMemberRule rule, Iterable<DexEncodedField> fields) {
+  boolean ruleSatisfiedByFields(ProguardMemberRule rule, Iterable<DexEncodedField> fields) {
     if (rule.getRuleType().includesFields()) {
       for (DexEncodedField field : fields) {
         if (rule.matches(field, appView, dexStringCache)) {
