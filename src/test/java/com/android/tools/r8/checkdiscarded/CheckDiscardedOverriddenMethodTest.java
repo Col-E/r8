@@ -5,7 +5,6 @@ package com.android.tools.r8.checkdiscarded;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.fail;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverClassInline;
@@ -15,12 +14,15 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.util.Collection;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+/**
+ * This test is changed based on the discussion in b/139794417 to not include overridden members
+ * which is compatible with -whyareyoukeeping.
+ */
 @RunWith(Parameterized.class)
 public class CheckDiscardedOverriddenMethodTest extends TestBase {
 
@@ -49,13 +51,9 @@ public class CheckDiscardedOverriddenMethodTest extends TestBase {
           .enableMergeAnnotations()
           .minification(minification)
           .setMinApi(parameters.getRuntime())
-          .compileWithExpectedDiagnostics(diagnostics -> {
-            diagnostics.assertInfosCount(1);
-            String message = diagnostics.getInfos().get(0).getDiagnosticMessage();
-            assertThat(message, containsString("was not discarded"));
-            assertThat(message, containsString("is invoked from"));
-          });
-      fail("Expect to get compilation failure.");
+          // Asserting that -checkdiscard is not giving any information out on an un-removed
+          // sub-type member.
+          .compileWithExpectedDiagnostics(diagnostics -> diagnostics.assertInfosCount(0));
     } catch (CompilationFailedException e) {
       String message = e.getCause().getMessage();
       assertThat(message, containsString("Discard checks failed."));
@@ -63,13 +61,11 @@ public class CheckDiscardedOverriddenMethodTest extends TestBase {
   }
 
   @Test
-  @Ignore("b/139794417")
   public void testExtends() throws Exception {
     test(TestMain1.class, Base.class);
   }
 
   @Test
-  @Ignore("b/139794417")
   public void testImplements() throws Exception {
     test(TestMain2.class, Itf.class);
   }

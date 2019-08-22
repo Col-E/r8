@@ -4,6 +4,7 @@
 package com.android.tools.r8.shaking.whyareyoukeeping;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
@@ -14,7 +15,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.shaking.WhyAreYouKeepingConsumer;
 import com.android.tools.r8.utils.BooleanUtils;
-import com.android.tools.r8.utils.StringUtils;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
@@ -24,6 +24,10 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+/**
+ * This test is changed based on the discussion in b/139794417 to not include overridden members
+ * which is compatible with the proguard implementation.
+ */
 @RunWith(Parameterized.class)
 public class WhyAreYouKeepingOverriddenMethodTest extends TestBase {
   @Parameters(name = "{0} minification: {1}")
@@ -56,7 +60,8 @@ public class WhyAreYouKeepingOverriddenMethodTest extends TestBase {
         .redirectStdOut(new PrintStream(baos))
         .compile();
     String output = new String(baos.toByteArray(), StandardCharsets.UTF_8);
-    assertThat(output, containsString(expectedMessage(main, targetClass, subClass)));
+    assertThat(output, containsString(expectedMessage(targetClass)));
+    assertThat(output, not(containsString(expectedNotContainingMessage(subClass))));
   }
 
   private void testViaConsumer(
@@ -77,22 +82,17 @@ public class WhyAreYouKeepingOverriddenMethodTest extends TestBase {
     PrintStream printStream = new PrintStream(baos);
     graphConsumer.printWhyAreYouKeeping(
         Reference.methodFromMethod(targetClass.getMethod("gone")), printStream);
-    graphConsumer.printWhyAreYouKeeping(
-        Reference.methodFromMethod(subClass.getMethod("gone")), printStream);
     String output = new String(baos.toByteArray(), StandardCharsets.UTF_8);
-    assertThat(output, containsString(expectedMessage(main, targetClass, subClass)));
+    assertThat(output, containsString(expectedMessage(targetClass)));
+    assertThat(output, not(containsString(expectedNotContainingMessage(subClass))));
   }
 
-  private static final String MAIN_SIG = "main(java.lang.String[])";
+  private String expectedMessage(Class<?> targetClass) {
+    return "Nothing is keeping void " + targetClass.getTypeName() + ".gone()";
+  }
 
-  private String expectedMessage(Class<?> main, Class<?> targetClass, Class<?> subClass) {
-    return StringUtils.lines(
-        "Nothing is keeping void " + targetClass.getTypeName() + ".gone()",
-        "void " + subClass.getTypeName() + ".gone()",
-        "|- is invoked from:",
-        "|  void " + main.getTypeName() + "." + MAIN_SIG,
-        "|- is referenced in keep rule:",
-        "|  -keep class " + main.getTypeName() + " { public static void " + MAIN_SIG + "; }");
+  private String expectedNotContainingMessage(Class<?> subClass) {
+    return "void " + subClass.getTypeName() + ".gone()";
   }
 
   @Test
