@@ -1947,14 +1947,15 @@ public class Enqueuer {
           RootSetBuilder consequentSetBuilder = new RootSetBuilder(appView, null);
           IfRuleEvaluator ifRuleEvaluator =
               new IfRuleEvaluator(
+                  appView,
+                  executorService,
+                  activeIfRules,
                   liveFields.getItems(),
                   liveMethods.getItems(),
                   liveTypes,
-                  targetedMethods.getItems(),
-                  activeIfRules,
+                  mode,
                   consequentSetBuilder,
-                  executorService,
-                  appView);
+                  targetedMethods.getItems());
           ConsequentRootSet consequentRootSet = ifRuleEvaluator.run();
           // TODO(b/132600955): This modifies the root set. Should the consequent be persistent?
           rootSet.addConsequentRootSet(consequentRootSet);

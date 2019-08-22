@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.shaking.Enqueuer.Mode;
 import com.android.tools.r8.shaking.RootSetBuilder.ConsequentRootSet;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.base.Equivalence.Wrapper;
@@ -38,26 +39,29 @@ public class IfRuleEvaluator {
   private final Set<DexEncodedField> liveFields;
   private final Set<DexEncodedMethod> liveMethods;
   private final Set<DexType> liveTypes;
+  private final Mode mode;
   private final RootSetBuilder rootSetBuilder;
   private final Set<DexEncodedMethod> targetedMethods;
 
-  public IfRuleEvaluator(
+  IfRuleEvaluator(
+      AppView<? extends AppInfoWithSubtyping> appView,
+      ExecutorService executorService,
+      Map<Wrapper<ProguardIfRule>, Set<ProguardIfRule>> ifRules,
       Set<DexEncodedField> liveFields,
       Set<DexEncodedMethod> liveMethods,
       Set<DexType> liveTypes,
-      Set<DexEncodedMethod> targetedMethods,
-      Map<Wrapper<ProguardIfRule>, Set<ProguardIfRule>> ifRules,
+      Mode mode,
       RootSetBuilder rootSetBuilder,
-      ExecutorService executorService,
-      AppView<? extends AppInfoWithSubtyping> appView) {
+      Set<DexEncodedMethod> targetedMethods) {
+    this.appView = appView;
+    this.executorService = executorService;
+    this.ifRules = ifRules;
     this.liveFields = liveFields;
     this.liveMethods = liveMethods;
     this.liveTypes = liveTypes;
-    this.targetedMethods = targetedMethods;
-    this.ifRules = ifRules;
+    this.mode = mode;
     this.rootSetBuilder = rootSetBuilder;
-    this.executorService = executorService;
-    this.appView = appView;
+    this.targetedMethods = targetedMethods;
   }
 
   public ConsequentRootSet run() throws ExecutionException {
@@ -287,26 +291,28 @@ public class IfRuleEvaluator {
 
   private void materializeIfRule(ProguardIfRule rule, Set<DexReference> preconditions) {
     ProguardIfRule materializedRule = rule.materialize(preconditions);
-    rule.markAsUsed();
 
-    // We need to abort class inlining of classes that could be matched by the condition of this
-    // -if rule.
-    ClassInlineRule neverClassInlineRuleForCondition =
-        materializedRule.neverClassInlineRuleForCondition();
-    if (neverClassInlineRuleForCondition != null) {
-      rootSetBuilder.runPerRule(executorService, futures, neverClassInlineRuleForCondition, null);
-    }
+    if (mode.isInitialTreeShaking() && !rule.isUsed()) {
+      // We need to abort class inlining of classes that could be matched by the condition of this
+      // -if rule.
+      ClassInlineRule neverClassInlineRuleForCondition =
+          materializedRule.neverClassInlineRuleForCondition();
+      if (neverClassInlineRuleForCondition != null) {
+        rootSetBuilder.runPerRule(executorService, futures, neverClassInlineRuleForCondition, null);
+      }
 
-    // If the condition of the -if rule has any members, then we need to keep these members to
-    // ensure that the subsequent rule will be applied again in the second round of tree
-    // shaking.
-    InlineRule neverInlineRuleForCondition = materializedRule.neverInlineRuleForCondition();
-    if (neverInlineRuleForCondition != null) {
-      rootSetBuilder.runPerRule(executorService, futures, neverInlineRuleForCondition, null);
+      // If the condition of the -if rule has any members, then we need to keep these members to
+      // ensure that the subsequent rule will be applied again in the second round of tree
+      // shaking.
+      InlineRule neverInlineRuleForCondition = materializedRule.neverInlineRuleForCondition();
+      if (neverInlineRuleForCondition != null) {
+        rootSetBuilder.runPerRule(executorService, futures, neverInlineRuleForCondition, null);
+      }
     }
 
     // Keep whatever is required by the -if rule.
     rootSetBuilder.runPerRule(
         executorService, futures, materializedRule.subsequentRule, materializedRule);
+    rule.markAsUsed();
   }
 }
