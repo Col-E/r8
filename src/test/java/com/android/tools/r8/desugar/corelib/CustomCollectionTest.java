@@ -10,9 +10,7 @@ import static org.junit.Assert.fail;
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.BooleanUtils;
-import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject.JumboStringMode;
@@ -55,22 +53,18 @@ public class CustomCollectionTest extends CoreLibDesugarTestBase {
 
   @Test
   public void testCustomCollectionD8() throws Exception {
-    Box<String> keepRulesHolder = new Box<>("");
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     D8TestRunResult d8TestRunResult =
         testForD8()
             .addInnerClasses(CustomCollectionTest.class)
             .setMinApi(parameters.getApiLevel())
-            .addOptionsModification(
-                options ->
-                    options.desugaredLibraryKeepRuleConsumer =
-                        ToolHelper.consumeString(keepRulesHolder::set))
-            .enableCoreLibraryDesugaring(parameters.getApiLevel())
+            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
             .compile()
             .inspect(inspector -> this.assertCustomCollectionCallsCorrect(inspector, false))
             .addDesugaredCoreLibraryRunClassPath(
                 this::buildDesugaredLibrary,
                 parameters.getApiLevel(),
-                keepRulesHolder.get(),
+                keepRuleConsumer.get(),
                 shrinkCoreLibrary)
             .run(parameters.getRuntime(), EXECUTOR)
             .assertSuccess();
@@ -89,23 +83,19 @@ public class CustomCollectionTest extends CoreLibDesugarTestBase {
 
   @Test
   public void testCustomCollectionR8() throws Exception {
-    Box<String> keepRulesHolder = new Box<>("");
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     R8TestRunResult r8TestRunResult =
         testForR8(Backend.DEX)
             .addInnerClasses(CustomCollectionTest.class)
             .setMinApi(parameters.getApiLevel())
             .addKeepClassAndMembersRules(Executor.class)
-            .addOptionsModification(
-                options ->
-                    options.desugaredLibraryKeepRuleConsumer =
-                        ToolHelper.consumeString(keepRulesHolder::set))
-            .enableCoreLibraryDesugaring(parameters.getApiLevel())
+            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
             .compile()
             .inspect(inspector -> this.assertCustomCollectionCallsCorrect(inspector, true))
             .addDesugaredCoreLibraryRunClassPath(
                 this::buildDesugaredLibrary,
                 parameters.getApiLevel(),
-                keepRulesHolder.get(),
+                keepRuleConsumer.get(),
                 shrinkCoreLibrary)
             .run(parameters.getRuntime(), EXECUTOR)
             .assertSuccess();

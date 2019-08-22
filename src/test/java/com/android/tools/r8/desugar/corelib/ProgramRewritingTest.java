@@ -18,9 +18,7 @@ import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
-import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -56,26 +54,21 @@ public class ProgramRewritingTest extends CoreLibDesugarTestBase {
   @Test
   public void testProgramD8() throws Exception {
     Assume.assumeTrue("No desugaring for high API levels", requiresCoreLibDesugaring(parameters));
-    Box<String> keepRulesHolder = new Box<>("");
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     D8TestRunResult d8TestRunResult =
         testForD8()
             .addProgramFiles(Paths.get(ToolHelper.EXAMPLES_JAVA9_BUILD_DIR + "stream.jar"))
-            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .setMinApi(parameters.getApiLevel())
-            .addOptionsModification(
-                options ->
-                    options.desugaredLibraryKeepRuleConsumer =
-                        ToolHelper.consumeString(keepRulesHolder::set))
-            .enableCoreLibraryDesugaring()
+            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
             .compile()
             .inspect(this::checkRewrittenInvokes)
             .addRunClasspathFiles(
                 buildDesugaredLibrary(
-                    parameters.getApiLevel(), keepRulesHolder.get(), shrinkCoreLibrary))
+                    parameters.getApiLevel(), keepRuleConsumer.get(), shrinkCoreLibrary))
             .run(parameters.getRuntime(), TEST_CLASS)
             .assertSuccess();
     assertLines2By2Correct(d8TestRunResult.getStdOut());
-    assertGeneratedKeepRulesAreCorrect(keepRulesHolder.get());
+    assertGeneratedKeepRulesAreCorrect(keepRuleConsumer.get());
     String stdErr = d8TestRunResult.getStdErr();
     if (parameters.getRuntime().asDex().getVm().isOlderThanOrEqual(DexVm.ART_4_4_4_HOST)) {
       // Flaky: There might be a missing method on lambda deserialization.
@@ -91,28 +84,23 @@ public class ProgramRewritingTest extends CoreLibDesugarTestBase {
   public void testProgramR8() throws Exception {
     Assume.assumeTrue("No desugaring for high API levels", requiresCoreLibDesugaring(parameters));
     for (Boolean minifying : BooleanUtils.values()) {
-      Box<String> keepRulesHolder = new Box<>("");
+      KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
       R8TestRunResult r8TestRunResult =
           testForR8(parameters.getBackend())
               .minification(minifying)
               .addKeepMainRule(TEST_CLASS)
               .addProgramFiles(Paths.get(ToolHelper.EXAMPLES_JAVA9_BUILD_DIR + "stream.jar"))
-              .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
               .setMinApi(parameters.getApiLevel())
-              .addOptionsModification(
-                  options ->
-                      options.desugaredLibraryKeepRuleConsumer =
-                          ToolHelper.consumeString(keepRulesHolder::set))
-              .enableCoreLibraryDesugaring()
+              .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
               .compile()
               .inspect(this::checkRewrittenInvokes)
               .addRunClasspathFiles(
                   buildDesugaredLibrary(
-                      parameters.getApiLevel(), keepRulesHolder.get(), shrinkCoreLibrary))
+                      parameters.getApiLevel(), keepRuleConsumer.get(), shrinkCoreLibrary))
               .run(parameters.getRuntime(), TEST_CLASS)
               .assertSuccess();
       assertLines2By2Correct(r8TestRunResult.getStdOut());
-      assertGeneratedKeepRulesAreCorrect(keepRulesHolder.get());
+      assertGeneratedKeepRulesAreCorrect(keepRuleConsumer.get());
       if (parameters.getRuntime().asDex().getVm().isOlderThanOrEqual(DexVm.ART_4_4_4_HOST)) {
         // Flaky: There might be a missing method on lambda deserialization.
         r8TestRunResult.assertStderrMatches(
