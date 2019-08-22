@@ -89,6 +89,8 @@ third_party/junit
 third_party/junit.tar.gz
 third_party/jsr223-api-1.0
 third_party/jsr223-api-1.0.tar.gz
+third_party/rhino-android-1.1.1
+third_party/rhino-android-1.1.1.tar.gz
 third_party/android_cts_baseline
 third_party/android_cts_baseline.tar.gz
 third_party/framework
