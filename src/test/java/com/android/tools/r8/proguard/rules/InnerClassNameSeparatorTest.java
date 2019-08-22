@@ -11,6 +11,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.TestShrinkerBuilder;
+import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.junit.Test;
@@ -39,11 +40,9 @@ public class InnerClassNameSeparatorTest extends TestBase {
     TestRunResult<?> result =
         runTest(
             testForR8(parameters.getBackend())
+                .addOptionsModification(InternalOptions::disableNameReflectionOptimization)
                 .addOptionsModification(
                     options -> {
-                      // Otherwise, Inner can be shrunk after its only reference, .class.getName(),
-                      // is optimized away.
-                      options.enableNameReflectionOptimization = false;
                       if (separator.equals(".")) {
                         // R8 currently does not recognize the '.' as an inner class name separator.
                         options.testing.allowUnusedProguardConfigurationRules = true;

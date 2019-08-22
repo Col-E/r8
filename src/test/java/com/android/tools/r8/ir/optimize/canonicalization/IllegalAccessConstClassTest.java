@@ -75,7 +75,7 @@ public class IllegalAccessConstClassTest extends TestBase {
             IllegalAccessConstClassTestDump.PackagePrivateClassDump.dump())
         .addProgramClassFileData(
             IllegalAccessConstClassTestDump.FakePackagePrivateClassConsumerDump.dump())
-        .addOptionsModification(this::configure)
+        .addOptionsModification(InternalOptions::disableNameReflectionOptimization)
         .setMinApi(parameters.getRuntime())
         .compile()
         .inspect(this::inspect)
@@ -92,7 +92,7 @@ public class IllegalAccessConstClassTest extends TestBase {
             IllegalAccessConstClassTestDump.FakePackagePrivateClassConsumerDump.dump())
         .addKeepMainRule(MAIN)
         .noMinification()
-        .addOptionsModification(this::configure)
+        .addOptionsModification(InternalOptions::disableNameReflectionOptimization)
         .setMinApi(parameters.getRuntime())
         .compile()
         .inspect(this::inspect)
@@ -112,10 +112,5 @@ public class IllegalAccessConstClassTest extends TestBase {
     assertEquals(
         2,
         mainMethod.streamInstructions().filter(InstructionSubject::isConstClass).count());
-  }
-
-  private void configure(InternalOptions options) {
-    // Testing if const-class is not canonicalized. Don't optimize its usage with get*Name().
-    options.enableNameReflectionOptimization = false;
   }
 }

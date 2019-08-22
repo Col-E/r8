@@ -172,7 +172,7 @@ public class ConstClassCanonicalizationTest extends TestBase {
         testForD8()
             .debug()
             .addProgramClassesAndInnerClasses(MAIN)
-            .addOptionsModification(this::configure)
+            .addOptionsModification(InternalOptions::disableNameReflectionOptimization)
             .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
@@ -182,7 +182,7 @@ public class ConstClassCanonicalizationTest extends TestBase {
         testForD8()
             .release()
             .addProgramClassesAndInnerClasses(MAIN)
-            .addOptionsModification(this::configure)
+            .addOptionsModification(InternalOptions::disableNameReflectionOptimization)
             .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
@@ -197,7 +197,7 @@ public class ConstClassCanonicalizationTest extends TestBase {
             .addKeepMainRule(MAIN)
             .addKeepAllAttributes()
             .noMinification()
-            .addOptionsModification(this::configure)
+            .addOptionsModification(InternalOptions::disableNameReflectionOptimization)
             .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
@@ -210,10 +210,5 @@ public class ConstClassCanonicalizationTest extends TestBase {
     int expectedInnerCount =
         parameters.isCfRuntime() ? ORIGINAL_INNER_COUNT : CANONICALIZED_INNER_COUNT;
     test(result, expectedMainCount, expectedOuterCount, expectedInnerCount);
-  }
-
-  private void configure(InternalOptions options) {
-    // Literally testing const-class canonicalization. Don't optimize its usage with get*Name().
-    options.enableNameReflectionOptimization = false;
   }
 }

@@ -31,8 +31,6 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.EnclosingMethodAttribute;
-import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.origin.Origin;
@@ -42,6 +40,7 @@ import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.utils.IROrdering.IdentityIROrdering;
 import com.android.tools.r8.utils.IROrdering.NondeterministicIROrdering;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -539,30 +538,6 @@ public class InternalOptions {
     return ImmutableSet.of();
   }
 
-  private static class InvalidNonMemberClassInfo {
-    final EnclosingMethodAttribute enclosingMember;
-    final InnerClassAttribute innerClassAttribute;
-
-    InvalidNonMemberClassInfo(
-        EnclosingMethodAttribute enclosingMember,
-        InnerClassAttribute innerClassAttribute) {
-      this.enclosingMember = enclosingMember;
-      this.innerClassAttribute = innerClassAttribute;
-    }
-
-    @Override
-    public String toString() {
-      List<String> attrs = new ArrayList<>();
-      if (enclosingMember != null) {
-        attrs.add("    EnclosingMethod: " + enclosingMember.toString());
-      }
-      if (innerClassAttribute != null) {
-        attrs.add("    InnerClasses: " + innerClassAttribute.toString());
-      }
-      return StringUtils.join(attrs, System.lineSeparator());
-    }
-  }
-
   public static class InvalidParameterAnnotationInfo {
 
     final DexMethod method;
@@ -1031,6 +1006,13 @@ public class InternalOptions {
       public int numberOfProguardIfRuleClassEvaluations = 0;
       public int numberOfProguardIfRuleMemberEvaluations = 0;
     }
+  }
+
+  @VisibleForTesting
+  public void disableNameReflectionOptimization() {
+    // Use this util to disable get*Name() computation if the main intention of tests is checking
+    // const-class, e.g., canonicalization, or some test classes' only usages are get*Name().
+    enableNameReflectionOptimization = false;
   }
 
   private boolean hasMinApi(AndroidApiLevel level) {

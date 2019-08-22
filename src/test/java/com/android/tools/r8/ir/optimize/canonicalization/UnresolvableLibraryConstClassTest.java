@@ -98,7 +98,7 @@ public class UnresolvableLibraryConstClassTest extends TestBase {
     testForD8()
         .release()
         .addProgramClasses(ProgramClass1.class, ProgramClass2.class, ProgramSubClass.class, MAIN)
-        .addOptionsModification(this::configure)
+        .addOptionsModification(InternalOptions::disableNameReflectionOptimization)
         .setMinApi(parameters.getRuntime())
         .compile()
         .inspect(this::inspect)
@@ -115,7 +115,7 @@ public class UnresolvableLibraryConstClassTest extends TestBase {
         .addKeepMainRule(MAIN)
         .noMinification()
         .enableMergeAnnotations()
-        .addOptionsModification(this::configure)
+        .addOptionsModification(InternalOptions::disableNameReflectionOptimization)
         .setMinApi(parameters.getRuntime())
         .compile()
         .inspect(this::inspect)
@@ -139,10 +139,5 @@ public class UnresolvableLibraryConstClassTest extends TestBase {
     assertEquals(
         6,
         mainMethod.streamInstructions().filter(InstructionSubject::isConstClass).count());
-  }
-
-  private void configure(InternalOptions options) {
-    // Testing if const-class is not canonicalized. Don't optimize its usage with get*Name().
-    options.enableNameReflectionOptimization = false;
   }
 }

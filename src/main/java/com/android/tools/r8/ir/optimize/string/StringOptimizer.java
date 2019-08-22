@@ -557,10 +557,6 @@ public class StringOptimizer {
             || invokedMethod == appView.dexItemFactory().stringMethods.length) {
           return true;
         }
-        // Heuristic: if the call target has the same method name, it could be still local.
-        if (invokedMethod.name == context.name) {
-          return true;
-        }
         // Add more cases to filter out, if any.
         return false;
       }
