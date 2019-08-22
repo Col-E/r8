@@ -63,14 +63,14 @@ public class CycleEliminationTest extends TestBase {
 
       // Check that the cycle eliminator finds the cycle.
       CycleEliminator cycleEliminator = new CycleEliminator(nodes, new InternalOptions());
-      assertEquals(1, cycleEliminator.breakCycles());
+      assertEquals(1, cycleEliminator.breakCycles().numberOfRemovedEdges());
 
       // The edge from method to forceInlinedMethod should be removed to ensure that force inlining
       // will work.
       assertTrue(forceInlinedMethod.isLeaf());
 
       // Check that the cycle eliminator agrees that there are no more cycles left.
-      assertEquals(0, cycleEliminator.breakCycles());
+      assertEquals(0, cycleEliminator.breakCycles().numberOfRemovedEdges());
     }
   }
 
@@ -179,7 +179,7 @@ public class CycleEliminationTest extends TestBase {
       // Check that the cycle eliminator finds the cycles.
       CycleEliminator cycleEliminator =
           new CycleEliminator(configuration.nodes, new InternalOptions());
-      int numberOfCycles = cycleEliminator.breakCycles();
+      int numberOfCycles = cycleEliminator.breakCycles().numberOfRemovedEdges();
       if (numberOfCycles == 1) {
         // If only one cycle was removed, then it must be the edge from n1 -> n2 that was removed.
         assertTrue(n1.isLeaf());
@@ -189,7 +189,7 @@ public class CycleEliminationTest extends TestBase {
       }
 
       // Check that the cycle eliminator agrees that there are no more cycles left.
-      assertEquals(0, cycleEliminator.breakCycles());
+      assertEquals(0, cycleEliminator.breakCycles().numberOfRemovedEdges());
 
       // Check that force inlining is guaranteed to succeed.
       if (configuration.test != null) {

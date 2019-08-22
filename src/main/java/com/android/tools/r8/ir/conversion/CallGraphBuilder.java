@@ -19,11 +19,14 @@ import com.android.tools.r8.graph.GraphLense.GraphLenseLookupResult;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.conversion.CallGraph.Node;
+import com.android.tools.r8.ir.conversion.CallGraphBuilder.CycleEliminator.CycleEliminationResult;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -40,6 +43,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.function.Consumer;
 
 public class CallGraphBuilder {
 
@@ -73,11 +77,11 @@ public class CallGraphBuilder {
     Set<Node> nodesWithDeterministicOrder = Sets.newTreeSet(nodes.values());
     CycleEliminator cycleEliminator =
         new CycleEliminator(nodesWithDeterministicOrder, appView.options());
-    cycleEliminator.breakCycles();
+    CycleEliminationResult cycleEliminationResult = cycleEliminator.breakCycles();
     timing.end();
-    assert cycleEliminator.breakCycles() == 0; // This time the cycles should be gone.
+    assert cycleEliminator.breakCycles().numberOfRemovedEdges() == 0; // The cycles should be gone.
 
-    return new CallGraph(nodesWithDeterministicOrder);
+    return new CallGraph(nodesWithDeterministicOrder, cycleEliminationResult);
   }
 
   private void processClass(DexProgramClass clazz) {
@@ -302,6 +306,27 @@ public class CallGraphBuilder {
       }
     }
 
+    public static class CycleEliminationResult {
+
+      private Map<Node, Set<Node>> removedEdges;
+
+      CycleEliminationResult(Map<Node, Set<Node>> removedEdges) {
+        this.removedEdges = removedEdges;
+      }
+
+      void forEachRemovedCaller(Node callee, Consumer<Node> fn) {
+        removedEdges.getOrDefault(callee, ImmutableSet.of()).forEach(fn);
+      }
+
+      public int numberOfRemovedEdges() {
+        int numberOfRemovedEdges = 0;
+        for (Set<Node> nodes : removedEdges.values()) {
+          numberOfRemovedEdges += nodes.size();
+        }
+        return numberOfRemovedEdges;
+      }
+    }
+
     private final Collection<Node> nodes;
     private final InternalOptions options;
 
@@ -314,9 +339,11 @@ public class CallGraphBuilder {
     // Set of nodes that have been visited entirely.
     private Set<Node> marked = Sets.newIdentityHashSet();
 
+    // Mapping from callee to the set of callers that were removed from the callee.
+    private Map<Node, Set<Node>> removedEdges = new IdentityHashMap<>();
+
     private int currentDepth = 0;
     private int maxDepth = 0;
-    private int numberOfCycles = 0;
 
     public CycleEliminator(Collection<Node> nodes, InternalOptions options) {
       this.options = options;
@@ -328,15 +355,15 @@ public class CallGraphBuilder {
               : nodes;
     }
 
-    public int breakCycles() {
+    public CycleEliminationResult breakCycles() {
       // Break cycles in this call graph by removing edges causing cycles.
       for (Node node : nodes) {
         assert currentDepth == 0;
         traverse(node);
       }
-      int result = numberOfCycles;
+      CycleEliminationResult result = new CycleEliminationResult(removedEdges);
       if (Log.ENABLED) {
-        Log.info(getClass(), "# call graph cycles broken: %s", numberOfCycles);
+        Log.info(getClass(), "# call graph cycles broken: %s", result.numberOfRemovedEdges());
         Log.info(getClass(), "# max call graph depth: %s", maxDepth);
       }
       reset();
@@ -349,7 +376,7 @@ public class CallGraphBuilder {
       assert stackSet.isEmpty();
       marked.clear();
       maxDepth = 0;
-      numberOfCycles = 0;
+      removedEdges = new IdentityHashMap<>();
     }
 
     private void traverse(Node node) {
@@ -388,8 +415,6 @@ public class CallGraphBuilder {
                 && edgeRemovalIsSafe(node, callee);
         if (foundCycle || thresholdExceeded) {
           // Found a cycle that needs to be eliminated.
-          numberOfCycles++;
-
           if (edgeRemovalIsSafe(node, callee)) {
             // Break the cycle by removing the edge node->callee.
             if (options.testing.nondeterministicCycleElimination) {
@@ -401,6 +426,7 @@ public class CallGraphBuilder {
               calleeIterator.remove();
               callee.getCallersWithDeterministicOrder().remove(node);
             }
+            recordEdgeRemoval(node, callee);
 
             if (Log.ENABLED) {
               Log.info(
@@ -431,6 +457,7 @@ public class CallGraphBuilder {
 
               // Break the cycle by removing the edge caller->callee.
               edge.remove();
+              recordEdgeRemoval(edge.caller, edge.callee);
 
               if (Log.ENABLED) {
                 Log.info(
@@ -497,6 +524,10 @@ public class CallGraphBuilder {
       // All call edges where the callee is a method that should be force inlined must be kept,
       // to guarantee that the IR converter will process the callee before the caller.
       return !callee.method.getOptimizationInfo().forceInline();
+    }
+
+    private void recordEdgeRemoval(Node caller, Node callee) {
+      removedEdges.computeIfAbsent(callee, ignore -> SetUtils.newIdentityHashSet(2)).add(caller);
     }
 
     private void recoverStack(LinkedList<Node> extractedCycle) {

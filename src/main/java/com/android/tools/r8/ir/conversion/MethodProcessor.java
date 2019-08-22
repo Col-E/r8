@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 public class MethodProcessor {
@@ -32,7 +33,7 @@ public class MethodProcessor {
 
   MethodProcessor(AppView<AppInfoWithLiveness> appView, CallGraph callGraph) {
     this.callSiteInformation = callGraph.createCallSiteInformation(appView);
-    this.waves = createWaves(appView, callGraph);
+    this.waves = createWaves(appView, callGraph, callSiteInformation);
   }
 
   public CallSiteInformation getCallSiteInformation() {
@@ -40,31 +41,47 @@ public class MethodProcessor {
   }
 
   public static Deque<Collection<DexEncodedMethod>> createWaves(
-      AppView<?> appView, CallGraph callGraph) {
+      AppView<?> appView, CallGraph callGraph, CallSiteInformation callSiteInformation) {
     IROrdering shuffle = appView.options().testing.irOrdering;
     Deque<Collection<DexEncodedMethod>> waves = new ArrayDeque<>();
 
     Set<Node> nodes = callGraph.nodes;
+    Set<DexEncodedMethod> reprocessing = Sets.newIdentityHashSet();
     while (!nodes.isEmpty()) {
-      waves.addLast(shuffle.order(extractLeaves(nodes)));
+      Set<DexEncodedMethod> wave = Sets.newIdentityHashSet();
+      extractLeaves(
+          nodes,
+          leaf -> {
+            wave.add(leaf.method);
+
+            // Reprocess methods that invoke a method with a single call site.
+            if (callSiteInformation.hasSingleCallSite(leaf.method.method)) {
+              callGraph.cycleEliminationResult.forEachRemovedCaller(
+                  leaf, caller -> reprocessing.add(caller.method));
+            }
+          });
+      waves.addLast(shuffle.order(wave));
+    }
+    // TODO(b/127694949): Reprocess these methods using a general framework for reprocessing
+    //  methods.
+    if (!reprocessing.isEmpty()) {
+      waves.addLast(shuffle.order(reprocessing));
     }
     return waves;
   }
 
-  private static Set<DexEncodedMethod> extractLeaves(Set<Node> nodes) {
-    Set<DexEncodedMethod> leaves = Sets.newIdentityHashSet();
+  private static void extractLeaves(Set<Node> nodes, Consumer<Node> fn) {
     Set<Node> removed = Sets.newIdentityHashSet();
     Iterator<Node> nodeIterator = nodes.iterator();
     while (nodeIterator.hasNext()) {
       Node node = nodeIterator.next();
       if (node.isLeaf()) {
-        leaves.add(node.method);
+        fn.accept(node);
         nodeIterator.remove();
         removed.add(node);
       }
     }
     removed.forEach(Node::cleanForRemoval);
-    return leaves;
   }
 
   /**

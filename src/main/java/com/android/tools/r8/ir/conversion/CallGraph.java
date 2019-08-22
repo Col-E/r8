@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.conversion;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.conversion.CallGraphBuilder.CycleEliminator;
+import com.android.tools.r8.ir.conversion.CallGraphBuilder.CycleEliminator.CycleEliminationResult;
 import com.android.tools.r8.ir.conversion.CallSiteInformation.CallGraphBasedCallSiteInformation;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Timing;
@@ -144,9 +145,11 @@ public class CallGraph {
   }
 
   final Set<Node> nodes;
+  final CycleEliminationResult cycleEliminationResult;
 
-  CallGraph(Set<Node> nodes) {
+  CallGraph(Set<Node> nodes, CycleEliminationResult cycleEliminationResult) {
     this.nodes = nodes;
+    this.cycleEliminationResult = cycleEliminationResult;
   }
 
   static CallGraphBuilder builder(AppView<AppInfoWithLiveness> appView) {
