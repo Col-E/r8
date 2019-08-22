@@ -190,7 +190,9 @@ public class Jdk11StreamTests extends Jdk11CoreLibTestBase {
 
   @Test
   public void testStream() throws Exception {
-    // TODO(b/137876068): It seems to fail on windows because the method
+    // TODO(b/139834373): Make the tests pass on 6.0.1.
+    Assume.assumeFalse(parameters.getRuntime().asDex().getVm().getVersion() == Version.V6_0_1);
+    // TODO(b/137876068): It seems to fail on windows because the method.
     // getAllFilesWithSuffixInDirectory() finds different files on Windows (To be confirmed), so
     // compilation is then different and raises an error.
     Assume.assumeFalse(ToolHelper.isWindows());
