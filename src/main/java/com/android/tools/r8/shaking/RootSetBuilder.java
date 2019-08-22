@@ -184,8 +184,6 @@ public class RootSetBuilder {
           preconditionSupplier = ImmutableMap.of((definition -> true), clazz);
           markMatchingVisibleMethods(
               clazz, memberKeepRules, rule, preconditionSupplier, true, ifRule);
-          markMatchingOverriddenMethods(
-              appView.appInfo(), clazz, memberKeepRules, rule, preconditionSupplier, true, ifRule);
           markMatchingVisibleFields(
               clazz, memberKeepRules, rule, preconditionSupplier, true, ifRule);
         }

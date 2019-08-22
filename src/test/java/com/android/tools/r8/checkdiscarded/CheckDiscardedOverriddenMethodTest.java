@@ -15,6 +15,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.util.Collection;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -62,11 +63,13 @@ public class CheckDiscardedOverriddenMethodTest extends TestBase {
   }
 
   @Test
+  @Ignore("b/139794417")
   public void testExtends() throws Exception {
     test(TestMain1.class, Base.class);
   }
 
   @Test
+  @Ignore("b/139794417")
   public void testImplements() throws Exception {
     test(TestMain2.class, Itf.class);
   }
