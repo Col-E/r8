@@ -35,7 +35,15 @@ class MethodReservationState<KeyType>
   }
 
   void reserveName(DexString reservedName, DexMethod method) {
-    getOrCreateInternalState(method).reserveName(method.name, reservedName);
+    try {
+      getOrCreateInternalState(method).reserveName(method.name, reservedName);
+    } catch (AssertionError err) {
+      throw new RuntimeException(
+          String.format(
+              "Assertion error when trying to reserve name '%s' for method '%s'",
+              reservedName, method),
+          err);
+    }
   }
 
   boolean isReserved(DexString name, DexMethod method) {

@@ -42,8 +42,9 @@ public abstract class IndexedDexItem extends CachedHashValueDexItem implements P
 
   @Override
   final public int sortedCompareTo(int other) {
-    assert sortedIndex > SORTED_INDEX_UNKNOWN;
-    assert other > SORTED_INDEX_UNKNOWN;
+    assert sortedIndex > SORTED_INDEX_UNKNOWN
+        : "sortedIndex <= SORTED_INDEX_UKNOWN for: " + this.toString();
+    assert other > SORTED_INDEX_UNKNOWN : "other < SORTED_INDEX_UKNOWN for: " + this.toString();
     return Integer.compare(sortedIndex, other);
   }
 
