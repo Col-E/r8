@@ -87,6 +87,8 @@ third_party/jctf
 third_party/jctf.tar.gz
 third_party/junit
 third_party/junit.tar.gz
+third_party/jsr223-api-1.0
+third_party/jsr223-api-1.0.tar.gz
 third_party/android_cts_baseline
 third_party/android_cts_baseline.tar.gz
 third_party/framework
