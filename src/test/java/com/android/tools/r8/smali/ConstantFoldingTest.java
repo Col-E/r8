@@ -5,7 +5,6 @@ package com.android.tools.r8.smali;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import com.android.tools.r8.code.Const4;
 import com.android.tools.r8.code.DivIntLit8;
@@ -13,6 +12,7 @@ import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.RemIntLit8;
 import com.android.tools.r8.code.Return;
 import com.android.tools.r8.code.ReturnWide;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.code.Cmp.Bias;
@@ -365,7 +365,7 @@ public class ConstantFoldingTest extends SmaliTestBase {
           break;
         default:
           this.expected = 0;
-          fail("Unsupported logical binop " + op);
+          throw new Unreachable("Unsupported logical binop " + op);
       }
     }
   }
@@ -445,7 +445,7 @@ public class ConstantFoldingTest extends SmaliTestBase {
           v0 = v0 >>> v3;
           break;
         default:
-          fail("Unsupported shift " + op);
+          throw new Unreachable("Unsupported shift " + op);
       }
 
       this.expected = v0;
@@ -528,7 +528,7 @@ public class ConstantFoldingTest extends SmaliTestBase {
           v0 = v0 >>> v6;
           break;
         default:
-          fail("Unsupported shift " + op);
+          throw new Unreachable("Unsupported shift " + op);
       }
 
       this.expected = v0;

@@ -4,7 +4,7 @@
 package com.android.tools.r8.naming.applymapping.shared;
 
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.fail;
 
 import com.android.tools.r8.CompilationFailedException;

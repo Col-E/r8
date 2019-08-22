@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.optimize.string;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.ForceInline;
@@ -216,12 +215,12 @@ public class StringValueOfTest extends TestBase {
       try {
         System.out.println(hideNPE(null));
       } catch (NullPointerException npe) {
-        fail("Not expected: " + npe);
+        throw new AssertionError("Not expected: " + npe);
       }
       try {
         System.out.println(consumeUninitialized(null));
       } catch (NullPointerException npe) {
-        fail("Not expected: " + npe);
+        throw new AssertionError("Not expected: " + npe);
       }
 
       // No matter what we pass, that function will return null.

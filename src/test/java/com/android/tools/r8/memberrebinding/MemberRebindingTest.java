@@ -10,6 +10,7 @@ import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.TestDescriptionWatcher;
@@ -31,7 +32,6 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Rule;
@@ -312,8 +312,7 @@ public class MemberRebindingTest {
         case N:
           return Paths.get(ToolHelper.EXAMPLES_ANDROID_N_BUILD_DIR);
         default:
-          Assert.fail();
-          return null;
+          throw new Unreachable();
       }
     }
 
@@ -324,8 +323,7 @@ public class MemberRebindingTest {
         case N:
           return AndroidApiLevel.N.getLevel();
         default:
-          Assert.fail();
-          return -1;
+          throw new Unreachable();
       }
     }
 

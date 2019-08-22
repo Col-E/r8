@@ -6,7 +6,6 @@ package com.android.tools.r8.shaking.array;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverPropagateValue;
@@ -117,14 +116,14 @@ public class DeadArrayLengthTest extends TestBase {
       System.out.println(clearlyNonNull(args.length));
       try {
         System.out.println(isNullable(null));
-        fail("Expect to see NPE");
+        throw new AssertionError("Expect to see NPE");
       } catch (NullPointerException npe) {
         System.out.println("Expected NPE");
       }
       try {
         System.out.println(afterNullCheck(null));
       } catch (NullPointerException npe) {
-        fail("Not expect to see NPE");
+        throw new AssertionError("Not expect to see NPE");
       }
     }
   }

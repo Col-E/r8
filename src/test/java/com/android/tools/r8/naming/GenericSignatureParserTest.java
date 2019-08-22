@@ -71,7 +71,7 @@ public class GenericSignatureParserTest extends TestBase {
       GenericSignatureParser<String> parser =
           new GenericSignatureParser<>(new ReGenerateGenericSignatureRewriter());
       parse.accept(parser, signature);
-      fail("Succesfully parsed " + signature);
+      fail("Successfully parsed " + signature);
     } catch (GenericSignatureFormatError e) {
       errorChecker.accept(e);
     }
@@ -101,7 +101,7 @@ public class GenericSignatureParserTest extends TestBase {
       try {
         if (validPrefixes == null || !validPrefixes.contains(i)) {
           parser.accept(signature.substring(0, i));
-          fail("Succesfully parsed " + signature.substring(0, i) + " (position " + i +")");
+          fail("Successfully parsed " + signature.substring(0, i) + " (position " + i +")");
         }
       } catch (GenericSignatureFormatError e) {
         assertTrue(e.getMessage().contains("at position " + (i + 1)));

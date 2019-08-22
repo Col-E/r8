@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.optimize.string;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.D8TestRunResult;
@@ -131,7 +130,7 @@ public class StringToStringTest extends TestBase {
       System.out.println(builder.toString());
       try {
         System.out.println(hideNPE(null));
-        fail("Expected NullPointerException");
+        throw new AssertionError("Expected NullPointerException");
       } catch (NullPointerException npe) {
         // Expected
       }

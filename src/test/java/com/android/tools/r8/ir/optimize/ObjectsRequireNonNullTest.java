@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.optimize;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.D8TestRunResult;
@@ -29,68 +28,6 @@ import java.util.Objects;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-
-class ObjectsRequireNonNullTestMain {
-
-  static class Uninitialized {
-    void noWayToCall() {
-      System.out.println("Uninitialized, hence no way to call this.");
-    }
-  }
-
-  @NeverPropagateValue
-  @NeverInline
-  static void consumeUninitialized(Uninitialized arg) {
-    Uninitialized nonNullArg = Objects.requireNonNull(arg);
-    // Dead code.
-    nonNullArg.noWayToCall();
-  }
-
-  static class Foo {
-    @NeverInline
-    void bar() {
-      System.out.println("Foo::bar");
-    }
-
-    @NeverInline
-    @Override
-    public String toString() {
-      return "Foo::toString";
-    }
-  }
-
-  @NeverInline
-  static void unknownArg(Foo foo) {
-    // It's unclear the argument is definitely null or not null.
-    Foo checked = Objects.requireNonNull(foo);
-    checked.bar();
-  }
-
-  public static void main(String[] args) {
-    Foo instance = new Foo();
-    // Not removable in debug mode.
-    Object nonNull = Objects.requireNonNull(instance);
-    System.out.println(nonNull);
-    // Removable because associated locals are changed while type casting.
-    Foo checked = Objects.requireNonNull(instance);
-    checked.bar();
-
-    unknownArg(instance);
-    try {
-      unknownArg(null);
-      fail("Expected NullPointerException");
-    } catch (NullPointerException npe) {
-      System.out.println("Expected NPE");
-    }
-
-    try {
-      consumeUninitialized(null);
-      fail("Expected NullPointerException");
-    } catch (NullPointerException npe) {
-      System.out.println("Expected NPE");
-    }
-  }
-}
 
 @RunWith(Parameterized.class)
 public class ObjectsRequireNonNullTest extends TestBase {
@@ -203,5 +140,67 @@ public class ObjectsRequireNonNullTest extends TestBase {
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 0, 0);
+  }
+
+  static class ObjectsRequireNonNullTestMain {
+
+    static class Uninitialized {
+      void noWayToCall() {
+        System.out.println("Uninitialized, hence no way to call this.");
+      }
+    }
+
+    @NeverPropagateValue
+    @NeverInline
+    static void consumeUninitialized(Uninitialized arg) {
+      Uninitialized nonNullArg = Objects.requireNonNull(arg);
+      // Dead code.
+      nonNullArg.noWayToCall();
+    }
+
+    static class Foo {
+      @NeverInline
+      void bar() {
+        System.out.println("Foo::bar");
+      }
+
+      @NeverInline
+      @Override
+      public String toString() {
+        return "Foo::toString";
+      }
+    }
+
+    @NeverInline
+    static void unknownArg(Foo foo) {
+      // It's unclear the argument is definitely null or not null.
+      Foo checked = Objects.requireNonNull(foo);
+      checked.bar();
+    }
+
+    public static void main(String[] args) {
+      Foo instance = new Foo();
+      // Not removable in debug mode.
+      Object nonNull = Objects.requireNonNull(instance);
+      System.out.println(nonNull);
+      // Removable because associated locals are changed while type casting.
+      Foo checked = Objects.requireNonNull(instance);
+      checked.bar();
+
+      unknownArg(instance);
+      try {
+        unknownArg(null);
+        throw new AssertionError("Expected NullPointerException");
+      } catch (NullPointerException npe) {
+        System.out.println("Expected NPE");
+      }
+
+      try {
+        consumeUninitialized(null);
+        throw new AssertionError("Expected NullPointerException");
+      } catch (NullPointerException npe) {
+        System.out.println("Expected NPE");
+      }
+    }
   }
 }

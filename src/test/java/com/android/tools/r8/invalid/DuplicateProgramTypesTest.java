@@ -21,15 +21,12 @@ import com.android.tools.r8.errors.DuplicateTypesDiagnostic;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.references.Reference;
-import com.android.tools.r8.utils.StringUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class DuplicateProgramTypesTest extends TestBase {
-
-  static final String EXPECTED = StringUtils.lines("Hello, world");
 
   private final TestParameters parameters;
 
@@ -63,6 +60,7 @@ public class DuplicateProgramTypesTest extends TestBase {
     try {
       byte[] bytes = ToolHelper.getClassAsBytes(TestClass.class);
       testForD8()
+          .setMinApi(parameters.getRuntime())
           .apply(
               b -> {
                 b.getBuilder().addClassProgramData(bytes, originA);

@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.optimize.string;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverInline;
@@ -252,7 +251,7 @@ public class StringContentCheckTest extends TestBase {
         System.out.println(argCouldBeNull("prefix-CONST-suffix"));
         try {
           argCouldBeNull(null);
-          fail("Should raise NullPointerException");
+          throw new AssertionError("Should raise NullPointerException");
         } catch (NullPointerException npe) {
           // expected
         }
@@ -261,7 +260,7 @@ public class StringContentCheckTest extends TestBase {
       {
         try {
           System.out.println("qwerty".substring(8));
-          fail("Should raise StringIndexOutOfBoundsException");
+          throw new AssertionError("Should raise StringIndexOutOfBoundsException");
         } catch (StringIndexOutOfBoundsException e) {
           // expected
         }

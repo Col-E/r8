@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.optimize.reflection;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.D8TestRunResult;
@@ -86,7 +85,7 @@ class GetClassTestMain implements Callable<Class<?>> {
       System.out.println(getMainClass(instance));
 
       System.out.println(getMainClass(null));
-      fail("Should preserve NPE.");
+      throw new AssertionError("Should preserve NPE.");
     } catch (NullPointerException e) {
       // Expected
     }
@@ -99,7 +98,7 @@ class GetClassTestMain implements Callable<Class<?>> {
         // Can be rewritten to const-class after inlining.
         System.out.println(r.call());
       } catch (Throwable e) {
-        fail("Not expected any exceptions.");
+        throw new AssertionError("Not expected any exceptions.");
       }
     }
   }

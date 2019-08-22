@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.optimize.string;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.D8TestRunResult;
@@ -169,7 +168,7 @@ public class StringLengthTest extends TestBase {
 
       try {
         npe();
-        fail("Expect to raise NPE");
+        throw new AssertionError("Expect to raise NPE");
       } catch (NullPointerException npe) {
         // expected
       }

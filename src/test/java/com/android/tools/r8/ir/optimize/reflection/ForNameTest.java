@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.optimize.reflection;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.D8TestRunResult;
@@ -46,7 +45,7 @@ class ForNameTestMain {
       try {
         // Not found, hence kept.
         Class<?> c = Class.forName("UnknownClass");
-        fail("Should preserve ClassNotFoundException.");
+        throw new AssertionError("Should preserve ClassNotFoundException.");
       } catch (ClassNotFoundException e) {
         // Expected
         System.out.println("Unknown");
