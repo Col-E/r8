@@ -2271,7 +2271,8 @@ public class ProguardConfigurationParserTest extends TestBase {
     checkRulesSourceSnippet(ImmutableList.of(rule1));
     checkRulesSourceSnippet(ImmutableList.of(rule2));
     checkRulesSourceSnippet(ImmutableList.of(rule3));
-    checkRulesSourceSnippet(ImmutableList.of(rule1, rule2, rule3));
+    checkRulesSourceSnippet(
+        ImmutableList.of(rule1, rule2, rule3), ImmutableList.of(rule1, rule3), false);
   }
 
   @Test
@@ -2295,11 +2296,11 @@ public class ProguardConfigurationParserTest extends TestBase {
           ImmutableList.of(rule1),
           true);
       checkRulesSourceSnippet(ImmutableList.of(rule2), ImmutableList.of(rule2), true);
-      checkRulesSourceSnippet(ImmutableList.of(rule1, rule2), ImmutableList.of(rule1, rule2), true);
+      checkRulesSourceSnippet(ImmutableList.of(rule1, rule2), ImmutableList.of(rule1), true);
       checkRulesSourceSnippet(
           ImmutableList.of(
               "#Test comment ", "", rule1, " ", "#Test comment ", "", rule2, "#Test comment ", ""),
-          ImmutableList.of(rule1, rule2),
+          ImmutableList.of(rule1),
           true);
     }
   }
