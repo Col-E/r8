@@ -19,6 +19,7 @@ import com.android.tools.r8.graph.KeyedDexItem;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.logging.Log;
+import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -37,12 +38,15 @@ public class TreePruner {
   private final Set<DexMethod> methodsToKeepForConfigurationDebugging = Sets.newIdentityHashSet();
 
   public TreePruner(DexApplication application, AppView<AppInfoWithLiveness> appView) {
+    InternalOptions options = appView.options();
     this.application = application;
     this.appView = appView;
-
     this.usagePrinter =
-        appView.options().hasUsageInformationConsumer()
-            ? new UsagePrinter()
+        options.hasUsageInformationConsumer()
+            ? new UsagePrinter(
+                s ->
+                    ExceptionUtils.withConsumeResourceHandler(
+                        options.reporter, options.usageInformationConsumer, s))
             : UsagePrinter.DONT_PRINT;
   }
 
@@ -50,7 +54,7 @@ public class TreePruner {
     application.timing.begin("Pruning application...");
     DexApplication result;
     try {
-      result = removeUnused(application).appendDeadCode(usagePrinter.toStringContent()).build();
+      result = removeUnused(application).build();
     } finally {
       application.timing.end();
     }

@@ -28,7 +28,6 @@ public abstract class DexApplication {
   public final ImmutableList<DataResourceProvider> dataResourceProviders;
 
   public final ImmutableSet<DexType> mainDexList;
-  public final String deadCode;
 
   private final ClassNameMapper proguardMap;
 
@@ -46,7 +45,6 @@ public abstract class DexApplication {
       ClassNameMapper proguardMap,
       ImmutableList<DataResourceProvider> dataResourceProviders,
       ImmutableSet<DexType> mainDexList,
-      String deadCode,
       ClassesChecksum checksums,
       InternalOptions options,
       DexString highestSortingString,
@@ -54,7 +52,6 @@ public abstract class DexApplication {
     this.proguardMap = proguardMap;
     this.dataResourceProviders = dataResourceProviders;
     this.mainDexList = mainDexList;
-    this.deadCode = deadCode;
     this.checksums = checksums;
     this.options = options;
     this.dexItemFactory = options.itemFactory;
@@ -141,7 +138,6 @@ public abstract class DexApplication {
     final Timing timing;
 
     DexString highestSortingString;
-    String deadCode;
     final Set<DexType> mainDexList = Sets.newIdentityHashSet();
     private final Collection<DexProgramClass> synthesizedClasses;
 
@@ -149,7 +145,6 @@ public abstract class DexApplication {
       this.options = options;
       this.dexItemFactory = options.itemFactory;
       this.timing = timing;
-      this.deadCode = null;
       this.synthesizedClasses = new ArrayList<>();
       this.checksums = null;
     }
@@ -165,7 +160,6 @@ public abstract class DexApplication {
       options = application.options;
       dexItemFactory = application.dexItemFactory;
       mainDexList.addAll(application.mainDexList);
-      deadCode = application.deadCode;
       synthesizedClasses = new ArrayList<>();
       checksums = application.checksums;
     }
@@ -185,19 +179,6 @@ public abstract class DexApplication {
 
     public synchronized T addDataResourceProvider(DataResourceProvider provider) {
       dataResourceProviders.add(provider);
-      return self();
-    }
-
-    public T appendDeadCode(String deadCodeAtAnotherRound) {
-      if (deadCodeAtAnotherRound == null) {
-        return self();
-      }
-      if (this.deadCode == null) {
-        this.deadCode = deadCodeAtAnotherRound;
-        return self();
-      }
-      // Concatenate existing deadCode info with next round.
-      this.deadCode += deadCodeAtAnotherRound;
       return self();
     }
 
