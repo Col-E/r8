@@ -194,9 +194,9 @@ public class StringOptimizer {
           }
         };
       } else if (invokedMethod == factory.stringMethods.length) {
-        operatorWithNoArg = rcv -> rcv.toString().length();
+        operatorWithNoArg = rcv -> rcv.size;
       } else if (invokedMethod == factory.stringMethods.isEmpty) {
-        operatorWithNoArg = rcv -> rcv.toString().isEmpty() ? 1 : 0;
+        operatorWithNoArg = rcv -> rcv.size == 0 ? 1 : 0;
       } else if (invokedMethod == factory.stringMethods.contains) {
         operatorWithString = (rcv, arg) -> rcv.toString().contains(arg.toString()) ? 1 : 0;
       } else if (invokedMethod == factory.stringMethods.startsWith) {
