@@ -8,6 +8,10 @@ import org.junit.Test;
 
 public class YouTubeDexVerificationTest extends YouTubeCompilationBase {
 
+  public YouTubeDexVerificationTest() {
+    super(12, 17);
+  }
+
   @Test
   public void buildDebugFromDex() throws Exception {
     runR8AndCheckVerification(CompilationMode.DEBUG, APK);

@@ -16,6 +16,10 @@ import org.junit.Test;
 
 public class YouTubeTreeShakeJarVerificationTest extends YouTubeCompilationBase {
 
+  public YouTubeTreeShakeJarVerificationTest() {
+    super(12, 17);
+  }
+
   @Test
   public void buildAndTreeShakeFromDeployJar() throws Exception {
     Path proguardMapPath = File.createTempFile("mapping", ".txt", temp.getRoot()).toPath();
@@ -24,8 +28,8 @@ public class YouTubeTreeShakeJarVerificationTest extends YouTubeCompilationBase 
         runAndCheckVerification(
             CompilerUnderTest.R8,
             CompilationMode.RELEASE,
-            BASE + APK,
-            ImmutableList.of(BASE + PG_CONF),
+            base + APK,
+            ImmutableList.of(base + PG_CONF),
             options -> options.proguardMapConsumer = new FileConsumer(proguardMapPath),
             // Don't pass any inputs. The input will be read from the -injars in the Proguard
             // configuration file.

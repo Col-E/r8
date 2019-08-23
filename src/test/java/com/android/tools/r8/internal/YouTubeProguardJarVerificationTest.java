@@ -8,6 +8,10 @@ import org.junit.Test;
 
 public class YouTubeProguardJarVerificationTest extends YouTubeCompilationBase {
 
+  public YouTubeProguardJarVerificationTest() {
+    super(12, 17);
+  }
+
   @Test
   public void buildDebugFromProguardJar() throws Exception {
     runR8AndCheckVerification(CompilationMode.DEBUG, PG_JAR);

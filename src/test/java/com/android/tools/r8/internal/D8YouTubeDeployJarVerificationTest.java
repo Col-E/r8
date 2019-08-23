@@ -9,15 +9,19 @@ import org.junit.Test;
 
 public class D8YouTubeDeployJarVerificationTest extends YouTubeCompilationBase {
 
+  public D8YouTubeDeployJarVerificationTest() {
+    super(12, 17);
+  }
+
   @Test
   public void buildDebugFromDeployJar() throws Exception {
     runAndCheckVerification(
-        CompilerUnderTest.D8, CompilationMode.DEBUG, BASE + APK, null, BASE + DEPLOY_JAR);
+        CompilerUnderTest.D8, CompilationMode.DEBUG, base + APK, null, base + DEPLOY_JAR);
   }
 
   @Test
   public void buildReleaseFromDeployJar() throws Exception {
     runAndCheckVerification(
-        CompilerUnderTest.D8, CompilationMode.RELEASE, BASE + APK, null, BASE + DEPLOY_JAR);
+        CompilerUnderTest.D8, CompilationMode.RELEASE, base + APK, null, base + DEPLOY_JAR);
   }
 }

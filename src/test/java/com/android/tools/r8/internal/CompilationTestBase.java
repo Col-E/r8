@@ -18,6 +18,7 @@ import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
 import com.android.tools.r8.ResourceException;
+import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
@@ -62,7 +63,7 @@ import org.junit.ComparisonFailure;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 
-public abstract class CompilationTestBase {
+public abstract class CompilationTestBase extends TestBase {
 
   protected KeepingDiagnosticHandler handler;
   protected Reporter reporter;
