@@ -8,7 +8,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isFinal;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPublic;
 import static org.hamcrest.CoreMatchers.allOf;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverInline;
@@ -51,8 +51,8 @@ public class IfRuleWithAccessRelaxationTest extends TestBase {
                 "-if class " + TestClass.class.getTypeName() + " {",
                 "  protected void virtualMethod();",
                 "}",
-                "-keep class " + Unused3.class.getTypeName(),
-                "-allowaccessmodification")
+                "-keep class " + Unused3.class.getTypeName())
+            .allowAccessModification()
             .enableInliningAnnotations()
             .compile()
             .inspector();

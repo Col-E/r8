@@ -6,8 +6,8 @@ package com.android.tools.r8.shaking.forceproguardcompatibility.defaultctor;
 import static com.android.tools.r8.shaking.forceproguardcompatibility.defaultctor.ExternalizableDataClass.TYPE_1;
 import static com.android.tools.r8.shaking.forceproguardcompatibility.defaultctor.ExternalizableDataClass.TYPE_2;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.shaking.forceproguardcompatibility.ProguardCompatibilityTestBase;
 import com.android.tools.r8.utils.AndroidApp;

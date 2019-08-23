@@ -137,8 +137,7 @@ public class WhyAreYouKeepingTest extends TestBase {
         .addProgramClasses(A.class)
         .addKeepMethodRules(Reference.methodFromMethod(A.class.getMethod("foo")))
         .addKeepRules("-whyareyoukeeping class NonExistentClass")
-        .addOptionsModification(
-            options -> options.testing.allowUnusedProguardConfigurationRules = true)
+        .allowUnusedProguardConfigurationRules()
         // Redirect the compilers stdout to intercept the '-whyareyoukeeping' output
         .redirectStdOut(new PrintStream(baos))
         .compile();

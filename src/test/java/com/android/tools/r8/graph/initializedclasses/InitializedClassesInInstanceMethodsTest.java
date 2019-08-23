@@ -45,12 +45,12 @@ public class InitializedClassesInInstanceMethodsTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(InitializedClassesInInstanceMethodsTest.class)
         .addKeepMainRule(TestClass.class)
-        .addKeepRules("-allowaccessmodification")
         .addOptionsModification(
             options -> {
               options.enableInitializedClassesInInstanceMethodsAnalysis =
                   enableInitializedClassesInInstanceMethodsAnalysis;
             })
+        .allowAccessModification()
         .enableClassInliningAnnotations()
         .enableInliningAnnotations()
         .setMinApi(parameters.getRuntime())

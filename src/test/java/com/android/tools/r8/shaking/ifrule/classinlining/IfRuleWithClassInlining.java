@@ -6,7 +6,7 @@ package com.android.tools.r8.shaking.ifrule.classinlining;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
@@ -48,10 +48,10 @@ public class IfRuleWithClassInlining extends TestBase {
         testForR8(backend)
             .addInnerClasses(IfRuleWithClassInlining.class)
             .addKeepMainRule(TestClass.class)
-            // TODO(b/120061431): Should not be needed for this example.
-            .addKeepRules("-allowaccessmodification")
             .addKeepRules(enableIfRule ? ifRule : "")
             .addOptionsModification(options -> options.enableClassInlining = enableClassInlining)
+            // TODO(b/120061431): Should not be needed for this example.
+            .allowAccessModification()
             .compile()
             .inspector();
     if (enableIfRule || !enableClassInlining) {

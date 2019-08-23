@@ -79,32 +79,26 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
             .addProgramFiles(ToolHelper.getClassFilesForTestPackage(mainClass.getPackage()))
             .enableInliningAnnotations()
             .enableMemberValuePropagationAnnotations()
+            .addKeepMainRule(mainClass)
             .addOptionsModification(o -> o.enableArgumentRemoval = enableArgumentRemoval)
             .noMinification()
             .addKeepRules(
                 // Note: we use '-checkdiscard' to indirectly check that the access relaxation is
                 // done which leads to inlining of all pB*** methods so they are removed. Without
                 // access relaxation inlining is not performed and method are kept.
-                "-keep class " + mainClass.getCanonicalName() + "{",
-                "  public static void main(java.lang.String[]);",
-                "}",
-                "",
                 "-checkdiscard class " + A.class.getCanonicalName() + "{",
                 "  *** pBaz();",
                 "  *** pBar();",
                 "  *** pBar1();",
                 "  *** pBlah1();",
                 "}",
-                "",
                 "-checkdiscard class " + B.class.getCanonicalName() + "{",
                 "  *** pBlah1();",
                 "}",
-                "",
                 "-checkdiscard class " + BB.class.getCanonicalName() + "{",
                 "  *** pBlah1();",
-                "}",
-                "",
-                "-allowaccessmodification")
+                "}")
+            .allowAccessModification()
             .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), mainClass);
 
@@ -161,28 +155,22 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
     R8TestRunResult result =
         testForR8(parameters.getBackend())
             .addProgramFiles(ToolHelper.getClassFilesForTestPackage(mainClass.getPackage()))
+            .addKeepMainRule(mainClass)
             .addOptionsModification(o -> o.enableVerticalClassMerging = enableVerticalClassMerging)
             .enableInliningAnnotations()
             .enableMemberValuePropagationAnnotations()
             .noMinification()
             .addKeepRules(
-                "-keep class " + mainClass.getCanonicalName() + "{",
-                "  public static void main(java.lang.String[]);",
-                "}",
-                "",
                 "-checkdiscard class " + Base.class.getCanonicalName() + "{",
                 "  *** p*();",
                 "}",
-                "",
                 "-checkdiscard class " + Sub1.class.getCanonicalName() + "{",
                 "  *** p*();",
                 "}",
-                "",
                 "-checkdiscard class " + Sub2.class.getCanonicalName() + "{",
                 "  *** p*();",
-                "}",
-                "",
-                "-allowaccessmodification")
+                "}")
+            .allowAccessModification()
             .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), mainClass);
 

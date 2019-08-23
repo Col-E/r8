@@ -20,10 +20,8 @@ public class UnusedKeepRuleTest extends TestBase {
     testForR8(Backend.DEX)
         .addKeepRules("-keep class NotPresent")
         .addOptionsModification(
-            options -> {
-              options.testing.allowUnusedProguardConfigurationRules = true;
-              options.testing.reportUnusedProguardConfigurationRules = true;
-            })
+            options -> options.testing.reportUnusedProguardConfigurationRules = true)
+        .allowUnusedProguardConfigurationRules()
         .compile()
         .inspectDiagnosticMessages(
             messages -> {

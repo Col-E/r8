@@ -46,8 +46,7 @@ public class IfRuleWithInterfaceMethodDesugaringTest extends TestBase {
                 "  !public !static void virtualMethod();",
                 "}",
                 "-keep class " + Unused2.class.getTypeName())
-            .addOptionsModification(
-                options -> options.testing.allowUnusedProguardConfigurationRules = true)
+            .allowUnusedProguardConfigurationRules()
             .enableInliningAnnotations()
             .enableClassInliningAnnotations()
             .enableMergeAnnotations()

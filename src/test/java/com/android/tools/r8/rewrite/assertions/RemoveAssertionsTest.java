@@ -191,8 +191,9 @@ public class RemoveAssertionsTest extends TestBase {
     return testForR8(staticTemp, backend)
         .addProgramClassFileData(ClassWithAssertionsDump.dump())
         .addKeepMainRule(ClassWithAssertions.class)
-        .addKeepRules("-allowaccessmodification", "-dontobfuscate")
         .addOptionsModification(o -> o.enableInlining = false)
+        .allowAccessModification()
+        .noMinification()
         .compile();
   }
 

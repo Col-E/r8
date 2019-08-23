@@ -6,8 +6,8 @@ package com.android.tools.r8.ir.desugar.annotations;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.AsmTestBase;
 import com.android.tools.r8.ToolHelper;

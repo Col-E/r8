@@ -8,10 +8,10 @@ import static com.android.tools.r8.ir.desugar.LambdaRewriter.LAMBDA_CLASS_NAME_P
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
@@ -98,8 +98,9 @@ public class ClassInlinerTest extends TestBase {
             .addProgramClasses(classes)
             .enableInliningAnnotations()
             .addKeepMainRule(main)
-            .addKeepRules("-allowaccessmodification", "-keepattributes LineNumberTable")
+            .addKeepAttributes("LineNumberTable")
             .addOptionsModification(this::configure)
+            .allowAccessModification()
             .noMinification()
             .run(main)
             .assertSuccessWithOutput(javaOutput);
@@ -178,9 +179,10 @@ public class ClassInlinerTest extends TestBase {
             .addProgramClasses(classes)
             .enableInliningAnnotations()
             .addKeepMainRule(main)
-            .addKeepRules(
-                "-dontobfuscate", "-allowaccessmodification", "-keepattributes LineNumberTable")
+            .addKeepAttributes("LineNumberTable")
             .addOptionsModification(this::configure)
+            .allowAccessModification()
+            .noMinification()
             .run(main)
             .assertSuccessWithOutput(javaOutput);
 
@@ -275,15 +277,17 @@ public class ClassInlinerTest extends TestBase {
         CodeTestClass.class
     };
     String javaOutput = runOnJava(main);
-    TestRunResult result = testForR8(backend)
-        .addProgramClasses(classes)
-        .enableInliningAnnotations()
-        .addKeepMainRule(main)
-        .addKeepRules(
-            "-dontobfuscate", "-allowaccessmodification", "-keepattributes LineNumberTable")
-        .addOptionsModification(this::configure)
-        .run(main)
-        .assertSuccessWithOutput(javaOutput);
+    TestRunResult result =
+        testForR8(backend)
+            .addProgramClasses(classes)
+            .enableInliningAnnotations()
+            .addKeepMainRule(main)
+            .addKeepAttributes("-keepattributes LineNumberTable")
+            .addOptionsModification(this::configure)
+            .allowAccessModification()
+            .noMinification()
+            .run(main)
+            .assertSuccessWithOutput(javaOutput);
 
     CodeInspector inspector = result.inspector();
     ClassSubject clazz = inspector.clazz(C.class);
@@ -315,16 +319,18 @@ public class ClassInlinerTest extends TestBase {
         InvalidRootsTestClass.InitNeverReturnsNormally.class
     };
     String javaOutput = runOnJava(main);
-    TestRunResult result = testForR8(backend)
-        .addProgramClasses(classes)
-        .enableProguardTestOptions()
-        .enableInliningAnnotations()
-        .addKeepMainRule(main)
-        .addKeepRules(
-            "-dontobfuscate", "-allowaccessmodification", "-keepattributes LineNumberTable")
-        .addOptionsModification(this::configure)
-        .run(main)
-        .assertSuccessWithOutput(javaOutput);
+    TestRunResult result =
+        testForR8(backend)
+            .addProgramClasses(classes)
+            .enableProguardTestOptions()
+            .enableInliningAnnotations()
+            .addKeepMainRule(main)
+            .addKeepAttributes("-keepattributes LineNumberTable")
+            .addOptionsModification(this::configure)
+            .allowAccessModification()
+            .noMinification()
+            .run(main)
+            .assertSuccessWithOutput(javaOutput);
 
     CodeInspector inspector = result.inspector();
     ClassSubject clazz = inspector.clazz(main);
@@ -365,14 +371,16 @@ public class ClassInlinerTest extends TestBase {
         LambdasTestClass.IfaceUtil.class
     };
     String javaOutput = runOnJava(main);
-    TestRunResult result = testForR8(backend)
-        .addProgramClasses(classes)
-        .addKeepMainRule(main)
-        .addKeepRules(
-            "-dontobfuscate", "-allowaccessmodification", "-keepattributes LineNumberTable")
-        .addOptionsModification(this::configure)
-        .run(main)
-        .assertSuccessWithOutput(javaOutput);
+    TestRunResult result =
+        testForR8(backend)
+            .addProgramClasses(classes)
+            .addKeepMainRule(main)
+            .addKeepAttributes("-keepattributes LineNumberTable")
+            .addOptionsModification(this::configure)
+            .allowAccessModification()
+            .noMinification()
+            .run(main)
+            .assertSuccessWithOutput(javaOutput);
 
     CodeInspector inspector = result.inspector();
     ClassSubject clazz = inspector.clazz(main);

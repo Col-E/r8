@@ -7,9 +7,9 @@ import static com.android.tools.r8.ToolHelper.EXAMPLES_KOTLIN_RESOURCE_DIR;
 import static com.android.tools.r8.kotlin.KotlinLambdaMergingTest.kstyle;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;

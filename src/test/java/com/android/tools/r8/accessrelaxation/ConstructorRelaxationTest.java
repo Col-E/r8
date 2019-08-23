@@ -184,16 +184,14 @@ public final class ConstructorRelaxationTest extends AccessRelaxationTestBase {
         testForR8(parameters.getBackend())
             .addProgramClasses(mainClass)
             .addProgramClasses(CLASSES)
-            .addOptionsModification(o -> {
-              o.enableInlining = false;
-              o.enableVerticalClassMerging = false;
-            })
+            .addOptionsModification(
+                o -> {
+                  o.enableInlining = false;
+                  o.enableVerticalClassMerging = false;
+                })
             .noMinification()
-            .addKeepRules(
-                "-keep class " + mainClass.getCanonicalName() + "{",
-                "  public static void main(java.lang.String[]);",
-                "}",
-                "-allowaccessmodification")
+            .addKeepMainRule(mainClass)
+            .allowAccessModification()
             .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), mainClass);
 

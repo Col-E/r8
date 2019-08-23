@@ -40,7 +40,7 @@ public class InlineSynthesizedLambdaClass extends TestBase {
         testForR8(parameters.getBackend())
             .addProgramClassesAndInnerClasses(Lambda.class)
             .addKeepMainRule(Lambda.class)
-            .addKeepRules("-allowaccessmodification")
+            .allowAccessModification()
             .noMinification()
             .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), Lambda.class)
