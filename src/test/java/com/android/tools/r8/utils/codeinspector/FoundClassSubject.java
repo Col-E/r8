@@ -52,6 +52,11 @@ public class FoundClassSubject extends ClassSubject {
         (encoded, clazz) -> new FoundMethodSubject(codeInspector, encoded, clazz),
         this,
         inspection);
+    forAllVirtualMethods(inspection);
+  }
+
+  @Override
+  public void forAllVirtualMethods(Consumer<FoundMethodSubject> inspection) {
     CodeInspector.forAll(
         dexClass.virtualMethods(),
         (encoded, clazz) -> new FoundMethodSubject(codeInspector, encoded, clazz),

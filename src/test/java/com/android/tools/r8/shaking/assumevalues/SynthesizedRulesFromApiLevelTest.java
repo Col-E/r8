@@ -23,12 +23,12 @@ import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.shaking.ProguardAssumeNoSideEffectRule;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.function.Consumer;
 import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -157,7 +157,7 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
       AndroidApiLevel nativeApiLevel,
       String expectedOutput,
       ThrowableConsumer<R8FullTestBuilder> configuration,
-      Consumer<CodeInspector> inspector,
+      ThrowingConsumer<CodeInspector, RuntimeException> inspector,
       List<String> additionalKeepRules,
       SynthesizedRule synthesizedRule)
       throws Exception {
@@ -200,7 +200,8 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
       AndroidApiLevel runtimeApiLevel,
       AndroidApiLevel nativeApiLevel,
       String expectedOutput,
-      Consumer<CodeInspector> inspector) throws Exception{
+      ThrowingConsumer<CodeInspector, RuntimeException> inspector)
+      throws Exception {
     runTest(
         buildApiLevel,
         runtimeApiLevel,

@@ -20,6 +20,9 @@ public class AbsentClassSubject extends ClassSubject {
   public void forAllMethods(Consumer<FoundMethodSubject> inspection) {}
 
   @Override
+  public void forAllVirtualMethods(Consumer<FoundMethodSubject> inspection) {}
+
+  @Override
   public MethodSubject method(String returnType, String name, List<String> parameters) {
     return new AbsentMethodSubject();
   }

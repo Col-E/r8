@@ -11,11 +11,11 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
-import java.util.function.Consumer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -107,7 +107,9 @@ public class AccessFlagsCombinationsTest extends TestBase {
         classSubject.uniqueFieldWithName("packagePrivateStaticField").isPresent());
   }
 
-  public void runTest(List<String> keepRules, Consumer<CodeInspector> inspector) throws Exception {
+  public void runTest(
+      List<String> keepRules, ThrowingConsumer<CodeInspector, RuntimeException> inspector)
+      throws Exception {
     String expectedOutput = StringUtils.lines("Hello, world");
     testForR8(parameters.getBackend())
         .addInnerClasses(AccessFlagsCombinationsTest.class)

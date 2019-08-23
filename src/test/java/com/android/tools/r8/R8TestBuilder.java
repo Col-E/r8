@@ -190,6 +190,11 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     return self();
   }
 
+  public T allowUnusedProguardConfigurationRules() {
+    return addOptionsModification(
+        options -> options.testing.allowUnusedProguardConfigurationRules = true);
+  }
+
   public T enableInliningAnnotations() {
     return enableInliningAnnotations(NeverInline.class.getPackage().getName());
   }

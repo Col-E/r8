@@ -7,11 +7,11 @@ package com.android.tools.r8.shaking.fields;
 import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.List;
-import java.util.function.Consumer;
 
 public abstract class FieldsTestBase extends TestBase {
 
@@ -19,7 +19,10 @@ public abstract class FieldsTestBase extends TestBase {
 
   public abstract Class<?> getMainClass();
 
-  public void testOnR8(List<String> keepRules, Consumer<CodeInspector> inspector, String expected)
+  public void testOnR8(
+      List<String> keepRules,
+      ThrowingConsumer<CodeInspector, RuntimeException> inspector,
+      String expected)
       throws Throwable {
     testForR8(Backend.DEX)
         .enableMergeAnnotations()
@@ -32,7 +35,10 @@ public abstract class FieldsTestBase extends TestBase {
   }
 
   public void testOnProguard(
-      List<String> keepRules, Consumer<CodeInspector> inspector, String expected) throws Throwable {
+      List<String> keepRules,
+      ThrowingConsumer<CodeInspector, RuntimeException> inspector,
+      String expected)
+      throws Throwable {
     testForProguard()
         .addProgramClasses(getClasses())
         .addProgramClasses(NeverMerge.class)
@@ -43,13 +49,19 @@ public abstract class FieldsTestBase extends TestBase {
         .assertSuccessWithOutput(expected);
   }
 
-  public void runTest(List<String> keepRules, Consumer<CodeInspector> inspector, String expected)
+  public void runTest(
+      List<String> keepRules,
+      ThrowingConsumer<CodeInspector, RuntimeException> inspector,
+      String expected)
       throws Throwable {
     testOnProguard(keepRules, inspector, expected);
     testOnR8(keepRules, inspector, expected);
   }
 
-  public void runTest(String keepRules, Consumer<CodeInspector> inspector, String expected)
+  public void runTest(
+      String keepRules,
+      ThrowingConsumer<CodeInspector, RuntimeException> inspector,
+      String expected)
       throws Throwable {
     runTest(
         ImmutableList.of(

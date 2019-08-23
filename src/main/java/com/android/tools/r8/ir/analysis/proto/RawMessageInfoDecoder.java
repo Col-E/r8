@@ -231,7 +231,7 @@ public class RawMessageInfoDecoder {
     throw new InvalidRawMessageInfoException();
   }
 
-  private static ThrowingIntIterator<InvalidRawMessageInfoException> createInfoIterator(
+  public static ThrowingIntIterator<InvalidRawMessageInfoException> createInfoIterator(
       Value infoValue) throws InvalidRawMessageInfoException {
     if (!infoValue.isPhi() && infoValue.definition.isConstString()) {
       return createInfoIterator(infoValue.definition.asConstString().getValue());

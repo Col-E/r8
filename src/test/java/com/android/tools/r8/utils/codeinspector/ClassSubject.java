@@ -38,6 +38,23 @@ public abstract class ClassSubject extends Subject {
     return builder.build();
   }
 
+  public abstract void forAllVirtualMethods(Consumer<FoundMethodSubject> inspection);
+
+  public final List<FoundMethodSubject> virtualMethods() {
+    return virtualMethods(Predicates.alwaysTrue());
+  }
+
+  public final List<FoundMethodSubject> virtualMethods(Predicate<FoundMethodSubject> predicate) {
+    ImmutableList.Builder<FoundMethodSubject> builder = ImmutableList.builder();
+    forAllVirtualMethods(
+        methodSubject -> {
+          if (predicate.test(methodSubject)) {
+            builder.add(methodSubject);
+          }
+        });
+    return builder.build();
+  }
+
   public MethodSubject method(MethodReference method) {
     return method(
         (method.getReturnType() == null ? "void" : method.getReturnType().getTypeName()),

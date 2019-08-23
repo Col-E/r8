@@ -4,7 +4,15 @@
 
 package com.android.tools.r8.utils;
 
+import java.util.function.IntConsumer;
+
 public abstract class ThrowingIntIterator<E extends Exception> {
+
+  public void forEachRemaining(IntConsumer fn) throws E {
+    while (hasNext()) {
+      fn.accept(nextInt());
+    }
+  }
 
   public abstract boolean hasNext();
 

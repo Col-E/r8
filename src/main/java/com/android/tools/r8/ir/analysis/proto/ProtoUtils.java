@@ -12,7 +12,7 @@ public class ProtoUtils {
 
   public static final int IS_PROTO_2_MASK = 0x1;
 
-  static Value getInfoValueFromMessageInfoConstructionInvoke(
+  public static Value getInfoValueFromMessageInfoConstructionInvoke(
       InvokeMethod invoke, ProtoReferences references) {
     assert references.isMessageInfoConstructionMethod(invoke.getInvokedMethod());
     int adjustment = BooleanUtils.intValue(invoke.isInvokeDirect());
