@@ -480,7 +480,10 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
     InstructionListIterator entryBlockIterator;
 
     int i = 0;
-    if (downcast != null) {
+    assert downcast == null || arguments.get(0).isThis();
+    if (downcast != null && arguments.get(0).isUsed()) {
+      // TODO(b/120257211): Even if the receiver is used, we can avoid inserting a check-cast
+      //  instruction if the program still type checks without the cast.
       Value receiver = invoke.inValues().get(0);
       TypeLatticeElement castTypeLattice =
           TypeLatticeElement.fromDexType(
