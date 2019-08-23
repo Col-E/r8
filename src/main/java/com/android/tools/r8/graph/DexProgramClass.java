@@ -15,6 +15,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -435,5 +436,39 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
       }
     }
     return false;
+  }
+
+  public static Iterable<DexProgramClass> asProgramClasses(
+      Iterable<DexType> types, DexDefinitionSupplier definitions) {
+    return () ->
+        new Iterator<DexProgramClass>() {
+
+          private final Iterator<DexType> iterator = types.iterator();
+
+          private DexProgramClass next = findNext();
+
+          @Override
+          public boolean hasNext() {
+            return next != null;
+          }
+
+          @Override
+          public DexProgramClass next() {
+            DexProgramClass current = next;
+            next = findNext();
+            return current;
+          }
+
+          private DexProgramClass findNext() {
+            while (iterator.hasNext()) {
+              DexType next = iterator.next();
+              DexClass clazz = definitions.definitionFor(next);
+              if (clazz != null && clazz.isProgramClass()) {
+                return clazz.asProgramClass();
+              }
+            }
+            return null;
+          }
+        };
   }
 }

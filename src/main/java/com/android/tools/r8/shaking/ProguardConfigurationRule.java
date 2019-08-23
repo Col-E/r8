@@ -3,9 +3,15 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.utils.StringUtils;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.Collections;
 import java.util.List;
@@ -41,6 +47,25 @@ public abstract class ProguardConfigurationRule extends ProguardClassSpecificati
 
   public void markAsUsed() {
     used = true;
+  }
+
+  Iterable<DexProgramClass> relevantCandidatesForRule(
+      AppView<? extends AppInfoWithSubtyping> appView, Iterable<DexProgramClass> defaultValue) {
+    if (hasInheritanceClassName() && getInheritanceClassName().hasSpecificType()) {
+      DexType type = getInheritanceClassName().getSpecificType();
+      if (appView.verticallyMergedClasses() != null
+          && appView.verticallyMergedClasses().hasBeenMergedIntoSubtype(type)) {
+        DexType target = appView.verticallyMergedClasses().getTargetFor(type);
+        DexClass clazz = appView.definitionFor(target);
+        assert clazz != null && clazz.isProgramClass();
+        return Iterables.concat(
+            ImmutableList.of(clazz.asProgramClass()),
+            DexProgramClass.asProgramClasses(appView.appInfo().subtypes(type), appView));
+      } else {
+        return DexProgramClass.asProgramClasses(appView.appInfo().subtypes(type), appView);
+      }
+    }
+    return defaultValue;
   }
 
   abstract String typeString();

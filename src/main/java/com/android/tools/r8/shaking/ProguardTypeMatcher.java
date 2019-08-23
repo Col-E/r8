@@ -107,6 +107,10 @@ public abstract class ProguardTypeMatcher {
   @Override
   public abstract int hashCode();
 
+  public boolean hasSpecificType() {
+    return false;
+  }
+
   public DexType getSpecificType() {
     return null;
   }
@@ -324,6 +328,11 @@ public abstract class ProguardTypeMatcher {
     @Override
     public int hashCode() {
       return type.hashCode();
+    }
+
+    @Override
+    public boolean hasSpecificType() {
+      return true;
     }
 
     @Override

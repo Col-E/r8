@@ -73,10 +73,12 @@ public class IfRuleEvaluator {
         while (it.hasNext()) {
           Map.Entry<Wrapper<ProguardIfRule>, Set<ProguardIfRule>> ifRuleEntry = it.next();
           ProguardIfRule ifRule = ifRuleEntry.getKey().get();
+
           // Depending on which types that trigger the -if rule, the application of the subsequent
           // -keep rule may vary (due to back references). So, we need to try all pairs of -if
           // rule and live types.
-          for (DexProgramClass clazz : appView.appInfo().classes()) {
+          for (DexProgramClass clazz :
+              ifRule.relevantCandidatesForRule(appView, appView.appInfo().classes())) {
             if (!isEffectivelyLive(clazz)) {
               continue;
             }

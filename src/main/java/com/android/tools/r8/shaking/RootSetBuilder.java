@@ -236,20 +236,22 @@ public class RootSetBuilder {
           process(clazz, rule, ifRule);
         }
       }
-    } else {
-      futures.add(
-          executorService.submit(
-              () -> {
-                for (DexProgramClass clazz : application.classes()) {
+      return;
+    }
+
+    futures.add(
+        executorService.submit(
+            () -> {
+              for (DexProgramClass clazz :
+                  rule.relevantCandidatesForRule(appView, application.classes())) {
+                process(clazz, rule, ifRule);
+              }
+              if (rule.applyToNonProgramClasses()) {
+                for (DexLibraryClass clazz : application.libraryClasses()) {
                   process(clazz, rule, ifRule);
                 }
-                if (rule.applyToNonProgramClasses()) {
-                  for (DexLibraryClass clazz : application.libraryClasses()) {
-                    process(clazz, rule, ifRule);
-                  }
-                }
-              }));
-    }
+              }
+            }));
   }
 
   public RootSet run(ExecutorService executorService) throws ExecutionException {
