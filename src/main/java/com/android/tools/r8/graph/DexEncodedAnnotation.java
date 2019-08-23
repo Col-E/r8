@@ -84,9 +84,6 @@ public class DexEncodedAnnotation extends DexItem {
     if (rewrittenType == type && rewrittenElements == elements) {
       return this;
     }
-    if (rewrittenElements.length == 0) {
-      return null;
-    }
     return new DexEncodedAnnotation(rewrittenType, rewrittenElements);
   }
 }

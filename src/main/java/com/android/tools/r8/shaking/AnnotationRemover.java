@@ -264,9 +264,16 @@ public class AnnotationRemover {
   private DexEncodedAnnotation rewriteEncodedAnnotation(DexEncodedAnnotation original) {
     GraphLense graphLense = appView.graphLense();
     DexType annotationType = original.type.toBaseType(appView.dexItemFactory());
-    return original.rewrite(
-        graphLense::lookupType,
-        element -> rewriteAnnotationElement(graphLense.lookupType(annotationType), element));
+    DexType rewrittenType = graphLense.lookupType(annotationType);
+    DexEncodedAnnotation rewrite =
+        original.rewrite(
+            graphLense::lookupType, element -> rewriteAnnotationElement(rewrittenType, element));
+    assert rewrite != null;
+    DexClass annotationClass = appView.definitionFor(rewrittenType);
+    assert annotationClass == null
+        || annotationClass.isNotProgramClass()
+        || appView.appInfo().liveTypes.contains(rewrittenType);
+    return rewrite;
   }
 
   private DexAnnotationElement rewriteAnnotationElement(
