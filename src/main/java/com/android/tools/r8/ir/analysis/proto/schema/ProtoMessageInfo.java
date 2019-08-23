@@ -8,8 +8,8 @@ import com.android.tools.r8.ir.analysis.proto.ProtoUtils;
 import com.android.tools.r8.utils.Pair;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntList;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -80,8 +80,8 @@ public class ProtoMessageInfo {
       }
 
       // Gather used "oneof" and "hasbits" indices.
-      IntList usedOneOfIndices = new IntArrayList();
-      IntList usedHasBitsIndices = new IntArrayList();
+      IntSet usedOneOfIndices = new IntOpenHashSet();
+      IntSet usedHasBitsIndices = new IntOpenHashSet();
       for (ProtoFieldInfo field : fields) {
         if (field.hasAuxData()) {
           if (field.getType().isOneOf()) {
@@ -89,6 +89,15 @@ public class ProtoMessageInfo {
           } else {
             assert ProtoUtils.isProto2(flags) && field.getType().isSingular();
             usedHasBitsIndices.add(field.getAuxData() / BITS_PER_HAS_BITS_WORD);
+          }
+        }
+      }
+
+      if (hasBitsObjects != null) {
+        for (int i = 0; i < hasBitsObjects.size(); i++) {
+          ProtoFieldObject hasBitsObject = hasBitsObjects.get(i);
+          if (hasBitsObject.isLiveProtoFieldObject()) {
+            usedHasBitsIndices.add(i);
           }
         }
       }
@@ -112,7 +121,9 @@ public class ProtoMessageInfo {
       Int2IntMap newHasBitsObjectIndices = new Int2IntArrayMap();
       if (hasBitsObjects != null) {
         Iterator<ProtoFieldObject> hasBitsObjectIterator = hasBitsObjects.iterator();
-        for (int i = 0, numberOfRemovedHasBitsObjects = 0; i < hasBitsObjects.size(); i++) {
+        int i = 0;
+        int numberOfRemovedHasBitsObjects = 0;
+        while (hasBitsObjectIterator.hasNext()) {
           hasBitsObjectIterator.next();
           if (usedHasBitsIndices.contains(i)) {
             newHasBitsObjectIndices.put(i, i - numberOfRemovedHasBitsObjects);
@@ -120,15 +131,26 @@ public class ProtoMessageInfo {
             hasBitsObjectIterator.remove();
             numberOfRemovedHasBitsObjects++;
           }
+          i++;
         }
+
+        assert hasBitsObjects.stream().noneMatch(ProtoFieldObject::isDeadProtoFieldObject);
       }
 
       // Fix up references.
       for (ProtoFieldInfo field : fields) {
         if (field.hasAuxData()) {
-          Int2IntMap indexMapping =
-              field.getType().isOneOf() ? newOneOfObjectIndices : newHasBitsObjectIndices;
-          field.setAuxData(indexMapping.get(field.getAuxData()));
+          if (field.getType().isOneOf()) {
+            field.setAuxData(newOneOfObjectIndices.get(field.getAuxData()));
+          } else {
+            int auxData = field.getAuxData();
+            int oldHasBitsObjectIndex = auxData / BITS_PER_HAS_BITS_WORD;
+            int oldHasBitsObjectBitIndex = auxData % BITS_PER_HAS_BITS_WORD;
+            assert newHasBitsObjectIndices.containsValue(oldHasBitsObjectIndex);
+            field.setAuxData(
+                newHasBitsObjectIndices.get(oldHasBitsObjectIndex) * BITS_PER_HAS_BITS_WORD
+                    + oldHasBitsObjectBitIndex);
+          }
         }
       }
     }
