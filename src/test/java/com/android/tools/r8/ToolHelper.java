@@ -119,6 +119,9 @@ public class ToolHelper {
 
   public static final String JAVA_8_RUNTIME = "third_party/openjdk/openjdk-rt-1.8/rt.jar";
   public static final String DESUGAR_JDK_LIBS = "third_party/openjdk/desugar_jdk_libs/libjava.jar";
+  public static final String JSR223_RI_JAR = "third_party/jsr223-api-1.0/jsr223-api-1.0.jar";
+  public static final String RHINO_ANDROID_JAR =
+      "third_party/rhino-android-1.1.1/rhino-android-1.1.1.jar";
   public static final String KT_STDLIB = "third_party/kotlin/kotlinc/lib/kotlin-stdlib.jar";
   public static final String KT_REFLECT = "third_party/kotlin/kotlinc/lib/kotlin-reflect.jar";
   private static final String ANDROID_JAR_PATTERN = "third_party/android_jar/lib-v%d/android.jar";
