@@ -40,6 +40,7 @@ import com.android.tools.r8.ir.desugar.backports.LongMethods;
 import com.android.tools.r8.ir.desugar.backports.MathMethods;
 import com.android.tools.r8.ir.desugar.backports.ObjectsMethods;
 import com.android.tools.r8.ir.desugar.backports.OptionalMethods;
+import com.android.tools.r8.ir.desugar.backports.SetMethods;
 import com.android.tools.r8.ir.desugar.backports.ShortMethods;
 import com.android.tools.r8.ir.desugar.backports.StringMethods;
 import com.android.tools.r8.ir.synthetic.TemplateMethodCode;
@@ -852,12 +853,18 @@ public final class BackportedMethodRewriter {
       addProvider(new MethodGenerator(clazz, method, proto, ObjectsMethods::new));
 
       // List<E> List.of(<args>) for 0 to 10 arguments
-      clazz = factory.listDescriptor;
+      // Set<E> Set.of(<args>) for 0 to 10 arguments
       method = factory.createString("of");
       ArrayList<DexType> parameters = new ArrayList<>();
       for (int i = 0; i <= 10; i++) {
+        clazz = factory.listDescriptor;
         proto = factory.createProto(factory.listType, parameters);
         addProvider(new MethodGenerator(clazz, method, proto, ListMethods::new));
+
+        clazz = factory.setDescriptor;
+        proto = factory.createProto(factory.setType, parameters);
+        addProvider(new MethodGenerator(clazz, method, proto, SetMethods::new));
+
         parameters.add(factory.objectType);
       }
 
@@ -866,6 +873,12 @@ public final class BackportedMethodRewriter {
       method = factory.createString("of");
       proto = factory.createProto(factory.listType, factory.objectArrayType);
       addProvider(new MethodGenerator(clazz, method, proto, ListMethods::new, "ofVarargs"));
+
+      // Set<E> Set.of(E...)
+      clazz = factory.setDescriptor;
+      method = factory.createString("of");
+      proto = factory.createProto(factory.setType, factory.objectArrayType);
+      addProvider(new MethodGenerator(clazz, method, proto, SetMethods::new, "ofVarargs"));
     }
 
     private void initializeJava11MethodProviders(DexItemFactory factory) {
