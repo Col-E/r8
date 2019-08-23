@@ -31,7 +31,6 @@ import com.google.common.collect.ImmutableList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.BiConsumer;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -90,7 +89,12 @@ public class NeverReturnsNormallyTest extends TestBase {
     }
     ToolHelper.allowTestProguardOptions(builder);
     AndroidApp app =
-        ToolHelper.runR8(builder.build(), opts -> opts.enableClassInlining = enableClassInliner);
+        ToolHelper.runR8(
+            builder.build(),
+            opts -> {
+              opts.enableClassInlining = enableClassInliner;
+              opts.testing.dontReportFailingCheckDiscarded = true;
+            });
     inspection.accept(new CodeInspector(app), mode);
 
     if (parameters.isDexRuntime()) {
@@ -211,7 +215,6 @@ public class NeverReturnsNormallyTest extends TestBase {
   }
 
   @Test
-  @Ignore("b/139860071")
   public void test() throws Exception {
     runTest(this::validate, true, CompilationMode.DEBUG);
     runTest(this::validate, true, CompilationMode.RELEASE);

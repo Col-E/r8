@@ -843,7 +843,8 @@ public class R8 {
             enqueuer.getGraphNode(reference), System.out);
       }
     }
-    if (rootSet.checkDiscarded.isEmpty()) {
+    if (rootSet.checkDiscarded.isEmpty()
+        || appView.options().testing.dontReportFailingCheckDiscarded) {
       return;
     }
     List<DexDefinition> failed = new DiscardedChecker(rootSet, classes.get()).run();

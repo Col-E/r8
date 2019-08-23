@@ -972,6 +972,7 @@ public class InternalOptions {
     // TODO(b/129458850) When fixed, remove this and change all usages to "true".
     public boolean enableStatefulLambdaCreateInstanceMethod = false;
     public int basicBlockMuncherIterationLimit = NO_LIMIT;
+    public boolean dontReportFailingCheckDiscarded = false;
 
     // Flag to turn on/off JDK11+ nest-access control even when not required (Cf backend)
     public boolean enableForceNestBasedAccessDesugaringForTest = false;
