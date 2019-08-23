@@ -11,7 +11,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 
-public class DeadProtoFieldObject extends ProtoObject {
+public class DeadProtoFieldObject extends ProtoFieldObject {
 
   // For debugging purposes only.
   private final DexType holder;

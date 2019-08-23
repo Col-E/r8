@@ -24,7 +24,7 @@ public class ProtoMessageInfo {
     private int flags;
 
     private LinkedList<ProtoFieldInfo> fields;
-    private LinkedList<ProtoObject> hasBitsObjects;
+    private LinkedList<ProtoFieldObject> hasBitsObjects;
     private LinkedList<Pair<ProtoObject, ProtoObject>> oneOfObjects;
 
     public void setFlags(int value) {
@@ -38,7 +38,7 @@ public class ProtoMessageInfo {
       fields.add(field);
     }
 
-    public void addHasBitsObject(ProtoObject hasBitsObject) {
+    public void addHasBitsObject(ProtoFieldObject hasBitsObject) {
       if (hasBitsObjects == null) {
         hasBitsObjects = new LinkedList<>();
       }
@@ -111,7 +111,7 @@ public class ProtoMessageInfo {
       // Remove unused parts of "hasbits" vector.
       Int2IntMap newHasBitsObjectIndices = new Int2IntArrayMap();
       if (hasBitsObjects != null) {
-        Iterator<ProtoObject> hasBitsObjectIterator = hasBitsObjects.iterator();
+        Iterator<ProtoFieldObject> hasBitsObjectIterator = hasBitsObjects.iterator();
         for (int i = 0, numberOfRemovedHasBitsObjects = 0; i < hasBitsObjects.size(); i++) {
           hasBitsObjectIterator.next();
           if (usedHasBitsIndices.contains(i)) {
@@ -137,13 +137,13 @@ public class ProtoMessageInfo {
   private final int flags;
 
   private final LinkedList<ProtoFieldInfo> fields;
-  private final LinkedList<ProtoObject> hasBitsObjects;
+  private final LinkedList<ProtoFieldObject> hasBitsObjects;
   private final LinkedList<Pair<ProtoObject, ProtoObject>> oneOfObjects;
 
   private ProtoMessageInfo(
       int flags,
       LinkedList<ProtoFieldInfo> fields,
-      LinkedList<ProtoObject> hasBitsObjects,
+      LinkedList<ProtoFieldObject> hasBitsObjects,
       LinkedList<Pair<ProtoObject, ProtoObject>> oneOfObjects) {
     this.flags = flags;
     this.fields = fields;
@@ -167,7 +167,7 @@ public class ProtoMessageInfo {
     return flags;
   }
 
-  public List<ProtoObject> getHasBitsObjects() {
+  public List<ProtoFieldObject> getHasBitsObjects() {
     return hasBitsObjects;
   }
 

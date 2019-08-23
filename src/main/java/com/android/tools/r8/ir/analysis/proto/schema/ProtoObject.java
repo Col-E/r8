@@ -12,15 +12,23 @@ public abstract class ProtoObject {
 
   public abstract Instruction buildIR(AppView<?> appView, IRCode code);
 
-  public boolean isDeadProtoFieldObject() {
-    return false;
-  }
-
   public boolean isProtoFieldObject() {
     return false;
   }
 
   public ProtoFieldObject asProtoFieldObject() {
+    return null;
+  }
+
+  public boolean isDeadProtoFieldObject() {
+    return false;
+  }
+
+  public boolean isLiveProtoFieldObject() {
+    return false;
+  }
+
+  public LiveProtoFieldObject asLiveProtoFieldObject() {
     return null;
   }
 

@@ -13,8 +13,8 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.ir.analysis.proto.schema.DeadProtoFieldObject;
+import com.android.tools.r8.ir.analysis.proto.schema.LiveProtoFieldObject;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoFieldInfo;
-import com.android.tools.r8.ir.analysis.proto.schema.ProtoFieldObject;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoFieldType;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoFieldTypeFactory;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoMessageInfo;
@@ -128,9 +128,13 @@ public class RawMessageInfoDecoder {
       }
 
       for (int i = 0; i < numberOfHasBitsObjects; i++) {
-        builder.addHasBitsObject(
+        ProtoObject hasBitsObject =
             createProtoObject(
-                objectIterator.computeNextIfAbsent(this::invalidObjectsFailure), context));
+                objectIterator.computeNextIfAbsent(this::invalidObjectsFailure), context);
+        if (!hasBitsObject.isProtoFieldObject()) {
+          throw new InvalidRawMessageInfoException();
+        }
+        builder.addHasBitsObject(hasBitsObject.asProtoFieldObject());
       }
 
       boolean isProto2 = ProtoUtils.isProto2(flags);
@@ -185,7 +189,7 @@ public class RawMessageInfoDecoder {
         ConstString constString = definition.asConstString();
         DexField field = context.lookupUniqueInstanceFieldWithName(constString.getValue());
         if (field != null) {
-          return new ProtoFieldObject(field);
+          return new LiveProtoFieldObject(field);
         }
         // This const-string refers to a field that no longer exists. In this case, we create a
         // special dead-object instead of failing with an InvalidRawMessageInfoException below.
@@ -200,7 +204,7 @@ public class RawMessageInfoDecoder {
           DexField field = reference.asDexField();
           DexEncodedField encodedField = context.lookupInstanceField(field);
           if (encodedField != null) {
-            return new ProtoFieldObject(field);
+            return new LiveProtoFieldObject(field);
           }
           // This const-string refers to a field that no longer exists. In this case, we create a
           // special dead-object instead of failing with an InvalidRawMessageInfoException below.

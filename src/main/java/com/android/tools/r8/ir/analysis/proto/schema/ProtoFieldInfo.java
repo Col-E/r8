@@ -83,8 +83,8 @@ public class ProtoFieldInfo {
     }
     if (type.isMessage() || type.isGroup()) {
       ProtoObject object = objects.get(0);
-      assert object.isProtoFieldObject() : object.toString();
-      return object.asProtoFieldObject().getField().type;
+      assert object.isLiveProtoFieldObject();
+      return object.asLiveProtoFieldObject().getField().type;
     }
     if (type.isMessageList() || type.isGroupList()) {
       ProtoObject object = objects.get(1);
@@ -126,8 +126,8 @@ public class ProtoFieldInfo {
     assert hasBitsIndex < protoMessageInfo.numberOfHasBitsObjects();
 
     ProtoObject object = protoMessageInfo.getHasBitsObjects().get(hasBitsIndex);
-    assert object.isProtoFieldObject();
-    return object.asProtoFieldObject().getField();
+    assert object.isLiveProtoFieldObject();
+    return object.asLiveProtoFieldObject().getField();
   }
 
   /**
@@ -160,8 +160,8 @@ public class ProtoFieldInfo {
     assert type.isOneOf();
 
     ProtoObject object = protoMessageInfo.getOneOfObjects().get(getAuxData()).getSecond();
-    assert object.isProtoFieldObject();
-    return object.asProtoFieldObject().getField();
+    assert object.isLiveProtoFieldObject();
+    return object.asLiveProtoFieldObject().getField();
   }
 
   /**
@@ -175,8 +175,8 @@ public class ProtoFieldInfo {
         type.isOneOf()
             ? protoMessageInfo.getOneOfObjects().get(getAuxData()).getFirst()
             : objects.get(0);
-    assert object.isProtoFieldObject();
-    return object.asProtoFieldObject().getField();
+    assert object.isLiveProtoFieldObject();
+    return object.asLiveProtoFieldObject().getField();
   }
 
   @Override
