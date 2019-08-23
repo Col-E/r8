@@ -1853,7 +1853,7 @@ public class ToolHelper {
     public final String stderr;
     public final String command;
 
-    ProcessResult(int exitCode, String stdout, String stderr, String command) {
+    public ProcessResult(int exitCode, String stdout, String stderr, String command) {
       this.exitCode = exitCode;
       this.stdout = stdout;
       this.stderr = stderr;
