@@ -272,7 +272,6 @@ public final class R8Command extends BaseCompilerCommand {
      * <p>Note that any subsequent calls to this method will replace the previous setting.
      *
      * @param proguardSeedsConsumer Consumer to receive seeds information.
-     * @return
      */
     public Builder setProguardSeedsConsumer(StringConsumer proguardSeedsConsumer) {
       this.proguardSeedsConsumer = proguardSeedsConsumer;
@@ -285,7 +284,6 @@ public final class R8Command extends BaseCompilerCommand {
      * <p>Note that any subsequent calls to this method will replace the previous setting.
      *
      * @param proguardConfigurationConsumer
-     * @return
      */
     public Builder setProguardConfigurationConsumer(StringConsumer proguardConfigurationConsumer) {
       this.proguardConfigurationConsumer = proguardConfigurationConsumer;

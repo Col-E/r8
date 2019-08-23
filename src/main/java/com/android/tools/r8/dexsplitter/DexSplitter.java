@@ -196,7 +196,6 @@ public final class DexSplitter {
    * Default to use the name of the jar file if the argument contains no ':', if the argument
    * contains ':', then use the value after the ':' as the name.
    * @param argument
-   * @return
    */
   private static FeatureJar parseFeatureJarArgument(String argument) {
     if (argument.contains(":")) {
