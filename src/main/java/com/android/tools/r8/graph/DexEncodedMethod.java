@@ -1140,6 +1140,11 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     private DefaultMethodOptimizationInfoImpl() {}
 
     @Override
+    public boolean cannotBeKept() {
+      return false;
+    }
+
+    @Override
     public boolean classInitializerMayBePostponed() {
       return false;
     }
@@ -1291,6 +1296,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
   public static class MethodOptimizationInfoImpl implements UpdatableMethodOptimizationInfo {
 
+    private boolean cannotBeKept = false;
     private boolean classInitializerMayBePostponed = false;
     private boolean hasBeenInlinedIntoSingleCallSite = false;
     private Set<DexType> initializedClassesOnNormalExit =
@@ -1353,6 +1359,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     }
 
     private MethodOptimizationInfoImpl(MethodOptimizationInfoImpl template) {
+      cannotBeKept = template.cannotBeKept;
       returnedArgument = template.returnedArgument;
       neverReturnsNull = template.neverReturnsNull;
       neverReturnsNormally = template.neverReturnsNormally;
@@ -1371,6 +1378,16 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       nonNullParamOrThrow = template.nonNullParamOrThrow;
       nonNullParamOnNormalExits = template.nonNullParamOnNormalExits;
       reachabilitySensitive = template.reachabilitySensitive;
+    }
+
+    @Override
+    public boolean cannotBeKept() {
+      return cannotBeKept;
+    }
+
+    @Override
+    public void markCannotBeKept() {
+      cannotBeKept = true;
     }
 
     @Override

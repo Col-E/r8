@@ -223,10 +223,8 @@ public class IfRuleEvaluator {
       return false;
     }
     if (rule.hasInheritanceClassName()) {
-      // Note that, in presence of vertical class merging, we check if the resulting class
-      // (i.e., the target class) satisfies the implements/extends-matcher.
       // Try another live type since the current one doesn't satisfy the inheritance rule.
-      return rootSetBuilder.satisfyInheritanceRule(targetClass, rule);
+      return rootSetBuilder.satisfyInheritanceRule(sourceClass, rule);
     }
     return true;
   }

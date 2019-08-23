@@ -829,10 +829,22 @@ public class RootSetBuilder {
       DexDefinition precondition,
       ProguardIfRule ifRule) {
     if (context instanceof ProguardKeepRule) {
-      if (item.isDexEncodedMethod()) {
+      if (item.isDexEncodedField()) {
+        DexEncodedField encodedField = item.asDexEncodedField();
+        if (encodedField.getOptimizationInfo().cannotBeKept()) {
+          // We should only ever get here with if rules.
+          assert ifRule != null;
+          return;
+        }
+      } else if (item.isDexEncodedMethod()) {
         DexEncodedMethod encodedMethod = item.asDexEncodedMethod();
         if (encodedMethod.isClassInitializer() && !options.debug) {
           // Don't keep class initializers.
+          return;
+        }
+        if (encodedMethod.getOptimizationInfo().cannotBeKept()) {
+          // We should only ever get here with if rules.
+          assert ifRule != null;
           return;
         }
         if (options.isGeneratingDex()

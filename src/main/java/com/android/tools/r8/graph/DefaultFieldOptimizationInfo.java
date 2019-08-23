@@ -15,6 +15,11 @@ public class DefaultFieldOptimizationInfo extends FieldOptimizationInfo {
   }
 
   @Override
+  public boolean cannotBeKept() {
+    return false;
+  }
+
+  @Override
   public boolean valueHasBeenPropagated() {
     return false;
   }

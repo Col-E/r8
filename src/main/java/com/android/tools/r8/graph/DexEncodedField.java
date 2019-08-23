@@ -199,6 +199,11 @@ public class DexEncodedField extends KeyedDexItem<DexField> {
     if (this.field == field) {
       return this;
     }
-    return new DexEncodedField(field, accessFlags, annotations, staticValue);
+    DexEncodedField result = new DexEncodedField(field, accessFlags, annotations, staticValue);
+    result.optimizationInfo =
+        optimizationInfo.isMutableFieldOptimizationInfo()
+            ? optimizationInfo.asMutableFieldOptimizationInfo().mutableCopy()
+            : DefaultFieldOptimizationInfo.getInstance();
+    return result;
   }
 }

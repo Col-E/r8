@@ -19,6 +19,8 @@ public interface MethodOptimizationInfo {
     Default
   }
 
+  boolean cannotBeKept();
+
   boolean classInitializerMayBePostponed();
 
   TypeLatticeElement getDynamicReturnType();

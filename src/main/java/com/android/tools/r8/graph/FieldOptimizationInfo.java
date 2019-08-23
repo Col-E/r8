@@ -6,6 +6,8 @@ package com.android.tools.r8.graph;
 
 public abstract class FieldOptimizationInfo {
 
+  public abstract boolean cannotBeKept();
+
   public abstract boolean valueHasBeenPropagated();
 
   public boolean isDefaultFieldOptimizationInfo() {

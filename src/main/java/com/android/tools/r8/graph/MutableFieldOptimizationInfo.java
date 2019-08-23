@@ -13,15 +13,32 @@ package com.android.tools.r8.graph;
  */
 public class MutableFieldOptimizationInfo extends FieldOptimizationInfo {
 
+  private boolean cannotBeKept = false;
   private boolean valueHasBeenPropagated = false;
 
-  public void markAsPropagated() {
-    valueHasBeenPropagated = true;
+  public MutableFieldOptimizationInfo mutableCopy() {
+    MutableFieldOptimizationInfo copy = new MutableFieldOptimizationInfo();
+    copy.cannotBeKept = cannotBeKept();
+    copy.valueHasBeenPropagated = valueHasBeenPropagated();
+    return copy;
+  }
+
+  @Override
+  public boolean cannotBeKept() {
+    return cannotBeKept;
+  }
+
+  public void markCannotBeKept() {
+    cannotBeKept = true;
   }
 
   @Override
   public boolean valueHasBeenPropagated() {
     return valueHasBeenPropagated;
+  }
+
+  public void markAsPropagated() {
+    valueHasBeenPropagated = true;
   }
 
   @Override

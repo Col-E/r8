@@ -1081,13 +1081,13 @@ public class VerticalClassMerger {
       target.appendVirtualMethods(virtualMethods.values());
       target.setInstanceFields(mergedInstanceFields);
       target.setStaticFields(mergedStaticFields);
-      // Step 3: Unlink old class to ease tree shaking.
-      source.superType = application.dexItemFactory.objectType;
+      target.forEachField(field -> field.getMutableOptimizationInfo().markCannotBeKept());
+      target.forEachMethod(method -> method.getMutableOptimizationInfo().markCannotBeKept());
+      // Step 3: Clear the members of the source class since they have now been moved to the target.
       source.setDirectMethods(null);
       source.setVirtualMethods(null);
       source.setInstanceFields(null);
       source.setStaticFields(null);
-      source.interfaces = DexTypeList.empty();
       // Step 4: Record merging.
       mergedClasses.put(source.type, target.type);
       mergedClassesInverse.computeIfAbsent(target.type, key -> new HashSet<>()).add(source.type);

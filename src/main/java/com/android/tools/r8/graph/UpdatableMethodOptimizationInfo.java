@@ -12,6 +12,8 @@ import java.util.Set;
 
 public interface UpdatableMethodOptimizationInfo extends MethodOptimizationInfo {
 
+  void markCannotBeKept();
+
   void markInitializesClassesOnNormalExit(Set<DexType> initializedClasses);
 
   void markInlinedIntoSingleCallSite();
