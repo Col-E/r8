@@ -1841,6 +1841,10 @@ test {
         systemProperty 'runtimes', project.property('runtimes')
     }
 
+    if (project.hasProperty('slow_tests')) {
+        systemProperty 'slow_tests', project.property('slow_tests')
+    }
+
     if (project.hasProperty('one_line_per_test')) {
         beforeTest { desc ->
             println "Start executing test ${desc.name} [${desc.className}]"

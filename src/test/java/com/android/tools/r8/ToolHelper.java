@@ -149,6 +149,10 @@ public class ToolHelper {
   public static final Path R8LIB_EXCLUDE_DEPS_JAR = Paths.get(LIBS_DIR, "r8lib-exclude-deps.jar");
   public static final Path DEPS_NOT_RELOCATED = Paths.get(LIBS_DIR, "deps-not-relocated.jar");
 
+  public static boolean shouldRunSlowTests() {
+    return System.getProperty("slow_tests", "0").equals("1");
+  }
+
   public static boolean verifyValidOutputMode(Backend backend, OutputMode outputMode) {
     return (backend == Backend.CF && outputMode == OutputMode.ClassFile)
         || (backend == Backend.DEX && outputMode != OutputMode.ClassFile);

@@ -58,6 +58,9 @@ def ParseOptions():
   result.add_option('--all-tests', '--all_tests',
       help='Run tests in all configurations.',
       default=False, action='store_true')
+  result.add_option('--slow-tests', '--slow_tests',
+      help='Also run slow tests.',
+      default=False, action='store_true')
   result.add_option('-v', '--verbose',
       help='Print test stdout to, well, stdout.',
       default=False, action='store_true')
@@ -158,6 +161,8 @@ def Main():
     gradle_args.append('-Ponly_internal')
   if options.all_tests:
     gradle_args.append('-Pall_tests')
+  if options.slow_tests:
+    gradle_args.append('-Pslow_tests=1')
   if options.tool:
     gradle_args.append('-Ptool=%s' % options.tool)
   if options.one_line_per_test:
