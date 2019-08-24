@@ -9,7 +9,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.utils.StringUtils;
@@ -73,14 +72,15 @@ public class RetraceCommandLineTests {
   }
 
   private final String nonMappableStackTrace =
-      "com.android.r8.R8Exception: Problem when compiling program\n"
-          + "    at r8.a.a(App:42)\n"
-          + "    at r8.a.b(App:10)\n"
-          + "    at r8.a.c(App:266)\n"
-          + "    at r8.main(App:800)\n"
-          + "Caused by: com.android.r8.R8InnerException: You have to write the program first\n"
-          + "    at r8.retrace(App:184)\n"
-          + "    ... 7 more\n";
+      StringUtils.lines(
+          "com.android.r8.R8Exception: Problem when compiling program",
+          "    at r8.a.a(App:42)",
+          "    at r8.a.b(App:10)",
+          "    at r8.a.c(App:266)",
+          "    at r8.main(App:800)",
+          "Caused by: com.android.r8.R8InnerException: You have to write the program first",
+          "    at r8.retrace(App:184)",
+          "    ... 7 more");
 
   private void runTest(String mapping, String stackTrace, boolean stacktraceStdIn, String expected)
       throws IOException {
@@ -112,7 +112,7 @@ public class RetraceCommandLineTests {
   private ProcessResult runRetraceCommandLine(File stdInput, String... args) throws IOException {
     if (testExternal) {
       List<String> command = new ArrayList<>();
-      command.add(ToolHelper.getJavaExecutable(CfVm.JDK8));
+      command.add(ToolHelper.getSystemJavaExecutable());
       command.add("-ea");
       command.add("-cp");
       command.add(ToolHelper.R8_JAR.toString());
