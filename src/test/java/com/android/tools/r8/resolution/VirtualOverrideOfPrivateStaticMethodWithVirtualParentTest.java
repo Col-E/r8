@@ -185,7 +185,9 @@ public class VirtualOverrideOfPrivateStaticMethodWithVirtualParentTest extends A
             .addKeepMainRule(Main.class)
             .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), Main.class);
-    if (expectedToIncorrectlyRun(parameters.getRuntime())) {
+    if (expectedToIncorrectlyRun(parameters.getRuntime())
+        // TODO(b/140013075): Due to R8 not marking the "applicable" target, R8 "recover" the error.
+        && parameters.getRuntime().asDex().getVm().isOlderThanOrEqual(DexVm.ART_4_4_4_HOST)) {
       // Do to incorrect resolution, some Art VMs will resolve to Base.f (ignoring A.f) and thus
       // virtual dispatch to C.f.
       runResult.assertSuccessWithOutputLines("Called C.f");
