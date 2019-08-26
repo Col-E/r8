@@ -540,31 +540,33 @@ public class IRConverter {
     if (method.getCode() != null) {
       boolean matchesMethodFilter = options.methodMatchesFilter(method);
       if (matchesMethodFilter) {
-        for (DexString neverMergePrefix : neverMergePrefixes) {
-          // Synthetic classes will always be merged.
-          if (method.method.holder.isD8R8SynthesizedClassType()) {
-            continue;
-          }
-          if (method.method.holder.descriptor.startsWith(neverMergePrefix)) {
-            seenNeverMergePrefix = true;
-          } else {
-            seenNotNeverMergePrefix = true;
-          }
-          // Don't mix.
-          if (seenNeverMergePrefix && seenNotNeverMergePrefix) {
-            StringBuilder message = new StringBuilder();
-            message
-                .append("Merging dex file containing classes with prefix")
-                .append(neverMergePrefixes.size() > 1 ? "es " : " ");
-            for (int i = 0; i < neverMergePrefixes.size(); i++) {
-              message
-                  .append("'")
-                  .append(neverMergePrefixes.get(0).toString().substring(1).replace('/', '.'))
-                  .append("'")
-                  .append(i < neverMergePrefixes.size() - 1 ? ", ": "");
+        if (appView.options().enableNeverMergePrefixes) {
+          for (DexString neverMergePrefix : neverMergePrefixes) {
+            // Synthetic classes will always be merged.
+            if (method.method.holder.isD8R8SynthesizedClassType()) {
+              continue;
             }
-            message.append(" with classes with any other prefixes is not allowed.");
-            throw new CompilationError(message.toString());
+            if (method.method.holder.descriptor.startsWith(neverMergePrefix)) {
+              seenNeverMergePrefix = true;
+            } else {
+              seenNotNeverMergePrefix = true;
+            }
+            // Don't mix.
+            if (seenNeverMergePrefix && seenNotNeverMergePrefix) {
+              StringBuilder message = new StringBuilder();
+              message
+                  .append("Merging dex file containing classes with prefix")
+                  .append(neverMergePrefixes.size() > 1 ? "es " : " ");
+              for (int i = 0; i < neverMergePrefixes.size(); i++) {
+                message
+                    .append("'")
+                    .append(neverMergePrefixes.get(0).toString().substring(1).replace('/', '.'))
+                    .append("'")
+                    .append(i < neverMergePrefixes.size() - 1 ? ", " : "");
+              }
+              message.append(" with classes with any other prefixes is not allowed.");
+              throw new CompilationError(message.toString());
+            }
           }
         }
         if (options.isGeneratingClassFiles()

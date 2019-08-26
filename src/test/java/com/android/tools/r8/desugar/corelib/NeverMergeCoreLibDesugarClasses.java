@@ -46,6 +46,7 @@ public class NeverMergeCoreLibDesugarClasses extends CoreLibDesugarTestBase {
           .addInnerClasses(NeverMergeCoreLibDesugarClasses.class)
           .addProgramDexFileData(builder.compile())
           .setMinApi(parameters.getRuntime())
+          .addOptionsModification(options -> options.enableNeverMergePrefixes = true)
           .compileWithExpectedDiagnostics(diagnostics -> {
             diagnostics.assertErrorsCount(1);
             String message = diagnostics.getErrors().get(0).getDiagnosticMessage();
@@ -70,6 +71,7 @@ public class NeverMergeCoreLibDesugarClasses extends CoreLibDesugarTestBase {
           .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
           .setMinApi(parameters.getRuntime())
           .addProgramFiles(buildDesugaredLibrary(parameters.getApiLevel()))
+          .addOptionsModification(options -> options.enableNeverMergePrefixes = true)
           .compileWithExpectedDiagnostics(diagnostics -> {
             diagnostics.assertErrorsCount(1);
             String message = diagnostics.getErrors().get(0).getDiagnosticMessage();
