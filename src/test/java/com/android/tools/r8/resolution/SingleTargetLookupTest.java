@@ -5,6 +5,7 @@ package com.android.tools.r8.resolution;
 
 import com.android.tools.r8.AsmTestBase;
 import com.android.tools.r8.dex.ApplicationReader;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
@@ -14,10 +15,6 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.resolution.singletarget.Main;
-import com.android.tools.r8.resolution.singletarget.interfacedefault.A;
-import com.android.tools.r8.resolution.singletarget.interfacedefault.B;
-import com.android.tools.r8.resolution.singletarget.interfacedefault.C;
-import com.android.tools.r8.resolution.singletarget.interfacedefault.I;
 import com.android.tools.r8.resolution.singletarget.one.AbstractSubClass;
 import com.android.tools.r8.resolution.singletarget.one.AbstractTopClass;
 import com.android.tools.r8.resolution.singletarget.one.InterfaceWithDefault;
@@ -71,46 +68,44 @@ public class SingleTargetLookupTest extends AsmTestBase {
    */
   public static AppInfoWithLiveness appInfo;
 
-  public static List<Class> CLASSES = ImmutableList.of(
-      InterfaceWithDefault.class,
-      AbstractTopClass.class,
-      AbstractSubClass.class,
-      SubSubClassOne.class,
-      SubSubClassTwo.class,
-      SubSubClassThree.class,
-      OtherAbstractTopClass.class,
-      OtherAbstractSubClassOne.class,
-      OtherAbstractSubClassTwo.class,
-      OtherSubSubClassOne.class,
-      OtherSubSubClassTwo.class,
-      ThirdAbstractTopClass.class,
-      ThirdSubClassOne.class,
-      A.class,
-      B.class,
-      C.class,
-      I.class,
-      Main.class
-  );
+  public static List<Class<?>> CLASSES =
+      ImmutableList.of(
+          InterfaceWithDefault.class,
+          AbstractTopClass.class,
+          AbstractSubClass.class,
+          SubSubClassOne.class,
+          SubSubClassTwo.class,
+          SubSubClassThree.class,
+          OtherAbstractTopClass.class,
+          OtherAbstractSubClassOne.class,
+          OtherAbstractSubClassTwo.class,
+          OtherSubSubClassOne.class,
+          OtherSubSubClassTwo.class,
+          ThirdAbstractTopClass.class,
+          ThirdSubClassOne.class,
+          Main.class);
 
   public static List<byte[]> ASM_CLASSES = ImmutableList.of(
       getBytesFromAsmClass(IrrelevantInterfaceWithDefaultDump::dump),
       getBytesFromAsmClass(ThirdSubClassTwoDump::dump)
   );
 
-  public SingleTargetLookupTest(String methodName, Class invokeReceiver,
-      Class singleTargetHolderOrNull, List<Class> allTargetHolders) {
+  public SingleTargetLookupTest(
+      String methodName,
+      Class invokeReceiver,
+      Class singleTargetHolderOrNull,
+      List<Class> allTargetHolders) {
     this.methodName = methodName;
     this.invokeReceiver = invokeReceiver;
     this.singleTargetHolderOrNull = singleTargetHolderOrNull;
     this.allTargetHolders = allTargetHolders;
   }
 
-  @BeforeClass
-  public static void computeAppInfo() throws Exception {
+  public static AppInfoWithLiveness createAppInfoWithLiveness(AndroidApp app, Class<?> mainClass)
+      throws Exception {
     // Run the tree shaker to compute an instance of AppInfoWithLiveness.
-    Timing timing = new Timing(SingleTargetLookupTest.class.getCanonicalName());
+    Timing timing = new Timing();
     InternalOptions options = new InternalOptions();
-    AndroidApp app = readClassesAndAsmDump(CLASSES, ASM_CLASSES);
     DexApplication application = new ApplicationReader(app, options, timing).read().toDirect();
     AppView<? extends AppInfoWithSubtyping> appView =
         AppView.createForR8(new AppInfoWithSubtyping(application), options);
@@ -119,13 +114,17 @@ public class SingleTargetLookupTest extends AsmTestBase {
     ExecutorService executor = Executors.newSingleThreadExecutor();
     RootSet rootSet =
         new RootSetBuilder(
-                appView, application, buildKeepRuleForClass(Main.class, application.dexItemFactory))
+                appView, application, buildKeepRuleForClass(mainClass, application.dexItemFactory))
             .run(executor);
-    appInfo =
-        EnqueuerFactory.createForInitialTreeShaking(appView)
-            .traceApplication(rootSet, ProguardClassFilter.empty(), executor, timing);
+    return EnqueuerFactory.createForInitialTreeShaking(appView)
+        .traceApplication(rootSet, ProguardClassFilter.empty(), executor, timing);
     // We do not run the tree pruner to ensure that the hierarchy is as designed and not modified
     // due to liveness.
+  }
+
+  @BeforeClass
+  public static void computeAppInfo() throws Exception {
+    appInfo = createAppInfoWithLiveness(readClassesAndAsmDump(CLASSES, ASM_CLASSES), Main.class);
   }
 
   private static List<ProguardConfigurationRule> buildKeepRuleForClass(Class clazz,
@@ -134,8 +133,9 @@ public class SingleTargetLookupTest extends AsmTestBase {
     keepRuleBuilder.setSource("buildKeepRuleForClass " + clazz.getTypeName());
     keepRuleBuilder.setType(ProguardKeepRuleType.KEEP);
     keepRuleBuilder.setClassNames(
-        ProguardClassNameList.singletonList(ProguardTypeMatcher.create(factory
-            .createType(DescriptorUtils.javaTypeToDescriptor(clazz.getCanonicalName())))));
+        ProguardClassNameList.singletonList(
+            ProguardTypeMatcher.create(
+                factory.createType(DescriptorUtils.javaTypeToDescriptor(clazz.getTypeName())))));
     return Collections.singletonList(keepRuleBuilder.build());
   }
 
@@ -204,24 +204,22 @@ public class SingleTargetLookupTest extends AsmTestBase {
         singleTarget("instanceMethod", ThirdAbstractTopClass.class, ThirdAbstractTopClass.class),
         singleTarget(
             "otherInstanceMethod", ThirdAbstractTopClass.class, ThirdAbstractTopClass.class),
-        // TODO(b/139823850): Should not include A#confusing. Rather, include default I#confusing.
-        manyTargets("confusing", B.class, A.class, C.class)
     });
   }
 
-  private static DexMethod buildMethod(Class clazz, String name) {
+  public static DexMethod buildMethod(Class clazz, String name, AppInfo appInfo) {
     return appInfo
         .dexItemFactory()
         .createMethod(
-            toType(clazz),
+            toType(clazz, appInfo),
             appInfo.dexItemFactory().createProto(appInfo.dexItemFactory().voidType),
             name);
   }
 
-  private static DexType toType(Class clazz) {
+  public static DexType toType(Class clazz, AppInfo appInfo) {
     return appInfo
         .dexItemFactory()
-        .createType(DescriptorUtils.javaTypeToDescriptor(clazz.getCanonicalName()));
+        .createType(DescriptorUtils.javaTypeToDescriptor(clazz.getTypeName()));
   }
 
   private final String methodName;
@@ -231,26 +229,29 @@ public class SingleTargetLookupTest extends AsmTestBase {
 
   @Test
   public void lookupSingleTarget() {
-    DexMethod method = buildMethod(invokeReceiver, methodName);
-    Assert.assertNotNull(appInfo.resolveMethod(toType(invokeReceiver), method).asResultOfResolve());
+    DexMethod method = buildMethod(invokeReceiver, methodName, appInfo);
+    Assert.assertNotNull(
+        appInfo.resolveMethod(toType(invokeReceiver, appInfo), method).asResultOfResolve());
     DexEncodedMethod singleVirtualTarget = appInfo.lookupSingleVirtualTarget(method, method.holder);
     if (singleTargetHolderOrNull == null) {
       Assert.assertNull(singleVirtualTarget);
     } else {
       Assert.assertNotNull(singleVirtualTarget);
-      Assert.assertEquals(toType(singleTargetHolderOrNull), singleVirtualTarget.method.holder);
+      Assert.assertEquals(
+          toType(singleTargetHolderOrNull, appInfo), singleVirtualTarget.method.holder);
     }
   }
 
   @Test
   public void lookupVirtualTargets() {
-    DexMethod method = buildMethod(invokeReceiver, methodName);
-    Assert.assertNotNull(appInfo.resolveMethod(toType(invokeReceiver), method).asResultOfResolve());
+    DexMethod method = buildMethod(invokeReceiver, methodName, appInfo);
+    Assert.assertNotNull(
+        appInfo.resolveMethod(toType(invokeReceiver, appInfo), method).asResultOfResolve());
     Set<DexEncodedMethod> targets = appInfo.lookupVirtualTargets(method);
     Set<DexType> targetHolders = targets.stream().map(m -> m.method.holder)
         .collect(Collectors.toSet());
     Assert.assertEquals(allTargetHolders.size(), targetHolders.size());
-    Assert.assertTrue(allTargetHolders.stream().map(SingleTargetLookupTest::toType)
-        .allMatch(targetHolders::contains));
+    Assert.assertTrue(
+        allTargetHolders.stream().map(t -> toType(t, appInfo)).allMatch(targetHolders::contains));
   }
 }
