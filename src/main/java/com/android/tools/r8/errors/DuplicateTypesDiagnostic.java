@@ -4,6 +4,7 @@
 package com.android.tools.r8.errors;
 
 import com.android.tools.r8.Diagnostic;
+import com.android.tools.r8.Keep;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.references.ClassReference;
@@ -11,6 +12,7 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.Collection;
 
+@Keep
 public class DuplicateTypesDiagnostic implements Diagnostic {
 
   private final ClassReference type;

@@ -4,6 +4,7 @@
 package com.android.tools.r8.errors;
 
 import com.android.tools.r8.Diagnostic;
+import com.android.tools.r8.Keep;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 
@@ -13,6 +14,7 @@ import com.android.tools.r8.position.Position;
  * <p>This is always an expected error and considered a user input issue. A user-understandable
  * message must be provided.
  */
+@Keep
 public class CompilationError extends RuntimeException implements Diagnostic {
 
   private final Origin origin;
