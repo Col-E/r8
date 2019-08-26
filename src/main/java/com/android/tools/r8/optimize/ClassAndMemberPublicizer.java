@@ -37,7 +37,9 @@ public final class ClassAndMemberPublicizer {
       DexApplication application, AppView<AppInfoWithLiveness> appView) {
     this.application = application;
     this.appView = appView;
-    this.methodPoolCollection = new MethodPoolCollection(appView);
+    this.methodPoolCollection =
+        // We will add private instance methods when we promote them.
+        new MethodPoolCollection(appView, MethodPoolCollection::excludesPrivateInstanceMethod);
   }
 
   /**
