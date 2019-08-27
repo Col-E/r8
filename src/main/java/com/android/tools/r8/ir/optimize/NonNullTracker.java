@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize;
 import static com.android.tools.r8.ir.code.DominatorTree.Assumption.MAY_HAVE_UNREACHABLE_BLOCKS;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
@@ -108,10 +109,15 @@ public class NonNullTracker {
             // invoked method is same as that of the method we are processing now.
             DexMethod invokedMethod = current.asInvokeMethod().getInvokedMethod();
             if (invokedMethod.holder == code.method.method.holder) {
-              if (current.isInvokeDirect()) {
-                singleTarget = appView.appInfo().lookupDirectTarget(invokedMethod);
-              } else if (current.isInvokeStatic()) {
-                singleTarget = appView.appInfo().lookupStaticTarget(invokedMethod);
+              DexClass clazz = appView.definitionFor(invokedMethod.holder);
+              assert clazz != null && clazz.isProgramClass();
+              if (clazz != null) {
+                DexEncodedMethod directMethod = clazz.lookupDirectMethod(invokedMethod);
+                if (current.isInvokeDirect() && !directMethod.isStatic()) {
+                  singleTarget = directMethod;
+                } else if (current.isInvokeStatic() && directMethod.isStatic()) {
+                  singleTarget = directMethod;
+                }
               }
             }
           }

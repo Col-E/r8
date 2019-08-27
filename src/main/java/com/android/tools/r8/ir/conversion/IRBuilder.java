@@ -15,6 +15,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexCallSite;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
@@ -1377,10 +1378,16 @@ public class IRBuilder {
       // therefore we use an invoke-direct instead. We need to do this as the Android Runtime
       // will not allow invoke-virtual of a private method.
       DexMethod invocationMethod = (DexMethod) item;
-      if (invocationMethod.holder == method.method.holder) {
-        DexEncodedMethod directTarget = appView.appInfo().lookupDirectTarget(invocationMethod);
-        if (directTarget != null && invocationMethod.holder == directTarget.method.holder) {
-          type = Type.DIRECT;
+      DexType holderType = method.method.holder;
+      if (invocationMethod.holder == holderType) {
+        DexClass holderClass = appView.definitionFor(holderType);
+        assert holderClass != null && holderClass.isProgramClass();
+        if (holderClass != null) {
+          DexEncodedMethod directTarget = holderClass.lookupDirectMethod(invocationMethod);
+          if (directTarget != null && !directTarget.isStatic()) {
+            assert invocationMethod.holder == directTarget.method.holder;
+            type = Type.DIRECT;
+          }
         }
       }
     }
