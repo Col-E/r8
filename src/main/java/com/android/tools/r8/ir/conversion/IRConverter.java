@@ -79,7 +79,6 @@ import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.IdentifierNameStringMarker;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.MethodPosition;
-import com.android.tools.r8.position.Position;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.LibraryMethodOverrideAnalysis;
 import com.android.tools.r8.shaking.MainDexClasses;
@@ -963,16 +962,7 @@ public class IRConverter {
           method, feedback, isProcessedConcurrently, callSiteInformation, outlineHandler, origin);
     } catch (CompilationError e) {
       // If rewriting throws a compilation error, attach the origin and method if missing.
-      Origin errorOrigin = e.getOrigin();
-      Position errorPosition = e.getPosition();
-      if (errorOrigin == Origin.unknown() || errorPosition == Position.UNKNOWN) {
-        throw new CompilationError(
-            e.getMessage(),
-            e,
-            errorOrigin != Origin.unknown() ? errorOrigin : origin,
-            errorPosition != Position.UNKNOWN ? errorPosition : new MethodPosition(method.method));
-      }
-      throw e;
+      throw e.withAdditionalOriginAndPositionInfo(origin, new MethodPosition(method.method));
     }
   }
 

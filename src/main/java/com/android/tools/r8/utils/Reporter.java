@@ -116,7 +116,7 @@ public class Reporter implements DiagnosticsHandler {
     try {
       action.run();
     } catch (CompilationError e) {
-      error(e);
+      error(e.toStringDiagnostic());
       throw addSuppressedExceptions(new CompilationFailedException());
     } catch (AbortException e) {
       throw new CompilationFailedException(e);

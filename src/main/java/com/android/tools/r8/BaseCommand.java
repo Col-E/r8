@@ -365,7 +365,7 @@ public abstract class BaseCommand {
       try {
         action.run();
       } catch (CompilationError e) {
-        reporter.error(e);
+        reporter.error(e.toStringDiagnostic());
       } catch (AbortException e) {
         // Error was reported and exception will be thrown by build.
       }

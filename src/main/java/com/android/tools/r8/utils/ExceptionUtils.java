@@ -66,7 +66,7 @@ public abstract class ExceptionUtils {
       } catch (IOException e) {
         throw reporter.fatalError(new ExceptionDiagnostic(e, extractIOExceptionOrigin(e)));
       } catch (CompilationError e) {
-        throw reporter.fatalError(e);
+        throw reporter.fatalError(e.toStringDiagnostic());
       } catch (ResourceException e) {
         throw reporter.fatalError(new ExceptionDiagnostic(e, e.getOrigin()));
       } catch (AssertionError e) {

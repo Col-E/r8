@@ -59,16 +59,18 @@ public class ClassNamingForMapApplier implements ClassNaming {
         if (signature.isQualified()) {
           qualifiedMethodMembers.computeIfAbsent(signature, k -> new ArrayList<>(2)).add(entry);
         } else if (methodMembers.put(signature, entry) != null) {
+          // TODO(b/140075815): Turn ApplyMappingError into a Diagnostic.
           reporter.error(
               ProguardMapError.duplicateSourceMember(
-                  signature.toString(), this.originalName, entry.position));
+                  signature.toString(), this.originalName, entry.position).toStringDiagnostic());
         }
       } else {
         FieldSignature signature = (FieldSignature) entry.getOriginalSignature();
         if (!signature.isQualified() && fieldMembers.put(signature, entry) != null) {
+          // TODO(b/140075815): Turn ApplyMappingError into a Diagnostic.
           reporter.error(
               ProguardMapError.duplicateSourceMember(
-                  signature.toString(), this.originalName, entry.position));
+                  signature.toString(), this.originalName, entry.position).toStringDiagnostic());
         }
       }
       return this;
