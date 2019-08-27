@@ -57,7 +57,7 @@ TIMED_OUT = 'timed_out'
 
 TEST_COMMANDS = [
     # Run test.py internal testing.
-    ['tools/test.py', '--only_internal'],
+    ['tools/test.py', '--only_internal', '--slow_tests'],
     # Ensure that all internal apps compile.
     ['tools/run_on_app.py', '--ignore-java-version','--run-all', '--out=out']
 ]
