@@ -95,6 +95,7 @@ public interface StringConsumer {
     private final Path outputPath;
     private Charset encoding = StandardCharsets.UTF_8;
     private WriterConsumer delegate = null;
+    private boolean failedToCreateDelegate = false;
 
     /** Consumer that writes to {@param outputPath}. */
     public FileConsumer(Path outputPath) {
@@ -129,13 +130,21 @@ public interface StringConsumer {
     @Override
     public void accept(String string, DiagnosticsHandler handler) {
       super.accept(string, handler);
+      if (failedToCreateDelegate) {
+        return;
+      }
       ensureDelegate(handler);
-      delegate.accept(string, handler);
+      if (delegate != null) {
+        delegate.accept(string, handler);
+      }
     }
 
     @Override
     public void finished(DiagnosticsHandler handler) {
       super.finished(handler);
+      if (failedToCreateDelegate) {
+        return;
+      }
       if (delegate != null) {
         delegate.finished(handler);
         delegate = null;
@@ -154,6 +163,7 @@ public interface StringConsumer {
         }
         delegate = new WriterConsumer(origin, Files.newBufferedWriter(outputPath, encoding));
       } catch (IOException e) {
+        failedToCreateDelegate = true;
         handler.error(new ExceptionDiagnostic(e, origin));
       }
     }
