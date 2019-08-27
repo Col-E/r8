@@ -25,6 +25,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.SmaliWriter;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.shaking.serviceloader.ServiceLoaderMultipleTest.Greeter;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
@@ -43,7 +44,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Streams;
+import com.google.common.collect.Sets;
 import com.google.common.io.ByteStreams;
 import java.io.File;
 import java.io.FileInputStream;
@@ -61,6 +62,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -69,6 +71,7 @@ import java.util.jar.JarOutputStream;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -1162,5 +1165,54 @@ public class TestBase {
       assert backend == Backend.CF;
       return ToolHelper.getJava8RuntimeJar();
     }
+  }
+
+  public static class JarBuilder {
+    final Path jar;
+    final ZipOutputStream stream;
+    final Set<Class<?>> servicesAdded = Sets.newIdentityHashSet();
+
+    private JarBuilder(TemporaryFolder temp) throws IOException {
+      jar = temp.newFolder().toPath().resolve("a.jar");
+      stream = new ZipOutputStream(Files.newOutputStream(jar));
+    }
+
+    public static JarBuilder builder(TemporaryFolder temp) throws IOException {
+      return new JarBuilder(temp);
+    }
+
+    public JarBuilder addClass(Class<?> clazz) throws IOException {
+      stream.putNextEntry(new ZipEntry(DescriptorUtils.getPathFromJavaType(clazz)));
+      stream.write(Files.readAllBytes(ToolHelper.getClassFileForTestClass(clazz)));
+      stream.closeEntry();
+      return this;
+    }
+
+    public JarBuilder addResource(String path, String content) throws IOException {
+      stream.putNextEntry(new ZipEntry(path));
+      stream.write(content.getBytes(StandardCharsets.UTF_8));
+      stream.closeEntry();
+      return this;
+    }
+
+    public JarBuilder addServiceWithImplementations(
+        Class<?> service, List<Class<?>> implementations) throws IOException {
+      boolean added = servicesAdded.add(service);
+      assert added : "Currently each service can only be added once";
+      addResource(
+          "META-INF/services/" + Greeter.class.getTypeName(),
+          StringUtils.lines(
+              implementations.stream().map(Class::getTypeName).collect(Collectors.toList())));
+      return this;
+    }
+
+    public Path build() throws IOException {
+      stream.close();
+      return jar;
+    }
+  }
+
+  public JarBuilder jarBuilder() throws IOException {
+    return JarBuilder.builder(temp);
   }
 }

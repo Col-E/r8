@@ -122,7 +122,7 @@ public abstract class TestCompileResult<
       throws ExecutionException, IOException {
     assert getBackend() == runtime.getBackend();
     ClassSubject mainClassSubject = inspector().clazz(mainClass);
-    assertThat(mainClassSubject, isPresent());
+    assertThat("Did you forget a keep rule for the main method?", mainClassSubject, isPresent());
     if (runtime.isDex()) {
       return runArt(
           runtime.asDex().getVm(), additionalRunClassPath, mainClassSubject.getFinalName(), args);

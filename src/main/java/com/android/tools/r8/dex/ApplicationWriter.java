@@ -16,6 +16,7 @@ import com.android.tools.r8.ProgramConsumer;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.dex.FileWriter.ByteBufferResult;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationDirectory;
@@ -38,10 +39,12 @@ import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.ProguardMapSupplier;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
@@ -59,6 +62,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 import java.util.zip.CRC32;
 
 public class ApplicationWriter {
@@ -405,7 +409,8 @@ public class ApplicationWriter {
 
                 @Override
                 public void visit(DataEntryResource file) {
-                  if (resourceAdapter.shouldBeDeleted(file)) {
+                  if (resourceAdapter.isService(file)) {
+                    // META-INF/services resources are handled below.
                     return;
                   }
 
@@ -422,6 +427,31 @@ public class ApplicationWriter {
         } catch (ResourceException e) {
           throw new CompilationError(e.getMessage(), e);
         }
+      }
+
+      // Write the META-INF/services resources. Sort on service names and keep the order from
+      // the input for the implementation lines for deterministic output.
+      if (!appView.appServices().isEmpty()) {
+        appView
+            .appServices()
+            .visit(
+                (DexType service, List<DexType> implementations) -> {
+                  String serviceName =
+                      DescriptorUtils.descriptorToJavaType(
+                          namingLens.lookupDescriptor(service).toString());
+                  dataResourceConsumer.accept(
+                      DataEntryResource.fromBytes(
+                          StringUtils.lines(
+                                  implementations.stream()
+                                      .map(namingLens::lookupDescriptor)
+                                      .map(DexString::toString)
+                                      .map(DescriptorUtils::descriptorToJavaType)
+                                      .collect(Collectors.toList()))
+                              .getBytes(),
+                          AppServices.SERVICE_DIRECTORY_NAME + serviceName,
+                          Origin.unknown()),
+                      options.reporter);
+                });
       }
     }
   }

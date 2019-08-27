@@ -436,6 +436,10 @@ public class DescriptorUtils {
     return descriptor.substring(1, descriptor.length() - 1) + ".class";
   }
 
+  public static String getPathFromJavaType(Class<?> clazz) {
+    return getPathFromJavaType(clazz.getTypeName());
+  }
+
   public static String getPathFromJavaType(String typeName) {
     assert isValidJavaType(typeName);
     return typeName.replace(JAVA_PACKAGE_SEPARATOR, DESCRIPTOR_PACKAGE_SEPARATOR) + ".class";

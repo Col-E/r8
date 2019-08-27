@@ -15,7 +15,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StreamUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.io.IOException;
@@ -62,7 +61,12 @@ public class ScriptEngineTest extends TestBase {
             .setMinApi(parameters.getRuntime())
             .addDataEntryResources(
                 DataEntryResource.fromBytes(
-                    StringUtils.lines(MyScriptEngineFactoryImpl.class.getTypeName()).getBytes(),
+                    StringUtils.lines(MyScriptEngine1FactoryImpl.class.getTypeName()).getBytes(),
+                    "META-INF/services/" + ScriptEngineFactory.class.getTypeName(),
+                    Origin.unknown()))
+            .addDataEntryResources(
+                DataEntryResource.fromBytes(
+                    StringUtils.lines(MyScriptEngine2FactoryImpl.class.getTypeName()).getBytes(),
                     "META-INF/services/" + ScriptEngineFactory.class.getTypeName(),
                     Origin.unknown()))
             // TODO(b/136633154): This should work both with and without -dontobfuscate.
@@ -72,8 +76,7 @@ public class ScriptEngineTest extends TestBase {
     if (parameters.isDexRuntime()) {
       // JSR 223: Scripting for the JavaTM Platform (https://jcp.org/en/jsr/detail?id=223).
       builder.addProgramFiles(Paths.get(ToolHelper.JSR223_RI_JAR));
-      if (parameters.isDexRuntime()
-          && parameters.getRuntime().asDex().getMinApiLevel() != AndroidApiLevel.N) {
+      if (parameters.isDexRuntime()) {
         builder
             // The rhino-android contains concrete implementation of sun.misc.Service
             // used by the JSR 223 RI, which is not in the Android runtime (except for N?).
@@ -89,7 +92,10 @@ public class ScriptEngineTest extends TestBase {
         // TODO(b/136633154): This should provide 2 script engines on both runtimes. The use of
         //  the rhino-android library on Android will add the Rhino script engine, and the JVM
         //  comes with "Oracle Nashorn" included.
-        .assertSuccessWithOutput(parameters.isCfRuntime() ? "2" : "1");
+        .assertSuccessWithOutput(
+            parameters.isCfRuntime()
+                ? StringUtils.lines("MyEngine1", "MyEngine2", "Oracle Nashorn")
+                : StringUtils.lines("Mozilla Rhino", "MyEngine1", "MyEngine2"));
 
     // TODO(b/136633154): On the JVM this should always be there as the service loading is in
     //  the library. On Android we should be able to rewrite the code and not have it.
@@ -98,9 +104,9 @@ public class ScriptEngineTest extends TestBase {
     ZipEntry entry = zip.getEntry("META-INF/services/" + ScriptEngineFactory.class.getTypeName());
     assertNotNull(entry);
 
-    // TODO(b/136633154): This should be two lines.
     assertEquals(
-        1,
+        // For dex this also contains Rhino: com.sun.script.javascript.RhinoScriptEngineFactory.
+        parameters.isCfRuntime() ? 2 : 3,
         StringUtils.splitLines(
                 new String(StreamUtils.StreamToByteArrayClose(zip.getInputStream(entry))))
             .size());
@@ -109,15 +115,28 @@ public class ScriptEngineTest extends TestBase {
   static class TestClass {
 
     public static void main(String[] args) {
-      System.out.print(new ScriptEngineManager().getEngineFactories().size());
+      List<String> factoryNames = new ArrayList<>();
+      for (ScriptEngineFactory factory : new ScriptEngineManager().getEngineFactories()) {
+        factoryNames.add(factory.getEngineName());
+      }
+      Collections.sort(factoryNames);
+      for (String name : factoryNames) {
+        System.out.println(name);
+      }
     }
   }
 
-  public static class MyScriptEngineFactoryImpl implements ScriptEngineFactory {
+  public static class MyScriptEngineFactoryBase implements ScriptEngineFactory {
+
+    public final String variant;
+
+    public MyScriptEngineFactoryBase(String variant) {
+      this.variant = variant;
+    }
 
     @Override
     public String getEngineName() {
-      return "MyEngine";
+      return "MyEngine" + variant;
     }
 
     @Override
@@ -133,20 +152,20 @@ public class ScriptEngineTest extends TestBase {
     @Override
     public List<String> getMimeTypes() {
       List<String> result = new ArrayList<>();
-      result.add("text/my-script");
+      result.add("text/my-script-" + variant);
       return result;
     }
 
     @Override
     public List<String> getNames() {
       List<String> result = new ArrayList<>();
-      result.add("MyEngine");
+      result.add(getEngineName());
       return result;
     }
 
     @Override
     public String getLanguageName() {
-      return "MyLanguage";
+      return "MyLanguage" + variant;
     }
 
     @Override
@@ -176,11 +195,29 @@ public class ScriptEngineTest extends TestBase {
 
     @Override
     public ScriptEngine getScriptEngine() {
-      return new MyScriptEngine();
+      return new MyScriptEngine(variant);
+    }
+  }
+
+  public static class MyScriptEngine1FactoryImpl extends MyScriptEngineFactoryBase {
+    public MyScriptEngine1FactoryImpl() {
+      super("1");
+    }
+  }
+
+  public static class MyScriptEngine2FactoryImpl extends MyScriptEngineFactoryBase {
+    public MyScriptEngine2FactoryImpl() {
+      super("2");
     }
   }
 
   public static class MyScriptEngine implements ScriptEngine {
+
+    public final String variant;
+
+    public MyScriptEngine(String variant) {
+      this.variant = variant;
+    }
 
     @Override
     public Object eval(String script, ScriptContext context) throws ScriptException {
@@ -194,7 +231,7 @@ public class ScriptEngineTest extends TestBase {
 
     @Override
     public Object eval(String script) throws ScriptException {
-      return "Evaluation of: " + script;
+      return "Engine " + variant + " evaluation of: " + script;
     }
 
     @Override

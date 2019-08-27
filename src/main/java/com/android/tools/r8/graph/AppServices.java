@@ -18,14 +18,15 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.io.ByteStreams;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
+import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.function.BiConsumer;
 
 /** A description of the services and their implementations found in META-INF/services/. */
 public class AppServices {
@@ -40,6 +41,10 @@ public class AppServices {
   private AppServices(AppView<?> appView, Map<DexType, List<DexType>> services) {
     this.appView = appView;
     this.services = services;
+  }
+
+  public boolean isEmpty() {
+    return services.isEmpty();
   }
 
   public Set<DexType> allServiceTypes() {
@@ -74,6 +79,29 @@ public class AppServices {
     return new AppServices(appView, rewrittenServices.build());
   }
 
+  public AppServices prunedCopy(Collection<DexType> removedClasses) {
+    ImmutableMap.Builder<DexType, List<DexType>> rewrittenServicesBuilder = ImmutableMap.builder();
+    for (Entry<DexType, List<DexType>> entry : services.entrySet()) {
+      if (!removedClasses.contains(entry.getKey())) {
+        DexType serviceType = entry.getKey();
+        ImmutableList.Builder<DexType> rewrittenServiceImplementationTypesBuilder =
+            ImmutableList.builder();
+        for (DexType serviceImplementationType : entry.getValue()) {
+          if (!removedClasses.contains(serviceImplementationType)) {
+            rewrittenServiceImplementationTypesBuilder.add(serviceImplementationType);
+          }
+        }
+        List<DexType> rewrittenServiceImplementationTypes =
+            rewrittenServiceImplementationTypesBuilder.build();
+        if (rewrittenServiceImplementationTypes.size() > 0) {
+          rewrittenServicesBuilder.put(
+              serviceType, rewrittenServiceImplementationTypesBuilder.build());
+        }
+      }
+    }
+    return new AppServices(appView, rewrittenServicesBuilder.build());
+  }
+
   private boolean verifyRewrittenWithLens() {
     for (Entry<DexType, List<DexType>> entry : services.entrySet()) {
       assert entry.getKey() == appView.graphLense().lookupType(entry.getKey());
@@ -82,6 +110,10 @@ public class AppServices {
       }
     }
     return true;
+  }
+
+  public void visit(BiConsumer<DexType, List<DexType>> consumer) {
+    services.forEach(consumer);
   }
 
   public static Builder builder(AppView<?> appView) {
@@ -130,8 +162,10 @@ public class AppServices {
               DexType serviceType = appView.dexItemFactory().createType(serviceDescriptor);
               byte[] bytes = ByteStreams.toByteArray(file.getByteStream());
               String contents = new String(bytes, Charset.defaultCharset());
-              services.put(
-                  serviceType, readServiceImplementationsForService(contents, file.getOrigin()));
+              List<DexType> serviceImplementations =
+                  services.computeIfAbsent(serviceType, (key) -> new ArrayList<>());
+              readServiceImplementationsForService(
+                  contents, file.getOrigin(), serviceImplementations);
             }
           }
         } catch (IOException | ResourceException e) {
@@ -139,10 +173,10 @@ public class AppServices {
         }
       }
 
-      private List<DexType> readServiceImplementationsForService(String contents, Origin origin) {
+      private void readServiceImplementationsForService(
+          String contents, Origin origin, List<DexType> serviceImplementations) {
         if (contents != null) {
-          Set<DexType> seenTypes = new HashSet<>();
-          return Arrays.stream(contents.split(System.lineSeparator()))
+          Arrays.stream(contents.split(System.lineSeparator()))
               .map(String::trim)
               .map(this::prefixUntilCommentChar)
               .filter(line -> !line.isEmpty())
@@ -164,11 +198,11 @@ public class AppServices {
                                   origin));
                       return false;
                     }
-                    return seenTypes.add(serviceImplementationType);
+                    // Only keep one of each implementation type in the list.
+                    return !serviceImplementations.contains(serviceImplementationType);
                   })
-              .collect(Collectors.toList());
+              .forEach(serviceImplementations::add);
         }
-        return ImmutableList.of();
       }
 
       private String prefixUntilCommentChar(String line) {

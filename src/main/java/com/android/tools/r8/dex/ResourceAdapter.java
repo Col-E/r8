@@ -15,7 +15,6 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.naming.NamingLens;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardPathFilter;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
@@ -94,33 +93,8 @@ public class ResourceAdapter {
     return DataDirectoryResource.fromName(adaptDirectoryName(directory), directory.getOrigin());
   }
 
-  // Returns true for files in META-INF/services/ that are never used by the application.
-  public boolean shouldBeDeleted(DataEntryResource file) {
-    if (appView.appInfo().hasLiveness()) {
-      AppInfoWithLiveness appInfo = appView.appInfo().withLiveness();
-      if (file.getName().startsWith(AppServices.SERVICE_DIRECTORY_NAME)) {
-        String serviceName = file.getName().substring(AppServices.SERVICE_DIRECTORY_NAME.length());
-        if (!DescriptorUtils.isValidJavaType(serviceName)) {
-          return false;
-        }
-
-        DexString serviceDescriptor =
-            dexItemFactory.lookupString(DescriptorUtils.javaTypeToDescriptor(serviceName));
-        if (serviceDescriptor == null) {
-          return false;
-        }
-
-        DexType serviceType = appView.dexItemFactory().lookupType(serviceDescriptor);
-        if (serviceType == null) {
-          return false;
-        }
-
-        DexType rewrittenServiceType = appView.graphLense().lookupType(serviceType);
-        assert appView.appServices().allServiceTypes().contains(rewrittenServiceType);
-        return !appInfo.instantiatedAppServices.contains(rewrittenServiceType);
-      }
-    }
-    return false;
+  public boolean isService(DataEntryResource file) {
+    return file.getName().startsWith(AppServices.SERVICE_DIRECTORY_NAME);
   }
 
   private String adaptFileName(DataEntryResource file) {

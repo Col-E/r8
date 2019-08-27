@@ -371,6 +371,7 @@ public class R8 {
                       application,
                       pruner.getRemovedClasses(),
                       pruner.getMethodsToKeepForConfigurationDebugging()));
+          appView.setAppServices(appView.appServices().prunedCopy(pruner.getRemovedClasses()));
           new AbstractMethodRemover(appView.appInfo().withLiveness()).run();
         }
 
@@ -669,6 +670,7 @@ public class R8 {
                         application,
                         CollectionUtils.mergeSets(prunedTypes, pruner.getRemovedClasses()),
                         pruner.getMethodsToKeepForConfigurationDebugging()));
+            appView.setAppServices(appView.appServices().prunedCopy(pruner.getRemovedClasses()));
 
             // TODO(b/130721661): Enable this assert.
             // assert Inliner.verifyNoMethodsInlinedDueToSingleCallSite(appView);
