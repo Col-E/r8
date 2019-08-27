@@ -12,6 +12,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.graph.AppInfo.ResolutionResult;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -92,13 +93,13 @@ public class VirtualOverrideOfPrivateStaticMethodTest extends TestBase {
 
   @Test
   public void lookupVirtualTargets() {
-    DexEncodedMethod resolved =
-        appInfo.resolveMethod(methodOnB.holder, methodOnB).asResultOfResolve();
+    ResolutionResult resolutionResult = appInfo.resolveMethod(methodOnB.holder, methodOnB);
+    DexEncodedMethod resolved = resolutionResult.asResultOfResolve();
     assertEquals(methodOnA, resolved.method);
     // This behavior is up for debate as the resolution target is A.f which is private static, thus
     // the runtime behavior will be to throw a runtime exception. Thus it would be reasonable to
     // return the empty set as no targets can actually be hit at runtime.
-    Set<DexEncodedMethod> targets = appInfo.lookupVirtualTargets(methodOnB);
+    Set<DexEncodedMethod> targets = resolutionResult.lookupVirtualTargets(appInfo);
     assertTrue("Expected " + methodOnA, targets.stream().anyMatch(m -> m.method == methodOnA));
     assertTrue("Expected " + methodOnC, targets.stream().anyMatch(m -> m.method == methodOnC));
   }

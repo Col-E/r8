@@ -163,7 +163,12 @@ public class InliningConstraints {
   public ConstraintWithTarget forInvokeInterface(DexMethod method, DexType invocationContext) {
     DexMethod lookup = graphLense.lookupMethod(method);
     return forVirtualInvoke(
-        lookup, appView.appInfo().lookupInterfaceTargets(lookup), invocationContext);
+        lookup,
+        appView
+            .appInfo()
+            .resolveMethodOnInterface(lookup.holder, lookup)
+            .lookupInterfaceTargets(appView.appInfo()),
+        invocationContext);
   }
 
   public ConstraintWithTarget forInvokeMultiNewArray(DexType type, DexType invocationContext) {
@@ -192,7 +197,12 @@ public class InliningConstraints {
   public ConstraintWithTarget forInvokeVirtual(DexMethod method, DexType invocationContext) {
     DexMethod lookup = graphLense.lookupMethod(method);
     return forVirtualInvoke(
-        lookup, appView.appInfo().lookupVirtualTargets(lookup), invocationContext);
+        lookup,
+        appView
+            .appInfo()
+            .resolveMethodOnClass(lookup.holder, lookup)
+            .lookupVirtualTargets(appView.appInfo()),
+        invocationContext);
   }
 
   public ConstraintWithTarget forJumpInstruction() {

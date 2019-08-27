@@ -14,6 +14,7 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.graph.AppInfo.ResolutionResult;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -176,11 +177,11 @@ public class VirtualOverrideOfStaticMethodWithVirtualParentTest extends AsmTestB
 
   @Test
   public void lookupVirtualTargets() {
-    DexEncodedMethod resolved =
-        appInfo.resolveMethod(methodOnB.holder, methodOnB).asResultOfResolve();
+    ResolutionResult resolutionResult = appInfo.resolveMethod(methodOnB.holder, methodOnB);
+    DexEncodedMethod resolved = resolutionResult.asResultOfResolve();
     assertEquals(methodOnA, resolved.method);
     // See comment in VirtualOverrideOfPrivateStaticMethodTest.lookupVirtualTargets().
-    Set<DexEncodedMethod> targets = appInfo.lookupVirtualTargets(methodOnB);
+    Set<DexEncodedMethod> targets = resolutionResult.lookupVirtualTargets(appInfo);
     assertTrue("Expected " + methodOnA, targets.stream().anyMatch(m -> m.method == methodOnA));
     assertTrue("Expected " + methodOnC, targets.stream().anyMatch(m -> m.method == methodOnC));
   }

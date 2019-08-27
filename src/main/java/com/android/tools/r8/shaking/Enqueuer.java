@@ -1623,12 +1623,11 @@ public class Enqueuer {
       return;
     }
 
-    // Lookup the possible targets starting from the declared type.
     assert interfaceInvoke == holder.isInterface();
     Set<DexEncodedMethod> possibleTargets =
         holder.isInterface()
-            ? appInfo.lookupInterfaceTargets(method)
-            : appInfo.lookupVirtualTargets(method);
+            ? resolutionTarget.lookupInterfaceTargets(appInfo)
+            : resolutionTarget.lookupVirtualTargets(appInfo);
     if (possibleTargets == null || possibleTargets.isEmpty()) {
       return;
     }

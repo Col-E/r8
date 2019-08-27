@@ -1855,5 +1855,4 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     checkIfObsolete();
     consumer.accept(this);
   }
-
 }

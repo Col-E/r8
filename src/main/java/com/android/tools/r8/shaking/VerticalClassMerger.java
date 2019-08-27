@@ -753,7 +753,10 @@ public class VerticalClassMerger {
       //   }
       for (DexEncodedMethod method : defaultMethods) {
         // Conservatively find all possible targets for this method.
-        Set<DexEncodedMethod> interfaceTargets = appInfo.lookupInterfaceTargets(method.method);
+        Set<DexEncodedMethod> interfaceTargets =
+            appInfo
+                .resolveMethodOnInterface(method.method.holder, method.method)
+                .lookupInterfaceTargets(appInfo);
 
         // If [method] is not even an interface-target, then we can safely merge it. Otherwise we
         // need to check for a conflict.

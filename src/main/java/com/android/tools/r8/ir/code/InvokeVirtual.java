@@ -103,7 +103,11 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
   @Override
   public Collection<DexEncodedMethod> lookupTargets(
       AppView<? extends AppInfoWithSubtyping> appView, DexType invocationContext) {
-    return appView.appInfo().lookupVirtualTargets(getInvokedMethod());
+    DexMethod method = getInvokedMethod();
+    return appView
+        .appInfo()
+        .resolveMethodOnClass(method.holder, method)
+        .lookupVirtualTargets(appView.appInfo());
   }
 
   @Override

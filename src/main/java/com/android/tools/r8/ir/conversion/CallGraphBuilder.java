@@ -189,8 +189,14 @@ public class CallGraphBuilder {
               target,
               method ->
                   type == Type.INTERFACE
-                      ? appView.appInfo().lookupInterfaceTargets(method)
-                      : appView.appInfo().lookupVirtualTargets(method));
+                      ? appView
+                          .appInfo()
+                          .resolveMethodOnInterface(method.holder, method)
+                          .lookupInterfaceTargets(appView.appInfo())
+                      : appView
+                          .appInfo()
+                          .resolveMethodOnClass(method.holder, method)
+                          .lookupVirtualTargets(appView.appInfo()));
       if (possibleTargets != null) {
         boolean likelySpuriousCallEdge =
             possibleTargets.size() >= appView.options().callGraphLikelySpuriousCallEdgeThreshold;

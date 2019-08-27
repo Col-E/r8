@@ -254,43 +254,6 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
     return true;
   }
 
-  // For mapping invoke virtual instruction to target methods.
-  public Set<DexEncodedMethod> lookupVirtualTargets(DexMethod method) {
-    assert checkIfObsolete();
-    if (method.holder.isArrayType()) {
-      // For javac output this will only be clone(), but in general the methods from Object can
-      // be invoked with an array type holder.
-      return null;
-    }
-    DexClass root = definitionFor(method.holder);
-    if (root == null) {
-      // type specified in method does not have a materialized class.
-      return null;
-    }
-    ResolutionResult topTargets = resolveMethodOnClass(method.holder, method);
-    if (topTargets.asResultOfResolve() == null) {
-      // This will fail at runtime.
-      return null;
-    }
-    // First add the target for receiver type method.type.
-    Set<DexEncodedMethod> result = new HashSet<>();
-    topTargets.forEachTarget(result::add);
-    // Add all matching targets from the subclass hierarchy.
-    for (DexType type : subtypes(method.holder)) {
-      DexClass clazz = definitionFor(type);
-      if (!clazz.isInterface()) {
-        ResolutionResult methods = resolveMethodOnClass(type, method);
-        methods.forEachTarget(
-            target -> {
-              if (target.isVirtualMethod()) {
-                result.add(target);
-              }
-            });
-      }
-    }
-    return result;
-  }
-
   /**
    * Lookup super method following the super chain from the holder of {@code method}.
    *
@@ -361,76 +324,6 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
       }
     }
     return false;
-  }
-
-  // For mapping invoke interface instruction to target methods.
-  public Set<DexEncodedMethod> lookupInterfaceTargets(DexMethod method) {
-    assert checkIfObsolete();
-    // First check that there is a target for this invoke-interface to hit. If there is none,
-    // this will fail at runtime.
-    ResolutionResult topTarget = resolveMethodOnInterface(method.holder, method);
-    if (topTarget.asResultOfResolve() == null) {
-      return null;
-    }
-
-    Set<DexEncodedMethod> result = new HashSet<>();
-    if (topTarget.hasSingleTarget()) {
-      // Add default interface methods to the list of targets.
-      //
-      // This helps to make sure we take into account synthesized lambda classes
-      // that we are not aware of. Like in the following example, we know that all
-      // classes, XX in this case, override B::bar(), but there are also synthesized
-      // classes for lambda which don't, so we still need default method to be live.
-      //
-      //   public static void main(String[] args) {
-      //     X x = () -> {};
-      //     x.bar();
-      //   }
-      //
-      //   interface X {
-      //     void foo();
-      //     default void bar() { }
-      //   }
-      //
-      //   class XX implements X {
-      //     public void foo() { }
-      //     public void bar() { }
-      //   }
-      //
-      DexEncodedMethod singleTarget = topTarget.asSingleTarget();
-      if (singleTarget.getCode() != null && hasAnyInstantiatedLambdas(singleTarget.method.holder)) {
-        result.add(singleTarget);
-      }
-    }
-
-    Consumer<DexEncodedMethod> addIfNotAbstract =
-        m -> {
-          if (!m.accessFlags.isAbstract()) {
-            result.add(m);
-          }
-        };
-    // Default methods are looked up when looking at a specific subtype that does not override them.
-    // Otherwise, we would look up default methods that are actually never used. However, we have to
-    // add bridge methods, otherwise we can remove a bridge that will be used.
-    Consumer<DexEncodedMethod> addIfNotAbstractAndBridge =
-        m -> {
-          if (!m.accessFlags.isAbstract() && m.accessFlags.isBridge()) {
-            result.add(m);
-          }
-        };
-
-    Set<DexType> set = subtypes(method.holder);
-    for (DexType type : set) {
-      DexClass clazz = definitionFor(type);
-      if (clazz.isInterface()) {
-        ResolutionResult targetMethods = resolveMethodOnInterface(type, method);
-        targetMethods.forEachTarget(addIfNotAbstractAndBridge);
-      } else {
-        ResolutionResult targetMethods = resolveMethodOnClass(type, method);
-        targetMethods.forEachTarget(addIfNotAbstract);
-      }
-    }
-    return result;
   }
 
   /**

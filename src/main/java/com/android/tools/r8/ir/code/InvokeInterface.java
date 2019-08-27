@@ -100,7 +100,11 @@ public class InvokeInterface extends InvokeMethodWithReceiver {
   @Override
   public Collection<DexEncodedMethod> lookupTargets(
       AppView<? extends AppInfoWithSubtyping> appView, DexType invocationContext) {
-    return appView.appInfo().lookupInterfaceTargets(getInvokedMethod());
+    DexMethod method = getInvokedMethod();
+    return appView
+        .appInfo()
+        .resolveMethodOnInterface(method.holder, method)
+        .lookupInterfaceTargets(appView.appInfo());
   }
 
   @Override
