@@ -1615,22 +1615,24 @@ public class Enqueuer {
       reportMissingClass(method.holder);
       return;
     }
-    DexEncodedMethod topTarget =
-        interfaceInvoke
-            ? appInfo.resolveMethodOnInterface(method.holder, method).asResultOfResolve()
-            : appInfo.resolveMethodOnClass(method.holder, method).asResultOfResolve();
-    if (topTarget == null) {
-      reportMissingMethod(method);
+
+    DexEncodedMethod resolutionTarget =
+        findAndMarkResolutionTarget(method, interfaceInvoke, reason);
+    if (resolutionTarget == null) {
+      // There is no valid resolution, so any call will lead to a runtime exception.
       return;
     }
-    // We have to mark this as targeted, as even if this specific instance never becomes live, we
-    // need at least an abstract version of it so that we have a target for the corresponding
-    // invoke.
-    markMethodAsTargeted(topTarget, reason);
+
+    // Lookup the possible targets starting from the declared type.
+    assert interfaceInvoke == holder.isInterface();
     Set<DexEncodedMethod> possibleTargets =
-        interfaceInvoke
+        holder.isInterface()
             ? appInfo.lookupInterfaceTargets(method)
             : appInfo.lookupVirtualTargets(method);
+    if (possibleTargets == null || possibleTargets.isEmpty()) {
+      return;
+    }
+    KeepReason overridesReason = KeepReason.overridesMethod(resolutionTarget);
     for (DexEncodedMethod encodedPossibleTarget : possibleTargets) {
       DexMethod possibleTarget = encodedPossibleTarget.method;
       DexClass clazz = appView.definitionFor(possibleTarget.holder);
@@ -1664,7 +1666,7 @@ public class Enqueuer {
                 possibleTarget.holder, ignore -> SetWithStoredReason.create());
         if (!reachable.add(
             encodedPossibleTarget,
-            topTarget == encodedPossibleTarget ? reason : KeepReason.overridesMethod(topTarget))) {
+            resolutionTarget == encodedPossibleTarget ? reason : overridesReason)) {
           continue;
         }
       }
@@ -1709,6 +1711,70 @@ public class Enqueuer {
 
     if (possibleTargetsConsumer != null) {
       possibleTargets.forEach(possibleTargetsConsumer);
+    }
+  }
+
+  private DexEncodedMethod findAndMarkResolutionTarget(
+      DexMethod method, boolean interfaceInvoke, KeepReason reason) {
+    DexEncodedMethod resolutionTarget =
+        interfaceInvoke
+            ? appInfo.resolveMethodOnInterface(method.holder, method).asResultOfResolve()
+            : appInfo.resolveMethodOnClass(method.holder, method).asResultOfResolve();
+    if (resolutionTarget == null) {
+      reportMissingMethod(method);
+      return null;
+    }
+
+    DexClass resolutionTargetClass = appInfo.definitionFor(resolutionTarget.method.holder);
+    if (resolutionTargetClass == null) {
+      reportMissingClass(resolutionTarget.method.holder);
+      return null;
+    }
+
+    // We have to mark this as targeted, as even if this specific instance never becomes live, we
+    // need at least an abstract version of it so that we have a target for the corresponding
+    // invoke. This also ensures preserving the errors detailed below.
+    if (resolutionTargetClass.isProgramClass()) {
+      markMethodAsTargeted(resolutionTarget, reason);
+    }
+
+    // If the method of an invoke-virtual instruction resolves to a private or static method, then
+    // the invoke fails with an IllegalAccessError or IncompatibleClassChangeError, respectively.
+    //
+    // Unfortunately the above is not always the case:
+    // Some Art VMs do not fail with an IllegalAccessError or IncompatibleClassChangeError if the
+    // method of an invoke-virtual instruction resolves to a private or static method, but instead
+    // ignores private and static methods during resolution (see also NonVirtualOverrideTest).
+    // Therefore, we need to continue resolution from the super type until we find a virtual method.
+    if (resolutionTarget.isPrivateMethod() || resolutionTarget.isStatic()) {
+      assert !interfaceInvoke || resolutionTargetClass.isInterface();
+      markPossiblyValidTarget(method, reason, resolutionTarget, resolutionTargetClass);
+    }
+
+    return resolutionTarget;
+  }
+
+  private void markPossiblyValidTarget(
+      DexMethod method,
+      KeepReason reason,
+      DexEncodedMethod resolutionTarget,
+      DexClass resolutionTargetClass) {
+    while (resolutionTarget.isPrivateMethod() || resolutionTarget.isStatic()) {
+      resolutionTarget =
+          (resolutionTargetClass.isInterface()
+                  ? appInfo.resolveMethodOnInterface(resolutionTargetClass.superType, method)
+                  : appInfo.resolveMethodOnClass(resolutionTargetClass.superType, method))
+              .asResultOfResolve();
+      if (resolutionTarget == null) {
+        return;
+      }
+      resolutionTargetClass = appInfo.definitionFor(resolutionTarget.method.holder);
+      if (resolutionTargetClass == null) {
+        return;
+      }
+    }
+    if (resolutionTargetClass.isProgramClass()) {
+      markMethodAsTargeted(resolutionTarget, reason);
     }
   }
 

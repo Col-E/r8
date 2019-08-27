@@ -8,10 +8,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.AsmTestBase;
-import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -187,27 +187,22 @@ public class VirtualOverrideOfStaticMethodWithVirtualParentTest extends AsmTestB
 
   @Test
   public void testJvmAndD8() throws Exception {
+    TestRunResult<?> runResult;
     if (parameters.isCfRuntime()) {
-      testForJvm()
-          .addProgramClasses(CLASSES)
-          .addProgramClassFileData(DUMPS)
-          .run(parameters.getRuntime(), Main.class)
-          .assertFailureWithErrorThatMatches(containsString(expectedRuntimeError()));
+      runResult =
+          testForJvm()
+              .addProgramClasses(CLASSES)
+              .addProgramClassFileData(DUMPS)
+              .run(parameters.getRuntime(), Main.class);
     } else {
-      D8TestRunResult runResult =
+      runResult =
           testForD8()
               .addProgramClasses(CLASSES)
               .addProgramClassFileData(DUMPS)
               .setMinApi(parameters.getApiLevel())
               .run(parameters.getRuntime(), Main.class);
-      if (expectedToIncorrectlyRun(parameters.getRuntime())) {
-        // Do to incorrect resolution, some Art VMs will resolve to Base.f (ignoring A.f) and thus
-        // virtual dispatch to C.f.
-        runResult.assertSuccessWithOutputLines("Called C.f");
-      } else {
-        runResult.assertFailureWithErrorThatMatches(containsString(expectedRuntimeError()));
-      }
     }
+    checkResult(runResult);
   }
 
   @Test
@@ -219,9 +214,17 @@ public class VirtualOverrideOfStaticMethodWithVirtualParentTest extends AsmTestB
             .addKeepMainRule(Main.class)
             .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), Main.class);
-    // TODO(b/140013075): Compiling with R8 will remove Base.f, thus causing all the Art VMs to run
-    // with the "correct" yet unexpected behavior.
-    runResult.assertFailureWithErrorThatMatches(containsString(expectedRuntimeError()));
+    checkResult(runResult);
+  }
+
+  private void checkResult(TestRunResult<?> runResult) {
+    if (expectedToIncorrectlyRun(parameters.getRuntime())) {
+      // Do to incorrect resolution, some Art VMs will resolve to Base.f (ignoring A.f) and thus
+      // virtual dispatch to C.f. See b/140013075.
+      runResult.assertSuccessWithOutputLines("Called C.f");
+    } else {
+      runResult.assertFailureWithErrorThatMatches(containsString(expectedRuntimeError()));
+    }
   }
 
   private boolean expectedToIncorrectlyRun(TestRuntime runtime) {

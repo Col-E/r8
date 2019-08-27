@@ -12,11 +12,10 @@ import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
-import com.android.tools.r8.TestRuntime;
-import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Set;
@@ -31,24 +30,18 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 @RunWith(Parameterized.class)
-public class VirtualOverrideOfPrivateStaticMethodWithVirtualParentTest extends AsmTestBase {
+public class VirtualOverrideOfStaticMethodWithVirtualParentInterfaceTest extends AsmTestBase {
 
-  public interface I {
+  public interface A {
     default void f() {}
   }
 
-  public static class Base {
-    private // Made public using ASM.
-    void f() {}
+  public interface B extends A {
+    // Made static using ASM.
+    /*static*/ default void f() {}
   }
 
-  public static class A extends Base {
-    private static void f() {}
-  }
-
-  public static class B extends A implements I {}
-
-  public static class C extends B {
+  public static class C implements B {
     public void f() {
       System.out.println("Called C.f");
     }
@@ -62,10 +55,10 @@ public class VirtualOverrideOfPrivateStaticMethodWithVirtualParentTest extends A
     }
   }
 
-  public static class BaseDump implements Opcodes {
+  public static class BDump implements Opcodes {
 
     static String prefix(String suffix) {
-      return VirtualOverrideOfPrivateStaticMethodWithVirtualParentTest.class
+      return VirtualOverrideOfStaticMethodWithVirtualParentInterfaceTest.class
               .getTypeName()
               .replace('.', '/')
           + suffix;
@@ -73,21 +66,16 @@ public class VirtualOverrideOfPrivateStaticMethodWithVirtualParentTest extends A
 
     public static byte[] dump() {
       ClassWriter cw = new ClassWriter(0);
-      MethodVisitor mv;
-      cw.visit(V1_8, ACC_PUBLIC | ACC_SUPER, prefix("$Base"), null, "java/lang/Object", null);
-      cw.visitSource("VirtualOverrideOfPrivateStaticMethodWithVirtualParentTest.java", null);
+      cw.visit(
+          V1_8,
+          ACC_PUBLIC | ACC_ABSTRACT | ACC_INTERFACE,
+          prefix("$B"),
+          null,
+          "java/lang/Object",
+          null);
       {
-        mv = cw.visitMethod(ACC_PUBLIC, "<init>", "()V", null, null);
-        mv.visitCode();
-        mv.visitVarInsn(ALOAD, 0);
-        mv.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
-        mv.visitInsn(RETURN);
-        mv.visitMaxs(1, 1);
-        mv.visitEnd();
-      }
-      {
-        // Changed ACC_PRIVATE to ACC_PUBLIC
-        mv = cw.visitMethod(ACC_PUBLIC, "f", "()V", null, null);
+        // Added ACC_STATIC
+        MethodVisitor mv = cw.visitMethod(ACC_PUBLIC | ACC_STATIC, "f", "()V", null, null);
         mv.visitCode();
         mv.visitInsn(RETURN);
         mv.visitMaxs(0, 1);
@@ -98,10 +86,9 @@ public class VirtualOverrideOfPrivateStaticMethodWithVirtualParentTest extends A
     }
   }
 
-  public static List<Class<?>> CLASSES =
-      ImmutableList.of(A.class, B.class, C.class, I.class, Main.class);
+  public static List<Class<?>> CLASSES = ImmutableList.of(A.class, C.class, Main.class);
 
-  public static List<byte[]> DUMPS = ImmutableList.of(BaseDump.dump());
+  public static List<byte[]> DUMPS = ImmutableList.of(BDump.dump());
 
   private static AppInfoWithLiveness appInfo;
 
@@ -126,7 +113,7 @@ public class VirtualOverrideOfPrivateStaticMethodWithVirtualParentTest extends A
   private final DexMethod methodOnB = buildMethod(B.class, "f");
   private final DexMethod methodOnC = buildMethod(C.class, "f");
 
-  public VirtualOverrideOfPrivateStaticMethodWithVirtualParentTest(TestParameters parameters) {
+  public VirtualOverrideOfStaticMethodWithVirtualParentInterfaceTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
@@ -134,21 +121,22 @@ public class VirtualOverrideOfPrivateStaticMethodWithVirtualParentTest extends A
   public void lookupSingleTarget() {
     DexEncodedMethod resolved =
         appInfo.resolveMethod(methodOnB.holder, methodOnB).asResultOfResolve();
-    assertEquals(methodOnA, resolved.method);
+    assertEquals(methodOnB, resolved.method);
     DexEncodedMethod singleVirtualTarget =
-        appInfo.lookupSingleVirtualTarget(methodOnB, methodOnB.holder);
-    Assert.assertNull(singleVirtualTarget);
+        appInfo.lookupSingleInterfaceTarget(methodOnB, methodOnB.holder);
+    // TODO(b/140088797): This should not conclude a single target.
+    Assert.assertNotNull(singleVirtualTarget);
   }
 
   @Test
   public void lookupVirtualTargets() {
     DexEncodedMethod resolved =
-        appInfo.resolveMethod(methodOnB.holder, methodOnB).asResultOfResolve();
-    assertEquals(methodOnA, resolved.method);
-    // See comment in VirtualOverrideOfPrivateStaticMethodTest.lookupVirtualTargets().
-    Set<DexEncodedMethod> targets = appInfo.lookupVirtualTargets(methodOnB);
-    assertTrue("Expected " + methodOnA, targets.stream().anyMatch(m -> m.method == methodOnA));
+        appInfo.resolveMethodOnInterface(methodOnB.holder, methodOnB).asResultOfResolve();
+    assertEquals(methodOnB, resolved.method);
+    Set<DexEncodedMethod> targets = appInfo.lookupInterfaceTargets(methodOnB);
+    // TODO(b/140088797): This should not conclude a single target.
     assertTrue("Expected " + methodOnC, targets.stream().anyMatch(m -> m.method == methodOnC));
+    assertEquals(1, targets.size());
   }
 
   @Test
@@ -179,31 +167,23 @@ public class VirtualOverrideOfPrivateStaticMethodWithVirtualParentTest extends A
             .addProgramClassFileData(DUMPS)
             .addKeepMainRule(Main.class)
             .setMinApi(parameters.getApiLevel())
+            // TODO(b/140088797): Once fixed, parameterize on the merger as it appears to fail.
+            .addOptionsModification(o -> o.enableVerticalClassMerging = false)
             .run(parameters.getRuntime(), Main.class);
-    checkResult(runResult);
+    // TODO(b/140088797): Due to the single target lookup R8 incorrectly inlines the call C.f().
+    runResult.assertSuccessWithOutputLines("Called C.f");
   }
 
   private void checkResult(TestRunResult<?> runResult) {
-    if (expectedToIncorrectlyRun(parameters.getRuntime())) {
-      // Do to incorrect resolution, some Art VMs will resolve to Base.f (ignoring A.f) and thus
-      // virtual dispatch to C.f. See b/140013075.
-      runResult.assertSuccessWithOutputLines("Called C.f");
-    } else {
-      runResult.assertFailureWithErrorThatMatches(containsString(expectedRuntimeError()));
-    }
-  }
-
-  private boolean expectedToIncorrectlyRun(TestRuntime runtime) {
-    return runtime.isDex()
-        && runtime.asDex().getVm().isNewerThan(DexVm.ART_4_4_4_HOST)
-        && runtime.asDex().getVm().isOlderThanOrEqual(DexVm.ART_7_0_0_HOST);
+    runResult.assertFailureWithErrorThatMatches(containsString(expectedRuntimeError()));
   }
 
   private String expectedRuntimeError() {
     if (parameters.isDexRuntime()
-        && parameters.getRuntime().asDex().getVm().isOlderThanOrEqual(DexVm.ART_4_4_4_HOST)) {
-      return "IncompatibleClassChangeError";
+        && parameters.getApiLevel().getLevel() < AndroidApiLevel.N.getLevel()) {
+      // When desugaring default interface methods the error will be NoSuchMethodError.
+      return "NoSuchMethodError";
     }
-    return "IllegalAccessError";
+    return "IncompatibleClassChangeError";
   }
 }
