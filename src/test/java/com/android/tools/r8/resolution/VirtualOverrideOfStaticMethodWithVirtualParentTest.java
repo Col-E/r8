@@ -219,11 +219,9 @@ public class VirtualOverrideOfStaticMethodWithVirtualParentTest extends AsmTestB
             .addKeepMainRule(Main.class)
             .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), Main.class);
-    // TODO(b/139918381): The result of R8 contains invalid code, thus most VMs fail class loading.
-    // Some Art VMs fail too, but not in a consistent manner, so not encoding that here.
-    if (parameters.isCfRuntime()) {
-      runResult.assertFailureWithErrorThatMatches(containsString("ClassFormatError"));
-    }
+    // TODO(b/140013075): Compiling with R8 will remove Base.f, thus causing all the Art VMs to run
+    // with the "correct" yet unexpected behavior.
+    runResult.assertFailureWithErrorThatMatches(containsString(expectedRuntimeError()));
   }
 
   private boolean expectedToIncorrectlyRun(TestRuntime runtime) {

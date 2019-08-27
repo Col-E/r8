@@ -593,6 +593,8 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     // 'final' wants this to be *not* overridden, while 'abstract' wants this to be implemented in
     // a subtype, i.e., self contradict.
     assert !accessFlags.isFinal();
+    // static abstract is an invalid access combination and we should never create that.
+    assert !accessFlags.isStatic();
     accessFlags.setAbstract();
     this.code = null;
     return this;
