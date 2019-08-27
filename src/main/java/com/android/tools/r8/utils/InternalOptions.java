@@ -199,6 +199,7 @@ public class InternalOptions {
       System.getProperty("com.android.tools.r8.disableInliningOfInvokesWithDefinitelyNullReceivers")
           == null;
   public boolean enableInliningOfInvokesWithNullableReceivers = true;
+  public boolean disableInliningOfLibraryMethodOverrides = true;
   public boolean enableClassInlining = true;
   public boolean enableClassStaticizer = true;
   public boolean enableInitializedClassesAnalysis = true;

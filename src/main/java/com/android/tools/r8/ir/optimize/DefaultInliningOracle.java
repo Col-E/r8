@@ -76,11 +76,10 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
   }
 
   private DexEncodedMethod validateCandidate(InvokeMethod invoke, DexMethod invocationContext) {
-    DexEncodedMethod candidate =
-        invoke.lookupSingleTarget(inliner.appView, invocationContext.holder);
+    DexEncodedMethod candidate = invoke.lookupSingleTarget(appView, invocationContext.holder);
     if ((candidate == null)
         || (candidate.getCode() == null)
-        || inliner.appView.definitionFor(candidate.method.holder).isNotProgramClass()) {
+        || appView.definitionFor(candidate.method.holder).isNotProgramClass()) {
       if (info != null) {
         info.exclude(invoke, "No inlinee");
       }
@@ -100,16 +99,17 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
 
   private Reason computeInliningReason(DexEncodedMethod target) {
     if (target.getOptimizationInfo().forceInline()
-        || (inliner.appView.appInfo().hasLiveness()
-            && inliner.appView.withLiveness().appInfo().forceInline.contains(target.method))) {
+        || (appView.appInfo().hasLiveness()
+            && appView.withLiveness().appInfo().forceInline.contains(target.method))) {
       assert !appView.appInfo().neverInline.contains(target.method);
       return Reason.FORCE;
     }
-    if (inliner.appView.appInfo().hasLiveness()
-        && inliner.appView.withLiveness().appInfo().alwaysInline.contains(target.method)) {
+    if (appView.appInfo().hasLiveness()
+        && appView.withLiveness().appInfo().alwaysInline.contains(target.method)) {
       return Reason.ALWAYS;
     }
-    if (target.isLibraryMethodOverride().isTrue()) {
+    if (appView.options().disableInliningOfLibraryMethodOverrides
+        && target.isLibraryMethodOverride().isTrue()) {
       // This method will always have an implicit call site from the library, so we won't be able to
       // remove it after inlining even if we have single or dual call site information from the
       // program.
@@ -140,7 +140,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     if (appView.appInfo().isSubtype(method.method.holder, targetHolder)) {
       return true;
     }
-    DexClass clazz = inliner.appView.definitionFor(targetHolder);
+    DexClass clazz = appView.definitionFor(targetHolder);
     assert clazz != null;
     if (target.getOptimizationInfo().triggersClassInitBeforeAnySideEffect()) {
       return true;
@@ -226,7 +226,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       return false;
     }
 
-    DexClass holder = inliner.appView.definitionFor(candidate.method.holder);
+    DexClass holder = appView.definitionFor(candidate.method.holder);
 
     if (holder.isInterface()) {
       // Art978_virtual_interfaceTest correctly expects an IncompatibleClassChangeError exception at
@@ -335,7 +335,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     }
 
     Reason reason = computeInliningReason(candidate);
-    if (!candidate.isInliningCandidate(method, reason, inliner.appView.appInfo())) {
+    if (!candidate.isInliningCandidate(method, reason, appView.appInfo())) {
       // Abort inlining attempt if the single target is not an inlining candidate.
       if (info != null) {
         info.exclude(invoke, "target is not identified for inlining");
@@ -409,7 +409,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
 
     Reason reason = computeInliningReason(candidate);
     // Determine if this should be inlined no matter how big it is.
-    if (!candidate.isInliningCandidate(method, reason, inliner.appView.appInfo())) {
+    if (!candidate.isInliningCandidate(method, reason, appView.appInfo())) {
       // Abort inlining attempt if the single target is not an inlining candidate.
       if (info != null) {
         info.exclude(invoke, "target is not identified for inlining");

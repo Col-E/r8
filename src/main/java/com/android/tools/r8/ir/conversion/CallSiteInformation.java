@@ -54,8 +54,12 @@ public abstract class CallSiteInformation {
 
         // For non-pinned methods and methods that override library methods we do not know the exact
         // number of call sites.
-        if (appView.appInfo().isPinned(method)
-            || encodedMethod.isLibraryMethodOverride().isTrue()) {
+        if (appView.appInfo().isPinned(method)) {
+          continue;
+        }
+
+        if (appView.options().disableInliningOfLibraryMethodOverrides
+            && encodedMethod.isLibraryMethodOverride().isTrue()) {
           continue;
         }
 
