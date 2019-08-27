@@ -95,6 +95,25 @@ def generate_library_licenses():
   licenses = []
   license_url_prefix = 'licenseUrl: '
   license_urls = []
+  # The ./LIBRARY-LICENSE file is a simple yaml file, which for each dependency
+  # has the following information:
+  #
+  # - artifact: <maven artifact>  // in the form <group-id>:<artifact-id>:+
+  #   name: <name of dependency>
+  #   copyrightHolder: <name of copyright holder>
+  #   license: <license name>
+  #   licenseUrl: <url to license test>
+  #
+  # E.g. for Guava:
+  #
+  # - artifact: com.google.guava:guava:+
+  #   name: Guava Google Core Libraries for Java
+  #   copyrightHolder: The Guava Authors
+  #   license: The Apache Software License, Version 2.0
+  #   licenseUrl: http://www.apache.org/licenses/LICENSE-2.0.txt
+  #
+  # This file should always be up to date as the build will fail if it
+  # is does not have information for all dependencies.
   with open('LIBRARY-LICENSE', 'r') as file:
     name = None
     url = None
