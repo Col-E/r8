@@ -25,6 +25,7 @@ import com.android.tools.r8.graph.FieldAccessInfoCollectionImpl;
 import com.android.tools.r8.graph.FieldAccessInfoImpl;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.PresortedComparable;
+import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.optimize.NestUtils;
 import com.android.tools.r8.utils.CollectionUtils;

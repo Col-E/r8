@@ -36,7 +36,6 @@ import com.android.tools.r8.dex.MethodToCodeObjectMapping;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfo.ResolutionResult;
 import com.android.tools.r8.graph.ParameterUsagesInfo.ParameterUsage;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.IRCode;
