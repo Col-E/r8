@@ -97,7 +97,7 @@ public class ProguardMapSupplier {
     }
     builder.append("# " + MARKER_KEY_PG_MAP_ID + ": " + proguardMapId + "\n");
     // Turn off linting of the mapping file in some build systems.
-    builder.append("# common_typos_disable");
+    builder.append("# common_typos_disable" + "\n");
     builder.append(body);
 
     return new ProguardMapAndId(builder.toString(), proguardMapId);
