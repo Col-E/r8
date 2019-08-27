@@ -12,6 +12,7 @@ import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
+import com.android.tools.r8.graph.AppInfo.ResolutionResult;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -130,10 +131,10 @@ public class VirtualOverrideOfStaticMethodWithVirtualParentInterfaceTest extends
 
   @Test
   public void lookupVirtualTargets() {
-    DexEncodedMethod resolved =
-        appInfo.resolveMethodOnInterface(methodOnB.holder, methodOnB).asResultOfResolve();
+    ResolutionResult resolutionResult = appInfo.resolveMethodOnInterface(methodOnB.holder, methodOnB);
+    DexEncodedMethod resolved = resolutionResult.asResultOfResolve();
     assertEquals(methodOnB, resolved.method);
-    Set<DexEncodedMethod> targets = appInfo.lookupInterfaceTargets(methodOnB);
+    Set<DexEncodedMethod> targets = resolutionResult.lookupInterfaceTargets(appInfo);
     // TODO(b/140088797): This should not conclude a single target.
     assertTrue("Expected " + methodOnC, targets.stream().anyMatch(m -> m.method == methodOnC));
     assertEquals(1, targets.size());
