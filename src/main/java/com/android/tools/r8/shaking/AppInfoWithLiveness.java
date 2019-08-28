@@ -1019,7 +1019,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     }
     // First check that there is a target for this invoke-interface to hit. If there is none,
     // this will fail at runtime.
-    ResolutionResult topTarget = resolveMethodOnInterface(method.holder, method);
+    ResolutionResult topTarget = resolveMethodOnInterface(holder, method);
     if (topTarget.asResultOfResolve() == null) {
       return null;
     }
@@ -1049,7 +1049,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
         // override them, so we ignore interface methods here. Otherwise, we would look up
         // default methods that are factually never used.
       } else if (!clazz.accessFlags.isAbstract()) {
-        ResolutionResult resolutionResult = resolveMethodOnClass(type, method);
+        ResolutionResult resolutionResult = resolveMethodOnClass(clazz, method);
         if (resolutionResult.hasSingleTarget()) {
           if ((result != null) && (result != resolutionResult.asSingleTarget())) {
             return null;

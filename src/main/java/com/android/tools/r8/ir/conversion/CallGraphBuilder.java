@@ -184,19 +184,17 @@ public class CallGraphBuilder {
         }
       }
 
+      boolean isInterface = type == Type.INTERFACE;
       Set<DexEncodedMethod> possibleTargets =
           possibleTargetsCache.computeIfAbsent(
               target,
-              method ->
-                  type == Type.INTERFACE
-                      ? appView
-                          .appInfo()
-                          .resolveMethodOnInterface(method.holder, method)
-                          .lookupInterfaceTargets(appView.appInfo())
-                      : appView
-                          .appInfo()
-                          .resolveMethodOnClass(method.holder, method)
-                          .lookupVirtualTargets(appView.appInfo()));
+              method -> {
+                ResolutionResult resolution =
+                    appView.appInfo().resolveMethod(method.holder, method, isInterface);
+                return isInterface
+                    ? resolution.lookupInterfaceTargets(appView.appInfo())
+                    : resolution.lookupVirtualTargets(appView.appInfo());
+              });
       if (possibleTargets != null) {
         boolean likelySpuriousCallEdge =
             possibleTargets.size() >= appView.options().callGraphLikelySpuriousCallEdgeThreshold;

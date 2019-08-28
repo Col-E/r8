@@ -245,12 +245,12 @@ public class AppInfo implements DexDefinitionSupplier {
 
   /**
    * Implements resolution of a method descriptor against a target type.
-   * <p>
-   * This method will query the definition of the holder to decide on which resolution to use. If
+   *
+   * <p>This method will query the definition of the holder to decide on which resolution to use. If
    * the holder is an interface, it delegates to {@link #resolveMethodOnInterface(DexType,
    * DexMethod)}, otherwise {@link #resolveMethodOnClass(DexType, DexMethod)} is used.
-   * <p>
-   * This is to overcome the shortcoming of the DEX file format that does not allow to encode the
+   *
+   * <p>This is to overcome the shortcoming of the DEX file format that does not allow to encode the
    * kind of a method reference.
    */
   public ResolutionResult resolveMethod(DexType holder, DexMethod method) {
@@ -263,18 +263,36 @@ public class AppInfo implements DexDefinitionSupplier {
       return ResolutionResult.EmptyResult.get();
     }
     return definition.isInterface()
+        ? resolveMethodOnInterface(definition, method)
+        : resolveMethodOnClass(definition, method);
+  }
+
+  /**
+   * Implements resolution of a method descriptor against a target type.
+   *
+   * <p>The boolean isInterface parameter denotes if the method reference is an interface method
+   * reference, and if so method resolution is done according to interface method resolution.
+   *
+   * @param holder Type at which to initiate the resolution.
+   * @param method Method descriptor for resolution (the field method.holder is ignored).
+   * @param isInterface Indicates if resolution is to be done according to class or interface.
+   * @return The result of resolution.
+   */
+  public ResolutionResult resolveMethod(DexType holder, DexMethod method, boolean isInterface) {
+    assert checkIfObsolete();
+    return isInterface
         ? resolveMethodOnInterface(holder, method)
         : resolveMethodOnClass(holder, method);
   }
 
   /**
    * Implements resolution of a method descriptor against an array type.
-   * <p>See <a href="https://docs.oracle.com/javase/specs/jls/se8/html/jls-10.html#jls-10.7">
-   * Section 10.7 of the Java Language Specification</a>.
-   * </p>
-   * All invokations will have target java.lang.Object except clone which has no target.
+   *
+   * <p>See <a href="https://docs.oracle.com/javase/specs/jls/se8/html/jls-10.html#jls-10.7">Section
+   * 10.7 of the Java Language Specification</a>. All invokations will have target java.lang.Object
+   * except clone which has no target.
    */
-  public ResolutionResult resolveMethodOnArray(DexType holder, DexMethod method) {
+  private ResolutionResult resolveMethodOnArray(DexType holder, DexMethod method) {
     assert checkIfObsolete();
     assert holder.isArrayType();
     if (method.name == dexItemFactory.cloneMethodName) {
@@ -305,6 +323,12 @@ public class AppInfo implements DexDefinitionSupplier {
     if (clazz == null || clazz.isInterface()) {
       return ResolutionResult.EmptyResult.get();
     }
+    return resolveMethodOnClass(clazz, method);
+  }
+
+  public ResolutionResult resolveMethodOnClass(DexClass clazz, DexMethod method) {
+    assert checkIfObsolete();
+    assert !clazz.isInterface();
     // Step 2:
     DexEncodedMethod singleTarget = resolveMethodOnClassStep2(clazz, method);
     if (singleTarget != null) {
@@ -425,6 +449,9 @@ public class AppInfo implements DexDefinitionSupplier {
    */
   public ResolutionResult resolveMethodOnInterface(DexType holder, DexMethod desc) {
     assert checkIfObsolete();
+    if (holder.isArrayType()) {
+      return ResolutionResult.EmptyResult.get();
+    }
     // Step 1: Lookup interface.
     DexClass definition = definitionFor(holder);
     // If the definition is not an interface, resolution fails with an ICCE. We just return the
@@ -432,6 +459,12 @@ public class AppInfo implements DexDefinitionSupplier {
     if (definition == null || !definition.isInterface()) {
       return ResolutionResult.EmptyResult.get();
     }
+    return resolveMethodOnInterface(definition, desc);
+  }
+
+  public ResolutionResult resolveMethodOnInterface(DexClass definition, DexMethod desc) {
+    assert checkIfObsolete();
+    assert definition.isInterface();
     // Step 2: Look for exact method on interface.
     DexEncodedMethod result = definition.lookupMethod(desc);
     if (result != null) {

@@ -1716,9 +1716,7 @@ public class Enqueuer {
   private DexEncodedMethod findAndMarkResolutionTarget(
       DexMethod method, boolean interfaceInvoke, KeepReason reason) {
     DexEncodedMethod resolutionTarget =
-        interfaceInvoke
-            ? appInfo.resolveMethodOnInterface(method.holder, method).asResultOfResolve()
-            : appInfo.resolveMethodOnClass(method.holder, method).asResultOfResolve();
+        appInfo.resolveMethod(method.holder, method, interfaceInvoke).asResultOfResolve();
     if (resolutionTarget == null) {
       reportMissingMethod(method);
       return null;
@@ -1760,9 +1758,9 @@ public class Enqueuer {
       DexClass resolutionTargetClass) {
     while (resolutionTarget.isPrivateMethod() || resolutionTarget.isStatic()) {
       resolutionTarget =
-          (resolutionTargetClass.isInterface()
-                  ? appInfo.resolveMethodOnInterface(resolutionTargetClass.superType, method)
-                  : appInfo.resolveMethodOnClass(resolutionTargetClass.superType, method))
+          appInfo
+              .resolveMethod(
+                  resolutionTargetClass.superType, method, resolutionTargetClass.isInterface())
               .asResultOfResolve();
       if (resolutionTarget == null) {
         return;

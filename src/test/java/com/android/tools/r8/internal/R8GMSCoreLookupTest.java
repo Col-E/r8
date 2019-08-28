@@ -60,17 +60,13 @@ public class R8GMSCoreLookupTest {
 
     // Check lookup targets with include method.
     Set<DexEncodedMethod> targets =
-        appInfo
-            .resolveMethodOnClass(method.method.holder, method.method)
-            .lookupVirtualTargets(appInfo);
+        appInfo.resolveMethodOnClass(clazz, method.method).lookupVirtualTargets(appInfo);
     assertTrue(targets.contains(method));
   }
 
   private void testInterfaceLookup(DexProgramClass clazz, DexEncodedMethod method) {
     Set<DexEncodedMethod> targets =
-        appInfo
-            .resolveMethodOnInterface(method.method.holder, method.method)
-            .lookupInterfaceTargets(appInfo);
+        appInfo.resolveMethodOnInterface(clazz, method.method).lookupInterfaceTargets(appInfo);
     if (appInfo.subtypes(method.method.holder).stream()
         .allMatch(t -> appInfo.definitionFor(t).isInterface())) {
       assertEquals(

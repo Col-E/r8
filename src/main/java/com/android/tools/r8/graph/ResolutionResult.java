@@ -33,7 +33,7 @@ public interface ResolutionResult {
     for (DexType type : appInfo.subtypes(method.holder)) {
       DexClass clazz = appInfo.definitionFor(type);
       if (!clazz.isInterface()) {
-        ResolutionResult methods = appInfo.resolveMethodOnClass(type, method);
+        ResolutionResult methods = appInfo.resolveMethodOnClass(clazz, method);
         methods.forEachTarget(
             target -> {
               if (target.isVirtualMethod()) {
@@ -102,10 +102,10 @@ public interface ResolutionResult {
     for (DexType type : set) {
       DexClass clazz = appInfo.definitionFor(type);
       if (clazz.isInterface()) {
-        ResolutionResult targetMethods = appInfo.resolveMethodOnInterface(type, method);
+        ResolutionResult targetMethods = appInfo.resolveMethodOnInterface(clazz, method);
         targetMethods.forEachTarget(addIfNotAbstractAndBridge);
       } else {
-        ResolutionResult targetMethods = appInfo.resolveMethodOnClass(type, method);
+        ResolutionResult targetMethods = appInfo.resolveMethodOnClass(clazz, method);
         targetMethods.forEachTarget(addIfNotAbstract);
       }
     }

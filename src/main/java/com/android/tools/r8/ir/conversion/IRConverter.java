@@ -1477,11 +1477,11 @@ public class IRConverter {
   private boolean hasNonTrivialFinalizeMethod(DexType type) {
     DexClass clazz = appView.definitionFor(type);
     if (clazz != null) {
-      if (clazz.isProgramClass()) {
+      if (clazz.isProgramClass() && !clazz.isInterface()) {
         ResolutionResult resolutionResult =
             appView
                 .appInfo()
-                .resolveMethodOnClass(type, appView.dexItemFactory().objectMethods.finalize);
+                .resolveMethodOnClass(clazz, appView.dexItemFactory().objectMethods.finalize);
         for (DexEncodedMethod target : resolutionResult.asListOfTargets()) {
           if (target.method != appView.dexItemFactory().objectMethods.finalize) {
             return true;
