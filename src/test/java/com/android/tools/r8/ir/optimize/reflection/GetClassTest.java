@@ -140,20 +140,19 @@ public class GetClassTest extends ReflectionOptimizerTestBase {
   }
 
   private void test(
-      TestRunResult result,
-      int expectedGetClassCount,
-      int expectedConstClassCount,
-      int expectedGetClassCountForCall,
-      int expectedConstClassCountForCall) throws Exception {
+      TestRunResult<?> result, boolean isR8, boolean isRelease) throws Exception {
     CodeInspector codeInspector = result.inspector();
     ClassSubject mainClass = codeInspector.clazz(MAIN);
     MethodSubject mainMethod = mainClass.mainMethod();
     assertThat(mainMethod, isPresent());
-    assertEquals(expectedGetClassCount, countGetClass(mainMethod));
-    assertEquals(expectedConstClassCount, countConstClass(mainMethod));
+    int expectedCount = isR8 ? (isRelease ? 0 : 5) : 6;
+    assertEquals(expectedCount, countGetClass(mainMethod));
+    expectedCount = isR8 ? (isRelease ? (parameters.isCfRuntime() ? 7 : 5) : 1) : 0;
+    assertEquals(expectedCount, countConstClass(mainMethod));
 
-    MethodSubject getMainClass = mainClass.method(
-        "java.lang.Class", "getMainClass", ImmutableList.of(MAIN.getCanonicalName()));
+    boolean expectToBeOptimized = isR8 && isRelease;
+
+    MethodSubject getMainClass = mainClass.uniqueMethodWithName("getMainClass");
     assertThat(getMainClass, isPresent());
     // Because of nullable argument, getClass() should remain.
     assertEquals(1, countGetClass(getMainClass));
@@ -162,8 +161,8 @@ public class GetClassTest extends ReflectionOptimizerTestBase {
     MethodSubject call = mainClass.method("java.lang.Class", "call", ImmutableList.of());
     assertThat(call, isPresent());
     // Because of local, only R8 release mode can rewrite getClass() to const-class.
-    assertEquals(expectedGetClassCountForCall, countGetClass(call));
-    assertEquals(expectedConstClassCountForCall, countConstClass(call));
+    assertEquals(expectToBeOptimized ? 0 : 1, countGetClass(call));
+    assertEquals(expectToBeOptimized ? 1 : 0, countConstClass(call));
   }
 
   @Test
@@ -178,7 +177,7 @@ public class GetClassTest extends ReflectionOptimizerTestBase {
             .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 6, 0, 1, 0);
+    test(result, false, false);
 
     // D8 release.
     result =
@@ -188,7 +187,7 @@ public class GetClassTest extends ReflectionOptimizerTestBase {
             .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 6, 0, 1, 0);
+    test(result, false, true);
   }
 
   @Test
@@ -203,7 +202,7 @@ public class GetClassTest extends ReflectionOptimizerTestBase {
             .noMinification()
             .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), MAIN);
-    test(result, 5, 1, 1, 0);
+    test(result, true, false);
 
     // The number of expected const-class instructions differs because constant canonicalization is
     // only enabled for the DEX backend.
@@ -219,7 +218,7 @@ public class GetClassTest extends ReflectionOptimizerTestBase {
             .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 0, expectedConstClassCount, 0, 1);
+    test(result, true, true);
 
     // R8 release, minification.
     result =
@@ -230,6 +229,6 @@ public class GetClassTest extends ReflectionOptimizerTestBase {
             .setMinApi(parameters.getRuntime())
             // We are not checking output because it can't be matched due to minification. Just run.
             .run(parameters.getRuntime(), MAIN);
-    test(result, 0, expectedConstClassCount, 0, 1);
+    test(result, true, true);
   }
 }

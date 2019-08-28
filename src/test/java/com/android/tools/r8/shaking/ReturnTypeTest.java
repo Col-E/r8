@@ -5,26 +5,17 @@
 package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
-import static junit.framework.TestCase.assertEquals;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.DexIndexedConsumer;
-import com.android.tools.r8.OutputMode;
-import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.VmTestRunner;
-import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
-import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import com.google.common.collect.ImmutableList;
-import java.nio.file.Path;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 class B112517039ReturnType extends Exception {
 }
@@ -52,42 +43,49 @@ class B112517039Main {
   }
 }
 
-@RunWith(VmTestRunner.class)
+@RunWith(Parameterized.class)
 public class ReturnTypeTest extends TestBase {
+  private static final String JAVA_OUTPUT = StringUtils.lines(
+      "Ewwo!",
+      "NullPointerException"
+  );
+  private static final Class<?> MAIN = B112517039Main.class;
+
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimes().build();
+  }
+
+  private final TestParameters parameters;
+
+  public ReturnTypeTest(TestParameters parameters) {
+    this.parameters = parameters;
+  }
+
   @Test
-  public void testFromJavac() throws Exception {
-    String mainName = B112517039Main.class.getCanonicalName();
-    ProcessResult javaResult = ToolHelper.runJava(ToolHelper.getClassPathForTests(), mainName);
-    assertEquals(0, javaResult.exitCode);
-    assertThat(javaResult.stdout, containsString("Ewwo!"));
-    assertThat(javaResult.stdout, containsString("NullPointerException"));
+  public void testJVMOutput() throws Exception {
+    assumeTrue("Only run JVM reference on CF runtimes", parameters.isCfRuntime());
+    testForJvm()
+        .addTestClasspath()
+        .run(parameters.getRuntime(), MAIN)
+        .assertSuccessWithOutput(JAVA_OUTPUT);
+  }
 
-    List<String> config = ImmutableList.of(
-        "-printmapping",
-        "-keep class " + mainName + " {",
-        "  public static void main(...);",
-        "}"
-    );
-    R8Command.Builder builder = R8Command.builder();
-    builder.addProgramFiles(ToolHelper.getClassFilesForTestDirectory(
-        ToolHelper.getPackageDirectoryForTestPackage(B112517039Main.class.getPackage()),
-        path -> path.getFileName().toString().startsWith("B112517039")));
-    builder.setProgramConsumer(DexIndexedConsumer.emptyConsumer());
-    builder.setMinApiLevel(ToolHelper.getMinApiLevelForDexVm().getLevel());
-    builder.addProguardConfiguration(config, Origin.unknown());
-    AndroidApp processedApp = ToolHelper.runR8(builder.build(), options -> {
-      options.enableInlining = false;
-    });
-
-    Path outDex = temp.getRoot().toPath().resolve("dex.zip");
-    processedApp.writeToZip(outDex, OutputMode.DexIndexed);
-    ProcessResult artResult = ToolHelper.runArtNoVerificationErrorsRaw(outDex.toString(), mainName);
-    assertEquals(0, artResult.exitCode);
-    assertThat(javaResult.stdout, containsString("Ewwo!"));
-    assertThat(javaResult.stdout, containsString("NullPointerException"));
-
-    CodeInspector inspector = new CodeInspector(processedApp);
-    ClassSubject returnType = inspector.clazz(B112517039ReturnType.class);
-    assertThat(returnType, isRenamed());
+  @Test
+  public void testR8() throws Exception {
+    testForR8(parameters.getBackend())
+        .addProgramClasses(
+            B112517039ReturnType.class, B112517039I.class, B112517039Caller.class, MAIN)
+        .addKeepMainRule(MAIN)
+        .setMinApi(parameters.getRuntime())
+        .addOptionsModification(o -> {
+          o.enableInlining = false;
+        })
+        .run(parameters.getRuntime(), MAIN)
+        .assertSuccessWithOutput(JAVA_OUTPUT)
+        .inspect(inspector -> {
+          ClassSubject returnType = inspector.clazz(B112517039ReturnType.class);
+          assertThat(returnType, isRenamed());
+        });
   }
 }

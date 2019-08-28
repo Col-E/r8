@@ -76,21 +76,18 @@ public class StringValueOfTest extends TestBase {
         instructionSubject.isConstString("null", JumboStringMode.ALLOW)).count();
   }
 
-  private void test(
-      TestRunResult result,
-      int expectedStringValueOfCountInMain,
-      int expectedNullCount,
-      int expectedNullStringCountInMain,
-      int expectedStringValueOfCountInConsumer,
-      int expectedNullStringCountInConsumer)
-      throws Exception {
+  private void test(TestRunResult<?> result, boolean isR8, boolean isRelease) throws Exception {
     CodeInspector codeInspector = result.inspector();
     ClassSubject mainClass = codeInspector.clazz(MAIN);
     MethodSubject mainMethod = mainClass.mainMethod();
     assertThat(mainMethod, isPresent());
-    assertEquals(expectedStringValueOfCountInMain, countCall(mainMethod, "String", "valueOf"));
-    assertEquals(expectedNullCount, countConstNullNumber(mainMethod));
-    assertEquals(expectedNullStringCountInMain, countNullStringNumber(mainMethod));
+    int expectedCount = isR8 ? 3 : (isRelease ? 5 : 7);
+    assertEquals(expectedCount, countCall(mainMethod, "String", "valueOf"));
+    // Due to the different behavior regarding constant canonicalization.
+    expectedCount = isR8 ? (parameters.isCfRuntime() ? 2 : 1) : 1;
+    assertEquals(expectedCount, countConstNullNumber(mainMethod));
+    expectedCount = isR8 ? (parameters.isCfRuntime() ? 2 : 1) : (isRelease ? 1 : 0);
+    assertEquals(expectedCount, countNullStringNumber(mainMethod));
 
     MethodSubject hideNPE = mainClass.uniqueMethodWithName("hideNPE");
     assertThat(hideNPE, isPresent());
@@ -99,8 +96,10 @@ public class StringValueOfTest extends TestBase {
 
     MethodSubject uninit = mainClass.uniqueMethodWithName("consumeUninitialized");
     assertThat(uninit, isPresent());
-    assertEquals(expectedStringValueOfCountInConsumer, countCall(uninit, "String", "valueOf"));
-    assertEquals(expectedNullStringCountInConsumer, countNullStringNumber(uninit));
+    expectedCount = isR8 ? 0 : 1;
+    assertEquals(expectedCount, countCall(uninit, "String", "valueOf"));
+    expectedCount = isR8 ? 1 : 0;
+    assertEquals(expectedCount, countNullStringNumber(uninit));
   }
 
   @Test
@@ -115,7 +114,7 @@ public class StringValueOfTest extends TestBase {
             .addOptionsModification(options -> options.enableNonNullTracking = true)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 7, 1, 0, 1, 0);
+    test(result, false, false);
 
     result =
         testForD8()
@@ -125,7 +124,7 @@ public class StringValueOfTest extends TestBase {
             .addOptionsModification(options -> options.enableNonNullTracking = true)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, 5, 1, 1, 1, 0);
+    test(result, false, true);
   }
 
   @Test
@@ -141,10 +140,7 @@ public class StringValueOfTest extends TestBase {
             .addOptionsModification(this::configure)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
-    // Due to the different behavior regarding constant canonicalization.
-    int expectedNullCount = parameters.isCfRuntime() ? 2 : 1;
-    int expectedNullStringCount = parameters.isCfRuntime() ? 2 : 1;
-    test(result, 3, expectedNullCount, expectedNullStringCount, 0, 1);
+    test(result, true, true);
   }
 
   static class TestClass {

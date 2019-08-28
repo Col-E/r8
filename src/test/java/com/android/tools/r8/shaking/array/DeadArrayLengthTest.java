@@ -4,10 +4,12 @@
 package com.android.tools.r8.shaking.array;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverPropagateValue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -17,7 +19,6 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import com.google.common.collect.Streams;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -38,28 +39,31 @@ public class DeadArrayLengthTest extends TestBase {
     this.parameters = parameters;
   }
 
-  private void inspect(CodeInspector inspector) {
+  private void inspect(CodeInspector inspector, boolean isR8) {
     ClassSubject main = inspector.clazz(MAIN);
     assertThat(main, isPresent());
 
     MethodSubject nonNull = main.uniqueMethodWithName("clearlyNonNull");
     assertThat(nonNull, isPresent());
-    assertEquals(
-        0,
-        Streams.stream(nonNull.iterateInstructions(InstructionSubject::isArrayLength)).count());
+    assertEquals(0, countArrayLength(nonNull));
 
     MethodSubject nullable = main.uniqueMethodWithName("isNullable");
-    assertThat(nullable, isPresent());
-    assertEquals(
-        1,
-        Streams.stream(nullable.iterateInstructions(InstructionSubject::isArrayLength)).count());
+    if (isR8) {
+      // Replaced with null-throwing code at the call site.
+      assertThat(nullable, not(isPresent()));
+    } else {
+      assertThat(nullable, isPresent());
+      assertEquals(1, countArrayLength(nullable));
+    }
 
     MethodSubject nullCheck = main.uniqueMethodWithName("afterNullCheck");
     assertThat(nullCheck, isPresent());
     // TODO(b/120920488): could be zero if we extend non-null to first dead code removal.
-    assertEquals(
-        1,
-        Streams.stream(nullCheck.iterateInstructions(InstructionSubject::isArrayLength)).count());
+    assertEquals(1, countArrayLength(nullCheck));
+  }
+
+  private long countArrayLength(MethodSubject method) {
+    return method.streamInstructions().filter(InstructionSubject::isArrayLength).count();
   }
 
   @Test
@@ -71,23 +75,25 @@ public class DeadArrayLengthTest extends TestBase {
         .setMinApi(parameters.getRuntime())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(EXPECTED_OUTPUT)
-        .inspect(this::inspect);
+        .inspect(codeInspector -> inspect(codeInspector, false));
   }
 
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramClasses(MAIN)
-        .addKeepClassAndMembersRules(MAIN)
+        .addKeepMainRule(MAIN)
+        .enableInliningAnnotations()
         .enableMemberValuePropagationAnnotations()
         .noMinification()
         .setMinApi(parameters.getRuntime())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(EXPECTED_OUTPUT)
-        .inspect(this::inspect);
+        .inspect(codeInspector -> inspect(codeInspector, true));
   }
 
   static class TestClass {
+    @NeverInline
     @NeverPropagateValue
     static int clearlyNonNull(int size) {
       int[] array = new int[size];
@@ -95,6 +101,7 @@ public class DeadArrayLengthTest extends TestBase {
       return System.currentTimeMillis() > 0 ? 1 : -1;
     }
 
+    @NeverInline
     @NeverPropagateValue
     static int isNullable(int[] args) {
       // Not used, but can't be dead due to the potential NPE.
@@ -102,6 +109,7 @@ public class DeadArrayLengthTest extends TestBase {
       return System.currentTimeMillis() > 0 ? 2 : -2;
     }
 
+    @NeverInline
     @NeverPropagateValue
     static int afterNullCheck(int[] args) {
       if (args != null) {

@@ -28,6 +28,7 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
@@ -232,15 +233,31 @@ public abstract class AbstractR8KotlinTestBase extends KotlinTestBase {
   }
 
   protected String keepAllMembers(String className) {
-    return "-keep class " + className + " {" + System.lineSeparator()
-        + "  *;" + System.lineSeparator()
-        + "}";
+    return StringUtils.lines(
+        "-keep class " + className + " {",
+        "  *;",
+        "}");
+  }
+
+  protected String keepMainMethod(String className) {
+    return StringUtils.lines(
+        "-keepclasseswithmembers class " + className + " {",
+        "  public static void main(...);",
+        "}");
   }
 
   protected String keepClassMethod(String className, MethodSignature methodSignature) {
-    return "-keep class " + className + " {" + System.lineSeparator()
-        + methodSignature.toString() + ";" + System.lineSeparator()
-        + "}";
+    return StringUtils.lines(
+        "-keep class " + className + " {",
+        methodSignature.toString() + ";",
+        "}");
+  }
+
+  protected String neverInlineMethod(String className, MethodSignature methodSignature) {
+    return StringUtils.lines(
+        "-neverinline class " + className + " {",
+        methodSignature.toString() + ";",
+        "}");
   }
 
   protected void runTest(String folder, String mainClass,
