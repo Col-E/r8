@@ -70,23 +70,10 @@ public class AndroidAppConsumers {
     if (consumer != null) {
       proguardMapConsumer =
           new StringConsumer.ForwardingConsumer(consumer) {
-            StringBuilder stringBuilder = null;
-
             @Override
             public void accept(String string, DiagnosticsHandler handler) {
               super.accept(string, handler);
-              if (stringBuilder == null) {
-                stringBuilder = new StringBuilder();
-              }
-              stringBuilder.append(string);
-            }
-
-            @Override
-            public void finished(DiagnosticsHandler handler) {
-              super.finished(handler);
-              if (stringBuilder != null) {
-                builder.setProguardMapOutputData(stringBuilder.toString());
-              }
+              builder.setProguardMapOutputData(string);
             }
           };
     }

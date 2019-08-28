@@ -5,8 +5,6 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.debug.DebugTestConfig;
-import com.android.tools.r8.desugar.corelib.CoreLibDesugarTestBase.KeepRuleConsumer;
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
@@ -275,11 +273,10 @@ public abstract class TestCompilerBuilder<
   }
 
   public T enableCoreLibraryDesugaring(AndroidApiLevel minAPILevel) {
-    return enableCoreLibraryDesugaring(minAPILevel, null);
-  }
-
-  public T enableCoreLibraryDesugaring(
-      AndroidApiLevel minAPILevel, KeepRuleConsumer keepRuleConsumer) {
-    throw new Unreachable("Should be overridden or is unsupported.");
+    if (minAPILevel.getLevel() < AndroidApiLevel.O.getLevel()) {
+      builder.addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.O));
+      builder.addSpecialLibraryConfiguration("default");
+    }
+    return self();
   }
 }

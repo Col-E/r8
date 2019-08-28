@@ -75,12 +75,14 @@ public class CfApplicationWriter {
   private final Marker marker;
 
   public final ProguardMapSupplier proguardMapSupplier;
+  public final String deadCode;
 
   public CfApplicationWriter(
       DexApplication application,
       AppView<?> appView,
       InternalOptions options,
       Marker marker,
+      String deadCode,
       GraphLense graphLense,
       NamingLens namingLens,
       ProguardMapSupplier proguardMapSupplier) {
@@ -92,6 +94,7 @@ public class CfApplicationWriter {
     assert marker != null;
     this.marker = marker;
     this.proguardMapSupplier = proguardMapSupplier;
+    this.deadCode = deadCode;
   }
 
   public void write(ClassFileConsumer consumer, ExecutorService executor) {
@@ -125,6 +128,7 @@ public class CfApplicationWriter {
         graphLense,
         namingLens,
         options,
+        deadCode,
         proguardMapAndId == null ? null : proguardMapAndId.map);
   }
 

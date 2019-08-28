@@ -76,7 +76,6 @@ public class GenerateMainDexList {
 
       if (options.mainDexListConsumer != null) {
         options.mainDexListConsumer.accept(String.join("\n", result), options.reporter);
-        options.mainDexListConsumer.finished(options.reporter);
       }
 
       R8.processWhyAreYouKeepingAndCheckDiscarded(

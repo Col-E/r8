@@ -9,6 +9,7 @@ import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
+import com.android.tools.r8.origin.StandardOutOrigin;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationParser;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
@@ -865,22 +866,10 @@ public final class R8Command extends BaseCompilerCommand {
       if (optionFile != null) {
         return new StringConsumer.FileConsumer(optionFile, optionConsumer);
       } else {
-        return new StandardOutConsumer(optionConsumer);
+        return new StringConsumer.StreamConsumer(
+            StandardOutOrigin.instance(), System.out, optionConsumer);
       }
     }
     return optionConsumer;
-  }
-
-  private static class StandardOutConsumer extends StringConsumer.ForwardingConsumer {
-
-    public StandardOutConsumer(StringConsumer consumer) {
-      super(consumer);
-    }
-
-    @Override
-    public void accept(String string, DiagnosticsHandler handler) {
-      super.accept(string, handler);
-      System.out.print(string);
-    }
   }
 }

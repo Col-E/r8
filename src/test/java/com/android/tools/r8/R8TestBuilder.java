@@ -5,13 +5,11 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.R8Command.Builder;
 import com.android.tools.r8.TestBase.Backend;
-import com.android.tools.r8.desugar.corelib.CoreLibDesugarTestBase.KeepRuleConsumer;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.CollectingGraphConsumer;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -65,18 +63,7 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     StringBuilder proguardMapBuilder = new StringBuilder();
     builder.setDisableTreeShaking(!enableTreeShaking);
     builder.setDisableMinification(!enableMinification);
-    builder.setProguardMapConsumer(
-        new StringConsumer() {
-          @Override
-          public void accept(String string, DiagnosticsHandler handler) {
-            proguardMapBuilder.append(string);
-          }
-
-          @Override
-          public void finished(DiagnosticsHandler handler) {
-            // Nothing to do.
-          }
-        });
+    builder.setProguardMapConsumer((string, ignore) -> proguardMapBuilder.append(string));
 
     if (!applyMappingMaps.isEmpty()) {
       try {
@@ -335,17 +322,5 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
   private void addInternalKeepRules(String... rules) {
     // We don't add these to the keep-rule set for other test provided rules.
     builder.addProguardConfiguration(Arrays.asList(rules), Origin.unknown());
-  }
-
-  @Override
-  public T enableCoreLibraryDesugaring(
-      AndroidApiLevel minAPILevel, KeepRuleConsumer keepRuleConsumer) {
-    if (minAPILevel.getLevel() < AndroidApiLevel.O.getLevel()) {
-      // Use P to mimic current Android Studio.
-      builder.addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P));
-      builder.addSpecialLibraryConfiguration("default");
-      builder.setDesugaredLibraryKeepRuleConsumer(keepRuleConsumer);
-    }
-    return self();
   }
 }

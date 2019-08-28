@@ -16,6 +16,7 @@ import com.android.tools.r8.DataDirectoryResource;
 import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.DataResourceConsumer;
 import com.android.tools.r8.DataResourceProvider.Visitor;
+import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.ToolHelper;
@@ -114,9 +115,7 @@ public class AdaptResourceFileNamesTest extends ProguardCompatibilityTestBase {
   public void testEnabled() throws Exception {
     DataResourceConsumerForTesting dataResourceConsumer = new DataResourceConsumerForTesting();
     compileWithR8(
-        getProguardConfigWithNeverInline(true, null),
-        dataResourceConsumer,
-        ToolHelper.consumeString(this::checkR8Renamings));
+        getProguardConfigWithNeverInline(true, null), dataResourceConsumer, this::checkR8Renamings);
     // Check that the generated resources have the expected names.
     for (DataEntryResource dataResource : getOriginalDataResources()) {
       assertNotNull(
@@ -131,7 +130,7 @@ public class AdaptResourceFileNamesTest extends ProguardCompatibilityTestBase {
     compileWithR8(
         getProguardConfigWithNeverInline(true, "**.md"),
         dataResourceConsumer,
-        ToolHelper.consumeString(this::checkR8Renamings));
+        this::checkR8Renamings);
     // Check that the generated resources have the expected names.
     Map<String, String> expectedRenamings =
         ImmutableMap.of("adaptresourcefilenames/B.md", "adaptresourcefilenames/b.md");
@@ -161,7 +160,7 @@ public class AdaptResourceFileNamesTest extends ProguardCompatibilityTestBase {
     compileWithR8(
         getProguardConfigWithNeverInline(true, null),
         dataResourceConsumer,
-        ToolHelper.consumeString(this::checkR8Renamings),
+        this::checkR8Renamings,
         ImmutableList.<DataEntryResource>builder()
             .addAll(getOriginalDataResources())
             .add(
@@ -275,7 +274,7 @@ public class AdaptResourceFileNamesTest extends ProguardCompatibilityTestBase {
         });
   }
 
-  private void checkR8Renamings(String proguardMap) {
+  private void checkR8Renamings(String proguardMap, DiagnosticsHandler handler) {
     try {
       // Check that the renamings are as expected. These exact renamings are not important as
       // such, but the test expectations rely on them.

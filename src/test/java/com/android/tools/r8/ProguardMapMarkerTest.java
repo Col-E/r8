@@ -70,12 +70,11 @@ public class ProguardMapMarkerTest {
             .addLibraryFiles(ToolHelper.getAndroidJar(minApiLevel))
             .setMinApiLevel(minApiLevel.getLevel())
             .setProguardMapConsumer(
-                ToolHelper.consumeString(
-                    proguardMap -> {
-                      proguardMapIds.fromMap =
-                          verifyMarkersGetPgMapId(
-                              proguardMap, minApiLevel.getLevel(), EXPECTED_NUMBER_OF_KEYS_DEX);
-                    }))
+                (proguardMap, handler) -> {
+                  proguardMapIds.fromMap =
+                      verifyMarkersGetPgMapId(
+                          proguardMap, minApiLevel.getLevel(), EXPECTED_NUMBER_OF_KEYS_DEX);
+                })
             .build());
     verifyProguardMapIds(proguardMapIds);
   }
@@ -114,11 +113,10 @@ public class ProguardMapMarkerTest {
                 })
             .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
             .setProguardMapConsumer(
-                ToolHelper.consumeString(
-                    proguardMap -> {
-                      buildIds.fromMap =
-                          verifyMarkersGetPgMapId(proguardMap, null, EXPECTED_NUMBER_OF_KEYS_CF);
-                    }))
+                (proguardMap, handler) -> {
+                  buildIds.fromMap =
+                      verifyMarkersGetPgMapId(proguardMap, null, EXPECTED_NUMBER_OF_KEYS_CF);
+                })
             .build());
     verifyProguardMapIds(buildIds);
   }

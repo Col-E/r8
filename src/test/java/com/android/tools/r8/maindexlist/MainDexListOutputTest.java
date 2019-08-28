@@ -51,17 +51,10 @@ public class MainDexListOutputTest extends TestBase {
 
   private static class TestMainDexListConsumer implements StringConsumer {
     public boolean called = false;
-    public StringBuilder builder = new StringBuilder();
 
     @Override
     public void accept(String string, DiagnosticsHandler handler) {
       called = true;
-      builder.append(string);
-    }
-
-    @Override
-    public void finished(DiagnosticsHandler handler) {
-      String string = builder.toString();
       assertTrue(string.contains(testClassMainDexName));
       assertTrue(string.contains("Lambda"));
     }

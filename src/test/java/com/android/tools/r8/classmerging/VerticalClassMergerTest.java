@@ -519,10 +519,8 @@ public class VerticalClassMergerTest extends TestBase {
           options.enableVerticalClassMerging = false;
           options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
           options.proguardMapConsumer =
-              ToolHelper.consumeString(
-                  proguardMap ->
-                      assertThat(
-                          proguardMap, containsString(expectedProguardMapWithoutClassMerging)));
+              (proguardMap, handler) ->
+                  assertThat(proguardMap, containsString(expectedProguardMapWithoutClassMerging));
         });
 
     // Try with vertical class merging.
@@ -549,9 +547,8 @@ public class VerticalClassMergerTest extends TestBase {
           configure(options);
           options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
           options.proguardMapConsumer =
-              ToolHelper.consumeString(
-                  proguardMap ->
-                      assertThat(proguardMap, containsString(expectedProguardMapWithClassMerging)));
+              (proguardMap, handler) ->
+                  assertThat(proguardMap, containsString(expectedProguardMapWithClassMerging));
         });
   }
 
@@ -587,10 +584,8 @@ public class VerticalClassMergerTest extends TestBase {
           options.enableVerticalClassMerging = false;
           options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
           options.proguardMapConsumer =
-              ToolHelper.consumeString(
-                  proguardMap ->
-                      assertThat(
-                          proguardMap, containsString(expectedProguardMapWithoutClassMerging)));
+              (proguardMap, handler) ->
+                  assertThat(proguardMap, containsString(expectedProguardMapWithoutClassMerging));
         });
 
     // Try with vertical class merging.
@@ -620,9 +615,8 @@ public class VerticalClassMergerTest extends TestBase {
           configure(options);
           options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
           options.proguardMapConsumer =
-              ToolHelper.consumeString(
-                  proguardMap ->
-                      assertThat(proguardMap, containsString(expectedProguardMapWithClassMerging)));
+              (proguardMap, handler) ->
+                  assertThat(proguardMap, containsString(expectedProguardMapWithClassMerging));
         });
   }
 
@@ -661,10 +655,8 @@ public class VerticalClassMergerTest extends TestBase {
           options.enableVerticalClassMerging = false;
           options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
           options.proguardMapConsumer =
-              ToolHelper.consumeString(
-                  proguardMap ->
-                      assertThat(
-                          proguardMap, containsString(expectedProguardMapWithoutClassMerging)));
+              (proguardMap, handler) ->
+                  assertThat(proguardMap, containsString(expectedProguardMapWithoutClassMerging));
         });
 
     // Try with vertical class merging.
@@ -693,9 +685,8 @@ public class VerticalClassMergerTest extends TestBase {
           configure(options);
           options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
           options.proguardMapConsumer =
-              ToolHelper.consumeString(
-                  proguardMap ->
-                      assertThat(proguardMap, containsString(expectedProguardMapWithClassMerging)));
+              (proguardMap, handler) ->
+                  assertThat(proguardMap, containsString(expectedProguardMapWithClassMerging));
         });
   }
 

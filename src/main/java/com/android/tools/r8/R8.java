@@ -189,6 +189,7 @@ public class R8 {
       ExecutorService executorService,
       DexApplication application,
       AppView<?> appView,
+      String deadCode,
       GraphLense graphLense,
       NamingLens namingLens,
       InternalOptions options,
@@ -203,6 +204,7 @@ public class R8 {
                 appView,
                 options,
                 marker,
+                deadCode,
                 graphLense,
                 namingLens,
                 proguardMapSupplier)
@@ -214,6 +216,7 @@ public class R8 {
                 options,
                 Collections.singletonList(marker),
                 null,
+                deadCode,
                 graphLense,
                 namingLens,
                 proguardMapSupplier)
@@ -659,10 +662,6 @@ public class R8 {
 
             TreePruner pruner = new TreePruner(application, appViewWithLiveness);
             application = pruner.run();
-            if (options.usageInformationConsumer != null) {
-              ExceptionUtils.withFinishedResourceHandler(
-                  options.reporter, options.usageInformationConsumer);
-            }
             appViewWithLiveness.setAppInfo(
                 appViewWithLiveness
                     .appInfo()
@@ -808,6 +807,7 @@ public class R8 {
           executorService,
           application,
           appView,
+          application.deadCode,
           appView.graphLense(),
           PrefixRewritingNamingLens.createPrefixRewritingNamingLens(
               options, additionalRewritePrefix, namingLens),

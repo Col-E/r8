@@ -6,8 +6,10 @@ package com.android.tools.r8;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
+import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.Writer;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -18,30 +20,16 @@ import java.nio.file.Path;
 public interface StringConsumer {
 
   /**
-   * Callback to receive part of a string resource.
+   * Callback to receive a String resource.
    *
    * <p>The consumer is expected not to throw, but instead report any errors via the diagnostics
    * {@param handler}. If an error is reported via {@param handler} and no exceptions are thrown,
    * then the compiler guaranties to exit with an error.
    *
-   * <p>Note: prior to the addition of 'finished' consumers could expect all content to be reported
-   * in one call to accept. That is no longer guaranteed.
-   *
-   * @param string Part of the string resource.
+   * @param string String resource.
    * @param handler Diagnostics handler for reporting.
    */
   void accept(String string, DiagnosticsHandler handler);
-
-  /**
-   * Callback when no further content will be provided for the string resource.
-   *
-   * <p>The consumer is expected not to throw, but instead report any errors via the diagnostics
-   * {@param handler}. If an error is reported via {@param handler} and no exceptions are thrown,
-   * then the compiler guaranties to exit with an error.
-   *
-   * @param handler Diagnostics handler for reporting.
-   */
-  default void finished(DiagnosticsHandler handler) {}
 
   static EmptyConsumer emptyConsumer() {
     return EmptyConsumer.EMPTY_CONSUMER;
@@ -55,11 +43,6 @@ public interface StringConsumer {
     @Override
     public void accept(String string, DiagnosticsHandler handler) {
       // Ignore content.
-    }
-
-    @Override
-    public void finished(DiagnosticsHandler handler) {
-      // No content so, nothing to do.
     }
   }
 
@@ -79,23 +62,14 @@ public interface StringConsumer {
         consumer.accept(string, handler);
       }
     }
-
-    @Override
-    public void finished(DiagnosticsHandler handler) {
-      if (consumer != null) {
-        consumer.finished(handler);
-      }
-    }
   }
 
   /** File consumer to write contents to a file-system file. */
-  @Keep // TODO(b/121121779) Consider deprecating the R8 provided file writing.
+  @Keep // TODO(b/121121779) Extend keep-annotation to public inner classes and remove this.
   class FileConsumer extends ForwardingConsumer {
 
     private final Path outputPath;
     private Charset encoding = StandardCharsets.UTF_8;
-    private WriterConsumer delegate = null;
-    private boolean failedToCreateDelegate = false;
 
     /** Consumer that writes to {@param outputPath}. */
     public FileConsumer(Path outputPath) {
@@ -116,9 +90,6 @@ public interface StringConsumer {
     /** Set the output encoding. Defaults to UTF8. */
     public void setEncoding(Charset encoding) {
       assert encoding != null;
-      if (delegate != null) {
-        throw new IllegalStateException("Invalid call to set encoding after file stream is opened");
-      }
       this.encoding = encoding;
     }
 
@@ -130,83 +101,60 @@ public interface StringConsumer {
     @Override
     public void accept(String string, DiagnosticsHandler handler) {
       super.accept(string, handler);
-      if (failedToCreateDelegate) {
-        return;
-      }
-      ensureDelegate(handler);
-      if (delegate != null) {
-        delegate.accept(string, handler);
-      }
-    }
-
-    @Override
-    public void finished(DiagnosticsHandler handler) {
-      super.finished(handler);
-      if (failedToCreateDelegate) {
-        return;
-      }
-      if (delegate != null) {
-        delegate.finished(handler);
-        delegate = null;
-      }
-    }
-
-    private void ensureDelegate(DiagnosticsHandler handler) {
-      if (delegate != null) {
-        return;
-      }
-      PathOrigin origin = new PathOrigin(outputPath);
       try {
         Path parent = outputPath.getParent();
         if (parent != null && !parent.toFile().exists()) {
           Files.createDirectories(parent);
         }
-        delegate = new WriterConsumer(origin, Files.newBufferedWriter(outputPath, encoding));
+        com.google.common.io.Files.asCharSink(outputPath.toFile(), encoding).write(string);
       } catch (IOException e) {
-        failedToCreateDelegate = true;
+        Origin origin = new PathOrigin(outputPath);
         handler.error(new ExceptionDiagnostic(e, origin));
       }
     }
   }
 
   /**
-   * String consumer to write contents to a Writer.
+   * Stream consumer to write contents to an output stream.
    *
-   * <p>Note: The writer is closed when the consumer receives its 'finished' callback.
+   * <p>Note: No close events are given to this stream so it should either be a permanent stream or
+   * the closing needs to happen outside of the compilation itself. If the stream is not one of the
+   * standard streams, i.e., System.out or System.err, you should likely implement yor own consumer.
    */
-  class WriterConsumer extends ForwardingConsumer {
+  class StreamConsumer extends ForwardingConsumer {
 
     private final Origin origin;
-    private Writer writer;
+    private final OutputStream outputStream;
+    private Charset encoding = StandardCharsets.UTF_8;
 
-    /** Consumer that writes to {@param writer}. */
-    public WriterConsumer(Origin origin, Writer writer) {
-      this(origin, writer, null);
+    /** Consumer that writes to {@param outputStream}. */
+    public StreamConsumer(Origin origin, OutputStream outputStream) {
+      this(origin, outputStream, null);
     }
 
-    /** Consumer that forwards to {@param consumer} and also writes to {@param writer}. */
-    public WriterConsumer(Origin origin, Writer writer, StringConsumer consumer) {
+    /** Consumer that forwards to {@param consumer} and also writes to {@param outputStream}. */
+    public StreamConsumer(Origin origin, OutputStream outputStream, StringConsumer consumer) {
       super(consumer);
       this.origin = origin;
-      this.writer = writer;
+      this.outputStream = outputStream;
+    }
+
+    /** Set the encoding. Defaults to UTF8. */
+    public void setEncoding(Charset encoding) {
+      assert encoding != null;
+      this.encoding = encoding;
     }
 
     @Override
     public void accept(String string, DiagnosticsHandler handler) {
       super.accept(string, handler);
+      // Don't close this writer as it will close the underlying stream, which we specifically do
+      // not want.
+      BufferedWriter writer =
+          new BufferedWriter(new OutputStreamWriter(outputStream, encoding.newEncoder()));
       try {
         writer.write(string);
         writer.flush();
-      } catch (IOException e) {
-        handler.error(new ExceptionDiagnostic(e, origin));
-      }
-    }
-
-    @Override
-    public void finished(DiagnosticsHandler handler) {
-      super.finished(handler);
-      try {
-        writer.close();
       } catch (IOException e) {
         handler.error(new ExceptionDiagnostic(e, origin));
       }

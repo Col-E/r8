@@ -7,28 +7,32 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.utils.StringUtils;
-import java.util.function.Consumer;
+import java.nio.charset.StandardCharsets;
 
 class UsagePrinter {
   private static final String INDENT = "    ";
 
   static final UsagePrinter DONT_PRINT = new NoOpUsagePrinter();
 
-  private final Consumer<String> consumer;
+  private final StringBuilder writer;
   private DexProgramClass enclosingClazz = null;
   private boolean clazzPrefixPrinted = false;
 
-  UsagePrinter(Consumer<String> consumer) {
-    this.consumer = consumer;
+  UsagePrinter() {
+    writer = new StringBuilder();
   }
 
-  void append(String string) {
-    consumer.accept(string);
+  String toStringContent() {
+    return writer.toString();
+  }
+
+  byte[] toByteArray() {
+    return writer.toString().getBytes(StandardCharsets.UTF_8);
   }
 
   void printUnusedClass(DexProgramClass clazz) {
-    append(clazz.toSourceString());
-    append(StringUtils.LINE_SEPARATOR);
+    writer.append(clazz.toSourceString());
+    writer.append(StringUtils.LINE_SEPARATOR);
   }
 
   // Visiting methods and fields of the given clazz.
@@ -46,54 +50,51 @@ class UsagePrinter {
   private void printClazzPrefixIfNecessary() {
     assert enclosingClazz != null;
     if (!clazzPrefixPrinted) {
-      append(enclosingClazz.toSourceString());
-      append(":");
-      append(StringUtils.LINE_SEPARATOR);
+      writer.append(enclosingClazz.toSourceString());
+      writer.append(':');
+      writer.append(StringUtils.LINE_SEPARATOR);
       clazzPrefixPrinted = true;
     }
   }
 
   void printUnusedMethod(DexEncodedMethod method) {
     printClazzPrefixIfNecessary();
-    append(INDENT);
+    writer.append(INDENT);
     String accessFlags = method.accessFlags.toString();
     if (!accessFlags.isEmpty()) {
-      append(accessFlags);
-      append(" ");
+      writer.append(accessFlags).append(' ');
     }
-    append(method.method.proto.returnType.toSourceString());
-    append(" ");
-    append(method.method.name.toSourceString());
-    append("(");
+    writer.append(method.method.proto.returnType.toSourceString()).append(' ');
+    writer.append(method.method.name.toSourceString());
+    writer.append('(');
     for (int i = 0; i < method.method.proto.parameters.values.length; i++) {
       if (i != 0) {
-        append(",");
+        writer.append(',');
       }
-      append(method.method.proto.parameters.values[i].toSourceString());
+      writer.append(method.method.proto.parameters.values[i].toSourceString());
     }
-    append(")");
-    append(StringUtils.LINE_SEPARATOR);
+    writer.append(')');
+    writer.append(StringUtils.LINE_SEPARATOR);
   }
 
   void printUnusedField(DexEncodedField field) {
     printClazzPrefixIfNecessary();
-    append(INDENT);
+    writer.append(INDENT);
     String accessFlags = field.accessFlags.toString();
     if (!accessFlags.isEmpty()) {
-      append(accessFlags);
-      append(" ");
+      writer.append(accessFlags).append(' ');
     }
-    append(field.field.type.toSourceString());
-    append(" ");
-    append(field.field.name.toSourceString());
-    append(StringUtils.LINE_SEPARATOR);
+    writer.append(field.field.type.toSourceString()).append(" ");
+    writer.append(field.field.name.toSourceString());
+    writer.append(StringUtils.LINE_SEPARATOR);
   }
 
   // Empty implementation to silently ignore printing dead code.
   private static class NoOpUsagePrinter extends UsagePrinter {
 
-    public NoOpUsagePrinter() {
-      super(null);
+    @Override
+    byte[] toByteArray() {
+      return null;
     }
 
     @Override

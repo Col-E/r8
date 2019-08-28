@@ -25,10 +25,6 @@ public abstract class ExceptionUtils {
     withConsumeResourceHandler(reporter, handler -> consumer.accept(data, handler));
   }
 
-  public static void withFinishedResourceHandler(Reporter reporter, StringConsumer consumer) {
-    withConsumeResourceHandler(reporter, consumer::finished);
-  }
-
   public static void withConsumeResourceHandler(
       Reporter reporter, Consumer<DiagnosticsHandler> consumer) {
     // Unchecked exceptions simply propagate out, aborting the compilation forcefully.

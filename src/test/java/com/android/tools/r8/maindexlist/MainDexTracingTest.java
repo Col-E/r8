@@ -311,7 +311,7 @@ public class MainDexTracingTest extends TestBase {
             .addProgramFiles(inputJar)
             .addProgramFiles(Paths.get(EXAMPLE_BUILD_DIR, "multidexfakeframeworks" + JAR_EXTENSION))
             .addMainDexRulesFiles(mainDexRules)
-            .setMainDexListConsumer(ToolHelper.consumeString(mainDexListOutput::set))
+            .setMainDexListConsumer((string, handler) -> mainDexListOutput.set(string))
             .build();
     GenerateMainDexList.run(mdlCommand);
     List<String> mainDexGeneratorMainDexListFromConsumer =
@@ -332,7 +332,7 @@ public class MainDexTracingTest extends TestBase {
         .setMinApi(minSdk)
         .noMinification()
         .noTreeShaking()
-        .setMainDexListConsumer(ToolHelper.consumeString(r8MainDexListOutput::set))
+        .setMainDexListConsumer((string, handler) -> r8MainDexListOutput.set(string))
         .compile()
         .writeToZip(out);
 
