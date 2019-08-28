@@ -860,11 +860,12 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
         refinedReceiverIsStrictSubType ? definitionFor(refinedReceiverType) : holder;
     assert refinedHolder != null;
     assert refinedHolder.isProgramClass();
+    assert !refinedHolder.isInterface();
     if (method.isSingleVirtualMethodCached(refinedReceiverType)) {
       return method.getSingleVirtualMethodCache(refinedReceiverType);
     }
     // First get the target for the holder type.
-    ResolutionResult topMethod = resolveMethod(method.holder, method);
+    ResolutionResult topMethod = resolveMethodOnClass(holder, method);
     // We might hit none or multiple targets. Both make this fail at runtime.
     if (!topMethod.hasSingleTarget() || !topMethod.asSingleTarget().isVirtualMethod()) {
       method.setSingleVirtualMethodCache(refinedReceiverType, null);
@@ -872,7 +873,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     }
     // Now, resolve the target with the refined receiver type.
     if (refinedReceiverIsStrictSubType) {
-      topMethod = resolveMethod(refinedReceiverType, method);
+      topMethod = resolveMethodOnClass(refinedHolder, method);
     }
     DexEncodedMethod topSingleTarget = topMethod.asSingleTarget();
     DexClass topHolder = definitionFor(topSingleTarget.method.holder);

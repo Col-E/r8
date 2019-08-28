@@ -168,7 +168,8 @@ public class InliningConstraints {
             .appInfo()
             .resolveMethodOnInterface(lookup.holder, lookup)
             .lookupInterfaceTargets(appView.appInfo()),
-        invocationContext);
+        invocationContext,
+        true);
   }
 
   public ConstraintWithTarget forInvokeMultiNewArray(DexType type, DexType invocationContext) {
@@ -202,7 +203,8 @@ public class InliningConstraints {
             .appInfo()
             .resolveMethodOnClass(lookup.holder, lookup)
             .lookupVirtualTargets(appView.appInfo()),
-        invocationContext);
+        invocationContext,
+        false);
   }
 
   public ConstraintWithTarget forJumpInstruction() {
@@ -348,7 +350,10 @@ public class InliningConstraints {
   }
 
   private ConstraintWithTarget forVirtualInvoke(
-      DexMethod method, Collection<DexEncodedMethod> targets, DexType invocationContext) {
+      DexMethod method,
+      Collection<DexEncodedMethod> targets,
+      DexType invocationContext,
+      boolean isInterface) {
     if (method.holder.isArrayType()) {
       return ConstraintWithTarget.ALWAYS;
     }
@@ -358,7 +363,8 @@ public class InliningConstraints {
 
     // Perform resolution and derive inlining constraints based on the accessibility of the
     // resolution result.
-    ResolutionResult resolutionResult = appView.appInfo().resolveMethod(method.holder, method);
+    ResolutionResult resolutionResult =
+        appView.appInfo().resolveMethod(method.holder, method, isInterface);
     DexEncodedMethod resolutionTarget = resolutionResult.asResultOfResolve();
     if (resolutionTarget == null) {
       // This will fail at runtime.

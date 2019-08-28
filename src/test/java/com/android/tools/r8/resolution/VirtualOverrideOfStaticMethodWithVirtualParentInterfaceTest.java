@@ -121,7 +121,7 @@ public class VirtualOverrideOfStaticMethodWithVirtualParentInterfaceTest extends
   @Test
   public void lookupSingleTarget() {
     DexEncodedMethod resolved =
-        appInfo.resolveMethod(methodOnB.holder, methodOnB).asResultOfResolve();
+        appInfo.resolveMethodOnInterface(methodOnB.holder, methodOnB).asResultOfResolve();
     assertEquals(methodOnB, resolved.method);
     DexEncodedMethod singleVirtualTarget =
         appInfo.lookupSingleInterfaceTarget(methodOnB, methodOnB.holder);

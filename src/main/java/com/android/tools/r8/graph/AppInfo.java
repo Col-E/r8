@@ -262,9 +262,13 @@ public class AppInfo implements DexDefinitionSupplier {
     if (definition == null) {
       return ResolutionResult.EmptyResult.get();
     }
-    return definition.isInterface()
-        ? resolveMethodOnInterface(definition, method)
-        : resolveMethodOnClass(definition, method);
+    return resolveMethod(definition, method);
+  }
+
+  public ResolutionResult resolveMethod(DexClass holder, DexMethod method) {
+    return holder.isInterface()
+        ? resolveMethodOnInterface(holder, method)
+        : resolveMethodOnClass(holder, method);
   }
 
   /**
