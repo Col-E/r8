@@ -43,7 +43,10 @@ import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.ir.conversion.CallSiteOptimizationInfo;
+import com.android.tools.r8.ir.conversion.DefaultCallSiteOptimizationInfo;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.ir.conversion.MutableCallSiteOptimizationInfo;
 import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaring.DexFieldWithAccess;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
@@ -134,6 +137,8 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   private CompilationState compilationState = CompilationState.NOT_PROCESSED;
   private MethodOptimizationInfo optimizationInfo =
       DefaultMethodOptimizationInfoImpl.DEFAULT_INSTANCE;
+  private CallSiteOptimizationInfo callSiteOptimizationInfo =
+      DefaultCallSiteOptimizationInfo.getInstance();
   private int classFileVersion = -1;
 
   private DexEncodedMethod defaultInterfaceMethodImplementation = null;
@@ -1706,6 +1711,23 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   public void setOptimizationInfo(UpdatableMethodOptimizationInfo info) {
     checkIfObsolete();
     optimizationInfo = info;
+  }
+
+  public CallSiteOptimizationInfo getCallSiteOptimizationInfo() {
+    checkIfObsolete();
+    return callSiteOptimizationInfo;
+  }
+
+  public synchronized MutableCallSiteOptimizationInfo getMutableCallSiteOptimizationInfo() {
+    checkIfObsolete();
+    if (callSiteOptimizationInfo.isDefaultCallSiteOptimizationInfo()) {
+      MutableCallSiteOptimizationInfo mutableOptimizationInfo =
+          new MutableCallSiteOptimizationInfo(this);
+      callSiteOptimizationInfo = mutableOptimizationInfo;
+      return mutableOptimizationInfo;
+    }
+    assert callSiteOptimizationInfo.isMutableCallSiteOptimizationInfo();
+    return callSiteOptimizationInfo.asMutableCallSiteOptimizationInfo();
   }
 
   public void copyMetadata(DexEncodedMethod from) {

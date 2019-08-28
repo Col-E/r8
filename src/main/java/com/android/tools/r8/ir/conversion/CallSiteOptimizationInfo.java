@@ -1,0 +1,45 @@
+// Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
+// for details. All rights reserved. Use of this source code is governed by a
+// BSD-style license that can be found in the LICENSE file.
+package com.android.tools.r8.ir.conversion;
+
+import com.android.tools.r8.ir.analysis.type.Nullability;
+
+public abstract class CallSiteOptimizationInfo {
+
+  public boolean isDefaultCallSiteOptimizationInfo() {
+    return false;
+  }
+
+  public DefaultCallSiteOptimizationInfo asDefaultCallSiteOptimizationInfo() {
+    return null;
+  }
+
+  public boolean isMutableCallSiteOptimizationInfo() {
+    return false;
+  }
+
+  public MutableCallSiteOptimizationInfo asMutableCallSiteOptimizationInfo() {
+    return null;
+  }
+
+  /**
+   * CallSiteOptimizationInfoPropagator will reprocess the call target if its collected call
+   * site optimization info has something useful that can trigger more optimizations. For example,
+   * if a certain argument is guaranteed to be definitely not null for all call sites, null-check on
+   * that argument can be simplified during the reprocessing of the method.
+   */
+  public boolean hasUsefulOptimizationInfo() {
+    return false;
+  }
+
+  public abstract Nullability getNullability(int argIndex);
+
+  // TODO(b/139246447): extend it to TypeLattice and insert AssumeDynamicType if the join of all
+  //  call site arguments types is more precise than the static type.
+
+  // TODO(b/69963623): collect constants and if they're all same, propagate it to the callee.
+  //   then, we need to re-run unused argument removal?
+
+  // TODO(b/139249918): propagate classes that are guaranteed to be initialized.
+}
