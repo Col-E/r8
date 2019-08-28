@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -90,7 +91,7 @@ public abstract class ProguardClassNameList {
     return nameList == null ? Collections::emptyIterator : nameList.getWildcards();
   }
 
-  protected ProguardClassNameList materialize() {
+  protected ProguardClassNameList materialize(DexItemFactory dexItemFactory) {
     return this;
   }
 
@@ -135,9 +136,9 @@ public abstract class ProguardClassNameList {
     }
   }
 
-  private static class SingleClassNameList extends ProguardClassNameList {
+  static class SingleClassNameList extends ProguardClassNameList {
 
-    private final ProguardTypeMatcher className;
+    final ProguardTypeMatcher className;
 
     private SingleClassNameList(ProguardTypeMatcher className) {
       this.className = className;
@@ -187,8 +188,8 @@ public abstract class ProguardClassNameList {
     }
 
     @Override
-    protected SingleClassNameList materialize() {
-      return new SingleClassNameList(className.materialize());
+    protected SingleClassNameList materialize(DexItemFactory dexItemFactory) {
+      return new SingleClassNameList(className.materialize(dexItemFactory));
     }
 
     @Override
@@ -262,9 +263,11 @@ public abstract class ProguardClassNameList {
     }
 
     @Override
-    protected PositiveClassNameList materialize() {
+    protected PositiveClassNameList materialize(DexItemFactory dexItemFactory) {
       return new PositiveClassNameList(
-          classNames.stream().map(ProguardTypeMatcher::materialize).collect(Collectors.toList()));
+          classNames.stream()
+              .map(className -> className.materialize(dexItemFactory))
+              .collect(Collectors.toList()));
     }
 
     @Override
@@ -343,9 +346,10 @@ public abstract class ProguardClassNameList {
     }
 
     @Override
-    protected ProguardClassNameList materialize() {
+    protected ProguardClassNameList materialize(DexItemFactory dexItemFactory) {
       Builder builder = builder();
-      classNames.forEach((m, negated) -> builder.addClassName(negated, m.materialize()));
+      classNames.forEach(
+          (m, negated) -> builder.addClassName(negated, m.materialize(dexItemFactory)));
       return builder.build();
     }
 

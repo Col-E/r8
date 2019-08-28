@@ -11,10 +11,14 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.ProguardConfigurationParser.IdentifierPatternWithWildcards;
 import com.android.tools.r8.shaking.ProguardWildcard.BackReference;
 import com.android.tools.r8.shaking.ProguardWildcard.Pattern;
+import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public abstract class ProguardTypeMatcher {
 
@@ -55,7 +59,7 @@ public abstract class ProguardTypeMatcher {
     return typeMatcher == null ? Collections::emptyIterator : typeMatcher.getWildcards();
   }
 
-  protected ProguardTypeMatcher materialize() {
+  protected ProguardTypeMatcher materialize(DexItemFactory dexItemFactory) {
     return this;
   }
 
@@ -145,7 +149,7 @@ public abstract class ProguardTypeMatcher {
     }
 
     @Override
-    protected MatchAllTypes materialize() {
+    protected MatchAllTypes materialize(DexItemFactory dexItemFactory) {
       return new MatchAllTypes(wildcard.materialize());
     }
 
@@ -230,7 +234,7 @@ public abstract class ProguardTypeMatcher {
     }
 
     @Override
-    protected MatchClassTypes materialize() {
+    protected MatchClassTypes materialize(DexItemFactory dexItemFactory) {
       return new MatchClassTypes(pattern, wildcard.materialize());
     }
 
@@ -279,7 +283,7 @@ public abstract class ProguardTypeMatcher {
     }
 
     @Override
-    protected MatchBasicTypes materialize() {
+    protected MatchBasicTypes materialize(DexItemFactory dexItemFactory) {
       return new MatchBasicTypes(wildcard.materialize());
     }
 
@@ -371,12 +375,88 @@ public abstract class ProguardTypeMatcher {
     }
 
     @Override
-    protected MatchTypePattern materialize() {
-      List<ProguardWildcard> materializedWildcards =
-          wildcards.stream().map(ProguardWildcard::materialize).collect(Collectors.toList());
+    protected ProguardTypeMatcher materialize(DexItemFactory dexItemFactory) {
+      Int2ReferenceMap<String> materializedBackReferences = new Int2ReferenceOpenHashMap<>();
+      List<ProguardWildcard> materializedWildcards = new ArrayList<>();
+      for (ProguardWildcard wildcard : wildcards) {
+        ProguardWildcard materializedWildcard = wildcard.materialize();
+        if (materializedWildcard.isBackReference()) {
+          BackReference materializedBackReference = materializedWildcard.asBackReference();
+          materializedBackReferences.put(
+              materializedBackReference.referenceIndex, materializedBackReference.getCaptured());
+        } else {
+          materializedWildcards.add(materializedWildcard);
+        }
+      }
+
+      if (!materializedBackReferences.isEmpty()) {
+        String newPattern =
+            removeMaterializedBackReferencesFromPattern(pattern, materializedBackReferences);
+        if (!newPattern.contains("*")) {
+          String descriptor = DescriptorUtils.javaTypeToDescriptor(newPattern);
+          DexType type = dexItemFactory.createType(descriptor);
+          return new MatchSpecificType(type);
+        }
+
+        IdentifierPatternWithWildcards identifierPatternWithMaterializedWildcards =
+            new IdentifierPatternWithWildcards(newPattern, materializedWildcards);
+        return new MatchTypePattern(identifierPatternWithMaterializedWildcards, kind);
+      }
+
       IdentifierPatternWithWildcards identifierPatternWithMaterializedWildcards =
           new IdentifierPatternWithWildcards(pattern, materializedWildcards);
       return new MatchTypePattern(identifierPatternWithMaterializedWildcards, kind);
+    }
+
+    private static String removeMaterializedBackReferencesFromPattern(
+        String pattern, Int2ReferenceMap<String> materializedBackReferences) {
+      StringBuilder builder = new StringBuilder();
+      int startIndex = 0;
+      int currentIndex = 0;
+      for (; currentIndex < pattern.length(); currentIndex++) {
+        char c = pattern.charAt(currentIndex);
+        if (c == '<') {
+          int backReferenceEndIndex = currentIndex + 1;
+          while (backReferenceEndIndex < pattern.length()
+              && pattern.charAt(backReferenceEndIndex) != '>') {
+            backReferenceEndIndex++;
+          }
+          if (backReferenceEndIndex == pattern.length()) {
+            // Reached the end of the string without finding '>'.
+            break;
+          }
+
+          String reference = pattern.substring(currentIndex + 1, backReferenceEndIndex);
+          if (reference.isEmpty() || !StringUtils.onlyContainsDigits(reference)) {
+            continue;
+          }
+
+          String captured = materializedBackReferences.get(Integer.valueOf(reference).intValue());
+          if (captured == null) {
+            continue;
+          }
+
+          // Flush everything up until the back reference.
+          String before = pattern.substring(startIndex, currentIndex);
+          builder.append(before);
+
+          // Output the captured value.
+          builder.append(captured);
+
+          // Continue from the character that follows '>'.
+          startIndex = backReferenceEndIndex + 1;
+          currentIndex = backReferenceEndIndex;
+        }
+      }
+
+      assert currentIndex == pattern.length();
+
+      // Output everything that follows the last back reference.
+      if (startIndex < currentIndex) {
+        builder.append(pattern.substring(startIndex));
+      }
+
+      return builder.toString();
     }
 
     private static boolean matchClassOrTypeNameImpl(

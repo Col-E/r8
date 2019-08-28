@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.ProguardConfigurationParser.IdentifierPatternWithWildcards;
@@ -299,17 +300,19 @@ public class ProguardMemberRule {
     );
   }
 
-  ProguardMemberRule materialize() {
+  ProguardMemberRule materialize(DexItemFactory dexItemFactory) {
     return new ProguardMemberRule(
-        getAnnotation() == null ? null : getAnnotation().materialize(),
+        getAnnotation() == null ? null : getAnnotation().materialize(dexItemFactory),
         getAccessFlags(),
         getNegatedAccessFlags(),
         getRuleType(),
-        getType() == null ? null : getType().materialize(),
+        getType() == null ? null : getType().materialize(dexItemFactory),
         getName() == null ? null : getName().materialize(),
-        getArguments() == null ? null :
-            getArguments().stream()
-                .map(ProguardTypeMatcher::materialize).collect(Collectors.toList()),
+        getArguments() == null
+            ? null
+            : getArguments().stream()
+                .map(argument -> argument.materialize(dexItemFactory))
+                .collect(Collectors.toList()),
         getReturnValue());
   }
 

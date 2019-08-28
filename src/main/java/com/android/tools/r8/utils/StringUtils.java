@@ -294,4 +294,15 @@ public class StringUtils {
       return s;
     }
   }
+
+  /** Returns true if {@param s} only contains the characters [0-9]. */
+  public static boolean onlyContainsDigits(String s) {
+    for (int i = 0; i < s.length(); i++) {
+      char c = s.charAt(i);
+      if (!Character.isDigit(c)) {
+        return false;
+      }
+    }
+    return true;
+  }
 }

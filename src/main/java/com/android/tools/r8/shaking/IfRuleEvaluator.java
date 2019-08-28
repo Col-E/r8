@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
@@ -290,13 +291,14 @@ public class IfRuleEvaluator {
   }
 
   private void materializeIfRule(ProguardIfRule rule, Set<DexReference> preconditions) {
-    ProguardIfRule materializedRule = rule.materialize(preconditions);
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    ProguardIfRule materializedRule = rule.materialize(dexItemFactory, preconditions);
 
     if (mode.isInitialTreeShaking() && !rule.isUsed()) {
       // We need to abort class inlining of classes that could be matched by the condition of this
       // -if rule.
       ClassInlineRule neverClassInlineRuleForCondition =
-          materializedRule.neverClassInlineRuleForCondition();
+          materializedRule.neverClassInlineRuleForCondition(dexItemFactory);
       if (neverClassInlineRuleForCondition != null) {
         rootSetBuilder.runPerRule(executorService, futures, neverClassInlineRuleForCondition, null);
       }
@@ -304,7 +306,8 @@ public class IfRuleEvaluator {
       // If the condition of the -if rule has any members, then we need to keep these members to
       // ensure that the subsequent rule will be applied again in the second round of tree
       // shaking.
-      InlineRule neverInlineRuleForCondition = materializedRule.neverInlineRuleForCondition();
+      InlineRule neverInlineRuleForCondition =
+          materializedRule.neverInlineRuleForCondition(dexItemFactory);
       if (neverInlineRuleForCondition != null) {
         rootSetBuilder.runPerRule(executorService, futures, neverInlineRuleForCondition, null);
       }

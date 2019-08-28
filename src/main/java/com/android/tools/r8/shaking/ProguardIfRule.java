@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
@@ -101,42 +102,51 @@ public class ProguardIfRule extends ProguardKeepRuleBase {
     return Iterables.concat(super.getWildcards(), subsequentRule.getWildcards());
   }
 
-  protected ProguardIfRule materialize(Set<DexReference> preconditions) {
+  protected ProguardIfRule materialize(
+      DexItemFactory dexItemFactory, Set<DexReference> preconditions) {
     return new ProguardIfRule(
         getOrigin(),
         getPosition(),
         getSource(),
-        getClassAnnotation() == null ? null : getClassAnnotation().materialize(),
+        getClassAnnotation() == null ? null : getClassAnnotation().materialize(dexItemFactory),
         getClassAccessFlags(),
         getNegatedClassAccessFlags(),
         getClassTypeNegated(),
         getClassType(),
-        getClassNames().materialize(),
-        getInheritanceAnnotation() == null ? null : getInheritanceAnnotation().materialize(),
-        getInheritanceClassName() == null ? null : getInheritanceClassName().materialize(),
+        getClassNames().materialize(dexItemFactory),
+        getInheritanceAnnotation() == null
+            ? null
+            : getInheritanceAnnotation().materialize(dexItemFactory),
+        getInheritanceClassName() == null
+            ? null
+            : getInheritanceClassName().materialize(dexItemFactory),
         getInheritanceIsExtends(),
         getMemberRules() == null
             ? null
             : getMemberRules().stream()
-                .map(ProguardMemberRule::materialize)
+                .map(memberRule -> memberRule.materialize(dexItemFactory))
                 .collect(Collectors.toList()),
-        subsequentRule.materialize(),
+        subsequentRule.materialize(dexItemFactory),
         preconditions);
   }
 
-  protected ClassInlineRule neverClassInlineRuleForCondition() {
+  protected ClassInlineRule neverClassInlineRuleForCondition(DexItemFactory dexItemFactory) {
     return new ClassInlineRule(
         neverInlineOrigin,
         Position.UNKNOWN,
         null,
-        getClassAnnotation() == null ? null : getClassAnnotation().materialize(),
+        getClassAnnotation() == null ? null : getClassAnnotation().materialize(dexItemFactory),
         getClassAccessFlags(),
         getNegatedClassAccessFlags(),
         getClassTypeNegated(),
         getClassType(),
-        getClassNames().materialize(),
-        getInheritanceAnnotation() == null ? null : getInheritanceAnnotation().materialize(),
-        getInheritanceClassName() == null ? null : getInheritanceClassName().materialize(),
+        getClassNames().materialize(dexItemFactory),
+        getInheritanceAnnotation() == null
+            ? null
+            : getInheritanceAnnotation().materialize(dexItemFactory),
+        getInheritanceClassName() == null
+            ? null
+            : getInheritanceClassName().materialize(dexItemFactory),
         getInheritanceIsExtends(),
         ImmutableList.of(),
         ClassInlineRule.Type.NEVER);
@@ -164,7 +174,7 @@ public class ProguardIfRule extends ProguardKeepRuleBase {
    * <p>Therefore, each time the subsequent rule of an -if rule is applied, we also apply a
    * -neverinline rule for the condition of the -if rule.
    */
-  protected InlineRule neverInlineRuleForCondition() {
+  protected InlineRule neverInlineRuleForCondition(DexItemFactory dexItemFactory) {
     if (getMemberRules() == null || getMemberRules().isEmpty()) {
       return null;
     }
@@ -172,18 +182,22 @@ public class ProguardIfRule extends ProguardKeepRuleBase {
         neverInlineOrigin,
         Position.UNKNOWN,
         null,
-        getClassAnnotation() == null ? null : getClassAnnotation().materialize(),
+        getClassAnnotation() == null ? null : getClassAnnotation().materialize(dexItemFactory),
         getClassAccessFlags(),
         getNegatedClassAccessFlags(),
         getClassTypeNegated(),
         getClassType(),
-        getClassNames().materialize(),
-        getInheritanceAnnotation() == null ? null : getInheritanceAnnotation().materialize(),
-        getInheritanceClassName() == null ? null : getInheritanceClassName().materialize(),
+        getClassNames().materialize(dexItemFactory),
+        getInheritanceAnnotation() == null
+            ? null
+            : getInheritanceAnnotation().materialize(dexItemFactory),
+        getInheritanceClassName() == null
+            ? null
+            : getInheritanceClassName().materialize(dexItemFactory),
         getInheritanceIsExtends(),
         getMemberRules().stream()
             .filter(rule -> rule.getRuleType().includesMethods())
-            .map(ProguardMemberRule::materialize)
+            .map(memberRule -> memberRule.materialize(dexItemFactory))
             .collect(Collectors.toList()),
         InlineRule.Type.NEVER);
   }

@@ -26,7 +26,9 @@ import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.position.TextRange;
+import com.android.tools.r8.shaking.ProguardClassNameList.SingleClassNameList;
 import com.android.tools.r8.shaking.ProguardConfigurationParser.IdentifierPatternWithWildcards;
+import com.android.tools.r8.shaking.ProguardTypeMatcher.MatchSpecificType;
 import com.android.tools.r8.shaking.constructor.InitMatchingTest;
 import com.android.tools.r8.utils.AbortException;
 import com.android.tools.r8.utils.FileUtils;
@@ -2838,5 +2840,36 @@ public class ProguardConfigurationParserTest extends TestBase {
         checkDiagnostics(handler.infos, proguardConfig, 1, 0, "Ignoring modifier", "includecode");
       }
     }
+  }
+
+  @Test
+  public void backReferenceElimination() {
+    DexItemFactory dexItemFactory = new DexItemFactory();
+    ProguardConfigurationParser parser = new ProguardConfigurationParser(dexItemFactory, reporter);
+    String configuration = StringUtils.lines("-if class *.*.*", "-keep class <1>.<2>$<3>");
+    parser.parse(createConfigurationForTesting(ImmutableList.of(configuration)));
+    verifyParserEndsCleanly();
+
+    ProguardConfiguration config = parser.getConfig();
+    assertEquals(1, config.getRules().size());
+
+    ProguardIfRule ifRule = (ProguardIfRule) config.getRules().iterator().next();
+
+    // Evaluate the class name matcher against foo.bar.Baz.
+    DexType type = dexItemFactory.createType("Lfoo/bar/Baz;");
+    ifRule.getClassNames().matches(type);
+
+    // Materialize the subsequent rule.
+    ProguardKeepRule materializedSubsequentRule = ifRule.subsequentRule.materialize(dexItemFactory);
+
+    // Verify that the class name matcher of the materialized rule has a specific type.
+    ProguardClassNameList classNameList = materializedSubsequentRule.getClassNames();
+    assertTrue(classNameList instanceof SingleClassNameList);
+
+    SingleClassNameList singleClassNameList = (SingleClassNameList) classNameList;
+    assertTrue(singleClassNameList.className instanceof MatchSpecificType);
+
+    MatchSpecificType specificTypeMatcher = (MatchSpecificType) singleClassNameList.className;
+    assertEquals("foo.bar$Baz", specificTypeMatcher.type.toSourceString());
   }
 }
