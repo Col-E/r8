@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.conversion;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
 import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
@@ -65,8 +66,8 @@ public class OptimizationFeedbackDelayed implements OptimizationFeedback {
 
   @Override
   public synchronized void methodReturnsObjectOfType(
-      DexEncodedMethod method, TypeLatticeElement type) {
-    getOptimizationInfoForUpdating(method).markReturnsObjectOfType(type);
+      DexEncodedMethod method, AppView<?> appView, TypeLatticeElement type) {
+    getOptimizationInfoForUpdating(method).markReturnsObjectOfType(appView, type);
   }
 
   @Override

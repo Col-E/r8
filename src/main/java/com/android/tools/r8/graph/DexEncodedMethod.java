@@ -1610,7 +1610,8 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     @Override
     public void markReturnsConstantNumber(long value) {
       assert !returnsConstantString;
-      assert !returnsConstantNumber || returnedConstantNumber == value;
+      assert !returnsConstantNumber || returnedConstantNumber == value
+          : "return constant number changed from " + returnedConstantNumber + " to " + value;
       returnsConstantNumber = true;
       returnedConstantNumber = value;
     }
@@ -1618,15 +1619,21 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     @Override
     public void markReturnsConstantString(DexString value) {
       assert !returnsConstantNumber;
-      assert !returnsConstantString || returnedConstantString == value;
+      assert !returnsConstantString || returnedConstantString == value
+          : "return constant string changed from " + returnedConstantString + " to " + value;
       returnsConstantString = true;
       returnedConstantString = value;
     }
 
     @Override
-    public void markReturnsObjectOfType(TypeLatticeElement type) {
+    public void markReturnsObjectOfType(AppView<?> appView, TypeLatticeElement type) {
       assert type != null;
-      assert returnsObjectOfType == UNKNOWN_TYPE || returnsObjectOfType == type;
+      // We may get more precise type information if the method is reprocessed (e.g., due to
+      // optimization info collected from all call sites), and hence the `returnsObjectOfType` is
+      // allowed to become more precise.
+      assert returnsObjectOfType == UNKNOWN_TYPE
+          || type.lessThanOrEqual(returnsObjectOfType, appView)
+          : "return type changed from " + returnsObjectOfType + " to " + type;
       returnsObjectOfType = type;
     }
 

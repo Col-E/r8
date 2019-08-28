@@ -1392,7 +1392,7 @@ public class IRConverter {
       // If the dynamic return type is not more precise than the static return type there is no need
       // to record it.
       if (dynamicReturnType.strictlyLessThan(staticReturnType, appView)) {
-        feedback.methodReturnsObjectOfType(method, dynamicReturnType);
+        feedback.methodReturnsObjectOfType(method, appView, dynamicReturnType);
       }
     }
   }

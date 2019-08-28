@@ -24,7 +24,7 @@ public interface UpdatableMethodOptimizationInfo extends MethodOptimizationInfo 
 
   void markReturnsConstantString(DexString value);
 
-  void markReturnsObjectOfType(TypeLatticeElement type);
+  void markReturnsObjectOfType(AppView<?> appView, TypeLatticeElement type);
 
   void markAsPropagated();
 

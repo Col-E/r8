@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.conversion;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
 import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
@@ -28,7 +29,8 @@ public interface OptimizationFeedback {
 
   void methodReturnsConstantString(DexEncodedMethod method, DexString value);
 
-  void methodReturnsObjectOfType(DexEncodedMethod method, TypeLatticeElement type);
+  void methodReturnsObjectOfType(
+      DexEncodedMethod method, AppView<?> appView, TypeLatticeElement type);
 
   void methodMayNotHaveSideEffects(DexEncodedMethod method);
 
