@@ -10,6 +10,7 @@ public class TestMain implements InterfaceWithDefaults {
     System.out.println("TestMain::test()");
     this.foo();
     this.bar();
+    InterfaceWithDefaults.super.foo();
   }
 
   @Override
