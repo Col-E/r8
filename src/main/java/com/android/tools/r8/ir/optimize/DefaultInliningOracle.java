@@ -184,7 +184,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
 
     // We don't inline into constructors when producing class files since this can mess up
     // the stackmap, see b/136250031
-    if (method.isInitializer()
+    if (method.isInstanceInitializer()
         && appView.options().isGeneratingClassFiles()
         && reason != Reason.FORCE) {
       return false;
