@@ -780,8 +780,9 @@ public final class InterfaceMethodRewriter {
         warnMissingType(referencedFrom, handle.asMethod().holder);
       } else if (holderClass.isInterface()) {
         throw new Unimplemented(
-            "Desugaring of static interface method handle as in `"
-                + referencedFrom.toSourceString() + "` in is not yet supported.");
+            "Desugaring of static interface method handle in `"
+                + referencedFrom.toSourceString()
+                + "` is not yet supported.");
       }
     }
   }
