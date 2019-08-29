@@ -58,7 +58,7 @@ TIMED_OUT = 'timed_out'
 TEST_COMMANDS = [
     # Run test.py internal testing.
     ['tools/test.py', '--only_internal', '--slow_tests',
-     '--java_max_memory_size=6G'],
+     '--java_max_memory_size=12G'],
     # Ensure that all internal apps compile.
     ['tools/run_on_app.py', '--ignore-java-version','--run-all', '--out=out']
 ]
