@@ -130,6 +130,11 @@ public class AppInfo implements DexDefinitionSupplier {
     return app.definitionFor(type);
   }
 
+  @Override
+  public DexProgramClass definitionForProgramType(DexType type) {
+    return app.programDefinitionFor(type);
+  }
+
   public Origin originFor(DexType type) {
     assert checkIfObsolete();
     DexClass definition = app.definitionFor(type);

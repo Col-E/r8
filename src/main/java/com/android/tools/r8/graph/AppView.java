@@ -124,6 +124,11 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
     return appInfo().definitionFor(type);
   }
 
+  @Override
+  public final DexProgramClass definitionForProgramType(DexType type) {
+    return appInfo.app().programDefinitionFor(type);
+  }
+
   public OptionalBool isInterface(DexType type) {
     // Without whole program information we should not assume anything about any other class than
     // the current holder in a given context.

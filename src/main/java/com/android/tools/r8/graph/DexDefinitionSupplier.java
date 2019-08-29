@@ -14,5 +14,7 @@ public interface DexDefinitionSupplier {
 
   DexClass definitionFor(DexType type);
 
+  DexProgramClass definitionForProgramType(DexType type);
+
   DexItemFactory dexItemFactory();
 }
