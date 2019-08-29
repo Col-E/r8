@@ -7,7 +7,9 @@ import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
@@ -141,14 +143,41 @@ public class CfInvoke extends CfInstruction {
         }
       case Opcodes.INVOKESPECIAL:
         {
+          // Per https://source.android.com/devices/tech/dalvik/dalvik-bytecode, for Dex files
+          // version >= 037, if the method refers to an interface method, invoke-super is used to
+          // invoke the most specific, non-overridden version of that method.
+          // In https://docs.oracle.com/javase/specs/jls/se8/html/jls-15.html#jls-15.12.3, it is
+          // a compile-time error in the case that "If TypeName denotes an interface, let T be the
+          // type declaration immediately enclosing the method invocation. A compile-time error
+          // occurs if there exists a method, distinct from the compile-time declaration, that
+          // overrides (§9.4.1) the compile-time declaration from a direct superclass or
+          // direct superinterface of T."
+          // Using invoke-super should therefore observe the correct semantics since we cannot
+          // target less specific targets (up in the hierarchy).
           canonicalMethod = method;
           if (method.name.toString().equals(Constants.INSTANCE_INITIALIZER_NAME)) {
             type = Type.DIRECT;
           } else if (code.getOriginalHolder() == method.holder) {
-            type = Type.DIRECT;
+            if (!this.itf || builder.appView.options().isInterfaceMethodDesugaringEnabled()) {
+              // When desugaring default interface methods, it is expected they are targeted with
+              // invoke-direct.
+              type = Type.DIRECT;
+            } else {
+              DexProgramClass clazz = builder.appView.definitionForProgramType(method.holder);
+              assert clazz != null;
+              DexEncodedMethod encodedMethod = clazz.lookupDirectMethod(method);
+              if (encodedMethod != null) {
+                assert encodedMethod.isStatic() || encodedMethod.isPrivateMethod();
+                type = Type.DIRECT;
+              } else {
+                // This is a default interface method.
+                type = Type.SUPER;
+              }
+            }
           } else {
             type = Type.SUPER;
           }
+          assert type == Type.SUPER || type == Type.DIRECT;
           break;
         }
       case Opcodes.INVOKESTATIC:
