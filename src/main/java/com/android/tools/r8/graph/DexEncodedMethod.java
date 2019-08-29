@@ -9,7 +9,6 @@ import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCE
 import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCESSED_INLINING_CANDIDATE_SAME_PACKAGE;
 import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCESSED_INLINING_CANDIDATE_SUBCLASS;
 import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCESSED_NOT_INLINING_CANDIDATE;
-import static com.android.tools.r8.graph.DexEncodedMethod.DefaultMethodOptimizationInfoImpl.UNKNOWN_TYPE;
 
 import com.android.tools.r8.OptionalBool;
 import com.android.tools.r8.cf.code.CfConstNull;
@@ -36,8 +35,6 @@ import com.android.tools.r8.dex.MethodToCodeObjectMapping;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.ParameterUsagesInfo.ParameterUsage;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.Position;
@@ -51,6 +48,9 @@ import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaring.DexFieldWithAcc
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.NestUtils;
+import com.android.tools.r8.ir.optimize.info.DefaultMethodOptimizationInfo;
+import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
+import com.android.tools.r8.ir.optimize.info.UpdatableMethodOptimizationInfo;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.ir.synthetic.CfEmulateInterfaceSyntheticSourceCodeProvider;
 import com.android.tools.r8.ir.synthetic.FieldAccessorSourceCode;
@@ -65,16 +65,13 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.IntPredicate;
 import org.objectweb.asm.Opcodes;
@@ -135,8 +132,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   // TODO(b/128967328): towards finer-grained inlining constraints,
   //   we need to maintain a set of states with (potentially different) contexts.
   private CompilationState compilationState = CompilationState.NOT_PROCESSED;
-  private MethodOptimizationInfo optimizationInfo =
-      DefaultMethodOptimizationInfoImpl.DEFAULT_INSTANCE;
+  private MethodOptimizationInfo optimizationInfo = DefaultMethodOptimizationInfo.DEFAULT_INSTANCE;
   private CallSiteOptimizationInfo callSiteOptimizationInfo =
       DefaultCallSiteOptimizationInfo.getInstance();
   private int classFileVersion = -1;
@@ -1118,583 +1114,6 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     }
   }
 
-  public static class DefaultMethodOptimizationInfoImpl implements MethodOptimizationInfo {
-
-    public static final MethodOptimizationInfo DEFAULT_INSTANCE =
-        new DefaultMethodOptimizationInfoImpl();
-
-    public static Set<DexType> UNKNOWN_INITIALIZED_CLASSES_ON_NORMAL_EXIT = ImmutableSet.of();
-    public static int UNKNOWN_RETURNED_ARGUMENT = -1;
-    public static boolean UNKNOWN_NEVER_RETURNS_NULL = false;
-    public static boolean UNKNOWN_NEVER_RETURNS_NORMALLY = false;
-    public static boolean UNKNOWN_RETURNS_CONSTANT = false;
-    public static long UNKNOWN_RETURNED_CONSTANT_NUMBER = 0;
-    public static DexString UNKNOWN_RETURNED_CONSTANT_STRING = null;
-    public static TypeLatticeElement UNKNOWN_TYPE = null;
-    public static boolean DOES_NOT_USE_IDNETIFIER_NAME_STRING = false;
-    public static boolean UNKNOWN_CHECKS_NULL_RECEIVER_BEFORE_ANY_SIDE_EFFECT = false;
-    public static boolean UNKNOWN_TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT = false;
-    public static ClassInlinerEligibility UNKNOWN_CLASS_INLINER_ELIGIBILITY = null;
-    public static TrivialInitializer UNKNOWN_TRIVIAL_INITIALIZER = null;
-    public static boolean UNKNOWN_INITIALIZER_ENABLING_JAVA_ASSERTIONS = false;
-    public static ParameterUsagesInfo UNKNOWN_PARAMETER_USAGE_INFO = null;
-    public static boolean UNKNOWN_MAY_HAVE_SIDE_EFFECTS = true;
-    public static boolean UNKNOWN_RETURN_VALUE_ONLY_DEPENDS_ON_ARGUMENTS = false;
-    public static BitSet NO_NULL_PARAMETER_OR_THROW_FACTS = null;
-    public static BitSet NO_NULL_PARAMETER_ON_NORMAL_EXITS_FACTS = null;
-
-    private DefaultMethodOptimizationInfoImpl() {}
-
-    @Override
-    public boolean cannotBeKept() {
-      return false;
-    }
-
-    @Override
-    public boolean classInitializerMayBePostponed() {
-      return false;
-    }
-
-    @Override
-    public TypeLatticeElement getDynamicReturnType() {
-      return UNKNOWN_TYPE;
-    }
-
-    @Override
-    public Set<DexType> getInitializedClassesOnNormalExit() {
-      return UNKNOWN_INITIALIZED_CLASSES_ON_NORMAL_EXIT;
-    }
-
-    @Override
-    public TrivialInitializer getTrivialInitializerInfo() {
-      return UNKNOWN_TRIVIAL_INITIALIZER;
-    }
-
-    @Override
-    public ParameterUsage getParameterUsages(int parameter) {
-      assert UNKNOWN_PARAMETER_USAGE_INFO == null;
-      return null;
-    }
-
-    @Override
-    public BitSet getNonNullParamOrThrow() {
-      return NO_NULL_PARAMETER_OR_THROW_FACTS;
-    }
-
-    @Override
-    public BitSet getNonNullParamOnNormalExits() {
-      return NO_NULL_PARAMETER_ON_NORMAL_EXITS_FACTS;
-    }
-
-    @Override
-    public boolean hasBeenInlinedIntoSingleCallSite() {
-      return false;
-    }
-
-    @Override
-    public boolean isReachabilitySensitive() {
-      return false;
-    }
-
-    @Override
-    public boolean returnsArgument() {
-      return false;
-    }
-
-    @Override
-    public int getReturnedArgument() {
-      assert returnsArgument();
-      return UNKNOWN_RETURNED_ARGUMENT;
-    }
-
-    @Override
-    public boolean neverReturnsNull() {
-      return UNKNOWN_NEVER_RETURNS_NULL;
-    }
-
-    @Override
-    public boolean neverReturnsNormally() {
-      return UNKNOWN_NEVER_RETURNS_NORMALLY;
-    }
-
-    @Override
-    public boolean returnsConstant() {
-      return UNKNOWN_RETURNS_CONSTANT;
-    }
-
-    @Override
-    public boolean returnsConstantNumber() {
-      return UNKNOWN_RETURNS_CONSTANT;
-    }
-
-    @Override
-    public boolean returnsConstantString() {
-      return UNKNOWN_RETURNS_CONSTANT;
-    }
-
-    @Override
-    public ClassInlinerEligibility getClassInlinerEligibility() {
-      return UNKNOWN_CLASS_INLINER_ELIGIBILITY;
-    }
-
-    @Override
-    public long getReturnedConstantNumber() {
-      assert returnsConstantNumber();
-      return UNKNOWN_RETURNED_CONSTANT_NUMBER;
-    }
-
-    @Override
-    public DexString getReturnedConstantString() {
-      assert returnsConstantString();
-      return UNKNOWN_RETURNED_CONSTANT_STRING;
-    }
-
-    @Override
-    public boolean isInitializerEnablingJavaAssertions() {
-      return UNKNOWN_INITIALIZER_ENABLING_JAVA_ASSERTIONS;
-    }
-
-    @Override
-    public boolean useIdentifierNameString() {
-      return DOES_NOT_USE_IDNETIFIER_NAME_STRING;
-    }
-
-    @Override
-    public boolean forceInline() {
-      return false;
-    }
-
-    @Override
-    public boolean neverInline() {
-      return false;
-    }
-
-    @Override
-    public boolean checksNullReceiverBeforeAnySideEffect() {
-      return UNKNOWN_CHECKS_NULL_RECEIVER_BEFORE_ANY_SIDE_EFFECT;
-    }
-
-    @Override
-    public boolean triggersClassInitBeforeAnySideEffect() {
-      return UNKNOWN_TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT;
-    }
-
-    @Override
-    public boolean mayHaveSideEffects() {
-      return UNKNOWN_MAY_HAVE_SIDE_EFFECTS;
-    }
-
-    @Override
-    public boolean returnValueOnlyDependsOnArguments() {
-      return UNKNOWN_RETURN_VALUE_ONLY_DEPENDS_ON_ARGUMENTS;
-    }
-
-    @Override
-    public boolean returnValueHasBeenPropagated() {
-      return false;
-    }
-
-    @Override
-    public UpdatableMethodOptimizationInfo mutableCopy() {
-      return new MethodOptimizationInfoImpl();
-    }
-  }
-
-  public static class MethodOptimizationInfoImpl implements UpdatableMethodOptimizationInfo {
-
-    private boolean cannotBeKept = false;
-    private boolean classInitializerMayBePostponed = false;
-    private boolean hasBeenInlinedIntoSingleCallSite = false;
-    private Set<DexType> initializedClassesOnNormalExit =
-        DefaultMethodOptimizationInfoImpl.UNKNOWN_INITIALIZED_CLASSES_ON_NORMAL_EXIT;
-    private int returnedArgument = DefaultMethodOptimizationInfoImpl.UNKNOWN_RETURNED_ARGUMENT;
-    private boolean mayHaveSideEffects =
-        DefaultMethodOptimizationInfoImpl.UNKNOWN_MAY_HAVE_SIDE_EFFECTS;
-    private boolean returnValueOnlyDependsOnArguments =
-        DefaultMethodOptimizationInfoImpl.UNKNOWN_RETURN_VALUE_ONLY_DEPENDS_ON_ARGUMENTS;
-    private boolean neverReturnsNull = DefaultMethodOptimizationInfoImpl.UNKNOWN_NEVER_RETURNS_NULL;
-    private boolean neverReturnsNormally =
-        DefaultMethodOptimizationInfoImpl.UNKNOWN_NEVER_RETURNS_NORMALLY;
-    private boolean returnsConstantNumber =
-        DefaultMethodOptimizationInfoImpl.UNKNOWN_RETURNS_CONSTANT;
-    private long returnedConstantNumber =
-        DefaultMethodOptimizationInfoImpl.UNKNOWN_RETURNED_CONSTANT_NUMBER;
-    private boolean returnsConstantString =
-        DefaultMethodOptimizationInfoImpl.UNKNOWN_RETURNS_CONSTANT;
-    private DexString returnedConstantString =
-        DefaultMethodOptimizationInfoImpl.UNKNOWN_RETURNED_CONSTANT_STRING;
-    private TypeLatticeElement returnsObjectOfType = UNKNOWN_TYPE;
-    private InlinePreference inlining = InlinePreference.Default;
-    private boolean useIdentifierNameString =
-        DefaultMethodOptimizationInfoImpl.DOES_NOT_USE_IDNETIFIER_NAME_STRING;
-    private boolean checksNullReceiverBeforeAnySideEffect =
-        DefaultMethodOptimizationInfoImpl.UNKNOWN_CHECKS_NULL_RECEIVER_BEFORE_ANY_SIDE_EFFECT;
-    private boolean triggersClassInitBeforeAnySideEffect =
-        DefaultMethodOptimizationInfoImpl.UNKNOWN_TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT;
-    // Stores information about instance methods and constructors for
-    // class inliner, null value indicates that the method is not eligible.
-    private ClassInlinerEligibility classInlinerEligibility =
-        DefaultMethodOptimizationInfoImpl.UNKNOWN_CLASS_INLINER_ELIGIBILITY;
-    private TrivialInitializer trivialInitializerInfo =
-        DefaultMethodOptimizationInfoImpl.UNKNOWN_TRIVIAL_INITIALIZER;
-    private boolean initializerEnablingJavaAssertions =
-        DefaultMethodOptimizationInfoImpl.UNKNOWN_INITIALIZER_ENABLING_JAVA_ASSERTIONS;
-    private ParameterUsagesInfo parametersUsages =
-        DefaultMethodOptimizationInfoImpl.UNKNOWN_PARAMETER_USAGE_INFO;
-    // Stores information about nullability hint per parameter. If set, that means, the method
-    // somehow (e.g., null check, such as arg != null, or using checkParameterIsNotNull) ensures
-    // the corresponding parameter is not null, or throws NPE before any other side effects.
-    // This info is used by {@link UninstantiatedTypeOptimization#rewriteInvoke} that replaces an
-    // invocation with null throwing code if an always-null argument is passed. Also used by Inliner
-    // to give a credit to null-safe code, e.g., Kotlin's null safe argument.
-    // Note that this bit set takes into account the receiver for instance methods.
-    private BitSet nonNullParamOrThrow = null;
-    // Stores information about nullability facts per parameter. If set, that means, the method
-    // somehow (e.g., null check, such as arg != null, or NPE-throwing instructions such as array
-    // access or another invocation) ensures the corresponding parameter is not null, and that is
-    // guaranteed until the normal exits. That is, if the invocation of this method is finished
-    // normally, the recorded parameter is definitely not null. These facts are used to propagate
-    // non-null information through {@link NonNullTracker}.
-    // Note that this bit set takes into account the receiver for instance methods.
-    private BitSet nonNullParamOnNormalExits = null;
-    private boolean reachabilitySensitive = false;
-    private boolean returnValueHasBeenPropagated = false;
-
-    private MethodOptimizationInfoImpl() {
-      // Intentionally left empty, just use the default values.
-    }
-
-    private MethodOptimizationInfoImpl(MethodOptimizationInfoImpl template) {
-      cannotBeKept = template.cannotBeKept;
-      returnedArgument = template.returnedArgument;
-      neverReturnsNull = template.neverReturnsNull;
-      neverReturnsNormally = template.neverReturnsNormally;
-      returnsConstantNumber = template.returnsConstantNumber;
-      returnedConstantNumber = template.returnedConstantNumber;
-      returnsConstantString = template.returnsConstantString;
-      returnedConstantString = template.returnedConstantString;
-      inlining = template.inlining;
-      useIdentifierNameString = template.useIdentifierNameString;
-      checksNullReceiverBeforeAnySideEffect = template.checksNullReceiverBeforeAnySideEffect;
-      triggersClassInitBeforeAnySideEffect = template.triggersClassInitBeforeAnySideEffect;
-      classInlinerEligibility = template.classInlinerEligibility;
-      trivialInitializerInfo = template.trivialInitializerInfo;
-      initializerEnablingJavaAssertions = template.initializerEnablingJavaAssertions;
-      parametersUsages = template.parametersUsages;
-      nonNullParamOrThrow = template.nonNullParamOrThrow;
-      nonNullParamOnNormalExits = template.nonNullParamOnNormalExits;
-      reachabilitySensitive = template.reachabilitySensitive;
-    }
-
-    @Override
-    public boolean cannotBeKept() {
-      return cannotBeKept;
-    }
-
-    @Override
-    public void markCannotBeKept() {
-      cannotBeKept = true;
-    }
-
-    @Override
-    public boolean classInitializerMayBePostponed() {
-      return classInitializerMayBePostponed;
-    }
-
-    @Override
-    public void markClassInitializerMayBePostponed() {
-      classInitializerMayBePostponed = true;
-    }
-
-    @Override
-    public TypeLatticeElement getDynamicReturnType() {
-      return returnsObjectOfType;
-    }
-
-    @Override
-    public Set<DexType> getInitializedClassesOnNormalExit() {
-      return initializedClassesOnNormalExit;
-    }
-
-    @Override
-    public TrivialInitializer getTrivialInitializerInfo() {
-      return trivialInitializerInfo;
-    }
-
-    @Override
-    public ParameterUsage getParameterUsages(int parameter) {
-      return parametersUsages == null ? null : parametersUsages.getParameterUsage(parameter);
-    }
-
-    @Override
-    public BitSet getNonNullParamOrThrow() {
-      return nonNullParamOrThrow;
-    }
-
-    @Override
-    public BitSet getNonNullParamOnNormalExits() {
-      return nonNullParamOnNormalExits;
-    }
-
-    @Override
-    public boolean hasBeenInlinedIntoSingleCallSite() {
-      return hasBeenInlinedIntoSingleCallSite;
-    }
-
-    @Override
-    public void markInlinedIntoSingleCallSite() {
-      hasBeenInlinedIntoSingleCallSite = true;
-    }
-
-    @Override
-    public boolean isReachabilitySensitive() {
-      return reachabilitySensitive;
-    }
-
-    @Override
-    public boolean returnsArgument() {
-      return returnedArgument != -1;
-    }
-
-    @Override
-    public int getReturnedArgument() {
-      assert returnsArgument();
-      return returnedArgument;
-    }
-
-    @Override
-    public boolean neverReturnsNull() {
-      return neverReturnsNull;
-    }
-
-    @Override
-    public boolean neverReturnsNormally() {
-      return neverReturnsNormally;
-    }
-
-    @Override
-    public boolean returnsConstant() {
-      assert !(returnsConstantNumber && returnsConstantString);
-      return returnsConstantNumber || returnsConstantString;
-    }
-
-    @Override
-    public boolean returnsConstantNumber() {
-      return returnsConstantNumber;
-    }
-
-    @Override
-    public boolean returnsConstantString() {
-      return returnsConstantString;
-    }
-
-    @Override
-    public ClassInlinerEligibility getClassInlinerEligibility() {
-      return classInlinerEligibility;
-    }
-
-    @Override
-    public long getReturnedConstantNumber() {
-      assert returnsConstant();
-      return returnedConstantNumber;
-    }
-
-    @Override
-    public DexString getReturnedConstantString() {
-      assert returnsConstant();
-      return returnedConstantString;
-    }
-
-    @Override
-    public boolean isInitializerEnablingJavaAssertions() {
-      return initializerEnablingJavaAssertions;
-    }
-
-    @Override
-    public boolean useIdentifierNameString() {
-      return useIdentifierNameString;
-    }
-
-    @Override
-    public boolean forceInline() {
-      return inlining == InlinePreference.ForceInline;
-    }
-
-    @Override
-    public boolean neverInline() {
-      return inlining == InlinePreference.NeverInline;
-    }
-
-    @Override
-    public boolean checksNullReceiverBeforeAnySideEffect() {
-      return checksNullReceiverBeforeAnySideEffect;
-    }
-
-    @Override
-    public boolean triggersClassInitBeforeAnySideEffect() {
-      return triggersClassInitBeforeAnySideEffect;
-    }
-
-    @Override
-    public boolean mayHaveSideEffects() {
-      return mayHaveSideEffects;
-    }
-
-    @Override
-    public boolean returnValueOnlyDependsOnArguments() {
-      return returnValueOnlyDependsOnArguments;
-    }
-
-    @Override
-    public void setParameterUsages(ParameterUsagesInfo parametersUsages) {
-      this.parametersUsages = parametersUsages;
-    }
-
-    @Override
-    public void setNonNullParamOrThrow(BitSet facts) {
-      this.nonNullParamOrThrow = facts;
-    }
-
-    @Override
-    public void setNonNullParamOnNormalExits(BitSet facts) {
-      this.nonNullParamOnNormalExits = facts;
-    }
-
-    @Override
-    public void setReachabilitySensitive(boolean reachabilitySensitive) {
-      this.reachabilitySensitive = reachabilitySensitive;
-    }
-
-    @Override
-    public void setClassInlinerEligibility(ClassInlinerEligibility eligibility) {
-      this.classInlinerEligibility = eligibility;
-    }
-
-    @Override
-    public void setTrivialInitializer(TrivialInitializer info) {
-      this.trivialInitializerInfo = info;
-    }
-
-    @Override
-    public void setInitializerEnablingJavaAssertions() {
-      this.initializerEnablingJavaAssertions = true;
-    }
-
-    @Override
-    public void markInitializesClassesOnNormalExit(Set<DexType> initializedClassesOnNormalExit) {
-      this.initializedClassesOnNormalExit = initializedClassesOnNormalExit;
-    }
-
-    @Override
-    public void markReturnsArgument(int argument) {
-      assert argument >= 0;
-      assert returnedArgument == -1 || returnedArgument == argument;
-      returnedArgument = argument;
-    }
-
-    @Override
-    public void markMayNotHaveSideEffects() {
-      mayHaveSideEffects = false;
-    }
-
-    @Override
-    public void markReturnValueOnlyDependsOnArguments() {
-      returnValueOnlyDependsOnArguments = true;
-    }
-
-    @Override
-    public void markNeverReturnsNull() {
-      neverReturnsNull = true;
-    }
-
-    @Override
-    public void markNeverReturnsNormally() {
-      neverReturnsNormally = true;
-    }
-
-    @Override
-    public void markReturnsConstantNumber(long value) {
-      assert !returnsConstantString;
-      assert !returnsConstantNumber || returnedConstantNumber == value
-          : "return constant number changed from " + returnedConstantNumber + " to " + value;
-      returnsConstantNumber = true;
-      returnedConstantNumber = value;
-    }
-
-    @Override
-    public void markReturnsConstantString(DexString value) {
-      assert !returnsConstantNumber;
-      assert !returnsConstantString || returnedConstantString == value
-          : "return constant string changed from " + returnedConstantString + " to " + value;
-      returnsConstantString = true;
-      returnedConstantString = value;
-    }
-
-    @Override
-    public void markReturnsObjectOfType(AppView<?> appView, TypeLatticeElement type) {
-      assert type != null;
-      // We may get more precise type information if the method is reprocessed (e.g., due to
-      // optimization info collected from all call sites), and hence the `returnsObjectOfType` is
-      // allowed to become more precise.
-      assert returnsObjectOfType == UNKNOWN_TYPE
-          || type.lessThanOrEqual(returnsObjectOfType, appView)
-          : "return type changed from " + returnsObjectOfType + " to " + type;
-      returnsObjectOfType = type;
-    }
-
-    @Override
-    public void markForceInline() {
-      // For concurrent scenarios we should allow the flag to be already set
-      assert inlining == InlinePreference.Default || inlining == InlinePreference.ForceInline;
-      inlining = InlinePreference.ForceInline;
-    }
-
-    @Override
-    public void unsetForceInline() {
-      // For concurrent scenarios we should allow the flag to be already unset
-      assert inlining == InlinePreference.Default || inlining == InlinePreference.ForceInline;
-      inlining = InlinePreference.Default;
-    }
-
-    @Override
-    public void markNeverInline() {
-      // For concurrent scenarios we should allow the flag to be already set
-      assert inlining == InlinePreference.Default || inlining == InlinePreference.NeverInline;
-      inlining = InlinePreference.NeverInline;
-    }
-
-    @Override
-    public void markUseIdentifierNameString() {
-      useIdentifierNameString = true;
-    }
-
-    @Override
-    public void markCheckNullReceiverBeforeAnySideEffect(boolean mark) {
-      checksNullReceiverBeforeAnySideEffect = mark;
-    }
-
-    @Override
-    public void markTriggerClassInitBeforeAnySideEffect(boolean mark) {
-      triggersClassInitBeforeAnySideEffect = mark;
-    }
-
-    @Override
-    public void markAsPropagated() {
-      returnValueHasBeenPropagated = true;
-    }
-
-    @Override
-    public boolean returnValueHasBeenPropagated() {
-      return returnValueHasBeenPropagated;
-    }
-
-    @Override
-    public UpdatableMethodOptimizationInfo mutableCopy() {
-      assert this != DefaultMethodOptimizationInfoImpl.DEFAULT_INSTANCE;
-      return new MethodOptimizationInfoImpl(this);
-    }
-  }
-
   public MethodOptimizationInfo getOptimizationInfo() {
     checkIfObsolete();
     return optimizationInfo;
@@ -1702,7 +1121,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
   public synchronized UpdatableMethodOptimizationInfo getMutableOptimizationInfo() {
     checkIfObsolete();
-    if (optimizationInfo == DefaultMethodOptimizationInfoImpl.DEFAULT_INSTANCE) {
+    if (optimizationInfo == DefaultMethodOptimizationInfo.DEFAULT_INSTANCE) {
       optimizationInfo = optimizationInfo.mutableCopy();
     }
     return (UpdatableMethodOptimizationInfo) optimizationInfo;
@@ -1820,7 +1239,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     }
 
     public Builder unsetOptimizationInfo() {
-      optimizationInfo = DefaultMethodOptimizationInfoImpl.DEFAULT_INSTANCE;
+      optimizationInfo = DefaultMethodOptimizationInfo.DEFAULT_INSTANCE;
       return this;
     }
 

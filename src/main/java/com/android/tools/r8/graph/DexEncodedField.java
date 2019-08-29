@@ -8,6 +8,9 @@ import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.optimize.info.DefaultFieldOptimizationInfo;
+import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
+import com.android.tools.r8.ir.optimize.info.MutableFieldOptimizationInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public class DexEncodedField extends KeyedDexItem<DexField> {

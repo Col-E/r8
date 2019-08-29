@@ -1,9 +1,10 @@
-// Copyright (c) 2018, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.graph;
+package com.android.tools.r8.ir.optimize.info;
 
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.If.Type;
 import com.android.tools.r8.ir.code.InstanceGet;
@@ -24,6 +25,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public final class ParameterUsagesInfo {
+
   private ImmutableList<ParameterUsage> parametersUsages;
 
   public ParameterUsagesInfo(List<ParameterUsage> usages) {

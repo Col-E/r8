@@ -14,7 +14,7 @@ import com.android.tools.r8.cf.code.CfLogicalBinop;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.ir.conversion.OptimizationFeedback;
+import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.objectweb.asm.Opcodes;

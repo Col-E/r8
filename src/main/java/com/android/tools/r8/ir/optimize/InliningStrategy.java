@@ -10,8 +10,8 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InvokeMethod;
-import com.android.tools.r8.ir.conversion.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.Inliner.InlineeWithReason;
+import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import java.util.ListIterator;
 
 interface InliningStrategy {
