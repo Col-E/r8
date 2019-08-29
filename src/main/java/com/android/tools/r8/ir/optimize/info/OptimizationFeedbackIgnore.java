@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize.info;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
 import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
@@ -25,8 +26,21 @@ public class OptimizationFeedbackIgnore implements OptimizationFeedback {
     return INSTANCE;
   }
 
+  // FIELD OPTIMIZATION INFO:
+
+  @Override
+  public void markFieldCannotBeKept(DexEncodedField field) {}
+
+  @Override
+  public void markFieldAsPropagated(DexEncodedField field) {}
+
+  // METHOD OPTIMIZATION INFO:
+
   @Override
   public void markInlinedIntoSingleCallSite(DexEncodedMethod method) {}
+
+  @Override
+  public void markMethodCannotBeKept(DexEncodedMethod method) {}
 
   @Override
   public void methodInitializesClassesOnNormalExit(

@@ -34,6 +34,8 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
+import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardMemberRule;
 import com.android.tools.r8.shaking.ProguardMemberRuleReturnValue;
@@ -45,6 +47,8 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 public class MemberValuePropagation {
+
+  private static final OptimizationFeedback feedback = OptimizationFeedbackSimple.getInstance();
 
   private final AppView<AppInfoWithLiveness> appView;
   private final Reporter reporter;
@@ -372,7 +376,7 @@ public class MemberValuePropagation {
         if (replacement.isDexItemBasedConstString()) {
           code.method.getMutableOptimizationInfo().markUseIdentifierNameString();
         }
-        target.getMutableOptimizationInfo().markAsPropagated();
+        feedback.markFieldAsPropagated(target);
         return;
       }
     }
@@ -435,7 +439,7 @@ public class MemberValuePropagation {
       if (replacement.isDexItemBasedConstString()) {
         code.method.getMutableOptimizationInfo().markUseIdentifierNameString();
       }
-      target.getMutableOptimizationInfo().markAsPropagated();
+      feedback.markFieldAsPropagated(target);
     }
   }
 

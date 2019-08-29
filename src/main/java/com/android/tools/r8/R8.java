@@ -329,8 +329,8 @@ public class R8 {
         }
         if (appView.options().assertionProcessing != AssertionProcessing.LEAVE) {
           enqueuer.registerAnalysis(
-              (new ClassInitializerAssertionEnablingAnalysis(
-                  appView.dexItemFactory(), new OptimizationFeedbackSimple())));
+              new ClassInitializerAssertionEnablingAnalysis(
+                  appView.dexItemFactory(), OptimizationFeedbackSimple.getInstance()));
         }
 
         AppView<AppInfoWithLiveness> appViewWithLiveness =

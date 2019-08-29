@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize.info;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
 import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
@@ -17,9 +18,36 @@ import java.util.Set;
 
 public class OptimizationFeedbackSimple implements OptimizationFeedback {
 
+  private static OptimizationFeedbackSimple INSTANCE = new OptimizationFeedbackSimple();
+
+  private OptimizationFeedbackSimple() {}
+
+  public static OptimizationFeedbackSimple getInstance() {
+    return INSTANCE;
+  }
+
+  // FIELD OPTIMIZATION INFO.
+
+  @Override
+  public void markFieldCannotBeKept(DexEncodedField field) {
+    field.getMutableOptimizationInfo().markCannotBeKept();
+  }
+
+  @Override
+  public void markFieldAsPropagated(DexEncodedField field) {
+    field.getMutableOptimizationInfo().markAsPropagated();
+  }
+
+  // METHOD OPTIMIZATION INFO.
+
   @Override
   public synchronized void markInlinedIntoSingleCallSite(DexEncodedMethod method) {
-    // Ignored.
+    method.getMutableOptimizationInfo().markInlinedIntoSingleCallSite();
+  }
+
+  @Override
+  public void markMethodCannotBeKept(DexEncodedMethod method) {
+    method.getMutableOptimizationInfo().markCannotBeKept();
   }
 
   @Override
@@ -71,7 +99,7 @@ public class OptimizationFeedbackSimple implements OptimizationFeedback {
 
   @Override
   public void markAsPropagated(DexEncodedMethod method) {
-    // Ignored.
+    method.getMutableOptimizationInfo().markAsPropagated();
   }
 
   @Override

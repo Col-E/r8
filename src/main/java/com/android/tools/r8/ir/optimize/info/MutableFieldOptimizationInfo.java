@@ -16,6 +16,7 @@ public class MutableFieldOptimizationInfo extends FieldOptimizationInfo {
   private boolean cannotBeKept = false;
   private boolean valueHasBeenPropagated = false;
 
+  @Override
   public MutableFieldOptimizationInfo mutableCopy() {
     MutableFieldOptimizationInfo copy = new MutableFieldOptimizationInfo();
     copy.cannotBeKept = cannotBeKept();
@@ -28,7 +29,7 @@ public class MutableFieldOptimizationInfo extends FieldOptimizationInfo {
     return cannotBeKept;
   }
 
-  public void markCannotBeKept() {
+  void markCannotBeKept() {
     cannotBeKept = true;
   }
 
@@ -37,7 +38,7 @@ public class MutableFieldOptimizationInfo extends FieldOptimizationInfo {
     return valueHasBeenPropagated;
   }
 
-  public void markAsPropagated() {
+  void markAsPropagated() {
     valueHasBeenPropagated = true;
   }
 

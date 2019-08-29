@@ -104,6 +104,7 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
     return cannotBeKept;
   }
 
+  // TODO(b/140214568): Should be package-private.
   public void markCannotBeKept() {
     cannotBeKept = true;
   }
@@ -113,7 +114,7 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
     return classInitializerMayBePostponed;
   }
 
-  public void markClassInitializerMayBePostponed() {
+  void markClassInitializerMayBePostponed() {
     classInitializerMayBePostponed = true;
   }
 
@@ -152,7 +153,7 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
     return hasBeenInlinedIntoSingleCallSite;
   }
 
-  public void markInlinedIntoSingleCallSite() {
+  void markInlinedIntoSingleCallSite() {
     hasBeenInlinedIntoSingleCallSite = true;
   }
 
@@ -255,15 +256,15 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
     return returnValueOnlyDependsOnArguments;
   }
 
-  public void setParameterUsages(ParameterUsagesInfo parametersUsages) {
+  void setParameterUsages(ParameterUsagesInfo parametersUsages) {
     this.parametersUsages = parametersUsages;
   }
 
-  public void setNonNullParamOrThrow(BitSet facts) {
+  void setNonNullParamOrThrow(BitSet facts) {
     this.nonNullParamOrThrow = facts;
   }
 
-  public void setNonNullParamOnNormalExits(BitSet facts) {
+  void setNonNullParamOnNormalExits(BitSet facts) {
     this.nonNullParamOnNormalExits = facts;
   }
 
@@ -271,45 +272,45 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
     this.reachabilitySensitive = reachabilitySensitive;
   }
 
-  public void setClassInlinerEligibility(ClassInlinerEligibility eligibility) {
+  void setClassInlinerEligibility(ClassInlinerEligibility eligibility) {
     this.classInlinerEligibility = eligibility;
   }
 
-  public void setTrivialInitializer(TrivialInitializer info) {
+  void setTrivialInitializer(TrivialInitializer info) {
     this.trivialInitializerInfo = info;
   }
 
-  public void setInitializerEnablingJavaAssertions() {
+  void setInitializerEnablingJavaAssertions() {
     this.initializerEnablingJavaAssertions = true;
   }
 
-  public void markInitializesClassesOnNormalExit(Set<DexType> initializedClassesOnNormalExit) {
+  void markInitializesClassesOnNormalExit(Set<DexType> initializedClassesOnNormalExit) {
     this.initializedClassesOnNormalExit = initializedClassesOnNormalExit;
   }
 
-  public void markReturnsArgument(int argument) {
+  void markReturnsArgument(int argument) {
     assert argument >= 0;
     assert returnedArgument == -1 || returnedArgument == argument;
     returnedArgument = argument;
   }
 
-  public void markMayNotHaveSideEffects() {
+  void markMayNotHaveSideEffects() {
     mayHaveSideEffects = false;
   }
 
-  public void markReturnValueOnlyDependsOnArguments() {
+  void markReturnValueOnlyDependsOnArguments() {
     returnValueOnlyDependsOnArguments = true;
   }
 
-  public void markNeverReturnsNull() {
+  void markNeverReturnsNull() {
     neverReturnsNull = true;
   }
 
-  public void markNeverReturnsNormally() {
+  void markNeverReturnsNormally() {
     neverReturnsNormally = true;
   }
 
-  public void markReturnsConstantNumber(long value) {
+  void markReturnsConstantNumber(long value) {
     assert !returnsConstantString;
     assert !returnsConstantNumber || returnedConstantNumber == value
         : "return constant number changed from " + returnedConstantNumber + " to " + value;
@@ -317,7 +318,7 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
     returnedConstantNumber = value;
   }
 
-  public void markReturnsConstantString(DexString value) {
+  void markReturnsConstantString(DexString value) {
     assert !returnsConstantNumber;
     assert !returnsConstantString || returnedConstantString == value
         : "return constant string changed from " + returnedConstantString + " to " + value;
@@ -325,7 +326,7 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
     returnedConstantString = value;
   }
 
-  public void markReturnsObjectOfType(AppView<?> appView, TypeLatticeElement type) {
+  void markReturnsObjectOfType(AppView<?> appView, TypeLatticeElement type) {
     assert type != null;
     // We may get more precise type information if the method is reprocessed (e.g., due to
     // optimization info collected from all call sites), and hence the `returnsObjectOfType` is
@@ -335,36 +336,41 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
     returnsObjectOfType = type;
   }
 
+  // TODO(b/140214568): Should be package-private.
   public void markForceInline() {
     // For concurrent scenarios we should allow the flag to be already set
     assert inlining == InlinePreference.Default || inlining == InlinePreference.ForceInline;
     inlining = InlinePreference.ForceInline;
   }
 
+  // TODO(b/140214568): Should be package-private.
   public void unsetForceInline() {
     // For concurrent scenarios we should allow the flag to be already unset
     assert inlining == InlinePreference.Default || inlining == InlinePreference.ForceInline;
     inlining = InlinePreference.Default;
   }
 
+  // TODO(b/140214568): Should be package-private.
   public void markNeverInline() {
     // For concurrent scenarios we should allow the flag to be already set
     assert inlining == InlinePreference.Default || inlining == InlinePreference.NeverInline;
     inlining = InlinePreference.NeverInline;
   }
 
+  // TODO(b/140214568): Should be package-private.
   public void markUseIdentifierNameString() {
     useIdentifierNameString = true;
   }
 
-  public void markCheckNullReceiverBeforeAnySideEffect(boolean mark) {
+  void markCheckNullReceiverBeforeAnySideEffect(boolean mark) {
     checksNullReceiverBeforeAnySideEffect = mark;
   }
 
-  public void markTriggerClassInitBeforeAnySideEffect(boolean mark) {
+  void markTriggerClassInitBeforeAnySideEffect(boolean mark) {
     triggersClassInitBeforeAnySideEffect = mark;
   }
 
+  // TODO(b/140214568): Should be package-private.
   public void markAsPropagated() {
     returnValueHasBeenPropagated = true;
   }

@@ -160,7 +160,7 @@ public final class D8 {
         // enabling code.
         ClassInitializerAssertionEnablingAnalysis analysis =
             new ClassInitializerAssertionEnablingAnalysis(
-                appInfo.dexItemFactory(), new OptimizationFeedbackSimple());
+                appInfo.dexItemFactory(), OptimizationFeedbackSimple.getInstance());
         for (DexProgramClass clazz : appInfo.classes()) {
           if (clazz.hasClassInitializer()) {
             analysis.processNewlyLiveMethod(clazz.getClassInitializer());

@@ -6,6 +6,8 @@ package com.android.tools.r8.ir.optimize.info;
 
 public abstract class FieldOptimizationInfo {
 
+  public abstract MutableFieldOptimizationInfo mutableCopy();
+
   public abstract boolean cannotBeKept();
 
   public abstract boolean valueHasBeenPropagated();

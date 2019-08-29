@@ -15,6 +15,11 @@ public class DefaultFieldOptimizationInfo extends FieldOptimizationInfo {
   }
 
   @Override
+  public MutableFieldOptimizationInfo mutableCopy() {
+    return new MutableFieldOptimizationInfo();
+  }
+
+  @Override
   public boolean cannotBeKept() {
     return false;
   }

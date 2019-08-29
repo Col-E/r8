@@ -163,7 +163,8 @@ public class IRConverter {
 
   private final OptimizationFeedbackDelayed delayedOptimizationFeedback =
       new OptimizationFeedbackDelayed();
-  private final OptimizationFeedback simpleOptimizationFeedback = new OptimizationFeedbackSimple();
+  private final OptimizationFeedback simpleOptimizationFeedback =
+      OptimizationFeedbackSimple.getInstance();
   private DexString highestSortingString;
 
   private List<Action> onWaveDoneActions = null;

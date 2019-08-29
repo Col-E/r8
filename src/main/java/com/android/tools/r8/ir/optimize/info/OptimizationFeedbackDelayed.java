@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize.info;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
 import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
@@ -21,76 +22,130 @@ import java.util.Set;
 public class OptimizationFeedbackDelayed implements OptimizationFeedback {
 
   // Caching of updated optimization info and processed status.
-  private final Map<DexEncodedMethod, UpdatableMethodOptimizationInfo> optimizationInfos =
+  private final Map<DexEncodedField, MutableFieldOptimizationInfo> fieldOptimizationInfos =
+      new IdentityHashMap<>();
+  private final Map<DexEncodedMethod, UpdatableMethodOptimizationInfo> methodOptimizationInfos =
       new IdentityHashMap<>();
   private final Map<DexEncodedMethod, ConstraintWithTarget> processed = new IdentityHashMap<>();
 
-  private synchronized UpdatableMethodOptimizationInfo getOptimizationInfoForUpdating(
+  private synchronized MutableFieldOptimizationInfo getFieldOptimizationInfoForUpdating(
+      DexEncodedField field) {
+    MutableFieldOptimizationInfo info = fieldOptimizationInfos.get(field);
+    if (info != null) {
+      return info;
+    }
+    info = field.getOptimizationInfo().mutableCopy();
+    fieldOptimizationInfos.put(field, info);
+    return info;
+  }
+
+  private synchronized UpdatableMethodOptimizationInfo getMethodOptimizationInfoForUpdating(
       DexEncodedMethod method) {
-    UpdatableMethodOptimizationInfo info = optimizationInfos.get(method);
+    UpdatableMethodOptimizationInfo info = methodOptimizationInfos.get(method);
     if (info != null) {
       return info;
     }
     info = method.getOptimizationInfo().mutableCopy();
-    optimizationInfos.put(method, info);
+    methodOptimizationInfos.put(method, info);
     return info;
   }
 
+  public void updateVisibleOptimizationInfo() {
+    // Remove methods that have become obsolete. A method may become obsolete, for example, as a
+    // result of the class staticizer, which aims to transform virtual methods on companion classes
+    // into static methods on the enclosing class of the companion class.
+    IteratorUtils.removeIf(
+        methodOptimizationInfos.entrySet().iterator(), entry -> entry.getKey().isObsolete());
+    IteratorUtils.removeIf(processed.entrySet().iterator(), entry -> entry.getKey().isObsolete());
+
+    // Update field optimization info.
+    fieldOptimizationInfos.forEach(DexEncodedField::setOptimizationInfo);
+    fieldOptimizationInfos.clear();
+
+    // Update method optimization info.
+    methodOptimizationInfos.forEach(DexEncodedMethod::setOptimizationInfo);
+    methodOptimizationInfos.clear();
+
+    // Mark the processed methods as processed.
+    processed.forEach(DexEncodedMethod::markProcessed);
+    processed.clear();
+  }
+
+  // FIELD OPTIMIZATION INFO:
+
+  @Override
+  public void markFieldCannotBeKept(DexEncodedField field) {
+    getFieldOptimizationInfoForUpdating(field).cannotBeKept();
+  }
+
+  @Override
+  public void markFieldAsPropagated(DexEncodedField field) {
+    getFieldOptimizationInfoForUpdating(field).markAsPropagated();
+  }
+
+  // METHOD OPTIMIZATION INFO:
+
   @Override
   public synchronized void markInlinedIntoSingleCallSite(DexEncodedMethod method) {
-    getOptimizationInfoForUpdating(method).markInlinedIntoSingleCallSite();
+    getMethodOptimizationInfoForUpdating(method).markInlinedIntoSingleCallSite();
+  }
+
+  @Override
+  public void markMethodCannotBeKept(DexEncodedMethod method) {
+    getMethodOptimizationInfoForUpdating(method).cannotBeKept();
   }
 
   @Override
   public synchronized void methodInitializesClassesOnNormalExit(
       DexEncodedMethod method, Set<DexType> initializedClasses) {
-    getOptimizationInfoForUpdating(method).markInitializesClassesOnNormalExit(initializedClasses);
+    getMethodOptimizationInfoForUpdating(method)
+        .markInitializesClassesOnNormalExit(initializedClasses);
   }
 
   @Override
   public synchronized void methodReturnsArgument(DexEncodedMethod method, int argument) {
-    getOptimizationInfoForUpdating(method).markReturnsArgument(argument);
+    getMethodOptimizationInfoForUpdating(method).markReturnsArgument(argument);
   }
 
   @Override
   public synchronized void methodReturnsConstantNumber(DexEncodedMethod method, long value) {
-    getOptimizationInfoForUpdating(method).markReturnsConstantNumber(value);
+    getMethodOptimizationInfoForUpdating(method).markReturnsConstantNumber(value);
   }
 
   @Override
   public synchronized void methodReturnsConstantString(DexEncodedMethod method, DexString value) {
-    getOptimizationInfoForUpdating(method).markReturnsConstantString(value);
+    getMethodOptimizationInfoForUpdating(method).markReturnsConstantString(value);
   }
 
   @Override
   public synchronized void methodReturnsObjectOfType(
       DexEncodedMethod method, AppView<?> appView, TypeLatticeElement type) {
-    getOptimizationInfoForUpdating(method).markReturnsObjectOfType(appView, type);
+    getMethodOptimizationInfoForUpdating(method).markReturnsObjectOfType(appView, type);
   }
 
   @Override
   public synchronized void methodNeverReturnsNull(DexEncodedMethod method) {
-    getOptimizationInfoForUpdating(method).markNeverReturnsNull();
+    getMethodOptimizationInfoForUpdating(method).markNeverReturnsNull();
   }
 
   @Override
   public synchronized void methodNeverReturnsNormally(DexEncodedMethod method) {
-    getOptimizationInfoForUpdating(method).markNeverReturnsNormally();
+    getMethodOptimizationInfoForUpdating(method).markNeverReturnsNormally();
   }
 
   @Override
   public synchronized void methodMayNotHaveSideEffects(DexEncodedMethod method) {
-    getOptimizationInfoForUpdating(method).markMayNotHaveSideEffects();
+    getMethodOptimizationInfoForUpdating(method).markMayNotHaveSideEffects();
   }
 
   @Override
   public synchronized void methodReturnValueOnlyDependsOnArguments(DexEncodedMethod method) {
-    getOptimizationInfoForUpdating(method).markReturnValueOnlyDependsOnArguments();
+    getMethodOptimizationInfoForUpdating(method).markReturnValueOnlyDependsOnArguments();
   }
 
   @Override
   public synchronized void markAsPropagated(DexEncodedMethod method) {
-    getOptimizationInfoForUpdating(method).markAsPropagated();
+    getMethodOptimizationInfoForUpdating(method).markAsPropagated();
   }
 
   @Override
@@ -100,68 +155,55 @@ public class OptimizationFeedbackDelayed implements OptimizationFeedback {
 
   @Override
   public synchronized void markUseIdentifierNameString(DexEncodedMethod method) {
-    getOptimizationInfoForUpdating(method).markUseIdentifierNameString();
+    getMethodOptimizationInfoForUpdating(method).markUseIdentifierNameString();
   }
 
   @Override
   public synchronized void markCheckNullReceiverBeforeAnySideEffect(
       DexEncodedMethod method, boolean mark) {
-    getOptimizationInfoForUpdating(method).markCheckNullReceiverBeforeAnySideEffect(mark);
+    getMethodOptimizationInfoForUpdating(method).markCheckNullReceiverBeforeAnySideEffect(mark);
   }
 
   @Override
   public synchronized void markTriggerClassInitBeforeAnySideEffect(
       DexEncodedMethod method, boolean mark) {
-    getOptimizationInfoForUpdating(method).markTriggerClassInitBeforeAnySideEffect(mark);
+    getMethodOptimizationInfoForUpdating(method).markTriggerClassInitBeforeAnySideEffect(mark);
   }
 
   @Override
   public synchronized void setClassInlinerEligibility(
       DexEncodedMethod method, ClassInlinerEligibility eligibility) {
-    getOptimizationInfoForUpdating(method).setClassInlinerEligibility(eligibility);
+    getMethodOptimizationInfoForUpdating(method).setClassInlinerEligibility(eligibility);
   }
 
   @Override
   public synchronized void setTrivialInitializer(DexEncodedMethod method, TrivialInitializer info) {
-    getOptimizationInfoForUpdating(method).setTrivialInitializer(info);
+    getMethodOptimizationInfoForUpdating(method).setTrivialInitializer(info);
   }
 
   @Override
   public synchronized void setInitializerEnablingJavaAssertions(DexEncodedMethod method) {
-    getOptimizationInfoForUpdating(method).setInitializerEnablingJavaAssertions();
+    getMethodOptimizationInfoForUpdating(method).setInitializerEnablingJavaAssertions();
   }
 
   @Override
   public synchronized void setParameterUsages(
       DexEncodedMethod method, ParameterUsagesInfo parameterUsagesInfo) {
-    getOptimizationInfoForUpdating(method).setParameterUsages(parameterUsagesInfo);
+    getMethodOptimizationInfoForUpdating(method).setParameterUsages(parameterUsagesInfo);
   }
 
   @Override
   public synchronized void setNonNullParamOrThrow(DexEncodedMethod method, BitSet facts) {
-    getOptimizationInfoForUpdating(method).setNonNullParamOrThrow(facts);
+    getMethodOptimizationInfoForUpdating(method).setNonNullParamOrThrow(facts);
   }
 
   @Override
   public synchronized void setNonNullParamOnNormalExits(DexEncodedMethod method, BitSet facts) {
-    getOptimizationInfoForUpdating(method).setNonNullParamOnNormalExits(facts);
+    getMethodOptimizationInfoForUpdating(method).setNonNullParamOnNormalExits(facts);
   }
 
   @Override
   public synchronized void classInitializerMayBePostponed(DexEncodedMethod method) {
-    getOptimizationInfoForUpdating(method).markClassInitializerMayBePostponed();
-  }
-
-  public void updateVisibleOptimizationInfo() {
-    // Remove methods that have become obsolete. A method may become obsolete, for example, as a
-    // result of the class staticizer, which aims to transform virtual methods on companion classes
-    // into static methods on the enclosing class of the companion class.
-    IteratorUtils.removeIf(
-        optimizationInfos.entrySet().iterator(), entry -> entry.getKey().isObsolete());
-    IteratorUtils.removeIf(processed.entrySet().iterator(), entry -> entry.getKey().isObsolete());
-    optimizationInfos.forEach(DexEncodedMethod::setOptimizationInfo);
-    processed.forEach(DexEncodedMethod::markProcessed);
-    optimizationInfos.clear();
-    processed.clear();
+    getMethodOptimizationInfoForUpdating(method).markClassInitializerMayBePostponed();
   }
 }

@@ -37,6 +37,8 @@ import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.MemberPoolCollection.MemberPool;
 import com.android.tools.r8.ir.optimize.MethodPoolCollection;
+import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
+import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.synthetic.AbstractSynthesizedCode;
 import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
 import com.android.tools.r8.logging.Log;
@@ -216,6 +218,8 @@ public class VerticalClassMerger {
   private final MethodPoolCollection methodPoolCollection;
   private final Timing timing;
   private Collection<DexMethod> invokes;
+
+  private final OptimizationFeedback feedback = OptimizationFeedbackSimple.getInstance();
 
   // Set of merge candidates. Note that this must have a deterministic iteration order.
   private final Set<DexProgramClass> mergeCandidates = new LinkedHashSet<>();
@@ -1084,8 +1088,8 @@ public class VerticalClassMerger {
       target.appendVirtualMethods(virtualMethods.values());
       target.setInstanceFields(mergedInstanceFields);
       target.setStaticFields(mergedStaticFields);
-      target.forEachField(field -> field.getMutableOptimizationInfo().markCannotBeKept());
-      target.forEachMethod(method -> method.getMutableOptimizationInfo().markCannotBeKept());
+      target.forEachField(feedback::markFieldCannotBeKept);
+      target.forEachMethod(feedback::markMethodCannotBeKept);
       // Step 3: Clear the members of the source class since they have now been moved to the target.
       source.setDirectMethods(null);
       source.setVirtualMethods(null);
