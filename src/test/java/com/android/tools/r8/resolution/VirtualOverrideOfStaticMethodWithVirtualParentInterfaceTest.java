@@ -5,7 +5,7 @@ package com.android.tools.r8.resolution;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.AsmTestBase;
 import com.android.tools.r8.R8TestRunResult;
@@ -19,7 +19,6 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
-import java.util.Set;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -120,24 +119,22 @@ public class VirtualOverrideOfStaticMethodWithVirtualParentInterfaceTest extends
 
   @Test
   public void lookupSingleTarget() {
-    DexEncodedMethod resolved =
-        appInfo.resolveMethodOnInterface(methodOnB.holder, methodOnB).asResultOfResolve();
+    ResolutionResult resolutionResult =
+        appInfo.resolveMethodOnInterface(methodOnB.holder, methodOnB);
+    DexEncodedMethod resolved = resolutionResult.asSingleTarget();
     assertEquals(methodOnB, resolved.method);
+    assertFalse(resolutionResult.isValidVirtualTarget(appInfo.app().options));
     DexEncodedMethod singleVirtualTarget =
         appInfo.lookupSingleInterfaceTarget(methodOnB, methodOnB.holder);
-    // TODO(b/140088797): This should not conclude a single target.
-    Assert.assertNotNull(singleVirtualTarget);
+    Assert.assertNull(singleVirtualTarget);
   }
 
   @Test
   public void lookupVirtualTargets() {
     ResolutionResult resolutionResult = appInfo.resolveMethodOnInterface(methodOnB.holder, methodOnB);
-    DexEncodedMethod resolved = resolutionResult.asResultOfResolve();
+    DexEncodedMethod resolved = resolutionResult.asSingleTarget();
     assertEquals(methodOnB, resolved.method);
-    Set<DexEncodedMethod> targets = resolutionResult.lookupInterfaceTargets(appInfo);
-    // TODO(b/140088797): This should not conclude a single target.
-    assertTrue("Expected " + methodOnC, targets.stream().anyMatch(m -> m.method == methodOnC));
-    assertEquals(1, targets.size());
+    assertFalse(resolutionResult.isValidVirtualTarget(appInfo.app().options));
   }
 
   @Test
@@ -162,17 +159,30 @@ public class VirtualOverrideOfStaticMethodWithVirtualParentInterfaceTest extends
 
   @Test
   public void runR8() throws Exception {
+    runR8(true);
+  }
+
+  @Test
+  public void runR8NoMerging() throws Exception {
+    runR8(false);
+  }
+
+  public void runR8(boolean enableVerticalClassMerging) throws Exception {
     R8TestRunResult runResult =
         testForR8(parameters.getBackend())
             .addProgramClasses(CLASSES)
             .addProgramClassFileData(DUMPS)
             .addKeepMainRule(Main.class)
             .setMinApi(parameters.getApiLevel())
-            // TODO(b/140088797): Once fixed, parameterize on the merger as it appears to fail.
-            .addOptionsModification(o -> o.enableVerticalClassMerging = false)
+            .addOptionsModification(o -> o.enableVerticalClassMerging = enableVerticalClassMerging)
             .run(parameters.getRuntime(), Main.class);
-    // TODO(b/140088797): Due to the single target lookup R8 incorrectly inlines the call C.f().
-    runResult.assertSuccessWithOutputLines("Called C.f");
+    if (enableVerticalClassMerging) {
+      // Vertical class merging will merge B and C and change the instruction to invoke-virtual
+      // causing the legacy ART runtime behavior to match the expected error.
+      runResult.assertFailureWithErrorThatMatches(containsString("IncompatibleClassChangeError"));
+    } else {
+      checkResult(runResult);
+    }
   }
 
   private void checkResult(TestRunResult<?> runResult) {

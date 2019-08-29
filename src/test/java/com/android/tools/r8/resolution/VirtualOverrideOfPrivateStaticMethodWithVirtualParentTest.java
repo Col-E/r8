@@ -5,7 +5,7 @@ package com.android.tools.r8.resolution;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.AsmTestBase;
 import com.android.tools.r8.R8TestRunResult;
@@ -20,7 +20,6 @@ import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
-import java.util.Set;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -144,12 +143,9 @@ public class VirtualOverrideOfPrivateStaticMethodWithVirtualParentTest extends A
   @Test
   public void lookupVirtualTargets() {
     ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(methodOnB.holder, methodOnB);
-    DexEncodedMethod resolved = resolutionResult.asResultOfResolve();
+    DexEncodedMethod resolved = resolutionResult.asSingleTarget();
     assertEquals(methodOnA, resolved.method);
-    // See comment in VirtualOverrideOfPrivateStaticMethodTest.lookupVirtualTargets().
-    Set<DexEncodedMethod> targets = resolutionResult.lookupVirtualTargets(appInfo);
-    assertTrue("Expected " + methodOnA, targets.stream().anyMatch(m -> m.method == methodOnA));
-    assertTrue("Expected " + methodOnC, targets.stream().anyMatch(m -> m.method == methodOnC));
+    assertFalse(resolutionResult.isValidVirtualTarget(appInfo.app().options));
   }
 
   @Test

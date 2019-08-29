@@ -164,10 +164,6 @@ public class InliningConstraints {
     DexMethod lookup = graphLense.lookupMethod(method);
     return forVirtualInvoke(
         lookup,
-        appView
-            .appInfo()
-            .resolveMethodOnInterface(lookup.holder, lookup)
-            .lookupInterfaceTargets(appView.appInfo()),
         invocationContext,
         true);
   }
@@ -199,10 +195,6 @@ public class InliningConstraints {
     DexMethod lookup = graphLense.lookupMethod(method);
     return forVirtualInvoke(
         lookup,
-        appView
-            .appInfo()
-            .resolveMethodOnClass(lookup.holder, lookup)
-            .lookupVirtualTargets(appView.appInfo()),
         invocationContext,
         false);
   }
@@ -351,20 +343,20 @@ public class InliningConstraints {
 
   private ConstraintWithTarget forVirtualInvoke(
       DexMethod method,
-      Collection<DexEncodedMethod> targets,
       DexType invocationContext,
       boolean isInterface) {
     if (method.holder.isArrayType()) {
       return ConstraintWithTarget.ALWAYS;
-    }
-    if (targets == null) {
-      return ConstraintWithTarget.NEVER;
     }
 
     // Perform resolution and derive inlining constraints based on the accessibility of the
     // resolution result.
     ResolutionResult resolutionResult =
         appView.appInfo().resolveMethod(method.holder, method, isInterface);
+    if (!resolutionResult.isValidVirtualTarget(appView.options())) {
+      return ConstraintWithTarget.NEVER;
+    }
+
     DexEncodedMethod resolutionTarget = resolutionResult.asResultOfResolve();
     if (resolutionTarget == null) {
       // This will fail at runtime.
@@ -393,6 +385,8 @@ public class InliningConstraints {
 
     // For each of the actual potential targets, derive constraints based on the accessibility
     // of the method itself.
+    Collection<DexEncodedMethod> targets =
+        resolutionResult.lookupVirtualDispatchTargets(isInterface, appView.appInfo());
     for (DexEncodedMethod target : targets) {
       methodHolder = graphLense.lookupType(target.method.holder);
       assert appView.definitionFor(methodHolder) != null;

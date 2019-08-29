@@ -1618,16 +1618,14 @@ public class Enqueuer {
 
     DexEncodedMethod resolutionTarget =
         findAndMarkResolutionTarget(method, interfaceInvoke, reason);
-    if (resolutionTarget == null) {
+    if (resolutionTarget == null || !resolutionTarget.isValidVirtualTarget(options)) {
       // There is no valid resolution, so any call will lead to a runtime exception.
       return;
     }
 
     assert interfaceInvoke == holder.isInterface();
     Set<DexEncodedMethod> possibleTargets =
-        holder.isInterface()
-            ? resolutionTarget.lookupInterfaceTargets(appInfo)
-            : resolutionTarget.lookupVirtualTargets(appInfo);
+        resolutionTarget.lookupVirtualDispatchTargets(interfaceInvoke, appInfo);
     if (possibleTargets == null || possibleTargets.isEmpty()) {
       return;
     }
@@ -1745,13 +1743,20 @@ public class Enqueuer {
     // Therefore, we need to continue resolution from the super type until we find a virtual method.
     if (resolutionTarget.isPrivateMethod() || resolutionTarget.isStatic()) {
       assert !interfaceInvoke || resolutionTargetClass.isInterface();
-      markPossiblyValidTarget(method, reason, resolutionTarget, resolutionTargetClass);
+      DexEncodedMethod possiblyValidTarget =
+          markPossiblyValidTarget(method, reason, resolutionTarget, resolutionTargetClass);
+      if (possiblyValidTarget != null) {
+        // Since some Art runtimes may actually end up targeting this method, it is returned as
+        // the basis of lookup for the enqueuing of virtual dispatches. Not doing so may cause it
+        // to be marked abstract, thus leading to an AbstractMethodError on said Art runtimes.
+        return possiblyValidTarget;
+      }
     }
 
     return resolutionTarget;
   }
 
-  private void markPossiblyValidTarget(
+  private DexEncodedMethod markPossiblyValidTarget(
       DexMethod method,
       KeepReason reason,
       DexEncodedMethod resolutionTarget,
@@ -1763,16 +1768,17 @@ public class Enqueuer {
                   resolutionTargetClass.superType, method, resolutionTargetClass.isInterface())
               .asResultOfResolve();
       if (resolutionTarget == null) {
-        return;
+        return null;
       }
       resolutionTargetClass = appInfo.definitionFor(resolutionTarget.method.holder);
       if (resolutionTargetClass == null) {
-        return;
+        return null;
       }
     }
     if (resolutionTargetClass.isProgramClass()) {
       markMethodAsTargeted(resolutionTarget, reason);
     }
+    return resolutionTarget;
   }
 
   private DexMethod generatedEnumValuesMethod(DexClass enumClass) {

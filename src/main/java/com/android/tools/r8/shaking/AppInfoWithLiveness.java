@@ -867,7 +867,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     // First get the target for the holder type.
     ResolutionResult topMethod = resolveMethodOnClass(holder, method);
     // We might hit none or multiple targets. Both make this fail at runtime.
-    if (!topMethod.hasSingleTarget() || !topMethod.asSingleTarget().isVirtualMethod()) {
+    if (!topMethod.hasSingleTarget() || !topMethod.isValidVirtualTarget(app().options)) {
       method.setSingleVirtualMethodCache(refinedReceiverType, null);
       return null;
     }
@@ -1021,6 +1021,9 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     // First check that there is a target for this invoke-interface to hit. If there is none,
     // this will fail at runtime.
     ResolutionResult topTarget = resolveMethodOnInterface(holder, method);
+    if (!topTarget.isValidVirtualTarget(app().options)) {
+      return null;
+    }
     if (topTarget.asResultOfResolve() == null) {
       return null;
     }

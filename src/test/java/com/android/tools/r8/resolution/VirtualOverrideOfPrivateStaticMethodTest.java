@@ -5,7 +5,7 @@ package com.android.tools.r8.resolution;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
@@ -19,7 +19,6 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -83,8 +82,9 @@ public class VirtualOverrideOfPrivateStaticMethodTest extends TestBase {
 
   @Test
   public void lookupSingleTarget() {
-    DexEncodedMethod resolved =
-        appInfo.resolveMethodOnClass(methodOnB.holder, methodOnB).asResultOfResolve();
+    ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(methodOnB.holder, methodOnB);
+    assertFalse(resolutionResult.isValidVirtualTarget(appInfo.app().options));
+    DexEncodedMethod resolved = resolutionResult.asSingleTarget();
     assertEquals(methodOnA, resolved.method);
     DexEncodedMethod singleVirtualTarget =
         appInfo.lookupSingleVirtualTarget(methodOnB, methodOnB.holder);
@@ -94,14 +94,9 @@ public class VirtualOverrideOfPrivateStaticMethodTest extends TestBase {
   @Test
   public void lookupVirtualTargets() {
     ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(methodOnB.holder, methodOnB);
-    DexEncodedMethod resolved = resolutionResult.asResultOfResolve();
+    DexEncodedMethod resolved = resolutionResult.asSingleTarget();
     assertEquals(methodOnA, resolved.method);
-    // This behavior is up for debate as the resolution target is A.f which is private static, thus
-    // the runtime behavior will be to throw a runtime exception. Thus it would be reasonable to
-    // return the empty set as no targets can actually be hit at runtime.
-    Set<DexEncodedMethod> targets = resolutionResult.lookupVirtualTargets(appInfo);
-    assertTrue("Expected " + methodOnA, targets.stream().anyMatch(m -> m.method == methodOnA));
-    assertTrue("Expected " + methodOnC, targets.stream().anyMatch(m -> m.method == methodOnC));
+    assertFalse(resolutionResult.isValidVirtualTarget(appInfo.app().options));
   }
 
   @Test

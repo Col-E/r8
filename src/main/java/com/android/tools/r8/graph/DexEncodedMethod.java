@@ -1274,6 +1274,13 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   }
 
   @Override
+  public boolean isValidVirtualTarget(InternalOptions options) {
+    return options.canUseNestBasedAccess()
+        ? (!accessFlags.isStatic() && !accessFlags.isConstructor())
+        : isVirtualMethod();
+  }
+
+  @Override
   public DexEncodedMethod asResultOfResolve() {
     checkIfObsolete();
     return this;

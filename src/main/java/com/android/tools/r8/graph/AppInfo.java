@@ -3,7 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.graph.ResolutionResult.ArrayCloneMethodResult;
+import com.android.tools.r8.graph.ResolutionResult.ClassNotFoundResult;
+import com.android.tools.r8.graph.ResolutionResult.IncompatibleClassResult;
 import com.android.tools.r8.graph.ResolutionResult.MultiResult;
+import com.android.tools.r8.graph.ResolutionResult.NoSuchMethodResult;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableMap;
@@ -265,7 +269,7 @@ public class AppInfo implements DexDefinitionSupplier {
     }
     DexClass definition = definitionFor(holder);
     if (definition == null) {
-      return ResolutionResult.EmptyResult.get();
+      return ClassNotFoundResult.INSTANCE;
     }
     return resolveMethod(definition, method);
   }
@@ -305,7 +309,7 @@ public class AppInfo implements DexDefinitionSupplier {
     assert checkIfObsolete();
     assert holder.isArrayType();
     if (method.name == dexItemFactory.cloneMethodName) {
-      return ResolutionResult.EmptyResult.get();
+      return ArrayCloneMethodResult.INSTANCE;
     } else {
       return resolveMethodOnClass(dexItemFactory.objectType, method);
     }
@@ -328,9 +332,12 @@ public class AppInfo implements DexDefinitionSupplier {
       return resolveMethodOnArray(holder, method);
     }
     DexClass clazz = definitionFor(holder);
+    if (clazz == null) {
+      return ClassNotFoundResult.INSTANCE;
+    }
     // Step 1: If holder is an interface, resolution fails with an ICCE. We return null.
-    if (clazz == null || clazz.isInterface()) {
-      return ResolutionResult.EmptyResult.get();
+    if (clazz.isInterface()) {
+      return IncompatibleClassResult.INSTANCE;
     }
     return resolveMethodOnClass(clazz, method);
   }
@@ -403,7 +410,7 @@ public class AppInfo implements DexDefinitionSupplier {
       return result;
     }
     // Return any of the non-default methods.
-    return anyTarget == null ? ResolutionResult.EmptyResult.get() : anyTarget;
+    return anyTarget == null ? NoSuchMethodResult.INSTANCE : anyTarget;
   }
 
   /**
@@ -459,14 +466,17 @@ public class AppInfo implements DexDefinitionSupplier {
   public ResolutionResult resolveMethodOnInterface(DexType holder, DexMethod desc) {
     assert checkIfObsolete();
     if (holder.isArrayType()) {
-      return ResolutionResult.EmptyResult.get();
+      return IncompatibleClassResult.INSTANCE;
     }
     // Step 1: Lookup interface.
     DexClass definition = definitionFor(holder);
     // If the definition is not an interface, resolution fails with an ICCE. We just return the
     // empty result here.
-    if (definition == null || !definition.isInterface()) {
-      return ResolutionResult.EmptyResult.get();
+    if (definition == null) {
+      return ClassNotFoundResult.INSTANCE;
+    }
+    if (!definition.isInterface()) {
+      return IncompatibleClassResult.INSTANCE;
     }
     return resolveMethodOnInterface(definition, desc);
   }
@@ -482,8 +492,7 @@ public class AppInfo implements DexDefinitionSupplier {
     // Step 3: Look for matching method on object class.
     DexClass objectClass = definitionFor(dexItemFactory.objectType);
     if (objectClass == null) {
-      // TODO(herhut): This should never happen. How do we handle missing classes?
-      return ResolutionResult.EmptyResult.get();
+      return ClassNotFoundResult.INSTANCE;
     }
     result = objectClass.lookupMethod(desc);
     if (result != null && result.accessFlags.isPublic() && !result.accessFlags.isAbstract()) {

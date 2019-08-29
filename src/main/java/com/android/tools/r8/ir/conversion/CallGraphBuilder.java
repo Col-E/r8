@@ -191,9 +191,10 @@ public class CallGraphBuilder {
               method -> {
                 ResolutionResult resolution =
                     appView.appInfo().resolveMethod(method.holder, method, isInterface);
-                return isInterface
-                    ? resolution.lookupInterfaceTargets(appView.appInfo())
-                    : resolution.lookupVirtualTargets(appView.appInfo());
+                if (resolution.isValidVirtualTarget(appView.options())) {
+                  return resolution.lookupVirtualDispatchTargets(isInterface, appView.appInfo());
+                }
+                return null;
               });
       if (possibleTargets != null) {
         boolean likelySpuriousCallEdge =

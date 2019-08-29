@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.resolution;
 
+import static org.junit.Assert.assertTrue;
+
 import com.android.tools.r8.AsmTestBase;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfo;
@@ -14,6 +16,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.resolution.singletarget.Main;
 import com.android.tools.r8.resolution.singletarget.one.AbstractSubClass;
 import com.android.tools.r8.resolution.singletarget.one.AbstractTopClass;
@@ -165,46 +168,87 @@ public class SingleTargetLookupTest extends AsmTestBase {
 
   @Parameters(name = "{1}.{0} -> {2}")
   public static List<Object[]> getData() {
-    return ImmutableList.copyOf(new Object[][]{
-        singleTarget("singleTargetAtTop", AbstractTopClass.class),
-        singleTargetWithAbstracts("singleShadowingOverride", AbstractTopClass.class,
-            AbstractSubClass.class, AbstractTopClass.class),
-        manyTargets("abstractTargetAtTop", AbstractTopClass.class, AbstractTopClass.class,
-            SubSubClassOne.class, SubSubClassTwo.class),
-        singleTargetWithAbstracts("overridenInAbstractClassOnly", AbstractTopClass.class,
-            AbstractTopClass.class, SubSubClassThree.class),
-        onlyUnreachableTargets("overridenInAbstractClassOnly", SubSubClassThree.class,
-            SubSubClassThree.class),
-        manyTargets("overriddenInTwoSubTypes", AbstractTopClass.class, AbstractTopClass.class,
-            SubSubClassOne.class, SubSubClassTwo.class),
-        manyTargets("definedInTwoSubTypes", AbstractTopClass.class, AbstractTopClass.class,
-            SubSubClassOne.class, SubSubClassTwo.class),
-        onlyUnreachableTargets("staticMethod", AbstractTopClass.class, AbstractTopClass.class),
-        manyTargets("overriddenInTwoSubTypes", OtherAbstractTopClass.class,
-            OtherAbstractTopClass.class, OtherSubSubClassOne.class, OtherSubSubClassTwo.class),
-        manyTargets("abstractOverriddenInTwoSubTypes", OtherAbstractTopClass.class,
-            OtherAbstractTopClass.class, OtherSubSubClassOne.class, OtherSubSubClassTwo.class),
-        manyTargets("overridesOnDifferentLevels", OtherAbstractTopClass.class,
-            OtherAbstractTopClass.class, OtherSubSubClassOne.class, OtherAbstractSubClassTwo.class),
-        singleTarget("defaultMethod", AbstractTopClass.class, InterfaceWithDefault.class),
-        manyTargets("overriddenDefault", AbstractTopClass.class, InterfaceWithDefault.class,
-            SubSubClassTwo.class),
-        singleTarget("overriddenDefault", SubSubClassTwo.class),
-        singleTarget("overriddenByIrrelevantInterface", AbstractTopClass.class),
-        singleTarget("overriddenByIrrelevantInterface", SubSubClassOne.class,
-            AbstractTopClass.class),
-        manyTargets("overriddenInOtherInterface", AbstractTopClass.class,
-            InterfaceWithDefault.class,
-            IrrelevantInterfaceWithDefault.class),
-        manyTargets("overriddenInOtherInterface", SubSubClassOne.class,
-            InterfaceWithDefault.class,
-            IrrelevantInterfaceWithDefault.class),
-        manyTargets("abstractMethod", ThirdAbstractTopClass.class, ThirdAbstractTopClass.class,
-            ThirdSubClassOne.class),
-        singleTarget("instanceMethod", ThirdAbstractTopClass.class, ThirdAbstractTopClass.class),
-        singleTarget(
-            "otherInstanceMethod", ThirdAbstractTopClass.class, ThirdAbstractTopClass.class),
-    });
+    return ImmutableList.copyOf(
+        new Object[][] {
+          singleTarget("singleTargetAtTop", AbstractTopClass.class),
+          singleTargetWithAbstracts(
+              "singleShadowingOverride",
+              AbstractTopClass.class,
+              AbstractSubClass.class,
+              AbstractTopClass.class),
+          manyTargets(
+              "abstractTargetAtTop",
+              AbstractTopClass.class,
+              AbstractTopClass.class,
+              SubSubClassOne.class,
+              SubSubClassTwo.class),
+          singleTargetWithAbstracts(
+              "overridenInAbstractClassOnly",
+              AbstractTopClass.class,
+              AbstractTopClass.class,
+              SubSubClassThree.class),
+          onlyUnreachableTargets(
+              "overridenInAbstractClassOnly", SubSubClassThree.class, SubSubClassThree.class),
+          manyTargets(
+              "overriddenInTwoSubTypes",
+              AbstractTopClass.class,
+              AbstractTopClass.class,
+              SubSubClassOne.class,
+              SubSubClassTwo.class),
+          manyTargets(
+              "definedInTwoSubTypes",
+              AbstractTopClass.class,
+              AbstractTopClass.class,
+              SubSubClassOne.class,
+              SubSubClassTwo.class),
+          onlyUnreachableTargets("staticMethod", AbstractTopClass.class),
+          manyTargets(
+              "overriddenInTwoSubTypes",
+              OtherAbstractTopClass.class,
+              OtherAbstractTopClass.class,
+              OtherSubSubClassOne.class,
+              OtherSubSubClassTwo.class),
+          manyTargets(
+              "abstractOverriddenInTwoSubTypes",
+              OtherAbstractTopClass.class,
+              OtherAbstractTopClass.class,
+              OtherSubSubClassOne.class,
+              OtherSubSubClassTwo.class),
+          manyTargets(
+              "overridesOnDifferentLevels",
+              OtherAbstractTopClass.class,
+              OtherAbstractTopClass.class,
+              OtherSubSubClassOne.class,
+              OtherAbstractSubClassTwo.class),
+          singleTarget("defaultMethod", AbstractTopClass.class, InterfaceWithDefault.class),
+          manyTargets(
+              "overriddenDefault",
+              AbstractTopClass.class,
+              InterfaceWithDefault.class,
+              SubSubClassTwo.class),
+          singleTarget("overriddenDefault", SubSubClassTwo.class),
+          singleTarget("overriddenByIrrelevantInterface", AbstractTopClass.class),
+          singleTarget(
+              "overriddenByIrrelevantInterface", SubSubClassOne.class, AbstractTopClass.class),
+          manyTargets(
+              "overriddenInOtherInterface",
+              AbstractTopClass.class,
+              InterfaceWithDefault.class,
+              IrrelevantInterfaceWithDefault.class),
+          manyTargets(
+              "overriddenInOtherInterface",
+              SubSubClassOne.class,
+              InterfaceWithDefault.class,
+              IrrelevantInterfaceWithDefault.class),
+          manyTargets(
+              "abstractMethod",
+              ThirdAbstractTopClass.class,
+              ThirdAbstractTopClass.class,
+              ThirdSubClassOne.class),
+          singleTarget("instanceMethod", ThirdAbstractTopClass.class, ThirdAbstractTopClass.class),
+          singleTarget(
+              "otherInstanceMethod", ThirdAbstractTopClass.class, ThirdAbstractTopClass.class),
+        });
   }
 
   public static DexMethod buildMethod(Class clazz, String name, AppInfo appInfo) {
@@ -247,12 +291,16 @@ public class SingleTargetLookupTest extends AsmTestBase {
     DexMethod method = buildMethod(invokeReceiver, methodName, appInfo);
     Assert.assertNotNull(
         appInfo.resolveMethod(toType(invokeReceiver, appInfo), method).asResultOfResolve());
-    Set<DexEncodedMethod> targets =
-        appInfo.resolveMethod(method.holder, method).lookupVirtualTargets(appInfo);
-    Set<DexType> targetHolders = targets.stream().map(m -> m.method.holder)
-        .collect(Collectors.toSet());
-    Assert.assertEquals(allTargetHolders.size(), targetHolders.size());
-    Assert.assertTrue(
-        allTargetHolders.stream().map(t -> toType(t, appInfo)).allMatch(targetHolders::contains));
+    ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
+    if (resolutionResult.isValidVirtualTarget(appInfo.app().options)) {
+      Set<DexEncodedMethod> targets = resolutionResult.lookupVirtualTargets(appInfo);
+      Set<DexType> targetHolders =
+          targets.stream().map(m -> m.method.holder).collect(Collectors.toSet());
+      Assert.assertEquals(allTargetHolders.size(), targetHolders.size());
+      assertTrue(
+          allTargetHolders.stream().map(t -> toType(t, appInfo)).allMatch(targetHolders::contains));
+    } else {
+      assertTrue(allTargetHolders.isEmpty());
+    }
   }
 }

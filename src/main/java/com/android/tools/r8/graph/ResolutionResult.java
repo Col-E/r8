@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.util.Collections;
@@ -12,6 +13,7 @@ import java.util.function.Consumer;
 
 public interface ResolutionResult {
 
+  // TODO(b/140214802): Remove this method as its usage is questionable.
   DexEncodedMethod asResultOfResolve();
 
   DexEncodedMethod asSingleTarget();
@@ -22,8 +24,15 @@ public interface ResolutionResult {
 
   void forEachTarget(Consumer<DexEncodedMethod> consumer);
 
+  boolean isValidVirtualTarget(InternalOptions options);
+
+  default Set<DexEncodedMethod> lookupVirtualDispatchTargets(
+      boolean isInterface, AppInfoWithSubtyping appInfo) {
+    return isInterface ? lookupInterfaceTargets(appInfo) : lookupVirtualTargets(appInfo);
+  }
+
   default Set<DexEncodedMethod> lookupVirtualTargets(AppInfoWithSubtyping appInfo) {
-    // TODO(b/140016938): Don't allow this lookup on non-virtual resolutions.
+    assert isValidVirtualTarget(appInfo.app().options);
     // First add the target for receiver type method.type.
     Set<DexEncodedMethod> result = Sets.newIdentityHashSet();
     forEachTarget(result::add);
@@ -46,7 +55,7 @@ public interface ResolutionResult {
   }
 
   default Set<DexEncodedMethod> lookupInterfaceTargets(AppInfoWithSubtyping appInfo) {
-    // TODO(b/140016938): Don't allow this lookup on non-virtual resolutions.
+    assert isValidVirtualTarget(appInfo.app().options);
     Set<DexEncodedMethod> result = Sets.newIdentityHashSet();
     if (hasSingleTarget()) {
       // Add default interface methods to the list of targets.
@@ -122,6 +131,16 @@ public interface ResolutionResult {
     }
 
     @Override
+    public boolean isValidVirtualTarget(InternalOptions options) {
+      for (DexEncodedMethod method : methods) {
+        if (!method.isValidVirtualTarget(options)) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    @Override
     public DexEncodedMethod asResultOfResolve() {
       // Resolution may return any of the targets that were found.
       return methods.get(0);
@@ -149,17 +168,7 @@ public interface ResolutionResult {
     }
   }
 
-  class EmptyResult implements ResolutionResult {
-
-    private static final EmptyResult SINGLETON = new EmptyResult();
-
-    private EmptyResult() {
-      // Intentionally left empty.
-    }
-
-    static EmptyResult get() {
-      return SINGLETON;
-    }
+  abstract class EmptyResult implements ResolutionResult {
 
     @Override
     public DexEncodedMethod asResultOfResolve() {
@@ -194,6 +203,52 @@ public interface ResolutionResult {
     @Override
     public Set<DexEncodedMethod> lookupInterfaceTargets(AppInfoWithSubtyping appInfo) {
       return null;
+    }
+  }
+
+  class ArrayCloneMethodResult extends EmptyResult {
+
+    static final ArrayCloneMethodResult INSTANCE = new ArrayCloneMethodResult();
+
+    private ArrayCloneMethodResult() {
+      // Intentionally left empty.
+    }
+
+    @Override
+    public boolean isValidVirtualTarget(InternalOptions options) {
+      return true;
+    }
+  }
+
+  abstract class FailedResolutionResult extends EmptyResult {
+
+    @Override
+    public boolean isValidVirtualTarget(InternalOptions options) {
+      return false;
+    }
+  }
+
+  class ClassNotFoundResult extends FailedResolutionResult {
+    static final ClassNotFoundResult INSTANCE = new ClassNotFoundResult();
+
+    private ClassNotFoundResult() {
+      // Intentionally left empty.
+    }
+  }
+
+  class IncompatibleClassResult extends FailedResolutionResult {
+    static final IncompatibleClassResult INSTANCE = new IncompatibleClassResult();
+
+    private IncompatibleClassResult() {
+      // Intentionally left empty.
+    }
+  }
+
+  class NoSuchMethodResult extends FailedResolutionResult {
+    static final NoSuchMethodResult INSTANCE = new NoSuchMethodResult();
+
+    private NoSuchMethodResult() {
+      // Intentionally left empty.
     }
   }
 }
