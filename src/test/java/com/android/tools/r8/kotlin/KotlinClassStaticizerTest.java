@@ -7,7 +7,6 @@ package com.android.tools.r8.kotlin;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
@@ -15,6 +14,7 @@ import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
+import com.google.common.base.Predicates;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Test;
 
@@ -40,16 +40,14 @@ public class KotlinClassStaticizerTest extends AbstractR8KotlinTestBase {
           assertThat(inspector.clazz("class_staticizer.Regular$Companion"), isPresent());
           assertThat(inspector.clazz("class_staticizer.Derived$Companion"), isPresent());
 
+          // The Util class is there, but its instance methods have been inlined.
           ClassSubject utilClass = inspector.clazz("class_staticizer.Util");
           assertThat(utilClass, isPresent());
           AtomicInteger nonStaticMethodCount = new AtomicInteger();
-          utilClass.forAllMethods(
-              method -> {
-                if (!method.isStatic()) {
-                  nonStaticMethodCount.incrementAndGet();
-                }
-              });
-          assertEquals(4, nonStaticMethodCount.get());
+          assertTrue(
+              utilClass.allMethods().stream()
+                  .filter(Predicates.not(FoundMethodSubject::isStatic))
+                  .allMatch(FoundMethodSubject::isInstanceInitializer));
         });
 
     // With class staticizer.
@@ -77,7 +75,6 @@ public class KotlinClassStaticizerTest extends AbstractR8KotlinTestBase {
         options -> {
           options.enableClassInlining = false;
           options.enableClassStaticizer = enabled;
-          options.enableInliningOfInvokesWithNullableReceivers = false;
         },
         inspector);
   }

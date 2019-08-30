@@ -16,13 +16,9 @@ import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.OffOrAuto;
 import com.android.tools.r8.utils.TestDescriptionWatcher;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
-import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
-import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -31,11 +27,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
-import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import org.junit.Rule;
@@ -45,7 +39,8 @@ import org.junit.rules.TemporaryFolder;
 
 public abstract class RunExamplesJava9Test
     <B extends BaseCommand.Builder<? extends BaseCommand, B>> {
-  static final String EXAMPLE_DIR = ToolHelper.EXAMPLES_JAVA9_BUILD_DIR;
+
+  private static final String EXAMPLE_DIR = ToolHelper.EXAMPLES_JAVA9_BUILD_DIR;
 
   abstract class TestRunner<C extends TestRunner<C>> {
     final String testName;
@@ -72,43 +67,9 @@ public abstract class RunExamplesJava9Test
       return self();
     }
 
-    C withClassCheck(Consumer<FoundClassSubject> check) {
-      return withDexCheck(inspector -> inspector.forAllClasses(check));
-    }
-
-    C withMethodCheck(Consumer<FoundMethodSubject> check) {
-      return withClassCheck(clazz -> clazz.forAllMethods(check));
-    }
-
     C withArg(String arg) {
       args.add(arg);
       return self();
-    }
-
-    <T extends InstructionSubject> C withInstructionCheck(
-        Predicate<InstructionSubject> filter, Consumer<T> check) {
-      return withMethodCheck(method -> {
-        if (method.isAbstract()) {
-          return;
-        }
-        Iterator<T> iterator = method.iterateInstructions(filter);
-        while (iterator.hasNext()) {
-          check.accept(iterator.next());
-        }
-      });
-    }
-
-    C withOptionConsumer(Consumer<InternalOptions> consumer) {
-      optionConsumers.add(consumer);
-      return self();
-    }
-
-    C withInterfaceMethodDesugaring(OffOrAuto behavior) {
-      return withOptionConsumer(o -> o.interfaceMethodDesugaring = behavior);
-    }
-
-    C withTryWithResourcesDesugaring(OffOrAuto behavior) {
-      return withOptionConsumer(o -> o.tryWithResourcesDesugaring = behavior);
     }
 
     void combinedOptionConsumer(InternalOptions options) {
@@ -120,10 +81,6 @@ public abstract class RunExamplesJava9Test
     C withBuilderTransformation(UnaryOperator<B> builderTransformation) {
       builderTransformations.add(builderTransformation);
       return self();
-    }
-
-    C withMainDexClass(String... classes) {
-      return withBuilderTransformation(builder -> builder.addMainDexClasses(classes));
     }
 
     Path build() throws Throwable {
@@ -250,17 +207,17 @@ public abstract class RunExamplesJava9Test
   @Rule
   public TestDescriptionWatcher watcher = new TestDescriptionWatcher();
 
-  boolean failsOn(Map<DexVm.Version, List<String>> failsOn, String name) {
+  private boolean failsOn(Map<DexVm.Version, List<String>> failsOn, String name) {
     DexVm.Version vmVersion = ToolHelper.getDexVm().getVersion();
     return failsOn.containsKey(vmVersion)
         && failsOn.get(vmVersion).contains(name);
   }
 
-  boolean expectedToFail(String name) {
+  private boolean expectedToFail(String name) {
     return failsOn(failsOn, name);
   }
 
-  boolean minSdkErrorExpected(String testName) {
+  private boolean minSdkErrorExpected(String testName) {
     return minSdkErrorExpected.contains(testName);
   }
 

@@ -237,6 +237,7 @@ public class InternalOptions {
   public boolean enableInitializedClassesInInstanceMethodsAnalysis = true;
   public boolean enableRedundantFieldLoadElimination = true;
   public boolean enableValuePropagation = true;
+  public boolean enableFieldTypePropagation = true;
   public boolean enableUninstantiatedTypeOptimization = true;
   // TODO(b/138917494): Disable until we have numbers on potential performance penalties.
   public boolean enableRedundantConstNumberOptimization = false;

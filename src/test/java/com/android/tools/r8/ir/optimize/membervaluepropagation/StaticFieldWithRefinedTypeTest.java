@@ -6,8 +6,10 @@ package com.android.tools.r8.ir.optimize.membervaluepropagation;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -21,7 +23,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class NonNullFieldTest extends TestBase {
+public class StaticFieldWithRefinedTypeTest extends TestBase {
 
   private final TestParameters parameters;
 
@@ -30,15 +32,17 @@ public class NonNullFieldTest extends TestBase {
     return getTestParameters().withAllRuntimes().build();
   }
 
-  public NonNullFieldTest(TestParameters parameters) {
+  public StaticFieldWithRefinedTypeTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
   @Test
   public void test() throws Exception {
     testForR8(parameters.getBackend())
-        .addProgramClasses(TestClass.class)
+        .addInnerClasses(StaticFieldWithRefinedTypeTest.class)
         .addKeepMainRule(TestClass.class)
+        .enableInliningAnnotations()
+        .enableMergeAnnotations()
         .setMinApi(parameters.getRuntime())
         .compile()
         .inspect(this::verifyMainIsEmpty)
@@ -52,18 +56,27 @@ public class NonNullFieldTest extends TestBase {
 
     MethodSubject mainMethodSubject = testClassSubject.mainMethod();
     assertThat(mainMethodSubject, isPresent());
-    // TODO(b/140161397): Should propagate the fact that `field` is guaranteed to be non-null.
-    assertFalse(mainMethodSubject.streamInstructions().allMatch(InstructionSubject::isReturnVoid));
+    assertTrue(mainMethodSubject.streamInstructions().allMatch(InstructionSubject::isReturnVoid));
   }
 
   static class TestClass {
 
-    static Object field = new Object();
+    static A field = new B();
 
     public static void main(String[] args) {
-      if (field == null) {
-        throw new NullPointerException();
+      if (!(field instanceof B)) {
+        dead();
       }
     }
+
+    @NeverInline
+    static void dead() {
+      System.out.println("Unreachable!");
+    }
   }
+
+  @NeverMerge
+  static class A {}
+
+  static class B extends A {}
 }

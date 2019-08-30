@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
@@ -17,6 +18,7 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.JumpInstruction;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -55,12 +57,14 @@ public class DynamicTypeOptimization {
     InstructionListIterator instructionIterator = block.listIterator(code);
     while (instructionIterator.hasNext()) {
       Instruction current = instructionIterator.next();
+      Value outValue = current.outValue();
+      if (outValue == null) {
+        continue;
+      }
+
+      TypeLatticeElement dynamicType;
       if (current.isInvokeMethod()) {
         InvokeMethod invoke = current.asInvokeMethod();
-        Value outValue = invoke.outValue();
-        if (outValue == null) {
-          continue;
-        }
 
         DexType staticReturnTypeRaw = invoke.getInvokedMethod().proto.returnType;
         if (!staticReturnTypeRaw.isReferenceType()) {
@@ -78,33 +82,44 @@ public class DynamicTypeOptimization {
           continue;
         }
 
-        TypeLatticeElement dynamicReturnType = optimizationInfo.getDynamicReturnType();
-        if (dynamicReturnType == null
-            || !dynamicReturnType.strictlyLessThan(outValue.getTypeLattice(), appView)) {
+        dynamicType = optimizationInfo.getDynamicReturnType();
+      } else if (current.isStaticGet()) {
+        StaticGet staticGet = current.asStaticGet();
+        DexEncodedField encodedField = appView.appInfo().resolveField(staticGet.getField());
+        if (encodedField == null) {
           continue;
         }
 
-        // Split block if needed (only debug instructions are allowed after the throwing
-        // instruction, if any).
-        BasicBlock insertionBlock =
-            block.hasCatchHandlers() ? instructionIterator.split(code, blockIterator) : block;
+        dynamicType = encodedField.getOptimizationInfo().getDynamicType();
+      } else {
+        continue;
+      }
 
-        // Replace usages of out-value by the out-value of the AssumeDynamicType instruction.
-        Value specializedOutValue =
-            code.createValue(outValue.getTypeLattice(), outValue.getLocalInfo());
-        outValue.replaceUsers(specializedOutValue);
+      if (dynamicType == null
+          || !dynamicType.strictlyLessThan(outValue.getTypeLattice(), appView)) {
+        continue;
+      }
 
-        // Insert AssumeDynamicType instruction.
-        Assume<DynamicTypeAssumption> assumeInstruction =
-            Assume.createAssumeDynamicTypeInstruction(
-                dynamicReturnType, specializedOutValue, outValue, invoke, appView);
-        assumeInstruction.setPosition(
-            appView.options().debug ? invoke.getPosition() : Position.none());
-        if (insertionBlock == block) {
-          instructionIterator.add(assumeInstruction);
-        } else {
-          insertionBlock.listIterator(code).add(assumeInstruction);
-        }
+      // Split block if needed (only debug instructions are allowed after the throwing
+      // instruction, if any).
+      BasicBlock insertionBlock =
+          block.hasCatchHandlers() ? instructionIterator.split(code, blockIterator) : block;
+
+      // Replace usages of out-value by the out-value of the AssumeDynamicType instruction.
+      Value specializedOutValue =
+          code.createValue(outValue.getTypeLattice(), outValue.getLocalInfo());
+      outValue.replaceUsers(specializedOutValue);
+
+      // Insert AssumeDynamicType instruction.
+      Assume<DynamicTypeAssumption> assumeInstruction =
+          Assume.createAssumeDynamicTypeInstruction(
+              dynamicType, specializedOutValue, outValue, current, appView);
+      assumeInstruction.setPosition(
+          appView.options().debug ? current.getPosition() : Position.none());
+      if (insertionBlock == block) {
+        instructionIterator.add(assumeInstruction);
+      } else {
+        insertionBlock.listIterator(code).add(assumeInstruction);
       }
     }
   }

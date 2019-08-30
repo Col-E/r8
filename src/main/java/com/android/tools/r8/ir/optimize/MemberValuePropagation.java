@@ -368,46 +368,56 @@ public class MemberValuePropagation {
     }
 
     // Check if a this value is known const.
-    if (!appView.appInfo().isPinned(target.field)) {
-      ConstInstruction replacement = target.valueAsConstInstruction(code, current.dest(), appView);
-      if (replacement != null) {
-        affectedValues.addAll(current.outValue().affectedValues());
-        iterator.replaceCurrentInstruction(replacement);
-        if (replacement.isDexItemBasedConstString()) {
-          code.method.getMutableOptimizationInfo().markUseIdentifierNameString();
-        }
-        feedback.markFieldAsPropagated(target);
-        return;
-      }
+    if (appView.appInfo().isPinned(target.field)) {
+      return;
     }
 
-    if (current.dest() != null) {
-      // In case the class holder of this static field satisfying following criteria:
-      //   -- cannot trigger other static initializer except for its own
-      //   -- is final
-      //   -- has a class initializer which is classified as trivial
-      //      (see CodeRewriter::computeClassInitializerInfo) and
-      //      initializes the field being accessed
-      //
-      // ... and the field itself is not pinned by keep rules (in which case it might
-      // be updated outside the class constructor, e.g. via reflections), it is safe
-      // to assume that the static-get instruction reads the value it initialized value
-      // in class initializer and is never null.
-      DexClass holderDefinition = appView.definitionFor(field.holder);
-      if (holderDefinition != null
-          && holderDefinition.accessFlags.isFinal()
-          && !field.holder.initializationOfParentTypesMayHaveSideEffects(appView)) {
-        Value outValue = current.dest();
-        DexEncodedMethod classInitializer = holderDefinition.getClassInitializer();
-        if (classInitializer != null && !isProcessedConcurrently.test(classInitializer)) {
-          TrivialInitializer info =
-              classInitializer.getOptimizationInfo().getTrivialInitializerInfo();
-          if (info != null
-              && ((TrivialClassInitializer) info).field == field
-              && !appView.appInfo().isPinned(field)
-              && outValue.getTypeLattice().isReference()
-              && outValue.canBeNull()) {
-            insertAssumeNotNull(code, affectedValues, blocks, iterator, current);
+    ConstInstruction replacement = target.valueAsConstInstruction(code, current.dest(), appView);
+    if (replacement != null) {
+      affectedValues.addAll(current.outValue().affectedValues());
+      iterator.replaceCurrentInstruction(replacement);
+      if (replacement.isDexItemBasedConstString()) {
+        code.method.getMutableOptimizationInfo().markUseIdentifierNameString();
+      }
+      feedback.markFieldAsPropagated(target);
+      return;
+    }
+
+    if (current.hasOutValue()) {
+      Value outValue = current.outValue();
+      TypeLatticeElement outType = outValue.getTypeLattice();
+      if (outType.isReference() && outType.isNullable()) {
+        TypeLatticeElement dynamicType = target.getOptimizationInfo().getDynamicType();
+        if (dynamicType != null && dynamicType.isDefinitelyNotNull()) {
+          insertAssumeNotNull(code, affectedValues, blocks, iterator, current);
+          return;
+        }
+
+        // In case the class holder of this static field satisfying following criteria:
+        //   -- cannot trigger other static initializer except for its own
+        //   -- is final
+        //   -- has a class initializer which is classified as trivial
+        //      (see CodeRewriter::computeClassInitializerInfo) and
+        //      initializes the field being accessed
+        //
+        // ... and the field itself is not pinned by keep rules (in which case it might
+        // be updated outside the class constructor, e.g. via reflections), it is safe
+        // to assume that the static-get instruction reads the value it initialized value
+        // in class initializer and is never null.
+        DexClass holderDefinition = appView.definitionFor(field.holder);
+        if (holderDefinition != null
+            && holderDefinition.accessFlags.isFinal()
+            && !field.holder.initializationOfParentTypesMayHaveSideEffects(appView)) {
+          DexEncodedMethod classInitializer = holderDefinition.getClassInitializer();
+          if (classInitializer != null && !isProcessedConcurrently.test(classInitializer)) {
+            TrivialInitializer info =
+                classInitializer.getOptimizationInfo().getTrivialInitializerInfo();
+            if (info != null
+                && ((TrivialClassInitializer) info).field == field
+                && outValue.getTypeLattice().isReference()
+                && outValue.canBeNull()) {
+              insertAssumeNotNull(code, affectedValues, blocks, iterator, current);
+            }
           }
         }
       }

@@ -34,6 +34,9 @@ public class OptimizationFeedbackIgnore implements OptimizationFeedback {
   @Override
   public void markFieldAsPropagated(DexEncodedField field) {}
 
+  @Override
+  public void markFieldHasDynamicType(DexEncodedField field, TypeLatticeElement type) {}
+
   // METHOD OPTIMIZATION INFO:
 
   @Override

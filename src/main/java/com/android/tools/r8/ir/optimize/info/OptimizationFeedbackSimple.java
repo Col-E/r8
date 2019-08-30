@@ -38,6 +38,11 @@ public class OptimizationFeedbackSimple implements OptimizationFeedback {
     field.getMutableOptimizationInfo().markAsPropagated();
   }
 
+  @Override
+  public void markFieldHasDynamicType(DexEncodedField field, TypeLatticeElement type) {
+    // Ignored.
+  }
+
   // METHOD OPTIMIZATION INFO.
 
   @Override

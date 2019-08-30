@@ -5,10 +5,13 @@
 package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 
 public interface FieldOptimizationFeedback {
 
   void markFieldCannotBeKept(DexEncodedField field);
 
   void markFieldAsPropagated(DexEncodedField field);
+
+  void markFieldHasDynamicType(DexEncodedField field, TypeLatticeElement type);
 }

@@ -29,6 +29,8 @@ import com.android.tools.r8.graph.DexValue.DexValueLong;
 import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.DexValue.DexValueShort;
 import com.android.tools.r8.graph.DexValue.DexValueString;
+import com.android.tools.r8.ir.analysis.type.Nullability;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstNumber;
@@ -43,6 +45,7 @@ import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.naming.dexitembasedstring.ClassNameComputationInfo;
 import com.android.tools.r8.naming.dexitembasedstring.ClassNameComputationInfo.ClassNameMapping;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -101,7 +104,7 @@ public class ClassInitializerDefaultsOptimization {
     this.dexItemFactory = appView.dexItemFactory();
   }
 
-  public void optimize(DexEncodedMethod method, IRCode code) {
+  public void optimize(DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
     if (!method.isClassInitializer()) {
       return;
     }
@@ -119,7 +122,8 @@ public class ClassInitializerDefaultsOptimization {
         findFinalFieldPutsWhileCollectingUnnecessaryStaticPuts(code, clazz, unnecessaryStaticPuts);
 
     // Return eagerly if there is nothing to optimize.
-    if (unnecessaryStaticPuts.isEmpty()) {
+    if (finalFieldPuts.isEmpty()) {
+      assert unnecessaryStaticPuts.isEmpty();
       return;
     }
 
@@ -129,73 +133,85 @@ public class ClassInitializerDefaultsOptimization {
     for (StaticPut put : finalFieldPuts) {
       DexEncodedField field = appView.appInfo().resolveField(put.getField());
       DexType fieldType = field.field.type;
-      Value inValue = put.value();
-      if (fieldType == dexItemFactory.stringType) {
-        fieldsWithStaticValues.put(field, getDexStringValue(inValue, method.method.holder));
-      } else if (fieldType.isClassType() || fieldType.isArrayType()) {
-        if (inValue.isZero()) {
-          fieldsWithStaticValues.put(field, DexValueNull.NULL);
+      Value value = put.value();
+      if (unnecessaryStaticPuts.contains(put)) {
+        if (fieldType == dexItemFactory.stringType) {
+          fieldsWithStaticValues.put(field, getDexStringValue(value, method.method.holder));
+        } else if (fieldType.isClassType() || fieldType.isArrayType()) {
+          if (value.isZero()) {
+            fieldsWithStaticValues.put(field, DexValueNull.NULL);
+          } else {
+            throw new Unreachable("Unexpected default value for field type " + fieldType + ".");
+          }
         } else {
-          throw new Unreachable("Unexpected default value for field type " + fieldType + ".");
+          ConstNumber cnst = value.getConstInstruction().asConstNumber();
+          if (fieldType == dexItemFactory.booleanType) {
+            fieldsWithStaticValues.put(field, DexValueBoolean.create(cnst.getBooleanValue()));
+          } else if (fieldType == dexItemFactory.byteType) {
+            fieldsWithStaticValues.put(field, DexValueByte.create((byte) cnst.getIntValue()));
+          } else if (fieldType == dexItemFactory.shortType) {
+            fieldsWithStaticValues.put(field, DexValueShort.create((short) cnst.getIntValue()));
+          } else if (fieldType == dexItemFactory.intType) {
+            fieldsWithStaticValues.put(field, DexValueInt.create(cnst.getIntValue()));
+          } else if (fieldType == dexItemFactory.longType) {
+            fieldsWithStaticValues.put(field, DexValueLong.create(cnst.getLongValue()));
+          } else if (fieldType == dexItemFactory.floatType) {
+            fieldsWithStaticValues.put(field, DexValueFloat.create(cnst.getFloatValue()));
+          } else if (fieldType == dexItemFactory.doubleType) {
+            fieldsWithStaticValues.put(field, DexValueDouble.create(cnst.getDoubleValue()));
+          } else if (fieldType == dexItemFactory.charType) {
+            fieldsWithStaticValues.put(field, DexValueChar.create((char) cnst.getIntValue()));
+          } else {
+            throw new Unreachable("Unexpected field type " + fieldType + ".");
+          }
         }
-      } else {
-        ConstNumber cnst = inValue.getConstInstruction().asConstNumber();
-        if (fieldType == dexItemFactory.booleanType) {
-          fieldsWithStaticValues.put(field, DexValueBoolean.create(cnst.getBooleanValue()));
-        } else if (fieldType == dexItemFactory.byteType) {
-          fieldsWithStaticValues.put(field, DexValueByte.create((byte) cnst.getIntValue()));
-        } else if (fieldType == dexItemFactory.shortType) {
-          fieldsWithStaticValues.put(field, DexValueShort.create((short) cnst.getIntValue()));
-        } else if (fieldType == dexItemFactory.intType) {
-          fieldsWithStaticValues.put(field, DexValueInt.create(cnst.getIntValue()));
-        } else if (fieldType == dexItemFactory.longType) {
-          fieldsWithStaticValues.put(field, DexValueLong.create(cnst.getLongValue()));
-        } else if (fieldType == dexItemFactory.floatType) {
-          fieldsWithStaticValues.put(field, DexValueFloat.create(cnst.getFloatValue()));
-        } else if (fieldType == dexItemFactory.doubleType) {
-          fieldsWithStaticValues.put(field, DexValueDouble.create(cnst.getDoubleValue()));
-        } else if (fieldType == dexItemFactory.charType) {
-          fieldsWithStaticValues.put(field, DexValueChar.create((char) cnst.getIntValue()));
-        } else {
-          throw new Unreachable("Unexpected field type " + fieldType + ".");
+      } else if (appView.options().enableFieldTypePropagation && appView.appInfo().hasLiveness()) {
+        AppInfoWithLiveness appInfoWithLiveness = appView.withLiveness().appInfo();
+        if (appInfoWithLiveness.isStaticFieldWrittenOnlyInEnclosingStaticInitializer(field)) {
+          TypeLatticeElement valueType = value.getTypeLattice();
+          assert valueType.strictlyLessThan(
+              TypeLatticeElement.fromDexType(fieldType, Nullability.maybeNull(), appView), appView);
+          feedback.markFieldHasDynamicType(field, valueType);
         }
       }
     }
 
-    // Remove the static put instructions now replaced by static field initial values.
-    Set<Instruction> unnecessaryInstructions = Sets.newIdentityHashSet();
+    if (!unnecessaryStaticPuts.isEmpty()) {
+      // Remove the static put instructions now replaced by static field initial values.
+      Set<Instruction> unnecessaryInstructions = Sets.newIdentityHashSet();
 
-    // Note: Traversing code.instructions(), and not unnecessaryStaticPuts(), to ensure
-    // deterministic iteration order.
-    InstructionListIterator instructionIterator = code.instructionListIterator();
-    while (instructionIterator.hasNext()) {
-      Instruction instruction = instructionIterator.next();
-      if (!instruction.isStaticPut()
-          || !unnecessaryStaticPuts.contains(instruction.asStaticPut())) {
-        continue;
+      // Note: Traversing code.instructions(), and not unnecessaryStaticPuts(), to ensure
+      // deterministic iteration order.
+      InstructionListIterator instructionIterator = code.instructionListIterator();
+      while (instructionIterator.hasNext()) {
+        Instruction instruction = instructionIterator.next();
+        if (!instruction.isStaticPut()
+            || !unnecessaryStaticPuts.contains(instruction.asStaticPut())) {
+          continue;
+        }
+        // Get a hold of the in-value.
+        Value inValue = instruction.asStaticPut().value();
+
+        // Remove the static-put instruction.
+        instructionIterator.removeOrReplaceByDebugLocalRead();
+
+        // Collect, for removal, the instruction that created the value for the static put,
+        // if all users are gone. This is done even if these instructions can throw as for
+        // the current patterns matched these exceptions are not detectable.
+        if (inValue.numberOfAllUsers() > 0) {
+          continue;
+        }
+        if (inValue.isConstString()) {
+          unnecessaryInstructions.add(inValue.definition);
+        } else if (!inValue.isPhi() && inValue.definition.isInvokeVirtual()) {
+          unnecessaryInstructions.add(inValue.definition);
+        }
       }
-      // Get a hold of the in-value.
-      Value inValue = instruction.asStaticPut().value();
 
-      // Remove the static-put instruction.
-      instructionIterator.removeOrReplaceByDebugLocalRead();
-
-      // Collect, for removal, the instruction that created the value for the static put,
-      // if all users are gone. This is done even if these instructions can throw as for
-      // the current patterns matched these exceptions are not detectable.
-      if (inValue.numberOfAllUsers() > 0) {
-        continue;
+      // Remove the instructions collected for removal.
+      if (unnecessaryInstructions.size() > 0) {
+        IteratorUtils.removeIf(code.instructionListIterator(), unnecessaryInstructions::contains);
       }
-      if (inValue.isConstString()) {
-        unnecessaryInstructions.add(inValue.definition);
-      } else if (!inValue.isPhi() && inValue.definition.isInvokeVirtual()) {
-        unnecessaryInstructions.add(inValue.definition);
-      }
-    }
-
-    // Remove the instructions collected for removal.
-    if (unnecessaryInstructions.size() > 0) {
-      IteratorUtils.removeIf(code.instructionListIterator(), unnecessaryInstructions::contains);
     }
 
     // If we are in R8, and we have removed all static-put instructions to some field, then record
@@ -208,6 +224,7 @@ public class ClassInitializerDefaultsOptimization {
         // First collect all the candidate fields that are *potentially* no longer being written to.
         Set<DexField> candidates =
             finalFieldPuts.stream()
+                .filter(unnecessaryStaticPuts::contains)
                 .map(FieldInstruction::getField)
                 .map(appInfoWithLiveness::resolveField)
                 .filter(appInfoWithLiveness::isStaticFieldWrittenOnlyInEnclosingStaticInitializer)
@@ -350,17 +367,19 @@ public class ClassInitializerDefaultsOptimization {
               return validateFinalFieldPuts(finalFieldPuts, isWrittenBefore);
             }
             DexField field = put.getField();
+            Value value = put.value();
+            TypeLatticeElement valueType = value.getTypeLattice();
             if (clazz.definesStaticField(field)) {
               if (isReadBefore.contains(field)) {
                 // Promoting this put to a class constant would cause a previous static-get
                 // instruction to read a different value.
                 continue;
               }
-              if (put.value().isDexItemBasedConstStringThatNeedsToComputeClassName()) {
+              if (value.isDexItemBasedConstStringThatNeedsToComputeClassName()) {
                 continue;
               }
-              if (put.value().isConstant()) {
-                if (field.type.isReferenceType() && put.value().isZero()) {
+              if (value.isConstant()) {
+                if (field.type.isReferenceType() && value.isZero()) {
                   finalFieldPuts.put(field, put);
                   unnecessaryStaticPuts.add(put);
                   // If this field has been written before, those static-put's up to this point are
@@ -392,6 +411,9 @@ public class ClassInitializerDefaultsOptimization {
                   unnecessaryStaticPuts.addAll(isWrittenBefore.get(field));
                   isWrittenBefore.remove(field);
                 }
+                continue;
+              } else if (valueType.isReference() && valueType.isDefinitelyNotNull()) {
+                finalFieldPuts.put(field, put);
                 continue;
               }
               // static-put that is reaching here can be redundant if the corresponding field is

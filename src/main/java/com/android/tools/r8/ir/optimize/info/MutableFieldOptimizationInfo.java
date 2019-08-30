@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.optimize.info;
 
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+
 /**
  * Optimization info for fields.
  *
@@ -15,6 +17,7 @@ public class MutableFieldOptimizationInfo extends FieldOptimizationInfo {
 
   private boolean cannotBeKept = false;
   private boolean valueHasBeenPropagated = false;
+  private TypeLatticeElement dynamicType = null;
 
   @Override
   public MutableFieldOptimizationInfo mutableCopy() {
@@ -31,6 +34,15 @@ public class MutableFieldOptimizationInfo extends FieldOptimizationInfo {
 
   void markCannotBeKept() {
     cannotBeKept = true;
+  }
+
+  @Override
+  public TypeLatticeElement getDynamicType() {
+    return dynamicType;
+  }
+
+  public void setDynamicType(TypeLatticeElement type) {
+    dynamicType = type;
   }
 
   @Override

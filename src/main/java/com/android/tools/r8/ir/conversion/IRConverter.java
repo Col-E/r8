@@ -1203,7 +1203,7 @@ public class IRConverter {
     codeRewriter.rewriteThrowNullPointerException(code);
 
     if (classInitializerDefaultsOptimization != null && !isDebugMode) {
-      classInitializerDefaultsOptimization.optimize(method, code);
+      classInitializerDefaultsOptimization.optimize(method, code, feedback);
     }
     if (Log.ENABLED) {
       Log.debug(getClass(), "Intermediate (SSA) flow graph for %s:\n%s",

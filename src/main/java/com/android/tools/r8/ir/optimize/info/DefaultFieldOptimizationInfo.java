@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.optimize.info;
 
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+
 public class DefaultFieldOptimizationInfo extends FieldOptimizationInfo {
 
   private static final DefaultFieldOptimizationInfo INSTANCE = new DefaultFieldOptimizationInfo();
@@ -22,6 +24,11 @@ public class DefaultFieldOptimizationInfo extends FieldOptimizationInfo {
   @Override
   public boolean cannotBeKept() {
     return false;
+  }
+
+  @Override
+  public TypeLatticeElement getDynamicType() {
+    return null;
   }
 
   @Override

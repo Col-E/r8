@@ -83,6 +83,11 @@ public class OptimizationFeedbackDelayed implements OptimizationFeedback {
     getFieldOptimizationInfoForUpdating(field).markAsPropagated();
   }
 
+  @Override
+  public void markFieldHasDynamicType(DexEncodedField field, TypeLatticeElement type) {
+    getFieldOptimizationInfoForUpdating(field).setDynamicType(type);
+  }
+
   // METHOD OPTIMIZATION INFO:
 
   @Override

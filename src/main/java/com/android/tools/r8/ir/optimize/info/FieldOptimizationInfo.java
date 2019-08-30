@@ -4,11 +4,15 @@
 
 package com.android.tools.r8.ir.optimize.info;
 
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+
 public abstract class FieldOptimizationInfo {
 
   public abstract MutableFieldOptimizationInfo mutableCopy();
 
   public abstract boolean cannotBeKept();
+
+  public abstract TypeLatticeElement getDynamicType();
 
   public abstract boolean valueHasBeenPropagated();
 
