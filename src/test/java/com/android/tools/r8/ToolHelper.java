@@ -140,12 +140,17 @@ public class ToolHelper {
 
   public static final long BOT_MAX_HEAP_SIZE = 7908360192L;
 
+  public static final Path D8_JAR = Paths.get(LIBS_DIR, "d8.jar");
   public static final Path R8_JAR = Paths.get(LIBS_DIR, "r8.jar");
   public static final Path R8_WITH_RELOCATED_DEPS_JAR =
       Paths.get(LIBS_DIR, "r8_with_relocated_deps.jar");
   public static final Path R8_WITH_RELOCATED_DEPS_JAR_11 =
       Paths.get(LIBS_DIR, "r8_with_relocated_deps_11.jar");
   public static final Path R8LIB_JAR = Paths.get(LIBS_DIR, "r8lib.jar");
+  public static final Path COMPATDX_JAR = Paths.get(LIBS_DIR, "compatdx.jar");
+  public static final Path COMPATDXLIB_JAR = Paths.get(LIBS_DIR, "compatdxlib.jar");
+  public static final Path COMPATPROGUARD_JAR = Paths.get(LIBS_DIR, "compatproguard.jar");
+  public static final Path COMPATPROGUARDLIB_JAR = Paths.get(LIBS_DIR, "compatproguardlib.jar");
   public static final Path R8LIB_EXCLUDE_DEPS_JAR = Paths.get(LIBS_DIR, "r8lib-exclude-deps.jar");
   public static final Path DEPS_NOT_RELOCATED = Paths.get(LIBS_DIR, "deps-not-relocated.jar");
 

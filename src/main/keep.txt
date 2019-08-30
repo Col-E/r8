@@ -17,3 +17,5 @@
 -keep public class com.android.tools.r8.Version { public static java.lang.String getVersionString(); }
 
 -keepattributes LineNumberTable, InnerClasses, EnclosingMethod, Exceptions, Signature
+
+-keeppackagenames com.android.tools.r8
