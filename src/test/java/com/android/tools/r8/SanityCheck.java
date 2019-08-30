@@ -81,6 +81,7 @@ public class SanityCheck extends TestBase {
   @Test
   public void testLibJarsContent() throws Exception {
     checkLibJarContent(ToolHelper.R8LIB_JAR);
+    checkLibJarContent(ToolHelper.R8LIB_EXCLUDE_DEPS_JAR);
     checkLibJarContent(ToolHelper.COMPATDXLIB_JAR);
     checkLibJarContent(ToolHelper.COMPATPROGUARDLIB_JAR);
   }

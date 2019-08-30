@@ -925,6 +925,7 @@ task R8LibNoDeps {
             ["src/main/keep.txt", "src/main/keep-applymapping.txt", genRulesTask.outputs.files[0]],
             R8NoManifestNoDeps,
             r8LibExludeDepsPath,
+            "--release",
             repackageDepsNoRelocate.outputs.files
     ).dependsOn(repackageDepsNoRelocate, genRulesTask)
     outputs.file r8LibExludeDepsPath
