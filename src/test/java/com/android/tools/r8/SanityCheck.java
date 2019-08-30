@@ -59,10 +59,16 @@ public class SanityCheck extends TestBase {
   }
 
   private void checkLibJarContent(Path jar) throws Exception {
+    if (!Files.exists(jar)) {
+      return;
+    }
     checkJarContent(jar, false, ImmutableSet.of());
   }
 
   private void checkJarContent(Path jar) throws Exception {
+    if (!Files.exists(jar)) {
+      return;
+    }
     checkJarContent(
         jar,
         true,
@@ -81,9 +87,7 @@ public class SanityCheck extends TestBase {
 
   @Test
   public void testJarsContent() throws Exception {
-    if (Files.exists(ToolHelper.D8_JAR)) {
-      checkJarContent(ToolHelper.D8_JAR);
-    }
+    checkJarContent(ToolHelper.D8_JAR);
     checkJarContent(ToolHelper.R8_JAR);
     checkJarContent(ToolHelper.COMPATDX_JAR);
     checkJarContent(ToolHelper.COMPATPROGUARD_JAR);
