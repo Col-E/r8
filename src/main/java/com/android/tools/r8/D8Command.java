@@ -174,9 +174,14 @@ public final class D8Command extends BaseCompilerCommand {
                   + " and above");
         }
       }
-      if (getSpecialLibraryConfiguration() != null
-          && !getSpecialLibraryConfiguration().equals("default")) {
-        reporter.error("D8 currently require special library configuration to be \"default\"");
+      if (getSpecialLibraryConfiguration() != null) {
+        if (getDisableDesugaring()) {
+          reporter.error("Using special library configuration requires desugaring to be enabled");
+        }
+        if (!getSpecialLibraryConfiguration().equals("default")) {
+          reporter
+              .error("D8 currently requires the special library configuration to be \"default\"");
+        }
       }
       super.validate();
     }

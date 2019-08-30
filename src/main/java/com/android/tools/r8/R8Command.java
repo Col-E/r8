@@ -398,9 +398,14 @@ public final class R8Command extends BaseCompilerCommand {
       if (getProgramConsumer() instanceof ClassFileConsumer && isMinApiLevelSet()) {
         reporter.error("R8 does not support --min-api when compiling to class files");
       }
-      if (getSpecialLibraryConfiguration() != null
-          && !getSpecialLibraryConfiguration().equals("default")) {
-        reporter.error("R8 currently requires the special library configuration to be \"default\"");
+      if (getSpecialLibraryConfiguration() != null) {
+        if (getDisableDesugaring()) {
+          reporter.error("Using special library configuration requires desugaring to be enabled");
+        }
+        if (!getSpecialLibraryConfiguration().equals("default")) {
+          reporter
+              .error("R8 currently requires the special library configuration to be \"default\"");
+        }
       }
       super.validate();
     }

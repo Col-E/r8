@@ -50,10 +50,16 @@ public abstract class CodeToKeep {
       // Interface method desugaring should have created the types if emulatedLibraryInterfaces
       // are set.
       for (String rewrittenName : options.emulateLibraryInterface.values()) {
-        emulatedInterfaces.add(
-            options.itemFactory.lookupType(
-                options.itemFactory.lookupString(
-                    DescriptorUtils.javaTypeToDescriptor(rewrittenName))));
+        DexString descriptor =
+            options.itemFactory.lookupString(DescriptorUtils.javaTypeToDescriptor(rewrittenName));
+        assert descriptor != null;
+        if (descriptor != null) {
+          DexType type = options.itemFactory.lookupType(descriptor);
+          assert type != null;
+          if (type != null) {
+            emulatedInterfaces.add(type);
+          }
+        }
       }
       this.namingLens = namingLens;
     }
