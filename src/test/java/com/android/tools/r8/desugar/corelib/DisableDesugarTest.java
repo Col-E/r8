@@ -6,8 +6,10 @@ package com.android.tools.r8.desugar.corelib;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.fail;
 
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -30,6 +32,18 @@ public class DisableDesugarTest extends CoreLibDesugarTestBase {
     this.parameters = parameters;
   }
 
+  private void checkExpectedDiagnostics(TestDiagnosticMessages messages) {
+    messages.assertInfosCount(0);
+    messages.assertWarningsCount(1);
+    assertThat(
+        messages.getWarnings().get(0).getDiagnosticMessage(),
+        containsString("Special library configuration is still work in progress"));
+    messages.assertErrorsCount(1);
+    assertThat(
+        messages.getErrors().get(0).getDiagnosticMessage(),
+        containsString("Using special library configuration requires desugaring to be enabled"));
+  }
+
   @Test
   public void testDisableDesugarD8() throws Exception {
     try {
@@ -38,13 +52,12 @@ public class DisableDesugarTest extends CoreLibDesugarTestBase {
           .setMinApi(parameters.getApiLevel())
           .noDesugaring()
           .enableCoreLibraryDesugaring(AndroidApiLevel.B)
-          .compile()
-          .assertNoMessages();
+          .compileWithExpectedDiagnostics(this::checkExpectedDiagnostics);
     } catch (CompilationFailedException e) {
-      assertThat(
-          e.getCause().getMessage(),
-          containsString("Using special library configuration requires desugaring to be enabled"));
+      // Expected compilation failed.
+      return;
     }
+    fail("Expected test to fail with CompilationFailedException");
   }
 
   @Test
@@ -56,13 +69,12 @@ public class DisableDesugarTest extends CoreLibDesugarTestBase {
           .setMinApi(parameters.getApiLevel())
           .noDesugaring()
           .enableCoreLibraryDesugaring(AndroidApiLevel.B)
-          .compile()
-          .assertNoMessages();
+          .compileWithExpectedDiagnostics(this::checkExpectedDiagnostics);
     } catch (CompilationFailedException e) {
-      assertThat(
-          e.getCause().getMessage(),
-          containsString("Using special library configuration requires desugaring to be enabled"));
+      // Expected compilation failed.
+      return;
     }
+    fail("Expected test to fail with CompilationFailedException");
   }
 
   static class TestClass {
