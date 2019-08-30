@@ -103,7 +103,8 @@ def ParseOptions():
   result.add_option('--java-home', '--java_home',
       help='Use a custom java version to run tests.')
   result.add_option('--java-max-memory-size', '--java_max_memory_size',
-      help='Use a custom max memory size for the gradle java instance, eg, 4g')
+      help='Set memory for running tests, default 4G',
+      default='4G')
   result.add_option('--shard-count', '--shard_count',
       help='We are running this many shards.')
   result.add_option('--shard-number', '--shard_number',
@@ -193,7 +194,7 @@ def Main():
   if options.java_home:
     gradle_args.append('-Dorg.gradle.java.home=' + options.java_home)
   if options.java_max_memory_size:
-    gradle_args.append('-Dorg.gradle.jvmargs=-Xmx' + options.java_max_memory_size)
+    gradle_args.append('-Ptest_xmx=' + options.java_max_memory_size)
   if options.generate_golden_files_to:
     gradle_args.append('-Pgenerate_golden_files_to=' + options.generate_golden_files_to)
     if not os.path.exists(options.generate_golden_files_to):

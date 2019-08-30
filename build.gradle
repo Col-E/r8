@@ -1671,7 +1671,11 @@ tasks.withType(Test) {
         enableAssertions = false
     }
     // TODO(b/124091860): Increase the max heap size to avoid OOM when running tests.
-    maxHeapSize = "4g"
+    if (project.hasProperty('test_xmx')) {
+      maxHeapSize = project.property('test_xmx')
+    } else {
+      maxHeapSize = "4G"
+    }
 }
 
 task buildPreNJdwpTestsJar(type: Jar) {
