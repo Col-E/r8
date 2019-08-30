@@ -258,6 +258,11 @@ public class R8 {
     if (options.quiet) {
       System.setOut(new PrintStream(ByteStreams.nullOutputStream()));
     }
+    if (this.getClass().desiredAssertionStatus()) {
+      options.reporter.info(
+          new StringDiagnostic(
+              "Running R8 version " + Version.LABEL + " with assertions enabled."));
+    }
     try {
       DexApplication application =
           new ApplicationReader(inputApp, options, timing).read(executorService).toDirect();

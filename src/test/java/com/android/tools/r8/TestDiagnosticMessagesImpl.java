@@ -38,7 +38,12 @@ public class TestDiagnosticMessagesImpl implements DiagnosticsHandler, TestDiagn
 
   @Override
   public void info(Diagnostic info) {
-    infos.add(info);
+    // We are almost always compiling with assertions enabled and R8 will print a message. We
+    // discard the message here because for almost all tests, this message is not relevant.
+    if (!info.getDiagnosticMessage()
+        .equals("Running R8 version " + Version.LABEL + " with assertions enabled.")) {
+      infos.add(info);
+    }
   }
 
   @Override
