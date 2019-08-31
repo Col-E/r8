@@ -3,13 +3,15 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking.examples;
 
+import static org.junit.Assert.assertFalse;
+
 import com.android.tools.r8.shaking.TreeShakingTest;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -39,12 +41,12 @@ public class TreeShaking18Test extends TreeShakingTest {
         TreeShaking18Test::unusedRemoved,
         null,
         null,
-        ImmutableList.of("src/test/examples/shaking18/keep-rules.txt"));
+        ImmutableList.of("src/test/examples/shaking18/keep-rules.txt"),
+        InternalOptions::enableCallSiteOptimizationInfoPropagation);
   }
 
   private static void unusedRemoved(CodeInspector inspector) {
-    // TODO(b/80455722): Change to assertFalse when tree-shaking detects this case.
-    Assert.assertTrue(
+    assertFalse(
         "DerivedUnused should be removed", inspector.clazz("shaking18.DerivedUnused").isPresent());
   }
 }

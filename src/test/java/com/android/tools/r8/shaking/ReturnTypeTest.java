@@ -79,6 +79,11 @@ public class ReturnTypeTest extends TestBase {
         .addKeepMainRule(MAIN)
         .setMinApi(parameters.getRuntime())
         .addOptionsModification(o -> {
+          // No actual implementation of B112517039I, rather invoked with `null`.
+          // Call site optimization propagation will conclude that the input of B...Caller#call is
+          // always null, and replace the last call with null-throwing instruction.
+          // However, we want to test return type and parameter type are kept in this scenario.
+          o.enableCallSiteOptimizationInfoPropagation = false;
           o.enableInlining = false;
         })
         .run(parameters.getRuntime(), MAIN)

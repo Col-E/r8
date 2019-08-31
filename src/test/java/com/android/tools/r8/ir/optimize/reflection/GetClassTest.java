@@ -15,6 +15,7 @@ import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -130,6 +131,13 @@ public class GetClassTest extends ReflectionOptimizerTestBase {
     this.parameters = parameters;
   }
 
+  private void configure(InternalOptions options) {
+    // In `getMainClass`, a call with `null`, which will throw NPE, is replaced with null throwing
+    // code. Then, remaining call with non-null argument made getClass() replaceable.
+    // Disable the propagation of call site information to separate the tests.
+    options.enableCallSiteOptimizationInfoPropagation = false;
+  }
+
   @Test
   public void testJVMOutput() throws Exception {
     assumeTrue("Only run JVM reference on CF runtimes", parameters.isCfRuntime());
@@ -174,6 +182,7 @@ public class GetClassTest extends ReflectionOptimizerTestBase {
         testForD8()
             .debug()
             .addProgramClassesAndInnerClasses(MAIN)
+            .addOptionsModification(this::configure)
             .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
@@ -184,6 +193,7 @@ public class GetClassTest extends ReflectionOptimizerTestBase {
         testForD8()
             .release()
             .addProgramClassesAndInnerClasses(MAIN)
+            .addOptionsModification(this::configure)
             .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
@@ -200,13 +210,10 @@ public class GetClassTest extends ReflectionOptimizerTestBase {
             .enableInliningAnnotations()
             .addKeepMainRule(MAIN)
             .noMinification()
+            .addOptionsModification(this::configure)
             .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), MAIN);
     test(result, true, false);
-
-    // The number of expected const-class instructions differs because constant canonicalization is
-    // only enabled for the DEX backend.
-    int expectedConstClassCount = parameters.isCfRuntime() ? 7 : 5;
 
     // R8 release, no minification.
     result =
@@ -215,6 +222,7 @@ public class GetClassTest extends ReflectionOptimizerTestBase {
             .enableInliningAnnotations()
             .addKeepMainRule(MAIN)
             .noMinification()
+            .addOptionsModification(this::configure)
             .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
@@ -226,6 +234,7 @@ public class GetClassTest extends ReflectionOptimizerTestBase {
             .addProgramClassesAndInnerClasses(MAIN)
             .enableInliningAnnotations()
             .addKeepMainRule(MAIN)
+            .addOptionsModification(this::configure)
             .setMinApi(parameters.getRuntime())
             // We are not checking output because it can't be matched due to minification. Just run.
             .run(parameters.getRuntime(), MAIN);

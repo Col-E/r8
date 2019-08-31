@@ -169,6 +169,7 @@ public class InternalOptions {
     enableValuePropagation = false;
     enableSideEffectAnalysis = false;
     enableTreeShakingOfLibraryMethodOverrides = false;
+    enableCallSiteOptimizationInfoPropagation = false;
   }
 
   public boolean printTimes = System.getProperty("com.android.tools.r8.printtimes") != null;
@@ -209,6 +210,8 @@ public class InternalOptions {
   public boolean enableNameReflectionOptimization = true;
   public boolean enableStringConcatenationOptimization = true;
   public boolean enableTreeShakingOfLibraryMethodOverrides = false;
+  // TODO(b/139246447): enable after branching.
+  public boolean enableCallSiteOptimizationInfoPropagation = false;
   public boolean encodeChecksums = false;
   public BiPredicate<String, Long> dexClassChecksumFilter = (name, checksum) -> true;
 
@@ -1017,6 +1020,13 @@ public class InternalOptions {
     // Use this util to disable get*Name() computation if the main intention of tests is checking
     // const-class, e.g., canonicalization, or some test classes' only usages are get*Name().
     enableNameReflectionOptimization = false;
+  }
+
+  // TODO(b/139246447): Remove this once enabled.
+  @VisibleForTesting
+  public void enableCallSiteOptimizationInfoPropagation() {
+    assert !enableCallSiteOptimizationInfoPropagation;
+    enableCallSiteOptimizationInfoPropagation = true;
   }
 
   private boolean hasMinApi(AndroidApiLevel level) {

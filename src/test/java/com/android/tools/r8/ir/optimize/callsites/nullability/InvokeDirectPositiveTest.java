@@ -5,13 +5,14 @@ package com.android.tools.r8.ir.optimize.callsites.nullability;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -42,6 +43,7 @@ public class InvokeDirectPositiveTest extends TestBase {
         .addKeepMainRule(MAIN)
         .enableClassInliningAnnotations()
         .enableInliningAnnotations()
+        .addOptionsModification(InternalOptions::enableCallSiteOptimizationInfoPropagation)
         .setMinApi(parameters.getRuntime())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("non-null")
@@ -54,8 +56,8 @@ public class InvokeDirectPositiveTest extends TestBase {
 
     MethodSubject test = main.uniqueMethodWithName("test");
     assertThat(test, isPresent());
-    // TODO(b/139246447): Can optimize branches since `arg` is definitely not null.
-    assertNotEquals(0, test.streamInstructions().filter(InstructionSubject::isIf).count());
+    // Can optimize branches since `arg` is definitely not null.
+    assertEquals(0, test.streamInstructions().filter(InstructionSubject::isIf).count());
   }
 
   @NeverClassInline

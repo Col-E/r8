@@ -618,6 +618,13 @@ public class IRBuilder {
       new TypeAnalysis(appView).widening(context, method, ir);
     }
 
+    // Update the IR code if collected call site optimization info has something useful.
+    CallSiteOptimizationInfo callSiteOptimizationInfo = method.getCallSiteOptimizationInfo();
+    if (appView.callSiteOptimizationInfoPropagator() != null) {
+      appView.callSiteOptimizationInfoPropagator()
+          .applyCallSiteOptimizationInfo(ir, callSiteOptimizationInfo);
+    }
+
     if (appView.options().isStringSwitchConversionEnabled()) {
       StringSwitchConverter.convertToStringSwitchInstructions(ir, appView.dexItemFactory());
     }

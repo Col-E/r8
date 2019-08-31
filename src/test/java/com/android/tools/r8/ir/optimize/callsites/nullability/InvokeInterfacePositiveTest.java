@@ -5,13 +5,14 @@ package com.android.tools.r8.ir.optimize.callsites.nullability;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -42,6 +43,7 @@ public class InvokeInterfacePositiveTest extends TestBase {
         .addKeepMainRule(MAIN)
         .enableClassInliningAnnotations()
         .enableInliningAnnotations()
+        .addOptionsModification(InternalOptions::enableCallSiteOptimizationInfoPropagation)
         .addOptionsModification(o -> {
           // To prevent invoke-interface from being rewritten to invoke-virtual w/ a single target.
           o.enableDevirtualization = false;
@@ -61,16 +63,16 @@ public class InvokeInterfacePositiveTest extends TestBase {
 
     MethodSubject a_m = a.uniqueMethodWithName("m");
     assertThat(a_m, isPresent());
-    // TODO(b/139246447): Can optimize branches since `arg` is definitely not null.
-    assertNotEquals(0, a_m.streamInstructions().filter(InstructionSubject::isIf).count());
+    // Can optimize branches since `arg` is definitely not null.
+    assertEquals(0, a_m.streamInstructions().filter(InstructionSubject::isIf).count());
 
     ClassSubject b = inspector.clazz(A.class);
     assertThat(b, isPresent());
 
     MethodSubject b_m = b.uniqueMethodWithName("m");
     assertThat(b_m, isPresent());
-    // TODO(b/139246447): Can optimize branches since `arg` is definitely not null.
-    assertNotEquals(0, b_m.streamInstructions().filter(InstructionSubject::isIf).count());
+    // Can optimize branches since `arg` is definitely not null.
+    assertEquals(0, b_m.streamInstructions().filter(InstructionSubject::isIf).count());
   }
 
   interface I {

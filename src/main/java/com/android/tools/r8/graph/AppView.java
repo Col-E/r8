@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.analysis.InitializedClassesInInstanceMethodsAn
 import com.android.tools.r8.ir.analysis.proto.GeneratedExtensionRegistryShrinker;
 import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteShrinker;
 import com.android.tools.r8.ir.analysis.proto.ProtoShrinker;
+import com.android.tools.r8.ir.conversion.CallSiteOptimizationInfoPropagator;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.shaking.VerticalClassMerger.VerticallyMergedClasses;
@@ -36,6 +37,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
   private RootSet rootSet;
 
   // Optimizations.
+  private final CallSiteOptimizationInfoPropagator callSiteOptimizationInfoPropagator;
   private final ProtoShrinker protoShrinker;
 
   // Optimization results.
@@ -51,6 +53,13 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
     this.wholeProgramOptimizations = wholeProgramOptimizations;
     this.graphLense = GraphLense.getIdentityLense();
     this.options = options;
+
+    if (enableWholeProgramOptimizations() && options.enableCallSiteOptimizationInfoPropagation) {
+      this.callSiteOptimizationInfoPropagator =
+          new CallSiteOptimizationInfoPropagator(withLiveness());
+    } else {
+      this.callSiteOptimizationInfoPropagator = null;
+    }
 
     if (enableWholeProgramOptimizations() && options.isProtoShrinkingEnabled()) {
       this.protoShrinker = new ProtoShrinker(withLiveness());
@@ -151,6 +160,10 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
 
   public boolean enableWholeProgramOptimizations() {
     return wholeProgramOptimizations == WholeProgramOptimizations.ON;
+  }
+
+  public CallSiteOptimizationInfoPropagator callSiteOptimizationInfoPropagator() {
+    return callSiteOptimizationInfoPropagator;
   }
 
   public ProtoShrinker protoShrinker() {

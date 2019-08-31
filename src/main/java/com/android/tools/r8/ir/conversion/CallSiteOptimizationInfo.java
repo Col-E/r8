@@ -24,7 +24,7 @@ public abstract class CallSiteOptimizationInfo {
   }
 
   /**
-   * CallSiteOptimizationInfoPropagator will reprocess the call target if its collected call
+   * {@link CallSiteOptimizationInfoPropagator} will reprocess the call target if its collected call
    * site optimization info has something useful that can trigger more optimizations. For example,
    * if a certain argument is guaranteed to be definitely not null for all call sites, null-check on
    * that argument can be simplified during the reprocessing of the method.
@@ -33,6 +33,7 @@ public abstract class CallSiteOptimizationInfo {
     return false;
   }
 
+  // The index exactly matches with in values of invocation, i.e., even including receiver.
   public abstract Nullability getNullability(int argIndex);
 
   // TODO(b/139246447): extend it to TypeLattice and insert AssumeDynamicType if the join of all

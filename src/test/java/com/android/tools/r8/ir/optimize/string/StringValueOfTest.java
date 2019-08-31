@@ -55,6 +55,10 @@ public class StringValueOfTest extends TestBase {
   }
 
   private void configure(InternalOptions options) {
+    // Disable the propagation of call site information to test String#valueOf optimization with
+    // nullable argument. Otherwise, e.g., we know that only `null` is used for `hideNPE`, and then
+    // simplify everything in that method.
+    options.enableCallSiteOptimizationInfoPropagation = false;
     options.testing.forceNameReflectionOptimization = true;
   }
 
@@ -90,7 +94,6 @@ public class StringValueOfTest extends TestBase {
     assertEquals(expectedCount, countNullStringNumber(mainMethod));
 
     MethodSubject hideNPE = mainClass.uniqueMethodWithName("hideNPE");
-    assertThat(hideNPE, isPresent());
     // Due to the nullable argument, valueOf should remain.
     assertEquals(1, countCall(hideNPE, "String", "valueOf"));
 

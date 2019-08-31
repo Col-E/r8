@@ -611,11 +611,12 @@ public class IRConverter {
     collectLambdaMergingCandidates(application);
     collectStaticizerCandidates(application);
 
-    // The process is in two phases.
-    // 1) Subject all DexEncodedMethods to optimization (except outlining).
-    //    - a side effect is candidates for outlining are identified.
-    // 2) Perform outlining for the collected candidates.
-    // Ideally, we should outline eagerly when threshold for a template has been reached.
+    // The process is in two phases in general.
+    // 1) Subject all DexEncodedMethods to optimization, except some optimizations that require
+    //    reprocessing IR code of methods, e.g., outlining, double-inlining, class staticizer, etc.
+    //    - a side effect is candidates for those optimizations are identified.
+    // 2) Revisit DexEncodedMethods for the collected candidates.
+    // TODO(b/127694949): unified framework to reprocess methods only once.
 
     printPhase("Primary optimization pass");
 
@@ -647,6 +648,22 @@ public class IRConverter {
 
     if (libraryMethodOverrideAnalysis != null) {
       libraryMethodOverrideAnalysis.finish();
+    }
+
+    // Second pass for methods whose collected call site information become more precise.
+    if (appView.callSiteOptimizationInfoPropagator() != null) {
+      printPhase("2nd round of method processing after inter-procedural analysis.");
+      timing.begin("IR conversion phase 2");
+      appView.callSiteOptimizationInfoPropagator().revisitMethods(
+          (method, isProcessedConcurrently) ->
+              processMethod(
+                  method,
+                  feedback,
+                  isProcessedConcurrently,
+                  CallSiteInformation.empty(),
+                  Outliner::noProcessing),
+          executorService);
+      timing.end();
     }
 
     // Second inlining pass for dealing with double inline callers.
@@ -684,7 +701,7 @@ public class IRConverter {
 
     if (outliner != null) {
       printPhase("Outlining");
-      timing.begin("IR conversion phase 2");
+      timing.begin("IR conversion phase 3");
       if (outliner.selectMethodsForOutlining()) {
         forEachSelectedOutliningMethod(
             executorService,
@@ -715,6 +732,9 @@ public class IRConverter {
     }
 
     if (Log.ENABLED) {
+      if (appView.callSiteOptimizationInfoPropagator() != null) {
+        appView.callSiteOptimizationInfoPropagator().logResults();
+      }
       constantCanonicalizer.logResults();
       if (idempotentFunctionCallCanonicalizer != null) {
         idempotentFunctionCallCanonicalizer.logResults();
@@ -1165,6 +1185,13 @@ public class IRConverter {
     }
 
     if (nonNullTracker != null) {
+      // TODO(b/139246447): Once we extend this optimization to, e.g., constants of primitive args,
+      //   this may not be the right place to collect call site optimization info.
+      // Collecting call-site optimization info depends on the existence of non-null IRs.
+      // Arguments can be changed during the debug mode.
+      if (!isDebugMode && appView.callSiteOptimizationInfoPropagator() != null) {
+        appView.callSiteOptimizationInfoPropagator().collectCallSiteOptimizationInfo(code);
+      }
       // Computation of non-null parameters on normal exits rely on the existence of non-null IRs.
       nonNullTracker.computeNonNullParamOnNormalExits(feedback, code);
       assert code.isConsistentSSA();
