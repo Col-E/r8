@@ -1,7 +1,7 @@
 // Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package com.android.tools.r8.ir.conversion;
+package com.android.tools.r8.ir.optimize.info;
 
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.analysis.type.Nullability;
@@ -170,7 +170,7 @@ public class MutableCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
     return cachedRepresentative.getNullability(argIndex);
   }
 
-  static boolean hasArgumentsToRecord(List<Value> inValues) {
+  public static boolean hasArgumentsToRecord(List<Value> inValues) {
     // TODO(b/69963623): allow primitive types with compile-time constants.
     for (Value v : inValues) {
       if (v.getTypeLattice().isReference()) {
@@ -180,7 +180,7 @@ public class MutableCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
     return false;
   }
 
-  void recordArguments(DexEncodedMethod callingContext, List<Value> inValues) {
+  public void recordArguments(DexEncodedMethod callingContext, List<Value> inValues) {
     assert cachedRepresentative == null;
     assert size == inValues.size();
     Set<ArgumentCollection> collections =

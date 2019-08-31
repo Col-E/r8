@@ -1,7 +1,7 @@
 // Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package com.android.tools.r8.ir.conversion;
+package com.android.tools.r8.ir.optimize;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -16,6 +16,8 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
+import com.android.tools.r8.ir.optimize.info.MutableCallSiteOptimizationInfo;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -60,7 +62,7 @@ public class CallSiteOptimizationInfoPropagator {
     }
   }
 
-  void logResults() {
+  public void logResults() {
     assert Log.ENABLED;
     if (revisitedMethods != null) {
       Log.info(getClass(), "# of methods to revisit: %s", revisitedMethods.size());
@@ -71,7 +73,7 @@ public class CallSiteOptimizationInfoPropagator {
     }
   }
 
-  void collectCallSiteOptimizationInfo(IRCode code) {
+  public void collectCallSiteOptimizationInfo(IRCode code) {
     // TODO(b/139246447): we could collect call site optimization during REVISIT mode as well,
     //   but that may require a separate copy of CallSiteOptimizationInfo.
     if (mode != Mode.COLLECT) {
@@ -135,7 +137,7 @@ public class CallSiteOptimizationInfoPropagator {
 
   // If collected call site optimization info has something useful, e.g., non-null argument,
   // insert corresponding assume instructions for arguments.
-  void applyCallSiteOptimizationInfo(
+  public void applyCallSiteOptimizationInfo(
       IRCode code, CallSiteOptimizationInfo callSiteOptimizationInfo) {
     if (mode != Mode.REVISIT
         || !callSiteOptimizationInfo.hasUsefulOptimizationInfo()) {
@@ -192,7 +194,7 @@ public class CallSiteOptimizationInfoPropagator {
     }
   }
 
-  <E extends Exception> void revisitMethods(
+  public <E extends Exception> void revisitMethods(
       ThrowingBiConsumer<DexEncodedMethod, Predicate<DexEncodedMethod>, E> consumer,
       ExecutorService executorService)
       throws ExecutionException {
