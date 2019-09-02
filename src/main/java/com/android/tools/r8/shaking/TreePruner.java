@@ -72,14 +72,7 @@ public class TreePruner {
         pruneMembersAndAttributes(clazz);
         continue;
       }
-      if (!appInfo.liveTypes.contains(clazz.type)) {
-        // The class is completely unused and we can remove it.
-        if (Log.ENABLED) {
-          Log.debug(getClass(), "Removing class: " + clazz);
-        }
-        prunedTypes.add(clazz.type);
-        usagePrinter.printUnusedClass(clazz);
-      } else {
+      if (appInfo.isLiveProgramClass(clazz)) {
         newClasses.add(clazz);
         if (!appInfo.instantiatedTypes.contains(clazz.type)
             && !options.forceProguardCompatibility) {
@@ -98,6 +91,13 @@ public class TreePruner {
         // The class is used and must be kept. Remove the unused fields and methods from the class.
         pruneUnusedInterfaces(clazz);
         pruneMembersAndAttributes(clazz);
+      } else {
+        // The class is completely unused and we can remove it.
+        if (Log.ENABLED) {
+          Log.debug(getClass(), "Removing class: " + clazz);
+        }
+        prunedTypes.add(clazz.type);
+        usagePrinter.printUnusedClass(clazz);
       }
     }
     return newClasses;
@@ -106,7 +106,8 @@ public class TreePruner {
   private void pruneUnusedInterfaces(DexProgramClass clazz) {
     int numberOfReachableInterfaces = 0;
     for (DexType type : clazz.interfaces.values) {
-      if (appView.appInfo().liveTypes.contains(type)) {
+      // TODO(christofferqa): Extend unused interface removal to library classes.
+      if (isTypeLive(type)) {
         numberOfReachableInterfaces++;
       }
     }
@@ -123,7 +124,7 @@ public class TreePruner {
     DexType[] reachableInterfaces = new DexType[numberOfReachableInterfaces];
     int i = 0;
     for (DexType type : clazz.interfaces.values) {
-      if (appView.appInfo().liveTypes.contains(type)) {
+      if (isTypeLive(type)) {
         reachableInterfaces[i] = type;
         i++;
       }
@@ -171,7 +172,7 @@ public class TreePruner {
   }
 
   private boolean isTypeLive(DexType type) {
-    return appView.appInfo().liveTypes.contains(type);
+    return appView.appInfo().isNonProgramTypeOrLiveProgramType(type);
   }
 
   private void clearDeadNestMembers(DexClass nestHost) {
@@ -208,20 +209,18 @@ public class TreePruner {
 
   private boolean isAttributeReferencingPrunedItem(EnclosingMethodAttribute attr) {
     AppInfoWithLiveness appInfo = appView.appInfo();
-    return
-        (attr.getEnclosingClass() != null
-            && !appInfo.liveTypes.contains(attr.getEnclosingClass()))
+    return (attr.getEnclosingClass() != null && !isTypeLive(attr.getEnclosingClass()))
         || (attr.getEnclosingMethod() != null
             && !appInfo.liveMethods.contains(attr.getEnclosingMethod()));
   }
 
   private boolean isAttributeReferencingPrunedType(InnerClassAttribute attr) {
     AppInfoWithLiveness appInfo = appView.appInfo();
-    if (!appInfo.liveTypes.contains(attr.getInner())) {
+    if (!isTypeLive(attr.getInner())) {
       return true;
     }
     DexType context = attr.getLiveContext(appInfo);
-    return context == null || !appInfo.liveTypes.contains(context);
+    return context == null || !isTypeLive(context);
   }
 
   private <S extends PresortedComparable<S>, T extends KeyedDexItem<S>> int firstUnreachableIndex(

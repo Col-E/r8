@@ -113,9 +113,7 @@ public class AnnotationRemover {
     if (appView.options().isShrinking() && definition == null) {
       return false;
     }
-    return definition == null
-        || definition.isNotProgramClass()
-        || appView.appInfo().liveTypes.contains(annotationType);
+    return appView.appInfo().isNonProgramTypeOrLiveProgramType(annotationType);
   }
 
   /**
@@ -215,17 +213,17 @@ public class AnnotationRemover {
       if (appView.appInfo().isPinned(clazz.type)) {
         for (InnerClassAttribute innerClassAttribute : clazz.getInnerClasses()) {
           DexType inner = innerClassAttribute.getInner();
-          if (appView.appInfo().liveTypes.contains(inner)) {
+          if (appView.appInfo().isNonProgramTypeOrLiveProgramType(inner)) {
             result.add(inner);
           }
           DexType context = innerClassAttribute.getLiveContext(appView.appInfo());
-          if (context != null && appView.appInfo().liveTypes.contains(context)) {
+          if (context != null && appView.appInfo().isNonProgramTypeOrLiveProgramType(context)) {
             result.add(context);
           }
         }
       }
       if (clazz.getInnerClassAttributeForThisClass() != null
-          && appView.appInfo().liveTypes.contains(clazz.type)
+          && appView.appInfo().isNonProgramTypeOrLiveProgramType(clazz.type)
           && hasGenericEnclosingClass(clazz, enclosingClasses, genericClasses)) {
         result.add(clazz.type);
       }
@@ -271,8 +269,7 @@ public class AnnotationRemover {
     assert rewrite != null;
     DexClass annotationClass = appView.definitionFor(rewrittenType);
     assert annotationClass == null
-        || annotationClass.isNotProgramClass()
-        || appView.appInfo().liveTypes.contains(rewrittenType);
+        || appView.appInfo().isNonProgramTypeOrLiveProgramType(rewrittenType);
     return rewrite;
   }
 

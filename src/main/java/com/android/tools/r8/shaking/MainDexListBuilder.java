@@ -12,10 +12,10 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.Maps;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Calculate the list of classes required in the main dex to allow legacy multidex loading.
@@ -36,11 +36,11 @@ public class MainDexListBuilder {
    * @param roots Classes which code may be executed before secondary dex files loading.
    * @param application the dex appplication.
    */
-  public MainDexListBuilder(Set<DexType> roots, DexApplication application) {
+  public MainDexListBuilder(Set<DexProgramClass> roots, DexApplication application) {
     this.dexApplication = application;
     this.appInfo = new AppInfoWithSubtyping(dexApplication);
     // Only consider program classes for the root set.
-    this.roots = roots.stream().filter(this::isProgramClass).collect(Collectors.toSet());
+    this.roots = SetUtils.mapIdentityHashSet(roots, DexProgramClass::getType);
     mainDexClassesBuilder = MainDexClasses.builder(appInfo).addRoots(this.roots);
     DexClass enumType = appInfo.definitionFor(appInfo.dexItemFactory().enumType);
     if (enumType == null) {

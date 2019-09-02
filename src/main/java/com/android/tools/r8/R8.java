@@ -420,7 +420,7 @@ public class R8 {
         mainDexRootSet =
             new RootSetBuilder(appView, application, options.mainDexKeepRules).run(executorService);
         // Live types is the tracing result.
-        Set<DexType> mainDexBaseClasses =
+        Set<DexProgramClass> mainDexBaseClasses =
             EnqueuerFactory.createForMainDexTracing(appView)
                 .traceMainDex(mainDexRootSet, executorService, timing);
         // Calculate the automatic main dex list according to legacy multidex constraints.
@@ -601,7 +601,7 @@ public class R8 {
             EnqueuerFactory.createForMainDexTracing(appView, mainDexKeptGraphConsumer);
         // Find classes which may have code executed before secondary dex files installation.
         // Live types is the tracing result.
-        Set<DexType> mainDexBaseClasses =
+        Set<DexProgramClass> mainDexBaseClasses =
             enqueuer.traceMainDex(mainDexRootSet, executorService, timing);
         // Calculate the automatic main dex list according to legacy multidex constraints.
         mainDexClasses = new MainDexListBuilder(mainDexBaseClasses, application).run();

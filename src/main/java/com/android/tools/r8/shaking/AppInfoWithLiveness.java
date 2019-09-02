@@ -59,16 +59,16 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
    * Set of types that are mentioned in the program. We at least need an empty abstract classitem
    * for these.
    */
-  public final SortedSet<DexType> liveTypes;
+  private final Set<DexType> liveTypes;
   /** Set of annotation types that are instantiated. */
-  private final SortedSet<DexType> instantiatedAnnotationTypes;
+  private final Set<DexType> instantiatedAnnotationTypes;
   /**
    * Set of service types (from META-INF/services/) that may have been instantiated reflectively via
    * ServiceLoader.load() or ServiceLoader.loadInstalled().
    */
-  public final SortedSet<DexType> instantiatedAppServices;
+  public final Set<DexType> instantiatedAppServices;
   /** Set of types that are actually instantiated. These cannot be abstract. */
-  final SortedSet<DexType> instantiatedTypes;
+  final Set<DexType> instantiatedTypes;
   /** Cache for {@link #isInstantiatedDirectlyOrIndirectly(DexType)}. */
   private final IdentityHashMap<DexType, Boolean> indirectlyInstantiatedTypes =
       new IdentityHashMap<>();
@@ -174,15 +174,15 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     }
   }
 
-  final ImmutableSortedSet<DexType> instantiatedLambdas;
+  final Set<DexType> instantiatedLambdas;
 
   // TODO(zerny): Clean up the constructors so we have just one.
   private AppInfoWithLiveness(
       DexApplication application,
-      SortedSet<DexType> liveTypes,
-      SortedSet<DexType> instantiatedAnnotationTypes,
-      SortedSet<DexType> instantiatedAppServices,
-      SortedSet<DexType> instantiatedTypes,
+      Set<DexType> liveTypes,
+      Set<DexType> instantiatedAnnotationTypes,
+      Set<DexType> instantiatedAppServices,
+      Set<DexType> instantiatedTypes,
       SortedSet<DexMethod> targetedMethods,
       SortedSet<DexMethod> bootstrapMethods,
       SortedSet<DexMethod> methodsTargetedByInvokeDynamic,
@@ -213,7 +213,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       Set<DexType> prunedTypes,
       Map<DexField, Int2ReferenceMap<DexField>> switchMaps,
       Map<DexType, Map<DexField, EnumValueInfo>> enumValueInfoMaps,
-      ImmutableSortedSet<DexType> instantiatedLambdas) {
+      Set<DexType> instantiatedLambdas) {
     super(application);
     this.liveTypes = liveTypes;
     this.instantiatedAnnotationTypes = instantiatedAnnotationTypes;
@@ -255,10 +255,10 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
 
   public AppInfoWithLiveness(
       AppInfoWithSubtyping appInfoWithSubtyping,
-      SortedSet<DexType> liveTypes,
-      SortedSet<DexType> instantiatedAnnotationTypes,
-      SortedSet<DexType> instantiatedAppServices,
-      SortedSet<DexType> instantiatedTypes,
+      Set<DexType> liveTypes,
+      Set<DexType> instantiatedAnnotationTypes,
+      Set<DexType> instantiatedAppServices,
+      Set<DexType> instantiatedTypes,
       SortedSet<DexMethod> targetedMethods,
       SortedSet<DexMethod> bootstrapMethods,
       SortedSet<DexMethod> methodsTargetedByInvokeDynamic,
@@ -289,7 +289,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       Set<DexType> prunedTypes,
       Map<DexField, Int2ReferenceMap<DexField>> switchMaps,
       Map<DexType, Map<DexField, EnumValueInfo>> enumValueInfoMaps,
-      ImmutableSortedSet<DexType> instantiatedLambdas) {
+      Set<DexType> instantiatedLambdas) {
     super(appInfoWithSubtyping);
     this.liveTypes = liveTypes;
     this.instantiatedAnnotationTypes = instantiatedAnnotationTypes;
@@ -504,6 +504,23 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.switchMaps = switchMaps;
     this.enumValueInfoMaps = enumValueInfoMaps;
     previous.markObsolete();
+  }
+
+  public boolean isLiveProgramClass(DexProgramClass clazz) {
+    return liveTypes.contains(clazz.type);
+  }
+
+  public boolean isLiveProgramType(DexType type) {
+    DexClass clazz = definitionFor(type);
+    return clazz.isProgramClass() && isLiveProgramClass(clazz.asProgramClass());
+  }
+
+  public boolean isNonProgramTypeOrLiveProgramType(DexType type) {
+    if (liveTypes.contains(type)) {
+      return true;
+    }
+    DexClass clazz = definitionFor(type);
+    return clazz == null || !clazz.isProgramClass();
   }
 
   public Collection<DexClass> computeReachableInterfaces(Set<DexCallSite> desugaredCallSites) {

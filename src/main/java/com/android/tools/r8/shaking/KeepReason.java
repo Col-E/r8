@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import java.util.Collection;
@@ -67,8 +68,8 @@ public abstract class KeepReason {
     return new InvokedFromLambdaCreatedIn(method);
   }
 
-  public static KeepReason isLibraryMethod(DexType implementer, DexType libraryType) {
-    return new IsLibraryMethod(implementer, libraryType);
+  public static KeepReason isLibraryMethod(DexProgramClass implementer, DexType libraryType) {
+    return new IsLibraryMethod(implementer.type, libraryType);
   }
 
   public static KeepReason fieldReferencedIn(DexEncodedMethod method) {

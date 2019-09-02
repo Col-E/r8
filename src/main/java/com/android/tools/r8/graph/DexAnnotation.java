@@ -36,6 +36,10 @@ public class DexAnnotation extends DexItem {
     this.annotation = annotation;
   }
 
+  public DexType getAnnotationType() {
+    return annotation.type;
+  }
+
   @Override
   public int hashCode() {
     return visibility + annotation.hashCode() * 3;

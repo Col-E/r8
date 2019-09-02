@@ -1173,7 +1173,10 @@ public abstract class R8RunArtTestsTest {
       "958-methodhandle-stackframe"
   );
 
-  private static Map<String, List<String>> keepRules = ImmutableMap.of();
+  private static Map<String, List<String>> keepRules =
+      ImmutableMap.of(
+          "021-string2", ImmutableList.of("-dontwarn junit.framework.**"),
+          "082-inline-execute", ImmutableList.of("-dontwarn junit.framework.**"));
 
   private static List<String> failuresToTriage = ImmutableList.of(
       // Dex file input into a jar file, not yet supported by the test framework.
@@ -1705,8 +1708,8 @@ public abstract class R8RunArtTestsTest {
                   .setMode(mode)
                   .setDisableTreeShaking(true)
                   .setDisableMinification(true)
-                  .addProguardConfiguration(
-                      ImmutableList.of("-keepattributes *"), Origin.unknown())
+                  .addProguardConfiguration(ImmutableList.of("-keepattributes *"), Origin.unknown())
+                  .addProguardConfiguration(compilationOptions.keepRules, Origin.unknown())
                   .setProgramConsumer(
                       new ClassFileConsumer() {
 

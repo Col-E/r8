@@ -148,20 +148,24 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
         } else if (reachesMapOrRequiredField(protoFieldInfo)) {
           enqueuer.registerFieldAccess(encodedValueStorage.field, dynamicMethod);
           worklist.enqueueMarkReachableFieldAction(
-              encodedValueStorage.field, KeepReason.reflectiveUseIn(dynamicMethod));
+              clazz.asProgramClass(),
+              encodedValueStorage,
+              KeepReason.reflectiveUseIn(dynamicMethod));
           encodedValueStorageIsLive = true;
         } else {
           encodedValueStorageIsLive = false;
         }
 
-        DexField newlyLiveField = null;
+        DexEncodedField newlyLiveField = null;
         if (encodedValueStorageIsLive) {
           // For one-of fields, mark the corresponding one-of-case field as live, and for proto2
           // singular fields, mark the corresponding hazzer-bit field as live.
           if (protoFieldInfo.getType().isOneOf()) {
-            newlyLiveField = protoFieldInfo.getOneOfCaseField(protoMessageInfo);
+            newlyLiveField =
+                appView.appInfo().resolveField(protoFieldInfo.getOneOfCaseField(protoMessageInfo));
           } else if (protoFieldInfo.hasHazzerBitField(protoMessageInfo)) {
-            newlyLiveField = protoFieldInfo.getHazzerBitField(protoMessageInfo);
+            newlyLiveField =
+                appView.appInfo().resolveField(protoFieldInfo.getHazzerBitField(protoMessageInfo));
           }
         } else {
           // For one-of fields, mark the one-of field as live if the one-of-case field is live, and
@@ -171,21 +175,21 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
             DexField oneOfCaseField = protoFieldInfo.getOneOfCaseField(protoMessageInfo);
             DexEncodedField encodedOneOfCaseField = appView.appInfo().resolveField(oneOfCaseField);
             if (encodedOneOfCaseField != null && enqueuer.isFieldLive(encodedOneOfCaseField)) {
-              newlyLiveField = encodedValueStorage.field;
+              newlyLiveField = encodedValueStorage;
             }
           } else if (protoFieldInfo.hasHazzerBitField(protoMessageInfo)) {
             DexField hazzerBitField = protoFieldInfo.getHazzerBitField(protoMessageInfo);
             DexEncodedField encodedHazzerBitField = appView.appInfo().resolveField(hazzerBitField);
             if (encodedHazzerBitField != null && enqueuer.isFieldLive(encodedHazzerBitField)) {
-              newlyLiveField = encodedValueStorage.field;
+              newlyLiveField = encodedValueStorage;
             }
           }
         }
 
         if (newlyLiveField != null) {
-          if (enqueuer.registerFieldAccess(newlyLiveField, dynamicMethod)) {
+          if (enqueuer.registerFieldAccess(newlyLiveField.field, dynamicMethod)) {
             worklist.enqueueMarkReachableFieldAction(
-                newlyLiveField, KeepReason.reflectiveUseIn(dynamicMethod));
+                clazz.asProgramClass(), newlyLiveField, KeepReason.reflectiveUseIn(dynamicMethod));
           }
         }
       }

@@ -396,7 +396,9 @@ public class ProguardMapMinifier {
       //  done already in the reservation step for classes since there is only one 'path', unlike
       //  members that can be reserved differently in the hierarchy.
       DexClass clazz = appView.definitionFor(type);
-      assert clazz != null;
+      if (clazz == null) {
+        return type.descriptor;
+      }
       if (clazz.isNotProgramClass() && mappings.containsKey(type)) {
         return mappings.get(type);
       }

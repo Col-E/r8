@@ -1257,7 +1257,7 @@ public class RootSetBuilder {
       for (DexReference reference : noShrinking.keySet()) {
         if (reference.isDexType()) {
           DexType type = reference.asDexType();
-          assert appInfo.liveTypes.contains(type)
+          assert appInfo.isLiveProgramType(type)
               : "Expected kept type `" + type.toSourceString() + "` to be live";
         }
       }

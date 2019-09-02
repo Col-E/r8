@@ -39,7 +39,7 @@ public class IfRuleEvaluator {
   private final Map<Wrapper<ProguardIfRule>, Set<ProguardIfRule>> ifRules;
   private final Set<DexEncodedField> liveFields;
   private final Set<DexEncodedMethod> liveMethods;
-  private final Set<DexType> liveTypes;
+  private final Set<DexProgramClass> liveTypes;
   private final Mode mode;
   private final RootSetBuilder rootSetBuilder;
   private final Set<DexEncodedMethod> targetedMethods;
@@ -50,7 +50,7 @@ public class IfRuleEvaluator {
       Map<Wrapper<ProguardIfRule>, Set<ProguardIfRule>> ifRules,
       Set<DexEncodedField> liveFields,
       Set<DexEncodedMethod> liveMethods,
-      Set<DexType> liveTypes,
+      Set<DexProgramClass> liveTypes,
       Mode mode,
       RootSetBuilder rootSetBuilder,
       Set<DexEncodedMethod> targetedMethods) {
@@ -188,7 +188,7 @@ public class IfRuleEvaluator {
     // A type is effectively live if (1) it is truly live, (2) the value of one of its fields has
     // been inlined by the member value propagation, or (3) the return value of one of its methods
     // has been forwarded by the member value propagation.
-    if (liveTypes.contains(clazz.type)) {
+    if (liveTypes.contains(clazz)) {
       return true;
     }
     for (DexEncodedField field : clazz.fields()) {

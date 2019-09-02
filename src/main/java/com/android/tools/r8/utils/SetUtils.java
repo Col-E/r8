@@ -8,6 +8,7 @@ import com.google.common.collect.Sets;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Set;
+import java.util.function.Function;
 
 public class SetUtils {
 
@@ -31,5 +32,13 @@ public class SetUtils {
     Set<T> result = newIdentityHashSet(capacity);
     result.add(element);
     return result;
+  }
+
+  public static <T, S> Set<T> mapIdentityHashSet(Set<S> set, Function<S, T> fn) {
+    Set<T> out = newIdentityHashSet(set.size());
+    for (S element : set) {
+      out.add(fn.apply(element));
+    }
+    return out;
   }
 }
