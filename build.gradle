@@ -370,10 +370,6 @@ def getDownloadDepsTaskName(entryKey, entryFile) {
     return "download_deps_${entryKey}_${entryFile.replace('/', '_').replace('\\', '_')}"
 }
 
-def getFetchDepsTaskName(entryKey, entryFile) {
-    return "fetch_deps_${entryKey}_${entryFile.replace('/', '_').replace('\\', '_')}"
-}
-
 cloudDependencies.each { entry ->
     entry.value.each { entryFile ->
         task "${getDownloadDepsTaskName(entry.key, entryFile)}"(type: DownloadDependency) {
