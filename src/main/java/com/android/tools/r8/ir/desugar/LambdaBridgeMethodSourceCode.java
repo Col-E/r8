@@ -63,6 +63,11 @@ final class LambdaBridgeMethodSourceCode extends SynthesizedLambdaSourceCode {
       ValueType valueType = ValueType.fromDexType(proto.returnType);
       int tempValue = nextRegister(valueType);
       add(builder -> builder.addMoveResult(tempValue));
+      // We lack precise sub-type information, but there should not be a need to cast to object.
+      if (proto.returnType != mainMethod.proto.returnType
+          && proto.returnType != factory().objectType) {
+        add(builder -> builder.addCheckCast(tempValue, proto.returnType));
+      }
       add(builder -> builder.addReturn(tempValue));
     }
   }
