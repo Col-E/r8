@@ -476,6 +476,22 @@ task downloadDeps {
     }
 }
 
+task downloadMappingFilesForRetraceTests {
+    def hashes = [
+            "82710798b61fd70910d76d23a71e436356becb66",
+            "dab96bbe5948133f0ae6e0a88fc133464421cf47"
+    ]
+    outputs.files hashes.each { hash -> file("${buildDir}/retrace/${hash}-r8lib.jar.map") }
+    hashes.each { hash ->
+        def outputDir = new File("${buildDir}/retrace")
+        outputDir.mkdirs()
+        def output = new File("${buildDir}/retrace/${hash}-r8lib.jar.map")
+        output.createNewFile()
+        new URL("http://storage.googleapis.com/r8-releases/raw/master/${hash}/r8lib.jar.map")
+                .withInputStream { i -> output.withOutputStream { it << i } }
+    }
+}
+
 allprojects {
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
