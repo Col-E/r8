@@ -14,6 +14,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.internal.YouTubeCompilationBase;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -34,6 +35,7 @@ public class YouTubeProtoRewritingTest extends YouTubeCompilationBase {
     this.parameters = parameters;
   }
 
+  @Ignore
   @Test
   public void test() throws Exception {
     assumeTrue(shouldRunSlowTests());
