@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
+import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
@@ -33,6 +34,7 @@ import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -113,6 +115,7 @@ public class LambdaRewriter {
    * <p>NOTE: this method can be called concurrently for several different methods.
    */
   public void desugarLambdas(DexEncodedMethod encodedMethod, IRCode code) {
+    Set<Value> affectedValues = Sets.newIdentityHashSet();
     DexType currentType = encodedMethod.method.holder;
     ListIterator<BasicBlock> blocks = code.listIterator();
     while (blocks.hasNext()) {
@@ -121,8 +124,8 @@ public class LambdaRewriter {
       while (instructions.hasNext()) {
         Instruction instruction = instructions.next();
         if (instruction.isInvokeCustom()) {
-          LambdaDescriptor descriptor = inferLambdaDescriptor(
-              instruction.asInvokeCustom().getCallSite());
+          InvokeCustom invoke = instruction.asInvokeCustom();
+          LambdaDescriptor descriptor = inferLambdaDescriptor(invoke.getCallSite());
           if (descriptor == LambdaDescriptor.MATCH_FAILED) {
             continue;
           }
@@ -134,10 +137,14 @@ public class LambdaRewriter {
           // We rely on patch performing its work in a way which
           // keeps both `instructions` and `blocks` iterators in
           // valid state so that we can continue iteration.
-          patchInstruction(lambdaClass, code, blocks, instructions);
+          patchInstruction(invoke, lambdaClass, code, blocks, instructions, affectedValues);
         }
       }
     }
+    if (!affectedValues.isEmpty()) {
+      new TypeAnalysis(appView).narrowing(affectedValues);
+    }
+    assert code.isConsistentSSA();
   }
 
   public void desugarLambda(
@@ -320,14 +327,15 @@ public class LambdaRewriter {
 
   // Patches invoke-custom instruction to create or get an instance
   // of the generated lambda class.
-  private void patchInstruction(LambdaClass lambdaClass, IRCode code,
-      ListIterator<BasicBlock> blocks, InstructionListIterator instructions) {
+  private void patchInstruction(
+      InvokeCustom invoke,
+      LambdaClass lambdaClass,
+      IRCode code,
+      ListIterator<BasicBlock> blocks,
+      InstructionListIterator instructions,
+      Set<Value> affectedValues) {
     assert lambdaClass != null;
     assert instructions != null;
-    assert instructions.peekPrevious().isInvokeCustom();
-
-    // Move to the previous instruction, must be InvokeCustom
-    InvokeCustom invoke = instructions.previous().asInvokeCustom();
 
     // The value representing new lambda instance: we reuse the
     // value from the original invoke-custom instruction, and thus
@@ -338,6 +346,8 @@ public class LambdaRewriter {
       lambdaInstanceValue =
           code.createValue(
               TypeLatticeElement.fromDexType(lambdaClass.type, Nullability.maybeNull(), appView));
+    } else {
+      affectedValues.add(lambdaInstanceValue);
     }
 
     // For stateless lambdas we replace InvokeCustom instruction with StaticGet

@@ -22,6 +22,7 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.ArtErrorParser;
 import com.android.tools.r8.utils.ArtErrorParser.ArtErrorInfo;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.TestDescriptionWatcher;
@@ -52,6 +53,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 import java.util.stream.Collectors;
@@ -1178,6 +1180,11 @@ public abstract class R8RunArtTestsTest {
           "021-string2", ImmutableList.of("-dontwarn junit.framework.**"),
           "082-inline-execute", ImmutableList.of("-dontwarn junit.framework.**"));
 
+  private static Map<String, Consumer<InternalOptions>> configurations =
+      ImmutableMap.of(
+          // Has a new-instance instruction that attempts to instantiate an interface.
+          "435-new-instance", options -> options.testing.allowTypeErrors = true);
+
   private static List<String> failuresToTriage = ImmutableList.of(
       // Dex file input into a jar file, not yet supported by the test framework.
       "663-odd-dex-size",
@@ -1266,6 +1273,7 @@ public abstract class R8RunArtTestsTest {
     private final boolean disableDesugaring;
     // Extra keep rules to use when running with R8.
     private final List<String> keepRules;
+    private final Consumer<InternalOptions> configuration;
 
     TestSpecification(
         String name,
@@ -1285,7 +1293,8 @@ public abstract class R8RunArtTestsTest {
         boolean disableUninstantiatedTypeOptimization,
         boolean hasMissingClasses,
         boolean disableDesugaring,
-        List<String> keepRules) {
+        List<String> keepRules,
+        Consumer<InternalOptions> configuration) {
       this.name = name;
       this.dexTool = dexTool;
       this.nativeLibrary = nativeLibrary;
@@ -1304,6 +1313,7 @@ public abstract class R8RunArtTestsTest {
       this.hasMissingClasses = hasMissingClasses;
       this.disableDesugaring = disableDesugaring;
       this.keepRules = keepRules;
+      this.configuration = configuration;
     }
 
     TestSpecification(
@@ -1332,7 +1342,8 @@ public abstract class R8RunArtTestsTest {
           false,
           false,
           true, // Disable desugaring for JCTF tests.
-          ImmutableList.of());
+          ImmutableList.of(),
+          null);
     }
 
     TestSpecification(
@@ -1360,7 +1371,8 @@ public abstract class R8RunArtTestsTest {
           false,
           false,
           true, // Disable desugaring for JCTF tests.
-          ImmutableList.of());
+          ImmutableList.of(),
+          null);
     }
 
     public File resolveFile(String name) {
@@ -1525,7 +1537,8 @@ public abstract class R8RunArtTestsTest {
                 requireUninstantiatedTypeOptimizationToBeDisabled.contains(name),
                 hasMissingClasses.contains(name),
                 false,
-                keepRules.getOrDefault(name, ImmutableList.of())));
+                keepRules.getOrDefault(name, ImmutableList.of()),
+                configurations.get(name)));
       }
     }
     return data;
@@ -1588,13 +1601,15 @@ public abstract class R8RunArtTestsTest {
     runArtTest(ToolHelper.getDexVm(), compilerUnderTest);
   }
 
-  private static class CompilationOptions {
+  private static class CompilationOptions implements Consumer<InternalOptions> {
+
     private final boolean disableInlining;
     private final boolean disableClassInlining;
     private final boolean disableUninstantiatedTypeOptimization;
     private final boolean hasMissingClasses;
     private final boolean disableDesugaring;
     private final List<String> keepRules;
+    private final Consumer<InternalOptions> configuration;
 
     private CompilationOptions(TestSpecification spec) {
       this.disableInlining = spec.disableInlining;
@@ -1603,6 +1618,25 @@ public abstract class R8RunArtTestsTest {
       this.hasMissingClasses = spec.hasMissingClasses;
       this.disableDesugaring = spec.disableDesugaring;
       this.keepRules = spec.keepRules;
+      this.configuration = spec.configuration;
+    }
+
+    @Override
+    public void accept(InternalOptions options) {
+      if (disableInlining) {
+        options.enableInlining = false;
+      }
+      if (disableClassInlining) {
+        options.enableClassInlining = false;
+      }
+      if (disableUninstantiatedTypeOptimization) {
+        options.enableUninstantiatedTypeOptimization = false;
+      }
+      // Some tests actually rely on missing classes for what they test.
+      options.ignoreMissingClasses = hasMissingClasses;
+      if (configuration != null) {
+        configuration.accept(options);
+      }
     }
 
     @Override
@@ -1799,20 +1833,10 @@ public abstract class R8RunArtTestsTest {
           ToolHelper.runR8(
               builder.build(),
               options -> {
-                if (compilationOptions.disableInlining) {
-                  options.enableInlining = false;
-                }
-                if (compilationOptions.disableClassInlining) {
-                  options.enableClassInlining = false;
-                }
-                if (compilationOptions.disableUninstantiatedTypeOptimization) {
-                  options.enableUninstantiatedTypeOptimization = false;
-                }
+                compilationOptions.accept(options);
                 // Make sure we don't depend on this settings.
                 options.classInliningInstructionLimit = 10000;
                 options.lineNumberOptimization = LineNumberOptimization.OFF;
-                // Some tests actually rely on missing classes for what they test.
-                options.ignoreMissingClasses = compilationOptions.hasMissingClasses;
               });
           break;
         }
