@@ -25,7 +25,9 @@ import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.Assume;
@@ -56,34 +58,44 @@ public class ProgramRewritingTest extends CoreLibDesugarTestBase {
   @Test
   public void testProgramD8() throws Exception {
     Assume.assumeTrue("No desugaring for high API levels", requiresCoreLibDesugaring(parameters));
-    Box<String> keepRulesHolder = new Box<>("");
-    D8TestRunResult d8TestRunResult =
-        testForD8()
-            .addProgramFiles(Paths.get(ToolHelper.EXAMPLES_JAVA9_BUILD_DIR + "stream.jar"))
-            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
-            .setMinApi(parameters.getApiLevel())
-            .addOptionsModification(
-                options ->
-                    options.desugaredLibraryKeepRuleConsumer =
-                        (string, handler) -> keepRulesHolder.set(keepRulesHolder.get() + string))
-            .enableCoreLibraryDesugaring()
-            .compile()
-            .inspect(this::checkRewrittenInvokes)
-            .addRunClasspathFiles(
-                buildDesugaredLibrary(
-                    parameters.getApiLevel(), keepRulesHolder.get(), shrinkCoreLibrary))
-            .run(parameters.getRuntime(), TEST_CLASS)
-            .assertSuccess();
-    assertLines2By2Correct(d8TestRunResult.getStdOut());
-    assertGeneratedKeepRulesAreCorrect(keepRulesHolder.get());
-    String stdErr = d8TestRunResult.getStdErr();
-    if (parameters.getRuntime().asDex().getVm().isOlderThanOrEqual(DexVm.ART_4_4_4_HOST)) {
-      // Flaky: There might be a missing method on lambda deserialization.
-      assertTrue(
-          !stdErr.contains("Could not find method")
-              || stdErr.contains("Could not find method java.lang.invoke.SerializedLambda"));
-    } else {
-      assertFalse(stdErr.contains("Could not find method"));
+    ArrayList<Path> coreLambdaStubs = new ArrayList<>();
+    coreLambdaStubs.add(ToolHelper.getCoreLambdaStubs());
+    for (Boolean coreLambdaStubsActive : BooleanUtils.values()) {
+      Box<String> keepRulesHolder = new Box<>("");
+      D8TestRunResult d8TestRunResult =
+          testForD8()
+              .addProgramFiles(Paths.get(ToolHelper.EXAMPLES_JAVA9_BUILD_DIR + "stream.jar"))
+              .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+              .setMinApi(parameters.getApiLevel())
+              .addOptionsModification(
+                  options ->
+                      options.desugaredLibraryKeepRuleConsumer =
+                          (string, handler) -> keepRulesHolder.set(keepRulesHolder.get() + string))
+              .enableCoreLibraryDesugaring()
+              .compile()
+              .inspect(this::checkRewrittenInvokes)
+              .addRunClasspathFiles(
+                  coreLambdaStubsActive
+                      ? buildDesugaredLibrary(
+                          parameters.getApiLevel(),
+                          keepRulesHolder.get(),
+                          shrinkCoreLibrary,
+                          coreLambdaStubs)
+                      : buildDesugaredLibrary(
+                          parameters.getApiLevel(), keepRulesHolder.get(), shrinkCoreLibrary))
+              .run(parameters.getRuntime(), TEST_CLASS)
+              .assertSuccess();
+      assertLines2By2Correct(d8TestRunResult.getStdOut());
+      assertGeneratedKeepRulesAreCorrect(keepRulesHolder.get());
+      String stdErr = d8TestRunResult.getStdErr();
+      if (parameters.getRuntime().asDex().getVm().isOlderThanOrEqual(DexVm.ART_4_4_4_HOST)) {
+        // Flaky: There might be a missing method on lambda deserialization.
+        assertTrue(
+            !stdErr.contains("Could not find method")
+                || stdErr.contains("Could not find method java.lang.invoke.SerializedLambda"));
+      } else {
+        assertFalse(stdErr.contains("Could not find method"));
+      }
     }
   }
 

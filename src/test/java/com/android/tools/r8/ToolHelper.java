@@ -119,6 +119,8 @@ public class ToolHelper {
 
   public static final String JAVA_8_RUNTIME = "third_party/openjdk/openjdk-rt-1.8/rt.jar";
   public static final String DESUGAR_JDK_LIBS = "third_party/openjdk/desugar_jdk_libs/libjava.jar";
+  public static final String CORE_LAMBDA_STUBS =
+      "third_party/core-lambda-stubs/core-lambda-stubs.jar";
   public static final String JSR223_RI_JAR = "third_party/jsr223-api-1.0/jsr223-api-1.0.jar";
   public static final String RHINO_ANDROID_JAR =
       "third_party/rhino-android-1.1.1/rhino-android-1.1.1.jar";
@@ -678,6 +680,10 @@ public class ToolHelper {
 
   public static Path getDesugarJDKLibs() {
     return Paths.get(DESUGAR_JDK_LIBS);
+  }
+
+  public static Path getCoreLambdaStubs() {
+    return Paths.get(CORE_LAMBDA_STUBS);
   }
 
   public static Path getDefaultAndroidJar() {

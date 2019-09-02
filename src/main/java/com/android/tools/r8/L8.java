@@ -118,9 +118,6 @@ public class L8 {
       app = converter.convert(app, executor);
       assert appView.appInfo() == appInfo;
 
-      // Close any internal archive providers now the application is fully processed.
-      inputApp.closeInternalArchiveProviders();
-
       new CfApplicationWriter(
               app,
               appView,
