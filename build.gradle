@@ -1961,6 +1961,7 @@ test {
                     "Art only runs on Linux and tests requiring Art will be skipped")
         }
         dependsOn downloadDeps
+        dependsOn downloadMappingFilesForRetraceTests
         dependsOn buildExamples
         dependsOn buildExamplesKotlin
         dependsOn buildKotlinR8TestResources
