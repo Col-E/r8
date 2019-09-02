@@ -26,8 +26,7 @@ public class AppInfo implements DexDefinitionSupplier {
       new ConcurrentHashMap<>();
   // For some optimizations, e.g. optimizing synthetic classes, we may need to resolve the current
   // class being optimized.
-  private final ConcurrentHashMap<DexType, DexProgramClass> synthesizedClasses =
-      new ConcurrentHashMap<>();
+  final ConcurrentHashMap<DexType, DexProgramClass> synthesizedClasses = new ConcurrentHashMap<>();
 
   // Set when a new AppInfo replaces a previous one. All public methods should verify that the
   // current instance is not obsolete, to ensure that we almost use the most recent AppInfo.

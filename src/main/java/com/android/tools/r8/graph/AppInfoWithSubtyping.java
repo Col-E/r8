@@ -6,6 +6,7 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -19,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -114,6 +116,10 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
   // Map from types to their subtypes.
   private final Map<DexType, ImmutableSet<DexType>> subtypeMap = new IdentityHashMap<>();
 
+  // Map from synthesized classes to their supertypes.
+  private final Map<DexType, ImmutableSet<DexType>> supertypesForSynthesizedClasses =
+      new ConcurrentHashMap<>();
+
   // Map from types to their subtyping information.
   private final Map<DexType, TypeInfo> typeInfo;
 
@@ -130,6 +136,39 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
     subtypeMap.putAll(previous.subtypeMap);
     typeInfo = Collections.synchronizedMap(new IdentityHashMap<>(previous.typeInfo));
     assert app() instanceof DirectMappedDexApplication;
+  }
+
+  @Override
+  public void addSynthesizedClass(DexProgramClass synthesizedClass) {
+    super.addSynthesizedClass(synthesizedClass);
+
+    // TODO(b/129458850): Remove when we no longer synthesize classes on-the-fly.
+    Set<DexType> visited = SetUtils.newIdentityHashSet(synthesizedClass.allImmediateSupertypes());
+    Deque<DexType> worklist = new ArrayDeque<>(visited);
+    while (!worklist.isEmpty()) {
+      DexType type = worklist.removeFirst();
+      assert visited.contains(type);
+
+      DexClass clazz = definitionFor(type);
+      if (clazz == null) {
+        continue;
+      }
+
+      for (DexType supertype : clazz.allImmediateSupertypes()) {
+        if (visited.add(supertype)) {
+          worklist.addLast(supertype);
+        }
+      }
+    }
+    if (!visited.isEmpty()) {
+      supertypesForSynthesizedClasses.put(synthesizedClass.type, ImmutableSet.copyOf(visited));
+    }
+  }
+
+  private boolean isSynthesizedClassStrictSubtypeOf(DexType synthesizedClass, DexType supertype) {
+    Set<DexType> supertypesOfSynthesizedClass =
+        supertypesForSynthesizedClasses.get(synthesizedClass);
+    return supertypesOfSynthesizedClass != null && supertypesOfSynthesizedClass.contains(supertype);
   }
 
   private DirectMappedDexApplication getDirectApplication() {
@@ -426,12 +465,24 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
 
   @Override
   public boolean isSubtype(DexType subtype, DexType supertype) {
-    return subtype == supertype || isStrictSubtypeOf(subtype, supertype);
+    if (subtype == supertype || isStrictSubtypeOf(subtype, supertype)) {
+      return true;
+    }
+    if (synthesizedClasses.containsKey(subtype)) {
+      return isSynthesizedClassStrictSubtypeOf(subtype, supertype);
+    }
+    return false;
   }
 
   public boolean isStrictSubtypeOf(DexType subtype, DexType supertype) {
     // For all erroneous cases, saying `no`---not a strict subtype---is conservative.
-    return isStrictSubtypeOf(subtype, supertype, false);
+    if (isStrictSubtypeOf(subtype, supertype, false)) {
+      return true;
+    }
+    if (synthesizedClasses.containsKey(subtype)) {
+      return isSynthesizedClassStrictSubtypeOf(subtype, supertype);
+    }
+    return false;
   }
 
   // Depending on optimizations, conservative answer of subtype relation may vary.
