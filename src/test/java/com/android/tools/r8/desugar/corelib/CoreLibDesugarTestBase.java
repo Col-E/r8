@@ -7,12 +7,15 @@ package com.android.tools.r8.desugar.corelib;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
 
+import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.L8Command;
 import com.android.tools.r8.OutputMode;
+import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
@@ -106,6 +109,61 @@ public class CoreLibDesugarTestBase extends TestBase {
     assert lines.length % 2 == 0;
     for (int i = 0; i < lines.length; i += 2) {
       assertEquals(lines[i], lines[i + 1]);
+    }
+  }
+
+  protected KeepRuleConsumer createKeepRuleConsumer(TestParameters parameters) {
+    if (requiresAnyCoreLibDesugaring(parameters)) {
+      return new PresentKeepRuleConsumer();
+    }
+    return new AbsentKeepRuleConsumer();
+  }
+
+  public interface KeepRuleConsumer extends StringConsumer {
+
+    String get();
+  }
+
+  public static class AbsentKeepRuleConsumer implements KeepRuleConsumer {
+
+    public String get() {
+      return null;
+    }
+
+    @Override
+    public void accept(String string, DiagnosticsHandler handler) {
+      throw new Unreachable("No desugaring on high API levels");
+    }
+  }
+
+  public static class PresentKeepRuleConsumer implements KeepRuleConsumer {
+
+    StringBuilder stringBuilder = new StringBuilder();
+    String result = null;
+
+    @Override
+    public void accept(String string, DiagnosticsHandler handler) {
+      assert stringBuilder != null;
+      assert result == null;
+      stringBuilder.append(string);
+    }
+
+    public void finished(DiagnosticsHandler handler) {
+      assert stringBuilder != null;
+      assert result == null;
+      result = stringBuilder.toString();
+      stringBuilder = null;
+    }
+
+    public String get() {
+      // TODO(clement): remove that branch once StringConsumer has finished again.
+      if (stringBuilder != null) {
+        finished(null);
+      }
+
+      assert stringBuilder == null;
+      assert result != null;
+      return result;
     }
   }
 }

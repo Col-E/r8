@@ -5,6 +5,8 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.D8Command.Builder;
 import com.android.tools.r8.TestBase.Backend;
+import com.android.tools.r8.desugar.corelib.CoreLibDesugarTestBase.KeepRuleConsumer;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import java.nio.file.Path;
@@ -60,6 +62,18 @@ public class D8TestBuilder
 
   public D8TestBuilder setIntermediate(boolean intermediate) {
     builder.setIntermediate(intermediate);
+    return self();
+  }
+
+  @Override
+  public D8TestBuilder enableCoreLibraryDesugaring(
+      AndroidApiLevel minAPILevel, KeepRuleConsumer keepRuleConsumer) {
+    if (minAPILevel.getLevel() < AndroidApiLevel.O.getLevel()) {
+      // Use P to mimic current Android Studio.
+      builder.addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P));
+      builder.addSpecialLibraryConfiguration("default");
+      builder.setDesugaredLibraryKeepRuleConsumer(keepRuleConsumer);
+    }
     return self();
   }
 }
