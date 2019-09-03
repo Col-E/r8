@@ -406,11 +406,7 @@ public class UninstantiatedTypeOptimization {
         }
         if (instruction.isFieldInstruction()) {
           rewriteFieldInstruction(
-              instruction.asFieldInstruction(),
-              blockIterator,
-              instructionIterator,
-              code,
-              blocksToBeRemoved);
+              instruction.asFieldInstruction(), instructionIterator, code, valuesToNarrow);
         } else if (instruction.isInvokeMethod()) {
           rewriteInvoke(
               instruction.asInvokeMethod(),
@@ -476,10 +472,9 @@ public class UninstantiatedTypeOptimization {
   // At this point, field-instruction whose target field type is uninstantiated will be handled.
   private void rewriteFieldInstruction(
       FieldInstruction instruction,
-      ListIterator<BasicBlock> blockIterator,
       InstructionListIterator instructionIterator,
       IRCode code,
-      Set<BasicBlock> blocksToBeRemoved) {
+      Set<Value> affectedValues) {
     DexType fieldType = instruction.getField().type;
     if (fieldType.isAlwaysNull(appView)) {
       AbstractError abstractError =
@@ -517,6 +512,7 @@ public class UninstantiatedTypeOptimization {
       } else {
         // Replace the field read by the constant null.
         instructionIterator.replaceCurrentInstruction(code.createConstNull());
+        affectedValues.addAll(instruction.outValue().affectedValues());
       }
 
       if (block.hasCatchHandlers()) {

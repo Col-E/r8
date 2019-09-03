@@ -231,6 +231,23 @@ public class Assume<An extends Assumption> extends Instruction {
   }
 
   @Override
+  public boolean verifyTypes(AppView<?> appView) {
+    assert super.verifyTypes(appView);
+
+    TypeLatticeElement inType = src().getTypeLattice();
+    TypeLatticeElement outType = outValue().getTypeLattice();
+    if (isAssumeDynamicType()) {
+      assert outType.equals(inType);
+    } else {
+      assert isAssumeNonNull();
+      assert inType.isReference();
+      assert inType.isNullType()
+          || outType.equals(inType.asReferenceTypeLatticeElement().asNotNull());
+    }
+    return true;
+  }
+
+  @Override
   public String toString() {
     if (isAssumeDynamicType()) {
       return super.toString() + "; type: " + asAssumeDynamicType().getAssumption().type;
