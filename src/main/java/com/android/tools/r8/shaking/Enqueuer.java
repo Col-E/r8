@@ -219,6 +219,11 @@ public class Enqueuer {
   /** Set of types that are actually instantiated. These cannot be abstract. */
   private final SetWithReason<DexProgramClass> instantiatedTypes =
       new SetWithReason<>(this::registerClass);
+
+  /** Set of all types that are instantiated, directly or indirectly, thus may be abstract. */
+  private final Set<DexProgramClass> directAndIndirectlyInstantiatedTypes =
+      Sets.newIdentityHashSet();
+
   /**
    * Set of methods that are the immediate target of an invoke. They might not actually be live but
    * are required so that invokes can find the method. If a method is only a target but not live,
@@ -477,7 +482,7 @@ public class Enqueuer {
     if (!instantiatedLambdas.add(clazz, reason)) {
       return;
     }
-
+    populateInstantiatedTypesCache(clazz);
     markTypeAsLive(clazz.type);
   }
 
@@ -1413,6 +1418,9 @@ public class Enqueuer {
     if (!instantiatedTypes.add(clazz, reason)) {
       return;
     }
+
+    populateInstantiatedTypesCache(clazz);
+
     collectProguardCompatibilityRule(reason);
     if (Log.ENABLED) {
       Log.verbose(getClass(), "Class `%s` is instantiated, processing...", clazz);
@@ -1426,6 +1434,24 @@ public class Enqueuer {
     transitionFieldsForInstantiatedClass(clazz);
     // Add all dependent instance members to the workqueue.
     transitionDependentItemsForInstantiatedClass(clazz);
+  }
+
+  private void populateInstantiatedTypesCache(DexProgramClass clazz) {
+    if (!directAndIndirectlyInstantiatedTypes.add(clazz)) {
+      return;
+    }
+    if (clazz.superType != null) {
+      DexProgramClass superClass = getProgramClassOrNull(clazz.superType);
+      if (superClass != null) {
+        populateInstantiatedTypesCache(superClass);
+      }
+    }
+    for (DexType iface : clazz.interfaces.values) {
+      DexProgramClass ifaceClass = getProgramClassOrNull(iface);
+      if (ifaceClass != null) {
+        populateInstantiatedTypesCache(ifaceClass);
+      }
+    }
   }
 
   /**
@@ -1621,7 +1647,9 @@ public class Enqueuer {
       return;
     }
     if (clazz.isProgramClass()) {
-      instantiatedLambdas.add(clazz.asProgramClass(), KeepReason.instantiatedIn(method));
+      if (!instantiatedLambdas.add(clazz.asProgramClass(), KeepReason.instantiatedIn(method))) {
+        populateInstantiatedTypesCache(clazz.asProgramClass());
+      }
     }
   }
 
@@ -1662,21 +1690,7 @@ public class Enqueuer {
   }
 
   private boolean isInstantiatedOrHasInstantiatedSubtype(DexProgramClass clazz) {
-    // TODO(zerny): Cache this or instead compute this from subtype and up when instantiated.
-    if (instantiatedTypes.contains(clazz) || instantiatedLambdas.contains(clazz)) {
-      return true;
-    }
-    for (DexType subtype : appInfo.subtypes(clazz.type)) {
-      DexProgramClass subClass = getProgramClassOrNull(subtype);
-      if (subClass == null) {
-        assert appView.definitionFor(subtype) != null;
-        return true;
-      }
-      if (instantiatedTypes.contains(subClass) || instantiatedLambdas.contains(subClass)) {
-        return true;
-      }
-    }
-    return false;
+    return directAndIndirectlyInstantiatedTypes.contains(clazz);
   }
 
   private void markInstanceFieldAsReachable(DexEncodedField encodedField, KeepReason reason) {
