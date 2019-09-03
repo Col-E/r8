@@ -258,22 +258,22 @@ public class MemberValuePropagation {
     if (!invokedHolder.isClassType()) {
       return;
     }
-    DexEncodedMethod definition = current.lookupSingleTarget(appView, callingContext);
-    if (definition != null && definition.isInstanceInitializer()) {
+    DexEncodedMethod target = current.lookupSingleTarget(appView, callingContext);
+    if (target != null && target.isInstanceInitializer()) {
       // Member value propagation does not apply to constructors. Removing a call to a constructor
       // that is marked as having no side effects could lead to verification errors, due to
       // uninitialized instances being used.
       return;
     }
 
-    ProguardMemberRuleLookup lookup = lookupMemberRule(definition);
+    ProguardMemberRuleLookup lookup = lookupMemberRule(target);
     if (lookup == null) {
       // -assumenosideeffects rules are applied to upward visible and overriding methods, but only
       // references that have actual definitions are marked by the root set builder. So, here, we
       // try again with a resolved target, not the direct definition, which may not exist.
-      DexEncodedMethod target =
+      DexEncodedMethod resolutionTarget =
           appView.appInfo().resolveMethod(invokedHolder, invokedMethod).asSingleTarget();
-      lookup = lookupMemberRule(target);
+      lookup = lookupMemberRule(resolutionTarget);
     }
     boolean invokeReplaced = false;
     if (lookup != null) {
@@ -295,7 +295,6 @@ public class MemberValuePropagation {
       return;
     }
     // No Proguard rule could replace the instruction check for knowledge about the return value.
-    DexEncodedMethod target = current.lookupSingleTarget(appView, callingContext);
     if (target == null || !mayPropagateValueFor(target)) {
       return;
     }

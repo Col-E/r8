@@ -1841,30 +1841,26 @@ public class CodeRewriter {
                 invoke.setOutValue(null);
               }
             } else if (appView.appInfo().hasLiveness()) {
+              // Check if the invoked method is known to return one of its arguments.
               DexEncodedMethod target =
                   invoke.lookupSingleTarget(appView.withLiveness(), code.method.method.holder);
-              if (target != null) {
-                DexMethod invokedMethod = target.method;
-                // Check if the invoked method is known to return one of its arguments.
-                DexEncodedMethod definition = appView.definitionFor(invokedMethod);
-                if (definition != null && definition.getOptimizationInfo().returnsArgument()) {
-                  int argumentIndex = definition.getOptimizationInfo().getReturnedArgument();
-                  // Replace the out value of the invoke with the argument and ignore the out value.
-                  if (argumentIndex >= 0 && checkArgumentType(invoke, argumentIndex)) {
-                    Value argument = invoke.arguments().get(argumentIndex);
-                    assert outValue.verifyCompatible(argument.outType());
-                    // Make sure that we are only narrowing information here. Note, in cases where
-                    // we cannot find the definition of types, computing lessThanOrEqual will
-                    // return false unless it is object.
-                    if (argument
-                        .getTypeLattice()
-                        .lessThanOrEqual(outValue.getTypeLattice(), appView)) {
-                      affectedValues.addAll(outValue.affectedValues());
-                      assumeDynamicTypeRemover.markUsersForRemoval(outValue);
-                      mayHaveRemovedTrivialPhi |= outValue.numberOfPhiUsers() > 0;
-                      outValue.replaceUsers(argument);
-                      invoke.setOutValue(null);
-                    }
+              if (target != null && target.getOptimizationInfo().returnsArgument()) {
+                int argumentIndex = target.getOptimizationInfo().getReturnedArgument();
+                // Replace the out value of the invoke with the argument and ignore the out value.
+                if (argumentIndex >= 0 && checkArgumentType(invoke, argumentIndex)) {
+                  Value argument = invoke.arguments().get(argumentIndex);
+                  assert outValue.verifyCompatible(argument.outType());
+                  // Make sure that we are only narrowing information here. Note, in cases where
+                  // we cannot find the definition of types, computing lessThanOrEqual will
+                  // return false unless it is object.
+                  if (argument
+                      .getTypeLattice()
+                      .lessThanOrEqual(outValue.getTypeLattice(), appView)) {
+                    affectedValues.addAll(outValue.affectedValues());
+                    assumeDynamicTypeRemover.markUsersForRemoval(outValue);
+                    mayHaveRemovedTrivialPhi |= outValue.numberOfPhiUsers() > 0;
+                    outValue.replaceUsers(argument);
+                    invoke.setOutValue(null);
                   }
                 }
               }
