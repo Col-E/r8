@@ -121,9 +121,14 @@ def Main():
   if utils.is_bot():
     SetRLimitToMax()
   PrintResourceInfo()
+
   # Create maven release which uses a build that exclude dependencies.
-  create_maven_release.run(utils.MAVEN_ZIP)
-  create_maven_release.run(utils.MAVEN_ZIP_LIB, is_r8lib=True)
+  create_maven_release.generate_r8_maven_zip(utils.MAVEN_ZIP)
+  create_maven_release.generate_r8_maven_zip(
+      utils.MAVEN_ZIP_LIB, is_r8lib=True)
+  # Create maven release of the desuage_jdk_libs configuration.
+  create_maven_release.generate_desugar_configuration_maven_zip(
+      utils.DESUGAR_CONFIGURATION_MAVEN_ZIP)
 
   # Generate and copy a full build without dependencies.
   gradle.RunGradleExcludeDeps([utils.R8, utils.R8_SRC])
@@ -185,6 +190,8 @@ def Main():
       utils.COMPATPROGUARDLIB_JAR + '.map',
       utils.MAVEN_ZIP,
       utils.MAVEN_ZIP_LIB,
+      utils.DESUGAR_CONFIGURATION,
+      utils.DESUGAR_CONFIGURATION_MAVEN_ZIP,
       utils.GENERATED_LICENSE,
     ]:
       file_name = os.path.basename(file)
@@ -199,23 +206,46 @@ def Main():
         if options.dry_run_output:
           dry_run_destination = os.path.join(options.dry_run_output, file_name)
           print('Dry run, not actually uploading. Copying to '
-            + dry_run_destination)
+              + dry_run_destination)
           shutil.copyfile(tagged_jar, dry_run_destination)
         else:
           print('Dry run, not actually uploading')
       else:
         utils.upload_file_to_cloud_storage(tagged_jar, destination)
         print('File available at: %s' % GetUrl(version, file_name, is_master))
+
+      # Upload R8 to a maven compatible location.
       if file == utils.R8_JAR:
-        # Upload R8 to a maven compatible location.
         maven_dst = GetUploadDestination(utils.get_maven_path('r8', version),
                                          'r8-%s.jar' % version, is_master)
         if options.dry_run:
-          print('Dry run, not actually creating maven repo')
+          print('Dry run, not actually creating maven repo for R8')
         else:
           utils.upload_file_to_cloud_storage(tagged_jar, maven_dst)
           print('Maven repo root available at: %s' % GetMavenUrl(is_master))
 
+      # Upload desugar_jdk_libs configuration to a maven compatible location.
+      if file == utils.DESUGAR_CONFIGURATION:
+        jar_name = 'desugar_jdk_libs_configuration-%s.jar' % version
+        maven_dst = GetUploadDestination(
+            utils.get_maven_path('desugar_jdk_libs_configuration', version),
+                                 jar_name, is_master)
+
+        with utils.TempDir() as tmp_dir:
+          desugar_jdk_libs_configuration_jar = os.path.join(tmp_dir, jar_name)
+          create_maven_release.generate_jar_with_desugar_configuration(
+              utils.DESUGAR_CONFIGURATION, desugar_jdk_libs_configuration_jar)
+
+          if options.dry_run:
+            print('Dry run, not actually creating maven repo for '
+                + 'desugar configuration.')
+            shutil.copyfile(
+                desugar_jdk_libs_configuration_jar,
+                os.path.join(options.dry_run_output, jar_name))
+          else:
+            utils.upload_file_to_cloud_storage(
+                desugar_jdk_libs_configuration_jar, maven_dst)
+            print('Maven repo root available at: %s' % GetMavenUrl(is_master))
 
 if __name__ == '__main__':
   sys.exit(Main())

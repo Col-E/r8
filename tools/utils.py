@@ -5,6 +5,7 @@
 # Different utility functions used accross scripts
 
 import hashlib
+import json
 import os
 import re
 import shutil
@@ -32,6 +33,7 @@ BUILD_TEST_DIR = os.path.join(BUILD, 'classes', 'test')
 LIBS = os.path.join(BUILD, 'libs')
 GENERATED_LICENSE_DIR = os.path.join(BUILD, 'generatedLicense')
 SRC_ROOT = os.path.join(REPO_ROOT, 'src', 'main', 'java')
+TEST_ROOT = os.path.join(REPO_ROOT, 'src', 'test', 'java')
 
 D8 = 'd8'
 R8 = 'r8'
@@ -55,6 +57,18 @@ COMPATPROGUARD_JAR = os.path.join(LIBS, 'compatproguard.jar')
 COMPATPROGUARDLIB_JAR = os.path.join(LIBS, 'compatproguardlib.jar')
 MAVEN_ZIP = os.path.join(LIBS, 'r8.zip')
 MAVEN_ZIP_LIB = os.path.join(LIBS, 'r8lib.zip')
+# TODO(b/134732760): The JSON configuration should be moved.
+DESUGAR_CONFIGURATION = os.path.join(
+      TEST_ROOT,
+      'com',
+      'android',
+      'tools',
+      'r8',
+      'desugar',
+      'corelib',
+      'desugar_jdk_libs.json')
+DESUGAR_CONFIGURATION_MAVEN_ZIP = os.path.join(
+  LIBS, 'desugar_jdk_libs_configuration.zip')
 GENERATED_LICENSE = os.path.join(GENERATED_LICENSE_DIR, 'LICENSE')
 RT_JAR = os.path.join(REPO_ROOT, 'third_party/openjdk/openjdk-rt-1.8/rt.jar')
 R8LIB_KEEP_RULES = os.path.join(REPO_ROOT, 'src/main/keep.txt')
@@ -530,3 +544,18 @@ def getR8Version(path):
   output = subprocess.check_output(cmd, stderr = subprocess.STDOUT)
   # output is on form 'R8 <version>' so we just strip of 'R8 '.
   return output.splitlines()[0][3:]
+
+def desugar_configuration_version():
+  with open(DESUGAR_CONFIGURATION, 'r') as f:
+    configuration_json = json.loads(f.read())
+    configuration_format_version = \
+        configuration_json.get('configuration_format_version')
+    if (configuration_format_version != 1):
+      raise Exception(
+          'Unsupported "configuration_format_version" '
+              + configuration_format_version)
+    version = configuration_json.get('version')
+    if not version:
+      raise Exception(
+          'No "version" found in ' + utils.DESUGAR_CONFIGURATION)
+    return version
