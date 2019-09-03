@@ -114,7 +114,6 @@ public class InstancePut extends FieldInstruction {
     }
 
     // In D8, we always have to assume that the field can be read, and thus have side effects.
-    assert instructionInstanceCanThrow(appView, context).isThrowing();
     return true;
   }
 

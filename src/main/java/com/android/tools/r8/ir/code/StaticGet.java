@@ -127,10 +127,7 @@ public class StaticGet extends FieldInstruction {
     // * IncompatibleClassChangeError (static-* instruction for instance fields)
     // * IllegalAccessError (not visible from the access context)
     // * side-effects in <clinit>
-    boolean haveSideEffects = instructionMayHaveSideEffects(appView, code.method.method.holder);
-    assert appView.enableWholeProgramOptimizations() || haveSideEffects
-        : "Expected static-get instruction to have side effects in D8";
-    return !haveSideEffects;
+    return !instructionMayHaveSideEffects(appView, code.method.method.holder);
   }
 
   @Override

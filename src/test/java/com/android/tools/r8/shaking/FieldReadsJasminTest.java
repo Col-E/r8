@@ -18,11 +18,13 @@ import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.jasmin.JasminTestBase;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.util.Iterator;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -46,52 +48,83 @@ public class FieldReadsJasminTest extends JasminTestBase {
   public void testInstanceGet_nonNullReceiver() throws Exception {
     JasminBuilder builder = new JasminBuilder();
 
-    ClassBuilder empty = builder.addClass(CLS);
-    empty.addField("protected", "aField", "I", null);
-
     ClassBuilder main = builder.addClass(MAIN);
+    main.addField("protected", "aField", "I", null);
     main.addMainMethod(
         ".limit stack 2",
         ".limit locals 1",
-        "  new Empty",
+        "  new Main",
         "  dup",
-        "  invokespecial Empty/<init>()V",
-        "  getfield Empty/aField I",
+        "  invokespecial Main/<init>()V",
+        "  getfield Main/aField I",
         "  return");
 
-    ensureNoFields(builder, empty);
+    ensureNoFieldsRead(builder, main);
   }
 
   @Test
   public void testStaticGet_noSideEffect() throws Exception {
     JasminBuilder builder = new JasminBuilder();
 
-    ClassBuilder empty = builder.addClass(CLS);
-    empty.addStaticField("sField", "I");
-
     ClassBuilder main = builder.addClass(MAIN);
+    main.addStaticField("sField", "I");
     main.addMainMethod(
         ".limit stack 2",
         ".limit locals 1",
-        "  getstatic Empty/sField I",
+        "  getstatic Main/sField I",
         "  return");
 
-    ensureNoFields(builder, empty);
+    ensureNoFieldsRead(builder, main);
   }
 
-  private void ensureNoFields(JasminBuilder app, ClassBuilder clazz) throws Exception {
+  @Test
+  public void testStaticGet_allocation() throws Exception {
+    JasminBuilder builder = new JasminBuilder();
+
+    ClassBuilder main = builder.addClass(MAIN);
+    main.addDefaultConstructor();
+    main.addStaticField("sField", "Ljava/lang/String;", "\"8\"");
+    main.addMainMethod(
+        ".limit stack 2",
+        ".limit locals 1",
+        "  getstatic Main/sField Ljava/lang/String;",
+        "  return");
+
+    ensureNoFieldsRead(builder, main);
+  }
+
+  private void ensureNoFieldsRead(JasminBuilder app, ClassBuilder clazz) throws Exception {
+    List<byte[]> classes = app.buildClasses();
+
+    if (parameters.isDexRuntime()) {
+      testForD8()
+          .addProgramClassFileData(classes)
+          .setMinApi(parameters.getRuntime())
+          .compile()
+          .inspect(inspector -> ensureNoFieldsRead(inspector, clazz.name, false));
+    }
+
     testForR8(parameters.getBackend())
-        .addProgramClassFileData(app.buildClasses())
+        .addProgramClassFileData(classes)
         .addKeepRules("-keep class * { <methods>; }")
         .setMinApi(parameters.getRuntime())
         .compile()
-        .inspect(inspector -> {
-          ClassSubject classSubject = inspector.clazz(clazz.name);
-          assertThat(classSubject, isPresent());
-          classSubject.forAllFields(foundFieldSubject -> {
-            fail("Expect not to see any fields.");
-          });
-        });
+        .inspect(inspector -> ensureNoFieldsRead(inspector, clazz.name, true));
+  }
+
+  private void ensureNoFieldsRead(CodeInspector inspector, String name, boolean isR8) {
+    ClassSubject classSubject = inspector.clazz(name);
+    assertThat(classSubject, isPresent());
+    if (isR8) {
+      classSubject.forAllFields(foundFieldSubject -> {
+        fail("Expect not to see any fields.");
+      });
+    }
+    MethodSubject mainMethod = classSubject.mainMethod();
+    assertThat(mainMethod, isPresent());
+    Iterator<InstructionSubject> it =
+        mainMethod.iterateInstructions(InstructionSubject::isFieldAccess);
+    assertFalse(it.hasNext());
   }
 
   @Test
@@ -201,24 +234,6 @@ public class FieldReadsJasminTest extends JasminTestBase {
   }
 
   @Test
-  public void testStaticGet_allocation() throws Exception {
-    JasminBuilder builder = new JasminBuilder();
-
-    ClassBuilder empty = builder.addClass(CLS);
-    empty.addDefaultConstructor();
-    empty.addStaticField("sField", "Ljava/lang/String;", "\"8\"");
-
-    ClassBuilder main = builder.addClass(MAIN);
-    main.addMainMethod(
-        ".limit stack 2",
-        ".limit locals 1",
-        "  getstatic Empty/sField Ljava/lang/String;",
-        "  return");
-
-    ensureNoFields(builder, empty);
-  }
-
-  @Test
   public void b124039115() throws Exception {
     JasminBuilder builder = new JasminBuilder();
 
@@ -267,25 +282,48 @@ public class FieldReadsJasminTest extends JasminTestBase {
       ClassBuilder fieldHolder,
       String fieldName)
       throws Exception {
+    List<byte[]> classes = app.buildClasses();
+
+    if (parameters.isDexRuntime()) {
+      testForD8()
+          .addProgramClassFileData(classes)
+          .setMinApi(parameters.getRuntime())
+          .compile()
+          .inspect(inspector -> ensureFieldExistsAndReadOnlyOnce(
+              inspector, clazz.name, method.name, fieldHolder, fieldName, false));
+    }
+
     testForR8(parameters.getBackend())
-        .addProgramClassFileData(app.buildClasses())
+        .addProgramClassFileData(classes)
         .addKeepRules("-keep class * { <methods>; }")
         .setMinApi(parameters.getRuntime())
         .compile()
-        .inspect(inspector -> {
-          FieldSubject fld = inspector.clazz(fieldHolder.name).uniqueFieldWithName(fieldName);
-          assertThat(fld, isRenamed());
-
-          ClassSubject classSubject = inspector.clazz(clazz.name);
-          assertThat(classSubject, isPresent());
-          MethodSubject methodSubject = classSubject.uniqueMethodWithName(method.name);
-          assertThat(methodSubject, isPresent());
-          Iterator<InstructionSubject> it =
-              methodSubject.iterateInstructions(InstructionSubject::isFieldAccess);
-          assertTrue(it.hasNext());
-          assertEquals(fld.getFinalName(), it.next().getField().name.toString());
-          assertFalse(it.hasNext());
-        });
+        .inspect(inspector -> ensureFieldExistsAndReadOnlyOnce(
+            inspector, clazz.name, method.name, fieldHolder, fieldName, true));
   }
 
+  private void ensureFieldExistsAndReadOnlyOnce(
+      CodeInspector inspector,
+      String className,
+      String methodName,
+      ClassBuilder fieldHolder,
+      String fieldName,
+      boolean isR8) {
+    FieldSubject fld = inspector.clazz(fieldHolder.name).uniqueFieldWithName(fieldName);
+    if (isR8) {
+      assertThat(fld, isRenamed());
+    } else {
+      assertThat(fld, isPresent());
+    }
+
+    ClassSubject classSubject = inspector.clazz(className);
+    assertThat(classSubject, isPresent());
+    MethodSubject methodSubject = classSubject.uniqueMethodWithName(methodName);
+    assertThat(methodSubject, isPresent());
+    Iterator<InstructionSubject> it =
+        methodSubject.iterateInstructions(InstructionSubject::isFieldAccess);
+    assertTrue(it.hasNext());
+    assertEquals(fld.getFinalName(), it.next().getField().name.toString());
+    assertFalse(it.hasNext());
+  }
 }
