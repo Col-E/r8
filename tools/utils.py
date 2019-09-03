@@ -558,4 +558,15 @@ def desugar_configuration_version():
     if not version:
       raise Exception(
           'No "version" found in ' + utils.DESUGAR_CONFIGURATION)
+    check_basic_semver_version(version, 'in ' + DESUGAR_CONFIGURATION)
     return version
+
+# Check that the passed string is formatted as a basic semver version (x.y.z)
+# See https://semver.org/.
+def check_basic_semver_version(version, error_context = ''):
+    reg = re.compile('^([0-9]+)\\.([0-9]+)\\.([0-9]+)$')
+    if not reg.match(version):
+      raise Exception("Invalid version '"
+            + version
+            + "'"
+            + (' ' + error_context) if len(error_context) > 0 else '')

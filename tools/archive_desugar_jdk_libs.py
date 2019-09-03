@@ -55,12 +55,8 @@ def GetVersion():
       raise Exception('Version file '
           + VERSION_FILE + ' is expected to have exactly one line')
     version = lines[0].strip()
-    reg = re.compile('^([0-9]+)\\.([0-9]+)\\.([0-9]+)$')
-    if not reg.match(version):
-      raise Exception('Invalid version \''
-            + version
-            + '\' in version file '
-            + VERSION_FILE)
+    utils.check_basic_semver_version(
+        version, 'in version file ' + VERSION_FILE)
     return version
 
 
