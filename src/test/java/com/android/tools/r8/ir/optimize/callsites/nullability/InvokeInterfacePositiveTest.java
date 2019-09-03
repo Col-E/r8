@@ -66,7 +66,7 @@ public class InvokeInterfacePositiveTest extends TestBase {
     // Can optimize branches since `arg` is definitely not null.
     assertEquals(0, a_m.streamInstructions().filter(InstructionSubject::isIf).count());
 
-    ClassSubject b = inspector.clazz(A.class);
+    ClassSubject b = inspector.clazz(B.class);
     assertThat(b, isPresent());
 
     MethodSubject b_m = b.uniqueMethodWithName("m");
