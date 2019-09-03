@@ -114,7 +114,7 @@ public class Retrace {
       RetraceResult result =
           new RetraceCore(classNameMapper, command.stackTrace, command.diagnosticsHandler)
               .retrace();
-      command.retracedStackTraceConsumer.accept(result.toList());
+      command.retracedStackTraceConsumer.accept(result.toListOfStrings());
     } catch (IOException ex) {
       command.diagnosticsHandler.error(
           new StringDiagnostic("Could not open mapping input stream: " + ex.getMessage()));
