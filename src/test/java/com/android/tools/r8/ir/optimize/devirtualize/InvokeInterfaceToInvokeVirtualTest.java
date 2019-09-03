@@ -4,6 +4,7 @@
 package com.android.tools.r8.ir.optimize.devirtualize;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -18,7 +19,6 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import com.google.common.collect.Streams;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -60,17 +60,15 @@ public class InvokeInterfaceToInvokeVirtualTest extends TestBase {
             .inspector();
 
     ClassSubject clazz = inspector.clazz(Main.class);
-    MethodSubject m = clazz.method(CodeInspector.MAIN);
-    long numOfInvokeInterface =
-        Streams.stream(m.iterateInstructions(InstructionSubject::isInvokeInterface)).count();
-    // List#add, List#get
-    assertEquals(2, numOfInvokeInterface);
+    MethodSubject m = clazz.mainMethod();
+    // List#add and List#get get devirtualized into ArrayList#add and ArrayList#get.
+    assertTrue(m.streamInstructions().noneMatch(InstructionSubject::isInvokeInterface));
+    // System.out.println, List#add ~> ArrayList#add, List#get ~> ArrayList#get, I#get ~> A0#get.
     long numOfInvokeVirtual =
-        Streams.stream(m.iterateInstructions(InstructionSubject::isInvokeVirtual)).count();
-    // System.out.println, I#get ~> A0#get
-    assertEquals(2, numOfInvokeVirtual);
-    long numOfCast = Streams.stream(m.iterateInstructions(InstructionSubject::isCheckCast)).count();
-    // check-cast I ~> check-cast A0
+        m.streamInstructions().filter(InstructionSubject::isInvokeVirtual).count();
+    assertEquals(4, numOfInvokeVirtual);
+    // check-cast I ~> check-cast A0.
+    long numOfCast = m.streamInstructions().filter(InstructionSubject::isCheckCast).count();
     assertEquals(1, numOfCast);
   }
 }

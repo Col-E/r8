@@ -1164,4 +1164,17 @@ public class Value {
   public TypeLatticeElement getTypeLattice() {
     return typeLattice;
   }
+
+  public DexType getExactDynamicType() {
+    Value root = getAliasedValue();
+    if (root.isPhi()) {
+      return null;
+    }
+    Instruction definition = root.definition;
+    if (definition.isNewInstance()) {
+      NewInstance newInstance = definition.asNewInstance();
+      return newInstance.clazz;
+    }
+    return null;
+  }
 }

@@ -83,6 +83,11 @@ public class CustomCollectionTest extends CoreLibDesugarTestBase {
             .addInnerClasses(CustomCollectionTest.class)
             .setMinApi(parameters.getApiLevel())
             .addKeepClassAndMembersRules(Executor.class)
+            .addOptionsModification(
+                options -> {
+                  // TODO(b/140233505): Allow devirtualization once fixed.
+                  options.enableDevirtualization = false;
+                })
             .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
             .compile()
             .inspect(inspector -> this.assertCustomCollectionCallsCorrect(inspector, true))

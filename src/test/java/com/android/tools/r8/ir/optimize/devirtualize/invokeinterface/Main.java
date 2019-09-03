@@ -10,7 +10,7 @@ public class Main {
   private static final int COUNT = 8;
 
   public static void main(String[] args) {
-    I a0 = new A0();
+    I a0 = System.currentTimeMillis() >= 0 ? new A0() : new A1();
     List<I> l = new ArrayList<>();
     for (int i = 0; i < COUNT; i++) {
       l.add(a0);

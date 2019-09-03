@@ -849,16 +849,40 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
   /** For mapping invoke virtual instruction to single target method. */
   public DexEncodedMethod lookupSingleVirtualTarget(DexMethod method, DexType invocationContext) {
     assert checkIfObsolete();
-    return lookupSingleVirtualTarget(method, invocationContext, method.holder);
+    return lookupSingleVirtualTarget(method, invocationContext, method.holder, null);
   }
 
   public DexEncodedMethod lookupSingleVirtualTarget(
-      DexMethod method, DexType invocationContext, DexType refinedReceiverType) {
+      DexMethod method,
+      DexType invocationContext,
+      DexType refinedReceiverType,
+      DexType receiverLowerBoundType) {
     assert checkIfObsolete();
     DexEncodedMethod directResult = nestAccessLookup(method, invocationContext);
     if (directResult != null) {
       return directResult;
     }
+
+    // If the lower-bound on the receiver type is the same as the upper-bound, then we have exact
+    // runtime type information. In this case, the invoke will dispatch to the resolution result
+    // from the runtime type of the receiver.
+    if (receiverLowerBoundType != null) {
+      if (receiverLowerBoundType == refinedReceiverType) {
+        ResolutionResult resolutionResult = resolveMethod(method.holder, method, false);
+        if (resolutionResult.isValidVirtualTargetForDynamicDispatch()) {
+          ResolutionResult refinedResolutionResult = resolveMethod(refinedReceiverType, method);
+          if (refinedResolutionResult.hasSingleTarget()
+              && refinedResolutionResult.isValidVirtualTargetForDynamicDispatch()) {
+            return refinedResolutionResult.asSingleTarget();
+          }
+        }
+        return null;
+      } else {
+        // We should never hit the case at the moment, but if we start tracking more precise lower-
+        // bound type information, we should handle this case as well.
+      }
+    }
+
     // This implements the logic from
     // https://docs.oracle.com/javase/specs/jvms/se9/html/jvms-6.html#jvms-6.5.invokevirtual
     assert method != null;
@@ -1018,11 +1042,14 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
 
   public DexEncodedMethod lookupSingleInterfaceTarget(DexMethod method, DexType invocationContext) {
     assert checkIfObsolete();
-    return lookupSingleInterfaceTarget(method, invocationContext, method.holder);
+    return lookupSingleInterfaceTarget(method, invocationContext, method.holder, null);
   }
 
   public DexEncodedMethod lookupSingleInterfaceTarget(
-      DexMethod method, DexType invocationContext, DexType refinedReceiverType) {
+      DexMethod method,
+      DexType invocationContext,
+      DexType refinedReceiverType,
+      DexType receiverLowerBoundType) {
     assert checkIfObsolete();
     DexEncodedMethod directResult = nestAccessLookup(method, invocationContext);
     if (directResult != null) {
@@ -1031,6 +1058,27 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     if (instantiatedLambdas.contains(method.holder)) {
       return null;
     }
+
+    // If the lower-bound on the receiver type is the same as the upper-bound, then we have exact
+    // runtime type information. In this case, the invoke will dispatch to the resolution result
+    // from the runtime type of the receiver.
+    if (receiverLowerBoundType != null) {
+      if (receiverLowerBoundType == refinedReceiverType) {
+        ResolutionResult resolutionResult = resolveMethod(method.holder, method, true);
+        if (resolutionResult.isValidVirtualTargetForDynamicDispatch()) {
+          ResolutionResult refinedResolutionResult = resolveMethod(refinedReceiverType, method);
+          if (refinedResolutionResult.hasSingleTarget()
+              && refinedResolutionResult.isValidVirtualTargetForDynamicDispatch()) {
+            return refinedResolutionResult.asSingleTarget();
+          }
+        }
+        return null;
+      } else {
+        // We should never hit the case at the moment, but if we start tracking more precise lower-
+        // bound type information, we should handle this case as well.
+      }
+    }
+
     DexClass holder = definitionFor(method.holder);
     if ((holder == null) || holder.isNotProgramClass() || !holder.accessFlags.isInterface()) {
       return null;

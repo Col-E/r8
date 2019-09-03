@@ -103,6 +103,11 @@ public class ProgramRewritingTest extends CoreLibDesugarTestBase {
               .addKeepMainRule(TEST_CLASS)
               .addProgramFiles(Paths.get(ToolHelper.EXAMPLES_JAVA9_BUILD_DIR + "stream.jar"))
               .setMinApi(parameters.getApiLevel())
+              .addOptionsModification(
+                  options -> {
+                    // TODO(b/140233505): Allow devirtualization once fixed.
+                    options.enableDevirtualization = false;
+                  })
               .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
               .compile()
               .inspect(this::checkRewrittenInvokes)

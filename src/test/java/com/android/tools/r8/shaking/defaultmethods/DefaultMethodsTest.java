@@ -85,14 +85,6 @@ public class DefaultMethodsTest extends TestBase {
     assertFalse(method.isAbstract());
   }
 
-  private void defaultMethodAbstract(CodeInspector inspector) {
-    ClassSubject clazz = inspector.clazz(InterfaceWithDefaultMethods.class);
-    assertTrue(clazz.isPresent());
-    MethodSubject method = clazz.method("int", "method", ImmutableList.of());
-    assertTrue(method.isPresent());
-    assertTrue(method.isAbstract());
-  }
-
   @Test
   public void test() throws Exception {
     runTest(ImmutableList.of(), this::interfaceNotKept);

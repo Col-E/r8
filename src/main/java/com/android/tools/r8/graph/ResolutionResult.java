@@ -26,6 +26,8 @@ public interface ResolutionResult {
 
   boolean isValidVirtualTarget(InternalOptions options);
 
+  boolean isValidVirtualTargetForDynamicDispatch();
+
   default Set<DexEncodedMethod> lookupVirtualDispatchTargets(
       boolean isInterface, AppInfoWithSubtyping appInfo) {
     return isInterface ? lookupInterfaceTargets(appInfo) : lookupVirtualTargets(appInfo);
@@ -141,6 +143,16 @@ public interface ResolutionResult {
     }
 
     @Override
+    public boolean isValidVirtualTargetForDynamicDispatch() {
+      for (DexEncodedMethod method : methods) {
+        if (!method.isVirtualMethod()) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    @Override
     public DexEncodedMethod asResultOfResolve() {
       // Resolution may return any of the targets that were found.
       return methods.get(0);
@@ -218,12 +230,22 @@ public interface ResolutionResult {
     public boolean isValidVirtualTarget(InternalOptions options) {
       return true;
     }
+
+    @Override
+    public boolean isValidVirtualTargetForDynamicDispatch() {
+      return true;
+    }
   }
 
   abstract class FailedResolutionResult extends EmptyResult {
 
     @Override
     public boolean isValidVirtualTarget(InternalOptions options) {
+      return false;
+    }
+
+    @Override
+    public boolean isValidVirtualTargetForDynamicDispatch() {
       return false;
     }
   }

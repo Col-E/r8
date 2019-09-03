@@ -29,9 +29,15 @@ public class Memberrebinding {
     System.out.println(classExtendsOther.aMethodThatReturnsTwo());
     System.out.println(classExtendsOther.aMethodThatReturnsThree());
     System.out.println(classExtendsOther.aMethodThatReturnsFour());
-    AnIndependentInterface iface = classExtendsOther;
+    AnIndependentInterface iface =
+        System.currentTimeMillis() >= 0
+            ? new ClassExtendsOtherLibraryClass()
+            : new OtherClassExtendsOtherLibraryClass();
     System.out.println(iface.aMethodThatReturnsTwo());
-    SuperClassOfClassExtendsOtherLibraryClass superClass = classExtendsOther;
+    SuperClassOfClassExtendsOtherLibraryClass superClass =
+        System.currentTimeMillis() >= 0
+            ? new ClassExtendsOtherLibraryClass()
+            : new OtherClassExtendsOtherLibraryClass();
     System.out.println(superClass.aMethodThatReturnsTrue());
     System.out.println(superClass.aMethodThatReturnsFalse());
   }

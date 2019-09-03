@@ -6,7 +6,9 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
+import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.InliningOracle;
@@ -59,8 +61,20 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
   public boolean verifyTypes(AppView<?> appView) {
     assert super.verifyTypes(appView);
 
-    TypeLatticeElement receiverType = getReceiver().getTypeLattice();
+    Value receiver = getReceiver();
+    TypeLatticeElement receiverType = receiver.getTypeLattice();
     assert receiverType.isPreciseType();
+
+    if (appView.appInfo().hasSubtyping()) {
+      DexType exactReceiverType = receiver.getExactDynamicType();
+      if (exactReceiverType != null) {
+        DexType refinedReceiverType =
+            TypeAnalysis.getRefinedReceiverType(appView.withSubtyping(), this);
+        assert exactReceiverType == refinedReceiverType
+            || appView.appInfo().withSubtyping().isMissingOrHasMissingSuperType(exactReceiverType);
+      }
+    }
+
     return true;
   }
 }

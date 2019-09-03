@@ -7,12 +7,18 @@ package com.android.tools.r8.shaking.forceproguardcompatibility.defaultmethods;
 public class TestClass {
 
   public void useInterfaceMethod() {
-    InterfaceWithDefaultMethods iface = new ClassImplementingInterface();
+    InterfaceWithDefaultMethods iface =
+        System.currentTimeMillis() >= 0
+            ? new ClassImplementingInterface()
+            : new OtherClassImplementingInterface();
     System.out.println(iface.method());
   }
 
   public void useInterfaceMethod2() {
-    InterfaceWithDefaultMethods iface = new ClassImplementingInterface();
+    InterfaceWithDefaultMethods iface =
+        System.currentTimeMillis() >= 0
+            ? new ClassImplementingInterface()
+            : new OtherClassImplementingInterface();
     iface.method2("a", 1);
   }
 

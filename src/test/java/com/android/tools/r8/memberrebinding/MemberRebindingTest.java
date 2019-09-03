@@ -139,7 +139,9 @@ public class MemberRebindingTest {
     assertTrue(iterator.next().holder().is("memberrebinding.ClassExtendsOtherLibraryClass"));
     assertTrue(iterator.next().holder().is("memberrebinding.ClassExtendsOtherLibraryClass"));
     assertTrue(iterator.next().holder().is("memberrebinding.ClassExtendsOtherLibraryClass"));
+    assertTrue(iterator.next().holder().is("java.lang.System"));
     assertTrue(iterator.next().holder().is("memberrebindinglib.AnIndependentInterface"));
+    assertTrue(iterator.next().holder().is("java.lang.System"));
     assertTrue(
         iterator.next().holder().is("memberrebinding.SuperClassOfClassExtendsOtherLibraryClass"));
     assertTrue(
@@ -172,7 +174,10 @@ public class MemberRebindingTest {
     assertTrue(
         iterator.next().holder().is("memberrebinding.SuperClassOfClassExtendsOtherLibraryClass"));
     // Some dispatches on interfaces.
+    assertTrue(iterator.next().holder().is("java.lang.System"));
     assertTrue(iterator.next().holder().is("memberrebindinglib.AnIndependentInterface"));
+    // Some dispatches on classes.
+    assertTrue(iterator.next().holder().is("java.lang.System"));
     assertTrue(iterator.next().holder().is("memberrebindinglib.SubClass"));
     assertTrue(iterator.next().holder().is("memberrebindinglib.ImplementedInProgramClass"));
     assertFalse(iterator.hasNext());
@@ -369,7 +374,7 @@ public class MemberRebindingTest {
   }
 
   @Test
-  public void memberRebindingTest() throws IOException, InterruptedException, ExecutionException {
+  public void memberRebindingTest() throws IOException, ExecutionException {
     Assume.assumeTrue(ToolHelper.artSupported() || ToolHelper.compareAgaintsGoldenFiles());
 
     Path out = Paths.get(temp.getRoot().getCanonicalPath());

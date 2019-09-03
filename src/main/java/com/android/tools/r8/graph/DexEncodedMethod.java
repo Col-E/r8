@@ -40,16 +40,16 @@ import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.code.ValueType;
-import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
-import com.android.tools.r8.ir.optimize.info.DefaultCallSiteOptimizationInfo;
 import com.android.tools.r8.ir.conversion.DexBuilder;
-import com.android.tools.r8.ir.optimize.info.MutableCallSiteOptimizationInfo;
 import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaring.DexFieldWithAccess;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.NestUtils;
+import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
+import com.android.tools.r8.ir.optimize.info.DefaultCallSiteOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.DefaultMethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
+import com.android.tools.r8.ir.optimize.info.MutableCallSiteOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.UpdatableMethodOptimizationInfo;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.ir.synthetic.CfEmulateInterfaceSyntheticSourceCodeProvider;
@@ -1278,6 +1278,11 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     return options.canUseNestBasedAccess()
         ? (!accessFlags.isStatic() && !accessFlags.isConstructor())
         : isVirtualMethod();
+  }
+
+  @Override
+  public boolean isValidVirtualTargetForDynamicDispatch() {
+    return isVirtualMethod();
   }
 
   @Override

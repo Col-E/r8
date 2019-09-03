@@ -7,7 +7,10 @@ package com.android.tools.r8.shaking.defaultmethods;
 public class TestClass {
 
   public void useInterfaceMethod() {
-    InterfaceWithDefaultMethods iface = new ClassImplementingInterface();
+    InterfaceWithDefaultMethods iface =
+        System.currentTimeMillis() >= 0
+            ? new ClassImplementingInterface()
+            : new OtherClassImplementingInterface();
     System.out.println(iface.method());
   }
 
