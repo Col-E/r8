@@ -22,6 +22,7 @@ import java.util.ArrayDeque;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.List;
+import java.util.Set;
 
 public class TypeAnalysis {
 
@@ -192,7 +193,14 @@ public class TypeAnalysis {
 
     DexType staticReceiverType = invoke.getInvokedMethod().holder;
     if (lattice.isClassType()) {
-      DexType refinedType = lattice.asClassTypeLatticeElement().getClassType();
+      ClassTypeLatticeElement classType = lattice.asClassTypeLatticeElement();
+      DexType refinedType = classType.getClassType();
+      if (refinedType == appView.dexItemFactory().objectType) {
+        Set<DexType> interfaces = classType.getInterfaces();
+        if (interfaces.size() == 1) {
+          refinedType = interfaces.iterator().next();
+        }
+      }
       if (appView.appInfo().isSubtype(refinedType, staticReceiverType)) {
         return refinedType;
       }
