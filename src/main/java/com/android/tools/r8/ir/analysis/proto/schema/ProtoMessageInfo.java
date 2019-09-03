@@ -146,7 +146,7 @@ public class ProtoMessageInfo {
             int auxData = field.getAuxData();
             int oldHasBitsObjectIndex = auxData / BITS_PER_HAS_BITS_WORD;
             int oldHasBitsObjectBitIndex = auxData % BITS_PER_HAS_BITS_WORD;
-            assert newHasBitsObjectIndices.containsValue(oldHasBitsObjectIndex);
+            assert newHasBitsObjectIndices.containsKey(oldHasBitsObjectIndex);
             field.setAuxData(
                 newHasBitsObjectIndices.get(oldHasBitsObjectIndex) * BITS_PER_HAS_BITS_WORD
                     + oldHasBitsObjectBitIndex);
