@@ -1094,12 +1094,23 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     private TrivialInitializer() {
     }
 
+    public boolean isTrivialInstanceInitializer() {
+      return false;
+    }
+
     // Defines instance trivial initialized, see details in comments
     // to CodeRewriter::computeInstanceInitializerInfo(...)
     public static final class TrivialInstanceInitializer extends TrivialInitializer {
 
       public static final TrivialInstanceInitializer INSTANCE =
           new TrivialInstanceInitializer();
+
+      private TrivialInstanceInitializer() {}
+
+      @Override
+      public boolean isTrivialInstanceInitializer() {
+        return true;
+      }
     }
 
     // Defines class trivial initialized, see details in comments

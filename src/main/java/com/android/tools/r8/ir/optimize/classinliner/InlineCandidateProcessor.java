@@ -11,7 +11,6 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
 import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
 import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer.TrivialClassInitializer;
-import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer.TrivialInstanceInitializer;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -557,9 +556,22 @@ final class InlineCandidateProcessor {
     //       any class initializers in superclass chain or in superinterfaces, see
     //       details in ClassInliner::computeClassEligible(...).
     if (eligibleClassDefinition.superType != appView.dexItemFactory().objectType) {
-      TrivialInitializer info = singleTarget.getOptimizationInfo().getTrivialInitializerInfo();
-      if (!(info instanceof TrivialInstanceInitializer)) {
+      DexClass superClass = appView.definitionFor(eligibleClassDefinition.superType);
+      if (superClass == null || !superClass.isProgramClass()) {
         return null;
+      }
+
+      // At this point, we don't know which constructor in the super type that is invoked from the
+      // method. Therefore, we just check if all of the constructors in the super type are trivial.
+      for (DexEncodedMethod method : superClass.directMethods()) {
+        if (method.isInstanceInitializer()) {
+          TrivialInitializer trivialInitializerInfo =
+              method.getOptimizationInfo().getTrivialInitializerInfo();
+          if (trivialInitializerInfo == null
+              || !trivialInitializerInfo.isTrivialInstanceInitializer()) {
+            return null;
+          }
+        }
       }
     }
 
