@@ -356,6 +356,10 @@ public class Enqueuer {
     return this;
   }
 
+  private boolean isProgramClass(DexType type) {
+    return getProgramClassOrNull(type) != null;
+  }
+
   private DexProgramClass getProgramClassOrNull(DexType type) {
     DexClass clazz = appView.definitionFor(type);
     if (clazz != null) {
@@ -799,12 +803,14 @@ public class Enqueuer {
 
       DexEncodedField encodedField = appInfo.resolveField(field);
       if (encodedField == null) {
-        reportMissingField(field);
-      }
-
-      if (encodedField == null || getProgramClassOrNull(encodedField.field.holder) == null) {
         // Must mark the field as targeted even if it does not exist.
         markFieldAsTargeted(field);
+        reportMissingField(field);
+        return false;
+      }
+
+      if (!isProgramClass(encodedField.field.holder)) {
+        // No need to trace into the non-program code.
         return false;
       }
 
@@ -825,6 +831,8 @@ public class Enqueuer {
       }
 
       if (encodedField.field != field) {
+        // Mark the non-rebound field access as targeted. Note that this should only be done if the
+        // field is not a dead proto field (in which case we bail-out above).
         markFieldAsTargeted(field);
       }
 
@@ -840,12 +848,14 @@ public class Enqueuer {
 
       DexEncodedField encodedField = appInfo.resolveField(field);
       if (encodedField == null) {
-        reportMissingField(field);
-      }
-
-      if (encodedField == null || getProgramClassOrNull(encodedField.field.holder) == null) {
         // Must mark the field as targeted even if it does not exist.
         markFieldAsTargeted(field);
+        reportMissingField(field);
+        return false;
+      }
+
+      if (!isProgramClass(encodedField.field.holder)) {
+        // No need to trace into the non-program code.
         return false;
       }
 
@@ -874,6 +884,8 @@ public class Enqueuer {
       }
 
       if (encodedField.field != field) {
+        // Mark the non-rebound field access as targeted. Note that this should only be done if the
+        // field is not a dead proto field (in which case we bail-out above).
         markFieldAsTargeted(field);
       }
 
