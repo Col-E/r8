@@ -1655,7 +1655,7 @@ public class Enqueuer {
       return;
     }
     if (clazz.isProgramClass()) {
-      if (!instantiatedLambdas.add(clazz.asProgramClass(), KeepReason.instantiatedIn(method))) {
+      if (instantiatedLambdas.add(clazz.asProgramClass(), KeepReason.instantiatedIn(method))) {
         populateInstantiatedTypesCache(clazz.asProgramClass());
       }
     }
