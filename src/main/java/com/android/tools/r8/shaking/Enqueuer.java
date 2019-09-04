@@ -47,7 +47,6 @@ import com.android.tools.r8.graph.FieldAccessInfoImpl;
 import com.android.tools.r8.graph.KeyedDexItem;
 import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.graph.ResolutionResult;
-import com.android.tools.r8.graph.TopDownClassHierarchyTraversal;
 import com.android.tools.r8.graph.analysis.EnqueuerAnalysis;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoEnqueuerExtension;
 import com.android.tools.r8.ir.code.ArrayPut;
@@ -99,7 +98,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -180,10 +178,6 @@ public class Enqueuer {
    */
   private final Map<DexProgramClass, SetWithStoredReason<DexEncodedMethod>>
       reachableVirtualMethods = Maps.newIdentityHashMap();
-
-  // TODO(b/139464956): Lazily compute library dependencies.
-  private final Map<DexProgramClass, Map<DexEncodedMethod, Set<DexType>>>
-      reachableVirtualMethodsFromLibraries = Maps.newIdentityHashMap();
 
   /**
    * Tracks the dependency between a method and the super-method it calls, if any. Used to make
@@ -1051,23 +1045,6 @@ public class Enqueuer {
     if (reachableMethods != null) {
       transitionNonAbstractMethodsToLiveAndShadow(clazz, reachableMethods, seen);
     }
-    Map<DexEncodedMethod, Set<DexType>> libraryMethods =
-        reachableVirtualMethodsFromLibraries.get(clazz);
-    if (libraryMethods == null) {
-      return;
-    }
-    for (Entry<DexEncodedMethod, Set<DexType>> entry : libraryMethods.entrySet()) {
-      DexEncodedMethod encodedMethod = entry.getKey();
-      if (seen.addMethod(encodedMethod)) {
-        // Abstract methods do shadow implementations but they cannot be live, as they have no
-        // code.
-        // TODO(b/120959039): The edge registration needs to be per interface.
-        KeepReason reason = KeepReason.isLibraryMethod(clazz, entry.getValue().iterator().next());
-        if (!encodedMethod.accessFlags.isAbstract()) {
-          markVirtualMethodAsLive(clazz, encodedMethod, reason);
-        }
-      }
-    }
   }
 
   private DexMethod getInvokeSuperTarget(DexMethod method, DexEncodedMethod currentMethod) {
@@ -1485,6 +1462,9 @@ public class Enqueuer {
    * are either defined directly on this type or that are defined on a supertype but are not
    * shadowed by another inherited method. Furthermore, default methods from implemented interfaces
    * that are not otherwise shadowed are considered, too.
+   *
+   * <p>Finally all methods on library types that resolve starting at the instantiated type are
+   * marked live.
    */
   private void transitionMethodsForInstantiatedClass(DexProgramClass instantiatedClass) {
     ScopedDexMethodSet seen = new ScopedDexMethodSet();
@@ -1498,6 +1478,7 @@ public class Enqueuer {
       Collections.addAll(interfaces, current.interfaces.values);
       current = getProgramClassOrNull(current.superType);
     } while (current != null && !instantiatedTypes.contains(current));
+
     // The set now contains all virtual methods on the type and its supertype that are reachable.
     // In a second step, we now look at interfaces. We have to do this in this order due to JVM
     // semantics for default methods. A default method is only reachable if it is not overridden in
@@ -1514,6 +1495,62 @@ public class Enqueuer {
         break;
       }
       transitionDefaultMethodsForInstantiatedClass(iface, seen);
+    }
+
+    // When a type becomes live, all library methods on that type become live too.
+    // This is done by searching the library supertypes and then resolving each method defined by
+    // such a library type from the point of the instantiated type. If the resolved targets are in
+    // the program, i.e., the instantiated type has a method overidding a library method, then the
+    // program method is live.
+    Deque<DexClass> librarySearchItems = new ArrayDeque<>();
+    librarySearchItems.add(instantiatedClass);
+    while (!librarySearchItems.isEmpty()) {
+      DexClass clazz = librarySearchItems.pop();
+      if (clazz.isNotProgramClass()) {
+        markLibraryAndClasspathMethodOverriddesAsLive(clazz, instantiatedClass);
+      }
+      if (clazz.superType != null) {
+        DexClass superClass = appView.definitionFor(clazz.superType);
+        if (superClass != null) {
+          librarySearchItems.add(superClass);
+        }
+      }
+      for (DexType iface : clazz.interfaces.values) {
+        DexClass ifaceClass = appView.definitionFor(iface);
+        if (ifaceClass != null) {
+          librarySearchItems.add(ifaceClass);
+        }
+      }
+    }
+  }
+
+  private void markLibraryAndClasspathMethodOverriddesAsLive(
+      DexClass libraryClass, DexProgramClass instantiatedClass) {
+    assert libraryClass.isNotProgramClass();
+    assert !instantiatedClass.isInterface() || instantiatedClass.accessFlags.isAnnotation();
+    for (DexEncodedMethod method : libraryClass.virtualMethods()) {
+      // Note: it may be worthwhile to add a resolution cache here. If so, it must till ensure
+      // that all library override edges are reported to the kept-graph consumer.
+      ResolutionResult resolution =
+          appView.appInfo().resolveMethod(instantiatedClass, method.method);
+      if (resolution.isValidVirtualTarget(options)) {
+        resolution.forEachTarget(
+            target -> {
+              if (!target.isAbstract()) {
+                DexClass targetHolder = appView.definitionFor(target.method.holder);
+                if (targetHolder != null && targetHolder.isProgramClass()) {
+                  DexProgramClass programClass = targetHolder.asProgramClass();
+                  if (shouldMarkLibraryMethodOverrideAsReachable(programClass, target)) {
+                    target.setLibraryMethodOverride();
+                    markVirtualMethodAsLive(
+                        programClass,
+                        target,
+                        KeepReason.isLibraryMethod(programClass, libraryClass.type));
+                  }
+                }
+              }
+            });
+      }
     }
   }
 
@@ -1748,16 +1785,14 @@ public class Enqueuer {
 
   private void markVirtualMethodAsReachable(
       DexMethod method, boolean interfaceInvoke, KeepReason reason) {
-    markVirtualMethodAsReachable(method, interfaceInvoke, reason, (x, y) -> true, null, false);
+    markVirtualMethodAsReachable(method, interfaceInvoke, reason, (x, y) -> true);
   }
 
   private void markVirtualMethodAsReachable(
       DexMethod method,
       boolean interfaceInvoke,
       KeepReason reason,
-      BiPredicate<DexProgramClass, DexEncodedMethod> possibleTargetsFilter,
-      Consumer<DexEncodedMethod> possibleTargetsConsumer,
-      boolean isLibraryEnqueueing) {
+      BiPredicate<DexProgramClass, DexEncodedMethod> possibleTargetsFilter) {
     if (!virtualTargetsMarkedAsReachable.add(method)) {
       return;
     }
@@ -1799,19 +1834,13 @@ public class Enqueuer {
       markPossibleTargetsAsReachable(
           resolutionTarget == encodedPossibleTarget ? reason : overridesReason,
           possibleTargetsFilter,
-          isLibraryEnqueueing ? method.holder : null,
           encodedPossibleTarget);
-    }
-
-    if (possibleTargetsConsumer != null) {
-      possibleTargets.forEach(possibleTargetsConsumer);
     }
   }
 
   private void markPossibleTargetsAsReachable(
       KeepReason reason,
       BiPredicate<DexProgramClass, DexEncodedMethod> possibleTargetsFilter,
-      DexType enqueueingLibraryHolder,
       DexEncodedMethod encodedPossibleTarget) {
     assert encodedPossibleTarget.isVirtualMethod() || options.canUseNestBasedAccess();
     assert !encodedPossibleTarget.isAbstract();
@@ -1823,22 +1852,10 @@ public class Enqueuer {
     if (!possibleTargetsFilter.test(clazz, encodedPossibleTarget)) {
       return;
     }
-    if (enqueueingLibraryHolder != null) {
-      Map<DexEncodedMethod, Set<DexType>> entry =
-          reachableVirtualMethodsFromLibraries.computeIfAbsent(
-              clazz, ignore -> Maps.newIdentityHashMap());
-      Set<DexType> libraryTypes = entry.get(encodedPossibleTarget);
-      if (libraryTypes != null) {
-        libraryTypes.add(enqueueingLibraryHolder);
-        return;
-      }
-      entry.put(encodedPossibleTarget, SetUtils.newIdentityHashSet(enqueueingLibraryHolder, 2));
-    } else {
-      SetWithStoredReason<DexEncodedMethod> reachable =
-          reachableVirtualMethods.computeIfAbsent(clazz, ignore -> SetWithStoredReason.create());
-      if (!reachable.add(encodedPossibleTarget, reason)) {
-        return;
-      }
+    SetWithStoredReason<DexEncodedMethod> reachable =
+        reachableVirtualMethods.computeIfAbsent(clazz, ignore -> SetWithStoredReason.create());
+    if (!reachable.add(encodedPossibleTarget, reason)) {
+      return;
     }
 
     // If the holder type is instantiated, the method is live. Otherwise check whether we find
@@ -2043,10 +2060,6 @@ public class Enqueuer {
     this.dontWarnPatterns = dontWarnPatterns;
     // Translate the result of root-set computation into enqueuer actions.
     enqueueRootItems(rootSet.noShrinking);
-    TopDownClassHierarchyTraversal.forLibraryAndClasspathClasses(appView)
-        // TODO(b/131813793): Would be beneficial to have `appView.appInfo().rootClasses()`.
-        .visit(
-            appView.appInfo().classes(), this::markAllLibraryAndClasspathVirtualMethodsReachable);
     trace(executorService, timing);
     options.reporter.failIfPendingErrors();
     analyses.forEach(EnqueuerAnalysis::done);
@@ -2326,24 +2339,6 @@ public class Enqueuer {
       markStaticFieldAsLive(target, reason);
     } else {
       markInstanceFieldAsReachable(target, reason);
-    }
-  }
-
-  private void markAllLibraryAndClasspathVirtualMethodsReachable(DexClass clazz) {
-    if (Log.ENABLED) {
-      Log.verbose(
-          getClass(), "Marking all methods of library class `%s` as reachable.", clazz.type);
-    }
-    // TODO(b/139464956, b/124480748): Remove this 'reason'. Lazy load libraries and no reporting.
-    KeepReason reason = KeepReasonWitness.INSTANCE;
-    for (DexEncodedMethod encodedMethod : clazz.virtualMethods()) {
-      markVirtualMethodAsReachable(
-          encodedMethod.method,
-          clazz.isInterface(),
-          reason,
-          this::shouldMarkLibraryMethodOverrideAsReachable,
-          DexEncodedMethod::setLibraryMethodOverride,
-          true);
     }
   }
 

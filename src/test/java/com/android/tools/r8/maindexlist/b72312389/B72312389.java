@@ -6,17 +6,14 @@ package com.android.tools.r8.maindexlist.b72312389;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import com.android.tools.r8.BaseCommand;
 import com.android.tools.r8.CompatProguardCommandBuilder;
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.GenerateMainDexList;
 import com.android.tools.r8.GenerateMainDexListCommand;
-import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
@@ -101,24 +98,13 @@ public class B72312389 extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    CollectingDiagnosticHandler diagnostics = new CollectingDiagnosticHandler();
-    R8Command.Builder builder = R8Command.builder(diagnostics);
-    buildInstrumentationTestCaseApplication(builder);
-    R8Command command = builder
-        .addMainDexRules(keepInstrumentationTestCaseRules, Origin.unknown())
-        .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
-        .build();
-    if (lookupLibraryBeforeProgram) {
-      R8.run(command);
-      diagnostics.assertEmpty();
-    } else {
-      try {
-        R8.run(command);
-        fail();
-      } catch (CompilationFailedException e) {
-        // Expected, as library class extending program class is an error for R8.
-      }
-    }
+    testForR8(Backend.DEX)
+        .apply(b -> buildInstrumentationTestCaseApplication(b.getBuilder()))
+        .setMinApi(AndroidApiLevel.B)
+        .addMainDexRules(keepInstrumentationTestCaseRules)
+        .compile()
+        // Library types and method overrides are lazily enqueued, thus no longer causing failures.
+        .assertNoMessages();
   }
 
   private static class CollectingDiagnosticHandler implements DiagnosticsHandler {
