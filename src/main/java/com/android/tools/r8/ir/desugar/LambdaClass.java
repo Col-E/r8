@@ -527,7 +527,7 @@ final class LambdaClass {
             .converter
             .appView
             .options()
-            .libraryConfiguration
+            .desugaredLibraryConfiguration
             .getBackportCoreLibraryMember()
             .containsKey(implMethod.holder.toString());
         return false;

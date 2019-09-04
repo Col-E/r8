@@ -678,7 +678,7 @@ public final class R8Command extends BaseCompilerCommand {
       boolean encodeChecksum,
       BiPredicate<String, Long> dexClassChecksumFilter,
       StringConsumer desugaredLibraryKeepRuleConsumer,
-      com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration libraryConfiguration) {
+      DesugaredLibraryConfiguration libraryConfiguration) {
     super(
         inputApp,
         mode,
@@ -843,7 +843,7 @@ public final class R8Command extends BaseCompilerCommand {
     internal.enableInheritanceClassInDexDistributor = isOptimizeMultidexForLinearAlloc();
 
     // TODO(134732760): This is still work in progress.
-    internal.libraryConfiguration = libraryConfiguration;
+    internal.desugaredLibraryConfiguration = libraryConfiguration;
     internal.desugaredLibraryKeepRuleConsumer = desugaredLibraryKeepRuleConsumer;
 
     return internal;

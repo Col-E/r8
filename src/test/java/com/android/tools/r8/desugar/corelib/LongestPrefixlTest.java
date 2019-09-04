@@ -45,7 +45,7 @@ public class LongestPrefixlTest extends TestBase {
           .addProgramFiles(inputJar)
           .addOptionsModification(
               options ->
-                  options.libraryConfiguration =
+                  options.desugaredLibraryConfiguration =
                       new DesugaredLibraryConfiguration(
                           false,
                           x,

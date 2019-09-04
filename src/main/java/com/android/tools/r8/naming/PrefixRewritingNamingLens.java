@@ -42,7 +42,7 @@ public class PrefixRewritingNamingLens extends NamingLens {
 
   public static NamingLens createPrefixRewritingNamingLens(
       InternalOptions options, Map<String, String> additionalRewritePrefix, NamingLens namingLens) {
-    if (options.libraryConfiguration.getRewritePrefix().isEmpty()
+    if (options.desugaredLibraryConfiguration.getRewritePrefix().isEmpty()
         && additionalRewritePrefix.isEmpty()) {
       return namingLens;
     }
@@ -60,7 +60,7 @@ public class PrefixRewritingNamingLens extends NamingLens {
             descriptorPrefixRewriting.put(
                 "L" + DescriptorUtils.getBinaryNameFromJavaType(from),
                 "L" + DescriptorUtils.getBinaryNameFromJavaType(to));
-    options.libraryConfiguration.getRewritePrefix().forEach(lambda);
+    options.desugaredLibraryConfiguration.getRewritePrefix().forEach(lambda);
     additionalRewritePrefix.forEach(lambda);
     // Run over all types and remap types with matching prefixes.
     // TODO(134732760): Use a more efficient data structure (prefix tree/trie).

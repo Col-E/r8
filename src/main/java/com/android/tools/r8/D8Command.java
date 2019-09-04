@@ -354,7 +354,7 @@ public final class D8Command extends BaseCompilerCommand {
     internal.enableInheritanceClassInDexDistributor = isOptimizeMultidexForLinearAlloc();
 
     // TODO(134732760): This is still work in progress.
-    internal.libraryConfiguration = libraryConfiguration;
+    internal.desugaredLibraryConfiguration = libraryConfiguration;
     internal.desugaredLibraryKeepRuleConsumer = desugaredLibraryKeepRuleConsumer;
 
     return internal;

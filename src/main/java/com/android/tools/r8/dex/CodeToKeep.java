@@ -22,7 +22,7 @@ public abstract class CodeToKeep {
 
   static CodeToKeep createCodeToKeep(InternalOptions options, NamingLens namingLens) {
     if ((!namingLens.hasPrefixRewritingLogic()
-            && options.libraryConfiguration.getEmulateLibraryInterface().isEmpty())
+            && options.desugaredLibraryConfiguration.getEmulateLibraryInterface().isEmpty())
         || options.isDesugaredLibraryCompilation()) {
       return new NopCodeToKeep();
     }
@@ -51,7 +51,7 @@ public abstract class CodeToKeep {
       // Interface method desugaring should have created the types if emulatedLibraryInterfaces
       // are set.
       for (String rewrittenName :
-          options.libraryConfiguration.getEmulateLibraryInterface().values()) {
+          options.desugaredLibraryConfiguration.getEmulateLibraryInterface().values()) {
         DexString descriptor =
             options.itemFactory.lookupString(DescriptorUtils.javaTypeToDescriptor(rewrittenName));
         assert descriptor != null;

@@ -137,7 +137,7 @@ public final class L8Command extends BaseCompilerCommand {
     internal.enableInheritanceClassInDexDistributor = false;
 
     // TODO(134732760): This is still work in progress.
-    internal.libraryConfiguration = libraryConfiguration;
+    internal.desugaredLibraryConfiguration = libraryConfiguration;
 
     return internal;
   }

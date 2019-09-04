@@ -80,7 +80,8 @@ final class ClassProcessor {
     boolean desugaredLibraryLookup =
         superClass != null
             && superClass.isLibraryClass()
-            && appView.options().libraryConfiguration.getEmulateLibraryInterface().size() > 0;
+            && appView.options().desugaredLibraryConfiguration.getEmulateLibraryInterface().size()
+                > 0;
 
     if (clazz.interfaces.isEmpty() && !desugaredLibraryLookup) {
       // Since superclass has already been processed and it has all missing methods

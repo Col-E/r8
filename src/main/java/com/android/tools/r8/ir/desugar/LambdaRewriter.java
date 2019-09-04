@@ -283,11 +283,11 @@ public class LambdaRewriter {
       if (appView.options().isDesugaredLibraryCompilation()) {
         Pair<String, String> rewriting =
             accessedFrom.rewritingPrefixIn(
-                appView.options().libraryConfiguration.getRewritePrefix());
+                appView.options().desugaredLibraryConfiguration.getRewritePrefix());
         if (rewriting == null) {
           rewriting =
               accessedFrom.rewritingPrefixIn(
-                  appView.options().libraryConfiguration.getEmulateLibraryInterface());
+                  appView.options().desugaredLibraryConfiguration.getEmulateLibraryInterface());
         }
         if (rewriting != null) {
           addRewritingPrefix(rewriting, lambdaClassType);

@@ -77,7 +77,7 @@ public class B135627418 extends TestBase {
             .setMinApi(parameters.getRuntime())
             .addOptionsModification(
                 options ->
-                    options.libraryConfiguration =
+                    options.desugaredLibraryConfiguration =
                         new DesugaredLibraryConfiguration(
                             false,
                             ImmutableMap.of(packageName + ".runtime", packageName + ".library"),

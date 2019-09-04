@@ -40,7 +40,7 @@ public class JsonCompatibilityTest extends TestBase {
   public void testCompatibilityProgram() {
     InternalOptions options1 = new InternalOptions(new DexItemFactory(), new Reporter());
     options1.minApiLevel = parameters.getApiLevel().getLevel();
-    options1.libraryConfiguration =
+    options1.desugaredLibraryConfiguration =
         DesugaredLibraryConfigurationForTesting.configureLibraryDesugaringForProgramCompilation(
             parameters.getApiLevel().getLevel());
 
@@ -48,7 +48,7 @@ public class JsonCompatibilityTest extends TestBase {
     Reporter reporter = new Reporter();
     InternalOptions options2 = new InternalOptions(factory, reporter);
     options2.minApiLevel = parameters.getApiLevel().getLevel();
-    options2.libraryConfiguration =
+    options2.desugaredLibraryConfiguration =
         new DesugaredLibraryConfigurationParser(
                 factory, reporter, false, parameters.getApiLevel().getLevel())
             .parse(
@@ -56,14 +56,15 @@ public class JsonCompatibilityTest extends TestBase {
                     Paths.get(
                         "src/test/java/com/android/tools/r8/desugar/corelib/desugar_jdk_libs.json")));
 
-    assertConfigurationEquals(options1.libraryConfiguration, options2.libraryConfiguration);
+    assertConfigurationEquals(
+        options1.desugaredLibraryConfiguration, options2.desugaredLibraryConfiguration);
   }
 
   @Test
   public void testCompatibilityLibrary() {
     InternalOptions options1 = new InternalOptions(new DexItemFactory(), new Reporter());
     options1.minApiLevel = parameters.getApiLevel().getLevel();
-    options1.libraryConfiguration =
+    options1.desugaredLibraryConfiguration =
         DesugaredLibraryConfigurationForTesting.configureLibraryDesugaringForLibraryCompilation(
             parameters.getApiLevel().getLevel());
 
@@ -71,7 +72,7 @@ public class JsonCompatibilityTest extends TestBase {
     Reporter reporter = new Reporter();
     InternalOptions options2 = new InternalOptions(factory, reporter);
     options2.minApiLevel = parameters.getApiLevel().getLevel();
-    options2.libraryConfiguration =
+    options2.desugaredLibraryConfiguration =
         new DesugaredLibraryConfigurationParser(
                 factory, reporter, true, parameters.getApiLevel().getLevel())
             .parse(
@@ -79,7 +80,8 @@ public class JsonCompatibilityTest extends TestBase {
                     Paths.get(
                         "src/test/java/com/android/tools/r8/desugar/corelib/desugar_jdk_libs.json")));
 
-    assertConfigurationEquals(options1.libraryConfiguration, options2.libraryConfiguration);
+    assertConfigurationEquals(
+        options1.desugaredLibraryConfiguration, options2.desugaredLibraryConfiguration);
   }
 
   private void assertConfigurationEquals(

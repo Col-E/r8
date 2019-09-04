@@ -80,7 +80,7 @@ public final class BackportedMethodRewriter {
     this.factory = appView.dexItemFactory();
     this.rewritableMethods = new RewritableMethods(appView);
     Map<String, String> backportCoreLibraryMembers =
-        appView.options().libraryConfiguration.getBackportCoreLibraryMember();
+        appView.options().desugaredLibraryConfiguration.getBackportCoreLibraryMember();
     for (String coreLibMember : backportCoreLibraryMembers.keySet()) {
       DexType extraCoreLibMemberType =
           factory.createType(DescriptorUtils.javaTypeToDescriptor(coreLibMember));
@@ -252,7 +252,7 @@ public final class BackportedMethodRewriter {
         initializeAndroidOMethodProviders(factory);
       }
 
-      if (options.libraryConfiguration.getRewritePrefix().containsKey("java.util.Optional")
+      if (options.desugaredLibraryConfiguration.getRewritePrefix().containsKey("java.util.Optional")
           || options.minApiLevel >= AndroidApiLevel.N.getLevel()) {
         // These are currently not implemented at any API level in Android.
         // They however require the Optional class to be present, either through
@@ -265,7 +265,7 @@ public final class BackportedMethodRewriter {
       initializeJava9MethodProviders(factory);
       initializeJava11MethodProviders(factory);
 
-      if (!options.libraryConfiguration.getRetargetCoreLibMember().isEmpty()) {
+      if (!options.desugaredLibraryConfiguration.getRetargetCoreLibMember().isEmpty()) {
         initializeRetargetCoreLibraryMembers(appView);
       }
     }

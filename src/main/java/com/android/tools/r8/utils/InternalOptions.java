@@ -308,7 +308,7 @@ public class InternalOptions {
   }
 
   public boolean isDesugaredLibraryCompilation() {
-    return libraryConfiguration.isLibraryCompilation();
+    return desugaredLibraryConfiguration.isLibraryCompilation();
   }
 
   public boolean shouldKeepStackMapTable() {
@@ -446,7 +446,8 @@ public class InternalOptions {
 
   public void populateRetargetCoreLibMember(
       DexItemFactory factory, Map<DexString, Map<DexType, DexType>> dest) {
-    Map<String, String> retargetCoreLibMember = libraryConfiguration.getRetargetCoreLibMember();
+    Map<String, String> retargetCoreLibMember =
+        desugaredLibraryConfiguration.getRetargetCoreLibMember();
     for (String inputString : retargetCoreLibMember.keySet()) {
       int index = inputString.lastIndexOf('#');
       if (index <= 0 || index >= inputString.length() - 1) {
@@ -607,7 +608,8 @@ public class InternalOptions {
 
   // If null, no desugaring of library is performed.
   // If non null it contains flags describing library desugaring.
-  public DesugaredLibraryConfiguration libraryConfiguration = DesugaredLibraryConfiguration.empty();
+  public DesugaredLibraryConfiguration desugaredLibraryConfiguration =
+      DesugaredLibraryConfiguration.empty();
 
   // If null, no keep rules are recorded.
   // If non null it records desugared library APIs used by the program.
