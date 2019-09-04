@@ -112,6 +112,14 @@ public class StaticPut extends FieldInstruction {
 
       DexEncodedField encodedField = appInfoWithLiveness.resolveField(getField());
       assert encodedField != null : "NoSuchFieldError (resolution failure) should be caught.";
+
+      boolean isDeadProtoExtensionField =
+          appView.withGeneratedExtensionRegistryShrinker(
+              shrinker -> shrinker.isDeadProtoExtensionField(encodedField.field), false);
+      if (isDeadProtoExtensionField) {
+        return false;
+      }
+
       return appInfoWithLiveness.isFieldRead(encodedField);
     }
 

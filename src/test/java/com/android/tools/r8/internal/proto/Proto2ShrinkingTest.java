@@ -4,8 +4,13 @@
 
 package com.android.tools.r8.internal.proto;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
+
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
@@ -16,6 +21,9 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
+
+  private static final String EXT_C =
+      "com.android.tools.r8.proto2.Shrinking$PartiallyUsedWithExtension$ExtC";
 
   private static List<Path> PROGRAM_FILES =
       ImmutableList.of(PROTO2_EXAMPLES_JAR, PROTO2_PROTO_JAR, PROTOBUF_LITE_JAR);
@@ -41,10 +49,18 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
 
   @Test
   public void test() throws Exception {
+    CodeInspector inputInspector = new CodeInspector(PROGRAM_FILES);
     testForR8(parameters.getBackend())
         .addProgramFiles(PROGRAM_FILES)
         .addKeepMainRule("proto2.TestClass")
         .addKeepRuleFiles(PROTOBUF_LITE_PROGUARD_RULES)
+        .addKeepRules(alwaysInlineNewSingularGeneratedExtensionRule())
+        // TODO(b/112437944): Attempt to prove that DEFAULT_INSTANCE is non-null, such that the
+        //  following "assumenotnull" rule can be omitted.
+        .addKeepRules(
+            "-assumenosideeffects class " + EXT_C + " {",
+            "  private static final " + EXT_C + " DEFAULT_INSTANCE return 1..42;",
+            "}")
         .addOptionsModification(
             options -> {
               options.enableGeneratedMessageLiteShrinking = true;
@@ -56,6 +72,8 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
         .minification(enableMinification)
         .setMinApi(parameters.getRuntime())
         .compile()
+        .inspect(
+            outputInspector -> verifyUnusedExtensionsAreRemoved(inputInspector, outputInspector))
         .run(parameters.getRuntime(), "proto2.TestClass")
         .assertSuccessWithOutputLines(
             "--- roundtrip ---",
@@ -84,6 +102,56 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
             "10",
             "10",
             "10");
+  }
+
+  private void verifyUnusedExtensionsAreRemoved(
+      CodeInspector inputInspector, CodeInspector outputInspector) {
+    // Verify that the registry was split across multiple methods in the input.
+    {
+      ClassSubject generatedExtensionRegistryLoader =
+          inputInspector.clazz("com.google.protobuf.proto2_registryGeneratedExtensionRegistryLite");
+      assertThat(generatedExtensionRegistryLoader, isPresent());
+      assertThat(
+          generatedExtensionRegistryLoader.uniqueMethodWithName("findLiteExtensionByNumber"),
+          isPresent());
+      assertThat(
+          generatedExtensionRegistryLoader.uniqueMethodWithName("findLiteExtensionByNumber1"),
+          isPresent());
+      assertThat(
+          generatedExtensionRegistryLoader.uniqueMethodWithName("findLiteExtensionByNumber2"),
+          isPresent());
+    }
+
+    // Verify that the registry methods are still present in the output.
+    // TODO(b/112437944): Should they be optimized into a single findLiteExtensionByNumber() method?
+    {
+      ClassSubject generatedExtensionRegistryLoader =
+          outputInspector.clazz(
+              "com.google.protobuf.proto2_registryGeneratedExtensionRegistryLite");
+      assertThat(generatedExtensionRegistryLoader, isPresent());
+      assertThat(
+          generatedExtensionRegistryLoader.uniqueMethodWithName("findLiteExtensionByNumber"),
+          isPresent());
+      assertThat(
+          generatedExtensionRegistryLoader.uniqueMethodWithName("findLiteExtensionByNumber1"),
+          isPresent());
+      assertThat(
+          generatedExtensionRegistryLoader.uniqueMethodWithName("findLiteExtensionByNumber2"),
+          isPresent());
+    }
+
+    // Verify that unused extensions have been removed with -allowaccessmodification.
+    if (allowAccessModification) {
+      List<String> unusedExtensionNames =
+          ImmutableList.of(
+              "com.android.tools.r8.proto2.Shrinking$HasNoUsedExtensions",
+              "com.android.tools.r8.proto2.Shrinking$PartiallyUsedWithExtension$ExtB",
+              "com.android.tools.r8.proto2.Shrinking$PartiallyUsedWithExtension$ExtC");
+      for (String unusedExtensionName : unusedExtensionNames) {
+        assertThat(inputInspector.clazz(unusedExtensionName), isPresent());
+        assertThat(outputInspector.clazz(unusedExtensionName), not(isPresent()));
+      }
+    }
   }
 
   @Test
