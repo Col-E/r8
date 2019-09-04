@@ -9,9 +9,9 @@ import static com.android.tools.r8.ir.optimize.UninstantiatedTypeOptimization.St
 
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -406,7 +406,11 @@ public class UninstantiatedTypeOptimization {
         }
         if (instruction.isFieldInstruction()) {
           rewriteFieldInstruction(
-              instruction.asFieldInstruction(), instructionIterator, code, valuesToNarrow);
+              instruction.asFieldInstruction(),
+              blockIterator,
+              instructionIterator,
+              code,
+              valuesToNarrow);
         } else if (instruction.isInvokeMethod()) {
           rewriteInvoke(
               instruction.asInvokeMethod(),
@@ -472,32 +476,22 @@ public class UninstantiatedTypeOptimization {
   // At this point, field-instruction whose target field type is uninstantiated will be handled.
   private void rewriteFieldInstruction(
       FieldInstruction instruction,
+      ListIterator<BasicBlock> blockIterator,
       InstructionListIterator instructionIterator,
       IRCode code,
       Set<Value> affectedValues) {
-    DexType fieldType = instruction.getField().type;
+    DexType context = code.method.method.holder;
+    DexField field = instruction.getField();
+    DexType fieldType = field.type;
     if (fieldType.isAlwaysNull(appView)) {
-      AbstractError abstractError =
-          instruction.instructionInstanceCanThrow(appView, code.method.method.holder);
-      if (abstractError.isThrowing()) {
+      // TODO(b/123857022): Should be possible to use definitionFor().
+      DexEncodedField encodedField = appView.appInfo().resolveField(field);
+      if (encodedField == null) {
         return;
       }
 
-      // TODO(b/123857022): Should be possible to use definitionFor().
-      DexEncodedField field = appView.appInfo().resolveField(instruction.getField());
-      if (field == null) {
-        assert false : "Expected field-instruction with non-existent field to throw";
-        return;
-      }
-      // We also need to be sure that this field instruction cannot trigger static class
-      // initialization.
-      if (field.field.holder != code.method.method.holder) {
-        DexClass enclosingClass = appView.definitionFor(code.method.method.holder);
-        if (enclosingClass == null
-            || enclosingClass.classInitializationMayHaveSideEffects(appView)) {
-          return;
-        }
-      }
+      boolean instructionCanBeRemoved =
+          instruction.instructionInstanceCanThrow(appView, context).isThrowing();
 
       BasicBlock block = instruction.getBlock();
       if (instruction.isFieldPut()) {
@@ -508,11 +502,17 @@ public class UninstantiatedTypeOptimization {
         }
 
         // We know that the right-hand side must be null, so this is a no-op.
-        instructionIterator.removeOrReplaceByDebugLocalRead();
+        if (instructionCanBeRemoved) {
+          instructionIterator.removeOrReplaceByDebugLocalRead();
+        }
       } else {
-        // Replace the field read by the constant null.
-        instructionIterator.replaceCurrentInstruction(code.createConstNull());
-        affectedValues.addAll(instruction.outValue().affectedValues());
+        if (instructionCanBeRemoved) {
+          // Replace the field read by the constant null.
+          instructionIterator.replaceCurrentInstruction(code.createConstNull());
+          affectedValues.addAll(instruction.outValue().affectedValues());
+        } else {
+          replaceOutValueByNull(instruction, instructionIterator, code);
+        }
       }
 
       if (block.hasCatchHandlers()) {
@@ -548,6 +548,25 @@ public class UninstantiatedTypeOptimization {
           ++numberOfInvokesWithNullArgument;
           return;
         }
+      }
+    }
+
+    DexType returnType = target.method.proto.returnType;
+    if (returnType.isAlwaysNull(appView)) {
+      replaceOutValueByNull(invoke, instructionIterator, code);
+    }
+  }
+
+  private void replaceOutValueByNull(
+      Instruction instruction, InstructionListIterator instructionIterator, IRCode code) {
+    assert instructionIterator.peekPrevious() == instruction;
+    if (instruction.hasOutValue()) {
+      Value outValue = instruction.outValue();
+      if (outValue.numberOfAllUsers() > 0) {
+        instructionIterator.previous();
+        outValue.replaceUsers(
+            instructionIterator.insertConstNullInstruction(code, appView.options()));
+        instructionIterator.next();
       }
     }
   }
