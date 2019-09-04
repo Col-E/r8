@@ -72,9 +72,9 @@ public abstract class FieldInstruction extends Instruction {
       if (appView.enableWholeProgramOptimizations()) {
         return AbstractError.specific(appView.dexItemFactory().noSuchFieldErrorType);
       } else {
-        // In D8, resolution failure does not necessarily mean the absence of the field. It could be
-        // ICCE or IAE if the current field instruction is referring to incompatible or invisible
-        // field in a super type, respectively.
+        // In D8, the field lookup can only consult the context definition. Nothing can be concluded
+        // from a lookup failure. For example, it could be ICCE or IAE if the current field access
+        // is referring to incompatible or invisible field in a super type, respectively.
         return AbstractError.top();
       }
     }
@@ -103,23 +103,24 @@ public abstract class FieldInstruction extends Instruction {
     }
     // For D8, reaching here means the field is in the same context, hence the class is guaranteed
     // to be initialized already.
-    if (appView.enableWholeProgramOptimizations()) {
-      boolean mayTriggerClassInitialization = isStaticGet() || isStaticPut();
-      if (mayTriggerClassInitialization) {
-        // Only check for <clinit> side effects if there is no -assumenosideeffects rule.
-        if (appView.appInfo().hasLiveness()) {
-          AppInfoWithLiveness appInfoWithLiveness = appView.appInfo().withLiveness();
-          if (appInfoWithLiveness.noSideEffects.containsKey(resolvedField.field)) {
-            return AbstractError.bottom();
-          }
+    if (!appView.enableWholeProgramOptimizations()) {
+      return AbstractError.bottom();
+    }
+    boolean mayTriggerClassInitialization = isStaticGet() || isStaticPut();
+    if (mayTriggerClassInitialization) {
+      // Only check for <clinit> side effects if there is no -assumenosideeffects rule.
+      if (appView.appInfo().hasLiveness()) {
+        AppInfoWithLiveness appInfoWithLiveness = appView.appInfo().withLiveness();
+        if (appInfoWithLiveness.noSideEffects.containsKey(resolvedField.field)) {
+          return AbstractError.bottom();
         }
-        // May trigger <clinit> that may have side effects.
-        if (field.holder.classInitializationMayHaveSideEffects(
-            appView,
-            // Types that are a super type of `context` are guaranteed to be initialized already.
-            type -> appView.isSubtype(context, type).isTrue())) {
-          return AbstractError.top();
-        }
+      }
+      // May trigger <clinit> that may have side effects.
+      if (field.holder.classInitializationMayHaveSideEffects(
+          appView,
+          // Types that are a super type of `context` are guaranteed to be initialized already.
+          type -> appView.isSubtype(context, type).isTrue())) {
+        return AbstractError.top();
       }
     }
     return AbstractError.bottom();
