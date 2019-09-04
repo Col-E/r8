@@ -15,8 +15,6 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Set;
 
 // TODO(herhut): Canonicalize reason objects.
 public abstract class KeepReason {
@@ -27,21 +25,6 @@ public abstract class KeepReason {
 
   static KeepReason annotatedOn(DexDefinition definition) {
     return new AnnotatedOn(definition);
-  }
-
-  static KeepReason dueToKeepRule(ProguardKeepRuleBase rule) {
-    if (rule instanceof ProguardKeepRule) {
-      return new DueToKeepRule(rule);
-    }
-    if (rule instanceof ProguardIfRule) {
-      ProguardIfRule ifRule = (ProguardIfRule) rule;
-      return new DueToConditionalKeepRule(ifRule, ifRule.getPreconditions());
-    }
-    throw new Unreachable("Unexpected proguard keep rule: " + rule);
-  }
-
-  static KeepReason dueToConditionalKeepRule(ProguardKeepRuleBase rule, DexReference reference) {
-    return new DueToConditionalKeepRule(rule, reference);
   }
 
   static KeepReason dueToProguardCompatibilityKeepRule(ProguardKeepRule rule) {
@@ -89,10 +72,6 @@ public abstract class KeepReason {
   }
 
   public boolean isDueToProguardCompatibility() {
-    return false;
-  }
-
-  public boolean isDueToConditionalKeepRule() {
     return false;
   }
 
@@ -153,7 +132,7 @@ public abstract class KeepReason {
 
     @Override
     public GraphNode getSourceNode(Enqueuer enqueuer) {
-      return enqueuer.getKeepRuleGraphNode(keepRule);
+      return enqueuer.getKeepRuleGraphNode(null, keepRule);
     }
   }
 
@@ -170,37 +149,6 @@ public abstract class KeepReason {
     @Override
     public boolean isDueToProguardCompatibility() {
       return true;
-    }
-  }
-
-  private static class DueToConditionalKeepRule extends DueToKeepRule {
-
-    private final Set<DexReference> preconditions;
-
-    public DueToConditionalKeepRule(ProguardKeepRuleBase rule, DexReference precondition) {
-      this(rule, Collections.singleton(precondition));
-      assert precondition != null;
-    }
-
-    public DueToConditionalKeepRule(ProguardKeepRuleBase rule, Set<DexReference> preconditions) {
-      super(rule);
-      assert !preconditions.isEmpty();
-      this.preconditions = preconditions;
-    }
-
-    @Override
-    public Set<DexReference> getPreconditions() {
-      return preconditions;
-    }
-
-    @Override
-    public boolean isDueToConditionalKeepRule() {
-      return true;
-    }
-
-    @Override
-    public EdgeKind edgeKind() {
-      return EdgeKind.ConditionalKeepRule;
     }
   }
 

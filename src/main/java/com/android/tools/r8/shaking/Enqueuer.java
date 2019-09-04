@@ -316,6 +316,7 @@ public class Enqueuer {
   private final Map<DexType, ScopedDexMethodSet> scopedMethodsForLiveTypes =
       new IdentityHashMap<>();
 
+  private final GraphReporter graphReporter;
   private final GraphConsumer keptGraphConsumer;
 
   Enqueuer(
@@ -329,6 +330,7 @@ public class Enqueuer {
     this.appView = appView;
     this.compatibility = compatibility;
     this.forceProguardCompatibility = options.forceProguardCompatibility;
+    this.graphReporter = new GraphReporter();
     this.keptGraphConsumer = keptGraphConsumer;
     this.mode = mode;
     this.options = options;
@@ -424,32 +426,19 @@ public class Enqueuer {
   }
 
   private void enqueueRootItem(DexDefinition item, Set<ProguardKeepRuleBase> rules) {
-    assert !rules.isEmpty();
-    if (keptGraphConsumer != null) {
-      GraphNode node = getGraphNode(item.toReference());
-      for (ProguardKeepRuleBase rule : rules) {
-        registerEdge(node, KeepReason.dueToKeepRule(rule));
-      }
-    }
-    internalEnqueueRootItem(item, KeepReason.dueToKeepRule(rules.iterator().next()));
+    internalEnqueueRootItem(item, rules, null);
   }
 
-  private void enqueueRootItem(DexDefinition item, KeepReason reason) {
-    if (keptGraphConsumer != null) {
-      registerEdge(getGraphNode(item.toReference()), reason);
-    }
-    internalEnqueueRootItem(item, reason);
-  }
-
-  private void internalEnqueueRootItem(DexDefinition item, KeepReason reason) {
-    // TODO(b/120959039): do we need to propagate the reason to the action now?
+  private void internalEnqueueRootItem(
+      DexDefinition item, Set<ProguardKeepRuleBase> rules, DexDefinition precondition) {
     if (item.isDexClass()) {
       DexProgramClass clazz = item.asDexClass().asProgramClass();
+      KeepReasonWitness witness = graphReporter.reportKeepClass(precondition, rules, clazz);
       if (clazz.isInterface() && !clazz.accessFlags.isAnnotation()) {
         // TODO(zerny): This marking is due to a keep rule, so why add to the instantiatedLambdas?
-        markInterfaceAsInstantiatedByLambda(clazz, reason);
+        markInterfaceAsInstantiatedByLambda(clazz, witness);
       } else {
-        workList.enqueueMarkInstantiatedAction(clazz, reason);
+        workList.enqueueMarkInstantiatedAction(clazz, witness);
         if (clazz.hasDefaultInitializer()) {
           if (forceProguardCompatibility) {
             ProguardKeepRule compatRule =
@@ -459,14 +448,18 @@ public class Enqueuer {
                 KeepReason.dueToProguardCompatibilityKeepRule(compatRule));
           }
           if (clazz.isExternalizable(appView)) {
-            enqueueMarkMethodLiveAction(clazz, clazz.getDefaultInitializer(), reason);
+            enqueueMarkMethodLiveAction(clazz, clazz.getDefaultInitializer(), witness);
           }
         }
       }
     } else if (item.isDexEncodedField()) {
-      workList.enqueueMarkFieldKeptAction(item.asDexEncodedField(), reason);
+      KeepReasonWitness witness =
+          graphReporter.reportKeepField(precondition, rules, item.asDexEncodedField());
+      workList.enqueueMarkFieldKeptAction(item.asDexEncodedField(), witness);
     } else if (item.isDexEncodedMethod()) {
-      workList.enqueueMarkMethodKeptAction(item.asDexEncodedMethod(), reason);
+      KeepReasonWitness witness =
+          graphReporter.reportKeepMethod(precondition, rules, item.asDexEncodedMethod());
+      workList.enqueueMarkMethodKeptAction(item.asDexEncodedMethod(), witness);
     } else {
       throw new IllegalArgumentException(item.toString());
     }
@@ -1214,18 +1207,7 @@ public class Enqueuer {
 
   private void enqueueDependentItem(
       DexDefinition precondition, DexDefinition consequent, Set<ProguardKeepRuleBase> reasons) {
-    DexReference preconditionReference = precondition.toReference();
-    if (keptGraphConsumer != null) {
-      GraphNode consequentNode = getGraphNode(consequent.toReference());
-      for (ProguardKeepRuleBase rule : reasons) {
-        registerEdge(
-            consequentNode, KeepReason.dueToConditionalKeepRule(rule, preconditionReference));
-      }
-    }
-    // Note: the reason for keeping is reported above, so this just uses the first.
-    ProguardKeepRuleBase reason = reasons.iterator().next();
-    internalEnqueueRootItem(
-        consequent, KeepReason.dueToConditionalKeepRule(reason, preconditionReference));
+    internalEnqueueRootItem(consequent, reasons, precondition);
   }
 
   private void processAnnotations(DexDefinition holder, DexAnnotation[] annotations) {
@@ -1980,7 +1962,8 @@ public class Enqueuer {
     if (valuesMethod != null) {
       // TODO(sgjesse): Does this have to be enqueued as a root item? Right now it is done as the
       // marking for not renaming it is in the root set.
-      enqueueRootItem(valuesMethod, reason);
+      workList.enqueueMarkMethodKeptAction(valuesMethod, reason);
+      pinnedItems.add(valuesMethod.toReference());
       rootSet.shouldNotBeMinified(valuesMethod.toReference());
     }
   }
@@ -2983,6 +2966,91 @@ public class Enqueuer {
     }
   }
 
+  class GraphReporter {
+
+    private EdgeKind reportPrecondition(KeepRuleGraphNode keepRuleGraphNode) {
+      if (keepRuleGraphNode.getPreconditions().isEmpty()) {
+        return EdgeKind.KeepRule;
+      }
+      for (GraphNode precondition : keepRuleGraphNode.getPreconditions()) {
+        reportEdge(precondition, keepRuleGraphNode, EdgeKind.KeepRulePrecondition);
+      }
+      return EdgeKind.ConditionalKeepRule;
+    }
+
+    KeepReasonWitness reportKeepClass(
+        DexDefinition precondition, ProguardKeepRuleBase rule, DexProgramClass clazz) {
+      if (keptGraphConsumer == null) {
+        return KeepReasonWitness.INSTANCE;
+      }
+      KeepRuleGraphNode ruleNode = getKeepRuleGraphNode(precondition, rule);
+      EdgeKind edgeKind = reportPrecondition(ruleNode);
+      return reportEdge(ruleNode, getClassGraphNode(clazz.type), edgeKind);
+    }
+
+    KeepReasonWitness reportKeepClass(
+        DexDefinition precondition, Collection<ProguardKeepRuleBase> rules, DexProgramClass clazz) {
+      assert !rules.isEmpty();
+      if (keptGraphConsumer != null) {
+        for (ProguardKeepRuleBase rule : rules) {
+          reportKeepClass(precondition, rule, clazz);
+        }
+      }
+      return KeepReasonWitness.INSTANCE;
+    }
+
+    KeepReasonWitness reportKeepMethod(
+        DexDefinition precondition, ProguardKeepRuleBase rule, DexEncodedMethod method) {
+      if (keptGraphConsumer == null) {
+        return KeepReasonWitness.INSTANCE;
+      }
+      KeepRuleGraphNode ruleNode = getKeepRuleGraphNode(precondition, rule);
+      EdgeKind edgeKind = reportPrecondition(ruleNode);
+      return reportEdge(ruleNode, getMethodGraphNode(method.method), edgeKind);
+    }
+
+    KeepReasonWitness reportKeepMethod(
+        DexDefinition precondition,
+        Collection<ProguardKeepRuleBase> rules,
+        DexEncodedMethod method) {
+      assert !rules.isEmpty();
+      if (keptGraphConsumer != null) {
+        for (ProguardKeepRuleBase rule : rules) {
+          reportKeepMethod(precondition, rule, method);
+        }
+      }
+      return KeepReasonWitness.INSTANCE;
+    }
+
+    KeepReasonWitness reportKeepField(
+        DexDefinition precondition, ProguardKeepRuleBase rule, DexEncodedField field) {
+      if (keptGraphConsumer == null) {
+        return KeepReasonWitness.INSTANCE;
+      }
+      KeepRuleGraphNode ruleNode = getKeepRuleGraphNode(precondition, rule);
+      EdgeKind edgeKind = reportPrecondition(ruleNode);
+      return reportEdge(ruleNode, getFieldGraphNode(field.field), edgeKind);
+    }
+
+    KeepReasonWitness reportKeepField(
+        DexDefinition precondition, Collection<ProguardKeepRuleBase> rules, DexEncodedField field) {
+      assert !rules.isEmpty();
+      if (keptGraphConsumer != null) {
+        for (ProguardKeepRuleBase rule : rules) {
+          reportKeepField(precondition, rule, field);
+        }
+      }
+      return KeepReasonWitness.INSTANCE;
+    }
+
+    private KeepReasonWitness reportEdge(
+        GraphNode source, GraphNode target, GraphEdgeInfo.EdgeKind kind) {
+      assert keptGraphConsumer != null;
+      keptGraphConsumer.acceptEdge(source, target, getEdgeInfo(kind));
+      return KeepReasonWitness.INSTANCE;
+    }
+  }
+
   /**
    * Sentinel value indicating that a keep reason has been reported.
    *
@@ -3070,13 +3138,6 @@ public class Enqueuer {
     if (!sourceNode.isLibraryNode()) {
       GraphEdgeInfo edgeInfo = getEdgeInfo(reason);
       keptGraphConsumer.acceptEdge(sourceNode, target, edgeInfo);
-      if (reason.isDueToConditionalKeepRule()) {
-        GraphEdgeInfo conditionEdge = new GraphEdgeInfo(EdgeKind.KeepRulePrecondition);
-        for (DexReference precondition : reason.getPreconditions()) {
-          GraphNode preconditionNode = getGraphNode(precondition);
-          keptGraphConsumer.acceptEdge(preconditionNode, sourceNode, conditionEdge);
-        }
-      }
     }
     return KeepReasonWitness.INSTANCE;
   }
@@ -3104,7 +3165,11 @@ public class Enqueuer {
   }
 
   GraphEdgeInfo getEdgeInfo(KeepReason reason) {
-    return reasonInfo.computeIfAbsent(reason.edgeKind(), k -> new GraphEdgeInfo(k));
+    return getEdgeInfo(reason.edgeKind());
+  }
+
+  GraphEdgeInfo getEdgeInfo(GraphEdgeInfo.EdgeKind kind) {
+    return reasonInfo.computeIfAbsent(kind, k -> new GraphEdgeInfo(k));
   }
 
   AnnotationGraphNode getAnnotationGraphNode(DexItem type) {
@@ -3162,19 +3227,24 @@ public class Enqueuer {
         });
   }
 
-  GraphNode getKeepRuleGraphNode(ProguardKeepRuleBase rule) {
+  KeepRuleGraphNode getKeepRuleGraphNode(DexDefinition precondition, ProguardKeepRuleBase rule) {
     if (rule instanceof ProguardKeepRule) {
-      return ruleNodes.computeIfAbsent(rule, key -> new KeepRuleGraphNode((ProguardKeepRule) rule));
+      Set<GraphNode> preconditions =
+          precondition != null
+              ? Collections.singleton(getGraphNode(precondition.toReference()))
+              : Collections.emptySet();
+      return ruleNodes.computeIfAbsent(rule, key -> new KeepRuleGraphNode(rule, preconditions));
     }
     if (rule instanceof ProguardIfRule) {
       ProguardIfRule ifRule = (ProguardIfRule) rule;
       assert !ifRule.getPreconditions().isEmpty();
+      assert precondition == null;
       return ruleNodes.computeIfAbsent(
           ifRule,
           key -> {
             Set<GraphNode> preconditions = new HashSet<>(ifRule.getPreconditions().size());
-            for (DexReference precondition : ifRule.getPreconditions()) {
-              preconditions.add(getGraphNode(precondition));
+            for (DexReference condition : ifRule.getPreconditions()) {
+              preconditions.add(getGraphNode(condition));
             }
             return new KeepRuleGraphNode(ifRule, preconditions);
           });

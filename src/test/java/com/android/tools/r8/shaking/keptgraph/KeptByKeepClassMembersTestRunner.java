@@ -81,7 +81,7 @@ public class KeptByKeepClassMembersTestRunner extends TestBase {
             .assertSuccessWithOutput(EXPECTED)
             .graphInspector();
 
-    // The only root should be the keep annotation rule.
+    // The only root should be the keep main rule.
     assertEquals(1, inspector.getRoots().size());
     QueryNode keepMainRule = inspector.rule(Origin.unknown(), 1, 1).assertRoot();
     QueryNode keepClassMembersRule = inspector.rule(keepClassMembersRuleContent).assertNotRoot();
