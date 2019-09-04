@@ -824,6 +824,10 @@ public class Enqueuer {
         }
       }
 
+      if (encodedField.field != field) {
+        markFieldAsTargeted(field);
+      }
+
       markStaticFieldAsLive(encodedField, KeepReason.fieldReferencedIn(currentMethod));
       return true;
     }
@@ -867,6 +871,10 @@ public class Enqueuer {
               || !currentMethod.isClassInitializer();
       if (isWrittenOutsideEnclosingStaticInitializer) {
         staticFieldsWrittenOutsideEnclosingStaticInitializer.add(encodedField.field);
+      }
+
+      if (encodedField.field != field) {
+        markFieldAsTargeted(field);
       }
 
       markStaticFieldAsLive(encodedField, KeepReason.fieldReferencedIn(currentMethod));
