@@ -6,6 +6,7 @@ package com.android.tools.r8;
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
@@ -23,6 +24,8 @@ public final class L8Command extends BaseCompilerCommand {
 
   private final D8Command d8Command;
   private final R8Command r8Command;
+  private final com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration libraryConfiguration;
+  private final DexItemFactory factory;
 
   boolean isShrinking() {
     return r8Command != null;
@@ -45,7 +48,8 @@ public final class L8Command extends BaseCompilerCommand {
       StringConsumer mainDexListConsumer,
       int minApiLevel,
       Reporter diagnosticsHandler,
-      String specialLibraryConfiguration) {
+      DesugaredLibraryConfiguration libraryConfiguration,
+      DexItemFactory factory) {
     super(
         inputApp,
         mode,
@@ -55,21 +59,20 @@ public final class L8Command extends BaseCompilerCommand {
         diagnosticsHandler,
         true,
         false,
-        specialLibraryConfiguration,
         false,
         (name, checksum) -> true);
     this.d8Command = d8Command;
     this.r8Command = r8Command;
+    this.libraryConfiguration = libraryConfiguration;
+    this.factory = factory;
   }
 
   private L8Command(boolean printHelp, boolean printVersion) {
     super(printHelp, printVersion);
     r8Command = null;
     d8Command = null;
-  }
-
-  private void configureLibraryDesugaring(InternalOptions options) {
-    SpecialLibraryConfiguration.configureLibraryDesugaringForLibraryCompilation(options);
+    libraryConfiguration = null;
+    factory = null;
   }
 
   protected static class DefaultL8DiagnosticsHandler implements DiagnosticsHandler {
@@ -98,7 +101,7 @@ public final class L8Command extends BaseCompilerCommand {
 
   @Override
   InternalOptions getInternalOptions() {
-    InternalOptions internal = new InternalOptions(new DexItemFactory(), getReporter());
+    InternalOptions internal = new InternalOptions(factory, getReporter());
     assert !internal.debug;
     internal.debug = getMode() == CompilationMode.DEBUG;
     assert internal.mainDexListConsumer == null;
@@ -134,13 +137,7 @@ public final class L8Command extends BaseCompilerCommand {
     internal.enableInheritanceClassInDexDistributor = false;
 
     // TODO(134732760): This is still work in progress.
-    assert internal.rewritePrefix.isEmpty();
-    assert internal.emulateLibraryInterface.isEmpty();
-    assert internal.retargetCoreLibMember.isEmpty();
-    assert internal.backportCoreLibraryMembers.isEmpty();
-    assert internal.dontRewriteInvocations.isEmpty();
-    assert getSpecialLibraryConfiguration().equals("default");
-    configureLibraryDesugaring(internal);
+    internal.libraryConfiguration = libraryConfiguration;
 
     return internal;
   }
@@ -187,10 +184,8 @@ public final class L8Command extends BaseCompilerCommand {
     @Override
     void validate() {
       Reporter reporter = getReporter();
-      if (getSpecialLibraryConfiguration() == null) {
-        reporter.error("L8 requires a special library configuration");
-      } else if (!getSpecialLibraryConfiguration().equals("default")) {
-        reporter.error("L8 currently requires the special library configuration to be \"default\"");
+      if (!hasDesugaredLibraryConfiguration()){
+        reporter.error("L8 requires a desugared library configuration");
       }
       if (getProgramConsumer() instanceof ClassFileConsumer) {
         reporter.error("L8 does not support compiling to class files");
@@ -215,6 +210,10 @@ public final class L8Command extends BaseCompilerCommand {
       if (getMode() == null) {
         setMode(defaultCompilationMode());
       }
+
+      DexItemFactory factory = new DexItemFactory();
+      DesugaredLibraryConfiguration libraryConfiguration =
+          getDesugaredLibraryConfiguration(factory, true, getMinApiLevel());
 
       R8Command r8Command = null;
       D8Command d8Command = null;
@@ -265,7 +264,8 @@ public final class L8Command extends BaseCompilerCommand {
           getMainDexListConsumer(),
           getMinApiLevel(),
           getReporter(),
-          getSpecialLibraryConfiguration());
+          libraryConfiguration,
+          factory);
     }
   }
 

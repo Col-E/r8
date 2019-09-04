@@ -18,6 +18,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import org.junit.Assume;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import org.junit.Test;
@@ -40,12 +41,14 @@ public class DesugaredLibraryContentTest extends CoreLibDesugarTestBase {
 
   @Test
   public void testDesugaredLibraryContent() throws Exception {
+    Assume.assumeTrue(requiresAnyCoreLibDesugaring(parameters));
     CodeInspector inspector = new CodeInspector(buildDesugaredLibrary(parameters.getApiLevel()));
     assertCorrect(inspector);
   }
 
   @Test
   public void testDesugaredLibraryContentWithCoreLambdaStubsAsProgram() throws Exception {
+    Assume.assumeTrue(requiresAnyCoreLibDesugaring(parameters));
     ArrayList<Path> coreLambdaStubs = new ArrayList<>();
     coreLambdaStubs.add(ToolHelper.getCoreLambdaStubs());
     CodeInspector inspector =
@@ -56,6 +59,7 @@ public class DesugaredLibraryContentTest extends CoreLibDesugarTestBase {
 
   @Test
   public void testDesugaredLibraryContentWithCoreLambdaStubsAsLibrary() throws Exception {
+    Assume.assumeTrue(requiresAnyCoreLibDesugaring(parameters));
     TestDiagnosticMessagesImpl diagnosticsHandler = new TestDiagnosticMessagesImpl();
     Path desugaredLib = temp.newFolder().toPath().resolve("desugar_jdk_libs_dex.zip");
     L8Command.Builder l8Builder =
@@ -63,7 +67,7 @@ public class DesugaredLibraryContentTest extends CoreLibDesugarTestBase {
             .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .addProgramFiles(ToolHelper.getDesugarJDKLibs())
             .addLibraryFiles(ToolHelper.getCoreLambdaStubs())
-            .addSpecialLibraryConfiguration("default")
+            .addDesugaredLibraryConfiguration("default")
             .setMinApiLevel(parameters.getApiLevel().getLevel())
             .setOutput(desugaredLib, OutputMode.DexIndexed);
     ToolHelper.runL8(l8Builder.build(), options -> {});

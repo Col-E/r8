@@ -531,10 +531,10 @@ public class D8CommandTest {
   public void warnForSpecialLibraryConfiguration() throws Throwable {
     Path emptyZip = temp.getRoot().toPath().resolve("empty.zip");
     DiagnosticsChecker.checkWarningsContains(
-        "Special library configuration is still work in progress",
+        "Desugared library configuration is still work in progress",
         handler ->
             D8Command.builder(handler)
-                .addSpecialLibraryConfiguration("default")
+                .addDesugaredLibraryConfiguration("default")
                 .setOutput(emptyZip, OutputMode.DexIndexed)
                 .build());
   }

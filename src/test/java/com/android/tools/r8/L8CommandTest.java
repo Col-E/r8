@@ -30,7 +30,7 @@ public class L8CommandTest {
     verifyEmptyCommand(
         L8Command.builder()
             .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
-            .addSpecialLibraryConfiguration("default")
+            .addDesugaredLibraryConfiguration("default")
             .build());
   }
 
@@ -50,7 +50,7 @@ public class L8CommandTest {
             .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .addProgramFiles(ToolHelper.getDesugarJDKLibs())
             .setMinApiLevel(20)
-            .addSpecialLibraryConfiguration("default")
+            .addDesugaredLibraryConfiguration("default")
             .setOutput(output, OutputMode.DexIndexed)
             .build());
     Collection<Marker> markers = ExtractMarker.extractMarkerFromDexFile(output);
@@ -97,32 +97,21 @@ public class L8CommandTest {
   }
 
   @Test(expected = CompilationFailedException.class)
-  public void specialLibraryConfgurationRequired() throws Throwable {
+  public void specialLibraryConfigurationRequired() throws Throwable {
     DiagnosticsChecker.checkErrorsContains(
-        "L8 requires a special library configuration",
+        "L8 requires a desugared library configuration",
         (handler) ->
             prepareBuilder(handler).setProgramConsumer(ClassFileConsumer.emptyConsumer()).build());
-  }
-
-  @Test(expected = CompilationFailedException.class)
-  public void specialLibraryConfigurationMustBeDefault() throws Throwable {
-    DiagnosticsChecker.checkErrorsContains(
-        "L8 currently requires the special library configuration to be \"default\"",
-        (handler) ->
-            prepareBuilder(handler)
-                .addSpecialLibraryConfiguration("not default")
-                .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
-                .build());
   }
 
   @Test
   public void warnForSpecialLibraryConfiguration() throws Throwable {
     DiagnosticsChecker.checkWarningsContains(
-        "Special library configuration is still work in progress",
+        "Desugared library configuration is still work in progress",
         handler ->
             prepareBuilder(handler)
                 .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
-                .addSpecialLibraryConfiguration("default")
+                .addDesugaredLibraryConfiguration("default")
                 .build());
   }
 }

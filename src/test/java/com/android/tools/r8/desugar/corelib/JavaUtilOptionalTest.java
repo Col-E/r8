@@ -82,10 +82,10 @@ public class JavaUtilOptionalTest extends CoreLibDesugarTestBase {
         .addInnerClasses(JavaUtilOptionalTest.class)
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring()
+        .enableCoreLibraryDesugaring(parameters.getApiLevel())
         .compile()
         .inspect(this::checkRewrittenInvokes)
-        .addRunClasspathFiles(buildDesugaredLibrary(parameters.getApiLevel()))
+        .addDesugaredCoreLibraryRunClassPath(this::buildDesugaredLibrary, parameters.getApiLevel())
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(expectedOutput);
   }
@@ -95,11 +95,10 @@ public class JavaUtilOptionalTest extends CoreLibDesugarTestBase {
     testForD8()
         .addProgramFiles(
             Paths.get(ToolHelper.EXAMPLES_JAVA9_BUILD_DIR).resolve("backport" + JAR_EXTENSION))
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel())
         .compile()
-        .addRunClasspathFiles(buildDesugaredLibrary(parameters.getApiLevel()))
+        .addDesugaredCoreLibraryRunClassPath(this::buildDesugaredLibrary, parameters.getApiLevel())
         .run(parameters.getRuntime(), "backport.OptionalBackportJava9Main")
         .assertSuccess();
   }

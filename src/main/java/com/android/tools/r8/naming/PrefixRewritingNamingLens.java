@@ -42,7 +42,8 @@ public class PrefixRewritingNamingLens extends NamingLens {
 
   public static NamingLens createPrefixRewritingNamingLens(
       InternalOptions options, Map<String, String> additionalRewritePrefix, NamingLens namingLens) {
-    if (options.rewritePrefix.isEmpty() && additionalRewritePrefix.isEmpty()) {
+    if (options.libraryConfiguration.getRewritePrefix().isEmpty()
+        && additionalRewritePrefix.isEmpty()) {
       return namingLens;
     }
     return new PrefixRewritingNamingLens(namingLens, options, additionalRewritePrefix);
@@ -59,7 +60,7 @@ public class PrefixRewritingNamingLens extends NamingLens {
             descriptorPrefixRewriting.put(
                 "L" + DescriptorUtils.getBinaryNameFromJavaType(from),
                 "L" + DescriptorUtils.getBinaryNameFromJavaType(to));
-    options.rewritePrefix.forEach(lambda);
+    options.libraryConfiguration.getRewritePrefix().forEach(lambda);
     additionalRewritePrefix.forEach(lambda);
     // Run over all types and remap types with matching prefixes.
     // TODO(134732760): Use a more efficient data structure (prefix tree/trie).
@@ -169,7 +170,7 @@ public class PrefixRewritingNamingLens extends NamingLens {
     // If compiling the program using a desugared library, nothing needs to be printed.
     // If compiling the desugared library, the mapping needs to be printed.
     // When debugging the program, both mapping files need to be merged.
-    if (options.coreLibraryCompilation) {
+    if (options.isDesugaredLibraryCompilation()) {
       classRenaming.keySet().forEach(consumer);
     }
     namingLens.forAllRenamedTypes(consumer);

@@ -147,13 +147,14 @@ public final class InterfaceMethodRewriter {
   }
 
   private void initializeEmulatedInterfaceVariables() {
-    for (String interfaceName : options.emulateLibraryInterface.keySet()) {
+    Map<String, String> emulateLibraryInterface =
+        options.libraryConfiguration.getEmulateLibraryInterface();
+    for (String interfaceName : emulateLibraryInterface.keySet()) {
       DexType interfaceType =
           factory.createType(DescriptorUtils.javaTypeToDescriptor(interfaceName));
       DexType rewrittenType =
           factory.createType(
-              DescriptorUtils.javaTypeToDescriptor(
-                  options.emulateLibraryInterface.get(interfaceName)));
+              DescriptorUtils.javaTypeToDescriptor(emulateLibraryInterface.get(interfaceName)));
       emulatedInterfaces.put(interfaceType, rewrittenType);
       addRewritePrefix(interfaceType, rewrittenType.toSourceString());
       DexClass emulatedInterfaceClass = appView.definitionFor(interfaceType);
@@ -164,10 +165,10 @@ public final class InterfaceMethodRewriter {
         }
       }
     }
-    if (appView.options().coreLibraryCompilation) {
+    if (appView.options().isDesugaredLibraryCompilation()) {
       options.populateRetargetCoreLibMember(factory, retargetCoreMember);
     }
-    for (String dontRewrite : options.dontRewriteInvocations) {
+    for (String dontRewrite : options.libraryConfiguration.getDontRewriteInvocation()) {
       int index = dontRewrite.lastIndexOf('#');
       if (index <= 0 || index >= dontRewrite.length() - 1) {
         throw new CompilationError(
@@ -382,7 +383,7 @@ public final class InterfaceMethodRewriter {
           // Outside of core libraries, only library classes are rewritten. In core libraries,
           // some classes are present both as program and library class, and definitionFor
           // answers the program class so this is not true.
-          if (!appView.options().coreLibraryCompilation && !dexClass.isLibraryClass()) {
+          if (!appView.options().isDesugaredLibraryCompilation() && !dexClass.isLibraryClass()) {
             continue;
           }
           // We always rewrite interfaces, but classes are rewritten only if they are not already
@@ -548,11 +549,11 @@ public final class InterfaceMethodRewriter {
   }
 
   private boolean isInDesugaredLibrary(DexClass clazz) {
-    assert clazz.isLibraryClass() || options.coreLibraryCompilation;
+    assert clazz.isLibraryClass() || options.isDesugaredLibraryCompilation();
     if (emulatedInterfaces.containsKey(clazz.type)) {
       return true;
     }
-    return clazz.type.rewritingPrefixIn(options.rewritePrefix) != null;
+    return clazz.type.rewritingPrefixIn(options.libraryConfiguration.getRewritePrefix()) != null;
   }
 
   private boolean dontRewrite(DexMethod method) {
@@ -902,7 +903,9 @@ public final class InterfaceMethodRewriter {
       if (clazz.isInterface()) {
         DexType newType = inferEmulatedInterfaceName(clazz);
         if (newType != null
-            && clazz.type.rewritingPrefixIn(appView.options().rewritePrefix) == null) {
+            && clazz.type.rewritingPrefixIn(
+                    appView.options().libraryConfiguration.getRewritePrefix())
+                == null) {
           // We do not rewrite if it is already going to be rewritten using the a rewritingPrefix.
           addRewritePrefix(clazz.type, newType.toString());
           renameEmulatedInterfaces(clazz, newType);
@@ -982,7 +985,7 @@ public final class InterfaceMethodRewriter {
       Flavor flavour,
       ExecutorService executorService)
       throws ExecutionException {
-    if (appView.options().coreLibraryCompilation) {
+    if (appView.options().isDesugaredLibraryCompilation()) {
       generateEmulateInterfaceLibrary(builder);
     }
     duplicateEmulatedInterfaces();
@@ -1004,7 +1007,7 @@ public final class InterfaceMethodRewriter {
       appInfo.addSynthesizedClass(synthesizedClass);
     }
 
-    if (appView.options().coreLibraryCompilation) {
+    if (appView.options().isDesugaredLibraryCompilation()) {
       renameEmulatedInterfaces();
     }
 
@@ -1086,7 +1089,8 @@ public final class InterfaceMethodRewriter {
     // Companion/Emulated interface classes for desugared library won't be missing,
     // they are in the desugared library.
     if (prefixRewritingInterfaces.containsKey(missing.toString())
-        || missing.rewritingPrefixIn(appView.options().rewritePrefix) != null) {
+        || missing.rewritingPrefixIn(appView.options().libraryConfiguration.getRewritePrefix())
+            != null) {
       return;
     }
     DexMethod method = appView.graphLense().getOriginalMethodSignature(referencedFrom);

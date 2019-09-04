@@ -26,7 +26,9 @@ import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
-/** The L8 compiler. */
+/**
+ * The L8 compiler.
+ */
 @Keep
 public class L8 {
 
@@ -107,6 +109,10 @@ public class L8 {
 
       DexApplication app = new ApplicationReader(inputApp, options, timing).read(executor);
       app = new L8TreePruner(options).prune(app);
+      if (app.classes().size() == 0) {
+        // TODO(b/134732760): report error instead of fatalError.
+        throw options.reporter.fatalError("Empty desugared library.");
+      }
       AppInfo appInfo = new AppInfo(app);
 
       AppView<?> appView = AppView.createForL8(appInfo, options);
@@ -119,15 +125,15 @@ public class L8 {
       assert appView.appInfo() == appInfo;
 
       new CfApplicationWriter(
-              app,
-              appView,
-              options,
-              options.getMarker(Tool.L8),
-              null,
-              GraphLense.getIdentityLense(),
-              PrefixRewritingNamingLens.createPrefixRewritingNamingLens(
-                  options, converter.getAdditionalRewritePrefix()),
-              null)
+          app,
+          appView,
+          options,
+          options.getMarker(Tool.L8),
+          null,
+          GraphLense.getIdentityLense(),
+          PrefixRewritingNamingLens.createPrefixRewritingNamingLens(
+              options, converter.getAdditionalRewritePrefix()),
+          null)
           .write(options.getClassFileConsumer(), executor);
       options.printWarnings();
     } catch (ExecutionException e) {

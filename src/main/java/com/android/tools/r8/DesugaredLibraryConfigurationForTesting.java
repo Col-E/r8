@@ -4,19 +4,18 @@
 
 package com.android.tools.r8;
 
+import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.List;
 import java.util.Map;
 
 // TODO(134732760): This is still work in progress.
-// The SpecialLibraryConfiguration is a set of flags for experimentation
+// The DesugaredLibraryConfigurationForTesting is a set of flags for experimentation
 // with the desugared JDK libraries which should be replaced by a D8/R8
 // API level flag --coreLibraryDescriptor
-public class SpecialLibraryConfiguration {
+public class DesugaredLibraryConfigurationForTesting {
 
   private static Map<String, String> buildPrefixRewritingForProgramCompilationAllAndroid() {
     return ImmutableMap.<String, String>builder()
@@ -184,51 +183,67 @@ public class SpecialLibraryConfiguration {
         .build();
   }
 
-  public static void configureLibraryDesugaringForProgramCompilation(InternalOptions options) {
+  public static DesugaredLibraryConfiguration configureLibraryDesugaringForProgramCompilation(
+      int minApiLevel) {
     // TODO(b/134732760): Make assertions in D8/R8 commands.
-    if (options.minApiLevel >= AndroidApiLevel.O.getLevel()) {
-      options.reporter.warning(
-          new StringDiagnostic(
-              "Desugaring core libraries for Android O and over is possible but not required."));
+    if (minApiLevel >= AndroidApiLevel.O.getLevel()) {
+      return DesugaredLibraryConfiguration.empty();
     }
-    options.coreLibraryCompilation = false;
-    if (options.minApiLevel < AndroidApiLevel.N.getLevel()) {
-      if (options.minApiLevel < AndroidApiLevel.M.getLevel()) {
-        options.rewritePrefix = buildPrefixRewritingForProgramCompilationAllAndroid();
+    Map<String, String> rewritePrefix;
+    Map<String, String> retargetCoreLibMember;
+    Map<String, String> emulateLibraryInterface = ImmutableMap.of();
+    List<String> dontRewriteInvocations = ImmutableList.of();
+    if (minApiLevel < AndroidApiLevel.N.getLevel()) {
+      if (minApiLevel < AndroidApiLevel.M.getLevel()) {
+        rewritePrefix = buildPrefixRewritingForProgramCompilationAllAndroid();
       } else {
-        options.rewritePrefix = buildPrefixRewritingForProgramCompilationAndroidOPlus();
+        rewritePrefix = buildPrefixRewritingForProgramCompilationAndroidOPlus();
       }
-      options.retargetCoreLibMember =
-          buildRetargetCoreLibraryMemberForProgramCompilationAllAndroid();
-      options.emulateLibraryInterface = buildEmulateLibraryInterface();
-      options.dontRewriteInvocations = buildDontRewriteInvocations();
+      retargetCoreLibMember = buildRetargetCoreLibraryMemberForProgramCompilationAllAndroid();
+      emulateLibraryInterface = buildEmulateLibraryInterface();
+      dontRewriteInvocations = buildDontRewriteInvocations();
     } else {
-      options.rewritePrefix = buildPrefixRewritingForProgramCompilationAndroidNPlus();
-      options.retargetCoreLibMember =
-          buildRetargetCoreLibraryMemberForProgramCompilationAndroidNPlus();
+      rewritePrefix = buildPrefixRewritingForProgramCompilationAndroidNPlus();
+      retargetCoreLibMember = buildRetargetCoreLibraryMemberForProgramCompilationAndroidNPlus();
     }
+    return new DesugaredLibraryConfiguration(
+        false,
+        rewritePrefix,
+        emulateLibraryInterface,
+        retargetCoreLibMember,
+        ImmutableMap.of(),
+        dontRewriteInvocations);
   }
 
-  public static void configureLibraryDesugaringForLibraryCompilation(InternalOptions options) {
+  public static DesugaredLibraryConfiguration configureLibraryDesugaringForLibraryCompilation(
+      int minApiLevel) {
     // TODO(b/134732760): Make assertions in L8 commands.
-    if (options.minApiLevel >= AndroidApiLevel.O.getLevel()) {
-      options.reporter.warning(
-          new StringDiagnostic(
-              "Desugaring core libraries for Android O and over is possible but not required."));
+    if (minApiLevel >= AndroidApiLevel.O.getLevel()) {
+      return DesugaredLibraryConfiguration.empty();
     }
-    options.coreLibraryCompilation = true;
-    options.backportCoreLibraryMembers = buildBackportCoreLibraryMembers();
-    if (options.minApiLevel < AndroidApiLevel.N.getLevel()) {
-      options.retargetCoreLibMember = buildRetargetCoreLibraryMemberForCoreLibCompilation();
-      options.dontRewriteInvocations = buildDontRewriteInvocations();
-      options.emulateLibraryInterface = buildEmulateLibraryInterface();
-      if (options.minApiLevel < AndroidApiLevel.M.getLevel()) {
-        options.rewritePrefix = buildPrefixRewritingForCoreLibCompilationAllAndroid();
+    Map<String, String> rewritePrefix;
+    Map<String, String> retargetCoreLibMember = ImmutableMap.of();
+    Map<String, String> emulateLibraryInterface = ImmutableMap.of();
+    List<String> dontRewriteInvocations = ImmutableList.of();
+    Map<String, String> backportCoreLibraryMembers = buildBackportCoreLibraryMembers();
+    if (minApiLevel < AndroidApiLevel.N.getLevel()) {
+      retargetCoreLibMember = buildRetargetCoreLibraryMemberForCoreLibCompilation();
+      dontRewriteInvocations = buildDontRewriteInvocations();
+      emulateLibraryInterface = buildEmulateLibraryInterface();
+      if (minApiLevel < AndroidApiLevel.M.getLevel()) {
+        rewritePrefix = buildPrefixRewritingForCoreLibCompilationAllAndroid();
       } else {
-        options.rewritePrefix = buildPrefixRewritingForCoreLibCompilationAndroidOPlus();
+        rewritePrefix = buildPrefixRewritingForCoreLibCompilationAndroidOPlus();
       }
     } else {
-      options.rewritePrefix = buildPrefixRewritingForCoreLibCompilationAndroidNPlus();
+      rewritePrefix = buildPrefixRewritingForCoreLibCompilationAndroidNPlus();
     }
+    return new DesugaredLibraryConfiguration(
+        true,
+        rewritePrefix,
+        emulateLibraryInterface,
+        retargetCoreLibMember,
+        backportCoreLibraryMembers,
+        dontRewriteInvocations);
   }
 }

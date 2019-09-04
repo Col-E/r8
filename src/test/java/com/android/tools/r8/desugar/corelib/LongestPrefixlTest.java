@@ -8,8 +8,11 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -40,7 +43,16 @@ public class LongestPrefixlTest extends TestBase {
 
       testForD8()
           .addProgramFiles(inputJar)
-          .addOptionsModification(options -> options.rewritePrefix = x)
+          .addOptionsModification(
+              options ->
+                  options.libraryConfiguration =
+                      new DesugaredLibraryConfiguration(
+                          false,
+                          x,
+                          ImmutableMap.of(),
+                          ImmutableMap.of(),
+                          ImmutableMap.of(),
+                          ImmutableList.of()))
           .compile()
           .inspect(
               inspector -> {

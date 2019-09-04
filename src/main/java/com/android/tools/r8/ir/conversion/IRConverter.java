@@ -201,7 +201,7 @@ public class IRConverter {
             .map(prefix -> "L" + DescriptorUtils.getPackageBinaryNameFromJavaType(prefix))
             .map(options.itemFactory::createString)
             .collect(Collectors.toList());
-    if (options.coreLibraryCompilation) {
+    if (options.isDesugaredLibraryCompilation()) {
       // Specific L8 Settings.
       // BackportedMethodRewriter is needed for retarget core library members and backports.
       // InterfaceMethodRewriter is needed for emulated interfaces.

@@ -332,7 +332,7 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     if (minAPILevel.getLevel() < AndroidApiLevel.O.getLevel()) {
       // Use P to mimic current Android Studio.
       builder.addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P));
-      builder.addSpecialLibraryConfiguration("default");
+      builder.addDesugaredLibraryConfiguration("default");
       builder.setDesugaredLibraryKeepRuleConsumer(keepRuleConsumer);
     }
     return self();

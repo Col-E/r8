@@ -280,11 +280,14 @@ public class LambdaRewriter {
               knownLambdaClasses,
               lambdaClassType,
               new LambdaClass(this, accessedFrom, lambdaClassType, descriptor));
-      if (appView.options().coreLibraryCompilation) {
+      if (appView.options().isDesugaredLibraryCompilation()) {
         Pair<String, String> rewriting =
-            accessedFrom.rewritingPrefixIn(appView.options().rewritePrefix);
+            accessedFrom.rewritingPrefixIn(
+                appView.options().libraryConfiguration.getRewritePrefix());
         if (rewriting == null) {
-          rewriting = accessedFrom.rewritingPrefixIn(appView.options().emulateLibraryInterface);
+          rewriting =
+              accessedFrom.rewritingPrefixIn(
+                  appView.options().libraryConfiguration.getEmulateLibraryInterface());
         }
         if (rewriting != null) {
           addRewritingPrefix(rewriting, lambdaClassType);

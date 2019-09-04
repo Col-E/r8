@@ -5,6 +5,7 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
@@ -79,26 +80,34 @@ public final class D8Command extends BaseCompilerCommand {
       super(app);
     }
 
-    /** Add dex program-data. */
+    /**
+     * Add dex program-data.
+     */
     @Override
     public Builder addDexProgramData(byte[] data, Origin origin) {
       guard(() -> getAppBuilder().addDexProgramData(data, origin));
       return self();
     }
 
-    /** Add classpath file resources. These have @Override to ensure binary compatibility. */
+    /**
+     * Add classpath file resources. These have @Override to ensure binary compatibility.
+     */
     @Override
     public Builder addClasspathFiles(Path... files) {
       return super.addClasspathFiles(files);
     }
 
-    /** Add classpath file resources. */
+    /**
+     * Add classpath file resources.
+     */
     @Override
     public Builder addClasspathFiles(Collection<Path> files) {
       return super.addClasspathFiles(files);
     }
 
-    /** Add classfile resources provider for class-path resources. */
+    /**
+     * Add classfile resources provider for class-path resources.
+     */
     @Override
     public Builder addClasspathResourceProvider(ClassFileResourceProvider provider) {
       return super.addClasspathResourceProvider(provider);
@@ -125,7 +134,9 @@ public final class D8Command extends BaseCompilerCommand {
       return self();
     }
 
-    /** Get the consumer that will receive dependency information for desugaring. */
+    /**
+     * Get the consumer that will receive dependency information for desugaring.
+     */
     public DesugarGraphConsumer getDesugarGraphConsumer() {
       return desugarGraphConsumer;
     }
@@ -174,14 +185,8 @@ public final class D8Command extends BaseCompilerCommand {
                   + " and above");
         }
       }
-      if (getSpecialLibraryConfiguration() != null) {
-        if (getDisableDesugaring()) {
-          reporter.error("Using special library configuration requires desugaring to be enabled");
-        }
-        if (!getSpecialLibraryConfiguration().equals("default")) {
-          reporter
-              .error("D8 currently requires the special library configuration to be \"default\"");
-        }
+      if (hasDesugaredLibraryConfiguration() && getDisableDesugaring()) {
+        reporter.error("Using desugared library configuration requires desugaring to be enabled");
       }
       super.validate();
     }
@@ -194,6 +199,10 @@ public final class D8Command extends BaseCompilerCommand {
 
       intermediate |= getProgramConsumer() instanceof DexFilePerClassFileConsumer;
 
+      DexItemFactory factory = new DexItemFactory();
+      DesugaredLibraryConfiguration libraryConfiguration =
+          getDesugaredLibraryConfiguration(factory, false, getMinApiLevel());
+
       return new D8Command(
           getAppBuilder().build(),
           getMode(),
@@ -204,11 +213,12 @@ public final class D8Command extends BaseCompilerCommand {
           !getDisableDesugaring(),
           intermediate,
           isOptimizeMultidexForLinearAlloc(),
-          getSpecialLibraryConfiguration(),
           getIncludeClassesChecksum(),
           getDexClassChecksumFilter(),
           getDesugarGraphConsumer(),
-          desugaredLibraryKeepRuleConsumer);
+          desugaredLibraryKeepRuleConsumer,
+          libraryConfiguration,
+          factory);
     }
   }
 
@@ -217,6 +227,8 @@ public final class D8Command extends BaseCompilerCommand {
   private final boolean intermediate;
   private final DesugarGraphConsumer desugarGraphConsumer;
   private final StringConsumer desugaredLibraryKeepRuleConsumer;
+  private final DesugaredLibraryConfiguration libraryConfiguration;
+  private final DexItemFactory factory;
 
   public static Builder builder() {
     return new Builder();
@@ -268,11 +280,12 @@ public final class D8Command extends BaseCompilerCommand {
       boolean enableDesugaring,
       boolean intermediate,
       boolean optimizeMultidexForLinearAlloc,
-      String specialLibraryConfiguration,
       boolean encodeChecksum,
       BiPredicate<String, Long> dexClassChecksumFilter,
       DesugarGraphConsumer desugarGraphConsumer,
-      StringConsumer desugaredLibraryKeepRuleConsumer) {
+      StringConsumer desugaredLibraryKeepRuleConsumer,
+      DesugaredLibraryConfiguration libraryConfiguration,
+      DexItemFactory factory) {
     super(
         inputApp,
         mode,
@@ -282,12 +295,13 @@ public final class D8Command extends BaseCompilerCommand {
         diagnosticsHandler,
         enableDesugaring,
         optimizeMultidexForLinearAlloc,
-        specialLibraryConfiguration,
         encodeChecksum,
         dexClassChecksumFilter);
     this.intermediate = intermediate;
     this.desugarGraphConsumer = desugarGraphConsumer;
     this.desugaredLibraryKeepRuleConsumer = desugaredLibraryKeepRuleConsumer;
+    this.libraryConfiguration = libraryConfiguration;
+    this.factory = factory;
   }
 
   private D8Command(boolean printHelp, boolean printVersion) {
@@ -295,15 +309,13 @@ public final class D8Command extends BaseCompilerCommand {
     intermediate = false;
     desugarGraphConsumer = null;
     desugaredLibraryKeepRuleConsumer = null;
-  }
-
-  private void configureLibraryDesugaring(InternalOptions options) {
-    SpecialLibraryConfiguration.configureLibraryDesugaringForProgramCompilation(options);
+    libraryConfiguration = null;
+    factory = null;
   }
 
   @Override
   InternalOptions getInternalOptions() {
-    InternalOptions internal = new InternalOptions(new DexItemFactory(), getReporter());
+    InternalOptions internal = new InternalOptions(factory, getReporter());
     assert !internal.debug;
     internal.debug = getMode() == CompilationMode.DEBUG;
     internal.programConsumer = getProgramConsumer();
@@ -342,15 +354,7 @@ public final class D8Command extends BaseCompilerCommand {
     internal.enableInheritanceClassInDexDistributor = isOptimizeMultidexForLinearAlloc();
 
     // TODO(134732760): This is still work in progress.
-    assert internal.rewritePrefix.isEmpty();
-    assert internal.emulateLibraryInterface.isEmpty();
-    assert internal.retargetCoreLibMember.isEmpty();
-    assert internal.backportCoreLibraryMembers.isEmpty();
-    assert internal.dontRewriteInvocations.isEmpty();
-    if (getSpecialLibraryConfiguration() != null) {
-      configureLibraryDesugaring(internal);
-    }
-
+    internal.libraryConfiguration = libraryConfiguration;
     internal.desugaredLibraryKeepRuleConsumer = desugaredLibraryKeepRuleConsumer;
 
     return internal;

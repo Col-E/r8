@@ -65,6 +65,7 @@ public class NeverMergeCoreLibDesugarClasses extends CoreLibDesugarTestBase {
 
   @Test
   public void testDesugaredCoreLibrary() throws Exception {
+    Assume.assumeTrue(parameters.getApiLevel().getLevel() < 26);
     try {
       testForD8()
           .addInnerClasses(NeverMergeCoreLibDesugarClasses.class)

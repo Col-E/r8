@@ -79,13 +79,14 @@ public final class BackportedMethodRewriter {
     this.converter = converter;
     this.factory = appView.dexItemFactory();
     this.rewritableMethods = new RewritableMethods(appView);
-    for (String coreLibMember : appView.options().backportCoreLibraryMembers.keySet()) {
+    Map<String, String> backportCoreLibraryMembers =
+        appView.options().libraryConfiguration.getBackportCoreLibraryMember();
+    for (String coreLibMember : backportCoreLibraryMembers.keySet()) {
       DexType extraCoreLibMemberType =
           factory.createType(DescriptorUtils.javaTypeToDescriptor(coreLibMember));
       DexType coreLibMemberType =
           factory.createType(
-              DescriptorUtils.javaTypeToDescriptor(
-                  appView.options().backportCoreLibraryMembers.get(coreLibMember)));
+              DescriptorUtils.javaTypeToDescriptor(backportCoreLibraryMembers.get(coreLibMember)));
       this.backportCoreLibraryMembers.put(extraCoreLibMemberType, coreLibMemberType);
     }
   }
@@ -251,7 +252,7 @@ public final class BackportedMethodRewriter {
         initializeAndroidOMethodProviders(factory);
       }
 
-      if (options.rewritePrefix.containsKey("java.util.Optional")
+      if (options.libraryConfiguration.getRewritePrefix().containsKey("java.util.Optional")
           || options.minApiLevel >= AndroidApiLevel.N.getLevel()) {
         // These are currently not implemented at any API level in Android.
         // They however require the Optional class to be present, either through
@@ -264,7 +265,7 @@ public final class BackportedMethodRewriter {
       initializeJava9MethodProviders(factory);
       initializeJava11MethodProviders(factory);
 
-      if (!options.retargetCoreLibMember.isEmpty()) {
+      if (!options.libraryConfiguration.getRetargetCoreLibMember().isEmpty()) {
         initializeRetargetCoreLibraryMembers(appView);
       }
     }
@@ -1075,7 +1076,8 @@ public final class BackportedMethodRewriter {
       String unqualifiedName =
           DescriptorUtils.getUnqualifiedClassNameFromDescriptor(clazz.toString());
       // Avoid duplicate class names between core lib dex file and program dex files.
-      String coreLibUtilitySuffix = appView.options().coreLibraryCompilation ? "$corelib" : "";
+      String coreLibUtilitySuffix =
+          appView.options().isDesugaredLibraryCompilation() ? "$corelib" : "";
       String descriptor =
           UTILITY_CLASS_DESCRIPTOR_PREFIX
               + '$'

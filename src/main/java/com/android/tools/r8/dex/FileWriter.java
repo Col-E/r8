@@ -222,7 +222,7 @@ public class FileWriter {
 
     // A consumer can manage the generated keep rules.
     if (options.desugaredLibraryKeepRuleConsumer != null && !desugaredLibraryCodeToKeep.isNop()) {
-      assert !options.coreLibraryCompilation;
+      assert !options.isDesugaredLibraryCompilation();
       desugaredLibraryCodeToKeep.generateKeepRules(options);
     }
 

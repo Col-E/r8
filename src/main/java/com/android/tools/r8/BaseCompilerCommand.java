@@ -3,7 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
+import com.android.tools.r8.ir.desugar.DesugaredLibraryConfigurationParser;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
@@ -33,7 +38,6 @@ public abstract class BaseCompilerCommand extends BaseCommand {
   private final boolean enableDesugaring;
   private final boolean includeClassesChecksum;
   private final boolean optimizeMultidexForLinearAlloc;
-  private String specialLibraryConfiguration;
   private final BiPredicate<String, Long> dexClassChecksumFilter;
 
   BaseCompilerCommand(boolean printHelp, boolean printVersion) {
@@ -58,7 +62,6 @@ public abstract class BaseCompilerCommand extends BaseCommand {
       Reporter reporter,
       boolean enableDesugaring,
       boolean optimizeMultidexForLinearAlloc,
-      String specialLibraryConfiguration,
       boolean includeClassesChecksum,
       BiPredicate<String, Long> dexClassChecksumFilter) {
     super(app);
@@ -71,7 +74,6 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     this.reporter = reporter;
     this.enableDesugaring = enableDesugaring;
     this.optimizeMultidexForLinearAlloc = optimizeMultidexForLinearAlloc;
-    this.specialLibraryConfiguration = specialLibraryConfiguration;
     this.includeClassesChecksum = includeClassesChecksum;
     this.dexClassChecksumFilter = dexClassChecksumFilter;
   }
@@ -132,10 +134,6 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     return reporter;
   }
 
-  public String getSpecialLibraryConfiguration() {
-    return specialLibraryConfiguration;
-  }
-
   /**
    * Base builder for compilation commands.
    *
@@ -156,7 +154,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     private CompilationMode mode;
     private int minApiLevel = 0;
     private boolean disableDesugaring = false;
-    private String specialLibraryConfiguration;
+    private List<StringResource> desugaredLibraryConfigurationResources = new ArrayList<>();
     private boolean includeClassesChecksum = false;
     private boolean lookupLibraryBeforeProgram = true;
     private boolean optimizeMultidexForLinearAlloc = false;
@@ -225,8 +223,8 @@ public abstract class BaseCompilerCommand extends BaseCommand {
      * Get the program consumer.
      *
      * @return The currently set program consumer, null if no program consumer or output
-     *     path-and-mode is set, e.g., neither {@link #setProgramConsumer} nor
-     *     {@link #setOutput} have been called.
+     *     path-and-mode is set, e.g., neither {@link #setProgramConsumer} nor {@link #setOutput}
+     *     have been called.
      */
     public ProgramConsumer getProgramConsumer() {
       return programConsumer;
@@ -429,14 +427,54 @@ public abstract class BaseCompilerCommand extends BaseCommand {
       return disableDesugaring;
     }
 
-    /** Special library configuration */
-    public B addSpecialLibraryConfiguration(String configuration) {
-      this.specialLibraryConfiguration = configuration;
+    /** Desugared library configuration */
+    // Configuration "default" is for testing only and support will be dropped.
+    public B addDesugaredLibraryConfiguration(String configuration) {
+      this.desugaredLibraryConfigurationResources.add(
+          StringResource.fromString(configuration, Origin.unknown()));
       return self();
     }
 
-    public String getSpecialLibraryConfiguration() {
-      return specialLibraryConfiguration;
+    /** Desugared library configuration */
+    public B addDesugaredLibraryConfiguration(StringResource configuration) {
+      this.desugaredLibraryConfigurationResources.add(configuration);
+      return self();
+    }
+
+    DesugaredLibraryConfiguration getDesugaredLibraryConfiguration(
+        DexItemFactory factory, boolean libraryCompilation, int minAPILevel) {
+      if (desugaredLibraryConfigurationResources.isEmpty()) {
+        return DesugaredLibraryConfiguration.empty();
+      }
+      if (desugaredLibraryConfigurationResources.size() > 1) {
+        throw new CompilationError("Only one desugared library configuration is supported.");
+      }
+      StringResource desugaredLibraryConfigurationResource =
+          desugaredLibraryConfigurationResources.get(0);
+
+      // TODO(b/134732760): Remove the following once the default testing hack is not supported
+      // anymore.
+      try {
+        if (desugaredLibraryConfigurationResource.getString().equals("default")) {
+          if (libraryCompilation) {
+            return DesugaredLibraryConfigurationForTesting
+                .configureLibraryDesugaringForLibraryCompilation(minAPILevel);
+          }
+          return DesugaredLibraryConfigurationForTesting
+              .configureLibraryDesugaringForProgramCompilation(minAPILevel);
+        }
+      } catch (ResourceException e) {
+        throw new RuntimeException(e);
+      }
+
+      DesugaredLibraryConfigurationParser libraryParser =
+          new DesugaredLibraryConfigurationParser(
+              factory, getReporter(), libraryCompilation, getMinApiLevel());
+      return libraryParser.parse(desugaredLibraryConfigurationResource);
+    }
+
+    boolean hasDesugaredLibraryConfiguration(){
+      return desugaredLibraryConfigurationResources.size() == 1;
     }
 
     /** Encodes checksum for each class when generating dex files. */
@@ -482,12 +520,11 @@ public abstract class BaseCompilerCommand extends BaseCommand {
         }
         reporter.error(builder.toString());
       }
-      if (specialLibraryConfiguration != null) {
+      if (!desugaredLibraryConfigurationResources.isEmpty()) {
         reporter.warning(
-            new StringDiagnostic("Special library configuration is still work in progress"));
+            new StringDiagnostic("Desugared library configuration is still work in progress"));
       }
       super.validate();
     }
   }
-
 }

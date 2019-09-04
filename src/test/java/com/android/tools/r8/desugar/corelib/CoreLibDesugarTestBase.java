@@ -74,7 +74,7 @@ public class CoreLibDesugarTestBase extends TestBase {
               .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
               .addProgramFiles(ToolHelper.getDesugarJDKLibs())
               .addProgramFiles(additionalProgramFiles)
-              .addSpecialLibraryConfiguration("default")
+              .addDesugaredLibraryConfiguration("default")
               .setMinApiLevel(apiLevel.getLevel())
               .setOutput(desugaredLib, OutputMode.DexIndexed);
       if (shrink) {

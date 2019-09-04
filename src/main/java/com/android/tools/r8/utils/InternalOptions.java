@@ -32,6 +32,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
@@ -43,7 +44,6 @@ import com.android.tools.r8.utils.IROrdering.NondeterministicIROrdering;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.io.IOException;
@@ -307,8 +307,13 @@ public class InternalOptions {
     throw new UnsupportedOperationException("Cannot find internal output mode.");
   }
 
+  public boolean isDesugaredLibraryCompilation() {
+    return libraryConfiguration.isLibraryCompilation();
+  }
+
   public boolean shouldKeepStackMapTable() {
-    return coreLibraryCompilation || getProguardConfiguration().getKeepAttributes().stackMapTable;
+    return isDesugaredLibraryCompilation()
+        || getProguardConfiguration().getKeepAttributes().stackMapTable;
   }
 
   public boolean isGeneratingDex() {
@@ -439,15 +444,9 @@ public class InternalOptions {
    */
   public boolean enableInheritanceClassInDexDistributor = true;
 
-  public boolean coreLibraryCompilation = false;
-  public Map<String, String> rewritePrefix = ImmutableMap.of();
-  public Map<String, String> emulateLibraryInterface = ImmutableMap.of();
-  public Map<String, String> retargetCoreLibMember = ImmutableMap.of();
-  public Map<String, String> backportCoreLibraryMembers = ImmutableMap.of();
-  public List<String> dontRewriteInvocations = ImmutableList.of();
-
   public void populateRetargetCoreLibMember(
       DexItemFactory factory, Map<DexString, Map<DexType, DexType>> dest) {
+    Map<String, String> retargetCoreLibMember = libraryConfiguration.getRetargetCoreLibMember();
     for (String inputString : retargetCoreLibMember.keySet()) {
       int index = inputString.lastIndexOf('#');
       if (index <= 0 || index >= inputString.length() - 1) {
@@ -605,6 +604,10 @@ public class InternalOptions {
   // If null, no configuration information needs to be printed.
   // If non-null, configuration must be passed to the consumer.
   public StringConsumer configurationConsumer = null;
+
+  // If null, no desugaring of library is performed.
+  // If non null it contains flags describing library desugaring.
+  public DesugaredLibraryConfiguration libraryConfiguration = DesugaredLibraryConfiguration.empty();
 
   // If null, no keep rules are recorded.
   // If non null it records desugared library APIs used by the program.
@@ -1011,6 +1014,7 @@ public class InternalOptions {
         new ProguardIfRuleEvaluationData();
 
     public static class ProguardIfRuleEvaluationData {
+
       public int numberOfProguardIfRuleClassEvaluations = 0;
       public int numberOfProguardIfRuleMemberEvaluations = 0;
     }

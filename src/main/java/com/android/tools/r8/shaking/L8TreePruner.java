@@ -36,14 +36,16 @@ public class L8TreePruner {
   }
 
   private void initializeEmulatedInterfaces() {
-    for (String rewrittenName : options.emulateLibraryInterface.keySet()) {
+    for (String rewrittenName :
+        options.libraryConfiguration.getEmulateLibraryInterface().keySet()) {
       emulatedInterfaces.add(
           options.itemFactory.createType(DescriptorUtils.javaTypeToDescriptor(rewrittenName)));
     }
   }
 
   private void initializeBackports() {
-    for (String backportName : options.backportCoreLibraryMembers.keySet()) {
+    for (String backportName :
+        options.libraryConfiguration.getBackportCoreLibraryMember().keySet()) {
       backports.add(
           options.itemFactory.createType(DescriptorUtils.javaTypeToDescriptor(backportName)));
     }
@@ -56,7 +58,7 @@ public class L8TreePruner {
     }
     List<DexProgramClass> toKeep = new ArrayList<>();
     for (DexProgramClass aClass : app.classes()) {
-      if (aClass.type.rewritingPrefixIn(options.rewritePrefix) != null
+      if (aClass.type.rewritingPrefixIn(options.libraryConfiguration.getRewritePrefix()) != null
           || emulatedInterfaces.contains(aClass.type)
           || interfaceImplementsEmulatedInterface(aClass, typeMap)) {
         toKeep.add(aClass);

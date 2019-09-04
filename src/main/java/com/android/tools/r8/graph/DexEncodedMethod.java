@@ -690,7 +690,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
           || (arity == dexCode.getDebugInfo().parameters.length);
     } else {
       // TODO(b/134732760): Patch Cf debug info.
-      assert appView.options().coreLibraryCompilation;
+      assert appView.options().isDesugaredLibraryCompilation();
     }
   }
 

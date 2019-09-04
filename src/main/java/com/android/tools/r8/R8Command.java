@@ -7,6 +7,7 @@ import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.origin.StandardOutOrigin;
@@ -283,7 +284,6 @@ public final class R8Command extends BaseCompilerCommand {
      * Set a consumer for receiving the proguard configuration information.
      *
      * <p>Note that any subsequent calls to this method will replace the previous setting.
-     *
      * @param proguardConfigurationConsumer
      */
     public Builder setProguardConfigurationConsumer(StringConsumer proguardConfigurationConsumer) {
@@ -293,8 +293,6 @@ public final class R8Command extends BaseCompilerCommand {
 
     /**
      * Set a consumer for receiving kept-graph events.
-     *
-     * @param graphConsumer
      */
     public Builder setKeptGraphConsumer(GraphConsumer graphConsumer) {
       this.keptGraphConsumer = graphConsumer;
@@ -303,8 +301,6 @@ public final class R8Command extends BaseCompilerCommand {
 
     /**
      * Set a consumer for receiving kept-graph events for the content of the main-dex output.
-     *
-     * @param graphConsumer
      */
     public Builder setMainDexKeptGraphConsumer(GraphConsumer graphConsumer) {
       this.mainDexKeptGraphConsumer = graphConsumer;
@@ -398,14 +394,8 @@ public final class R8Command extends BaseCompilerCommand {
       if (getProgramConsumer() instanceof ClassFileConsumer && isMinApiLevelSet()) {
         reporter.error("R8 does not support --min-api when compiling to class files");
       }
-      if (getSpecialLibraryConfiguration() != null) {
-        if (getDisableDesugaring()) {
-          reporter.error("Using special library configuration requires desugaring to be enabled");
-        }
-        if (!getSpecialLibraryConfiguration().equals("default")) {
-          reporter
-              .error("R8 currently requires the special library configuration to be \"default\"");
-        }
+      if (hasDesugaredLibraryConfiguration() && getDisableDesugaring()) {
+        reporter.error("Using desugared library configuration requires desugaring to be enabled");
       }
       super.validate();
     }
@@ -431,6 +421,9 @@ public final class R8Command extends BaseCompilerCommand {
         parser.parse(mainDexRules);
         mainDexKeepRules = parser.getConfig().getRules();
       }
+
+      DesugaredLibraryConfiguration libraryConfiguration =
+          getDesugaredLibraryConfiguration(factory, false, getMinApiLevel());
 
       ProguardConfigurationParser parser =
           new ProguardConfigurationParser(factory, reporter, allowTestProguardOptions);
@@ -472,17 +465,17 @@ public final class R8Command extends BaseCompilerCommand {
             }
           };
 
-      getAppBuilder().getProgramResourceProviders()
-          .stream()
+      getAppBuilder().getProgramResourceProviders().stream()
           .map(ProgramResourceProvider::getDataResourceProvider)
           .filter(Objects::nonNull)
-          .forEach(dataResourceProvider -> {
-              try {
-                dataResourceProvider.accept(embeddedProguardConfigurationVisitor);
-              } catch (ResourceException e) {
-                reporter.error(new ExceptionDiagnostic(e));
-              }
-          });
+          .forEach(
+              dataResourceProvider -> {
+                try {
+                  dataResourceProvider.accept(embeddedProguardConfigurationVisitor);
+                } catch (ResourceException e) {
+                  reporter.error(new ExceptionDiagnostic(e));
+                }
+              });
 
       if (disableTreeShaking) {
         configurationBuilder.disableShrinking();
@@ -526,10 +519,10 @@ public final class R8Command extends BaseCompilerCommand {
               mainDexKeptGraphConsumer,
               syntheticProguardRulesConsumer,
               isOptimizeMultidexForLinearAlloc(),
-              getSpecialLibraryConfiguration(),
               getIncludeClassesChecksum(),
               getDexClassChecksumFilter(),
-              desugaredLibraryKeepRuleConsumer);
+              desugaredLibraryKeepRuleConsumer,
+              libraryConfiguration);
 
       return command;
     }
@@ -610,6 +603,7 @@ public final class R8Command extends BaseCompilerCommand {
   private final GraphConsumer mainDexKeptGraphConsumer;
   private final Consumer<List<ProguardConfigurationRule>> syntheticProguardRulesConsumer;
   private final StringConsumer desugaredLibraryKeepRuleConsumer;
+  private final DesugaredLibraryConfiguration libraryConfiguration;
 
   /** Get a new {@link R8Command.Builder}. */
   public static Builder builder() {
@@ -681,10 +675,10 @@ public final class R8Command extends BaseCompilerCommand {
       GraphConsumer mainDexKeptGraphConsumer,
       Consumer<List<ProguardConfigurationRule>> syntheticProguardRulesConsumer,
       boolean optimizeMultidexForLinearAlloc,
-      String specialLibraryConfiguration,
       boolean encodeChecksum,
       BiPredicate<String, Long> dexClassChecksumFilter,
-      StringConsumer desugaredLibraryKeepRuleConsumer) {
+      StringConsumer desugaredLibraryKeepRuleConsumer,
+      com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration libraryConfiguration) {
     super(
         inputApp,
         mode,
@@ -694,7 +688,6 @@ public final class R8Command extends BaseCompilerCommand {
         reporter,
         enableDesugaring,
         optimizeMultidexForLinearAlloc,
-        specialLibraryConfiguration,
         encodeChecksum,
         dexClassChecksumFilter);
     assert proguardConfiguration != null;
@@ -714,6 +707,7 @@ public final class R8Command extends BaseCompilerCommand {
     this.mainDexKeptGraphConsumer = mainDexKeptGraphConsumer;
     this.syntheticProguardRulesConsumer = syntheticProguardRulesConsumer;
     this.desugaredLibraryKeepRuleConsumer = desugaredLibraryKeepRuleConsumer;
+    this.libraryConfiguration = libraryConfiguration;
   }
 
   private R8Command(boolean printHelp, boolean printVersion) {
@@ -733,6 +727,7 @@ public final class R8Command extends BaseCompilerCommand {
     mainDexKeptGraphConsumer = null;
     syntheticProguardRulesConsumer = null;
     desugaredLibraryKeepRuleConsumer = null;
+    libraryConfiguration = null;
   }
 
   /** Get the enable-tree-shaking state. */
@@ -761,12 +756,13 @@ public final class R8Command extends BaseCompilerCommand {
     // shaking for removing the lambda classes which should be revised later.
     internal.enableLambdaMerging = getEnableTreeShaking();
     assert !internal.ignoreMissingClasses;
-    internal.ignoreMissingClasses = proguardConfiguration.isIgnoreWarnings()
-        // TODO(70706667): We probably only want this in Proguard compatibility mode.
-        || (forceProguardCompatibility
-            && !proguardConfiguration.isOptimizing()
-            && !internal.isShrinking()
-            && !internal.isMinifying());
+    internal.ignoreMissingClasses =
+        proguardConfiguration.isIgnoreWarnings()
+            // TODO(70706667): We probably only want this in Proguard compatibility mode.
+            || (forceProguardCompatibility
+                && !proguardConfiguration.isOptimizing()
+                && !internal.isShrinking()
+                && !internal.isMinifying());
 
     assert !internal.verbose;
     internal.mainDexKeepRules = mainDexKeepRules;
@@ -847,22 +843,10 @@ public final class R8Command extends BaseCompilerCommand {
     internal.enableInheritanceClassInDexDistributor = isOptimizeMultidexForLinearAlloc();
 
     // TODO(134732760): This is still work in progress.
-    assert internal.rewritePrefix.isEmpty();
-    assert internal.emulateLibraryInterface.isEmpty();
-    assert internal.retargetCoreLibMember.isEmpty();
-    assert internal.backportCoreLibraryMembers.isEmpty();
-    assert internal.dontRewriteInvocations.isEmpty();
-    if (getSpecialLibraryConfiguration() != null) {
-      configureLibraryDesugaring(internal);
-    }
-
+    internal.libraryConfiguration = libraryConfiguration;
     internal.desugaredLibraryKeepRuleConsumer = desugaredLibraryKeepRuleConsumer;
 
     return internal;
-  }
-
-  private void configureLibraryDesugaring(InternalOptions options) {
-    SpecialLibraryConfiguration.configureLibraryDesugaringForProgramCompilation(options);
   }
 
   private static StringConsumer wrapStringConsumer(

@@ -519,7 +519,7 @@ final class LambdaClass {
       // The only case where we do Lambda desugaring with Cf to Cf is in L8.
       // If the compilation is not coreLibraryCompilation, then the assertion
       // implMethodHolder != null may fail, hence the assertion.
-      assert rewriter.converter.appView.options().coreLibraryCompilation;
+      assert rewriter.converter.appView.options().isDesugaredLibraryCompilation();
       DexMethod implMethod = descriptor.implHandle.asMethod();
       DexClass implMethodHolder = definitionFor(implMethod.holder);
       if (implMethodHolder == null) {
@@ -527,7 +527,8 @@ final class LambdaClass {
             .converter
             .appView
             .options()
-            .backportCoreLibraryMembers
+            .libraryConfiguration
+            .getBackportCoreLibraryMember()
             .containsKey(implMethod.holder.toString());
         return false;
       }

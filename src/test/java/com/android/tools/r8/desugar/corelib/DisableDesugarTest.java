@@ -37,11 +37,11 @@ public class DisableDesugarTest extends CoreLibDesugarTestBase {
     messages.assertWarningsCount(1);
     assertThat(
         messages.getWarnings().get(0).getDiagnosticMessage(),
-        containsString("Special library configuration is still work in progress"));
+        containsString("Desugared library configuration is still work in progress"));
     messages.assertErrorsCount(1);
     assertThat(
         messages.getErrors().get(0).getDiagnosticMessage(),
-        containsString("Using special library configuration requires desugaring to be enabled"));
+        containsString("Using desugared library configuration requires desugaring to be enabled"));
   }
 
   @Test

@@ -56,7 +56,7 @@ public class MergingJ$Test extends Jdk11CoreLibTestBase {
         L8Command.builder()
             .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .addProgramFiles(ToolHelper.getDesugarJDKLibs())
-            .addSpecialLibraryConfiguration("default")
+            .addDesugaredLibraryConfiguration("default")
             .setMinApiLevel(AndroidApiLevel.B.getLevel())
             .setOutput(outputDex, OutputMode.DexIndexed)
             .build());
@@ -71,7 +71,7 @@ public class MergingJ$Test extends Jdk11CoreLibTestBase {
             .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .addProgramFiles(JDK_11_JAVA_BASE_EXTENSION_COMPILED_FILES)
             .addClasspathFiles(ToolHelper.getDesugarJDKLibs())
-            .addSpecialLibraryConfiguration("default")
+            .addDesugaredLibraryConfiguration("default")
             .setMinApiLevel(AndroidApiLevel.B.getLevel())
             .setOutput(outputCf, OutputMode.DexIndexed)
             .build());
