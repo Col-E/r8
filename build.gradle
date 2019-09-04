@@ -317,6 +317,7 @@ def cloudDependencies = [
                 "proguard/proguard5.2.1",
                 "proguard/proguard6.0.1",
                 "r8",
+                "r8mappings"
         ],
         // All dex-vms have a fixed OS of Linux, as they are only supported on Linux, and will be run in a Docker
         // container on other platforms where supported.
@@ -473,22 +474,6 @@ task downloadDeps {
                 dependsOn "${getDownloadDepsTaskName(entry.key, entryFile)}"
             }
         }
-    }
-}
-
-task downloadMappingFilesForRetraceTests {
-    def hashes = [
-            "82710798b61fd70910d76d23a71e436356becb66",
-            "dab96bbe5948133f0ae6e0a88fc133464421cf47"
-    ]
-    outputs.files hashes.each { hash -> file("${buildDir}/retrace/${hash}-r8lib.jar.map") }
-    hashes.each { hash ->
-        def outputDir = new File("${buildDir}/retrace")
-        outputDir.mkdirs()
-        def output = new File("${buildDir}/retrace/${hash}-r8lib.jar.map")
-        output.createNewFile()
-        new URL("http://storage.googleapis.com/r8-releases/raw/master/${hash}/r8lib.jar.map")
-                .withInputStream { i -> output.withOutputStream { it << i } }
     }
 }
 
@@ -1961,7 +1946,6 @@ test {
                     "Art only runs on Linux and tests requiring Art will be skipped")
         }
         dependsOn downloadDeps
-        dependsOn downloadMappingFilesForRetraceTests
         dependsOn buildExamples
         dependsOn buildExamplesKotlin
         dependsOn buildKotlinR8TestResources
