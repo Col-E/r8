@@ -936,10 +936,8 @@ public final class BackportedMethodRewriter {
     }
 
     private void initializeRetargetCoreLibraryMembers(AppView<?> appView) {
-      Map<DexString, Map<DexType, DexType>> retargetCoreLibMember = new IdentityHashMap<>();
-      appView
-          .options()
-          .populateRetargetCoreLibMember(appView.dexItemFactory(), retargetCoreLibMember);
+      Map<DexString, Map<DexType, DexType>> retargetCoreLibMember =
+          appView.options().desugaredLibraryConfiguration.getRetargetCoreLibMember();
       for (DexString methodName : retargetCoreLibMember.keySet()) {
         for (DexType inType : retargetCoreLibMember.get(methodName).keySet()) {
           DexClass typeClass = appView.definitionFor(inType);

@@ -29,7 +29,6 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
@@ -54,7 +53,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -443,29 +441,6 @@ public class InternalOptions {
    * because it's adding classes in the main dex to satisfy also DexOpt constraints.
    */
   public boolean enableInheritanceClassInDexDistributor = true;
-
-  public void populateRetargetCoreLibMember(
-      DexItemFactory factory, Map<DexString, Map<DexType, DexType>> dest) {
-    Map<String, String> retargetCoreLibMember =
-        desugaredLibraryConfiguration.getRetargetCoreLibMember();
-    for (String inputString : retargetCoreLibMember.keySet()) {
-      int index = inputString.lastIndexOf('#');
-      if (index <= 0 || index >= inputString.length() - 1) {
-        throw new CompilationError(
-            "Invalid retarget core library member specification (# position).");
-      }
-      DexString methodName = factory.createString(inputString.substring(index + 1));
-      dest.putIfAbsent(methodName, new IdentityHashMap<>());
-      Map<DexType, DexType> typeMap = dest.get(methodName);
-      DexType originalType =
-          factory.createType(DescriptorUtils.javaTypeToDescriptor(inputString.substring(0, index)));
-      DexType finalType =
-          factory.createType(
-              DescriptorUtils.javaTypeToDescriptor(retargetCoreLibMember.get(inputString)));
-      assert !typeMap.containsKey(originalType);
-      typeMap.put(originalType, finalType);
-    }
-  }
 
   public LineNumberOptimization lineNumberOptimization = LineNumberOptimization.ON;
 

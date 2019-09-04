@@ -102,7 +102,6 @@ public final class InterfaceMethodRewriter {
   private final Map<DexType, DexType> emulatedInterfaces = new IdentityHashMap<>();
   private final List<Pair<DexType, DexString>> dontRewriteCoreInvocations = new ArrayList<>();
   private final Map<String, String> prefixRewritingInterfaces = new IdentityHashMap<>();
-  private final Map<DexString, Map<DexType, DexType>> retargetCoreMember = new IdentityHashMap<>();
   // The emulatedMethod set is there to avoid doing the emulated look-up too often.
   private final Set<DexString> emulatedMethods = Sets.newIdentityHashSet();
   private ConcurrentHashMap<DexMethod, DexType> nearestEmulatedInterfaceCache =
@@ -164,9 +163,6 @@ public final class InterfaceMethodRewriter {
           emulatedMethods.add(encodedMethod.method.name);
         }
       }
-    }
-    if (appView.options().isDesugaredLibraryCompilation()) {
-      options.populateRetargetCoreLibMember(factory, retargetCoreMember);
     }
     for (String dontRewrite : options.desugaredLibraryConfiguration.getDontRewriteInvocation()) {
       int index = dontRewrite.lastIndexOf('#');
@@ -681,16 +677,18 @@ public final class InterfaceMethodRewriter {
         List<Pair<DexType, DexMethod>> extraDispatchCases = new ArrayList<>();
         // In practice, there is usually a single case (except for tests),
         // so we do not bother to make the following loop more clever.
-        for (DexString methodName : retargetCoreMember.keySet()) {
+        Map<DexString, Map<DexType, DexType>> retargetCoreLibMember =
+            options.desugaredLibraryConfiguration.getRetargetCoreLibMember();
+        for (DexString methodName : retargetCoreLibMember.keySet()) {
           if (method.method.name == methodName) {
-            for (DexType inType : retargetCoreMember.get(methodName).keySet()) {
+            for (DexType inType : retargetCoreLibMember.get(methodName).keySet()) {
               DexClass inClass = appView.definitionFor(inType);
               if (inClass != null && implementsInterface(inClass, theInterface.type)) {
                 extraDispatchCases.add(
                     new Pair<>(
                         inType,
                         factory.createMethod(
-                            retargetCoreMember.get(methodName).get(inType),
+                            retargetCoreLibMember.get(methodName).get(inType),
                             factory.protoWithDifferentFirstParameter(
                                 originalCompanionMethod.proto, inType),
                             method.method.name)));

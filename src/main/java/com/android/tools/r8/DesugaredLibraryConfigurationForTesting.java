@@ -4,6 +4,7 @@
 
 package com.android.tools.r8;
 
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
@@ -184,8 +185,7 @@ public class DesugaredLibraryConfigurationForTesting {
   }
 
   public static DesugaredLibraryConfiguration configureLibraryDesugaringForProgramCompilation(
-      int minApiLevel) {
-    // TODO(b/134732760): Make assertions in D8/R8 commands.
+      int minApiLevel, DexItemFactory factory) {
     if (minApiLevel >= AndroidApiLevel.O.getLevel()) {
       return DesugaredLibraryConfiguration.empty();
     }
@@ -206,7 +206,8 @@ public class DesugaredLibraryConfigurationForTesting {
       rewritePrefix = buildPrefixRewritingForProgramCompilationAndroidNPlus();
       retargetCoreLibMember = buildRetargetCoreLibraryMemberForProgramCompilationAndroidNPlus();
     }
-    return new DesugaredLibraryConfiguration(
+    return createDesugaredLibraryConfiguration(
+        factory,
         false,
         rewritePrefix,
         emulateLibraryInterface,
@@ -216,8 +217,7 @@ public class DesugaredLibraryConfigurationForTesting {
   }
 
   public static DesugaredLibraryConfiguration configureLibraryDesugaringForLibraryCompilation(
-      int minApiLevel) {
-    // TODO(b/134732760): Make assertions in L8 commands.
+      int minApiLevel, DexItemFactory factory) {
     if (minApiLevel >= AndroidApiLevel.O.getLevel()) {
       return DesugaredLibraryConfiguration.empty();
     }
@@ -238,12 +238,45 @@ public class DesugaredLibraryConfigurationForTesting {
     } else {
       rewritePrefix = buildPrefixRewritingForCoreLibCompilationAndroidNPlus();
     }
-    return new DesugaredLibraryConfiguration(
+    return createDesugaredLibraryConfiguration(
+        factory,
         true,
         rewritePrefix,
         emulateLibraryInterface,
         retargetCoreLibMember,
         backportCoreLibraryMembers,
         dontRewriteInvocations);
+  }
+
+  public static DesugaredLibraryConfiguration createDesugaredLibraryConfiguration(
+      DexItemFactory factory,
+      boolean libraryCompilation,
+      Map<String, String> rewritePrefix,
+      Map<String, String> emulateLibraryInterface,
+      Map<String, String> retargetCoreLibMember,
+      Map<String, String> backportCoreLibraryMembers,
+      List<String> dontRewriteInvocations) {
+    DesugaredLibraryConfiguration.Builder builder = DesugaredLibraryConfiguration.builder(factory);
+    if (libraryCompilation) {
+      builder.setLibraryCompilation();
+    } else {
+      builder.setProgramCompilation();
+    }
+    for (String key : rewritePrefix.keySet()) {
+      builder.putRewritePrefix(key, rewritePrefix.get(key));
+    }
+    for (String key : emulateLibraryInterface.keySet()) {
+      builder.putEmulateLibraryInterface(key, emulateLibraryInterface.get(key));
+    }
+    for (String key : retargetCoreLibMember.keySet()) {
+      builder.putRetargetCoreLibMember(key, retargetCoreLibMember.get(key));
+    }
+    for (String key : backportCoreLibraryMembers.keySet()) {
+      builder.putBackportCoreLibraryMember(key, backportCoreLibraryMembers.get(key));
+    }
+    for (String key : dontRewriteInvocations) {
+      builder.addDontRewriteInvocation(key);
+    }
+    return builder.build();
   }
 }

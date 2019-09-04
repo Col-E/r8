@@ -458,10 +458,10 @@ public abstract class BaseCompilerCommand extends BaseCommand {
         if (desugaredLibraryConfigurationResource.getString().equals("default")) {
           if (libraryCompilation) {
             return DesugaredLibraryConfigurationForTesting
-                .configureLibraryDesugaringForLibraryCompilation(minAPILevel);
+                .configureLibraryDesugaringForLibraryCompilation(minAPILevel, factory);
           }
           return DesugaredLibraryConfigurationForTesting
-              .configureLibraryDesugaringForProgramCompilation(minAPILevel);
+              .configureLibraryDesugaringForProgramCompilation(minAPILevel, factory);
         }
       } catch (ResourceException e) {
         throw new RuntimeException(e);
@@ -473,8 +473,8 @@ public abstract class BaseCompilerCommand extends BaseCommand {
       return libraryParser.parse(desugaredLibraryConfigurationResource);
     }
 
-    boolean hasDesugaredLibraryConfiguration(){
-      return desugaredLibraryConfigurationResources.size() == 1;
+    boolean hasDesugaredLibraryConfiguration() {
+      return !desugaredLibraryConfigurationResources.isEmpty();
     }
 
     /** Encodes checksum for each class when generating dex files. */
@@ -520,7 +520,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
         }
         reporter.error(builder.toString());
       }
-      if (!desugaredLibraryConfigurationResources.isEmpty()) {
+      if (hasDesugaredLibraryConfiguration()) {
         reporter.warning(
             new StringDiagnostic("Desugared library configuration is still work in progress"));
       }

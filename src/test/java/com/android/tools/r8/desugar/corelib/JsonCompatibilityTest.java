@@ -13,6 +13,8 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryConfigurationParser;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
@@ -38,13 +40,13 @@ public class JsonCompatibilityTest extends TestBase {
 
   @Test
   public void testCompatibilityProgram() {
-    InternalOptions options1 = new InternalOptions(new DexItemFactory(), new Reporter());
+    DexItemFactory factory = new DexItemFactory();
+    InternalOptions options1 = new InternalOptions(factory, new Reporter());
     options1.minApiLevel = parameters.getApiLevel().getLevel();
     options1.desugaredLibraryConfiguration =
         DesugaredLibraryConfigurationForTesting.configureLibraryDesugaringForProgramCompilation(
-            parameters.getApiLevel().getLevel());
+            parameters.getApiLevel().getLevel(), factory);
 
-    DexItemFactory factory = new DexItemFactory();
     Reporter reporter = new Reporter();
     InternalOptions options2 = new InternalOptions(factory, reporter);
     options2.minApiLevel = parameters.getApiLevel().getLevel();
@@ -62,13 +64,13 @@ public class JsonCompatibilityTest extends TestBase {
 
   @Test
   public void testCompatibilityLibrary() {
-    InternalOptions options1 = new InternalOptions(new DexItemFactory(), new Reporter());
+    DexItemFactory factory = new DexItemFactory();
+    InternalOptions options1 = new InternalOptions(factory, new Reporter());
     options1.minApiLevel = parameters.getApiLevel().getLevel();
     options1.desugaredLibraryConfiguration =
         DesugaredLibraryConfigurationForTesting.configureLibraryDesugaringForLibraryCompilation(
-            parameters.getApiLevel().getLevel());
+            parameters.getApiLevel().getLevel(), factory);
 
-    DexItemFactory factory = new DexItemFactory();
     Reporter reporter = new Reporter();
     InternalOptions options2 = new InternalOptions(factory, reporter);
     options2.minApiLevel = parameters.getApiLevel().getLevel();
@@ -95,7 +97,7 @@ public class JsonCompatibilityTest extends TestBase {
     assertDictEquals(
         libraryConfiguration1.getBackportCoreLibraryMember(),
         libraryConfiguration2.getBackportCoreLibraryMember());
-    assertDictEquals(
+    assertRetargetEquals(
         libraryConfiguration1.getRetargetCoreLibMember(),
         libraryConfiguration2.getRetargetCoreLibMember());
     assertEquals(
@@ -103,9 +105,19 @@ public class JsonCompatibilityTest extends TestBase {
         libraryConfiguration1.getDontRewriteInvocation().size());
   }
 
-  private void assertDictEquals(Map<String, String> map1, Map<String, String> map2) {
+  private void assertRetargetEquals(
+      Map<DexString, Map<DexType, DexType>> retarget1,
+      Map<DexString, Map<DexType, DexType>> retarget2) {
+    assertEquals(retarget1.size(), retarget2.size());
+    for (DexString dexString : retarget1.keySet()) {
+      assert retarget2.containsKey(dexString);
+      assertDictEquals(retarget1.get(dexString), retarget2.get(dexString));
+    }
+  }
+
+  private <E> void assertDictEquals(Map<E, E> map1, Map<E, E> map2) {
     assertEquals(map1.size(), map2.size());
-    for (String key : map1.keySet()) {
+    for (E key : map1.keySet()) {
       assertTrue(map2.containsKey(key) && map1.get(key).equals(map2.get(key)));
     }
   }

@@ -29,7 +29,7 @@ public class DesugaredLibraryConfigurationParser {
       boolean libraryCompilation,
       int minAPILevel) {
     this.reporter = reporter;
-    this.configurationBuilder = DesugaredLibraryConfiguration.builder(dexItemFactory, reporter);
+    this.configurationBuilder = DesugaredLibraryConfiguration.builder(dexItemFactory);
     this.minAPILevel = minAPILevel;
     this.libraryCompilation = libraryCompilation;
     if (libraryCompilation) {
