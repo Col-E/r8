@@ -102,8 +102,12 @@ public abstract class DexApplication {
 
   public Iterable<DexProgramClass> classesWithDeterministicOrder() {
     List<DexProgramClass> classes = new ArrayList<>(programClasses());
-    // To keep the order deterministic, we sort the classes by their type, which is a unique key.
-    classes.sort((a, b) -> a.type.slowCompareTo(b.type));
+    // We never actually sort by anything but the DexType, this is just here in case we ever change
+    // that.
+    if (options.testing.deterministicSortingBasedOnDexType) {
+      // To keep the order deterministic, we sort the classes by their type, which is a unique key.
+      classes.sort((a, b) -> a.type.slowCompareTo(b.type));
+    }
     return classes;
   }
 

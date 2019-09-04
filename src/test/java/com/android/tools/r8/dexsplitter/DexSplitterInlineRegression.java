@@ -1,0 +1,97 @@
+// Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
+// for details. All rights reserved. Use of this source code is governed by a
+// BSD-style license that can be found in the LICENSE file.
+
+package com.android.tools.r8.dexsplitter;
+
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
+
+import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.R8FullTestBuilder;
+import com.android.tools.r8.R8TestCompileResult;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.google.common.collect.ImmutableSet;
+import java.io.IOException;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
+
+@RunWith(Parameterized.class)
+public class DexSplitterInlineRegression extends SplitterTestBase {
+
+  public static final String EXPECTED = StringUtils.lines("42");
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection params() {
+    return getTestParameters().withAllRuntimes().build();
+  }
+
+  private final TestParameters parameters;
+
+  public DexSplitterInlineRegression(TestParameters parameters) {
+    this.parameters = parameters;
+  }
+
+  @Test
+  public void testInliningFromFeature() throws Exception {
+    Predicate<R8TestCompileResult> ensureGetFromFeatureGone =
+        r8TestCompileResult -> {
+          // Ensure that getFromFeature from FeatureClass is inlined into the run method.
+          try {
+            ClassSubject clazz = r8TestCompileResult.inspector().clazz(FeatureClass.class);
+            return clazz.uniqueMethodWithName("getFromFeature").isAbsent();
+          } catch (IOException | ExecutionException ex) {
+            throw new RuntimeException("Found getFromFeature in FeatureClass");
+          }
+        };
+    Consumer<R8FullTestBuilder> configurator =
+        r8FullTestBuilder -> r8FullTestBuilder.enableMergeAnnotations().noMinification();
+    ProcessResult processResult =
+        testDexSplitter(
+            parameters,
+            ImmutableSet.of(BaseSuperClass.class),
+            ImmutableSet.of(FeatureClass.class),
+            FeatureClass.class,
+            EXPECTED,
+            ensureGetFromFeatureGone,
+            configurator);
+    // We expect art to fail on this with the dex splitter, see b/122902374
+    assertNotEquals(processResult.exitCode, 0);
+    assertTrue(processResult.stderr.contains("NoClassDefFoundError"));
+  }
+
+  @NeverMerge
+  public abstract static class BaseSuperClass implements RunInterface {
+    public void run() {
+      System.out.println(getFromFeature());
+    }
+
+    public abstract String getFromFeature();
+  }
+
+  public static class FeatureClass extends BaseSuperClass {
+    String s;
+
+    public FeatureClass() {
+      if (System.currentTimeMillis() < 2) {
+        s = "43";
+      } else {
+        s = "42";
+      }
+    }
+
+    @Override
+    public String getFromFeature() {
+      return s;
+    }
+  }
+}

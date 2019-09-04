@@ -394,6 +394,11 @@ public class TestBase {
     return jarTestClasses(Arrays.asList(classes), null);
   }
 
+  /** Create a temporary JAR file containing the specified test classes. */
+  protected Path jarTestClasses(Iterable<Class<?>> classes) throws IOException {
+    return jarTestClasses(classes, null);
+  }
+
   /** Create a temporary JAR file containing the specified test classes and data resources. */
   protected Path jarTestClasses(Iterable<Class<?>> classes, List<DataResource> dataResources)
       throws IOException {

@@ -981,6 +981,7 @@ public class InternalOptions {
     public boolean enableStatefulLambdaCreateInstanceMethod = false;
     public int basicBlockMuncherIterationLimit = NO_LIMIT;
     public boolean dontReportFailingCheckDiscarded = false;
+    public boolean deterministicSortingBasedOnDexType = true;
 
     // Flag to turn on/off JDK11+ nest-access control even when not required (Cf backend)
     public boolean enableForceNestBasedAccessDesugaringForTest = false;

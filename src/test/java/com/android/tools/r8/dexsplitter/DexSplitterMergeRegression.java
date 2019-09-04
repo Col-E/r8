@@ -1,0 +1,121 @@
+// Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
+// for details. All rights reserved. Use of this source code is governed by a
+// BSD-style license that can be found in the LICENSE file.
+
+package com.android.tools.r8.dexsplitter;
+
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
+
+import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.R8FullTestBuilder;
+import com.android.tools.r8.R8TestCompileResult;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.google.common.collect.ImmutableSet;
+import java.io.IOException;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
+
+@RunWith(Parameterized.class)
+public class DexSplitterMergeRegression extends SplitterTestBase {
+
+  public static final String EXPECTED = StringUtils.lines("42", "foobar");
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection params() {
+    return getTestParameters().withAllRuntimes().build();
+  }
+
+  private final TestParameters parameters;
+
+  public DexSplitterMergeRegression(TestParameters parameters) {
+    this.parameters = parameters;
+  }
+
+  @Test
+  public void testInliningFromFeature() throws Exception {
+    // Static merging is based on sorting order, we assert that we merged to the feature.
+    Predicate<R8TestCompileResult> ensureMergingToFeature =
+        r8TestCompileResult -> {
+          try {
+            ClassSubject clazz = r8TestCompileResult.inspector().clazz(AFeatureWithStatic.class);
+            return clazz.allMethods().size() == 2
+                && clazz.uniqueMethodWithName("getBase42").isPresent()
+                && clazz.uniqueMethodWithName("getFoobar").isPresent();
+          } catch (IOException | ExecutionException ex) {
+            throw new RuntimeException("Failed lookup up AFeatureWithStatic");
+          }
+        };
+    Consumer<R8FullTestBuilder> configurator =
+        r8FullTestBuilder ->
+            r8FullTestBuilder
+                .enableMergeAnnotations()
+                .enableInliningAnnotations()
+                .noMinification()
+                .addOptionsModification(o -> o.testing.deterministicSortingBasedOnDexType = true);
+    ProcessResult processResult =
+        testDexSplitter(
+            parameters,
+            ImmutableSet.of(BaseClass.class, BaseWithStatic.class),
+            ImmutableSet.of(FeatureClass.class, AFeatureWithStatic.class),
+            FeatureClass.class,
+            EXPECTED,
+            ensureMergingToFeature,
+            configurator);
+    // We expect art to fail on this with the dex splitter.
+    assertNotEquals(processResult.exitCode, 0);
+    assertTrue(processResult.stderr.contains("NoClassDefFoundError"));
+  }
+
+  @NeverMerge
+  public static class BaseClass implements RunInterface {
+
+    @NeverInline
+    public void run() {
+      System.out.println(BaseWithStatic.getBase42());
+    }
+  }
+
+  public static class BaseWithStatic {
+
+    @NeverInline
+    public static int getBase42() {
+      if (System.currentTimeMillis() < 2) {
+        return 43;
+      } else {
+        return 42;
+      }
+    }
+  }
+
+  public static class FeatureClass extends BaseClass {
+
+    public void run() {
+      super.run();
+      System.out.println(AFeatureWithStatic.getFoobar());
+    }
+  }
+
+  // Name is important, see predicate in tests/
+  public static class AFeatureWithStatic {
+
+    @NeverInline
+    public static String getFoobar() {
+      if (System.currentTimeMillis() < 2) {
+        return "barFoo";
+      } else {
+        return "foobar";
+      }
+    }
+  }
+}
