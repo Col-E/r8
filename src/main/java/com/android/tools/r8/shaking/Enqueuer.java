@@ -792,17 +792,14 @@ public class Enqueuer {
         return false;
       }
 
-      // Must mark the field as targeted even if it does not exist.
-      markFieldAsTargeted(field);
-
       DexEncodedField encodedField = appInfo.resolveField(field);
       if (encodedField == null) {
         reportMissingField(field);
-        return false;
       }
 
-      DexProgramClass clazz = getProgramClassOrNull(encodedField.field.holder);
-      if (clazz == null) {
+      if (encodedField == null || getProgramClassOrNull(encodedField.field.holder) == null) {
+        // Must mark the field as targeted even if it does not exist.
+        markFieldAsTargeted(field);
         return false;
       }
 
@@ -832,17 +829,14 @@ public class Enqueuer {
         return false;
       }
 
-      // Must mark the field as targeted even if it does not exist.
-      markFieldAsTargeted(field);
-
       DexEncodedField encodedField = appInfo.resolveField(field);
       if (encodedField == null) {
         reportMissingField(field);
-        return false;
       }
 
-      DexProgramClass clazz = getProgramClassOrNull(encodedField.field.holder);
-      if (clazz == null) {
+      if (encodedField == null || getProgramClassOrNull(encodedField.field.holder) == null) {
+        // Must mark the field as targeted even if it does not exist.
+        markFieldAsTargeted(field);
         return false;
       }
 
@@ -861,6 +855,7 @@ public class Enqueuer {
           return false;
         }
       }
+
       // If it is written outside of the <clinit> of its enclosing class, record it.
       boolean isWrittenOutsideEnclosingStaticInitializer =
           currentMethod.method.holder != encodedField.field.holder
