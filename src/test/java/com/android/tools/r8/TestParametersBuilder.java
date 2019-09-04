@@ -25,6 +25,7 @@ public class TestParametersBuilder {
   // Predicate describing which test parameters are applicable to the test.
   // Built via the methods found below. Defaults to no applicable parameters, i.e., the emtpy set.
   private Predicate<TestParameters> filter = param -> false;
+  private boolean hasDexRuntimeFilter = false;
 
   private TestParametersBuilder() {}
 
@@ -42,6 +43,7 @@ public class TestParametersBuilder {
   }
 
   private TestParametersBuilder withDexRuntimeFilter(Predicate<DexVm.Version> predicate) {
+    hasDexRuntimeFilter = true;
     return withFilter(
         p -> p.isDexRuntime() && predicate.test(p.getRuntime().asDex().getVm().getVersion()));
   }
@@ -173,6 +175,7 @@ public class TestParametersBuilder {
   }
 
   public TestParametersCollection build() {
+    assert !enableApiLevels || hasDexRuntimeFilter;
     return new TestParametersCollection(
         getAvailableRuntimes()
             .flatMap(this::createParameters)
