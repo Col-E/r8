@@ -36,10 +36,7 @@ public class NestMethodInlinedTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters()
-        .withCfRuntimesStartingFromIncluding(CfVm.JDK11)
-        .withAllApiLevels()
-        .build();
+    return getTestParameters().withCfRuntimesStartingFromIncluding(CfVm.JDK11).build();
   }
 
   @Test
@@ -55,7 +52,6 @@ public class NestMethodInlinedTest extends TestBase {
               options.enableVerticalClassMerging = false;
             })
         .enableInliningAnnotations("nesthostexample")
-        .setMinApi(parameters.getApiLevel())
         .addProgramFiles(toCompile)
         .compile()
         .inspect(this::assertMethodsInlined)

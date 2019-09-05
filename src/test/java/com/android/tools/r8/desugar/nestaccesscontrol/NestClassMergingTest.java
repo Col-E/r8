@@ -43,7 +43,6 @@ public class NestClassMergingTest extends TestBase {
   public static TestParametersCollection data() {
     return getTestParameters()
         .withCfRuntimesStartingFromIncluding(CfVm.JDK11)
-        .withAllApiLevels()
         .build();
   }
 
@@ -97,7 +96,6 @@ public class NestClassMergingTest extends TestBase {
                   options.enableNestReduction = false;
                 })
             .enableInliningAnnotations("nesthostexample")
-            .setMinApi(parameters.getApiLevel())
             .addProgramFiles(bothNestsAndOutsideClassToCompile)
             .compile()
             .inspect(NestAttributesUpdateTest::assertNestAttributesCorrect);

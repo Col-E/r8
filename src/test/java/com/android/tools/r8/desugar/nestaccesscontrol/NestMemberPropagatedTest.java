@@ -33,11 +33,7 @@ public class NestMemberPropagatedTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters()
-        .withCfRuntimesStartingFromIncluding(CfVm.JDK11)
-        .withDexRuntimes()
-        .withAllApiLevels()
-        .build();
+    return getTestParameters().withCfRuntimesStartingFromIncluding(CfVm.JDK11).build();
   }
 
   @Test
@@ -50,7 +46,6 @@ public class NestMemberPropagatedTest extends TestBase {
             options -> {
               options.enableClassInlining = false;
             })
-        .setMinApi(parameters.getApiLevel())
         .addProgramFiles(toCompile)
         .compile()
         .inspect(this::assertMemberPropagated)

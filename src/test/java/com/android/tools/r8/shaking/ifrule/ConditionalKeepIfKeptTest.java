@@ -32,7 +32,8 @@ public class ConditionalKeepIfKeptTest extends TestBase {
   @Parameterized.Parameters(name = "{0}, marker:{1}")
   public static List<Object[]> data() {
     return buildParameters(
-        getTestParameters().withCfRuntimes().withAllApiLevels().build(), BooleanUtils.values());
+        getTestParameters().withCfRuntimes().withDexRuntimes().withAllApiLevels().build(),
+        BooleanUtils.values());
   }
 
   public ConditionalKeepIfKeptTest(TestParameters parameters, boolean useMarker) {

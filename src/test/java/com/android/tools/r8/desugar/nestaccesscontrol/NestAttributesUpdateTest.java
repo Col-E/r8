@@ -42,10 +42,7 @@ public class NestAttributesUpdateTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters()
-        .withCfRuntimesStartingFromIncluding(CfVm.JDK11)
-        .withAllApiLevels()
-        .build();
+    return getTestParameters().withCfRuntimesStartingFromIncluding(CfVm.JDK11).build();
   }
 
   @Test
@@ -90,7 +87,6 @@ public class NestAttributesUpdateTest extends TestBase {
     testForR8(parameters.getBackend())
         .addKeepMainRule(actualMainClassName)
         .minification(minification)
-        .setMinApi(parameters.getApiLevel())
         .addOptionsModification(
             options -> {
               // Disable optimizations else additional classes are removed since they become unused.
