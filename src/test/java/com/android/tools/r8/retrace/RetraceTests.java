@@ -21,6 +21,7 @@ import com.android.tools.r8.retrace.stacktraces.FileNameExtensionStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InvalidStackTrace;
 import com.android.tools.r8.retrace.stacktraces.NullStackTrace;
 import com.android.tools.r8.retrace.stacktraces.ObfucatedExceptionClassStackTrace;
+import com.android.tools.r8.retrace.stacktraces.RetraceAssertionErrorStackTrace;
 import com.android.tools.r8.retrace.stacktraces.StackTraceForTest;
 import com.android.tools.r8.retrace.stacktraces.SuppressedStackTrace;
 import com.google.common.collect.ImmutableList;
@@ -90,6 +91,11 @@ public class RetraceTests extends TestBase {
     assertThat(
         diagnosticsHandler.getWarnings().get(0).getDiagnosticMessage(),
         containsString(". . . 7 more"));
+  }
+
+  @Test
+  public void testAssertionErrorInRetrace() {
+    runRetraceTest(new RetraceAssertionErrorStackTrace());
   }
 
   @Test
