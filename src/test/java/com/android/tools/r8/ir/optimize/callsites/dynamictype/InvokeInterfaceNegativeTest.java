@@ -1,7 +1,7 @@
 // Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package com.android.tools.r8.ir.optimize.callsites.nullability;
+package com.android.tools.r8.ir.optimize.callsites.dynamictype;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -22,7 +22,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class InvokeVirtualNegativeTest extends TestBase {
+public class InvokeInterfaceNegativeTest extends TestBase {
   private static final Class<?> MAIN = Main.class;
 
   @Parameterized.Parameters(name = "{0}")
@@ -32,96 +32,76 @@ public class InvokeVirtualNegativeTest extends TestBase {
 
   private final TestParameters parameters;
 
-  public InvokeVirtualNegativeTest(TestParameters parameters) {
+  public InvokeInterfaceNegativeTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .addInnerClasses(InvokeVirtualNegativeTest.class)
+        .addInnerClasses(InvokeInterfaceNegativeTest.class)
         .addKeepMainRule(MAIN)
         .enableMergeAnnotations()
         .enableClassInliningAnnotations()
         .enableInliningAnnotations()
+        .addOptionsModification(o -> {
+          // To prevent invoke-interface from being rewritten to invoke-virtual w/ a single target.
+          o.enableDevirtualization = false;
+        })
         .setMinApi(parameters.getRuntime())
         .run(parameters.getRuntime(), MAIN)
-        .assertSuccessWithOutputLines("null", "A", "null", "B")
+        .assertSuccessWithOutputLines("Sub1", "Sub2")
         .inspect(this::inspect);
   }
 
   private void inspect(CodeInspector inspector) {
+    ClassSubject i = inspector.clazz(I.class);
+    assertThat(i, isPresent());
+
     ClassSubject a = inspector.clazz(A.class);
     assertThat(a, isPresent());
 
     MethodSubject a_m = a.uniqueMethodWithName("m");
     assertThat(a_m, isPresent());
-    // Should not optimize branches since the nullability of `arg` is unsure.
+    // Should not optimize branches since the type of `arg` is unsure.
     assertTrue(a_m.streamInstructions().anyMatch(InstructionSubject::isIf));
 
-    ClassSubject b = inspector.clazz(B.class);
-    assertThat(b, isPresent());
+    // Should not optimize away Sub1, since it's still referred/instantiated.
+    ClassSubject sub1 = inspector.clazz(Sub1.class);
+    assertThat(sub1, isPresent());
 
-    MethodSubject b_m = b.uniqueMethodWithName("m");
-    assertThat(b_m, isPresent());
-    // Should not optimize branches since the nullability of `arg` is unsure.
-    assertTrue(a_m.streamInstructions().anyMatch(InstructionSubject::isIf));
+    // Should not optimize away Sub2, since it's still referred/instantiated.
+    ClassSubject sub2 = inspector.clazz(Sub2.class);
+    assertThat(sub2, isPresent());
   }
+
+  static class Base {}
+  static class Sub1 extends Base {}
+  static class Sub2 extends Base {}
 
   @NeverMerge
-  @NeverClassInline
-  static class A {
-    @NeverInline
-    void m(Object arg) {
-      // Technically same as String#valueOf.
-      if (arg != null) {
-        System.out.println(arg.toString());
-      } else {
-        System.out.println("null");
-      }
-    }
-
-    @NeverInline
-    @Override
-    public String toString() {
-      return "A";
-    }
+  interface I {
+    void m(Base arg);
   }
 
   @NeverClassInline
-  static class B extends A {
+  static class A implements I {
     @NeverInline
     @Override
-    void m(Object arg) {
-      // Same as A#m.
-      if (arg != null) {
-        System.out.println(arg.toString());
-      } else {
-        System.out.println("null");
+    public void m(Base arg) {
+      if (arg instanceof Sub1) {
+        System.out.println("Sub1");
+      } else if (arg instanceof Sub2) {
+        System.out.println("Sub2");
       }
-    }
-
-    @NeverInline
-    @Override
-    public String toString() {
-      return "B";
     }
   }
 
   static class Main {
     public static void main(String... args) {
-      A a = new A();
-      test(a); // calls A.m() with null.
-      a.m(a);  // calls A.m() with non-null instance.
-
-      B b = new B();
-      test(b); // calls B.m() with null.
-      b.m(b);  // calls B.m() with non-null instance
-    }
-
-    @NeverInline
-    static void test(A arg) {
-      arg.m(null);
+      I i = new A();
+      i.m(new Sub1()); // calls A.m() with Sub1.
+      i.m(new Sub2()); // calls A.m() with Sub2.
     }
   }
 }

@@ -5,7 +5,7 @@ package com.android.tools.r8.ir.optimize.callsites.nullability;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
@@ -59,7 +59,7 @@ public class InvokeVirtualPositiveTest extends TestBase {
     MethodSubject a_m = a.uniqueMethodWithName("m");
     assertThat(a_m, isPresent());
     // Can optimize branches since `arg` is definitely not null.
-    assertEquals(0, a_m.streamInstructions().filter(InstructionSubject::isIf).count());
+    assertTrue(a_m.streamInstructions().noneMatch(InstructionSubject::isIf));
 
     ClassSubject b = inspector.clazz(B.class);
     assertThat(b, isPresent());
@@ -67,7 +67,7 @@ public class InvokeVirtualPositiveTest extends TestBase {
     MethodSubject b_m = b.uniqueMethodWithName("m");
     assertThat(b_m, isPresent());
     // Can optimize branches since `arg` is definitely not null.
-    assertEquals(0, b_m.streamInstructions().filter(InstructionSubject::isIf).count());
+    assertTrue(b_m.streamInstructions().noneMatch(InstructionSubject::isIf));
   }
 
   @NeverMerge

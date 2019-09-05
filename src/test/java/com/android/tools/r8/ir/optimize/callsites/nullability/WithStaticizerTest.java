@@ -6,7 +6,7 @@ package com.android.tools.r8.ir.optimize.callsites.nullability;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
@@ -62,7 +62,7 @@ public class WithStaticizerTest extends TestBase {
     MethodSubject foo = host.uniqueMethodWithName("foo");
     assertThat(foo, isPresent());
     // TODO(b/139246447): Can optimize branches since `arg` is definitely not null.
-    assertNotEquals(0, foo.streamInstructions().filter(InstructionSubject::isIf).count());
+    assertTrue(foo.streamInstructions().anyMatch(InstructionSubject::isIf));
   }
 
   @NeverClassInline

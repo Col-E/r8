@@ -5,7 +5,7 @@ package com.android.tools.r8.ir.optimize.callsites.nullability;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
@@ -53,7 +53,7 @@ public class InvokeStaticNegativeTest extends TestBase {
     MethodSubject test = main.uniqueMethodWithName("test");
     assertThat(test, isPresent());
     // Should not optimize branches since the nullability of `arg` is unsure.
-    assertNotEquals(0, test.streamInstructions().filter(InstructionSubject::isIf).count());
+    assertTrue(test.streamInstructions().anyMatch(InstructionSubject::isIf));
   }
 
   static class Main {

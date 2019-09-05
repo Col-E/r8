@@ -1,7 +1,7 @@
 // Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package com.android.tools.r8.ir.optimize.callsites.nullability;
+package com.android.tools.r8.ir.optimize.callsites.dynamictype;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -22,7 +22,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class InvokeVirtualNegativeTest extends TestBase {
+public class InvokeVirtualPositiveTest extends TestBase {
   private static final Class<?> MAIN = Main.class;
 
   @Parameterized.Parameters(name = "{0}")
@@ -32,21 +32,21 @@ public class InvokeVirtualNegativeTest extends TestBase {
 
   private final TestParameters parameters;
 
-  public InvokeVirtualNegativeTest(TestParameters parameters) {
+  public InvokeVirtualPositiveTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .addInnerClasses(InvokeVirtualNegativeTest.class)
+        .addInnerClasses(InvokeVirtualPositiveTest.class)
         .addKeepMainRule(MAIN)
         .enableMergeAnnotations()
         .enableClassInliningAnnotations()
         .enableInliningAnnotations()
         .setMinApi(parameters.getRuntime())
         .run(parameters.getRuntime(), MAIN)
-        .assertSuccessWithOutputLines("null", "A", "null", "B")
+        .assertSuccessWithOutputLines("A:Sub1", "B:Sub1")
         .inspect(this::inspect);
   }
 
@@ -56,7 +56,7 @@ public class InvokeVirtualNegativeTest extends TestBase {
 
     MethodSubject a_m = a.uniqueMethodWithName("m");
     assertThat(a_m, isPresent());
-    // Should not optimize branches since the nullability of `arg` is unsure.
+    // TODO(b/139246447): Can optimize branches since the type of `arg` is Sub1.
     assertTrue(a_m.streamInstructions().anyMatch(InstructionSubject::isIf));
 
     ClassSubject b = inspector.clazz(B.class);
@@ -64,27 +64,25 @@ public class InvokeVirtualNegativeTest extends TestBase {
 
     MethodSubject b_m = b.uniqueMethodWithName("m");
     assertThat(b_m, isPresent());
-    // Should not optimize branches since the nullability of `arg` is unsure.
-    assertTrue(a_m.streamInstructions().anyMatch(InstructionSubject::isIf));
+    // TODO(b/139246447): Can optimize branches since the type of `arg` is Sub1.
+    assertTrue(b_m.streamInstructions().anyMatch(InstructionSubject::isIf));
   }
+
+  @NeverMerge
+  static class Base {}
+  static class Sub1 extends Base {}
+  static class Sub2 extends Base {}
 
   @NeverMerge
   @NeverClassInline
   static class A {
     @NeverInline
-    void m(Object arg) {
-      // Technically same as String#valueOf.
-      if (arg != null) {
-        System.out.println(arg.toString());
-      } else {
-        System.out.println("null");
+    void m(Base arg) {
+      if (arg instanceof Sub1) {
+        System.out.println("A:Sub1");
+      } else if (arg instanceof Sub2) {
+        System.out.println("A:Sub2");
       }
-    }
-
-    @NeverInline
-    @Override
-    public String toString() {
-      return "A";
     }
   }
 
@@ -92,36 +90,24 @@ public class InvokeVirtualNegativeTest extends TestBase {
   static class B extends A {
     @NeverInline
     @Override
-    void m(Object arg) {
-      // Same as A#m.
-      if (arg != null) {
-        System.out.println(arg.toString());
-      } else {
-        System.out.println("null");
+    void m(Base arg) {
+      if (arg instanceof Sub1) {
+        System.out.println("B:Sub1");
+      } else if (arg instanceof Sub2) {
+        System.out.println("B:Sub2");
       }
-    }
-
-    @NeverInline
-    @Override
-    public String toString() {
-      return "B";
     }
   }
 
   static class Main {
     public static void main(String... args) {
-      A a = new A();
-      test(a); // calls A.m() with null.
-      a.m(a);  // calls A.m() with non-null instance.
+      Sub1 s1 = new Sub1();
+
+      A a = System.currentTimeMillis() > 0 ? new A() : new B();
+      a.m(s1); // calls A.m() with Sub1.
 
       B b = new B();
-      test(b); // calls B.m() with null.
-      b.m(b);  // calls B.m() with non-null instance
-    }
-
-    @NeverInline
-    static void test(A arg) {
-      arg.m(null);
+      b.m(s1); // calls B.m() with Sub1.
     }
   }
 }

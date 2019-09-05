@@ -5,7 +5,7 @@ package com.android.tools.r8.ir.optimize.callsites.nullability;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
@@ -57,7 +57,7 @@ public class KeptMethodTest extends TestBase {
     MethodSubject m = a.uniqueMethodWithName("m");
     assertThat(m, isPresent());
     // Should not optimize branches since the method is kept, accessed via reflection.
-    assertNotEquals(0, m.streamInstructions().filter(InstructionSubject::isIf).count());
+    assertTrue(m.streamInstructions().anyMatch(InstructionSubject::isIf));
   }
 
   @NeverClassInline

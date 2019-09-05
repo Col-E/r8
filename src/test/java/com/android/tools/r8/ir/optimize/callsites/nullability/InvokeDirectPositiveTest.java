@@ -5,7 +5,7 @@ package com.android.tools.r8.ir.optimize.callsites.nullability;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
@@ -57,7 +57,7 @@ public class InvokeDirectPositiveTest extends TestBase {
     MethodSubject test = main.uniqueMethodWithName("test");
     assertThat(test, isPresent());
     // Can optimize branches since `arg` is definitely not null.
-    assertEquals(0, test.streamInstructions().filter(InstructionSubject::isIf).count());
+    assertTrue(test.streamInstructions().noneMatch(InstructionSubject::isIf));
   }
 
   @NeverClassInline

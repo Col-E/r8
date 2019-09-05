@@ -1,17 +1,17 @@
 // Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package com.android.tools.r8.ir.optimize.callsites.nullability;
+package com.android.tools.r8.ir.optimize.callsites.dynamictype;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -40,11 +40,11 @@ public class InvokeStaticPositiveTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(InvokeStaticPositiveTest.class)
         .addKeepMainRule(MAIN)
+        .enableMergeAnnotations()
         .enableInliningAnnotations()
         .setMinApi(parameters.getRuntime())
-        .addOptionsModification(InternalOptions::enableCallSiteOptimizationInfoPropagation)
         .run(parameters.getRuntime(), MAIN)
-        .assertSuccessWithOutputLines("non-null")
+        .assertSuccessWithOutputLines("Sub1")
         .inspect(this::inspect);
   }
 
@@ -54,21 +54,27 @@ public class InvokeStaticPositiveTest extends TestBase {
 
     MethodSubject test = main.uniqueMethodWithName("test");
     assertThat(test, isPresent());
-    // Can optimize branches since `arg` is definitely not null.
-    assertTrue(test.streamInstructions().noneMatch(InstructionSubject::isIf));
+
+    // TODO(b/139246447): Can optimize branches since the type of `arg` is Sub1.
+    assertTrue(test.streamInstructions().anyMatch(InstructionSubject::isIf));
   }
+
+  @NeverMerge
+  static class Base {}
+  static class Sub1 extends Base {}
+  static class Sub2 extends Base {}
 
   static class Main {
     public static void main(String... args) {
-      test(new Object()); // calls test with non-null instance.
+      test(new Sub1()); // calls test with Sub1.
     }
 
     @NeverInline
-    static void test(Object arg) {
-      if (arg != null) {
-        System.out.println("non-null");
-      } else {
-        System.out.println("null");
+    static void test(Base arg) {
+      if (arg instanceof Sub1) {
+        System.out.println("Sub1");
+      } else if (arg instanceof Sub2) {
+        System.out.println("Sub2");
       }
     }
   }
