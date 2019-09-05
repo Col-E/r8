@@ -59,6 +59,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Consumer;
 
 public final class BackportedMethodRewriter {
 
@@ -78,7 +79,7 @@ public final class BackportedMethodRewriter {
     this.appView = appView;
     this.converter = converter;
     this.factory = appView.dexItemFactory();
-    this.rewritableMethods = new RewritableMethods(appView);
+    this.rewritableMethods = new RewritableMethods(appView.options(), appView);
     Map<String, String> backportCoreLibraryMembers =
         appView.options().desugaredLibraryConfiguration.getBackportCoreLibraryMember();
     for (String coreLibMember : backportCoreLibraryMembers.keySet()) {
@@ -89,6 +90,16 @@ public final class BackportedMethodRewriter {
               DescriptorUtils.javaTypeToDescriptor(backportCoreLibraryMembers.get(coreLibMember)));
       this.backportCoreLibraryMembers.put(extraCoreLibMemberType, coreLibMemberType);
     }
+  }
+
+  public static List<DexMethod> generateListOfBackportedMethods(AndroidApiLevel apiLevel) {
+    List<DexMethod> methods = new ArrayList<>();
+    InternalOptions options = new InternalOptions();
+    options.minApiLevel = apiLevel.getLevel();
+    BackportedMethodRewriter.RewritableMethods rewritableMethods =
+        new BackportedMethodRewriter.RewritableMethods(options, null);
+    rewritableMethods.visit(methods::add);
+    return methods;
   }
 
   public void desugar(IRCode code) {
@@ -230,9 +241,8 @@ public final class BackportedMethodRewriter {
     // Map backported method to a provider for creating the actual target method (with code).
     private final Map<DexMethod, MethodProvider> rewritable = new IdentityHashMap<>();
 
-    public RewritableMethods(AppView<?> appView) {
-      InternalOptions options = appView.options();
-      DexItemFactory factory = appView.dexItemFactory();
+    public RewritableMethods(InternalOptions options, AppView<?> appView) {
+      DexItemFactory factory = options.itemFactory;
 
       if (options.minApiLevel < AndroidApiLevel.K.getLevel()) {
         initializeAndroidKMethodProviders(factory);
@@ -264,6 +274,10 @@ public final class BackportedMethodRewriter {
 
     boolean isEmpty() {
       return rewritable.isEmpty();
+    }
+
+    public void visit(Consumer<DexMethod> consumer) {
+      rewritable.keySet().forEach(consumer);
     }
 
     private void initializeAndroidKMethodProviders(DexItemFactory factory) {

@@ -695,11 +695,20 @@ public class ToolHelper {
     return getAndroidJar(AndroidApiLevel.getAndroidApiLevel(apiLevel));
   }
 
-  public static Path getAndroidJar(AndroidApiLevel apiLevel) {
+  private static Path getAndroidJarPath(AndroidApiLevel apiLevel) {
     String jar = String.format(
         ANDROID_JAR_PATTERN,
         (apiLevel == AndroidApiLevel.getDefault() ? DEFAULT_MIN_SDK : apiLevel).getLevel());
-    Path path = Paths.get(jar);
+    return Paths.get(jar);
+  }
+
+  public static boolean hasAndroidJar(AndroidApiLevel apiLevel) {
+    Path path = getAndroidJarPath(apiLevel);
+    return Files.exists(path);
+  }
+
+  public static Path getAndroidJar(AndroidApiLevel apiLevel) {
+    Path path = getAndroidJarPath(apiLevel);
     assert Files.exists(path)
         : "Expected android jar to exist for API level " + apiLevel;
     return path;
