@@ -1479,6 +1479,12 @@ public class Enqueuer {
       transitionDefaultMethodsForInstantiatedClass(iface, seen);
     }
 
+    // When tracing the main-dex content, library roots must be specified, thus there are no
+    // implicit edges from library methods.
+    if (getMode().isTracingMainDex()) {
+      return;
+    }
+
     // When a type becomes live, all library methods on that type become live too.
     // This is done by searching the library supertypes and then resolving each method defined by
     // such a library type from the point of the instantiated type. If the resolved targets are in
