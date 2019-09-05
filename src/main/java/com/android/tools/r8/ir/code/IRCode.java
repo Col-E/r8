@@ -731,6 +731,9 @@ public class IRCode {
       } else if (instruction.isInstanceGet()) {
         assert metadata.mayHaveInstanceGet()
             : "IR metadata should indicate that code has an instance-get";
+      } else if (instruction.isInstancePut()) {
+        assert metadata.mayHaveInstancePut()
+            : "IR metadata should indicate that code has an instance-put";
       } else if (instruction.isInstanceOf()) {
         assert metadata.mayHaveInstanceOf()
             : "IR metadata should indicate that code has an instance-of";
@@ -761,6 +764,9 @@ public class IRCode {
       } else if (instruction.isStaticGet()) {
         assert metadata.mayHaveStaticGet()
             : "IR metadata should indicate that code has a static-get";
+      } else if (instruction.isStaticPut()) {
+        assert metadata.mayHaveStaticPut()
+            : "IR metadata should indicate that code has a static-put";
       } else if (instruction.isStringSwitch()) {
         assert metadata.mayHaveStringSwitch()
             : "IR metadata should indicate that code has a string-switch";

@@ -15,6 +15,7 @@ import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
  */
 public class MutableFieldOptimizationInfo extends FieldOptimizationInfo {
 
+  private int readBits = 0;
   private boolean cannotBeKept = false;
   private boolean valueHasBeenPropagated = false;
   private TypeLatticeElement dynamicType = null;
@@ -25,6 +26,15 @@ public class MutableFieldOptimizationInfo extends FieldOptimizationInfo {
     copy.cannotBeKept = cannotBeKept();
     copy.valueHasBeenPropagated = valueHasBeenPropagated();
     return copy;
+  }
+
+  @Override
+  public int getReadBits() {
+    return readBits;
+  }
+
+  void setReadBits(int readBits) {
+    this.readBits = readBits;
   }
 
   @Override
@@ -41,7 +51,7 @@ public class MutableFieldOptimizationInfo extends FieldOptimizationInfo {
     return dynamicType;
   }
 
-  public void setDynamicType(TypeLatticeElement type) {
+  void setDynamicType(TypeLatticeElement type) {
     dynamicType = type;
   }
 

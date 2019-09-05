@@ -31,6 +31,7 @@ import com.android.tools.r8.ir.analysis.DeterminismAnalysis;
 import com.android.tools.r8.ir.analysis.InitializedClassesOnNormalExitAnalysis;
 import com.android.tools.r8.ir.analysis.TypeChecker;
 import com.android.tools.r8.ir.analysis.constant.SparseConditionalConstantPropagation;
+import com.android.tools.r8.ir.analysis.fieldaccess.FieldBitAccessAnalysis;
 import com.android.tools.r8.ir.analysis.sideeffect.ClassInitializerSideEffectAnalysis;
 import com.android.tools.r8.ir.analysis.sideeffect.ClassInitializerSideEffectAnalysis.ClassInitializerSideEffect;
 import com.android.tools.r8.ir.analysis.type.Nullability;
@@ -131,6 +132,7 @@ public class IRConverter {
   private final Outliner outliner;
   private final ClassInitializerDefaultsOptimization classInitializerDefaultsOptimization;
   private final DynamicTypeOptimization dynamicTypeOptimization;
+  private final FieldBitAccessAnalysis fieldBitAccessAnalysis;
   private final LibraryMethodOverrideAnalysis libraryMethodOverrideAnalysis;
   private final StringConcatRewriter stringConcatRewriter;
   private final StringOptimizer stringOptimizer;
@@ -218,6 +220,7 @@ public class IRConverter {
       this.classInliner = null;
       this.classStaticizer = null;
       this.dynamicTypeOptimization = null;
+      this.fieldBitAccessAnalysis = null;
       this.libraryMethodOverrideAnalysis = null;
       this.inliner = null;
       this.outliner = null;
@@ -264,6 +267,10 @@ public class IRConverter {
           options.enableDynamicTypeOptimization
               ? new DynamicTypeOptimization(appViewWithLiveness)
               : null;
+      this.fieldBitAccessAnalysis =
+          options.enableFieldBitAccessAnalysis
+              ? new FieldBitAccessAnalysis(appViewWithLiveness)
+              : null;
       this.libraryMethodOverrideAnalysis =
           options.enableTreeShakingOfLibraryMethodOverrides
               ? new LibraryMethodOverrideAnalysis(appViewWithLiveness)
@@ -290,6 +297,7 @@ public class IRConverter {
       this.classInliner = null;
       this.classStaticizer = null;
       this.dynamicTypeOptimization = null;
+      this.fieldBitAccessAnalysis = null;
       this.libraryMethodOverrideAnalysis = null;
       this.inliner = null;
       this.outliner = null;
@@ -1324,6 +1332,10 @@ public class IRConverter {
     if (appView.enableWholeProgramOptimizations()) {
       if (libraryMethodOverrideAnalysis != null) {
         libraryMethodOverrideAnalysis.analyze(code);
+      }
+
+      if (fieldBitAccessAnalysis != null) {
+        fieldBitAccessAnalysis.recordFieldAccesses(code, feedback);
       }
 
       // Compute optimization info summary for the current method unless it is pinned

@@ -12,6 +12,12 @@ public abstract class FieldOptimizationInfo {
 
   public abstract boolean cannotBeKept();
 
+  /**
+   * This should only be used once all methods in the program have been processed. Until then the
+   * value returned by this method may not be sound.
+   */
+  public abstract int getReadBits();
+
   public abstract TypeLatticeElement getDynamicType();
 
   public abstract boolean valueHasBeenPropagated();

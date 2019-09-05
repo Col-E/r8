@@ -824,6 +824,10 @@ public abstract class Instruction implements InstructionOrPhi {
     return null;
   }
 
+  public final boolean isFieldGet() {
+    return isInstanceGet() || isStaticGet();
+  }
+
   public final boolean isFieldPut() {
     return isInstancePut() || isStaticPut();
   }

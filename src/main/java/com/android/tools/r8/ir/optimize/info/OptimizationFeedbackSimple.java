@@ -43,6 +43,11 @@ public class OptimizationFeedbackSimple implements OptimizationFeedback {
     // Ignored.
   }
 
+  @Override
+  public void markFieldHasUnknownAccess(DexEncodedField field) {
+    // Ignored.
+  }
+
   // METHOD OPTIMIZATION INFO.
 
   @Override

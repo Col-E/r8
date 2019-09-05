@@ -16,11 +16,11 @@ import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import java.util.BitSet;
 import java.util.Set;
 
-public class OptimizationFeedbackIgnore implements OptimizationFeedback {
+public abstract class OptimizationFeedbackIgnore implements OptimizationFeedback {
 
-  private static final OptimizationFeedbackIgnore INSTANCE = new OptimizationFeedbackIgnore();
+  private static final OptimizationFeedbackIgnore INSTANCE = new OptimizationFeedbackIgnore() {};
 
-  private OptimizationFeedbackIgnore() {}
+  protected OptimizationFeedbackIgnore() {}
 
   public static OptimizationFeedbackIgnore getInstance() {
     return INSTANCE;
@@ -36,6 +36,9 @@ public class OptimizationFeedbackIgnore implements OptimizationFeedback {
 
   @Override
   public void markFieldHasDynamicType(DexEncodedField field, TypeLatticeElement type) {}
+
+  @Override
+  public void markFieldHasUnknownAccess(DexEncodedField field) {}
 
   // METHOD OPTIMIZATION INFO:
 

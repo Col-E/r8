@@ -27,6 +27,11 @@ public class DefaultFieldOptimizationInfo extends FieldOptimizationInfo {
   }
 
   @Override
+  public int getReadBits() {
+    return BitAccessInfo.getNoBitsReadValue();
+  }
+
+  @Override
   public TypeLatticeElement getDynamicType() {
     return null;
   }

@@ -81,8 +81,31 @@ public class IRMetadata {
     return mayHaveInstanceGet() || mayHaveStaticGet();
   }
 
+  public boolean mayHaveFieldInstruction() {
+    assert Opcodes.INSTANCE_GET <= 64;
+    assert Opcodes.INSTANCE_PUT <= 64;
+    assert Opcodes.STATIC_GET <= 64;
+    assert Opcodes.STATIC_PUT <= 64;
+    long mask =
+        (1L << Opcodes.INSTANCE_GET)
+            | (1L << Opcodes.INSTANCE_PUT)
+            | (1L << Opcodes.STATIC_GET)
+            | (1L << Opcodes.STATIC_PUT);
+    boolean result = isAnySetInFirst(mask);
+    assert result
+        == (mayHaveInstanceGet()
+            || mayHaveInstancePut()
+            || mayHaveStaticGet()
+            || mayHaveStaticPut());
+    return result;
+  }
+
   public boolean mayHaveInstanceGet() {
     return get(Opcodes.INSTANCE_GET);
+  }
+
+  public boolean mayHaveInstancePut() {
+    return get(Opcodes.INSTANCE_PUT);
   }
 
   public boolean mayHaveInstanceOf() {
@@ -169,6 +192,10 @@ public class IRMetadata {
 
   public boolean mayHaveStaticGet() {
     return get(Opcodes.STATIC_GET);
+  }
+
+  public boolean mayHaveStaticPut() {
+    return get(Opcodes.STATIC_PUT);
   }
 
   public boolean mayHaveStringSwitch() {

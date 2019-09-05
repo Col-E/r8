@@ -88,6 +88,11 @@ public class OptimizationFeedbackDelayed implements OptimizationFeedback {
     getFieldOptimizationInfoForUpdating(field).setDynamicType(type);
   }
 
+  @Override
+  public void markFieldHasUnknownAccess(DexEncodedField field) {
+    getFieldOptimizationInfoForUpdating(field).setReadBits(BitAccessInfo.getAllBitsReadValue());
+  }
+
   // METHOD OPTIMIZATION INFO:
 
   @Override
