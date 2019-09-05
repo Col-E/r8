@@ -45,7 +45,6 @@ import com.android.tools.r8.ir.desugar.backports.StringMethods;
 import com.android.tools.r8.ir.synthetic.TemplateMethodCode;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.Sets;
@@ -71,7 +70,6 @@ public final class BackportedMethodRewriter {
   private final IRConverter converter;
   private final DexItemFactory factory;
   private final RewritableMethods rewritableMethods;
-  private final Map<DexType, DexType> backportCoreLibraryMembers = new IdentityHashMap<>();
 
   private Map<DexMethod, MethodProvider> methodProviders = new ConcurrentHashMap<>();
 
@@ -80,16 +78,6 @@ public final class BackportedMethodRewriter {
     this.converter = converter;
     this.factory = appView.dexItemFactory();
     this.rewritableMethods = new RewritableMethods(appView.options(), appView);
-    Map<String, String> backportCoreLibraryMembers =
-        appView.options().desugaredLibraryConfiguration.getBackportCoreLibraryMember();
-    for (String coreLibMember : backportCoreLibraryMembers.keySet()) {
-      DexType extraCoreLibMemberType =
-          factory.createType(DescriptorUtils.javaTypeToDescriptor(coreLibMember));
-      DexType coreLibMemberType =
-          factory.createType(
-              DescriptorUtils.javaTypeToDescriptor(backportCoreLibraryMembers.get(coreLibMember)));
-      this.backportCoreLibraryMembers.put(extraCoreLibMemberType, coreLibMemberType);
-    }
   }
 
   public static List<DexMethod> generateListOfBackportedMethods(AndroidApiLevel apiLevel) {
@@ -219,6 +207,8 @@ public final class BackportedMethodRewriter {
   private MethodProvider getMethodProviderOrNull(DexMethod method) {
     DexMethod original = appView.graphLense().getOriginalMethodSignature(method);
     assert original != null;
+    Map<DexType, DexType> backportCoreLibraryMembers =
+        appView.options().desugaredLibraryConfiguration.getBackportCoreLibraryMember();
     if (backportCoreLibraryMembers.containsKey(original.holder)) {
       DexType newHolder = backportCoreLibraryMembers.get(original.holder);
       DexMethod newMethod =

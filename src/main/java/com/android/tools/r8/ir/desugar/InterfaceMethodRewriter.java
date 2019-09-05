@@ -100,7 +100,6 @@ public final class InterfaceMethodRewriter {
   private final InternalOptions options;
   final DexItemFactory factory;
   private final Map<DexType, DexType> emulatedInterfaces = new IdentityHashMap<>();
-  private final List<Pair<DexType, DexString>> dontRewriteCoreInvocations = new ArrayList<>();
   private final Map<String, String> prefixRewritingInterfaces = new IdentityHashMap<>();
   // The emulatedMethod set is there to avoid doing the emulated look-up too often.
   private final Set<DexString> emulatedMethods = Sets.newIdentityHashSet();
@@ -146,16 +145,11 @@ public final class InterfaceMethodRewriter {
   }
 
   private void initializeEmulatedInterfaceVariables() {
-    Map<String, String> emulateLibraryInterface =
+    Map<DexType, DexType> emulateLibraryInterface =
         options.desugaredLibraryConfiguration.getEmulateLibraryInterface();
-    for (String interfaceName : emulateLibraryInterface.keySet()) {
-      DexType interfaceType =
-          factory.createType(DescriptorUtils.javaTypeToDescriptor(interfaceName));
-      DexType rewrittenType =
-          factory.createType(
-              DescriptorUtils.javaTypeToDescriptor(emulateLibraryInterface.get(interfaceName)));
-      emulatedInterfaces.put(interfaceType, rewrittenType);
-      addRewritePrefix(interfaceType, rewrittenType.toSourceString());
+    for (DexType interfaceType : emulateLibraryInterface.keySet()) {
+      emulatedInterfaces.put(interfaceType, emulateLibraryInterface.get(interfaceType));
+      addRewritePrefix(interfaceType, emulateLibraryInterface.get(interfaceType).toSourceString());
       DexClass emulatedInterfaceClass = appView.definitionFor(interfaceType);
       if (emulatedInterfaceClass != null) {
         for (DexEncodedMethod encodedMethod :
@@ -163,18 +157,6 @@ public final class InterfaceMethodRewriter {
           emulatedMethods.add(encodedMethod.method.name);
         }
       }
-    }
-    for (String dontRewrite : options.desugaredLibraryConfiguration.getDontRewriteInvocation()) {
-      int index = dontRewrite.lastIndexOf('#');
-      if (index <= 0 || index >= dontRewrite.length() - 1) {
-        throw new CompilationError(
-            "Invalid retarget core library member specification (# position).");
-      }
-      dontRewriteCoreInvocations.add(
-          new Pair<>(
-              factory.createType(
-                  DescriptorUtils.javaTypeToDescriptor(dontRewrite.substring(0, index))),
-              factory.createString(dontRewrite.substring(index + 1))));
     }
   }
 
@@ -554,7 +536,8 @@ public final class InterfaceMethodRewriter {
   }
 
   private boolean dontRewrite(DexMethod method) {
-    for (Pair<DexType, DexString> dontRewrite : dontRewriteCoreInvocations) {
+    for (Pair<DexType, DexString> dontRewrite :
+        options.desugaredLibraryConfiguration.getDontRewriteInvocation()) {
       if (method.holder == dontRewrite.getFirst() && method.name == dontRewrite.getSecond()) {
         return true;
       }

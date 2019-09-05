@@ -285,9 +285,15 @@ public class LambdaRewriter {
             accessedFrom.rewritingPrefixIn(
                 appView.options().desugaredLibraryConfiguration.getRewritePrefix());
         if (rewriting == null) {
-          rewriting =
-              accessedFrom.rewritingPrefixIn(
-                  appView.options().desugaredLibraryConfiguration.getEmulateLibraryInterface());
+          // TODO(b/134732760) : Fix prefixRewritting logic not to use Strings.
+          String javaClassName = accessedFrom.toString();
+          Map<DexType, DexType> emulateLibraryInterface =
+              appView.options().desugaredLibraryConfiguration.getEmulateLibraryInterface();
+          for (DexType itf : emulateLibraryInterface.keySet()) {
+            if (javaClassName.startsWith(itf.toString())) {
+              rewriting = new Pair<>(itf.toString(), emulateLibraryInterface.get(itf).toString());
+            }
+          }
         }
         if (rewriting != null) {
           addRewritingPrefix(rewriting, lambdaClassType);

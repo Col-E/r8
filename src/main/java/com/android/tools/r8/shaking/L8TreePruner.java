@@ -8,7 +8,6 @@ import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -31,24 +30,9 @@ public class L8TreePruner {
 
   public L8TreePruner(InternalOptions options) {
     this.options = options;
-    initializeBackports();
-    initializeEmulatedInterfaces();
-  }
-
-  private void initializeEmulatedInterfaces() {
-    for (String rewrittenName :
-        options.desugaredLibraryConfiguration.getEmulateLibraryInterface().keySet()) {
-      emulatedInterfaces.add(
-          options.itemFactory.createType(DescriptorUtils.javaTypeToDescriptor(rewrittenName)));
-    }
-  }
-
-  private void initializeBackports() {
-    for (String backportName :
-        options.desugaredLibraryConfiguration.getBackportCoreLibraryMember().keySet()) {
-      backports.add(
-          options.itemFactory.createType(DescriptorUtils.javaTypeToDescriptor(backportName)));
-    }
+    backports.addAll(options.desugaredLibraryConfiguration.getBackportCoreLibraryMember().keySet());
+    emulatedInterfaces.addAll(
+        options.desugaredLibraryConfiguration.getEmulateLibraryInterface().keySet());
   }
 
   public DexApplication prune(DexApplication app) {

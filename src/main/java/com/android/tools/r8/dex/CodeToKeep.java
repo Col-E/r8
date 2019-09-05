@@ -47,22 +47,8 @@ public abstract class CodeToKeep {
         new ConcurrentHashMap<>();
 
     public DesugaredLibraryCodeToKeep(NamingLens namingLens, InternalOptions options) {
-      // Any class implementing one interface should implement the other one.
-      // Interface method desugaring should have created the types if emulatedLibraryInterfaces
-      // are set.
-      for (String rewrittenName :
-          options.desugaredLibraryConfiguration.getEmulateLibraryInterface().values()) {
-        DexString descriptor =
-            options.itemFactory.lookupString(DescriptorUtils.javaTypeToDescriptor(rewrittenName));
-        assert descriptor != null;
-        if (descriptor != null) {
-          DexType type = options.itemFactory.lookupType(descriptor);
-          assert type != null;
-          if (type != null) {
-            emulatedInterfaces.add(type);
-          }
-        }
-      }
+      emulatedInterfaces.addAll(
+          options.desugaredLibraryConfiguration.getEmulateLibraryInterface().values());
       this.namingLens = namingLens;
     }
 

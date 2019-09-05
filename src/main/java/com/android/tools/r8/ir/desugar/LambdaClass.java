@@ -529,7 +529,7 @@ final class LambdaClass {
             .options()
             .desugaredLibraryConfiguration
             .getBackportCoreLibraryMember()
-            .containsKey(implMethod.holder.toString());
+            .containsKey(implMethod.holder);
         return false;
       }
       return implMethodHolder.isInterface();
