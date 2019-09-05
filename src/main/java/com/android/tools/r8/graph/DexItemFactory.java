@@ -279,7 +279,11 @@ public class DexItemFactory {
   public final DexType classArrayType = createType(classArrayDescriptor);
   public final DexType enumType = createType(enumDescriptor);
   public final DexType annotationType = createType(annotationDescriptor);
+  public final DexType objectsType = createType(objectsDescriptor);
+  public final DexType collectionsType = createType(collectionsDescriptor);
   public final DexType iterableType = createType(iterableDescriptor);
+  public final DexType mathType = createType(mathDescriptor);
+  public final DexType strictMathType = createType(strictMathDescriptor);
   public final DexType referenceFieldUpdaterType = createType(referenceFieldUpdaterDescriptor);
 
   public final DexType classType = createType(classDescriptor);

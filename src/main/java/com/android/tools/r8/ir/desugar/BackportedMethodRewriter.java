@@ -210,33 +210,25 @@ public final class BackportedMethodRewriter {
     assert original != null;
     if (backportCoreLibraryMembers.containsKey(original.holder)) {
       DexType newHolder = backportCoreLibraryMembers.get(original.holder);
-      MethodProvider provider =
-          rewritableMethods.getProvider(
-              newHolder.descriptor,
-              original.name,
-              original.proto);
+      DexMethod newMethod =
+          appView.dexItemFactory().createMethod(newHolder, original.proto, original.name);
+      MethodProvider provider = rewritableMethods.getProvider(newMethod);
       if (provider != null) {
         return provider;
       }
       RetargetCoreLibraryMethodProvider extraProvider =
-          new RetargetCoreLibraryMethodProvider(
-              newHolder,
-              original.holder.descriptor,
-              original.name,
-              original.proto,
-              true);
+          new RetargetCoreLibraryMethodProvider(newHolder, original, true);
       // TODO(b/139788786): cache this entry, but without writing into a lock free structure.
       // rewritableMethods.addProvider(extraProvider);
       return extraProvider;
     }
-    return rewritableMethods.getProvider(original.holder.descriptor, original.name, original.proto);
+    return rewritableMethods.getProvider(original);
   }
 
   public static final class RewritableMethods {
 
-    // Map class, method, proto to a provider for creating the code and method.
-    private final Map<DexString, Map<DexString, Map<DexProto, MethodProvider>>> rewritable =
-        new IdentityHashMap<>();
+    // Map backported method to a provider for creating the actual target method (with code).
+    private final Map<DexMethod, MethodProvider> rewritable = new IdentityHashMap<>();
 
     public RewritableMethods(AppView<?> appView) {
       InternalOptions options = appView.options();
@@ -279,650 +271,722 @@ public final class BackportedMethodRewriter {
       // bytecode which supports the operation.
 
       // Byte
-      DexString clazz = factory.boxedByteDescriptor;
+      DexType type = factory.boxedByteType;
       // int Byte.compare(byte a, byte b)
-      DexString method = factory.createString("compare");
+      DexString name = factory.createString("compare");
       DexProto proto = factory.createProto(factory.intType, factory.byteType, factory.byteType);
-      addProvider(new MethodGenerator(clazz, method, proto, ByteMethods::new));
+      DexMethod method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, ByteMethods::new));
 
       // Short
-      clazz = factory.boxedShortDescriptor;
+      type = factory.boxedShortType;
       // int Short.compare(short a, short b)
-      method = factory.createString("compare");
+      name = factory.createString("compare");
       proto = factory.createProto(factory.intType, factory.shortType, factory.shortType);
-      addProvider(new MethodGenerator(clazz, method, proto, ShortMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, ShortMethods::new));
 
       // Integer
-      clazz = factory.boxedIntDescriptor;
+      type = factory.boxedIntType;
       // int Integer.compare(int a, int b)
-      method = factory.createString("compare");
+      name = factory.createString("compare");
       proto = factory.createProto(factory.intType, factory.intType, factory.intType);
-      addProvider(new MethodGenerator(clazz, method, proto, IntegerMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, IntegerMethods::new));
 
       // Boolean
-      clazz = factory.boxedBooleanDescriptor;
+      type = factory.boxedBooleanType;
       // int Boolean.compare(boolean a, boolean b)
-      method = factory.createString("compare");
+      name = factory.createString("compare");
       proto = factory.createProto(factory.intType, factory.booleanType, factory.booleanType);
-      addProvider(new MethodGenerator(clazz, method, proto, BooleanMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, BooleanMethods::new));
 
       // Character
-      clazz = factory.boxedCharDescriptor;
+      type = factory.boxedCharType;
       // int Character.compare(char a, char b)
-      method = factory.createString("compare");
+      name = factory.createString("compare");
       proto = factory.createProto(factory.intType, factory.charType, factory.charType);
-      addProvider(new MethodGenerator(clazz, method, proto, CharacterMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, CharacterMethods::new));
 
       // Objects
-      clazz = factory.objectsDescriptor;
+      type = factory.objectsType;
 
       // int Objects.compare(T a, T b, Comparator<? super T> c)
-      method = factory.createString("compare");
+      name = factory.createString("compare");
       proto = factory.createProto(factory.intType, factory.objectType, factory.objectType,
           factory.comparatorType);
-      addProvider(new MethodGenerator(clazz, method, proto, ObjectsMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, ObjectsMethods::new));
 
       // boolean Objects.deepEquals(Object a, Object b)
-      method = factory.createString("deepEquals");
+      name = factory.createString("deepEquals");
       proto = factory.createProto(factory.booleanType, factory.objectType, factory.objectType);
-      addProvider(new MethodGenerator(clazz, method, proto, ObjectsMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, ObjectsMethods::new));
 
       // boolean Objects.equals(Object a, Object b)
-      method = factory.createString("equals");
+      name = factory.createString("equals");
       proto = factory.createProto(factory.booleanType, factory.objectType, factory.objectType);
-      addProvider(new MethodGenerator(clazz, method, proto, ObjectsMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, ObjectsMethods::new));
 
       // int Objects.hash(Object... o)
-      method = factory.createString("hash");
+      name = factory.createString("hash");
       proto = factory.createProto(factory.intType, factory.objectArrayType);
-      addProvider(new MethodGenerator(clazz, method, proto, ObjectsMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, ObjectsMethods::new));
 
       // int Objects.hashCode(Object o)
-      method = factory.createString("hashCode");
+      name = factory.createString("hashCode");
       proto = factory.createProto(factory.intType, factory.objectType);
-      addProvider(new MethodGenerator(clazz, method, proto, ObjectsMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, ObjectsMethods::new));
 
       // Note: Objects.requireNonNull(T) rewriting is handled by CodeRewriter for now.
 
       // T Objects.requireNonNull(T obj, String message)
-      method = factory.createString("requireNonNull");
+      name = factory.createString("requireNonNull");
       proto = factory.createProto(factory.objectType, factory.objectType, factory.stringType);
-      addProvider(
-          new MethodGenerator(clazz, method, proto, ObjectsMethods::new, "requireNonNullMessage"));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, ObjectsMethods::new, "requireNonNullMessage"));
 
       // String Objects.toString(Object o)
-      method = factory.createString("toString");
+      name = factory.createString("toString");
       proto = factory.createProto(factory.stringType, factory.objectType);
-      addProvider(new MethodGenerator(clazz, method, proto, ObjectsMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, ObjectsMethods::new));
 
       // String Objects.toString(Object o, String nullDefault);
-      method = factory.createString("toString");
+      name = factory.createString("toString");
       proto = factory.createProto(factory.stringType, factory.objectType, factory.stringType);
-      addProvider(
-          new MethodGenerator(clazz, method, proto, ObjectsMethods::new, "toStringDefault"));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, ObjectsMethods::new, "toStringDefault"));
 
       // Collections
-      clazz = factory.collectionsDescriptor;
+      type = factory.collectionsType;
 
       // Enumeration<T> Collections.emptyEnumeration();
-      method = factory.createString("emptyEnumeration");
+      name = factory.createString("emptyEnumeration");
       proto = factory.createProto(factory.enumerationType);
-      addProvider(new MethodGenerator(clazz, method, proto, CollectionsMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, CollectionsMethods::new));
 
       // Iterator<T> Collections.emptyIterator();
-      method = factory.createString("emptyIterator");
+      name = factory.createString("emptyIterator");
       proto = factory.createProto(factory.iteratorType);
-      addProvider(new MethodGenerator(clazz, method, proto, CollectionsMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, CollectionsMethods::new));
 
       // ListIterator<T> Collections.emptyListIterator();
-      method = factory.createString("emptyListIterator");
+      name = factory.createString("emptyListIterator");
       proto = factory.createProto(factory.listIteratorType);
-      addProvider(new MethodGenerator(clazz, method, proto, CollectionsMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, CollectionsMethods::new));
     }
 
     private void initializeAndroidNMethodProviders(DexItemFactory factory) {
       // Byte
-      DexString clazz = factory.boxedByteDescriptor;
+      DexType type = factory.boxedByteType;
       // int Byte.hashCode(byte i)
-      DexString method = factory.createString("hashCode");
+      DexString name = factory.createString("hashCode");
       DexProto proto = factory.createProto(factory.intType, factory.byteType);
-      addProvider(new MethodGenerator(clazz, method, proto, ByteMethods::new));
+      DexMethod method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, ByteMethods::new));
 
       // Short
-      clazz = factory.boxedShortDescriptor;
+      type = factory.boxedShortType;
       // int Short.hashCode(short i)
-      method = factory.createString("hashCode");
+      name = factory.createString("hashCode");
       proto = factory.createProto(factory.intType, factory.shortType);
-      addProvider(new MethodGenerator(clazz, method, proto, ShortMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, ShortMethods::new));
 
       // Integer
-      clazz = factory.boxedIntDescriptor;
+      type = factory.boxedIntType;
 
       // int Integer.hashCode(int i)
-      method = factory.createString("hashCode");
+      name = factory.createString("hashCode");
       proto = factory.createProto(factory.intType, factory.intType);
-      addProvider(new MethodGenerator(clazz, method, proto, IntegerMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, IntegerMethods::new));
 
       // int Integer.max(int a, int b)
-      method = factory.createString("max");
+      name = factory.createString("max");
       proto = factory.createProto(factory.intType, factory.intType, factory.intType);
-      addProvider(new MethodGenerator(clazz, method, proto, IntegerMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, IntegerMethods::new));
 
       // int Integer.min(int a, int b)
-      method = factory.createString("min");
+      name = factory.createString("min");
       proto = factory.createProto(factory.intType, factory.intType, factory.intType);
-      addProvider(new MethodGenerator(clazz, method, proto, IntegerMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, IntegerMethods::new));
 
       // int Integer.sum(int a, int b)
-      method = factory.createString("sum");
+      name = factory.createString("sum");
       proto = factory.createProto(factory.intType, factory.intType, factory.intType);
-      addProvider(new MethodGenerator(clazz, method, proto, IntegerMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, IntegerMethods::new));
 
       // Double
-      clazz = factory.boxedDoubleDescriptor;
+      type = factory.boxedDoubleType;
 
       // int Double.hashCode(double d)
-      method = factory.createString("hashCode");
+      name = factory.createString("hashCode");
       proto = factory.createProto(factory.intType, factory.doubleType);
-      addProvider(new MethodGenerator(clazz, method, proto, DoubleMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, DoubleMethods::new));
 
       // double Double.max(double a, double b)
-      method = factory.createString("max");
+      name = factory.createString("max");
       proto = factory.createProto(factory.doubleType, factory.doubleType, factory.doubleType);
-      addProvider(new MethodGenerator(clazz, method, proto, DoubleMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, DoubleMethods::new));
 
       // double Double.min(double a, double b)
-      method = factory.createString("min");
+      name = factory.createString("min");
       proto = factory.createProto(factory.doubleType, factory.doubleType, factory.doubleType);
-      addProvider(new MethodGenerator(clazz, method, proto, DoubleMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, DoubleMethods::new));
 
       // double Double.sum(double a, double b)
-      method = factory.createString("sum");
+      name = factory.createString("sum");
       proto = factory.createProto(factory.doubleType, factory.doubleType, factory.doubleType);
-      addProvider(new MethodGenerator(clazz, method, proto, DoubleMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, DoubleMethods::new));
 
       // boolean Double.isFinite(double a)
-      method = factory.createString("isFinite");
+      name = factory.createString("isFinite");
       proto = factory.createProto(factory.booleanType, factory.doubleType);
-      addProvider(new MethodGenerator(clazz, method, proto, DoubleMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, DoubleMethods::new));
 
       // Float
-      clazz = factory.boxedFloatDescriptor;
+      type = factory.boxedFloatType;
 
       // int Float.hashCode(float d)
-      method = factory.createString("hashCode");
+      name = factory.createString("hashCode");
       proto = factory.createProto(factory.intType, factory.floatType);
-      addProvider(new MethodGenerator(clazz, method, proto, FloatMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, FloatMethods::new));
 
       // float Float.max(float a, float b)
-      method = factory.createString("max");
+      name = factory.createString("max");
       proto = factory.createProto(factory.floatType, factory.floatType, factory.floatType);
-      addProvider(new MethodGenerator(clazz, method, proto, FloatMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, FloatMethods::new));
 
       // float Float.min(float a, float b)
-      method = factory.createString("min");
+      name = factory.createString("min");
       proto = factory.createProto(factory.floatType, factory.floatType, factory.floatType);
-      addProvider(new MethodGenerator(clazz, method, proto, FloatMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, FloatMethods::new));
 
       // float Float.sum(float a, float b)
-      method = factory.createString("sum");
+      name = factory.createString("sum");
       proto = factory.createProto(factory.floatType, factory.floatType, factory.floatType);
-      addProvider(new MethodGenerator(clazz, method, proto, FloatMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, FloatMethods::new));
 
       // boolean Float.isFinite(float a)
-      method = factory.createString("isFinite");
+      name = factory.createString("isFinite");
       proto = factory.createProto(factory.booleanType, factory.floatType);
-      addProvider(new MethodGenerator(clazz, method, proto, FloatMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, FloatMethods::new));
 
       // Boolean
-      clazz = factory.boxedBooleanDescriptor;
+      type = factory.boxedBooleanType;
 
       // int Boolean.hashCode(boolean b)
-      method = factory.createString("hashCode");
+      name = factory.createString("hashCode");
       proto = factory.createProto(factory.intType, factory.booleanType);
-      addProvider(new MethodGenerator(clazz, method, proto, BooleanMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, BooleanMethods::new));
 
       // boolean Boolean.logicalAnd(boolean a, boolean b)
-      method = factory.createString("logicalAnd");
+      name = factory.createString("logicalAnd");
       proto = factory.createProto(factory.booleanType, factory.booleanType, factory.booleanType);
-      addProvider(new MethodGenerator(clazz, method, proto, BooleanMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, BooleanMethods::new));
 
       // boolean Boolean.logicalOr(boolean a, boolean b)
-      method = factory.createString("logicalOr");
+      name = factory.createString("logicalOr");
       proto = factory.createProto(factory.booleanType, factory.booleanType, factory.booleanType);
-      addProvider(new MethodGenerator(clazz, method, proto, BooleanMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, BooleanMethods::new));
 
       // boolean Boolean.logicalXor(boolean a, boolean b)
-      method = factory.createString("logicalXor");
+      name = factory.createString("logicalXor");
       proto = factory.createProto(factory.booleanType, factory.booleanType, factory.booleanType);
-      addProvider(new MethodGenerator(clazz, method, proto, BooleanMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, BooleanMethods::new));
 
       // Long
-      clazz = factory.boxedLongDescriptor;
+      type = factory.boxedLongType;
 
       // int Long.hashCode(long i)
-      method = factory.createString("hashCode");
+      name = factory.createString("hashCode");
       proto = factory.createProto(factory.intType, factory.longType);
-      addProvider(new MethodGenerator(clazz, method, proto, LongMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, LongMethods::new));
 
       // long Long.max(long a, long b)
-      method = factory.createString("max");
+      name = factory.createString("max");
       proto = factory.createProto(factory.longType, factory.longType, factory.longType);
-      addProvider(new MethodGenerator(clazz, method, proto, LongMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, LongMethods::new));
 
       // long Long.min(long a, long b)
-      method = factory.createString("min");
+      name = factory.createString("min");
       proto = factory.createProto(factory.longType, factory.longType, factory.longType);
-      addProvider(new MethodGenerator(clazz, method, proto, LongMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, LongMethods::new));
 
       // long Long.sum(long a, long b)
-      method = factory.createString("sum");
+      name = factory.createString("sum");
       proto = factory.createProto(factory.longType, factory.longType, factory.longType);
-      addProvider(new MethodGenerator(clazz, method, proto, LongMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, LongMethods::new));
 
       // Character
-      clazz = factory.boxedCharDescriptor;
+      type = factory.boxedCharType;
 
       // int Character.hashCode(char i)
-      method = factory.createString("hashCode");
+      name = factory.createString("hashCode");
       proto = factory.createProto(factory.intType, factory.charType);
-      addProvider(new MethodGenerator(clazz, method, proto, CharacterMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, CharacterMethods::new));
 
       // Objects
-      clazz = factory.objectsDescriptor;
+      type = factory.objectsType;
 
       // boolean Objects.isNull(Object o)
-      method = factory.createString("isNull");
+      name = factory.createString("isNull");
       proto = factory.createProto(factory.booleanType, factory.objectType);
-      addProvider(new MethodGenerator(clazz, method, proto, ObjectsMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, ObjectsMethods::new));
 
       // boolean Objects.nonNull(Object a)
-      method = factory.createString("nonNull");
+      name = factory.createString("nonNull");
       proto = factory.createProto(factory.booleanType, factory.objectType);
-      addProvider(new MethodGenerator(clazz, method, proto, ObjectsMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, ObjectsMethods::new));
 
       // Math & StrictMath, which have some symmetric, binary-compatible APIs
-      DexString[] mathClasses = {factory.mathDescriptor, factory.strictMathDescriptor};
-      for (DexString mathClass : mathClasses) {
-        clazz = mathClass;
+      DexType[] mathTypes = {factory.mathType, factory.strictMathType};
+      for (int i = 0; i < mathTypes.length; i++) {
+        type = mathTypes[i];
 
         // int {Math,StrictMath}.addExact(int, int)
-        method = factory.createString("addExact");
+        name = factory.createString("addExact");
         proto = factory.createProto(factory.intType, factory.intType, factory.intType);
-        addProvider(new MethodGenerator(clazz, method, proto, MathMethods::new, "addExactInt"));
+        method = factory.createMethod(type, proto, name);
+        addProvider(new MethodGenerator(method, MathMethods::new, "addExactInt"));
 
         // long {Math,StrictMath}.addExact(long, long)
-        method = factory.createString("addExact");
+        name = factory.createString("addExact");
         proto = factory.createProto(factory.longType, factory.longType, factory.longType);
-        addProvider(new MethodGenerator(clazz, method, proto, MathMethods::new, "addExactLong"));
+        method = factory.createMethod(type, proto, name);
+        addProvider(new MethodGenerator(method, MathMethods::new, "addExactLong"));
 
         // int {Math,StrictMath}.floorDiv(int, int)
-        method = factory.createString("floorDiv");
+        name = factory.createString("floorDiv");
         proto = factory.createProto(factory.intType, factory.intType, factory.intType);
-        addProvider(new MethodGenerator(clazz, method, proto, MathMethods::new, "floorDivInt"));
+        method = factory.createMethod(type, proto, name);
+        addProvider(new MethodGenerator(method, MathMethods::new, "floorDivInt"));
 
         // long {Math,StrictMath}.floorDiv(long, long)
-        method = factory.createString("floorDiv");
+        name = factory.createString("floorDiv");
         proto = factory.createProto(factory.longType, factory.longType, factory.longType);
-        addProvider(new MethodGenerator(clazz, method, proto, MathMethods::new, "floorDivLong"));
+        method = factory.createMethod(type, proto, name);
+        addProvider(new MethodGenerator(method, MathMethods::new, "floorDivLong"));
 
         // int {Math,StrictMath}.floorMod(int, int)
-        method = factory.createString("floorMod");
+        name = factory.createString("floorMod");
         proto = factory.createProto(factory.intType, factory.intType, factory.intType);
-        addProvider(new MethodGenerator(clazz, method, proto, MathMethods::new, "floorModInt"));
+        method = factory.createMethod(type, proto, name);
+        addProvider(new MethodGenerator(method, MathMethods::new, "floorModInt"));
 
         // long {Math,StrictMath}.floorMod(long, long)
-        method = factory.createString("floorMod");
+        name = factory.createString("floorMod");
         proto = factory.createProto(factory.longType, factory.longType, factory.longType);
-        addProvider(new MethodGenerator(clazz, method, proto, MathMethods::new, "floorModLong"));
+        method = factory.createMethod(type, proto, name);
+        addProvider(new MethodGenerator(method, MathMethods::new, "floorModLong"));
 
         // int {Math,StrictMath}.multiplyExact(int, int)
-        method = factory.createString("multiplyExact");
+        name = factory.createString("multiplyExact");
         proto = factory.createProto(factory.intType, factory.intType, factory.intType);
-        addProvider(
-            new MethodGenerator(clazz, method, proto, MathMethods::new, "multiplyExactInt"));
+        method = factory.createMethod(type, proto, name);
+        addProvider(new MethodGenerator(method, MathMethods::new, "multiplyExactInt"));
 
         // long {Math,StrictMath}.multiplyExact(long, long)
-        method = factory.createString("multiplyExact");
+        name = factory.createString("multiplyExact");
         proto = factory.createProto(factory.longType, factory.longType, factory.longType);
-        addProvider(
-            new MethodGenerator(clazz, method, proto, MathMethods::new, "multiplyExactLong"));
+        method = factory.createMethod(type, proto, name);
+        addProvider(new MethodGenerator(method, MathMethods::new, "multiplyExactLong"));
 
         // double {Math,StrictMath}.nextDown(double)
-        method = factory.createString("nextDown");
+        name = factory.createString("nextDown");
         proto = factory.createProto(factory.doubleType, factory.doubleType);
-        addProvider(new MethodGenerator(clazz, method, proto, MathMethods::new, "nextDownDouble"));
+        method = factory.createMethod(type, proto, name);
+        addProvider(new MethodGenerator(method, MathMethods::new, "nextDownDouble"));
 
         // float {Math,StrictMath}.nextDown(float)
-        method = factory.createString("nextDown");
+        name = factory.createString("nextDown");
         proto = factory.createProto(factory.floatType, factory.floatType);
-        addProvider(new MethodGenerator(clazz, method, proto, MathMethods::new, "nextDownFloat"));
+        method = factory.createMethod(type, proto, name);
+        addProvider(new MethodGenerator(method, MathMethods::new, "nextDownFloat"));
 
         // int {Math,StrictMath}.subtractExact(int, int)
-        method = factory.createString("subtractExact");
+        name = factory.createString("subtractExact");
         proto = factory.createProto(factory.intType, factory.intType, factory.intType);
-        addProvider(
-            new MethodGenerator(clazz, method, proto, MathMethods::new, "subtractExactInt"));
+        method = factory.createMethod(type, proto, name);
+        addProvider(new MethodGenerator(method, MathMethods::new, "subtractExactInt"));
 
         // long {Math,StrictMath}.subtractExact(long, long)
-        method = factory.createString("subtractExact");
+        name = factory.createString("subtractExact");
         proto = factory.createProto(factory.longType, factory.longType, factory.longType);
-        addProvider(
-            new MethodGenerator(clazz, method, proto, MathMethods::new, "subtractExactLong"));
+        method = factory.createMethod(type, proto, name);
+        addProvider(new MethodGenerator(method, MathMethods::new, "subtractExactLong"));
 
         // int {Math,StrictMath}.toIntExact(long)
-        method = factory.createString("toIntExact");
+        name = factory.createString("toIntExact");
         proto = factory.createProto(factory.intType, factory.longType);
-        addProvider(new MethodGenerator(clazz, method, proto, MathMethods::new));
+        method = factory.createMethod(type, proto, name);
+        addProvider(new MethodGenerator(method, MathMethods::new));
       }
 
       // Math (APIs which are not mirrored by StrictMath)
-      clazz = factory.mathDescriptor;
+      type = factory.mathType;
 
       // int Math.decrementExact(int)
-      method = factory.createString("decrementExact");
+      name = factory.createString("decrementExact");
       proto = factory.createProto(factory.intType, factory.intType);
-      addProvider(new MethodGenerator(clazz, method, proto, MathMethods::new, "decrementExactInt"));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, MathMethods::new, "decrementExactInt"));
 
       // long Math.decrementExact(long)
-      method = factory.createString("decrementExact");
+      name = factory.createString("decrementExact");
       proto = factory.createProto(factory.longType, factory.longType);
-      addProvider(
-          new MethodGenerator(clazz, method, proto, MathMethods::new, "decrementExactLong"));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, MathMethods::new, "decrementExactLong"));
 
       // int Math.incrementExact(int)
-      method = factory.createString("incrementExact");
+      name = factory.createString("incrementExact");
       proto = factory.createProto(factory.intType, factory.intType);
-      addProvider(new MethodGenerator(clazz, method, proto, MathMethods::new, "incrementExactInt"));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, MathMethods::new, "incrementExactInt"));
 
       // long Math.incrementExact(long)
-      method = factory.createString("incrementExact");
+      name = factory.createString("incrementExact");
       proto = factory.createProto(factory.longType, factory.longType);
-      addProvider(
-          new MethodGenerator(clazz, method, proto, MathMethods::new, "incrementExactLong"));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, MathMethods::new, "incrementExactLong"));
 
       // int Math.negateExact(int)
-      method = factory.createString("negateExact");
+      name = factory.createString("negateExact");
       proto = factory.createProto(factory.intType, factory.intType);
-      addProvider(new MethodGenerator(clazz, method, proto, MathMethods::new, "negateExactInt"));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, MathMethods::new, "negateExactInt"));
 
       // long Math.negateExact(long)
-      method = factory.createString("negateExact");
+      name = factory.createString("negateExact");
       proto = factory.createProto(factory.longType, factory.longType);
-      addProvider(new MethodGenerator(clazz, method, proto, MathMethods::new, "negateExactLong"));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, MathMethods::new, "negateExactLong"));
     }
 
     private void initializeAndroidOMethodProviders(DexItemFactory factory) {
       // Byte
-      DexString clazz = factory.boxedByteDescriptor;
+      DexType type = factory.boxedByteType;
 
       // int Byte.toUnsignedInt(byte value)
-      DexString method = factory.createString("toUnsignedInt");
+      DexString name = factory.createString("toUnsignedInt");
       DexProto proto = factory.createProto(factory.intType, factory.byteType);
-      addProvider(new MethodGenerator(clazz, method, proto, ByteMethods::new));
+      DexMethod method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, ByteMethods::new));
 
       // long Byte.toUnsignedLong(byte value)
-      method = factory.createString("toUnsignedLong");
+      name = factory.createString("toUnsignedLong");
       proto = factory.createProto(factory.longType, factory.byteType);
-      addProvider(new MethodGenerator(clazz, method, proto, ByteMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, ByteMethods::new));
 
       // Short
-      clazz = factory.boxedShortDescriptor;
+      type = factory.boxedShortType;
 
       // int Short.toUnsignedInt(short value)
-      method = factory.createString("toUnsignedInt");
+      name = factory.createString("toUnsignedInt");
       proto = factory.createProto(factory.intType, factory.shortType);
-      addProvider(new MethodGenerator(clazz, method, proto, ShortMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, ShortMethods::new));
 
       // long Short.toUnsignedLong(short value)
-      method = factory.createString("toUnsignedLong");
+      name = factory.createString("toUnsignedLong");
       proto = factory.createProto(factory.longType, factory.shortType);
-      addProvider(new MethodGenerator(clazz, method, proto, ShortMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, ShortMethods::new));
 
       // Integer
-      clazz = factory.boxedIntDescriptor;
+      type = factory.boxedIntType;
 
       // int Integer.divideUnsigned(int a, int b)
-      method = factory.createString("divideUnsigned");
+      name = factory.createString("divideUnsigned");
       proto = factory.createProto(factory.intType, factory.intType, factory.intType);
-      addProvider(new MethodGenerator(clazz, method, proto, IntegerMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, IntegerMethods::new));
 
       // int Integer.remainderUnsigned(int a, int b)
-      method = factory.createString("remainderUnsigned");
+      name = factory.createString("remainderUnsigned");
       proto = factory.createProto(factory.intType, factory.intType, factory.intType);
-      addProvider(new MethodGenerator(clazz, method, proto, IntegerMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, IntegerMethods::new));
 
       // int Integer.compareUnsigned(int a, int b)
-      method = factory.createString("compareUnsigned");
+      name = factory.createString("compareUnsigned");
       proto = factory.createProto(factory.intType, factory.intType, factory.intType);
-      addProvider(new MethodGenerator(clazz, method, proto, IntegerMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, IntegerMethods::new));
 
       // long Integer.toUnsignedLong(int value)
-      method = factory.createString("toUnsignedLong");
+      name = factory.createString("toUnsignedLong");
       proto = factory.createProto(factory.longType, factory.intType);
-      addProvider(new MethodGenerator(clazz, method, proto, IntegerMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, IntegerMethods::new));
 
       // int Integer.parseUnsignedInt(String value)
-      method = factory.createString("parseUnsignedInt");
+      name = factory.createString("parseUnsignedInt");
       proto = factory.createProto(factory.intType, factory.stringType);
-      addProvider(new MethodGenerator(clazz, method, proto, IntegerMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, IntegerMethods::new));
 
       // int Integer.parseUnsignedInt(String value, int radix)
-      method = factory.createString("parseUnsignedInt");
+      name = factory.createString("parseUnsignedInt");
       proto = factory.createProto(factory.intType, factory.stringType, factory.intType);
-      addProvider(
-          new MethodGenerator(
-              clazz, method, proto, IntegerMethods::new, "parseUnsignedIntWithRadix"));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, IntegerMethods::new, "parseUnsignedIntWithRadix"));
 
       // String Integer.toUnsignedString(int value)
-      method = factory.createString("toUnsignedString");
+      name = factory.createString("toUnsignedString");
       proto = factory.createProto(factory.stringType, factory.intType);
-      addProvider(new MethodGenerator(clazz, method, proto, IntegerMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, IntegerMethods::new));
 
       // String Integer.toUnsignedString(int value, int radix)
-      method = factory.createString("toUnsignedString");
+      name = factory.createString("toUnsignedString");
       proto = factory.createProto(factory.stringType, factory.intType, factory.intType);
-      addProvider(
-          new MethodGenerator(
-              clazz, method, proto, IntegerMethods::new, "toUnsignedStringWithRadix"));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, IntegerMethods::new, "toUnsignedStringWithRadix"));
 
       // Long
-      clazz = factory.boxedLongDescriptor;
+      type = factory.boxedLongType;
 
       // long Long.divideUnsigned(long a, long b)
-      method = factory.createString("divideUnsigned");
+      name = factory.createString("divideUnsigned");
       proto = factory.createProto(factory.longType, factory.longType, factory.longType);
-      addProvider(new MethodGenerator(clazz, method, proto, LongMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, LongMethods::new));
 
       // long Long.remainderUnsigned(long a, long b)
-      method = factory.createString("remainderUnsigned");
+      name = factory.createString("remainderUnsigned");
       proto = factory.createProto(factory.longType, factory.longType, factory.longType);
-      addProvider(new MethodGenerator(clazz, method, proto, LongMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, LongMethods::new));
 
       // int Long.compareUnsigned(long a, long b)
-      method = factory.createString("compareUnsigned");
+      name = factory.createString("compareUnsigned");
       proto = factory.createProto(factory.intType, factory.longType, factory.longType);
-      addProvider(new MethodGenerator(clazz, method, proto, LongMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, LongMethods::new));
 
       // long Long.parseUnsignedLong(String value)
-      method = factory.createString("parseUnsignedLong");
+      name = factory.createString("parseUnsignedLong");
       proto = factory.createProto(factory.longType, factory.stringType);
-      addProvider(new MethodGenerator(clazz, method, proto, LongMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, LongMethods::new));
 
       // long Long.parseUnsignedLong(String value, int radix)
-      method = factory.createString("parseUnsignedLong");
+      name = factory.createString("parseUnsignedLong");
       proto = factory.createProto(factory.longType, factory.stringType, factory.intType);
-      addProvider(
-          new MethodGenerator(
-              clazz, method, proto, LongMethods::new, "parseUnsignedLongWithRadix"));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, LongMethods::new, "parseUnsignedLongWithRadix"));
 
       // String Long.toUnsignedString(long value)
-      method = factory.createString("toUnsignedString");
+      name = factory.createString("toUnsignedString");
       proto = factory.createProto(factory.stringType, factory.longType);
-      addProvider(new MethodGenerator(clazz, method, proto, LongMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, LongMethods::new));
 
       // String Long.toUnsignedString(long value, int radix)
-      method = factory.createString("toUnsignedString");
+      name = factory.createString("toUnsignedString");
       proto = factory.createProto(factory.stringType, factory.longType, factory.intType);
-      addProvider(
-          new MethodGenerator(clazz, method, proto, LongMethods::new, "toUnsignedStringWithRadix"));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, LongMethods::new, "toUnsignedStringWithRadix"));
 
       // String
-      clazz = factory.stringDescriptor;
+      type = factory.stringType;
 
       // String String.join(CharSequence, CharSequence...)
-      method = factory.createString("join");
+      name = factory.createString("join");
       proto = factory.createProto(factory.stringType, factory.charSequenceType,
           factory.charSequenceArrayType);
-      addProvider(new MethodGenerator(clazz, method, proto, StringMethods::new, "joinArray"));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, StringMethods::new, "joinArray"));
 
       // String String.join(CharSequence, Iterable<? extends CharSequence>)
-      method = factory.createString("join");
+      name = factory.createString("join");
       proto =
           factory.createProto(factory.stringType, factory.charSequenceType, factory.iterableType);
-      addProvider(new MethodGenerator(clazz, method, proto, StringMethods::new, "joinIterable"));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, StringMethods::new, "joinIterable"));
     }
 
     private void initializeJava9MethodProviders(DexItemFactory factory) {
       // Math & StrictMath, which have some symmetric, binary-compatible APIs
-      DexString[] mathClasses = {factory.mathDescriptor, factory.strictMathDescriptor};
-      for (DexString mathClass : mathClasses) {
-        DexString clazz = mathClass;
+      DexType[] mathTypes = {factory.mathType, factory.strictMathType};
+      for (int i = 0; i < mathTypes.length; i++) {
+        DexType type = mathTypes[i];
 
         // long {Math,StrictMath}.multiplyExact(long, int)
-        DexString method = factory.createString("multiplyExact");
+        DexString name = factory.createString("multiplyExact");
         DexProto proto = factory.createProto(factory.longType, factory.longType, factory.intType);
-        addProvider(
-            new MethodGenerator(clazz, method, proto, MathMethods::new, "multiplyExactLongInt"));
+        DexMethod method = factory.createMethod(type, proto, name);
+        addProvider(new MethodGenerator(method, MathMethods::new, "multiplyExactLongInt"));
 
         // long {Math,StrictMath}.floorDiv(long, int)
-        method = factory.createString("floorDiv");
+        name = factory.createString("floorDiv");
         proto = factory.createProto(factory.longType, factory.longType, factory.intType);
-        addProvider(new MethodGenerator(clazz, method, proto, MathMethods::new, "floorDivLongInt"));
+        method = factory.createMethod(type, proto, name);
+        addProvider(new MethodGenerator(method, MathMethods::new, "floorDivLongInt"));
 
         // int {Math,StrictMath}.floorMod(long, int)
-        method = factory.createString("floorMod");
+        name = factory.createString("floorMod");
         proto = factory.createProto(factory.intType, factory.longType, factory.intType);
-        addProvider(new MethodGenerator(clazz, method, proto, MathMethods::new, "floorModLongInt"));
+        method = factory.createMethod(type, proto, name);
+        addProvider(new MethodGenerator(method, MathMethods::new, "floorModLongInt"));
       }
 
       // Byte
-      DexString clazz = factory.boxedByteDescriptor;
+      DexType type = factory.boxedByteType;
 
       // int Byte.compareUnsigned(byte, byte)
-      DexString method = factory.createString("compareUnsigned");
+      DexString name = factory.createString("compareUnsigned");
       DexProto proto = factory.createProto(factory.intType, factory.byteType, factory.byteType);
-      addProvider(new MethodGenerator(clazz, method, proto, ByteMethods::new));
+      DexMethod method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, ByteMethods::new));
 
       // Short
-      clazz = factory.boxedShortDescriptor;
+      type = factory.boxedShortType;
 
       // int Short.compareUnsigned(short, short)
-      method = factory.createString("compareUnsigned");
+      name = factory.createString("compareUnsigned");
       proto = factory.createProto(factory.intType, factory.shortType, factory.shortType);
-      addProvider(new MethodGenerator(clazz, method, proto, ShortMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, ShortMethods::new));
 
       // Objects
-      clazz = factory.objectsDescriptor;
+      type = factory.objectsType;
 
       // T Objects.requireNonNullElse(T, T)
-      method = factory.createString("requireNonNullElse");
+      name = factory.createString("requireNonNullElse");
       proto = factory.createProto(factory.objectType, factory.objectType, factory.objectType);
-      addProvider(new MethodGenerator(clazz, method, proto, ObjectsMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, ObjectsMethods::new));
 
       // T Objects.requireNonNullElseGet(T, Supplier<? extends T>)
-      method = factory.createString("requireNonNullElseGet");
+      name = factory.createString("requireNonNullElseGet");
       proto = factory.createProto(factory.objectType, factory.objectType, factory.supplierType);
-      addProvider(new MethodGenerator(clazz, method, proto, ObjectsMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, ObjectsMethods::new));
 
       // int Objects.checkIndex(int, int)
-      method = factory.createString("checkIndex");
+      name = factory.createString("checkIndex");
       proto = factory.createProto(factory.intType, factory.intType, factory.intType);
-      addProvider(new MethodGenerator(clazz, method, proto, ObjectsMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, ObjectsMethods::new));
 
       // int Objects.checkFromToIndex(int, int, int)
-      method = factory.createString("checkFromToIndex");
+      name = factory.createString("checkFromToIndex");
       proto =
           factory.createProto(factory.intType, factory.intType, factory.intType, factory.intType);
-      addProvider(new MethodGenerator(clazz, method, proto, ObjectsMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, ObjectsMethods::new));
 
       // int Objects.checkFromIndexSize(int, int, int)
-      method = factory.createString("checkFromIndexSize");
+      name = factory.createString("checkFromIndexSize");
       proto =
           factory.createProto(factory.intType, factory.intType, factory.intType, factory.intType);
-      addProvider(new MethodGenerator(clazz, method, proto, ObjectsMethods::new));
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, ObjectsMethods::new));
 
       // List of
-      clazz = factory.listDescriptor;
-      method = factory.createString("of");
+      type = factory.listType;
+      name = factory.createString("of");
 
       // From 0 to 10 arguments.
       ArrayList<DexType> parameters = new ArrayList<>();
       for (int i = 0; i <= 10; i++) {
         proto = factory.createProto(factory.listType, parameters);
-        addProvider(new MethodGenerator(clazz, method, proto, ListMethods::new));
+        method = factory.createMethod(type, proto, name);
+        addProvider(new MethodGenerator(method, ListMethods::new));
         parameters.add(factory.objectType);
       }
     }
 
     private void initializeJava11MethodProviders(DexItemFactory factory) {
       // Character
-      DexString clazz = factory.boxedCharDescriptor;
+      DexType type = factory.boxedCharType;
 
       // String Character.toString(int)
-      DexString method = factory.createString("toString");
+      DexString name = factory.createString("toString");
       DexProto proto = factory.createProto(factory.stringType, factory.intType);
-      addProvider(
-          new MethodGenerator(clazz, method, proto, CharacterMethods::new, "toStringCodepoint"));
+      DexMethod method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, CharacterMethods::new, "toStringCodepoint"));
     }
 
     private void initializeOptionalMethodProviders(DexItemFactory factory) {
       // Optional
-      DexString clazz = factory.createString("Ljava/util/Optional;");
-      DexType optionalType = factory.createType(clazz);
+      DexType optionalType = factory.createType(factory.createString("Ljava/util/Optional;"));
 
       // Optional.or(supplier)
-      DexString method = factory.createString("or");
+      DexString name = factory.createString("or");
       DexProto proto = factory.createProto(optionalType, factory.supplierType);
-      addProvider(
-          new StatifyingMethodGenerator(
-              clazz, method, proto, OptionalMethods::new, "or", optionalType));
+      DexMethod method = factory.createMethod(optionalType, proto, name);
+      addProvider(new StatifyingMethodGenerator(method, OptionalMethods::new, "or", optionalType));
 
       // Optional.stream()
-      method = factory.createString("stream");
+      name = factory.createString("stream");
       proto = factory.createProto(factory.createType("Ljava/util/stream/Stream;"));
+      method = factory.createMethod(optionalType, proto, name);
       addProvider(
-          new StatifyingMethodGenerator(
-              clazz, method, proto, OptionalMethods::new, "stream", optionalType));
+          new StatifyingMethodGenerator(method, OptionalMethods::new, "stream", optionalType));
 
       // Optional{void,Int,Long,Double}.ifPresentOrElse(consumer,runnable)
-      DexString[] optionalClasses =
-          new DexString[] {
-            clazz,
-            factory.createString("Ljava/util/OptionalDouble;"),
-            factory.createString("Ljava/util/OptionalLong;"),
-            factory.createString("Ljava/util/OptionalInt;")
+      DexType[] optionalTypes =
+          new DexType[] {
+            optionalType,
+            factory.createType(factory.createString("Ljava/util/OptionalDouble;")),
+            factory.createType(factory.createString("Ljava/util/OptionalLong;")),
+            factory.createType(factory.createString("Ljava/util/OptionalInt;"))
           };
-      DexType[] consumerClasses =
+      DexType[] consumerTypes =
           new DexType[] {
             factory.consumerType,
             factory.createType("Ljava/util/function/DoubleConsumer;"),
             factory.createType("Ljava/util/function/LongConsumer;"),
             factory.createType("Ljava/util/function/IntConsumer;")
           };
-      for (int i = 0; i < optionalClasses.length; i++) {
-        clazz = optionalClasses[i];
-        DexType consumer = consumerClasses[i];
-        method = factory.createString("ifPresentOrElse");
+      for (int i = 0; i < optionalTypes.length; i++) {
+        DexType optional = optionalTypes[i];
+        DexType consumer = consumerTypes[i];
+        name = factory.createString("ifPresentOrElse");
         proto = factory.createProto(factory.voidType, consumer, factory.runnableType);
+        method = factory.createMethod(optional, proto, name);
         addProvider(
             new StatifyingMethodGenerator(
-                clazz,
-                method,
-                proto,
-                OptionalMethods::new,
-                "ifPresentOrElse",
-                factory.createType(clazz)));
+                method, OptionalMethods::new, "ifPresentOrElse", optional));
       }
     }
 
@@ -948,9 +1012,10 @@ public final class BackportedMethodRewriter {
             List<DexEncodedMethod> found = findDexEncodedMethodsWithName(methodName, typeClass);
             for (DexEncodedMethod encodedMethod : found) {
               DexProto proto = encodedMethod.method.proto;
+              DexMethod method = appView.dexItemFactory().createMethod(inType, proto, methodName);
               addProvider(
                   new RetargetCoreLibraryMethodProvider(
-                      newHolder, inType.descriptor, methodName, proto, encodedMethod.isStatic()));
+                      newHolder, method, encodedMethod.isStatic()));
             }
           }
         }
@@ -970,35 +1035,20 @@ public final class BackportedMethodRewriter {
     }
 
     private void addProvider(MethodProvider generator) {
-      rewritable
-          .computeIfAbsent(generator.clazz, k -> new IdentityHashMap<>())
-          .computeIfAbsent(generator.method, k -> new IdentityHashMap<>())
-          .put(generator.proto, generator);
+      assert !rewritable.containsKey(generator.method);
+      rewritable.put(generator.method, generator);
     }
 
-    public MethodProvider getProvider(DexString clazz, DexString method, DexProto proto) {
-      Map<DexString, Map<DexProto, MethodProvider>> classMap = rewritable.get(clazz);
-      if (classMap != null) {
-        Map<DexProto, MethodProvider> methodMap = classMap.get(method);
-        if (methodMap != null) {
-          return methodMap.get(proto);
-        }
-      }
-      return null;
+    public MethodProvider getProvider(DexMethod method) {
+      return rewritable.get(method);
     }
   }
 
   public abstract static class MethodProvider {
+    final DexMethod method;
 
-    final DexString clazz;
-    final DexString method;
-    final DexProto proto;
-    DexMethod dexMethod;
-
-    public MethodProvider(DexString clazz, DexString method, DexProto proto) {
-      this.clazz = clazz;
+    public MethodProvider(DexMethod method) {
       this.method = method;
-      this.proto = proto;
     }
 
     public abstract DexMethod provideMethod(AppView<?> appView);
@@ -1012,25 +1062,26 @@ public final class BackportedMethodRewriter {
   public static class RetargetCoreLibraryMethodProvider extends MethodProvider {
 
     private final DexType newHolder;
-    private DexMethod dexMethod;
+    private DexMethod targetMethod;
     private boolean isStatic;
 
     public RetargetCoreLibraryMethodProvider(
-        DexType newHolder, DexString clazz, DexString method, DexProto proto, boolean isStatic) {
-      super(clazz, method, proto);
+        DexType newHolder, DexMethod method, boolean isStatic) {
+      super(method);
       this.newHolder = newHolder;
       this.isStatic = isStatic;
     }
 
     @Override
     public DexMethod provideMethod(AppView<?> appView) {
-      if (dexMethod != null) {
-        return dexMethod;
+      if (targetMethod != null) {
+        return targetMethod;
       }
       DexItemFactory factory = appView.dexItemFactory();
       DexProto newProto =
-          isStatic ? proto : factory.prependTypeToProto(factory.createType(clazz), proto);
-      return dexMethod = factory.createMethod(newHolder, newProto, method);
+          isStatic ? method.proto : factory.prependTypeToProto(method.holder, method.proto);
+      targetMethod = factory.createMethod(newHolder, newProto, method.name);
+      return targetMethod;
     }
 
     @Override
@@ -1047,32 +1098,26 @@ public final class BackportedMethodRewriter {
   public static class MethodGenerator extends MethodProvider {
 
     private final TemplateMethodFactory factory;
-    final String methodName;
+    private final String methodName;
+    protected DexMethod generatedMethod;
 
-    public MethodGenerator(
-        DexString clazz, DexString method, DexProto proto, TemplateMethodFactory factory) {
-      this(clazz, method, proto, factory, method.toString());
+    public MethodGenerator(DexMethod method, TemplateMethodFactory factory) {
+      this(method, factory, method.name.toString());
     }
 
-    public MethodGenerator(
-        DexString clazz,
-        DexString method,
-        DexProto proto,
-        TemplateMethodFactory factory,
-        String methodName) {
-      super(clazz, method, proto);
+    public MethodGenerator(DexMethod method, TemplateMethodFactory factory, String methodName) {
+      super(method);
       this.factory = factory;
       this.methodName = methodName;
     }
 
     @Override
     public DexMethod provideMethod(AppView<?> appView) {
-      if (dexMethod != null) {
-        return dexMethod;
+      if (generatedMethod != null) {
+        return generatedMethod;
       }
       DexItemFactory factory = appView.dexItemFactory();
-      String unqualifiedName =
-          DescriptorUtils.getUnqualifiedClassNameFromDescriptor(clazz.toString());
+      String unqualifiedName = method.holder.getName();
       // Avoid duplicate class names between core lib dex file and program dex files.
       String coreLibUtilitySuffix =
           appView.options().isDesugaredLibraryCompilation() ? "$corelib" : "";
@@ -1081,14 +1126,14 @@ public final class BackportedMethodRewriter {
               + '$'
               + unqualifiedName
               + '$'
-              + proto.parameters.size()
+              + method.proto.parameters.size()
               + coreLibUtilitySuffix
               + '$'
               + methodName
               + ';';
-      DexType clazz = factory.createType(descriptor);
-      dexMethod = factory.createMethod(clazz, proto, method);
-      return dexMethod;
+      DexType type = factory.createType(descriptor);
+      generatedMethod = factory.createMethod(type, method.proto, method.name);
+      return generatedMethod;
     }
 
     @Override
@@ -1110,25 +1155,22 @@ public final class BackportedMethodRewriter {
     private final DexType receiverType;
 
     public StatifyingMethodGenerator(
-        DexString clazz,
-        DexString method,
-        DexProto proto,
-        TemplateMethodFactory factory,
-        String methodName,
-        DexType receiverType) {
-      super(clazz, method, proto, factory, methodName);
+        DexMethod method, TemplateMethodFactory factory, String methodName, DexType receiverType) {
+      super(method, factory, methodName);
       this.receiverType = receiverType;
     }
 
     @Override
     public DexMethod provideMethod(AppView<?> appView) {
-      if (dexMethod != null) {
-        return dexMethod;
+      if (generatedMethod != null) {
+        return generatedMethod;
       }
       super.provideMethod(appView);
-      DexProto newProto = appView.dexItemFactory().prependTypeToProto(receiverType, proto);
-      dexMethod = appView.dexItemFactory().createMethod(dexMethod.holder, newProto, method);
-      return dexMethod;
+      assert generatedMethod != null;
+      DexProto newProto = appView.dexItemFactory().prependTypeToProto(receiverType, method.proto);
+      generatedMethod =
+          appView.dexItemFactory().createMethod(generatedMethod.holder, newProto, method.name);
+      return generatedMethod;
     }
   }
 
@@ -1137,4 +1179,3 @@ public final class BackportedMethodRewriter {
     TemplateMethodCode create(InternalOptions options, DexMethod method, String name);
   }
 }
-
