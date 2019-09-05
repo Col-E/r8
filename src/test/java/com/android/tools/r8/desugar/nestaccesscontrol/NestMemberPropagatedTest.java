@@ -35,6 +35,7 @@ public class NestMemberPropagatedTest extends TestBase {
   public static TestParametersCollection data() {
     return getTestParameters()
         .withCfRuntimesStartingFromIncluding(CfVm.JDK11)
+        .withDexRuntimes()
         .withAllApiLevels()
         .build();
   }
