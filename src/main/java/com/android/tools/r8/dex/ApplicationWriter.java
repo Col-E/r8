@@ -69,7 +69,6 @@ public class ApplicationWriter {
 
   public final DexApplication application;
   public final AppView<?> appView;
-  public final String deadCode;
   public final GraphLense graphLense;
   public final NamingLens namingLens;
   public final InternalOptions options;
@@ -143,7 +142,6 @@ public class ApplicationWriter {
       InternalOptions options,
       List<Marker> markers,
       ClassesChecksum checksums,
-      String deadCode,
       GraphLense graphLense,
       NamingLens namingLens,
       ProguardMapSupplier proguardMapSupplier) {
@@ -153,7 +151,6 @@ public class ApplicationWriter {
         options,
         markers,
         checksums,
-        deadCode,
         graphLense,
         namingLens,
         proguardMapSupplier,
@@ -166,7 +163,6 @@ public class ApplicationWriter {
       InternalOptions options,
       List<Marker> markers,
       ClassesChecksum checksums,
-      String deadCode,
       GraphLense graphLense,
       NamingLens namingLens,
       ProguardMapSupplier proguardMapSupplier,
@@ -178,7 +174,6 @@ public class ApplicationWriter {
     this.options = options;
     this.markers = markers;
     this.checksums = checksums;
-    this.deadCode = deadCode;
     this.graphLense = graphLense;
     this.namingLens = namingLens;
     this.proguardMapSupplier = proguardMapSupplier;
@@ -355,7 +350,6 @@ public class ApplicationWriter {
           graphLense,
           namingLens,
           options,
-          deadCode,
           proguardMapAndId == null ? null : proguardMapAndId.map);
     } finally {
       application.timing.end();
@@ -368,19 +362,12 @@ public class ApplicationWriter {
       GraphLense graphLense,
       NamingLens namingLens,
       InternalOptions options,
-      String deadCode,
       String proguardMapContent) {
     if (options.configurationConsumer != null) {
       ExceptionUtils.withConsumeResourceHandler(
           options.reporter, options.configurationConsumer,
           options.getProguardConfiguration().getParsedConfiguration());
       ExceptionUtils.withFinishedResourceHandler(options.reporter, options.configurationConsumer);
-    }
-    if (options.usageInformationConsumer != null && deadCode != null) {
-      ExceptionUtils.withConsumeResourceHandler(
-          options.reporter, options.usageInformationConsumer, deadCode);
-      ExceptionUtils.withFinishedResourceHandler(
-          options.reporter, options.usageInformationConsumer);
     }
     if (proguardMapContent != null) {
       assert validateProguardMapParses(proguardMapContent);

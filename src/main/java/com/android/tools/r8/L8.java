@@ -129,7 +129,6 @@ public class L8 {
           appView,
           options,
           options.getMarker(Tool.L8),
-          null,
           GraphLense.getIdentityLense(),
           PrefixRewritingNamingLens.createPrefixRewritingNamingLens(
               options, converter.getAdditionalRewritePrefix()),

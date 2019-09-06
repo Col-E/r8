@@ -2003,7 +2003,6 @@ public class ToolHelper {
         Executors.newSingleThreadExecutor(),
         application,
         null,
-        null,
         GraphLense.getIdentityLense(),
         NamingLens.getIdentityLens(),
         options,
