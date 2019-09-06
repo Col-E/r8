@@ -355,6 +355,8 @@ public class R8 {
           out.flush();
           ExceptionUtils.withConsumeResourceHandler(
               options.reporter, options.proguardSeedsConsumer, bytes.toString());
+          ExceptionUtils.withFinishedResourceHandler(
+              options.reporter, options.proguardSeedsConsumer);
         }
         if (options.isShrinking()) {
           // Mark dead proto extensions fields as neither being read nor written. This step must
