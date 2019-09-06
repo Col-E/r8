@@ -11,11 +11,11 @@ public class BitAccessInfo {
 
   private BitAccessInfo() {}
 
-  static int getAllBitsReadValue() {
+  public static int getAllBitsReadValue() {
     return ALL_BITS_READ;
   }
 
-  static int getNoBitsReadValue() {
+  public static int getNoBitsReadValue() {
     return NO_BITS_READ;
   }
 

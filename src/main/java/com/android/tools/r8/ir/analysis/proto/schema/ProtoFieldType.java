@@ -5,7 +5,7 @@
 package com.android.tools.r8.ir.analysis.proto.schema;
 
 import static com.android.tools.r8.ir.analysis.proto.schema.ProtoOneOfFieldType.FIRST_ONE_OF_ID;
-import static com.android.tools.r8.utils.BitUtils.isBitSet;
+import static com.android.tools.r8.utils.BitUtils.isBitInMaskSet;
 
 import com.android.tools.r8.utils.BooleanUtils;
 
@@ -47,15 +47,15 @@ public class ProtoFieldType {
     if (fieldId < FIRST_ONE_OF_ID) {
       return new ProtoFieldType(
           fieldTypeWithExtraBits & FIELD_ID_MASK,
-          isBitSet(fieldTypeWithExtraBits, FIELD_IS_REQUIRED_MASK),
-          isBitSet(fieldTypeWithExtraBits, FIELD_NEEDS_IS_INITIALIZED_CHECK_MASK),
-          isBitSet(fieldTypeWithExtraBits, FIELD_IS_MAP_FIELD_WITH_PROTO_2_ENUM_VALUE_MASK));
+          isBitInMaskSet(fieldTypeWithExtraBits, FIELD_IS_REQUIRED_MASK),
+          isBitInMaskSet(fieldTypeWithExtraBits, FIELD_NEEDS_IS_INITIALIZED_CHECK_MASK),
+          isBitInMaskSet(fieldTypeWithExtraBits, FIELD_IS_MAP_FIELD_WITH_PROTO_2_ENUM_VALUE_MASK));
     } else {
       return new ProtoOneOfFieldType(
           fieldTypeWithExtraBits & FIELD_ID_MASK,
-          isBitSet(fieldTypeWithExtraBits, FIELD_IS_REQUIRED_MASK),
-          isBitSet(fieldTypeWithExtraBits, FIELD_NEEDS_IS_INITIALIZED_CHECK_MASK),
-          isBitSet(fieldTypeWithExtraBits, FIELD_IS_MAP_FIELD_WITH_PROTO_2_ENUM_VALUE_MASK));
+          isBitInMaskSet(fieldTypeWithExtraBits, FIELD_IS_REQUIRED_MASK),
+          isBitInMaskSet(fieldTypeWithExtraBits, FIELD_NEEDS_IS_INITIALIZED_CHECK_MASK),
+          isBitInMaskSet(fieldTypeWithExtraBits, FIELD_IS_MAP_FIELD_WITH_PROTO_2_ENUM_VALUE_MASK));
     }
   }
 

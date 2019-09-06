@@ -15,5 +15,5 @@ public interface FieldOptimizationFeedback {
 
   void markFieldHasDynamicType(DexEncodedField field, TypeLatticeElement type);
 
-  void markFieldHasUnknownAccess(DexEncodedField field);
+  void markFieldBitsRead(DexEncodedField field, int bitsRead);
 }

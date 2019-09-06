@@ -38,7 +38,7 @@ public abstract class OptimizationFeedbackIgnore implements OptimizationFeedback
   public void markFieldHasDynamicType(DexEncodedField field, TypeLatticeElement type) {}
 
   @Override
-  public void markFieldHasUnknownAccess(DexEncodedField field) {}
+  public void markFieldBitsRead(DexEncodedField field, int bitsRead) {}
 
   // METHOD OPTIMIZATION INFO:
 

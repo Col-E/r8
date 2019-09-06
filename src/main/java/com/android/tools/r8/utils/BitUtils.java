@@ -7,6 +7,10 @@ package com.android.tools.r8.utils;
 public class BitUtils {
 
   public static boolean isBitSet(int value, int which) {
-    return (value & which) != 0;
+    return (value & (1 << (which - 1))) != 0;
+  }
+
+  public static boolean isBitInMaskSet(int value, int mask) {
+    return (value & mask) != 0;
   }
 }

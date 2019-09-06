@@ -5,6 +5,9 @@
 package com.android.tools.r8.ir.analysis.fieldaccess;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.DexIndexedConsumer;
@@ -24,15 +27,14 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.BitUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.Timing;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
+import it.unimi.dsi.fastutil.objects.Reference2IntMap;
+import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.io.IOException;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -61,7 +63,18 @@ public class FieldBitAccessInfoTest extends TestBase {
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines(
-            "get()=false", "set()", "get()=true", "clear()", "get()=false");
+            "getFirst()=false",
+            "setFirst()",
+            "getFirst()=true",
+            "clearFirst()",
+            "getFirst()=false",
+            "getSecond()=false",
+            "setSecond()",
+            "getSecond()=true",
+            "clearSecond()",
+            "getSecond()=false",
+            "getAllFromOther()=0",
+            "0");
   }
 
   @Test
@@ -78,12 +91,24 @@ public class FieldBitAccessInfoTest extends TestBase {
       fieldBitAccessAnalysis.recordFieldAccesses(code, feedback);
     }
 
-    // TODO(b/140540714): Should have precise bit access info for `bitField`.
-    assertEquals(
-        ImmutableSet.of("bitField"),
-        feedback.fieldsWithUnknownAccesses.stream()
-            .map(field -> field.field.name.toSourceString())
-            .collect(Collectors.toSet()));
+    int bitsReadInBitField = feedback.bitsReadPerField.getInt(uniqueFieldByName(clazz, "bitField"));
+    assertTrue(BitUtils.isBitSet(bitsReadInBitField, 1));
+    assertTrue(BitUtils.isBitSet(bitsReadInBitField, 2));
+    for (int i = 3; i <= 32; i++) {
+      assertFalse(BitUtils.isBitSet(bitsReadInBitField, i));
+    }
+
+    int bitsReadInOtherBitField =
+        feedback.bitsReadPerField.getInt(uniqueFieldByName(clazz, "otherBitField"));
+    for (int i = 1; i <= 32; i++) {
+      assertTrue(BitUtils.isBitSet(bitsReadInOtherBitField, i));
+    }
+
+    int bitsReadInThirdBitField =
+        feedback.bitsReadPerField.getInt(uniqueFieldByName(clazz, "thirdBitField"));
+    for (int i = 1; i <= 32; i++) {
+      assertTrue(BitUtils.isBitSet(bitsReadInThirdBitField, i));
+    }
   }
 
   private AppView<AppInfoWithSubtyping> buildApp() throws IOException, ExecutionException {
@@ -108,40 +133,85 @@ public class FieldBitAccessInfoTest extends TestBase {
     return AppView.createForR8(new AppInfoWithSubtyping(application), options);
   }
 
+  private DexEncodedField uniqueFieldByName(DexProgramClass clazz, String name) {
+    DexEncodedField result = null;
+    for (DexEncodedField field : clazz.fields()) {
+      if (field.field.name.toSourceString().equals(name)) {
+        assertNull(result);
+        result = field;
+      }
+    }
+    return result;
+  }
+
   static class TestClass {
 
     static int bitField = 0;
+    static int otherBitField = 0;
+    static int thirdBitField = 0;
 
     public static void main(String[] args) {
-      System.out.println("get()=" + get());
-      System.out.println("set()");
-      set();
-      System.out.println("get()=" + get());
-      System.out.println("clear()");
-      clear();
-      System.out.println("get()=" + get());
+      // Use first bit of `bitField`.
+      System.out.println("getFirst()=" + getFirst());
+      System.out.println("setFirst()");
+      setFirst();
+      System.out.println("getFirst()=" + getFirst());
+      System.out.println("clearFirst()");
+      clearFirst();
+      System.out.println("getFirst()=" + getFirst());
+
+      // Use second bit of `bitField`.
+      System.out.println("getSecond()=" + getSecond());
+      System.out.println("setSecond()");
+      setSecond();
+      System.out.println("getSecond()=" + getSecond());
+      System.out.println("clearSecond()");
+      clearSecond();
+      System.out.println("getSecond()=" + getSecond());
+
+      // Use all bits of `otherBitField`.
+      System.out.println("getAllFromOther()=" + getAllFromOther());
+
+      // Use all bits of `thirdBitField`.
+      System.out.println(thirdBitField);
     }
 
-    static boolean get() {
+    static boolean getFirst() {
       return (bitField & 0x00000001) != 0;
     }
 
-    static void set() {
+    static void setFirst() {
       bitField |= 0x00000001;
     }
 
-    static void clear() {
+    static void clearFirst() {
       bitField &= ~0x00000001;
+    }
+
+    static boolean getSecond() {
+      return (bitField & 0x00000002) != 0;
+    }
+
+    static void setSecond() {
+      bitField |= 0x00000002;
+    }
+
+    static void clearSecond() {
+      bitField &= ~0x00000002;
+    }
+
+    static int getAllFromOther() {
+      return otherBitField;
     }
   }
 
   static class OptimizationFeedbackMock extends OptimizationFeedbackIgnore {
 
-    Set<DexEncodedField> fieldsWithUnknownAccesses = Sets.newIdentityHashSet();
+    Reference2IntMap<DexEncodedField> bitsReadPerField = new Reference2IntOpenHashMap<>();
 
     @Override
-    public void markFieldHasUnknownAccess(DexEncodedField field) {
-      fieldsWithUnknownAccesses.add(field);
+    public void markFieldBitsRead(DexEncodedField field, int bitsRead) {
+      bitsReadPerField.put(field, bitsReadPerField.getInt(field) | bitsRead);
     }
   }
 }

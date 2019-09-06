@@ -8,9 +8,12 @@ import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.ir.code.And;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.LogicalBinop;
+import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.info.BitAccessInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 
@@ -46,25 +49,68 @@ public class FieldBitAccessAnalysis {
         }
 
         if (fieldInstruction.isFieldGet()) {
-          recordFieldGet(fieldInstruction, encodedField, feedback);
-        } else {
-          recordFieldPut(fieldInstruction, encodedField, feedback);
+          feedback.markFieldBitsRead(encodedField, computeBitsRead(fieldInstruction, encodedField));
         }
       }
     }
   }
 
-  private void recordFieldGet(
-      FieldInstruction instruction, DexEncodedField encodedField, OptimizationFeedback feedback) {
-    assert instruction.isFieldGet();
-    // TODO(b/140540714): Recognize relevant patterns.
-    feedback.markFieldHasUnknownAccess(encodedField);
+  private int computeBitsRead(FieldInstruction instruction, DexEncodedField encodedField) {
+    Value outValue = instruction.outValue();
+    if (outValue.numberOfPhiUsers() > 0) {
+      // No need to track aliases, just give up.
+      return BitAccessInfo.getAllBitsReadValue();
+    }
+
+    int bitsRead = BitAccessInfo.getNoBitsReadValue();
+    for (Instruction user : outValue.uniqueUsers()) {
+      if (isOnlyUsedToUpdateFieldValue(user, encodedField)) {
+        continue;
+      }
+      if (user.isAnd()) {
+        And andInstruction = user.asAnd();
+        Value other =
+            andInstruction
+                .inValues()
+                .get(1 - andInstruction.inValues().indexOf(outValue))
+                .getAliasedValue();
+        if (other.isPhi() || !other.definition.isConstNumber()) {
+          // Could potentially read all bits, give up.
+          return BitAccessInfo.getAllBitsReadValue();
+        }
+        bitsRead |= other.definition.asConstNumber().getIntValue();
+      } else {
+        // Unknown usage, give up.
+        return BitAccessInfo.getAllBitsReadValue();
+      }
+    }
+    return bitsRead;
   }
 
-  private void recordFieldPut(
-      FieldInstruction instruction, DexEncodedField encodedField, OptimizationFeedback feedback) {
-    assert instruction.isFieldPut();
-    // TODO(b/140540714): Recognize relevant patterns.
-    feedback.markFieldHasUnknownAccess(encodedField);
+  private boolean isOnlyUsedToUpdateFieldValue(Instruction user, DexEncodedField encodedField) {
+    if (user.isLogicalBinop()) {
+      LogicalBinop binop = user.asLogicalBinop();
+      Value outValue = binop.outValue();
+      if (outValue.numberOfPhiUsers() > 0) {
+        // Not tracking aliased values, give up.
+        return false;
+      }
+      for (Instruction indirectUser : outValue.uniqueUsers()) {
+        if (!indirectUser.isFieldPut()) {
+          return false;
+        }
+        if (indirectUser.asFieldInstruction().getField() != encodedField.field) {
+          return false;
+        }
+      }
+      return true;
+    }
+    if (user.isFieldPut()) {
+      FieldInstruction fieldInstruction = user.asFieldInstruction();
+      if (fieldInstruction.getField() == encodedField.field) {
+        return true;
+      }
+    }
+    return false;
   }
 }

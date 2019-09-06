@@ -44,7 +44,7 @@ public class OptimizationFeedbackSimple implements OptimizationFeedback {
   }
 
   @Override
-  public void markFieldHasUnknownAccess(DexEncodedField field) {
+  public void markFieldBitsRead(DexEncodedField field, int bitsRead) {
     // Ignored.
   }
 

@@ -33,8 +33,8 @@ public class MutableFieldOptimizationInfo extends FieldOptimizationInfo {
     return readBits;
   }
 
-  void setReadBits(int readBits) {
-    this.readBits = readBits;
+  void joinReadBits(int readBits) {
+    this.readBits |= readBits;
   }
 
   @Override
