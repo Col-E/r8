@@ -427,6 +427,11 @@ public abstract class BaseCompilerCommand extends BaseCommand {
       return disableDesugaring;
     }
 
+    @Deprecated
+    public B addSpecialLibraryConfiguration(String configuration) {
+      return addDesugaredLibraryConfiguration(configuration);
+    }
+
     /** Desugared library configuration */
     // Configuration "default" is for testing only and support will be dropped.
     public B addDesugaredLibraryConfiguration(String configuration) {
