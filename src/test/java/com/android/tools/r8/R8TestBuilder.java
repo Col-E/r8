@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -335,6 +336,11 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
       builder.addDesugaredLibraryConfiguration("default");
       builder.setDesugaredLibraryKeepRuleConsumer(keepRuleConsumer);
     }
+    return self();
+  }
+
+  public T addFeatureSplit(Function<FeatureSplit.Builder, FeatureSplit> featureSplitBuilder) {
+    builder.addFeatureSplit(featureSplitBuilder);
     return self();
   }
 }

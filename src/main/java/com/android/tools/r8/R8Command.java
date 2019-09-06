@@ -38,6 +38,7 @@ import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Immutable command structure for an invocation of the {@link R8} compiler.
@@ -97,6 +98,7 @@ public final class R8Command extends BaseCompilerCommand {
     private GraphConsumer keptGraphConsumer = null;
     private GraphConsumer mainDexKeptGraphConsumer = null;
     private BiFunction<String, Long, Boolean> dexClassChecksumFilter = (name, checksum) -> true;
+    private final List<FeatureSplit> featureSplits = new ArrayList<>();
 
     // Internal compatibility mode for use from CompatProguard tool.
     Path proguardCompatibilityRulesOutput = null;
@@ -354,6 +356,19 @@ public final class R8Command extends BaseCompilerCommand {
           new EnsureNonDexProgramResourceProvider(programProvider));
     }
 
+    /**
+     * Add a {@link FeatureSplit} to the app. The {@link FeatureSplit} contains input and output
+     * providers, that enables us to generate dynamic apps with optional modules.
+     *
+     * @param featureSplitGenerator A function that uses the supplied {@link FeatureSplit.Builder}
+     *     to generate a {@link FeatureSplit}.
+     */
+    public Builder addFeatureSplit(
+        Function<FeatureSplit.Builder, FeatureSplit> featureSplitGenerator) {
+      featureSplits.add(featureSplitGenerator.apply(FeatureSplit.builder(getReporter())));
+      return self();
+    }
+
     @Override
     protected InternalProgramOutputPathConsumer createProgramOutputConsumer(
         Path path,
@@ -385,6 +400,13 @@ public final class R8Command extends BaseCompilerCommand {
                   + " and above");
         }
       }
+      for (FeatureSplit featureSplit : featureSplits) {
+        assert featureSplit.getProgramConsumer() instanceof DexIndexedConsumer;
+        if (!(getProgramConsumer() instanceof DexIndexedConsumer)) {
+          reporter.error("R8 does not support class file output when using feature splits");
+        }
+      }
+
       for (Path file : programFiles) {
         if (FileUtils.isDexFile(file)) {
           reporter.error(new StringDiagnostic(
@@ -522,7 +544,8 @@ public final class R8Command extends BaseCompilerCommand {
               getIncludeClassesChecksum(),
               getDexClassChecksumFilter(),
               desugaredLibraryKeepRuleConsumer,
-              libraryConfiguration);
+              libraryConfiguration,
+              featureSplits);
 
       return command;
     }
@@ -604,6 +627,7 @@ public final class R8Command extends BaseCompilerCommand {
   private final Consumer<List<ProguardConfigurationRule>> syntheticProguardRulesConsumer;
   private final StringConsumer desugaredLibraryKeepRuleConsumer;
   private final DesugaredLibraryConfiguration libraryConfiguration;
+  private final List<FeatureSplit> featureSplits;
 
   /** Get a new {@link R8Command.Builder}. */
   public static Builder builder() {
@@ -678,7 +702,8 @@ public final class R8Command extends BaseCompilerCommand {
       boolean encodeChecksum,
       BiPredicate<String, Long> dexClassChecksumFilter,
       StringConsumer desugaredLibraryKeepRuleConsumer,
-      DesugaredLibraryConfiguration libraryConfiguration) {
+      DesugaredLibraryConfiguration libraryConfiguration,
+      List<FeatureSplit> featureSplits) {
     super(
         inputApp,
         mode,
@@ -708,6 +733,7 @@ public final class R8Command extends BaseCompilerCommand {
     this.syntheticProguardRulesConsumer = syntheticProguardRulesConsumer;
     this.desugaredLibraryKeepRuleConsumer = desugaredLibraryKeepRuleConsumer;
     this.libraryConfiguration = libraryConfiguration;
+    this.featureSplits = featureSplits;
   }
 
   private R8Command(boolean printHelp, boolean printVersion) {
@@ -728,6 +754,7 @@ public final class R8Command extends BaseCompilerCommand {
     syntheticProguardRulesConsumer = null;
     desugaredLibraryKeepRuleConsumer = null;
     libraryConfiguration = null;
+    featureSplits = null;
   }
 
   /** Get the enable-tree-shaking state. */
