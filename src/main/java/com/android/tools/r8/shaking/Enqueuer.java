@@ -261,11 +261,11 @@ public class Enqueuer {
   private final Set<DexType> instantiatedAppServices = Sets.newIdentityHashSet();
 
   /**
-   * Set of interface types for which a lambda expression can be reached. These never have a single
-   * interface implementation.
+   * Set of interface types for which there may be instantiations, such as lambda expressions or
+   * explicit keep rules.
    */
-  private final SetWithReason<DexProgramClass> instantiatedLambdas =
-      new SetWithReason<>(this::registerClass);
+  private final SetWithReason<DexProgramClass> instantiatedInterfaceTypes =
+      new SetWithReason<>(this::registerInterface);
 
   /** A queue of items that need processing. Different items trigger different actions. */
   private final EnqueuerWorklist workList;
@@ -435,8 +435,7 @@ public class Enqueuer {
       DexProgramClass clazz = item.asDexClass().asProgramClass();
       KeepReasonWitness witness = graphReporter.reportKeepClass(precondition, rules, clazz);
       if (clazz.isInterface() && !clazz.accessFlags.isAnnotation()) {
-        // TODO(zerny): This marking is due to a keep rule, so why add to the instantiatedLambdas?
-        markInterfaceAsInstantiatedByLambda(clazz, witness);
+        markInterfaceAsInstantiated(clazz, witness);
       } else {
         workList.enqueueMarkInstantiatedAction(clazz, witness);
         if (clazz.hasDefaultInitializer()) {
@@ -466,11 +465,10 @@ public class Enqueuer {
     pinnedItems.add(item.toReference());
   }
 
-  // TODO(zerny): Why is this "ByLambda"?
-  private void markInterfaceAsInstantiatedByLambda(DexProgramClass clazz, KeepReason reason) {
+  private void markInterfaceAsInstantiated(DexProgramClass clazz, KeepReason reason) {
     assert clazz.isInterface() && !clazz.accessFlags.isAnnotation();
 
-    if (!instantiatedLambdas.add(clazz, reason)) {
+    if (!instantiatedInterfaceTypes.add(clazz, reason)) {
       return;
     }
     populateInstantiatedTypesCache(clazz);
@@ -911,7 +909,7 @@ public class Enqueuer {
         if (clazz != null) {
           KeepReason reason = KeepReason.methodHandleReferencedIn(currentMethod);
           if (clazz.isInterface() && !clazz.accessFlags.isAnnotation()) {
-            markInterfaceAsInstantiatedByLambda(clazz, reason);
+            markInterfaceAsInstantiated(clazz, reason);
           } else {
             markInstantiated(clazz, reason);
           }
@@ -1020,7 +1018,7 @@ public class Enqueuer {
       DexType baseType = type.toBaseType(appView.dexItemFactory());
       if (baseType.isClassType()) {
         DexProgramClass baseClass = getProgramClassOrNull(baseType);
-        if (baseClass != null && !baseClass.isInterface()) {
+        if (baseClass != null) {
           // Don't require any constructor, see b/112386012.
           markClassAsInstantiatedWithCompatRule(baseClass);
         } else {
@@ -1692,7 +1690,8 @@ public class Enqueuer {
       return;
     }
     if (clazz.isProgramClass()) {
-      if (instantiatedLambdas.add(clazz.asProgramClass(), KeepReason.instantiatedIn(method))) {
+      KeepReason reason = KeepReason.instantiatedIn(method);
+      if (instantiatedInterfaceTypes.add(clazz.asProgramClass(), reason)) {
         populateInstantiatedTypesCache(clazz.asProgramClass());
       }
     }
@@ -1855,7 +1854,7 @@ public class Enqueuer {
     }
 
     if (instantiatedTypes.contains(clazz)
-        || instantiatedLambdas.contains(clazz)
+        || instantiatedInterfaceTypes.contains(clazz)
         || pinnedItems.contains(clazz.type)) {
       markVirtualMethodAsLive(
           clazz, encodedPossibleTarget, KeepReason.reachableFromLiveType(possibleTarget.holder));
@@ -2108,7 +2107,8 @@ public class Enqueuer {
             Collections.emptySet(),
             Collections.emptyMap(),
             Collections.emptyMap(),
-            SetUtils.mapIdentityHashSet(instantiatedLambdas.getItems(), DexProgramClass::getType));
+            SetUtils.mapIdentityHashSet(
+                instantiatedInterfaceTypes.getItems(), DexProgramClass::getType));
     appInfo.markObsolete();
     return appInfoWithLiveness;
   }
@@ -2436,6 +2436,10 @@ public class Enqueuer {
   private void markClassAsInstantiatedWithCompatRule(DexProgramClass clazz) {
     ProguardKeepRule rule = ProguardConfigurationUtils.buildDefaultInitializerKeepRule(clazz);
     KeepReason reason = KeepReason.dueToProguardCompatibilityKeepRule(rule);
+    if (clazz.isInterface() && !clazz.accessFlags.isAnnotation()) {
+      markInterfaceAsInstantiated(clazz, reason);
+      return;
+    }
     proguardCompatibilityWorkList.enqueueMarkInstantiatedAction(clazz, reason);
     if (clazz.hasDefaultInitializer()) {
       proguardCompatibilityWorkList.enqueueMarkReachableDirectAction(
@@ -3091,6 +3095,14 @@ public class Enqueuer {
       return KeepReasonWitness.INSTANCE;
     }
     return registerEdge(getClassGraphNode(type), reason);
+  }
+
+  private KeepReasonWitness registerInterface(DexProgramClass iface, KeepReason reason) {
+    assert iface.isInterface();
+    if (skipReporting(reason)) {
+      return KeepReasonWitness.INSTANCE;
+    }
+    return registerEdge(getClassGraphNode(iface.type), reason);
   }
 
   private KeepReasonWitness registerClass(DexProgramClass clazz, KeepReason reason) {
