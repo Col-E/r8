@@ -10,17 +10,14 @@ import static org.junit.Assert.assertNotNull;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.R8FullTestBuilder;
-import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.StreamUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.io.IOException;
 import java.io.Reader;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -38,7 +35,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class ScriptEngineTest extends TestBase {
+public class ScriptEngineTest extends ScriptEngineTestBase {
 
   private final TestParameters parameters;
 
@@ -69,22 +66,16 @@ public class ScriptEngineTest extends TestBase {
                     StringUtils.lines(MyScriptEngine2FactoryImpl.class.getTypeName()).getBytes(),
                     "META-INF/services/" + ScriptEngineFactory.class.getTypeName(),
                     Origin.unknown()))
+            .apply(
+                b -> {
+                  if (parameters.isDexRuntime()) {
+                    addRhinoForAndroid(b);
+                  }
+                })
             // TODO(b/136633154): This should work both with and without -dontobfuscate.
             .noMinification()
             // TODO(b/136633154): This should work both with and without -dontshrink.
             .noTreeShaking();
-    if (parameters.isDexRuntime()) {
-      // JSR 223: Scripting for the JavaTM Platform (https://jcp.org/en/jsr/detail?id=223).
-      builder.addProgramFiles(Paths.get(ToolHelper.JSR223_RI_JAR));
-      if (parameters.isDexRuntime()) {
-        builder
-            // The rhino-android contains concrete implementation of sun.misc.Service
-            // used by the JSR 223 RI, which is not in the Android runtime (except for N?).
-            .addProgramFiles(Paths.get(ToolHelper.RHINO_ANDROID_JAR))
-            // The rhino-android library have references to missing classes.
-            .addOptionsModification(options -> options.ignoreMissingClasses = true);
-      }
-    }
     builder
         .compile()
         .writeToZip(path)
