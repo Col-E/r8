@@ -56,6 +56,10 @@ public class TestParametersBuilder {
     return withCfRuntimes().withDexRuntimes();
   }
 
+  public TestParametersBuilder withAllRuntimesAndApiLevels() {
+    return withCfRuntimes().withDexRuntimes().withAllApiLevels();
+  }
+
   /** Add specific runtime if available. */
   public TestParametersBuilder withCfRuntime(CfVm runtime) {
     return withCfRuntimeFilter(vm -> vm == runtime);
