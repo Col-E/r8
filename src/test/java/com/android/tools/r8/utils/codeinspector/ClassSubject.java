@@ -111,6 +111,14 @@ public abstract class ClassSubject extends Subject {
     return builder.build();
   }
 
+  public abstract void forAllInstanceFields(Consumer<FoundFieldSubject> inspection);
+
+  public final List<FoundFieldSubject> allInstanceFields() {
+    ImmutableList.Builder<FoundFieldSubject> builder = ImmutableList.builder();
+    forAllInstanceFields(builder::add);
+    return builder.build();
+  }
+
   public abstract FieldSubject field(String type, String name);
 
   public abstract FieldSubject uniqueFieldWithName(String name);

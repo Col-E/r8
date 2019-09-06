@@ -18,9 +18,11 @@ import com.android.tools.r8.ir.analysis.proto.ProtoShrinker;
 import com.android.tools.r8.ir.analysis.proto.RawMessageInfoDecoder;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.EnqueuerWorklist;
 import com.android.tools.r8.shaking.KeepReason;
+import com.android.tools.r8.utils.BitUtils;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
@@ -180,9 +182,19 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
           } else if (protoFieldInfo.hasHazzerBitField(protoMessageInfo)) {
             DexField hazzerBitField = protoFieldInfo.getHazzerBitField(protoMessageInfo);
             DexEncodedField encodedHazzerBitField = appView.appInfo().resolveField(hazzerBitField);
-            if (encodedHazzerBitField != null && enqueuer.isFieldLive(encodedHazzerBitField)) {
-              newlyLiveField = encodedValueStorage;
+            if (encodedHazzerBitField == null || !enqueuer.isFieldLive(encodedHazzerBitField)) {
+              continue;
             }
+
+            if (appView.options().enableFieldBitAccessAnalysis && appView.isAllCodeProcessed()) {
+              FieldOptimizationInfo optimizationInfo = encodedHazzerBitField.getOptimizationInfo();
+              int hazzerBitIndex = protoFieldInfo.getHazzerBitFieldIndex(protoMessageInfo);
+              if (!BitUtils.isBitSet(optimizationInfo.getReadBits(), hazzerBitIndex)) {
+                continue;
+              }
+            }
+
+            newlyLiveField = encodedValueStorage;
           }
         }
 

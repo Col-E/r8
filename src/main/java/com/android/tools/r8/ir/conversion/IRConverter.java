@@ -654,6 +654,8 @@ public class IRConverter {
       assert graphLenseForIR == appView.graphLense();
     }
 
+    appView.setAllCodeProcessed();
+
     if (libraryMethodOverrideAnalysis != null) {
       libraryMethodOverrideAnalysis.finish();
     }

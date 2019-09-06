@@ -4,8 +4,14 @@
 
 package com.android.tools.r8.internal.proto;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
+
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
@@ -16,6 +22,9 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class Proto3ShrinkingTest extends ProtoShrinkingTestBase {
+
+  private static final String PARTIALLY_USED =
+      "com.android.tools.r8.proto3.Shrinking$PartiallyUsed";
 
   private static List<Path> PROGRAM_FILES =
       ImmutableList.of(PROTO3_EXAMPLES_JAR, PROTO3_PROTO_JAR, PROTOBUF_LITE_JAR);
@@ -41,6 +50,7 @@ public class Proto3ShrinkingTest extends ProtoShrinkingTestBase {
 
   @Test
   public void test() throws Exception {
+    CodeInspector inputInspector = new CodeInspector(PROGRAM_FILES);
     testForR8(parameters.getBackend())
         .addProgramFiles(PROGRAM_FILES)
         .addKeepMainRule("proto3.TestClass")
@@ -56,8 +66,32 @@ public class Proto3ShrinkingTest extends ProtoShrinkingTestBase {
         .minification(enableMinification)
         .setMinApi(parameters.getRuntime())
         .compile()
+        .inspect(
+            outputInspector -> {
+              verifyUnusedFieldsAreRemoved(inputInspector, outputInspector);
+            })
         .run(parameters.getRuntime(), "proto3.TestClass")
         .assertSuccessWithOutputLines("--- partiallyUsed_proto3 ---", "42");
+  }
+
+  private void verifyUnusedFieldsAreRemoved(
+      CodeInspector inputInspector, CodeInspector outputInspector) {
+    // Verify that various proto fields are present the input.
+    {
+      ClassSubject puClassSubject = inputInspector.clazz(PARTIALLY_USED);
+      assertThat(puClassSubject, isPresent());
+      assertEquals(2, puClassSubject.allInstanceFields().size());
+      assertThat(puClassSubject.uniqueFieldWithName("used_"), isPresent());
+      assertThat(puClassSubject.uniqueFieldWithName("completelyUnused_"), isPresent());
+    }
+
+    // Verify that various proto fields have been removed in the output.
+    {
+      ClassSubject puClassSubject = outputInspector.clazz(PARTIALLY_USED);
+      assertThat(puClassSubject, isPresent());
+      assertThat(puClassSubject.uniqueFieldWithName("used_"), isPresent());
+      assertThat(puClassSubject.uniqueFieldWithName("completelyUnused_"), not(isPresent()));
+    }
   }
 
   @Test

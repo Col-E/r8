@@ -7,6 +7,7 @@ package com.android.tools.r8.internal.proto;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -22,8 +23,14 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
 
+  private static final String EXT_B =
+      "com.android.tools.r8.proto2.Shrinking$PartiallyUsedWithExtension$ExtB";
   private static final String EXT_C =
       "com.android.tools.r8.proto2.Shrinking$PartiallyUsedWithExtension$ExtC";
+  private static final String HAS_NO_USED_EXTENSIONS =
+      "com.android.tools.r8.proto2.Shrinking$HasNoUsedExtensions";
+  private static final String PARTIALLY_USED =
+      "com.android.tools.r8.proto2.Shrinking$PartiallyUsed";
 
   private static List<Path> PROGRAM_FILES =
       ImmutableList.of(PROTO2_EXAMPLES_JAR, PROTO2_PROTO_JAR, PROTOBUF_LITE_JAR);
@@ -63,6 +70,7 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
             "}")
         .addOptionsModification(
             options -> {
+              options.enableFieldBitAccessAnalysis = true;
               options.enableGeneratedMessageLiteShrinking = true;
               options.enableGeneratedExtensionRegistryShrinking = true;
               options.enableStringSwitchConversion = true;
@@ -73,7 +81,10 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
         .setMinApi(parameters.getRuntime())
         .compile()
         .inspect(
-            outputInspector -> verifyUnusedExtensionsAreRemoved(inputInspector, outputInspector))
+            outputInspector -> {
+              verifyUnusedExtensionsAreRemoved(inputInspector, outputInspector);
+              verifyUnusedFieldsAreRemoved(inputInspector, outputInspector);
+            })
         .run(parameters.getRuntime(), "proto2.TestClass")
         .assertSuccessWithOutputLines(
             "--- roundtrip ---",
@@ -142,15 +153,44 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
 
     // Verify that unused extensions have been removed with -allowaccessmodification.
     if (allowAccessModification) {
-      List<String> unusedExtensionNames =
-          ImmutableList.of(
-              "com.android.tools.r8.proto2.Shrinking$HasNoUsedExtensions",
-              "com.android.tools.r8.proto2.Shrinking$PartiallyUsedWithExtension$ExtB",
-              "com.android.tools.r8.proto2.Shrinking$PartiallyUsedWithExtension$ExtC");
+      List<String> unusedExtensionNames = ImmutableList.of(HAS_NO_USED_EXTENSIONS, EXT_B, EXT_C);
       for (String unusedExtensionName : unusedExtensionNames) {
         assertThat(inputInspector.clazz(unusedExtensionName), isPresent());
         assertThat(outputInspector.clazz(unusedExtensionName), not(isPresent()));
       }
+    }
+  }
+
+  private void verifyUnusedFieldsAreRemoved(
+      CodeInspector inputInspector, CodeInspector outputInspector) {
+    // Verify that various proto fields are present the input.
+    {
+      ClassSubject puClassSubject = inputInspector.clazz(PARTIALLY_USED);
+      assertThat(puClassSubject, isPresent());
+      assertEquals(7, puClassSubject.allInstanceFields().size());
+      assertThat(puClassSubject.uniqueFieldWithName("bitField0_"), isPresent());
+      assertThat(puClassSubject.uniqueFieldWithName("used_"), isPresent());
+      assertThat(puClassSubject.uniqueFieldWithName("completelyUnused_"), isPresent());
+      assertThat(puClassSubject.uniqueFieldWithName("unusedEnum_"), isPresent());
+      assertThat(puClassSubject.uniqueFieldWithName("unusedRepeatedEnum_"), isPresent());
+      assertThat(puClassSubject.uniqueFieldWithName("unusedMessage_"), isPresent());
+      assertThat(puClassSubject.uniqueFieldWithName("unusedRepeatedMessage_"), isPresent());
+    }
+
+    // Verify that various proto fields have been removed in the output.
+    {
+      ClassSubject puClassSubject = outputInspector.clazz(PARTIALLY_USED);
+      assertThat(puClassSubject, isPresent());
+      assertThat(puClassSubject.uniqueFieldWithName("bitField0_"), isPresent());
+      assertThat(puClassSubject.uniqueFieldWithName("used_"), isPresent());
+      assertThat(puClassSubject.uniqueFieldWithName("completelyUnused_"), not(isPresent()));
+      // TODO(b/112437944): Should be absent.
+      assertThat(puClassSubject.uniqueFieldWithName("unusedEnum_"), isPresent());
+      // TODO(b/112437944): Should be absent.
+      assertThat(puClassSubject.uniqueFieldWithName("unusedRepeatedEnum_"), isPresent());
+      assertThat(puClassSubject.uniqueFieldWithName("unusedMessage_"), not(isPresent()));
+      // TODO(b/112437944): Should be absent.
+      assertThat(puClassSubject.uniqueFieldWithName("unusedRepeatedMessage_"), isPresent());
     }
   }
 

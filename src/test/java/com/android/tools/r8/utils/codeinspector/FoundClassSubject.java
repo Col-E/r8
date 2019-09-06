@@ -122,6 +122,11 @@ public class FoundClassSubject extends ClassSubject {
         (dexField, clazz) -> new FoundFieldSubject(codeInspector, dexField, clazz),
         this,
         inspection);
+    forAllInstanceFields(inspection);
+  }
+
+  @Override
+  public void forAllInstanceFields(Consumer<FoundFieldSubject> inspection) {
     CodeInspector.forAll(
         dexClass.instanceFields(),
         (dexField, clazz) -> new FoundFieldSubject(codeInspector, dexField, clazz),

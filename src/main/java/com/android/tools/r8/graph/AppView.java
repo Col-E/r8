@@ -41,6 +41,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
   private final ProtoShrinker protoShrinker;
 
   // Optimization results.
+  private boolean allCodeProcessed = false;
   private Predicate<DexType> classesEscapingIntoLibrary = Predicates.alwaysTrue();
   private InitializedClassesInInstanceMethods initializedClassesInInstanceMethods;
   private Set<DexMethod> unneededVisibilityBridgeMethods = ImmutableSet.of();
@@ -94,6 +95,14 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
     @SuppressWarnings("unchecked")
     AppView<U> appViewWithSpecializedAppInfo = (AppView<U>) this;
     return appViewWithSpecializedAppInfo;
+  }
+
+  public boolean isAllCodeProcessed() {
+    return allCodeProcessed;
+  }
+
+  public void setAllCodeProcessed() {
+    allCodeProcessed = true;
   }
 
   public AppServices appServices() {

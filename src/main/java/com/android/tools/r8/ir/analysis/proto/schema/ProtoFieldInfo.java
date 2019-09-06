@@ -130,6 +130,11 @@ public class ProtoFieldInfo {
     return object.asLiveProtoFieldObject().getField();
   }
 
+  public int getHazzerBitFieldIndex(ProtoMessageInfo protoMessageInfo) {
+    assert hasHazzerBitField(protoMessageInfo);
+    return (getAuxData() % BITS_PER_HAS_BITS_WORD) + 1;
+  }
+
   /**
    * (One-of fields only.)
    *

@@ -36,6 +36,9 @@ public class AbsentClassSubject extends ClassSubject {
   public void forAllFields(Consumer<FoundFieldSubject> inspection) {}
 
   @Override
+  public void forAllInstanceFields(Consumer<FoundFieldSubject> inspection) {}
+
+  @Override
   public FieldSubject field(String type, String name) {
     return new AbsentFieldSubject();
   }
