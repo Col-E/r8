@@ -134,6 +134,11 @@ public class CoreLibDesugarTestBase extends TestBase {
     public void accept(String string, DiagnosticsHandler handler) {
       throw new Unreachable("No desugaring on high API levels");
     }
+
+    @Override
+    public void finished(DiagnosticsHandler handler) {
+      throw new Unreachable("No desugaring on high API levels");
+    }
   }
 
   public static class PresentKeepRuleConsumer implements KeepRuleConsumer {

@@ -9,7 +9,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -54,17 +56,21 @@ public class JavaTimeTest extends CoreLibDesugarTestBase {
 
   @Test
   public void testTimeD8() throws Exception {
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
+    Box<String> keepRulesHolder = new Box<>("");
     testForD8()
         .addInnerClasses(JavaTimeTest.class)
         .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+        .enableCoreLibraryDesugaring(parameters.getApiLevel())
+        .addOptionsModification(
+            options ->
+                options.desugaredLibraryKeepRuleConsumer =
+                    ToolHelper.consumeString(keepRulesHolder::set))
         .compile()
         .inspect(this::checkRewrittenInvokes)
         .addDesugaredCoreLibraryRunClassPath(
             this::buildDesugaredLibrary,
             parameters.getApiLevel(),
-            keepRuleConsumer.get(),
+            keepRulesHolder.get(),
             shrinkCoreLibrary)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(expectedOutput);
@@ -72,18 +78,22 @@ public class JavaTimeTest extends CoreLibDesugarTestBase {
 
   @Test
   public void testTimeR8() throws Exception {
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
+    Box<String> keepRulesHolder = new Box<>("");
     testForR8(parameters.getBackend())
         .addInnerClasses(JavaTimeTest.class)
         .addKeepMainRule(TestClass.class)
         .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+        .enableCoreLibraryDesugaring(parameters.getApiLevel())
+        .addOptionsModification(
+            options ->
+                options.desugaredLibraryKeepRuleConsumer =
+                    ToolHelper.consumeString(keepRulesHolder::set))
         .compile()
         .inspect(this::checkRewrittenInvokes)
         .addDesugaredCoreLibraryRunClassPath(
             this::buildDesugaredLibrary,
             parameters.getApiLevel(),
-            keepRuleConsumer.get(),
+            keepRulesHolder.get(),
             shrinkCoreLibrary)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(expectedOutput);

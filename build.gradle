@@ -517,7 +517,7 @@ sourceSets.configureEach { sourceSet ->
         options.fork = true
         // Javac often runs out of stack space when compiling the tests.
         // Increase the stack size for the javac process.
-        options.forkOptions.jvmArgs << "-Xss4m"
+        options.forkOptions.jvmArgs << "-Xss256m"
         // Test compilation is sometimes hitting the default limit at 1g, increase it.
         options.forkOptions.jvmArgs << "-Xmx2g"
         // Set the bootclass path so compilation is consistent with 1.8 target compatibility.

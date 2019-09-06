@@ -46,7 +46,7 @@ public class R8GMSCoreDeterministicTest extends GMSCoreCompilationTestBase {
               options.ignoreMissingClasses = true;
               // Store the generated Proguard map.
               options.proguardMapConsumer =
-                  (proguardMap, handler) -> result.proguardMap = proguardMap;
+                  ToolHelper.consumeString(proguardMap -> result.proguardMap = proguardMap);
             });
     return result;
   }

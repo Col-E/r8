@@ -66,7 +66,18 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     StringBuilder proguardMapBuilder = new StringBuilder();
     builder.setDisableTreeShaking(!enableTreeShaking);
     builder.setDisableMinification(!enableMinification);
-    builder.setProguardMapConsumer((string, ignore) -> proguardMapBuilder.append(string));
+    builder.setProguardMapConsumer(
+        new StringConsumer() {
+          @Override
+          public void accept(String string, DiagnosticsHandler handler) {
+            proguardMapBuilder.append(string);
+          }
+
+          @Override
+          public void finished(DiagnosticsHandler handler) {
+            // Nothing to do.
+          }
+        });
 
     if (!applyMappingMaps.isEmpty()) {
       try {

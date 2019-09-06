@@ -6,6 +6,7 @@ package com.android.tools.r8.internal;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.CompilationMode;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApp;
 import org.junit.Test;
 
@@ -26,7 +27,7 @@ public class R8GMSCoreV10TreeShakeJarVerificationTest
             GMSCORE_V10_MAX_SIZE,
             options ->
                 options.proguardMapConsumer =
-                    (proguardMap, handler) -> this.proguardMap1 = proguardMap);
+                    ToolHelper.consumeString(proguardMap -> this.proguardMap1 = proguardMap));
     AndroidApp app2 =
         buildAndTreeShakeFromDeployJar(
             CompilationMode.RELEASE,
@@ -35,7 +36,7 @@ public class R8GMSCoreV10TreeShakeJarVerificationTest
             GMSCORE_V10_MAX_SIZE,
             options ->
                 options.proguardMapConsumer =
-                    (proguardMap, handler) -> this.proguardMap2 = proguardMap);
+                    ToolHelper.consumeString(proguardMap -> this.proguardMap2 = proguardMap));
 
     // Verify that the result of the two compilations was the same.
     assertIdenticalApplications(app1, app2);

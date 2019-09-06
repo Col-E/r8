@@ -145,6 +145,7 @@ public abstract class CodeToKeep {
         sb.append("}").append(cr);
       }
       options.desugaredLibraryKeepRuleConsumer.accept(sb.toString(), options.reporter);
+      options.desugaredLibraryKeepRuleConsumer.finished(options.reporter);
     }
   }
 
