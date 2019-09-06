@@ -41,7 +41,7 @@ public interface StringConsumer {
    *
    * @param handler Diagnostics handler for reporting.
    */
-  void finished(DiagnosticsHandler handler);
+  default void finished(DiagnosticsHandler handler) {}
 
   static EmptyConsumer emptyConsumer() {
     return EmptyConsumer.EMPTY_CONSUMER;
