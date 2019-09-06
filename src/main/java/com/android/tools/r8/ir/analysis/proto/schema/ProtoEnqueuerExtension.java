@@ -144,10 +144,18 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
 
         boolean encodedValueStorageIsLive;
         if (enqueuer.isFieldLive(encodedValueStorage)) {
-          // Mark the field as both read and written, since it is used reflectively.
-          enqueuer.registerFieldAccess(encodedValueStorage.field, dynamicMethod);
+          // Mark that the field is written by reflection such that we do not optimize field reads
+          // into loading the default value of the field.
+          enqueuer.registerFieldWrite(encodedValueStorage.field, dynamicMethod);
+          // Map/required fields cannot be removed. Therefore, we mark such fields as both read and
+          // written such that we cannot optimize any field reads or writes.
+          if (reachesMapOrRequiredField(protoFieldInfo)) {
+            enqueuer.registerFieldRead(encodedValueStorage.field, dynamicMethod);
+          }
           encodedValueStorageIsLive = true;
         } else if (reachesMapOrRequiredField(protoFieldInfo)) {
+          // Map/required fields cannot be removed. Therefore, we mark such fields as both read and
+          // written such that we cannot optimize any field reads or writes.
           enqueuer.registerFieldAccess(encodedValueStorage.field, dynamicMethod);
           worklist.enqueueMarkReachableFieldAction(
               clazz.asProgramClass(),
@@ -199,7 +207,7 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
         }
 
         if (newlyLiveField != null) {
-          if (enqueuer.registerFieldAccess(newlyLiveField.field, dynamicMethod)) {
+          if (enqueuer.registerFieldWrite(newlyLiveField.field, dynamicMethod)) {
             worklist.enqueueMarkReachableFieldAction(
                 clazz.asProgramClass(), newlyLiveField, KeepReason.reflectiveUseIn(dynamicMethod));
           }

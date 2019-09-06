@@ -184,13 +184,10 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
       assertThat(puClassSubject.uniqueFieldWithName("bitField0_"), isPresent());
       assertThat(puClassSubject.uniqueFieldWithName("used_"), isPresent());
       assertThat(puClassSubject.uniqueFieldWithName("completelyUnused_"), not(isPresent()));
-      // TODO(b/112437944): Should be absent.
-      assertThat(puClassSubject.uniqueFieldWithName("unusedEnum_"), isPresent());
-      // TODO(b/112437944): Should be absent.
-      assertThat(puClassSubject.uniqueFieldWithName("unusedRepeatedEnum_"), isPresent());
+      assertThat(puClassSubject.uniqueFieldWithName("unusedEnum_"), not(isPresent()));
+      assertThat(puClassSubject.uniqueFieldWithName("unusedRepeatedEnum_"), not(isPresent()));
       assertThat(puClassSubject.uniqueFieldWithName("unusedMessage_"), not(isPresent()));
-      // TODO(b/112437944): Should be absent.
-      assertThat(puClassSubject.uniqueFieldWithName("unusedRepeatedMessage_"), isPresent());
+      assertThat(puClassSubject.uniqueFieldWithName("unusedRepeatedMessage_"), not(isPresent()));
     }
   }
 

@@ -526,11 +526,11 @@ public class Enqueuer {
     return false;
   }
 
-  private boolean registerFieldRead(DexField field, DexEncodedMethod context) {
+  public boolean registerFieldRead(DexField field, DexEncodedMethod context) {
     return registerFieldAccess(field, context, true);
   }
 
-  private boolean registerFieldWrite(DexField field, DexEncodedMethod context) {
+  public boolean registerFieldWrite(DexField field, DexEncodedMethod context) {
     return registerFieldAccess(field, context, false);
   }
 
@@ -693,6 +693,7 @@ public class Enqueuer {
       if (!registerFieldWrite(field, currentMethod)) {
         return false;
       }
+
       // Must mark the field as targeted even if it does not exist.
       markFieldAsTargeted(field);
 
