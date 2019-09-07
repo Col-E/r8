@@ -2456,7 +2456,7 @@ public class CodeRewriter {
         Instruction uniqueUse = uniqueUsers.iterator().next();
         if (iterator.hasNext()) {
           Instruction nextNext = iterator.next();
-          if (uniqueUse == nextNext) {
+          if (uniqueUse == nextNext && nextNext.isArrayPut()) {
             assert !uniqueUse.isConstInstruction();
             continue;
           }
@@ -2467,7 +2467,9 @@ public class CodeRewriter {
                 && iterator.hasNext()) {
               Instruction nextNextNext = iterator.peekNext();
               Instruction uniqueUseNext = uniqueUsersNext.iterator().next();
-              if (uniqueUse == nextNextNext && uniqueUseNext == nextNextNext) {
+              if (uniqueUse == nextNextNext
+                  && uniqueUseNext == nextNextNext
+                  && nextNextNext.isArrayPut()) {
                 continue;
               }
             }
