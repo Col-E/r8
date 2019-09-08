@@ -306,12 +306,13 @@ public class RootSetBuilder {
       return;
     }
     for (DexEncodedMethod encodedMethod : clazz.virtualMethods()) {
-      propagateAssumeRules(encodedMethod.method, subTypes, noSideEffects);
-      propagateAssumeRules(encodedMethod.method, subTypes, assumedValues);
+      propagateAssumeRules(clazz.type, encodedMethod.method, subTypes, noSideEffects);
+      propagateAssumeRules(clazz.type, encodedMethod.method, subTypes, assumedValues);
     }
   }
 
   private void propagateAssumeRules(
+      DexType type,
       DexMethod reference,
       Set<DexType> subTypes,
       Map<DexReference, ProguardMemberRule> assumeRulePool) {
@@ -325,7 +326,8 @@ public class RootSetBuilder {
       // we apply those assume rules, here we use a resolved target.
       DexEncodedMethod target =
           appView.appInfo().resolveMethod(subType, referenceInSubType).asResultOfResolve();
-      if (target == null) {
+      // But, the resolution should not be landed on the current type we are visiting.
+      if (target == null || target.method.holder == type) {
         continue;
       }
       ProguardMemberRule ruleInSubType = assumeRulePool.get(target.method);

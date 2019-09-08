@@ -10,6 +10,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.errors.Unreachable;
@@ -92,6 +93,7 @@ public class AssumenosideeffectsWithMultipleTargetsTest extends TestBase {
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addInnerClasses(AssumenosideeffectsWithMultipleTargetsTest.class)
+        .enableMergeAnnotations()
         .enableClassInliningAnnotations()
         .enableInliningAnnotations()
         .addKeepMainRule(MAIN)
@@ -107,6 +109,10 @@ public class AssumenosideeffectsWithMultipleTargetsTest extends TestBase {
     void info(String tag, String message);
   }
 
+  @NeverMerge
+  static abstract class AbstractLogger implements TestLogger {
+  }
+
   @NeverClassInline
   static class TestLoggerImplementer implements TestLogger {
 
@@ -118,7 +124,7 @@ public class AssumenosideeffectsWithMultipleTargetsTest extends TestBase {
   }
 
   @NeverClassInline
-  static class AnotherImplementer implements TestLogger {
+  static class AnotherImplementer extends AbstractLogger implements TestLogger {
 
     @NeverInline
     @Override
