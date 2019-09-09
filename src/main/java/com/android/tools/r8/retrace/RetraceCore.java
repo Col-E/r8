@@ -13,10 +13,12 @@ import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRangesOfName;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 import com.google.common.io.Files;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Predicate;
 
 public final class RetraceCore {
@@ -242,6 +244,9 @@ public final class RetraceCore {
    */
   static class AtLine extends StackTraceLine {
 
+    private static final Set<String> UNKNOWN_SOURCEFILE_NAMES =
+        Sets.newHashSet("", "SourceFile", "Unknown", "Unknown Source");
+
     private static final int NO_POSITION = -2;
     private static final int INVALID_POSITION = -1;
 
@@ -360,6 +365,12 @@ public final class RetraceCore {
       }
       for (MappedRange mappedRange : mappedRanges) {
         // TODO(b/132850880): What if we have a class-merged or inlined line here?
+        String mappedClazz = retraceClazz;
+        String mappedMethod = mappedRange.signature.name;
+        if (mappedRange.signature.isQualified()) {
+          mappedClazz = mappedRange.signature.toUnqualifiedHolder();
+          mappedMethod = mappedRange.signature.toUnqualifiedName();
+        }
         int retracedLinePosition = linePosition;
         if (linePosition > 0) {
           retracedLinePosition = mappedRange.getOriginalLineNumber(linePosition);
@@ -368,9 +379,9 @@ public final class RetraceCore {
             new AtLine(
                 startingWhitespace,
                 at,
-                retraceClazz,
-                mappedRange.signature.name,
-                retracedFileName(retraceClazz),
+                mappedClazz,
+                mappedMethod,
+                retracedFileName(mappedClazz),
                 retracedLinePosition));
       }
       assert !lines.isEmpty();
@@ -381,7 +392,7 @@ public final class RetraceCore {
       if (retracedClazz == null) {
         // We have no new information, only rewrite filename if it is empty or SourceFile.
         // PG-retrace will always rewrite the filename, but that seems a bit to harsh to do.
-        if (fileName.isEmpty() || fileName.equals("SourceFile") || fileName.equals("Unknown")) {
+        if (UNKNOWN_SOURCEFILE_NAMES.contains(fileName)) {
           return getClassSimpleName(clazz) + ".java";
         }
         return fileName;
@@ -389,9 +400,9 @@ public final class RetraceCore {
       String newFileName = getClassSimpleName(retracedClazz);
       String extension = Files.getFileExtension(fileName);
       if (extension.isEmpty()) {
-        extension = ".java";
+        extension = "java";
       }
-      return newFileName + extension;
+      return newFileName + "." + extension;
     }
 
     private String getClassSimpleName(String clazz) {

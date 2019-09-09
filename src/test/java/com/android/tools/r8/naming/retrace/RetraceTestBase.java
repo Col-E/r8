@@ -61,11 +61,13 @@ public abstract class RetraceTestBase extends TestBase {
             .assertFailure();
 
     // Extract actual stack trace and retraced stack trace from failed run result.
-    // TODO(122940268): Remove test code when fixed.
-    System.out.println("<--- TEST RESULT START --->");
-    System.out.println(result);
-    System.out.println("<--- TEST RESULT END --->");
-    StackTrace actualStackTrace = StackTrace.extractFromArt(result.getStdErr());
+    StackTrace actualStackTrace;
+    if (parameters.isCfRuntime()) {
+      actualStackTrace = StackTrace.extractFromJvm(result.getStdErr());
+    } else {
+      actualStackTrace =
+          StackTrace.extractFromArt(result.getStdErr(), parameters.getRuntime().asDex().getVm());
+    }
     StackTrace retracedStackTrace = actualStackTrace.retrace(result.proguardMap());
     checker.accept(actualStackTrace, retracedStackTrace);
   }

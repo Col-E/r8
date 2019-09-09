@@ -7,11 +7,29 @@ package com.android.tools.r8.naming.retrace;
 import static com.android.tools.r8.naming.retrace.StackTrace.TAB_AT_PREFIX;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.naming.retrace.StackTrace.StackTraceLine;
 import com.android.tools.r8.utils.StringUtils;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
-public class StackTraceTest {
+@RunWith(Parameterized.class)
+public class StackTraceTest extends TestBase {
+
+  private final TestParameters parameters;
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withDexRuntimes().build();
+  }
+
+  public StackTraceTest(TestParameters parameters) {
+    this.parameters = parameters;
+  }
 
   private static String lineOne =
       TAB_AT_PREFIX + "Test.main(Test.java:10)" + System.lineSeparator();
@@ -66,9 +84,14 @@ public class StackTraceTest {
 
   @Test
   public void testOneLineArt() {
-    checkOneLine(StackTrace.extractFromArt(oneLineStackTrace));
-    checkOneLine(StackTrace.extractFromArt(oneLineStackTrace + randomArtLine));
-    checkOneLine(StackTrace.extractFromArt(randomArtLine + oneLineStackTrace));
+    checkOneLine(
+        StackTrace.extractFromArt(oneLineStackTrace, parameters.getRuntime().asDex().getVm()));
+    checkOneLine(
+        StackTrace.extractFromArt(
+            oneLineStackTrace + randomArtLine, parameters.getRuntime().asDex().getVm()));
+    checkOneLine(
+        StackTrace.extractFromArt(
+            randomArtLine + oneLineStackTrace, parameters.getRuntime().asDex().getVm()));
   }
 
   @Test

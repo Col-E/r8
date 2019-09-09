@@ -28,7 +28,8 @@ public class VerticalClassMergingRetraceTest extends RetraceTestBase {
 
   @Parameters(name = "{0}, mode: {1}")
   public static Collection<Object[]> data() {
-    return buildParameters(getTestParameters().withAllRuntimes().build(), CompilationMode.values());
+    return buildParameters(
+        getTestParameters().withAllRuntimesAndApiLevels().build(), CompilationMode.values());
   }
 
   public VerticalClassMergingRetraceTest(TestParameters parameters, CompilationMode mode) {
@@ -60,10 +61,13 @@ public class VerticalClassMergingRetraceTest extends RetraceTestBase {
     return retracedStackTraceLine.lineNumber > 0;
   }
 
-  private boolean filterSynthesizedMethod(StackTraceLine retracedStackTraceLine) {
-    return haveSeenLines.add(retracedStackTraceLine)
-        && (retracedStackTraceLine.className.contains("ResourceWrapper")
-            || retracedStackTraceLine.className.contains("MainApp"));
+  private boolean filterSynthesizedBridgeMethod(StackTraceLine retracedStackTraceLine) {
+    if (!haveSeenLines.add(retracedStackTraceLine)) {
+      return false;
+    }
+    return !retracedStackTraceLine.className.contains("ResourceWrapper")
+        || !retracedStackTraceLine.methodName.contains("foo")
+        || retracedStackTraceLine.lineNumber != 0;
   }
 
   @Test
@@ -97,6 +101,30 @@ public class VerticalClassMergingRetraceTest extends RetraceTestBase {
 
   @Test
   public void testNoLineNumberTable() throws Exception {
+    // This tests will show a difference in r8 retrace compared to proguard retrace. Given the
+    // mapping:
+    // com.android.tools.r8.naming.retrace.TintResources -> com.android.tools.r8.naming.retrace.a:
+    //     1:1:void com.android.tools.r8.naming.retrace.ResourceWrapper.<init>():0:0 -> <init>
+    //     1:1:void <init>():0 -> <init>
+    //     1:1:void foo()      -> b
+    //     java.lang.String com.android.tools.r8.naming.retrace.ResourceWrapper.foo() -> a
+    //     java.lang.String com.android.tools.r8.naming.retrace.ResourceWrapper.foo() -> b
+    //
+    // and stack trace:
+    // at com.android.tools.r8.naming.retrace.a.b(Unknown Source:1)
+    // at com.android.tools.r8.naming.retrace.a.a(Unknown Source:0)
+    // at com.android.tools.r8.naming.retrace.MainApp.main(Unknown Source:7)
+    //
+    // proguard retrace will produce:
+    // at com.android.tools.r8.naming.retraceproguard.TintResources.b(TintResources.java:1)
+    // at com.android.tools.r8.naming.retraceproguard.ResourceWrapper.foo(ResourceWrapper.java:0)
+    // at com.android.tools.r8.naming.retraceproguard.MainApp.main(MainApp.java:7)
+    //
+    // We should instead translate to:
+    // at com.android.tools.r8.naming.retraceproguard.ResourceWrapper.foo(ResourceWrapper.java:1)
+    // at com.android.tools.r8.naming.retraceproguard.ResourceWrapper.foo(ResourceWrapper.java:0)
+    // at com.android.tools.r8.naming.retraceproguard.MainApp.main(MainApp.java:7)
+    // since the synthetic bridge belongs to ResourceWrapper.foo.
     haveSeenLines.clear();
     runTest(
         ImmutableList.of(),
@@ -104,7 +132,7 @@ public class VerticalClassMergingRetraceTest extends RetraceTestBase {
           StackTrace reprocessedStackTrace =
               mode == CompilationMode.DEBUG
                   ? retracedStackTrace
-                  : retracedStackTrace.filter(this::filterSynthesizedMethod);
+                  : retracedStackTrace.filter(this::filterSynthesizedBridgeMethod);
           assertThat(
               reprocessedStackTrace, isSameExceptForFileNameAndLineNumber(expectedStackTrace));
           assertEquals(expectedActualStackTraceHeight(), actualStackTrace.size());

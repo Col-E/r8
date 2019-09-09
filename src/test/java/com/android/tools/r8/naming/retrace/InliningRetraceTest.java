@@ -24,7 +24,8 @@ public class InliningRetraceTest extends RetraceTestBase {
 
   @Parameters(name = "{0}, mode: {1}")
   public static Collection<Object[]> data() {
-    return buildParameters(getTestParameters().withAllRuntimes().build(), CompilationMode.values());
+    return buildParameters(
+        getTestParameters().withAllRuntimesAndApiLevels().build(), CompilationMode.values());
   }
 
   public InliningRetraceTest(TestParameters parameters, CompilationMode mode) {

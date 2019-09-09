@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
+import static com.android.tools.r8.utils.DescriptorUtils.JAVA_PACKAGE_SEPARATOR;
 import static com.android.tools.r8.utils.DescriptorUtils.javaTypeToDescriptor;
 
 import com.android.tools.r8.dex.Constants;
@@ -115,7 +116,9 @@ public class MemberNaming {
 
     abstract void write(Writer builder) throws IOException;
 
-    boolean isQualified() { return name.indexOf(DescriptorUtils.JAVA_PACKAGE_SEPARATOR) != -1; }
+    public boolean isQualified() {
+      return name.indexOf(JAVA_PACKAGE_SEPARATOR) != -1;
+    }
 
     @Override
     public String toString() {
@@ -250,7 +253,17 @@ public class MemberNaming {
 
     public MethodSignature toUnqualified() {
       assert isQualified();
-      return new MethodSignature(name.substring(name.lastIndexOf('.') + 1), type, parameters);
+      return new MethodSignature(toUnqualifiedName(), type, parameters);
+    }
+
+    public String toUnqualifiedName() {
+      assert isQualified();
+      return name.substring(name.lastIndexOf(JAVA_PACKAGE_SEPARATOR) + 1);
+    }
+
+    public String toUnqualifiedHolder() {
+      assert isQualified();
+      return name.substring(0, name.lastIndexOf(JAVA_PACKAGE_SEPARATOR));
     }
 
     DexMethod toDexMethod(DexItemFactory factory, DexType clazz) {

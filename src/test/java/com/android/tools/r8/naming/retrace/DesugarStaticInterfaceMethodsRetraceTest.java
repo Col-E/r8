@@ -22,7 +22,8 @@ public class DesugarStaticInterfaceMethodsRetraceTest extends RetraceTestBase {
 
   @Parameters(name = "{0}, mode: {1}")
   public static Collection<Object[]> data() {
-    return buildParameters(getTestParameters().withAllRuntimes().build(), CompilationMode.values());
+    return buildParameters(
+        getTestParameters().withAllRuntimesAndApiLevels().build(), CompilationMode.values());
   }
 
   public DesugarStaticInterfaceMethodsRetraceTest(TestParameters parameters, CompilationMode mode) {

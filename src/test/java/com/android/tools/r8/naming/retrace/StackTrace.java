@@ -9,7 +9,6 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestRunResult;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.retrace.Retrace;
 import com.android.tools.r8.retrace.RetraceCommand;
@@ -133,7 +132,7 @@ class StackTrace {
     return originalStderr;
   }
 
-  public static StackTrace extractFromArt(String stderr) {
+  public static StackTrace extractFromArt(String stderr, DexVm vm) {
     List<StackTraceLine> stackTraceLines = new ArrayList<>();
     List<String> stderrLines = StringUtils.splitLines(stderr);
 
@@ -179,7 +178,7 @@ class StackTrace {
       // Find all lines starting with "\tat" except "dalvik.system.NativeStart.main" frame
       // if present.
       if (line.startsWith(TAB_AT_PREFIX)
-          && !(ToolHelper.getDexVm().isOlderThanOrEqual(DexVm.ART_4_4_4_HOST)
+          && !(vm.isOlderThanOrEqual(DexVm.ART_4_4_4_HOST)
               && line.contains("dalvik.system.NativeStart.main"))) {
         stackTraceLines.add(StackTraceLine.parse(stderrLines.get(i)));
       }
