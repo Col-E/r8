@@ -50,10 +50,7 @@ public class AssumenosideeffectsPropagationWithSuperCallTest extends TestBase {
       switch (this) {
         case SPECIFIC_RULES:
         case NON_SPECIFIC_RULES_WITH_EXTENDS:
-          // TODO(b/133208961): If DelegateSub1#debug is not explicitly defined, we would not
-          //   propagate the rule, and thus the output would
-          // return JVM_OUTPUT;
-          return OUTPUT_WITHOUT_MESSAGES;
+          return JVM_OUTPUT;
         default:
           throw new Unreachable();
       }

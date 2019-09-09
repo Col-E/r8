@@ -92,8 +92,7 @@ public class AssumenosideeffectsVisibleMethodsTest extends TestBase {
           return StringUtils.lines(
               "Expect to catch RuntimeException",
               "[LibraryBase]: as long as LibraryBase is specified",
-              // TODO(b/137938214): Should we do synthetic propagation up to ProgramBase#debug() ?
-              // "[ProgramBase]: as long as ProgramBase is specified"
+              "[ProgramBase]: as long as ProgramBase is specified",
               "The end");
         case RULE_WITH_EXTENDS_LIB_BASE:
           return StringUtils.lines(
@@ -104,8 +103,7 @@ public class AssumenosideeffectsVisibleMethodsTest extends TestBase {
           return StringUtils.lines(
               "Expect to catch RuntimeException",
               "[LibraryBase]: as long as LibraryBase is specified",
-              // TODO(b/137938214): Should we do synthetic propagation up to ProgramBase#debug() ?
-              // "[ProgramBase]: as long as ProgramBase is specified"
+              "[ProgramBase]: as long as ProgramBase is specified",
               "The end");
       }
       throw new Unreachable();

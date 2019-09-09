@@ -15,7 +15,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-
 @RunWith(Parameterized.class)
 public class AssumenosideeffectsPropagationTest extends TestBase {
   private static final Class<?> MAIN = SubsUser.class;
@@ -159,27 +158,21 @@ public class AssumenosideeffectsPropagationTest extends TestBase {
     void verbose(String message);
   }
 
-  static class Base1 implements Itf {
-    @Override
-    public void info(String message) {
-      System.out.println("[Base1, info]: " + message);
-    }
-
-    @Override
-    public void debug(String message) {
-      System.out.println("[Base1, debug]: " + message);
-    }
-
-    @Override
-    public void verbose(String message) {
-      System.out.println("[Base1, verbose]: " + message);
-    }
+  static abstract class Base1 implements Itf {
+    public abstract void info(String message);
+    public abstract void debug(String message);
+    public abstract void verbose(String message);
   }
 
   static class Sub1 extends Base1 {
     @Override
     public void info(String message) {
       System.out.println("[Sub1, info]: " + message);
+    }
+
+    @Override
+    public void debug(String message) {
+      System.out.println("[Base1, debug]: " + message);
     }
 
     @Override
@@ -195,29 +188,28 @@ public class AssumenosideeffectsPropagationTest extends TestBase {
     }
 
     @Override
+    public void debug(String message) {
+      System.out.println("[Base1, debug]: " + message);
+    }
+
+    @Override
     public void verbose(String message) {
       System.out.println("[Sub2, verbose]: " + message);
     }
   }
 
-  static class Base2 implements Itf {
+  static abstract class Base2 implements Itf {
+    public abstract void info(String message);
+    public abstract void debug(String message);
+    public abstract void verbose(String message);
+  }
+
+  static class AnotherSub1 extends Base2 {
     @Override
     public void info(String message) {
       System.out.println("[Base2, info]: " + message);
     }
 
-    @Override
-    public void debug(String message) {
-      System.out.println("[Base2, debug]: " + message);
-    }
-
-    @Override
-    public void verbose(String message) {
-      System.out.println("[Base2, verbose]: " + message);
-    }
-  }
-
-  static class AnotherSub1 extends Base2 {
     @Override
     public void debug(String message) {
       System.out.println("[AnotherSub1, debug]: " + message);
@@ -230,6 +222,11 @@ public class AssumenosideeffectsPropagationTest extends TestBase {
   }
 
   static class AnotherSub2 extends Base2 {
+    @Override
+    public void info(String message) {
+      System.out.println("[Base2, info]: " + message);
+    }
+
     @Override
     public void debug(String message) {
       System.out.println("[AnotherSub2, debug]: " + message);

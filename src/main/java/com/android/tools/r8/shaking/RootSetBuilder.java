@@ -306,6 +306,11 @@ public class RootSetBuilder {
       return;
     }
     for (DexEncodedMethod encodedMethod : clazz.virtualMethods()) {
+      // If the method has a body, it may have side effects. Don't do bottom-up propagation.
+      if (encodedMethod.hasCode()) {
+        assert !encodedMethod.shouldNotHaveCode();
+        continue;
+      }
       propagateAssumeRules(clazz.type, encodedMethod.method, subTypes, noSideEffects);
       propagateAssumeRules(clazz.type, encodedMethod.method, subTypes, assumedValues);
     }
