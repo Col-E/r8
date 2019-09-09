@@ -9,7 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import org.junit.Test;
@@ -20,13 +20,13 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class DesugarStaticInterfaceMethodsRetraceTest extends RetraceTestBase {
 
-  @Parameters(name = "Backend: {0}, mode: {1}")
+  @Parameters(name = "{0}, mode: {1}")
   public static Collection<Object[]> data() {
-    return buildParameters(ToolHelper.getBackends(), CompilationMode.values());
+    return buildParameters(getTestParameters().withAllRuntimes().build(), CompilationMode.values());
   }
 
-  public DesugarStaticInterfaceMethodsRetraceTest(Backend backend, CompilationMode mode) {
-    super(backend, mode);
+  public DesugarStaticInterfaceMethodsRetraceTest(TestParameters parameters, CompilationMode mode) {
+    super(parameters, mode);
   }
 
   @Override
@@ -47,10 +47,12 @@ public class DesugarStaticInterfaceMethodsRetraceTest extends RetraceTestBase {
         // For the desugaring to companion classes the retrace stacktrace is still the same
         // as the mapping file has a fully qualified class name in the method mapping, e.g.:
         //
-        //   com.android.tools.r8.naming.retrace.InterfaceWithDefaultMethod1$-CC -> com.android.tools.r8.naming.retrace.a:
-        //       1:1:void com.android.tools.r8.naming.retrace.InterfaceWithDefaultMethod1.defaultMethod1():80:80 -> a
+        // com.android.tools.r8.naming.retrace.InterfaceWithDefaultMethod1$-CC
+        //   -> com.android.tools.r8.naming.retrace.a:1:1:void
+        // com.android.tools.r8.naming.retrace.InterfaceWithDefaultMethod1.defaultMethod1():80:80
+        //   -> a
         (StackTrace actualStackTrace, StackTrace retracedStackTrace) ->
-          assertThat(retracedStackTrace, isSameExceptForFileName(expectedStackTrace)));
+            assertThat(retracedStackTrace, isSameExceptForFileName(expectedStackTrace)));
   }
 }
 

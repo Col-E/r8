@@ -1,4 +1,4 @@
-// Copyright (c) 2018, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
@@ -8,6 +8,7 @@ import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.List;
@@ -15,11 +16,11 @@ import java.util.function.BiConsumer;
 import org.junit.Before;
 
 public abstract class RetraceTestBase extends TestBase {
-  protected Backend backend;
+  protected TestParameters parameters;
   protected CompilationMode mode;
 
-  public RetraceTestBase(Backend backend, CompilationMode mode) {
-    this.backend = backend;
+  public RetraceTestBase(TestParameters parameters, CompilationMode mode) {
+    this.parameters = parameters;
     this.mode = mode;
   }
 
@@ -48,14 +49,15 @@ public abstract class RetraceTestBase extends TestBase {
       throws Exception {
 
     R8TestRunResult result =
-        testForR8(backend)
+        testForR8(parameters.getBackend())
             .setMode(mode)
             .enableProguardTestOptions()
             .addProgramClasses(getClasses())
             .addKeepMainRule(getMainClass())
             .addKeepRules(keepRules)
             .apply(this::configure)
-            .run(getMainClass())
+            .setMinApi(parameters.getApiLevel())
+            .run(parameters.getRuntime(), getMainClass())
             .assertFailure();
 
     // Extract actual stack trace and retraced stack trace from failed run result.
@@ -64,9 +66,7 @@ public abstract class RetraceTestBase extends TestBase {
     System.out.println(result);
     System.out.println("<--- TEST RESULT END --->");
     StackTrace actualStackTrace = StackTrace.extractFromArt(result.getStdErr());
-    StackTrace retracedStackTrace =
-        actualStackTrace.retrace(result.proguardMap(), temp.newFolder().toPath());
-
+    StackTrace retracedStackTrace = actualStackTrace.retrace(result.proguardMap());
     checker.accept(actualStackTrace, retracedStackTrace);
   }
 }

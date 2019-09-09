@@ -11,7 +11,7 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8FullTestBuilder;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.naming.retrace.StackTrace.StackTraceLine;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
@@ -26,13 +26,13 @@ import org.junit.runners.Parameterized.Parameters;
 public class VerticalClassMergingRetraceTest extends RetraceTestBase {
   private Set<StackTraceLine> haveSeenLines = new HashSet<>();
 
-  @Parameters(name = "Backend: {0}, mode: {1}")
+  @Parameters(name = "{0}, mode: {1}")
   public static Collection<Object[]> data() {
-    return buildParameters(ToolHelper.getBackends(), CompilationMode.values());
+    return buildParameters(getTestParameters().withAllRuntimes().build(), CompilationMode.values());
   }
 
-  public VerticalClassMergingRetraceTest(Backend backend, CompilationMode mode) {
-    super(backend, mode);
+  public VerticalClassMergingRetraceTest(TestParameters parameters, CompilationMode mode) {
+    super(parameters, mode);
   }
 
   @Override
@@ -73,7 +73,8 @@ public class VerticalClassMergingRetraceTest extends RetraceTestBase {
         (StackTrace actualStackTrace, StackTrace retracedStackTrace) -> {
           // Even when SourceFile is present retrace replaces the file name in the stack trace.
           StackTrace reprocessedStackTrace =
-              mode == CompilationMode.DEBUG ? retracedStackTrace
+              mode == CompilationMode.DEBUG
+                  ? retracedStackTrace
                   : retracedStackTrace.filter(this::filterSynthesizedMethodWhenLineNumberAvailable);
           assertThat(reprocessedStackTrace, isSameExceptForFileName(expectedStackTrace));
           assertEquals(expectedActualStackTraceHeight(), actualStackTrace.size());
@@ -86,7 +87,8 @@ public class VerticalClassMergingRetraceTest extends RetraceTestBase {
         ImmutableList.of("-keepattributes LineNumberTable"),
         (StackTrace actualStackTrace, StackTrace retracedStackTrace) -> {
           StackTrace reprocessedStackTrace =
-              mode == CompilationMode.DEBUG ? retracedStackTrace
+              mode == CompilationMode.DEBUG
+                  ? retracedStackTrace
                   : retracedStackTrace.filter(this::filterSynthesizedMethodWhenLineNumberAvailable);
           assertThat(reprocessedStackTrace, isSameExceptForFileName(expectedStackTrace));
           assertEquals(expectedActualStackTraceHeight(), actualStackTrace.size());
@@ -100,10 +102,11 @@ public class VerticalClassMergingRetraceTest extends RetraceTestBase {
         ImmutableList.of(),
         (StackTrace actualStackTrace, StackTrace retracedStackTrace) -> {
           StackTrace reprocessedStackTrace =
-              mode == CompilationMode.DEBUG ? retracedStackTrace
+              mode == CompilationMode.DEBUG
+                  ? retracedStackTrace
                   : retracedStackTrace.filter(this::filterSynthesizedMethod);
-          assertThat(reprocessedStackTrace,
-              isSameExceptForFileNameAndLineNumber(expectedStackTrace));
+          assertThat(
+              reprocessedStackTrace, isSameExceptForFileNameAndLineNumber(expectedStackTrace));
           assertEquals(expectedActualStackTraceHeight(), actualStackTrace.size());
         });
   }
@@ -118,8 +121,7 @@ class ResourceWrapper {
   }
 }
 
-class TintResources extends ResourceWrapper {
-}
+class TintResources extends ResourceWrapper {}
 
 class MainApp {
   public static void main(String[] args) {

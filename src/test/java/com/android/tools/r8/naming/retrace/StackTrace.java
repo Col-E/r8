@@ -1,4 +1,4 @@
-// Copyright (c) 2018, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
@@ -11,11 +11,11 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
-import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.retrace.Retrace;
+import com.android.tools.r8.retrace.RetraceCommand;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.base.Equivalence;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
@@ -203,22 +203,27 @@ class StackTrace {
     return extractFromJvm(result.getStdErr());
   }
 
-  public StackTrace retrace(String map, Path tempFolder) throws IOException {
-    Path mapFile = tempFolder.resolve("map");
-    Path stackTraceFile = tempFolder.resolve("stackTrace");
-    FileUtils.writeTextFile(mapFile, map);
-    FileUtils.writeTextFile(
-        stackTraceFile,
-        stackTraceLines.stream().map(line -> line.originalLine).collect(Collectors.toList()));
+  public StackTrace retrace(String map) throws IOException {
+    class Box {
+      List<String> result;
+    }
+    Box box = new Box();
+    Retrace.run(
+        RetraceCommand.builder()
+            .setProguardMapProducer(() -> map)
+            .setStackTrace(
+                stackTraceLines.stream()
+                    .map(line -> line.originalLine)
+                    .collect(Collectors.toList()))
+            .setRetracedStackTraceConsumer(retraced -> box.result = retraced)
+            .build());
     // Keep the original stderr in the retraced stacktrace.
-    return new StackTrace(
-        internalExtractFromJvm(ToolHelper.runRetrace(mapFile, stackTraceFile)), originalStderr);
+    return new StackTrace(internalExtractFromJvm(StringUtils.lines(box.result)), originalStderr);
   }
 
   public StackTrace filter(Predicate<StackTraceLine> filter) {
     return new StackTrace(
-        stackTraceLines.stream().filter(filter).collect(Collectors.toList()),
-        originalStderr);
+        stackTraceLines.stream().filter(filter).collect(Collectors.toList()), originalStderr);
   }
 
   @Override

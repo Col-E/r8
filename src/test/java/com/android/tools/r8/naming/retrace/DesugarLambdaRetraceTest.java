@@ -10,7 +10,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.naming.retrace.StackTrace.StackTraceLine;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
@@ -23,13 +23,13 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class DesugarLambdaRetraceTest extends RetraceTestBase {
 
-  @Parameters(name = "Backend: {0}, mode: {1}")
+  @Parameters(name = "{0}, mode: {1}")
   public static Collection<Object[]> data() {
-    return buildParameters(ToolHelper.getBackends(), CompilationMode.values());
+    return buildParameters(getTestParameters().withAllRuntimes().build(), CompilationMode.values());
   }
 
-  public DesugarLambdaRetraceTest(Backend backend, CompilationMode mode) {
-    super(backend, mode);
+  public DesugarLambdaRetraceTest(TestParameters parameters, CompilationMode mode) {
+    super(parameters, mode);
   }
 
   @Override
@@ -45,7 +45,7 @@ public class DesugarLambdaRetraceTest extends RetraceTestBase {
   private int expectedActualStackTraceHeight() {
     // In debug mode the expected stack trace height differs since there is no lambda desugaring
     // for CF.
-    return mode == CompilationMode.RELEASE ? 2 : (backend == Backend.CF ? 4 : 5);
+    return mode == CompilationMode.RELEASE ? 2 : (parameters.isCfRuntime() ? 4 : 5);
   }
 
   private boolean isSynthesizedLambdaFrame(StackTraceLine line) {
@@ -66,7 +66,7 @@ public class DesugarLambdaRetraceTest extends RetraceTestBase {
   private void checkIsSameExceptForFileName(
       StackTrace actualStackTrace, StackTrace retracedStackTrace) {
     // Even when SourceFile is present retrace replaces the file name in the stack trace.
-    if (backend == Backend.CF) {
+    if (parameters.isCfRuntime()) {
       // TODO(122440196): Additional code to locate issue.
       if (!isSameExceptForFileName(expectedStackTrace).matches(retracedStackTrace)) {
         System.out.println("Expected original:");
@@ -105,7 +105,7 @@ public class DesugarLambdaRetraceTest extends RetraceTestBase {
   private void checkIsSameExceptForFileNameAndLineNumber(
       StackTrace actualStackTrace, StackTrace retracedStackTrace) {
     // Even when SourceFile is present retrace replaces the file name in the stack trace.
-    if (backend == Backend.CF) {
+    if (parameters.isCfRuntime()) {
       // TODO(122440196): Additional code to locate issue.
       if (!isSameExceptForFileNameAndLineNumber(expectedStackTrace).matches(retracedStackTrace)) {
         System.out.println("Expected original:");
@@ -153,16 +153,13 @@ public class DesugarLambdaRetraceTest extends RetraceTestBase {
   @Ignore("b/122440196")
   public void testLineNumberTableOnly() throws Exception {
     runTest(
-        ImmutableList.of("-keepattributes LineNumberTable"),
-        this::checkIsSameExceptForFileName);
+        ImmutableList.of("-keepattributes LineNumberTable"), this::checkIsSameExceptForFileName);
   }
 
   @Test
   @Ignore("b/122440196")
   public void testNoLineNumberTable() throws Exception {
-    runTest(
-        ImmutableList.of(),
-        this::checkIsSameExceptForFileNameAndLineNumber);
+    runTest(ImmutableList.of(), this::checkIsSameExceptForFileNameAndLineNumber);
   }
 }
 
