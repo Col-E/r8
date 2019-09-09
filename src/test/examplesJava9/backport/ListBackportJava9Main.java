@@ -13,6 +13,7 @@ public class ListBackportJava9Main {
     testOf1();
     testOf2();
     testOf10();
+    testOfVarargs();
   }
 
   private static void testOf0() {
@@ -98,6 +99,45 @@ public class ListBackportJava9Main {
 
     try {
       List.of(0, 1, 2, 3, 4, 5, 6, 7, 8, null);
+      throw new AssertionError();
+    } catch (NullPointerException expected) {
+    }
+  }
+
+  private static void testOfVarargs() {
+    Object anObject0 = new Object();
+    Object anObject6 = new Object();
+    Object anObject10 = new Object();
+    List<Object> ofObject =
+        List.of(anObject0, new Object(), new Object(), new Object(), new Object(), new Object(),
+            anObject6, new Object(), new Object(), new Object(), anObject10);
+    assertEquals(11, ofObject.size());
+    assertSame(anObject0, ofObject.get(0));
+    assertSame(anObject6, ofObject.get(6));
+    assertSame(anObject10, ofObject.get(10));
+    assertMutationNotAllowed(ofObject);
+
+    List<Integer> ofInteger = List.of(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+    assertEquals(11, ofInteger.size());
+    assertEquals(0, ofInteger.get(0));
+    assertEquals(6, ofInteger.get(6));
+    assertEquals(10, ofInteger.get(10));
+
+    List<Object> ofMixed = List.of(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, anObject10);
+    assertEquals(11, ofMixed.size());
+    assertEquals(0, ofMixed.get(0));
+    assertEquals(6, ofMixed.get(6));
+    assertSame(anObject10, ofMixed.get(10));
+    assertMutationNotAllowed(ofMixed);
+
+    // Ensure the supplied mutable array is not used directly since it is mutable.
+    Object[] mutableArray = { anObject0 };
+    List<Object> ofMutableArray = List.of(mutableArray);
+    mutableArray[0] = anObject10;
+    assertSame(anObject0, ofMutableArray.get(0));
+
+    try {
+      List.of(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, null);
       throw new AssertionError();
     } catch (NullPointerException expected) {
     }

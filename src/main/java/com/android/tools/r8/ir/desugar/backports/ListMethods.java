@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.desugar.backports;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.synthetic.TemplateMethodCode;
 import com.android.tools.r8.utils.InternalOptions;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -139,5 +140,15 @@ public class ListMethods extends TemplateMethodCode {
             Objects.requireNonNull(e8),
             Objects.requireNonNull(e9),
             Objects.requireNonNull(e10)));
+  }
+
+  public static <E> List<E> ofArray(E[] elements) {
+    // TODO(140709356): The other overloads should call into this method to ensure consistent
+    //  behavior, but we cannot link against List.of(E[]) because it's only available in Java 9.
+    ArrayList<E> list = new ArrayList<>(elements.length);
+    for (E element : elements) {
+      list.add(Objects.requireNonNull(element));
+    }
+    return Collections.unmodifiableList(list);
   }
 }

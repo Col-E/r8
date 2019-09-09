@@ -925,18 +925,17 @@ public final class BackportedMethodRewriter {
       method = factory.createMethod(type, proto, name);
       addProvider(new MethodGenerator(method, ObjectsMethods::new));
 
-      // List of
+      // List<E> List.of(<args>) for 0 to 10 arguments and List.of(E[])
       type = factory.listType;
       name = factory.createString("of");
-
-      // From 0 to 10 arguments.
-      ArrayList<DexType> parameters = new ArrayList<>();
       for (int i = 0; i <= 10; i++) {
-        proto = factory.createProto(factory.listType, parameters);
+        proto = factory.createProto(factory.listType, Collections.nCopies(i, factory.objectType));
         method = factory.createMethod(type, proto, name);
         addProvider(new MethodGenerator(method, ListMethods::new));
-        parameters.add(factory.objectType);
       }
+      proto = factory.createProto(factory.listType, factory.objectArrayType);
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, ListMethods::new, "ofArray"));
     }
 
     private void initializeJava11MethodProviders(DexItemFactory factory) {
