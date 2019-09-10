@@ -4,9 +4,17 @@
 
 package com.android.tools.r8.ir.desugar.backports;
 
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.ir.code.Cmp;
+import com.android.tools.r8.ir.code.Cmp.Bias;
+import com.android.tools.r8.ir.code.InstructionListIterator;
+import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.code.NumericType;
+import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.synthetic.TemplateMethodCode;
 import com.android.tools.r8.utils.InternalOptions;
+import java.util.List;
 
 public final class LongMethods extends TemplateMethodCode {
   public LongMethods(InternalOptions options, DexMethod method, String methodName) {
@@ -197,5 +205,13 @@ public final class LongMethods extends TemplateMethodCode {
       // Generate string
       return new String(buf, i, buf.length - i);
     }
+  }
+
+  public static void rewriteCompare(InvokeMethod invoke, InstructionListIterator iterator,
+      DexItemFactory factory) {
+    List<Value> inValues = invoke.inValues();
+    assert inValues.size() == 2;
+    iterator.replaceCurrentInstruction(
+        new Cmp(NumericType.LONG, Bias.NONE, invoke.outValue(), inValues.get(0), inValues.get(1)));
   }
 }

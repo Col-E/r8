@@ -1081,10 +1081,6 @@ public class InternalOptions {
     return intermediate || hasMinApi(AndroidApiLevel.L);
   }
 
-  public boolean canUseJava7CompareAndObjectsOperations() {
-    return isGeneratingClassFiles() || hasMinApi(AndroidApiLevel.K);
-  }
-
   public boolean canUseSuppressedExceptions() {
     return isGeneratingClassFiles() || hasMinApi(AndroidApiLevel.K);
   }

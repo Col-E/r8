@@ -4,7 +4,11 @@
 
 package com.android.tools.r8.ir.desugar.backports;
 
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.ir.code.InstructionListIterator;
+import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.synthetic.TemplateMethodCode;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.Arrays;
@@ -127,5 +131,16 @@ public final class ObjectsMethods extends TemplateMethodCode {
           + length);
     }
     return fromIndex;
+  }
+
+  public static void rewriteRequireNonNull(InvokeMethod invoke, InstructionListIterator iterator,
+      DexItemFactory factory) {
+    InvokeVirtual getClass =
+        new InvokeVirtual(factory.objectMethods.getClass, null, invoke.inValues());
+    if (invoke.outValue() != null) {
+      invoke.outValue().replaceUsers(invoke.inValues().get(0));
+      invoke.setOutValue(null);
+    }
+    iterator.replaceCurrentInstruction(getClass);
   }
 }

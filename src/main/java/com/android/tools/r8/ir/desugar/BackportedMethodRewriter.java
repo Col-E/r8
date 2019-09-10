@@ -108,11 +108,10 @@ public final class BackportedMethodRewriter {
         continue;
       }
 
-      DexMethod newMethod = provider.provideMethod(appView);
-      iterator.replaceCurrentInstruction(
-          new InvokeStatic(newMethod, invoke.outValue(), invoke.inValues()));
+      provider.rewriteInvoke(invoke, iterator, appView);
 
       if (provider.requiresGenerationOfCode()) {
+        DexMethod newMethod = provider.provideMethod(appView);
         methodProviders.putIfAbsent(newMethod, provider);
         holders.add(code.method.method.holder);
       }
@@ -269,9 +268,6 @@ public final class BackportedMethodRewriter {
     }
 
     private void initializeAndroidKMethodProviders(DexItemFactory factory) {
-      // Note: Long.compare rewriting is handled by CodeRewriter since there is a dedicated
-      // bytecode which supports the operation.
-
       // Byte
       DexType type = factory.boxedByteType;
       // int Byte.compare(byte a, byte b)
@@ -295,6 +291,14 @@ public final class BackportedMethodRewriter {
       proto = factory.createProto(factory.intType, factory.intType, factory.intType);
       method = factory.createMethod(type, proto, name);
       addProvider(new MethodGenerator(method, IntegerMethods::new));
+
+      // Long
+      type = factory.boxedLongType;
+      // int Long.compare(long a, long b)
+      name = factory.createString("compare");
+      proto = factory.createProto(factory.intType, factory.longType, factory.longType);
+      method = factory.createMethod(type, proto, name);
+      addProvider(new InvokeRewriter(method, LongMethods::rewriteCompare));
 
       // Boolean
       type = factory.boxedBooleanType;
@@ -346,7 +350,11 @@ public final class BackportedMethodRewriter {
       method = factory.createMethod(type, proto, name);
       addProvider(new MethodGenerator(method, ObjectsMethods::new));
 
-      // Note: Objects.requireNonNull(T) rewriting is handled by CodeRewriter for now.
+      // T Objects.requireNonNull(T obj)
+      name = factory.createString("requireNonNull");
+      proto = factory.createProto(factory.objectType, factory.objectType);
+      method = factory.createMethod(type, proto, name);
+      addProvider(new InvokeRewriter(method, ObjectsMethods::rewriteRequireNonNull));
 
       // T Objects.requireNonNull(T obj, String message)
       name = factory.createString("requireNonNull");
@@ -1052,6 +1060,9 @@ public final class BackportedMethodRewriter {
       this.method = method;
     }
 
+    public abstract void rewriteInvoke(InvokeMethod invoke, InstructionListIterator iterator,
+        AppView<?> appView);
+
     public abstract DexMethod provideMethod(AppView<?> appView);
 
     public abstract TemplateMethodCode generateTemplateMethod(
@@ -1071,6 +1082,13 @@ public final class BackportedMethodRewriter {
       super(method);
       this.newHolder = newHolder;
       this.isStatic = isStatic;
+    }
+
+    @Override
+    public void rewriteInvoke(InvokeMethod invoke, InstructionListIterator iterator,
+        AppView<?> appView) {
+      iterator.replaceCurrentInstruction(
+          new InvokeStatic(provideMethod(appView), invoke.outValue(), invoke.inValues()));
     }
 
     @Override
@@ -1096,6 +1114,33 @@ public final class BackportedMethodRewriter {
     }
   }
 
+  private static final class InvokeRewriter extends MethodProvider {
+    private final MethodInvokeRewriter rewriter;
+
+    InvokeRewriter(DexMethod method, MethodInvokeRewriter rewriter) {
+      super(method);
+      this.rewriter = rewriter;
+    }
+
+    @Override public void rewriteInvoke(InvokeMethod invoke, InstructionListIterator iterator,
+        AppView<?> appView) {
+      rewriter.rewrite(invoke, iterator, appView.dexItemFactory());
+    }
+
+    @Override public boolean requiresGenerationOfCode() {
+      return false;
+    }
+
+    @Override public DexMethod provideMethod(AppView<?> appView) {
+      throw new Unreachable();
+    }
+
+    @Override
+    public TemplateMethodCode generateTemplateMethod(InternalOptions options, DexMethod method) {
+      throw new Unreachable();
+    }
+  }
+
   private static class MethodGenerator extends MethodProvider {
 
     private final TemplateMethodFactory factory;
@@ -1110,6 +1155,13 @@ public final class BackportedMethodRewriter {
       super(method);
       this.factory = factory;
       this.methodName = methodName;
+    }
+
+    @Override
+    public void rewriteInvoke(InvokeMethod invoke, InstructionListIterator iterator,
+        AppView<?> appView) {
+      iterator.replaceCurrentInstruction(
+          new InvokeStatic(provideMethod(appView), invoke.outValue(), invoke.inValues()));
     }
 
     @Override
@@ -1178,5 +1230,9 @@ public final class BackportedMethodRewriter {
   private interface TemplateMethodFactory {
 
     TemplateMethodCode create(InternalOptions options, DexMethod method, String name);
+  }
+
+  private interface MethodInvokeRewriter {
+    void rewrite(InvokeMethod invoke, InstructionListIterator iterator, DexItemFactory factory);
   }
 }
