@@ -64,14 +64,14 @@ public final class BackportedMethodRewriter {
 
   public static final String UTILITY_CLASS_NAME_PREFIX = "$r8$backportedMethods$utility";
   private static final String UTILITY_CLASS_DESCRIPTOR_PREFIX = "L" + UTILITY_CLASS_NAME_PREFIX;
-  private final Set<DexType> holders = Sets.newConcurrentHashSet();
 
   private final AppView<?> appView;
   private final IRConverter converter;
   private final DexItemFactory factory;
   private final RewritableMethods rewritableMethods;
 
-  private Map<DexMethod, MethodProvider> methodProviders = new ConcurrentHashMap<>();
+  private final Set<DexType> holders = Sets.newConcurrentHashSet();
+  private final Map<DexMethod, MethodProvider> methodProviders = new ConcurrentHashMap<>();
 
   public BackportedMethodRewriter(AppView<?> appView, IRConverter converter) {
     this.appView = appView;
@@ -157,13 +157,11 @@ public final class BackportedMethodRewriter {
         ClassAccessFlags.fromSharedAccessFlags(Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC);
     // Generate the utility classes in a loop since utility classes can require the
     // the creation of other utility classes.
-    // Function multiplyExact(long int) calls multiplyExact(long long) for example.
+    // Function multiplyExact(long, int) calls multiplyExact(long, long) for example.
     while (!methodProviders.isEmpty()) {
-      DexMethod key = methodProviders.keySet().iterator().next();
-      MethodProvider provider = methodProviders.get(key);
-      methodProviders.remove(key);
+      DexMethod method = methodProviders.keySet().iterator().next();
+      MethodProvider provider = methodProviders.remove(method);
       assert provider.requiresGenerationOfCode();
-      DexMethod method = provider.provideMethod(appView);
       // The utility class could have been synthesized, e.g., running R8 then D8,
       // or if already processed in this while loop.
       if (appView.definitionFor(method.holder) != null) {
@@ -226,12 +224,12 @@ public final class BackportedMethodRewriter {
     return rewritableMethods.getProvider(original);
   }
 
-  public static final class RewritableMethods {
+  private static final class RewritableMethods {
 
     // Map backported method to a provider for creating the actual target method (with code).
     private final Map<DexMethod, MethodProvider> rewritable = new IdentityHashMap<>();
 
-    public RewritableMethods(InternalOptions options, AppView<?> appView) {
+    RewritableMethods(InternalOptions options, AppView<?> appView) {
       DexItemFactory factory = options.itemFactory;
 
       if (options.minApiLevel < AndroidApiLevel.K.getLevel()) {
@@ -1038,11 +1036,11 @@ public final class BackportedMethodRewriter {
     }
 
     private void addProvider(MethodProvider generator) {
-      assert !rewritable.containsKey(generator.method);
-      rewritable.put(generator.method, generator);
+      MethodProvider replaced = rewritable.put(generator.method, generator);
+      assert replaced == null;
     }
 
-    public MethodProvider getProvider(DexMethod method) {
+    MethodProvider getProvider(DexMethod method) {
       return rewritable.get(method);
     }
   }
@@ -1062,13 +1060,13 @@ public final class BackportedMethodRewriter {
     public abstract boolean requiresGenerationOfCode();
   }
 
-  public static class RetargetCoreLibraryMethodProvider extends MethodProvider {
+  private static class RetargetCoreLibraryMethodProvider extends MethodProvider {
 
     private final DexType newHolder;
     private DexMethod targetMethod;
     private boolean isStatic;
 
-    public RetargetCoreLibraryMethodProvider(
+    RetargetCoreLibraryMethodProvider(
         DexType newHolder, DexMethod method, boolean isStatic) {
       super(method);
       this.newHolder = newHolder;
@@ -1098,17 +1096,17 @@ public final class BackportedMethodRewriter {
     }
   }
 
-  public static class MethodGenerator extends MethodProvider {
+  private static class MethodGenerator extends MethodProvider {
 
     private final TemplateMethodFactory factory;
     private final String methodName;
-    protected DexMethod generatedMethod;
+    DexMethod generatedMethod;
 
-    public MethodGenerator(DexMethod method, TemplateMethodFactory factory) {
+    MethodGenerator(DexMethod method, TemplateMethodFactory factory) {
       this(method, factory, method.name.toString());
     }
 
-    public MethodGenerator(DexMethod method, TemplateMethodFactory factory, String methodName) {
+    MethodGenerator(DexMethod method, TemplateMethodFactory factory, String methodName) {
       super(method);
       this.factory = factory;
       this.methodName = methodName;
@@ -1153,11 +1151,11 @@ public final class BackportedMethodRewriter {
   // Specific subclass to transform virtual methods into static desugared methods.
   // To be correct, the method has to be on a final class, and be implemented directly
   // on the class (no overrides).
-  public static class StatifyingMethodGenerator extends MethodGenerator {
+  private static class StatifyingMethodGenerator extends MethodGenerator {
 
     private final DexType receiverType;
 
-    public StatifyingMethodGenerator(
+    StatifyingMethodGenerator(
         DexMethod method, TemplateMethodFactory factory, String methodName, DexType receiverType) {
       super(method, factory, methodName);
       this.receiverType = receiverType;
