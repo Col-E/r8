@@ -47,17 +47,15 @@ public class NestReducer {
     // Nests are therefore computed the first time a nest member is met, host or not.
     // The computedNestHosts list is there to avoid processing multiple times the same nest.
     for (DexProgramClass clazz : appView.appInfo().classes()) {
-      if (clazz.isInANest()) {
-        DexType hostType = clazz.getNestHost();
-        if (!nestHosts.contains(hostType)) {
-          nestHosts.add(hostType);
-          futures.add(
-              executorService.submit(
-                  () -> {
-                    processNestFrom(clazz);
-                    return null; // we want a Callable not a Runnable to be able to throw
-                  }));
-        }
+      DexType hostType = clazz.getNestHost();
+      if (hostType != null && !nestHosts.contains(hostType)) {
+        nestHosts.add(hostType);
+        futures.add(
+            executorService.submit(
+                () -> {
+                  processNestFrom(clazz);
+                  return null; // we want a Callable not a Runnable to be able to throw
+                }));
       }
     }
     ThreadUtils.awaitFutures(futures);
