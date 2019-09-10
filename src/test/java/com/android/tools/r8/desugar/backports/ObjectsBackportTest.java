@@ -22,8 +22,8 @@ import static java.util.Collections.reverseOrder;
 
   public ObjectsBackportTest(TestParameters parameters) {
     super(parameters, Objects.class, Main.class);
-    registerTarget(AndroidApiLevel.N, 57);
-    registerTarget(AndroidApiLevel.K, 53);
+    registerTarget(AndroidApiLevel.N, 59);
+    registerTarget(AndroidApiLevel.K, 55);
   }
 
   static final class Main extends MiniAssert {
@@ -37,6 +37,7 @@ import static java.util.Collections.reverseOrder;
       testNonNull();
       testToString();
       testToStringOrDefault();
+      testRequireNonNull();
       testRequireNonNullOrMessage();
     }
 
@@ -207,6 +208,16 @@ import static java.util.Collections.reverseOrder;
           return "non-null";
         }
       }, "null default"));
+    }
+
+    private static void testRequireNonNull() {
+      Object o = new Object();
+      assertSame(o, Objects.requireNonNull(o));
+
+      try {
+        throw new AssertionError(Objects.requireNonNull(null));
+      } catch (NullPointerException expected) {
+      }
     }
 
     private static void testRequireNonNullOrMessage() {
