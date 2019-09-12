@@ -34,7 +34,8 @@
         "java.util.Tripwire": "j$.util.Tripwire",
         "java.util.concurrent.DesugarUnsafe": "j$.util.concurrent.DesugarUnsafe",
         "java.util.concurrent.ThreadLocalRandom": "j$.util.concurrent.ThreadLocalRandom",
-        "java.util.concurrent.atomic.DesugarAtomic": "j$.util.concurrent.atomic.DesugarAtomic"
+        "java.util.concurrent.atomic.DesugarAtomic": "j$.util.concurrent.atomic.DesugarAtomic",
+        "java.util.concurrent.ConcurrentHashMap": "j$.util.concurrent.ConcurrentHashMap"
       },
       "retarget_lib_member": {
         "java.util.Arrays#stream": "java.util.DesugarArrays",
@@ -54,12 +55,6 @@
         "java.util.SortedSet": "j$.util.SortedSet",
         "java.util.Set": "j$.util.Set",
         "java.util.concurrent.ConcurrentMap": "j$.util.concurrent.ConcurrentMap"
-      }
-    },
-    {
-      "api_level_below_or_equal": 22,
-      "rewrite_prefix": {
-        "java.util.concurrent.ConcurrentHashMap": "j$.util.concurrent.ConcurrentHashMap"
       }
     }
   ],
@@ -91,7 +86,8 @@
         "java.util.Spliterator": "j$.util.Spliterator",
         "java.util.StringJoiner": "j$.util.StringJoiner",
         "java.util.concurrent.ThreadLocalRandom": "j$.util.concurrent.ThreadLocalRandom",
-        "java.util.concurrent.atomic.DesugarAtomic": "j$.util.concurrent.atomic.DesugarAtomic"
+        "java.util.concurrent.atomic.DesugarAtomic": "j$.util.concurrent.atomic.DesugarAtomic",
+        "java.util.concurrent.ConcurrentHashMap": "j$.util.concurrent.ConcurrentHashMap"
       },
       "retarget_lib_member": {
         "java.util.Arrays#stream": "java.util.DesugarArrays",
@@ -123,12 +119,6 @@
         "java.util.SortedSet": "j$.util.SortedSet",
         "java.util.Set": "j$.util.Set",
         "java.util.concurrent.ConcurrentMap": "j$.util.concurrent.ConcurrentMap"
-      }
-    },
-    {
-      "api_level_below_or_equal": 22,
-      "rewrite_prefix": {
-        "java.util.concurrent.ConcurrentHashMap": "j$.util.concurrent.ConcurrentHashMap"
       }
     }
   ]

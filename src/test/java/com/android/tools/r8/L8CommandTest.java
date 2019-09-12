@@ -99,7 +99,7 @@ public class L8CommandTest {
   }
 
   @Test(expected = CompilationFailedException.class)
-  public void specialLibraryConfigurationRequired() throws Throwable {
+  public void desugaredLibraryConfigurationRequired() throws Throwable {
     DiagnosticsChecker.checkErrorsContains(
         "L8 requires a desugared library configuration",
         (handler) ->

@@ -21,12 +21,6 @@ public class DesugaredLibraryConfigurationForTesting {
   private static Map<String, String> buildPrefixRewritingForProgramCompilationAllAndroid() {
     return ImmutableMap.<String, String>builder()
         .put("java.util.concurrent.ConcurrentHashMap", "j$.util.concurrent.ConcurrentHashMap")
-        .putAll(buildPrefixRewritingForProgramCompilationAndroidOPlus())
-        .build();
-  }
-
-  private static Map<String, String> buildPrefixRewritingForProgramCompilationAndroidOPlus() {
-    return ImmutableMap.<String, String>builder()
         .put("java.util.stream.", "j$.util.stream.")
         .put("java.util.function.", "j$.util.function.")
         .put("java.util.DoubleSummaryStatistics", "j$.util.DoubleSummaryStatistics")
@@ -110,12 +104,6 @@ public class DesugaredLibraryConfigurationForTesting {
   private static Map<String, String> buildPrefixRewritingForCoreLibCompilationAllAndroid() {
     return ImmutableMap.<String, String>builder()
         .put("java.util.concurrent.ConcurrentHashMap", "j$.util.concurrent.ConcurrentHashMap")
-        .putAll(buildPrefixRewritingForCoreLibCompilationAndroidOPlus())
-        .build();
-  }
-
-  private static Map<String, String> buildPrefixRewritingForCoreLibCompilationAndroidOPlus() {
-    return ImmutableMap.<String, String>builder()
         .put("java.util.stream.", "j$.util.stream.")
         .put("java.util.function.", "j$.util.function.")
         .put("java.util.Comparators", "j$.util.Comparators")
@@ -194,11 +182,7 @@ public class DesugaredLibraryConfigurationForTesting {
     Map<String, String> emulateLibraryInterface = ImmutableMap.of();
     List<String> dontRewriteInvocations = ImmutableList.of();
     if (minApiLevel < AndroidApiLevel.N.getLevel()) {
-      if (minApiLevel < AndroidApiLevel.M.getLevel()) {
-        rewritePrefix = buildPrefixRewritingForProgramCompilationAllAndroid();
-      } else {
-        rewritePrefix = buildPrefixRewritingForProgramCompilationAndroidOPlus();
-      }
+      rewritePrefix = buildPrefixRewritingForProgramCompilationAllAndroid();
       retargetCoreLibMember = buildRetargetCoreLibraryMemberForProgramCompilationAllAndroid();
       emulateLibraryInterface = buildEmulateLibraryInterface();
       dontRewriteInvocations = buildDontRewriteInvocations();
@@ -230,11 +214,7 @@ public class DesugaredLibraryConfigurationForTesting {
       retargetCoreLibMember = buildRetargetCoreLibraryMemberForCoreLibCompilation();
       dontRewriteInvocations = buildDontRewriteInvocations();
       emulateLibraryInterface = buildEmulateLibraryInterface();
-      if (minApiLevel < AndroidApiLevel.M.getLevel()) {
-        rewritePrefix = buildPrefixRewritingForCoreLibCompilationAllAndroid();
-      } else {
-        rewritePrefix = buildPrefixRewritingForCoreLibCompilationAndroidOPlus();
-      }
+      rewritePrefix = buildPrefixRewritingForCoreLibCompilationAllAndroid();
     } else {
       rewritePrefix = buildPrefixRewritingForCoreLibCompilationAndroidNPlus();
     }
