@@ -158,6 +158,9 @@ public class ToolHelper {
   public static final Path R8LIB_EXCLUDE_DEPS_JAR = Paths.get(LIBS_DIR, "r8lib-exclude-deps.jar");
   public static final Path DEPS_NOT_RELOCATED = Paths.get(LIBS_DIR, "deps-not-relocated.jar");
 
+  public static final Path DESUGAR_LIB_JSON_FOR_TESTING =
+      Paths.get("src/test/java/com/android/tools/r8/desugar/corelib/desugar_jdk_libs.json");
+
   public static boolean shouldRunSlowTests() {
     return System.getProperty("slow_tests", "0").equals("1");
   }

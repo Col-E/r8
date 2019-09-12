@@ -71,7 +71,8 @@ public class D8TestBuilder
     if (minAPILevel.getLevel() < AndroidApiLevel.O.getLevel()) {
       // Use P to mimic current Android Studio.
       builder.addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P));
-      builder.addDesugaredLibraryConfiguration("default");
+      builder.addDesugaredLibraryConfiguration(
+          StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING));
       builder.setDesugaredLibraryKeepRuleConsumer(keepRuleConsumer);
     }
     return self();

@@ -11,6 +11,7 @@ import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.L8Command;
 import com.android.tools.r8.OutputMode;
+import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -18,9 +19,9 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import org.junit.Assume;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -67,7 +68,8 @@ public class DesugaredLibraryContentTest extends CoreLibDesugarTestBase {
             .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .addProgramFiles(ToolHelper.getDesugarJDKLibs())
             .addLibraryFiles(ToolHelper.getCoreLambdaStubs())
-            .addDesugaredLibraryConfiguration("default")
+            .addDesugaredLibraryConfiguration(
+                StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
             .setMinApiLevel(parameters.getApiLevel().getLevel())
             .setOutput(desugaredLib, OutputMode.DexIndexed);
     ToolHelper.runL8(l8Builder.build(), options -> {});

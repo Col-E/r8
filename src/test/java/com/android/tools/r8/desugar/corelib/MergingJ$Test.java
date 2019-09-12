@@ -11,6 +11,7 @@ import static org.junit.Assert.fail;
 import com.android.tools.r8.L8;
 import com.android.tools.r8.L8Command;
 import com.android.tools.r8.OutputMode;
+import com.android.tools.r8.StringResource;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.corelib.corelibjdktests.Jdk11CoreLibTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -56,7 +57,8 @@ public class MergingJ$Test extends Jdk11CoreLibTestBase {
         L8Command.builder()
             .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .addProgramFiles(ToolHelper.getDesugarJDKLibs())
-            .addDesugaredLibraryConfiguration("default")
+            .addDesugaredLibraryConfiguration(
+                StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
             .setMinApiLevel(AndroidApiLevel.B.getLevel())
             .setOutput(outputDex, OutputMode.DexIndexed)
             .build());
@@ -71,7 +73,8 @@ public class MergingJ$Test extends Jdk11CoreLibTestBase {
             .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .addProgramFiles(JDK_11_JAVA_BASE_EXTENSION_COMPILED_FILES)
             .addClasspathFiles(ToolHelper.getDesugarJDKLibs())
-            .addDesugaredLibraryConfiguration("default")
+            .addDesugaredLibraryConfiguration(
+                StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
             .setMinApiLevel(AndroidApiLevel.B.getLevel())
             .setOutput(outputCf, OutputMode.DexIndexed)
             .build());

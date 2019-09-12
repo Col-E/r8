@@ -30,7 +30,8 @@ public class L8CommandTest {
     verifyEmptyCommand(
         L8Command.builder()
             .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
-            .addDesugaredLibraryConfiguration("default")
+            .addDesugaredLibraryConfiguration(
+                StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
             .build());
   }
 
@@ -50,7 +51,8 @@ public class L8CommandTest {
             .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .addProgramFiles(ToolHelper.getDesugarJDKLibs())
             .setMinApiLevel(20)
-            .addDesugaredLibraryConfiguration("default")
+            .addDesugaredLibraryConfiguration(
+                StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
             .setOutput(output, OutputMode.DexIndexed)
             .build());
     Collection<Marker> markers = ExtractMarker.extractMarkerFromDexFile(output);
@@ -111,7 +113,8 @@ public class L8CommandTest {
         handler ->
             prepareBuilder(handler)
                 .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
-                .addDesugaredLibraryConfiguration("default")
+                .addDesugaredLibraryConfiguration(
+                    StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
                 .build());
   }
 }

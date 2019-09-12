@@ -11,6 +11,7 @@ import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.L8Command;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.StringConsumer;
+import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.TestParameters;
@@ -74,7 +75,8 @@ public class CoreLibDesugarTestBase extends TestBase {
               .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
               .addProgramFiles(ToolHelper.getDesugarJDKLibs())
               .addProgramFiles(additionalProgramFiles)
-              .addDesugaredLibraryConfiguration("default")
+              .addDesugaredLibraryConfiguration(
+                  StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
               .setMinApiLevel(apiLevel.getLevel())
               .setOutput(desugaredLib, OutputMode.DexIndexed);
       if (shrink) {

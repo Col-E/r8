@@ -532,7 +532,8 @@ public class D8CommandTest {
         "Desugared library configuration is still work in progress",
         handler ->
             D8Command.builder(handler)
-                .addDesugaredLibraryConfiguration("default")
+                .addDesugaredLibraryConfiguration(
+                    StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
                 .setOutput(emptyZip, OutputMode.DexIndexed)
                 .build());
   }
