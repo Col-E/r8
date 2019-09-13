@@ -3,8 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import dx.DexMergerTask
+import dx.DxTask
 import net.ltgt.gradle.errorprone.CheckSeverity
 import org.gradle.internal.os.OperatingSystem
+import smali.SmaliTask
 import tasks.DownloadDependency
 import tasks.GetJarsFromConfiguration
 import utils.Utils
@@ -1513,7 +1516,7 @@ task buildExamplesKotlin {
         dependsOn "dex_example_kotlin_${name}"
         def exampleOutputDir = file("build/test/examplesKotlin/" + name);
         def dexPath = file("${exampleOutputDir}")
-        task "dex_example_kotlin_${name}"(type: dx.Dx,
+        task "dex_example_kotlin_${name}"(type: DxTask,
                 dependsOn: "compile_example_kotlin_${name}") {
             doFirst {
                 if (!dexPath.exists()) {
@@ -1595,7 +1598,7 @@ task buildExamples {
             if (!dexPath.exists()) {
                 dexPath.mkdirs()
             }
-            task "dex_example_${name}"(type: dx.Dx, dependsOn: "jar_example_${name}") {
+            task "dex_example_${name}"(type: DxTask, dependsOn: "jar_example_${name}") {
                 source = files(tasks.getByPath("jar_example_${name}")).asFileTree
                 destination = dexPath
                 debug = debug
@@ -1622,14 +1625,14 @@ task buildSmali {
         if (javaFiles.empty) {
             if (!smaliFiles.empty) {
                 dependsOn "${taskName}_smali"
-                task "${taskName}_smali"(type: smali.Smali) {
+                task "${taskName}_smali"(type: SmaliTask) {
                     source = smaliFiles
                     destination = destFile
                 }
             }
         } else {
             dependsOn "${taskName}_dexmerger"
-            task "${taskName}_smali"(type: smali.Smali) {
+            task "${taskName}_smali"(type: SmaliTask) {
                 source = smaliFiles
                 destination = intermediateFile
             }
@@ -1646,12 +1649,12 @@ task buildSmali {
                 destinationDir = destDir
                 from fileTree(dir: destDir, include: 'Test.class')
             }
-            task "${taskName}_dx"(type: dx.Dx, dependsOn: "${taskName}_jar") {
+            task "${taskName}_dx"(type: DxTask, dependsOn: "${taskName}_jar") {
                 source = fileTree(dir: destDir, include: 'Test.jar')
                 destination = destDir
             }
             task "${taskName}_dexmerger"(
-                    type: dx.DexMerger, dependsOn: ["${taskName}_dx", "${taskName}_smali"]) {
+                    type: DexMergerTask, dependsOn: ["${taskName}_dx", "${taskName}_smali"]) {
                 source = fileTree(dir: destDir, include: ["classes.dex", intermediateFileName])
                 destination = destFile
             }

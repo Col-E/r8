@@ -17,6 +17,11 @@ public class Utils {
     }
   }
 
+  public static File dxExecutable() {
+    String dxExecutableName = Utils.toolsDir().equals("windows") ? "dx.bat" : "dx";
+    return new File("tools/" + Utils.toolsDir() + "/dx/bin/" + dxExecutableName);
+  }
+
   public static File dexMergerExecutable() {
     String executableName = Utils.toolsDir().equals("windows") ? "dexmerger.bat" : "dexmerger";
     return new File("tools/" + Utils.toolsDir() + "/dx/bin/" + executableName);
