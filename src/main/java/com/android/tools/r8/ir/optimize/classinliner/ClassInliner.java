@@ -16,6 +16,7 @@ import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.InliningOracle;
 import com.android.tools.r8.ir.optimize.string.StringOptimizer;
+import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.Streams;
 import java.util.Iterator;
@@ -27,11 +28,36 @@ import java.util.stream.Collectors;
 
 public final class ClassInliner {
 
+  enum EligibilityStatus {
+    // Used by InlineCandidateProcessor#isInstanceEligible
+    UNUSED_INSTANCE,
+    NON_CLASS_TYPE,
+    UNKNOWN_TYPE,
+
+    // Used by InlineCandidateProcessor#isClassAndUsageEligible
+    INELIGIBLE_CLASS,
+    HAS_CLINIT,
+    HAS_INSTANCE_FIELDS,
+    NON_FINAL_TYPE,
+    NOT_INITIALIZED_AT_INIT,
+    PINNED_FIELD,
+
+    ELIGIBLE
+  }
+
   private final LambdaRewriter lambdaRewriter;
   private final ConcurrentHashMap<DexClass, Boolean> knownClasses = new ConcurrentHashMap<>();
 
   public ClassInliner(LambdaRewriter lambdaRewriter) {
     this.lambdaRewriter = lambdaRewriter;
+  }
+
+  private void logEligibilityStatus(
+      DexEncodedMethod context, Instruction root, EligibilityStatus status) {
+    if (Log.ENABLED && Log.isLoggingEnabledFor(ClassInliner.class)) {
+      Log.info(getClass(), "At %s,", context.toSourceString());
+      Log.info(getClass(), "ClassInlining eligibility of %s: %s,", root, status);
+    }
   }
 
   // Process method code and inline eligible class instantiations, in short:
@@ -150,8 +176,16 @@ public final class ClassInliner {
                 root);
 
         // Assess eligibility of instance and class.
-        if (!processor.isInstanceEligible() ||
-            !processor.isClassAndUsageEligible()) {
+        EligibilityStatus status = processor.isInstanceEligible();
+        if (status != EligibilityStatus.ELIGIBLE) {
+          logEligibilityStatus(code.method, root, status);
+          // This root will never be inlined.
+          rootsIterator.remove();
+          continue;
+        }
+        status = processor.isClassAndUsageEligible();
+        logEligibilityStatus(code.method, root, status);
+        if (status != EligibilityStatus.ELIGIBLE) {
           // This root will never be inlined.
           rootsIterator.remove();
           continue;

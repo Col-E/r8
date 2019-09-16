@@ -35,6 +35,7 @@ import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.Inliner.InliningInfo;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.InliningOracle;
+import com.android.tools.r8.ir.optimize.classinliner.ClassInliner.EligibilityStatus;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
 import com.android.tools.r8.kotlin.KotlinInfo;
@@ -101,16 +102,16 @@ final class InlineCandidateProcessor {
 
   // Checks if the root instruction defines eligible value, i.e. the value
   // exists and we have a definition of its class.
-  boolean isInstanceEligible() {
+  EligibilityStatus isInstanceEligible() {
     eligibleInstance = root.outValue();
     if (eligibleInstance == null) {
-      return false;
+      return EligibilityStatus.UNUSED_INSTANCE;
     }
 
     eligibleClass =
         root.isNewInstance() ? root.asNewInstance().clazz : root.asStaticGet().getField().type;
     if (!eligibleClass.isClassType()) {
-      return false;
+      return EligibilityStatus.NON_CLASS_TYPE;
     }
     if (lambdaRewriter != null) {
       // Check if the class is synthesized for a desugared lambda
@@ -120,7 +121,11 @@ final class InlineCandidateProcessor {
     if (eligibleClassDefinition == null) {
       eligibleClassDefinition = appView.definitionFor(eligibleClass);
     }
-    return eligibleClassDefinition != null;
+    if (eligibleClassDefinition != null) {
+      return EligibilityStatus.ELIGIBLE;
+    } else {
+      return EligibilityStatus.UNKNOWN_TYPE;
+    }
   }
 
   // Checks if the class is eligible and is properly used. Regarding general class
@@ -134,9 +139,9 @@ final class InlineCandidateProcessor {
   //      * class is final
   //      * class has class initializer marked as TrivialClassInitializer, and
   //        class initializer initializes the field we are reading here.
-  boolean isClassAndUsageEligible() {
+  EligibilityStatus isClassAndUsageEligible() {
     if (!isClassEligible.test(eligibleClassDefinition)) {
-      return false;
+      return EligibilityStatus.INELIGIBLE_CLASS;
     }
 
     if (root.isNewInstance()) {
@@ -145,14 +150,18 @@ final class InlineCandidateProcessor {
       // TrivialInstanceInitializer. This will be checked in areInstanceUsersEligible(...).
 
       // There must be no static initializer on the class itself.
-      return !eligibleClassDefinition.hasClassInitializer();
+      if (eligibleClassDefinition.hasClassInitializer()) {
+        return EligibilityStatus.HAS_CLINIT;
+      } else {
+        return EligibilityStatus.ELIGIBLE;
+      }
     }
 
     assert root.isStaticGet();
 
     // We know that desugared lambda classes satisfy eligibility requirements.
     if (isDesugaredLambda) {
-      return true;
+      return EligibilityStatus.ELIGIBLE;
     }
 
     // Checking if we can safely inline class implemented following singleton-like
@@ -206,17 +215,17 @@ final class InlineCandidateProcessor {
     //
 
     if (eligibleClassDefinition.instanceFields().size() > 0) {
-      return false;
+      return EligibilityStatus.HAS_INSTANCE_FIELDS;
     }
     if (appView.appInfo().hasSubtypes(eligibleClassDefinition.type)) {
       assert !eligibleClassDefinition.accessFlags.isFinal();
-      return false;
+      return EligibilityStatus.NON_FINAL_TYPE;
     }
 
     // Singleton instance must be initialized in class constructor.
     DexEncodedMethod classInitializer = eligibleClassDefinition.getClassInitializer();
     if (classInitializer == null || isProcessedConcurrently.test(classInitializer)) {
-      return false;
+      return EligibilityStatus.NOT_INITIALIZED_AT_INIT;
     }
 
     TrivialInitializer info =
@@ -224,11 +233,16 @@ final class InlineCandidateProcessor {
     assert info == null || info instanceof TrivialClassInitializer;
     DexField instanceField = root.asStaticGet().getField();
     // Singleton instance field must NOT be pinned.
-    return info != null
+    boolean notPinned = info != null
         && ((TrivialClassInitializer) info).field == instanceField
         && !appView
             .appInfo()
             .isPinned(eligibleClassDefinition.lookupStaticField(instanceField).field);
+    if (notPinned) {
+      return EligibilityStatus.ELIGIBLE;
+    } else {
+      return EligibilityStatus.PINNED_FIELD;
+    }
   }
 
   /**
