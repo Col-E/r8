@@ -7,7 +7,9 @@ import static com.android.tools.r8.ir.code.DominatorTree.Assumption.MAY_HAVE_UNR
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
@@ -15,6 +17,7 @@ import com.android.tools.r8.ir.code.Assume;
 import com.android.tools.r8.ir.code.Assume.NonNullAssumption;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.DominatorTree;
+import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.If.Type;
@@ -23,6 +26,7 @@ import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Sets;
@@ -130,6 +134,19 @@ public class NonNullTracker {
                 if (isNullableReferenceType(knownToBeNonNullValue)) {
                   knownToBeNonNullValues.add(knownToBeNonNullValue);
                 }
+              }
+            }
+          }
+        } else if (current.isFieldGet()) {
+          FieldInstruction fieldInstruction = current.asFieldInstruction();
+          DexField field = fieldInstruction.getField();
+          if (field.type.isClassType()) {
+            DexEncodedField encodedField = appView.appInfo().resolveField(field);
+            if (encodedField != null) {
+              FieldOptimizationInfo optimizationInfo = encodedField.getOptimizationInfo();
+              if (optimizationInfo.getDynamicType() != null
+                  && optimizationInfo.getDynamicType().isDefinitelyNotNull()) {
+                knownToBeNonNullValues.add(fieldInstruction.outValue());
               }
             }
           }
