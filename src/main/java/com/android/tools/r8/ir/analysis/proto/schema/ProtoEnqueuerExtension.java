@@ -213,6 +213,76 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
           }
         }
       }
+
+      registerWriteToOneOfObjectsWithLiveOneOfCaseObject(protoMessageInfo, enqueuer, worklist);
+    }
+  }
+
+  /** Marks each oneof field whose corresponding oneof-case field is live as being written. */
+  private void registerWriteToOneOfObjectsWithLiveOneOfCaseObject(
+      ProtoMessageInfo protoMessageInfo, Enqueuer enqueuer, EnqueuerWorklist worklist) {
+    if (protoMessageInfo.numberOfOneOfObjects() == 0) {
+      return;
+    }
+
+    for (ProtoOneOfObjectPair oneOfObjectPair : protoMessageInfo.getOneOfObjects()) {
+      registerWriteToOneOfObjectIfOneOfCaseObjectIsLive(oneOfObjectPair, enqueuer, worklist);
+    }
+  }
+
+  /** Marks the given oneof field as being written if the corresponding oneof-case field is live. */
+  private void registerWriteToOneOfObjectIfOneOfCaseObjectIsLive(
+      ProtoOneOfObjectPair oneOfObjectPair, Enqueuer enqueuer, EnqueuerWorklist worklist) {
+    ProtoFieldObject oneOfCaseObject = oneOfObjectPair.getOneOfCaseObject();
+    if (!oneOfCaseObject.isLiveProtoFieldObject()) {
+      assert false;
+      return;
+    }
+
+    DexField oneOfCaseField = oneOfCaseObject.asLiveProtoFieldObject().getField();
+    DexEncodedField encodedOneOfCaseField = appView.appInfo().resolveField(oneOfCaseField);
+    if (encodedOneOfCaseField == null) {
+      assert false;
+      return;
+    }
+
+    DexClass clazz = appView.definitionFor(encodedOneOfCaseField.field.holder);
+    if (clazz == null || !clazz.isProgramClass()) {
+      assert false;
+      return;
+    }
+
+    DexEncodedMethod dynamicMethod = clazz.lookupVirtualMethod(references::isDynamicMethod);
+    if (dynamicMethod == null) {
+      assert false;
+      return;
+    }
+
+    if (!enqueuer.isFieldLive(encodedOneOfCaseField)) {
+      return;
+    }
+
+    ProtoFieldObject oneOfObject = oneOfObjectPair.getOneOfObject();
+    if (!oneOfObject.isLiveProtoFieldObject()) {
+      assert false;
+      return;
+    }
+
+    DexField oneOfField = oneOfObject.asLiveProtoFieldObject().getField();
+    DexEncodedField encodedOneOfField = appView.appInfo().resolveField(oneOfField);
+    if (encodedOneOfField == null) {
+      assert false;
+      return;
+    }
+
+    if (encodedOneOfField.field.holder != encodedOneOfCaseField.field.holder) {
+      assert false;
+      return;
+    }
+
+    if (enqueuer.registerFieldWrite(encodedOneOfField.field, dynamicMethod)) {
+      worklist.enqueueMarkReachableFieldAction(
+          clazz.asProgramClass(), encodedOneOfField, KeepReason.reflectiveUseIn(dynamicMethod));
     }
   }
 
