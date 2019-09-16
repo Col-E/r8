@@ -1156,7 +1156,10 @@ def main(argv):
     os.environ[utils.ANDROID_HOME_ENVIROMENT_NAME] = os.path.join(
         utils.ANDROID_SDK)
     os.environ[utils.ANDROID_TOOLS_VERSION_ENVIRONMENT_NAME] = '28.0.3'
-    options.no_logging = True
+    # TODO(b/141081520): Set to True once fixed.
+    options.no_logging = False
+    # TODO(b/141081520): Remove logging filter once fixed.
+    options.app_logging_filter = ['sqldelight']
     options.shrinker = [shrinker for shrinker in SHRINKERS if shrinker != 'pg']
     print(options.shrinker)
 
