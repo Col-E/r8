@@ -164,7 +164,7 @@ public class ProtoFieldInfo {
   public DexField getOneOfCaseField(ProtoMessageInfo protoMessageInfo) {
     assert type.isOneOf();
 
-    ProtoObject object = protoMessageInfo.getOneOfObjects().get(getAuxData()).getSecond();
+    ProtoObject object = protoMessageInfo.getOneOfObjects().get(getAuxData()).getOneOfCaseObject();
     assert object.isLiveProtoFieldObject();
     return object.asLiveProtoFieldObject().getField();
   }
@@ -178,7 +178,7 @@ public class ProtoFieldInfo {
   public DexField getValueStorage(ProtoMessageInfo protoMessageInfo) {
     ProtoObject object =
         type.isOneOf()
-            ? protoMessageInfo.getOneOfObjects().get(getAuxData()).getFirst()
+            ? protoMessageInfo.getOneOfObjects().get(getAuxData()).getOneOfObject()
             : objects.get(0);
     assert object.isLiveProtoFieldObject();
     return object.asLiveProtoFieldObject().getField();

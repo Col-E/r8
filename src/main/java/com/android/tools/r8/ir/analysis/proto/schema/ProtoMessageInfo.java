@@ -5,7 +5,6 @@
 package com.android.tools.r8.ir.analysis.proto.schema;
 
 import com.android.tools.r8.ir.analysis.proto.ProtoUtils;
-import com.android.tools.r8.utils.Pair;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
@@ -25,7 +24,7 @@ public class ProtoMessageInfo {
 
     private LinkedList<ProtoFieldInfo> fields;
     private LinkedList<ProtoFieldObject> hasBitsObjects;
-    private LinkedList<Pair<ProtoObject, ProtoObject>> oneOfObjects;
+    private LinkedList<ProtoOneOfObjectPair> oneOfObjects;
 
     public void setFlags(int value) {
       this.flags = value;
@@ -45,11 +44,11 @@ public class ProtoMessageInfo {
       hasBitsObjects.add(hasBitsObject);
     }
 
-    public void addOneOfObject(ProtoObject first, ProtoObject second) {
+    public void addOneOfObject(ProtoFieldObject oneOfObject, ProtoFieldObject oneOfCaseObject) {
       if (oneOfObjects == null) {
         oneOfObjects = new LinkedList<>();
       }
-      oneOfObjects.add(new Pair<>(first, second));
+      oneOfObjects.add(new ProtoOneOfObjectPair(oneOfObject, oneOfCaseObject));
     }
 
     public ProtoMessageInfo build() {
@@ -64,7 +63,7 @@ public class ProtoMessageInfo {
             field -> {
               ProtoObject object =
                   field.getType().isOneOf()
-                      ? oneOfObjects.get(field.getAuxData()).getFirst()
+                      ? oneOfObjects.get(field.getAuxData()).getOneOfObject()
                       : field.getObjects().get(0);
               return object.isDeadProtoFieldObject();
             };
@@ -105,8 +104,10 @@ public class ProtoMessageInfo {
       // Remove unused parts of "oneof" vector.
       Int2IntMap newOneOfObjectIndices = new Int2IntArrayMap();
       if (oneOfObjects != null) {
-        Iterator<Pair<ProtoObject, ProtoObject>> oneOfObjectIterator = oneOfObjects.iterator();
-        for (int i = 0, numberOfRemovedOneOfObjects = 0; i < oneOfObjects.size(); i++) {
+        Iterator<ProtoOneOfObjectPair> oneOfObjectIterator = oneOfObjects.iterator();
+        int i = 0;
+        int numberOfRemovedOneOfObjects = 0;
+        while (oneOfObjectIterator.hasNext()) {
           oneOfObjectIterator.next();
           if (usedOneOfIndices.contains(i)) {
             newOneOfObjectIndices.put(i, i - numberOfRemovedOneOfObjects);
@@ -114,7 +115,13 @@ public class ProtoMessageInfo {
             oneOfObjectIterator.remove();
             numberOfRemovedOneOfObjects++;
           }
+          i++;
         }
+
+        assert oneOfObjects.stream()
+            .allMatch(
+                oneOfObjectPair ->
+                    oneOfObjectPair.stream().noneMatch(ProtoObject::isDeadProtoFieldObject));
       }
 
       // Remove unused parts of "hasbits" vector.
@@ -160,13 +167,13 @@ public class ProtoMessageInfo {
 
   private final LinkedList<ProtoFieldInfo> fields;
   private final LinkedList<ProtoFieldObject> hasBitsObjects;
-  private final LinkedList<Pair<ProtoObject, ProtoObject>> oneOfObjects;
+  private final LinkedList<ProtoOneOfObjectPair> oneOfObjects;
 
   private ProtoMessageInfo(
       int flags,
       LinkedList<ProtoFieldInfo> fields,
       LinkedList<ProtoFieldObject> hasBitsObjects,
-      LinkedList<Pair<ProtoObject, ProtoObject>> oneOfObjects) {
+      LinkedList<ProtoOneOfObjectPair> oneOfObjects) {
     this.flags = flags;
     this.fields = fields;
     this.hasBitsObjects = hasBitsObjects;
@@ -193,7 +200,7 @@ public class ProtoMessageInfo {
     return hasBitsObjects;
   }
 
-  public List<Pair<ProtoObject, ProtoObject>> getOneOfObjects() {
+  public List<ProtoOneOfObjectPair> getOneOfObjects() {
     return oneOfObjects;
   }
 

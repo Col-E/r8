@@ -120,11 +120,20 @@ public class RawMessageInfoDecoder {
           createObjectIterator(objectsValue);
 
       for (int i = 0; i < numberOfOneOfObjects; i++) {
+        ProtoObject oneOfObject =
+            createProtoObject(
+                objectIterator.computeNextIfAbsent(this::invalidObjectsFailure), context);
+        if (!oneOfObject.isProtoFieldObject()) {
+          throw new InvalidRawMessageInfoException();
+        }
+        ProtoObject oneOfCaseObject =
+            createProtoObject(
+                objectIterator.computeNextIfAbsent(this::invalidObjectsFailure), context);
+        if (!oneOfCaseObject.isProtoFieldObject()) {
+          throw new InvalidRawMessageInfoException();
+        }
         builder.addOneOfObject(
-            createProtoObject(
-                objectIterator.computeNextIfAbsent(this::invalidObjectsFailure), context),
-            createProtoObject(
-                objectIterator.computeNextIfAbsent(this::invalidObjectsFailure), context));
+            oneOfObject.asProtoFieldObject(), oneOfCaseObject.asProtoFieldObject());
       }
 
       for (int i = 0; i < numberOfHasBitsObjects; i++) {

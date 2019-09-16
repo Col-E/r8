@@ -10,7 +10,7 @@ import com.android.tools.r8.ir.analysis.proto.schema.ProtoFieldInfo;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoFieldType;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoMessageInfo;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoObject;
-import com.android.tools.r8.utils.Pair;
+import com.android.tools.r8.ir.analysis.proto.schema.ProtoOneOfObjectPair;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.ints.IntListIterator;
@@ -99,9 +99,8 @@ public class RawMessageInfoEncoder {
   List<ProtoObject> encodeObjects(ProtoMessageInfo protoMessageInfo) {
     List<ProtoObject> result = new ArrayList<>();
     if (protoMessageInfo.numberOfOneOfObjects() > 0) {
-      for (Pair<ProtoObject, ProtoObject> oneOfObject : protoMessageInfo.getOneOfObjects()) {
-        result.add(oneOfObject.getFirst());
-        result.add(oneOfObject.getSecond());
+      for (ProtoOneOfObjectPair oneOfObjectPair : protoMessageInfo.getOneOfObjects()) {
+        oneOfObjectPair.forEach(result::add);
       }
     }
     if (protoMessageInfo.numberOfHasBitsObjects() > 0) {
