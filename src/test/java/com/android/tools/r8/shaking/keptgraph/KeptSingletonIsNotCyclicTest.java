@@ -8,7 +8,6 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.TestBase;
@@ -97,9 +96,8 @@ public class KeptSingletonIsNotCyclicTest extends TestBase {
     QueryNode fooClInit = inspector.method(fooClInitRef).assertPresent().assertKeptBy(testInit);
     // Foo.<init> is kept by Foo.<clinit>
     QueryNode fooInit = inspector.method(fooInitRef).assertPresent().assertKeptBy(fooClInit);
-    // TODO(b/139273002): It should be the class constructor of Foo that mark Foo as instantiated.
-    inspector.clazz(fooClassRef).assertRenamed().assertKeptBy(fooClInit);
-    assertFalse(inspector.clazz(fooClassRef).assertRenamed().isKeptBy(fooInit));
+    // The type Foo is kept by the class constructor of Foo and the instance initializer.
+    inspector.clazz(fooClassRef).assertRenamed().assertKeptBy(fooClInit).assertKeptBy(fooInit);
   }
 
   public static final class FooStaticMethod {

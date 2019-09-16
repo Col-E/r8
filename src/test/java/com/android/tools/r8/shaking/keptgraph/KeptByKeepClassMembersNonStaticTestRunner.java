@@ -6,7 +6,6 @@ package com.android.tools.r8.shaking.keptgraph;
 import static com.android.tools.r8.references.Reference.classFromClass;
 import static com.android.tools.r8.references.Reference.methodFromMethod;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
@@ -118,7 +117,6 @@ public class KeptByKeepClassMembersNonStaticTestRunner extends TestBase {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     whyAreYouKeepingConsumer.printWhyAreYouKeeping(bazMethod, new PrintStream(baos));
 
-    // TODO(b/133652414): The type ends up being printed at the reason to keep baz, but should not.
-    assertNotEquals(EXPECTED_WHYAREYOUKEEPING, baos.toString());
+    assertEquals(EXPECTED_WHYAREYOUKEEPING, baos.toString());
   }
 }

@@ -18,6 +18,7 @@ import com.android.tools.r8.experimental.graphinfo.GraphEdgeInfo.EdgeKind;
 import com.android.tools.r8.experimental.graphinfo.GraphNode;
 import com.android.tools.r8.experimental.graphinfo.KeepRuleGraphNode;
 import com.android.tools.r8.experimental.graphinfo.MethodGraphNode;
+import com.android.tools.r8.graph.invokesuper.Consumer;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.position.TextPosition;
@@ -26,8 +27,10 @@ import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.shaking.CollectingGraphConsumer;
+import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableSet;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -37,6 +40,7 @@ import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
+import org.junit.Assert;
 
 public class GraphInspector {
 
@@ -139,7 +143,7 @@ public class GraphInspector {
 
     public abstract boolean isKeptByLibraryMethod(QueryNode node);
 
-    public abstract boolean isSatisfiedBy(QueryNode node);
+    public abstract boolean isSatisfiedBy(QueryNode... nodes);
 
     abstract String getNodeDescription();
 
@@ -230,13 +234,13 @@ public class GraphInspector {
       return this;
     }
 
-    public QueryNode assertSatisfiedBy(QueryNode node) {
-      assertTrue(
-          "Invalid call to assertSatisfiedBy with: " + node.getNodeDescription(), node.isPresent());
-      assertTrue(
-          errorMessage("satisfied by " + node.getNodeDescription(), "was not satisfied by it"),
-          isSatisfiedBy(node));
-      return this;
+    public QueryNode assertSatisfiedBy(QueryNode... nodes) {
+      if (isSatisfiedBy(nodes)) {
+        return this;
+      }
+      QueryNodeImpl impl = (QueryNodeImpl) this;
+      impl.runSatisfiedBy(Assert::fail, nodes);
+      throw new Unreachable();
     }
 
     public QueryNode assertKeptByLibraryMethod(QueryNode node) {
@@ -330,7 +334,7 @@ public class GraphInspector {
     }
 
     @Override
-    public boolean isSatisfiedBy(QueryNode node) {
+    public boolean isSatisfiedBy(QueryNode... nodes) {
       fail("Invalid call to isTriggeredBy on " + getNodeDescription());
       throw new Unreachable();
     }
@@ -451,15 +455,52 @@ public class GraphInspector {
     }
 
     @Override
-    public boolean isSatisfiedBy(QueryNode node) {
+    public boolean isSatisfiedBy(QueryNode... nodes) {
+      Box<Boolean> box = new Box<>(true);
+      runSatisfiedBy(ignore -> box.set(false), nodes);
+      return box.get();
+    }
+
+    private void runSatisfiedBy(Consumer<String> onError, QueryNode[] nodes) {
       assertTrue(
           "Invalid call to isTriggeredBy on non-keep rule node: " + graphNode,
           graphNode instanceof KeepRuleGraphNode);
-      if (!(node instanceof QueryNodeImpl)) {
-        return false;
+      Set<GraphNode> preconditions = ((KeepRuleGraphNode) graphNode).getPreconditions();
+      for (QueryNode node : nodes) {
+        if (!(node instanceof QueryNodeImpl)) {
+          onError.accept(
+              "Expected query of precondition to be present, but it was not. "
+                  + "Precondtion node: "
+                  + node.getNodeDescription());
+          return;
+        }
+        QueryNodeImpl impl = (QueryNodeImpl) node;
+        if (!filterSources((source, infos) -> impl.graphNode == source).findFirst().isPresent()) {
+          onError.accept(
+              "Expected to find dependency from precondtion to dependent rule, but could not. "
+                  + "Precondition node: "
+                  + node.getNodeDescription());
+          return;
+        }
+        if (!preconditions.contains(impl.graphNode)) {
+          onError.accept(
+              "Expected precondition set to contain node "
+                  + node.getNodeDescription()
+                  + ", but it did not.");
+          return;
+        }
       }
-      QueryNodeImpl impl = (QueryNodeImpl) node;
-      return filterSources((source, infos) -> impl.graphNode == source).findFirst().isPresent();
+      assert preconditions.size() >= nodes.length;
+      if (nodes.length != preconditions.size()) {
+        for (GraphNode precondition : preconditions) {
+          if (Arrays.stream(nodes)
+              .noneMatch(node -> ((QueryNodeImpl) node).graphNode == precondition)) {
+            onError.accept("Unexpected item in precondtions: " + precondition.toString());
+            return;
+          }
+        }
+        throw new Unreachable();
+      }
     }
 
     @Override

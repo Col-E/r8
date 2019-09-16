@@ -1893,8 +1893,7 @@ public class Enqueuer {
     if (instantiatedTypes.contains(clazz)
         || instantiatedInterfaceTypes.contains(clazz)
         || pinnedItems.contains(clazz.type)) {
-      markVirtualMethodAsLive(
-          clazz, encodedPossibleTarget, KeepReason.reachableFromLiveType(possibleTarget.holder));
+      markVirtualMethodAsLive(clazz, encodedPossibleTarget, reason);
     } else {
       Deque<DexType> worklist =
           new ArrayDeque<>(appInfo.allImmediateSubtypes(possibleTarget.holder));
@@ -1908,8 +1907,7 @@ public class Enqueuer {
         }
         // TODO(zerny): Why does not not confer with lambdas and pinned too?
         if (instantiatedTypes.contains(currentClass)) {
-          markVirtualMethodAsLive(
-              clazz, encodedPossibleTarget, KeepReason.reachableFromLiveType(current));
+          markVirtualMethodAsLive(clazz, encodedPossibleTarget, reason);
           break;
         }
         appInfo.allImmediateSubtypes(current).forEach(worklist::addLast);
@@ -3298,6 +3296,14 @@ public class Enqueuer {
         });
   }
 
+  // Due to the combined encoding of dependent rules, ala keepclassmembers and conditional keep
+  // rules the conversion to a keep-rule graph node can be one of three forms:
+  // 1. A non-dependent keep rule. In this case precondtion == null and the rule is not an if-rule.
+  // 2. A dependent keep rule. In this case precondtion != null and rule is not an if-rule.
+  // 3. A conditional keep rule. In this case rule is an if-rule, but precondition may or may not be
+  //    null. In the non-null case, the precondition is the type the consequent may depend on,
+  //    say T for the consequent "-keep T { f; }". It is *not* the precondition of the conditional
+  //    rule.
   KeepRuleGraphNode getKeepRuleGraphNode(DexDefinition precondition, ProguardKeepRuleBase rule) {
     if (rule instanceof ProguardKeepRule) {
       Set<GraphNode> preconditions =
@@ -3309,7 +3315,6 @@ public class Enqueuer {
     if (rule instanceof ProguardIfRule) {
       ProguardIfRule ifRule = (ProguardIfRule) rule;
       assert !ifRule.getPreconditions().isEmpty();
-      assert precondition == null;
       return ruleNodes.computeIfAbsent(
           ifRule,
           key -> {
