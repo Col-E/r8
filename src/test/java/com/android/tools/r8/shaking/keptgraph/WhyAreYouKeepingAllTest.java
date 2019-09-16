@@ -8,6 +8,8 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.StringUtils;
 import java.io.ByteArrayOutputStream;
@@ -15,11 +17,15 @@ import java.io.PrintStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Run compiling R8 with R8 using a match-all -whyareyoukeeping rule to check that it does not cause
  * compilation to fail.
  */
+@RunWith(Parameterized.class)
 public class WhyAreYouKeepingAllTest extends TestBase {
 
   private static final Path MAIN_KEEP = Paths.get("src/main/keep.txt");
@@ -28,6 +34,17 @@ public class WhyAreYouKeepingAllTest extends TestBase {
       "-whyareyoukeeping class ** { *; }",
       "-whyareyoukeeping @interface ** { *; }"
   );
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withNoneRuntime().build();
+  }
+
+  final TestParameters parameters;
+
+  public WhyAreYouKeepingAllTest(TestParameters parameters) {
+    this.parameters = parameters;
+  }
 
   @Test
   public void test() throws Throwable {
