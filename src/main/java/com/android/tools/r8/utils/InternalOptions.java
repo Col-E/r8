@@ -185,7 +185,8 @@ public class InternalOptions {
 
   // Optimization-related flags. These should conform to -dontoptimize and disableAllOptimizations.
   public boolean enableDynamicTypeOptimization = true;
-  public boolean enableFieldBitAccessAnalysis = false;
+  public boolean enableFieldBitAccessAnalysis =
+      System.getProperty("com.android.tools.r8.fieldBitAccessAnalysis") != null;
   public boolean enableHorizontalClassMerging = true;
   public boolean enableVerticalClassMerging = true;
   public boolean enableArgumentRemoval = true;
@@ -230,7 +231,8 @@ public class InternalOptions {
   // the actual catch handler allowed when inlining. Threshold found empirically by testing on
   // GMS Core.
   public int inliningControlFlowResolutionBlocksThreshold = 15;
-  public boolean enableStringSwitchConversion = false;
+  public boolean enableStringSwitchConversion =
+      System.getProperty("com.android.tools.r8.stringSwitchConversion") != null;
   public boolean enableEnumValueOptimization = true;
   public final OutlineOptions outline = new OutlineOptions();
   public boolean enableInitializedClassesInInstanceMethodsAnalysis = true;

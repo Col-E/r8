@@ -318,8 +318,10 @@ def run_with_options(options, args, extra_args=None):
     if 'allow-type-errors' in values:
       extra_args.append('-Dcom.android.tools.r8.allowTypeErrors=1')
     if 'proto-shrinking' in values:
+      extra_args.append('-Dcom.android.tools.r8.fieldBitAccessAnalysis=1')
       extra_args.append('-Dcom.android.tools.r8.generatedExtensionRegistryShrinking=1')
       extra_args.append('-Dcom.android.tools.r8.generatedMessageLiteShrinking=1')
+      extra_args.append('-Dcom.android.tools.r8.stringSwitchConversion=1')
 
   if not options.no_libraries and 'libraries' in values:
     for lib in values['libraries']:
