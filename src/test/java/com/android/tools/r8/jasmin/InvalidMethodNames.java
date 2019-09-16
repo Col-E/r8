@@ -5,7 +5,6 @@ package com.android.tools.r8.jasmin;
 
 
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -89,6 +88,6 @@ public class InvalidMethodNames extends NameTestBase {
         CLASS_NAME,
         RESULT,
         validForArt,
-        StringUtils.toASCIIString(name));
+        name);
   }
 }

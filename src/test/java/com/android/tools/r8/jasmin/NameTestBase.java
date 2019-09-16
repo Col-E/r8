@@ -9,6 +9,7 @@ import static org.junit.Assert.fail;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.InvalidPathException;
 import java.util.Arrays;
@@ -41,43 +42,46 @@ class NameTestBase extends JasminTestBase {
   static Collection<Object[]> getCommonNameTestData(boolean classNames) {
 
     boolean windowsSensitive = classNames && ToolHelper.isWindows();
+    boolean supportSpaces = ToolHelper.getMinApiLevelForDexVm().getLevel()
+        >= AndroidApiLevel.R.getLevel();
+    boolean java9 = ToolHelper.isJava9Runtime();
 
     return Arrays.asList(
         new Object[][] {
           {new TestString("azAZ09$_"), true, true},
-          {new TestString("_"), !ToolHelper.isJava9Runtime(), true},
-          {new TestString("a-b"), !ToolHelper.isJava9Runtime(), true},
-          {new TestString("\u00a0"), !ToolHelper.isJava9Runtime(), false},
-          {new TestString("\u00a1"), !ToolHelper.isJava9Runtime(), true},
-          {new TestString("\u1fff"), !ToolHelper.isJava9Runtime(), true},
-          {new TestString("\u2000"), !windowsSensitive && !ToolHelper.isJava9Runtime(), false},
-          {new TestString("\u200f"), !windowsSensitive && !ToolHelper.isJava9Runtime(), false},
-          {new TestString("\u2010"), !windowsSensitive && !ToolHelper.isJava9Runtime(), true},
-          {new TestString("\u2027"), !windowsSensitive && !ToolHelper.isJava9Runtime(), true},
-          {new TestString("\u2028"), !windowsSensitive && !ToolHelper.isJava9Runtime(), false},
-          {new TestString("\u202f"), !windowsSensitive && !ToolHelper.isJava9Runtime(), false},
-          {new TestString("\u2030"), !windowsSensitive && !ToolHelper.isJava9Runtime(), true},
-          {new TestString("\ud7ff"), !windowsSensitive && !ToolHelper.isJava9Runtime(), true},
-          {new TestString("\ue000"), !windowsSensitive && !ToolHelper.isJava9Runtime(), true},
-          {new TestString("\uffef"), !windowsSensitive && !ToolHelper.isJava9Runtime(), true},
-          {new TestString("\ufff0"), !windowsSensitive && !ToolHelper.isJava9Runtime(), false},
-          {new TestString("\uffff"), !windowsSensitive && !ToolHelper.isJava9Runtime(), false},
+          {new TestString("_"), !java9, true},
+          {new TestString("a-b"), !java9, true},
+          {new TestString("\u00a0"), !java9, supportSpaces},
+          {new TestString("\u00a1"), !java9, true},
+          {new TestString("\u1fff"), !java9, true},
+          {new TestString("\u2000"), !windowsSensitive && !java9, supportSpaces},
+          {new TestString("\u200f"), !windowsSensitive && !java9, false},
+          {new TestString("\u2010"), !windowsSensitive && !java9, true},
+          {new TestString("\u2027"), !windowsSensitive && !java9, true},
+          {new TestString("\u2028"), !windowsSensitive && !java9, false},
+          {new TestString("\u202f"), !windowsSensitive && !java9, supportSpaces},
+          {new TestString("\u2030"), !windowsSensitive && !java9, true},
+          {new TestString("\ud7ff"), !windowsSensitive && !java9, true},
+          {new TestString("\ue000"), !windowsSensitive && !java9, true},
+          {new TestString("\uffef"), !windowsSensitive && !java9, true},
+          {new TestString("\ufff0"), !windowsSensitive && !java9, false},
+          {new TestString("\uffff"), !windowsSensitive && !java9, false},
 
           // Standalone high and low surrogates.
-          {new TestString("\ud800"), !classNames && !ToolHelper.isJava9Runtime(), false},
-          {new TestString("\udbff"), !classNames && !ToolHelper.isJava9Runtime(), false},
-          {new TestString("\udc00"), !classNames && !ToolHelper.isJava9Runtime(), false},
-          {new TestString("\udfff"), !classNames && !ToolHelper.isJava9Runtime(), false},
+          {new TestString("\ud800"), !classNames && !java9, false},
+          {new TestString("\udbff"), !classNames && !java9, false},
+          {new TestString("\udc00"), !classNames && !java9, false},
+          {new TestString("\udfff"), !classNames && !java9, false},
 
           // Single and double code points above 0x10000.
           {new TestString("\ud800\udc00"), true, true},
           {new TestString("\ud800\udcfa"), true, true},
-          {new TestString("\ud800\udcfb"), !windowsSensitive && !ToolHelper.isJava9Runtime(), true},
-          {new TestString("\udbff\udfff"), !windowsSensitive && !ToolHelper.isJava9Runtime(), true},
+          {new TestString("\ud800\udcfb"), !windowsSensitive && !java9, true},
+          {new TestString("\udbff\udfff"), !windowsSensitive && !java9, true},
           {new TestString("\ud800\udc00\ud800\udcfa"), true, true},
           {
             new TestString("\ud800\udc00\udbff\udfff"),
-            !windowsSensitive && !ToolHelper.isJava9Runtime(),
+            !windowsSensitive && !java9,
             true
           }
         });

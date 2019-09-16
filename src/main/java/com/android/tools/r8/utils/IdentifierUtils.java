@@ -14,8 +14,24 @@ public class IdentifierUtils {
     return isSimpleNameChar(cp);
   }
 
+  public static boolean isRelaxedDexIdentifierPart(int cp) {
+    return isSimpleNameChar(cp)
+      || isUnicodeSpace(cp);
+  }
+
   public static boolean isQuestionMark(int cp) {
     return cp == '?';
+  }
+
+  public static boolean isUnicodeSpace(int cp) {
+    // Unicode 'Zs' category
+    return cp == ' '
+        || cp == 0x00a0
+        || cp == 0x1680
+        || (0x2000 <= cp && cp <= 0x200a)
+        || cp == 0x202f
+        || cp == 0x205f
+        || cp == 0x3000;
   }
 
   private static boolean isSimpleNameChar(int cp) {

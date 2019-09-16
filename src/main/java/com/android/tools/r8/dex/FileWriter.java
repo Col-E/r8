@@ -157,6 +157,9 @@ public class FileWriter {
     // Check restrictions on interface methods.
     checkInterfaceMethods();
 
+    // Check restriction on the names of fields, methods and classes
+    assert verifyNames();
+
     Layout layout = Layout.from(mapping);
     layout.setCodesOffset(layout.dataSectionOffset);
 
@@ -289,6 +292,27 @@ public class FileWriter {
       throw new CompilationError("Interface methods must not be "
           + "protected or package private: " + method.method.toSourceString());
     }
+  }
+
+  private boolean verifyNames() {
+    if (options.itemFactory.getSkipNameValidationForTesting()) {
+      return true;
+    }
+
+    int apiLevel = options.minApiLevel;
+    for (DexField field : mapping.getFields()) {
+      assert field.name.isValidSimpleName(apiLevel);
+    }
+    for (DexMethod method : mapping.getMethods()) {
+      assert method.name.isValidSimpleName(apiLevel);
+    }
+    for (DexType type : mapping.getTypes()) {
+      if (type.isClassType()) {
+        assert DexString.isValidSimpleName(apiLevel, type.getName());
+      }
+    }
+
+    return true;
   }
 
   private List<DexCode> sortDexCodesByClassName() {

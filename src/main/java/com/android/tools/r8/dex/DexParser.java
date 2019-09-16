@@ -230,11 +230,13 @@ public class DexParser {
       case DexValue.VALUE_FIELD: {
         int size = valueArg + 1;
         DexField value = indexedItems.getField((int) parseUnsigned(dexReader, size));
+        checkName(value.name);
         return new DexValue.DexValueField(value);
       }
       case DexValue.VALUE_METHOD: {
         int size = valueArg + 1;
         DexMethod value = indexedItems.getMethod((int) parseUnsigned(dexReader, size));
+        checkName(value.name);
         return new DexValue.DexValueMethod(value);
       }
       case DexValue.VALUE_ENUM: {
@@ -270,6 +272,15 @@ public class DexParser {
       }
       default:
         throw new IndexOutOfBoundsException();
+    }
+  }
+
+  private void checkName(DexString name) {
+    if (!options.itemFactory.getSkipNameValidationForTesting()
+        && !name.isValidSimpleName(options.minApiLevel)) {
+      throw new CompilationError("Space characters in SimpleName '"
+        + name.toASCIIString()
+        + "' are not allowed prior to DEX version 040");
     }
   }
 

@@ -6,6 +6,7 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.IdentifierUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ThrowingCharIterator;
@@ -296,7 +297,7 @@ public class DexString extends IndexedDexItem implements PresortedComparable<Dex
     int cp;
     for (int i = 1; i < string.length() - 1; i += Character.charCount(cp)) {
       cp = string.codePointAt(i);
-      if (cp != '/' && !IdentifierUtils.isDexIdentifierPart(cp)) {
+      if (cp != '/' && !IdentifierUtils.isRelaxedDexIdentifierPart(cp)) {
         return false;
       }
     }
@@ -318,7 +319,7 @@ public class DexString extends IndexedDexItem implements PresortedComparable<Dex
     int cp;
     for (int i = 0; i < string.length(); i += Character.charCount(cp)) {
       cp = string.codePointAt(i);
-      if (!IdentifierUtils.isDexIdentifierPart(cp)) {
+      if (!IdentifierUtils.isRelaxedDexIdentifierPart(cp)) {
         return false;
       }
     }
@@ -342,7 +343,7 @@ public class DexString extends IndexedDexItem implements PresortedComparable<Dex
     int cp;
     for (int i = start; i < end; i += Character.charCount(cp)) {
       cp = string.codePointAt(i);
-      if (!IdentifierUtils.isDexIdentifierPart(cp)) {
+      if (!IdentifierUtils.isRelaxedDexIdentifierPart(cp)) {
         return false;
       }
     }
@@ -371,6 +372,33 @@ public class DexString extends IndexedDexItem implements PresortedComparable<Dex
     } catch (UTFDataFormatException e) {
       return false;
     }
+  }
+
+  public static boolean isValidSimpleName(int apiLevel, String string) {
+    // space characters are not allowed prior to Android R
+    if (apiLevel < AndroidApiLevel.R.getLevel()) {
+      int cp;
+      for (int i = 0; i < string.length(); ) {
+        cp = string.codePointAt(i);
+        if (IdentifierUtils.isUnicodeSpace(cp)) {
+          return false;
+        }
+        i += Character.charCount(cp);
+      }
+    }
+    return true;
+  }
+
+  public boolean isValidSimpleName(int apiLevel) {
+    // space characters are not allowed prior to Android R
+    if (apiLevel < AndroidApiLevel.R.getLevel()) {
+      try {
+        return isValidSimpleName(apiLevel, decode());
+      } catch (UTFDataFormatException e) {
+        return false;
+      }
+    }
+    return true;
   }
 
   public String dump() {

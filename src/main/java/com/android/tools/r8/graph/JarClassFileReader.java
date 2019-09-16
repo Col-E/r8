@@ -329,6 +329,7 @@ public class JarClassFileReader {
                 "must extend class java.lang.Object. Found: " + Objects.toString(superName)),
             origin);
       }
+      checkName(name);
       assert superName != null || name.equals(Constants.JAVA_LANG_OBJECT_NAME);
       superType = superName == null ? null : application.getTypeFromName(superName);
       this.interfaces = application.getTypeListFromNames(interfaces);
@@ -358,6 +359,7 @@ public class JarClassFileReader {
           return null;
         }
       }
+      checkName(name);
       return new CreateFieldVisitor(
           this, access, name, desc, signature, classKind == ClassKind.LIBRARY ? null : value);
     }
@@ -371,6 +373,7 @@ public class JarClassFileReader {
           return null;
         }
       }
+      checkName(name);
       return new CreateMethodVisitor(access, name, desc, signature, exceptions, this);
     }
 
@@ -458,6 +461,14 @@ public class JarClassFileReader {
         }
       }
       classConsumer.accept(clazz);
+    }
+
+    private void checkName(String name) {
+      if (!application.getFactory().getSkipNameValidationForTesting()
+          && !DexString.isValidSimpleName(application.options.minApiLevel, name)) {
+        throw new CompilationError("Space characters in SimpleName '"
+          + name + "' are not allowed prior to DEX version 040");
+      }
     }
 
     // If anything is marked reachability sensitive, all methods need to be parsed including
