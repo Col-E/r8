@@ -30,6 +30,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.junit.Assume;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -62,6 +63,7 @@ public class FullNestOnProgramPathTest extends TestBase {
   // All Nests tests compile all the nests into dex,
   // and run the main class from this dex
   @Test
+  @Ignore("b/141075451")
   public void testAllNestsJavaAndD8() throws Exception {
     for (String nestID : NEST_IDS) {
       if (parameters.isCfRuntime()) {
@@ -80,6 +82,7 @@ public class FullNestOnProgramPathTest extends TestBase {
   }
 
   @Test
+  @Ignore("b/141075451")
   public void testAllNestsR8() throws Exception {
     for (String nestID : NEST_IDS) {
       R8TestRunResult result =
