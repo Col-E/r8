@@ -58,7 +58,7 @@ public class StringOptimizer {
     this.appView = appView;
     this.factory = appView.dexItemFactory();
     this.throwingInfo = ThrowingInfo.defaultForConstString(appView.options());
-    if (Log.ENABLED) {
+    if (Log.ENABLED && Log.isLoggingEnabledFor(StringOptimizer.class)) {
       numberOfComputedNames = new Object2IntArrayMap<>();
       numberOfDeferredComputationOfNames = new Object2IntArrayMap<>();
       histogramOfLengthOfNames = new Object2IntArrayMap<>();
@@ -77,30 +77,35 @@ public class StringOptimizer {
         "# trivial operations on const-string: %s", numberOfSimplifiedOperations);
     Log.info(getClass(),
         "# trivial conversions from/to const-string: %s", numberOfSimplifiedConversions);
-    assert numberOfComputedNames != null;
-    Log.info(getClass(), "------ # of get*Name() computation ------");
-    numberOfComputedNames.forEach((kind, count) -> {
+    if (numberOfComputedNames != null) {
+      Log.info(getClass(), "------ # of get*Name() computation ------");
+      numberOfComputedNames.forEach((kind, count) -> {
+        Log.info(getClass(),
+            "%s: %s (%s)", kind, StringUtils.times("*", Math.min(count, 53)), count);
+      });
+    }
+    if (numberOfDeferredComputationOfNames != null) {
+      Log.info(getClass(), "------ # of deferred get*Name() computation ------");
+      numberOfDeferredComputationOfNames.forEach((kind, count) -> {
+        Log.info(getClass(),
+            "%s: %s (%s)", kind, StringUtils.times("*", Math.min(count, 53)), count);
+      });
+    }
+    if (histogramOfLengthOfNames != null) {
+      Log.info(getClass(), "------ histogram of get*Name() result lengths ------");
+      histogramOfLengthOfNames.forEach((length, count) -> {
+        Log.info(getClass(),
+            "%s: %s (%s)", length, StringUtils.times("*", Math.min(count, 53)), count);
+      });
+    }
+    if (histogramOfLengthOfDeferredNames != null) {
       Log.info(getClass(),
-          "%s: %s (%s)", kind, StringUtils.times("*", Math.min(count, 53)), count);
-    });
-    assert numberOfDeferredComputationOfNames != null;
-    Log.info(getClass(), "------ # of deferred get*Name() computation ------");
-    numberOfDeferredComputationOfNames.forEach((kind, count) -> {
-      Log.info(getClass(),
-          "%s: %s (%s)", kind, StringUtils.times("*", Math.min(count, 53)), count);
-    });
-    assert histogramOfLengthOfNames != null;
-    Log.info(getClass(), "------ histogram of get*Name() result lengths ------");
-    histogramOfLengthOfNames.forEach((length, count) -> {
-      Log.info(getClass(),
-          "%s: %s (%s)", length, StringUtils.times("*", Math.min(count, 53)), count);
-    });
-    assert histogramOfLengthOfDeferredNames != null;
-    Log.info(getClass(), "------ histogram of original type length for deferred get*Name() ------");
-    histogramOfLengthOfDeferredNames.forEach((length, count) -> {
-      Log.info(getClass(),
-          "%s: %s (%s)", length, StringUtils.times("*", Math.min(count, 53)), count);
-    });
+          "------ histogram of original type length for deferred get*Name() ------");
+      histogramOfLengthOfDeferredNames.forEach((length, count) -> {
+        Log.info(getClass(),
+            "%s: %s (%s)", length, StringUtils.times("*", Math.min(count, 53)), count);
+      });
+    }
   }
 
   // int String#hashCode()
@@ -427,6 +432,7 @@ public class StringOptimizer {
 
   private void logNameComputation(ClassNameMapping kind) {
     if (Log.ENABLED && Log.isLoggingEnabledFor(StringOptimizer.class)) {
+      assert numberOfComputedNames != null;
       synchronized (numberOfComputedNames) {
         int count = numberOfComputedNames.getOrDefault(kind, 0);
         numberOfComputedNames.put(kind, count + 1);
@@ -437,6 +443,7 @@ public class StringOptimizer {
   private void logHistogramOfNames(DexString name) {
     if (Log.ENABLED && Log.isLoggingEnabledFor(StringOptimizer.class)) {
       Integer length = name.size;
+      assert histogramOfLengthOfNames != null;
       synchronized (histogramOfLengthOfNames) {
         int count = histogramOfLengthOfNames.getOrDefault(length, 0);
         histogramOfLengthOfNames.put(length, count + 1);
@@ -446,6 +453,7 @@ public class StringOptimizer {
 
   private void logDeferredNameComputation(ClassNameMapping kind) {
     if (Log.ENABLED && Log.isLoggingEnabledFor(StringOptimizer.class)) {
+      assert numberOfDeferredComputationOfNames != null;
       synchronized (numberOfDeferredComputationOfNames) {
         int count = numberOfDeferredComputationOfNames.getOrDefault(kind, 0);
         numberOfDeferredComputationOfNames.put(kind, count + 1);
@@ -458,6 +466,7 @@ public class StringOptimizer {
       assert deferred.getItem().isDexType();
       DexType original = deferred.getItem().asDexType();
       Integer length = original.descriptor.size;
+      assert histogramOfLengthOfDeferredNames != null;
       synchronized (histogramOfLengthOfDeferredNames) {
         int count = histogramOfLengthOfDeferredNames.getOrDefault(length, 0);
         histogramOfLengthOfDeferredNames.put(length, count + 1);

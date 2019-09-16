@@ -103,7 +103,7 @@ public class StringBuilderOptimizer {
     this.factory = appView.dexItemFactory();
     this.throwingInfo = ThrowingInfo.defaultForConstString(appView.options());
     this.optimizationConfiguration = new DefaultStringBuilderOptimizationConfiguration();
-    if (Log.ENABLED) {
+    if (Log.ENABLED && Log.isLoggingEnabledFor(StringBuilderOptimizer.class)) {
       histogramOfLengthOfAppendChains = new Object2IntArrayMap<>();
       histogramOfLengthOfEndResult = new Object2IntArrayMap<>();
       histogramOfLengthOfPartialAppendChains = new Object2IntArrayMap<>();
@@ -136,30 +136,35 @@ public class StringBuilderOptimizer {
         "# builders w/ non-deterministic arg: %s", numberOfBuildersWithNonDeterministicArg);
     Log.info(getClass(), "# dead builders : %s", numberOfDeadBuilders);
     Log.info(getClass(), "# builders simplified: %s", numberOfBuildersSimplified);
-    assert histogramOfLengthOfAppendChains != null;
-    Log.info(getClass(), "------ histogram of StringBuilder append chain lengths ------");
-    histogramOfLengthOfAppendChains.forEach((chainSize, count) -> {
+    if (histogramOfLengthOfAppendChains != null) {
+      Log.info(getClass(), "------ histogram of StringBuilder append chain lengths ------");
+      histogramOfLengthOfAppendChains.forEach((chainSize, count) -> {
+        Log.info(getClass(),
+            "%s: %s (%s)", chainSize, StringUtils.times("*", Math.min(count, 53)), count);
+      });
+    }
+    if (histogramOfLengthOfEndResult != null) {
+      Log.info(getClass(), "------ histogram of StringBuilder result lengths ------");
+      histogramOfLengthOfEndResult.forEach((length, count) -> {
+        Log.info(getClass(),
+            "%s: %s (%s)", length, StringUtils.times("*", Math.min(count, 53)), count);
+      });
+    }
+    if (histogramOfLengthOfPartialAppendChains != null) {
       Log.info(getClass(),
-          "%s: %s (%s)", chainSize, StringUtils.times("*", Math.min(count, 53)), count);
-    });
-    assert histogramOfLengthOfEndResult != null;
-    Log.info(getClass(), "------ histogram of StringBuilder result lengths ------");
-    histogramOfLengthOfEndResult.forEach((length, count) -> {
-      Log.info(getClass(),
-          "%s: %s (%s)", length, StringUtils.times("*", Math.min(count, 53)), count);
-    });
-    assert histogramOfLengthOfPartialAppendChains != null;
-    Log.info(getClass(), "------ histogram of StringBuilder append chain lengths (partial) ------");
-    histogramOfLengthOfPartialAppendChains.forEach((chainSize, count) -> {
-      Log.info(getClass(),
-          "%s: %s (%s)", chainSize, StringUtils.times("*", Math.min(count, 53)), count);
-    });
-    assert histogramOfLengthOfPartialResult != null;
-    Log.info(getClass(), "------ histogram of StringBuilder partial result lengths ------");
-    histogramOfLengthOfPartialResult.forEach((length, count) -> {
-      Log.info(getClass(),
-          "%s: %s (%s)", length, StringUtils.times("*", Math.min(count, 53)), count);
-    });
+          "------ histogram of StringBuilder append chain lengths (partial) ------");
+      histogramOfLengthOfPartialAppendChains.forEach((chainSize, count) -> {
+        Log.info(getClass(),
+            "%s: %s (%s)", chainSize, StringUtils.times("*", Math.min(count, 53)), count);
+      });
+    }
+    if (histogramOfLengthOfPartialResult != null) {
+      Log.info(getClass(), "------ histogram of StringBuilder partial result lengths ------");
+      histogramOfLengthOfPartialResult.forEach((length, count) -> {
+        Log.info(getClass(),
+            "%s: %s (%s)", length, StringUtils.times("*", Math.min(count, 53)), count);
+      });
+    }
   }
 
   public void computeTrivialStringConcatenation(IRCode code) {
@@ -524,6 +529,9 @@ public class StringBuilderOptimizer {
     }
 
     private void logHistogramOfChains(List<String> contents, boolean isPartial) {
+      if (!Log.ENABLED || !Log.isLoggingEnabledFor(StringOptimizer.class)) {
+        return;
+      }
       if (contents == null || contents.isEmpty()) {
         return;
       }
@@ -531,19 +539,23 @@ public class StringBuilderOptimizer {
       Integer size = Integer.valueOf(contents.size());
       Integer length = Integer.valueOf(result.length());
       if (isPartial) {
+        assert histogramOfLengthOfPartialAppendChains != null;
         synchronized (histogramOfLengthOfPartialAppendChains) {
           int count = histogramOfLengthOfPartialAppendChains.getOrDefault(size, 0);
           histogramOfLengthOfPartialAppendChains.put(size, count + 1);
         }
+        assert histogramOfLengthOfPartialResult != null;
         synchronized (histogramOfLengthOfPartialResult) {
           int count = histogramOfLengthOfPartialResult.getOrDefault(length, 0);
           histogramOfLengthOfPartialResult.put(length, count + 1);
         }
       } else {
+        assert histogramOfLengthOfAppendChains != null;
         synchronized (histogramOfLengthOfAppendChains) {
           int count = histogramOfLengthOfAppendChains.getOrDefault(size, 0);
           histogramOfLengthOfAppendChains.put(size, count + 1);
         }
+        assert histogramOfLengthOfEndResult != null;
         synchronized (histogramOfLengthOfEndResult) {
           int count = histogramOfLengthOfEndResult.getOrDefault(length, 0);
           histogramOfLengthOfEndResult.put(length, count + 1);
