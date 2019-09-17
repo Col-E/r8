@@ -19,7 +19,7 @@ public final class BooleanBackportTest extends AbstractBackportTest {
 
   public BooleanBackportTest(TestParameters parameters) {
     super(parameters, Boolean.class, Main.class);
-    registerTarget(AndroidApiLevel.N, 18);
+    registerTarget(AndroidApiLevel.N, 20);
     registerTarget(AndroidApiLevel.K, 4);
   }
 
@@ -49,6 +49,11 @@ public final class BooleanBackportTest extends AbstractBackportTest {
       assertFalse(Boolean.logicalAnd(true, false));
       assertFalse(Boolean.logicalAnd(false, true));
       assertFalse(Boolean.logicalAnd(false, false));
+
+      // Ensure optimization does not short-circuit path to second boolean.
+      sideEffectCount = 0;
+      assertFalse(Boolean.logicalAnd(sideEffectFalse(), sideEffectFalse()));
+      assertEquals(2, sideEffectCount);
     }
 
     private static void testLogicalOr() {
@@ -56,6 +61,11 @@ public final class BooleanBackportTest extends AbstractBackportTest {
       assertTrue(Boolean.logicalOr(true, false));
       assertTrue(Boolean.logicalOr(false, true));
       assertFalse(Boolean.logicalOr(false, false));
+
+      // Ensure optimization does not short-circuit path to second boolean.
+      sideEffectCount = 0;
+      assertTrue(Boolean.logicalOr(sideEffectTrue(), sideEffectTrue()));
+      assertEquals(2, sideEffectCount);
     }
 
     private static void testLogicalXor() {
@@ -63,6 +73,16 @@ public final class BooleanBackportTest extends AbstractBackportTest {
       assertTrue(Boolean.logicalXor(true, false));
       assertTrue(Boolean.logicalXor(false, true));
       assertFalse(Boolean.logicalXor(false, false));
+    }
+
+    private static int sideEffectCount;
+    private static boolean sideEffectTrue() {
+      sideEffectCount++;
+      return true;
+    }
+    private static boolean sideEffectFalse() {
+      sideEffectCount++;
+      return false;
     }
   }
 }

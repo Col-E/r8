@@ -6,25 +6,11 @@ package com.android.tools.r8.ir.desugar.backports;
 
 public final class BooleanMethods {
 
-  // Code templates, the CfCode objects are extracted with GenerateBackportMethods.
-
   public static int hashCode(boolean b) {
     return b ? 1231 : 1237;
   }
 
   public static int compare(boolean a, boolean b) {
     return a == b ? 0 : a ? 1 : -1;
-  }
-
-  public static boolean logicalAnd(boolean a, boolean b) {
-    return a && b;
-  }
-
-  public static boolean logicalOr(boolean a, boolean b) {
-    return a || b;
-  }
-
-  public static boolean logicalXor(boolean a, boolean b) {
-    return a ^ b;
   }
 }

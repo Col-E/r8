@@ -30,6 +30,7 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.backports.BackportedMethods;
+import com.android.tools.r8.ir.desugar.backports.BooleanMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.ListMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.LongMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.NumericOperations;
@@ -519,19 +520,19 @@ public final class BackportedMethodRewriter {
       name = factory.createString("logicalAnd");
       proto = factory.createProto(factory.booleanType, factory.booleanType, factory.booleanType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, BackportedMethods::BooleanMethods_logicalAnd));
+      addProvider(new InvokeRewriter(method, BooleanMethodRewrites::rewriteLogicalAnd));
 
       // boolean Boolean.logicalOr(boolean a, boolean b)
       name = factory.createString("logicalOr");
       proto = factory.createProto(factory.booleanType, factory.booleanType, factory.booleanType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, BackportedMethods::BooleanMethods_logicalOr));
+      addProvider(new InvokeRewriter(method, BooleanMethodRewrites::rewriteLogicalOr));
 
       // boolean Boolean.logicalXor(boolean a, boolean b)
       name = factory.createString("logicalXor");
       proto = factory.createProto(factory.booleanType, factory.booleanType, factory.booleanType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, BackportedMethods::BooleanMethods_logicalXor));
+      addProvider(new InvokeRewriter(method, BooleanMethodRewrites::rewriteLogicalXor));
 
       // Long
       type = factory.boxedLongType;
