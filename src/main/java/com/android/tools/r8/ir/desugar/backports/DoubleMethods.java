@@ -26,10 +26,6 @@ public final class DoubleMethods extends TemplateMethodCode {
     return Math.min(a, b);
   }
 
-  public static double sum(double a, double b) {
-    return a + b;
-  }
-
   public static boolean isFinite(double d) {
     return !Double.isInfinite(d) && !Double.isNaN(d);
   }

@@ -38,6 +38,7 @@ import com.android.tools.r8.ir.desugar.backports.IntegerMethods;
 import com.android.tools.r8.ir.desugar.backports.ListMethods;
 import com.android.tools.r8.ir.desugar.backports.LongMethods;
 import com.android.tools.r8.ir.desugar.backports.MathMethods;
+import com.android.tools.r8.ir.desugar.backports.NumericOperations;
 import com.android.tools.r8.ir.desugar.backports.ObjectsMethods;
 import com.android.tools.r8.ir.desugar.backports.OptionalMethods;
 import com.android.tools.r8.ir.desugar.backports.ShortMethods;
@@ -438,7 +439,7 @@ public final class BackportedMethodRewriter {
       name = factory.createString("sum");
       proto = factory.createProto(factory.intType, factory.intType, factory.intType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, IntegerMethods::new));
+      addProvider(new InvokeRewriter(method, NumericOperations::rewriteToAddInstruction));
 
       // Double
       type = factory.boxedDoubleType;
@@ -465,7 +466,7 @@ public final class BackportedMethodRewriter {
       name = factory.createString("sum");
       proto = factory.createProto(factory.doubleType, factory.doubleType, factory.doubleType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, DoubleMethods::new));
+      addProvider(new InvokeRewriter(method, NumericOperations::rewriteToAddInstruction));
 
       // boolean Double.isFinite(double a)
       name = factory.createString("isFinite");
@@ -498,7 +499,7 @@ public final class BackportedMethodRewriter {
       name = factory.createString("sum");
       proto = factory.createProto(factory.floatType, factory.floatType, factory.floatType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, FloatMethods::new));
+      addProvider(new InvokeRewriter(method, NumericOperations::rewriteToAddInstruction));
 
       // boolean Float.isFinite(float a)
       name = factory.createString("isFinite");
@@ -558,7 +559,7 @@ public final class BackportedMethodRewriter {
       name = factory.createString("sum");
       proto = factory.createProto(factory.longType, factory.longType, factory.longType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, LongMethods::new));
+      addProvider(new InvokeRewriter(method, NumericOperations::rewriteToAddInstruction));
 
       // Character
       type = factory.boxedCharType;

@@ -33,10 +33,6 @@ public final class LongMethods extends TemplateMethodCode {
     return Math.min(a, b);
   }
 
-  public static long sum(long a, long b) {
-    return a + b;
-  }
-
   public static long divideUnsigned(long dividend, long divisor) {
     // This implementation is adapted from Guava's UnsignedLongs.java and Longs.java.
 

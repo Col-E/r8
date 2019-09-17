@@ -25,10 +25,6 @@ public final class FloatMethods extends TemplateMethodCode {
     return Math.min(a, b);
   }
 
-  public static float sum(float a, float b) {
-    return a + b;
-  }
-
   public static boolean isFinite(float f) {
     return !Float.isInfinite(f) && !Float.isNaN(f);
   }

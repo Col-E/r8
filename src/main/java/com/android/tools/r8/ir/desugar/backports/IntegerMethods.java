@@ -29,10 +29,6 @@ public final class IntegerMethods extends TemplateMethodCode {
     return Math.min(a, b);
   }
 
-  public static int sum(int a, int b) {
-    return a + b;
-  }
-
   public static int divideUnsigned(int dividend, int divisor) {
     long dividendLong = dividend & 0xffffffffL;
     long divisorLong = divisor & 0xffffffffL;
