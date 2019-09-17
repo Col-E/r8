@@ -17,7 +17,6 @@ import com.android.tools.r8.retrace.Retrace.RetraceAbortException;
 import com.android.tools.r8.retrace.stacktraces.ActualBotStackTraceBase;
 import com.android.tools.r8.retrace.stacktraces.ActualIdentityStackTrace;
 import com.android.tools.r8.retrace.stacktraces.ActualRetraceBotStackTrace;
-import com.android.tools.r8.retrace.stacktraces.AmbiguousStackTrace;
 import com.android.tools.r8.retrace.stacktraces.FileNameExtensionStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InvalidStackTrace;
 import com.android.tools.r8.retrace.stacktraces.NullStackTrace;
@@ -106,11 +105,6 @@ public class RetraceTests extends TestBase {
     for (ActualBotStackTraceBase stackTrace : stackTraces) {
       runRetraceTest(stackTrace).assertWarningsCount(stackTrace.expectedWarnings());
     }
-  }
-
-  @Test
-  public void testAmbiguousStackTrace() {
-    runRetraceTest(new AmbiguousStackTrace());
   }
 
   private TestDiagnosticMessagesImpl runRetraceTest(StackTraceForTest stackTraceForTest) {
