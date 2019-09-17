@@ -283,11 +283,7 @@ public class TreePruner {
         // an invalid invoke. They will not actually be called at runtime but we have to keep them
         // as non-abstract (see above) to produce the same failure mode.
         reachableMethods.add(
-            allowAbstract
-                ? method.toAbstractMethod()
-                : (options.isGeneratingClassFiles()
-                    ? method.toEmptyThrowingMethodCf()
-                    : method.toEmptyThrowingMethodDex()));
+            allowAbstract ? method.toAbstractMethod() : method.toEmptyThrowingMethod(options));
       } else {
         if (Log.ENABLED) {
           Log.debug(getClass(), "Removing method %s.", method.method);
