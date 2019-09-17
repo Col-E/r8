@@ -1148,7 +1148,8 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     return callSiteOptimizationInfo;
   }
 
-  public synchronized MutableCallSiteOptimizationInfo getMutableCallSiteOptimizationInfo() {
+  public synchronized MutableCallSiteOptimizationInfo getMutableCallSiteOptimizationInfo(
+      AppView<?> appView) {
     checkIfObsolete();
     if (callSiteOptimizationInfo.isDefaultCallSiteOptimizationInfo()) {
       MutableCallSiteOptimizationInfo mutableOptimizationInfo =

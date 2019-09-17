@@ -3,17 +3,18 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize.info;
 
+import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
+import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
+
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class MutableCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
@@ -22,21 +23,19 @@ public class MutableCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
   // That is, this information takes into account the receiver as well.
   private final int size;
   // Mappings from the calling context to argument collection. Note that, even in the same context,
-  // the corresponding method can be invoked multiple times with different arguments, hence *set* of
+  // the corresponding method can be invoked multiple times with different arguments, hence join of
   // argument collections.
-  private final Map<DexEncodedMethod, Set<ArgumentCollection>> callSiteInfos =
-      new ConcurrentHashMap<>();
+  private final Map<DexEncodedMethod, ArgumentCollection> callSiteInfos = new ConcurrentHashMap<>();
   private ArgumentCollection cachedRepresentative = null;
 
-  static class ArgumentCollection {
+  private static class ArgumentCollection {
 
-    // TODO(b/139246447): extend it to TypeLattice as well as constants/ranges.
-    Nullability[] nullabilities;
+    TypeLatticeElement[] dynamicTypes;
 
     private static final ArgumentCollection BOTTOM = new ArgumentCollection() {
       @Override
-      Nullability getNullability(int index) {
-        return Nullability.maybeNull();
+      TypeLatticeElement getDynamicType(int index) {
+        return TypeLatticeElement.BOTTOM;
       }
 
       @Override
@@ -53,42 +52,36 @@ public class MutableCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
     private ArgumentCollection() {}
 
     ArgumentCollection(int size) {
-      this.nullabilities = new Nullability[size];
-      for (int i = 0; i < size; i++) {
-        this.nullabilities[i] = Nullability.maybeNull();
-      }
+      this.dynamicTypes = new TypeLatticeElement[size];
+      Arrays.fill(this.dynamicTypes, TypeLatticeElement.BOTTOM);
     }
 
-    Nullability getNullability(int index) {
-      assert nullabilities != null;
-      assert 0 <= index && index < nullabilities.length;
-      return nullabilities[index];
+    TypeLatticeElement getDynamicType(int index) {
+      assert dynamicTypes != null;
+      assert 0 <= index && index < dynamicTypes.length;
+      return dynamicTypes[index];
     }
 
     ArgumentCollection copy() {
       ArgumentCollection copy = new ArgumentCollection();
-      copy.nullabilities = new Nullability[this.nullabilities.length];
-      System.arraycopy(this.nullabilities, 0, copy.nullabilities, 0, this.nullabilities.length);
+      copy.dynamicTypes = new TypeLatticeElement[this.dynamicTypes.length];
+      System.arraycopy(this.dynamicTypes, 0, copy.dynamicTypes, 0, this.dynamicTypes.length);
       return copy;
     }
 
-    ArgumentCollection join(ArgumentCollection other) {
+    ArgumentCollection join(ArgumentCollection other, AppView<?> appView) {
       if (other == BOTTOM) {
         return this;
       }
       if (this == BOTTOM) {
         return other;
       }
-      assert this.nullabilities.length == other.nullabilities.length;
+      assert this.dynamicTypes.length == other.dynamicTypes.length;
       ArgumentCollection result = this.copy();
-      for (int i = 0; i < result.nullabilities.length; i++) {
-        result.nullabilities[i] = result.nullabilities[i].join(other.nullabilities[i]);
+      for (int i = 0; i < result.dynamicTypes.length; i++) {
+        result.dynamicTypes[i] = result.dynamicTypes[i].join(other.dynamicTypes[i], appView);
       }
       return result;
-    }
-
-    static ArgumentCollection join(Collection<ArgumentCollection> collections) {
-      return collections.stream().reduce(BOTTOM, ArgumentCollection::join);
     }
 
     @Override
@@ -100,25 +93,17 @@ public class MutableCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
       if (this == BOTTOM || otherCollection == BOTTOM) {
         return this == BOTTOM && otherCollection == BOTTOM;
       }
-      if (this.nullabilities.length != otherCollection.nullabilities.length) {
-        return false;
-      }
-      for (int i = 0; i < this.nullabilities.length; i++) {
-        if (!this.nullabilities[i].equals(otherCollection.nullabilities[i])) {
-          return false;
-        }
-      }
-      return true;
+      return Arrays.equals(this.dynamicTypes, otherCollection.dynamicTypes);
     }
 
     @Override
     public int hashCode() {
-      return Arrays.hashCode(nullabilities);
+      return Arrays.hashCode(dynamicTypes);
     }
 
     @Override
     public String toString() {
-      return "(" + StringUtils.join(Arrays.asList(nullabilities), ", ") + ")";
+      return "(" + StringUtils.join(Arrays.asList(dynamicTypes), ", ") + ")";
     }
   }
 
@@ -127,7 +112,7 @@ public class MutableCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
     this.size = encodedMethod.method.getArity() + (encodedMethod.isStatic() ? 0 : 1);
   }
 
-  private void computeCachedRepresentativeIfNecessary() {
+  private void computeCachedRepresentativeIfNecessary(AppView<?> appView) {
     if (cachedRepresentative == null && !callSiteInfos.isEmpty()) {
       synchronized (callSiteInfos) {
         // Make sure collected information is not flushed out by other threads.
@@ -136,8 +121,8 @@ public class MutableCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
               callSiteInfos.values().stream()
                   .reduce(
                       ArgumentCollection.BOTTOM,
-                      (prev, collections) -> prev.join(ArgumentCollection.join(collections)),
-                      ArgumentCollection::join);
+                      (prev, next) -> prev.join(next, appView),
+                      (prev, next) -> prev.join(next, appView));
           // After creating a cached representative, flush out the collected information.
           callSiteInfos.clear();
         } else {
@@ -149,12 +134,44 @@ public class MutableCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
     }
   }
 
+  private TypeLatticeElement[] getStaticTypes(AppView<?> appView, DexEncodedMethod encodedMethod) {
+    int argOffset = encodedMethod.isStatic() ? 0 : 1;
+    int size = encodedMethod.method.getArity() + argOffset;
+    TypeLatticeElement[] staticTypes = new TypeLatticeElement[size];
+    if (!encodedMethod.isStatic()) {
+      staticTypes[0] =
+          TypeLatticeElement.fromDexType(
+              encodedMethod.method.holder, definitelyNotNull(), appView);
+    }
+    for (int i = 0; i < encodedMethod.method.getArity(); i++) {
+      staticTypes[i + argOffset] =
+          TypeLatticeElement.fromDexType(
+              encodedMethod.method.proto.parameters.values[i], maybeNull(), appView);
+    }
+    return staticTypes;
+  }
+
   @Override
-  public boolean hasUsefulOptimizationInfo() {
-    computeCachedRepresentativeIfNecessary();
+  public boolean hasUsefulOptimizationInfo(AppView<?> appView, DexEncodedMethod encodedMethod) {
+    computeCachedRepresentativeIfNecessary(appView);
+    TypeLatticeElement[] staticTypes = getStaticTypes(appView, encodedMethod);
     for (int i = 0; i < size; i++) {
-      Nullability nullability = getNullability(i);
-      if (nullability.isDefinitelyNull() || nullability.isDefinitelyNotNull()) {
+      if (!staticTypes[i].isReference()) {
+        continue;
+      }
+      TypeLatticeElement dynamicType = getDynamicType(i);
+      if (dynamicType == null) {
+        continue;
+      }
+      // To avoid the full join of type lattices below, separately check if the nullability of
+      // arguments is improved, and if so, we can eagerly conclude that we've collected useful
+      // call site information for this method.
+      Nullability nullability = dynamicType.nullability();
+      if (nullability.isDefinitelyNull()) {
+        return true;
+      }
+      // In general, though, we're looking for (strictly) better dynamic types for arguments.
+      if (dynamicType.strictlyLessThan(staticTypes[i], appView)) {
         return true;
       }
     }
@@ -162,12 +179,12 @@ public class MutableCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
   }
 
   @Override
-  public Nullability getNullability(int argIndex) {
+  public TypeLatticeElement getDynamicType(int argIndex) {
     assert 0 <= argIndex && argIndex < size;
     if (cachedRepresentative == null) {
-      return Nullability.maybeNull();
+      return null;
     }
-    return cachedRepresentative.getNullability(argIndex);
+    return cachedRepresentative.getDynamicType(argIndex);
   }
 
   public static boolean hasArgumentsToRecord(List<Value> inValues) {
@@ -180,19 +197,19 @@ public class MutableCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
     return false;
   }
 
-  public void recordArguments(DexEncodedMethod callingContext, List<Value> inValues) {
+  public void recordArguments(
+      AppView<?> appView, DexEncodedMethod callingContext, List<Value> inValues) {
     assert cachedRepresentative == null;
     assert size == inValues.size();
-    Set<ArgumentCollection> collections =
-        callSiteInfos.computeIfAbsent(callingContext, ignore -> new HashSet<>());
     ArgumentCollection newCallSiteInfo = new ArgumentCollection(size);
     for (int i = 0; i < size; i++) {
-      TypeLatticeElement typeLatticeElement = inValues.get(i).getTypeLattice();
-      if (typeLatticeElement.isReference()) {
-        newCallSiteInfo.nullabilities[i] = typeLatticeElement.nullability();
-      }
+      newCallSiteInfo.dynamicTypes[i] = inValues.get(i).getTypeLattice();
     }
-    collections.add(newCallSiteInfo);
+    assert callingContext != null;
+    ArgumentCollection accumulatedArgumentCollection =
+        callSiteInfos.computeIfAbsent(callingContext, ignore -> ArgumentCollection.BOTTOM);
+    callSiteInfos.put(
+        callingContext, accumulatedArgumentCollection.join(newCallSiteInfo, appView));
   }
 
   @Override
@@ -211,11 +228,10 @@ public class MutableCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
       return cachedRepresentative.toString();
     }
     StringBuilder builder = new StringBuilder();
-    for (Map.Entry<DexEncodedMethod, Set<ArgumentCollection>> entry : callSiteInfos.entrySet()) {
+    for (Map.Entry<DexEncodedMethod, ArgumentCollection> entry : callSiteInfos.entrySet()) {
       builder.append(entry.getKey().toSourceString());
-      builder.append(" -> {");
-      StringUtils.join(entry.getValue(), ", ");
-      builder.append("}");
+      builder.append(" -> ");
+      builder.append(entry.getValue().toString());
       builder.append(System.lineSeparator());
     }
     return builder.toString();

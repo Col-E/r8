@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize.info;
 
-import com.android.tools.r8.ir.analysis.type.Nullability;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 
 public class DefaultCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
 
@@ -17,8 +17,8 @@ public class DefaultCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
   }
 
   @Override
-  public Nullability getNullability(int argIndex) {
-    return Nullability.maybeNull();
+  public TypeLatticeElement getDynamicType(int argIndex) {
+    return null;
   }
 
   @Override

@@ -6,9 +6,10 @@ package com.android.tools.r8.ir.optimize;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Assume;
+import com.android.tools.r8.ir.code.Assume.DynamicTypeAssumption;
 import com.android.tools.r8.ir.code.Assume.NonNullAssumption;
 import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.ConstNumber;
@@ -68,7 +69,7 @@ public class CallSiteOptimizationInfoPropagator {
       Log.info(getClass(), "# of methods to revisit: %s", revisitedMethods.size());
       for (DexEncodedMethod m : revisitedMethods) {
         Log.info(getClass(), "%s: %s",
-            m.toSourceString(), m.getMutableCallSiteOptimizationInfo().toString());
+            m.toSourceString(), m.getCallSiteOptimizationInfo().toString());
       }
     }
   }
@@ -131,8 +132,9 @@ public class CallSiteOptimizationInfoPropagator {
     if (inValues.size() != argumentOffset + target.method.getArity()) {
       return;
     }
-    MutableCallSiteOptimizationInfo optimizationInfo = target.getMutableCallSiteOptimizationInfo();
-    optimizationInfo.recordArguments(context, inValues);
+    MutableCallSiteOptimizationInfo optimizationInfo =
+        target.getMutableCallSiteOptimizationInfo(appView);
+    optimizationInfo.recordArguments(appView, context, inValues);
   }
 
   // If collected call site optimization info has something useful, e.g., non-null argument,
@@ -140,11 +142,11 @@ public class CallSiteOptimizationInfoPropagator {
   public void applyCallSiteOptimizationInfo(
       IRCode code, CallSiteOptimizationInfo callSiteOptimizationInfo) {
     if (mode != Mode.REVISIT
-        || !callSiteOptimizationInfo.hasUsefulOptimizationInfo()) {
+        || !callSiteOptimizationInfo.hasUsefulOptimizationInfo(appView, code.method)) {
       return;
     }
     Set<Value> affectedValues = Sets.newIdentityHashSet();
-    List<Assume<NonNullAssumption>> assumeInstructions = new LinkedList<>();
+    List<Assume<?>> assumeInstructions = new LinkedList<>();
     List<ConstInstruction> constants = new LinkedList<>();
     int argumentsSeen = 0;
     InstructionListIterator iterator = code.entryBlock().listIterator(code);
@@ -153,34 +155,55 @@ public class CallSiteOptimizationInfoPropagator {
       if (!instr.isArgument()) {
         break;
       }
-      Value arg = instr.asArgument().outValue();
-      if (!arg.hasLocalInfo() && arg.getTypeLattice().isReference()) {
-        Nullability nullability = callSiteOptimizationInfo.getNullability(argumentsSeen);
-        if (nullability.isDefinitelyNotNull()) {
-          // If we already knew `arg` is never null, e.g., receiver, skip adding non-null.
-          if (!arg.getTypeLattice().nullability().isDefinitelyNotNull()) {
-            Value nonNullValue = code.createValue(
-                arg.getTypeLattice().asReferenceTypeLatticeElement().asNotNull(),
-                arg.getLocalInfo());
-            affectedValues.addAll(arg.affectedValues());
-            arg.replaceUsers(nonNullValue);
-            Assume<NonNullAssumption> assumeNotNull =
-                Assume.createAssumeNonNullInstruction(nonNullValue, arg, instr, appView);
-            assumeNotNull.setPosition(instr.getPosition());
-            assumeInstructions.add(assumeNotNull);
-          }
-        } else if (nullability.isDefinitelyNull()) {
-          ConstNumber nullInstruction = code.createConstNull();
-          nullInstruction.setPosition(instr.getPosition());
-          affectedValues.addAll(arg.affectedValues());
-          arg.replaceUsers(nullInstruction.outValue());
-          constants.add(nullInstruction);
-        }
+      argumentsSeen++;
+      Value originalArg = instr.asArgument().outValue();
+      if (originalArg.hasLocalInfo() || !originalArg.getTypeLattice().isReference()) {
+        continue;
+      }
+      TypeLatticeElement dynamicType = callSiteOptimizationInfo.getDynamicType(argumentsSeen - 1);
+      if (dynamicType == null) {
+        continue;
+      }
+      if (dynamicType.isDefinitelyNull()) {
+        ConstNumber nullInstruction = code.createConstNull();
+        nullInstruction.setPosition(instr.getPosition());
+        affectedValues.addAll(originalArg.affectedValues());
+        originalArg.replaceUsers(nullInstruction.outValue());
+        constants.add(nullInstruction);
+        continue;
       }
       // TODO(b/69963623): Handle other kinds of constants, e.g. number, string, or class.
-      argumentsSeen++;
+      Value specializedArg;
+      if (dynamicType.strictlyLessThan(originalArg.getTypeLattice(), appView)) {
+        specializedArg = code.createValue(originalArg.getTypeLattice());
+        affectedValues.addAll(originalArg.affectedValues());
+        originalArg.replaceUsers(specializedArg);
+        Assume<DynamicTypeAssumption> assumeType =
+            Assume.createAssumeDynamicTypeInstruction(
+                dynamicType, specializedArg, originalArg, instr, appView);
+        assumeType.setPosition(instr.getPosition());
+        assumeInstructions.add(assumeType);
+      } else {
+        specializedArg = originalArg;
+      }
+      if (dynamicType.isDefinitelyNotNull()) {
+        // If we already knew `arg` is never null, e.g., receiver, skip adding non-null.
+        if (!specializedArg.getTypeLattice().isDefinitelyNotNull()) {
+          Value nonNullArg =
+              code.createValue(
+                  specializedArg.getTypeLattice().asReferenceTypeLatticeElement().asNotNull());
+          affectedValues.addAll(specializedArg.affectedValues());
+          specializedArg.replaceUsers(nonNullArg);
+          Assume<NonNullAssumption> assumeNotNull =
+              Assume.createAssumeNonNullInstruction(nonNullArg, specializedArg, instr, appView);
+          assumeNotNull.setPosition(instr.getPosition());
+          assumeInstructions.add(assumeNotNull);
+        }
+      }
     }
-    assert argumentsSeen == code.method.method.getArity() + (code.method.isStatic() ? 0 : 1);
+    assert argumentsSeen == code.method.method.getArity() + (code.method.isStatic() ? 0 : 1)
+        : "args: " + argumentsSeen + " != "
+            + "arity: " + code.method.method.getArity() + ", static: " + code.method.isStatic();
     // After packed Argument instructions, add Assume<?> and constant instructions.
     assert !iterator.peekPrevious().isArgument();
     iterator.previous();
@@ -208,7 +231,7 @@ public class CallSiteOptimizationInfoPropagator {
         }
         MutableCallSiteOptimizationInfo optimizationInfo =
             method.getCallSiteOptimizationInfo().asMutableCallSiteOptimizationInfo();
-        if (optimizationInfo.hasUsefulOptimizationInfo()) {
+        if (optimizationInfo.hasUsefulOptimizationInfo(appView, method)) {
           targetsToRevisit.add(method);
         }
       }

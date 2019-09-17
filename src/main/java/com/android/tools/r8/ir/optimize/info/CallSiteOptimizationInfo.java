@@ -3,7 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize.info;
 
-import com.android.tools.r8.ir.analysis.type.Nullability;
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.optimize.CallSiteOptimizationInfoPropagator;
 
 public abstract class CallSiteOptimizationInfo {
@@ -30,15 +32,12 @@ public abstract class CallSiteOptimizationInfo {
    * if a certain argument is guaranteed to be definitely not null for all call sites, null-check on
    * that argument can be simplified during the reprocessing of the method.
    */
-  public boolean hasUsefulOptimizationInfo() {
+  public boolean hasUsefulOptimizationInfo(AppView<?> appView, DexEncodedMethod encodedMethod) {
     return false;
   }
 
   // The index exactly matches with in values of invocation, i.e., even including receiver.
-  public abstract Nullability getNullability(int argIndex);
-
-  // TODO(b/139246447): extend it to TypeLattice and insert AssumeDynamicType if the join of all
-  //  call site arguments types is more precise than the static type.
+  public abstract TypeLatticeElement getDynamicType(int argIndex);
 
   // TODO(b/69963623): collect constants and if they're all same, propagate it to the callee.
   //   then, we need to re-run unused argument removal?
