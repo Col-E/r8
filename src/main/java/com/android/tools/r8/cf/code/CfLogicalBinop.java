@@ -41,6 +41,14 @@ public class CfLogicalBinop extends CfInstruction {
     this.type = type;
   }
 
+  public NumericType getType() {
+    return type;
+  }
+
+  public Opcode getOpcode() {
+    return opcode;
+  }
+
   public static CfLogicalBinop fromAsm(int opcode) {
     switch (opcode) {
       case Opcodes.ISHL:

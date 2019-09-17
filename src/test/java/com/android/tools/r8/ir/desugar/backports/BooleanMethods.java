@@ -4,14 +4,9 @@
 
 package com.android.tools.r8.ir.desugar.backports;
 
-import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.ir.synthetic.TemplateMethodCode;
-import com.android.tools.r8.utils.InternalOptions;
+public final class BooleanMethods {
 
-public final class BooleanMethods extends TemplateMethodCode {
-  public BooleanMethods(InternalOptions options, DexMethod method, String methodName) {
-    super(options, method, methodName, method.proto.toDescriptorString());
-  }
+  // Code templates, the CfCode objects are extracted with GenerateBackportMethods.
 
   public static int hashCode(boolean b) {
     return b ? 1231 : 1237;

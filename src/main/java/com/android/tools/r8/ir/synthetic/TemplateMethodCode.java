@@ -15,6 +15,7 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.io.ByteStreams;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.function.BiFunction;
 
 // Source code representing code of a method generated based on a template.
@@ -46,17 +47,20 @@ public abstract class TemplateMethodCode extends LazyCfCode {
   }
 
   private byte[] getClassAsBytes() {
-    Class<? extends TemplateMethodCode> clazz = this.getClass();
+    try (InputStream stream = getClassAsBytes(this.getClass())) {
+      return ByteStreams.toByteArray(stream);
+    } catch (IOException e) {
+      throw new Unreachable();
+    }
+  }
+
+  public static InputStream getClassAsBytes(Class<?> clazz) {
     String s = clazz.getSimpleName() + ".class";
     Class outer = clazz.getEnclosingClass();
     while (outer != null) {
       s = outer.getSimpleName() + '$' + s;
       outer = outer.getEnclosingClass();
     }
-    try {
-      return ByteStreams.toByteArray(clazz.getResourceAsStream(s));
-    } catch (IOException e) {
-      throw new Unreachable();
-    }
+    return clazz.getResourceAsStream(s);
   }
 }

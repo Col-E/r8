@@ -80,6 +80,7 @@ import org.junit.rules.TemporaryFolder;
 
 public class ToolHelper {
 
+  public static final String SOURCE_DIR = "src/main/java/";
   public static final String BUILD_DIR = "build/";
   public static final String GENERATED_TEST_BUILD_DIR = BUILD_DIR + "generated/test/";
   public static final String LIBS_DIR = BUILD_DIR + "libs/";
@@ -1931,25 +1932,28 @@ public class ToolHelper {
   public static ProcessResult runProcess(ProcessBuilder builder) throws IOException {
     String command = String.join(" ", builder.command());
     System.out.println(command);
-    Process p = builder.start();
+    return drainProcessOutputStreams(builder.start(), command);
+  }
+
+  public static ProcessResult drainProcessOutputStreams(Process process, String command) {
     // Drain stdout and stderr so that the process does not block. Read stdout and stderr
     // in parallel to make sure that neither buffer can get filled up which will cause the
     // C program to block in a call to write.
-    StreamReader stdoutReader = new StreamReader(p.getInputStream());
-    StreamReader stderrReader = new StreamReader(p.getErrorStream());
+    StreamReader stdoutReader = new StreamReader(process.getInputStream());
+    StreamReader stderrReader = new StreamReader(process.getErrorStream());
     Thread stdoutThread = new Thread(stdoutReader);
     Thread stderrThread = new Thread(stderrReader);
     stdoutThread.start();
     stderrThread.start();
     try {
-      p.waitFor();
+      process.waitFor();
       stdoutThread.join();
       stderrThread.join();
     } catch (InterruptedException e) {
       throw new RuntimeException("Execution interrupted", e);
     }
     return new ProcessResult(
-        p.exitValue(), stdoutReader.getResult(), stderrReader.getResult(), command);
+        process.exitValue(), stdoutReader.getResult(), stderrReader.getResult(), command);
   }
 
   public static R8Command.Builder addProguardConfigurationConsumer(

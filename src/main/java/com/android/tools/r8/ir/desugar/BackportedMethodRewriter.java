@@ -8,6 +8,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassAccessFlags;
+import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexClass;
@@ -28,7 +29,7 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.conversion.IRConverter;
-import com.android.tools.r8.ir.desugar.backports.BooleanMethods;
+import com.android.tools.r8.ir.desugar.backports.BackportedMethods;
 import com.android.tools.r8.ir.desugar.backports.ByteMethods;
 import com.android.tools.r8.ir.desugar.backports.CharacterMethods;
 import com.android.tools.r8.ir.desugar.backports.CollectionsMethods;
@@ -167,7 +168,7 @@ public final class BackportedMethodRewriter {
       if (appView.definitionFor(method.holder) != null) {
         continue;
       }
-      TemplateMethodCode code = provider.generateTemplateMethod(options, method);
+      Code code = provider.generateTemplateMethod(options, method);
       DexEncodedMethod dexEncodedMethod =
           new DexEncodedMethod(
               method, flags, DexAnnotationSet.empty(), ParameterAnnotationsList.empty(), code);
@@ -191,7 +192,10 @@ public final class BackportedMethodRewriter {
               DexEncodedMethod.EMPTY_ARRAY,
               factory.getSkipNameValidationForTesting(),
               referencingClasses);
-      code.setUpContext(utilityClass);
+      // TODO(b/136596951): Remove this once reflective templates are eliminated.
+      if (code instanceof TemplateMethodCode) {
+        ((TemplateMethodCode) code).setUpContext(utilityClass);
+      }
       boolean addToMainDexList =
           referencingClasses.stream()
               .anyMatch(clazz -> appView.appInfo().isInMainDexList(clazz.type));
@@ -307,7 +311,7 @@ public final class BackportedMethodRewriter {
       name = factory.createString("compare");
       proto = factory.createProto(factory.intType, factory.booleanType, factory.booleanType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, BooleanMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::BooleanMethods_compare));
 
       // Character
       type = factory.boxedCharType;
@@ -514,25 +518,25 @@ public final class BackportedMethodRewriter {
       name = factory.createString("hashCode");
       proto = factory.createProto(factory.intType, factory.booleanType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, BooleanMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::BooleanMethods_hashCode));
 
       // boolean Boolean.logicalAnd(boolean a, boolean b)
       name = factory.createString("logicalAnd");
       proto = factory.createProto(factory.booleanType, factory.booleanType, factory.booleanType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, BooleanMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::BooleanMethods_logicalAnd));
 
       // boolean Boolean.logicalOr(boolean a, boolean b)
       name = factory.createString("logicalOr");
       proto = factory.createProto(factory.booleanType, factory.booleanType, factory.booleanType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, BooleanMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::BooleanMethods_logicalOr));
 
       // boolean Boolean.logicalXor(boolean a, boolean b)
       name = factory.createString("logicalXor");
       proto = factory.createProto(factory.booleanType, factory.booleanType, factory.booleanType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, BooleanMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::BooleanMethods_logicalXor));
 
       // Long
       type = factory.boxedLongType;
@@ -1068,8 +1072,7 @@ public final class BackportedMethodRewriter {
 
     public abstract DexMethod provideMethod(AppView<?> appView);
 
-    public abstract TemplateMethodCode generateTemplateMethod(
-        InternalOptions options, DexMethod method);
+    public abstract Code generateTemplateMethod(InternalOptions options, DexMethod method);
 
     public abstract boolean requiresGenerationOfCode();
   }
@@ -1107,7 +1110,7 @@ public final class BackportedMethodRewriter {
     }
 
     @Override
-    public TemplateMethodCode generateTemplateMethod(InternalOptions options, DexMethod method) {
+    public Code generateTemplateMethod(InternalOptions options, DexMethod method) {
       throw new Unreachable("Does not generate any method.");
     }
 
@@ -1194,7 +1197,7 @@ public final class BackportedMethodRewriter {
     }
 
     @Override
-    public TemplateMethodCode generateTemplateMethod(InternalOptions options, DexMethod method) {
+    public Code generateTemplateMethod(InternalOptions options, DexMethod method) {
       return factory.create(options, method, methodName);
     }
 
@@ -1233,7 +1236,7 @@ public final class BackportedMethodRewriter {
 
   private interface TemplateMethodFactory {
 
-    TemplateMethodCode create(InternalOptions options, DexMethod method, String name);
+    Code create(InternalOptions options, DexMethod method, String name);
   }
 
   private interface MethodInvokeRewriter {
