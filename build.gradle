@@ -306,6 +306,7 @@ def cloudDependencies = [
                 "dart-sdk",
                 "ddmlib",
                 "gradle/gradle",
+                "google-java-format",
                 "jacoco",
                 "jasmin",
                 "jctf",
