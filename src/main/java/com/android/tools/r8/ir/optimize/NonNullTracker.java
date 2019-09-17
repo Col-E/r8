@@ -89,7 +89,7 @@ public class NonNullTracker {
         // Case (1), instructions that implicitly indicate receiver/array is not null.
         if (current.throwsOnNullInput()) {
           Value couldBeNonNull = current.getNonNullInput();
-          if (isNullableReferenceType(couldBeNonNull)) {
+          if (isNullableReferenceTypeWithUsers(couldBeNonNull)) {
             knownToBeNonNullValues.add(couldBeNonNull);
           }
         }
@@ -101,7 +101,7 @@ public class NonNullTracker {
           // Case (2), invocations that call non-overridable library methods that are known to
           // return non null.
           if (dexItemFactory.libraryMethodsReturningNonNull.contains(invokedMethod)) {
-            if (current.hasOutValue() && isNullableReferenceType(outValue)) {
+            if (current.hasOutValue() && isNullableReferenceTypeWithUsers(outValue)) {
               knownToBeNonNullValues.add(outValue);
             }
           }
@@ -113,7 +113,7 @@ public class NonNullTracker {
 
             // Case (3), invocations that are guaranteed to return a non-null value.
             if (optimizationInfo.neverReturnsNull()) {
-              if (invoke.hasOutValue() && isNullableReferenceType(outValue)) {
+              if (invoke.hasOutValue() && isNullableReferenceTypeWithUsers(outValue)) {
                 knownToBeNonNullValues.add(outValue);
               }
             }
@@ -124,7 +124,7 @@ public class NonNullTracker {
               for (int i = 0; i < current.inValues().size(); i++) {
                 if (nonNullParamOnNormalExits.get(i)) {
                   Value knownToBeNonNullValue = current.inValues().get(i);
-                  if (isNullableReferenceType(knownToBeNonNullValue)) {
+                  if (isNullableReferenceTypeWithUsers(knownToBeNonNullValue)) {
                     knownToBeNonNullValues.add(knownToBeNonNullValue);
                   }
                 }
@@ -135,13 +135,12 @@ public class NonNullTracker {
           // Case (5), field-get instructions that are guaranteed to read a non-null value.
           FieldInstruction fieldInstruction = current.asFieldInstruction();
           DexField field = fieldInstruction.getField();
-          if (field.type.isClassType()) {
+          if (field.type.isClassType() && isNullableReferenceTypeWithUsers(outValue)) {
             DexEncodedField encodedField = appView.appInfo().resolveField(field);
             if (encodedField != null) {
               FieldOptimizationInfo optimizationInfo = encodedField.getOptimizationInfo();
               if (optimizationInfo.getDynamicType() != null
-                  && optimizationInfo.getDynamicType().isDefinitelyNotNull()
-                  && isNullableReferenceType(outValue)) {
+                  && optimizationInfo.getDynamicType().isDefinitelyNotNull()) {
                 knownToBeNonNullValues.add(outValue);
               }
             }
@@ -153,7 +152,8 @@ public class NonNullTracker {
         //   y <- assume-not-null(x)
         //   ...
         //   z <- assume-not-null(y)
-        assert knownToBeNonNullValues.stream().allMatch(NonNullTracker::isNullableReferenceType);
+        assert knownToBeNonNullValues.stream()
+            .allMatch(NonNullTracker::isNullableReferenceTypeWithUsers);
 
         if (!knownToBeNonNullValues.isEmpty()) {
           addNonNullForValues(
@@ -194,7 +194,7 @@ public class NonNullTracker {
         If theIf = block.exit().asIf();
         Value knownToBeNonNullValue = theIf.inValues().get(0);
         // Avoid adding redundant non-null instruction.
-        if (isNullableReferenceType(knownToBeNonNullValue)) {
+        if (isNullableReferenceTypeWithUsers(knownToBeNonNullValue)) {
           BasicBlock target = theIf.targetFromNonNullObject();
           // Ignore uncommon empty blocks.
           if (!target.isEmpty()) {
@@ -374,9 +374,11 @@ public class NonNullTracker {
     return predecessorIndexes;
   }
 
-  private static boolean isNullableReferenceType(Value couldBeNonNullValue) {
-    TypeLatticeElement typeLattice = couldBeNonNullValue.getTypeLattice();
-    return typeLattice.isReference() && typeLattice.asReferenceTypeLatticeElement().isNullable();
+  private static boolean isNullableReferenceTypeWithUsers(Value value) {
+    TypeLatticeElement type = value.getTypeLattice();
+    return type.isReference()
+        && type.asReferenceTypeLatticeElement().isNullable()
+        && value.numberOfAllUsers() > 0;
   }
 
   public void computeNonNullParamOnNormalExits(OptimizationFeedback feedback, IRCode code) {
