@@ -504,7 +504,7 @@ if (OperatingSystem.current().isWindows()) {
 } else {
     def javaHomeOut = new StringBuilder()
     def javaHomeErr = new StringBuilder()
-    def javaHomeProc = './tools/jdk.py'.execute()
+    def javaHomeProc = './tools/jdk.py'.execute([], projectDir)
     javaHomeProc.waitForProcessOutput(javaHomeOut, javaHomeErr)
     def jdkHome = new File(javaHomeOut.toString().trim())
     if (!jdkHome.exists()) {
