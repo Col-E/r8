@@ -12,6 +12,7 @@ import com.android.tools.r8.naming.ClassNamingForNameMapper;
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
 import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRangesOfName;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
@@ -33,22 +34,21 @@ public final class RetraceCore {
       assert lines.size() == 1 || lines.stream().allMatch(StackTraceLine::isAtLine);
     }
 
-    @Override
-    public String toString() {
+    public void append(List<String> strings) {
       assert !lines.isEmpty();
       if (lines.size() == 1) {
-        return lines.get(0).toString();
+        strings.add(lines.get(0).toString());
+        return;
       }
-      // This is a stack trace line that have multiple origins that we cannot disambiguate.
-      // TODO(b/132850880): Write tests for inlining, class-inlining etc.
-      StringBuilder sb = new StringBuilder();
+      // We must have an ambiguous match here, thus all lines are at-lines.
       lines.sort(new AtStackTraceLineComparator());
+      String previousClazz = "";
       for (StackTraceLine line : lines) {
         assert line.isAtLine();
-        sb.append(line.toString());
-        sb.append(System.lineSeparator());
+        AtLine atLine = line.asAtLine();
+        strings.add(atLine.toString(previousClazz.isEmpty() ? atLine.at : "or ", previousClazz));
+        previousClazz = atLine.clazz;
       }
-      return sb.toString();
     }
   }
 
@@ -62,7 +62,7 @@ public final class RetraceCore {
       if (compare != 0) {
         return compare;
       }
-      compare = a1.method.compareTo(a2.clazz);
+      compare = a1.method.compareTo(a2.method);
       if (compare != 0) {
         return compare;
       }
@@ -85,7 +85,7 @@ public final class RetraceCore {
     List<String> toListOfStrings() {
       List<String> strings = new ArrayList<>(nodes.size());
       for (StackTraceNode node : nodes) {
-        strings.add(node.toString());
+        node.append(strings);
       }
       return strings;
     }
@@ -351,7 +351,10 @@ public final class RetraceCore {
                 linePosition));
         return lines;
       }
-      List<MappedRange> mappedRanges = mappedRangesOfName.allRangesForLine(linePosition);
+      List<MappedRange> mappedRanges =
+          linePosition >= 0
+              ? mappedRangesOfName.allRangesForLine(linePosition)
+              : mappedRangesOfName.getMappedRanges();
       if (mappedRanges == null || mappedRanges.isEmpty()) {
         lines.add(
             new AtLine(
@@ -364,7 +367,6 @@ public final class RetraceCore {
         return lines;
       }
       for (MappedRange mappedRange : mappedRanges) {
-        // TODO(b/132850880): What if we have a class-merged or inlined line here?
         String mappedClazz = retraceClazz;
         String mappedMethod = mappedRange.signature.name;
         if (mappedRange.signature.isQualified()) {
@@ -418,10 +420,19 @@ public final class RetraceCore {
 
     @Override
     public String toString() {
+      return toString(at, "");
+    }
+
+    protected String toString(String at, String previousClass) {
       StringBuilder sb = new StringBuilder(startingWhitespace);
       sb.append(at);
-      sb.append(clazz);
-      sb.append(".");
+      String commonPrefix = Strings.commonPrefix(clazz, previousClass);
+      if (commonPrefix.length() == clazz.length()) {
+        sb.append(Strings.repeat(" ", clazz.length() + 1));
+      } else {
+        sb.append(Strings.padStart(clazz.substring(commonPrefix.length()), clazz.length(), ' '));
+        sb.append(".");
+      }
       sb.append(method);
       sb.append("(");
       sb.append(fileName);
@@ -433,10 +444,6 @@ public final class RetraceCore {
       }
       sb.append(")");
       return sb.toString();
-    }
-
-    int methodIndex() {
-      return at.length() + clazz.length() + 1;
     }
 
     @Override

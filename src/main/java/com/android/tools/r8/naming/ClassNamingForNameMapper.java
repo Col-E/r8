@@ -137,6 +137,10 @@ public class ClassNamingForNameMapper implements ClassNaming {
       return noLineRange == null ? Collections.emptyList() : Collections.singletonList(noLineRange);
     }
 
+    public List<MappedRange> getMappedRanges() {
+      return mappedRanges;
+    }
+
     @Override
     public boolean equals(Object o) {
       if (this == o) {
