@@ -6,10 +6,6 @@ package com.android.tools.r8.ir.desugar.backports;
 
 public final class FloatMethods {
 
-  public static int hashCode(float f) {
-    return Float.floatToIntBits(f);
-  }
-
   public static boolean isFinite(float f) {
     return !Float.isInfinite(f) && !Float.isNaN(f);
   }

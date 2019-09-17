@@ -20,6 +20,7 @@ public final class FloatBackportTest extends AbstractBackportTest {
   public FloatBackportTest(TestParameters parameters) {
     super(parameters, Float.class, Main.class);
     registerTarget(AndroidApiLevel.N, 10);
+    ignoreInvokes("floatToIntBits"); // Available in API 1, used to backport hashCode.
   }
 
   static final class Main extends MiniAssert {

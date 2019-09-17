@@ -31,6 +31,7 @@ import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.backports.BackportedMethods;
 import com.android.tools.r8.ir.desugar.backports.BooleanMethodRewrites;
+import com.android.tools.r8.ir.desugar.backports.FloatMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.ListMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.LongMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.NumericMethodRewrites;
@@ -481,7 +482,7 @@ public final class BackportedMethodRewriter {
       name = factory.createString("hashCode");
       proto = factory.createProto(factory.intType, factory.floatType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, BackportedMethods::FloatMethods_hashCode));
+      addProvider(new InvokeRewriter(method, FloatMethodRewrites::rewriteHashCode));
 
       // float Float.max(float a, float b)
       name = factory.createString("max");

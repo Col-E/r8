@@ -712,31 +712,6 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode FloatMethods_hashCode(
-      InternalOptions options, DexMethod method, String name) {
-    CfLabel label0 = new CfLabel();
-    CfLabel label1 = new CfLabel();
-    return new CfCode(
-        method.holder,
-        1,
-        1,
-        ImmutableList.of(
-            label0,
-            new CfLoad(ValueType.FLOAT, 0),
-            new CfInvoke(
-                184,
-                options.itemFactory.createMethod(
-                    options.itemFactory.createType("Ljava/lang/Float;"),
-                    options.itemFactory.createProto(
-                        options.itemFactory.createType("I"), options.itemFactory.createType("F")),
-                    options.itemFactory.createString("floatToIntBits")),
-                false),
-            new CfReturn(ValueType.INT),
-            label1),
-        ImmutableList.of(),
-        ImmutableList.of());
-  }
-
   public static CfCode FloatMethods_isFinite(
       InternalOptions options, DexMethod method, String name) {
     CfLabel label0 = new CfLabel();

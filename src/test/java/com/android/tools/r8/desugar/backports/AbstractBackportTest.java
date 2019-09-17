@@ -19,8 +19,10 @@ import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.List;
 import java.util.NavigableMap;
+import java.util.Set;
 import java.util.TreeMap;
 import org.junit.Assert;
 import org.junit.Test;
@@ -32,6 +34,7 @@ abstract class AbstractBackportTest extends TestBase {
   private final Path testJar;
   private final String testClassName;
   private final NavigableMap<AndroidApiLevel, Integer> invokeStaticCounts = new TreeMap<>();
+  private final Set<String> ignoredInvokes = new HashSet<>();
 
   AbstractBackportTest(TestParameters parameters, Class<?> targetClass,
       Class<?> testClass) {
@@ -66,6 +69,10 @@ abstract class AbstractBackportTest extends TestBase {
 
   void registerTarget(AndroidApiLevel apiLevel, int invokeStaticCount) {
     invokeStaticCounts.put(apiLevel, invokeStaticCount);
+  }
+
+  void ignoreInvokes(String methodName) {
+    ignoredInvokes.add(methodName);
   }
 
   private void configureProgram(TestBuilder<?, ?> builder) throws IOException {
@@ -106,6 +113,8 @@ abstract class AbstractBackportTest extends TestBase {
         .flatMap(MethodSubject::streamInstructions)
         .filter(InstructionSubject::isInvoke)
         .filter(is -> is.getMethod().holder.toSourceString().equals(targetClass.getName()))
+        // Do not count invokes if explicitly ignored.
+        .filter(is -> !ignoredInvokes.contains(is.getMethod().name.toString()))
         .collect(toList());
 
     AndroidApiLevel apiLevel = parameters.getRuntime().asDex().getMinApiLevel();
