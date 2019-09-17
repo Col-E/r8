@@ -277,21 +277,32 @@ public class MemberValuePropagation {
     }
     boolean invokeReplaced = false;
     if (lookup != null) {
-      boolean outValueNullOrNotUsed = current.outValue() == null || !current.outValue().isUsed();
-      if (lookup.type == RuleType.ASSUME_NO_SIDE_EFFECTS && outValueNullOrNotUsed) {
-        // Remove invoke if marked as having no side effects and the return value is not used.
-        iterator.removeOrReplaceByDebugLocalRead();
+      boolean hasUsedOutValue = current.hasOutValue() && current.outValue().isUsed();
+      if (!hasUsedOutValue) {
+        if (lookup.type == RuleType.ASSUME_NO_SIDE_EFFECTS) {
+          // Remove invoke if marked as having no side effects and the return value is not used.
+          iterator.removeOrReplaceByDebugLocalRead();
+        }
         return;
       }
 
-      if (!outValueNullOrNotUsed) {
-        // Check to see if a constant value can be assumed.
-        invokeReplaced =
-            tryConstantReplacementFromProguard(
-                code, affectedValues, blocks, iterator, current, lookup);
+      // Check to see if a constant value can be assumed.
+      // But, if the current matched rule is -assumenosideeffects without the return value, it won't
+      // be transformed into a replacement instruction. Check if there is -assumevalues rule bound
+      // to the target.
+      if (target != null
+          && lookup.type == RuleType.ASSUME_NO_SIDE_EFFECTS
+          && !lookup.rule.hasReturnValue()) {
+        ProguardMemberRule rule = appView.appInfo().assumedValues.get(target.toReference());
+        if (rule != null) {
+          lookup = new ProguardMemberRuleLookup(RuleType.ASSUME_VALUES, rule);
+        }
       }
+      invokeReplaced =
+          tryConstantReplacementFromProguard(
+              code, affectedValues, blocks, iterator, current, lookup);
     }
-    if (invokeReplaced || current.outValue() == null) {
+    if (invokeReplaced || !current.hasOutValue()) {
       return;
     }
     // No Proguard rule could replace the instruction check for knowledge about the return value.
