@@ -99,6 +99,12 @@ public class DumpCoreLibUsage {
         if (!method.isPublicMethod()) {
           continue;
         }
+        // Class java.util.concurrent.CompletableFuture have most methods duplicated with a
+        // synthetic bridge that only differs on return type (the bridge has return type
+        // CompletionStage, whereas the non bridge has return type CompletableFuture.
+        if (method.isSyntheticMethod()) {
+          continue;
+        }
         if (filter.contains(method.method)) {
           continue;
         }
@@ -117,6 +123,8 @@ public class DumpCoreLibUsage {
   public static void main(String[] args) throws Exception {
     DexItemFactory factory = new DexItemFactory();
     for (String pkg : new String[] {"java.time", "java.util.function", "java.util.stream"}) {
+      long prevMethods = 0;
+      long prevFields = 0;
       Set<DexReference> found = Collections.emptySet();
       for (AndroidApiLevel apiLevel :
           new AndroidApiLevel[] {
@@ -130,7 +138,17 @@ public class DumpCoreLibUsage {
         String header = "Usage of package " + pkg + " on " + apiLevel;
         System.out.println(header);
         System.out.println(new String(new char[header.length()]).replace("\0", "-"));
+        System.out.println();
         found = new DumpCoreLibUsage().checkPackage(pkg, apiLevel, found, factory);
+
+        long methods = found.stream().filter(DexReference::isDexMethod).count();
+        long fields = found.stream().filter(DexReference::isDexField).count();
+        System.out.println(
+            "Total methods: " + methods + " (" + (methods - prevMethods) + " added)");
+        System.out.println("Total fields: " + fields + " (" + (fields - prevFields) + " added)");
+        System.out.println();
+        prevMethods = methods;
+        prevFields = fields;
       }
     }
   }
