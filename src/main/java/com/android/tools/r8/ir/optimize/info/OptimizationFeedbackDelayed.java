@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
 import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.utils.IteratorUtils;
@@ -131,6 +132,12 @@ public class OptimizationFeedbackDelayed implements OptimizationFeedback {
   public synchronized void methodReturnsObjectOfType(
       DexEncodedMethod method, AppView<?> appView, TypeLatticeElement type) {
     getMethodOptimizationInfoForUpdating(method).markReturnsObjectOfType(appView, type);
+  }
+
+  @Override
+  public synchronized void methodReturnsObjectWithLowerBoundType(
+      DexEncodedMethod method, ClassTypeLatticeElement type) {
+    getMethodOptimizationInfoForUpdating(method).markReturnsObjectWithLowerBoundType(type);
   }
 
   @Override

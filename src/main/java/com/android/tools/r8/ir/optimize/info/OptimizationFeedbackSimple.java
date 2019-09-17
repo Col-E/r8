@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
 import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import java.util.BitSet;
@@ -84,6 +85,12 @@ public class OptimizationFeedbackSimple implements OptimizationFeedback {
   @Override
   public void methodReturnsObjectOfType(
       DexEncodedMethod method, AppView<?> appView, TypeLatticeElement type) {
+    // Ignored.
+  }
+
+  @Override
+  public void methodReturnsObjectWithLowerBoundType(
+      DexEncodedMethod method, ClassTypeLatticeElement type) {
     // Ignored.
   }
 

@@ -9,6 +9,7 @@ import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Assume.Assumption;
 import com.android.tools.r8.ir.conversion.CfBuilder;
@@ -40,8 +41,14 @@ public class Assume<An extends Assumption> extends Instruction {
   }
 
   public static Assume<DynamicTypeAssumption> createAssumeDynamicTypeInstruction(
-      TypeLatticeElement type, Value dest, Value src, Instruction origin, AppView<?> appView) {
-    return new Assume<>(new DynamicTypeAssumption(type), dest, src, origin, appView);
+      TypeLatticeElement type,
+      ClassTypeLatticeElement lowerBoundType,
+      Value dest,
+      Value src,
+      Instruction origin,
+      AppView<?> appView) {
+    return new Assume<>(
+        new DynamicTypeAssumption(type, lowerBoundType), dest, src, origin, appView);
   }
 
   @Override
@@ -276,13 +283,19 @@ public class Assume<An extends Assumption> extends Instruction {
   public static class DynamicTypeAssumption extends Assumption {
 
     private final TypeLatticeElement type;
+    private final ClassTypeLatticeElement lowerBoundType;
 
-    private DynamicTypeAssumption(TypeLatticeElement type) {
+    private DynamicTypeAssumption(TypeLatticeElement type, ClassTypeLatticeElement lowerBoundType) {
       this.type = type;
+      this.lowerBoundType = lowerBoundType;
     }
 
     public TypeLatticeElement getType() {
       return type;
+    }
+
+    public ClassTypeLatticeElement getLowerBoundType() {
+      return lowerBoundType;
     }
 
     @Override

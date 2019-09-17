@@ -11,6 +11,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverClassInline;
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -18,6 +19,7 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject.JumboStringMode;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -47,13 +49,16 @@ public class SingleTargetFromExactReceiverTypeTest extends TestBase {
             "  void cannotBeInlinedDueToKeepRule();",
             "}")
         .enableClassInliningAnnotations()
+        .enableInliningAnnotations()
         .setMinApi(parameters.getRuntime())
         .compile()
         .inspect(this::verifyOnlyCanBeInlinedHasBeenInlined)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines(
             "A.canBeInlined()",
+            "A.canBeInlinedDueToAssume()",
             "B.canBeInlined()",
+            "B.canBeInlinedDueToAssume()",
             "A.cannotBeInlinedDueToDynamicDispatch()",
             "A.cannotBeInlinedDueToKeepRule()");
   }
@@ -62,6 +67,7 @@ public class SingleTargetFromExactReceiverTypeTest extends TestBase {
     ClassSubject aClassSubject = inspector.clazz(A.class);
     assertThat(aClassSubject, isPresent());
     assertThat(aClassSubject.uniqueMethodWithName("canBeInlined"), not(isPresent()));
+    assertThat(aClassSubject.uniqueMethodWithName("canBeInlinedDueToAssume"), not(isPresent()));
     assertThat(
         aClassSubject.uniqueMethodWithName("cannotBeInlinedDueToDynamicDispatch"), isPresent());
     assertThat(aClassSubject.uniqueMethodWithName("cannotBeInlinedDueToKeepRule"), isPresent());
@@ -69,6 +75,7 @@ public class SingleTargetFromExactReceiverTypeTest extends TestBase {
     ClassSubject bClassSubject = inspector.clazz(B.class);
     assertThat(bClassSubject, isPresent());
     assertThat(bClassSubject.uniqueMethodWithName("canBeInlined"), not(isPresent()));
+    assertThat(bClassSubject.uniqueMethodWithName("canBeInlinedDueToAssume"), not(isPresent()));
     assertThat(
         bClassSubject.uniqueMethodWithName("cannotBeInlinedDueToDynamicDispatch"), isPresent());
     assertThat(bClassSubject.uniqueMethodWithName("cannotBeInlinedDueToKeepRule"), isPresent());
@@ -78,10 +85,17 @@ public class SingleTargetFromExactReceiverTypeTest extends TestBase {
 
     MethodSubject mainMethodSubject = testClassSubject.mainMethod();
     assertThat(mainMethodSubject, isPresent());
-    assertTrue(
-        mainMethodSubject
-            .streamInstructions()
-            .anyMatch(x -> x.isConstString("A.canBeInlined()", JumboStringMode.ALLOW)));
+    for (String expected :
+        ImmutableList.of(
+            "A.canBeInlined()",
+            "A.canBeInlinedDueToAssume()",
+            "B.canBeInlined()",
+            "B.canBeInlinedDueToAssume()")) {
+      assertTrue(
+          mainMethodSubject
+              .streamInstructions()
+              .anyMatch(x -> x.isConstString(expected, JumboStringMode.ALLOW)));
+    }
     assertThat(
         mainMethodSubject,
         invokesMethod(aClassSubject.uniqueMethodWithName("cannotBeInlinedDueToDynamicDispatch")));
@@ -94,9 +108,23 @@ public class SingleTargetFromExactReceiverTypeTest extends TestBase {
 
     public static void main(String[] args) {
       new A().canBeInlined();
+      getInstanceOfAWithExactType().canBeInlinedDueToAssume();
+
       new B().canBeInlined();
+      getInstanceOfBWithExactType().canBeInlinedDueToAssume();
+
       (System.currentTimeMillis() >= 0 ? new A() : new B()).cannotBeInlinedDueToDynamicDispatch();
       new A().cannotBeInlinedDueToKeepRule();
+    }
+
+    @NeverInline
+    static A getInstanceOfAWithExactType() {
+      return new A();
+    }
+
+    @NeverInline
+    static A getInstanceOfBWithExactType() {
+      return new B();
     }
   }
 
@@ -105,6 +133,10 @@ public class SingleTargetFromExactReceiverTypeTest extends TestBase {
 
     public void canBeInlined() {
       System.out.println("A.canBeInlined()");
+    }
+
+    public void canBeInlinedDueToAssume() {
+      System.out.println("A.canBeInlinedDueToAssume()");
     }
 
     public void cannotBeInlinedDueToDynamicDispatch() {
@@ -121,6 +153,11 @@ public class SingleTargetFromExactReceiverTypeTest extends TestBase {
     @Override
     public void canBeInlined() {
       System.out.println("B.canBeInlined()");
+    }
+
+    @Override
+    public void canBeInlinedDueToAssume() {
+      System.out.println("B.canBeInlinedDueToAssume()");
     }
 
     @Override

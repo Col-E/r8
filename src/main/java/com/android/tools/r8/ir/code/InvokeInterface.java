@@ -96,7 +96,7 @@ public class InvokeInterface extends InvokeMethodWithReceiver {
           getInvokedMethod(),
           invocationContext,
           TypeAnalysis.getRefinedReceiverType(appViewWithLiveness, this),
-          getReceiver().getExactDynamicType());
+          getReceiver().getDynamicLowerBoundType(appViewWithLiveness));
     }
     return null;
   }

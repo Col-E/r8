@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.info;
 
+import static com.android.tools.r8.ir.optimize.info.DefaultMethodOptimizationInfo.UNKNOWN_CLASS_TYPE;
 import static com.android.tools.r8.ir.optimize.info.DefaultMethodOptimizationInfo.UNKNOWN_TYPE;
 
 import com.android.tools.r8.graph.AppView;
@@ -11,6 +12,7 @@ import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
 import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
 import java.util.BitSet;
@@ -37,6 +39,7 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
   private DexString returnedConstantString =
       DefaultMethodOptimizationInfo.UNKNOWN_RETURNED_CONSTANT_STRING;
   private TypeLatticeElement returnsObjectOfType = UNKNOWN_TYPE;
+  private ClassTypeLatticeElement returnsObjectWithLowerBoundType = UNKNOWN_CLASS_TYPE;
   private InlinePreference inlining = InlinePreference.Default;
   private boolean useIdentifierNameString =
       DefaultMethodOptimizationInfo.DOES_NOT_USE_IDNETIFIER_NAME_STRING;
@@ -86,6 +89,8 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
     returnedConstantNumber = template.returnedConstantNumber;
     returnsConstantString = template.returnsConstantString;
     returnedConstantString = template.returnedConstantString;
+    returnsObjectOfType = template.returnsObjectOfType;
+    returnsObjectWithLowerBoundType = template.returnsObjectWithLowerBoundType;
     inlining = template.inlining;
     useIdentifierNameString = template.useIdentifierNameString;
     checksNullReceiverBeforeAnySideEffect = template.checksNullReceiverBeforeAnySideEffect;
@@ -121,6 +126,11 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
   @Override
   public TypeLatticeElement getDynamicReturnType() {
     return returnsObjectOfType;
+  }
+
+  @Override
+  public ClassTypeLatticeElement getDynamicLowerBoundType() {
+    return returnsObjectWithLowerBoundType;
   }
 
   @Override
@@ -334,6 +344,18 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
     assert returnsObjectOfType == UNKNOWN_TYPE || type.lessThanOrEqual(returnsObjectOfType, appView)
         : "return type changed from " + returnsObjectOfType + " to " + type;
     returnsObjectOfType = type;
+  }
+
+  void markReturnsObjectWithLowerBoundType(ClassTypeLatticeElement type) {
+    assert type != null;
+    // Currently, we only have a lower bound type when we have _exact_ runtime type information.
+    // Thus, the type should never become more precise (although the nullability could).
+    assert returnsObjectWithLowerBoundType == UNKNOWN_CLASS_TYPE
+            || (type.equalUpToNullability(returnsObjectWithLowerBoundType)
+                && type.nullability()
+                    .lessThanOrEqual(returnsObjectWithLowerBoundType.nullability()))
+        : "lower bound type changed from " + returnsObjectWithLowerBoundType + " to " + type;
+    returnsObjectWithLowerBoundType = type;
   }
 
   // TODO(b/140214568): Should be package-private.

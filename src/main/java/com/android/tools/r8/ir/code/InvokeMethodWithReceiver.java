@@ -3,11 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
+import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
@@ -66,12 +68,14 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
     assert receiverType.isPreciseType();
 
     if (appView.appInfo().hasSubtyping()) {
-      DexType exactReceiverType = receiver.getExactDynamicType();
-      if (exactReceiverType != null) {
+      AppView<? extends AppInfoWithSubtyping> appViewWithSubtyping = appView.withSubtyping();
+      ClassTypeLatticeElement receiverLowerBoundType =
+          receiver.getDynamicLowerBoundType(appViewWithSubtyping);
+      if (receiverLowerBoundType != null) {
         DexType refinedReceiverType =
-            TypeAnalysis.getRefinedReceiverType(appView.withSubtyping(), this);
-        assert exactReceiverType == refinedReceiverType
-            || appView.appInfo().withSubtyping().isMissingOrHasMissingSuperType(exactReceiverType);
+            TypeAnalysis.getRefinedReceiverType(appViewWithSubtyping, this);
+        assert receiverLowerBoundType.getClassType() == refinedReceiverType
+            || receiverLowerBoundType.isBasedOnMissingClass(appViewWithSubtyping);
       }
     }
 

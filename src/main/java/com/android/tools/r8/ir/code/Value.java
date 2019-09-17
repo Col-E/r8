@@ -5,10 +5,14 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.regalloc.LiveIntervals;
 import com.android.tools.r8.origin.Origin;
@@ -1165,15 +1169,26 @@ public class Value {
     return typeLattice;
   }
 
-  public DexType getExactDynamicType() {
+  public ClassTypeLatticeElement getDynamicLowerBoundType(
+      AppView<? extends AppInfoWithSubtyping> appView) {
     Value root = getAliasedValue();
     if (root.isPhi()) {
       return null;
     }
     Instruction definition = root.definition;
     if (definition.isNewInstance()) {
-      NewInstance newInstance = definition.asNewInstance();
-      return newInstance.clazz;
+      DexType type = definition.asNewInstance().clazz;
+      DexClass clazz = appView.definitionFor(type);
+      if (clazz != null && !clazz.isInterface()) {
+        return ClassTypeLatticeElement.create(type, Nullability.definitelyNotNull(), appView);
+      }
+      return null;
+    }
+    // Try to find an alias of the receiver, which is defined by an instruction of the type
+    // Assume<DynamicTypeAssumption>.
+    Value aliasedValue = getSpecificAliasedValue(value -> value.definition.isAssumeDynamicType());
+    if (aliasedValue != null) {
+      return aliasedValue.definition.asAssumeDynamicType().getAssumption().getLowerBoundType();
     }
     return null;
   }

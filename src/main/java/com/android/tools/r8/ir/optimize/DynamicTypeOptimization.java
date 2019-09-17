@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Assume;
 import com.android.tools.r8.ir.code.Assume.DynamicTypeAssumption;
@@ -63,6 +64,7 @@ public class DynamicTypeOptimization {
       }
 
       TypeLatticeElement dynamicType;
+      ClassTypeLatticeElement dynamicLowerBoundType;
       if (current.isInvokeMethod()) {
         InvokeMethod invoke = current.asInvokeMethod();
 
@@ -79,10 +81,12 @@ public class DynamicTypeOptimization {
 
         MethodOptimizationInfo optimizationInfo = singleTarget.getOptimizationInfo();
         if (optimizationInfo.returnsArgument()) {
+          assert optimizationInfo.getDynamicLowerBoundType() == null;
           continue;
         }
 
         dynamicType = optimizationInfo.getDynamicReturnType();
+        dynamicLowerBoundType = optimizationInfo.getDynamicLowerBoundType();
       } else if (current.isStaticGet()) {
         StaticGet staticGet = current.asStaticGet();
         DexEncodedField encodedField = appView.appInfo().resolveField(staticGet.getField());
@@ -91,13 +95,21 @@ public class DynamicTypeOptimization {
         }
 
         dynamicType = encodedField.getOptimizationInfo().getDynamicType();
+        // TODO(b/140234782): Extend to field values.
+        dynamicLowerBoundType = null;
       } else {
         continue;
       }
 
-      if (dynamicType == null
-          || !dynamicType.strictlyLessThan(outValue.getTypeLattice(), appView)) {
+      boolean isTrivial =
+          (dynamicType == null || !dynamicType.strictlyLessThan(outValue.getTypeLattice(), appView))
+              && dynamicLowerBoundType == null;
+      if (isTrivial) {
         continue;
+      }
+
+      if (dynamicType == null) {
+        dynamicType = outValue.getTypeLattice();
       }
 
       // Split block if needed (only debug instructions are allowed after the throwing
@@ -113,7 +125,7 @@ public class DynamicTypeOptimization {
       // Insert AssumeDynamicType instruction.
       Assume<DynamicTypeAssumption> assumeInstruction =
           Assume.createAssumeDynamicTypeInstruction(
-              dynamicType, specializedOutValue, outValue, current, appView);
+              dynamicType, dynamicLowerBoundType, specializedOutValue, outValue, current, appView);
       assumeInstruction.setPosition(
           appView.options().debug ? current.getPosition() : Position.none());
       if (insertionBlock == block) {
@@ -139,5 +151,32 @@ public class DynamicTypeOptimization {
       }
     }
     return returnedTypes.isEmpty() ? null : TypeLatticeElement.join(returnedTypes, appView);
+  }
+
+  public ClassTypeLatticeElement computeDynamicLowerBoundType(
+      DexEncodedMethod method, IRCode code) {
+    assert method.method.proto.returnType.isReferenceType();
+    ClassTypeLatticeElement result = null;
+    for (BasicBlock block : code.blocks) {
+      JumpInstruction exitInstruction = block.exit();
+      if (exitInstruction.isReturn()) {
+        Value returnValue = exitInstruction.asReturn().returnValue();
+        ClassTypeLatticeElement dynamicLowerBoundType =
+            returnValue.getDynamicLowerBoundType(appView);
+        if (dynamicLowerBoundType == null) {
+          return null;
+        }
+        if (result == null) {
+          result = dynamicLowerBoundType;
+        } else if (dynamicLowerBoundType.equalUpToNullability(result)) {
+          if (dynamicLowerBoundType.nullability() != result.nullability()) {
+            result = dynamicLowerBoundType.join(result, appView).asClassTypeLatticeElement();
+          }
+        } else {
+          return null;
+        }
+      }
+    }
+    return result;
   }
 }

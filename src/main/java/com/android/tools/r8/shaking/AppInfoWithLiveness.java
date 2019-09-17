@@ -26,6 +26,7 @@ import com.android.tools.r8.graph.FieldAccessInfoImpl;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.graph.ResolutionResult;
+import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.optimize.NestUtils;
 import com.android.tools.r8.utils.CollectionUtils;
@@ -856,7 +857,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       DexMethod method,
       DexType invocationContext,
       DexType refinedReceiverType,
-      DexType receiverLowerBoundType) {
+      ClassTypeLatticeElement receiverLowerBoundType) {
     assert checkIfObsolete();
     DexEncodedMethod directResult = nestAccessLookup(method, invocationContext);
     if (directResult != null) {
@@ -867,7 +868,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     // runtime type information. In this case, the invoke will dispatch to the resolution result
     // from the runtime type of the receiver.
     if (receiverLowerBoundType != null) {
-      if (receiverLowerBoundType == refinedReceiverType) {
+      if (receiverLowerBoundType.getClassType() == refinedReceiverType) {
         ResolutionResult resolutionResult = resolveMethod(method.holder, method, false);
         if (resolutionResult.isValidVirtualTargetForDynamicDispatch()) {
           ResolutionResult refinedResolutionResult = resolveMethod(refinedReceiverType, method);
@@ -1049,7 +1050,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       DexMethod method,
       DexType invocationContext,
       DexType refinedReceiverType,
-      DexType receiverLowerBoundType) {
+      ClassTypeLatticeElement receiverLowerBoundType) {
     assert checkIfObsolete();
     DexEncodedMethod directResult = nestAccessLookup(method, invocationContext);
     if (directResult != null) {
@@ -1063,7 +1064,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     // runtime type information. In this case, the invoke will dispatch to the resolution result
     // from the runtime type of the receiver.
     if (receiverLowerBoundType != null) {
-      if (receiverLowerBoundType == refinedReceiverType) {
+      if (receiverLowerBoundType.getClassType() == refinedReceiverType) {
         ResolutionResult resolutionResult = resolveMethod(method.holder, method, true);
         if (resolutionResult.isValidVirtualTargetForDynamicDispatch()) {
           ResolutionResult refinedResolutionResult = resolveMethod(refinedReceiverType, method);

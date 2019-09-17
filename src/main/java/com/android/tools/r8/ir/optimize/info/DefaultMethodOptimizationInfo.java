@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
 import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
 import com.google.common.collect.ImmutableSet;
@@ -26,6 +27,7 @@ public class DefaultMethodOptimizationInfo implements MethodOptimizationInfo {
   static long UNKNOWN_RETURNED_CONSTANT_NUMBER = 0;
   static DexString UNKNOWN_RETURNED_CONSTANT_STRING = null;
   static TypeLatticeElement UNKNOWN_TYPE = null;
+  static ClassTypeLatticeElement UNKNOWN_CLASS_TYPE = null;
   static boolean DOES_NOT_USE_IDNETIFIER_NAME_STRING = false;
   static boolean UNKNOWN_CHECKS_NULL_RECEIVER_BEFORE_ANY_SIDE_EFFECT = false;
   static boolean UNKNOWN_TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT = false;
@@ -53,6 +55,11 @@ public class DefaultMethodOptimizationInfo implements MethodOptimizationInfo {
   @Override
   public TypeLatticeElement getDynamicReturnType() {
     return UNKNOWN_TYPE;
+  }
+
+  @Override
+  public ClassTypeLatticeElement getDynamicLowerBoundType() {
+    return UNKNOWN_CLASS_TYPE;
   }
 
   @Override

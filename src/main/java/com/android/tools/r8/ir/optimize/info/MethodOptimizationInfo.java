@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
 import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
 import java.util.BitSet;
@@ -26,6 +27,8 @@ public interface MethodOptimizationInfo {
   boolean classInitializerMayBePostponed();
 
   TypeLatticeElement getDynamicReturnType();
+
+  ClassTypeLatticeElement getDynamicLowerBoundType();
 
   ParameterUsage getParameterUsages(int parameter);
 

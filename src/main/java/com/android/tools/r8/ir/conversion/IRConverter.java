@@ -34,6 +34,7 @@ import com.android.tools.r8.ir.analysis.constant.SparseConditionalConstantPropag
 import com.android.tools.r8.ir.analysis.fieldaccess.FieldBitAccessAnalysis;
 import com.android.tools.r8.ir.analysis.sideeffect.ClassInitializerSideEffectAnalysis;
 import com.android.tools.r8.ir.analysis.sideeffect.ClassInitializerSideEffectAnalysis.ClassInitializerSideEffect;
+import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.AlwaysMaterializingDefinition;
@@ -1426,18 +1427,21 @@ public class IRConverter {
 
       TypeLatticeElement dynamicReturnType =
           dynamicTypeOptimization.computeDynamicReturnType(method, code);
-      if (dynamicReturnType == null) {
-        // No normal exits.
-        return;
+      if (dynamicReturnType != null) {
+        TypeLatticeElement staticReturnType =
+            TypeLatticeElement.fromDexType(staticReturnTypeRaw, Nullability.maybeNull(), appView);
+
+        // If the dynamic return type is not more precise than the static return type there is no
+        // need to record it.
+        if (dynamicReturnType.strictlyLessThan(staticReturnType, appView)) {
+          feedback.methodReturnsObjectOfType(method, appView, dynamicReturnType);
+        }
       }
 
-      TypeLatticeElement staticReturnType =
-          TypeLatticeElement.fromDexType(staticReturnTypeRaw, Nullability.maybeNull(), appView);
-
-      // If the dynamic return type is not more precise than the static return type there is no need
-      // to record it.
-      if (dynamicReturnType.strictlyLessThan(staticReturnType, appView)) {
-        feedback.methodReturnsObjectOfType(method, appView, dynamicReturnType);
+      ClassTypeLatticeElement exactReturnType =
+          dynamicTypeOptimization.computeDynamicLowerBoundType(method, code);
+      if (exactReturnType != null) {
+        feedback.methodReturnsObjectWithLowerBoundType(method, exactReturnType);
       }
     }
   }
