@@ -989,6 +989,12 @@ public class IRConverter {
     } catch (CompilationError e) {
       // If rewriting throws a compilation error, attach the origin and method if missing.
       throw e.withAdditionalOriginAndPositionInfo(origin, new MethodPosition(method.method));
+    } catch (NullPointerException e) {
+      throw new CompilationError(
+          "NullPointerException during IR Conversion",
+          e,
+          origin,
+          new MethodPosition(method.method));
     }
   }
 
