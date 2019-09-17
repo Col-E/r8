@@ -108,7 +108,7 @@ public final class BackportedMethodRewriter {
         continue;
       }
 
-      provider.rewriteInvoke(invoke, iterator, appView);
+      provider.rewriteInvoke(invoke, iterator, code, appView);
 
       if (provider.requiresGenerationOfCode()) {
         DexMethod newMethod = provider.provideMethod(appView);
@@ -937,7 +937,9 @@ public final class BackportedMethodRewriter {
       for (int i = 0; i <= 10; i++) {
         proto = factory.createProto(factory.listType, Collections.nCopies(i, factory.objectType));
         method = factory.createMethod(type, proto, name);
-        addProvider(new MethodGenerator(method, ListMethods::new));
+        addProvider(i == 0
+            ? new InvokeRewriter(method, ListMethods::rewriteEmptyOf)
+            : new MethodGenerator(method, ListMethods::new));
       }
       proto = factory.createProto(factory.listType, factory.objectArrayType);
       method = factory.createMethod(type, proto, name);
@@ -1061,7 +1063,7 @@ public final class BackportedMethodRewriter {
     }
 
     public abstract void rewriteInvoke(InvokeMethod invoke, InstructionListIterator iterator,
-        AppView<?> appView);
+        IRCode code, AppView<?> appView);
 
     public abstract DexMethod provideMethod(AppView<?> appView);
 
@@ -1085,7 +1087,7 @@ public final class BackportedMethodRewriter {
     }
 
     @Override
-    public void rewriteInvoke(InvokeMethod invoke, InstructionListIterator iterator,
+    public void rewriteInvoke(InvokeMethod invoke, InstructionListIterator iterator, IRCode code,
         AppView<?> appView) {
       iterator.replaceCurrentInstruction(
           new InvokeStatic(provideMethod(appView), invoke.outValue(), invoke.inValues()));
@@ -1123,8 +1125,9 @@ public final class BackportedMethodRewriter {
     }
 
     @Override public void rewriteInvoke(InvokeMethod invoke, InstructionListIterator iterator,
-        AppView<?> appView) {
+        IRCode code, AppView<?> appView) {
       rewriter.rewrite(invoke, iterator, appView.dexItemFactory());
+      assert code.isConsistentSSA();
     }
 
     @Override public boolean requiresGenerationOfCode() {
@@ -1158,7 +1161,7 @@ public final class BackportedMethodRewriter {
     }
 
     @Override
-    public void rewriteInvoke(InvokeMethod invoke, InstructionListIterator iterator,
+    public void rewriteInvoke(InvokeMethod invoke, InstructionListIterator iterator, IRCode code,
         AppView<?> appView) {
       iterator.replaceCurrentInstruction(
           new InvokeStatic(provideMethod(appView), invoke.outValue(), invoke.inValues()));

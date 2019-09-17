@@ -4,7 +4,11 @@
 
 package com.android.tools.r8.ir.desugar.backports;
 
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.ir.code.InstructionListIterator;
+import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.synthetic.TemplateMethodCode;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.ArrayList;
@@ -17,10 +21,6 @@ public class ListMethods extends TemplateMethodCode {
 
   public ListMethods(InternalOptions options, DexMethod method, String methodName) {
     super(options, method, methodName, method.proto.toDescriptorString());
-  }
-
-  public static <E> List<E> of() {
-    return Collections.emptyList();
   }
 
   public static <E> List<E> of(E e0) {
@@ -150,5 +150,16 @@ public class ListMethods extends TemplateMethodCode {
       list.add(Objects.requireNonNull(element));
     }
     return Collections.unmodifiableList(list);
+  }
+
+  public static void rewriteEmptyOf(InvokeMethod invoke, InstructionListIterator iterator,
+      DexItemFactory factory) {
+    assert invoke.inValues().isEmpty();
+
+    DexMethod collectionsEmptyList =
+        factory.createMethod(factory.collectionsType, invoke.getInvokedMethod().proto, "emptyList");
+    InvokeStatic newInvoke =
+        new InvokeStatic(collectionsEmptyList, invoke.outValue(), Collections.emptyList());
+    iterator.replaceCurrentInstruction(newInvoke);
   }
 }
