@@ -23,14 +23,25 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
 
+  private static final String CONTAINS_FLAGGED_OFF_FIELD =
+      "com.android.tools.r8.proto2.Shrinking$ContainsFlaggedOffField";
   private static final String EXT_B =
       "com.android.tools.r8.proto2.Shrinking$PartiallyUsedWithExtension$ExtB";
   private static final String EXT_C =
       "com.android.tools.r8.proto2.Shrinking$PartiallyUsedWithExtension$ExtC";
+  private static final String FLAGGED_OFF_EXTENSION =
+      "com.android.tools.r8.proto2.Shrinking$HasFlaggedOffExtension$Ext";
   private static final String HAS_NO_USED_EXTENSIONS =
       "com.android.tools.r8.proto2.Shrinking$HasNoUsedExtensions";
+  private static final String HAS_REQUIRED_FIELD =
+      "com.android.tools.r8.proto2.Graph$HasRequiredField";
   private static final String PARTIALLY_USED =
       "com.android.tools.r8.proto2.Shrinking$PartiallyUsed";
+  private static final String USED_ROOT = "com.android.tools.r8.proto2.Graph$UsedRoot";
+  private static final String USED_VIA_HAZZER =
+      "com.android.tools.r8.proto2.Shrinking$UsedViaHazzer";
+  private static final String USES_ONLY_REPEATED_FIELDS =
+      "com.android.tools.r8.proto2.Shrinking$UsesOnlyRepeatedFields";
 
   private static List<Path> PROGRAM_FILES =
       ImmutableList.of(PROTO2_EXAMPLES_JAR, PROTO2_PROTO_JAR, PROTOBUF_LITE_JAR);
@@ -82,8 +93,11 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
         .compile()
         .inspect(
             outputInspector -> {
+              verifyMapAndRequiredFieldsAreKept(inputInspector, outputInspector);
               verifyUnusedExtensionsAreRemoved(inputInspector, outputInspector);
               verifyUnusedFieldsAreRemoved(inputInspector, outputInspector);
+              verifyUnusedHazzerBitFieldsAreRemoved(inputInspector, outputInspector);
+              verifyUnusedTypesAreRemoved(inputInspector, outputInspector);
             })
         .run(parameters.getRuntime(), "proto2.TestClass")
         .assertSuccessWithOutputLines(
@@ -113,6 +127,67 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
             "10",
             "10",
             "10");
+  }
+
+  private void verifyMapAndRequiredFieldsAreKept(
+      CodeInspector inputInspector, CodeInspector outputInspector) {
+    // Verify the existence of various fields in the input.
+    {
+      ClassSubject usedRootClassSubject = inputInspector.clazz(USED_ROOT);
+      assertThat(usedRootClassSubject, isPresent());
+      assertThat(usedRootClassSubject.uniqueFieldWithName("hasRequiredFieldA_"), isPresent());
+      assertThat(usedRootClassSubject.uniqueFieldWithName("hasRequiredFieldB_"), isPresent());
+      assertThat(usedRootClassSubject.uniqueFieldWithName("myOneof_"), isPresent());
+      assertThat(
+          usedRootClassSubject.uniqueFieldWithName("recursiveWithRequiredField_"), isPresent());
+      assertThat(usedRootClassSubject.uniqueFieldWithName("isExtendedWithOptional_"), isPresent());
+      assertThat(usedRootClassSubject.uniqueFieldWithName("isExtendedWithScalars_"), isPresent());
+      assertThat(
+          usedRootClassSubject.uniqueFieldWithName("isExtendedWithRequiredField_"), isPresent());
+      assertThat(
+          usedRootClassSubject.uniqueFieldWithName("isRepeatedlyExtendedWithRequiredField_"),
+          isPresent());
+      assertThat(usedRootClassSubject.uniqueFieldWithName("hasMapField_"), isPresent());
+
+      ClassSubject hasRequiredFieldClassSubject = inputInspector.clazz(HAS_REQUIRED_FIELD);
+      assertThat(hasRequiredFieldClassSubject, isPresent());
+      assertThat(hasRequiredFieldClassSubject.uniqueFieldWithName("value_"), isPresent());
+    }
+
+    // Verify the existence of various fields in the output.
+    {
+      ClassSubject usedRootClassSubject = outputInspector.clazz(USED_ROOT);
+      assertThat(usedRootClassSubject, isPresent());
+      assertThat(usedRootClassSubject.uniqueFieldWithName("hasRequiredFieldA_"), isPresent());
+      assertThat(usedRootClassSubject.uniqueFieldWithName("hasRequiredFieldB_"), isPresent());
+      assertThat(usedRootClassSubject.uniqueFieldWithName("myOneof_"), isPresent());
+      assertThat(
+          usedRootClassSubject.uniqueFieldWithName("recursiveWithRequiredField_"), isPresent());
+      assertThat(usedRootClassSubject.uniqueFieldWithName("hasMapField_"), isPresent());
+
+      // TODO(b/112437944): Should be present.
+      assertThat(
+          usedRootClassSubject.uniqueFieldWithName("isExtendedWithRequiredField_"),
+          not(isPresent()));
+      // TODO(b/112437944): Should be present.
+      assertThat(
+          usedRootClassSubject.uniqueFieldWithName("isRepeatedlyExtendedWithRequiredField_"),
+          not(isPresent()));
+
+      ClassSubject hasRequiredFieldClassSubject = outputInspector.clazz(HAS_REQUIRED_FIELD);
+      assertThat(hasRequiredFieldClassSubject, isPresent());
+      assertThat(hasRequiredFieldClassSubject.uniqueFieldWithName("value_"), isPresent());
+    }
+
+    // Verify the absence of various fields in the output.
+    {
+      ClassSubject usedRootClassSubject = outputInspector.clazz(USED_ROOT);
+      assertThat(usedRootClassSubject, isPresent());
+      assertThat(
+          usedRootClassSubject.uniqueFieldWithName("isExtendedWithOptional_"), not(isPresent()));
+      assertThat(
+          usedRootClassSubject.uniqueFieldWithName("isExtendedWithScalars_"), not(isPresent()));
+    }
   }
 
   private void verifyUnusedExtensionsAreRemoved(
@@ -153,7 +228,8 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
 
     // Verify that unused extensions have been removed with -allowaccessmodification.
     if (allowAccessModification) {
-      List<String> unusedExtensionNames = ImmutableList.of(HAS_NO_USED_EXTENSIONS, EXT_B, EXT_C);
+      List<String> unusedExtensionNames =
+          ImmutableList.of(FLAGGED_OFF_EXTENSION, HAS_NO_USED_EXTENSIONS, EXT_B, EXT_C);
       for (String unusedExtensionName : unusedExtensionNames) {
         assertThat(inputInspector.clazz(unusedExtensionName), isPresent());
         assertThat(outputInspector.clazz(unusedExtensionName), not(isPresent()));
@@ -165,6 +241,10 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
       CodeInspector inputInspector, CodeInspector outputInspector) {
     // Verify that various proto fields are present the input.
     {
+      ClassSubject cfofClassSubject = inputInspector.clazz(CONTAINS_FLAGGED_OFF_FIELD);
+      assertThat(cfofClassSubject, isPresent());
+      assertThat(cfofClassSubject.uniqueFieldWithName("conditionallyUsed_"), isPresent());
+
       ClassSubject puClassSubject = inputInspector.clazz(PARTIALLY_USED);
       assertThat(puClassSubject, isPresent());
       assertEquals(7, puClassSubject.allInstanceFields().size());
@@ -175,10 +255,19 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
       assertThat(puClassSubject.uniqueFieldWithName("unusedRepeatedEnum_"), isPresent());
       assertThat(puClassSubject.uniqueFieldWithName("unusedMessage_"), isPresent());
       assertThat(puClassSubject.uniqueFieldWithName("unusedRepeatedMessage_"), isPresent());
+
+      ClassSubject uvhClassSubject = inputInspector.clazz(USED_VIA_HAZZER);
+      assertThat(uvhClassSubject, isPresent());
+      assertThat(uvhClassSubject.uniqueFieldWithName("used_"), isPresent());
+      assertThat(uvhClassSubject.uniqueFieldWithName("unused_"), isPresent());
     }
 
     // Verify that various proto fields have been removed in the output.
     {
+      ClassSubject cfofClassSubject = outputInspector.clazz(CONTAINS_FLAGGED_OFF_FIELD);
+      assertThat(cfofClassSubject, isPresent());
+      assertThat(cfofClassSubject.uniqueFieldWithName("conditionallyUsed_"), not(isPresent()));
+
       ClassSubject puClassSubject = outputInspector.clazz(PARTIALLY_USED);
       assertThat(puClassSubject, isPresent());
       assertThat(puClassSubject.uniqueFieldWithName("bitField0_"), isPresent());
@@ -188,6 +277,55 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
       assertThat(puClassSubject.uniqueFieldWithName("unusedRepeatedEnum_"), not(isPresent()));
       assertThat(puClassSubject.uniqueFieldWithName("unusedMessage_"), not(isPresent()));
       assertThat(puClassSubject.uniqueFieldWithName("unusedRepeatedMessage_"), not(isPresent()));
+
+      ClassSubject uvhClassSubject = outputInspector.clazz(USED_VIA_HAZZER);
+      assertThat(uvhClassSubject, isPresent());
+      assertThat(uvhClassSubject.uniqueFieldWithName("used_"), isPresent());
+      assertThat(uvhClassSubject.uniqueFieldWithName("unused_"), not(isPresent()));
+    }
+  }
+
+  private void verifyUnusedHazzerBitFieldsAreRemoved(
+      CodeInspector inputInspector, CodeInspector outputInspector) {
+    // Verify that various proto fields are present the input.
+    {
+      ClassSubject classSubject = inputInspector.clazz(USES_ONLY_REPEATED_FIELDS);
+      assertThat(classSubject, isPresent());
+      assertThat(classSubject.uniqueFieldWithName("bitField0_"), isPresent());
+      assertThat(classSubject.uniqueFieldWithName("myoneof_"), isPresent());
+      assertThat(classSubject.uniqueFieldWithName("myoneofCase_"), isPresent());
+    }
+
+    // Verify that various proto fields have been removed in the output.
+    {
+      ClassSubject classSubject = outputInspector.clazz(USES_ONLY_REPEATED_FIELDS);
+      assertThat(classSubject, isPresent());
+      assertThat(classSubject.uniqueFieldWithName("bitField0_"), not(isPresent()));
+      assertThat(classSubject.uniqueFieldWithName("myoneof_"), not(isPresent()));
+      assertThat(classSubject.uniqueFieldWithName("myoneofCase_"), not(isPresent()));
+    }
+  }
+
+  private void verifyUnusedTypesAreRemoved(
+      CodeInspector inputInspector, CodeInspector outputInspector) {
+    // Verify that various types are present the input.
+    {
+      ClassSubject enumClassSubject = inputInspector.clazz(PARTIALLY_USED + "$Enum");
+      assertThat(enumClassSubject, isPresent());
+
+      ClassSubject nestedClassSubject = inputInspector.clazz(PARTIALLY_USED + "$Nested");
+      assertThat(nestedClassSubject, isPresent());
+    }
+
+    // Verify that various types have been removed in the output.
+    {
+      ClassSubject enumClassSubject = outputInspector.clazz(PARTIALLY_USED + "$Enum");
+      // TODO(112437944): Should be removed.
+      assertThat(enumClassSubject, isPresent());
+
+      ClassSubject nestedClassSubject = outputInspector.clazz(PARTIALLY_USED + "$Nested");
+      // TODO(112437944): Should be removed.
+      assertThat(nestedClassSubject, isPresent());
     }
   }
 
