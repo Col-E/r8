@@ -180,7 +180,7 @@ public class CallSiteOptimizationInfoPropagator {
         originalArg.replaceUsers(specializedArg);
         Assume<DynamicTypeAssumption> assumeType =
             Assume.createAssumeDynamicTypeInstruction(
-                dynamicType, specializedArg, originalArg, instr, appView);
+                dynamicType, null, specializedArg, originalArg, instr, appView);
         assumeType.setPosition(instr.getPosition());
         assumeInstructions.add(assumeType);
       } else {
