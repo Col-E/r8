@@ -43,7 +43,6 @@ import com.android.tools.r8.ir.desugar.backports.NumericOperations;
 import com.android.tools.r8.ir.desugar.backports.ObjectsMethods;
 import com.android.tools.r8.ir.desugar.backports.OptionalMethods;
 import com.android.tools.r8.ir.desugar.backports.ShortMethods;
-import com.android.tools.r8.ir.desugar.backports.StringMethods;
 import com.android.tools.r8.ir.synthetic.TemplateMethodCode;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -848,14 +847,17 @@ public final class BackportedMethodRewriter {
       proto = factory.createProto(factory.stringType, factory.charSequenceType,
           factory.charSequenceArrayType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, StringMethods::new, "joinArray"));
+      addProvider(
+          new MethodGenerator(method, BackportedMethods::StringMethods_joinArray, "joinArray"));
 
       // String String.join(CharSequence, Iterable<? extends CharSequence>)
       name = factory.createString("join");
       proto =
           factory.createProto(factory.stringType, factory.charSequenceType, factory.iterableType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, StringMethods::new, "joinIterable"));
+      addProvider(
+          new MethodGenerator(
+              method, BackportedMethods::StringMethods_joinIterable, "joinIterable"));
     }
 
     private void initializeJava9MethodProviders(DexItemFactory factory) {

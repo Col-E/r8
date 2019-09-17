@@ -4,15 +4,9 @@
 
 package com.android.tools.r8.ir.desugar.backports;
 
-import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.ir.synthetic.TemplateMethodCode;
-import com.android.tools.r8.utils.InternalOptions;
 import java.util.Iterator;
 
-public final class StringMethods extends TemplateMethodCode {
-  public StringMethods(InternalOptions options, DexMethod method, String methodName) {
-    super(options, method, methodName, method.proto.toDescriptorString());
-  }
+public final class StringMethods {
 
   public static String joinArray(CharSequence delimiter, CharSequence... elements) {
     if (delimiter == null) throw new NullPointerException("delimiter");

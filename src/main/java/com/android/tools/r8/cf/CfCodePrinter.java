@@ -45,7 +45,12 @@ import com.android.tools.r8.cf.code.CfSwitch;
 import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.CfCode;
+import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProto;
+import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.If.Type;
+import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.utils.StringUtils;
@@ -196,8 +201,41 @@ public class CfCodePrinter extends CfPrinter {
     return irType("NumericType") + "." + type.name();
   }
 
+  private String memberType(MemberType type) {
+    return irType("MemberType") + "." + type.name();
+  }
+
   private String ifTypeKind(Type kind) {
     return irType("If") + ".Type." + kind.name();
+  }
+
+  private String dexString(DexString string) {
+    return "options.itemFactory.createString(" + quote(string.toString()) + ")";
+  }
+
+  private String dexType(DexType type) {
+    return "options.itemFactory.createType(" + quote(type.toDescriptorString()) + ")";
+  }
+
+  private String dexProto(DexProto proto) {
+    StringBuilder builder =
+        new StringBuilder()
+            .append("options.itemFactory.createProto(")
+            .append(dexType(proto.returnType));
+    for (DexType param : proto.parameters.values) {
+      builder.append(", ").append(dexType(param));
+    }
+    return builder.append(")").toString();
+  }
+
+  private String dexMethod(DexMethod method) {
+    return "options.itemFactory.createMethod("
+        + dexType(method.holder)
+        + ", "
+        + dexProto(method.proto)
+        + ", "
+        + dexString(method.name)
+        + ")";
   }
 
   private void ensureComma() {
@@ -228,12 +266,14 @@ public class CfCodePrinter extends CfPrinter {
 
   @Override
   public void print(CfStackInstruction instruction) {
-    throw new Unimplemented(instruction.getClass().getSimpleName());
+    printNewInstruction(
+        "CfStackInstruction",
+        cfType("CfStackInstruction") + ".Opcode." + instruction.getOpcode().name());
   }
 
   @Override
   public void print(CfThrow insn) {
-    throw new Unimplemented(insn.getClass().getSimpleName());
+    printNewInstruction("CfThrow");
   }
 
   @Override
@@ -297,7 +337,7 @@ public class CfCodePrinter extends CfPrinter {
 
   @Override
   public void print(CfConstString constString) {
-    throw new Unimplemented(constString.getClass().getSimpleName());
+    printNewInstruction("CfConstString", dexString(constString.getString()));
   }
 
   @Override
@@ -307,7 +347,7 @@ public class CfCodePrinter extends CfPrinter {
 
   @Override
   public void print(CfArrayLoad arrayLoad) {
-    throw new Unimplemented(arrayLoad.getClass().getSimpleName());
+    printNewInstruction("CfArrayLoad", memberType(arrayLoad.getType()));
   }
 
   @Override
@@ -317,7 +357,11 @@ public class CfCodePrinter extends CfPrinter {
 
   @Override
   public void print(CfInvoke invoke) {
-    throw new Unimplemented(invoke.getClass().getSimpleName());
+    printNewInstruction(
+        "CfInvoke",
+        Integer.toString(invoke.getOpcode()),
+        dexMethod(invoke.getMethod()),
+        Boolean.toString(invoke.isInterface()));
   }
 
   @Override
@@ -337,7 +381,7 @@ public class CfCodePrinter extends CfPrinter {
 
   @Override
   public void print(CfCheckCast insn) {
-    throw new Unimplemented(insn.getClass().getSimpleName());
+    printNewInstruction("CfCheckCast", dexType(insn.getType()));
   }
 
   @Override
@@ -347,7 +391,7 @@ public class CfCodePrinter extends CfPrinter {
 
   @Override
   public void print(CfNew newInstance) {
-    throw new Unimplemented(newInstance.getClass().getSimpleName());
+    printNewInstruction("CfNew", dexType(newInstance.getType()));
   }
 
   @Override
@@ -410,7 +454,10 @@ public class CfCodePrinter extends CfPrinter {
 
   @Override
   public void print(CfIinc instruction) {
-    throw new Unimplemented(instruction.getClass().getSimpleName());
+    printNewInstruction(
+        "CfIinc",
+        Integer.toString(instruction.getLocalIndex()),
+        Integer.toString(instruction.getIncrement()));
   }
 
   @Override
