@@ -18,14 +18,6 @@ public final class DoubleMethods extends TemplateMethodCode {
     return (int) (l ^ (l >>> 32));
   }
 
-  public static double max(double a, double b) {
-    return Math.max(a, b);
-  }
-
-  public static double min(double a, double b) {
-    return Math.min(a, b);
-  }
-
   public static boolean isFinite(double d) {
     return !Double.isInfinite(d) && !Double.isNaN(d);
   }

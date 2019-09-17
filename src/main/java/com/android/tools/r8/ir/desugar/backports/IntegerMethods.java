@@ -21,14 +21,6 @@ public final class IntegerMethods extends TemplateMethodCode {
     return a == b ? 0 : a < b ? -1 : 1;
   }
 
-  public static int max(int a, int b) {
-    return Math.max(a, b);
-  }
-
-  public static int min(int a, int b) {
-    return Math.min(a, b);
-  }
-
   public static int divideUnsigned(int dividend, int divisor) {
     long dividendLong = dividend & 0xffffffffL;
     long divisorLong = divisor & 0xffffffffL;

@@ -25,14 +25,6 @@ public final class LongMethods extends TemplateMethodCode {
     return (int) (l ^ (l >>> 32));
   }
 
-  public static long max(long a, long b) {
-    return Math.max(a, b);
-  }
-
-  public static long min(long a, long b) {
-    return Math.min(a, b);
-  }
-
   public static long divideUnsigned(long dividend, long divisor) {
     // This implementation is adapted from Guava's UnsignedLongs.java and Longs.java.
 

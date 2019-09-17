@@ -17,14 +17,6 @@ public final class FloatMethods extends TemplateMethodCode {
     return Float.floatToIntBits(f);
   }
 
-  public static float max(float a, float b) {
-    return Math.max(a, b);
-  }
-
-  public static float min(float a, float b) {
-    return Math.min(a, b);
-  }
-
   public static boolean isFinite(float f) {
     return !Float.isInfinite(f) && !Float.isNaN(f);
   }
