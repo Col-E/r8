@@ -36,7 +36,7 @@ public class Retrace {
 
   public static final String USAGE_MESSAGE =
       StringUtils.lines(
-          "Usage: retrace [--verbose] <proguard-map> <stacktrace-file>",
+          "Usage: retrace <proguard-map> <stacktrace-file>",
           "  where <proguard-map> is an r8 generated mapping file.");
 
   private static Builder parseArguments(String[] args, DiagnosticsHandler diagnosticsHandler) {
@@ -53,6 +53,12 @@ public class Retrace {
       if (verbose != null) {
         // TODO(b/132850880): Enable support for verbose.
         diagnosticsHandler.error(new StringDiagnostic("Currently no support for --verbose"));
+        continue;
+      }
+      String regex = OptionsParsing.tryParseSingle(context, "--regex", "r");
+      if (regex != null && !regex.isEmpty()) {
+        // TODO(b/132850880): Enable support for regex.
+        diagnosticsHandler.error(new StringDiagnostic("Currently no support for --regex"));
         continue;
       }
       if (!hasSetProguardMap) {
