@@ -14,7 +14,6 @@ import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.InliningOracle;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Collection;
 import java.util.List;
 
@@ -59,7 +58,7 @@ public abstract class InvokeMethod extends Invoke {
   // In subclasses, e.g., invoke-virtual or invoke-super, use a narrower receiver type by using
   // receiver type and calling context---the holder of the method where the current invocation is.
   public abstract DexEncodedMethod lookupSingleTarget(
-      AppView<AppInfoWithLiveness> appView, DexType invocationContext);
+      AppView<?> appView, DexType invocationContext);
 
   public abstract Collection<DexEncodedMethod> lookupTargets(
       AppView<? extends AppInfoWithSubtyping> appView, DexType invocationContext);

@@ -9,6 +9,7 @@ import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.InvokeStaticRange;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -101,10 +102,26 @@ public class InvokeStatic extends InvokeMethod {
   }
 
   @Override
-  public DexEncodedMethod lookupSingleTarget(
-      AppView<AppInfoWithLiveness> appView, DexType invocationContext) {
-    DexMethod method = getInvokedMethod();
-    return appView.appInfo().lookupStaticTarget(method);
+  public DexEncodedMethod lookupSingleTarget(AppView<?> appView, DexType invocationContext) {
+    DexMethod invokedMethod = getInvokedMethod();
+    if (appView.appInfo().hasLiveness()) {
+      AppInfoWithLiveness appInfo = appView.appInfo().withLiveness();
+      return appInfo.lookupStaticTarget(invokedMethod);
+    }
+    // In D8, we can treat invoke-static instructions as having a single target if the invoke is
+    // targeting a method in the enclosing class.
+    if (invokedMethod.holder == invocationContext) {
+      DexClass clazz = appView.definitionFor(invokedMethod.holder);
+      if (clazz != null && clazz.isProgramClass()) {
+        DexEncodedMethod singleTarget = clazz.lookupDirectMethod(invokedMethod);
+        if (singleTarget.isStatic()) {
+          return singleTarget;
+        }
+      } else {
+        assert false;
+      }
+    }
+    return null;
   }
 
   @Override

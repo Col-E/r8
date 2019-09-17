@@ -6,10 +6,10 @@ package com.android.tools.r8.ir.optimize;
 import static com.android.tools.r8.ir.code.DominatorTree.Assumption.MAY_HAVE_UNREACHABLE_BLOCKS;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
@@ -24,9 +24,11 @@ import com.android.tools.r8.ir.code.If.Type;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
+import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
+import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Sets;
@@ -47,6 +49,7 @@ import java.util.function.Predicate;
 public class NonNullTracker {
 
   private final AppView<?> appView;
+  private final DexItemFactory dexItemFactory;
   private final Consumer<BasicBlock> splitBlockConsumer;
 
   public NonNullTracker(AppView<?> appView) {
@@ -55,6 +58,7 @@ public class NonNullTracker {
 
   public NonNullTracker(AppView<?> appView, Consumer<BasicBlock> splitBlockConsumer) {
     this.appView = appView;
+    this.dexItemFactory = appView.dexItemFactory();
     this.splitBlockConsumer = splitBlockConsumer;
   }
 
@@ -72,72 +76,63 @@ public class NonNullTracker {
         continue;
       }
       // Add non-null after
-      // 1) invocations that call non-overridable library methods that are known to return non null.
-      // 2) instructions that implicitly indicate receiver/array is not null.
-      // 3) parameters that are not null after the invocation.
+      // 1) instructions that implicitly indicate receiver/array is not null.
+      // 2) invocations that call non-overridable library methods that are known to return non null.
+      // 3) invocations that are guaranteed to return a non-null value.
+      // 4) parameters that are not null after the invocation.
+      // 5) field-get instructions that are guaranteed to read a non-null value.
       InstructionListIterator iterator = block.listIterator(code);
       while (iterator.hasNext()) {
         Instruction current = iterator.next();
-        if (current.isInvokeMethod()
-            && appView
-                .dexItemFactory()
-                .libraryMethodsReturningNonNull
-                .contains(current.asInvokeMethod().getInvokedMethod())) {
-          Value knownToBeNonNullValue = current.outValue();
-          // Avoid adding redundant non-null instruction.
-          // Otherwise, we will have something like:
-          // non_null_rcv <- non-null(rcv)
-          // ...
-          // another_rcv <- non-null(non_null_rcv)
-          if (knownToBeNonNullValue != null && isNullableReferenceType(knownToBeNonNullValue)) {
-            knownToBeNonNullValues.add(knownToBeNonNullValue);
-          }
-        }
+        Value outValue = current.outValue();
+
+        // Case (1), instructions that implicitly indicate receiver/array is not null.
         if (current.throwsOnNullInput()) {
           Value couldBeNonNull = current.getNonNullInput();
           if (isNullableReferenceType(couldBeNonNull)) {
             knownToBeNonNullValues.add(couldBeNonNull);
           }
         }
-        if (current.isInvokeMethod() && !current.isInvokePolymorphic()) {
-          DexEncodedMethod singleTarget = null;
-          if (appView.enableWholeProgramOptimizations()) {
-            assert appView.appInfo().hasLiveness();
-            singleTarget =
-                current
-                    .asInvokeMethod()
-                    .lookupSingleTarget(appView.withLiveness(), code.method.method.holder);
-          } else {
-            // Even in D8, invoke-{direct|static} can be resolved without liveness.
-            // Due to the incremental compilation, though, it is allowed only if the holder of the
-            // invoked method is same as that of the method we are processing now.
-            DexMethod invokedMethod = current.asInvokeMethod().getInvokedMethod();
-            if (invokedMethod.holder == code.method.method.holder) {
-              DexClass clazz = appView.definitionFor(invokedMethod.holder);
-              assert clazz != null && clazz.isProgramClass();
-              if (clazz != null) {
-                DexEncodedMethod directMethod = clazz.lookupDirectMethod(invokedMethod);
-                if (current.isInvokeDirect() && !directMethod.isStatic()) {
-                  singleTarget = directMethod;
-                } else if (current.isInvokeStatic() && directMethod.isStatic()) {
-                  singleTarget = directMethod;
-                }
-              }
+
+        if (current.isInvokeMethod()) {
+          InvokeMethod invoke = current.asInvokeMethod();
+          DexMethod invokedMethod = invoke.getInvokedMethod();
+
+          // Case (2), invocations that call non-overridable library methods that are known to
+          // return non null.
+          if (dexItemFactory.libraryMethodsReturningNonNull.contains(invokedMethod)) {
+            if (current.hasOutValue() && isNullableReferenceType(outValue)) {
+              knownToBeNonNullValues.add(outValue);
             }
           }
-          if (singleTarget != null
-              && singleTarget.getOptimizationInfo().getNonNullParamOnNormalExits() != null) {
-            BitSet facts = singleTarget.getOptimizationInfo().getNonNullParamOnNormalExits();
-            for (int i = 0; i < current.inValues().size(); i++) {
-              if (facts.get(i)) {
-                Value knownToBeNonNullValue = current.inValues().get(i);
-                if (isNullableReferenceType(knownToBeNonNullValue)) {
-                  knownToBeNonNullValues.add(knownToBeNonNullValue);
+
+          DexEncodedMethod singleTarget =
+              invoke.lookupSingleTarget(appView, code.method.method.holder);
+          if (singleTarget != null) {
+            MethodOptimizationInfo optimizationInfo = singleTarget.getOptimizationInfo();
+
+            // Case (3), invocations that are guaranteed to return a non-null value.
+            if (optimizationInfo.neverReturnsNull()) {
+              if (invoke.hasOutValue() && isNullableReferenceType(outValue)) {
+                knownToBeNonNullValues.add(outValue);
+              }
+            }
+
+            // Case (4), parameters that are not null after the invocation.
+            BitSet nonNullParamOnNormalExits = optimizationInfo.getNonNullParamOnNormalExits();
+            if (nonNullParamOnNormalExits != null) {
+              for (int i = 0; i < current.inValues().size(); i++) {
+                if (nonNullParamOnNormalExits.get(i)) {
+                  Value knownToBeNonNullValue = current.inValues().get(i);
+                  if (isNullableReferenceType(knownToBeNonNullValue)) {
+                    knownToBeNonNullValues.add(knownToBeNonNullValue);
+                  }
                 }
               }
             }
           }
         } else if (current.isFieldGet()) {
+          // Case (5), field-get instructions that are guaranteed to read a non-null value.
           FieldInstruction fieldInstruction = current.asFieldInstruction();
           DexField field = fieldInstruction.getField();
           if (field.type.isClassType()) {
@@ -145,12 +140,21 @@ public class NonNullTracker {
             if (encodedField != null) {
               FieldOptimizationInfo optimizationInfo = encodedField.getOptimizationInfo();
               if (optimizationInfo.getDynamicType() != null
-                  && optimizationInfo.getDynamicType().isDefinitelyNotNull()) {
-                knownToBeNonNullValues.add(fieldInstruction.outValue());
+                  && optimizationInfo.getDynamicType().isDefinitelyNotNull()
+                  && isNullableReferenceType(outValue)) {
+                knownToBeNonNullValues.add(outValue);
               }
             }
           }
         }
+
+        // This is to ensure that we do not add redundant non-null instructions.
+        // Otherwise, we will have something like:
+        //   y <- assume-not-null(x)
+        //   ...
+        //   z <- assume-not-null(y)
+        assert knownToBeNonNullValues.stream().allMatch(NonNullTracker::isNullableReferenceType);
+
         if (!knownToBeNonNullValues.isEmpty()) {
           addNonNullForValues(
               code,

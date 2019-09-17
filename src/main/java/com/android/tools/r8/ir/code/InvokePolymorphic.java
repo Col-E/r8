@@ -19,7 +19,6 @@ import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.optimize.InliningOracle;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Collection;
 import java.util.List;
 
@@ -117,8 +116,7 @@ public class InvokePolymorphic extends InvokeMethod {
   }
 
   @Override
-  public DexEncodedMethod lookupSingleTarget(
-      AppView<AppInfoWithLiveness> appView, DexType invocationContext) {
+  public DexEncodedMethod lookupSingleTarget(AppView<?> appView, DexType invocationContext) {
     // TODO(herhut): Implement lookup target for invokePolymorphic.
     return null;
   }
