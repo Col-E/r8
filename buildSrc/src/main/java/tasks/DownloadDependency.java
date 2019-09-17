@@ -13,11 +13,14 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
+import javax.inject.Inject;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.tasks.InputFiles;
 import org.gradle.api.tasks.OutputDirectory;
 import org.gradle.api.tasks.TaskAction;
 import org.gradle.internal.os.OperatingSystem;
+import org.gradle.workers.IsolationMode;
+import org.gradle.workers.WorkerExecutor;
 
 public class DownloadDependency extends DefaultTask {
 
@@ -26,18 +29,23 @@ public class DownloadDependency extends DefaultTask {
     X20
   }
 
+  private final WorkerExecutor workerExecutor;
+
   private Type type;
-  private String dependency;
   private File outputDir;
   private File tarGzFile;
   private File sha1File;
+
+  @Inject
+  public DownloadDependency(WorkerExecutor workerExecutor) {
+    this.workerExecutor = workerExecutor;
+  }
 
   public void setType(Type type) {
     this.type = type;
   }
 
   public void setDependency(String dependency) {
-    this.dependency = dependency;
     outputDir = new File(dependency);
     tarGzFile = new File(dependency + ".tar.gz");
     sha1File = new File(dependency + ".tar.gz.sha1");
@@ -76,51 +84,75 @@ public class DownloadDependency extends DefaultTask {
     if (outputDir.exists() && outputDir.isDirectory()) {
       outputDir.delete();
     }
-    if (type == Type.GOOGLE_STORAGE) {
-      downloadFromGoogleStorage();
-    } else if (type == Type.X20) {
-      downloadFromX20();
-    } else {
-      throw new RuntimeException("Unexpected or missing dependency type: " + type);
-    }
+    workerExecutor.submit(RunDownload.class, config -> {
+      config.setIsolationMode(IsolationMode.NONE);
+      config.params(type, sha1File);
+    });
   }
 
-  private void downloadFromGoogleStorage() throws IOException, InterruptedException {
-    List<String> args = Arrays.asList("-n", "-b", "r8-deps", "-s", "-u", sha1File.toString());
-    if (OperatingSystem.current().isWindows()) {
-      List<String> command = new ArrayList<>();
-      command.add("download_from_google_storage.bat");
-      command.addAll(args);
-      runProcess(new ProcessBuilder().command(command));
-    } else {
+  public static class RunDownload implements Runnable {
+    private final Type type;
+    private final File sha1File;
+
+    @Inject
+    public RunDownload(Type type, File sha1File) {
+      this.type = type;
+      this.sha1File = sha1File;
+    }
+
+    @Override
+    public void run() {
+      try {
+        if (type == Type.GOOGLE_STORAGE) {
+          downloadFromGoogleStorage();
+        } else if (type == Type.X20) {
+          downloadFromX20();
+        } else {
+          throw new RuntimeException("Unexpected or missing dependency type: " + type);
+        }
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+    private void downloadFromGoogleStorage() throws IOException, InterruptedException {
+      List<String> args = Arrays.asList("-n", "-b", "r8-deps", "-s", "-u", sha1File.toString());
+      if (OperatingSystem.current().isWindows()) {
+        List<String> command = new ArrayList<>();
+        command.add("download_from_google_storage.bat");
+        command.addAll(args);
+        runProcess(new ProcessBuilder().command(command));
+      } else {
+        runProcess(
+            new ProcessBuilder()
+                .command("bash", "-c", "download_from_google_storage " + String.join(" ", args)));
+      }
+    }
+
+    private void downloadFromX20() throws IOException, InterruptedException {
+      if (OperatingSystem.current().isWindows()) {
+        throw new RuntimeException("Downloading from x20 unsupported on windows");
+      }
       runProcess(
           new ProcessBuilder()
-              .command("bash", "-c", "download_from_google_storage " + String.join(" ", args)));
+              .command("bash", "-c", "tools/download_from_x20.py " + sha1File.toString()));
     }
-  }
 
-  private void downloadFromX20() throws IOException, InterruptedException {
-    if (OperatingSystem.current().isWindows()) {
-      throw new RuntimeException("Downloading from x20 unsupported on windows");
-    }
-    runProcess(
-        new ProcessBuilder()
-            .command("bash", "-c", "tools/download_from_x20.py " + sha1File.toString()));
-  }
-
-  private static void runProcess(ProcessBuilder builder) throws IOException, InterruptedException {
-    String command = String.join(" ", builder.command());
-    Process p = builder.start();
-    int exit = p.waitFor();
-    if (exit != 0) {
-      throw new IOException(
-          "Process failed for "
-              + command
-              + "\n"
-              + new BufferedReader(
-                      new InputStreamReader(p.getErrorStream(), StandardCharsets.UTF_8))
-                  .lines()
-                  .collect(Collectors.joining("\n")));
+    private static void runProcess(ProcessBuilder builder)
+        throws IOException, InterruptedException {
+      String command = String.join(" ", builder.command());
+      Process p = builder.start();
+      int exit = p.waitFor();
+      if (exit != 0) {
+        throw new IOException(
+            "Process failed for "
+                + command
+                + "\n"
+                + new BufferedReader(
+                new InputStreamReader(p.getErrorStream(), StandardCharsets.UTF_8))
+                .lines()
+                .collect(Collectors.joining("\n")));
+      }
     }
   }
 }
