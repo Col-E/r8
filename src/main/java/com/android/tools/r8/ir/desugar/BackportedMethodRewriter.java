@@ -343,7 +343,7 @@ public final class BackportedMethodRewriter {
       name = factory.createString("hash");
       proto = factory.createProto(factory.intType, factory.objectArrayType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, ObjectsMethods::new));
+      addProvider(new InvokeRewriter(method, ObjectsMethods::rewriteToArraysHashCode));
 
       // int Objects.hashCode(Object o)
       name = factory.createString("hashCode");

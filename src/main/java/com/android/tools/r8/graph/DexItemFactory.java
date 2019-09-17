@@ -219,6 +219,7 @@ public class DexItemFactory {
   public final DexString supplierDescriptor = createString("Ljava/util/function/Supplier;");
   public final DexString consumerDescriptor = createString("Ljava/util/function/Consumer;");
   public final DexString runnableDescriptor = createString("Ljava/lang/Runnable;");
+  public final DexString arraysDescriptor = createString("Ljava/util/Arrays;");
 
   public final DexString throwableDescriptor = createString(throwableDescriptorString);
   public final DexString illegalAccessErrorDescriptor =
@@ -561,7 +562,7 @@ public class DexItemFactory {
     private JavaUtilArraysMethods() {
       asList =
           createMethod(
-              createString("Ljava/util/Arrays;"),
+              arraysDescriptor,
               createString("asList"),
               listDescriptor,
               new DexString[] {objectArrayDescriptor});

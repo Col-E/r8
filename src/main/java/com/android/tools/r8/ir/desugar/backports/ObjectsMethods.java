@@ -6,8 +6,10 @@ package com.android.tools.r8.ir.desugar.backports;
 
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.synthetic.TemplateMethodCode;
 import com.android.tools.r8.utils.InternalOptions;
@@ -62,8 +64,14 @@ public final class ObjectsMethods extends TemplateMethodCode {
     return a == b || (a != null && a.equals(b));
   }
 
-  public static int hash(Object[] o) {
-    return Arrays.hashCode(o);
+  public static void rewriteToArraysHashCode(InvokeMethod invoke, InstructionListIterator iterator,
+      DexItemFactory factory) {
+    DexType arraysType = factory.createType(factory.arraysDescriptor);
+    DexMethod hashCodeMethod =
+        factory.createMethod(arraysType, invoke.getInvokedMethod().proto, "hashCode");
+    InvokeStatic arraysHashCode =
+        new InvokeStatic(hashCodeMethod, invoke.outValue(), invoke.inValues(), false);
+    iterator.replaceCurrentInstruction(arraysHashCode);
   }
 
   public static int hashCode(Object o) {
