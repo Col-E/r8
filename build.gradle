@@ -18,9 +18,7 @@ buildscript {
             url 'http://storage.googleapis.com/r8-deps/maven_mirror/'
         }
         mavenCentral()
-        maven {
-            url "https://plugins.gradle.org/m2/"
-        }
+        gradlePluginPortal()
         jcenter()
     }
     dependencies {
@@ -58,9 +56,8 @@ repositories {
     maven {
        url 'http://storage.googleapis.com/r8-deps/maven_mirror/'
     }
-    maven { url 'https://maven.google.com' }
+    google()
     mavenCentral()
-    maven { url 'https://kotlin.bintray.com/kotlinx' }
 }
 
 if (project.hasProperty('with_code_coverage')) {
