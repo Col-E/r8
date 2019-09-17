@@ -8,6 +8,7 @@ import static com.android.tools.r8.naming.IdentifierNameStringUtils.identifyIden
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.isReflectionMethod;
 import static com.android.tools.r8.shaking.AnnotationRemover.shouldKeepAnnotation;
 import static com.android.tools.r8.shaking.EnqueuerUtils.toImmutableSortedMap;
+import static com.google.common.base.Predicates.not;
 
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.dex.IndexedItemCollection;
@@ -98,6 +99,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -152,6 +154,8 @@ public class Enqueuer {
   private final Map<DexMethod, Set<DexEncodedMethod>> staticInvokes = new IdentityHashMap<>();
   private final FieldAccessInfoCollectionImpl fieldAccessInfoCollection =
       new FieldAccessInfoCollectionImpl();
+  private final Set<DexField> instanceFieldsWrittenOutsideEnclosingInstanceInitializers =
+      Sets.newIdentityHashSet();
   private final Set<DexField> staticFieldsWrittenOutsideEnclosingStaticInitializer =
       Sets.newIdentityHashSet();
   private final Set<DexCallSite> callSites = Sets.newIdentityHashSet();
@@ -380,7 +384,19 @@ public class Enqueuer {
     }
   }
 
+  private Set<DexField> instanceFieldsWrittenOnlyInEnclosingInstanceInitializers() {
+    Set<DexField> result = getNonPinnedWrittenFields(not(DexEncodedField::isStatic));
+    result.removeAll(instanceFieldsWrittenOutsideEnclosingInstanceInitializers);
+    return result;
+  }
+
   private Set<DexField> staticFieldsWrittenOnlyInEnclosingStaticInitializer() {
+    Set<DexField> result = getNonPinnedWrittenFields(DexEncodedField::isStatic);
+    result.removeAll(staticFieldsWrittenOutsideEnclosingStaticInitializer);
+    return result;
+  }
+
+  private Set<DexField> getNonPinnedWrittenFields(Predicate<DexEncodedField> predicate) {
     Set<DexField> result = Sets.newIdentityHashSet();
     fieldAccessInfoCollection.forEach(
         info -> {
@@ -394,11 +410,12 @@ public class Enqueuer {
             assert false;
             return;
           }
-          if (encodedField.isProgramField(appInfo) && encodedField.isStatic() && info.isWritten()) {
+          if (encodedField.isProgramField(appInfo)
+              && info.isWritten()
+              && predicate.test(encodedField)) {
             result.add(encodedField.field);
           }
         });
-    result.removeAll(staticFieldsWrittenOutsideEnclosingStaticInitializer);
     result.removeAll(
         pinnedItems.stream()
             .filter(DexReference::isDexField)
@@ -712,6 +729,13 @@ public class Enqueuer {
         Log.verbose(getClass(), "Register Iput `%s`.", field);
       }
 
+      // If it is written outside of the <init>s of its enclosing class, record it.
+      boolean isWrittenOutsideEnclosingInstanceInitializers =
+          currentMethod.method.holder != encodedField.field.holder
+              || !currentMethod.isInstanceInitializer();
+      if (isWrittenOutsideEnclosingInstanceInitializers) {
+        instanceFieldsWrittenOutsideEnclosingInstanceInitializers.add(encodedField.field);
+      }
 
       // If unused interface removal is enabled, then we won't necessarily mark the actual holder of
       // the field as live, if the holder is an interface.
@@ -2116,8 +2140,8 @@ public class Enqueuer {
             toSortedDescriptorSet(liveMethods.getItems()),
             // Filter out library fields and pinned fields, because these are read by default.
             fieldAccessInfoCollection,
-            ImmutableSortedSet.copyOf(
-                DexField::slowCompareTo, staticFieldsWrittenOnlyInEnclosingStaticInitializer()),
+            instanceFieldsWrittenOnlyInEnclosingInstanceInitializers(),
+            staticFieldsWrittenOnlyInEnclosingStaticInitializer(),
             // TODO(b/132593519): Do we require these sets to be sorted for determinism?
             toImmutableSortedMap(virtualInvokes, PresortedComparable::slowCompare),
             toImmutableSortedMap(interfaceInvokes, PresortedComparable::slowCompare),

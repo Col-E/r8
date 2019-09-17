@@ -100,10 +100,15 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
    */
   private final FieldAccessInfoCollectionImpl fieldAccessInfoCollection;
   /**
+   * Set of all instance fields that are only written inside the <init>() methods of their enclosing
+   * class.
+   */
+  private Set<DexField> instanceFieldsWrittenOnlyInEnclosingInstanceInitializers;
+  /**
    * Set of all static fields that are only written inside the <clinit>() method of their enclosing
    * class.
    */
-  private SortedSet<DexField> staticFieldsWrittenOnlyInEnclosingStaticInitializer;
+  private Set<DexField> staticFieldsWrittenOnlyInEnclosingStaticInitializer;
   /** Set of all methods referenced in virtual invokes, along with calling context. */
   public final SortedMap<DexMethod, Set<DexEncodedMethod>> virtualInvokes;
   /** Set of all methods referenced in interface invokes, along with calling context. */
@@ -190,7 +195,8 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       SortedSet<DexMethod> virtualMethodsTargetedByInvokeDirect,
       SortedSet<DexMethod> liveMethods,
       FieldAccessInfoCollectionImpl fieldAccessInfoCollection,
-      SortedSet<DexField> staticFieldsWrittenOnlyInEnclosingStaticInitializer,
+      Set<DexField> instanceFieldsWrittenOnlyInEnclosingInstanceInitializers,
+      Set<DexField> staticFieldsWrittenOnlyInEnclosingStaticInitializer,
       SortedMap<DexMethod, Set<DexEncodedMethod>> virtualInvokes,
       SortedMap<DexMethod, Set<DexEncodedMethod>> interfaceInvokes,
       SortedMap<DexMethod, Set<DexEncodedMethod>> superInvokes,
@@ -226,6 +232,8 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.virtualMethodsTargetedByInvokeDirect = virtualMethodsTargetedByInvokeDirect;
     this.liveMethods = liveMethods;
     this.fieldAccessInfoCollection = fieldAccessInfoCollection;
+    this.instanceFieldsWrittenOnlyInEnclosingInstanceInitializers =
+        instanceFieldsWrittenOnlyInEnclosingInstanceInitializers;
     this.staticFieldsWrittenOnlyInEnclosingStaticInitializer =
         staticFieldsWrittenOnlyInEnclosingStaticInitializer;
     this.pinnedItems = pinnedItems;
@@ -266,7 +274,8 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       SortedSet<DexMethod> virtualMethodsTargetedByInvokeDirect,
       SortedSet<DexMethod> liveMethods,
       FieldAccessInfoCollectionImpl fieldAccessInfoCollection,
-      SortedSet<DexField> staticFieldsWrittenOnlyInEnclosingStaticInitializer,
+      Set<DexField> instanceFieldsWrittenOnlyInEnclosingInstanceInitializers,
+      Set<DexField> staticFieldsWrittenOnlyInEnclosingStaticInitializer,
       SortedMap<DexMethod, Set<DexEncodedMethod>> virtualInvokes,
       SortedMap<DexMethod, Set<DexEncodedMethod>> interfaceInvokes,
       SortedMap<DexMethod, Set<DexEncodedMethod>> superInvokes,
@@ -302,6 +311,8 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.virtualMethodsTargetedByInvokeDirect = virtualMethodsTargetedByInvokeDirect;
     this.liveMethods = liveMethods;
     this.fieldAccessInfoCollection = fieldAccessInfoCollection;
+    this.instanceFieldsWrittenOnlyInEnclosingInstanceInitializers =
+        instanceFieldsWrittenOnlyInEnclosingInstanceInitializers;
     this.staticFieldsWrittenOnlyInEnclosingStaticInitializer =
         staticFieldsWrittenOnlyInEnclosingStaticInitializer;
     this.pinnedItems = pinnedItems;
@@ -351,6 +362,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
         previous.virtualMethodsTargetedByInvokeDirect,
         previous.liveMethods,
         previous.fieldAccessInfoCollection,
+        previous.instanceFieldsWrittenOnlyInEnclosingInstanceInitializers,
         previous.staticFieldsWrittenOnlyInEnclosingStaticInitializer,
         previous.virtualInvokes,
         previous.interfaceInvokes,
@@ -402,6 +414,9 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
         lense.rewriteMethodsConservatively(previous.virtualMethodsTargetedByInvokeDirect);
     this.liveMethods = lense.rewriteMethodsConservatively(previous.liveMethods);
     this.fieldAccessInfoCollection = previous.fieldAccessInfoCollection.rewrittenWithLens(lense);
+    this.instanceFieldsWrittenOnlyInEnclosingInstanceInitializers =
+        rewriteItems(
+            previous.instanceFieldsWrittenOnlyInEnclosingInstanceInitializers, lense::lookupField);
     this.staticFieldsWrittenOnlyInEnclosingStaticInitializer =
         rewriteItems(
             previous.staticFieldsWrittenOnlyInEnclosingStaticInitializer, lense::lookupField);
@@ -479,6 +494,8 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.virtualMethodsTargetedByInvokeDirect = previous.virtualMethodsTargetedByInvokeDirect;
     this.liveMethods = previous.liveMethods;
     this.fieldAccessInfoCollection = previous.fieldAccessInfoCollection;
+    this.instanceFieldsWrittenOnlyInEnclosingInstanceInitializers =
+        previous.instanceFieldsWrittenOnlyInEnclosingInstanceInitializers;
     this.staticFieldsWrittenOnlyInEnclosingStaticInitializer =
         previous.staticFieldsWrittenOnlyInEnclosingStaticInitializer;
     this.pinnedItems = previous.pinnedItems;
@@ -693,6 +710,12 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       return true;
     }
     return false;
+  }
+
+  public boolean isInstanceFieldWrittenOnlyInEnclosingInstanceInitializers(DexEncodedField field) {
+    assert checkIfObsolete();
+    assert isFieldWritten(field) : "Expected field `" + field.toSourceString() + "` to be written";
+    return instanceFieldsWrittenOnlyInEnclosingInstanceInitializers.contains(field.field);
   }
 
   public boolean isStaticFieldWrittenOnlyInEnclosingStaticInitializer(DexEncodedField field) {
