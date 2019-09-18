@@ -100,7 +100,6 @@ public final class InterfaceMethodRewriter {
   private final InternalOptions options;
   final DexItemFactory factory;
   private final Map<DexType, DexType> emulatedInterfaces = new IdentityHashMap<>();
-  private final Map<String, String> prefixRewritingInterfaces = new IdentityHashMap<>();
   // The emulatedMethod set is there to avoid doing the emulated look-up too often.
   private final Set<DexString> emulatedMethods = Sets.newIdentityHashSet();
   private ConcurrentHashMap<DexMethod, DexType> nearestEmulatedInterfaceCache =
@@ -131,10 +130,6 @@ public final class InterfaceMethodRewriter {
     ExcludeDexResources
   }
 
-  public Map<String, String> getPrefixRewritingInterfaces() {
-    return prefixRewritingInterfaces;
-  }
-
   public InterfaceMethodRewriter(AppView<?> appView, IRConverter converter) {
     assert converter != null;
     this.appView = appView;
@@ -161,10 +156,10 @@ public final class InterfaceMethodRewriter {
   }
 
   private void addRewritePrefix(DexType interfaceType, String rewrittenType) {
-    prefixRewritingInterfaces.put(
+    appView.rewritePrefix.addPrefix(
         getCompanionClassType(interfaceType).toString(),
         rewrittenType + COMPANION_CLASS_NAME_SUFFIX);
-    prefixRewritingInterfaces.put(
+    appView.rewritePrefix.addPrefix(
         getEmulateLibraryInterfaceClassType(interfaceType, factory).toString(),
         rewrittenType + EMULATE_LIBRARY_CLASS_NAME_SUFFIX);
   }
@@ -531,8 +526,7 @@ public final class InterfaceMethodRewriter {
     if (emulatedInterfaces.containsKey(clazz.type)) {
       return true;
     }
-    return clazz.type.rewritingPrefixIn(options.desugaredLibraryConfiguration.getRewritePrefix())
-        != null;
+    return appView.rewritePrefix.hasRewrittenType(clazz.type);
   }
 
   private boolean dontRewrite(DexMethod method) {
@@ -884,10 +878,7 @@ public final class InterfaceMethodRewriter {
     for (DexClass clazz : appView.appInfo().classes()) {
       if (clazz.isInterface()) {
         DexType newType = inferEmulatedInterfaceName(clazz);
-        if (newType != null
-            && clazz.type.rewritingPrefixIn(
-                    appView.options().desugaredLibraryConfiguration.getRewritePrefix())
-                == null) {
+        if (newType != null && !appView.rewritePrefix.hasRewrittenType(clazz.type)) {
           // We do not rewrite if it is already going to be rewritten using the a rewritingPrefix.
           addRewritePrefix(clazz.type, newType.toString());
           renameEmulatedInterfaces(clazz, newType);
@@ -1070,10 +1061,7 @@ public final class InterfaceMethodRewriter {
   private void warnMissingType(DexMethod referencedFrom, DexType missing) {
     // Companion/Emulated interface classes for desugared library won't be missing,
     // they are in the desugared library.
-    if (prefixRewritingInterfaces.containsKey(missing.toString())
-        || missing.rewritingPrefixIn(
-                appView.options().desugaredLibraryConfiguration.getRewritePrefix())
-            != null) {
+    if (appView.rewritePrefix.hasRewrittenType(missing)) {
       return;
     }
     DexMethod method = appView.graphLense().getOriginalMethodSignature(referencedFrom);

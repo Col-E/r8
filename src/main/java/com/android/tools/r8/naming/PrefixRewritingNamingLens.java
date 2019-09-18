@@ -13,15 +13,11 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.InnerClassAttribute;
-import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.ir.desugar.PrefixRewritingMapper;
 import com.android.tools.r8.utils.InternalOptions;
-import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
-import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Map;
-import java.util.TreeMap;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -30,60 +26,33 @@ import java.util.stream.Stream;
 
 // Naming lens for rewriting type prefixes.
 public class PrefixRewritingNamingLens extends NamingLens {
+
   final Map<DexType, DexString> classRenaming = new IdentityHashMap<>();
   final NamingLens namingLens;
   final InternalOptions options;
 
   public static NamingLens createPrefixRewritingNamingLens(
-      InternalOptions options, Map<String, String> additionalRewritePrefix) {
-    return createPrefixRewritingNamingLens(
-        options, additionalRewritePrefix, NamingLens.getIdentityLens());
+      InternalOptions options, PrefixRewritingMapper rewritePrefix) {
+    return createPrefixRewritingNamingLens(options, rewritePrefix, NamingLens.getIdentityLens());
   }
 
   public static NamingLens createPrefixRewritingNamingLens(
-      InternalOptions options, Map<String, String> additionalRewritePrefix, NamingLens namingLens) {
-    if (options.desugaredLibraryConfiguration.getRewritePrefix().isEmpty()
-        && additionalRewritePrefix.isEmpty()) {
+      InternalOptions options, PrefixRewritingMapper rewritePrefix, NamingLens namingLens) {
+    if (!rewritePrefix.isRewriting()) {
       return namingLens;
     }
-    return new PrefixRewritingNamingLens(namingLens, options, additionalRewritePrefix);
+    return new PrefixRewritingNamingLens(namingLens, options, rewritePrefix);
   }
 
   public PrefixRewritingNamingLens(
-      NamingLens namingLens, InternalOptions options, Map<String, String> additionalRewritePrefix) {
+      NamingLens namingLens, InternalOptions options, PrefixRewritingMapper rewritePrefix) {
     this.namingLens = namingLens;
     this.options = options;
-    // Create a map of descriptor prefix remappings.
-    Map<String, String> descriptorPrefixRewriting = new TreeMap<>(Collections.reverseOrder());
-    BiConsumer<String, String> lambda =
-        (from, to) ->
-            descriptorPrefixRewriting.put(
-                "L" + DescriptorUtils.getBinaryNameFromJavaType(from),
-                "L" + DescriptorUtils.getBinaryNameFromJavaType(to));
-    options.desugaredLibraryConfiguration.getRewritePrefix().forEach(lambda);
-    additionalRewritePrefix.forEach(lambda);
-    // Run over all types and remap types with matching prefixes.
-    // TODO(134732760): Use a more efficient data structure (prefix tree/trie).
     DexItemFactory itemFactory = options.itemFactory;
     itemFactory.forAllTypes(
         type -> {
-          String descriptor = type.descriptor.toString();
-          int count = 0;
-          while (descriptor.charAt(count) == '[') {
-            count++;
-          }
-          descriptor = descriptor.substring(count);
-          for (String s : descriptorPrefixRewriting.keySet()) {
-            if (descriptor.startsWith(s)) {
-              String prefix = Strings.repeat("[", count);
-              classRenaming.put(
-                  type,
-                  itemFactory.createString(
-                      prefix
-                          + descriptorPrefixRewriting.get(s)
-                          + descriptor.substring(s.length())));
-              return;
-            }
+          if (rewritePrefix.hasRewrittenType(type)) {
+            classRenaming.put(type, rewritePrefix.rewrittenType(type).descriptor);
           }
         });
     // Verify that no type would have been renamed by both lenses.

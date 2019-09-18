@@ -107,7 +107,6 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -325,25 +324,16 @@ public class IRConverter {
     }
   }
 
-  public Map<String, String> getAdditionalRewritePrefix() {
-    Map<String, String> extraRewritePrefix = new HashMap<>();
-    if (interfaceMethodRewriter != null) {
-      extraRewritePrefix.putAll(interfaceMethodRewriter.getPrefixRewritingInterfaces());
-    }
-    if (lambdaRewriter != null) {
-      extraRewritePrefix.putAll(lambdaRewriter.getPrefixRewritingLambdas());
-    }
-    return extraRewritePrefix;
-  }
-
   /** Create an IR converter for processing methods with full program optimization disabled. */
   public IRConverter(AppView<?> appView, Timing timing) {
     this(appView, timing, null, MainDexClasses.NONE);
   }
 
-  /**
-   * Create an IR converter for processing methods with full program optimization disabled.
-   */
+  /** Create an IR converter for processing methods with full program optimization disabled. */
+  public IRConverter(AppView<?> appView, Timing timing, CfgPrinter printer) {
+    this(appView, timing, printer, MainDexClasses.NONE);
+  }
+
   public IRConverter(AppInfo appInfo, InternalOptions options, Timing timing, CfgPrinter printer) {
     this(AppView.createForD8(appInfo, options), timing, printer, MainDexClasses.NONE);
   }

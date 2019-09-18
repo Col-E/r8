@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.analysis.InitializedClassesInInstanceMethodsAn
 import com.android.tools.r8.ir.analysis.proto.GeneratedExtensionRegistryShrinker;
 import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteShrinker;
 import com.android.tools.r8.ir.analysis.proto.ProtoShrinker;
+import com.android.tools.r8.ir.desugar.PrefixRewritingMapper;
 import com.android.tools.r8.ir.optimize.CallSiteOptimizationInfoPropagator;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
@@ -36,6 +37,9 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
   private final InternalOptions options;
   private RootSet rootSet;
 
+  // Desugared library prefix rewriter.
+  public final PrefixRewritingMapper rewritePrefix;
+
   // Optimizations.
   private final CallSiteOptimizationInfoPropagator callSiteOptimizationInfoPropagator;
   private final ProtoShrinker protoShrinker;
@@ -49,11 +53,27 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
 
   private AppView(
       T appInfo, WholeProgramOptimizations wholeProgramOptimizations, InternalOptions options) {
+    this(
+        appInfo,
+        wholeProgramOptimizations,
+        options,
+        appInfo == null
+            ? null
+            : options.desugaredLibraryConfiguration.createPrefixRewritingMapper(
+                options.itemFactory));
+  }
+
+  private AppView(
+      T appInfo,
+      WholeProgramOptimizations wholeProgramOptimizations,
+      InternalOptions options,
+      PrefixRewritingMapper mapper) {
     this.appInfo = appInfo;
     this.dexItemFactory = appInfo != null ? appInfo.dexItemFactory() : null;
     this.wholeProgramOptimizations = wholeProgramOptimizations;
     this.graphLense = GraphLense.getIdentityLense();
     this.options = options;
+    this.rewritePrefix = mapper;
 
     if (enableWholeProgramOptimizations() && options.enableCallSiteOptimizationInfoPropagation) {
       this.callSiteOptimizationInfoPropagator =
@@ -73,12 +93,18 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
     return new AppView<>(appInfo, WholeProgramOptimizations.OFF, options);
   }
 
+  public static <T extends AppInfo> AppView<T> createForD8(
+      T appInfo, InternalOptions options, PrefixRewritingMapper mapper) {
+    return new AppView<>(appInfo, WholeProgramOptimizations.OFF, options, mapper);
+  }
+
   public static <T extends AppInfo> AppView<T> createForR8(T appInfo, InternalOptions options) {
     return new AppView<>(appInfo, WholeProgramOptimizations.ON, options);
   }
 
-  public static <T extends AppInfo> AppView<T> createForL8(T appInfo, InternalOptions options) {
-    return createForD8(appInfo, options);
+  public static <T extends AppInfo> AppView<T> createForL8(
+      T appInfo, InternalOptions options, PrefixRewritingMapper mapper) {
+    return new AppView<>(appInfo, WholeProgramOptimizations.OFF, options, mapper);
   }
 
   public T appInfo() {

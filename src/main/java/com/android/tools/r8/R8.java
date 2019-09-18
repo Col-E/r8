@@ -199,13 +199,7 @@ public class R8 {
       assert marker != null;
       if (options.isGeneratingClassFiles()) {
         new CfApplicationWriter(
-                application,
-                appView,
-                options,
-                marker,
-                graphLense,
-                namingLens,
-                proguardMapSupplier)
+                application, appView, options, marker, graphLense, namingLens, proguardMapSupplier)
             .write(options.getClassFileConsumer(), executorService);
       } else {
         new ApplicationWriter(
@@ -550,7 +544,6 @@ public class R8 {
         IRConverter converter = new IRConverter(appView, timing, printer, mainDexClasses);
         application = converter.optimize(executorService);
         desugaredCallSites = converter.getDesugaredCallSites();
-        additionalRewritePrefix = converter.getAdditionalRewritePrefix();
       } finally {
         timing.end();
       }
@@ -819,7 +812,7 @@ public class R8 {
           appView,
           appView.graphLense(),
           PrefixRewritingNamingLens.createPrefixRewritingNamingLens(
-              options, additionalRewritePrefix, namingLens),
+              options, appView.rewritePrefix, namingLens),
           options,
           proguardMapSupplier);
 

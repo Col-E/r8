@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.desugar.PrefixRewritingMapper;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -35,15 +36,14 @@ public class L8TreePruner {
         options.desugaredLibraryConfiguration.getEmulateLibraryInterface().keySet());
   }
 
-  public DexApplication prune(DexApplication app) {
+  public DexApplication prune(DexApplication app, PrefixRewritingMapper rewritePrefix) {
     Map<DexType, DexProgramClass> typeMap = new IdentityHashMap<>();
     for (DexProgramClass aClass : app.classes()) {
       typeMap.put(aClass.type, aClass);
     }
     List<DexProgramClass> toKeep = new ArrayList<>();
     for (DexProgramClass aClass : app.classes()) {
-      if (aClass.type.rewritingPrefixIn(options.desugaredLibraryConfiguration.getRewritePrefix())
-              != null
+      if (rewritePrefix.hasRewrittenType(aClass.type)
           || emulatedInterfaces.contains(aClass.type)
           || interfaceImplementsEmulatedInterface(aClass, typeMap)) {
         toKeep.add(aClass);

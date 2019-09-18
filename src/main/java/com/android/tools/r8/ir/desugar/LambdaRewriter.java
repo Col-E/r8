@@ -30,7 +30,6 @@ import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
-import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableSet;
@@ -41,15 +40,14 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
 /**
  * Lambda desugaring rewriter.
  *
- * Performs lambda instantiation point matching,
- * lambda class generation, and instruction patching.
+ * <p>Performs lambda instantiation point matching, lambda class generation, and instruction
+ * patching.
  */
 public class LambdaRewriter {
 
@@ -84,15 +82,9 @@ public class LambdaRewriter {
   // NOTE: synchronize concurrent access on `knownLambdaClasses`.
   private final Map<DexType, LambdaClass> knownLambdaClasses = new IdentityHashMap<>();
 
-  private final Map<String, String> prefixRewritingLambdas = new ConcurrentHashMap<>();
-
   // Checks if the type starts with lambda-class prefix.
   public static boolean hasLambdaClassPrefix(DexType clazz) {
     return clazz.getName().startsWith(LAMBDA_CLASS_NAME_PREFIX);
-  }
-
-  public Map<String, String> getPrefixRewritingLambdas() {
-    return prefixRewritingLambdas;
   }
 
   public LambdaRewriter(AppView<?> appView, IRConverter converter) {
@@ -199,10 +191,7 @@ public class LambdaRewriter {
     return false;
   }
 
-  /**
-   * Adjust accessibility of referenced application symbols or
-   * creates necessary accessors.
-   */
+  /** Adjust accessibility of referenced application symbols or creates necessary accessors. */
   public void adjustAccessibility() {
     // For each lambda class perform necessary adjustment of the
     // referenced symbols to make them accessible. This can result in
@@ -218,8 +207,8 @@ public class LambdaRewriter {
   }
 
   /**
-   * Returns a synthetic class for desugared lambda or `null` if the `type`
-   * does not represent one. Method can be called concurrently.
+   * Returns a synthetic class for desugared lambda or `null` if the `type` does not represent one.
+   * Method can be called concurrently.
    */
   public DexProgramClass getLambdaClass(DexType type) {
     LambdaClass lambdaClass = getKnown(knownLambdaClasses, type);
@@ -281,22 +270,17 @@ public class LambdaRewriter {
               lambdaClassType,
               new LambdaClass(this, accessedFrom, lambdaClassType, descriptor));
       if (appView.options().isDesugaredLibraryCompilation()) {
-        Pair<String, String> rewriting =
-            accessedFrom.rewritingPrefixIn(
-                appView.options().desugaredLibraryConfiguration.getRewritePrefix());
-        if (rewriting == null) {
-          // TODO(b/134732760) : Fix prefixRewritting logic not to use Strings.
-          String javaClassName = accessedFrom.toString();
-          Map<DexType, DexType> emulateLibraryInterface =
-              appView.options().desugaredLibraryConfiguration.getEmulateLibraryInterface();
-          for (DexType itf : emulateLibraryInterface.keySet()) {
-            if (javaClassName.startsWith(itf.toString())) {
-              rewriting = new Pair<>(itf.toString(), emulateLibraryInterface.get(itf).toString());
-            }
-          }
+        DexType rewrittenType = appView.rewritePrefix.rewrittenType(accessedFrom);
+        if (rewrittenType == null) {
+          rewrittenType =
+              appView
+                  .options()
+                  .desugaredLibraryConfiguration
+                  .getEmulateLibraryInterface()
+                  .get(accessedFrom);
         }
-        if (rewriting != null) {
-          addRewritingPrefix(rewriting, lambdaClassType);
+        if (rewrittenType != null) {
+          addRewritingPrefix(accessedFrom, rewrittenType, lambdaClassType);
         }
       }
     }
@@ -307,13 +291,14 @@ public class LambdaRewriter {
     return lambdaClass;
   }
 
-  private void addRewritingPrefix(Pair<String, String> rewriting, DexType lambdaClassType) {
+  private void addRewritingPrefix(DexType type, DexType rewritten, DexType lambdaClassType) {
     String javaName = lambdaClassType.toString();
-    String actualPrefix = rewriting.getFirst().substring(0, rewriting.getFirst().lastIndexOf('.'));
-    String actualRewrittenPrefix =
-        rewriting.getSecond().substring(0, rewriting.getSecond().lastIndexOf('.'));
+    String typeString = type.toString();
+    String actualPrefix = typeString.substring(0, typeString.lastIndexOf('.'));
+    String rewrittenString = rewritten.toString();
+    String actualRewrittenPrefix = rewrittenString.substring(0, rewrittenString.lastIndexOf('.'));
     assert javaName.startsWith(actualPrefix);
-    prefixRewritingLambdas.put(
+    appView.rewritePrefix.addPrefix(
         javaName, actualRewrittenPrefix + javaName.substring(actualPrefix.length()));
   }
 

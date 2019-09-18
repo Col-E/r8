@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.desugar.PrefixRewritingMapper;
 import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.naming.PrefixRewritingNamingLens;
 import com.android.tools.r8.shaking.AnnotationRemover;
@@ -108,14 +109,17 @@ public class L8 {
       options.disableGlobalOptimizations();
 
       DexApplication app = new ApplicationReader(inputApp, options, timing).read(executor);
-      app = new L8TreePruner(options).prune(app);
+      PrefixRewritingMapper rewritePrefix =
+          options.desugaredLibraryConfiguration.createPrefixRewritingMapper(options.itemFactory);
+
+      app = new L8TreePruner(options).prune(app, rewritePrefix);
       if (app.classes().size() == 0) {
         // TODO(b/134732760): report error instead of fatalError.
         throw options.reporter.fatalError("Empty desugared library.");
       }
       AppInfo appInfo = new AppInfo(app);
 
-      AppView<?> appView = AppView.createForL8(appInfo, options);
+      AppView<?> appView = AppView.createForL8(appInfo, options, rewritePrefix);
       IRConverter converter = new IRConverter(appView, timing);
 
       if (!options.testing.disableL8AnnotationRemoval) {
@@ -125,14 +129,13 @@ public class L8 {
       assert appView.appInfo() == appInfo;
 
       new CfApplicationWriter(
-          app,
-          appView,
-          options,
-          options.getMarker(Tool.L8),
-          GraphLense.getIdentityLense(),
-          PrefixRewritingNamingLens.createPrefixRewritingNamingLens(
-              options, converter.getAdditionalRewritePrefix()),
-          null)
+              app,
+              appView,
+              options,
+              options.getMarker(Tool.L8),
+              GraphLense.getIdentityLense(),
+              PrefixRewritingNamingLens.createPrefixRewritingNamingLens(options, rewritePrefix),
+              null)
           .write(options.getClassFileConsumer(), executor);
       options.printWarnings();
     } catch (ExecutionException e) {

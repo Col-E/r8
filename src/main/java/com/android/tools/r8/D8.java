@@ -11,11 +11,13 @@ import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.analysis.ClassInitializerAssertionEnablingAnalysis;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.desugar.PrefixRewritingMapper;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.naming.PrefixRewritingNamingLens;
 import com.android.tools.r8.origin.CommandLineOrigin;
@@ -151,6 +153,8 @@ public final class D8 {
       options.disableGlobalOptimizations();
 
       DexApplication app = new ApplicationReader(inputApp, options, timing).read(executor);
+      PrefixRewritingMapper rewritePrefix =
+          options.desugaredLibraryConfiguration.createPrefixRewritingMapper(options.itemFactory);
       AppInfo appInfo = new AppInfo(app);
 
       final CfgPrinter printer = options.printCfg ? new CfgPrinter() : null;
@@ -168,7 +172,8 @@ public final class D8 {
         }
       }
 
-      IRConverter converter = new IRConverter(appInfo, options, timing, printer);
+      IRConverter converter =
+          new IRConverter(AppView.createForD8(appInfo, options, rewritePrefix), timing, printer);
       app = converter.convert(app, executor);
 
       if (options.printCfg) {
@@ -214,8 +219,7 @@ public final class D8 {
               marker == null ? null : ImmutableList.copyOf(markers),
               app.getChecksums(),
               GraphLense.getIdentityLense(),
-              PrefixRewritingNamingLens.createPrefixRewritingNamingLens(
-                  options, converter.getAdditionalRewritePrefix()),
+              PrefixRewritingNamingLens.createPrefixRewritingNamingLens(options, rewritePrefix),
               null)
           .write(executor);
       options.printWarnings();

@@ -15,6 +15,7 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryConfigurationParser;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
@@ -87,8 +88,8 @@ public class JsonCompatibilityTest extends TestBase {
   }
 
   private void assertConfigurationEquals(
-      com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration libraryConfiguration1,
-      com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration libraryConfiguration2) {
+      DesugaredLibraryConfiguration libraryConfiguration1,
+      DesugaredLibraryConfiguration libraryConfiguration2) {
     assertDictEquals(
         libraryConfiguration1.getRewritePrefix(), libraryConfiguration2.getRewritePrefix());
     assertDictEquals(

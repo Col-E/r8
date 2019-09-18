@@ -245,7 +245,7 @@ public final class BackportedMethodRewriter {
         initializeAndroidOMethodProviders(factory);
       }
 
-      if (options.desugaredLibraryConfiguration.getRewritePrefix().containsKey("java.util.Optional")
+      if (appView.rewritePrefix.hasRewrittenType(factory.optionalType)
           || options.minApiLevel >= AndroidApiLevel.N.getLevel()) {
         // These are currently not implemented at any API level in Android.
         // They however require the Optional class to be present, either through
@@ -975,7 +975,7 @@ public final class BackportedMethodRewriter {
 
     private void initializeOptionalMethodProviders(DexItemFactory factory) {
       // Optional
-      DexType optionalType = factory.createType(factory.createString("Ljava/util/Optional;"));
+      DexType optionalType = factory.optionalType;
 
       // Optional.or(supplier)
       DexString name = factory.createString("or");
@@ -1094,8 +1094,7 @@ public final class BackportedMethodRewriter {
     private DexMethod targetMethod;
     private boolean isStatic;
 
-    RetargetCoreLibraryMethodProvider(
-        DexType newHolder, DexMethod method, boolean isStatic) {
+    RetargetCoreLibraryMethodProvider(DexType newHolder, DexMethod method, boolean isStatic) {
       super(method);
       this.newHolder = newHolder;
       this.isStatic = isStatic;
@@ -1145,11 +1144,13 @@ public final class BackportedMethodRewriter {
       assert code.isConsistentSSA();
     }
 
-    @Override public boolean requiresGenerationOfCode() {
+    @Override
+    public boolean requiresGenerationOfCode() {
       return false;
     }
 
-    @Override public DexMethod provideMethod(AppView<?> appView) {
+    @Override
+    public DexMethod provideMethod(AppView<?> appView) {
       throw new Unreachable();
     }
 

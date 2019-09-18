@@ -8,6 +8,8 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.desugar.PrefixRewritingMapper.DesugarPrefixRewritingMapper;
+import com.android.tools.r8.ir.desugar.PrefixRewritingMapper.EmptyPrefixRewritingMapper;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.ImmutableList;
@@ -55,6 +57,12 @@ public class DesugaredLibraryConfiguration {
     this.retargetCoreLibMember = retargetCoreLibMember;
     this.backportCoreLibraryMember = backportCoreLibraryMember;
     this.dontRewriteInvocation = dontRewriteInvocation;
+  }
+
+  public PrefixRewritingMapper createPrefixRewritingMapper(DexItemFactory factory) {
+    return rewritePrefix.isEmpty()
+        ? new EmptyPrefixRewritingMapper()
+        : new DesugarPrefixRewritingMapper(rewritePrefix, factory);
   }
 
   public boolean isLibraryCompilation() {
