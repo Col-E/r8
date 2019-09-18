@@ -3,12 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.analysis.type;
 
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
-import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.GraphLense;
 
 public abstract class ReferenceTypeLatticeElement extends TypeLatticeElement {
 
@@ -44,12 +40,6 @@ public abstract class ReferenceTypeLatticeElement extends TypeLatticeElement {
     @Override
     public int hashCode() {
       return System.identityHashCode(this);
-    }
-
-    @Override
-    public TypeLatticeElement substitute(
-        GraphLense substituteMap, AppView<? extends AppInfoWithSubtyping> appView) {
-      throw new CompilationError("Cannot substitute type on NULL reference");
     }
 
     @Override
@@ -108,7 +98,4 @@ public abstract class ReferenceTypeLatticeElement extends TypeLatticeElement {
   public int hashCode() {
     throw new Unreachable("Should be implemented on each sub type");
   }
-
-  public abstract TypeLatticeElement substitute(
-      GraphLense substituteMap, AppView<? extends AppInfoWithSubtyping> appView);
 }

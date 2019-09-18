@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.optimize.info;
 import static com.android.tools.r8.ir.optimize.info.DefaultMethodOptimizationInfo.UNKNOWN_CLASS_TYPE;
 import static com.android.tools.r8.ir.optimize.info.DefaultMethodOptimizationInfo.UNKNOWN_TYPE;
 
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
 import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
@@ -17,6 +18,7 @@ import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
 import java.util.BitSet;
 import java.util.Set;
+import java.util.function.Function;
 
 public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
 
@@ -102,6 +104,32 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
     nonNullParamOrThrow = template.nonNullParamOrThrow;
     nonNullParamOnNormalExits = template.nonNullParamOnNormalExits;
     reachabilitySensitive = template.reachabilitySensitive;
+  }
+
+  public void fixupClassTypeReferences(
+      Function<DexType, DexType> mapping, AppView<? extends AppInfoWithSubtyping> appView) {
+    if (returnsObjectOfType != null) {
+      returnsObjectOfType = returnsObjectOfType.fixupClassTypeReferences(mapping, appView);
+    }
+    if (returnsObjectWithLowerBoundType != null) {
+      returnsObjectWithLowerBoundType =
+          returnsObjectWithLowerBoundType.fixupClassTypeReferences(mapping, appView);
+    }
+  }
+
+  @Override
+  public boolean isDefaultMethodOptimizationInfo() {
+    return false;
+  }
+
+  @Override
+  public boolean isUpdatableMethodOptimizationInfo() {
+    return true;
+  }
+
+  @Override
+  public UpdatableMethodOptimizationInfo asUpdatableMethodOptimizationInfo() {
+    return this;
   }
 
   @Override

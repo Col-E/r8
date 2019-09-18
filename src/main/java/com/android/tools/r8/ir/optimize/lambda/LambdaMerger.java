@@ -26,6 +26,8 @@ import com.android.tools.r8.ir.conversion.CallSiteInformation;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.Outliner;
+import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
+import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.lambda.CodeProcessor.Strategy;
 import com.android.tools.r8.ir.optimize.lambda.LambdaGroup.LambdaStructureError;
@@ -48,6 +50,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 // Merging lambda classes into single lambda group classes. There are three flavors
@@ -216,6 +219,10 @@ public final class LambdaMerger {
     // Remove invalidated lambdas, compact groups to ensure
     // sequential lambda ids, create group lambda classes.
     Map<LambdaGroup, DexProgramClass> lambdaGroupsClasses = finalizeLambdaGroups();
+
+    // Fixup optimization info to ensure that the optimization info does not refer to any merged
+    // lambdas.
+    new OptimizationInfoFixer(lambdaGroupsClasses).fixupOptimizationInfos(executorService);
 
     // Switch to APPLY strategy.
     this.strategyFactory = ApplyStrategy::new;
@@ -460,6 +467,61 @@ public final class LambdaMerger {
     @Override
     void process(Strategy strategy, StaticGet staticGet) {
       strategy.patch(this, staticGet);
+    }
+  }
+
+  private final class OptimizationInfoFixer implements Function<DexType, DexType> {
+
+    private final Map<LambdaGroup, DexProgramClass> lambdaGroupsClasses;
+
+    OptimizationInfoFixer(Map<LambdaGroup, DexProgramClass> lambdaGroupsClasses) {
+      this.lambdaGroupsClasses = lambdaGroupsClasses;
+    }
+
+    void fixupOptimizationInfos(ExecutorService executorService) throws ExecutionException {
+      List<Future<?>> futures = new ArrayList<>();
+      for (DexProgramClass clazz : appView.appInfo().classes()) {
+        futures.add(
+            executorService.submit(
+                () -> {
+                  fixupOptimizationInfos(clazz);
+                  return null;
+                }));
+      }
+      ThreadUtils.awaitFutures(futures);
+    }
+
+    private void fixupOptimizationInfos(DexProgramClass clazz) {
+      for (DexEncodedMethod method : clazz.methods()) {
+        MethodOptimizationInfo optimizationInfo = method.getOptimizationInfo();
+        if (optimizationInfo.isUpdatableMethodOptimizationInfo()) {
+          optimizationInfo
+              .asUpdatableMethodOptimizationInfo()
+              .fixupClassTypeReferences(this, appView);
+        } else {
+          assert optimizationInfo.isDefaultMethodOptimizationInfo();
+        }
+      }
+      for (DexEncodedField field : clazz.fields()) {
+        FieldOptimizationInfo optimizationInfo = field.getOptimizationInfo();
+        if (optimizationInfo.isMutableFieldOptimizationInfo()) {
+          optimizationInfo.asMutableFieldOptimizationInfo().fixupClassTypeReferences(this, appView);
+        } else {
+          assert optimizationInfo.isDefaultFieldOptimizationInfo();
+        }
+      }
+    }
+
+    @Override
+    public DexType apply(DexType type) {
+      LambdaGroup group = lambdas.get(type);
+      if (group != null) {
+        DexProgramClass clazz = lambdaGroupsClasses.get(group);
+        if (clazz != null) {
+          return clazz.type;
+        }
+      }
+      return type;
     }
   }
 }

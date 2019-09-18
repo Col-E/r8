@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.Value;
+import java.util.function.Function;
 
 /**
  * The base abstraction of lattice elements for local type analysis.
@@ -31,6 +32,11 @@ public abstract class TypeLatticeElement {
       WidePrimitiveTypeLatticeElement.getInstance();
   public static final ReferenceTypeLatticeElement NULL =
       ReferenceTypeLatticeElement.getNullTypeLatticeElement();
+
+  public TypeLatticeElement fixupClassTypeReferences(
+      Function<DexType, DexType> mapping, AppView<? extends AppInfoWithSubtyping> appView) {
+    return this;
+  }
 
   public boolean isNullable() {
     return nullability().isNullable();

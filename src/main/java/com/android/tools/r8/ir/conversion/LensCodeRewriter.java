@@ -88,20 +88,12 @@ public class LensCodeRewriter {
 
   private Value makeOutValue(Instruction insn, IRCode code) {
     if (insn.outValue() != null) {
-      TypeLatticeElement typeLattice = substitute(insn.outValue().getTypeLattice(), appView);
-      return code.createValue(typeLattice, insn.getLocalInfo());
+      TypeLatticeElement oldType = insn.outValue().getTypeLattice();
+      TypeLatticeElement newType =
+          oldType.fixupClassTypeReferences(appView.graphLense()::lookupType, appView);
+      return code.createValue(newType, insn.getLocalInfo());
     }
     return null;
-  }
-
-  private static TypeLatticeElement substitute(
-      TypeLatticeElement latticeElement, AppView<? extends AppInfoWithSubtyping> appView) {
-    if (latticeElement.isReference() && !latticeElement.isNullType()) {
-      return latticeElement
-          .asReferenceTypeLatticeElement()
-          .substitute(appView.graphLense(), appView);
-    }
-    return latticeElement;
   }
 
   /** Replace type appearances, invoke targets and field accesses with actual definitions. */
@@ -410,7 +402,8 @@ public class LensCodeRewriter {
         } else if (current.outValue() != null) {
           // For all other instructions, substitute any changed type.
           TypeLatticeElement typeLattice = current.outValue().getTypeLattice();
-          TypeLatticeElement substituted = substitute(typeLattice, appView);
+          TypeLatticeElement substituted =
+              typeLattice.fixupClassTypeReferences(graphLense::lookupType, appView);
           if (substituted != typeLattice) {
             current.outValue().setTypeLattice(substituted);
             affectedPhis.addAll(current.outValue().uniquePhiUsers());
@@ -438,7 +431,7 @@ public class LensCodeRewriter {
       assert verifyAllChangedPhisAreScheduled(code, affectedPhis);
       // Assuming all values have been rewritten correctly above, the non-phi operands to phi's are
       // replaced with correct types and all other phi operands are BOTTOM.
-      assert verifyAllPhiOperandsAreBottom(affectedPhis, graphLense);
+      assert verifyAllPhiOperandsAreBottom(affectedPhis);
       worklist.addAll(affectedPhis);
       while (!worklist.isEmpty()) {
         Phi phi = worklist.poll();
@@ -456,7 +449,7 @@ public class LensCodeRewriter {
     assert code.hasNoVerticallyMergedClasses(appView);
   }
 
-  private boolean verifyAllPhiOperandsAreBottom(Set<Phi> affectedPhis, GraphLense graphLense) {
+  private boolean verifyAllPhiOperandsAreBottom(Set<Phi> affectedPhis) {
     for (Phi phi : affectedPhis) {
       for (Value operand : phi.getOperands()) {
         if (operand.isPhi()) {
@@ -467,7 +460,7 @@ public class LensCodeRewriter {
               || operandType.isPrimitive()
               || operandType.isNullType()
               || (operandType.isReference()
-                  && operandType.asReferenceTypeLatticeElement().substitute(graphLense, appView)
+                  && operandType.fixupClassTypeReferences(appView.graphLense()::lookupType, appView)
                       == operandType);
         }
       }
@@ -481,7 +474,8 @@ public class LensCodeRewriter {
       BasicBlock block = blocks.next();
       for (Phi phi : block.getPhis()) {
         TypeLatticeElement phiTypeLattice = phi.getTypeLattice();
-        TypeLatticeElement substituted = substitute(phiTypeLattice, appView);
+        TypeLatticeElement substituted =
+            phiTypeLattice.fixupClassTypeReferences(appView.graphLense()::lookupType, appView);
         assert substituted == phiTypeLattice || affectedPhis.contains(phi);
       }
     }

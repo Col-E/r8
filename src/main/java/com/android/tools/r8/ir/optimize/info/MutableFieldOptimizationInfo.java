@@ -4,7 +4,11 @@
 
 package com.android.tools.r8.ir.optimize.info;
 
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import java.util.function.Function;
 
 /**
  * Optimization info for fields.
@@ -19,6 +23,13 @@ public class MutableFieldOptimizationInfo extends FieldOptimizationInfo {
   private boolean cannotBeKept = false;
   private boolean valueHasBeenPropagated = false;
   private TypeLatticeElement dynamicType = null;
+
+  public void fixupClassTypeReferences(
+      Function<DexType, DexType> mapping, AppView<? extends AppInfoWithSubtyping> appView) {
+    if (dynamicType != null) {
+      dynamicType = dynamicType.fixupClassTypeReferences(mapping, appView);
+    }
+  }
 
   @Override
   public MutableFieldOptimizationInfo mutableCopy() {

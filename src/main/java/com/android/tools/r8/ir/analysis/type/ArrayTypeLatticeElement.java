@@ -9,8 +9,8 @@ import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLense;
 import java.util.Objects;
+import java.util.function.Function;
 
 public class ArrayTypeLatticeElement extends ReferenceTypeLatticeElement {
 
@@ -130,11 +130,11 @@ public class ArrayTypeLatticeElement extends ReferenceTypeLatticeElement {
   }
 
   @Override
-  public TypeLatticeElement substitute(
-      GraphLense substituteMap, AppView<? extends AppInfoWithSubtyping> appView) {
+  public ArrayTypeLatticeElement fixupClassTypeReferences(
+      Function<DexType, DexType> mapping, AppView<? extends AppInfoWithSubtyping> appView) {
     if (memberTypeLattice.isReference()) {
       TypeLatticeElement substitutedMemberType =
-          memberTypeLattice.asReferenceTypeLatticeElement().substitute(substituteMap, appView);
+          memberTypeLattice.fixupClassTypeReferences(mapping, appView);
       if (substitutedMemberType != memberTypeLattice) {
         return ArrayTypeLatticeElement.create(substitutedMemberType, nullability);
       }

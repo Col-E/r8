@@ -8,7 +8,6 @@ import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLense;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayDeque;
 import java.util.Collections;
@@ -18,6 +17,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
@@ -132,11 +132,11 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
   }
 
   @Override
-  public TypeLatticeElement substitute(
-      GraphLense substituteMap, AppView<? extends AppInfoWithSubtyping> appView) {
-    DexType mappedType = substituteMap.lookupType(type);
+  public ClassTypeLatticeElement fixupClassTypeReferences(
+      Function<DexType, DexType> mapping, AppView<? extends AppInfoWithSubtyping> appView) {
+    DexType mappedType = mapping.apply(type);
     if (mappedType != type) {
-      return fromDexType(mappedType, nullability, appView, false);
+      return create(mappedType, nullability, appView);
     }
     // If the mapped type is not object and no computation of interfaces, we can return early.
     if (mappedType != appView.dexItemFactory().objectType && lazyInterfaces == null) {
@@ -148,7 +148,7 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
     boolean hasChangedInterfaces = false;
     DexClass interfaceToClassChange = null;
     for (DexType iface : getInterfaces()) {
-      DexType substitutedType = substituteMap.lookupType(iface);
+      DexType substitutedType = mapping.apply(iface);
       if (iface != substitutedType) {
         hasChangedInterfaces = true;
         DexClass mappedClass = appView.definitionFor(substitutedType);
@@ -172,7 +172,7 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
       } else {
         Set<DexType> newInterfaces = new HashSet<>();
         for (DexType iface : lazyInterfaces) {
-          newInterfaces.add(substituteMap.lookupType(iface));
+          newInterfaces.add(mapping.apply(iface));
         }
         return create(mappedType, nullability, newInterfaces);
       }

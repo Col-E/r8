@@ -43,6 +43,21 @@ public class DefaultMethodOptimizationInfo implements MethodOptimizationInfo {
   private DefaultMethodOptimizationInfo() {}
 
   @Override
+  public boolean isDefaultMethodOptimizationInfo() {
+    return true;
+  }
+
+  @Override
+  public boolean isUpdatableMethodOptimizationInfo() {
+    return false;
+  }
+
+  @Override
+  public UpdatableMethodOptimizationInfo asUpdatableMethodOptimizationInfo() {
+    return null;
+  }
+
+  @Override
   public boolean cannotBeKept() {
     return false;
   }

@@ -22,6 +22,12 @@ public interface MethodOptimizationInfo {
     Default
   }
 
+  boolean isDefaultMethodOptimizationInfo();
+
+  boolean isUpdatableMethodOptimizationInfo();
+
+  UpdatableMethodOptimizationInfo asUpdatableMethodOptimizationInfo();
+
   boolean cannotBeKept();
 
   boolean classInitializerMayBePostponed();
