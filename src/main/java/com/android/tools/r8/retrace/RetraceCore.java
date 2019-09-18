@@ -408,13 +408,13 @@ public final class RetraceCore {
     }
 
     private String retracedFileName(String retracedClazz) {
+      if (!UNKNOWN_SOURCEFILE_NAMES.contains(fileName)) {
+        return fileName;
+      }
       if (retracedClazz == null) {
         // We have no new information, only rewrite filename if it is empty or SourceFile.
         // PG-retrace will always rewrite the filename, but that seems a bit to harsh to do.
-        if (UNKNOWN_SOURCEFILE_NAMES.contains(fileName)) {
-          return getClassSimpleName(clazz) + ".java";
-        }
-        return fileName;
+        return getClassSimpleName(clazz) + ".java";
       }
       String newFileName = getClassSimpleName(retracedClazz);
       String extension = Files.getFileExtension(fileName);

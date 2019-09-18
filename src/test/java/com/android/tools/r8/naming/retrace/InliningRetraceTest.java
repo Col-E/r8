@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.naming.retrace;
 
+import static com.android.tools.r8.naming.retrace.StackTrace.isSame;
 import static com.android.tools.r8.naming.retrace.StackTrace.isSameExceptForFileName;
 import static com.android.tools.r8.naming.retrace.StackTrace.isSameExceptForFileNameAndLineNumber;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -46,8 +47,7 @@ public class InliningRetraceTest extends RetraceTestBase {
     runTest(
         ImmutableList.of("-keepattributes SourceFile,LineNumberTable"),
         (StackTrace actualStackTrace, StackTrace retracedStackTrace) -> {
-          // Even when SourceFile is present retrace replaces the file name in the stack trace.
-          assertThat(retracedStackTrace, isSameExceptForFileName(expectedStackTrace));
+          assertThat(retracedStackTrace, isSame(expectedStackTrace));
           assertEquals(expectedActualStackTraceHeight(), actualStackTrace.size());
         });
   }

@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.naming.retrace;
 
+import static com.android.tools.r8.naming.retrace.StackTrace.isSame;
 import static com.android.tools.r8.naming.retrace.StackTrace.isSameExceptForFileName;
 import static com.android.tools.r8.naming.retrace.StackTrace.isSameExceptForFileNameAndLineNumber;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -63,6 +64,21 @@ public class DesugarLambdaRetraceTest extends RetraceTestBase {
     assertEquals("-.java", lambdaFrames.get(0).fileName);
   }
 
+  private void checkIsSame(StackTrace actualStackTrace, StackTrace retracedStackTrace) {
+    // Even when SourceFile is present retrace replaces the file name in the stack trace.
+    if (parameters.isCfRuntime()) {
+      assertThat(retracedStackTrace, isSame(expectedStackTrace));
+    } else {
+      // With the frame from the lambda class filtered out the stack trace is the same.
+      assertThat(
+          retracedStackTrace.filter(line -> !isSynthesizedLambdaFrame(line)),
+          isSame(expectedStackTrace));
+      // Check the frame from the lambda class.
+      checkLambdaFrame(retracedStackTrace);
+    }
+    assertEquals(expectedActualStackTraceHeight(), actualStackTrace.size());
+  }
+
   private void checkIsSameExceptForFileName(
       StackTrace actualStackTrace, StackTrace retracedStackTrace) {
     // Even when SourceFile is present retrace replaces the file name in the stack trace.
@@ -97,9 +113,7 @@ public class DesugarLambdaRetraceTest extends RetraceTestBase {
 
   @Test
   public void testSourceFileAndLineNumberTable() throws Exception {
-    runTest(
-        ImmutableList.of("-keepattributes SourceFile,LineNumberTable"),
-        this::checkIsSameExceptForFileName);
+    runTest(ImmutableList.of("-keepattributes SourceFile,LineNumberTable"), this::checkIsSame);
   }
 
   @Test
