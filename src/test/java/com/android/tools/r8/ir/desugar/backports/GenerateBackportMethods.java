@@ -133,6 +133,10 @@ public class GenerateBackportMethods extends TestBase {
     if (result.exitCode != 0) {
       throw new IllegalStateException(result.toString());
     }
-    return result.stdout;
+    String content = result.stdout;
+    if (!StringUtils.LINE_SEPARATOR.equals("\n")) {
+      return content.replace(StringUtils.LINE_SEPARATOR, "\n");
+    }
+    return content;
   }
 }
