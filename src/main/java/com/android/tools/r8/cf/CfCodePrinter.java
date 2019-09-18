@@ -309,7 +309,10 @@ public class CfCodePrinter extends CfPrinter {
 
   @Override
   public void print(CfArithmeticBinop arithmeticBinop) {
-    throw new Unimplemented(arithmeticBinop.getClass().getSimpleName());
+    printNewInstruction(
+        "CfArithmeticBinop",
+        cfType("CfArithmeticBinop") + ".Opcode." + arithmeticBinop.getOpcode().name(),
+        numericType(arithmeticBinop.getType()));
   }
 
   @Override
@@ -376,7 +379,7 @@ public class CfCodePrinter extends CfPrinter {
 
   @Override
   public void print(CfInstanceOf insn) {
-    throw new Unimplemented(insn.getClass().getSimpleName());
+    printNewInstruction("CfInstanceOf", dexType(insn.getType()));
   }
 
   @Override

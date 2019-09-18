@@ -39,6 +39,14 @@ public class CfArithmeticBinop extends CfInstruction {
     this.type = type;
   }
 
+  public Opcode getOpcode() {
+    return opcode;
+  }
+
+  public NumericType getType() {
+    return type;
+  }
+
   public static CfArithmeticBinop fromAsm(int opcode) {
     switch (opcode) {
       case Opcodes.IADD:

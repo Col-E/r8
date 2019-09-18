@@ -40,7 +40,7 @@ import com.android.tools.r8.ir.desugar.backports.ListMethods;
 import com.android.tools.r8.ir.desugar.backports.LongMethods;
 import com.android.tools.r8.ir.desugar.backports.MathMethods;
 import com.android.tools.r8.ir.desugar.backports.NumericOperations;
-import com.android.tools.r8.ir.desugar.backports.ObjectsMethods;
+import com.android.tools.r8.ir.desugar.backports.ObjectsMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.OptionalMethods;
 import com.android.tools.r8.ir.desugar.backports.ShortMethods;
 import com.android.tools.r8.ir.synthetic.TemplateMethodCode;
@@ -328,55 +328,61 @@ public final class BackportedMethodRewriter {
       proto = factory.createProto(factory.intType, factory.objectType, factory.objectType,
           factory.comparatorType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, ObjectsMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::ObjectsMethods_compare));
 
       // boolean Objects.deepEquals(Object a, Object b)
       name = factory.createString("deepEquals");
       proto = factory.createProto(factory.booleanType, factory.objectType, factory.objectType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, ObjectsMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::ObjectsMethods_deepEquals));
 
       // boolean Objects.equals(Object a, Object b)
       name = factory.createString("equals");
       proto = factory.createProto(factory.booleanType, factory.objectType, factory.objectType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, ObjectsMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::ObjectsMethods_equals));
 
       // int Objects.hash(Object... o)
       name = factory.createString("hash");
       proto = factory.createProto(factory.intType, factory.objectArrayType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new InvokeRewriter(method, ObjectsMethods::rewriteToArraysHashCode));
+      addProvider(new InvokeRewriter(method, ObjectsMethodRewrites::rewriteToArraysHashCode));
 
       // int Objects.hashCode(Object o)
       name = factory.createString("hashCode");
       proto = factory.createProto(factory.intType, factory.objectType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, ObjectsMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::ObjectsMethods_hashCode));
 
       // T Objects.requireNonNull(T obj)
       name = factory.createString("requireNonNull");
       proto = factory.createProto(factory.objectType, factory.objectType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new InvokeRewriter(method, ObjectsMethods::rewriteRequireNonNull));
+      addProvider(new InvokeRewriter(method, ObjectsMethodRewrites::rewriteRequireNonNull));
 
       // T Objects.requireNonNull(T obj, String message)
       name = factory.createString("requireNonNull");
       proto = factory.createProto(factory.objectType, factory.objectType, factory.stringType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, ObjectsMethods::new, "requireNonNullMessage"));
+      addProvider(
+          new MethodGenerator(
+              method,
+              BackportedMethods::ObjectsMethods_requireNonNullMessage,
+              "requireNonNullMessage"));
 
       // String Objects.toString(Object o)
       name = factory.createString("toString");
       proto = factory.createProto(factory.stringType, factory.objectType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, ObjectsMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::ObjectsMethods_toString));
 
       // String Objects.toString(Object o, String nullDefault);
       name = factory.createString("toString");
       proto = factory.createProto(factory.stringType, factory.objectType, factory.stringType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, ObjectsMethods::new, "toStringDefault"));
+      addProvider(
+          new MethodGenerator(
+              method, BackportedMethods::ObjectsMethods_toStringDefault, "toStringDefault"));
 
       // Collections
       type = factory.collectionsType;
@@ -580,13 +586,13 @@ public final class BackportedMethodRewriter {
       name = factory.createString("isNull");
       proto = factory.createProto(factory.booleanType, factory.objectType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, ObjectsMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::ObjectsMethods_isNull));
 
       // boolean Objects.nonNull(Object a)
       name = factory.createString("nonNull");
       proto = factory.createProto(factory.booleanType, factory.objectType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, ObjectsMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::ObjectsMethods_nonNull));
 
       // Math & StrictMath, which have some symmetric, binary-compatible APIs
       DexType[] mathTypes = {factory.mathType, factory.strictMathType};
@@ -910,33 +916,36 @@ public final class BackportedMethodRewriter {
       name = factory.createString("requireNonNullElse");
       proto = factory.createProto(factory.objectType, factory.objectType, factory.objectType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, ObjectsMethods::new));
+      addProvider(
+          new MethodGenerator(method, BackportedMethods::ObjectsMethods_requireNonNullElse));
 
       // T Objects.requireNonNullElseGet(T, Supplier<? extends T>)
       name = factory.createString("requireNonNullElseGet");
       proto = factory.createProto(factory.objectType, factory.objectType, factory.supplierType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, ObjectsMethods::new));
+      addProvider(
+          new MethodGenerator(method, BackportedMethods::ObjectsMethods_requireNonNullElseGet));
 
       // int Objects.checkIndex(int, int)
       name = factory.createString("checkIndex");
       proto = factory.createProto(factory.intType, factory.intType, factory.intType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, ObjectsMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::ObjectsMethods_checkIndex));
 
       // int Objects.checkFromToIndex(int, int, int)
       name = factory.createString("checkFromToIndex");
       proto =
           factory.createProto(factory.intType, factory.intType, factory.intType, factory.intType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, ObjectsMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::ObjectsMethods_checkFromToIndex));
 
       // int Objects.checkFromIndexSize(int, int, int)
       name = factory.createString("checkFromIndexSize");
       proto =
           factory.createProto(factory.intType, factory.intType, factory.intType, factory.intType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, ObjectsMethods::new));
+      addProvider(
+          new MethodGenerator(method, BackportedMethods::ObjectsMethods_checkFromIndexSize));
 
       // List<E> List.of(<args>) for 0 to 10 arguments and List.of(E[])
       type = factory.listType;

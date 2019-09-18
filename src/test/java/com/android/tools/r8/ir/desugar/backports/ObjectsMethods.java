@@ -4,24 +4,12 @@
 
 package com.android.tools.r8.ir.desugar.backports;
 
-import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.code.InstructionListIterator;
-import com.android.tools.r8.ir.code.InvokeMethod;
-import com.android.tools.r8.ir.code.InvokeStatic;
-import com.android.tools.r8.ir.code.InvokeVirtual;
-import com.android.tools.r8.ir.synthetic.TemplateMethodCode;
-import com.android.tools.r8.utils.InternalOptions;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Objects;
 import java.util.function.Supplier;
 
-public final class ObjectsMethods extends TemplateMethodCode {
-  public ObjectsMethods(InternalOptions options, DexMethod method, String methodName) {
-    super(options, method, methodName, method.proto.toDescriptorString());
-  }
+public final class ObjectsMethods {
 
   public static <T> int compare(T a, T b, Comparator<? super T> c) {
     return a == b ? 0 : c.compare(a, b);
@@ -62,16 +50,6 @@ public final class ObjectsMethods extends TemplateMethodCode {
 
   public static boolean equals(Object a, Object b) {
     return a == b || (a != null && a.equals(b));
-  }
-
-  public static void rewriteToArraysHashCode(InvokeMethod invoke, InstructionListIterator iterator,
-      DexItemFactory factory) {
-    DexType arraysType = factory.createType(factory.arraysDescriptor);
-    DexMethod hashCodeMethod =
-        factory.createMethod(arraysType, invoke.getInvokedMethod().proto, "hashCode");
-    InvokeStatic arraysHashCode =
-        new InvokeStatic(hashCodeMethod, invoke.outValue(), invoke.inValues(), false);
-    iterator.replaceCurrentInstruction(arraysHashCode);
   }
 
   public static int hashCode(Object o) {
@@ -129,26 +107,16 @@ public final class ObjectsMethods extends TemplateMethodCode {
 
   public static int checkFromIndexSize(int fromIndex, int size, int length) {
     if (fromIndex < 0 || size < 0 || length < 0 || fromIndex > length - size) {
-      throw new IndexOutOfBoundsException("Range ["
-          + fromIndex
-          + ", "
-          + fromIndex
-          + " + "
-          + size
-          + ") out of bounds for length "
-          + length);
+      throw new IndexOutOfBoundsException(
+          "Range ["
+              + fromIndex
+              + ", "
+              + fromIndex
+              + " + "
+              + size
+              + ") out of bounds for length "
+              + length);
     }
     return fromIndex;
-  }
-
-  public static void rewriteRequireNonNull(InvokeMethod invoke, InstructionListIterator iterator,
-      DexItemFactory factory) {
-    InvokeVirtual getClass =
-        new InvokeVirtual(factory.objectMethods.getClass, null, invoke.inValues());
-    if (invoke.outValue() != null) {
-      invoke.outValue().replaceUsers(invoke.inValues().get(0));
-      invoke.setOutValue(null);
-    }
-    iterator.replaceCurrentInstruction(getClass);
   }
 }

@@ -67,7 +67,7 @@ public class GenerateBackportMethods extends TestBase {
           "package com.android.tools.r8.ir.desugar.backports;");
 
   static final List<Class<?>> methodTemplateClasses =
-      ImmutableList.of(BooleanMethods.class, StringMethods.class);
+      ImmutableList.of(BooleanMethods.class, ObjectsMethods.class, StringMethods.class);
 
   final TestParameters parameters;
 
