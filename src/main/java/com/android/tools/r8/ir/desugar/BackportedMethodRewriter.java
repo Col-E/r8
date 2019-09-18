@@ -33,7 +33,7 @@ import com.android.tools.r8.ir.desugar.backports.BackportedMethods;
 import com.android.tools.r8.ir.desugar.backports.BooleanMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.ListMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.LongMethodRewrites;
-import com.android.tools.r8.ir.desugar.backports.NumericOperations;
+import com.android.tools.r8.ir.desugar.backports.NumericMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.ObjectsMethodRewrites;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -427,19 +427,19 @@ public final class BackportedMethodRewriter {
       name = factory.createString("max");
       proto = factory.createProto(factory.intType, factory.intType, factory.intType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new InvokeRewriter(method, NumericOperations::rewriteToInvokeMath));
+      addProvider(new InvokeRewriter(method, NumericMethodRewrites::rewriteToInvokeMath));
 
       // int Integer.min(int a, int b)
       name = factory.createString("min");
       proto = factory.createProto(factory.intType, factory.intType, factory.intType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new InvokeRewriter(method, NumericOperations::rewriteToInvokeMath));
+      addProvider(new InvokeRewriter(method, NumericMethodRewrites::rewriteToInvokeMath));
 
       // int Integer.sum(int a, int b)
       name = factory.createString("sum");
       proto = factory.createProto(factory.intType, factory.intType, factory.intType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new InvokeRewriter(method, NumericOperations::rewriteToAddInstruction));
+      addProvider(new InvokeRewriter(method, NumericMethodRewrites::rewriteToAddInstruction));
 
       // Double
       type = factory.boxedDoubleType;
@@ -454,19 +454,19 @@ public final class BackportedMethodRewriter {
       name = factory.createString("max");
       proto = factory.createProto(factory.doubleType, factory.doubleType, factory.doubleType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new InvokeRewriter(method, NumericOperations::rewriteToInvokeMath));
+      addProvider(new InvokeRewriter(method, NumericMethodRewrites::rewriteToInvokeMath));
 
       // double Double.min(double a, double b)
       name = factory.createString("min");
       proto = factory.createProto(factory.doubleType, factory.doubleType, factory.doubleType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new InvokeRewriter(method, NumericOperations::rewriteToInvokeMath));
+      addProvider(new InvokeRewriter(method, NumericMethodRewrites::rewriteToInvokeMath));
 
       // double Double.sum(double a, double b)
       name = factory.createString("sum");
       proto = factory.createProto(factory.doubleType, factory.doubleType, factory.doubleType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new InvokeRewriter(method, NumericOperations::rewriteToAddInstruction));
+      addProvider(new InvokeRewriter(method, NumericMethodRewrites::rewriteToAddInstruction));
 
       // boolean Double.isFinite(double a)
       name = factory.createString("isFinite");
@@ -487,19 +487,19 @@ public final class BackportedMethodRewriter {
       name = factory.createString("max");
       proto = factory.createProto(factory.floatType, factory.floatType, factory.floatType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new InvokeRewriter(method, NumericOperations::rewriteToInvokeMath));
+      addProvider(new InvokeRewriter(method, NumericMethodRewrites::rewriteToInvokeMath));
 
       // float Float.min(float a, float b)
       name = factory.createString("min");
       proto = factory.createProto(factory.floatType, factory.floatType, factory.floatType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new InvokeRewriter(method, NumericOperations::rewriteToInvokeMath));
+      addProvider(new InvokeRewriter(method, NumericMethodRewrites::rewriteToInvokeMath));
 
       // float Float.sum(float a, float b)
       name = factory.createString("sum");
       proto = factory.createProto(factory.floatType, factory.floatType, factory.floatType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new InvokeRewriter(method, NumericOperations::rewriteToAddInstruction));
+      addProvider(new InvokeRewriter(method, NumericMethodRewrites::rewriteToAddInstruction));
 
       // boolean Float.isFinite(float a)
       name = factory.createString("isFinite");
@@ -547,19 +547,19 @@ public final class BackportedMethodRewriter {
       name = factory.createString("max");
       proto = factory.createProto(factory.longType, factory.longType, factory.longType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new InvokeRewriter(method, NumericOperations::rewriteToInvokeMath));
+      addProvider(new InvokeRewriter(method, NumericMethodRewrites::rewriteToInvokeMath));
 
       // long Long.min(long a, long b)
       name = factory.createString("min");
       proto = factory.createProto(factory.longType, factory.longType, factory.longType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new InvokeRewriter(method, NumericOperations::rewriteToInvokeMath));
+      addProvider(new InvokeRewriter(method, NumericMethodRewrites::rewriteToInvokeMath));
 
       // long Long.sum(long a, long b)
       name = factory.createString("sum");
       proto = factory.createProto(factory.longType, factory.longType, factory.longType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new InvokeRewriter(method, NumericOperations::rewriteToAddInstruction));
+      addProvider(new InvokeRewriter(method, NumericMethodRewrites::rewriteToAddInstruction));
 
       // Character
       type = factory.boxedCharType;

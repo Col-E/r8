@@ -9,7 +9,7 @@ import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Value;
 import java.util.List;
 
-public final class NumericOperations {
+public final class NumericMethodRewrites {
   public static void rewriteToInvokeMath(InvokeMethod invoke, InstructionListIterator iterator,
       DexItemFactory factory) {
     InvokeStatic mathInvoke = new InvokeStatic(
@@ -28,6 +28,6 @@ public final class NumericOperations {
     iterator.replaceCurrentInstruction(add);
   }
 
-  private NumericOperations() {
+  private NumericMethodRewrites() {
   }
 }
