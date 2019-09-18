@@ -265,6 +265,9 @@ public class ClassInitializerDefaultsOptimization {
   }
 
   private DexValue getDexStringValue(Value inValue, DexType holder) {
+    if (inValue.isPhi()) {
+      return null;
+    }
     if (inValue.isConstant()) {
       if (inValue.isConstNumber()) {
         assert inValue.isZero();
@@ -285,7 +288,7 @@ public class ClassInitializerDefaultsOptimization {
 
     // If it is not a constant it must be the result of a virtual invoke to one of the
     // reflective lookup methods.
-    InvokeVirtual invoke = inValue.definition.asInvokeVirtual();
+    InvokeVirtual invoke = inValue.getAliasedValue().definition.asInvokeVirtual();
     return getDexStringValueForInvoke(invoke.getInvokedMethod(), holder);
   }
 
@@ -494,10 +497,11 @@ public class ClassInitializerDefaultsOptimization {
     if (put.getField().type != dexItemFactory.stringType) {
       return false;
     }
-    if (put.value().definition != null) {
-      return isClassNameConstantOf(clazz, put.value().definition);
+    Value value = put.value().getAliasedValue();
+    if (value.isPhi()) {
+      return false;
     }
-    return false;
+    return isClassNameConstantOf(clazz, value.definition);
   }
 
   private boolean isClassNameConstantOf(DexClass clazz, Instruction instruction) {

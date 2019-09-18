@@ -1204,6 +1204,12 @@ public class IRConverter {
       invertConditionalsForTesting(code);
     }
 
+    codeRewriter.rewriteThrowNullPointerException(code);
+
+    if (classInitializerDefaultsOptimization != null && !isDebugMode) {
+      classInitializerDefaultsOptimization.optimize(method, code, feedback);
+    }
+
     assert code.verifyTypes(appView);
 
     if (nonNullTracker != null) {
@@ -1223,11 +1229,6 @@ public class IRConverter {
       assert code.verifyTypes(appView);
     }
 
-    codeRewriter.rewriteThrowNullPointerException(code);
-
-    if (classInitializerDefaultsOptimization != null && !isDebugMode) {
-      classInitializerDefaultsOptimization.optimize(method, code, feedback);
-    }
     if (Log.ENABLED) {
       Log.debug(getClass(), "Intermediate (SSA) flow graph for %s:\n%s",
           method.toSourceString(), code);
