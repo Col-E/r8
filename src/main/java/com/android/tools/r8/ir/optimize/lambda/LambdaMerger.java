@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.optimize.lambda;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexApplication.Builder;
@@ -99,7 +98,7 @@ public final class LambdaMerger {
   // should not be happening very frequently and we ignore possible overhead.
   private final Set<DexEncodedMethod> methodsToReprocess = Sets.newIdentityHashSet();
 
-  private final AppView<?> appView;
+  private final AppView<AppInfoWithLiveness> appView;
   private final DexItemFactory factory;
   private final Kotlin kotlin;
   private final DiagnosticsHandler reporter;
@@ -111,7 +110,7 @@ public final class LambdaMerger {
   // Lambda visitor throwing Unreachable on each lambdas it sees.
   private final LambdaTypeVisitor lambdaChecker;
 
-  public LambdaMerger(AppView<?> appView) {
+  public LambdaMerger(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
     this.factory = appView.dexItemFactory();
     this.kotlin = factory.kotlin;
@@ -212,14 +211,11 @@ public final class LambdaMerger {
     analyzeReferencesInProgramClasses(app, executorService);
 
     // Analyse more complex aspects of lambda classes including method code.
-    assert appView.appInfo().hasSubtyping();
-    AppInfoWithSubtyping appInfoWithSubtyping = appView.appInfo().withSubtyping();
-    analyzeLambdaClassesStructure(appInfoWithSubtyping, executorService);
+    analyzeLambdaClassesStructure(executorService);
 
     // Remove invalidated lambdas, compact groups to ensure
     // sequential lambda ids, create group lambda classes.
-    Map<LambdaGroup, DexProgramClass> lambdaGroupsClasses =
-        finalizeLambdaGroups(appInfoWithSubtyping);
+    Map<LambdaGroup, DexProgramClass> lambdaGroupsClasses = finalizeLambdaGroups();
 
     // Switch to APPLY strategy.
     this.strategyFactory = ApplyStrategy::new;
@@ -258,12 +254,11 @@ public final class LambdaMerger {
     ThreadUtils.awaitFutures(futures);
   }
 
-  private void analyzeLambdaClassesStructure(
-      AppInfoWithSubtyping appInfo, ExecutorService service) throws ExecutionException {
+  private void analyzeLambdaClassesStructure(ExecutorService service) throws ExecutionException {
     List<Future<?>> futures = new ArrayList<>();
     for (LambdaGroup group : groups.values()) {
       ThrowingConsumer<DexClass, LambdaStructureError> validator =
-          group.lambdaClassValidator(kotlin, appInfo);
+          group.lambdaClassValidator(kotlin, appView.appInfo());
       group.forEachLambda(info ->
           futures.add(service.submit(() -> {
             try {
@@ -282,7 +277,7 @@ public final class LambdaMerger {
     ThreadUtils.awaitFutures(futures);
   }
 
-  private Map<LambdaGroup, DexProgramClass> finalizeLambdaGroups(AppInfoWithSubtyping appInfo) {
+  private Map<LambdaGroup, DexProgramClass> finalizeLambdaGroups() {
     for (DexType lambda : invalidatedLambdas) {
       LambdaGroup group = lambdas.get(lambda);
       assert group != null;
@@ -303,7 +298,7 @@ public final class LambdaMerger {
       result.put(group, lambdaGroupClass);
 
       // We have to register this new class as a subtype of object.
-      appInfo.registerNewType(lambdaGroupClass.type, lambdaGroupClass.superType);
+      appView.appInfo().registerNewType(lambdaGroupClass.type, lambdaGroupClass.superType);
     }
     return result;
   }
@@ -423,7 +418,7 @@ public final class LambdaMerger {
     }
   }
 
-  private final class ApplyStrategy extends CodeProcessor {
+  public final class ApplyStrategy extends CodeProcessor {
     private ApplyStrategy(DexEncodedMethod method, IRCode code) {
       super(
           LambdaMerger.this.appView,
@@ -445,7 +440,9 @@ public final class LambdaMerger {
 
     @Override
     void process(Strategy strategy, InstancePut instancePut) {
-      strategy.patch(this, instancePut);
+      // Instance put should only appear in lambda class instance constructor,
+      // we should never get here since we never rewrite them.
+      throw new Unreachable();
     }
 
     @Override
@@ -455,7 +452,9 @@ public final class LambdaMerger {
 
     @Override
     void process(Strategy strategy, StaticPut staticPut) {
-      strategy.patch(this, staticPut);
+      // Static put should only appear in lambda class static initializer,
+      // we should never get here since we never rewrite them.
+      throw new Unreachable();
     }
 
     @Override

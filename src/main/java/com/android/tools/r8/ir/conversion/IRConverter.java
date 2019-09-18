@@ -252,7 +252,6 @@ public class IRConverter {
         options.enableDesugaring
             ? new BackportedMethodRewriter(appView, this)
             : null;
-    this.lambdaMerger = options.enableLambdaMerging ? new LambdaMerger(appView) : null;
     this.covariantReturnTypeAnnotationTransformer =
         options.processCovariantReturnTypeAnnotations
             ? new CovariantReturnTypeAnnotationTransformer(this, appView.dexItemFactory())
@@ -284,6 +283,8 @@ public class IRConverter {
               : null;
       this.lensCodeRewriter = new LensCodeRewriter(appViewWithLiveness, lambdaRewriter);
       this.inliner = new Inliner(appViewWithLiveness, mainDexClasses, lensCodeRewriter);
+      this.lambdaMerger =
+          options.enableLambdaMerging ? new LambdaMerger(appViewWithLiveness) : null;
       this.outliner = new Outliner(appViewWithLiveness, this);
       this.memberValuePropagation =
           options.enableValuePropagation ? new MemberValuePropagation(appViewWithLiveness) : null;
@@ -307,6 +308,7 @@ public class IRConverter {
       this.fieldBitAccessAnalysis = null;
       this.libraryMethodOverrideAnalysis = null;
       this.inliner = null;
+      this.lambdaMerger = null;
       this.outliner = null;
       this.memberValuePropagation = null;
       this.lensCodeRewriter = null;

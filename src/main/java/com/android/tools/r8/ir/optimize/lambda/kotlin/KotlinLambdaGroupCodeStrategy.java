@@ -7,7 +7,6 @@ package com.android.tools.r8.ir.optimize.lambda.kotlin;
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -17,19 +16,18 @@ import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.InstanceGet;
-import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.StaticGet;
-import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.lambda.CaptureSignature;
 import com.android.tools.r8.ir.optimize.lambda.CodeProcessor;
 import com.android.tools.r8.ir.optimize.lambda.CodeProcessor.Strategy;
 import com.android.tools.r8.ir.optimize.lambda.LambdaGroup;
+import com.android.tools.r8.ir.optimize.lambda.LambdaMerger.ApplyStrategy;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -114,7 +112,7 @@ final class KotlinLambdaGroupCodeStrategy implements Strategy {
   }
 
   @Override
-  public void patch(CodeProcessor context, NewInstance newInstance) {
+  public void patch(ApplyStrategy context, NewInstance newInstance) {
     NewInstance patchedNewInstance =
         new NewInstance(
             group.getGroupClassType(),
@@ -125,7 +123,7 @@ final class KotlinLambdaGroupCodeStrategy implements Strategy {
   }
 
   @Override
-  public void patch(CodeProcessor context, InvokeMethod invoke) {
+  public void patch(ApplyStrategy context, InvokeMethod invoke) {
     assert group.containsLambda(invoke.getInvokedMethod().holder);
     if (isValidInitializerCall(context, invoke)) {
       patchInitializer(context, invoke.asInvokeDirect());
@@ -140,14 +138,7 @@ final class KotlinLambdaGroupCodeStrategy implements Strategy {
   }
 
   @Override
-  public void patch(CodeProcessor context, InstancePut instancePut) {
-    // Instance put should only appear in lambda class instance constructor,
-    // we should never get here since we never rewrite them.
-    throw new Unreachable();
-  }
-
-  @Override
-  public void patch(CodeProcessor context, InstanceGet instanceGet) {
+  public void patch(ApplyStrategy context, InstanceGet instanceGet) {
     DexField field = instanceGet.getField();
     DexType fieldType = field.type;
 
@@ -182,14 +173,7 @@ final class KotlinLambdaGroupCodeStrategy implements Strategy {
   }
 
   @Override
-  public void patch(CodeProcessor context, StaticPut staticPut) {
-    // Static put should only appear in lambda class static initializer,
-    // we should never get here since we never rewrite them.
-    throw new Unreachable();
-  }
-
-  @Override
-  public void patch(CodeProcessor context, StaticGet staticGet) {
+  public void patch(ApplyStrategy context, StaticGet staticGet) {
     context
         .instructions()
         .replaceCurrentInstruction(

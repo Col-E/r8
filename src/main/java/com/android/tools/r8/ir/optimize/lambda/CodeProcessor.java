@@ -26,7 +26,9 @@ import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
+import com.android.tools.r8.ir.optimize.lambda.LambdaMerger.ApplyStrategy;
 import com.android.tools.r8.kotlin.Kotlin;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.ListIterator;
 import java.util.function.Function;
 
@@ -59,88 +61,75 @@ public abstract class CodeProcessor extends DefaultInstructionVisitor<Void> {
 
     boolean isValidNewInstance(CodeProcessor context, NewInstance invoke);
 
-    void patch(CodeProcessor context, NewInstance newInstance);
+    void patch(ApplyStrategy context, NewInstance newInstance);
 
-    void patch(CodeProcessor context, InvokeMethod invoke);
+    void patch(ApplyStrategy context, InvokeMethod invoke);
 
-    void patch(CodeProcessor context, InstancePut instancePut);
+    void patch(ApplyStrategy context, InstanceGet instanceGet);
 
-    void patch(CodeProcessor context, InstanceGet instanceGet);
-
-    void patch(CodeProcessor context, StaticPut staticPut);
-
-    void patch(CodeProcessor context, StaticGet staticGet);
+    void patch(ApplyStrategy context, StaticGet staticGet);
   }
 
   // No-op strategy.
-  static final Strategy NoOp = new Strategy() {
-    @Override
-    public LambdaGroup group() {
-      return null;
-    }
+  static final Strategy NoOp =
+      new Strategy() {
+        @Override
+        public LambdaGroup group() {
+          return null;
+        }
 
-    @Override
-    public boolean isValidInstanceFieldWrite(CodeProcessor context, DexField field) {
-      return false;
-    }
+        @Override
+        public boolean isValidInstanceFieldWrite(CodeProcessor context, DexField field) {
+          return false;
+        }
 
-    @Override
-    public boolean isValidInstanceFieldRead(CodeProcessor context, DexField field) {
-      return false;
-    }
+        @Override
+        public boolean isValidInstanceFieldRead(CodeProcessor context, DexField field) {
+          return false;
+        }
 
-    @Override
-    public boolean isValidStaticFieldWrite(CodeProcessor context, DexField field) {
-      return false;
-    }
+        @Override
+        public boolean isValidStaticFieldWrite(CodeProcessor context, DexField field) {
+          return false;
+        }
 
-    @Override
-    public boolean isValidStaticFieldRead(CodeProcessor context, DexField field) {
-      return false;
-    }
+        @Override
+        public boolean isValidStaticFieldRead(CodeProcessor context, DexField field) {
+          return false;
+        }
 
-    @Override
-    public boolean isValidInvoke(CodeProcessor context, InvokeMethod invoke) {
-      return false;
-    }
+        @Override
+        public boolean isValidInvoke(CodeProcessor context, InvokeMethod invoke) {
+          return false;
+        }
 
-    @Override
-    public boolean isValidNewInstance(CodeProcessor context, NewInstance invoke) {
-      return false;
-    }
+        @Override
+        public boolean isValidNewInstance(CodeProcessor context, NewInstance invoke) {
+          return false;
+        }
 
-    @Override
-    public void patch(CodeProcessor context, NewInstance newInstance) {
-      throw new Unreachable();
-    }
+        @Override
+        public void patch(ApplyStrategy context, NewInstance newInstance) {
+          throw new Unreachable();
+        }
 
-    @Override
-    public void patch(CodeProcessor context, InvokeMethod invoke) {
-      throw new Unreachable();
-    }
+        @Override
+        public void patch(ApplyStrategy context, InvokeMethod invoke) {
+          throw new Unreachable();
+        }
 
-    @Override
-    public void patch(CodeProcessor context, InstancePut instancePut) {
-      throw new Unreachable();
-    }
+        @Override
+        public void patch(ApplyStrategy context, InstanceGet instanceGet) {
+          throw new Unreachable();
+        }
 
-    @Override
-    public void patch(CodeProcessor context, InstanceGet instanceGet) {
-      throw new Unreachable();
-    }
+        @Override
+        public void patch(ApplyStrategy context, StaticGet staticGet) {
+          throw new Unreachable();
+        }
+      };
 
-    @Override
-    public void patch(CodeProcessor context, StaticPut staticPut) {
-      throw new Unreachable();
-    }
-
-    @Override
-    public void patch(CodeProcessor context, StaticGet staticGet) {
-      throw new Unreachable();
-    }
-  };
-
-  public final AppView<?> appView;
+  public final AppView<AppInfoWithLiveness> appView;
   public final DexItemFactory factory;
   public final Kotlin kotlin;
 
@@ -159,7 +148,7 @@ public abstract class CodeProcessor extends DefaultInstructionVisitor<Void> {
   private InstructionListIterator instructions;
 
   CodeProcessor(
-      AppView<?> appView,
+      AppView<AppInfoWithLiveness> appView,
       Function<DexType, Strategy> strategyProvider,
       LambdaTypeVisitor lambdaChecker,
       DexEncodedMethod method,
