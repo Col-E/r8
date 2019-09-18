@@ -72,6 +72,7 @@ public class GenerateBackportMethods extends TestBase {
           BooleanMethods.class,
           ByteMethods.class,
           CharacterMethods.class,
+          CloseResourceMethod.class,
           CollectionsMethods.class,
           DoubleMethods.class,
           FloatMethods.class,
@@ -144,7 +145,10 @@ public class GenerateBackportMethods extends TestBase {
     ProcessBuilder builder =
         new ProcessBuilder(
             ImmutableList.of(
-                javaExecutable.toString(), "-jar", googleFormatJar.toString(), outfile.toString()));
+                javaExecutable.toString(),
+                "-jar",
+                googleFormatJar.toString(),
+                outfile.toAbsolutePath().toString()));
     String commandString = String.join(" ", builder.command());
     System.out.println(commandString);
     Process process = builder.start();

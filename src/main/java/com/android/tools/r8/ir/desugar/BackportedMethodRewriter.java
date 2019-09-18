@@ -34,7 +34,6 @@ import com.android.tools.r8.ir.desugar.backports.ListMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.LongMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.NumericOperations;
 import com.android.tools.r8.ir.desugar.backports.ObjectsMethodRewrites;
-import com.android.tools.r8.ir.synthetic.TemplateMethodCode;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
@@ -183,10 +182,6 @@ public final class BackportedMethodRewriter {
               DexEncodedMethod.EMPTY_ARRAY,
               factory.getSkipNameValidationForTesting(),
               referencingClasses);
-      // TODO(b/136596951): Remove this once reflective templates are eliminated.
-      if (code instanceof TemplateMethodCode) {
-        ((TemplateMethodCode) code).setUpContext(utilityClass);
-      }
       boolean addToMainDexList =
           referencingClasses.stream()
               .anyMatch(clazz -> appView.appInfo().isInMainDexList(clazz.type));
@@ -1230,7 +1225,7 @@ public final class BackportedMethodRewriter {
     }
 
     @Override
-    public TemplateMethodCode generateTemplateMethod(InternalOptions options, DexMethod method) {
+    public Code generateTemplateMethod(InternalOptions options, DexMethod method) {
       throw new Unreachable();
     }
   }

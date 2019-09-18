@@ -43,6 +43,7 @@ import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.cf.code.CfSwitch;
 import com.android.tools.r8.cf.code.CfThrow;
+import com.android.tools.r8.cf.code.CfTryCatch;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexMethod;
@@ -64,6 +65,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /** Rudimentary printer to print the source representation for creating CfCode object. */
 public class CfCodePrinter extends CfPrinter {
@@ -135,21 +137,26 @@ public class CfCodePrinter extends CfPrinter {
         .append(immutableListType())
         .append(".of(");
 
-    if (!code.getTryCatchRanges().isEmpty()) {
-      throw new Unimplemented("No support for try catch blocks currently");
-    }
-
     for (CfInstruction instruction : code.getInstructions()) {
       instruction.print(this);
     }
 
-    builder
-        .append("),")
-        .append(immutableListType())
-        .append(".of(),")
-        .append(immutableListType())
-        .append(".of());")
-        .append("}");
+    builder.append("),").append(immutableListType()).append(".of(");
+    pendingComma = false;
+    for (CfTryCatch tryCatchRange : code.getTryCatchRanges()) {
+      String guards =
+          tryCatchRange.guards.stream().map(this::dexType).collect(Collectors.joining(", "));
+      String targets =
+          tryCatchRange.targets.stream().map(this::labelName).collect(Collectors.joining(", "));
+      printNewInstruction(
+          "CfTryCatch",
+          labelName(tryCatchRange.start),
+          labelName(tryCatchRange.end),
+          immutableListType() + ".of(" + guards + ")",
+          immutableListType() + ".of(" + targets + ")");
+    }
+
+    builder.append("),").append(immutableListType()).append(".of());").append("}");
 
     methods.add(builder.toString());
   }
