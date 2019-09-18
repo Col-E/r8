@@ -35,6 +35,11 @@ public class Assume<An extends Assumption> extends Instruction {
     this.origin = origin;
   }
 
+  public static Assume<NoAssumption> createAssumeNoneInstruction(
+      Value dest, Value src, Instruction origin, AppView<?> appView) {
+    return new Assume<>(NoAssumption.get(), dest, src, origin, appView);
+  }
+
   public static Assume<NonNullAssumption> createAssumeNonNullInstruction(
       Value dest, Value src, Instruction origin, AppView<?> appView) {
     return new Assume<>(NonNullAssumption.get(), dest, src, origin, appView);
@@ -87,6 +92,9 @@ public class Assume<An extends Assumption> extends Instruction {
 
   @Override
   public String getInstructionName() {
+    if (isAssumeNone()) {
+      return "AssumeNone";
+    }
     if (isAssumeDynamicType()) {
       return "AssumeDynamicType";
     }
@@ -104,6 +112,19 @@ public class Assume<An extends Assumption> extends Instruction {
   @Override
   public Assume<An> asAssume() {
     return this;
+  }
+
+  @Override
+  public boolean isAssumeNone() {
+    return assumption.isAssumeNone();
+  }
+
+  @Override
+  public Assume<NoAssumption> asAssumeNone() {
+    assert isAssumeNone();
+    @SuppressWarnings("unchecked")
+    Assume<NoAssumption> self = (Assume<NoAssumption>) this;
+    return self;
   }
 
   @Override
@@ -139,6 +160,10 @@ public class Assume<An extends Assumption> extends Instruction {
     TypeLatticeElement outType = outValue.getTypeLattice();
     if (outType.isPrimitive()) {
       return false;
+    }
+    if (assumption.isAssumeNone()) {
+      // The main purpose of AssumeNone is to test local alias tracking.
+      return true;
     }
     if (assumption.isAssumeDynamicType()) {
       outType = asAssumeDynamicType().assumption.getType();
@@ -207,7 +232,7 @@ public class Assume<An extends Assumption> extends Instruction {
 
   @Override
   public TypeLatticeElement evaluate(AppView<?> appView) {
-    if (assumption.isAssumeDynamicType()) {
+    if (assumption.isAssumeNone() || assumption.isAssumeDynamicType()) {
       return src().getTypeLattice();
     }
     if (assumption.isAssumeNonNull()) {
@@ -243,29 +268,41 @@ public class Assume<An extends Assumption> extends Instruction {
 
     TypeLatticeElement inType = src().getTypeLattice();
     TypeLatticeElement outType = outValue().getTypeLattice();
-    if (isAssumeDynamicType()) {
-      assert outType.equals(inType);
+    if (isAssumeNone() || isAssumeDynamicType()) {
+      assert inType.isReference() : inType;
+      assert outType.equals(inType)
+          : "At " + this + System.lineSeparator() + outType + " != " + inType;
     } else {
-      assert isAssumeNonNull();
-      assert inType.isReference();
+      assert isAssumeNonNull() : this;
+      assert inType.isReference() : inType;
       assert inType.isNullType()
-          || outType.equals(inType.asReferenceTypeLatticeElement().asNotNull());
+          || outType.equals(inType.asReferenceTypeLatticeElement().asNotNull())
+              : "At " + this + System.lineSeparator() + outType + " != " + inType;
     }
     return true;
   }
 
   @Override
   public String toString() {
+    String originString = "(origin: `" + origin.toString() + "`)";
+    if (isAssumeNone()) {
+      return super.toString() + "; nothing " + originString;
+    }
     if (isAssumeDynamicType()) {
-      return super.toString() + "; type: " + asAssumeDynamicType().getAssumption().type;
+      return super.toString()
+          + "; type: " + asAssumeDynamicType().getAssumption().type + originString;
     }
     if (isAssumeNonNull()) {
-      return super.toString() + "; not null";
+      return super.toString() + "; not null " + originString;
     }
     return super.toString();
   }
 
   abstract static class Assumption {
+
+    public boolean isAssumeNone() {
+      return false;
+    }
 
     public boolean isAssumeDynamicType() {
       return false;
@@ -276,6 +313,27 @@ public class Assume<An extends Assumption> extends Instruction {
     }
 
     public boolean verifyCorrectnessOfValues(Value dest, Value src, AppView<?> appView) {
+      return true;
+    }
+  }
+
+  public static class NoAssumption extends Assumption {
+    private static final NoAssumption instance = new NoAssumption();
+
+    private NoAssumption() {}
+
+    static NoAssumption get() {
+      return instance;
+    }
+
+    @Override
+    public boolean isAssumeNone() {
+      return true;
+    }
+
+    @Override
+    public boolean verifyCorrectnessOfValues(Value dest, Value src, AppView<?> appView) {
+      assert dest.getTypeLattice() == src.getTypeLattice();
       return true;
     }
   }

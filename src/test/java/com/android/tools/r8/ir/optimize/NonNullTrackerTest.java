@@ -40,7 +40,7 @@ public class NonNullTrackerTest extends NonNullTrackerTestBase {
 
     NonNullTracker nonNullTracker = new NonNullTracker(appView);
 
-    nonNullTracker.addNonNull(code);
+    nonNullTracker.insertAssumeInstructions(code);
     assertTrue(code.isConsistentSSA());
     checkCountOfNonNull(code, expectedNumberOfNonNull);
 

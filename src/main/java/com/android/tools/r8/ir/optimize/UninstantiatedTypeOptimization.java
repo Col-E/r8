@@ -508,10 +508,10 @@ public class UninstantiatedTypeOptimization {
       } else {
         if (instructionCanBeRemoved) {
           // Replace the field read by the constant null.
-          instructionIterator.replaceCurrentInstruction(code.createConstNull());
           affectedValues.addAll(instruction.outValue().affectedValues());
+          instructionIterator.replaceCurrentInstruction(code.createConstNull());
         } else {
-          replaceOutValueByNull(instruction, instructionIterator, code);
+          replaceOutValueByNull(instruction, instructionIterator, code, affectedValues);
         }
       }
 
@@ -553,17 +553,21 @@ public class UninstantiatedTypeOptimization {
 
     DexType returnType = target.method.proto.returnType;
     if (returnType.isAlwaysNull(appView)) {
-      replaceOutValueByNull(invoke, instructionIterator, code);
+      replaceOutValueByNull(invoke, instructionIterator, code, affectedValues);
     }
   }
 
   private void replaceOutValueByNull(
-      Instruction instruction, InstructionListIterator instructionIterator, IRCode code) {
+      Instruction instruction,
+      InstructionListIterator instructionIterator,
+      IRCode code,
+      Set<Value> affectedValues) {
     assert instructionIterator.peekPrevious() == instruction;
     if (instruction.hasOutValue()) {
       Value outValue = instruction.outValue();
       if (outValue.numberOfAllUsers() > 0) {
         instructionIterator.previous();
+        affectedValues.addAll(outValue.affectedValues());
         outValue.replaceUsers(
             instructionIterator.insertConstNullInstruction(code, appView.options()));
         instructionIterator.next();

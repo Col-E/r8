@@ -533,30 +533,39 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       Set<BasicBlock> inlineeBlocks = Sets.newIdentityHashSet();
       inlineeBlocks.addAll(inlinee.blocks);
 
-      // Kick off the tracker to add non-null IRs only to the inlinee blocks.
+      // Introduce aliases only to the inlinee blocks.
+      if (appView.options().testing.forceAssumeNoneInsertion) {
+        insertAssumeInstructionsToInlinee(
+            new AliasIntroducer(appView), code, state, blockIterator, inlineeBlocks);
+      }
+
+      // Add non-null IRs only to the inlinee blocks.
       Consumer<BasicBlock> splitBlockConsumer = inlineeBlocks::add;
-      new NonNullTracker(appView, splitBlockConsumer)
-          .addNonNullInPart(code, blockIterator, inlineeBlocks::contains);
-      assert !blockIterator.hasNext();
+      Assumer nonNullTracker = new NonNullTracker(appView, splitBlockConsumer);
+      insertAssumeInstructionsToInlinee(
+          nonNullTracker, code, state, blockIterator, inlineeBlocks);
 
-      // Restore the old state of the iterator.
-      while (blockIterator.hasPrevious() && blockIterator.previous() != state) {
-        // Do nothing.
-      }
-      assert IteratorUtils.peekNext(blockIterator) == state;
-
-      new DynamicTypeOptimization(appView)
-          .insertAssumeDynamicTypeInstructionsInBlocks(
-              code, blockIterator, inlineeBlocks::contains);
-      assert !blockIterator.hasNext();
-
-      // Restore the old state of the iterator.
-      while (blockIterator.hasPrevious() && blockIterator.previous() != state) {
-        // Do nothing.
-      }
-      assert IteratorUtils.peekNext(blockIterator) == state;
+      // Add dynamic type assumptions only to the inlinee blocks.
+      insertAssumeInstructionsToInlinee(
+          new DynamicTypeOptimization(appView), code, state, blockIterator, inlineeBlocks);
     }
     // TODO(b/72693244): need a test where refined env in inlinee affects the caller.
+  }
+
+  private void insertAssumeInstructionsToInlinee(
+      Assumer assumer,
+      IRCode code,
+      BasicBlock state,
+      ListIterator<BasicBlock> blockIterator,
+      Set<BasicBlock> inlineeBlocks) {
+    assumer.insertAssumeInstructionsInBlocks(code, blockIterator, inlineeBlocks::contains);
+    assert !blockIterator.hasNext();
+
+    // Restore the old state of the iterator.
+    while (blockIterator.hasPrevious() && blockIterator.previous() != state) {
+      // Do nothing.
+    }
+    assert IteratorUtils.peekNext(blockIterator) == state;
   }
 
   @Override

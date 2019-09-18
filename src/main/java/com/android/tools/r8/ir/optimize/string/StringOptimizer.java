@@ -19,6 +19,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.escape.EscapeAnalysis;
 import com.android.tools.r8.ir.analysis.escape.EscapeAnalysisConfiguration;
+import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.ConstClass;
@@ -35,9 +36,11 @@ import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.dexitembasedstring.ClassNameComputationInfo;
 import com.android.tools.r8.naming.dexitembasedstring.ClassNameComputationInfo.ClassNameMapping;
 import com.android.tools.r8.utils.StringUtils;
+import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.objects.Object2IntArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import java.io.UTFDataFormatException;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -129,6 +132,7 @@ public class StringOptimizer {
     if (!code.metadata().mayHaveConstString()) {
       return;
     }
+    Set<Value> affectedValues = Sets.newIdentityHashSet();
     InstructionListIterator it = code.instructionListIterator();
     while (it.hasNext()) {
       Instruction instr = it.next();
@@ -180,6 +184,7 @@ public class StringOptimizer {
             code.createValue(
                 TypeLatticeElement.stringClassType(appView, definitelyNotNull()),
                 invoke.getLocalInfo());
+        affectedValues.addAll(invoke.outValue().affectedValues());
         it.replaceCurrentInstruction(
             new ConstString(stringValue, factory.createString(sub), throwingInfo));
         numberOfSimplifiedOperations++;
@@ -269,6 +274,10 @@ public class StringOptimizer {
       numberOfSimplifiedOperations++;
       it.replaceCurrentInstruction(constNumber);
     }
+    // Computed substring is not null, and thus propagate that information.
+    if (!affectedValues.isEmpty()) {
+      new TypeAnalysis(appView).narrowing(affectedValues);
+    }
   }
 
   // Find Class#get*Name() with a constant-class and replace it with a const-string if possible.
@@ -277,6 +286,7 @@ public class StringOptimizer {
     if (code.method.isClassInitializer()) {
       return;
     }
+    Set<Value> affectedValues = Sets.newIdentityHashSet();
     boolean markUseIdentifierNameString = false;
     InstructionListIterator it = code.instructionListIterator();
     while (it.hasNext()) {
@@ -366,6 +376,7 @@ public class StringOptimizer {
       } else if (invokedMethod == factory.classMethods.getCanonicalName) {
         // Always returns null if the target type is local or anonymous class.
         if (holder.isLocalClass() || holder.isAnonymousClass()) {
+          affectedValues.addAll(invoke.outValue().affectedValues());
           ConstNumber constNull = code.createConstNull();
           it.replaceCurrentInstruction(constNull);
         } else {
@@ -412,6 +423,7 @@ public class StringOptimizer {
         }
       }
       if (name != null) {
+        affectedValues.addAll(invoke.outValue().affectedValues());
         Value stringValue =
             code.createValue(
                 TypeLatticeElement.stringClassType(appView, definitelyNotNull()),
@@ -420,10 +432,16 @@ public class StringOptimizer {
         it.replaceCurrentInstruction(constString);
         logHistogramOfNames(name);
       } else if (deferred != null) {
+        affectedValues.addAll(invoke.outValue().affectedValues());
         it.replaceCurrentInstruction(deferred);
         markUseIdentifierNameString = true;
         logHistogramOfNames(deferred);
       }
+    }
+    // Computed name is not null or literally null (for canonical name of local/anonymous class).
+    // In either way, that is narrower information, and thus propagate that.
+    if (!affectedValues.isEmpty()) {
+      new TypeAnalysis(appView).narrowing(affectedValues);
     }
     if (markUseIdentifierNameString) {
       code.method.getMutableOptimizationInfo().markUseIdentifierNameString();
@@ -478,6 +496,7 @@ public class StringOptimizer {
   // String#valueOf(String s) -> s
   // str.toString() -> str
   public void removeTrivialConversions(IRCode code) {
+    Set<Value> affectedValues = Sets.newIdentityHashSet();
     InstructionListIterator it = code.instructionListIterator();
     while (it.hasNext()) {
       Instruction instr = it.next();
@@ -492,8 +511,10 @@ public class StringOptimizer {
         if (in.hasLocalInfo()) {
           continue;
         }
+        Value out = invoke.outValue();
         TypeLatticeElement inType = in.getTypeLattice();
-        if (in.isAlwaysNull(appView)) {
+        if (out != null && in.isAlwaysNull(appView)) {
+          affectedValues.addAll(out.affectedValues());
           Value nullStringValue =
               code.createValue(
                   TypeLatticeElement.stringClassType(appView, definitelyNotNull()),
@@ -505,8 +526,8 @@ public class StringOptimizer {
         } else if (inType.nullability().isDefinitelyNotNull()
             && inType.isClassType()
             && inType.asClassTypeLatticeElement().getClassType().equals(factory.stringType)) {
-          Value out = invoke.outValue();
           if (out != null) {
+            affectedValues.addAll(out.affectedValues());
             removeOrReplaceByDebugLocalWrite(invoke, it, in, out);
           } else {
             it.removeOrReplaceByDebugLocalRead();
@@ -527,6 +548,7 @@ public class StringOptimizer {
             && inType.asClassTypeLatticeElement().getClassType().equals(factory.stringType)) {
           Value out = invoke.outValue();
           if (out != null) {
+            affectedValues.addAll(out.affectedValues());
             removeOrReplaceByDebugLocalWrite(invoke, it, in, out);
           } else {
             it.removeOrReplaceByDebugLocalRead();
@@ -534,6 +556,10 @@ public class StringOptimizer {
           numberOfSimplifiedConversions++;
         }
       }
+    }
+    // Newly added "null" string is not null, and thus propagate that information.
+    if (!affectedValues.isEmpty()) {
+      new TypeAnalysis(appView).narrowing(affectedValues);
     }
   }
 

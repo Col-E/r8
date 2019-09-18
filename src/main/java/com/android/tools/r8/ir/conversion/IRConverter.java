@@ -53,6 +53,7 @@ import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.ir.desugar.StringConcatRewriter;
 import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
+import com.android.tools.r8.ir.optimize.AliasIntroducer;
 import com.android.tools.r8.ir.optimize.ClassInitializerDefaultsOptimization;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.ConstantCanonicalizer;
@@ -131,7 +132,6 @@ public class IRConverter {
   private final Timing timing;
   private final Outliner outliner;
   private final ClassInitializerDefaultsOptimization classInitializerDefaultsOptimization;
-  private final DynamicTypeOptimization dynamicTypeOptimization;
   private final FieldBitAccessAnalysis fieldBitAccessAnalysis;
   private final LibraryMethodOverrideAnalysis libraryMethodOverrideAnalysis;
   private final StringConcatRewriter stringConcatRewriter;
@@ -152,7 +152,6 @@ public class IRConverter {
   private final ConstantCanonicalizer constantCanonicalizer;
   private final MemberValuePropagation memberValuePropagation;
   private final LensCodeRewriter lensCodeRewriter;
-  private final NonNullTracker nonNullTracker;
   private final Inliner inliner;
   private final IdentifierNameStringMarker identifierNameStringMarker;
   private final Devirtualizer devirtualizer;
@@ -160,6 +159,11 @@ public class IRConverter {
   private final StringSwitchRemover stringSwitchRemover;
   private final UninstantiatedTypeOptimization uninstantiatedTypeOptimization;
   private final TypeChecker typeChecker;
+
+  // Assumers that will insert Assume instructions.
+  private final AliasIntroducer aliasIntroducer;
+  private final DynamicTypeOptimization dynamicTypeOptimization;
+  private final NonNullTracker nonNullTracker;
 
   final DeadCodeRemover deadCodeRemover;
 
@@ -216,10 +220,11 @@ public class IRConverter {
       this.twrCloseResourceRewriter = null;
       this.lambdaMerger = null;
       this.covariantReturnTypeAnnotationTransformer = null;
+      this.aliasIntroducer = null;
       this.nonNullTracker = null;
+      this.dynamicTypeOptimization = null;
       this.classInliner = null;
       this.classStaticizer = null;
-      this.dynamicTypeOptimization = null;
       this.fieldBitAccessAnalysis = null;
       this.libraryMethodOverrideAnalysis = null;
       this.inliner = null;
@@ -252,6 +257,8 @@ public class IRConverter {
         options.processCovariantReturnTypeAnnotations
             ? new CovariantReturnTypeAnnotationTransformer(this, appView.dexItemFactory())
             : null;
+    this.aliasIntroducer =
+        options.testing.forceAssumeNoneInsertion ? new AliasIntroducer(appView) : null;
     this.nonNullTracker = options.enableNonNullTracking ? new NonNullTracker(appView) : null;
     if (appView.enableWholeProgramOptimizations()) {
       assert appView.appInfo().hasLiveness();
@@ -1106,14 +1113,20 @@ public class IRConverter {
 
     previous = printMethod(code, "IR after disable assertions (SSA)", previous);
 
+    if (aliasIntroducer != null) {
+      aliasIntroducer.insertAssumeInstructions(code);
+      assert code.isConsistentSSA();
+    }
+
     if (nonNullTracker != null) {
-      nonNullTracker.addNonNull(code);
+      nonNullTracker.insertAssumeInstructions(code);
       assert code.isConsistentSSA();
     }
 
     if (dynamicTypeOptimization != null) {
       assert appView.enableWholeProgramOptimizations();
-      dynamicTypeOptimization.insertAssumeDynamicTypeInstructions(code);
+      dynamicTypeOptimization.insertAssumeInstructions(code);
+      assert code.isConsistentSSA();
     }
 
     appView.withGeneratedMessageLiteShrinker(shrinker -> shrinker.run(method, code));
@@ -1122,6 +1135,7 @@ public class IRConverter {
 
     if (!isDebugMode && options.enableInlining && inliner != null) {
       inliner.performInlining(method, code, feedback, isProcessedConcurrently, callSiteInformation);
+      assert code.verifyTypes(appView);
     }
 
     previous = printMethod(code, "IR after inlining (SSA)", previous);
@@ -1190,6 +1204,8 @@ public class IRConverter {
       invertConditionalsForTesting(code);
     }
 
+    assert code.verifyTypes(appView);
+
     if (nonNullTracker != null) {
       // TODO(b/139246447): Once we extend this optimization to, e.g., constants of primitive args,
       //   this may not be the right place to collect call site optimization info.
@@ -1200,10 +1216,11 @@ public class IRConverter {
       }
       // Computation of non-null parameters on normal exits rely on the existence of non-null IRs.
       nonNullTracker.computeNonNullParamOnNormalExits(feedback, code);
-      assert code.isConsistentSSA();
     }
-    if (nonNullTracker != null || dynamicTypeOptimization != null) {
+    if (aliasIntroducer != null || nonNullTracker != null || dynamicTypeOptimization != null) {
       codeRewriter.removeAssumeInstructions(code);
+      assert code.isConsistentSSA();
+      assert code.verifyTypes(appView);
     }
 
     codeRewriter.rewriteThrowNullPointerException(code);

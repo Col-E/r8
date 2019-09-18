@@ -13,7 +13,9 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.escape.EscapeAnalysis;
 import com.android.tools.r8.ir.analysis.escape.EscapeAnalysisConfiguration;
+import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.code.Assume;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.ConstNumber;
@@ -358,7 +360,7 @@ public class StringBuilderOptimizer {
           if (instr.isInvokeDirect()
               && optimizationConfiguration.isBuilderInitWithInitialValue(instr.asInvokeDirect())) {
             InvokeDirect invoke = instr.asInvokeDirect();
-            Value builder = invoke.getReceiver();
+            Value builder = invoke.getReceiver().getAliasedValue();
             if (!candidateBuilders.contains(builder)) {
               continue;
             }
@@ -570,6 +572,7 @@ public class StringBuilderOptimizer {
     final Set<Value> simplifiedBuilders = Sets.newIdentityHashSet();
 
     private StringConcatenationAnalysis applyConcatenationResults(Set<Value> candidateBuilders) {
+      Set<Value> affectedValues = Sets.newIdentityHashSet();
       InstructionListIterator it = code.instructionListIterator();
       while (it.hasNext()) {
         Instruction instr = it.nextUntil(i -> isToStringOfInterest(candidateBuilders, i));
@@ -608,10 +611,15 @@ public class StringBuilderOptimizer {
             code.createValue(
                 TypeLatticeElement.stringClassType(appView, definitelyNotNull()),
                 invoke.getLocalInfo());
+        affectedValues.addAll(outValue.affectedValues());
         it.replaceCurrentInstruction(
             new ConstString(stringValue, factory.createString(element), throwingInfo));
         simplifiedBuilders.add(builder);
         numberOfBuildersSimplified++;
+      }
+      // Concatenation results are not null, and thus propagate that information.
+      if (!affectedValues.isEmpty()) {
+        new TypeAnalysis(appView).narrowing(affectedValues);
       }
       return this;
     }
@@ -730,7 +738,7 @@ public class StringBuilderOptimizer {
           InvokeVirtual invoke = instr.asInvokeVirtual();
           DexMethod invokedMethod = invoke.getInvokedMethod();
           if (optimizationConfiguration.isToStringMethod(invokedMethod)
-              && buildersToRemove.contains(invoke.getReceiver())) {
+              && buildersToRemove.contains(invoke.getReceiver().getAliasedValue())) {
             it.removeOrReplaceByDebugLocalRead();
           }
         }
@@ -743,7 +751,7 @@ public class StringBuilderOptimizer {
           InvokeVirtual invoke = instr.asInvokeVirtual();
           DexMethod invokedMethod = invoke.getInvokedMethod();
           if (optimizationConfiguration.isAppendMethod(invokedMethod)
-              && buildersToRemove.contains(invoke.getReceiver())) {
+              && buildersToRemove.contains(invoke.getReceiver().getAliasedValue())) {
             it.removeOrReplaceByDebugLocalRead();
           }
         }
@@ -751,9 +759,17 @@ public class StringBuilderOptimizer {
           InvokeDirect invoke = instr.asInvokeDirect();
           DexMethod invokedMethod = invoke.getInvokedMethod();
           if (optimizationConfiguration.isBuilderInit(invokedMethod)
-              && buildersToRemove.contains(invoke.getReceiver())) {
+              && buildersToRemove.contains(invoke.getReceiver().getAliasedValue())) {
             it.removeOrReplaceByDebugLocalRead();
           }
+        }
+        // If there are aliasing instructions, they should be removed before new-instance.
+        if (instr.isAssume() && buildersToRemove.contains(instr.outValue().getAliasedValue())) {
+          Assume<?> assumeInstruction = instr.asAssume();
+          Value src = assumeInstruction.src();
+          Value dest = assumeInstruction.outValue();
+          dest.replaceUsers(src);
+          it.remove();
         }
       }
       // new-instance should be removed at last, since it will check the out value, builder, is not
@@ -764,7 +780,7 @@ public class StringBuilderOptimizer {
         if (instr.isNewInstance()
             && optimizationConfiguration.isBuilderType(instr.asNewInstance().clazz)
             && instr.hasOutValue()
-            && simplifiedBuilders.contains(instr.outValue())) {
+            && buildersToRemove.contains(instr.outValue())) {
           it.removeOrReplaceByDebugLocalRead();
         }
       }

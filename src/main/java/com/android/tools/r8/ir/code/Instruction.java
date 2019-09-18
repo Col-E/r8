@@ -19,6 +19,7 @@ import com.android.tools.r8.ir.analysis.constant.ConstRangeLatticeElement;
 import com.android.tools.r8.ir.analysis.constant.LatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Assume.DynamicTypeAssumption;
+import com.android.tools.r8.ir.code.Assume.NoAssumption;
 import com.android.tools.r8.ir.code.Assume.NonNullAssumption;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
@@ -629,6 +630,14 @@ public abstract class Instruction implements InstructionOrPhi {
   }
 
   public Assume<?> asAssume() {
+    return null;
+  }
+
+  public boolean isAssumeNone() {
+    return false;
+  }
+
+  public Assume<NoAssumption> asAssumeNone() {
     return null;
   }
 

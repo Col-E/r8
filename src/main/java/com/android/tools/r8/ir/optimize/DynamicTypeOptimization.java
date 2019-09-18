@@ -23,13 +23,12 @@ import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.google.common.base.Predicates;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.function.Predicate;
 
-public class DynamicTypeOptimization {
+public class DynamicTypeOptimization implements Assumer {
 
   private final AppView<AppInfoWithLiveness> appView;
 
@@ -37,11 +36,8 @@ public class DynamicTypeOptimization {
     this.appView = appView;
   }
 
-  public void insertAssumeDynamicTypeInstructions(IRCode code) {
-    insertAssumeDynamicTypeInstructionsInBlocks(code, code.listIterator(), Predicates.alwaysTrue());
-  }
-
-  public void insertAssumeDynamicTypeInstructionsInBlocks(
+  @Override
+  public void insertAssumeInstructionsInBlocks(
       IRCode code, ListIterator<BasicBlock> blockIterator, Predicate<BasicBlock> blockTester) {
     while (blockIterator.hasNext()) {
       BasicBlock block = blockIterator.next();
@@ -58,8 +54,7 @@ public class DynamicTypeOptimization {
     InstructionListIterator instructionIterator = block.listIterator(code);
     while (instructionIterator.hasNext()) {
       Instruction current = instructionIterator.next();
-      Value outValue = current.outValue();
-      if (outValue == null) {
+      if (!current.hasOutValue() || !current.outValue().isUsed()) {
         continue;
       }
 
@@ -101,6 +96,7 @@ public class DynamicTypeOptimization {
         continue;
       }
 
+      Value outValue = current.outValue();
       boolean isTrivial =
           (dynamicType == null || !dynamicType.strictlyLessThan(outValue.getTypeLattice(), appView))
               && dynamicLowerBoundType == null;

@@ -49,7 +49,7 @@ public class NullabilityTest extends NonNullTrackerTestBase {
     CodeInspector codeInspector = new CodeInspector(appView.appInfo().app());
     MethodSubject fooSubject = codeInspector.clazz(mainClass.getName()).method(signature);
     IRCode irCode = fooSubject.buildIR();
-    new NonNullTracker(appView).addNonNull(irCode);
+    new NonNullTracker(appView).insertAssumeInstructions(irCode);
     inspector.accept(appView, irCode);
     verifyLastInvoke(irCode, npeCaught);
   }

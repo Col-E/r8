@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
+import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstClass;
@@ -23,6 +24,8 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.google.common.collect.Sets;
+import java.util.Set;
 
 public class ReflectionOptimizer {
 
@@ -30,6 +33,7 @@ public class ReflectionOptimizer {
   // Rewrite forName() to const-class if the type is resolvable, accessible and already initialized.
   public static void rewriteGetClassOrForNameToConstClass(
       AppView<AppInfoWithLiveness> appView, IRCode code) {
+    Set<Value> affectedValues = Sets.newIdentityHashSet();
     DexType context = code.method.method.holder;
     ClassInitializationAnalysis classInitializationAnalysis =
         new ClassInitializationAnalysis(appView, code);
@@ -42,6 +46,9 @@ public class ReflectionOptimizer {
       InstructionListIterator it = block.listIterator(code);
       while (it.hasNext()) {
         Instruction current = it.next();
+        if (!current.hasOutValue() || !current.outValue().isUsed()) {
+          continue;
+        }
         DexType type = null;
         if (current.isInvokeVirtual()) {
           type = getTypeForGetClass( appView, context, current.asInvokeVirtual());
@@ -50,6 +57,7 @@ public class ReflectionOptimizer {
               appView, classInitializationAnalysis, context, current.asInvokeStatic());
         }
         if (type != null) {
+          affectedValues.addAll(current.outValue().affectedValues());
           TypeLatticeElement typeLattice =
               TypeLatticeElement.classClassType(appView, definitelyNotNull());
           Value value = code.createValue(typeLattice, current.getLocalInfo());
@@ -59,6 +67,10 @@ public class ReflectionOptimizer {
       }
     }
     classInitializationAnalysis.finish();
+    // Newly introduced const-class is not null, and thus propagate that information.
+    if (!affectedValues.isEmpty()) {
+      new TypeAnalysis(appView).narrowing(affectedValues);
+    }
     assert code.isConsistentSSA();
   }
 

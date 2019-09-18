@@ -30,7 +30,6 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
-import com.google.common.base.Predicates;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
@@ -46,7 +45,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-public class NonNullTracker {
+public class NonNullTracker implements Assumer {
 
   private final AppView<?> appView;
   private final DexItemFactory dexItemFactory;
@@ -62,11 +61,8 @@ public class NonNullTracker {
     this.splitBlockConsumer = splitBlockConsumer;
   }
 
-  public void addNonNull(IRCode code) {
-    addNonNullInPart(code, code.listIterator(), Predicates.alwaysTrue());
-  }
-
-  public void addNonNullInPart(
+  @Override
+  public void insertAssumeInstructionsInBlocks(
       IRCode code, ListIterator<BasicBlock> blockIterator, Predicate<BasicBlock> blockTester) {
     Set<Value> affectedValues = Sets.newIdentityHashSet();
     Set<Value> knownToBeNonNullValues = Sets.newIdentityHashSet();
@@ -219,7 +215,9 @@ public class NonNullTracker {
                 }
               }
               // Avoid adding a non-null for the value without meaningful users.
-              if (!dominatedUsers.isEmpty() || !dominatedPhiUsersWithPositions.isEmpty()) {
+              if (knownToBeNonNullValue.isArgument()
+                  || !dominatedUsers.isEmpty()
+                  || !dominatedPhiUsersWithPositions.isEmpty()) {
                 TypeLatticeElement typeLattice = knownToBeNonNullValue.getTypeLattice();
                 Value nonNullValue =
                     code.createValue(

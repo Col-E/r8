@@ -19,6 +19,7 @@ import com.android.tools.r8.shaking.VerticalClassMerger.VerticallyMergedClasses;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.DequeUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -501,6 +502,7 @@ public class IRCode {
     assert validThrowingInstructions();
     assert noCriticalEdges();
     assert verifyNoImpreciseOrBottomTypes();
+    assert verifyNoValueWithOnlyAssumeInstructionAsUsers();
     return true;
   }
 
@@ -813,16 +815,7 @@ public class IRCode {
               || ((ImpreciseMemberTypeInstruction) v.definition).getMemberType().isPrecise();
           return true;
         };
-    return verifySSATypeLattice(
-        v -> {
-          // StackValues is an artificial type created to allow returning multiple values from an
-          // instruction.
-          if (v instanceof StackValues) {
-            return Stream.of(((StackValues) v).getStackValues()).allMatch(verifyValue);
-          } else {
-            return verifyValue(v);
-          }
-        });
+    return verifySSATypeLattice(wrapSSAVerifierWithStackValueHandling(verifyValue));
   }
 
   public boolean verifyNoNullabilityBottomTypes() {
@@ -833,24 +826,41 @@ public class IRCode {
                   != Nullability.bottom();
           return true;
         };
-    return verifySSATypeLattice(
+    return verifySSATypeLattice(wrapSSAVerifierWithStackValueHandling(verifyValue));
+  }
+
+  private boolean verifyNoValueWithOnlyAssumeInstructionAsUsers() {
+    Predicate<Value> verifyValue =
         v -> {
-          // StackValues is an artificial type created to allow returning multiple values from an
-          // instruction.
-          if (v instanceof StackValues) {
-            return Stream.of(((StackValues) v).getStackValues()).allMatch(verifyValue);
-          } else {
-            return verifyValue(v);
-          }
-        });
+          assert v.numberOfUsers() == 0
+              || v.uniqueUsers().stream().anyMatch(i -> !i.isAssume())
+              || (!v.isPhi() && v.definition.isArgument())
+              || v.numberOfDebugUsers() == 0
+              || v.debugUsers().stream().anyMatch(i -> !i.isAssume())
+              || v.numberOfPhiUsers() > 0
+                  : StringUtils.join(v.uniqueUsers(), System.lineSeparator());
+          return true;
+        };
+    return verifySSATypeLattice(wrapSSAVerifierWithStackValueHandling(verifyValue));
+  }
+
+  private Predicate<Value> wrapSSAVerifierWithStackValueHandling(Predicate<Value> tester) {
+    return v -> {
+      // StackValues is an artificial type created to allow returning multiple values from an
+      // instruction.
+      if (v instanceof StackValues) {
+        return Stream.of(((StackValues) v).getStackValues()).allMatch(tester);
+      } else {
+        return tester.test(v);
+      }
+    };
   }
 
   private boolean verifySSATypeLattice(Predicate<Value> tester) {
     for (BasicBlock block : blocks) {
       for (Instruction instruction : block.getInstructions()) {
-        Value outValue = instruction.outValue();
-        if (outValue != null) {
-          assert tester.test(outValue);
+        if (instruction.hasOutValue()) {
+          assert tester.test(instruction.outValue());
         }
       }
       for (Phi phi : block.getPhis()) {

@@ -201,9 +201,7 @@ public class CodeRewriter {
         Value src = assumeInstruction.src();
         Value dest = assumeInstruction.outValue();
 
-        if (assumeInstruction.isAssumeNonNull()) {
-          valuesThatRequireWidening.addAll(dest.affectedValues());
-        }
+        valuesThatRequireWidening.addAll(dest.affectedValues());
 
         // Replace `dest` by `src`.
         needToCheckTrivialPhis |= dest.numberOfPhiUsers() > 0;
@@ -311,6 +309,7 @@ public class CodeRewriter {
         }
       }
     }
+    assert code.isConsistentSSA();
   }
 
   public static boolean isFallthroughBlock(BasicBlock block) {
@@ -1818,9 +1817,9 @@ public class CodeRewriter {
             Nullability nullability = obj.getTypeLattice().nullability();
             if (nullability.isDefinitelyNotNull()) {
               if (outValue != null) {
+                affectedValues.addAll(outValue.affectedValues());
                 mayHaveRemovedTrivialPhi |= outValue.numberOfPhiUsers() > 0;
                 outValue.replaceUsers(obj);
-                affectedValues.addAll(outValue.affectedValues());
               }
               iterator.removeOrReplaceByDebugLocalRead();
             } else if (obj.isAlwaysNull(appView) && appView.appInfo().hasSubtyping()) {
@@ -1833,6 +1832,7 @@ public class CodeRewriter {
                 .libraryMethodsReturningReceiver
                 .contains(invoke.getInvokedMethod())) {
               if (checkArgumentType(invoke, 0)) {
+                affectedValues.addAll(outValue.affectedValues());
                 assumeDynamicTypeRemover.markUsersForRemoval(invoke.outValue());
                 mayHaveRemovedTrivialPhi |= outValue.numberOfPhiUsers() > 0;
                 outValue.replaceUsers(invoke.arguments().get(0));
@@ -1879,7 +1879,7 @@ public class CodeRewriter {
     if (!affectedValues.isEmpty()) {
       new TypeAnalysis(appView).narrowing(affectedValues);
     }
-    assert code.isConsistentGraph();
+    assert code.isConsistentSSA();
   }
 
   /**
@@ -2235,6 +2235,7 @@ public class CodeRewriter {
         }
       }
     }
+    assert code.isConsistentSSA();
   }
 
   /**
@@ -2746,6 +2747,7 @@ public class CodeRewriter {
         } while (block != null);
       }
     }
+    assert code.isConsistentSSA();
   }
 
   // TODO(mikaelpeltier) Manage that from and to instruction do not belong to the same block.
