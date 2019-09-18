@@ -6,8 +6,10 @@ package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import java.util.Map;
 import java.util.Set;
@@ -30,14 +32,22 @@ public abstract class PrefixRewritingMapper {
     private final Set<DexType> notRewritten = Sets.newConcurrentHashSet();
     private final Map<DexType, DexType> rewritten = new ConcurrentHashMap<>();
     // Prefix is IdentityHashMap, additionalPrefixes requires however concurrent read and writes.
-    private final Map<String, String> initialPrefixes;
-    private final Map<String, String> additionalPrefixes = new ConcurrentHashMap<>();
+    private final Map<DexString, DexString> initialPrefixes;
+    private final Map<DexString, DexString> additionalPrefixes = new ConcurrentHashMap<>();
     private final DexItemFactory factory;
 
     public DesugarPrefixRewritingMapper(Map<String, String> prefixes, DexItemFactory factory) {
-      this.initialPrefixes = prefixes;
       this.factory = factory;
+      ImmutableMap.Builder<DexString, DexString> builder = ImmutableMap.builder();
+      for (String key : prefixes.keySet()) {
+        builder.put(toDescriptorPrefix(key), toDescriptorPrefix(prefixes.get(key)));
+      }
+      this.initialPrefixes = builder.build();
       validatePrefixes(prefixes);
+    }
+
+    private DexString toDescriptorPrefix(String prefix) {
+      return factory.createString("L" + DescriptorUtils.getBinaryNameFromJavaType(prefix));
     }
 
     private void validatePrefixes(Map<String, String> initialPrefixes) {
@@ -84,15 +94,16 @@ public abstract class PrefixRewritingMapper {
 
     @Override
     public void addPrefix(String prefix, String rewrittenPrefix) {
-      additionalPrefixes.put(prefix, rewrittenPrefix);
+      additionalPrefixes.put(toDescriptorPrefix(prefix), toDescriptorPrefix(rewrittenPrefix));
     }
 
     private DexType computePrefix(DexType type) {
-      DexType result1 = lookup(type, initialPrefixes);
+      DexString prefixToMatch = type.descriptor.withoutArray(factory);
+      DexType result1 = lookup(type, prefixToMatch, initialPrefixes);
       if (result1 != null) {
         return result1;
       }
-      DexType result2 = lookup(type, additionalPrefixes);
+      DexType result2 = lookup(type, prefixToMatch, additionalPrefixes);
       if (result2 != null) {
         return result2;
       }
@@ -100,15 +111,13 @@ public abstract class PrefixRewritingMapper {
       return null;
     }
 
-    private DexType lookup(DexType type, Map<String, String> map) {
-      // TODO(b/134732760) Match bytes over String to avoid decoding, use type.descriptor.content.
-      String javaClassName = type.toString();
-      for (String rewritePrefix : map.keySet()) {
-        if (javaClassName.startsWith(rewritePrefix)) {
-          String endString = javaClassName.substring(rewritePrefix.length());
-          DexType rewrittenType =
-              factory.createType(
-                  DescriptorUtils.javaTypeToDescriptor(map.get(rewritePrefix) + endString));
+    private DexType lookup(DexType type, DexString prefixToMatch, Map<DexString, DexString> map) {
+      // TODO: We could use tries instead of looking-up everywhere.
+      for (DexString prefix : map.keySet()) {
+        if (prefixToMatch.startsWith(prefix)) {
+          DexString rewrittenTypeDescriptor =
+              type.descriptor.withNewPrefix(prefix, map.get(prefix), factory);
+          DexType rewrittenType = factory.createType(rewrittenTypeDescriptor);
           rewritten.put(type, rewrittenType);
           return rewrittenType;
         }

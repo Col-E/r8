@@ -17,6 +17,7 @@ import java.util.NoSuchElementException;
 public class DexString extends IndexedDexItem implements PresortedComparable<DexString> {
 
   public static final DexString[] EMPTY_ARRAY = {};
+  private static final int ARRAY_CHARACTER = '[';
 
   public final int size;  // size of this string, in UTF-16
   public final byte[] content;
@@ -437,5 +438,49 @@ public class DexString extends IndexedDexItem implements PresortedComparable<Dex
       }
     }
     return true;
+  }
+
+  public DexString withNewPrefix(
+      DexString prefix, DexString rewrittenPrefix, DexItemFactory factory) {
+    // Copy bytes over to avoid decoding/encoding cost.
+    // Each string ends with a 0 terminating byte, hence the +/- 1.
+    // Maintain the [[ at the beginning for array dimensions.
+    int arrayDim = getArrayDim();
+    int newSize = rewrittenPrefix.size + this.size - prefix.size;
+    byte[] newContent =
+        new byte[rewrittenPrefix.content.length + this.content.length - prefix.content.length];
+    // Write array dim.
+    for (int i = 0; i < arrayDim; i++) {
+      newContent[i] = ARRAY_CHARACTER;
+    }
+    // Write new prefix.
+    System.arraycopy(
+        rewrittenPrefix.content, 0, newContent, arrayDim, rewrittenPrefix.content.length - 1);
+    // Write existing name - old prefix.
+    System.arraycopy(
+        this.content,
+        prefix.content.length - 1,
+        newContent,
+        rewrittenPrefix.content.length - 1,
+        this.content.length - prefix.content.length + 1);
+    return factory.createString(newSize, newContent);
+  }
+
+  public DexString withoutArray(DexItemFactory factory) {
+    int arrayDim = getArrayDim();
+    if (arrayDim == 0) {
+      return this;
+    }
+    byte[] newContent = new byte[content.length - arrayDim];
+    System.arraycopy(this.content, arrayDim, newContent, 0, newContent.length);
+    return factory.createString(this.size - arrayDim, newContent);
+  }
+
+  private int getArrayDim() {
+    int arrayDim = 0;
+    while (content[arrayDim] == ARRAY_CHARACTER) {
+      arrayDim++;
+    }
+    return arrayDim;
   }
 }
