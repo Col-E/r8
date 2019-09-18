@@ -18,6 +18,7 @@ import com.android.tools.r8.retrace.stacktraces.ActualBotStackTraceBase;
 import com.android.tools.r8.retrace.stacktraces.ActualIdentityStackTrace;
 import com.android.tools.r8.retrace.stacktraces.ActualRetraceBotStackTrace;
 import com.android.tools.r8.retrace.stacktraces.FileNameExtensionStackTrace;
+import com.android.tools.r8.retrace.stacktraces.InlineNoLineNumberStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineWithLineNumbersStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InvalidStackTrace;
 import com.android.tools.r8.retrace.stacktraces.NullStackTrace;
@@ -111,6 +112,11 @@ public class RetraceTests extends TestBase {
   @Test
   public void testInliningWithLineNumbers() {
     runRetraceTest(new InlineWithLineNumbersStackTrace());
+  }
+
+  @Test
+  public void testInliningNoLineNumberInfoStackTraces() {
+    runRetraceTest(new InlineNoLineNumberStackTrace());
   }
 
   private TestDiagnosticMessagesImpl runRetraceTest(StackTraceForTest stackTraceForTest) {
