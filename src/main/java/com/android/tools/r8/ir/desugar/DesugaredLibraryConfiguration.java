@@ -9,7 +9,6 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.PrefixRewritingMapper.DesugarPrefixRewritingMapper;
-import com.android.tools.r8.ir.desugar.PrefixRewritingMapper.EmptyPrefixRewritingMapper;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.ImmutableList;
@@ -61,7 +60,7 @@ public class DesugaredLibraryConfiguration {
 
   public PrefixRewritingMapper createPrefixRewritingMapper(DexItemFactory factory) {
     return rewritePrefix.isEmpty()
-        ? new EmptyPrefixRewritingMapper()
+        ? PrefixRewritingMapper.empty()
         : new DesugarPrefixRewritingMapper(rewritePrefix, factory);
   }
 

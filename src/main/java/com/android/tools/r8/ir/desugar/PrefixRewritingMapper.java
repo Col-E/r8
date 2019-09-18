@@ -17,6 +17,10 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public abstract class PrefixRewritingMapper {
 
+  public static PrefixRewritingMapper empty() {
+    return new EmptyPrefixRewritingMapper();
+  }
+
   public abstract DexType rewrittenType(DexType type);
 
   public abstract void addPrefix(String prefix, String rewrittenPrefix);

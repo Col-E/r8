@@ -76,8 +76,9 @@ public final class BackportedMethodRewriter {
     List<DexMethod> methods = new ArrayList<>();
     InternalOptions options = new InternalOptions();
     options.minApiLevel = apiLevel.getLevel();
+    AppView<?> appView = AppView.createForD8(null, options);
     BackportedMethodRewriter.RewritableMethods rewritableMethods =
-        new BackportedMethodRewriter.RewritableMethods(options, null);
+        new BackportedMethodRewriter.RewritableMethods(options, appView);
     rewritableMethods.visit(methods::add);
     return methods;
   }
@@ -232,9 +233,8 @@ public final class BackportedMethodRewriter {
         initializeAndroidOMethodProviders(factory);
       }
 
-      if (appView != null // appView can be null in tests only.
-          && (appView.rewritePrefix.hasRewrittenType(factory.optionalType)
-              || options.minApiLevel >= AndroidApiLevel.N.getLevel())) {
+      if (appView.rewritePrefix.hasRewrittenType(factory.optionalType)
+          || options.minApiLevel >= AndroidApiLevel.N.getLevel()) {
         // These are currently not implemented at any API level in Android.
         // They however require the Optional class to be present, either through
         // desugared libraries or natively. If Optional class is not present,
