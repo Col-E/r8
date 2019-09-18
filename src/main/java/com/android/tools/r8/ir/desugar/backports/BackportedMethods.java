@@ -145,19 +145,6 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
-  public static CfCode ByteMethods_hashCode(
-      InternalOptions options, DexMethod method, String name) {
-    CfLabel label0 = new CfLabel();
-    CfLabel label1 = new CfLabel();
-    return new CfCode(
-        method.holder,
-        1,
-        1,
-        ImmutableList.of(label0, new CfLoad(ValueType.INT, 0), new CfReturn(ValueType.INT), label1),
-        ImmutableList.of(),
-        ImmutableList.of());
-  }
-
   public static CfCode ByteMethods_toUnsignedInt(
       InternalOptions options, DexMethod method, String name) {
     CfLabel label0 = new CfLabel();
@@ -212,19 +199,6 @@ public final class BackportedMethods {
             new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.INT),
             new CfReturn(ValueType.INT),
             label1),
-        ImmutableList.of(),
-        ImmutableList.of());
-  }
-
-  public static CfCode CharacterMethods_hashCode(
-      InternalOptions options, DexMethod method, String name) {
-    CfLabel label0 = new CfLabel();
-    CfLabel label1 = new CfLabel();
-    return new CfCode(
-        method.holder,
-        1,
-        1,
-        ImmutableList.of(label0, new CfLoad(ValueType.INT, 0), new CfReturn(ValueType.INT), label1),
         ImmutableList.of(),
         ImmutableList.of());
   }
@@ -858,19 +832,6 @@ public final class BackportedMethods {
             new CfNumberConversion(NumericType.LONG, NumericType.INT),
             new CfReturn(ValueType.INT),
             label3),
-        ImmutableList.of(),
-        ImmutableList.of());
-  }
-
-  public static CfCode IntegerMethods_hashCode(
-      InternalOptions options, DexMethod method, String name) {
-    CfLabel label0 = new CfLabel();
-    CfLabel label1 = new CfLabel();
-    return new CfCode(
-        method.holder,
-        1,
-        1,
-        ImmutableList.of(label0, new CfLoad(ValueType.INT, 0), new CfReturn(ValueType.INT), label1),
         ImmutableList.of(),
         ImmutableList.of());
   }
@@ -5779,19 +5740,6 @@ public final class BackportedMethods {
             new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.INT),
             new CfReturn(ValueType.INT),
             label1),
-        ImmutableList.of(),
-        ImmutableList.of());
-  }
-
-  public static CfCode ShortMethods_hashCode(
-      InternalOptions options, DexMethod method, String name) {
-    CfLabel label0 = new CfLabel();
-    CfLabel label1 = new CfLabel();
-    return new CfCode(
-        method.holder,
-        1,
-        1,
-        ImmutableList.of(label0, new CfLoad(ValueType.INT, 0), new CfReturn(ValueType.INT), label1),
         ImmutableList.of(),
         ImmutableList.of());
   }

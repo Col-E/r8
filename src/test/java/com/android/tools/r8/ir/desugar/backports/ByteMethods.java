@@ -6,10 +6,6 @@ package com.android.tools.r8.ir.desugar.backports;
 
 public final class ByteMethods {
 
-  public static int hashCode(byte i) {
-    return i;
-  }
-
   public static int compare(byte a, byte b) {
     return (int) a - (int) b;
   }

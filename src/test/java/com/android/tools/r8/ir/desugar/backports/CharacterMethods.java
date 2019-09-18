@@ -6,10 +6,6 @@ package com.android.tools.r8.ir.desugar.backports;
 
 public final class CharacterMethods {
 
-  public static int hashCode(char i) {
-    return i;
-  }
-
   public static int compare(char a, char b) {
     return (int) a - (int) b;
   }

@@ -6,10 +6,6 @@ package com.android.tools.r8.ir.desugar.backports;
 
 public final class ShortMethods {
 
-  public static int hashCode(short i) {
-    return i;
-  }
-
   public static int compare(short a, short b) {
     return (int) a - (int) b;
   }

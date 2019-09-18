@@ -6,10 +6,6 @@ package com.android.tools.r8.ir.desugar.backports;
 
 public final class IntegerMethods {
 
-  public static int hashCode(int i) {
-    return i;
-  }
-
   public static int compare(int a, int b) {
     return a == b ? 0 : a < b ? -1 : 1;
   }

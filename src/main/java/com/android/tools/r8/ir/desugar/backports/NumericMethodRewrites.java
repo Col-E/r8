@@ -28,6 +28,14 @@ public final class NumericMethodRewrites {
     iterator.replaceCurrentInstruction(add);
   }
 
+  public static void rewriteAsIdentity(InvokeMethod invoke, InstructionListIterator iterator,
+      DexItemFactory factory) {
+    List<Value> values = invoke.inValues();
+    assert values.size() == 1;
+    invoke.outValue().replaceUsers(values.get(0));
+    iterator.remove();
+  }
+
   private NumericMethodRewrites() {
   }
 }

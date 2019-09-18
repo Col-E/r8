@@ -405,7 +405,7 @@ public final class BackportedMethodRewriter {
       DexString name = factory.createString("hashCode");
       DexProto proto = factory.createProto(factory.intType, factory.byteType);
       DexMethod method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, BackportedMethods::ByteMethods_hashCode));
+      addProvider(new InvokeRewriter(method, NumericMethodRewrites::rewriteAsIdentity));
 
       // Short
       type = factory.boxedShortType;
@@ -413,7 +413,7 @@ public final class BackportedMethodRewriter {
       name = factory.createString("hashCode");
       proto = factory.createProto(factory.intType, factory.shortType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, BackportedMethods::ShortMethods_hashCode));
+      addProvider(new InvokeRewriter(method, NumericMethodRewrites::rewriteAsIdentity));
 
       // Integer
       type = factory.boxedIntType;
@@ -422,7 +422,7 @@ public final class BackportedMethodRewriter {
       name = factory.createString("hashCode");
       proto = factory.createProto(factory.intType, factory.intType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, BackportedMethods::IntegerMethods_hashCode));
+      addProvider(new InvokeRewriter(method, NumericMethodRewrites::rewriteAsIdentity));
 
       // int Integer.max(int a, int b)
       name = factory.createString("max");
@@ -569,7 +569,7 @@ public final class BackportedMethodRewriter {
       name = factory.createString("hashCode");
       proto = factory.createProto(factory.intType, factory.charType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, BackportedMethods::CharacterMethods_hashCode));
+      addProvider(new InvokeRewriter(method, NumericMethodRewrites::rewriteAsIdentity));
 
       // Objects
       type = factory.objectsType;
