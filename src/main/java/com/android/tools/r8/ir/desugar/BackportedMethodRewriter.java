@@ -232,8 +232,9 @@ public final class BackportedMethodRewriter {
         initializeAndroidOMethodProviders(factory);
       }
 
-      if (appView.rewritePrefix.hasRewrittenType(factory.optionalType)
-          || options.minApiLevel >= AndroidApiLevel.N.getLevel()) {
+      if (appView != null // appView can be null in tests only.
+          && (appView.rewritePrefix.hasRewrittenType(factory.optionalType)
+              || options.minApiLevel >= AndroidApiLevel.N.getLevel())) {
         // These are currently not implemented at any API level in Android.
         // They however require the Optional class to be present, either through
         // desugared libraries or natively. If Optional class is not present,
