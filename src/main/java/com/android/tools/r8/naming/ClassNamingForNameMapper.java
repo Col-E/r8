@@ -114,11 +114,23 @@ public class ClassNamingForNameMapper implements ClassNaming {
      * MappedRange ("a() -> b") if no concrete mapping found or empty list if nothing found.
      */
     public List<MappedRange> allRangesForLine(int line) {
+      return allRangesForLine(line, true);
+    }
+
+    /**
+     * Search for a MappedRange where the minified range contains the specified {@code line} and
+     * return that and the subsequent MappedRanges with the same minified range.
+     *
+     * @param line The line number to find the range for
+     * @param takeFirstWithNoLineRange Specify if no range is found, to take a general one that.
+     * @return The list with all ranges for line.
+     */
+    public List<MappedRange> allRangesForLine(int line, boolean takeFirstWithNoLineRange) {
       MappedRange noLineRange = null;
       for (int i = 0; i < mappedRanges.size(); ++i) {
         MappedRange rangeI = mappedRanges.get(i);
         if (rangeI.minifiedRange == null) {
-          if (noLineRange == null) {
+          if (noLineRange == null && takeFirstWithNoLineRange) {
             // This is an "a() -> b" mapping (no concrete line numbers), remember this if there'll
             // be no better one.
             noLineRange = rangeI;
@@ -135,6 +147,10 @@ public class ClassNamingForNameMapper implements ClassNaming {
         }
       }
       return noLineRange == null ? Collections.emptyList() : Collections.singletonList(noLineRange);
+    }
+
+    public List<MappedRange> getMappedRanges() {
+      return mappedRanges;
     }
 
     @Override

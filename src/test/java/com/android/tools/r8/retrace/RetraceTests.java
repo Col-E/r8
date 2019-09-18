@@ -18,6 +18,7 @@ import com.android.tools.r8.retrace.stacktraces.ActualBotStackTraceBase;
 import com.android.tools.r8.retrace.stacktraces.ActualIdentityStackTrace;
 import com.android.tools.r8.retrace.stacktraces.ActualRetraceBotStackTrace;
 import com.android.tools.r8.retrace.stacktraces.AmbiguousMissingLineStackTrace;
+import com.android.tools.r8.retrace.stacktraces.AmbiguousStackTrace;
 import com.android.tools.r8.retrace.stacktraces.FileNameExtensionStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineNoLineNumberStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineWithLineNumbersStackTrace;
@@ -37,15 +38,12 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class RetraceTests extends TestBase {
 
-  private final TestParameters parameters;
-
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withCfRuntimes().build();
+    return getTestParameters().withNoneRuntime().build();
   }
 
   public RetraceTests(TestParameters parameters) {
-    this.parameters = parameters;
   }
 
   @Test
@@ -108,6 +106,11 @@ public class RetraceTests extends TestBase {
     for (ActualBotStackTraceBase stackTrace : stackTraces) {
       runRetraceTest(stackTrace).assertWarningsCount(stackTrace.expectedWarnings());
     }
+  }
+
+  @Test
+  public void testAmbiguousStackTrace() {
+    runRetraceTest(new AmbiguousStackTrace());
   }
 
   @Test
