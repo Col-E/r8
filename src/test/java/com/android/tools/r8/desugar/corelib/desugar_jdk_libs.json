@@ -1,6 +1,6 @@
 {
   "configuration_format_version": 1,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "required_compilation_api_level": 26,
   "library_flags": [
     {
