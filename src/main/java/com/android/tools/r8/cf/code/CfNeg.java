@@ -27,6 +27,10 @@ public class CfNeg extends CfInstruction {
     this.type = type;
   }
 
+  public NumericType getType() {
+    return type;
+  }
+
   @Override
   public void write(MethodVisitor visitor, NamingLens lens) {
     visitor.visitInsn(getAsmOpcode());

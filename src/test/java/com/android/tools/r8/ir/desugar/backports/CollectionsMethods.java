@@ -4,18 +4,12 @@
 
 package com.android.tools.r8.ir.desugar.backports;
 
-import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.ir.synthetic.TemplateMethodCode;
-import com.android.tools.r8.utils.InternalOptions;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.ListIterator;
 
-public final class CollectionsMethods extends TemplateMethodCode {
-  public CollectionsMethods(InternalOptions options, DexMethod method, String methodName) {
-    super(options, method, methodName, method.proto.toDescriptorString());
-  }
+public final class CollectionsMethods {
 
   public static <T> Enumeration<T> emptyEnumeration() {
     return Collections.enumeration(Collections.emptyList());

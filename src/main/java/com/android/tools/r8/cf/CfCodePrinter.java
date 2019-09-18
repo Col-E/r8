@@ -158,6 +158,10 @@ public class CfCodePrinter extends CfPrinter {
     return "\"" + string + "\"";
   }
 
+  private String longValue(long value) {
+    return (value < Integer.MIN_VALUE || Integer.MAX_VALUE < value) ? (value + "l") : ("" + value);
+  }
+
   // Ensure a type import for a given type.
   // Note that the package should be given as individual parts to avoid the repackage "fixing" it...
   private String type(String name, List<String> pkg) {
@@ -284,7 +288,7 @@ public class CfCodePrinter extends CfPrinter {
   @Override
   public void print(CfConstNumber constNumber) {
     printNewInstruction(
-        "CfConstNumber", "" + constNumber.getRawValue(), valueType(constNumber.getType()));
+        "CfConstNumber", longValue(constNumber.getRawValue()), valueType(constNumber.getType()));
   }
 
   @Override
@@ -317,7 +321,8 @@ public class CfCodePrinter extends CfPrinter {
 
   @Override
   public void print(CfCmp cmp) {
-    throw new Unimplemented(cmp.getClass().getSimpleName());
+    printNewInstruction(
+        "CfCmp", irType("Cmp") + ".Bias." + cmp.getBias().name(), numericType(cmp.getType()));
   }
 
   @Override
@@ -330,12 +335,15 @@ public class CfCodePrinter extends CfPrinter {
 
   @Override
   public void print(CfNeg neg) {
-    throw new Unimplemented(neg.getClass().getSimpleName());
+    printNewInstruction("CfNeg", numericType(neg.getType()));
   }
 
   @Override
   public void print(CfNumberConversion numberConversion) {
-    throw new Unimplemented(numberConversion.getClass().getSimpleName());
+    printNewInstruction(
+        "CfNumberConversion",
+        numericType(numberConversion.getFromType()),
+        numericType(numberConversion.getToType()));
   }
 
   @Override
@@ -355,7 +363,7 @@ public class CfCodePrinter extends CfPrinter {
 
   @Override
   public void print(CfArrayStore arrayStore) {
-    throw new Unimplemented(arrayStore.getClass().getSimpleName());
+    printNewInstruction("CfArrayStore", memberType(arrayStore.getType()));
   }
 
   @Override
@@ -399,7 +407,7 @@ public class CfCodePrinter extends CfPrinter {
 
   @Override
   public void print(CfNewArray newArray) {
-    throw new Unimplemented(newArray.getClass().getSimpleName());
+    printNewInstruction("CfNewArray", dexType(newArray.getType()));
   }
 
   @Override

@@ -36,6 +36,14 @@ public class CfCmp extends CfInstruction {
     this.type = type;
   }
 
+  public Bias getBias() {
+    return bias;
+  }
+
+  public NumericType getType() {
+    return type;
+  }
+
   public static CfCmp fromAsm(int opcode) {
     switch (opcode) {
       case Opcodes.LCMP:

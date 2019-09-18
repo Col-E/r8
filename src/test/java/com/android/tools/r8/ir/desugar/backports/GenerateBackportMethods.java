@@ -28,6 +28,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -67,7 +68,21 @@ public class GenerateBackportMethods extends TestBase {
           "package com.android.tools.r8.ir.desugar.backports;");
 
   static final List<Class<?>> methodTemplateClasses =
-      ImmutableList.of(BooleanMethods.class, ObjectsMethods.class, StringMethods.class);
+      ImmutableList.of(
+          BooleanMethods.class,
+          ByteMethods.class,
+          CharacterMethods.class,
+          CollectionsMethods.class,
+          DoubleMethods.class,
+          FloatMethods.class,
+          IntegerMethods.class,
+          ListMethods.class,
+          LongMethods.class,
+          MathMethods.class,
+          ObjectsMethods.class,
+          OptionalMethods.class,
+          ShortMethods.class,
+          StringMethods.class);
 
   final TestParameters parameters;
 
@@ -82,6 +97,9 @@ public class GenerateBackportMethods extends TestBase {
 
   @Test
   public void test() throws Exception {
+    ArrayList<Class<?>> sorted = new ArrayList<>(methodTemplateClasses);
+    sorted.sort((a, b) -> a.getTypeName().compareTo(b.getTypeName()));
+    assertEquals("Classes should be listed in sorted order", sorted, methodTemplateClasses);
     assertEquals(
         FileUtils.readTextFile(backportMethodsFile, StandardCharsets.UTF_8),
         generateBackportMethods());

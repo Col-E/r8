@@ -30,24 +30,16 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.backports.BackportedMethods;
-import com.android.tools.r8.ir.desugar.backports.ByteMethods;
-import com.android.tools.r8.ir.desugar.backports.CharacterMethods;
-import com.android.tools.r8.ir.desugar.backports.CollectionsMethods;
-import com.android.tools.r8.ir.desugar.backports.DoubleMethods;
-import com.android.tools.r8.ir.desugar.backports.FloatMethods;
-import com.android.tools.r8.ir.desugar.backports.IntegerMethods;
-import com.android.tools.r8.ir.desugar.backports.ListMethods;
-import com.android.tools.r8.ir.desugar.backports.LongMethods;
-import com.android.tools.r8.ir.desugar.backports.MathMethods;
+import com.android.tools.r8.ir.desugar.backports.ListMethodRewrites;
+import com.android.tools.r8.ir.desugar.backports.LongMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.NumericOperations;
 import com.android.tools.r8.ir.desugar.backports.ObjectsMethodRewrites;
-import com.android.tools.r8.ir.desugar.backports.OptionalMethods;
-import com.android.tools.r8.ir.desugar.backports.ShortMethods;
 import com.android.tools.r8.ir.synthetic.TemplateMethodCode;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -278,7 +270,7 @@ public final class BackportedMethodRewriter {
       DexString name = factory.createString("compare");
       DexProto proto = factory.createProto(factory.intType, factory.byteType, factory.byteType);
       DexMethod method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, ByteMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::ByteMethods_compare));
 
       // Short
       type = factory.boxedShortType;
@@ -286,7 +278,7 @@ public final class BackportedMethodRewriter {
       name = factory.createString("compare");
       proto = factory.createProto(factory.intType, factory.shortType, factory.shortType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, ShortMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::ShortMethods_compare));
 
       // Integer
       type = factory.boxedIntType;
@@ -294,7 +286,7 @@ public final class BackportedMethodRewriter {
       name = factory.createString("compare");
       proto = factory.createProto(factory.intType, factory.intType, factory.intType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, IntegerMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::IntegerMethods_compare));
 
       // Long
       type = factory.boxedLongType;
@@ -302,7 +294,7 @@ public final class BackportedMethodRewriter {
       name = factory.createString("compare");
       proto = factory.createProto(factory.intType, factory.longType, factory.longType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new InvokeRewriter(method, LongMethods::rewriteCompare));
+      addProvider(new InvokeRewriter(method, LongMethodRewrites::rewriteCompare));
 
       // Boolean
       type = factory.boxedBooleanType;
@@ -318,7 +310,7 @@ public final class BackportedMethodRewriter {
       name = factory.createString("compare");
       proto = factory.createProto(factory.intType, factory.charType, factory.charType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, CharacterMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::CharacterMethods_compare));
 
       // Objects
       type = factory.objectsType;
@@ -391,19 +383,21 @@ public final class BackportedMethodRewriter {
       name = factory.createString("emptyEnumeration");
       proto = factory.createProto(factory.enumerationType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, CollectionsMethods::new));
+      addProvider(
+          new MethodGenerator(method, BackportedMethods::CollectionsMethods_emptyEnumeration));
 
       // Iterator<T> Collections.emptyIterator();
       name = factory.createString("emptyIterator");
       proto = factory.createProto(factory.iteratorType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, CollectionsMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::CollectionsMethods_emptyIterator));
 
       // ListIterator<T> Collections.emptyListIterator();
       name = factory.createString("emptyListIterator");
       proto = factory.createProto(factory.listIteratorType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, CollectionsMethods::new));
+      addProvider(
+          new MethodGenerator(method, BackportedMethods::CollectionsMethods_emptyListIterator));
     }
 
     private void initializeAndroidNMethodProviders(DexItemFactory factory) {
@@ -413,7 +407,7 @@ public final class BackportedMethodRewriter {
       DexString name = factory.createString("hashCode");
       DexProto proto = factory.createProto(factory.intType, factory.byteType);
       DexMethod method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, ByteMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::ByteMethods_hashCode));
 
       // Short
       type = factory.boxedShortType;
@@ -421,7 +415,7 @@ public final class BackportedMethodRewriter {
       name = factory.createString("hashCode");
       proto = factory.createProto(factory.intType, factory.shortType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, ShortMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::ShortMethods_hashCode));
 
       // Integer
       type = factory.boxedIntType;
@@ -430,7 +424,7 @@ public final class BackportedMethodRewriter {
       name = factory.createString("hashCode");
       proto = factory.createProto(factory.intType, factory.intType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, IntegerMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::IntegerMethods_hashCode));
 
       // int Integer.max(int a, int b)
       name = factory.createString("max");
@@ -457,7 +451,7 @@ public final class BackportedMethodRewriter {
       name = factory.createString("hashCode");
       proto = factory.createProto(factory.intType, factory.doubleType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, DoubleMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::DoubleMethods_hashCode));
 
       // double Double.max(double a, double b)
       name = factory.createString("max");
@@ -481,7 +475,7 @@ public final class BackportedMethodRewriter {
       name = factory.createString("isFinite");
       proto = factory.createProto(factory.booleanType, factory.doubleType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, DoubleMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::DoubleMethods_isFinite));
 
       // Float
       type = factory.boxedFloatType;
@@ -490,7 +484,7 @@ public final class BackportedMethodRewriter {
       name = factory.createString("hashCode");
       proto = factory.createProto(factory.intType, factory.floatType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, FloatMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::FloatMethods_hashCode));
 
       // float Float.max(float a, float b)
       name = factory.createString("max");
@@ -514,7 +508,7 @@ public final class BackportedMethodRewriter {
       name = factory.createString("isFinite");
       proto = factory.createProto(factory.booleanType, factory.floatType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, FloatMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::FloatMethods_isFinite));
 
       // Boolean
       type = factory.boxedBooleanType;
@@ -550,7 +544,7 @@ public final class BackportedMethodRewriter {
       name = factory.createString("hashCode");
       proto = factory.createProto(factory.intType, factory.longType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, LongMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::LongMethods_hashCode));
 
       // long Long.max(long a, long b)
       name = factory.createString("max");
@@ -577,7 +571,7 @@ public final class BackportedMethodRewriter {
       name = factory.createString("hashCode");
       proto = factory.createProto(factory.intType, factory.charType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, CharacterMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::CharacterMethods_hashCode));
 
       // Objects
       type = factory.objectsType;
@@ -603,79 +597,100 @@ public final class BackportedMethodRewriter {
         name = factory.createString("addExact");
         proto = factory.createProto(factory.intType, factory.intType, factory.intType);
         method = factory.createMethod(type, proto, name);
-        addProvider(new MethodGenerator(method, MathMethods::new, "addExactInt"));
+        addProvider(
+            new MethodGenerator(method, BackportedMethods::MathMethods_addExactInt, "addExactInt"));
 
         // long {Math,StrictMath}.addExact(long, long)
         name = factory.createString("addExact");
         proto = factory.createProto(factory.longType, factory.longType, factory.longType);
         method = factory.createMethod(type, proto, name);
-        addProvider(new MethodGenerator(method, MathMethods::new, "addExactLong"));
+        addProvider(
+            new MethodGenerator(
+                method, BackportedMethods::MathMethods_addExactLong, "addExactLong"));
 
         // int {Math,StrictMath}.floorDiv(int, int)
         name = factory.createString("floorDiv");
         proto = factory.createProto(factory.intType, factory.intType, factory.intType);
         method = factory.createMethod(type, proto, name);
-        addProvider(new MethodGenerator(method, MathMethods::new, "floorDivInt"));
+        addProvider(
+            new MethodGenerator(method, BackportedMethods::MathMethods_floorDivInt, "floorDivInt"));
 
         // long {Math,StrictMath}.floorDiv(long, long)
         name = factory.createString("floorDiv");
         proto = factory.createProto(factory.longType, factory.longType, factory.longType);
         method = factory.createMethod(type, proto, name);
-        addProvider(new MethodGenerator(method, MathMethods::new, "floorDivLong"));
+        addProvider(
+            new MethodGenerator(
+                method, BackportedMethods::MathMethods_floorDivLong, "floorDivLong"));
 
         // int {Math,StrictMath}.floorMod(int, int)
         name = factory.createString("floorMod");
         proto = factory.createProto(factory.intType, factory.intType, factory.intType);
         method = factory.createMethod(type, proto, name);
-        addProvider(new MethodGenerator(method, MathMethods::new, "floorModInt"));
+        addProvider(
+            new MethodGenerator(method, BackportedMethods::MathMethods_floorModInt, "floorModInt"));
 
         // long {Math,StrictMath}.floorMod(long, long)
         name = factory.createString("floorMod");
         proto = factory.createProto(factory.longType, factory.longType, factory.longType);
         method = factory.createMethod(type, proto, name);
-        addProvider(new MethodGenerator(method, MathMethods::new, "floorModLong"));
+        addProvider(
+            new MethodGenerator(
+                method, BackportedMethods::MathMethods_floorModLong, "floorModLong"));
 
         // int {Math,StrictMath}.multiplyExact(int, int)
         name = factory.createString("multiplyExact");
         proto = factory.createProto(factory.intType, factory.intType, factory.intType);
         method = factory.createMethod(type, proto, name);
-        addProvider(new MethodGenerator(method, MathMethods::new, "multiplyExactInt"));
+        addProvider(
+            new MethodGenerator(
+                method, BackportedMethods::MathMethods_multiplyExactInt, "multiplyExactInt"));
 
         // long {Math,StrictMath}.multiplyExact(long, long)
         name = factory.createString("multiplyExact");
         proto = factory.createProto(factory.longType, factory.longType, factory.longType);
         method = factory.createMethod(type, proto, name);
-        addProvider(new MethodGenerator(method, MathMethods::new, "multiplyExactLong"));
+        addProvider(
+            new MethodGenerator(
+                method, BackportedMethods::MathMethods_multiplyExactLong, "multiplyExactLong"));
 
         // double {Math,StrictMath}.nextDown(double)
         name = factory.createString("nextDown");
         proto = factory.createProto(factory.doubleType, factory.doubleType);
         method = factory.createMethod(type, proto, name);
-        addProvider(new MethodGenerator(method, MathMethods::new, "nextDownDouble"));
+        addProvider(
+            new MethodGenerator(
+                method, BackportedMethods::MathMethods_nextDownDouble, "nextDownDouble"));
 
         // float {Math,StrictMath}.nextDown(float)
         name = factory.createString("nextDown");
         proto = factory.createProto(factory.floatType, factory.floatType);
         method = factory.createMethod(type, proto, name);
-        addProvider(new MethodGenerator(method, MathMethods::new, "nextDownFloat"));
+        addProvider(
+            new MethodGenerator(
+                method, BackportedMethods::MathMethods_nextDownFloat, "nextDownFloat"));
 
         // int {Math,StrictMath}.subtractExact(int, int)
         name = factory.createString("subtractExact");
         proto = factory.createProto(factory.intType, factory.intType, factory.intType);
         method = factory.createMethod(type, proto, name);
-        addProvider(new MethodGenerator(method, MathMethods::new, "subtractExactInt"));
+        addProvider(
+            new MethodGenerator(
+                method, BackportedMethods::MathMethods_subtractExactInt, "subtractExactInt"));
 
         // long {Math,StrictMath}.subtractExact(long, long)
         name = factory.createString("subtractExact");
         proto = factory.createProto(factory.longType, factory.longType, factory.longType);
         method = factory.createMethod(type, proto, name);
-        addProvider(new MethodGenerator(method, MathMethods::new, "subtractExactLong"));
+        addProvider(
+            new MethodGenerator(
+                method, BackportedMethods::MathMethods_subtractExactLong, "subtractExactLong"));
 
         // int {Math,StrictMath}.toIntExact(long)
         name = factory.createString("toIntExact");
         proto = factory.createProto(factory.intType, factory.longType);
         method = factory.createMethod(type, proto, name);
-        addProvider(new MethodGenerator(method, MathMethods::new));
+        addProvider(new MethodGenerator(method, BackportedMethods::MathMethods_toIntExact));
       }
 
       // Math (APIs which are not mirrored by StrictMath)
@@ -685,37 +700,49 @@ public final class BackportedMethodRewriter {
       name = factory.createString("decrementExact");
       proto = factory.createProto(factory.intType, factory.intType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, MathMethods::new, "decrementExactInt"));
+      addProvider(
+          new MethodGenerator(
+              method, BackportedMethods::MathMethods_decrementExactInt, "decrementExactInt"));
 
       // long Math.decrementExact(long)
       name = factory.createString("decrementExact");
       proto = factory.createProto(factory.longType, factory.longType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, MathMethods::new, "decrementExactLong"));
+      addProvider(
+          new MethodGenerator(
+              method, BackportedMethods::MathMethods_decrementExactLong, "decrementExactLong"));
 
       // int Math.incrementExact(int)
       name = factory.createString("incrementExact");
       proto = factory.createProto(factory.intType, factory.intType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, MathMethods::new, "incrementExactInt"));
+      addProvider(
+          new MethodGenerator(
+              method, BackportedMethods::MathMethods_incrementExactInt, "incrementExactInt"));
 
       // long Math.incrementExact(long)
       name = factory.createString("incrementExact");
       proto = factory.createProto(factory.longType, factory.longType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, MathMethods::new, "incrementExactLong"));
+      addProvider(
+          new MethodGenerator(
+              method, BackportedMethods::MathMethods_incrementExactLong, "incrementExactLong"));
 
       // int Math.negateExact(int)
       name = factory.createString("negateExact");
       proto = factory.createProto(factory.intType, factory.intType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, MathMethods::new, "negateExactInt"));
+      addProvider(
+          new MethodGenerator(
+              method, BackportedMethods::MathMethods_negateExactInt, "negateExactInt"));
 
       // long Math.negateExact(long)
       name = factory.createString("negateExact");
       proto = factory.createProto(factory.longType, factory.longType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, MathMethods::new, "negateExactLong"));
+      addProvider(
+          new MethodGenerator(
+              method, BackportedMethods::MathMethods_negateExactLong, "negateExactLong"));
     }
 
     private void initializeAndroidOMethodProviders(DexItemFactory factory) {
@@ -726,13 +753,13 @@ public final class BackportedMethodRewriter {
       DexString name = factory.createString("toUnsignedInt");
       DexProto proto = factory.createProto(factory.intType, factory.byteType);
       DexMethod method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, ByteMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::ByteMethods_toUnsignedInt));
 
       // long Byte.toUnsignedLong(byte value)
       name = factory.createString("toUnsignedLong");
       proto = factory.createProto(factory.longType, factory.byteType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, ByteMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::ByteMethods_toUnsignedLong));
 
       // Short
       type = factory.boxedShortType;
@@ -741,13 +768,13 @@ public final class BackportedMethodRewriter {
       name = factory.createString("toUnsignedInt");
       proto = factory.createProto(factory.intType, factory.shortType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, ShortMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::ShortMethods_toUnsignedInt));
 
       // long Short.toUnsignedLong(short value)
       name = factory.createString("toUnsignedLong");
       proto = factory.createProto(factory.longType, factory.shortType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, ShortMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::ShortMethods_toUnsignedLong));
 
       // Integer
       type = factory.boxedIntType;
@@ -756,49 +783,57 @@ public final class BackportedMethodRewriter {
       name = factory.createString("divideUnsigned");
       proto = factory.createProto(factory.intType, factory.intType, factory.intType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, IntegerMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::IntegerMethods_divideUnsigned));
 
       // int Integer.remainderUnsigned(int a, int b)
       name = factory.createString("remainderUnsigned");
       proto = factory.createProto(factory.intType, factory.intType, factory.intType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, IntegerMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::IntegerMethods_remainderUnsigned));
 
       // int Integer.compareUnsigned(int a, int b)
       name = factory.createString("compareUnsigned");
       proto = factory.createProto(factory.intType, factory.intType, factory.intType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, IntegerMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::IntegerMethods_compareUnsigned));
 
       // long Integer.toUnsignedLong(int value)
       name = factory.createString("toUnsignedLong");
       proto = factory.createProto(factory.longType, factory.intType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, IntegerMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::IntegerMethods_toUnsignedLong));
 
       // int Integer.parseUnsignedInt(String value)
       name = factory.createString("parseUnsignedInt");
       proto = factory.createProto(factory.intType, factory.stringType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, IntegerMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::IntegerMethods_parseUnsignedInt));
 
       // int Integer.parseUnsignedInt(String value, int radix)
       name = factory.createString("parseUnsignedInt");
       proto = factory.createProto(factory.intType, factory.stringType, factory.intType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, IntegerMethods::new, "parseUnsignedIntWithRadix"));
+      addProvider(
+          new MethodGenerator(
+              method,
+              BackportedMethods::IntegerMethods_parseUnsignedIntWithRadix,
+              "parseUnsignedIntWithRadix"));
 
       // String Integer.toUnsignedString(int value)
       name = factory.createString("toUnsignedString");
       proto = factory.createProto(factory.stringType, factory.intType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, IntegerMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::IntegerMethods_toUnsignedString));
 
       // String Integer.toUnsignedString(int value, int radix)
       name = factory.createString("toUnsignedString");
       proto = factory.createProto(factory.stringType, factory.intType, factory.intType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, IntegerMethods::new, "toUnsignedStringWithRadix"));
+      addProvider(
+          new MethodGenerator(
+              method,
+              BackportedMethods::IntegerMethods_toUnsignedStringWithRadix,
+              "toUnsignedStringWithRadix"));
 
       // Long
       type = factory.boxedLongType;
@@ -807,43 +842,51 @@ public final class BackportedMethodRewriter {
       name = factory.createString("divideUnsigned");
       proto = factory.createProto(factory.longType, factory.longType, factory.longType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, LongMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::LongMethods_divideUnsigned));
 
       // long Long.remainderUnsigned(long a, long b)
       name = factory.createString("remainderUnsigned");
       proto = factory.createProto(factory.longType, factory.longType, factory.longType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, LongMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::LongMethods_remainderUnsigned));
 
       // int Long.compareUnsigned(long a, long b)
       name = factory.createString("compareUnsigned");
       proto = factory.createProto(factory.intType, factory.longType, factory.longType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, LongMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::LongMethods_compareUnsigned));
 
       // long Long.parseUnsignedLong(String value)
       name = factory.createString("parseUnsignedLong");
       proto = factory.createProto(factory.longType, factory.stringType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, LongMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::LongMethods_parseUnsignedLong));
 
       // long Long.parseUnsignedLong(String value, int radix)
       name = factory.createString("parseUnsignedLong");
       proto = factory.createProto(factory.longType, factory.stringType, factory.intType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, LongMethods::new, "parseUnsignedLongWithRadix"));
+      addProvider(
+          new MethodGenerator(
+              method,
+              BackportedMethods::LongMethods_parseUnsignedLongWithRadix,
+              "parseUnsignedLongWithRadix"));
 
       // String Long.toUnsignedString(long value)
       name = factory.createString("toUnsignedString");
       proto = factory.createProto(factory.stringType, factory.longType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, LongMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::LongMethods_toUnsignedString));
 
       // String Long.toUnsignedString(long value, int radix)
       name = factory.createString("toUnsignedString");
       proto = factory.createProto(factory.stringType, factory.longType, factory.intType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, LongMethods::new, "toUnsignedStringWithRadix"));
+      addProvider(
+          new MethodGenerator(
+              method,
+              BackportedMethods::LongMethods_toUnsignedStringWithRadix,
+              "toUnsignedStringWithRadix"));
 
       // String
       type = factory.stringType;
@@ -876,19 +919,27 @@ public final class BackportedMethodRewriter {
         DexString name = factory.createString("multiplyExact");
         DexProto proto = factory.createProto(factory.longType, factory.longType, factory.intType);
         DexMethod method = factory.createMethod(type, proto, name);
-        addProvider(new MethodGenerator(method, MathMethods::new, "multiplyExactLongInt"));
+        addProvider(
+            new MethodGenerator(
+                method,
+                BackportedMethods::MathMethods_multiplyExactLongInt,
+                "multiplyExactLongInt"));
 
         // long {Math,StrictMath}.floorDiv(long, int)
         name = factory.createString("floorDiv");
         proto = factory.createProto(factory.longType, factory.longType, factory.intType);
         method = factory.createMethod(type, proto, name);
-        addProvider(new MethodGenerator(method, MathMethods::new, "floorDivLongInt"));
+        addProvider(
+            new MethodGenerator(
+                method, BackportedMethods::MathMethods_floorDivLongInt, "floorDivLongInt"));
 
         // int {Math,StrictMath}.floorMod(long, int)
         name = factory.createString("floorMod");
         proto = factory.createProto(factory.intType, factory.longType, factory.intType);
         method = factory.createMethod(type, proto, name);
-        addProvider(new MethodGenerator(method, MathMethods::new, "floorModLongInt"));
+        addProvider(
+            new MethodGenerator(
+                method, BackportedMethods::MathMethods_floorModLongInt, "floorModLongInt"));
       }
 
       // Byte
@@ -898,7 +949,7 @@ public final class BackportedMethodRewriter {
       DexString name = factory.createString("compareUnsigned");
       DexProto proto = factory.createProto(factory.intType, factory.byteType, factory.byteType);
       DexMethod method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, ByteMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::ByteMethods_compareUnsigned));
 
       // Short
       type = factory.boxedShortType;
@@ -907,7 +958,7 @@ public final class BackportedMethodRewriter {
       name = factory.createString("compareUnsigned");
       proto = factory.createProto(factory.intType, factory.shortType, factory.shortType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, ShortMethods::new));
+      addProvider(new MethodGenerator(method, BackportedMethods::ShortMethods_compareUnsigned));
 
       // Objects
       type = factory.objectsType;
@@ -950,16 +1001,29 @@ public final class BackportedMethodRewriter {
       // List<E> List.of(<args>) for 0 to 10 arguments and List.of(E[])
       type = factory.listType;
       name = factory.createString("of");
+      List<TemplateMethodFactory> ofFactories =
+          ImmutableList.of(
+              BackportedMethods::ListMethods_of1,
+              BackportedMethods::ListMethods_of2,
+              BackportedMethods::ListMethods_of3,
+              BackportedMethods::ListMethods_of4,
+              BackportedMethods::ListMethods_of5,
+              BackportedMethods::ListMethods_of6,
+              BackportedMethods::ListMethods_of7,
+              BackportedMethods::ListMethods_of8,
+              BackportedMethods::ListMethods_of9,
+              BackportedMethods::ListMethods_of10);
       for (int i = 0; i <= 10; i++) {
         proto = factory.createProto(factory.listType, Collections.nCopies(i, factory.objectType));
         method = factory.createMethod(type, proto, name);
-        addProvider(i == 0
-            ? new InvokeRewriter(method, ListMethods::rewriteEmptyOf)
-            : new MethodGenerator(method, ListMethods::new));
+        addProvider(
+            i == 0
+                ? new InvokeRewriter(method, ListMethodRewrites::rewriteEmptyOf)
+                : new MethodGenerator(method, ofFactories.get(i - 1)));
       }
       proto = factory.createProto(factory.listType, factory.objectArrayType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, ListMethods::new, "ofArray"));
+      addProvider(new MethodGenerator(method, BackportedMethods::ListMethods_ofArray, "ofArray"));
     }
 
     private void initializeJava11MethodProviders(DexItemFactory factory) {
@@ -970,7 +1034,9 @@ public final class BackportedMethodRewriter {
       DexString name = factory.createString("toString");
       DexProto proto = factory.createProto(factory.stringType, factory.intType);
       DexMethod method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, CharacterMethods::new, "toStringCodepoint"));
+      addProvider(
+          new MethodGenerator(
+              method, BackportedMethods::CharacterMethods_toStringCodepoint, "toStringCodepoint"));
     }
 
     private void initializeOptionalMethodProviders(DexItemFactory factory) {
@@ -981,14 +1047,17 @@ public final class BackportedMethodRewriter {
       DexString name = factory.createString("or");
       DexProto proto = factory.createProto(optionalType, factory.supplierType);
       DexMethod method = factory.createMethod(optionalType, proto, name);
-      addProvider(new StatifyingMethodGenerator(method, OptionalMethods::new, "or", optionalType));
+      addProvider(
+          new StatifyingMethodGenerator(
+              method, BackportedMethods::OptionalMethods_or, "or", optionalType));
 
       // Optional.stream()
       name = factory.createString("stream");
       proto = factory.createProto(factory.createType("Ljava/util/stream/Stream;"));
       method = factory.createMethod(optionalType, proto, name);
       addProvider(
-          new StatifyingMethodGenerator(method, OptionalMethods::new, "stream", optionalType));
+          new StatifyingMethodGenerator(
+              method, BackportedMethods::OptionalMethods_stream, "stream", optionalType));
 
       // Optional{void,Int,Long,Double}.ifPresentOrElse(consumer,runnable)
       DexType[] optionalTypes =
@@ -1005,6 +1074,13 @@ public final class BackportedMethodRewriter {
             factory.createType("Ljava/util/function/LongConsumer;"),
             factory.createType("Ljava/util/function/IntConsumer;")
           };
+      TemplateMethodFactory[] methodFactories =
+          new TemplateMethodFactory[] {
+            BackportedMethods::OptionalMethods_ifPresentOrElse,
+            BackportedMethods::OptionalMethods_ifPresentOrElseDouble,
+            BackportedMethods::OptionalMethods_ifPresentOrElseLong,
+            BackportedMethods::OptionalMethods_ifPresentOrElseInt
+          };
       for (int i = 0; i < optionalTypes.length; i++) {
         DexType optional = optionalTypes[i];
         DexType consumer = consumerTypes[i];
@@ -1012,8 +1088,7 @@ public final class BackportedMethodRewriter {
         proto = factory.createProto(factory.voidType, consumer, factory.runnableType);
         method = factory.createMethod(optional, proto, name);
         addProvider(
-            new StatifyingMethodGenerator(
-                method, OptionalMethods::new, "ifPresentOrElse", optional));
+            new StatifyingMethodGenerator(method, methodFactories[i], "ifPresentOrElse", optional));
       }
     }
 

@@ -33,6 +33,14 @@ public class CfNumberConversion extends CfInstruction {
     this.to = to;
   }
 
+  public NumericType getFromType() {
+    return from;
+  }
+
+  public NumericType getToType() {
+    return to;
+  }
+
   @Override
   public void write(MethodVisitor visitor, NamingLens lens) {
     visitor.visitInsn(this.getAsmOpcode());

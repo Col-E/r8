@@ -4,14 +4,7 @@
 
 package com.android.tools.r8.ir.desugar.backports;
 
-import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.ir.synthetic.TemplateMethodCode;
-import com.android.tools.r8.utils.InternalOptions;
-
-public final class DoubleMethods extends TemplateMethodCode {
-  public DoubleMethods(InternalOptions options, DexMethod method, String methodName) {
-    super(options, method, methodName, method.proto.toDescriptorString());
-  }
+public final class DoubleMethods {
 
   public static int hashCode(double d) {
     long l = Double.doubleToLongBits(d);

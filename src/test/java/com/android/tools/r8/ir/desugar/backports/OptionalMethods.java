@@ -4,9 +4,6 @@
 
 package com.android.tools.r8.ir.desugar.backports;
 
-import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.ir.synthetic.TemplateMethodCode;
-import com.android.tools.r8.utils.InternalOptions;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalDouble;
@@ -19,11 +16,7 @@ import java.util.function.LongConsumer;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-public class OptionalMethods extends TemplateMethodCode {
-
-  public OptionalMethods(InternalOptions options, DexMethod method, String methodName) {
-    super(options, method, methodName, method.proto.toDescriptorString());
-  }
+public class OptionalMethods {
 
   public static <T> Optional<T> or(
       Optional<T> receiver, Supplier<? extends Optional<? extends T>> supplier) {
@@ -46,7 +39,7 @@ public class OptionalMethods extends TemplateMethodCode {
     }
   }
 
-  public static void ifPresentOrElse(
+  public static void ifPresentOrElseInt(
       OptionalInt receiver, IntConsumer action, Runnable emptyAction) {
     if (receiver.isPresent()) {
       action.accept(receiver.getAsInt());
@@ -55,7 +48,7 @@ public class OptionalMethods extends TemplateMethodCode {
     }
   }
 
-  public static void ifPresentOrElse(
+  public static void ifPresentOrElseLong(
       OptionalLong receiver, LongConsumer action, Runnable emptyAction) {
     if (receiver.isPresent()) {
       action.accept(receiver.getAsLong());
@@ -64,7 +57,7 @@ public class OptionalMethods extends TemplateMethodCode {
     }
   }
 
-  public static void ifPresentOrElse(
+  public static void ifPresentOrElseDouble(
       OptionalDouble receiver, DoubleConsumer action, Runnable emptyAction) {
     if (receiver.isPresent()) {
       action.accept(receiver.getAsDouble());

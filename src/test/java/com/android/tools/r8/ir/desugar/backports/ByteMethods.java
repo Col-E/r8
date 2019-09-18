@@ -4,14 +4,7 @@
 
 package com.android.tools.r8.ir.desugar.backports;
 
-import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.ir.synthetic.TemplateMethodCode;
-import com.android.tools.r8.utils.InternalOptions;
-
-public final class ByteMethods extends TemplateMethodCode {
-  public ByteMethods(InternalOptions options, DexMethod method, String methodName) {
-    super(options, method, methodName, method.proto.toDescriptorString());
-  }
+public final class ByteMethods {
 
   public static int hashCode(byte i) {
     return i;
