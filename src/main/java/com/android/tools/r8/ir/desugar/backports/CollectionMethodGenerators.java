@@ -13,6 +13,7 @@ import com.android.tools.r8.cf.code.CfReturn;
 import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.utils.InternalOptions;
@@ -20,11 +21,20 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import org.objectweb.asm.Opcodes;
 
-public final class ListMethodGenerators {
+public final class CollectionMethodGenerators {
 
-  private ListMethodGenerators() {}
+  private CollectionMethodGenerators() {}
 
   public static CfCode generateListOf(InternalOptions options, DexMethod method, int formalCount) {
+    return generateFixedMethods(options, method, formalCount, options.itemFactory.listType);
+  }
+
+  public static CfCode generateSetOf(InternalOptions options, DexMethod method, int formalCount) {
+    return generateFixedMethods(options, method, formalCount, options.itemFactory.setType);
+  }
+
+  private static CfCode generateFixedMethods(
+      InternalOptions options, DexMethod method, int formalCount, DexType returnType) {
     Builder<CfInstruction> builder = ImmutableList.builder();
     builder.add(
         new CfConstNumber(formalCount, ValueType.INT),
@@ -42,9 +52,8 @@ public final class ListMethodGenerators {
         new CfInvoke(
             Opcodes.INVOKESTATIC,
             options.itemFactory.createMethod(
-                options.itemFactory.listType,
-                options.itemFactory.createProto(
-                    options.itemFactory.listType, options.itemFactory.objectArrayType),
+                returnType,
+                options.itemFactory.createProto(returnType, options.itemFactory.objectArrayType),
                 options.itemFactory.createString("of")),
             false),
         new CfReturn(ValueType.OBJECT));

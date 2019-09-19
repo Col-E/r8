@@ -11,16 +11,26 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import java.util.Collections;
 
-public final class ListMethodRewrites {
+public final class CollectionMethodRewrites {
 
-  private ListMethodRewrites() {}
+  private CollectionMethodRewrites() {}
 
-  public static void rewriteEmptyOf(
+  public static void rewriteListOfEmpty(
       InvokeMethod invoke, InstructionListIterator iterator, DexItemFactory factory) {
+    rewriteToCollectionMethod(invoke, iterator, factory, "emptyList");
+  }
+
+  public static void rewriteSetOfEmpty(
+      InvokeMethod invoke, InstructionListIterator iterator, DexItemFactory factory) {
+    rewriteToCollectionMethod(invoke, iterator, factory, "emptySet");
+  }
+
+  private static void rewriteToCollectionMethod(InvokeMethod invoke,
+      InstructionListIterator iterator, DexItemFactory factory, String methodName) {
     assert invoke.inValues().isEmpty();
 
     DexMethod collectionsEmptyList =
-        factory.createMethod(factory.collectionsType, invoke.getInvokedMethod().proto, "emptyList");
+        factory.createMethod(factory.collectionsType, invoke.getInvokedMethod().proto, methodName);
     InvokeStatic newInvoke =
         new InvokeStatic(collectionsEmptyList, invoke.outValue(), Collections.emptyList());
     iterator.replaceCurrentInstruction(newInvoke);

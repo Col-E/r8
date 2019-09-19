@@ -4,20 +4,20 @@
 
 package com.android.tools.r8.desugar.backports;
 
-import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
-
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
+import java.util.Set;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
+
 @RunWith(Parameterized.class)
-public class ListBackportJava9Test extends AbstractBackportTest {
+public class SetBackportJava9Test extends AbstractBackportTest {
   @Parameters(name = "{0}")
   public static Iterable<?> data() {
     return getTestParameters()
@@ -29,14 +29,13 @@ public class ListBackportJava9Test extends AbstractBackportTest {
   private static final Path TEST_JAR =
       Paths.get(ToolHelper.EXAMPLES_JAVA9_BUILD_DIR).resolve("backport" + JAR_EXTENSION);
 
-  public ListBackportJava9Test(TestParameters parameters) {
-    super(parameters, List.class, TEST_JAR, "backport.ListBackportJava9Main");
-    // TODO Once shipped in an actual API level, migrate to ListBackportTest
+  public SetBackportJava9Test(TestParameters parameters) {
+    super(parameters, Set.class, TEST_JAR, "backport.SetBackportJava9Main");
+    // TODO Once shipped in an actual API level, migrate to SetBackportTest
 
-    // Available since API 1 and used to test created lists.
+    // Available since API 1 and used to test created sets.
     ignoreInvokes("add");
-    ignoreInvokes("get");
-    ignoreInvokes("set");
+    ignoreInvokes("contains");
     ignoreInvokes("size");
   }
 }

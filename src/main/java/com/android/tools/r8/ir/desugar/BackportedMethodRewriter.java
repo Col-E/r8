@@ -31,9 +31,9 @@ import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.backports.BackportedMethods;
 import com.android.tools.r8.ir.desugar.backports.BooleanMethodRewrites;
+import com.android.tools.r8.ir.desugar.backports.CollectionMethodGenerators;
+import com.android.tools.r8.ir.desugar.backports.CollectionMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.FloatMethodRewrites;
-import com.android.tools.r8.ir.desugar.backports.ListMethodGenerators;
-import com.android.tools.r8.ir.desugar.backports.ListMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.LongMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.NumericMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.ObjectsMethodRewrites;
@@ -1003,15 +1003,38 @@ public final class BackportedMethodRewriter {
         method = factory.createMethod(type, proto, name);
         addProvider(
             i == 0
-                ? new InvokeRewriter(method, ListMethodRewrites::rewriteEmptyOf)
+                ? new InvokeRewriter(method, CollectionMethodRewrites::rewriteListOfEmpty)
                 : new MethodGenerator(
                     method,
                     (options, methodArg, ignored) ->
-                        ListMethodGenerators.generateListOf(options, methodArg, formalCount)));
+                        CollectionMethodGenerators.generateListOf(options, methodArg, formalCount)));
       }
       proto = factory.createProto(factory.listType, factory.objectArrayType);
       method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, BackportedMethods::ListMethods_ofArray, "ofArray"));
+      addProvider(
+          new MethodGenerator(
+              method, BackportedMethods::CollectionMethods_listOfArray, "ofArray"));
+
+      // Set<E> Set.of(<args>) for 0 to 10 arguments and Set.of(E[])
+      type = factory.setType;
+      name = factory.createString("of");
+      for (int i = 0; i <= 10; i++) {
+        final int formalCount = i;
+        proto = factory.createProto(factory.setType, Collections.nCopies(i, factory.objectType));
+        method = factory.createMethod(type, proto, name);
+        addProvider(
+            i == 0
+                ? new InvokeRewriter(method, CollectionMethodRewrites::rewriteSetOfEmpty)
+                : new MethodGenerator(
+                    method,
+                    (options, methodArg, ignored) ->
+                        CollectionMethodGenerators.generateSetOf(options, methodArg, formalCount)));
+      }
+      proto = factory.createProto(factory.setType, factory.objectArrayType);
+      method = factory.createMethod(type, proto, name);
+      addProvider(
+          new MethodGenerator(
+              method, BackportedMethods::CollectionMethods_setOfArray, "ofArray"));
     }
 
     private void initializeJava11MethodProviders(DexItemFactory factory) {

@@ -29,6 +29,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -73,11 +74,11 @@ public class GenerateBackportMethods extends TestBase {
           ByteMethods.class,
           CharacterMethods.class,
           CloseResourceMethod.class,
+          CollectionMethods.class,
           CollectionsMethods.class,
           DoubleMethods.class,
           FloatMethods.class,
           IntegerMethods.class,
-          ListMethods.class,
           LongMethods.class,
           MathMethods.class,
           ObjectsMethods.class,
@@ -99,7 +100,7 @@ public class GenerateBackportMethods extends TestBase {
   @Test
   public void test() throws Exception {
     ArrayList<Class<?>> sorted = new ArrayList<>(methodTemplateClasses);
-    sorted.sort((a, b) -> a.getTypeName().compareTo(b.getTypeName()));
+    sorted.sort(Comparator.comparing(Class::getTypeName));
     assertEquals("Classes should be listed in sorted order", sorted, methodTemplateClasses);
     assertEquals(
         FileUtils.readTextFile(backportMethodsFile, StandardCharsets.UTF_8),
