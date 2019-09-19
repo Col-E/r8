@@ -20,6 +20,7 @@ public final class MathBackportTest extends AbstractBackportTest {
   public MathBackportTest(TestParameters parameters) {
     super(parameters, Math.class, Main.class);
     registerTarget(AndroidApiLevel.N, 97);
+    ignoreInvokes("nextAfter");  // Available in API 9, used to test nextDown.
   }
 
   static final class Main extends MiniAssert {
@@ -240,7 +241,7 @@ public final class MathBackportTest extends AbstractBackportTest {
           -0.1d, 0.1d,
       };
       for (double interestingValue : interestingValues) {
-        assertEquals(nextAfter(interestingValue, Double.NEGATIVE_INFINITY),
+        assertEquals(Math.nextAfter(interestingValue, Double.NEGATIVE_INFINITY),
             Math.nextDown(interestingValue));
       }
     }
@@ -258,7 +259,7 @@ public final class MathBackportTest extends AbstractBackportTest {
           -0.1f, 0.1f,
       };
       for (float interestingValue : interestingValues) {
-        assertEquals(nextAfter(interestingValue, Float.NEGATIVE_INFINITY),
+        assertEquals(Math.nextAfter(interestingValue, Float.NEGATIVE_INFINITY),
             Math.nextDown(interestingValue));
       }
     }
@@ -310,16 +311,6 @@ public final class MathBackportTest extends AbstractBackportTest {
         throw new AssertionError(Math.toIntExact(Integer.MIN_VALUE - 1L));
       } catch (ArithmeticException expected) {
       }
-    }
-
-    @IgnoreInvokes
-    private static double nextAfter(double value, double direction) {
-      return Math.nextAfter(value, direction);
-    }
-
-    @IgnoreInvokes
-    private static double nextAfter(float value, float direction) {
-      return Math.nextAfter(value, direction);
     }
   }
 }
