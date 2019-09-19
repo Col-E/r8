@@ -5,9 +5,10 @@
 package com.android.tools.r8.d8;
 
 import static org.hamcrest.core.StringContains.containsString;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
@@ -20,7 +21,11 @@ import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class IncompatiblePrimitiveTypesTest extends TestBase {
 
   @ClassRule
@@ -28,6 +33,17 @@ public class IncompatiblePrimitiveTypesTest extends TestBase {
 
   private static Path inputJar;
   private static String expectedOutput = "true";
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimes().withAllApiLevels().build();
+  }
+
+  final TestParameters parameters;
+
+  public IncompatiblePrimitiveTypesTest(TestParameters parameters) {
+    this.parameters = parameters;
+  }
 
   @BeforeClass
   public static void setup() throws Exception {
@@ -55,18 +71,22 @@ public class IncompatiblePrimitiveTypesTest extends TestBase {
   }
 
   @Test
-  public void jvmTest() throws Exception {
-    assumeTrue(
-        "JVM test independent of Art version - only run when testing on latest",
-        ToolHelper.getDexVm().getVersion().isLatest());
-    testForJvm().addClasspath(inputJar).run("TestClass").assertSuccessWithOutput(expectedOutput);
-  }
-
-  @Test
-  public void dexTest() throws Exception {
-    TestRunResult<?> d8Result = testForD8().addProgramFiles(inputJar).run("TestClass");
-    TestRunResult<?> dxResult = testForDX().addProgramFiles(inputJar).run("TestClass");
-    if (ToolHelper.getDexVm().getVersion().isNewerThan(Version.V4_4_4)) {
+  public void test() throws Exception {
+    if (parameters.isCfRuntime()) {
+      testForJvm()
+          .addClasspath(inputJar)
+          .run(parameters.getRuntime(), "TestClass")
+          .assertSuccessWithOutput(expectedOutput);
+      return;
+    }
+    TestRunResult<?> d8Result =
+        testForD8()
+            .addProgramFiles(inputJar)
+            .setMinApi(parameters.getApiLevel())
+            .run(parameters.getRuntime(), "TestClass");
+    TestRunResult<?> dxResult =
+        testForDX().addProgramFiles(inputJar).run(parameters.getRuntime(), "TestClass");
+    if (parameters.getRuntime().asDex().getVm().getVersion().isNewerThan(Version.V4_4_4)) {
       d8Result.assertSuccessWithOutput(expectedOutput);
       dxResult.assertSuccessWithOutput(expectedOutput);
     } else {
