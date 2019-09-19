@@ -26,23 +26,12 @@ import java.util.List;
 
 public class CoreLibDesugarTestBase extends TestBase {
 
-  @Deprecated
-  protected boolean requiresCoreLibDesugaring(TestParameters parameters) {
-    // TODO(b/134732760): Use the two other APIS instead.
-    return requiresEmulatedInterfaceCoreLibDesugaring(parameters)
-        && requiresRetargetCoreLibMemberDesugaring(parameters);
-  }
-
   protected boolean requiresEmulatedInterfaceCoreLibDesugaring(TestParameters parameters) {
     return parameters.getApiLevel().getLevel() < AndroidApiLevel.N.getLevel();
   }
 
-  protected boolean requiresRetargetCoreLibMemberDesugaring(TestParameters parameters) {
-    return parameters.getApiLevel().getLevel() < AndroidApiLevel.O.getLevel();
-  }
-
   protected boolean requiresAnyCoreLibDesugaring(TestParameters parameters) {
-    return requiresRetargetCoreLibMemberDesugaring(parameters);
+    return parameters.getApiLevel().getLevel() < AndroidApiLevel.O.getLevel();
   }
 
   protected Path buildDesugaredLibrary(AndroidApiLevel apiLevel) throws RuntimeException {

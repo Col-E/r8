@@ -11,12 +11,9 @@ import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Paths;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -62,14 +59,15 @@ public class Jdk11TimeTests extends Jdk11CoreLibTestBase {
         "test.java.time.TestTextParser.java",
         "test.java.time.TestTextPrinter.java",
         "test.java.time.TestChronoField.java",
-        "test.java.util.TestFormatter.java"
-      };
-  // TODO(b/134732760): Investigate why these tests fail.
-  private static String[] failuresToTriage =
-      new String[] {
+        "test.java.util.TestFormatter.java",
+        // Following also fails using the default libs on P...
         "test.java.time.chrono.TestEraDisplayName",
         "test.java.time.format.TestDateTimeFormatter",
         "test.java.time.TestLocalDate",
+      };
+  // TODO(b/134732760): Investigate why these tests fail.
+  private static String[] forEachProblem =
+      new String[] {
         // ForEach problem
         "test.java.time.format.TestNarrowMonthNamesAndDayNames",
       };
@@ -130,7 +128,6 @@ public class Jdk11TimeTests extends Jdk11CoreLibTestBase {
 
   @Test
   public void testTime() throws Exception {
-    Assume.assumeTrue("No desugaring on high API level.", requiresCoreLibDesugaring(parameters));
     String verbosity = "2";
     D8TestCompileResult compileResult =
         testForD8()
@@ -138,7 +135,6 @@ public class Jdk11TimeTests extends Jdk11CoreLibTestBase {
             .addProgramFiles(Paths.get(JDK_TESTS_BUILD_DIR + "jdk11TimeTests.jar"))
             .addProgramFiles(Paths.get(JDK_TESTS_BUILD_DIR + "testng-6.10.jar"))
             .addProgramFiles(Paths.get(JDK_TESTS_BUILD_DIR + "jcommander-1.48.jar"))
-            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .setMinApi(parameters.getApiLevel())
             .enableCoreLibraryDesugaring(parameters.getApiLevel())
             .compile()
@@ -150,15 +146,22 @@ public class Jdk11TimeTests extends Jdk11CoreLibTestBase {
           compileResult.run(parameters.getRuntime(), "TestNGMainRunner", verbosity, success);
       if (result.getStdErr().contains("Couldn't find any tzdata")) {
         // TODO(b/134732760): fix missing time zone data.
+      } else if (result.getStdErr().contains("no microsecond precision")) {
+        // Emulator precision, won't fix.
       } else {
         assertTrue(result.getStdOut().contains(StringUtils.lines(success + ": SUCCESS")));
       }
     }
-    for (String success : failuresToTriage) {
+    for (String success : forEachProblem) {
       D8TestRunResult result =
           compileResult.run(parameters.getRuntime(), "TestNGMainRunner", verbosity, success);
-      assertTrue(
-          result.getStdOut().contains("AssertionError") || result.getStdOut().contains("forEach("));
+      if (requiresAnyCoreLibDesugaring(parameters)) {
+        assertTrue(
+            result.getStdOut().contains("AssertionError")
+                || result.getStdOut().contains("forEach("));
+      } else {
+        assertTrue(result.getStdOut().contains(StringUtils.lines(success + ": SUCCESS")));
+      }
     }
   }
 }

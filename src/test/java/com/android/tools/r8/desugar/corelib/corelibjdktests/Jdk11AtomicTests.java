@@ -10,20 +10,20 @@ import static com.android.tools.r8.utils.FileUtils.JAVA_EXTENSION;
 import static org.hamcrest.CoreMatchers.endsWith;
 
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
-import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
-import org.junit.Assume;
+import java.util.List;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class Jdk11AtomicTests extends Jdk11CoreLibTestBase {
@@ -39,21 +39,24 @@ public class Jdk11AtomicTests extends Jdk11CoreLibTestBase {
         ATOMIC_TESTS_FOLDER.resolve(ATOMIC_REFERENCE_TEST + JAVA_EXTENSION),
         ATOMIC_TESTS_FOLDER.resolve(ATOMIC_UPDATERS + JAVA_EXTENSION)
       };
-  private final TestParameters parameters;
 
-  @Parameterized.Parameters(name = "{0}")
-  public static TestParametersCollection data() {
+  private final TestParameters parameters;
+  private final boolean shrinkDesugaredLibrary;
+
+  @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
+  public static List<Object[]> data() {
     // TODO(b/134732760): Skip Android 4.4.4 due to missing libjavacrypto.
-    return getTestParameters()
-        .withDexRuntime(Version.V4_0_4)
-        .withDexRuntimesStartingFromIncluding(Version.V5_1_1)
-        //TODO(b/134732760): Add support for R8 and JDK11.
-        .withCfRuntime(CfVm.JDK11)
-        .withAllApiLevels()
-        .build();
+    return buildParameters(
+        BooleanUtils.values(),
+        getTestParameters()
+            .withDexRuntime(Version.V4_0_4)
+            .withDexRuntimesStartingFromIncluding(Version.V5_1_1)
+            .withAllApiLevels()
+            .build());
   }
 
-  public Jdk11AtomicTests(TestParameters parameters) {
+  public Jdk11AtomicTests(boolean shrinkDesugaredLibrary, TestParameters parameters) {
+    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
     this.parameters = parameters;
   }
 
@@ -68,8 +71,7 @@ public class Jdk11AtomicTests extends Jdk11CoreLibTestBase {
 
   @Test
   public void testD8AtomicReference() throws Exception {
-    Assume.assumeTrue(parameters.isDexRuntime());
-    Assume.assumeTrue("TODO(134732760): Fix Android 7+.", requiresCoreLibDesugaring(parameters));
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     String verbosity = "2";
     testForD8()
         .addProgramFiles(
@@ -77,11 +79,14 @@ public class Jdk11AtomicTests extends Jdk11CoreLibTestBase {
         .addProgramFiles(testNGSupportProgramFiles())
         .addProgramFiles(getPathsFiles())
         .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring()
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .compile()
         .withArt6Plus64BitsLib()
-        .addRunClasspathFiles(buildDesugaredLibraryWithJavaBaseExtension(parameters.getApiLevel()))
+        .addDesugaredCoreLibraryRunClassPath(
+            this::buildDesugaredLibrary,
+            parameters.getApiLevel(),
+            keepRuleConsumer.get(),
+            shrinkDesugaredLibrary)
         .run(parameters.getRuntime(), "TestNGMainRunner", verbosity, ATOMIC_REFERENCE_TEST)
         .assertSuccessWithOutputThatMatches(
             endsWith(StringUtils.lines(ATOMIC_REFERENCE_TEST + ": SUCCESS")));
@@ -89,8 +94,7 @@ public class Jdk11AtomicTests extends Jdk11CoreLibTestBase {
 
   @Test
   public void testD8AtomicUpdaters() throws Exception {
-    Assume.assumeTrue(parameters.isDexRuntime());
-    Assume.assumeTrue("TODO(134732760): Fix Android 7+.", requiresCoreLibDesugaring(parameters));
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     String verbosity = "2";
     testForD8()
         .addProgramFiles(
@@ -98,11 +102,14 @@ public class Jdk11AtomicTests extends Jdk11CoreLibTestBase {
         .addProgramFiles(testNGSupportProgramFiles())
         .addProgramFiles(getPathsFiles())
         .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring()
-        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .compile()
         .withArt6Plus64BitsLib()
-        .addRunClasspathFiles(buildDesugaredLibraryWithJavaBaseExtension(parameters.getApiLevel()))
+        .addDesugaredCoreLibraryRunClassPath(
+            this::buildDesugaredLibrary,
+            parameters.getApiLevel(),
+            keepRuleConsumer.get(),
+            shrinkDesugaredLibrary)
         .run(parameters.getRuntime(), "TestNGMainRunner", verbosity, ATOMIC_UPDATERS)
         .assertSuccessWithOutputThatMatches(
             endsWith(StringUtils.lines(ATOMIC_UPDATERS + ": SUCCESS")));

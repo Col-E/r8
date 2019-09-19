@@ -10,9 +10,7 @@ import static org.junit.Assert.fail;
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.BooleanUtils;
-import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject.JumboStringMode;
@@ -37,16 +35,16 @@ import org.junit.runners.Parameterized.Parameters;
 public class CustomCollectionTest extends CoreLibDesugarTestBase {
 
   private final TestParameters parameters;
-  private final boolean shrinkCoreLibrary;
+  private final boolean shrinkDesugaredLibrary;
 
-  @Parameters(name = "{1}, shrinkCoreLibrary: {0}")
+  @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
   public static List<Object[]> data() {
     return buildParameters(
         BooleanUtils.values(), getTestParameters().withDexRuntimes().withAllApiLevels().build());
   }
 
   public CustomCollectionTest(boolean shrinkDesugaredLibrary, TestParameters parameters) {
-    this.shrinkCoreLibrary = shrinkDesugaredLibrary;
+    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
     this.parameters = parameters;
   }
 
@@ -55,23 +53,19 @@ public class CustomCollectionTest extends CoreLibDesugarTestBase {
 
   @Test
   public void testCustomCollectionD8() throws Exception {
-    Box<String> keepRulesHolder = new Box<>("");
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     D8TestRunResult d8TestRunResult =
         testForD8()
             .addInnerClasses(CustomCollectionTest.class)
             .setMinApi(parameters.getApiLevel())
-            .addOptionsModification(
-                options ->
-                    options.desugaredLibraryKeepRuleConsumer =
-                        ToolHelper.consumeString(keepRulesHolder::set))
-            .enableCoreLibraryDesugaring(parameters.getApiLevel())
+            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
             .compile()
             .inspect(inspector -> this.assertCustomCollectionCallsCorrect(inspector, false))
             .addDesugaredCoreLibraryRunClassPath(
                 this::buildDesugaredLibrary,
                 parameters.getApiLevel(),
-                keepRulesHolder.get(),
-                shrinkCoreLibrary)
+                keepRuleConsumer.get(),
+                shrinkDesugaredLibrary)
             .run(parameters.getRuntime(), EXECUTOR)
             .assertSuccess();
     if (requiresEmulatedInterfaceCoreLibDesugaring(parameters)) {
@@ -89,7 +83,7 @@ public class CustomCollectionTest extends CoreLibDesugarTestBase {
 
   @Test
   public void testCustomCollectionR8() throws Exception {
-    Box<String> keepRulesHolder = new Box<>("");
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     R8TestRunResult r8TestRunResult =
         testForR8(Backend.DEX)
             .addInnerClasses(CustomCollectionTest.class)
@@ -100,18 +94,14 @@ public class CustomCollectionTest extends CoreLibDesugarTestBase {
                   // TODO(b/140233505): Allow devirtualization once fixed.
                   options.enableDevirtualization = false;
                 })
-            .addOptionsModification(
-                options ->
-                    options.desugaredLibraryKeepRuleConsumer =
-                        ToolHelper.consumeString(keepRulesHolder::set))
-            .enableCoreLibraryDesugaring(parameters.getApiLevel())
+            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
             .compile()
             .inspect(inspector -> this.assertCustomCollectionCallsCorrect(inspector, true))
             .addDesugaredCoreLibraryRunClassPath(
                 this::buildDesugaredLibrary,
                 parameters.getApiLevel(),
-                keepRulesHolder.get(),
-                shrinkCoreLibrary)
+                keepRuleConsumer.get(),
+                shrinkDesugaredLibrary)
             .run(parameters.getRuntime(), EXECUTOR)
             .assertSuccess();
     if (requiresEmulatedInterfaceCoreLibDesugaring(parameters)) {

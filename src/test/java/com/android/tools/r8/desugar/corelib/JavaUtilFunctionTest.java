@@ -26,17 +26,17 @@ import org.junit.runners.Parameterized.Parameters;
 public class JavaUtilFunctionTest extends CoreLibDesugarTestBase {
 
   private final TestParameters parameters;
-  private final boolean shrinkCoreLibrary;
+  private final boolean shrinkDesugaredLibrary;
   private static final String expectedOutput = StringUtils.lines("Hello, world", "Hello, world");
 
-  @Parameters(name = "{1}, shrinkCoreLibrary: {0}")
+  @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
   public static List<Object[]> data() {
     return buildParameters(
         BooleanUtils.values(), getTestParameters().withDexRuntimes().withAllApiLevels().build());
   }
 
   public JavaUtilFunctionTest(boolean shrinkDesugaredLibrary, TestParameters parameters) {
-    this.shrinkCoreLibrary = shrinkDesugaredLibrary;
+    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
     this.parameters = parameters;
   }
 
@@ -71,7 +71,7 @@ public class JavaUtilFunctionTest extends CoreLibDesugarTestBase {
             this::buildDesugaredLibrary,
             parameters.getApiLevel(),
             keepRuleConsumer.get(),
-            shrinkCoreLibrary)
+            shrinkDesugaredLibrary)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(expectedOutput);
   }
@@ -95,7 +95,7 @@ public class JavaUtilFunctionTest extends CoreLibDesugarTestBase {
             this::buildDesugaredLibrary,
             parameters.getApiLevel(),
             keepRuleConsumer.get(),
-            shrinkCoreLibrary)
+            shrinkDesugaredLibrary)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(expectedOutput);
   }

@@ -159,11 +159,6 @@ public class Jdk11StreamTests extends Jdk11CoreLibTestBase {
       // Collectors
       "filtering(",
       "flatMapping(",
-      // List
-      "of(",
-      // Optional
-      "or(",
-      "ifPresentOrElse("
     };
   }
 
@@ -190,11 +185,13 @@ public class Jdk11StreamTests extends Jdk11CoreLibTestBase {
 
   @Test
   public void testStream() throws Exception {
+    Assume.assumeTrue(
+        "Requires Java base extensions, should add it when not desugaring",
+        parameters.getApiLevel().getLevel() < AndroidApiLevel.N.getLevel());
     // TODO(b/137876068): It seems to fail on windows because the method.
     // getAllFilesWithSuffixInDirectory() finds different files on Windows (To be confirmed), so
     // compilation is then different and raises an error.
     Assume.assumeFalse(ToolHelper.isWindows());
-    Assume.assumeTrue("TODO(134732760): Fix Android 7+.", requiresCoreLibDesugaring(parameters));
     Map<String, String> runnableTests = getRunnableTests();
     String verbosity = "2";
     List<Path> filesToCompile =
@@ -209,10 +206,10 @@ public class Jdk11StreamTests extends Jdk11CoreLibTestBase {
             .addProgramFiles(testNGSupportProgramFiles())
             .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .setMinApi(parameters.getApiLevel())
-            .enableCoreLibraryDesugaring()
+            .enableCoreLibraryDesugaring(parameters.getApiLevel())
             .compile()
-            .addRunClasspathFiles(
-                buildDesugaredLibraryWithJavaBaseExtension(parameters.getApiLevel()))
+            .addDesugaredCoreLibraryRunClassPath(
+                this::buildDesugaredLibraryWithJavaBaseExtension, parameters.getApiLevel())
             .withArtFrameworks()
             .withArt6Plus64BitsLib();
     int numSuccesses = 0;
@@ -247,10 +244,7 @@ public class Jdk11StreamTests extends Jdk11CoreLibTestBase {
           // TODO(b/134732760): Investigate and fix these issues.
           numHardFailures++;
         } else {
-          String errorMessage = "STDOUT:\n"+
-              result.getStdOut()
-              + "STDERR:\n" +
-              result.getStdErr();
+          String errorMessage = "STDOUT:\n" + result.getStdOut() + "STDERR:\n" + result.getStdErr();
           fail(errorMessage);
         }
       }

@@ -13,11 +13,11 @@ import static org.hamcrest.CoreMatchers.not;
 
 import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -29,6 +29,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class Jdk11ConcurrentMapTests extends Jdk11CoreLibTestBase {
@@ -50,18 +51,22 @@ public class Jdk11ConcurrentMapTests extends Jdk11CoreLibTestBase {
       };
 
   private final TestParameters parameters;
+  private final boolean shrinkDesugaredLibrary;
 
-  @Parameterized.Parameters(name = "{0}")
-  public static TestParametersCollection data() {
+  @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
+  public static List<Object[]> data() {
     // TODO(b/134732760): Skip Android 4.4.4 due to missing libjavacrypto.
-    return getTestParameters()
-        .withDexRuntime(Version.V4_0_4)
-        .withDexRuntimesStartingFromIncluding(Version.V5_1_1)
-        .withAllApiLevels()
-        .build();
+    return buildParameters(
+        BooleanUtils.values(),
+        getTestParameters()
+            .withDexRuntime(Version.V4_0_4)
+            .withDexRuntimesStartingFromIncluding(Version.V5_1_1)
+            .withAllApiLevels()
+            .build());
   }
 
-  public Jdk11ConcurrentMapTests(TestParameters parameters) {
+  public Jdk11ConcurrentMapTests(boolean shrinkDesugaredLibrary, TestParameters parameters) {
+    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
     this.parameters = parameters;
   }
 
@@ -94,27 +99,30 @@ public class Jdk11ConcurrentMapTests extends Jdk11CoreLibTestBase {
   public void testD8Concurrent() throws Exception {
     // TODO(b/134732760): Support Java 9+ libraries.
     // We skip the ConcurrentRemoveIf test because of the  non desugared class CompletableFuture.
-    Assume.assumeTrue("TODO(134732760): Fix Android 7+.", requiresCoreLibDesugaring(parameters));
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     String verbosity = "2";
     testForD8()
         .addProgramFiles(CONCURRENT_COMPILED_TESTS_FILES)
         .addProgramFiles(testNGSupportProgramFiles())
         .addProgramFiles(getPathsFiles())
         .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring()
+        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .compile()
         .withArt6Plus64BitsLib()
-        .addRunClasspathFiles(buildDesugaredLibrary(parameters.getApiLevel()))
+        .addDesugaredCoreLibraryRunClassPath(
+            this::buildDesugaredLibrary,
+            parameters.getApiLevel(),
+            keepRuleConsumer.get(),
+            shrinkDesugaredLibrary)
         .run(parameters.getRuntime(), "TestNGMainRunner", verbosity, "ConcurrentModification")
         .assertSuccessWithOutputThatMatches(
             endsWith(StringUtils.lines("ConcurrentModification: SUCCESS")));
   }
 
   private Path[] concurrentHashTestToCompile() {
-    if (parameters.getApiLevel().getLevel() >= AndroidApiLevel.O.getLevel()) {
-      return CONCURRENT_HASH_COMPILED_TESTS_FILES;
-    }
+    // We exclude WhiteBox.class because of Method handles, they are not supported on old devices
+    // and the test uses methods not present even on 28.
     List<Path> toCompile = new ArrayList<>();
     Collections.addAll(toCompile, CONCURRENT_HASH_COMPILED_TESTS_FILES);
     toCompile.removeIf(file -> file.getFileName().toString().equals("WhiteBox.class"));
@@ -122,12 +130,7 @@ public class Jdk11ConcurrentMapTests extends Jdk11CoreLibTestBase {
   }
 
   private String[] concurrentHashTestNGTestsToRun() {
-    // We exclude WhiteBox.class because of Method handles.
-    // This will likely never be supported in old Android devices.
     List<String> toRun = new ArrayList<>();
-    if (parameters.getApiLevel().getLevel() >= AndroidApiLevel.O.getLevel()) {
-      toRun.add("WhiteBox");
-    }
     // TODO(b/134732760): Support Java 9+ libraries.
     // We exclude ConcurrentAssociateTest and ConcurrentContainsKeyTest due to non
     // desugared class CompletableFuture.
@@ -151,7 +154,9 @@ public class Jdk11ConcurrentMapTests extends Jdk11CoreLibTestBase {
 
   @Test
   public void testD8ConcurrentHash() throws Exception {
-    Assume.assumeTrue("TODO(134732760): Fix Android 7+.", requiresCoreLibDesugaring(parameters));
+    // TODO(b/134732760): Investigate failure when shrinkDesugaredLibrary is on.
+    Assume.assumeFalse(shrinkDesugaredLibrary);
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     String verbosity = "2";
     D8TestCompileResult d8TestCompileResult =
         testForD8()
@@ -159,11 +164,15 @@ public class Jdk11ConcurrentMapTests extends Jdk11CoreLibTestBase {
             .addProgramFiles(testNGSupportProgramFiles())
             .addProgramFiles(getPathsFiles())
             .setMinApi(parameters.getApiLevel())
-            .enableCoreLibraryDesugaring()
-            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
             .compile()
             .withArt6Plus64BitsLib()
-            .addRunClasspathFiles(buildDesugaredLibrary(parameters.getApiLevel()));
+            .addDesugaredCoreLibraryRunClassPath(
+                this::buildDesugaredLibrary,
+                parameters.getApiLevel(),
+                keepRuleConsumer.get(),
+                shrinkDesugaredLibrary);
+    System.out.println(keepRuleConsumer.get());
     for (String className : concurrentHashTestNGTestsToRun()) {
       d8TestCompileResult
           .run(parameters.getRuntime(), "TestNGMainRunner", verbosity, className)

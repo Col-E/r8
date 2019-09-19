@@ -9,9 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.BooleanUtils;
-import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -28,17 +26,17 @@ import org.junit.runners.Parameterized.Parameters;
 public class JavaTimeTest extends CoreLibDesugarTestBase {
 
   private final TestParameters parameters;
-  private final boolean shrinkCoreLibrary;
+  private final boolean shrinkDesugaredLibrary;
   private static final String expectedOutput = StringUtils.lines("Hello, world");
 
-  @Parameters(name = "{1}, shrinkCoreLibrary: {0}")
+  @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
   public static List<Object[]> data() {
     return buildParameters(
         BooleanUtils.values(), getTestParameters().withDexRuntimes().withAllApiLevels().build());
   }
 
   public JavaTimeTest(boolean shrinkDesugaredLibrary, TestParameters parameters) {
-    this.shrinkCoreLibrary = shrinkDesugaredLibrary;
+    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
     this.parameters = parameters;
   }
 
@@ -56,45 +54,37 @@ public class JavaTimeTest extends CoreLibDesugarTestBase {
 
   @Test
   public void testTimeD8() throws Exception {
-    Box<String> keepRulesHolder = new Box<>("");
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
         .addInnerClasses(JavaTimeTest.class)
         .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(parameters.getApiLevel())
-        .addOptionsModification(
-            options ->
-                options.desugaredLibraryKeepRuleConsumer =
-                    ToolHelper.consumeString(keepRulesHolder::set))
+        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .compile()
         .inspect(this::checkRewrittenInvokes)
         .addDesugaredCoreLibraryRunClassPath(
             this::buildDesugaredLibrary,
             parameters.getApiLevel(),
-            keepRulesHolder.get(),
-            shrinkCoreLibrary)
+            keepRuleConsumer.get(),
+            shrinkDesugaredLibrary)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(expectedOutput);
   }
 
   @Test
   public void testTimeR8() throws Exception {
-    Box<String> keepRulesHolder = new Box<>("");
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForR8(parameters.getBackend())
         .addInnerClasses(JavaTimeTest.class)
         .addKeepMainRule(TestClass.class)
         .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(parameters.getApiLevel())
-        .addOptionsModification(
-            options ->
-                options.desugaredLibraryKeepRuleConsumer =
-                    ToolHelper.consumeString(keepRulesHolder::set))
+        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .compile()
         .inspect(this::checkRewrittenInvokes)
         .addDesugaredCoreLibraryRunClassPath(
             this::buildDesugaredLibrary,
             parameters.getApiLevel(),
-            keepRulesHolder.get(),
-            shrinkCoreLibrary)
+            keepRuleConsumer.get(),
+            shrinkDesugaredLibrary)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(expectedOutput);
   }
