@@ -29,6 +29,7 @@ import com.android.tools.r8.ir.optimize.Outliner;
 import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
+import com.android.tools.r8.ir.optimize.info.OptimizationFeedback.OptimizationInfoFixer;
 import com.android.tools.r8.ir.optimize.lambda.CodeProcessor.Strategy;
 import com.android.tools.r8.ir.optimize.lambda.LambdaGroup.LambdaStructureError;
 import com.android.tools.r8.ir.optimize.lambda.kotlin.KotlinLambdaGroupIdFactory;
@@ -222,7 +223,9 @@ public final class LambdaMerger {
 
     // Fixup optimization info to ensure that the optimization info does not refer to any merged
     // lambdas.
-    new OptimizationInfoFixer(lambdaGroupsClasses).fixupOptimizationInfos(executorService);
+    LambdaMergerOptimizationInfoFixer optimizationInfoFixer =
+        new LambdaMergerOptimizationInfoFixer(lambdaGroupsClasses);
+    feedback.fixupOptimizationInfos(appView, executorService, optimizationInfoFixer);
 
     // Switch to APPLY strategy.
     this.strategyFactory = ApplyStrategy::new;
@@ -470,46 +473,13 @@ public final class LambdaMerger {
     }
   }
 
-  private final class OptimizationInfoFixer implements Function<DexType, DexType> {
+  private final class LambdaMergerOptimizationInfoFixer
+      implements Function<DexType, DexType>, OptimizationInfoFixer {
 
     private final Map<LambdaGroup, DexProgramClass> lambdaGroupsClasses;
 
-    OptimizationInfoFixer(Map<LambdaGroup, DexProgramClass> lambdaGroupsClasses) {
+    LambdaMergerOptimizationInfoFixer(Map<LambdaGroup, DexProgramClass> lambdaGroupsClasses) {
       this.lambdaGroupsClasses = lambdaGroupsClasses;
-    }
-
-    void fixupOptimizationInfos(ExecutorService executorService) throws ExecutionException {
-      List<Future<?>> futures = new ArrayList<>();
-      for (DexProgramClass clazz : appView.appInfo().classes()) {
-        futures.add(
-            executorService.submit(
-                () -> {
-                  fixupOptimizationInfos(clazz);
-                  return null;
-                }));
-      }
-      ThreadUtils.awaitFutures(futures);
-    }
-
-    private void fixupOptimizationInfos(DexProgramClass clazz) {
-      for (DexEncodedMethod method : clazz.methods()) {
-        MethodOptimizationInfo optimizationInfo = method.getOptimizationInfo();
-        if (optimizationInfo.isUpdatableMethodOptimizationInfo()) {
-          optimizationInfo
-              .asUpdatableMethodOptimizationInfo()
-              .fixupClassTypeReferences(this, appView);
-        } else {
-          assert optimizationInfo.isDefaultMethodOptimizationInfo();
-        }
-      }
-      for (DexEncodedField field : clazz.fields()) {
-        FieldOptimizationInfo optimizationInfo = field.getOptimizationInfo();
-        if (optimizationInfo.isMutableFieldOptimizationInfo()) {
-          optimizationInfo.asMutableFieldOptimizationInfo().fixupClassTypeReferences(this, appView);
-        } else {
-          assert optimizationInfo.isDefaultFieldOptimizationInfo();
-        }
-      }
     }
 
     @Override
@@ -522,6 +492,28 @@ public final class LambdaMerger {
         }
       }
       return type;
+    }
+
+    @Override
+    public void fixup(DexEncodedField field) {
+      FieldOptimizationInfo optimizationInfo = field.getOptimizationInfo();
+      if (optimizationInfo.isMutableFieldOptimizationInfo()) {
+        optimizationInfo.asMutableFieldOptimizationInfo().fixupClassTypeReferences(this, appView);
+      } else {
+        assert optimizationInfo.isDefaultFieldOptimizationInfo();
+      }
+    }
+
+    @Override
+    public void fixup(DexEncodedMethod method) {
+      MethodOptimizationInfo optimizationInfo = method.getOptimizationInfo();
+      if (optimizationInfo.isUpdatableMethodOptimizationInfo()) {
+        optimizationInfo
+            .asUpdatableMethodOptimizationInfo()
+            .fixupClassTypeReferences(this, appView);
+      } else {
+        assert optimizationInfo.isDefaultMethodOptimizationInfo();
+      }
     }
   }
 }

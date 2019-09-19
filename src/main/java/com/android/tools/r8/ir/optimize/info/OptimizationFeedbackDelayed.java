@@ -19,8 +19,10 @@ import java.util.BitSet;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 
-public class OptimizationFeedbackDelayed implements OptimizationFeedback {
+public class OptimizationFeedbackDelayed extends OptimizationFeedback {
 
   // Caching of updated optimization info and processed status.
   private final Map<DexEncodedField, MutableFieldOptimizationInfo> fieldOptimizationInfos =
@@ -49,6 +51,14 @@ public class OptimizationFeedbackDelayed implements OptimizationFeedback {
     info = method.getOptimizationInfo().mutableCopy();
     methodOptimizationInfos.put(method, info);
     return info;
+  }
+
+  @Override
+  public void fixupOptimizationInfos(
+      AppView<?> appView, ExecutorService executorService, OptimizationInfoFixer fixer)
+      throws ExecutionException {
+    updateVisibleOptimizationInfo();
+    super.fixupOptimizationInfos(appView, executorService, fixer);
   }
 
   public void updateVisibleOptimizationInfo() {

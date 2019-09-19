@@ -17,7 +17,7 @@ import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import java.util.BitSet;
 import java.util.Set;
 
-public abstract class OptimizationFeedbackIgnore implements OptimizationFeedback {
+public abstract class OptimizationFeedbackIgnore extends OptimizationFeedback {
 
   private static final OptimizationFeedbackIgnore INSTANCE = new OptimizationFeedbackIgnore() {};
 

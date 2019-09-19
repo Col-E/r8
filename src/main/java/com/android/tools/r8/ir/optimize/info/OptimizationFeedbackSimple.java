@@ -17,7 +17,7 @@ import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import java.util.BitSet;
 import java.util.Set;
 
-public class OptimizationFeedbackSimple implements OptimizationFeedback {
+public class OptimizationFeedbackSimple extends OptimizationFeedback {
 
   private static OptimizationFeedbackSimple INSTANCE = new OptimizationFeedbackSimple();
 
