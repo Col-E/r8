@@ -1663,10 +1663,16 @@ task buildSmali {
 tasks.withType(Test) {
     println("NOTE: Number of processors " + Runtime.runtime.availableProcessors())
     def userDefinedCoresPerFork = System.getenv('R8_GRADLE_CORES_PER_FORK')
-    def coresPerFork = userDefinedCoresPerFork ? userDefinedCoresPerFork.toInteger() : 3
+    def processors = Runtime.runtime.availableProcessors()
     // See https://docs.gradle.org/current/dsl/org.gradle.api.tasks.testing.Test.html.
-    maxParallelForks = (Runtime.runtime.availableProcessors().intdiv(coresPerFork) ?: 1)
+    if (userDefinedCoresPerFork) {
+      maxParallelForks = processors.intdiv(userDefinedCoresPerFork.toInteger()) ?: 1
+    } else {
+      // On normal work machines this seems to give the best test execution time (without freezing)
+      maxParallelForks = processors.intdiv(3) ?: 1
+    }
     println("NOTE: Max parallel forks " + maxParallelForks)
+
     forkEvery = 0
     if (project.hasProperty('disable_assertions')) {
         enableAssertions = false
