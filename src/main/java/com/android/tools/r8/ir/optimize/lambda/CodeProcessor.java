@@ -168,7 +168,7 @@ public abstract class CodeProcessor extends DefaultInstructionVisitor<Void> {
     return instructions;
   }
 
-  final void processCode() {
+  void processCode() {
     while (blocks.hasNext()) {
       BasicBlock block = blocks.next();
       instructions = block.listIterator(code);

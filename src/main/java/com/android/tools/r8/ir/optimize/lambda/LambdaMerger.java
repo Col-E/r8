@@ -15,13 +15,17 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.DestructivePhiTypeUpdater;
+import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.NewInstance;
+import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
+import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.CallSiteInformation;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -35,11 +39,14 @@ import com.android.tools.r8.ir.optimize.lambda.LambdaGroup.LambdaStructureError;
 import com.android.tools.r8.ir.optimize.lambda.kotlin.KotlinLambdaGroupIdFactory;
 import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.google.common.collect.Sets;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -228,7 +235,7 @@ public final class LambdaMerger {
     feedback.fixupOptimizationInfos(appView, executorService, optimizationInfoFixer);
 
     // Switch to APPLY strategy.
-    this.strategyFactory = ApplyStrategy::new;
+    this.strategyFactory = (method, code) -> new ApplyStrategy(method, code, optimizationInfoFixer);
 
     // Add synthesized lambda group classes to the builder.
 
@@ -429,13 +436,85 @@ public final class LambdaMerger {
   }
 
   public final class ApplyStrategy extends CodeProcessor {
-    private ApplyStrategy(DexEncodedMethod method, IRCode code) {
+
+    private final LambdaMergerOptimizationInfoFixer optimizationInfoFixer;
+
+    private final Set<Value> typeAffectedValues = Sets.newIdentityHashSet();
+
+    private ApplyStrategy(
+        DexEncodedMethod method,
+        IRCode code,
+        LambdaMergerOptimizationInfoFixer optimizationInfoFixer) {
       super(
           LambdaMerger.this.appView,
           LambdaMerger.this::strategyProvider,
           lambdaChecker,
           method,
           code);
+      this.optimizationInfoFixer = optimizationInfoFixer;
+    }
+
+    public void recordTypeHasChanged(Value value) {
+      for (Value affectedValue : value.affectedValues()) {
+        if (typeMayHaveChanged(affectedValue)) {
+          typeAffectedValues.add(affectedValue);
+        }
+      }
+    }
+
+    @Override
+    void processCode() {
+      super.processCode();
+
+      if (typeAffectedValues.isEmpty()) {
+        return;
+      }
+
+      // Find all the transitively type affected values.
+      Set<Value> transitivelyTypeAffectedValues = SetUtils.newIdentityHashSet(typeAffectedValues);
+      Deque<Value> worklist = new ArrayDeque<>(typeAffectedValues);
+      while (!worklist.isEmpty()) {
+        Value value = worklist.pop();
+        assert typeMayHaveChanged(value);
+        assert transitivelyTypeAffectedValues.contains(value);
+
+        for (Value affectedValue : value.affectedValues()) {
+          if (typeMayHaveChanged(affectedValue)
+              && transitivelyTypeAffectedValues.add(affectedValue)) {
+            worklist.add(affectedValue);
+          }
+        }
+      }
+
+      // Update the types of these values if they refer to obsolete types. This is needed to be
+      // able to propagate the type information correctly, since lambda merging is neither a
+      // narrowing nor a widening.
+      for (Value value : transitivelyTypeAffectedValues) {
+        value.setTypeLattice(
+            value.getTypeLattice().fixupClassTypeReferences(optimizationInfoFixer, appView));
+      }
+
+      // Filter out the type affected phis and destructively update the type of the phis. This is
+      // needed because narrowing does not work in presence of cyclic phis.
+      Set<Phi> typeAffectedPhis = Sets.newIdentityHashSet();
+      for (Value typeAffectedValue : transitivelyTypeAffectedValues) {
+        if (typeAffectedValue.isPhi()) {
+          typeAffectedPhis.add(typeAffectedValue.asPhi());
+        }
+      }
+      if (!typeAffectedPhis.isEmpty()) {
+        new DestructivePhiTypeUpdater(appView, optimizationInfoFixer)
+            .recomputeTypes(code, typeAffectedPhis);
+      }
+
+      // Now that the types of all transitively type affected values have been reset, we can
+      // perform a narrowing, starting from the type affected phis.
+      new TypeAnalysis(appView).narrowing(typeAffectedPhis);
+      assert code.verifyTypes(appView);
+    }
+
+    private boolean typeMayHaveChanged(Value value) {
+      return value.isPhi() || !value.definition.hasInvariantOutType();
     }
 
     @Override

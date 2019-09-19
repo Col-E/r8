@@ -113,13 +113,18 @@ final class KotlinLambdaGroupCodeStrategy implements Strategy {
 
   @Override
   public void patch(ApplyStrategy context, NewInstance newInstance) {
+    DexType oldType = newInstance.clazz;
+    DexType newType = group.getGroupClassType();
+
     NewInstance patchedNewInstance =
         new NewInstance(
-            group.getGroupClassType(),
+            newType,
             context.code.createValue(
-                TypeLatticeElement.fromDexType(
-                    newInstance.clazz, definitelyNotNull(), context.appView)));
+                TypeLatticeElement.fromDexType(newType, definitelyNotNull(), context.appView)));
     context.instructions().replaceCurrentInstruction(patchedNewInstance);
+
+    assert newType != oldType;
+    context.recordTypeHasChanged(patchedNewInstance.outValue());
   }
 
   @Override
@@ -130,40 +135,49 @@ final class KotlinLambdaGroupCodeStrategy implements Strategy {
     } else {
       // Regular calls to virtual methods only need target method be replaced.
       assert isValidVirtualCall(invoke);
-      DexMethod method = invoke.getInvokedMethod();
-      context.instructions().replaceCurrentInstruction(
-          new InvokeVirtual(mapVirtualMethod(context.factory, method),
-              createValueForType(context, method.proto.returnType), invoke.arguments()));
+      DexMethod oldMethod = invoke.getInvokedMethod();
+      DexMethod newMethod = mapVirtualMethod(context.factory, oldMethod);
+
+      InvokeVirtual patchedInvokeVirtual =
+          new InvokeVirtual(
+              newMethod,
+              createValueForType(context, newMethod.proto.returnType),
+              invoke.arguments());
+      context.instructions().replaceCurrentInstruction(patchedInvokeVirtual);
+
+      // Otherwise, we need to record that the type of the out-value has changed.
+      assert newMethod.proto.returnType == oldMethod.proto.returnType;
     }
   }
 
   @Override
   public void patch(ApplyStrategy context, InstanceGet instanceGet) {
-    DexField field = instanceGet.getField();
-    DexType fieldType = field.type;
+    DexField oldField = instanceGet.getField();
+    DexField newField = mapCaptureField(context.factory, oldField.holder, oldField);
+
+    DexType oldFieldType = oldField.type;
+    DexType newFieldType = newField.type;
 
     // We need to insert remapped values and in case the capture field
     // of type Object optionally cast to expected field.
     InstanceGet newInstanceGet =
-        new InstanceGet(
-            createValueForType(context, fieldType),
-            instanceGet.object(),
-            mapCaptureField(context.factory, field.holder, field));
+        new InstanceGet(createValueForType(context, newFieldType), instanceGet.object(), newField);
     context.instructions().replaceCurrentInstruction(newInstanceGet);
 
-    if (fieldType.isPrimitiveType() || fieldType == context.factory.objectType) {
+    if (oldFieldType.isPrimitiveType() || oldFieldType == context.factory.objectType) {
       return;
     }
 
     // Since all captured values of non-primitive types are stored in fields of type
     // java.lang.Object, we need to cast them to appropriate type to satisfy the verifier.
     TypeLatticeElement castTypeLattice =
-        TypeLatticeElement.fromDexType(fieldType, definitelyNotNull(), context.appView);
+        TypeLatticeElement.fromDexType(oldFieldType, maybeNull(), context.appView);
     Value newValue = context.code.createValue(castTypeLattice, newInstanceGet.getLocalInfo());
     newInstanceGet.outValue().replaceUsers(newValue);
-    CheckCast cast = new CheckCast(newValue, newInstanceGet.outValue(), fieldType);
+    CheckCast cast = new CheckCast(newValue, newInstanceGet.outValue(), oldFieldType);
     cast.setPosition(newInstanceGet.getPosition());
     context.instructions().add(cast);
+
     // If the current block has catch handlers split the check cast into its own block.
     // Since new cast is never supposed to fail, we leave catch handlers empty.
     if (cast.getBlock().hasCatchHandlers()) {
@@ -174,14 +188,18 @@ final class KotlinLambdaGroupCodeStrategy implements Strategy {
 
   @Override
   public void patch(ApplyStrategy context, StaticGet staticGet) {
-    context
-        .instructions()
-        .replaceCurrentInstruction(
-            new StaticGet(
-                context.code.createValue(
-                    TypeLatticeElement.fromDexType(
-                        staticGet.getField().type, maybeNull(), context.appView)),
-                mapSingletonInstanceField(context.factory, staticGet.getField())));
+    DexField oldField = staticGet.getField();
+    DexField newField = mapSingletonInstanceField(context.factory, oldField);
+
+    StaticGet patchedStaticGet =
+        new StaticGet(
+            context.code.createValue(
+                TypeLatticeElement.fromDexType(newField.type, maybeNull(), context.appView)),
+            newField);
+    context.instructions().replaceCurrentInstruction(patchedStaticGet);
+
+    assert newField.type != oldField.type;
+    context.recordTypeHasChanged(patchedStaticGet.outValue());
   }
 
   private void patchInitializer(CodeProcessor context, InvokeDirect invoke) {

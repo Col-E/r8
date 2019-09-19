@@ -30,6 +30,7 @@ import com.android.tools.r8.graph.GraphLense.GraphLenseLookupResult;
 import com.android.tools.r8.graph.GraphLense.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.GraphLense.RewrittenPrototypeDescription.RemovedArgumentsInfo;
 import com.android.tools.r8.graph.UseRegistry.MethodHandleUse;
+import com.android.tools.r8.ir.analysis.type.DestructivePhiTypeUpdater;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -63,9 +64,7 @@ import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.VerticalClassMerger.VerticallyMergedClasses;
 import com.google.common.collect.Sets;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
@@ -415,71 +414,12 @@ public class LensCodeRewriter {
       code.removeUnreachableBlocks();
     }
     if (!affectedPhis.isEmpty()) {
-      // We have updated at least one type lattice element which can cause phi's to narrow to a more
-      // precise type. Because cycles in phi's can occur, we have to reset all phi's before
-      // computing the new values.
-      Deque<Phi> worklist = new ArrayDeque<>(affectedPhis);
-      while (!worklist.isEmpty()) {
-        Phi phi = worklist.poll();
-        phi.setTypeLattice(TypeLatticeElement.BOTTOM);
-        for (Phi affectedPhi : phi.uniquePhiUsers()) {
-          if (affectedPhis.add(affectedPhi)) {
-            worklist.add(affectedPhi);
-          }
-        }
-      }
-      assert verifyAllChangedPhisAreScheduled(code, affectedPhis);
-      // Assuming all values have been rewritten correctly above, the non-phi operands to phi's are
-      // replaced with correct types and all other phi operands are BOTTOM.
-      assert verifyAllPhiOperandsAreBottom(affectedPhis);
-      worklist.addAll(affectedPhis);
-      while (!worklist.isEmpty()) {
-        Phi phi = worklist.poll();
-        TypeLatticeElement newType = phi.computePhiType(appView);
-        if (!phi.getTypeLattice().equals(newType)) {
-          assert !newType.isBottom();
-          phi.setTypeLattice(newType);
-          worklist.addAll(phi.uniquePhiUsers());
-        }
-      }
+      new DestructivePhiTypeUpdater(appView).recomputeTypes(code, affectedPhis);
       new TypeAnalysis(appView).narrowing(affectedPhis);
       assert code.verifyTypes(appView);
     }
     assert code.isConsistentSSA();
     assert code.hasNoVerticallyMergedClasses(appView);
-  }
-
-  private boolean verifyAllPhiOperandsAreBottom(Set<Phi> affectedPhis) {
-    for (Phi phi : affectedPhis) {
-      for (Value operand : phi.getOperands()) {
-        if (operand.isPhi()) {
-          Phi operandPhi = operand.asPhi();
-          TypeLatticeElement operandType = operandPhi.getTypeLattice();
-          assert !affectedPhis.contains(operandPhi) || operandType.isBottom();
-          assert affectedPhis.contains(operandPhi)
-              || operandType.isPrimitive()
-              || operandType.isNullType()
-              || (operandType.isReference()
-                  && operandType.fixupClassTypeReferences(appView.graphLense()::lookupType, appView)
-                      == operandType);
-        }
-      }
-    }
-    return true;
-  }
-
-  private boolean verifyAllChangedPhisAreScheduled(IRCode code, Set<Phi> affectedPhis) {
-    ListIterator<BasicBlock> blocks = code.listIterator();
-    while (blocks.hasNext()) {
-      BasicBlock block = blocks.next();
-      for (Phi phi : block.getPhis()) {
-        TypeLatticeElement phiTypeLattice = phi.getTypeLattice();
-        TypeLatticeElement substituted =
-            phiTypeLattice.fixupClassTypeReferences(appView.graphLense()::lookupType, appView);
-        assert substituted == phiTypeLattice || affectedPhis.contains(phi);
-      }
-    }
-    return true;
   }
 
   // If the given invoke is on the form "invoke-direct A.<init>, v0, ..." and the definition of
