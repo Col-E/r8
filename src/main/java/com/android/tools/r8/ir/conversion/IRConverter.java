@@ -1220,25 +1220,6 @@ public class IRConverter {
       classInitializerDefaultsOptimization.optimize(method, code, feedback);
     }
 
-    assert code.verifyTypes(appView);
-
-    if (nonNullTracker != null) {
-      // TODO(b/139246447): Once we extend this optimization to, e.g., constants of primitive args,
-      //   this may not be the right place to collect call site optimization info.
-      // Collecting call-site optimization info depends on the existence of non-null IRs.
-      // Arguments can be changed during the debug mode.
-      if (!isDebugMode && appView.callSiteOptimizationInfoPropagator() != null) {
-        appView.callSiteOptimizationInfoPropagator().collectCallSiteOptimizationInfo(code);
-      }
-      // Computation of non-null parameters on normal exits rely on the existence of non-null IRs.
-      nonNullTracker.computeNonNullParamOnNormalExits(feedback, code);
-    }
-    if (aliasIntroducer != null || nonNullTracker != null || dynamicTypeOptimization != null) {
-      codeRewriter.removeAssumeInstructions(code);
-      assert code.isConsistentSSA();
-      assert code.verifyTypes(appView);
-    }
-
     if (Log.ENABLED) {
       Log.debug(getClass(), "Intermediate (SSA) flow graph for %s:\n%s",
           method.toSourceString(), code);
@@ -1248,8 +1229,6 @@ public class IRConverter {
     // dead code which is removed right before register allocation in performRegisterAllocation.
     deadCodeRemover.run(code);
     assert code.isConsistentSSA();
-    // Assert that we do not have unremoved dead code in the output.
-    assert code.verifyNoNullabilityBottomTypes();
 
     if (options.enableDesugaring && enableTryWithResourcesDesugaring()) {
       codeRewriter.rewriteThrowableAddAndGetSuppressed(code);
@@ -1267,6 +1246,26 @@ public class IRConverter {
       assert code.isConsistentSSA();
     }
     previous = printMethod(code, "IR after lambda desugaring (SSA)", previous);
+
+    assert code.verifyTypes(appView);
+
+    if (nonNullTracker != null) {
+      // TODO(b/139246447): Once we extend this optimization to, e.g., constants of primitive args,
+      //   this may not be the right place to collect call site optimization info.
+      // Collecting call-site optimization info depends on the existence of non-null IRs.
+      // Arguments can be changed during the debug mode.
+      if (!isDebugMode && appView.callSiteOptimizationInfoPropagator() != null) {
+        appView.callSiteOptimizationInfoPropagator().collectCallSiteOptimizationInfo(code);
+      }
+      // Computation of non-null parameters on normal exits rely on the existence of non-null IRs.
+      nonNullTracker.computeNonNullParamOnNormalExits(feedback, code);
+    }
+    if (aliasIntroducer != null || nonNullTracker != null || dynamicTypeOptimization != null) {
+      codeRewriter.removeAssumeInstructions(code);
+      assert code.isConsistentSSA();
+    }
+    // Assert that we do not have unremoved non-sense code in the output, e.g., v <- non-null NULL.
+    assert code.verifyNoNullabilityBottomTypes();
 
     assert code.verifyTypes(appView);
 

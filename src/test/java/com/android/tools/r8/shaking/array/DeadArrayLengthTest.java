@@ -58,8 +58,7 @@ public class DeadArrayLengthTest extends TestBase {
 
     MethodSubject nullCheck = main.uniqueMethodWithName("afterNullCheck");
     assertThat(nullCheck, isPresent());
-    // TODO(b/120920488): could be zero if we extend non-null to first dead code removal.
-    assertEquals(1, countArrayLength(nullCheck));
+    assertEquals(isR8 ? 0 : 1, countArrayLength(nullCheck));
   }
 
   private long countArrayLength(MethodSubject method) {

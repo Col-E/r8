@@ -270,7 +270,7 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
       }
 
       // Verify that it is not a super-constructor call (these cannot be removed).
-      if (getReceiver() == code.getThis()) {
+      if (getReceiver().getAliasedValue() == code.getThis()) {
         return false;
       }
     }
