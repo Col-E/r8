@@ -190,6 +190,19 @@ APP_REPOSITORIES = [
       ]
   }),
   Repo({
+      'name': 'iosched',
+      'url': 'https://github.com/christofferqa/iosched.git',
+      'revision': '581cbbe2253711775dbccb753cdb53e7e506cb02',
+      'apps': [
+          App({
+              'id': 'com.google.samples.apps.iosched',
+              'module': 'mobile',
+              'min_sdk': 21,
+              'compile_sdk': 29
+          })
+      ]
+  }),
+  Repo({
       'name': 'KISS',
       'url': 'https://github.com/christofferqa/KISS',
       'revision': '093da9ee0512e67192f62951c45a07a616fc3224',
@@ -250,6 +263,19 @@ APP_REPOSITORIES = [
           App({
               'id': 'io.rover.app.debug',
               'module': 'debug-app'
+          })
+      ]
+  }),
+  Repo({
+      'name': 'santa-tracker-android',
+      'url': 'https://github.com/christofferqa/santa-tracker-android.git',
+      'revision': '8dee74be7d9ee33c69465a07088c53087d24a6dd',
+      'apps': [
+          App({
+              'id': 'com.google.android.apps.santatracker',
+              'module': 'santa-tracker',
+              'min_sdk': 21,
+              'compile_sdk': 28
           })
       ]
   }),
