@@ -345,9 +345,7 @@ public final class BackportedMethodRewriter {
       addProvider(new MethodGenerator(method, BackportedMethods::ObjectsMethods_hashCode));
 
       // T Objects.requireNonNull(T obj)
-      name = factory.createString("requireNonNull");
-      proto = factory.createProto(factory.objectType, factory.objectType);
-      method = factory.createMethod(type, proto, name);
+      method = factory.objectsMethods.requireNonNull;
       addProvider(new InvokeRewriter(method, ObjectsMethodRewrites::rewriteRequireNonNull));
 
       // T Objects.requireNonNull(T obj, String message)
