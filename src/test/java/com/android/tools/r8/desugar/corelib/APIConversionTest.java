@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.desugar.corelib;
 
+import static org.hamcrest.CoreMatchers.endsWith;
+import static org.hamcrest.core.StringContains.containsString;
+
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
@@ -11,7 +14,6 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.Arrays;
 import java.util.function.IntUnaryOperator;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -39,12 +41,14 @@ public class APIConversionTest extends CoreLibDesugarTestBase {
     testForD8()
         .addInnerClasses(APIConversionTest.class)
         .setMinApi(parameters.getApiLevel())
+        .compile()
+        .assertNoWarningMessageThatMatches(containsString("java.util.Arrays#setAll"))
+        .assertNoWarningMessageThatMatches(endsWith("is a desugared type)."))
         .run(parameters.getRuntime(), Executor.class)
         .assertSuccessWithOutput(StringUtils.lines("[5, 6, 7]"));
   }
 
   @Test
-  @Ignore
   public void testAPIConversionDesugaring() throws Exception {
     // TODO(b/): Make library API work when library desugaring is on.
     testForD8()
@@ -52,9 +56,12 @@ public class APIConversionTest extends CoreLibDesugarTestBase {
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel())
         .compile()
+        .assertWarningMessageThatMatches(containsString("java.util.Arrays#setAll"))
+        .assertWarningMessageThatMatches(endsWith("is a desugared type)."))
         .addDesugaredCoreLibraryRunClassPath(this::buildDesugaredLibrary, parameters.getApiLevel())
         .run(parameters.getRuntime(), Executor.class)
-        .assertSuccessWithOutput(StringUtils.lines("[5, 6, 7]"));
+        .assertFailureWithErrorThatMatches(
+            containsString("NoSuchMethodError: No static method setAll"));
   }
 
   static class Executor {

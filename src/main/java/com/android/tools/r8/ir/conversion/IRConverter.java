@@ -49,6 +49,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
 import com.android.tools.r8.ir.desugar.CovariantReturnTypeAnnotationTransformer;
 import com.android.tools.r8.ir.desugar.D8NestBasedAccessDesugaring;
+import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.ir.desugar.StringConcatRewriter;
@@ -159,6 +160,7 @@ public class IRConverter {
   private final StringSwitchRemover stringSwitchRemover;
   private final UninstantiatedTypeOptimization uninstantiatedTypeOptimization;
   private final TypeChecker typeChecker;
+  private final DesugaredLibraryAPIConverter desugaredLibraryAPIConverter;
 
   // Assumers that will insert Assume instructions.
   private final AliasIntroducer aliasIntroducer;
@@ -237,6 +239,7 @@ public class IRConverter {
       this.typeChecker = null;
       this.d8NestBasedAccessDesugaring = null;
       this.stringSwitchRemover = null;
+      this.desugaredLibraryAPIConverter = null;
       return;
     }
     this.lambdaRewriter = options.enableDesugaring ? new LambdaRewriter(appView, this) : null;
@@ -259,6 +262,8 @@ public class IRConverter {
     this.aliasIntroducer =
         options.testing.forceAssumeNoneInsertion ? new AliasIntroducer(appView) : null;
     this.nonNullTracker = options.enableNonNullTracking ? new NonNullTracker(appView) : null;
+    this.desugaredLibraryAPIConverter =
+        appView.rewritePrefix.isRewriting() ? new DesugaredLibraryAPIConverter(appView) : null;
     if (appView.enableWholeProgramOptimizations()) {
       assert appView.appInfo().hasLiveness();
       assert appView.rootSet() != null;
@@ -1304,6 +1309,14 @@ public class IRConverter {
 
     previous = printMethod(code, "IR after interface method rewriting (SSA)", previous);
 
+    // This pass has to be after interfaceMethodRewriter and BackportedMethodRewriter.
+    if (desugaredLibraryAPIConverter != null) {
+      desugaredLibraryAPIConverter.desugar(code);
+      assert code.isConsistentSSA();
+    }
+
+    previous = printMethod(code, "IR after desugared library API Conversion (SSA)", previous);
+
     if (twrCloseResourceRewriter != null) {
       twrCloseResourceRewriter.rewriteMethodCode(code);
     }
@@ -1672,11 +1685,14 @@ public class IRConverter {
     // inputs.
     for (BasicBlock block : code.blocks) {
       InstructionListIterator it = block.listIterator(code);
-      Instruction superConstructorCall = it.nextUntil((i) ->
-          i.isInvokeDirect() &&
-          i.asInvokeDirect().getInvokedMethod().name == options.itemFactory.constructorMethodName &&
-          i.asInvokeDirect().arguments().size() == 4 &&
-          i.asInvokeDirect().arguments().stream().allMatch(Value::isArgument));
+      Instruction superConstructorCall =
+          it.nextUntil(
+              (i) ->
+                  i.isInvokeDirect()
+                      && i.asInvokeDirect().getInvokedMethod().name
+                          == options.itemFactory.constructorMethodName
+                      && i.asInvokeDirect().arguments().size() == 4
+                      && i.asInvokeDirect().arguments().stream().allMatch(Value::isArgument));
       if (superConstructorCall != null) {
         // We force a materializing const instruction in front of the super call to make
         // sure that there is at least one temporary register in the method. That disables
