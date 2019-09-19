@@ -32,6 +32,7 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.backports.BackportedMethods;
 import com.android.tools.r8.ir.desugar.backports.BooleanMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.FloatMethodRewrites;
+import com.android.tools.r8.ir.desugar.backports.ListMethodGenerators;
 import com.android.tools.r8.ir.desugar.backports.ListMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.LongMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.NumericMethodRewrites;
@@ -40,7 +41,6 @@ import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -997,25 +997,17 @@ public final class BackportedMethodRewriter {
       // List<E> List.of(<args>) for 0 to 10 arguments and List.of(E[])
       type = factory.listType;
       name = factory.createString("of");
-      List<TemplateMethodFactory> ofFactories =
-          ImmutableList.of(
-              BackportedMethods::ListMethods_of1,
-              BackportedMethods::ListMethods_of2,
-              BackportedMethods::ListMethods_of3,
-              BackportedMethods::ListMethods_of4,
-              BackportedMethods::ListMethods_of5,
-              BackportedMethods::ListMethods_of6,
-              BackportedMethods::ListMethods_of7,
-              BackportedMethods::ListMethods_of8,
-              BackportedMethods::ListMethods_of9,
-              BackportedMethods::ListMethods_of10);
       for (int i = 0; i <= 10; i++) {
+        final int formalCount = i;
         proto = factory.createProto(factory.listType, Collections.nCopies(i, factory.objectType));
         method = factory.createMethod(type, proto, name);
         addProvider(
             i == 0
                 ? new InvokeRewriter(method, ListMethodRewrites::rewriteEmptyOf)
-                : new MethodGenerator(method, ofFactories.get(i - 1)));
+                : new MethodGenerator(
+                    method,
+                    (options, methodArg, ignored) ->
+                        ListMethodGenerators.generateListOf(options, methodArg, formalCount)));
       }
       proto = factory.createProto(factory.listType, factory.objectArrayType);
       method = factory.createMethod(type, proto, name);
