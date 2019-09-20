@@ -966,7 +966,6 @@ public class InternalOptions {
 
     // Flag to turn on/off JDK11+ nest-access control even when not required (Cf backend)
     public boolean enableForceNestBasedAccessDesugaringForTest = false;
-    public boolean verifyKeptGraphInfo = false;
 
     public boolean desugarLambdasThroughLensCodeRewriter() {
       return enableStatefulLambdaCreateInstanceMethod;
