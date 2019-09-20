@@ -215,9 +215,12 @@ public class IRConverter {
       // InterfaceMethodRewriter is needed for emulated interfaces.
       // LambdaRewriter is needed because if it is missing there are invoke custom on
       // default/static interface methods, and this is not supported by the compiler.
-      // The rest is nulled out.
+      // The rest is nulled out. In addition the rewriting logic fails without lambda rewritting.
       this.backportedMethodRewriter = new BackportedMethodRewriter(appView, this);
-      this.interfaceMethodRewriter = new InterfaceMethodRewriter(appView, this);
+      this.interfaceMethodRewriter =
+          options.desugaredLibraryConfiguration.getEmulateLibraryInterface().isEmpty()
+              ? null
+              : new InterfaceMethodRewriter(appView, this);
       this.lambdaRewriter = new LambdaRewriter(appView, this);
       this.twrCloseResourceRewriter = null;
       this.lambdaMerger = null;

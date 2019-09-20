@@ -129,8 +129,6 @@ public class Jdk11TimeTests extends Jdk11CoreLibTestBase {
 
   @Test
   public void testTime() throws Exception {
-    // TODO(b/134732760): Fix calls to CC static methods.
-    Assume.assumeTrue(parameters.getApiLevel().getLevel() != 24);
     String verbosity = "2";
     D8TestCompileResult compileResult =
         testForD8()
