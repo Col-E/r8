@@ -33,25 +33,33 @@ public class DesugaredLibraryAPIConverter {
       if (appView.rewritePrefix.hasRewrittenType(invokedMethod.holder)) {
         continue;
       }
+      // In this case, the method has not been rewritten and is not on a rewritten class.
+      // This invoke will (likely) not work at runtime if a desugared type is present.
+      if (appView.rewritePrefix.hasRewrittenType(invokedMethod.proto.returnType)) {
+        warnInvalidInvoke(invokedMethod.proto.returnType, invokedMethod, "return");
+      }
       for (DexType argType : invokedMethod.proto.parameters.values) {
         if (appView.rewritePrefix.hasRewrittenType(argType)) {
-          // In this case, the method has not been rewritten and is not on a rewritten class.
-          // This invoke will (likely) not work at runtime.
-          appView
-              .options()
-              .reporter
-              .warning(
-                  new StringDiagnostic(
-                      "Invoke to "
-                          + invokedMethod.holder
-                          + "#"
-                          + invokedMethod.name
-                          + " may not work correctly at runtime (Parameter "
-                          + appView.rewritePrefix.rewrittenType(argType)
-                          + " is a desugared type)."));
-          continue;
+          warnInvalidInvoke(argType, invokedMethod, "parameter");
         }
       }
     }
+  }
+
+  private void warnInvalidInvoke(DexType type, DexMethod invokedMethod, String debugString) {
+    appView
+        .options()
+        .reporter
+        .warning(
+            new StringDiagnostic(
+                "Invoke to "
+                    + invokedMethod.holder
+                    + "#"
+                    + invokedMethod.name
+                    + " may not work correctly at runtime ("
+                    + debugString
+                    + " type "
+                    + appView.rewritePrefix.rewrittenType(type)
+                    + " is a desugared type)."));
   }
 }

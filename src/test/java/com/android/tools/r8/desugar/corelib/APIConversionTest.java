@@ -13,7 +13,9 @@ import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.Arrays;
+import java.util.Random;
 import java.util.function.IntUnaryOperator;
+import java.util.stream.IntStream;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -43,9 +45,11 @@ public class APIConversionTest extends CoreLibDesugarTestBase {
         .setMinApi(parameters.getApiLevel())
         .compile()
         .assertNoWarningMessageThatMatches(containsString("java.util.Arrays#setAll"))
+        .assertNoWarningMessageThatMatches(containsString("java.util.Random#ints"))
         .assertNoWarningMessageThatMatches(endsWith("is a desugared type)."))
         .run(parameters.getRuntime(), Executor.class)
-        .assertSuccessWithOutput(StringUtils.lines("[5, 6, 7]"));
+        .assertSuccessWithOutput(
+            StringUtils.lines("[5, 6, 7]", "java.util.stream.IntPipeline$Head"));
   }
 
   @Test
@@ -57,6 +61,7 @@ public class APIConversionTest extends CoreLibDesugarTestBase {
         .enableCoreLibraryDesugaring(parameters.getApiLevel())
         .compile()
         .assertWarningMessageThatMatches(containsString("java.util.Arrays#setAll"))
+        .assertWarningMessageThatMatches(containsString("java.util.Random#ints"))
         .assertWarningMessageThatMatches(endsWith("is a desugared type)."))
         .addDesugaredCoreLibraryRunClassPath(this::buildDesugaredLibrary, parameters.getApiLevel())
         .run(parameters.getRuntime(), Executor.class)
@@ -70,6 +75,8 @@ public class APIConversionTest extends CoreLibDesugarTestBase {
       int[] ints = new int[3];
       Arrays.setAll(ints, new MyFunction());
       System.out.println(Arrays.toString(ints));
+      IntStream intStream = new Random().ints();
+      System.out.println(intStream.getClass().getName());
     }
   }
 
