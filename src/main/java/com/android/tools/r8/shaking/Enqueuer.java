@@ -58,6 +58,7 @@ import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.origin.Origin;
@@ -67,6 +68,7 @@ import com.android.tools.r8.shaking.EnqueuerWorklist.Action;
 import com.android.tools.r8.shaking.RootSetBuilder.ConsequentRootSet;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.shaking.ScopedDexMethodSet.AddMethodIfMoreVisibleResult;
+import com.android.tools.r8.utils.DequeUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -322,6 +324,7 @@ public class Enqueuer {
 
   private final GraphReporter graphReporter;
   private final GraphConsumer keptGraphConsumer;
+  private CollectingGraphConsumer verificationGraphConsumer = null;
 
   Enqueuer(
       AppView<? extends AppInfoWithSubtyping> appView,
@@ -335,7 +338,7 @@ public class Enqueuer {
     this.compatibility = compatibility;
     this.forceProguardCompatibility = options.forceProguardCompatibility;
     this.graphReporter = new GraphReporter();
-    this.keptGraphConsumer = keptGraphConsumer;
+    this.keptGraphConsumer = recordKeptGraph(options, keptGraphConsumer);
     this.mode = mode;
     this.options = options;
     this.workList = EnqueuerWorklist.createWorklist(appView);
@@ -1669,8 +1672,10 @@ public class Enqueuer {
   private void markStaticFieldAsLive(DexEncodedField encodedField, KeepReason reason) {
     // Mark the type live here, so that the class exists at runtime.
     DexField field = encodedField.field;
-    markTypeAsLive(field.holder, reason);
-    markTypeAsLive(field.type, reason);
+    markTypeAsLive(
+        field.holder, clazz -> graphReporter.reportClassReferencedFrom(clazz, encodedField));
+    markTypeAsLive(
+        field.type, clazz -> graphReporter.reportClassReferencedFrom(clazz, encodedField));
 
     DexProgramClass clazz = getProgramClassOrNull(field.holder);
     if (clazz == null) {
@@ -1804,8 +1809,10 @@ public class Enqueuer {
       Log.verbose(getClass(), "Marking instance field `%s` as reachable.", field);
     }
 
-    markTypeAsLive(field.holder, reason);
-    markTypeAsLive(field.type, reason);
+    markTypeAsLive(
+        field.holder, clazz -> graphReporter.reportClassReferencedFrom(clazz, encodedField));
+    markTypeAsLive(
+        field.type, clazz -> graphReporter.reportClassReferencedFrom(clazz, encodedField));
 
     DexProgramClass clazz = getProgramClassOrNull(field.holder);
     if (clazz == null) {
@@ -1821,7 +1828,8 @@ public class Enqueuer {
     } else {
       if (isInstantiatedOrHasInstantiatedSubtype(clazz)) {
         // We have at least one live subtype, so mark it as live.
-        markInstanceFieldAsLive(encodedField, reason);
+        // TODO(b/120959039): Consider linking the keep reason to the actual instantiated type.
+        markInstanceFieldAsLive(encodedField, KeepReason.reachableFromLiveType(clazz.type));
       } else {
         // Add the field to the reachable set if the type later becomes instantiated.
         reachableInstanceFields
@@ -2110,7 +2118,47 @@ public class Enqueuer {
     trace(executorService, timing);
     options.reporter.failIfPendingErrors();
     analyses.forEach(EnqueuerAnalysis::done);
+    assert verifyKeptGraph();
     return createAppInfo(appInfo);
+  }
+
+  private GraphConsumer recordKeptGraph(InternalOptions options, GraphConsumer consumer) {
+    if (options.testing.verifyKeptGraphInfo) {
+      verificationGraphConsumer = new CollectingGraphConsumer(consumer);
+      return verificationGraphConsumer;
+    }
+    return consumer;
+  }
+
+  private boolean verifyKeptGraph() {
+    assert verificationGraphConsumer != null;
+    for (DexProgramClass liveType : liveTypes.items) {
+      assert verifyRootedPath(liveType, verificationGraphConsumer);
+    }
+    return true;
+  }
+
+  private boolean verifyRootedPath(DexProgramClass liveType, CollectingGraphConsumer graph) {
+    ClassGraphNode node = getClassGraphNode(liveType.type);
+    Set<GraphNode> seen = Sets.newIdentityHashSet();
+    Deque<GraphNode> targets = DequeUtils.newArrayDeque(node);
+    while (!targets.isEmpty()) {
+      GraphNode item = targets.pop();
+      if (item instanceof KeepRuleGraphNode) {
+        KeepRuleGraphNode rule = (KeepRuleGraphNode) item;
+        if (rule.getPreconditions().isEmpty()) {
+          return true;
+        }
+      }
+      if (seen.add(item)) {
+        Map<GraphNode, Set<GraphEdgeInfo>> sources = graph.getSourcesTargeting(item);
+        assert sources != null : "No sources set for " + item;
+        assert !sources.isEmpty() : "Empty sources set for " + item;
+        targets.addAll(sources.keySet());
+      }
+    }
+    assert false : "No rooted path to " + liveType.type;
+    return true;
   }
 
   private AppInfoWithLiveness createAppInfo(AppInfoWithSubtyping appInfo) {
@@ -2367,8 +2415,11 @@ public class Enqueuer {
           DexEncodedMethod implementation = target.getDefaultInterfaceMethodImplementation();
           if (implementation != null) {
             DexProgramClass companion = getProgramClassOrNull(implementation.method.holder);
-            markTypeAsLive(companion, reason);
-            markVirtualMethodAsLive(companion, implementation, reason);
+            markTypeAsLive(companion, graphReporter.reportCompanionClass(holder, companion));
+            markVirtualMethodAsLive(
+                companion,
+                implementation,
+                graphReporter.reportCompanionMethod(target, implementation));
           }
         }
       }
@@ -3126,6 +3177,40 @@ public class Enqueuer {
         return reportEdge(source, target, EdgeKind.ReferencedFrom);
       }
       return KeepReasonWitness.INSTANCE;
+    }
+
+    public KeepReasonWitness reportClassReferencedFrom(
+        DexProgramClass clazz, DexEncodedField field) {
+      if (keptGraphConsumer != null) {
+        FieldGraphNode source = getFieldGraphNode(field.field);
+        ClassGraphNode target = getClassGraphNode(clazz.type);
+        return reportEdge(source, target, EdgeKind.ReferencedFrom);
+      }
+      return KeepReasonWitness.INSTANCE;
+    }
+
+    private KeepReason reportCompanionClass(DexProgramClass iface, DexProgramClass companion) {
+      assert iface.isInterface();
+      assert InterfaceMethodRewriter.isCompanionClassType(companion.type);
+      if (keptGraphConsumer == null) {
+        return KeepReasonWitness.INSTANCE;
+      }
+      return reportEdge(
+          getClassGraphNode(iface.type),
+          getClassGraphNode(companion.type),
+          EdgeKind.CompanionClass);
+    }
+
+    private KeepReason reportCompanionMethod(
+        DexEncodedMethod definition, DexEncodedMethod implementation) {
+      assert InterfaceMethodRewriter.isCompanionClassType(implementation.method.holder);
+      if (keptGraphConsumer == null) {
+        return KeepReasonWitness.INSTANCE;
+      }
+      return reportEdge(
+          getMethodGraphNode(definition.method),
+          getMethodGraphNode(implementation.method),
+          EdgeKind.CompanionMethod);
     }
 
     private KeepReasonWitness reportEdge(
