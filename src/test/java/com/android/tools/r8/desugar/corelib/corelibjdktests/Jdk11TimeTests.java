@@ -14,6 +14,7 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Paths;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -128,6 +129,8 @@ public class Jdk11TimeTests extends Jdk11CoreLibTestBase {
 
   @Test
   public void testTime() throws Exception {
+    // TODO(b/134732760): Fix calls to CC static methods.
+    Assume.assumeTrue(parameters.getApiLevel().getLevel() != 24);
     String verbosity = "2";
     D8TestCompileResult compileResult =
         testForD8()
