@@ -166,7 +166,7 @@ public class CfCodePrinter extends CfPrinter {
   }
 
   private String longValue(long value) {
-    return (value < Integer.MIN_VALUE || Integer.MAX_VALUE < value) ? (value + "l") : ("" + value);
+    return (value < Integer.MIN_VALUE || Integer.MAX_VALUE < value) ? (value + "L") : ("" + value);
   }
 
   // Ensure a type import for a given type.
