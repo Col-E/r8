@@ -15,9 +15,13 @@ import org.junit.runners.Parameterized.Parameters;
 
 import static java.util.Collections.reverseOrder;
 
-@RunWith(Parameterized.class) public final class ObjectsBackportTest extends AbstractBackportTest {
-  @Parameters(name = "{0}") public static Iterable<?> data() {
-    return getTestParameters().withAllRuntimes().build();
+@RunWith(Parameterized.class)
+public final class ObjectsBackportTest extends AbstractBackportTest {
+  @Parameters(name = "{0}")
+  public static Iterable<?> data() {
+    return getTestParameters()
+        .withAllRuntimesAndApiLevels()
+        .build();
   }
 
   public ObjectsBackportTest(TestParameters parameters) {

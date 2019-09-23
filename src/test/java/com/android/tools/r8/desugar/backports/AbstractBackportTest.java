@@ -93,7 +93,7 @@ abstract class AbstractBackportTest extends TestBase {
           .assertSuccess();
     } else {
       testForD8()
-          .setMinApi(parameters.getRuntime())
+          .setMinApi(parameters.getApiLevel())
           .apply(this::configureProgram)
           .compile()
           .run(parameters.getRuntime(), testClassName)
@@ -117,7 +117,7 @@ abstract class AbstractBackportTest extends TestBase {
         .filter(is -> !ignoredInvokes.contains(is.getMethod().name.toString()))
         .collect(toList());
 
-    AndroidApiLevel apiLevel = parameters.getRuntime().asDex().getMinApiLevel();
+    AndroidApiLevel apiLevel = parameters.getApiLevel();
     long expectedTargetInvokes = invokeStaticCounts.ceilingEntry(apiLevel).getValue();
     long actualTargetInvokes = javaInvokeStatics.size();
     assertEquals("Expected "

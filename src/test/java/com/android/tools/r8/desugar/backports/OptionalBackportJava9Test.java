@@ -10,6 +10,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.junit.runner.RunWith;
@@ -22,6 +23,7 @@ public final class OptionalBackportJava9Test extends AbstractBackportTest {
   public static Iterable<?> data() {
     return getTestParameters()
         .withDexRuntimesStartingFromIncluding(Version.V7_0_0)
+        .withApiLevelsStartingAtIncluding(AndroidApiLevel.N)
         .withCfRuntimesStartingFromIncluding(CfVm.JDK9)
         .build();
   }

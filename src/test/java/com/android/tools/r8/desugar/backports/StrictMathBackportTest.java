@@ -14,7 +14,9 @@ import org.junit.runners.Parameterized.Parameters;
 public final class StrictMathBackportTest extends AbstractBackportTest {
   @Parameters(name = "{0}")
   public static Iterable<?> data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters()
+        .withAllRuntimesAndApiLevels()
+        .build();
   }
 
   public StrictMathBackportTest(TestParameters parameters) {

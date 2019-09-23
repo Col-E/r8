@@ -18,7 +18,9 @@ import static java.util.Collections.emptyList;
 public final class StringBackportTest extends AbstractBackportTest {
   @Parameters(name = "{0}")
   public static Iterable<?> data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters()
+        .withAllRuntimesAndApiLevels()
+        .build();
   }
 
   public StringBackportTest(TestParameters parameters) {

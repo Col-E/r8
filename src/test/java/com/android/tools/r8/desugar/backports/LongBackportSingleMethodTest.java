@@ -20,7 +20,9 @@ public final class LongBackportSingleMethodTest extends AbstractBackportTest {
 
   @Parameters(name = "{0}")
   public static Iterable<?> data() {
-    return getTestParameters().withDexRuntimes().build();
+    return getTestParameters()
+        .withAllRuntimesAndApiLevels()
+        .build();
   }
 
   public LongBackportSingleMethodTest(TestParameters parameters) {

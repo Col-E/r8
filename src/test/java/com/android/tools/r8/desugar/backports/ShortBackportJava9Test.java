@@ -22,6 +22,7 @@ public final class ShortBackportJava9Test extends AbstractBackportTest {
     return getTestParameters()
         .withCfRuntimesStartingFromIncluding(CfVm.JDK9)
         .withDexRuntimes()
+        .withAllApiLevels()
         .build();
   }
 
