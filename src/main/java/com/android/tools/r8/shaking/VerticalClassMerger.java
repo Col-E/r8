@@ -374,6 +374,12 @@ public class VerticalClassMerger {
         || appInfo.neverMerge.contains(clazz.type)) {
       return false;
     }
+    if (appView.options().featureSplitConfiguration != null &&
+        appView.options().featureSplitConfiguration.isInFeature(clazz)) {
+      // TODO(b/141452765): Allow class merging between classes in features.
+      return false;
+    }
+
     // Note that the property "singleSubtype == null" cannot change during merging, since we visit
     // classes in a top-down order.
     DexType singleSubtype = appInfo.getSingleSubtype(clazz.type);

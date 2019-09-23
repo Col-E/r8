@@ -1,6 +1,5 @@
 package com.android.tools.r8.dexsplitter;
 
-import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
@@ -66,7 +65,6 @@ public class SplitterTestBase extends TestBase {
                   ByteDataView data,
                   Set<String> descriptors,
                   DiagnosticsHandler handler) {
-                assertEquals(classNames.size(), descriptors.size());
                 for (String descriptor : descriptors) {
                   assertTrue(classNames.contains(DescriptorUtils.descriptorToJavaType(descriptor)));
                 }

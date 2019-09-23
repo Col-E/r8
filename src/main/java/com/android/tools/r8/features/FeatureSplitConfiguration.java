@@ -59,7 +59,12 @@ public class FeatureSplitConfiguration {
     return result;
   }
 
-  public boolean inSameFeatureOrBase(DexMethod a, DexMethod b) {
+  public boolean isInFeature(DexProgramClass clazz) {
+    return javaTypeToFeatureSplitMapping.containsKey(
+        DescriptorUtils.descriptorToJavaType(clazz.type.toDescriptorString()));
+  }
+
+  public boolean inSameFeatureOrBase(DexMethod a, DexMethod b){
     return inSameFeatureOrBase(a.holder, b.holder);
   }
 

@@ -256,6 +256,11 @@ public class StaticClassMerger {
     if (appView.appInfo().neverMerge.contains(clazz.type)) {
       return MergeGroup.DONT_MERGE;
     }
+    if (appView.options().featureSplitConfiguration != null &&
+        appView.options().featureSplitConfiguration.isInFeature(clazz)) {
+      // TODO(b/141452765): Allow class merging between classes in features.
+      return MergeGroup.DONT_MERGE;
+    }
     if (clazz.staticFields().size() + clazz.directMethods().size() + clazz.virtualMethods().size()
         == 0) {
       return MergeGroup.DONT_MERGE;

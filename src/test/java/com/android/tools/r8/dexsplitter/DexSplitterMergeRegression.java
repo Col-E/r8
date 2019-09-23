@@ -4,9 +4,13 @@
 
 package com.android.tools.r8.dexsplitter;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.FeatureSplit;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.R8FullTestBuilder;
@@ -75,6 +79,26 @@ public class DexSplitterMergeRegression extends SplitterTestBase {
     // We expect art to fail on this with the dex splitter.
     assertNotEquals(processResult.exitCode, 0);
     assertTrue(processResult.stderr.contains("NoClassDefFoundError"));
+  }
+
+  @Test
+  public void testOnR8Splitter() throws IOException, CompilationFailedException,
+      ExecutionException {
+    assumeTrue(parameters.isDexRuntime());
+    Consumer<R8FullTestBuilder> configurator =
+        r8FullTestBuilder -> r8FullTestBuilder.enableMergeAnnotations().noMinification();
+    ProcessResult processResult =
+        testR8Splitter(
+            parameters,
+            ImmutableSet.of(BaseClass.class, BaseWithStatic.class),
+            ImmutableSet.of(FeatureClass.class, AFeatureWithStatic.class),
+            FeatureClass.class,
+            EXPECTED,
+            a -> true,
+            configurator);
+
+    assertEquals(processResult.exitCode, 0);
+    assertTrue(processResult.stdout.equals(StringUtils.lines("42", "foobar")));
   }
 
   @NeverMerge
