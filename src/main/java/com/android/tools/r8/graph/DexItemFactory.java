@@ -217,6 +217,8 @@ public class DexItemFactory {
   public final DexString serviceLoaderDescriptor = createString("Ljava/util/ServiceLoader;");
   public final DexString listDescriptor = createString("Ljava/util/List;");
   public final DexString setDescriptor = createString("Ljava/util/Set;");
+  public final DexString mapDescriptor = createString("Ljava/util/Map;");
+  public final DexString mapEntryDescriptor = createString("Ljava/util/Map$Entry;");
   public final DexString collectionDescriptor = createString("Ljava/util/Collection;");
   public final DexString comparatorDescriptor = createString("Ljava/util/Comparator;");
   public final DexString callableDescriptor = createString("Ljava/util/concurrent/Callable;");
@@ -307,6 +309,8 @@ public class DexItemFactory {
   public final DexType serviceLoaderType = createType(serviceLoaderDescriptor);
   public final DexType listType = createType(listDescriptor);
   public final DexType setType = createType(setDescriptor);
+  public final DexType mapType = createType(mapDescriptor);
+  public final DexType mapEntryType = createType(mapEntryDescriptor);
   public final DexType collectionType = createType(collectionDescriptor);
   public final DexType comparatorType = createType(comparatorDescriptor);
   public final DexType callableType = createType(callableDescriptor);

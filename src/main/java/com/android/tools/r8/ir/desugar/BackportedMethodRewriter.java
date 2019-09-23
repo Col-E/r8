@@ -999,7 +999,7 @@ public final class BackportedMethodRewriter {
       name = factory.createString("of");
       for (int i = 0; i <= 10; i++) {
         final int formalCount = i;
-        proto = factory.createProto(factory.listType, Collections.nCopies(i, factory.objectType));
+        proto = factory.createProto(type, Collections.nCopies(i, factory.objectType));
         method = factory.createMethod(type, proto, name);
         addProvider(
             i == 0
@@ -1009,7 +1009,7 @@ public final class BackportedMethodRewriter {
                     (options, methodArg, ignored) ->
                         CollectionMethodGenerators.generateListOf(options, methodArg, formalCount)));
       }
-      proto = factory.createProto(factory.listType, factory.objectArrayType);
+      proto = factory.createProto(type, factory.objectArrayType);
       method = factory.createMethod(type, proto, name);
       addProvider(
           new MethodGenerator(
@@ -1020,7 +1020,7 @@ public final class BackportedMethodRewriter {
       name = factory.createString("of");
       for (int i = 0; i <= 10; i++) {
         final int formalCount = i;
-        proto = factory.createProto(factory.setType, Collections.nCopies(i, factory.objectType));
+        proto = factory.createProto(type, Collections.nCopies(i, factory.objectType));
         method = factory.createMethod(type, proto, name);
         addProvider(
             i == 0
@@ -1030,11 +1030,32 @@ public final class BackportedMethodRewriter {
                     (options, methodArg, ignored) ->
                         CollectionMethodGenerators.generateSetOf(options, methodArg, formalCount)));
       }
-      proto = factory.createProto(factory.setType, factory.objectArrayType);
+      proto = factory.createProto(type, factory.objectArrayType);
       method = factory.createMethod(type, proto, name);
       addProvider(
           new MethodGenerator(
               method, BackportedMethods::CollectionMethods_setOfArray, "ofArray"));
+
+      // Map<K, V> Map.of(<K, V args>) for 0 to 10 pairs and Map.ofEntries(Map.Entry<K, V>[])
+      type = factory.mapType;
+      name = factory.createString("of");
+      for (int i = 0; i <= 10; i++) {
+        final int formalCount = i;
+        proto = factory.createProto(type, Collections.nCopies(i * 2, factory.objectType));
+        method = factory.createMethod(type, proto, name);
+        addProvider(
+            i == 0
+                ? new InvokeRewriter(method, CollectionMethodRewrites::rewriteMapOfEmpty)
+                : new MethodGenerator(
+                    method,
+                    (options, methodArg, ignored) ->
+                        CollectionMethodGenerators.generateMapOf(options, methodArg, formalCount)));
+      }
+      proto = factory.createProto(type, factory.createArrayType(1, factory.mapEntryType));
+      method = factory.createMethod(type, proto, "ofEntries");
+      addProvider(
+          new MethodGenerator(
+              method, BackportedMethods::CollectionMethods_mapOfEntries, "ofEntries"));
     }
 
     private void initializeJava11MethodProviders(DexItemFactory factory) {

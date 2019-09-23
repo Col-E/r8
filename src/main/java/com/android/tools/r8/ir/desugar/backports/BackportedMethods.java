@@ -604,6 +604,178 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
+  public static CfCode CollectionMethods_mapOfEntries(
+      InternalOptions options, DexMethod method, String name) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    CfLabel label2 = new CfLabel();
+    CfLabel label3 = new CfLabel();
+    CfLabel label4 = new CfLabel();
+    CfLabel label5 = new CfLabel();
+    CfLabel label6 = new CfLabel();
+    CfLabel label7 = new CfLabel();
+    CfLabel label8 = new CfLabel();
+    CfLabel label9 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        4,
+        8,
+        ImmutableList.of(
+            label0,
+            new CfNew(options.itemFactory.createType("Ljava/util/HashMap;")),
+            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfArrayLength(),
+            new CfInvoke(
+                183,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/HashMap;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("V"), options.itemFactory.createType("I")),
+                    options.itemFactory.createString("<init>")),
+                false),
+            new CfStore(ValueType.OBJECT, 1),
+            label1,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfStore(ValueType.OBJECT, 2),
+            new CfLoad(ValueType.OBJECT, 2),
+            new CfArrayLength(),
+            new CfStore(ValueType.INT, 3),
+            new CfConstNumber(0, ValueType.INT),
+            new CfStore(ValueType.INT, 4),
+            label2,
+            new CfLoad(ValueType.INT, 4),
+            new CfLoad(ValueType.INT, 3),
+            new CfIfCmp(If.Type.GE, ValueType.INT, label8),
+            new CfLoad(ValueType.OBJECT, 2),
+            new CfLoad(ValueType.INT, 4),
+            new CfArrayLoad(MemberType.OBJECT),
+            new CfStore(ValueType.OBJECT, 5),
+            label3,
+            new CfLoad(ValueType.OBJECT, 5),
+            new CfInvoke(
+                185,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/Map$Entry;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/lang/Object;")),
+                    options.itemFactory.createString("getKey")),
+                true),
+            new CfInvoke(
+                184,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/Objects;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/lang/Object;"),
+                        options.itemFactory.createType("Ljava/lang/Object;")),
+                    options.itemFactory.createString("requireNonNull")),
+                false),
+            new CfStore(ValueType.OBJECT, 6),
+            label4,
+            new CfLoad(ValueType.OBJECT, 5),
+            new CfInvoke(
+                185,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/Map$Entry;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/lang/Object;")),
+                    options.itemFactory.createString("getValue")),
+                true),
+            new CfInvoke(
+                184,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/Objects;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/lang/Object;"),
+                        options.itemFactory.createType("Ljava/lang/Object;")),
+                    options.itemFactory.createString("requireNonNull")),
+                false),
+            new CfStore(ValueType.OBJECT, 7),
+            label5,
+            new CfLoad(ValueType.OBJECT, 1),
+            new CfLoad(ValueType.OBJECT, 6),
+            new CfLoad(ValueType.OBJECT, 7),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/HashMap;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/lang/Object;"),
+                        options.itemFactory.createType("Ljava/lang/Object;"),
+                        options.itemFactory.createType("Ljava/lang/Object;")),
+                    options.itemFactory.createString("put")),
+                false),
+            new CfIf(If.Type.EQ, ValueType.OBJECT, label7),
+            label6,
+            new CfNew(options.itemFactory.createType("Ljava/lang/IllegalArgumentException;")),
+            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            new CfNew(options.itemFactory.createType("Ljava/lang/StringBuilder;")),
+            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            new CfInvoke(
+                183,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/StringBuilder;"),
+                    options.itemFactory.createProto(options.itemFactory.createType("V")),
+                    options.itemFactory.createString("<init>")),
+                false),
+            new CfConstString(options.itemFactory.createString("duplicate key: ")),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/StringBuilder;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/lang/StringBuilder;"),
+                        options.itemFactory.createType("Ljava/lang/String;")),
+                    options.itemFactory.createString("append")),
+                false),
+            new CfLoad(ValueType.OBJECT, 6),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/StringBuilder;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/lang/StringBuilder;"),
+                        options.itemFactory.createType("Ljava/lang/Object;")),
+                    options.itemFactory.createString("append")),
+                false),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/StringBuilder;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/lang/String;")),
+                    options.itemFactory.createString("toString")),
+                false),
+            new CfInvoke(
+                183,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/IllegalArgumentException;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("V"),
+                        options.itemFactory.createType("Ljava/lang/String;")),
+                    options.itemFactory.createString("<init>")),
+                false),
+            new CfThrow(),
+            label7,
+            new CfIinc(4, 1),
+            new CfGoto(label2),
+            label8,
+            new CfLoad(ValueType.OBJECT, 1),
+            new CfInvoke(
+                184,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/Collections;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/util/Map;"),
+                        options.itemFactory.createType("Ljava/util/Map;")),
+                    options.itemFactory.createString("unmodifiableMap")),
+                false),
+            new CfReturn(ValueType.OBJECT),
+            label9),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
   public static CfCode CollectionMethods_setOfArray(
       InternalOptions options, DexMethod method, String name) {
     CfLabel label0 = new CfLabel();

@@ -25,6 +25,11 @@ public final class CollectionMethodRewrites {
     rewriteToCollectionMethod(invoke, iterator, factory, "emptySet");
   }
 
+  public static void rewriteMapOfEmpty(
+      InvokeMethod invoke, InstructionListIterator iterator, DexItemFactory factory) {
+    rewriteToCollectionMethod(invoke, iterator, factory, "emptyMap");
+  }
+
   private static void rewriteToCollectionMethod(InvokeMethod invoke,
       InstructionListIterator iterator, DexItemFactory factory, String methodName) {
     assert invoke.inValues().isEmpty();

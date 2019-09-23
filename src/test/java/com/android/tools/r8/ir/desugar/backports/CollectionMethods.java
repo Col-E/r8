@@ -6,8 +6,10 @@ package com.android.tools.r8.ir.desugar.backports;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -29,5 +31,17 @@ public class CollectionMethods {
       }
     }
     return Collections.unmodifiableSet(set);
+  }
+
+  public static <K, V> Map<K, V> mapOfEntries(Map.Entry<K, V>[] elements) {
+    HashMap<K, V> map = new HashMap<>(elements.length);
+    for (Map.Entry<K, V> element : elements) {
+      K key = Objects.requireNonNull(element.getKey());
+      V value = Objects.requireNonNull(element.getValue());
+      if (map.put(key, value) != null) {
+        throw new IllegalArgumentException("duplicate key: " + key);
+      }
+    }
+    return Collections.unmodifiableMap(map);
   }
 }
