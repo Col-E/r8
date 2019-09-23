@@ -16,6 +16,7 @@ import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
 import com.android.tools.r8.memberrebinding.b135627418.library.Drawable;
 import com.android.tools.r8.memberrebinding.b135627418.library.DrawableWrapper;
 import com.android.tools.r8.memberrebinding.b135627418.library.InsetDrawable;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -79,6 +80,7 @@ public class B135627418 extends TestBase {
                 options ->
                     options.desugaredLibraryConfiguration =
                         new DesugaredLibraryConfiguration(
+                            AndroidApiLevel.B,
                             false,
                             ImmutableMap.of(packageName + ".runtime", packageName + ".library"),
                             ImmutableMap.of(),

@@ -6,6 +6,7 @@
 import argparse
 import gradle
 import hashlib
+import jdk
 import json
 from os import makedirs
 from os.path import join
@@ -338,6 +339,19 @@ def generate_jar_with_desugar_configuration(configuration, destination):
     configuration_dir = join(tmp_dir, 'META-INF', 'desugar', 'd8')
     makedirs(configuration_dir)
     copyfile(configuration, join(configuration_dir, 'desugar.json'))
+
+    lint_dir = join(configuration_dir, 'lint')
+    makedirs(lint_dir)
+    cmd = [
+        jdk.GetJavaExecutable(),
+        '-cp',
+        utils.R8_JAR,
+        'com.android.tools.r8.GenerateLintFiles',
+        configuration,
+        lint_dir]
+    utils.PrintCmd(cmd)
+    subprocess.check_call(cmd)
+
     make_archive(destination, 'zip', tmp_dir)
     move(destination + '.zip', destination)
 

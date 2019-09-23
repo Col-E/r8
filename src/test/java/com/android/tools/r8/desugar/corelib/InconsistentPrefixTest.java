@@ -11,6 +11,7 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
 import com.android.tools.r8.jasmin.JasminBuilder;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;
@@ -39,6 +40,7 @@ public class InconsistentPrefixTest extends TestBase {
               options ->
                   options.desugaredLibraryConfiguration =
                       new DesugaredLibraryConfiguration(
+                          AndroidApiLevel.B,
                           false,
                           x,
                           ImmutableMap.of(),

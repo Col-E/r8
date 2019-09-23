@@ -218,6 +218,7 @@ public class DexItemFactory {
   public final DexString serviceLoaderDescriptor = createString("Ljava/util/ServiceLoader;");
   public final DexString listDescriptor = createString("Ljava/util/List;");
   public final DexString setDescriptor = createString("Ljava/util/Set;");
+  public final DexString collectionDescriptor = createString("Ljava/util/Collection;");
   public final DexString comparatorDescriptor = createString("Ljava/util/Comparator;");
   public final DexString callableDescriptor = createString("Ljava/util/concurrent/Callable;");
   public final DexString supplierDescriptor = createString("Ljava/util/function/Supplier;");
@@ -307,6 +308,7 @@ public class DexItemFactory {
   public final DexType serviceLoaderType = createType(serviceLoaderDescriptor);
   public final DexType listType = createType(listDescriptor);
   public final DexType setType = createType(setDescriptor);
+  public final DexType collectionType = createType(collectionDescriptor);
   public final DexType comparatorType = createType(comparatorDescriptor);
   public final DexType callableType = createType(callableDescriptor);
   public final DexType supplierType = createType(supplierDescriptor);
