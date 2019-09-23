@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.dexsplitter;
 
+import static junit.framework.TestCase.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
@@ -85,9 +86,9 @@ public class DexSplitterInlineRegression extends SplitterTestBase {
             EXPECTED,
             a -> true,
             configurator);
-    // TODO(122902374): This should not fail, but currently we are just on par with DexSplitter.
-    assertNotEquals(processResult.exitCode, 0);
-    assertTrue(processResult.stderr.contains("NoClassDefFoundError"));
+
+    assertEquals(processResult.exitCode, 0);
+    assertEquals(processResult.stdout, StringUtils.lines("42"));
   }
 
   @NeverMerge

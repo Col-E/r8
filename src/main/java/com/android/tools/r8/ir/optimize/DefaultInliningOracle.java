@@ -213,6 +213,12 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     }
 
     InternalOptions options = appView.options();
+    if (options.featureSplitConfiguration != null
+        && !options.featureSplitConfiguration.inSameFeatureOrBase(
+            candidate.method, method.method)) {
+      return false;
+    }
+
     if (options.testing.validInliningReasons != null
         && !options.testing.validInliningReasons.contains(reason)) {
       return false;

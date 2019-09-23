@@ -68,7 +68,7 @@ public class FeatureSplitConfiguration {
     if (javaTypeToFeatureSplitMapping.isEmpty()) {
       return true;
     }
-    // TODO(ricow): Consider caching the descriptor string.
+    // TODO(141451259): Consider doing the mapping from DexType to Feature (with support in mapper)
     return javaTypeToFeatureSplitMapping.get(
             DescriptorUtils.descriptorToJavaType(a.toDescriptorString()))
         == javaTypeToFeatureSplitMapping.get(

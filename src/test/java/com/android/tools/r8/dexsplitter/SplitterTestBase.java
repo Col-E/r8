@@ -2,6 +2,7 @@ package com.android.tools.r8.dexsplitter;
 
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.ArchiveProgramResourceProvider;
 import com.android.tools.r8.ByteDataView;
@@ -205,7 +206,7 @@ public class SplitterTestBase extends TestBase {
   protected ProcessResult runFeatureOnArt(
       Class toRun, Path splitterBaseDexFile, Path splitterFeatureDexFile, TestRuntime runtime)
       throws IOException {
-    assertTrue(runtime.isDex());
+    assumeTrue(runtime.isDex());
     ArtCommandBuilder commandBuilder = new ArtCommandBuilder(runtime.asDex().getVm());
     commandBuilder.appendClasspath(splitterBaseDexFile.toString());
     commandBuilder.appendProgramArgument(toRun.getName());
