@@ -6,6 +6,7 @@ package com.android.tools.r8;
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
+import com.android.tools.r8.features.FeatureSplitConfiguration;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
 import com.android.tools.r8.origin.Origin;
@@ -364,7 +365,9 @@ public final class R8Command extends BaseCompilerCommand {
      */
     public Builder addFeatureSplit(
         Function<FeatureSplit.Builder, FeatureSplit> featureSplitGenerator) {
-      featureSplits.add(featureSplitGenerator.apply(FeatureSplit.builder(getReporter())));
+      FeatureSplit featureSplit = featureSplitGenerator.apply(FeatureSplit.builder(getReporter()));
+      featureSplits.add(featureSplit);
+      featureSplit.getProgramResourceProviders().forEach(this::addProgramResourceProvider);
       return self();
     }
 
@@ -516,6 +519,9 @@ public final class R8Command extends BaseCompilerCommand {
       boolean desugaring =
           (getProgramConsumer() instanceof ClassFileConsumer) ? false : !getDisableDesugaring();
 
+      FeatureSplitConfiguration featureSplitConfiguration =
+          !featureSplits.isEmpty() ? new FeatureSplitConfiguration(featureSplits, reporter) : null;
+
       R8Command command =
           new R8Command(
               getAppBuilder().build(),
@@ -544,7 +550,7 @@ public final class R8Command extends BaseCompilerCommand {
               getDexClassChecksumFilter(),
               desugaredLibraryKeepRuleConsumer,
               libraryConfiguration,
-              featureSplits);
+              featureSplitConfiguration);
 
       return command;
     }
@@ -626,7 +632,7 @@ public final class R8Command extends BaseCompilerCommand {
   private final Consumer<List<ProguardConfigurationRule>> syntheticProguardRulesConsumer;
   private final StringConsumer desugaredLibraryKeepRuleConsumer;
   private final DesugaredLibraryConfiguration libraryConfiguration;
-  private final List<FeatureSplit> featureSplits;
+  private final FeatureSplitConfiguration featureSplitConfiguration;
 
   /** Get a new {@link R8Command.Builder}. */
   public static Builder builder() {
@@ -702,7 +708,7 @@ public final class R8Command extends BaseCompilerCommand {
       BiPredicate<String, Long> dexClassChecksumFilter,
       StringConsumer desugaredLibraryKeepRuleConsumer,
       DesugaredLibraryConfiguration libraryConfiguration,
-      List<FeatureSplit> featureSplits) {
+      FeatureSplitConfiguration featureSplitConfiguration) {
     super(
         inputApp,
         mode,
@@ -732,7 +738,7 @@ public final class R8Command extends BaseCompilerCommand {
     this.syntheticProguardRulesConsumer = syntheticProguardRulesConsumer;
     this.desugaredLibraryKeepRuleConsumer = desugaredLibraryKeepRuleConsumer;
     this.libraryConfiguration = libraryConfiguration;
-    this.featureSplits = featureSplits;
+    this.featureSplitConfiguration = featureSplitConfiguration;
   }
 
   private R8Command(boolean printHelp, boolean printVersion) {
@@ -753,7 +759,7 @@ public final class R8Command extends BaseCompilerCommand {
     syntheticProguardRulesConsumer = null;
     desugaredLibraryKeepRuleConsumer = null;
     libraryConfiguration = null;
-    featureSplits = null;
+    featureSplitConfiguration = null;
   }
 
   /** Get the enable-tree-shaking state. */
@@ -849,6 +855,8 @@ public final class R8Command extends BaseCompilerCommand {
 
     internal.proguardCompatibilityRulesOutput = proguardCompatibilityRulesOutput;
     internal.dataResourceConsumer = internal.programConsumer.getDataResourceConsumer();
+
+    internal.featureSplitConfiguration = featureSplitConfiguration;
 
     internal.syntheticProguardRulesConsumer = syntheticProguardRulesConsumer;
 

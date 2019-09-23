@@ -38,11 +38,11 @@ public final class FeatureSplit {
     this.programResourceProviders = programResourceProviders;
   }
 
-  List<ProgramResourceProvider> getProgramResourceProviders() {
+  public List<ProgramResourceProvider> getProgramResourceProviders() {
     return programResourceProviders;
   }
 
-  ProgramConsumer getProgramConsumer() {
+  public ProgramConsumer getProgramConsumer() {
     return programConsumer;
   }
 

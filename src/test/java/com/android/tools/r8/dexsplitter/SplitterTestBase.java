@@ -1,25 +1,117 @@
 package com.android.tools.r8.dexsplitter;
 
+import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
 
+import com.android.tools.r8.ArchiveProgramResourceProvider;
+import com.android.tools.r8.ByteDataView;
+import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.DexIndexedConsumer.ArchiveConsumer;
+import com.android.tools.r8.DiagnosticsHandler;
+import com.android.tools.r8.FeatureSplit;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.dexsplitter.DexSplitter.Options;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.ImmutableList;
 import dalvik.system.PathClassLoader;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import org.junit.rules.TemporaryFolder;
 
 public class SplitterTestBase extends TestBase {
+
+  protected static FeatureSplit simpleSplitProvider(
+      FeatureSplit.Builder builder, Path outputPath, TemporaryFolder temp, Class... classes) {
+    return simpleSplitProvider(builder, outputPath, temp, Arrays.asList(classes));
+  }
+
+  protected static FeatureSplit simpleSplitProvider(
+      FeatureSplit.Builder builder,
+      Path outputPath,
+      TemporaryFolder temp,
+      Collection<Class<?>> classes) {
+    List<String> classNames = classes.stream().map(Class::getName).collect(Collectors.toList());
+    Path featureJar;
+    try {
+      featureJar = temp.newFile().toPath();
+      writeClassesToJar(featureJar, classes);
+    } catch (IOException e) {
+      assertTrue(false);
+      return null;
+    }
+
+    builder
+        .addProgramResourceProvider(ArchiveProgramResourceProvider.fromArchive(featureJar))
+        .setProgramConsumer(
+            new ArchiveConsumer(outputPath) {
+              @Override
+              public void accept(
+                  int fileIndex,
+                  ByteDataView data,
+                  Set<String> descriptors,
+                  DiagnosticsHandler handler) {
+                assertEquals(classNames.size(), descriptors.size());
+                for (String descriptor : descriptors) {
+                  assertTrue(classNames.contains(DescriptorUtils.descriptorToJavaType(descriptor)));
+                }
+                super.accept(fileIndex, data, descriptors, handler);
+              }
+            });
+    return builder.build();
+  }
+
+  protected ProcessResult testR8Splitter(
+      TestParameters parameters,
+      Set<Class<?>> baseClasses,
+      Set<Class<?>> featureClasses,
+      Class toRun,
+      String expectedOutput,
+      Predicate<R8TestCompileResult> predicate,
+      Consumer<R8FullTestBuilder> r8TestConfigurator)
+      throws IOException, CompilationFailedException {
+    Path featureOutput = temp.newFile("feature.zip").toPath();
+
+    R8FullTestBuilder r8FullTestBuilder = testForR8(parameters.getBackend());
+    if (parameters.isCfRuntime()) {
+      // Compiling to jar we need to support the same way of loading code at runtime as
+      // android supports.
+      r8FullTestBuilder
+          .addProgramClasses(PathClassLoader.class)
+          .addKeepClassAndMembersRules(PathClassLoader.class);
+    }
+
+    r8FullTestBuilder
+        .addProgramClasses(SplitRunner.class, RunInterface.class)
+        .addProgramClasses(baseClasses)
+        .addFeatureSplit(
+            builder -> simpleSplitProvider(builder, featureOutput, temp, featureClasses))
+        .setMinApi(parameters.getRuntime())
+        .addKeepMainRule(SplitRunner.class)
+        .addKeepClassRules(toRun);
+
+    r8TestConfigurator.accept(r8FullTestBuilder);
+
+    R8TestCompileResult r8TestCompileResult = r8FullTestBuilder.compile();
+    assertTrue(predicate.test(r8TestCompileResult));
+    Path baseOutput = r8TestCompileResult.writeToZip();
+
+    return runFeatureOnArt(toRun, baseOutput, featureOutput, parameters.getRuntime());
+  }
 
   // Compile the passed in classes plus RunInterface and SplitRunner using R8, then split
   // based on the base/feature sets. toRun must implement the BaseRunInterface
@@ -106,7 +198,15 @@ public class SplitterTestBase extends TestBase {
     options.addInputArchive(fullFiles.toString());
     DexSplitter.run(options);
 
-    ArtCommandBuilder commandBuilder = new ArtCommandBuilder();
+    return runFeatureOnArt(
+        toRun, splitterBaseDexFile, splitterFeatureDexFile, parameters.getRuntime());
+  }
+
+  protected ProcessResult runFeatureOnArt(
+      Class toRun, Path splitterBaseDexFile, Path splitterFeatureDexFile, TestRuntime runtime)
+      throws IOException {
+    assertTrue(runtime.isDex());
+    ArtCommandBuilder commandBuilder = new ArtCommandBuilder(runtime.asDex().getVm());
     commandBuilder.appendClasspath(splitterBaseDexFile.toString());
     commandBuilder.appendProgramArgument(toRun.getName());
     commandBuilder.appendProgramArgument(splitterFeatureDexFile.toString());

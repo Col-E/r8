@@ -6,7 +6,9 @@ package com.android.tools.r8.dexsplitter;
 
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestCompileResult;
@@ -65,6 +67,25 @@ public class DexSplitterInlineRegression extends SplitterTestBase {
             ensureGetFromFeatureGone,
             configurator);
     // We expect art to fail on this with the dex splitter, see b/122902374
+    assertNotEquals(processResult.exitCode, 0);
+    assertTrue(processResult.stderr.contains("NoClassDefFoundError"));
+  }
+
+  @Test
+  public void testOnR8Splitter() throws IOException, CompilationFailedException {
+    assumeTrue(parameters.isDexRuntime());
+    Consumer<R8FullTestBuilder> configurator =
+        r8FullTestBuilder -> r8FullTestBuilder.enableMergeAnnotations().noMinification();
+    ProcessResult processResult =
+        testR8Splitter(
+            parameters,
+            ImmutableSet.of(BaseSuperClass.class),
+            ImmutableSet.of(FeatureClass.class),
+            FeatureClass.class,
+            EXPECTED,
+            a -> true,
+            configurator);
+    // TODO(122902374): This should not fail, but currently we are just on par with DexSplitter.
     assertNotEquals(processResult.exitCode, 0);
     assertTrue(processResult.stderr.contains("NoClassDefFoundError"));
   }

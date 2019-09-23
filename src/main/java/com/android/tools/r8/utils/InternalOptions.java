@@ -8,10 +8,10 @@ import static com.google.common.base.Predicates.not;
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.DataResourceConsumer;
-import com.android.tools.r8.DataResourceProvider;
 import com.android.tools.r8.DesugarGraphConsumer;
 import com.android.tools.r8.DexFilePerClassFileConsumer;
 import com.android.tools.r8.DexIndexedConsumer;
+import com.android.tools.r8.FeatureSplit;
 import com.android.tools.r8.ProgramConsumer;
 import com.android.tools.r8.StringConsumer;
 import com.android.tools.r8.Version;
@@ -23,6 +23,7 @@ import com.android.tools.r8.errors.InterfaceDesugarMissingTypeDiagnostic;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
 import com.android.tools.r8.errors.MissingNestHostNestDesugarDiagnostic;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
+import com.android.tools.r8.features.FeatureSplitConfiguration;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -103,8 +104,8 @@ public class InternalOptions {
   // TODO(zerny): Make this private-final once we have full program-consumer support.
   public ProgramConsumer programConsumer = null;
 
-  public final List<DataResourceProvider> dataResourceProviders = new ArrayList<>();
   public DataResourceConsumer dataResourceConsumer;
+  public FeatureSplitConfiguration featureSplitConfiguration;
 
   // Constructor for testing and/or other utilities.
   public InternalOptions() {
@@ -350,6 +351,11 @@ public class InternalOptions {
       programConsumer.finished(reporter);
       if (dataResourceConsumer != null) {
         dataResourceConsumer.finished(reporter);
+      }
+    }
+    if (featureSplitConfiguration != null) {
+      for (FeatureSplit featureSplit : featureSplitConfiguration.getFeatureSplits()) {
+        featureSplit.getProgramConsumer().finished(reporter);
       }
     }
   }

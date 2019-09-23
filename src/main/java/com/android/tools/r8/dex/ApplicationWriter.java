@@ -306,8 +306,16 @@ public class ApplicationWriter {
                     consumer = options.getDexFilePerClassFileConsumer();
                     byteBufferProvider = options.getDexFilePerClassFileConsumer();
                   } else {
-                    consumer = options.getDexIndexedConsumer();
-                    byteBufferProvider = options.getDexIndexedConsumer();
+                    if (virtualFile.getFeatureSplit() != null) {
+                      ProgramConsumer featureConsumer =
+                          virtualFile.getFeatureSplit().getProgramConsumer();
+                      assert featureConsumer instanceof DexIndexedConsumer;
+                      consumer = featureConsumer;
+                      byteBufferProvider = (DexIndexedConsumer) featureConsumer;
+                    } else {
+                      consumer = options.getDexIndexedConsumer();
+                      byteBufferProvider = options.getDexIndexedConsumer();
+                    }
                   }
                   ObjectToOffsetMapping objectMapping = virtualFile.computeMapping(application);
                   MethodToCodeObjectMapping codeMapping =
