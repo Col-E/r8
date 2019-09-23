@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.desugar.corelib;
+package com.android.tools.r8.desugar.corelib.conversionTests;
 
 import static org.hamcrest.CoreMatchers.endsWith;
 import static org.hamcrest.core.StringContains.containsString;
@@ -10,6 +10,7 @@ import static org.hamcrest.core.StringContains.containsString;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.desugar.corelib.CoreLibDesugarTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.Arrays;

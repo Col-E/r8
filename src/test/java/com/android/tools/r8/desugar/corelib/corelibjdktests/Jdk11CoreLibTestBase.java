@@ -53,13 +53,6 @@ public class Jdk11CoreLibTestBase extends CoreLibDesugarTestBase {
         .toArray(Path[]::new);
   }
 
-  protected static Path[] getAllFilesWithSuffixInDirectory(Path directory, String suffix)
-      throws IOException {
-    return Files.walk(directory)
-        .filter(path -> path.toString().endsWith(suffix))
-        .toArray(Path[]::new);
-  }
-
   protected static Path getSafeVarArgsFile() {
     return ANDROID_SAFE_VAR_ARGS_LOCATION;
   }

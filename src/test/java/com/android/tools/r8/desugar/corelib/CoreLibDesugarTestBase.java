@@ -20,6 +20,8 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
@@ -101,6 +103,13 @@ public class CoreLibDesugarTestBase extends TestBase {
     for (int i = 0; i < lines.length; i += 2) {
       assertEquals(lines[i], lines[i + 1]);
     }
+  }
+
+  protected static Path[] getAllFilesWithSuffixInDirectory(Path directory, String suffix)
+      throws IOException {
+    return Files.walk(directory)
+        .filter(path -> path.toString().endsWith(suffix))
+        .toArray(Path[]::new);
   }
 
   protected KeepRuleConsumer createKeepRuleConsumer(TestParameters parameters) {
