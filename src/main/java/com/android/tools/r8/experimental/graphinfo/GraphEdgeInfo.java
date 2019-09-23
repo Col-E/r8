@@ -31,6 +31,8 @@ public class GraphEdgeInfo {
     IsLibraryMethod,
     OverridingMethod,
     MethodHandleUseFrom,
+    CompanionClass,
+    CompanionMethod,
     Unknown
   }
 
@@ -79,6 +81,10 @@ public class GraphEdgeInfo {
         return "defined in library method overridden by";
       case MethodHandleUseFrom:
         return "referenced by method handle";
+      case CompanionClass:
+        return "companion class for";
+      case CompanionMethod:
+        return "companion method for";
       default:
         assert false : "Unknown edge kind: " + edgeKind();
         // fall through

@@ -82,10 +82,11 @@ public class KeptByFieldReflectionTestRunner extends TestBase {
     inspector.method(mainMethod).assertNotRenamed().assertKeptBy(keepMain);
 
     // The field is primarily kept by the reflective lookup in main.
-    inspector.field(fooField).assertRenamed().assertReflectedFrom(mainMethod);
+    QueryNode fooNode = inspector.field(fooField).assertRenamed();
+    fooNode.assertReflectedFrom(mainMethod);
 
     // The field is also kept by the write in Foo.<init>.
     // We may want to change that behavior. See b/124428834.
-    inspector.field(fooField).assertRenamed().assertKeptBy(inspector.method(fooInit));
+    fooNode.assertKeptBy(inspector.method(fooInit));
   }
 }
