@@ -59,18 +59,18 @@ def IsMaster(version):
   # commits to archive these to the hash based location
   if len(branches) == 0:
     return True
-  if not version.endswith('-dev'):
+  if not version == 'master':
     # Sanity check, we don't want to archive on top of release builds EVER
     # Note that even though we branch, we never push the bots to build the same
     # commit as master on a branch since we always change the version to
-    # not have dev (or we crash here :-)).
+    # not be just 'master' (or we crash here :-)).
     if 'origin/master' in branches:
       raise Exception('We are seeing origin/master in a commit that '
-                      'don\'t have -dev in version')
+                      'don\'t have \'master\' as version')
     return False
   if not 'origin/master' in branches:
       raise Exception('We are not seeing origin/master '
-                      'in a commit that have -dev in version')
+                      'in a commit that have \'master\' as version')
   return True
 
 def GetStorageDestination(storage_prefix,
@@ -239,9 +239,10 @@ def Main():
           if options.dry_run:
             print('Dry run, not actually creating maven repo for '
                 + 'desugar configuration.')
-            shutil.copyfile(
-                desugar_jdk_libs_configuration_jar,
-                os.path.join(options.dry_run_output, jar_name))
+            if options.dry_run_output:
+              shutil.copyfile(
+                  desugar_jdk_libs_configuration_jar,
+                  os.path.join(options.dry_run_output, jar_name))
           else:
             utils.upload_file_to_cloud_storage(
                 desugar_jdk_libs_configuration_jar, maven_dst)
