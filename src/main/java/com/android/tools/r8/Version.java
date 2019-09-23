@@ -11,7 +11,7 @@ public final class Version {
 
   // This field is accessed from release scripts using simple pattern matching.
   // Therefore, changing this field could break our release scripts.
-  public static final String LABEL = "1.6.32-dev";
+  public static final String LABEL = "master";
 
   private Version() {
   }
@@ -23,7 +23,9 @@ public final class Version {
 
   /** Is this a development version of the D8/R8 library. */
   public static boolean isDev() {
-    return LABEL.endsWith("-dev") || VersionProperties.INSTANCE.isEngineering();
+    return LABEL.equals("master")
+        || LABEL.endsWith("-dev")
+        || VersionProperties.INSTANCE.isEngineering();
   }
 
   /** Returns current R8 version (with additional info) as a string. */
