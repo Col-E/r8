@@ -8,18 +8,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Function;
-import java.util.function.Predicate;
 
 public class ListUtils {
-
-  public static <T> int lastIndexMatching(List<T> list, Predicate<T> tester) {
-    for (int i = list.size() - 1; i >= 0; i--) {
-      if (tester.test(list.get(i))) {
-        return i;
-      }
-    }
-    return -1;
-  }
 
   public static <S, T> List<T> map(Collection<S> list, Function<S, T> fn) {
     List<T> result = new ArrayList<>(list.size());
