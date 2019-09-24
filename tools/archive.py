@@ -126,9 +126,6 @@ def Main():
   create_maven_release.generate_r8_maven_zip(utils.MAVEN_ZIP)
   create_maven_release.generate_r8_maven_zip(
       utils.MAVEN_ZIP_LIB, is_r8lib=True)
-  # Create maven release of the desuage_jdk_libs configuration.
-  create_maven_release.generate_desugar_configuration_maven_zip(
-      utils.DESUGAR_CONFIGURATION_MAVEN_ZIP)
 
   # Generate and copy a full build without dependencies.
   gradle.RunGradleExcludeDeps([utils.R8, utils.R8_SRC])
@@ -149,6 +146,12 @@ def Main():
     utils.COMPATPROGUARDLIB,
     '-Pno_internal'
   ])
+
+  # Create maven release of the desuage_jdk_libs configuration. This require
+  # an r8.jar with dependencies to have been built.
+  create_maven_release.generate_desugar_configuration_maven_zip(
+      utils.DESUGAR_CONFIGURATION_MAVEN_ZIP)
+
   version = GetVersion()
   is_master = IsMaster(version)
   if is_master:
