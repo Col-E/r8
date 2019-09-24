@@ -1111,8 +1111,7 @@ public class IRConverter {
     }
 
     if (memberValuePropagation != null) {
-      memberValuePropagation.rewriteWithConstantValues(
-          code, method.method.holder, isProcessedConcurrently);
+      memberValuePropagation.rewriteWithConstantValues(code, method.method.holder);
     }
     if (options.enableEnumValueOptimization) {
       assert appView.enableWholeProgramOptimizations();

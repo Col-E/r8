@@ -1098,6 +1098,10 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       return false;
     }
 
+    public TrivialClassInitializer asTrivialClassInitializer() {
+      return null;
+    }
+
     // Defines instance trivial initialized, see details in comments
     // to CodeRewriter::computeInstanceInitializerInfo(...)
     public static final class TrivialInstanceInitializer extends TrivialInitializer {
@@ -1121,6 +1125,11 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
 
       public TrivialClassInitializer(DexField field) {
         this.field = field;
+      }
+
+      @Override
+      public TrivialClassInitializer asTrivialClassInitializer() {
+        return this;
       }
     }
   }

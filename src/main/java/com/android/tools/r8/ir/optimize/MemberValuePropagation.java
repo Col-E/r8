@@ -5,12 +5,9 @@ package com.android.tools.r8.ir.optimize;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
-import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer.TrivialClassInitializer;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
@@ -19,7 +16,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
-import com.android.tools.r8.ir.code.Assume;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.ConstInstruction;
@@ -31,7 +27,6 @@ import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
-import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
@@ -44,7 +39,6 @@ import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.Sets;
 import java.util.ListIterator;
 import java.util.Set;
-import java.util.function.Predicate;
 
 public class MemberValuePropagation {
 
@@ -335,18 +329,11 @@ public class MemberValuePropagation {
         iterator.add(replacement);
       }
       target.getMutableOptimizationInfo().markAsPropagated();
-      return;
-    }
-    if (target.getOptimizationInfo().neverReturnsNull()
-        && current.outValue().getTypeLattice().isReference()
-        && current.outValue().canBeNull()) {
-      insertAssumeNotNull(code, affectedValues, blocks, iterator, current);
     }
   }
 
   private void rewriteStaticGetWithConstantValues(
       IRCode code,
-      Predicate<DexEncodedMethod> isProcessedConcurrently,
       Set<Value> affectedValues,
       ListIterator<BasicBlock> blocks,
       InstructionListIterator iterator,
@@ -390,49 +377,6 @@ public class MemberValuePropagation {
         code.method.getMutableOptimizationInfo().markUseIdentifierNameString();
       }
       feedback.markFieldAsPropagated(target);
-      return;
-    }
-
-    if (current.hasOutValue()) {
-      Value outValue = current.outValue();
-      TypeLatticeElement outType = outValue.getTypeLattice();
-      if (outType.isReference() && outType.isNullable()) {
-        TypeLatticeElement dynamicType = target.getOptimizationInfo().getDynamicType();
-        if (dynamicType != null && dynamicType.isDefinitelyNotNull()) {
-          insertAssumeNotNull(code, affectedValues, blocks, iterator, current);
-          return;
-        }
-
-        // In case the class holder of this static field satisfying following criteria:
-        //   -- cannot trigger other static initializer except for its own
-        //   -- is final
-        //   -- has a class initializer which is classified as trivial
-        //      (see CodeRewriter::computeClassInitializerInfo) and
-        //      initializes the field being accessed
-        //
-        // ... and the field itself is not pinned by keep rules (in which case it might
-        // be updated outside the class constructor, e.g. via reflections), it is safe
-        // to assume that the static-get instruction reads the value it initialized value
-        // in class initializer and is never null.
-        // TODO(b/141143236): This should be subsumed entirely by the non-null propagation for
-        //  fields, and thus should be removed.
-        DexClass holderDefinition = appView.definitionFor(field.holder);
-        if (holderDefinition != null
-            && holderDefinition.accessFlags.isFinal()
-            && !field.holder.initializationOfParentTypesMayHaveSideEffects(appView)) {
-          DexEncodedMethod classInitializer = holderDefinition.getClassInitializer();
-          if (classInitializer != null && !isProcessedConcurrently.test(classInitializer)) {
-            TrivialInitializer info =
-                classInitializer.getOptimizationInfo().getTrivialInitializerInfo();
-            if (info != null
-                && ((TrivialClassInitializer) info).field == field
-                && outValue.getTypeLattice().isReference()
-                && outValue.canBeNull()) {
-              insertAssumeNotNull(code, affectedValues, blocks, iterator, current);
-            }
-          }
-        }
-      }
     }
   }
 
@@ -465,39 +409,12 @@ public class MemberValuePropagation {
     }
   }
 
-  private void insertAssumeNotNull(
-      IRCode code,
-      Set<Value> affectedValues,
-      ListIterator<BasicBlock> blocks,
-      InstructionListIterator iterator,
-      Instruction current) {
-    Value knownToBeNonNullValue = current.outValue();
-    Set<Value> affectedUsers = knownToBeNonNullValue.affectedValues();
-    TypeLatticeElement typeLattice = knownToBeNonNullValue.getTypeLattice();
-    Value nonNullValue =
-        code.createValue(
-            typeLattice.asReferenceTypeLatticeElement().asNotNull(),
-            knownToBeNonNullValue.getLocalInfo());
-    knownToBeNonNullValue.replaceUsers(nonNullValue);
-    Assume nonNull =
-        Assume.createAssumeNonNullInstruction(
-            nonNullValue, knownToBeNonNullValue, current, appView);
-    nonNull.setPosition(appView.options().debug ? current.getPosition() : Position.none());
-    if (current.getBlock().hasCatchHandlers()) {
-      iterator.split(code, blocks).listIterator(code).add(nonNull);
-    } else {
-      iterator.add(nonNull);
-    }
-    affectedValues.addAll(affectedUsers);
-  }
-
   /**
    * Replace invoke targets and field accesses with constant values where possible.
    *
    * <p>Also assigns value ranges to values where possible.
    */
-  public void rewriteWithConstantValues(
-      IRCode code, DexType callingContext, Predicate<DexEncodedMethod> isProcessedConcurrently) {
+  public void rewriteWithConstantValues(IRCode code, DexType callingContext) {
     IRMetadata metadata = code.metadata();
     if (!metadata.mayHaveFieldGet() && !metadata.mayHaveInvokeMethod()) {
       return;
@@ -516,7 +433,6 @@ public class MemberValuePropagation {
         } else if (current.isStaticGet()) {
           rewriteStaticGetWithConstantValues(
               code,
-              isProcessedConcurrently,
               affectedValues,
               blocks,
               iterator,

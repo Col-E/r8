@@ -6,8 +6,10 @@ package com.android.tools.r8.ir.optimize;
 import static com.android.tools.r8.ir.code.DominatorTree.Assumption.MAY_HAVE_UNREACHABLE_BLOCKS;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -139,6 +141,9 @@ public class NonNullTracker implements Assumer {
                   && optimizationInfo.getDynamicType().isDefinitelyNotNull()) {
                 knownToBeNonNullValues.add(outValue);
               }
+
+              assert verifyCompanionClassInstanceIsKnownToBeNonNull(
+                  fieldInstruction, encodedField, knownToBeNonNullValues);
             }
           }
         }
@@ -242,6 +247,29 @@ public class NonNullTracker implements Assumer {
     if (!affectedValues.isEmpty()) {
       new TypeAnalysis(appView).narrowing(affectedValues);
     }
+  }
+
+  private boolean verifyCompanionClassInstanceIsKnownToBeNonNull(
+      FieldInstruction instruction,
+      DexEncodedField encodedField,
+      Set<Value> knownToBeNonNullValues) {
+    if (instruction.isStaticGet()) {
+      DexField field = encodedField.field;
+      DexClass clazz = appView.definitionFor(field.holder);
+      assert clazz != null;
+      if (clazz.accessFlags.isFinal()
+          && !clazz.initializationOfParentTypesMayHaveSideEffects(appView)) {
+        DexEncodedMethod classInitializer = clazz.getClassInitializer();
+        if (classInitializer != null) {
+          TrivialInitializer info =
+              classInitializer.getOptimizationInfo().getTrivialInitializerInfo();
+          boolean expectedToBeNonNull =
+              info != null && info.asTrivialClassInitializer().field == field;
+          assert !expectedToBeNonNull || knownToBeNonNullValues.contains(instruction.outValue());
+        }
+      }
+    }
+    return true;
   }
 
   private void addNonNullForValues(
