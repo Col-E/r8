@@ -213,7 +213,7 @@ public final class L8Command extends BaseCompilerCommand {
 
       DexItemFactory factory = new DexItemFactory();
       DesugaredLibraryConfiguration libraryConfiguration =
-          getDesugaredLibraryConfiguration(factory, true, getMinApiLevel());
+          getDesugaredLibraryConfiguration(factory, true);
 
       R8Command r8Command = null;
       D8Command d8Command = null;

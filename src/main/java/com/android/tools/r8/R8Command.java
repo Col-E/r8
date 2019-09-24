@@ -447,7 +447,7 @@ public final class R8Command extends BaseCompilerCommand {
       }
 
       DesugaredLibraryConfiguration libraryConfiguration =
-          getDesugaredLibraryConfiguration(factory, false, getMinApiLevel());
+          getDesugaredLibraryConfiguration(factory, false);
 
       ProguardConfigurationParser parser =
           new ProguardConfigurationParser(factory, reporter, allowTestProguardOptions);

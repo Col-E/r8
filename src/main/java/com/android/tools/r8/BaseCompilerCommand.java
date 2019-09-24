@@ -447,7 +447,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     }
 
     DesugaredLibraryConfiguration getDesugaredLibraryConfiguration(
-        DexItemFactory factory, boolean libraryCompilation, int minAPILevel) {
+        DexItemFactory factory, boolean libraryCompilation) {
       if (desugaredLibraryConfigurationResources.isEmpty()) {
         return DesugaredLibraryConfiguration.empty();
       }
@@ -456,22 +456,6 @@ public abstract class BaseCompilerCommand extends BaseCommand {
       }
       StringResource desugaredLibraryConfigurationResource =
           desugaredLibraryConfigurationResources.get(0);
-
-      // TODO(b/134732760): Remove the following once the default testing hack is not supported
-      // anymore.
-      try {
-        if (desugaredLibraryConfigurationResource.getString().equals("default")) {
-          if (libraryCompilation) {
-            return DesugaredLibraryConfigurationForTesting
-                .configureLibraryDesugaringForLibraryCompilation(minAPILevel, factory);
-          }
-          return DesugaredLibraryConfigurationForTesting
-              .configureLibraryDesugaringForProgramCompilation(minAPILevel, factory);
-        }
-      } catch (ResourceException e) {
-        throw new RuntimeException(e);
-      }
-
       DesugaredLibraryConfigurationParser libraryParser =
           new DesugaredLibraryConfigurationParser(
               factory, getReporter(), libraryCompilation, getMinApiLevel());
