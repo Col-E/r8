@@ -6,6 +6,7 @@
     {
       "api_level_below_or_equal": 25,
       "rewrite_prefix": {
+        "j$.time.": "java.time.",
         "java.time.": "j$.time.",
         "java.util.Desugar": "j$.util.Desugar"
       },
@@ -76,7 +77,9 @@
         "java.time.ZonedDateTime": "j$.time.TimeConversions",
         "java.time.LocalDate": "j$.time.TimeConversions",
         "java.time.Duration": "j$.time.TimeConversions",
-        "java.time.ZoneId": "j$.time.TimeConversions"
+        "java.time.ZoneId": "j$.time.TimeConversions",
+        "java.time.MonthDay": "j$.time.TimeConversions",
+        "java.time.Instant": "j$.time.TimeConversions"
       }
     },
     {

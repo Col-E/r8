@@ -9,12 +9,18 @@ import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.android.tools.r8.L8Command;
+import com.android.tools.r8.OutputMode;
+import com.android.tools.r8.StringResource;
+import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.TestRuntime.DexRuntime;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import java.nio.file.Path;
 import java.time.ZoneId;
 import java.util.TimeZone;
 import org.junit.Test;
@@ -23,16 +29,24 @@ public class TimeConversionCompilationTest extends APIConversionTestBase {
 
   @Test
   public void testTimeGeneratedDex() throws Exception {
-    testForD8()
-        .addProgramFiles(getTimeConversionClasses())
-        .compile()
-        .inspect(this::checkTimeConversionGeneratedDex);
+    TestDiagnosticMessagesImpl diagnosticsHandler = new TestDiagnosticMessagesImpl();
+    Path desugaredLib = temp.newFolder().toPath().resolve("conversion_dex.zip");
+    L8Command.Builder l8Builder =
+        L8Command.builder(diagnosticsHandler)
+            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+            .addProgramFiles(getTimeConversionClasses())
+            .addDesugaredLibraryConfiguration(
+                StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
+            .setMinApiLevel(AndroidApiLevel.B.getLevel())
+            .setOutput(desugaredLib, OutputMode.DexIndexed);
+    ToolHelper.runL8(l8Builder.build(), x -> {});
+    this.checkTimeConversionGeneratedDex(new CodeInspector(desugaredLib));
   }
 
   private void checkTimeConversionGeneratedDex(CodeInspector inspector) {
     ClassSubject clazz = inspector.clazz("j$.time.TimeConversions");
     assertThat(clazz, isPresent());
-    assertEquals(9, clazz.allMethods().size());
+    assertEquals(13, clazz.allMethods().size());
   }
 
   @Test
@@ -43,7 +57,8 @@ public class TimeConversionCompilationTest extends APIConversionTestBase {
         .enableCoreLibraryDesugaring(AndroidApiLevel.B)
         .compile()
         .inspect(this::checkAPIRewritten)
-        .addDesugaredCoreLibraryRunClassPath(this::buildDesugaredLibrary, AndroidApiLevel.B)
+        .addDesugaredCoreLibraryRunClassPath(
+            this::buildDesugaredLibraryWithConversionExtension, AndroidApiLevel.B)
         .run(new DexRuntime(DexVm.ART_9_0_0_HOST), Executor.class);
   }
 
@@ -84,7 +99,7 @@ public class TimeConversionCompilationTest extends APIConversionTestBase {
             .anyMatch(
                 instr ->
                     instr.isInvokeStatic()
-                        && instr.getMethod().name.toString().equals("to")
+                        && instr.getMethod().name.toString().equals("convert")
                         && instr
                             .getMethod()
                             .proto
@@ -98,7 +113,7 @@ public class TimeConversionCompilationTest extends APIConversionTestBase {
             .anyMatch(
                 instr ->
                     instr.isInvokeStatic()
-                        && instr.getMethod().name.toString().equals("from")
+                        && instr.getMethod().name.toString().equals("convert")
                         && instr
                             .getMethod()
                             .proto
@@ -109,7 +124,6 @@ public class TimeConversionCompilationTest extends APIConversionTestBase {
   }
 
   static class Executor {
-
     public static void main(String[] args) {
       ZoneId zoneId = ZoneId.systemDefault();
       // Following is a call where java.time.ZoneId is a parameter type (getTimeZone()).

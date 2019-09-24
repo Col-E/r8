@@ -126,6 +126,7 @@ public class DesugaredLibraryConfigurationForTesting {
 
   private static Map<String, String> buildPrefixRewritingForCoreLibCompilationAndroidNPlus() {
     return ImmutableMap.<String, String>builder()
+        .put("j$.time.", "java.time.")
         .put("java.time.", "j$.time.")
         .put("java.util.Desugar", "j$.util.Desugar")
         .build();

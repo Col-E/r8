@@ -7,11 +7,13 @@ package com.android.tools.r8.desugar.corelib.conversionTests;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.corelib.CoreLibDesugarTestBase;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 
 public class APIConversionTestBase extends CoreLibDesugarTestBase {
 
@@ -41,5 +43,17 @@ public class APIConversionTestBase extends CoreLibDesugarTestBase {
     assert classes.length > 0
         : "Something went wrong during compilation, check the runJavac return value for debugging.";
     return classes;
+  }
+
+  protected Path buildDesugaredLibraryWithConversionExtension(AndroidApiLevel apiLevel) {
+    Path[] timeConversionClasses = null;
+    try {
+      timeConversionClasses = getTimeConversionClasses();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+    ArrayList<Path> paths = new ArrayList<>();
+    Collections.addAll(paths, timeConversionClasses);
+    return buildDesugaredLibrary(apiLevel, "", false, paths);
   }
 }

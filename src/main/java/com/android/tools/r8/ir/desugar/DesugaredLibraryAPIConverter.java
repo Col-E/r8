@@ -135,7 +135,9 @@ public class DesugaredLibraryAPIConverter {
     // But everything is going to be rewritten, so we need to call "vivifiedType convert(type)".
     DexMethod conversionMethod =
         factory.createMethod(
-            conversionHolder, factory.createProto(argVivifiedType, argType), factory.toMethodName);
+            conversionHolder,
+            factory.createProto(argVivifiedType, argType),
+            factory.convertMethodName);
     Value convertedValue =
         code.createValue(
             TypeLatticeElement.fromDexType(
@@ -185,7 +187,7 @@ public class DesugaredLibraryAPIConverter {
         factory.createMethod(
             conversionHolder,
             factory.createProto(returnType, returnVivifiedType),
-            factory.fromMethodName);
+            factory.convertMethodName);
     Value convertedValue =
         code.createValue(
             TypeLatticeElement.fromDexType(returnType, Nullability.maybeNull(), appView));
