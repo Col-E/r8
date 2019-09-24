@@ -15,6 +15,7 @@ public class MapBackportJava9Main {
     testOf2();
     testOf10();
     testOfEntries();
+    testEntry();
   }
 
   private static void testOf0() {
@@ -215,6 +216,31 @@ public class MapBackportJava9Main {
       throw new AssertionError();
     } catch (IllegalArgumentException expected) {
       assertEquals("duplicate key: 0", expected.getMessage());
+    }
+  }
+
+  private static void testEntry() {
+    Object key = new Object();
+    Object value = new Object();
+    Map.Entry<Object, Object> entry = Map.entry(key, value);
+    assertSame(key, entry.getKey());
+    assertSame(value, entry.getValue());
+
+    try {
+      entry.setValue(new Object());
+      throw new AssertionError();
+    } catch (UnsupportedOperationException expected) {
+    }
+
+    try {
+      Map.entry(null, value);
+      throw new AssertionError();
+    } catch (NullPointerException expected) {
+    }
+    try {
+      Map.entry(key, null);
+      throw new AssertionError();
+    } catch (NullPointerException expected) {
     }
   }
 

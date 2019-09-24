@@ -597,6 +597,60 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
+  public static CfCode CollectionMethods_mapEntry(InternalOptions options, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    CfLabel label2 = new CfLabel();
+    CfLabel label3 = new CfLabel();
+    CfLabel label4 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        4,
+        2,
+        ImmutableList.of(
+            label0,
+            new CfNew(
+                options.itemFactory.createType("Ljava/util/AbstractMap$SimpleImmutableEntry;")),
+            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            new CfLoad(ValueType.OBJECT, 0),
+            label1,
+            new CfInvoke(
+                184,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/Objects;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/lang/Object;"),
+                        options.itemFactory.createType("Ljava/lang/Object;")),
+                    options.itemFactory.createString("requireNonNull")),
+                false),
+            new CfLoad(ValueType.OBJECT, 1),
+            label2,
+            new CfInvoke(
+                184,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/Objects;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/lang/Object;"),
+                        options.itemFactory.createType("Ljava/lang/Object;")),
+                    options.itemFactory.createString("requireNonNull")),
+                false),
+            new CfInvoke(
+                183,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/AbstractMap$SimpleImmutableEntry;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("V"),
+                        options.itemFactory.createType("Ljava/lang/Object;"),
+                        options.itemFactory.createType("Ljava/lang/Object;")),
+                    options.itemFactory.createString("<init>")),
+                false),
+            label3,
+            new CfReturn(ValueType.OBJECT),
+            label4),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
   public static CfCode CollectionMethods_mapOfEntries(InternalOptions options, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();

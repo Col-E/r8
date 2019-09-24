@@ -1056,6 +1056,12 @@ public final class BackportedMethodRewriter {
       addProvider(
           new MethodGenerator(
               method, BackportedMethods::CollectionMethods_mapOfEntries, "ofEntries"));
+
+      // Map.Entry<K, V> Map.entry(K, V)
+      type = factory.mapType;
+      proto = factory.createProto(factory.mapEntryType, factory.objectType, factory.objectType);
+      method = factory.createMethod(type, proto, "entry");
+      addProvider(new MethodGenerator(method, BackportedMethods::CollectionMethods_mapEntry));
     }
 
     private void initializeJava11MethodProviders(DexItemFactory factory) {
