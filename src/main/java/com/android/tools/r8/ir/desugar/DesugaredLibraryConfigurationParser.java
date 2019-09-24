@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.gson.JsonArray;
@@ -58,10 +57,6 @@ public class DesugaredLibraryConfigurationParser {
               "Unsupported desugared library configuration version, please upgrade the D8/R8"
                   + " compiler."));
     }
-    int required_compilation_api_level =
-        jsonConfig.get("required_compilation_api_level").getAsInt();
-    configurationBuilder.setRequiredCompilationAPILevel(
-        AndroidApiLevel.getAndroidApiLevel(required_compilation_api_level));
     JsonArray jsonFlags =
         libraryCompilation
             ? jsonConfig.getAsJsonArray("library_flags")
