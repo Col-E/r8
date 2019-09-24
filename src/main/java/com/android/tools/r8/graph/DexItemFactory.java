@@ -161,6 +161,9 @@ public class DexItemFactory {
   public final DexString toStringMethodName = createString("toString");
   public final DexString internMethodName = createString("intern");
 
+  public final DexString toMethodName = createString("to");
+  public final DexString fromMethodName = createString("from");
+
   public final DexString getClassMethodName = createString("getClass");
   public final DexString finalizeMethodName = createString("finalize");
   public final DexString ordinalMethodName = createString("ordinal");

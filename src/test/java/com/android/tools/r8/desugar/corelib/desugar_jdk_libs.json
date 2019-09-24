@@ -1,6 +1,6 @@
 {
   "configuration_format_version": 1,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "required_compilation_api_level": 26,
   "library_flags": [
     {
@@ -71,6 +71,12 @@
         "java.util.Date#toInstant": "java.util.DesugarDate",
         "java.util.GregorianCalendar#from": "java.util.DesugarGregorianCalendar",
         "java.util.GregorianCalendar#toZonedDateTime": "java.util.DesugarGregorianCalendar"
+      },
+      "custom_conversion": {
+        "java.time.ZonedDateTime": "j$.time.TimeConversions",
+        "java.time.LocalDate": "j$.time.TimeConversions",
+        "java.time.Duration": "j$.time.TimeConversions",
+        "java.time.ZoneId": "j$.time.TimeConversions"
       }
     },
     {

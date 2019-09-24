@@ -57,6 +57,7 @@ public class KeepRuleShrinkTest extends CoreLibDesugarTestBase {
 
   static class Executor {
 
+    @SuppressWarnings("unchecked")
     public static void main(String[] args) {
       Map<String, String>[] maps =
           new Map[] {

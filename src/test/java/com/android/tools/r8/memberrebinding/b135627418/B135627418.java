@@ -84,6 +84,7 @@ public class B135627418 extends TestBase {
                             ImmutableMap.of(),
                             ImmutableMap.of(),
                             ImmutableMap.of(),
+                            ImmutableMap.of(),
                             ImmutableList.of()))
             .compile();
 

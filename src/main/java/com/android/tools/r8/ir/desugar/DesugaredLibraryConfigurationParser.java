@@ -100,6 +100,13 @@ public class DesugaredLibraryConfigurationParser {
         configurationBuilder.putEmulateLibraryInterface(itf.getKey(), itf.getValue().getAsString());
       }
     }
+    if (jsonFlagSet.has("custom_conversion")) {
+      for (Map.Entry<String, JsonElement> conversion :
+          jsonFlagSet.get("custom_conversion").getAsJsonObject().entrySet()) {
+        configurationBuilder.putCustomConversion(
+            conversion.getKey(), conversion.getValue().getAsString());
+      }
+    }
     if (jsonFlagSet.has("dont_rewrite")) {
       JsonArray dontRewrite = jsonFlagSet.get("dont_rewrite").getAsJsonArray();
       for (JsonElement rewrite : dontRewrite) {

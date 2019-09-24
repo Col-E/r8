@@ -44,6 +44,7 @@ public class InconsistentPrefixTest extends TestBase {
                           ImmutableMap.of(),
                           ImmutableMap.of(),
                           ImmutableMap.of(),
+                          ImmutableMap.of(),
                           ImmutableList.of()))
           .compile();
       fail("Should have raised the compilation error.");

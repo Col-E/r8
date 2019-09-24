@@ -27,6 +27,7 @@ public class DesugaredLibraryConfiguration {
   private final Map<DexType, DexType> emulateLibraryInterface;
   private final Map<DexString, Map<DexType, DexType>> retargetCoreLibMember;
   private final Map<DexType, DexType> backportCoreLibraryMember;
+  private final Map<DexType, DexType> customConversions;
   private final List<Pair<DexType, DexString>> dontRewriteInvocation;
 
   public static Builder builder(DexItemFactory dexItemFactory) {
@@ -40,6 +41,7 @@ public class DesugaredLibraryConfiguration {
         ImmutableMap.of(),
         ImmutableMap.of(),
         ImmutableMap.of(),
+        ImmutableMap.of(),
         ImmutableList.of());
   }
 
@@ -49,12 +51,14 @@ public class DesugaredLibraryConfiguration {
       Map<DexType, DexType> emulateLibraryInterface,
       Map<DexString, Map<DexType, DexType>> retargetCoreLibMember,
       Map<DexType, DexType> backportCoreLibraryMember,
+      Map<DexType, DexType> customConversions,
       List<Pair<DexType, DexString>> dontRewriteInvocation) {
     this.libraryCompilation = libraryCompilation;
     this.rewritePrefix = rewritePrefix;
     this.emulateLibraryInterface = emulateLibraryInterface;
     this.retargetCoreLibMember = retargetCoreLibMember;
     this.backportCoreLibraryMember = backportCoreLibraryMember;
+    this.customConversions = customConversions;
     this.dontRewriteInvocation = dontRewriteInvocation;
   }
 
@@ -84,6 +88,10 @@ public class DesugaredLibraryConfiguration {
     return backportCoreLibraryMember;
   }
 
+  public Map<DexType, DexType> getCustomConversions() {
+    return customConversions;
+  }
+
   public List<Pair<DexType, DexString>> getDontRewriteInvocation() {
     return dontRewriteInvocation;
   }
@@ -97,6 +105,7 @@ public class DesugaredLibraryConfiguration {
     private Map<DexType, DexType> emulateLibraryInterface = new HashMap<>();
     private Map<DexString, Map<DexType, DexType>> retargetCoreLibMember = new IdentityHashMap<>();
     private Map<DexType, DexType> backportCoreLibraryMember = new HashMap<>();
+    private Map<DexType, DexType> customConversions = new HashMap<>();
     private List<Pair<DexType, DexString>> dontRewriteInvocation = new ArrayList<>();
 
     public Builder(DexItemFactory dexItemFactory) {
@@ -123,6 +132,13 @@ public class DesugaredLibraryConfiguration {
       DexType interfaceType = stringClassToDexType(emulateLibraryItf);
       DexType rewrittenType = stringClassToDexType(rewrittenEmulateLibraryItf);
       emulateLibraryInterface.put(interfaceType, rewrittenType);
+      return this;
+    }
+
+    public Builder putCustomConversion(String type, String conversionHolder) {
+      DexType dexType = stringClassToDexType(type);
+      DexType conversionType = stringClassToDexType(conversionHolder);
+      customConversions.put(dexType, conversionType);
       return this;
     }
 
@@ -174,6 +190,7 @@ public class DesugaredLibraryConfiguration {
           ImmutableMap.copyOf(emulateLibraryInterface),
           ImmutableMap.copyOf(retargetCoreLibMember),
           ImmutableMap.copyOf(backportCoreLibraryMember),
+          ImmutableMap.copyOf(customConversions),
           ImmutableList.copyOf(dontRewriteInvocation));
     }
   }

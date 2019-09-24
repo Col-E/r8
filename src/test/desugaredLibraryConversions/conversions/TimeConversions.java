@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.conversion;
+package j$.time;
 
 public class TimeConversions {
 
@@ -18,7 +18,7 @@ public class TimeConversions {
         dateTime.getMinute(),
         dateTime.getSecond(),
         dateTime.getNano(),
-        j$.time.ZoneId.of(dateTime.getZone().getId()));
+        from(dateTime.getZone()));
   }
 
   public static java.time.ZonedDateTime to(j$.time.ZonedDateTime dateTime) {
@@ -33,7 +33,21 @@ public class TimeConversions {
         dateTime.getMinute(),
         dateTime.getSecond(),
         dateTime.getNano(),
-        java.time.ZoneId.of(dateTime.getZone().getId()));
+        to(dateTime.getZone()));
+  }
+
+  public static j$.time.ZoneId from(java.time.ZoneId zoneId) {
+    if (zoneId == null) {
+      return null;
+    }
+    return j$.time.ZoneId.of(zoneId.getId());
+  }
+
+  public static java.time.ZoneId to(j$.time.ZoneId zoneId) {
+    if (zoneId == null) {
+      return null;
+    }
+    return java.time.ZoneId.of(zoneId.getId());
   }
 
   // Following conversions are hidden (Used by tests APIs only).

@@ -98,7 +98,8 @@ public abstract class PrefixRewritingMapper {
 
     @Override
     public void addPrefix(String prefix, String rewrittenPrefix) {
-      additionalPrefixes.put(toDescriptorPrefix(prefix), toDescriptorPrefix(rewrittenPrefix));
+      additionalPrefixes.putIfAbsent(
+          toDescriptorPrefix(prefix), toDescriptorPrefix(rewrittenPrefix));
     }
 
     private DexType computePrefix(DexType type) {
