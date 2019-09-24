@@ -11,6 +11,10 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.AbstractError;
+import com.android.tools.r8.ir.analysis.fieldvalueanalysis.AbstractFieldSet;
+import com.android.tools.r8.ir.analysis.fieldvalueanalysis.ConcreteMutableFieldSet;
+import com.android.tools.r8.ir.analysis.fieldvalueanalysis.EmptyFieldSet;
+import com.android.tools.r8.ir.analysis.fieldvalueanalysis.UnknownFieldSet;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Collections;
 import java.util.List;
@@ -130,5 +134,33 @@ public abstract class FieldInstruction extends Instruction {
   public boolean hasInvariantOutType() {
     // TODO(jsjeon): what if the target field is known to be non-null?
     return true;
+  }
+
+  @Override
+  public AbstractFieldSet readSet(AppView<?> appView, DexType context) {
+    if (instructionMayTriggerMethodInvocation(appView, context)) {
+      // This may trigger class initialization, which could potentially read any field.
+      return UnknownFieldSet.getInstance();
+    }
+
+    if (isFieldGet()) {
+      DexField field = getField();
+      DexEncodedField encodedField = null;
+      if (appView.enableWholeProgramOptimizations()) {
+        encodedField = appView.appInfo().resolveField(field);
+      } else {
+        DexClass clazz = appView.definitionFor(field.holder);
+        if (clazz != null) {
+          encodedField = clazz.lookupField(field);
+        }
+      }
+      if (encodedField != null) {
+        return new ConcreteMutableFieldSet(encodedField);
+      }
+      return UnknownFieldSet.getInstance();
+    }
+
+    assert isFieldPut();
+    return EmptyFieldSet.getInstance();
   }
 }

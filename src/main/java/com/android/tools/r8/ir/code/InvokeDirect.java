@@ -12,11 +12,15 @@ import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
+import com.android.tools.r8.ir.analysis.fieldvalueanalysis.AbstractFieldSet;
+import com.android.tools.r8.ir.analysis.fieldvalueanalysis.EmptyFieldSet;
+import com.android.tools.r8.ir.analysis.modeling.LibraryMethodReadSetModeling;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -276,5 +280,23 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
     }
 
     return true;
+  }
+
+  @Override
+  public AbstractFieldSet readSet(AppView<?> appView, DexType context) {
+    DexMethod invokedMethod = getInvokedMethod();
+
+    // Trivial instance initializers do not read any fields.
+    if (appView.dexItemFactory().isConstructor(invokedMethod)) {
+      DexEncodedMethod singleTarget = lookupSingleTarget(appView, context);
+      if (singleTarget != null) {
+        TrivialInitializer info = singleTarget.getOptimizationInfo().getTrivialInitializerInfo();
+        if (info != null && info.isTrivialInstanceInitializer()) {
+          return EmptyFieldSet.getInstance();
+        }
+      }
+    }
+
+    return LibraryMethodReadSetModeling.getModeledReadSetOrUnknown(this, appView.dexItemFactory());
   }
 }

@@ -17,6 +17,9 @@ import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
 import com.android.tools.r8.ir.analysis.constant.Bottom;
 import com.android.tools.r8.ir.analysis.constant.ConstRangeLatticeElement;
 import com.android.tools.r8.ir.analysis.constant.LatticeElement;
+import com.android.tools.r8.ir.analysis.fieldvalueanalysis.AbstractFieldSet;
+import com.android.tools.r8.ir.analysis.fieldvalueanalysis.EmptyFieldSet;
+import com.android.tools.r8.ir.analysis.fieldvalueanalysis.UnknownFieldSet;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Assume.DynamicTypeAssumption;
 import com.android.tools.r8.ir.code.Assume.NoAssumption;
@@ -537,6 +540,18 @@ public abstract class Instruction implements InstructionOrPhi {
     // TODO(b/129530569): instructions with fine-grained side effect analysis may use:
     // return !instructionMayHaveSideEffects(appView, code.method.method.holder);
     return !instructionInstanceCanThrow();
+  }
+
+  /**
+   * Returns an abstraction of the set of fields that may possibly be read as a result of executing
+   * this instruction.
+   */
+  public AbstractFieldSet readSet(AppView<?> appView, DexType context) {
+    if (instructionMayTriggerMethodInvocation(appView, context)
+        && instructionMayHaveSideEffects(appView, context)) {
+      return UnknownFieldSet.getInstance();
+    }
+    return EmptyFieldSet.getInstance();
   }
 
   /**

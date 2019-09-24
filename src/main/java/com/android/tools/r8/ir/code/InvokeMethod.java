@@ -11,6 +11,8 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
+import com.android.tools.r8.ir.analysis.fieldvalueanalysis.AbstractFieldSet;
+import com.android.tools.r8.ir.analysis.modeling.LibraryMethodReadSetModeling;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.InliningOracle;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
@@ -118,5 +120,10 @@ public abstract class InvokeMethod extends Invoke {
   @Override
   public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
     return true;
+  }
+
+  @Override
+  public AbstractFieldSet readSet(AppView<?> appView, DexType context) {
+    return LibraryMethodReadSetModeling.getModeledReadSetOrUnknown(this, appView.dexItemFactory());
   }
 }
