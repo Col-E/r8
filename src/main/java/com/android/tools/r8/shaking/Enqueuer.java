@@ -284,10 +284,9 @@ public class Enqueuer {
    */
   private final Set<DexEncodedMethod> pendingReflectiveUses = Sets.newLinkedHashSet();
 
-  /**
-   * A cache for DexMethod that have been marked reachable.
-   */
-  private final Set<DexMethod> virtualTargetsMarkedAsReachable = Sets.newIdentityHashSet();
+  /** A cache for DexMethod that have been marked reachable. */
+  private final Map<DexMethod, DexEncodedMethod> virtualTargetsMarkedAsReachable =
+      Maps.newIdentityHashMap();
 
   /**
    * A set of references we have reported missing to dedupe warnings.
@@ -596,9 +595,14 @@ public class Enqueuer {
 
     private final DexEncodedMethod currentMethod;
 
-    private UseRegistry(DexItemFactory factory, DexEncodedMethod currentMethod) {
+    private UseRegistry(DexItemFactory factory, DexProgramClass holder, DexEncodedMethod method) {
       super(factory);
-      this.currentMethod = currentMethod;
+      assert holder.type == method.method.holder;
+      this.currentMethod = method;
+    }
+
+    private KeepReasonWitness reportClassReferenced(DexProgramClass referencedClass) {
+      return graphReporter.reportClassReferencedFrom(referencedClass, currentMethod);
     }
 
     @Override
@@ -744,10 +748,8 @@ public class Enqueuer {
       // the field as live, if the holder is an interface.
       if (appView.options().enableUnusedInterfaceRemoval) {
         if (encodedField.field != field) {
-          markTypeAsLive(clazz, graphReporter.reportClassReferencedFrom(clazz, currentMethod));
-          markTypeAsLive(
-              encodedField.field.type,
-              type -> graphReporter.reportClassReferencedFrom(type, currentMethod));
+          markTypeAsLive(clazz, reportClassReferenced(clazz));
+          markTypeAsLive(encodedField.field.type, this::reportClassReferenced);
         }
       }
 
@@ -784,10 +786,8 @@ public class Enqueuer {
       // the field as live, if the holder is an interface.
       if (appView.options().enableUnusedInterfaceRemoval) {
         if (encodedField.field != field) {
-          markTypeAsLive(clazz, graphReporter.reportClassReferencedFrom(clazz, currentMethod));
-          markTypeAsLive(
-              encodedField.field.type,
-              type -> graphReporter.reportClassReferencedFrom(type, currentMethod));
+          markTypeAsLive(clazz, reportClassReferenced(clazz));
+          markTypeAsLive(encodedField.field.type, this::reportClassReferenced);
         }
       }
 
@@ -923,7 +923,7 @@ public class Enqueuer {
 
     @Override
     public boolean registerTypeReference(DexType type) {
-      markTypeAsLive(type, clazz -> graphReporter.reportClassReferencedFrom(clazz, currentMethod));
+      markTypeAsLive(type, this::reportClassReferenced);
       return true;
     }
 
@@ -1056,8 +1056,7 @@ public class Enqueuer {
           markClassAsInstantiatedWithCompatRule(baseClass);
         } else {
           // This also handles reporting of missing classes.
-          markTypeAsLive(
-              baseType, clazz -> graphReporter.reportClassReferencedFrom(clazz, currentMethod));
+          markTypeAsLive(baseType, this::reportClassReferenced);
         }
         return true;
       }
@@ -1847,9 +1846,6 @@ public class Enqueuer {
       boolean interfaceInvoke,
       KeepReason reason,
       BiPredicate<DexProgramClass, DexEncodedMethod> possibleTargetsFilter) {
-    if (!virtualTargetsMarkedAsReachable.add(method)) {
-      return;
-    }
     if (Log.ENABLED) {
       Log.verbose(getClass(), "Marking virtual method `%s` as reachable.", method);
     }
@@ -1867,8 +1863,13 @@ public class Enqueuer {
       return;
     }
 
-    DexEncodedMethod resolutionTarget =
-        findAndMarkResolutionTarget(method, interfaceInvoke, reason);
+    DexEncodedMethod resolutionTarget = virtualTargetsMarkedAsReachable.get(method);
+    if (resolutionTarget != null) {
+      registerMethod(resolutionTarget, reason);
+      return;
+    }
+    resolutionTarget = findAndMarkResolutionTarget(method, interfaceInvoke, reason);
+    virtualTargetsMarkedAsReachable.put(method, resolutionTarget);
     if (resolutionTarget == null || !resolutionTarget.isValidVirtualTarget(options)) {
       // There is no valid resolution, so any call will lead to a runtime exception.
       return;
@@ -2514,7 +2515,7 @@ public class Enqueuer {
       method.parameterAnnotationsList.forEachAnnotation(
           annotation -> processAnnotation(method, annotation));
     }
-    method.registerCodeReferences(new UseRegistry(options.itemFactory, method));
+    method.registerCodeReferences(new UseRegistry(options.itemFactory, clazz, method));
 
     // Add all dependent members to the workqueue.
     enqueueRootItems(rootSet.getDependentItems(method));
