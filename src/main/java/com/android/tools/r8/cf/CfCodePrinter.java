@@ -113,7 +113,7 @@ public class CfCodePrinter extends CfPrinter {
             .append(r8Type("InternalOptions", "utils"))
             .append(" options, ")
             .append(r8Type("DexMethod", "graph"))
-            .append(" method, String name) {");
+            .append(" method) {");
 
     for (CfInstruction instruction : code.getInstructions()) {
       if (instruction instanceof CfLabel) {

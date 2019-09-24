@@ -126,7 +126,7 @@ public final class TwrCloseResourceRewriter {
     // The only encoded method.
     CfCode code =
         BackportedMethods.CloseResourceMethod_closeResourceImpl(
-            options, twrCloseResourceMethod, null);
+            options, twrCloseResourceMethod);
     MethodAccessFlags flags = MethodAccessFlags.fromSharedAccessFlags(
         Constants.ACC_PUBLIC | Constants.ACC_STATIC | Constants.ACC_SYNTHETIC, false);
     DexEncodedMethod method = new DexEncodedMethod(twrCloseResourceMethod,

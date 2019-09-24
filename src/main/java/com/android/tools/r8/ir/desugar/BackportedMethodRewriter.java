@@ -1006,7 +1006,7 @@ public final class BackportedMethodRewriter {
                 ? new InvokeRewriter(method, CollectionMethodRewrites::rewriteListOfEmpty)
                 : new MethodGenerator(
                     method,
-                    (options, methodArg, ignored) ->
+                    (options, methodArg) ->
                         CollectionMethodGenerators.generateListOf(options, methodArg, formalCount)));
       }
       proto = factory.createProto(type, factory.objectArrayType);
@@ -1027,7 +1027,7 @@ public final class BackportedMethodRewriter {
                 ? new InvokeRewriter(method, CollectionMethodRewrites::rewriteSetOfEmpty)
                 : new MethodGenerator(
                     method,
-                    (options, methodArg, ignored) ->
+                    (options, methodArg) ->
                         CollectionMethodGenerators.generateSetOf(options, methodArg, formalCount)));
       }
       proto = factory.createProto(type, factory.objectArrayType);
@@ -1048,7 +1048,7 @@ public final class BackportedMethodRewriter {
                 ? new InvokeRewriter(method, CollectionMethodRewrites::rewriteMapOfEmpty)
                 : new MethodGenerator(
                     method,
-                    (options, methodArg, ignored) ->
+                    (options, methodArg) ->
                         CollectionMethodGenerators.generateMapOf(options, methodArg, formalCount)));
       }
       proto = factory.createProto(type, factory.createArrayType(1, factory.mapEntryType));
@@ -1317,7 +1317,7 @@ public final class BackportedMethodRewriter {
 
     @Override
     public Code generateTemplateMethod(InternalOptions options, DexMethod method) {
-      return factory.create(options, method, methodName);
+      return factory.create(options, method);
     }
 
     @Override
@@ -1355,7 +1355,7 @@ public final class BackportedMethodRewriter {
 
   private interface TemplateMethodFactory {
 
-    Code create(InternalOptions options, DexMethod method, String name);
+    Code create(InternalOptions options, DexMethod method);
   }
 
   private interface MethodInvokeRewriter {
