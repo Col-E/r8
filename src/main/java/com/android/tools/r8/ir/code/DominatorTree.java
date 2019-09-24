@@ -95,9 +95,9 @@ public class DominatorTree implements BasicBlockChangeListener {
   /**
    * Check if one basic block is dominated by another basic block.
    *
-   * @param subject subject to check for domination by {@code dominator}
+   * @param subject subject to check for domination by {@param dominator}
    * @param dominator dominator to check against
-   * @return wether {@code subject} is dominated by {@code dominator}
+   * @return whether {@param subject} is dominated by {@param dominator}
    */
   public boolean dominatedBy(BasicBlock subject, BasicBlock dominator) {
     assert !obsolete;
@@ -108,11 +108,27 @@ public class DominatorTree implements BasicBlockChangeListener {
   }
 
   /**
+   * Checks if one basic block dominates a collection of other basic blocks.
+   *
+   * @param dominator dominator to check against
+   * @param subjects subjects to check for domination by {@param dominator}
+   * @return whether {@param subjects} are all dominated by {@param dominator}
+   */
+  public boolean dominatesAllOf(BasicBlock dominator, Iterable<BasicBlock> subjects) {
+    for (BasicBlock subject : subjects) {
+      if (!dominatedBy(subject, dominator)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
    * Check if one basic block is strictly dominated by another basic block.
    *
-   * @param subject subject to check for domination by {@code dominator}
+   * @param subject subject to check for domination by {@param dominator}
    * @param dominator dominator to check against
-   * @return wether {@code subject} is strictly dominated by {@code dominator}
+   * @return whether {@param subject} is strictly dominated by {@param dominator}
    */
   public boolean strictlyDominatedBy(BasicBlock subject, BasicBlock dominator) {
     assert !obsolete;

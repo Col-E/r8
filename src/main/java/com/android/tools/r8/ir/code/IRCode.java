@@ -262,7 +262,6 @@ public class IRCode {
   }
 
   public boolean controlFlowMayDependOnEnvironment(AppView<?> appView) {
-    DexType context = method.method.holder;
     for (BasicBlock block : blocks) {
       if (block.hasCatchHandlers()) {
         // Whether an instruction throws may generally depend on the environment.

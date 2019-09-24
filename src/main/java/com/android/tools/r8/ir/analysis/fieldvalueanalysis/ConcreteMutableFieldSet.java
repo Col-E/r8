@@ -5,11 +5,13 @@
 package com.android.tools.r8.ir.analysis.fieldvalueanalysis;
 
 import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.Sets;
+import java.util.Collections;
 import java.util.Set;
 
-public class ConcreteMutableFieldSet extends AbstractFieldSet {
+public class ConcreteMutableFieldSet extends AbstractFieldSet implements KnownFieldSet {
 
   private final Set<DexEncodedField> fields;
 
@@ -29,8 +31,11 @@ public class ConcreteMutableFieldSet extends AbstractFieldSet {
     fields.addAll(other.fields);
   }
 
-  public int size() {
-    return fields.size();
+  Set<DexEncodedField> getFields() {
+    if (InternalOptions.assertionsEnabled()) {
+      return Collections.unmodifiableSet(fields);
+    }
+    return fields;
   }
 
   @Override
@@ -44,7 +49,39 @@ public class ConcreteMutableFieldSet extends AbstractFieldSet {
   }
 
   @Override
+  public boolean isKnownFieldSet() {
+    return true;
+  }
+
+  @Override
+  public ConcreteMutableFieldSet asKnownFieldSet() {
+    return this;
+  }
+
+  @Override
   public boolean contains(DexEncodedField field) {
     return fields.contains(field);
+  }
+
+  @Override
+  public int size() {
+    return fields.size();
+  }
+
+  @Override
+  public int hashCode() {
+    return fields.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object other) {
+    if (other == null) {
+      return false;
+    }
+    if (other.getClass() != getClass()) {
+      return false;
+    }
+    ConcreteMutableFieldSet concreteFieldSet = (ConcreteMutableFieldSet) other;
+    return fields.equals(concreteFieldSet.fields);
   }
 }

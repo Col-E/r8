@@ -32,6 +32,7 @@ import com.android.tools.r8.ir.analysis.InitializedClassesOnNormalExitAnalysis;
 import com.android.tools.r8.ir.analysis.TypeChecker;
 import com.android.tools.r8.ir.analysis.constant.SparseConditionalConstantPropagation;
 import com.android.tools.r8.ir.analysis.fieldaccess.FieldBitAccessAnalysis;
+import com.android.tools.r8.ir.analysis.fieldvalueanalysis.FieldValueAnalysis;
 import com.android.tools.r8.ir.analysis.sideeffect.ClassInitializerSideEffectAnalysis;
 import com.android.tools.r8.ir.analysis.sideeffect.ClassInitializerSideEffectAnalysis.ClassInitializerSideEffect;
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
@@ -1217,7 +1218,7 @@ public class IRConverter {
     codeRewriter.rewriteThrowNullPointerException(code);
 
     if (classInitializerDefaultsOptimization != null && !isDebugMode) {
-      classInitializerDefaultsOptimization.optimize(method, code, feedback);
+      classInitializerDefaultsOptimization.optimize(method, code);
     }
 
     if (Log.ENABLED) {
@@ -1384,6 +1385,7 @@ public class IRConverter {
         }
 
         computeDynamicReturnType(feedback, method, code);
+        FieldValueAnalysis.run(appView, code, feedback, method);
         computeInitializedClassesOnNormalExit(feedback, method, code);
         computeMayHaveSideEffects(feedback, method, code);
         computeReturnValueOnlyDependsOnArguments(feedback, method, code);

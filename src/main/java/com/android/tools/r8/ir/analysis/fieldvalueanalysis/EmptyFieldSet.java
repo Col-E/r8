@@ -6,7 +6,7 @@ package com.android.tools.r8.ir.analysis.fieldvalueanalysis;
 
 import com.android.tools.r8.graph.DexEncodedField;
 
-public class EmptyFieldSet extends AbstractFieldSet {
+public class EmptyFieldSet extends AbstractFieldSet implements KnownFieldSet {
 
   private static final EmptyFieldSet INSTANCE = new EmptyFieldSet();
 
@@ -17,6 +17,16 @@ public class EmptyFieldSet extends AbstractFieldSet {
   }
 
   @Override
+  public boolean isKnownFieldSet() {
+    return true;
+  }
+
+  @Override
+  public EmptyFieldSet asKnownFieldSet() {
+    return this;
+  }
+
+  @Override
   public boolean contains(DexEncodedField field) {
     return false;
   }
@@ -24,5 +34,10 @@ public class EmptyFieldSet extends AbstractFieldSet {
   @Override
   public boolean isBottom() {
     return true;
+  }
+
+  @Override
+  public int size() {
+    return 0;
   }
 }

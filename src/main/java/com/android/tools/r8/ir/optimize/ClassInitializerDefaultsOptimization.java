@@ -29,7 +29,6 @@ import com.android.tools.r8.graph.DexValue.DexValueLong;
 import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.DexValue.DexValueShort;
 import com.android.tools.r8.graph.DexValue.DexValueString;
-import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -45,7 +44,6 @@ import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
-import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.naming.dexitembasedstring.ClassNameComputationInfo;
 import com.android.tools.r8.naming.dexitembasedstring.ClassNameComputationInfo.ClassNameMapping;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -104,7 +102,7 @@ public class ClassInitializerDefaultsOptimization {
     this.dexItemFactory = appView.dexItemFactory();
   }
 
-  public void optimize(DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
+  public void optimize(DexEncodedMethod method, IRCode code) {
     if (!method.isClassInitializer()) {
       return;
     }
@@ -164,14 +162,6 @@ public class ClassInitializerDefaultsOptimization {
           } else {
             throw new Unreachable("Unexpected field type " + fieldType + ".");
           }
-        }
-      } else if (appView.options().enableFieldTypePropagation && appView.appInfo().hasLiveness()) {
-        AppInfoWithLiveness appInfoWithLiveness = appView.withLiveness().appInfo();
-        if (appInfoWithLiveness.isStaticFieldWrittenOnlyInEnclosingStaticInitializer(field)) {
-          TypeLatticeElement valueType = value.getTypeLattice();
-          assert valueType.strictlyLessThan(
-              TypeLatticeElement.fromDexType(fieldType, Nullability.maybeNull(), appView), appView);
-          feedback.markFieldHasDynamicType(field, valueType);
         }
       }
     }

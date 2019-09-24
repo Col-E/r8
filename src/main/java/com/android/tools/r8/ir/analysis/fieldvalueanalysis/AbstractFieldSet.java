@@ -32,6 +32,14 @@ public abstract class AbstractFieldSet {
     return null;
   }
 
+  public boolean isKnownFieldSet() {
+    return false;
+  }
+
+  public KnownFieldSet asKnownFieldSet() {
+    return null;
+  }
+
   public abstract boolean contains(DexEncodedField field);
 
   public boolean isBottom() {
@@ -40,5 +48,21 @@ public abstract class AbstractFieldSet {
 
   public boolean isTop() {
     return false;
+  }
+
+  public final boolean lessThanOrEqual(AbstractFieldSet other) {
+    if (isBottom() || other.isTop()) {
+      return true;
+    }
+    if (isTop() || other.isBottom()) {
+      return false;
+    }
+    assert isConcreteFieldSet();
+    assert other.isConcreteFieldSet();
+    return other.asConcreteFieldSet().getFields().containsAll(asConcreteFieldSet().getFields());
+  }
+
+  public final boolean strictlyLessThan(AbstractFieldSet other) {
+    return lessThanOrEqual(other) && !equals(other);
   }
 }
