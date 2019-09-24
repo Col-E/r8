@@ -8,9 +8,11 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionOrPhi;
+import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.Inliner;
@@ -18,9 +20,11 @@ import com.android.tools.r8.ir.optimize.InliningOracle;
 import com.android.tools.r8.ir.optimize.string.StringOptimizer;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -34,8 +38,14 @@ public final class ClassInliner {
     NON_CLASS_TYPE,
     UNKNOWN_TYPE,
 
+    // Used by isClassEligible
+    NON_PROGRAM_CLASS,
+    ABSTRACT_OR_INTERFACE,
+    NEVER_CLASS_INLINE,
+    HAS_FINALIZER,
+    TRIGGER_CLINIT,
+
     // Used by InlineCandidateProcessor#isClassAndUsageEligible
-    INELIGIBLE_CLASS,
     HAS_CLINIT,
     HAS_INSTANCE_FIELDS,
     NON_FINAL_TYPE,
@@ -46,7 +56,8 @@ public final class ClassInliner {
   }
 
   private final LambdaRewriter lambdaRewriter;
-  private final ConcurrentHashMap<DexClass, Boolean> knownClasses = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<DexClass, EligibilityStatus> knownClasses =
+      new ConcurrentHashMap<>();
 
   public ClassInliner(LambdaRewriter lambdaRewriter) {
     this.lambdaRewriter = lambdaRewriter;
@@ -56,7 +67,15 @@ public final class ClassInliner {
       DexEncodedMethod context, Instruction root, EligibilityStatus status) {
     if (Log.ENABLED && Log.isLoggingEnabledFor(ClassInliner.class)) {
       Log.info(getClass(), "At %s,", context.toSourceString());
-      Log.info(getClass(), "ClassInlining eligibility of %s: %s,", root, status);
+      Log.info(getClass(), "ClassInlining eligibility of `%s`: %s.", root, status);
+    }
+  }
+
+  private void logIneligibleUser(
+      DexEncodedMethod context, Instruction root, InstructionOrPhi ineligibleUser) {
+    if (Log.ENABLED && Log.isLoggingEnabledFor(ClassInliner.class)) {
+      Log.info(getClass(), "At %s,", context.toSourceString());
+      Log.info(getClass(), "Ineligible user of `%s`: `%s`.", root, ineligibleUser);
     }
   }
 
@@ -133,7 +152,7 @@ public final class ClassInliner {
   //       return 1;
   //     }
   //     static int method3() {
-  //       return "F::getX";
+  //       return 123;
   //     }
   //   }
   //
@@ -195,6 +214,7 @@ public final class ClassInliner {
         InstructionOrPhi ineligibleUser = processor.areInstanceUsersEligible(defaultOracle);
         if (ineligibleUser != null) {
           // This root may succeed if users change in future.
+          logIneligibleUser(code.method, root, ineligibleUser);
           continue;
         }
 
@@ -208,7 +228,11 @@ public final class ClassInliner {
         anyInlinedMethods |= processor.processInlining(code, defaultOracle);
 
         // Restore normality.
-        code.removeAllTrivialPhis();
+        Set<Value> affectedValues = Sets.newIdentityHashSet();
+        code.removeAllTrivialPhis(affectedValues);
+        if (!affectedValues.isEmpty()) {
+          new TypeAnalysis(appView).narrowing(affectedValues);
+        }
         assert code.isConsistentSSA();
         rootsIterator.remove();
         repeat = true;
@@ -233,11 +257,11 @@ public final class ClassInliner {
     }
   }
 
-  private boolean isClassEligible(AppView<AppInfoWithLiveness> appView, DexClass clazz) {
-    Boolean eligible = knownClasses.get(clazz);
+  private EligibilityStatus isClassEligible(AppView<AppInfoWithLiveness> appView, DexClass clazz) {
+    EligibilityStatus eligible = knownClasses.get(clazz);
     if (eligible == null) {
-      boolean computed = computeClassEligible(appView, clazz);
-      Boolean existing = knownClasses.putIfAbsent(clazz, computed);
+      EligibilityStatus computed = computeClassEligible(appView, clazz);
+      EligibilityStatus existing = knownClasses.putIfAbsent(clazz, computed);
       assert existing == null || existing == computed;
       eligible = existing == null ? computed : existing;
     }
@@ -248,13 +272,19 @@ public final class ClassInliner {
   //   - is not an abstract class or interface
   //   - does not declare finalizer
   //   - does not trigger any static initializers except for its own
-  private boolean computeClassEligible(AppView<AppInfoWithLiveness> appView, DexClass clazz) {
-    if (clazz == null
-        || clazz.isNotProgramClass()
-        || clazz.accessFlags.isAbstract()
-        || clazz.accessFlags.isInterface()
-        || appView.appInfo().neverClassInline.contains(clazz.type)) {
-      return false;
+  private EligibilityStatus computeClassEligible(
+      AppView<AppInfoWithLiveness> appView, DexClass clazz) {
+    if (clazz == null) {
+      return EligibilityStatus.UNKNOWN_TYPE;
+    }
+    if (clazz.isNotProgramClass()) {
+      return EligibilityStatus.NON_PROGRAM_CLASS;
+    }
+    if (clazz.isAbstract() || clazz.isInterface()) {
+      return EligibilityStatus.ABSTRACT_OR_INTERFACE;
+    }
+    if (appView.appInfo().neverClassInline.contains(clazz.type)) {
+      return EligibilityStatus.NEVER_CLASS_INLINE;
     }
 
     // Class must not define finalizer.
@@ -262,11 +292,14 @@ public final class ClassInliner {
     for (DexEncodedMethod method : clazz.virtualMethods()) {
       if (method.method.name == dexItemFactory.finalizeMethodName
           && method.method.proto == dexItemFactory.objectMethods.finalize.proto) {
-        return false;
+        return EligibilityStatus.HAS_FINALIZER;
       }
     }
 
     // Check for static initializers in this class or any of interfaces it implements.
-    return !clazz.initializationOfParentTypesMayHaveSideEffects(appView);
+    if (clazz.initializationOfParentTypesMayHaveSideEffects(appView)) {
+      return EligibilityStatus.TRIGGER_CLINIT;
+    }
+    return EligibilityStatus.ELIGIBLE;
   }
 }

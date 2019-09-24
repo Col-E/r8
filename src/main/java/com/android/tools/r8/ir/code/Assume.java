@@ -153,6 +153,10 @@ public class Assume<An extends Assumption> extends Instruction {
     return self;
   }
 
+  public boolean mayAffectStaticType() {
+    return isAssumeNonNull();
+  }
+
   @Override
   public boolean couldIntroduceAnAlias(AppView<?> appView, Value root) {
     assert root != null && root.getTypeLattice().isReference();
