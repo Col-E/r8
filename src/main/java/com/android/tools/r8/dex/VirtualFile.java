@@ -309,15 +309,19 @@ public class VirtualFile {
       mainDexFile = new VirtualFile(0, writer.namingLens);
       assert virtualFiles.isEmpty();
       virtualFiles.add(mainDexFile);
-      if (writer.markerStrings != null && !writer.markerStrings.isEmpty()) {
-        for (DexString markerString : writer.markerStrings) {
-          mainDexFile.transaction.addString(markerString);
-        }
-        mainDexFile.commitTransaction();
-      }
+      addMarkers(mainDexFile);
 
       classes = Sets.newHashSet(application.classes());
       originalNames = computeOriginalNameMapping(classes, application.getProguardMap());
+    }
+
+    private void addMarkers(VirtualFile virtualFile) {
+      if (writer.markerStrings != null && !writer.markerStrings.isEmpty()) {
+        for (DexString markerString : writer.markerStrings) {
+          virtualFile.transaction.addString(markerString);
+        }
+        virtualFile.commitTransaction();
+      }
     }
 
     protected void fillForMainDexList(Set<DexProgramClass> classes) {
@@ -418,7 +422,10 @@ public class VirtualFile {
       for (Map.Entry<FeatureSplit, Set<DexProgramClass>> featureSplitSetEntry :
           featureSplitClasses.entrySet()) {
         // Add a new virtual file, start from index 0 again
-        virtualFiles.add(new VirtualFile(0, writer.namingLens, featureSplitSetEntry.getKey()));
+        VirtualFile featureFile =
+            new VirtualFile(0, writer.namingLens, featureSplitSetEntry.getKey());
+        virtualFiles.add(featureFile);
+        addMarkers(featureFile);
         Set<DexProgramClass> featureClasses =
             sortClassesByPackage(featureSplitSetEntry.getValue(), originalNames);
         filesForDistribution = virtualFiles.subList(virtualFiles.size() - 1, virtualFiles.size());

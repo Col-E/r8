@@ -8,15 +8,19 @@ import static junit.framework.TestCase.assertTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DexIndexedConsumer;
+import com.android.tools.r8.ExtractMarker;
 import com.android.tools.r8.FeatureSplit;
+import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -60,21 +64,10 @@ public class R8FeatureSplitTest extends SplitterTestBase {
 
   @Test
   public void testTwoFeatures() throws CompilationFailedException, IOException, ExecutionException {
-    Path basePath = temp.newFile("base.zip").toPath();
-    Path feature1Path = temp.newFile("feature1.zip").toPath();
-    Path feature2Path = temp.newFile("feature2.zip").toPath();
-
-    testForR8(parameters.getBackend())
-        .addProgramClasses(BaseClass.class, RunInterface.class, SplitRunner.class)
-        .setMinApi(parameters.getRuntime())
-        .addFeatureSplit(
-            builder -> simpleSplitProvider(builder, feature1Path, temp, FeatureClass.class))
-        .addFeatureSplit(
-            builder -> simpleSplitProvider(builder, feature2Path, temp, FeatureClass2.class))
-        .addKeepAllClassesRule()
-        .compile()
-        .writeToZip(basePath);
-
+    CompiledWithFeature compiledWithFeature = new CompiledWithFeature().invoke();
+    Path basePath = compiledWithFeature.getBasePath();
+    Path feature1Path = compiledWithFeature.getFeature1Path();
+    Path feature2Path = compiledWithFeature.getFeature2Path();
     CodeInspector baseInspector = new CodeInspector(basePath);
     assertTrue(baseInspector.clazz(BaseClass.class).isPresent());
 
@@ -98,6 +91,24 @@ public class R8FeatureSplitTest extends SplitterTestBase {
     result = runFeatureOnArt(FeatureClass2.class, basePath, feature2Path, parameters.getRuntime());
     assertEquals(result.exitCode, 0);
     assertEquals(result.stdout, StringUtils.lines("Testing second"));
+  }
+
+  @Test
+  public void testMarkerInFeatures()
+      throws IOException, CompilationFailedException, ExecutionException, ResourceException {
+    CompiledWithFeature compiledWithFeature = new CompiledWithFeature().invoke();
+    Path basePath = compiledWithFeature.getBasePath();
+    Path feature1Path = compiledWithFeature.getFeature1Path();
+    Path feature2Path = compiledWithFeature.getFeature2Path();
+    Collection<Marker> markers = ExtractMarker.extractMarkerFromDexFile(basePath);
+    Collection<Marker> feature1Markers = ExtractMarker.extractMarkerFromDexFile(feature1Path);
+    Collection<Marker> feature2Markers = ExtractMarker.extractMarkerFromDexFile(feature2Path);
+
+    assertEquals(markers.size(), 1);
+    assertEquals(feature1Markers.size(), 1);
+    assertEquals(feature2Markers.size(), 1);
+    assertEquals(markers.iterator().next(), feature1Markers.iterator().next());
+    assertEquals(markers.iterator().next(), feature2Markers.iterator().next());
   }
 
   public static class HelloWorld {
@@ -137,6 +148,43 @@ public class R8FeatureSplitTest extends SplitterTestBase {
     @Override
     public void run() {
       test();
+    }
+  }
+
+  private class CompiledWithFeature {
+
+    private Path basePath;
+    private Path feature1Path;
+    private Path feature2Path;
+
+    public Path getBasePath() {
+      return basePath;
+    }
+
+    public Path getFeature1Path() {
+      return feature1Path;
+    }
+
+    public Path getFeature2Path() {
+      return feature2Path;
+    }
+
+    public CompiledWithFeature invoke() throws IOException, CompilationFailedException {
+      basePath = temp.newFile("base.zip").toPath();
+      feature1Path = temp.newFile("feature1.zip").toPath();
+      feature2Path = temp.newFile("feature2.zip").toPath();
+
+      testForR8(parameters.getBackend())
+          .addProgramClasses(BaseClass.class, RunInterface.class, SplitRunner.class)
+          .setMinApi(parameters.getRuntime())
+          .addFeatureSplit(
+              builder -> simpleSplitProvider(builder, feature1Path, temp, FeatureClass.class))
+          .addFeatureSplit(
+              builder -> simpleSplitProvider(builder, feature2Path, temp, FeatureClass2.class))
+          .addKeepAllClassesRule()
+          .compile()
+          .writeToZip(basePath);
+      return this;
     }
   }
 }
