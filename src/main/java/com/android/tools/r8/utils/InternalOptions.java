@@ -354,7 +354,12 @@ public class InternalOptions {
     }
     if (featureSplitConfiguration != null) {
       for (FeatureSplit featureSplit : featureSplitConfiguration.getFeatureSplits()) {
-        featureSplit.getProgramConsumer().finished(reporter);
+        ProgramConsumer programConsumer = featureSplit.getProgramConsumer();
+        programConsumer.finished(reporter);
+        DataResourceConsumer dataResourceConsumer = programConsumer.getDataResourceConsumer();
+        if (dataResourceConsumer != null) {
+          dataResourceConsumer.finished(reporter);
+        }
       }
     }
   }

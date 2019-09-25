@@ -3,7 +3,6 @@ package com.android.tools.r8.dexsplitter;
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.ArchiveProgramResourceProvider;
 import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DexIndexedConsumer.ArchiveConsumer;
@@ -18,11 +17,14 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.dexsplitter.DexSplitter.Options;
+import com.android.tools.r8.utils.ArchiveResourceProvider;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.collect.ImmutableList;
 import dalvik.system.PathClassLoader;
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
@@ -31,6 +33,9 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
 import org.junit.rules.TemporaryFolder;
 
 public class SplitterTestBase extends TestBase {
@@ -45,32 +50,78 @@ public class SplitterTestBase extends TestBase {
       Path outputPath,
       TemporaryFolder temp,
       Collection<Class<?>> classes) {
+    addConsumers(builder, outputPath, temp, null, true, classes);
+    return builder.build();
+  }
+
+  private static void addConsumers(
+      FeatureSplit.Builder builder,
+      Path outputPath,
+      TemporaryFolder temp,
+      Collection<String> nonJavaResources,
+      boolean ensureClassesInOutput,
+      Collection<Class<?>> classes) {
     List<String> classNames = classes.stream().map(Class::getName).collect(Collectors.toList());
     Path featureJar;
     try {
-      featureJar = temp.newFile().toPath();
+      featureJar = temp.newFolder().toPath().resolve("feature.jar");
       writeClassesToJar(featureJar, classes);
+      if (nonJavaResources != null && nonJavaResources.size() > 0) {
+        // We can't simply append to an existing zip easily, just copy the entries and add what we
+        // need.
+        Path newFeatureJar = temp.newFolder().toPath().resolve("feature.jar");
+
+        ZipOutputStream outputStream = new ZipOutputStream(Files.newOutputStream(newFeatureJar));
+        ZipInputStream inputStream = new ZipInputStream(Files.newInputStream(featureJar));
+        ZipEntry next = inputStream.getNextEntry();
+        while (next != null) {
+          outputStream.putNextEntry(new ZipEntry(next.getName()));
+          outputStream.write(inputStream.readAllBytes());
+          outputStream.closeEntry();
+          next = inputStream.getNextEntry();
+        }
+
+        for (String nonJavaResource : nonJavaResources) {
+          ZipUtils.writeToZipStream(
+              outputStream, nonJavaResource, nonJavaResource.getBytes(), ZipEntry.STORED);
+        }
+        outputStream.close();
+        featureJar = newFeatureJar;
+      }
     } catch (IOException e) {
       assertTrue(false);
-      return null;
+      return;
     }
 
     builder
-        .addProgramResourceProvider(ArchiveProgramResourceProvider.fromArchive(featureJar))
+        .addProgramResourceProvider(ArchiveResourceProvider.fromArchive(featureJar, true))
         .setProgramConsumer(
-            new ArchiveConsumer(outputPath) {
+            new ArchiveConsumer(outputPath, true) {
               @Override
               public void accept(
                   int fileIndex,
                   ByteDataView data,
                   Set<String> descriptors,
                   DiagnosticsHandler handler) {
-                for (String descriptor : descriptors) {
-                  assertTrue(classNames.contains(DescriptorUtils.descriptorToJavaType(descriptor)));
+                if (ensureClassesInOutput) {
+                  for (String descriptor : descriptors) {
+                    assertTrue(
+                        classNames.contains(DescriptorUtils.descriptorToJavaType(descriptor)));
+                  }
                 }
                 super.accept(fileIndex, data, descriptors, handler);
               }
             });
+  }
+
+  protected static FeatureSplit splitWithNonJavaFile(
+      FeatureSplit.Builder builder,
+      Path outputPath,
+      TemporaryFolder temp,
+      Collection<String> nonJavaFiles,
+      boolean ensureClassesInOutput,
+      Class... classes) {
+    addConsumers(builder, outputPath, temp, nonJavaFiles, true, Arrays.asList(classes));
     return builder.build();
   }
 

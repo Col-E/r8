@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.features;
 
+import com.android.tools.r8.DataResourceConsumer;
+import com.android.tools.r8.DataResourceProvider;
 import com.android.tools.r8.FeatureSplit;
 import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ProgramResourceProvider;
@@ -14,7 +16,10 @@ import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.Sets;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -54,6 +59,49 @@ public class FeatureSplitConfiguration {
       FeatureSplit featureSplit = javaTypeToFeatureSplitMapping.get(originalClassName);
       if (featureSplit != null) {
         result.computeIfAbsent(featureSplit, f -> Sets.newIdentityHashSet()).add(programClass);
+      }
+    }
+    return result;
+  }
+
+  public static class DataResourceProvidersAndConsumer {
+    private final Set<DataResourceProvider> providers;
+    private final DataResourceConsumer consumer;
+
+    public DataResourceProvidersAndConsumer(
+        Set<DataResourceProvider> providers, DataResourceConsumer consumer) {
+      this.providers = providers;
+      this.consumer = consumer;
+    }
+
+    public Set<DataResourceProvider> getProviders() {
+      return providers;
+    }
+
+    public DataResourceConsumer getConsumer() {
+      return consumer;
+    }
+  }
+
+  public Collection<DataResourceProvidersAndConsumer> getDataResourceProvidersAndConsumers() {
+    List<DataResourceProvidersAndConsumer> result = new ArrayList<>();
+    for (FeatureSplit featureSplit : featureSplits) {
+      DataResourceConsumer dataResourceConsumer =
+          featureSplit.getProgramConsumer().getDataResourceConsumer();
+      if (dataResourceConsumer != null) {
+        Set<DataResourceProvider> dataResourceProviders = new HashSet<>();
+        for (ProgramResourceProvider programResourceProvider :
+            featureSplit.getProgramResourceProviders()) {
+          DataResourceProvider dataResourceProvider =
+              programResourceProvider.getDataResourceProvider();
+          if (dataResourceProvider != null) {
+            dataResourceProviders.add(dataResourceProvider);
+          }
+        }
+        if (!dataResourceProviders.isEmpty()) {
+          result.add(
+              new DataResourceProvidersAndConsumer(dataResourceProviders, dataResourceConsumer));
+        }
       }
     }
     return result;

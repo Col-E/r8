@@ -16,6 +16,7 @@ import com.android.tools.r8.ProgramConsumer;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.dex.FileWriter.ByteBufferResult;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.features.FeatureSplitConfiguration.DataResourceProvidersAndConsumer;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotation;
@@ -46,6 +47,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ThreadUtils;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.ObjectArrays;
@@ -388,46 +390,15 @@ public class ApplicationWriter {
           options.reporter, options.mainDexListConsumer, writeMainDexList(application, namingLens));
       ExceptionUtils.withFinishedResourceHandler(options.reporter, options.mainDexListConsumer);
     }
+
     DataResourceConsumer dataResourceConsumer = options.dataResourceConsumer;
     if (dataResourceConsumer != null) {
+      ImmutableList<DataResourceProvider> dataResourceProviders = application.dataResourceProviders;
       ResourceAdapter resourceAdapter =
           new ResourceAdapter(appView, application.dexItemFactory, graphLense, namingLens, options);
-      Set<String> generatedResourceNames = new HashSet<>();
 
-      for (DataResourceProvider dataResourceProvider : application.dataResourceProviders) {
-        try {
-          dataResourceProvider.accept(
-              new Visitor() {
-                @Override
-                public void visit(DataDirectoryResource directory) {
-                  DataDirectoryResource adapted = resourceAdapter.adaptIfNeeded(directory);
-                  if (adapted != null) {
-                    dataResourceConsumer.accept(adapted, options.reporter);
-                    options.reporter.failIfPendingErrors();
-                  }
-                }
-
-                @Override
-                public void visit(DataEntryResource file) {
-                  if (resourceAdapter.isService(file)) {
-                    // META-INF/services resources are handled below.
-                    return;
-                  }
-
-                  DataEntryResource adapted = resourceAdapter.adaptIfNeeded(file);
-                  if (generatedResourceNames.add(adapted.getName())) {
-                    dataResourceConsumer.accept(adapted, options.reporter);
-                  } else {
-                    options.reporter.warning(
-                        new StringDiagnostic("Resource '" + file.getName() + "' already exists."));
-                  }
-                  options.reporter.failIfPendingErrors();
-                }
-              });
-        } catch (ResourceException e) {
-          throw new CompilationError(e.getMessage(), e);
-        }
-      }
+      adaptAndPassDataResources(
+          options, dataResourceConsumer, dataResourceProviders, resourceAdapter);
 
       // Write the META-INF/services resources. Sort on service names and keep the order from
       // the input for the implementation lines for deterministic output.
@@ -452,6 +423,60 @@ public class ApplicationWriter {
                           Origin.unknown()),
                       options.reporter);
                 });
+      }
+    }
+
+    if (options.featureSplitConfiguration != null) {
+      for (DataResourceProvidersAndConsumer entry :
+          options.featureSplitConfiguration.getDataResourceProvidersAndConsumers()) {
+        ResourceAdapter resourceAdapter =
+            new ResourceAdapter(
+                appView, application.dexItemFactory, graphLense, namingLens, options);
+        adaptAndPassDataResources(
+            options, entry.getConsumer(), entry.getProviders(), resourceAdapter);
+      }
+    }
+  }
+
+  private static void adaptAndPassDataResources(
+      InternalOptions options,
+      DataResourceConsumer dataResourceConsumer,
+      Collection<DataResourceProvider> dataResourceProviders,
+      ResourceAdapter resourceAdapter) {
+    Set<String> generatedResourceNames = new HashSet<>();
+
+    for (DataResourceProvider dataResourceProvider : dataResourceProviders) {
+      try {
+        dataResourceProvider.accept(
+            new Visitor() {
+              @Override
+              public void visit(DataDirectoryResource directory) {
+                DataDirectoryResource adapted = resourceAdapter.adaptIfNeeded(directory);
+                if (adapted != null) {
+                  dataResourceConsumer.accept(adapted, options.reporter);
+                  options.reporter.failIfPendingErrors();
+                }
+              }
+
+              @Override
+              public void visit(DataEntryResource file) {
+                if (resourceAdapter.isService(file)) {
+                  // META-INF/services resources are handled below.
+                  return;
+                }
+
+                DataEntryResource adapted = resourceAdapter.adaptIfNeeded(file);
+                if (generatedResourceNames.add(adapted.getName())) {
+                  dataResourceConsumer.accept(adapted, options.reporter);
+                } else {
+                  options.reporter.warning(
+                      new StringDiagnostic("Resource '" + file.getName() + "' already exists."));
+                }
+                options.reporter.failIfPendingErrors();
+              }
+            });
+      } catch (ResourceException e) {
+        throw new CompilationError(e.getMessage(), e);
       }
     }
   }
