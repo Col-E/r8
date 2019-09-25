@@ -6,6 +6,8 @@ package com.android.tools.r8.utils.codeinspector;
 
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
@@ -95,6 +97,11 @@ public class FoundFieldSubject extends FieldSubject {
 
     MemberNaming memberNaming = clazz.naming.lookup(lookupSignature);
     return memberNaming != null ? (FieldSignature) memberNaming.getOriginalSignature() : signature;
+  }
+
+  public DexField getOriginalDexField(DexItemFactory dexItemFactory) {
+    FieldSignature fieldSignature = getOriginalSignature();
+    return fieldSignature.toDexField(dexItemFactory, clazz.getOriginalDexType(dexItemFactory));
   }
 
   @Override

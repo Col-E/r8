@@ -157,7 +157,7 @@ public class MemberNaming {
           field.type.toSourceString());
     }
 
-    DexField toDexField(DexItemFactory factory, DexType clazz) {
+    public DexField toDexField(DexItemFactory factory, DexType clazz) {
       return factory.createField(
           clazz,
           factory.createType(javaTypeToDescriptor(type)),
@@ -266,7 +266,7 @@ public class MemberNaming {
       return name.substring(0, name.lastIndexOf(JAVA_PACKAGE_SEPARATOR));
     }
 
-    DexMethod toDexMethod(DexItemFactory factory, DexType clazz) {
+    public DexMethod toDexMethod(DexItemFactory factory, DexType clazz) {
       DexType[] paramTypes = new DexType[parameters.length];
       for (int i = 0; i < parameters.length; i++) {
         paramTypes[i] = factory.createType(javaTypeToDescriptor(parameters[i]));

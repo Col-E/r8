@@ -14,9 +14,9 @@ import java.io.File;
 import java.nio.file.Path;
 import org.junit.Test;
 
-public class YouTubeTreeShakeJarVerificationTest extends YouTubeCompilationBase {
+public class YouTubeV1217TreeShakeJarVerificationTest extends YouTubeCompilationBase {
 
-  public YouTubeTreeShakeJarVerificationTest() {
+  public YouTubeV1217TreeShakeJarVerificationTest() {
     super(12, 17);
   }
 

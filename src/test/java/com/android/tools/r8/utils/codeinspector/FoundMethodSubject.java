@@ -21,6 +21,8 @@ import com.android.tools.r8.graph.DexDebugEvent;
 import com.android.tools.r8.graph.DexDebugInfo;
 import com.android.tools.r8.graph.DexDebugPositionState;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.naming.MemberNaming;
@@ -29,6 +31,7 @@ import com.android.tools.r8.naming.signature.GenericSignatureParser;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.LocalVariableTable.LocalVariableTableEntry;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
@@ -174,9 +177,26 @@ public class FoundMethodSubject extends MethodSubject {
         dexMethod.annotations, GenericSignatureParser::parseMethodSignature);
   }
 
+  public DexMethod getOriginalDexMethod(DexItemFactory dexItemFactory) {
+    MethodSignature methodSignature = getOriginalSignature();
+    if (methodSignature.isQualified()) {
+      methodSignature = methodSignature.toUnqualified();
+    }
+    return methodSignature.toDexMethod(
+        dexItemFactory, dexItemFactory.createType(clazz.getOriginalDescriptor()));
+  }
+
   @Override
   public String getFinalSignatureAttribute() {
     return codeInspector.getFinalSignatureAttribute(dexMethod.annotations);
+  }
+
+  public Iterable<InstructionSubject> instructions() {
+    return instructions(Predicates.alwaysTrue());
+  }
+
+  public Iterable<InstructionSubject> instructions(Predicate<InstructionSubject> predicate) {
+    return () -> iterateInstructions(predicate);
   }
 
   @Override

@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
@@ -203,6 +204,10 @@ public class FoundClassSubject extends ClassSubject {
     return dexClass;
   }
 
+  public ClassSubject getSuperClass() {
+    return codeInspector.clazz(dexClass.superType.toSourceString());
+  }
+
   @Override
   public AnnotationSubject annotation(String name) {
     // Ensure we don't check for annotations represented as attributes.
@@ -231,6 +236,10 @@ public class FoundClassSubject extends ClassSubject {
     } else {
       return getFinalDescriptor();
     }
+  }
+
+  public DexType getOriginalDexType(DexItemFactory dexItemFactory) {
+    return dexItemFactory.createType(getOriginalDescriptor());
   }
 
   @Override

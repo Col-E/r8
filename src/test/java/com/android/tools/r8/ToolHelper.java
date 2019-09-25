@@ -162,6 +162,10 @@ public class ToolHelper {
   public static final Path DESUGAR_LIB_JSON_FOR_TESTING =
       Paths.get("src/test/java/com/android/tools/r8/desugar/corelib/desugar_jdk_libs.json");
 
+  public static boolean isLocalDevelopment() {
+    return System.getProperty("local_development", "0").equals("1");
+  }
+
   public static boolean shouldRunSlowTests() {
     return System.getProperty("slow_tests", "0").equals("1");
   }

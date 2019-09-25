@@ -9,10 +9,14 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.analysis.ProtoApplicationStats;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.List;
@@ -68,65 +72,74 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
   @Test
   public void test() throws Exception {
     CodeInspector inputInspector = new CodeInspector(PROGRAM_FILES);
-    testForR8(parameters.getBackend())
-        .addProgramFiles(PROGRAM_FILES)
-        .addKeepMainRule("proto2.TestClass")
-        .addKeepRuleFiles(PROTOBUF_LITE_PROGUARD_RULES)
-        .addKeepRules(alwaysInlineNewSingularGeneratedExtensionRule())
-        // TODO(b/112437944): Attempt to prove that DEFAULT_INSTANCE is non-null, such that the
-        //  following "assumenotnull" rule can be omitted.
-        .addKeepRules(
-            "-assumenosideeffects class " + EXT_C + " {",
-            "  private static final " + EXT_C + " DEFAULT_INSTANCE return 1..42;",
-            "}")
-        .addOptionsModification(
-            options -> {
-              options.enableFieldBitAccessAnalysis = true;
-              options.enableGeneratedMessageLiteShrinking = true;
-              options.enableGeneratedExtensionRegistryShrinking = true;
-              options.enableStringSwitchConversion = true;
-            })
-        .allowAccessModification(allowAccessModification)
-        .allowUnusedProguardConfigurationRules()
-        .minification(enableMinification)
-        .setMinApi(parameters.getRuntime())
-        .compile()
-        .inspect(
-            outputInspector -> {
-              verifyMapAndRequiredFieldsAreKept(inputInspector, outputInspector);
-              verifyUnusedExtensionsAreRemoved(inputInspector, outputInspector);
-              verifyUnusedFieldsAreRemoved(inputInspector, outputInspector);
-              verifyUnusedHazzerBitFieldsAreRemoved(inputInspector, outputInspector);
-              verifyUnusedTypesAreRemoved(inputInspector, outputInspector);
-            })
-        .run(parameters.getRuntime(), "proto2.TestClass")
-        .assertSuccessWithOutputLines(
-            "--- roundtrip ---",
-            "true",
-            "123",
-            "asdf",
-            "9223372036854775807",
-            "qwerty",
-            "--- partiallyUsed_proto2 ---",
-            "true",
-            "42",
-            "--- usedViaHazzer ---",
-            "true",
-            "--- usedViaOneofCase ---",
-            "true",
-            "--- usesOnlyRepeatedFields ---",
-            "1",
-            "--- containsFlaggedOffField ---",
-            "0",
-            "--- hasFlaggedOffExtension ---",
-            "4",
-            "--- useOneExtension ---",
-            "42",
-            "--- keepMapAndRequiredFields ---",
-            "true",
-            "10",
-            "10",
-            "10");
+    R8TestRunResult result =
+        testForR8(parameters.getBackend())
+            .addProgramFiles(PROGRAM_FILES)
+            .addKeepMainRule("proto2.TestClass")
+            .addKeepRuleFiles(PROTOBUF_LITE_PROGUARD_RULES)
+            .addKeepRules(alwaysInlineNewSingularGeneratedExtensionRule())
+            // TODO(b/112437944): Attempt to prove that DEFAULT_INSTANCE is non-null, such that the
+            //  following "assumenotnull" rule can be omitted.
+            .addKeepRules(
+                "-assumenosideeffects class " + EXT_C + " {",
+                "  private static final " + EXT_C + " DEFAULT_INSTANCE return 1..42;",
+                "}")
+            .addOptionsModification(
+                options -> {
+                  options.enableFieldBitAccessAnalysis = true;
+                  options.enableGeneratedMessageLiteShrinking = true;
+                  options.enableGeneratedExtensionRegistryShrinking = true;
+                  options.enableStringSwitchConversion = true;
+                })
+            .allowAccessModification(allowAccessModification)
+            .allowUnusedProguardConfigurationRules()
+            .minification(enableMinification)
+            .setMinApi(parameters.getRuntime())
+            .compile()
+            .inspect(
+                outputInspector -> {
+                  verifyMapAndRequiredFieldsAreKept(inputInspector, outputInspector);
+                  verifyUnusedExtensionsAreRemoved(inputInspector, outputInspector);
+                  verifyUnusedFieldsAreRemoved(inputInspector, outputInspector);
+                  verifyUnusedHazzerBitFieldsAreRemoved(inputInspector, outputInspector);
+                  verifyUnusedTypesAreRemoved(inputInspector, outputInspector);
+                })
+            .run(parameters.getRuntime(), "proto2.TestClass")
+            .assertSuccessWithOutputLines(
+                "--- roundtrip ---",
+                "true",
+                "123",
+                "asdf",
+                "9223372036854775807",
+                "qwerty",
+                "--- partiallyUsed_proto2 ---",
+                "true",
+                "42",
+                "--- usedViaHazzer ---",
+                "true",
+                "--- usedViaOneofCase ---",
+                "true",
+                "--- usesOnlyRepeatedFields ---",
+                "1",
+                "--- containsFlaggedOffField ---",
+                "0",
+                "--- hasFlaggedOffExtension ---",
+                "4",
+                "--- useOneExtension ---",
+                "42",
+                "--- keepMapAndRequiredFields ---",
+                "true",
+                "10",
+                "10",
+                "10");
+
+    if (ToolHelper.isLocalDevelopment()) {
+      DexItemFactory dexItemFactory = new DexItemFactory();
+      ProtoApplicationStats original = new ProtoApplicationStats(dexItemFactory, inputInspector);
+      ProtoApplicationStats actual =
+          new ProtoApplicationStats(dexItemFactory, result.inspector(), original);
+      System.out.println(actual.getStats());
+    }
   }
 
   private void verifyMapAndRequiredFieldsAreKept(

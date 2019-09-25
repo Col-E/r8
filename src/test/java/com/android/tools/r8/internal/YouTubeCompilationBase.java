@@ -47,6 +47,14 @@ public abstract class YouTubeCompilationBase extends CompilationTestBase {
     return result;
   }
 
+  public Path getReleaseApk() {
+    return Paths.get(base).resolve("YouTubeRelease.apk");
+  }
+
+  public Path getReleaseProguardMap() {
+    return Paths.get(base).resolve("YouTubeRelease_proguard.map");
+  }
+
   void runR8AndCheckVerification(CompilationMode mode, String input) throws Exception {
     runAndCheckVerification(
         CompilerUnderTest.R8, mode, base + APK, null, null, ImmutableList.of(base + input));
