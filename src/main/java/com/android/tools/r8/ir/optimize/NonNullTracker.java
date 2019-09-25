@@ -32,6 +32,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
@@ -253,18 +254,24 @@ public class NonNullTracker implements Assumer {
       FieldInstruction instruction,
       DexEncodedField encodedField,
       Set<Value> knownToBeNonNullValues) {
+    if (!appView.appInfo().hasLiveness()) {
+      return true;
+    }
     if (instruction.isStaticGet()) {
+      AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
       DexField field = encodedField.field;
-      DexClass clazz = appView.definitionFor(field.holder);
+      DexClass clazz = appViewWithLiveness.definitionFor(field.holder);
       assert clazz != null;
       if (clazz.accessFlags.isFinal()
-          && !clazz.initializationOfParentTypesMayHaveSideEffects(appView)) {
+          && !clazz.initializationOfParentTypesMayHaveSideEffects(appViewWithLiveness)) {
         DexEncodedMethod classInitializer = clazz.getClassInitializer();
         if (classInitializer != null) {
           TrivialInitializer info =
               classInitializer.getOptimizationInfo().getTrivialInitializerInfo();
           boolean expectedToBeNonNull =
-              info != null && info.asTrivialClassInitializer().field == field;
+              info != null
+                  && info.asTrivialClassInitializer().field == field
+                  && !appViewWithLiveness.appInfo().isPinned(field);
           assert !expectedToBeNonNull || knownToBeNonNullValues.contains(instruction.outValue());
         }
       }
