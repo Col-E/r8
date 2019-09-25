@@ -25,7 +25,7 @@ import java.time.ZoneId;
 import java.util.TimeZone;
 import org.junit.Test;
 
-public class BasicTimeConversionTest extends APIConversionTestBase {
+public class TimeConversionCompilationTest extends APIConversionTestBase {
 
   @Test
   public void testTimeGeneratedDex() throws Exception {
@@ -53,7 +53,7 @@ public class BasicTimeConversionTest extends APIConversionTestBase {
   public void testRewrittenAPICalls() throws Exception {
     testForD8()
         .setMinApi(AndroidApiLevel.B)
-        .addInnerClasses(BasicTimeConversionTest.class)
+        .addInnerClasses(TimeConversionCompilationTest.class)
         .enableCoreLibraryDesugaring(AndroidApiLevel.B)
         .compile()
         .inspect(this::checkAPIRewritten)
