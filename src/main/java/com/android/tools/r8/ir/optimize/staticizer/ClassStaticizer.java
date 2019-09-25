@@ -28,6 +28,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.ListUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.util.Arrays;
@@ -43,6 +44,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
+import java.util.function.Predicate;
 
 public final class ClassStaticizer {
 
@@ -230,8 +232,8 @@ public final class ClassStaticizer {
       // We are inside an instance method of candidate class (not an instance initializer
       // which we will check later), check if all the references to 'this' are valid
       // (the call will invalidate the candidate if some of them are not valid).
-      analyzeAllValueUsers(receiverClassCandidateInfo,
-          receiverValue, factory.isConstructor(method.method));
+      analyzeAllValueUsers(
+          receiverClassCandidateInfo, receiverValue, factory.isConstructor(method.method));
 
       // If the candidate is still valid, ignore all instructions
       // we treat as valid usages on receiver.
@@ -289,7 +291,7 @@ public final class ClassStaticizer {
           // If the candidate still valid, ignore all usages in further analysis.
           Value value = instruction.outValue();
           if (value != null) {
-            alreadyProcessed.addAll(value.uniqueUsers());
+            alreadyProcessed.addAll(value.aliasedUsers());
           }
         }
         continue;
@@ -433,14 +435,16 @@ public final class ClassStaticizer {
         appView.appInfo().lookupDirectTarget(invoke.getInvokedMethod());
     List<Value> values = invoke.inValues();
 
-    if (values.lastIndexOf(candidateValue) != 0 ||
-        methodInvoked == null || methodInvoked.method.holder != candidateType) {
+    if (ListUtils.lastIndexMatching(values, v -> v.getAliasedValue() == candidateValue) != 0
+        || methodInvoked == null
+        || methodInvoked.method.holder != candidateType) {
       return false;
     }
 
     // Check arguments.
     for (int i = 1; i < values.size(); i++) {
-      if (!values.get(i).definition.isConstInstruction()) {
+      Value arg = values.get(i).getAliasedValue();
+      if (arg.isPhi() || !arg.definition.isConstInstruction()) {
         return false;
       }
     }
@@ -484,40 +488,54 @@ public final class ClassStaticizer {
 
   private CandidateInfo analyzeAllValueUsers(
       CandidateInfo candidateInfo, Value value, boolean ignoreSuperClassInitInvoke) {
-    assert value != null;
+    assert value != null && value == value.getAliasedValue();
 
     if (value.numberOfPhiUsers() > 0) {
       return candidateInfo.invalidate();
     }
 
-    for (Instruction user : value.uniqueUsers()) {
-      if (user.isInvokeVirtual() || user.isInvokeDirect() /* private methods */) {
-        InvokeMethodWithReceiver invoke = user.asInvokeMethodWithReceiver();
-        DexMethod methodReferenced = invoke.getInvokedMethod();
-        if (factory.isConstructor(methodReferenced)) {
-          assert user.isInvokeDirect();
-          if (ignoreSuperClassInitInvoke &&
-              invoke.inValues().lastIndexOf(value) == 0 &&
-              methodReferenced == factory.objectMethods.constructor) {
-            // If we are inside candidate constructor and analyzing usages
-            // of the receiver, we want to ignore invocations of superclass
-            // constructor which will be removed after staticizing.
-            continue;
+    Set<Instruction> currentUsers = value.uniqueUsers();
+    while (!currentUsers.isEmpty()) {
+      Set<Instruction> indirectUsers = Sets.newIdentityHashSet();
+      for (Instruction user : currentUsers) {
+        if (user.isAssume()) {
+          if (user.outValue().numberOfPhiUsers() > 0) {
+            return candidateInfo.invalidate();
           }
-          return candidateInfo.invalidate();
-        }
-        AppInfo appInfo = appView.appInfo();
-        DexEncodedMethod methodInvoked = user.isInvokeDirect()
-            ? appInfo.lookupDirectTarget(methodReferenced)
-            : appInfo.lookupVirtualTarget(methodReferenced.holder, methodReferenced);
-        if (invoke.inValues().lastIndexOf(value) == 0 &&
-            methodInvoked != null && methodInvoked.method.holder == candidateInfo.candidate.type) {
+          indirectUsers.addAll(user.outValue().uniqueUsers());
           continue;
         }
-      }
+        if (user.isInvokeVirtual() || user.isInvokeDirect() /* private methods */) {
+          InvokeMethodWithReceiver invoke = user.asInvokeMethodWithReceiver();
+          Predicate<Value> isAliasedValue = v -> v.getAliasedValue() == value;
+          DexMethod methodReferenced = invoke.getInvokedMethod();
+          if (factory.isConstructor(methodReferenced)) {
+            assert user.isInvokeDirect();
+            if (ignoreSuperClassInitInvoke
+                && ListUtils.lastIndexMatching(invoke.inValues(), isAliasedValue) == 0
+                && methodReferenced == factory.objectMethods.constructor) {
+              // If we are inside candidate constructor and analyzing usages
+              // of the receiver, we want to ignore invocations of superclass
+              // constructor which will be removed after staticizing.
+              continue;
+            }
+            return candidateInfo.invalidate();
+          }
+          AppInfo appInfo = appView.appInfo();
+          DexEncodedMethod methodInvoked = user.isInvokeDirect()
+              ? appInfo.lookupDirectTarget(methodReferenced)
+              : appInfo.lookupVirtualTarget(methodReferenced.holder, methodReferenced);
+          if (ListUtils.lastIndexMatching(invoke.inValues(), isAliasedValue) == 0
+              && methodInvoked != null
+              && methodInvoked.method.holder == candidateInfo.candidate.type) {
+            continue;
+          }
+        }
 
-      // All other users are not allowed.
-      return candidateInfo.invalidate();
+        // All other users are not allowed.
+        return candidateInfo.invalidate();
+      }
+      currentUsers = indirectUsers;
     }
 
     return candidateInfo;
