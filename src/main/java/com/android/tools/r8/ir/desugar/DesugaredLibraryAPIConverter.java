@@ -21,7 +21,9 @@ import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 // TODO(b/134732760): In progress.
 // I convert library calls with desugared parameters/return values so they can work normally.
@@ -72,13 +74,17 @@ public class DesugaredLibraryAPIConverter {
       if (dexClass == null || !dexClass.isLibraryClass()) {
         continue;
       }
+      // Library methods do not understand desugared types, hence desugared types have to be
+      // converted around non desugared library calls for the invoke to resolve.
       if (appView.rewritePrefix.hasRewrittenType(invokedMethod.proto.returnType)) {
-        addReturnConversion(code, invokeMethod, iterator);
+        rewriteLibraryInvoke(code, invokeMethod, iterator);
+        continue;
       }
       for (int i = 0; i < invokedMethod.proto.parameters.values.length; i++) {
         DexType argType = invokedMethod.proto.parameters.values[i];
         if (appView.rewritePrefix.hasRewrittenType(argType)) {
-          addParameterConversion(code, invokeMethod, iterator, argType, i);
+          rewriteLibraryInvoke(code, invokeMethod, iterator);
+          continue;
         }
       }
     }
@@ -109,117 +115,121 @@ public class DesugaredLibraryAPIConverter {
     return vivifiedType;
   }
 
-  private void addParameterConversion(
-      IRCode code,
-      InvokeMethod invokeMethod,
-      InstructionListIterator iterator,
-      DexType argType,
-      int parameter) {
-    if (!appView
-        .options()
-        .desugaredLibraryConfiguration
-        .getCustomConversions()
-        .containsKey(argType)) {
-      // TODO(b/134732760): Add Wrapper Conversions.
-      warnInvalidInvoke(argType, invokeMethod.getInvokedMethod(), "parameter");
-      return;
-    }
-
-    Value inValue = invokeMethod.inValues().get(parameter);
-    DexType argVivifiedType = vivifiedTypeFor(argType);
-    DexType conversionHolder =
-        appView.options().desugaredLibraryConfiguration.getCustomConversions().get(argType);
-
-    // ConversionType has static method "type convert(rewrittenType)".
-    // But everything is going to be rewritten, so we need to call "vivifiedType convert(type)".
-    DexMethod conversionMethod =
-        factory.createMethod(
-            conversionHolder,
-            factory.createProto(argVivifiedType, argType),
-            factory.convertMethodName);
-    Value convertedValue =
-        code.createValue(
-            TypeLatticeElement.fromDexType(
-                argVivifiedType, inValue.getTypeLattice().nullability(), appView));
-    InvokeStatic conversionInstruction =
-        new InvokeStatic(conversionMethod, convertedValue, Collections.singletonList(inValue));
-    conversionInstruction.setPosition(invokeMethod.getPosition());
-    iterator.previous();
-    iterator.add(conversionInstruction);
-    iterator.next();
-
-    // Rewrite invoke (signature and inValue to rewrite).
-    DexMethod newDexMethod =
-        dexMethodWithDifferentParameter(
-            invokeMethod.getInvokedMethod(), argVivifiedType, parameter);
-    Invoke newInvokeMethod =
-        Invoke.create(
-            invokeMethod.getType(),
-            newDexMethod,
-            newDexMethod.proto,
-            invokeMethod.outValue(),
-            invokeMethod.inValues());
-    newInvokeMethod.replaceValue(parameter, conversionInstruction.outValue());
-    iterator.replaceCurrentInstruction(newInvokeMethod);
-  }
-
-  private void addReturnConversion(
+  private void rewriteLibraryInvoke(
       IRCode code, InvokeMethod invokeMethod, InstructionListIterator iterator) {
-    DexType returnType = invokeMethod.getReturnType();
-    if (!appView
-        .options()
-        .desugaredLibraryConfiguration
-        .getCustomConversions()
-        .containsKey(returnType)) {
-      // TODO(b/134732760): Add Wrapper Conversions.
-      warnInvalidInvoke(returnType, invokeMethod.getInvokedMethod(), "return");
-      return;
+    DexMethod invokedMethod = invokeMethod.getInvokedMethod();
+
+    // Create return conversion if required.
+    Instruction returnConversion = null;
+    DexType newReturnType;
+    DexType returnType = invokedMethod.proto.returnType;
+    if (appView.rewritePrefix.hasRewrittenType(returnType)) {
+      if (appView
+          .options()
+          .desugaredLibraryConfiguration
+          .getCustomConversions()
+          .containsKey(returnType)) {
+        newReturnType = vivifiedTypeFor(returnType);
+        // Return conversion added only if return value is used.
+        if (invokeMethod.outValue() != null
+            && invokeMethod.outValue().numberOfUsers() + invokeMethod.outValue().numberOfPhiUsers()
+                > 0) {
+          returnConversion =
+              createReturnConversionAndReplaceUses(code, invokeMethod, returnType, newReturnType);
+        }
+      } else {
+        // TODO(b/134732760): Add Wrapper Conversions.
+        warnInvalidInvoke(returnType, invokeMethod.getInvokedMethod(), "return");
+        newReturnType = returnType;
+      }
+    } else {
+      newReturnType = returnType;
     }
 
-    DexType returnVivifiedType = vivifiedTypeFor(returnType);
-    DexType conversionHolder =
-        appView.options().desugaredLibraryConfiguration.getCustomConversions().get(returnType);
+    // Create parameter conversions if required.
+    List<Instruction> parameterConversions = new ArrayList<>();
+    List<Value> newInValues = new ArrayList<>();
+    DexType[] parameters = invokedMethod.proto.parameters.values;
+    DexType[] newParameters = parameters.clone();
+    for (int i = 0; i < parameters.length; i++) {
+      DexType argType = parameters[i];
+      if (appView.rewritePrefix.hasRewrittenType(argType)) {
+        if (appView
+            .options()
+            .desugaredLibraryConfiguration
+            .getCustomConversions()
+            .containsKey(argType)) {
+          DexType argVivifiedType = vivifiedTypeFor(argType);
+          Value inValue = invokeMethod.inValues().get(i);
+          newParameters[i] = argVivifiedType;
+          parameterConversions.add(
+              createParameterConversion(code, argType, argVivifiedType, inValue));
+          newInValues.add(parameterConversions.get(parameterConversions.size() - 1).outValue());
+        } else {
+          // TODO(b/134732760): Add Wrapper Conversions.
+          warnInvalidInvoke(argType, invokeMethod.getInvokedMethod(), "parameter");
+          newInValues.add(invokeMethod.inValues().get(i));
+        }
+      } else {
+        newInValues.add(invokeMethod.inValues().get(i));
+      }
+    }
 
-    // ConversionType has static method "rewrittenType convert(type)".
-    // But everything is going to be rewritten, so we need to call "type convert(vivifiedType)".
-    DexMethod conversionMethod =
-        factory.createMethod(
-            conversionHolder,
-            factory.createProto(returnType, returnVivifiedType),
-            factory.convertMethodName);
-    Value convertedValue =
-        code.createValue(
-            TypeLatticeElement.fromDexType(returnType, Nullability.maybeNull(), appView));
-    invokeMethod.outValue().replaceUsers(convertedValue);
-    InvokeStatic conversionInstruction =
-        new InvokeStatic(
-            conversionMethod, convertedValue, Collections.singletonList(invokeMethod.outValue()));
-    conversionInstruction.setPosition(invokeMethod.getPosition());
-
-    // Rewrite invoke (signature to rewrite).
+    // Patch the invoke with new types and new inValues.
+    DexProto newProto = factory.createProto(newReturnType, newParameters);
     DexMethod newDexMethod =
-        dexMethodWithDifferentReturn(invokeMethod.getInvokedMethod(), returnVivifiedType);
+        factory.createMethod(invokedMethod.holder, newProto, invokedMethod.name);
     Invoke newInvokeMethod =
         Invoke.create(
             invokeMethod.getType(),
             newDexMethod,
             newDexMethod.proto,
             invokeMethod.outValue(),
-            invokeMethod.inValues());
+            newInValues);
+
+    // Insert and reschedule all instructions.
+    iterator.previous();
+    for (Instruction parameterConversion : parameterConversions) {
+      parameterConversion.setPosition(invokeMethod.getPosition());
+      iterator.add(parameterConversion);
+    }
+    assert iterator.peekNext() == invokeMethod;
+    iterator.next();
     iterator.replaceCurrentInstruction(newInvokeMethod);
-    iterator.add(conversionInstruction);
+    if (returnConversion != null) {
+      returnConversion.setPosition(invokeMethod.getPosition());
+      iterator.add(returnConversion);
+    }
   }
 
-  private DexMethod dexMethodWithDifferentParameter(
-      DexMethod method, DexType newParameterType, int parameter) {
-    DexType[] newParameters = method.proto.parameters.values.clone();
-    newParameters[parameter] = newParameterType;
-    DexProto newProto = factory.createProto(method.proto.returnType, newParameters);
-    return factory.createMethod(method.holder, newProto, method.name);
+  private Instruction createParameterConversion(
+      IRCode code, DexType argType, DexType argVivifiedType, Value inValue) {
+    DexMethod conversionMethod = createConversionMethod(argType, argType, argVivifiedType);
+    // The value is null only if the input is null.
+    Value convertedValue =
+        createConversionValue(code, inValue.getTypeLattice().nullability(), argVivifiedType);
+    return new InvokeStatic(conversionMethod, convertedValue, Collections.singletonList(inValue));
   }
 
-  private DexMethod dexMethodWithDifferentReturn(DexMethod method, DexType newReturnType) {
-    DexProto newProto = factory.createProto(newReturnType, method.proto.parameters.values);
-    return factory.createMethod(method.holder, newProto, method.name);
+  private Instruction createReturnConversionAndReplaceUses(
+      IRCode code, InvokeMethod invokeMethod, DexType returnType, DexType returnVivifiedType) {
+    DexMethod conversionMethod = createConversionMethod(returnType, returnVivifiedType, returnType);
+    Value convertedValue = createConversionValue(code, Nullability.maybeNull(), returnType);
+    invokeMethod.outValue().replaceUsers(convertedValue);
+    return new InvokeStatic(
+        conversionMethod, convertedValue, Collections.singletonList(invokeMethod.outValue()));
+  }
+
+  private DexMethod createConversionMethod(DexType type, DexType srcType, DexType destType) {
+    // ConversionType holds the methods "rewrittenType convert(type)" and the other way around.
+    // But everything is going to be rewritten, so we need to use vivifiedType and type".
+    DexType conversionHolder =
+        appView.options().desugaredLibraryConfiguration.getCustomConversions().get(type);
+    return factory.createMethod(
+        conversionHolder, factory.createProto(destType, srcType), factory.convertMethodName);
+  }
+
+  private Value createConversionValue(IRCode code, Nullability nullability, DexType valueType) {
+    return code.createValue(TypeLatticeElement.fromDexType(valueType, nullability, appView));
   }
 }

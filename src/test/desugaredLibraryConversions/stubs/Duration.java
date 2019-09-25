@@ -9,7 +9,7 @@ public class Duration {
     return null;
   }
 
-  public int getSeconds() {
+  public long getSeconds() {
     return 0;
   }
 
