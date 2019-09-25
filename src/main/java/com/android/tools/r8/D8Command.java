@@ -201,7 +201,7 @@ public final class D8Command extends BaseCompilerCommand {
 
       DexItemFactory factory = new DexItemFactory();
       DesugaredLibraryConfiguration libraryConfiguration =
-          getDesugaredLibraryConfiguration(factory, false, getMinApiLevel());
+          getDesugaredLibraryConfiguration(factory, false);
 
       return new D8Command(
           getAppBuilder().build(),
