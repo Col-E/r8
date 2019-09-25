@@ -307,6 +307,39 @@ APP_REPOSITORIES = [
       ]
   }),
   Repo({
+      'name': 'Simple-Camera',
+      'url': 'https://github.com/jsjeon/Simple-Camera',
+      'revision': '451fe188ab123e6956413b42e89839b44c05ac14',
+      'apps': [
+          App({
+              'id': 'com.simplemobiletools.camera.pro',
+              'signed_apk_name': 'camera-release.apk'
+          })
+      ]
+  }),
+  Repo({
+      'name': 'Simple-File-Manager',
+      'url': 'https://github.com/jsjeon/Simple-File-Manager',
+      'revision': '282b57d9e73f4d250cc844d8d73fd223509a141e',
+      'apps': [
+          App({
+              'id': 'com.simplemobiletools.filemanager.pro',
+              'signed_apk_name': 'file-manager-release.apk'
+          })
+      ]
+  }),
+  Repo({
+      'name': 'Simple-Gallery',
+      'url': 'https://github.com/jsjeon/Simple-Gallery',
+      'revision': '679125601eee7e057dfdfecd7bea6c4a6ac73ef9',
+      'apps': [
+          App({
+              'id': 'com.simplemobiletools.gallery.pro',
+              'signed_apk_name': 'gallery-release.apk'
+          })
+      ]
+  }),
+  Repo({
       'name': 'sqldelight',
       'url': 'https://github.com/christofferqa/sqldelight.git',
       'revision': '2e67a1126b6df05e4119d1e3a432fde51d76cdc8',
