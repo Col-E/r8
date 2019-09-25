@@ -314,7 +314,8 @@ APP_REPOSITORIES = [
               'module': 'sample/android',
               'archives_base_name': 'android',
               'min_sdk': 14,
-              'compile_sdk': 28
+              'compile_sdk': 28,
+              'skip': True
           })
       ]
   }),
