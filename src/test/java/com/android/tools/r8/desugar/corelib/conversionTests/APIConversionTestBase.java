@@ -14,12 +14,17 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
+import org.junit.Assume;
 
 public class APIConversionTestBase extends CoreLibDesugarTestBase {
 
   private static final Path CONVERSION_FOLDER = Paths.get("src/test/desugaredLibraryConversions");
 
   public Path[] getTimeConversionClasses() throws IOException {
+    Assume.assumeTrue(
+        "JDK8 javac is required to avoid dealing with modules and JDK8 is not checked-in on"
+            + " windows",
+        !ToolHelper.isWindows());
     File conversionFolder = temp.newFolder("conversions");
     File stubsFolder = temp.newFolder("stubs");
 
@@ -28,7 +33,7 @@ public class APIConversionTestBase extends CoreLibDesugarTestBase {
         CfVm.JDK8,
         null,
         stubsFolder.toPath(),
-        getAllFilesWithSuffixInDirectory(CONVERSION_FOLDER.resolve("stubs/"), "java"));
+        getAllFilesWithSuffixInDirectory(CONVERSION_FOLDER.resolve("stubs"), "java"));
 
     // Compile the conversions using the stubs.
     ArrayList<Path> classPath = new ArrayList<>();
@@ -46,7 +51,7 @@ public class APIConversionTestBase extends CoreLibDesugarTestBase {
   }
 
   protected Path buildDesugaredLibraryWithConversionExtension(AndroidApiLevel apiLevel) {
-    Path[] timeConversionClasses = null;
+    Path[] timeConversionClasses;
     try {
       timeConversionClasses = getTimeConversionClasses();
     } catch (IOException e) {
