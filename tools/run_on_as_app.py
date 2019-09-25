@@ -64,6 +64,8 @@ class App(object):
 # For running on Golem all third-party repositories are bundled as an x20-
 # dependency and then copied to WORKING_DIR. To update the app-bundle use
 # 'run_on_as_app_x20_packager.py'.
+# For showing benchmark data, also include the app in appSegmentBenchmarks in
+# the file <golem_repo>/config/r8/benchmarks.dart.
 APP_REPOSITORIES = [
   # ...
   # Repo({
