@@ -4,6 +4,7 @@
 package com.android.tools.r8.naming;
 
 import static com.android.tools.r8.utils.StringUtils.EMPTY_CHAR_ARRAY;
+import static com.android.tools.r8.utils.SymbolGenerationUtils.PRIMITIVE_TYPE_NAMES;
 
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppView;
@@ -106,17 +107,19 @@ public class Minifier {
     String nextName(char[] packagePrefix, InternalNamingState state, boolean isDirectMethodCall) {
       StringBuilder nextName = new StringBuilder();
       nextName.append(packagePrefix);
-      if (state.getDictionaryIndex() < obfuscationDictionary.size()) {
-        nextName.append(obfuscationDictionary.get(state.incrementDictionaryIndex()));
-      } else {
-        String nextString;
-        do {
-          nextString =
-              SymbolGenerationUtils.numberToIdentifier(
-                  state.incrementNameIndex(isDirectMethodCall), mixedCasing);
-        } while (obfuscationDictionaryForLookup.contains(nextString));
-        nextName.append(nextString);
-      }
+      String nextString;
+      do {
+        if (state.getDictionaryIndex() < obfuscationDictionary.size()) {
+          nextString = obfuscationDictionary.get(state.incrementDictionaryIndex());
+        } else {
+          do {
+            nextString =
+                SymbolGenerationUtils.numberToIdentifier(
+                    state.incrementNameIndex(isDirectMethodCall), mixedCasing);
+          } while (obfuscationDictionaryForLookup.contains(nextString));
+        }
+      } while (PRIMITIVE_TYPE_NAMES.contains(nextString));
+      nextName.append(nextString);
       return nextName.toString();
     }
   }

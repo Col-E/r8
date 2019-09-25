@@ -6,7 +6,9 @@ package com.android.tools.r8.utils;
 
 import static com.android.tools.r8.utils.StringUtils.EMPTY_CHAR_ARRAY;
 
+import com.google.common.collect.Sets;
 import java.util.Arrays;
+import java.util.Set;
 
 public class SymbolGenerationUtils {
 
@@ -14,6 +16,9 @@ public class SymbolGenerationUtils {
     USE_MIXED_CASE,
     DONT_USE_MIXED_CASE
   }
+
+  public static Set<String> PRIMITIVE_TYPE_NAMES =
+      Sets.newHashSet("boolean", "byte", "char", "double", "float", "int", "long", "short", "void");
 
   // These letters are used not creating fresh names to output and not for parsing dex/class files.
   private static final char[] IDENTIFIER_CHARACTERS =
