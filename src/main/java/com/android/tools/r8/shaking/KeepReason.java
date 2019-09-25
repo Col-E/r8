@@ -43,8 +43,8 @@ public abstract class KeepReason {
     return new ReachableFromLiveType(type);
   }
 
-  public static KeepReason invokedFrom(DexEncodedMethod method) {
-    return new InvokedFrom(method);
+  public static KeepReason invokedFrom(DexProgramClass holder, DexEncodedMethod method) {
+    return new InvokedFrom(holder, method);
   }
 
   public static KeepReason invokedFromLambdaCreatedIn(DexEncodedMethod method) {
@@ -252,8 +252,9 @@ public abstract class KeepReason {
 
   private static class InvokedFrom extends BasedOnOtherMethod {
 
-    private InvokedFrom(DexEncodedMethod method) {
+    private InvokedFrom(DexProgramClass holder, DexEncodedMethod method) {
       super(method);
+      assert holder.type == method.method.holder;
     }
 
     @Override
