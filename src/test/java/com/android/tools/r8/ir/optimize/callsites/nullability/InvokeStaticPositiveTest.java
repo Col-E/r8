@@ -11,7 +11,6 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -42,7 +41,6 @@ public class InvokeStaticPositiveTest extends TestBase {
         .addKeepMainRule(MAIN)
         .enableInliningAnnotations()
         .setMinApi(parameters.getRuntime())
-        .addOptionsModification(InternalOptions::enableCallSiteOptimizationInfoPropagation)
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("non-null")
         .inspect(this::inspect);

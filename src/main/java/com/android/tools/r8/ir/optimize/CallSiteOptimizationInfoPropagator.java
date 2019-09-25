@@ -5,7 +5,9 @@ package com.android.tools.r8.ir.optimize;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Assume;
@@ -89,6 +91,15 @@ public class CallSiteOptimizationInfoPropagator {
         continue;
       }
       if (instruction.isInvokeMethod()) {
+        // For virtual and interface calls, proceed on valid results only (since it's enforced).
+        if (instruction.isInvokeVirtual() || instruction.isInvokeInterface()) {
+          DexMethod invokedMethod = instruction.asInvokeMethod().getInvokedMethod();
+          ResolutionResult resolutionResult =
+              appView.appInfo().resolveMethod(invokedMethod.holder, invokedMethod);
+          if (!resolutionResult.isValidVirtualTarget(appView.options())) {
+            continue;
+          }
+        }
         Collection<DexEncodedMethod> targets =
             instruction.asInvokeMethod().lookupTargets(appView, context.method.holder);
         if (targets == null) {

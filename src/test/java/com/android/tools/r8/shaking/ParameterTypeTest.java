@@ -137,15 +137,15 @@ public class ParameterTypeTest extends TestBase {
 
     ClassSubject superInterface1 = inspector.clazz(B112452064SuperInterface1.class);
     assertThat(superInterface1, isRenamed());
-    MethodSubject foo = superInterface1.method("void", "foo", ImmutableList.of());
-    assertThat(foo, isRenamed());
+    MethodSubject foo = superInterface1.uniqueMethodWithName("foo");
+    assertThat(foo, not(isPresent()));
     ClassSubject superInterface2 = inspector.clazz(B112452064SuperInterface2.class);
     if (enableVerticalClassMerging) {
       assertThat(superInterface2, not(isPresent()));
     } else {
       assertThat(superInterface2, isRenamed());
     }
-    MethodSubject bar = superInterface1.method("void", "bar", ImmutableList.of());
+    MethodSubject bar = superInterface2.uniqueMethodWithName("bar");
     assertThat(bar, not(isPresent()));
     ClassSubject subInterface = inspector.clazz(B112452064SubInterface.class);
     if (enableUnusedInterfaceRemoval) {

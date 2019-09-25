@@ -6,7 +6,6 @@ package com.android.tools.r8.shaking.examples;
 import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.shaking.TreeShakingTest;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
@@ -41,8 +40,7 @@ public class TreeShaking18Test extends TreeShakingTest {
         TreeShaking18Test::unusedRemoved,
         null,
         null,
-        ImmutableList.of("src/test/examples/shaking18/keep-rules.txt"),
-        InternalOptions::enableCallSiteOptimizationInfoPropagation);
+        ImmutableList.of("src/test/examples/shaking18/keep-rules.txt"));
   }
 
   private static void unusedRemoved(CodeInspector inspector) {

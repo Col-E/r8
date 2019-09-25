@@ -47,7 +47,11 @@ public class TreeShaking17Test extends TreeShakingTest {
   private static void abstractMethodRemains(CodeInspector inspector) {
     ClassSubject programClass = inspector.clazz("shaking17.AbstractProgramClass");
     Assert.assertTrue(programClass.isPresent());
-    Assert.assertTrue(
+    // With call site optimization, the dynamic type of the argument of Shaking#callTheMethod is
+    // SubClass, not AbstractProgramClass. Then, the resolution of the invocation is accurately
+    // referring to SubClass#abstractMethod only, i.e., AbstractProgramClass#abstractMethod is no
+    // longer live, hence shrunken.
+    Assert.assertFalse(
         programClass.method("int", "abstractMethod", Collections.emptyList()).isPresent());
   }
 }

@@ -5,7 +5,7 @@ package com.android.tools.r8.shaking.assumevalues;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
@@ -16,7 +16,6 @@ import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import com.google.common.collect.Streams;
 import java.util.Collection;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -125,17 +124,17 @@ public class AssumevaluesWithMultipleTargetsTest extends TestBase {
 
       MethodSubject mainMethod = main.mainMethod();
       assertThat(mainMethod, isPresent());
-      assertEquals(
-          0,
-          Streams.stream(mainMethod.iterateInstructions(
-              i -> i.isInvoke() && i.getMethod().name.toString().equals("m"))).count());
+      assertTrue(
+          mainMethod.streamInstructions().noneMatch(
+              i -> i.isInvoke() && i.getMethod().name.toString().equals("m")));
 
       MethodSubject testInvokeInterface = main.uniqueMethodWithName("testInvokeInterface");
       assertThat(testInvokeInterface, isPresent());
-      assertEquals(
-          1,
-          Streams.stream(testInvokeInterface.iterateInstructions(
-              i -> i.isInvoke() && i.getMethod().name.toString().equals("m"))).count());
+      // With call site optimizations, the dynamic type of the argument is accurate (Impl1),
+      // hence the accurate resolution of the method call, resulting in rule application.
+      assertTrue(
+          testInvokeInterface.streamInstructions().noneMatch(
+              i -> i.isInvoke() && i.getMethod().name.toString().equals("m")));
     }
   }
 
