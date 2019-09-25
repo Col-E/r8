@@ -30,6 +30,7 @@ import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableSet;
@@ -298,8 +299,11 @@ public class LambdaRewriter {
     String rewrittenString = rewritten.toString();
     String actualRewrittenPrefix = rewrittenString.substring(0, rewrittenString.lastIndexOf('.'));
     assert javaName.startsWith(actualPrefix);
-    appView.rewritePrefix.addPrefix(
-        javaName, actualRewrittenPrefix + javaName.substring(actualPrefix.length()));
+    appView.rewritePrefix.rewriteType(
+        lambdaClassType,
+        factory.createType(
+            DescriptorUtils.javaTypeToDescriptor(
+                actualRewrittenPrefix + javaName.substring(actualPrefix.length()))));
   }
 
   private static <K, V> V getKnown(Map<K, V> map, K key) {

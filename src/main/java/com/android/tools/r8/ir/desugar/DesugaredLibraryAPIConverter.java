@@ -103,10 +103,9 @@ public class DesugaredLibraryAPIConverter {
   }
 
   private DexType vivifiedTypeFor(DexType type) {
-    // doubleDollarTypes are fake types to work around rewriting.
     DexType vivifiedType =
         factory.createType(DescriptorUtils.javaTypeToDescriptor(VIVIFIED_PREFIX + type.toString()));
-    appView.rewritePrefix.addPrefix(vivifiedType.toString(), type.toString());
+    appView.rewritePrefix.rewriteType(vivifiedType, type);
     return vivifiedType;
   }
 

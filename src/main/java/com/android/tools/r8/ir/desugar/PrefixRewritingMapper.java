@@ -23,7 +23,7 @@ public abstract class PrefixRewritingMapper {
 
   public abstract DexType rewrittenType(DexType type);
 
-  public abstract void addPrefix(String prefix, String rewrittenPrefix);
+  public abstract void rewriteType(DexType type, DexType rewrittenType);
 
   public boolean hasRewrittenType(DexType type) {
     return rewrittenType(type) != null;
@@ -35,9 +35,7 @@ public abstract class PrefixRewritingMapper {
 
     private final Set<DexType> notRewritten = Sets.newConcurrentHashSet();
     private final Map<DexType, DexType> rewritten = new ConcurrentHashMap<>();
-    // Prefix is IdentityHashMap, additionalPrefixes requires however concurrent read and writes.
     private final Map<DexString, DexString> initialPrefixes;
-    private final Map<DexString, DexString> additionalPrefixes = new ConcurrentHashMap<>();
     private final DexItemFactory factory;
 
     public DesugarPrefixRewritingMapper(Map<String, String> prefixes, DexItemFactory factory) {
@@ -97,20 +95,25 @@ public abstract class PrefixRewritingMapper {
     }
 
     @Override
-    public void addPrefix(String prefix, String rewrittenPrefix) {
-      additionalPrefixes.putIfAbsent(
-          toDescriptorPrefix(prefix), toDescriptorPrefix(rewrittenPrefix));
+    public void rewriteType(DexType type, DexType rewrittenType) {
+      assert !notRewritten.contains(type)
+          : "New rewriting rule for "
+              + type
+              + " but the compiler has already made decisions based on the fact that this type was"
+              + " not rewritten";
+      assert !rewritten.containsKey(type) || rewritten.get(type) == rewrittenType
+          : "New rewriting rule for "
+              + type
+              + " but the compiler has already made decisions based on a different rewriting rule"
+              + " for this type";
+      rewritten.put(type, rewrittenType);
     }
 
     private DexType computePrefix(DexType type) {
       DexString prefixToMatch = type.descriptor.withoutArray(factory);
-      DexType result1 = lookup(type, prefixToMatch, initialPrefixes);
-      if (result1 != null) {
-        return result1;
-      }
-      DexType result2 = lookup(type, prefixToMatch, additionalPrefixes);
-      if (result2 != null) {
-        return result2;
+      DexType result = lookup(type, prefixToMatch, initialPrefixes);
+      if (result != null) {
+        return result;
       }
       notRewritten.add(type);
       return null;
@@ -123,7 +126,7 @@ public abstract class PrefixRewritingMapper {
           DexString rewrittenTypeDescriptor =
               type.descriptor.withNewPrefix(prefix, map.get(prefix), factory);
           DexType rewrittenType = factory.createType(rewrittenTypeDescriptor);
-          rewritten.put(type, rewrittenType);
+          rewriteType(type, rewrittenType);
           return rewrittenType;
         }
       }
@@ -144,7 +147,7 @@ public abstract class PrefixRewritingMapper {
     }
 
     @Override
-    public void addPrefix(String prefix, String rewrittenPrefix) {}
+    public void rewriteType(DexType type, DexType rewrittenType) {}
 
     @Override
     public boolean isRewriting() {

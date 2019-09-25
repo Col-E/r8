@@ -156,12 +156,15 @@ public final class InterfaceMethodRewriter {
   }
 
   private void addRewritePrefix(DexType interfaceType, String rewrittenType) {
-    appView.rewritePrefix.addPrefix(
-        getCompanionClassType(interfaceType).toString(),
-        rewrittenType + COMPANION_CLASS_NAME_SUFFIX);
-    appView.rewritePrefix.addPrefix(
-        getEmulateLibraryInterfaceClassType(interfaceType, factory).toString(),
-        rewrittenType + EMULATE_LIBRARY_CLASS_NAME_SUFFIX);
+    appView.rewritePrefix.rewriteType(
+        getCompanionClassType(interfaceType),
+        factory.createType(
+            DescriptorUtils.javaTypeToDescriptor(rewrittenType + COMPANION_CLASS_NAME_SUFFIX)));
+    appView.rewritePrefix.rewriteType(
+        getEmulateLibraryInterfaceClassType(interfaceType, factory),
+        factory.createType(
+            DescriptorUtils.javaTypeToDescriptor(
+                rewrittenType + EMULATE_LIBRARY_CLASS_NAME_SUFFIX)));
   }
 
   boolean isEmulatedInterface(DexType itf) {
