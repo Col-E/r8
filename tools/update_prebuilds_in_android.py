@@ -89,35 +89,41 @@ def download_target(root, url, target):
   if 'X-GUploader-Request-Result: success' not in str(result[1]):
     raise IOError('Failed to download ' + url)
 
-def Main():
-  args = parse_arguments()
+def main_download(hash, maps, targets, target_root, version):
+  jar_targets = JAR_TARGETS_MAP[targets]
+  final_targets = map((lambda t: t[0] + '.jar'), jar_targets) + OTHER_TARGETS
+  with utils.TempDir() as root:
+    for target in final_targets:
+      if hash:
+        download_hash(root, hash, target)
+        if maps and target not in OTHER_TARGETS:
+          download_hash(root, hash, target + '.map')
+      else:
+        assert version
+        download_version(root, version, target)
+        if maps and target not in OTHER_TARGETS:
+          download_version(root, version, target + '.map')
+    copy_jar_targets(root, target_root, jar_targets, maps)
+    copy_other_targets(root, target_root)
+
+def main_build(maps, max_memory_size, targets, target_root):
+  jar_targets = JAR_TARGETS_MAP[targets]
+  gradle_args = map(lambda t: t[0], jar_targets)
+  if max_memory_size:
+    gradle_args.append('-Dorg.gradle.jvmargs=-Xmx' + max_memory_size)
+  gradle.RunGradle(gradle_args)
+  copy_jar_targets(utils.LIBS, target_root, jar_targets, maps)
+  copy_other_targets(utils.GENERATED_LICENSE_DIR, target_root)
+
+def main(args):
   if args.maps and args.targets != 'lib':
     raise Exception("Use '--maps' only with '--targets lib.")
   target_root = args.android_root[0]
-  jar_targets = JAR_TARGETS_MAP[args.targets]
   if args.commit_hash == None and args.version == None:
-    gradle_args = map(lambda t: t[0], jar_targets)
-    if args.java_max_memory_size:
-      gradle_args.append('-Dorg.gradle.jvmargs=-Xmx' + args.java_max_memory_size)
-    gradle.RunGradle(gradle_args)
-    copy_jar_targets(utils.LIBS, target_root, jar_targets, args.maps)
-    copy_other_targets(utils.GENERATED_LICENSE_DIR, target_root)
+    main_build(args.maps, args.java_max_memory_size, args.targets, target_root)
   else:
     assert args.commit_hash == None or args.version == None
-    targets = map((lambda t: t[0] + '.jar'), jar_targets) + OTHER_TARGETS
-    with utils.TempDir() as root:
-      for target in targets:
-        if args.commit_hash:
-          download_hash(root, args.commit_hash, target)
-          if args.maps and target not in OTHER_TARGETS:
-            download_hash(root, args.commit_hash, target + '.map')
-        else:
-          assert args.version
-          download_version(root, args.version, target)
-          if args.maps and target not in OTHER_TARGETS:
-            download_version(root, args.version, target + '.map')
-      copy_jar_targets(root, target_root, jar_targets, args.maps)
-      copy_other_targets(root, target_root)
+    main_download(args.commit_hash, args.maps, args.targets, target_root, args.version)
 
 if __name__ == '__main__':
-  sys.exit(Main())
+  sys.exit(main(parse_arguments()))
