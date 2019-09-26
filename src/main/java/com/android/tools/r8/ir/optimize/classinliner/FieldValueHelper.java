@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.classinliner;
 
+import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 
 import com.android.tools.r8.graph.AppView;
@@ -14,6 +15,7 @@ import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
+import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Phi.RegisterReadType;
 import com.android.tools.r8.ir.code.Value;
@@ -140,12 +142,17 @@ final class FieldValueHelper {
 
     assert root == valueProducingInsn;
     if (defaultValue == null) {
+      InstructionListIterator it = block.listIterator(code, root);
       // If we met newInstance it means that default value is supposed to be used.
-      defaultValue =
-          code.createValue(TypeLatticeElement.fromDexType(field.type, maybeNull(), appView));
-      ConstNumber defaultValueInsn = new ConstNumber(defaultValue, 0);
-      defaultValueInsn.setPosition(root.getPosition());
-      block.listIterator(code, root).add(defaultValueInsn);
+      if (field.type.isPrimitiveType()) {
+        defaultValue = code.createValue(
+            TypeLatticeElement.fromDexType(field.type, definitelyNotNull(), appView));
+        ConstNumber defaultValueInsn = new ConstNumber(defaultValue, 0);
+        defaultValueInsn.setPosition(root.getPosition());
+        it.add(defaultValueInsn);
+      } else {
+        defaultValue = it.insertConstNullInstruction(code, appView.options());
+      }
     }
     return defaultValue;
   }
