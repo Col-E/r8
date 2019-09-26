@@ -21,6 +21,7 @@ import com.android.tools.r8.utils.ArchiveResourceProvider;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.collect.ImmutableList;
+import com.google.common.io.ByteStreams;
 import dalvik.system.PathClassLoader;
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -76,7 +77,7 @@ public class SplitterTestBase extends TestBase {
         ZipEntry next = inputStream.getNextEntry();
         while (next != null) {
           outputStream.putNextEntry(new ZipEntry(next.getName()));
-          outputStream.write(inputStream.readAllBytes());
+          outputStream.write(ByteStreams.toByteArray(inputStream));
           outputStream.closeEntry();
           next = inputStream.getNextEntry();
         }

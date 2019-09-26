@@ -20,6 +20,7 @@ import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
+import com.google.common.io.ByteStreams;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -141,7 +142,7 @@ public class R8FeatureSplitTest extends SplitterTestBase {
       for (String nonJavaFile : nonJavaFiles) {
         ZipEntry entry = zipFile.getEntry(nonJavaFile);
         assertNotNull(entry);
-        String content = new String(zipFile.getInputStream(entry).readAllBytes());
+        String content = new String(ByteStreams.toByteArray(zipFile.getInputStream(entry)));
         assertEquals(content, nonJavaFile);
       }
     }
@@ -177,7 +178,7 @@ public class R8FeatureSplitTest extends SplitterTestBase {
       for (String nonJavaFile : nonJavaFiles) {
         ZipEntry entry = zipFile.getEntry(nonJavaFile);
         assertNotNull(entry);
-        String content = new String(zipFile.getInputStream(entry).readAllBytes());
+        String content = new String(ByteStreams.toByteArray(zipFile.getInputStream(entry)));
         assertNotEquals(content, nonJavaFile);
       }
     }
