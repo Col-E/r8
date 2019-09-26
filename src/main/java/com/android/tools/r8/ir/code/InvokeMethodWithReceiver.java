@@ -33,6 +33,7 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
   }
 
   public Value getReceiver() {
+    assert inValues.size() > 0;
     return inValues.get(0);
   }
 
