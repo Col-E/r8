@@ -218,7 +218,7 @@ public class CodeRewriter {
     // Therefore, Assume elimination may result in a trivial phi:
     //   z <- phi(x, x)
     if (needToCheckTrivialPhis) {
-      code.removeAllTrivialPhis(valuesThatRequireWidening);
+      code.removeAllTrivialPhis();
     }
 
     if (!valuesThatRequireWidening.isEmpty()) {

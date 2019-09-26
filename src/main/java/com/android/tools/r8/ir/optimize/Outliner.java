@@ -556,10 +556,8 @@ public class Outliner {
           templateInstructions.add(OutlineInstruction.fromInstruction(current));
         } else if (current.isConstInstruction()) {
           // Don't include const instructions in the template.
-        } else if (current.isAssume()) {
-          // Don't include assume instructions in the template.
         } else {
-          assert false : "Unexpected type of instruction in outlining template:" + current;
+          assert false : "Unexpected type of instruction in outlining template.";
         }
       }
     }
@@ -790,12 +788,6 @@ public class Outliner {
           include = true;
           instructionIncrement = 0;
         }
-      } else if (instruction.isAssume()) {
-        // Technically, assume instructions will be removed, and thus it should not be included.
-        // However, we should keep searching, so here we pretend to include it with 0 increment.
-        // When adding instruction into the outline candidate, we filter out assume instructions.
-        include = true;
-        instructionIncrement = 0;
       } else {
         include = canIncludeInstruction(instruction);
       }
@@ -994,16 +986,12 @@ public class Outliner {
 
     // Add the current instruction to the outline.
     private void includeInstruction(Instruction instruction) {
-      if (instruction.isAssume()) {
-        return;
-      }
-
       List<Value> inValues = orderedInValues(instruction, returnValue);
 
       Value prevReturnValue = returnValue;
       if (returnValue != null) {
         for (Value value : inValues) {
-          if (value.getAliasedValue() == returnValue) {
+          if (value == returnValue) {
             assert returnValueUsersLeft > 0;
             returnValueUsersLeft--;
           }
@@ -1025,7 +1013,7 @@ public class Outliner {
           || instruction.isArithmeticBinop();
       if (inValues.size() > 0) {
         for (int i = 0; i < inValues.size(); i++) {
-          Value value = inValues.get(i).getAliasedValue();
+          Value value = inValues.get(i);
           if (value == prevReturnValue) {
             argumentsMap.add(OutlineInstruction.OUTLINE_TEMP);
             continue;
@@ -1078,6 +1066,7 @@ public class Outliner {
         returnType = newReturnType;
       }
     }
+
 
     protected abstract void handle(int start, int end, Outline outline);
 

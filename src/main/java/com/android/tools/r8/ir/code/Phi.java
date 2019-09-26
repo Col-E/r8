@@ -123,7 +123,7 @@ public class Phi extends Value implements InstructionOrPhi {
       builder.constrainType(operand, readConstraint);
       appendOperand(operand);
     }
-    removeTrivialPhi(builder, null);
+    removeTrivialPhi(builder);
   }
 
   public void addOperands(List<Value> operands) {
@@ -224,10 +224,10 @@ public class Phi extends Value implements InstructionOrPhi {
   }
 
   public void removeTrivialPhi() {
-    removeTrivialPhi(null, null);
+    removeTrivialPhi(null);
   }
 
-  void removeTrivialPhi(IRBuilder builder, Set<Value> affectedValues) {
+  public void removeTrivialPhi(IRBuilder builder) {
     Value same = null;
     for (Value op : operands) {
       if (op == same || op == this) {
@@ -251,9 +251,6 @@ public class Phi extends Value implements InstructionOrPhi {
     // Ensure that the value that replaces this phi is constrained to the type of this phi.
     if (builder != null && typeLattice.isPreciseType() && !typeLattice.isBottom()) {
       builder.constrainType(same, ValueTypeConstraint.fromTypeLattice(typeLattice));
-    }
-    if (affectedValues != null) {
-      affectedValues.addAll(this.affectedValues());
     }
     // Removing this phi, so get rid of it as a phi user from all of the operands to avoid
     // recursively getting back here with the same phi. If the phi has itself as an operand
@@ -280,7 +277,7 @@ public class Phi extends Value implements InstructionOrPhi {
       replaceUsers(same);
       // Try to simplify phi users that might now have become trivial.
       for (Phi user : phiUsersToSimplify) {
-        user.removeTrivialPhi(builder, affectedValues);
+        user.removeTrivialPhi(builder);
       }
     }
     // Get rid of the phi itself.

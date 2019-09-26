@@ -1008,22 +1008,14 @@ public class IRCode {
   }
 
   public void removeAllTrivialPhis() {
-    removeAllTrivialPhis(null, null);
+    removeAllTrivialPhis(null);
   }
 
   public void removeAllTrivialPhis(IRBuilder builder) {
-    removeAllTrivialPhis(builder, null);
-  }
-
-  public void removeAllTrivialPhis(Set<Value> affectedValues) {
-    removeAllTrivialPhis(null, affectedValues);
-  }
-
-  public void removeAllTrivialPhis(IRBuilder builder, Set<Value> affectedValues) {
     for (BasicBlock block : blocks) {
       List<Phi> phis = new ArrayList<>(block.getPhis());
       for (Phi phi : phis) {
-        phi.removeTrivialPhi(builder, affectedValues);
+        phi.removeTrivialPhi(builder);
       }
     }
   }
