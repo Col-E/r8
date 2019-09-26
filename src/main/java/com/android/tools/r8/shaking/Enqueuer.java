@@ -276,9 +276,6 @@ public class Enqueuer {
   /** A queue of items that need processing. Different items trigger different actions. */
   private final EnqueuerWorklist workList;
 
-  /** A queue of items that have been added to try to keep Proguard compatibility. */
-  private final EnqueuerWorklist proguardCompatibilityWorkList;
-
   /**
    * A set of methods that need code inspection for Java reflection in use.
    */
@@ -334,8 +331,6 @@ public class Enqueuer {
     this.mode = mode;
     this.options = options;
     this.workList = EnqueuerWorklist.createWorklist(appView);
-    this.proguardCompatibilityWorkList =
-        EnqueuerWorklist.createProguardCompatibilityWorklist(appView);
 
     if (options.enableGeneratedMessageLiteShrinking && mode.isInitialOrFinalTreeShaking()) {
       registerAnalysis(new ProtoEnqueuerExtension(appView));
@@ -453,7 +448,7 @@ public class Enqueuer {
         if (clazz.hasDefaultInitializer()) {
           DexEncodedMethod defaultInitializer = clazz.getDefaultInitializer();
           if (forceProguardCompatibility) {
-            proguardCompatibilityWorkList.enqueueMarkMethodKeptAction(
+            workList.enqueueMarkMethodKeptAction(
                 defaultInitializer,
                 graphReporter.reportCompatKeepDefaultInitializer(clazz, defaultInitializer));
           }
@@ -2329,9 +2324,6 @@ public class Enqueuer {
           pendingReflectiveUses.forEach(this::handleReflectiveBehavior);
           pendingReflectiveUses.clear();
         }
-        if (!proguardCompatibilityWorkList.isEmpty()) {
-          proguardCompatibilityWorkList.transferTo(workList, liveMethods::add);
-        }
         if (!workList.isEmpty()) {
           continue;
         }
@@ -2533,18 +2525,17 @@ public class Enqueuer {
       markInterfaceAsInstantiated(clazz, reason);
       return;
     }
-    proguardCompatibilityWorkList.enqueueMarkInstantiatedAction(clazz, reason);
+    workList.enqueueMarkInstantiatedAction(clazz, reason);
     if (clazz.hasDefaultInitializer()) {
       DexEncodedMethod defaultInitializer = clazz.getDefaultInitializer();
-      proguardCompatibilityWorkList.enqueueMarkReachableDirectAction(
+      workList.enqueueMarkReachableDirectAction(
           defaultInitializer.method,
           graphReporter.reportCompatKeepDefaultInitializer(clazz, defaultInitializer));
     }
   }
 
   private void markMethodAsLiveWithCompatRule(DexProgramClass clazz, DexEncodedMethod method) {
-    proguardCompatibilityWorkList.enqueueMarkMethodLiveAction(
-        clazz, method, graphReporter.reportCompatKeepMethod(clazz, method));
+    enqueueMarkMethodLiveAction(clazz, method, graphReporter.reportCompatKeepMethod(clazz, method));
   }
 
   private void handleReflectiveBehavior(DexEncodedMethod method) {

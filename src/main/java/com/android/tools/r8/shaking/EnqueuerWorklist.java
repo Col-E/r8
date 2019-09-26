@@ -12,7 +12,6 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import java.util.ArrayDeque;
 import java.util.Queue;
-import java.util.function.BiPredicate;
 
 public class EnqueuerWorklist {
 
@@ -46,19 +45,12 @@ public class EnqueuerWorklist {
   private final AppView<?> appView;
   private final Queue<Action> queue = new ArrayDeque<>();
 
-  private final boolean restrictToProguardCompatibilityRules;
-
-  private EnqueuerWorklist(AppView<?> appView, boolean restrictToProguardCompatibilityRules) {
+  private EnqueuerWorklist(AppView<?> appView) {
     this.appView = appView;
-    this.restrictToProguardCompatibilityRules = restrictToProguardCompatibilityRules;
   }
 
   public static EnqueuerWorklist createWorklist(AppView<?> appView) {
-    return new EnqueuerWorklist(appView, false);
-  }
-
-  public static EnqueuerWorklist createProguardCompatibilityWorklist(AppView<?> appView) {
-    return new EnqueuerWorklist(appView, true);
+    return new EnqueuerWorklist(appView);
   }
 
   public boolean isEmpty() {
@@ -69,32 +61,15 @@ public class EnqueuerWorklist {
     return queue.poll();
   }
 
-  public void transferTo(
-      EnqueuerWorklist worklist, BiPredicate<DexEncodedMethod, KeepReason> filter) {
-    while (!queue.isEmpty()) {
-      Action action = queue.poll();
-      if (action.kind == Action.Kind.MARK_METHOD_LIVE) {
-        DexEncodedMethod method = (DexEncodedMethod) action.target;
-        if (!filter.test(method, action.reason)) {
-          continue;
-        }
-      }
-      worklist.queue.add(action);
-    }
-  }
-
   void enqueueMarkReachableDirectAction(DexMethod method, KeepReason reason) {
-    assert !restrictToProguardCompatibilityRules || reason.isDueToProguardCompatibility();
     queue.add(new Action(Action.Kind.MARK_REACHABLE_DIRECT, method, null, reason));
   }
 
   void enqueueMarkReachableVirtualAction(DexMethod method, KeepReason reason) {
-    assert !restrictToProguardCompatibilityRules || reason.isDueToProguardCompatibility();
     queue.add(new Action(Action.Kind.MARK_REACHABLE_VIRTUAL, method, null, reason));
   }
 
   void enqueueMarkReachableInterfaceAction(DexMethod method, KeepReason reason) {
-    assert !restrictToProguardCompatibilityRules || reason.isDueToProguardCompatibility();
     queue.add(new Action(Action.Kind.MARK_REACHABLE_INTERFACE, method, null, reason));
   }
 
@@ -104,32 +79,27 @@ public class EnqueuerWorklist {
 
   public void enqueueMarkReachableFieldAction(
       DexProgramClass clazz, DexEncodedField field, KeepReason reason) {
-    assert !restrictToProguardCompatibilityRules || reason.isDueToProguardCompatibility();
     assert field.field.holder == clazz.type;
     queue.add(new Action(Action.Kind.MARK_REACHABLE_FIELD, field, null, reason));
   }
 
   void enqueueMarkInstantiatedAction(DexProgramClass clazz, KeepReason reason) {
     assert !clazz.isInterface() || clazz.accessFlags.isAnnotation();
-    assert !restrictToProguardCompatibilityRules || reason.isDueToProguardCompatibility();
     queue.add(new Action(Action.Kind.MARK_INSTANTIATED, clazz, null, reason));
   }
 
   void enqueueMarkMethodLiveAction(
       DexProgramClass clazz, DexEncodedMethod method, KeepReason reason) {
-    assert !restrictToProguardCompatibilityRules || reason.isDueToProguardCompatibility();
     assert method.method.holder == clazz.type;
     queue.add(new Action(Action.Kind.MARK_METHOD_LIVE, method, null, reason));
   }
 
   void enqueueMarkMethodKeptAction(DexEncodedMethod method, KeepReason reason) {
-    assert !restrictToProguardCompatibilityRules || reason.isDueToProguardCompatibility();
     assert method.isProgramMethod(appView);
     queue.add(new Action(Action.Kind.MARK_METHOD_KEPT, method, null, reason));
   }
 
   void enqueueMarkFieldKeptAction(DexEncodedField field, KeepReason reason) {
-    assert !restrictToProguardCompatibilityRules || reason.isDueToProguardCompatibility();
     assert field.isProgramField(appView);
     queue.add(new Action(Action.Kind.MARK_FIELD_KEPT, field, null, reason));
   }
