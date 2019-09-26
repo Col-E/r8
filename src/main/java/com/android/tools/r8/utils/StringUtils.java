@@ -165,6 +165,10 @@ public class StringUtils {
     return join(LINE_SEPARATOR, lines);
   }
 
+  public static <T> String joinLines(Collection<T> collection) {
+    return join(collection, LINE_SEPARATOR, BraceType.NONE);
+  }
+
   public static List<String> splitLines(String content) {
     int length = content.length();
     List<String> lines = new ArrayList<>();

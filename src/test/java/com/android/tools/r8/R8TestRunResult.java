@@ -7,10 +7,14 @@ package com.android.tools.r8;
 import static org.junit.Assert.assertNotNull;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.retrace.Retrace;
+import com.android.tools.r8.retrace.RetraceCommand;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.graphinspector.GraphInspector;
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 
@@ -59,5 +63,19 @@ public class R8TestRunResult extends TestRunResult<R8TestRunResult> {
 
   public String proguardMap() {
     return proguardMap;
+  }
+
+  public List<String> retrace() {
+    class Box {
+      List<String> result;
+    }
+    Box box = new Box();
+    Retrace.run(
+        RetraceCommand.builder()
+            .setProguardMapProducer(() -> proguardMap)
+            .setStackTrace(StringUtils.splitLines(getStdErr()))
+            .setRetracedStackTraceConsumer(retraced -> box.result = retraced)
+            .build());
+    return box.result;
   }
 }
