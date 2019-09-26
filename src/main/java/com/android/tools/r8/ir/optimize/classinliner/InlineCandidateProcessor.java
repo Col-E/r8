@@ -50,6 +50,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -60,7 +61,7 @@ final class InlineCandidateProcessor {
   private final AppView<AppInfoWithLiveness> appView;
   private final LambdaRewriter lambdaRewriter;
   private final Inliner inliner;
-  private final Predicate<DexClass> isClassEligible;
+  private final Function<DexClass, EligibilityStatus> isClassEligible;
   private final Predicate<DexEncodedMethod> isProcessedConcurrently;
   private final DexEncodedMethod method;
   private final Instruction root;
@@ -83,7 +84,7 @@ final class InlineCandidateProcessor {
       AppView<AppInfoWithLiveness> appView,
       LambdaRewriter lambdaRewriter,
       Inliner inliner,
-      Predicate<DexClass> isClassEligible,
+      Function<DexClass, EligibilityStatus> isClassEligible,
       Predicate<DexEncodedMethod> isProcessedConcurrently,
       DexEncodedMethod method,
       Instruction root) {
@@ -140,8 +141,9 @@ final class InlineCandidateProcessor {
   //      * class has class initializer marked as TrivialClassInitializer, and
   //        class initializer initializes the field we are reading here.
   EligibilityStatus isClassAndUsageEligible() {
-    if (!isClassEligible.test(eligibleClassDefinition)) {
-      return EligibilityStatus.INELIGIBLE_CLASS;
+    EligibilityStatus status = isClassEligible.apply(eligibleClassDefinition);
+    if (status != EligibilityStatus.ELIGIBLE) {
+      return status;
     }
 
     if (root.isNewInstance()) {
@@ -251,7 +253,7 @@ final class InlineCandidateProcessor {
    *
    * @return null if all users are eligible, or the first ineligible user.
    */
-  protected InstructionOrPhi areInstanceUsersEligible(Supplier<InliningOracle> defaultOracle) {
+  InstructionOrPhi areInstanceUsersEligible(Supplier<InliningOracle> defaultOracle) {
     // No Phi users.
     if (eligibleInstance.numberOfPhiUsers() > 0) {
       return eligibleInstance.firstPhiUser(); // Not eligible.
@@ -495,8 +497,8 @@ final class InlineCandidateProcessor {
     }
   }
 
-  private void replaceFieldRead(IRCode code,
-      InstanceGet fieldRead, Map<DexField, FieldValueHelper> fieldHelpers) {
+  private void replaceFieldRead(
+      IRCode code, InstanceGet fieldRead, Map<DexField, FieldValueHelper> fieldHelpers) {
     Value value = fieldRead.outValue();
     if (value != null) {
       FieldValueHelper helper =
@@ -594,7 +596,7 @@ final class InlineCandidateProcessor {
         : null;
   }
 
-  // An invoke is eligible for inlinining in the following cases:
+  // An invoke is eligible for inlining in the following cases:
   //
   // - if it does not return the receiver
   // - if there are no uses of the out value
