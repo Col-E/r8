@@ -163,14 +163,8 @@ public final class L8Command extends BaseCompilerCommand {
     }
 
     public boolean isShrinking() {
-      getReporter()
-          .warning(
-              new StringDiagnostic(
-                  "Shrinking of desugared library has been temporarily disabled due to known bugs"
-                      + " being fixed."));
-      return false;
       // Answers true if keep rules, even empty, are provided.
-      // return !proguardConfigStrings.isEmpty() || !proguardConfigFiles.isEmpty();
+      return !proguardConfigStrings.isEmpty() || !proguardConfigFiles.isEmpty();
     }
 
     @Override
@@ -204,7 +198,7 @@ public final class L8Command extends BaseCompilerCommand {
     @Override
     void validate() {
       Reporter reporter = getReporter();
-      if (!hasDesugaredLibraryConfiguration()) {
+      if (!hasDesugaredLibraryConfiguration()){
         reporter.error("L8 requires a desugared library configuration");
       }
       if (getProgramConsumer() instanceof ClassFileConsumer) {
