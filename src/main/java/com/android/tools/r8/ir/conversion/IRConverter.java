@@ -1249,26 +1249,6 @@ public class IRConverter {
 
     assert code.verifyTypes(appView);
 
-    if (nonNullTracker != null) {
-      // TODO(b/139246447): Once we extend this optimization to, e.g., constants of primitive args,
-      //   this may not be the right place to collect call site optimization info.
-      // Collecting call-site optimization info depends on the existence of non-null IRs.
-      // Arguments can be changed during the debug mode.
-      if (!isDebugMode && appView.callSiteOptimizationInfoPropagator() != null) {
-        appView.callSiteOptimizationInfoPropagator().collectCallSiteOptimizationInfo(code);
-      }
-      // Computation of non-null parameters on normal exits rely on the existence of non-null IRs.
-      nonNullTracker.computeNonNullParamOnNormalExits(feedback, code);
-    }
-    if (aliasIntroducer != null || nonNullTracker != null || dynamicTypeOptimization != null) {
-      codeRewriter.removeAssumeInstructions(code);
-      assert code.isConsistentSSA();
-    }
-    // Assert that we do not have unremoved non-sense code in the output, e.g., v <- non-null NULL.
-    assert code.verifyNoNullabilityBottomTypes();
-
-    assert code.verifyTypes(appView);
-
     previous = printMethod(code, "IR before class inlining (SSA)", previous);
 
     if (classInliner != null) {
@@ -1293,6 +1273,7 @@ public class IRConverter {
                       Integer.MAX_VALUE / 2,
                       Integer.MAX_VALUE / 2)));
       assert code.isConsistentSSA();
+      assert code.verifyTypes(appView);
     }
 
     previous = printMethod(code, "IR after class inlining (SSA)", previous);
@@ -1322,6 +1303,26 @@ public class IRConverter {
     if (twrCloseResourceRewriter != null) {
       twrCloseResourceRewriter.rewriteMethodCode(code);
     }
+
+    if (nonNullTracker != null) {
+      // TODO(b/139246447): Once we extend this optimization to, e.g., constants of primitive args,
+      //   this may not be the right place to collect call site optimization info.
+      // Collecting call-site optimization info depends on the existence of non-null IRs.
+      // Arguments can be changed during the debug mode.
+      if (!isDebugMode && appView.callSiteOptimizationInfoPropagator() != null) {
+        appView.callSiteOptimizationInfoPropagator().collectCallSiteOptimizationInfo(code);
+      }
+      // Computation of non-null parameters on normal exits rely on the existence of non-null IRs.
+      nonNullTracker.computeNonNullParamOnNormalExits(feedback, code);
+    }
+    if (aliasIntroducer != null || nonNullTracker != null || dynamicTypeOptimization != null) {
+      codeRewriter.removeAssumeInstructions(code);
+      assert code.isConsistentSSA();
+    }
+    // Assert that we do not have unremoved non-sense code in the output, e.g., v <- non-null NULL.
+    assert code.verifyNoNullabilityBottomTypes();
+
+    assert code.verifyTypes(appView);
 
     previous = printMethod(code, "IR after twr close resource rewriter (SSA)", previous);
 

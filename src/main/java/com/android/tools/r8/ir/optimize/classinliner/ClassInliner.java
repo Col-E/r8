@@ -8,9 +8,11 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionOrPhi;
+import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.Inliner;
@@ -18,9 +20,11 @@ import com.android.tools.r8.ir.optimize.InliningOracle;
 import com.android.tools.r8.ir.optimize.string.StringOptimizer;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -225,7 +229,11 @@ public final class ClassInliner {
         anyInlinedMethods |= processor.processInlining(code, defaultOracle);
 
         // Restore normality.
-        code.removeAllTrivialPhis();
+        Set<Value> affectedValues = Sets.newIdentityHashSet();
+        code.removeAllTrivialPhis(affectedValues);
+        if (!affectedValues.isEmpty()) {
+          new TypeAnalysis(appView).narrowing(affectedValues);
+        }
         assert code.isConsistentSSA();
         rootsIterator.remove();
         repeat = true;

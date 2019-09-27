@@ -19,6 +19,7 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.utils.LongInterval;
 import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
@@ -422,6 +423,22 @@ public class Value {
   public Instruction singleUniqueUser() {
     assert ImmutableSet.copyOf(users).size() == 1;
     return users.getFirst();
+  }
+
+  public Set<Instruction> aliasedUsers() {
+    Set<Instruction> users = SetUtils.newIdentityHashSet(uniqueUsers());
+    collectAliasedUsersViaAssume(uniqueUsers(), users);
+    return users;
+  }
+
+  private static void collectAliasedUsersViaAssume(
+      Set<Instruction> usersToTest, Set<Instruction> collectedUsers) {
+    for (Instruction user : usersToTest) {
+      if (user.isAssume()) {
+        collectedUsers.addAll(user.outValue().uniqueUsers());
+        collectAliasedUsersViaAssume(user.outValue().uniqueUsers(), collectedUsers);
+      }
+    }
   }
 
   public Phi firstPhiUser() {

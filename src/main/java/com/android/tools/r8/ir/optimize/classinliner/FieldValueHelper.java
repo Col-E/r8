@@ -41,6 +41,9 @@ final class FieldValueHelper {
     this.code = code;
     this.root = root;
     this.appView = appView;
+    // Verify that `root` is not aliased.
+    assert root.hasOutValue();
+    assert root.outValue() == root.outValue().getAliasedValue();
   }
 
   void replaceValue(Value oldValue, Value newValue) {
@@ -124,10 +127,10 @@ final class FieldValueHelper {
       Instruction instruction = iterator.previous();
       assert instruction != null;
 
-      if (instruction == root ||
-          (instruction.isInstancePut() &&
-              instruction.asInstancePut().getField() == field &&
-              instruction.asInstancePut().object() == root.outValue())) {
+      if (instruction == root
+          || (instruction.isInstancePut()
+              && instruction.asInstancePut().getField() == field
+              && instruction.asInstancePut().object().getAliasedValue() == root.outValue())) {
         valueProducingInsn = instruction;
         break;
       }
