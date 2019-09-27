@@ -105,14 +105,6 @@ abstract class KotlinLambdaGroupClassBuilder<T extends KotlinLambdaGroup>
         // anyways and our new method is a product of inlining.
         MethodAccessFlags accessFlags = MAIN_METHOD_FLAGS.copy();
 
-        // Mark all the impl methods for force inlining
-        // LambdaGroupVirtualMethodSourceCode relies on.
-        for (DexEncodedMethod implMethod : implMethods) {
-          if (implMethod != null) {
-            implMethod.getMutableOptimizationInfo().markForceInline();
-          }
-        }
-
         DexMethod method = factory.createMethod(group.getGroupClassType(), methodProto, methodName);
         result.add(
             new DexEncodedMethod(

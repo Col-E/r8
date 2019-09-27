@@ -44,6 +44,9 @@ public abstract class OptimizationFeedbackIgnore extends OptimizationFeedback {
   // METHOD OPTIMIZATION INFO:
 
   @Override
+  public void markForceInline(DexEncodedMethod method) {}
+
+  @Override
   public void markInlinedIntoSingleCallSite(DexEncodedMethod method) {}
 
   @Override

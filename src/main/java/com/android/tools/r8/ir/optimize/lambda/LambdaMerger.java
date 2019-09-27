@@ -228,6 +228,11 @@ public final class LambdaMerger {
     // sequential lambda ids, create group lambda classes.
     Map<LambdaGroup, DexProgramClass> lambdaGroupsClasses = finalizeLambdaGroups();
 
+    // Mark all the implementation methods for force inlining.
+    for (LambdaGroup group : lambdaGroupsClasses.keySet()) {
+      group.forEachLambda(info -> info.clazz.virtualMethods().forEach(feedback::markForceInline));
+    }
+
     // Fixup optimization info to ensure that the optimization info does not refer to any merged
     // lambdas.
     LambdaMergerOptimizationInfoFixer optimizationInfoFixer =
@@ -238,7 +243,6 @@ public final class LambdaMerger {
     this.strategyFactory = (method, code) -> new ApplyStrategy(method, code, optimizationInfoFixer);
 
     // Add synthesized lambda group classes to the builder.
-
     for (Entry<LambdaGroup, DexProgramClass> entry : lambdaGroupsClasses.entrySet()) {
       DexProgramClass synthesizedClass = entry.getValue();
       appView.appInfo().addSynthesizedClass(synthesizedClass);
@@ -254,6 +258,18 @@ public final class LambdaMerger {
       synthesizedClass.forEachMethod(
           encodedMethod -> encodedMethod.markProcessed(ConstraintWithTarget.NEVER));
     }
+
+    // Verify that all implementation methods are marked for force inlining (i.e., check that the
+    // delayed optimization feedback has been flushed).
+    assert lambdaGroupsClasses.keySet().stream()
+        .allMatch(
+            group ->
+                group.allLambdas(
+                    lambda ->
+                        lambda.clazz.virtualMethods().stream()
+                            .map(DexEncodedMethod::getOptimizationInfo)
+                            .allMatch(MethodOptimizationInfo::forceInline)));
+
     converter.optimizeSynthesizedClasses(lambdaGroupsClasses.values(), executorService);
 
     // Rewrite lambda class references into lambda group class

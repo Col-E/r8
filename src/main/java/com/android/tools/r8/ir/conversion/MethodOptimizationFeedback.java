@@ -19,6 +19,8 @@ import java.util.Set;
 
 public interface MethodOptimizationFeedback {
 
+  void markForceInline(DexEncodedMethod method);
+
   void markInlinedIntoSingleCallSite(DexEncodedMethod method);
 
   void markMethodCannotBeKept(DexEncodedMethod method);

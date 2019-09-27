@@ -52,6 +52,11 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
   // METHOD OPTIMIZATION INFO.
 
   @Override
+  public void markForceInline(DexEncodedMethod method) {
+    // Ignored.
+  }
+
+  @Override
   public synchronized void markInlinedIntoSingleCallSite(DexEncodedMethod method) {
     method.getMutableOptimizationInfo().markInlinedIntoSingleCallSite();
   }
