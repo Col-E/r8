@@ -139,8 +139,8 @@ public class AnnotationRemover {
     return isAnnotationTypeLive(annotation);
   }
 
-  public AnnotationRemover ensureValid(ProguardConfiguration.Builder compatibility) {
-    keep.ensureValid(appView.options().forceProguardCompatibility, compatibility);
+  public AnnotationRemover ensureValid() {
+    keep.ensureValid(appView.options().forceProguardCompatibility);
     return this;
   }
 

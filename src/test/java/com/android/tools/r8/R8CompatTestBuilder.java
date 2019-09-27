@@ -20,13 +20,6 @@ public class R8CompatTestBuilder extends R8TestBuilder<R8CompatTestBuilder> {
     return new R8CompatTestBuilder(state, builder, backend);
   }
 
-  public R8CompatTestBuilder setProguardCompatibilityRulesOutput(
-      Path proguardCompatibilityRulesOutput) {
-    assert builder.proguardCompatibilityRulesOutput == null;
-    builder.proguardCompatibilityRulesOutput = proguardCompatibilityRulesOutput;
-    return self();
-  }
-
   @Override
   R8CompatTestBuilder self() {
     return this;

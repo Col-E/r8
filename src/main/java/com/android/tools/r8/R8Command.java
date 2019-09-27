@@ -100,9 +100,6 @@ public final class R8Command extends BaseCompilerCommand {
     private BiFunction<String, Long, Boolean> dexClassChecksumFilter = (name, checksum) -> true;
     private final List<FeatureSplit> featureSplits = new ArrayList<>();
 
-    // Internal compatibility mode for use from CompatProguard tool.
-    Path proguardCompatibilityRulesOutput = null;
-
     private boolean allowPartiallyImplementedProguardOptions = false;
     private boolean allowTestProguardOptions = false;
 
@@ -541,7 +538,6 @@ public final class R8Command extends BaseCompilerCommand {
               proguardUsageConsumer,
               proguardSeedsConsumer,
               proguardConfigurationConsumer,
-              proguardCompatibilityRulesOutput,
               keptGraphConsumer,
               mainDexKeptGraphConsumer,
               syntheticProguardRulesConsumer,
@@ -626,7 +622,6 @@ public final class R8Command extends BaseCompilerCommand {
   private final StringConsumer proguardUsageConsumer;
   private final StringConsumer proguardSeedsConsumer;
   private final StringConsumer proguardConfigurationConsumer;
-  private final Path proguardCompatibilityRulesOutput;
   private final GraphConsumer keptGraphConsumer;
   private final GraphConsumer mainDexKeptGraphConsumer;
   private final Consumer<List<ProguardConfigurationRule>> syntheticProguardRulesConsumer;
@@ -699,7 +694,6 @@ public final class R8Command extends BaseCompilerCommand {
       StringConsumer proguardUsageConsumer,
       StringConsumer proguardSeedsConsumer,
       StringConsumer proguardConfigurationConsumer,
-      Path proguardCompatibilityRulesOutput,
       GraphConsumer keptGraphConsumer,
       GraphConsumer mainDexKeptGraphConsumer,
       Consumer<List<ProguardConfigurationRule>> syntheticProguardRulesConsumer,
@@ -732,7 +726,6 @@ public final class R8Command extends BaseCompilerCommand {
     this.proguardUsageConsumer = proguardUsageConsumer;
     this.proguardSeedsConsumer = proguardSeedsConsumer;
     this.proguardConfigurationConsumer = proguardConfigurationConsumer;
-    this.proguardCompatibilityRulesOutput = proguardCompatibilityRulesOutput;
     this.keptGraphConsumer = keptGraphConsumer;
     this.mainDexKeptGraphConsumer = mainDexKeptGraphConsumer;
     this.syntheticProguardRulesConsumer = syntheticProguardRulesConsumer;
@@ -753,7 +746,6 @@ public final class R8Command extends BaseCompilerCommand {
     proguardUsageConsumer = null;
     proguardSeedsConsumer = null;
     proguardConfigurationConsumer = null;
-    proguardCompatibilityRulesOutput = null;
     keptGraphConsumer = null;
     mainDexKeptGraphConsumer = null;
     syntheticProguardRulesConsumer = null;
@@ -853,7 +845,6 @@ public final class R8Command extends BaseCompilerCommand {
     internal.keptGraphConsumer = keptGraphConsumer;
     internal.mainDexKeptGraphConsumer = mainDexKeptGraphConsumer;
 
-    internal.proguardCompatibilityRulesOutput = proguardCompatibilityRulesOutput;
     internal.dataResourceConsumer = internal.programConsumer.getDataResourceConsumer();
 
     internal.featureSplitConfiguration = featureSplitConfiguration;

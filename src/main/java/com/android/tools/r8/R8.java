@@ -62,7 +62,6 @@ import com.android.tools.r8.shaking.EnqueuerFactory;
 import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.shaking.MainDexListBuilder;
 import com.android.tools.r8.shaking.ProguardClassFilter;
-import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.shaking.ProguardConfigurationUtils;
 import com.android.tools.r8.shaking.RootSetBuilder;
@@ -76,7 +75,6 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
-import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.AssertionProcessing;
 import com.android.tools.r8.utils.LineNumberOptimizer;
@@ -88,15 +86,12 @@ import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.io.ByteStreams;
-import com.google.common.io.Closer;
 import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -297,9 +292,6 @@ public class R8 {
         // kotlin metadata annotation is removed.
         computeKotlinInfoForProgramClasses(application, appView);
 
-        ProguardConfiguration.Builder compatibility =
-            ProguardConfiguration.builder(application.dexItemFactory, options.reporter);
-
         // Add synthesized -assumenosideeffects from min api if relevant.
         if (options.isGeneratingDex()) {
           if (!ProguardConfigurationUtils.hasExplicitAssumeValuesOrAssumeNoSideEffectsRuleForMinSdk(
@@ -318,7 +310,7 @@ public class R8 {
                         options.getProguardConfiguration().getRules(), synthesizedProguardRules))
                 .run(executorService));
 
-        Enqueuer enqueuer = EnqueuerFactory.createForInitialTreeShaking(appView, compatibility);
+        Enqueuer enqueuer = EnqueuerFactory.createForInitialTreeShaking(appView);
 
         if (appView.options().enableInitializedClassesInInstanceMethodsAnalysis) {
           enqueuer.registerAnalysis(new InitializedClassesInInstanceMethodsAnalysis(appView));
@@ -376,26 +368,9 @@ public class R8 {
         classesToRetainInnerClassAttributeFor =
             AnnotationRemover.computeClassesToRetainInnerClassAttributeFor(appView.withLiveness());
         new AnnotationRemover(appView.withLiveness(), classesToRetainInnerClassAttributeFor)
-            .ensureValid(compatibility)
+            .ensureValid()
             .run();
 
-        // TODO(69445518): This is still work in progress, and this file writing is currently used
-        // for testing.
-        if (options.forceProguardCompatibility
-            && options.proguardCompatibilityRulesOutput != null) {
-          try (Closer closer = Closer.create()) {
-            OutputStream outputStream =
-                FileUtils.openPath(
-                    closer,
-                    options.proguardCompatibilityRulesOutput,
-                    StandardOpenOption.CREATE,
-                    StandardOpenOption.TRUNCATE_EXISTING,
-                    StandardOpenOption.WRITE);
-            try (PrintStream ps = new PrintStream(outputStream)) {
-              ps.println(compatibility.buildRaw().toString());
-            }
-          }
-        }
       } finally {
         timing.end();
       }

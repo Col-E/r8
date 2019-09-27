@@ -305,11 +305,6 @@ public class Enqueuer {
    */
   private final Map<DexType, Set<DexAnnotation>> deferredAnnotations = new IdentityHashMap<>();
 
-  /**
-   * Set of keep rules generated for Proguard compatibility in Proguard compatibility mode.
-   */
-  private final ProguardConfiguration.Builder compatibility;
-
   /** Map of active if rules to speed up aapt2 generated keep rules. */
   private Map<Wrapper<ProguardIfRule>, Set<ProguardIfRule>> activeIfRules;
 
@@ -328,13 +323,11 @@ public class Enqueuer {
   Enqueuer(
       AppView<? extends AppInfoWithSubtyping> appView,
       GraphConsumer keptGraphConsumer,
-      ProguardConfiguration.Builder compatibility,
       Mode mode) {
     assert appView.appServices() != null;
     InternalOptions options = appView.options();
     this.appInfo = appView.appInfo();
     this.appView = appView;
-    this.compatibility = compatibility;
     this.forceProguardCompatibility = options.forceProguardCompatibility;
     this.graphReporter = new GraphReporter();
     this.keptGraphConsumer = recordKeptGraph(options, keptGraphConsumer);
@@ -458,15 +451,14 @@ public class Enqueuer {
       } else {
         workList.enqueueMarkInstantiatedAction(clazz, witness);
         if (clazz.hasDefaultInitializer()) {
+          DexEncodedMethod defaultInitializer = clazz.getDefaultInitializer();
           if (forceProguardCompatibility) {
-            ProguardKeepRule compatRule =
-                ProguardConfigurationUtils.buildDefaultInitializerKeepRule(clazz);
             proguardCompatibilityWorkList.enqueueMarkMethodKeptAction(
-                clazz.getDefaultInitializer(),
-                KeepReason.dueToProguardCompatibilityKeepRule(compatRule));
+                defaultInitializer,
+                graphReporter.reportCompatKeepDefaultInitializer(clazz, defaultInitializer));
           }
           if (clazz.isExternalizable(appView)) {
-            enqueueMarkMethodLiveAction(clazz, clazz.getDefaultInitializer(), witness);
+            enqueueMarkMethodLiveAction(clazz, defaultInitializer, witness);
           }
         }
       }
@@ -1055,10 +1047,8 @@ public class Enqueuer {
         DexProgramClass baseClass = getProgramClassOrNull(baseType);
         if (baseClass != null) {
           // Don't require any constructor, see b/112386012.
-          markClassAsInstantiatedWithCompatRule(baseClass);
-        } else {
-          // This also handles reporting of missing classes.
-          markTypeAsLive(baseType, this::reportClassReferenced);
+          markClassAsInstantiatedWithCompatRule(
+              baseClass, graphReporter.reportCompatInstantiated(baseClass, currentMethod));
         }
         return true;
       }
@@ -1463,7 +1453,6 @@ public class Enqueuer {
 
     populateInstantiatedTypesCache(clazz);
 
-    collectProguardCompatibilityRule(reason);
     if (Log.ENABLED) {
       Log.verbose(getClass(), "Class `%s` is instantiated, processing...", clazz);
     }
@@ -1700,7 +1689,6 @@ public class Enqueuer {
     }
     processAnnotations(encodedField, encodedField.annotations.annotations);
     liveFields.add(encodedField, reason);
-    collectProguardCompatibilityRule(reason);
 
     // Add all dependent members to the workqueue.
     enqueueRootItems(rootSet.getDependentItems(encodedField));
@@ -1719,7 +1707,6 @@ public class Enqueuer {
     }
     processAnnotations(field, field.annotations.annotations);
     liveFields.add(field, reason);
-    collectProguardCompatibilityRule(reason);
 
     // Add all dependent members to the workqueue.
     enqueueRootItems(rootSet.getDependentItems(field));
@@ -2493,8 +2480,6 @@ public class Enqueuer {
       return;
     }
 
-    collectProguardCompatibilityRule(reason);
-
     Set<DexEncodedMethod> superCallTargets = superInvokeDependencies.get(method);
     if (superCallTargets != null) {
       for (DexEncodedMethod superCallTarget : superCallTargets) {
@@ -2536,12 +2521,6 @@ public class Enqueuer {
         clazz -> graphReporter.reportClassReferencedFrom(clazz, method));
   }
 
-  private void collectProguardCompatibilityRule(KeepReason reason) {
-    if (reason.isDueToProguardCompatibility() && compatibility != null) {
-      compatibility.addRule(reason.getProguardKeepRule());
-    }
-  }
-
   private void markClassAsInstantiatedWithReason(DexProgramClass clazz, KeepReason reason) {
     workList.enqueueMarkInstantiatedAction(clazz, reason);
     if (clazz.hasDefaultInitializer()) {
@@ -2549,26 +2528,23 @@ public class Enqueuer {
     }
   }
 
-  private void markClassAsInstantiatedWithCompatRule(DexProgramClass clazz) {
-    ProguardKeepRule rule = ProguardConfigurationUtils.buildDefaultInitializerKeepRule(clazz);
-    KeepReason reason = KeepReason.dueToProguardCompatibilityKeepRule(rule);
+  private void markClassAsInstantiatedWithCompatRule(DexProgramClass clazz, KeepReason reason) {
     if (clazz.isInterface() && !clazz.accessFlags.isAnnotation()) {
       markInterfaceAsInstantiated(clazz, reason);
       return;
     }
     proguardCompatibilityWorkList.enqueueMarkInstantiatedAction(clazz, reason);
     if (clazz.hasDefaultInitializer()) {
+      DexEncodedMethod defaultInitializer = clazz.getDefaultInitializer();
       proguardCompatibilityWorkList.enqueueMarkReachableDirectAction(
-          clazz.getDefaultInitializer().method, reason);
+          defaultInitializer.method,
+          graphReporter.reportCompatKeepDefaultInitializer(clazz, defaultInitializer));
     }
   }
 
   private void markMethodAsLiveWithCompatRule(DexProgramClass clazz, DexEncodedMethod method) {
     proguardCompatibilityWorkList.enqueueMarkMethodLiveAction(
-        clazz,
-        method,
-        KeepReason.dueToProguardCompatibilityKeepRule(
-            ProguardConfigurationUtils.buildMethodKeepRule(clazz, method)));
+        clazz, method, graphReporter.reportCompatKeepMethod(clazz, method));
   }
 
   private void handleReflectiveBehavior(DexEncodedMethod method) {
@@ -3173,6 +3149,40 @@ public class Enqueuer {
       return KeepReasonWitness.INSTANCE;
     }
 
+    public KeepReasonWitness reportCompatKeepDefaultInitializer(
+        DexProgramClass holder, DexEncodedMethod defaultInitializer) {
+      assert holder.type == defaultInitializer.method.holder;
+      assert holder.getDefaultInitializer() == defaultInitializer;
+      if (keptGraphConsumer != null) {
+        reportEdge(
+            getClassGraphNode(holder.type),
+            getMethodGraphNode(defaultInitializer.method),
+            EdgeKind.CompatibilityRule);
+      }
+      return KeepReasonWitness.COMPAT_INSTANCE;
+    }
+
+    public KeepReasonWitness reportCompatKeepMethod(
+        DexProgramClass holder, DexEncodedMethod method) {
+      assert holder.type == method.method.holder;
+      // TODO(b/141729349): This compat rule is from the method to itself and has not edge. Fix it.
+      // The rule is stating that if the method is targeted it is live. Since such an edge does
+      // not contribute to additional information in the kept graph as it stands (no distinction
+      // of targeted vs live edges), there is little point in emitting it.
+      return KeepReasonWitness.COMPAT_INSTANCE;
+    }
+
+    public KeepReason reportCompatInstantiated(
+        DexProgramClass instantiated, DexEncodedMethod method) {
+      if (keptGraphConsumer != null) {
+        reportEdge(
+            getMethodGraphNode(method.method),
+            getClassGraphNode(instantiated.type),
+            EdgeKind.CompatibilityRule);
+      }
+      return KeepReasonWitness.COMPAT_INSTANCE;
+    }
+
     public KeepReasonWitness reportClassReferencedFrom(
         DexProgramClass clazz, DexEncodedMethod method) {
       if (keptGraphConsumer != null) {
@@ -3233,6 +3243,13 @@ public class Enqueuer {
   private static class KeepReasonWitness extends KeepReason {
 
     private static KeepReasonWitness INSTANCE = new KeepReasonWitness();
+    private static KeepReasonWitness COMPAT_INSTANCE =
+        new KeepReasonWitness() {
+          @Override
+          public boolean isDueToProguardCompatibility() {
+            return true;
+          }
+        };
 
     @Override
     public EdgeKind edgeKind() {
@@ -3247,7 +3264,7 @@ public class Enqueuer {
 
   private boolean skipReporting(KeepReason reason) {
     assert reason != null;
-    if (reason == KeepReasonWitness.INSTANCE) {
+    if (reason == KeepReasonWitness.INSTANCE || reason == KeepReasonWitness.COMPAT_INSTANCE) {
       return true;
     }
     assert getSourceNode(reason) != null;

@@ -616,7 +616,6 @@ public class InternalOptions {
   // code objects needed for correct desugaring needs to be provided to the consumer.
   public DesugarGraphConsumer desugarGraphConsumer = null;
 
-  public Path proguardCompatibilityRulesOutput = null;
   public Consumer<List<ProguardConfigurationRule>> syntheticProguardRulesConsumer = null;
 
   public static boolean assertionsEnabled() {

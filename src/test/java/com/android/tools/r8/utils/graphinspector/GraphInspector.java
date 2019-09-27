@@ -54,6 +54,8 @@ public class GraphInspector {
         new EdgeKindPredicate(EdgeKind.IsLibraryMethod);
     public static final EdgeKindPredicate overriding =
         new EdgeKindPredicate(EdgeKind.OverridingMethod);
+    public static final EdgeKindPredicate compatibilityRule =
+        new EdgeKindPredicate(EdgeKind.CompatibilityRule);
 
     private final EdgeKind edgeKind;
 
@@ -140,6 +142,10 @@ public class GraphInspector {
     public abstract boolean isOverriding(MethodReference method);
 
     public abstract boolean isKeptBy(QueryNode node);
+
+    public abstract boolean isCompatKeptBy(QueryNode node);
+
+    public abstract boolean isPureCompatKeptBy(QueryNode node);
 
     public abstract boolean isKeptByLibraryMethod(QueryNode node);
 
@@ -234,6 +240,35 @@ public class GraphInspector {
       return this;
     }
 
+    public QueryNode assertCompatKeptBy(QueryNode node) {
+      assertTrue(
+          "Invalid call to assertCompatKeptBy with: " + node.getNodeDescription(),
+          node.isPresent());
+      assertTrue(
+          errorMessage("compat kept by " + node.getNodeDescription(), "was not kept by it"),
+          isCompatKeptBy(node));
+      return this;
+    }
+
+    public QueryNode assertNotCompatKeptBy(QueryNode node) {
+      assertTrue(
+          "Invalid call to assertNotKeptBy with: " + node.getNodeDescription(), node.isPresent());
+      assertFalse(
+          errorMessage("not kept by " + node.getNodeDescription(), "was kept by it"),
+          isCompatKeptBy(node));
+      return this;
+    }
+
+    public QueryNode assertPureCompatKeptBy(QueryNode node) {
+      assertTrue(
+          "Invalid call to assertPureCompatKeptBy with: " + node.getNodeDescription(),
+          node.isPresent());
+      assertTrue(
+          errorMessage("compat kept by " + node.getNodeDescription(), "was not kept by it"),
+          isPureCompatKeptBy(node));
+      return this;
+    }
+
     public QueryNode assertSatisfiedBy(QueryNode... nodes) {
       if (isSatisfiedBy(nodes)) {
         return this;
@@ -324,6 +359,18 @@ public class GraphInspector {
     @Override
     public boolean isKeptBy(QueryNode node) {
       fail("Invalid call to isKeptBy on " + getNodeDescription());
+      throw new Unreachable();
+    }
+
+    @Override
+    public boolean isCompatKeptBy(QueryNode node) {
+      fail("Invalid call to isCompatKeptBy on " + getNodeDescription());
+      throw new Unreachable();
+    }
+
+    @Override
+    public boolean isPureCompatKeptBy(QueryNode node) {
+      fail("Invalid call to isPureCompatKeptBy on " + getNodeDescription());
       throw new Unreachable();
     }
 
@@ -438,6 +485,28 @@ public class GraphInspector {
       }
       QueryNodeImpl impl = (QueryNodeImpl) node;
       return filterSources((source, infos) -> impl.graphNode == source).findFirst().isPresent();
+    }
+
+    @Override
+    public boolean isCompatKeptBy(QueryNode node) {
+      if (!(node instanceof QueryNodeImpl)) {
+        return false;
+      }
+      QueryNodeImpl impl = (QueryNodeImpl) node;
+      return filterSources(
+              (source, infos) ->
+                  impl.graphNode == source && EdgeKindPredicate.compatibilityRule.test(infos))
+          .findFirst()
+          .isPresent();
+    }
+
+    @Override
+    public boolean isPureCompatKeptBy(QueryNode node) {
+      if (!isCompatKeptBy(node)) {
+        return false;
+      }
+      QueryNodeImpl impl = (QueryNodeImpl) node;
+      return filterSources((source, infos) -> impl.graphNode != source).count() == 0;
     }
 
     @Override
@@ -663,5 +732,26 @@ public class GraphInspector {
 
   private QueryNode getQueryNode(GraphNode node, String absentString) {
     return node == null ? new AbsentQueryNode(absentString) : new QueryNodeImpl(this, node);
+  }
+
+  private boolean isPureCompatTarget(GraphNode target) {
+    Map<GraphNode, Set<GraphEdgeInfo>> sources = consumer.getSourcesTargeting(target);
+    if (sources == null || sources.isEmpty()) {
+      return false;
+    }
+    for (Entry<GraphNode, Set<GraphEdgeInfo>> edge : sources.entrySet()) {
+      for (GraphEdgeInfo edgeInfo : edge.getValue()) {
+        if (edgeInfo.edgeKind() != EdgeKind.CompatibilityRule) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  public void assertNoPureCompatibilityEdges() {
+    for (GraphNode target : consumer.getTargets()) {
+      assertFalse(isPureCompatTarget(target));
+    }
   }
 }

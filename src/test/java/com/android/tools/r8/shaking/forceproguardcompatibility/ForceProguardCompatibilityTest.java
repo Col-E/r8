@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.shaking.forceproguardcompatibility;
 
+import static com.android.tools.r8.references.Reference.classFromClass;
+import static com.android.tools.r8.references.Reference.methodFromMethod;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -15,18 +17,11 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.invokesuper.Consumer;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.shaking.ProguardClassNameList;
-import com.android.tools.r8.shaking.ProguardConfiguration;
-import com.android.tools.r8.shaking.ProguardConfigurationParser;
-import com.android.tools.r8.shaking.ProguardConfigurationRule;
+import com.android.tools.r8.shaking.CollectingGraphConsumer;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
-import com.android.tools.r8.shaking.ProguardMemberRule;
-import com.android.tools.r8.shaking.ProguardMemberType;
 import com.android.tools.r8.shaking.forceproguardcompatibility.defaultmethods.ClassImplementingInterface;
 import com.android.tools.r8.shaking.forceproguardcompatibility.defaultmethods.InterfaceWithDefaultMethods;
 import com.android.tools.r8.shaking.forceproguardcompatibility.defaultmethods.TestClass;
@@ -34,11 +29,12 @@ import com.android.tools.r8.shaking.forceproguardcompatibility.keepattributes.Te
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
-import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import com.android.tools.r8.utils.graphinspector.GraphInspector;
+import com.android.tools.r8.utils.graphinspector.GraphInspector.QueryNode;
 import com.google.common.collect.ImmutableList;
 import java.io.File;
 import java.nio.file.Path;
@@ -145,31 +141,22 @@ public class ForceProguardCompatibilityTest extends TestBase {
         "  public void method();",
         "}");
     builder.addProguardConfiguration(proguardConfig, Origin.unknown());
-    Path proguardCompatibilityRules = temp.newFile().toPath();
-    builder.setProguardCompatibilityRulesOutput(proguardCompatibilityRules);
 
     builder.setProgramConsumer(emptyConsumer(backend)).addLibraryFiles(runtimeJar(backend));
-    CodeInspector inspector = new CodeInspector(ToolHelper.runR8(builder.build()));
-    ClassSubject clazz = inspector.clazz(getJavacGeneratedClassName(testClass));
-    assertTrue(clazz.isPresent());
-    assertEquals(forceProguardCompatibility && hasDefaultConstructor, clazz.init().isPresent());
 
-    // Check the Proguard compatibility rules generated.
-    ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), new Reporter());
-    parser.parse(proguardCompatibilityRules);
-    ProguardConfiguration configuration = parser.getConfigRawForTesting();
-    if (forceProguardCompatibility && hasDefaultConstructor) {
-      assertEquals(1, configuration.getRules().size());
-      ProguardClassNameList classNames = configuration.getRules().get(0).getClassNames();
-      assertEquals(1, classNames.size());
-      assertEquals(testClass.getCanonicalName(),
-          classNames.asSpecificDexTypes().get(0).toSourceString());
-      List<ProguardMemberRule> memberRules = configuration.getRules().get(0).getMemberRules();
-      assertEquals(1, memberRules.size());
-      assertEquals(ProguardMemberType.INIT, memberRules.iterator().next().getRuleType());
-    } else {
-      assertEquals(0, configuration.getRules().size());
+    CollectingGraphConsumer graphConsumer = new CollectingGraphConsumer(null);
+    builder.setKeptGraphConsumer(graphConsumer);
+
+    GraphInspector inspector =
+        new GraphInspector(graphConsumer, new CodeInspector(ToolHelper.runR8(builder.build())));
+    QueryNode clazzNode = inspector.clazz(classFromClass(testClass)).assertPresent();
+    if (hasDefaultConstructor) {
+      QueryNode initNode = inspector.method(methodFromMethod(testClass.getConstructor()));
+      if (forceProguardCompatibility) {
+        initNode.assertPureCompatKeptBy(clazzNode);
+      } else {
+        initNode.assertAbsent();
+      }
     }
 
     if (isRunProguard()) {
@@ -259,8 +246,6 @@ public class ForceProguardCompatibilityTest extends TestBase {
     }
     List<String> proguardConfig = proguardConfigurationBuilder.build();
     builder.addProguardConfiguration(proguardConfig, Origin.unknown());
-    Path proguardCompatibilityRules = temp.newFile().toPath();
-    builder.setProguardCompatibilityRulesOutput(proguardCompatibilityRules);
     if (allowObfuscation) {
       builder.setProguardMapOutputPath(temp.newFile().toPath());
     }
@@ -319,8 +304,6 @@ public class ForceProguardCompatibilityTest extends TestBase {
     }
     List<String> proguardConfig = proguardConfigurationBuilder.build();
     builder.addProguardConfiguration(proguardConfig, Origin.unknown());
-    Path proguardCompatibilityRules = temp.newFile().toPath();
-    builder.setProguardCompatibilityRulesOutput(proguardCompatibilityRules);
     if (allowObfuscation) {
       builder.setProguardMapOutputPath(temp.newFile().toPath());
     }
@@ -390,8 +373,6 @@ public class ForceProguardCompatibilityTest extends TestBase {
     }
     List<String> proguardConfig = proguardConfigurationBuilder.build();
     builder.addProguardConfiguration(proguardConfig, Origin.unknown());
-    Path proguardCompatibilityRules = temp.newFile().toPath();
-    builder.setProguardCompatibilityRulesOutput(proguardCompatibilityRules);
     if (allowObfuscation) {
       builder.setProguardMapOutputPath(temp.newFile().toPath());
     }
@@ -461,7 +442,6 @@ public class ForceProguardCompatibilityTest extends TestBase {
       }
       keepRules = "-keepattributes " + String.join(",", attributes);
     }
-    Path proguardCompatibilityRules = temp.newFile().toPath();
     CodeInspector inspector;
 
     try {
@@ -477,7 +457,6 @@ public class ForceProguardCompatibilityTest extends TestBase {
                   keepRules)
               .addOptionsModification(options -> options.enableClassInlining = false)
               .enableSideEffectAnnotations()
-              .setProguardCompatibilityRulesOutput(proguardCompatibilityRules)
               .compile()
               .run(TestKeepAttributes.class)
               .assertSuccessWithOutput(innerClasses || enclosingMethod ? "1" : "0")
@@ -487,20 +466,12 @@ public class ForceProguardCompatibilityTest extends TestBase {
       return;
     }
 
-    assertThat(inspector.clazz(getJavacGeneratedClassName(TestKeepAttributes.class)), isPresent());
-
-    // Check the Proguard compatibility configuration generated.
-    ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), new Reporter());
-    parser.parse(proguardCompatibilityRules);
-    ProguardConfiguration configuration = parser.getConfigRawForTesting();
-    assertTrue(configuration.getRules().isEmpty());
-    if (innerClasses ^ enclosingMethod) {
-      assertTrue(configuration.getKeepAttributes().innerClasses);
-      assertTrue(configuration.getKeepAttributes().enclosingMethod);
+    ClassSubject clazz = inspector.clazz(TestKeepAttributes.class);
+    assertThat(clazz, isPresent());
+    if (innerClasses || enclosingMethod) {
+      assertFalse(clazz.getDexClass().getInnerClasses().isEmpty());
     } else {
-      assertFalse(configuration.getKeepAttributes().innerClasses);
-      assertFalse(configuration.getKeepAttributes().enclosingMethod);
+      assertTrue(clazz.getDexClass().getInnerClasses().isEmpty());
     }
   }
 
@@ -519,7 +490,8 @@ public class ForceProguardCompatibilityTest extends TestBase {
   private void runKeepDefaultMethodsTest(
       List<String> additionalKeepRules,
       Consumer<CodeInspector> inspection,
-      Consumer<ProguardConfiguration> compatInspection) throws Exception {
+      Consumer<GraphInspector> compatInspection)
+      throws Exception {
     Class mainClass = TestClass.class;
     CompatProguardCommandBuilder builder = new CompatProguardCommandBuilder();
     builder.addProgramFiles(ToolHelper.getClassFilesForTestPackage(mainClass.getPackage()));
@@ -532,11 +504,11 @@ public class ForceProguardCompatibilityTest extends TestBase {
         Origin.unknown());
     builder.addProguardConfiguration(additionalKeepRules, Origin.unknown());
     builder.setProgramConsumer(emptyConsumer(backend)).addLibraryFiles(runtimeJar(backend));
+    CollectingGraphConsumer graphConsumer = new CollectingGraphConsumer(null);
+    builder.setKeptGraphConsumer(graphConsumer);
     if (backend == Backend.DEX) {
       builder.setMinApiLevel(AndroidApiLevel.O.getLevel());
     }
-    Path proguardCompatibilityRules = temp.newFile().toPath();
-    builder.setProguardCompatibilityRulesOutput(proguardCompatibilityRules);
     AndroidApp app =
         ToolHelper.runR8(
             builder.build(),
@@ -547,17 +519,15 @@ public class ForceProguardCompatibilityTest extends TestBase {
               // ClassImplementingInterface.
               o.enableVerticalClassMerging = false;
             });
-    inspection.accept(new CodeInspector(app));
-    // Check the Proguard compatibility configuration generated.
-    ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(new DexItemFactory(), new Reporter());
-    parser.parse(proguardCompatibilityRules);
-    ProguardConfiguration configuration = parser.getConfigRawForTesting();
-    compatInspection.accept(configuration);
+
+    CodeInspector inspector = new CodeInspector(app);
+    GraphInspector graphInspector = new GraphInspector(graphConsumer, inspector);
+    inspection.accept(inspector);
+    compatInspection.accept(graphInspector);
   }
 
-  private void noCompatibilityRules(ProguardConfiguration configuration) {
-    assertEquals(0, configuration.getRules().size());
+  private void noCompatibilityRules(GraphInspector inspector) {
+    inspector.assertNoPureCompatibilityEdges();
   }
 
   private void defaultMethodKept(CodeInspector inspector) {
@@ -568,20 +538,8 @@ public class ForceProguardCompatibilityTest extends TestBase {
     assertFalse(method.isAbstract());
   }
 
-  private void defaultMethodCompatibilityRules(ProguardConfiguration configuration) {
-    assertEquals(1, configuration.getRules().size());
-    ProguardConfigurationRule rule = configuration.getRules().get(0);
-    List<ProguardMemberRule> memberRules = rule.getMemberRules();
-    ProguardClassNameList classNames = rule.getClassNames();
-    assertEquals(1, classNames.size());
-    DexType type = classNames.asSpecificDexTypes().get(0);
-    assertEquals(type.toSourceString(), InterfaceWithDefaultMethods.class.getCanonicalName());
-    assertEquals(1, memberRules.size());
-    ProguardMemberRule memberRule = memberRules.iterator().next();
-    assertEquals(ProguardMemberType.METHOD, memberRule.getRuleType());
-    assertTrue(memberRule.getName().matches("method"));
-    assertTrue(memberRule.getType().matches(configuration.getDexItemFactory().intType));
-    assertEquals(0, memberRule.getArguments().size());
+  private void defaultMethodCompatibilityRules(GraphInspector inspector) {
+    // The enqueuer does not add an edge for the referenced => kept edges so we cant check compat.
   }
 
   private void defaultMethod2Kept(CodeInspector inspector) {
@@ -593,23 +551,8 @@ public class ForceProguardCompatibilityTest extends TestBase {
     assertFalse(method.isAbstract());
   }
 
-  private void defaultMethod2CompatibilityRules(ProguardConfiguration configuration) {
-    assertEquals(1, configuration.getRules().size());
-    ProguardConfigurationRule rule = configuration.getRules().get(0);
-    List<ProguardMemberRule> memberRules = rule.getMemberRules();
-    ProguardClassNameList classNames = rule.getClassNames();
-    assertEquals(1, classNames.size());
-    DexType type = classNames.asSpecificDexTypes().get(0);
-    assertEquals(type.toSourceString(), InterfaceWithDefaultMethods.class.getCanonicalName());
-    assertEquals(1, memberRules.size());
-    ProguardMemberRule memberRule = memberRules.iterator().next();
-    assertEquals(ProguardMemberType.METHOD, memberRule.getRuleType());
-    assertTrue(memberRule.getName().matches("method2"));
-    assertTrue(memberRule.getType().matches(configuration.getDexItemFactory().voidType));
-    assertEquals(2, memberRule.getArguments().size());
-    assertTrue(
-        memberRule.getArguments().get(0).matches(configuration.getDexItemFactory().stringType));
-    assertTrue(memberRule.getArguments().get(1).matches(configuration.getDexItemFactory().intType));
+  private void defaultMethod2CompatibilityRules(GraphInspector inspector) {
+    // The enqueuer does not add an edge for the referenced => kept edges so we cant check compat.
   }
 
   @Test

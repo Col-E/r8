@@ -140,16 +140,11 @@ public class ProguardKeepAttributes {
     stackMapTable = update(stackMapTable, STACK_MAP_TABLE, patterns);
   }
 
-  public void ensureValid(
-      boolean forceProguardCompatibility, ProguardConfiguration.Builder compatibility) {
+  public void ensureValid(boolean forceProguardCompatibility) {
     if (forceProguardCompatibility && innerClasses != enclosingMethod) {
       // If only one is true set both to true in Proguard compatibility mode.
       enclosingMethod = true;
       innerClasses = true;
-      compatibility.addKeepAttributePatterns(
-          ImmutableList.of(
-              ProguardKeepAttributes.INNER_CLASSES,
-              ProguardKeepAttributes.ENCLOSING_METHOD));
     }
     if (innerClasses && !enclosingMethod) {
       throw new CompilationError("Attribute InnerClasses requires EnclosingMethod attribute. "
@@ -164,8 +159,6 @@ public class ProguardKeepAttributes {
     if (forceProguardCompatibility && localVariableTable && !lineNumberTable) {
       // If locals are kept, assume line numbers should be kept too.
       lineNumberTable = true;
-      compatibility.addKeepAttributePatterns(
-          ImmutableList.of(ProguardKeepAttributes.LINE_NUMBER_TABLE));
     }
     if (localVariableTable && !lineNumberTable) {
       throw new CompilationError(

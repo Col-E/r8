@@ -13,18 +13,12 @@ public class EnqueuerFactory {
 
   public static Enqueuer createForInitialTreeShaking(
       AppView<? extends AppInfoWithSubtyping> appView) {
-    return createForInitialTreeShaking(appView, null);
-  }
-
-  public static Enqueuer createForInitialTreeShaking(
-      AppView<? extends AppInfoWithSubtyping> appView,
-      ProguardConfiguration.Builder compatibility) {
-    return new Enqueuer(appView, null, compatibility, Mode.INITIAL_TREE_SHAKING);
+    return new Enqueuer(appView, null, Mode.INITIAL_TREE_SHAKING);
   }
 
   public static Enqueuer createForFinalTreeShaking(
       AppView<? extends AppInfoWithSubtyping> appView, GraphConsumer keptGraphConsumer) {
-    return new Enqueuer(appView, keptGraphConsumer, null, Mode.FINAL_TREE_SHAKING);
+    return new Enqueuer(appView, keptGraphConsumer, Mode.FINAL_TREE_SHAKING);
   }
 
   public static Enqueuer createForMainDexTracing(AppView<? extends AppInfoWithSubtyping> appView) {
@@ -33,11 +27,11 @@ public class EnqueuerFactory {
 
   public static Enqueuer createForMainDexTracing(
       AppView<? extends AppInfoWithSubtyping> appView, GraphConsumer keptGraphConsumer) {
-    return new Enqueuer(appView, keptGraphConsumer, null, Mode.MAIN_DEX_TRACING);
+    return new Enqueuer(appView, keptGraphConsumer, Mode.MAIN_DEX_TRACING);
   }
 
   public static Enqueuer createForWhyAreYouKeeping(
       AppView<? extends AppInfoWithSubtyping> appView, GraphConsumer keptGraphConsumer) {
-    return new Enqueuer(appView, keptGraphConsumer, null, Mode.WHY_ARE_YOU_KEEPING);
+    return new Enqueuer(appView, keptGraphConsumer, Mode.WHY_ARE_YOU_KEEPING);
   }
 }
