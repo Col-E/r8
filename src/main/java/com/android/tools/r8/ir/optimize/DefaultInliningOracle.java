@@ -357,46 +357,37 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       info.include(invoke.getType(), candidate);
     }
 
+    Value receiver = invoke.getReceiver();
+    if (receiver.getTypeLattice().isDefinitelyNull()) {
+      // A definitely null receiver will throw an error on call site.
+      return null;
+    }
     InlineAction action = new InlineAction(candidate, invoke, reason);
 
-    Value receiver = invoke.getReceiver();
     if (receiver.getTypeLattice().isNullable()) {
-      InternalOptions options = appView.options();
-      if (receiver.getTypeLattice().isDefinitelyNull()) {
-        if (!options.enableInliningOfInvokesWithDefinitelyNullReceivers) {
+      assert !receiver.getTypeLattice().isDefinitelyNull();
+      // When inlining an instance method call, we need to preserve the null check for the
+      // receiver. Therefore, if the receiver may be null and the candidate inlinee does not
+      // throw if the receiver is null before any other side effect, then we must synthesize a
+      // null check.
+      if (!candidate.getOptimizationInfo().checksNullReceiverBeforeAnySideEffect()) {
+        InternalOptions options = appView.options();
+        if (!options.enableInliningOfInvokesWithNullableReceivers) {
+          return null;
+        }
+        if (!options.nullableReceiverInliningFilter.isEmpty()
+            && !options.nullableReceiverInliningFilter.contains(
+                invoke.getInvokedMethod().toSourceString())) {
           return null;
         }
         if (Log.ENABLED && Log.isLoggingEnabledFor(Inliner.class)) {
           Log.debug(
               Inliner.class,
-              "Inlining method `%s` with definitely null receiver into `%s`",
+              "Inlining method `%s` with nullable receiver into `%s`",
               invoke.getInvokedMethod().toSourceString(),
               invocationContext.toSourceString());
         }
-        action.setShouldReturnEmptyThrowingCode();
-      } else {
-        // When inlining an instance method call, we need to preserve the null check for the
-        // receiver. Therefore, if the receiver may be null and the candidate inlinee does not
-        // throw if the receiver is null before any other side effect, then we must synthesize a
-        // null check.
-        if (!candidate.getOptimizationInfo().checksNullReceiverBeforeAnySideEffect()) {
-          if (!options.enableInliningOfInvokesWithNullableReceivers) {
-            return null;
-          }
-          if (!options.nullableReceiverInliningFilter.isEmpty()
-              && !options.nullableReceiverInliningFilter.contains(
-                  invoke.getInvokedMethod().toSourceString())) {
-            return null;
-          }
-          if (Log.ENABLED && Log.isLoggingEnabledFor(Inliner.class)) {
-            Log.debug(
-                Inliner.class,
-                "Inlining method `%s` with nullable receiver into `%s`",
-                invoke.getInvokedMethod().toSourceString(),
-                invocationContext.toSourceString());
-          }
-          action.setShouldSynthesizeNullCheckForReceiver();
-        }
+        action.setShouldSynthesizeNullCheckForReceiver();
       }
     }
 

@@ -536,17 +536,12 @@ public class Inliner {
     public final Invoke invoke;
     final Reason reason;
 
-    private boolean shouldReturnEmptyThrowingCode;
     private boolean shouldSynthesizeNullCheckForReceiver;
 
     InlineAction(DexEncodedMethod target, Invoke invoke, Reason reason) {
       this.target = target;
       this.invoke = invoke;
       this.reason = reason;
-    }
-
-    void setShouldReturnEmptyThrowingCode() {
-      shouldReturnEmptyThrowingCode = true;
     }
 
     void setShouldSynthesizeNullCheckForReceiver() {
@@ -561,53 +556,48 @@ public class Inliner {
         LensCodeRewriter lensCodeRewriter) {
       Origin origin = appView.appInfo().originFor(target.method.holder);
 
-      IRCode code;
-      if (shouldReturnEmptyThrowingCode) {
-        code = target.buildEmptyThrowingIRCode(appView, origin);
-      } else {
-        // Build the IR for a yet not processed method, and perform minimal IR processing.
-        code = target.buildInliningIR(context, appView, generator, callerPosition, origin);
+      // Build the IR for a yet not processed method, and perform minimal IR processing.
+      IRCode code = target.buildInliningIR(context, appView, generator, callerPosition, origin);
 
-        // Insert a null check if this is needed to preserve the implicit null check for the
-        // receiver.
-        if (shouldSynthesizeNullCheckForReceiver) {
-          List<Value> arguments = code.collectArguments();
-          if (!arguments.isEmpty()) {
-            Value receiver = arguments.get(0);
-            assert receiver.isThis();
+      // Insert a null check if this is needed to preserve the implicit null check for the
+      // receiver.
+      if (shouldSynthesizeNullCheckForReceiver) {
+        List<Value> arguments = code.collectArguments();
+        if (!arguments.isEmpty()) {
+          Value receiver = arguments.get(0);
+          assert receiver.isThis();
 
-            BasicBlock entryBlock = code.entryBlock();
+          BasicBlock entryBlock = code.entryBlock();
 
-            // Insert a new block between the last argument instruction and the first actual
-            // instruction of the method.
-            BasicBlock throwBlock =
-                entryBlock.listIterator(code, arguments.size()).split(code, 0, null);
-            assert !throwBlock.hasCatchHandlers();
+          // Insert a new block between the last argument instruction and the first actual
+          // instruction of the method.
+          BasicBlock throwBlock =
+              entryBlock.listIterator(code, arguments.size()).split(code, 0, null);
+          assert !throwBlock.hasCatchHandlers();
 
-            // Link the entry block to the successor of the newly inserted block.
-            BasicBlock continuationBlock = throwBlock.unlinkSingleSuccessor();
-            entryBlock.link(continuationBlock);
+          // Link the entry block to the successor of the newly inserted block.
+          BasicBlock continuationBlock = throwBlock.unlinkSingleSuccessor();
+          entryBlock.link(continuationBlock);
 
-            // Replace the last instruction of the entry block, which is now a goto instruction,
-            // with an `if-eqz` instruction that jumps to the newly inserted block if the receiver
-            // is null.
-            If ifInstruction = new If(If.Type.EQ, receiver);
-            entryBlock.replaceLastInstruction(ifInstruction, code);
-            assert ifInstruction.getTrueTarget() == throwBlock;
-            assert ifInstruction.fallthroughBlock() == continuationBlock;
+          // Replace the last instruction of the entry block, which is now a goto instruction,
+          // with an `if-eqz` instruction that jumps to the newly inserted block if the receiver
+          // is null.
+          If ifInstruction = new If(If.Type.EQ, receiver);
+          entryBlock.replaceLastInstruction(ifInstruction, code);
+          assert ifInstruction.getTrueTarget() == throwBlock;
+          assert ifInstruction.fallthroughBlock() == continuationBlock;
 
-            // Replace the single goto instruction in the newly inserted block by `throw null`.
-            InstructionListIterator iterator = throwBlock.listIterator(code);
-            Value nullValue = iterator.insertConstNullInstruction(code, appView.options());
-            iterator.next();
-            iterator.replaceCurrentInstruction(new Throw(nullValue));
-          } else {
-            assert false : "Unable to synthesize a null check for the receiver";
-          }
+          // Replace the single goto instruction in the newly inserted block by `throw null`.
+          InstructionListIterator iterator = throwBlock.listIterator(code);
+          Value nullValue = iterator.insertConstNullInstruction(code, appView.options());
+          iterator.next();
+          iterator.replaceCurrentInstruction(new Throw(nullValue));
+        } else {
+          assert false : "Unable to synthesize a null check for the receiver";
         }
-        if (!target.isProcessed()) {
-          lensCodeRewriter.rewrite(code, target);
-        }
+      }
+      if (!target.isProcessed()) {
+        lensCodeRewriter.rewrite(code, target);
       }
       return new InlineeWithReason(code, reason);
     }
