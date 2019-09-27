@@ -108,6 +108,7 @@ public class Position {
       return line == o.line
           && file == o.file
           && method == o.method
+          && synthetic == o.synthetic
           && Objects.equals(callerPosition, o.callerPosition);
     }
     return false;
