@@ -227,7 +227,7 @@ public class NonNullTracker implements Assumer {
                 TypeLatticeElement typeLattice = knownToBeNonNullValue.getTypeLattice();
                 Value nonNullValue =
                     code.createValue(
-                        typeLattice.asReferenceTypeLatticeElement().asNotNull(),
+                        typeLattice.asReferenceTypeLatticeElement().asMeetWithNotNull(),
                         knownToBeNonNullValue.getLocalInfo());
                 affectedValues.addAll(knownToBeNonNullValue.affectedValues());
                 Assume<NonNullAssumption> nonNull =
@@ -359,7 +359,7 @@ public class NonNullTracker implements Assumer {
         assert typeLattice.isReference();
         Value nonNullValue =
             code.createValue(
-                typeLattice.asReferenceTypeLatticeElement().asNotNull(),
+                typeLattice.asReferenceTypeLatticeElement().asMeetWithNotNull(),
                 knownToBeNonNullValue.getLocalInfo());
         affectedValues.addAll(knownToBeNonNullValue.affectedValues());
         Assume<NonNullAssumption> nonNull =

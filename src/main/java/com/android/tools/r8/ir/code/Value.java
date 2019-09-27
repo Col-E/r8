@@ -1142,9 +1142,9 @@ public class Value {
     //   i.e., towards something wider.
     assert this.typeLattice.lessThanOrEqual(newType, appView)
         : "During WIDENING, "
-            + typeLattice
-            + " < "
             + newType
+            + " < "
+            + typeLattice
             + " at "
             + (isPhi() ? asPhi().printPhi() : definition.toString());
     setTypeLattice(newType);

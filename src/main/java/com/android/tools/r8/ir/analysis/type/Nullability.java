@@ -58,6 +58,19 @@ public class Nullability {
     return MAYBE_NULL;
   }
 
+  public Nullability meet(Nullability other) {
+    if (this == MAYBE_NULL) {
+      return other;
+    }
+    if (other == MAYBE_NULL) {
+      return this;
+    }
+    if (this == other) {
+      return this;
+    }
+    return BOTTOM;
+  }
+
   public boolean lessThanOrEqual(Nullability other) {
     return join(other) == other;
   }

@@ -197,12 +197,12 @@ public class CallSiteOptimizationInfoPropagator {
       } else {
         specializedArg = originalArg;
       }
+      assert specializedArg != null && specializedArg.getTypeLattice().isReference();
       if (dynamicType.isDefinitelyNotNull()) {
         // If we already knew `arg` is never null, e.g., receiver, skip adding non-null.
         if (!specializedArg.getTypeLattice().isDefinitelyNotNull()) {
-          Value nonNullArg =
-              code.createValue(
-                  specializedArg.getTypeLattice().asReferenceTypeLatticeElement().asNotNull());
+          Value nonNullArg = code.createValue(
+              specializedArg.getTypeLattice().asReferenceTypeLatticeElement().asMeetWithNotNull());
           affectedValues.addAll(specializedArg.affectedValues());
           specializedArg.replaceUsers(nonNullArg);
           Assume<NonNullAssumption> assumeNotNull =

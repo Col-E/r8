@@ -554,7 +554,9 @@ public class TypeLatticeTest extends TestBase {
 
   @Test
   public void testNotNullOfNullGivesBottom() {
-    assertEquals(Nullability.bottom(), ReferenceTypeLatticeElement.NULL.asNotNull().nullability());
+    assertEquals(
+        Nullability.bottom(),
+        ReferenceTypeLatticeElement.NULL.asMeetWithNotNull().nullability());
   }
 
   @Test

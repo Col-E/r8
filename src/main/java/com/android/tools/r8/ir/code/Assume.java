@@ -241,7 +241,7 @@ public class Assume<An extends Assumption> extends Instruction {
     }
     if (assumption.isAssumeNonNull()) {
       assert src().getTypeLattice().isReference();
-      return src().getTypeLattice().asReferenceTypeLatticeElement().asNotNull();
+      return src().getTypeLattice().asReferenceTypeLatticeElement().asMeetWithNotNull();
     }
     throw new Unimplemented();
   }
@@ -280,7 +280,7 @@ public class Assume<An extends Assumption> extends Instruction {
       assert isAssumeNonNull() : this;
       assert inType.isReference() : inType;
       assert inType.isNullType()
-          || outType.equals(inType.asReferenceTypeLatticeElement().asNotNull())
+          || outType.equals(inType.asReferenceTypeLatticeElement().asMeetWithNotNull())
               : "At " + this + System.lineSeparator() + outType + " != " + inType;
     }
     return true;
