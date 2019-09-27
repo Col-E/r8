@@ -9,16 +9,14 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.graph.DexString;
-import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.InvokeInstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import org.junit.Test;
@@ -36,17 +34,17 @@ public class InlineSynchronizedTest extends TestBase {
           "normalInlinedControl",
           "classInlinedControl");
 
-  @Parameterized.Parameters(name = "Backend: {0}, ClassInlining: {1}")
-  public static Collection data() {
-    return buildParameters(ToolHelper.getBackends(), BooleanUtils.values());
+  @Parameterized.Parameters(name = "{1}")
+  public static List<Object[]> data() {
+    return buildParameters(getTestParameters().withNoneRuntime().build(), Backend.values());
   }
 
   private final Backend backend;
-  private final boolean classInlining;
+  private final TestParameters parameters;
 
-  public InlineSynchronizedTest(Backend backend, boolean classInlining) {
+  public InlineSynchronizedTest(TestParameters parameters, Backend backend) {
+    this.parameters = parameters;
     this.backend = backend;
-    this.classInlining = classInlining;
   }
 
   @Test
@@ -55,7 +53,6 @@ public class InlineSynchronizedTest extends TestBase {
         testForR8(backend)
             .addProgramClasses(InlineSynchronizedTestClass.class)
             .addKeepMainRule(InlineSynchronizedTestClass.class)
-            .addOptionsModification(o -> o.enableClassInlining = classInlining)
             .enableInliningAnnotations()
             .noMinification()
             .compile()
@@ -80,9 +77,9 @@ public class InlineSynchronizedTest extends TestBase {
     // Synchronized methods can never be inlined.
     assertCount(counts, "normalInlinedSynchronized", 1);
     assertCount(counts, "classInlinedSynchronized", 1);
-    // Control methods must be inlined, only the normal one or both, depending on classInlining.
+    // Only the never-merge method is inlined, classInlining should run on the kept class.
     assertCount(counts, "normalInlinedControl", 0);
-    assertCount(counts, "classInlinedControl", classInlining ? 0 : 1);
+    assertCount(counts, "classInlinedControl", 1);
     // Double check the total.
     int total = 0;
     for (int i = 0; i < counts.length; ++i) {

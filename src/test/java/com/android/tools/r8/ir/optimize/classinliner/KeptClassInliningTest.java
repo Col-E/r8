@@ -6,8 +6,9 @@ package com.android.tools.r8.ir.optimize.classinliner;
 import static com.android.tools.r8.references.Reference.methodFromMethod;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -23,6 +24,9 @@ public class KeptClassInliningTest extends TestBase {
 
   public static class KeptClass {
 
+    // Annotate with never-inline to avoid the method inliner from eliminating the call, which in
+    // turn allows removing the instantiation.
+    @NeverInline
     public void used() {
       System.out.println("used()");
     }
@@ -50,6 +54,7 @@ public class KeptClassInliningTest extends TestBase {
   public void test() throws Exception {
     CodeInspector inspector =
         testForR8(parameters.getBackend())
+            .enableInliningAnnotations()
             .addProgramClasses(KeptClass.class, Main.class)
             .addKeepMainRule(Main.class)
             .addKeepClassRules(KeptClass.class)
@@ -60,9 +65,9 @@ public class KeptClassInliningTest extends TestBase {
     assertThat(inspector.clazz(KeptClass.class), isPresent());
     MethodSubject main =
         inspector.method(methodFromMethod(Main.class.getMethod("main", String[].class)));
-    assertFalse(
-        "b/141717378: The class inliner should not inline a kept class.",
+    // Check the instantiation of the class remains in 'main'.
+    assertTrue(
         main.streamInstructions()
-            .anyMatch(i -> i.isInvoke() && i.getMethod().name.toString().equals("used")));
+            .anyMatch(i -> i.isInvoke() && i.getMethod().name.toString().equals("<init>")));
   }
 }

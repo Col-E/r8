@@ -38,6 +38,7 @@ public final class ClassInliner {
     NON_PROGRAM_CLASS,
     ABSTRACT_OR_INTERFACE,
     NEVER_CLASS_INLINE,
+    IS_PINNED_TYPE,
     HAS_FINALIZER,
     TRIGGER_CLINIT,
 
@@ -277,6 +278,9 @@ public final class ClassInliner {
     }
     if (appView.appInfo().neverClassInline.contains(clazz.type)) {
       return EligibilityStatus.NEVER_CLASS_INLINE;
+    }
+    if (appView.appInfo().isPinned(clazz.type)) {
+      return EligibilityStatus.IS_PINNED_TYPE;
     }
 
     // Class must not define finalizer.
