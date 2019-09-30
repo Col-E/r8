@@ -34,7 +34,7 @@ public class BasicTimeConversionTest extends APIConversionTestBase {
     L8Command.Builder l8Builder =
         L8Command.builder(diagnosticsHandler)
             .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
-            .addProgramFiles(getTimeConversionClasses())
+            .addProgramFiles(getConversionClasses())
             .addDesugaredLibraryConfiguration(
                 StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
             .setMinApiLevel(AndroidApiLevel.B.getLevel())

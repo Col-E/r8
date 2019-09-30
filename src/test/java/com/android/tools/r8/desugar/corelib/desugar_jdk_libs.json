@@ -20,6 +20,7 @@
     {
       "api_level_below_or_equal": 23,
       "rewrite_prefix": {
+        "j$.util.Optional": "java.util.Optional",
         "java.util.stream.": "j$.util.stream.",
         "java.util.function.": "j$.util.function.",
         "java.util.Comparators": "j$.util.Comparators",
@@ -79,11 +80,7 @@
         "java.time.Duration": "j$.time.TimeConversions",
         "java.time.ZoneId": "j$.time.TimeConversions",
         "java.time.MonthDay": "j$.time.TimeConversions",
-        "java.time.Instant": "j$.time.TimeConversions",
-        "java.util.Optional": "j$.util.OptionalConversions",
-        "java.util.OptionalDouble": "j$.util.OptionalConversions",
-        "java.util.OptionalInt": "j$.util.OptionalConversions",
-        "java.util.OptionalLong": "j$.util.OptionalConversions"
+        "java.time.Instant": "j$.time.TimeConversions"
       }
     },
     {
@@ -132,6 +129,12 @@
         "java.util.SortedSet": "j$.util.SortedSet",
         "java.util.Set": "j$.util.Set",
         "java.util.concurrent.ConcurrentMap": "j$.util.concurrent.ConcurrentMap"
+      },
+      "custom_conversion": {
+        "java.util.Optional": "j$.util.OptionalConversions",
+        "java.util.OptionalDouble": "j$.util.OptionalConversions",
+        "java.util.OptionalInt": "j$.util.OptionalConversions",
+        "java.util.OptionalLong": "j$.util.OptionalConversions"
       }
     }
   ]

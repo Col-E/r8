@@ -20,7 +20,7 @@ public class APIConversionTestBase extends CoreLibDesugarTestBase {
 
   private static final Path CONVERSION_FOLDER = Paths.get("src/test/desugaredLibraryConversions");
 
-  public Path[] getTimeConversionClasses() throws IOException {
+  public Path[] getConversionClasses() throws IOException {
     Assume.assumeTrue(
         "JDK8 javac is required to avoid dealing with modules and JDK8 is not checked-in on"
             + " windows",
@@ -53,7 +53,7 @@ public class APIConversionTestBase extends CoreLibDesugarTestBase {
   protected Path buildDesugaredLibraryWithConversionExtension(AndroidApiLevel apiLevel) {
     Path[] timeConversionClasses;
     try {
-      timeConversionClasses = getTimeConversionClasses();
+      timeConversionClasses = getConversionClasses();
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
