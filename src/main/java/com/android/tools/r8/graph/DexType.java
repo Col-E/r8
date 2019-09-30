@@ -16,6 +16,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
 import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
+import com.android.tools.r8.ir.optimize.ServiceLoaderRewriter;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -262,7 +263,8 @@ public class DexType extends DexReference implements PresortedComparable<DexType
         || name.contains(OutlineOptions.CLASS_NAME)
         || name.contains(TwrCloseResourceRewriter.UTILITY_CLASS_NAME)
         || name.contains(NestBasedAccessDesugaring.NEST_CONSTRUCTOR_NAME)
-        || name.contains(BackportedMethodRewriter.UTILITY_CLASS_NAME_PREFIX);
+        || name.contains(BackportedMethodRewriter.UTILITY_CLASS_NAME_PREFIX)
+        || name.contains(ServiceLoaderRewriter.SERVICE_LOADER_CLASS_NAME);
   }
 
   public boolean isProgramType(DexDefinitionSupplier definitions) {

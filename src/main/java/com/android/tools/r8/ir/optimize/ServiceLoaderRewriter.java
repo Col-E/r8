@@ -4,33 +4,36 @@
 
 package com.android.tools.r8.ir.optimize;
 
-import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
-
+import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.ClassAccessFlags;
+import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
-import com.android.tools.r8.ir.code.ArrayPut;
+import com.android.tools.r8.graph.DexTypeList;
+import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.ir.code.ConstClass;
-import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
-import com.android.tools.r8.ir.code.InvokeDirect;
-import com.android.tools.r8.ir.code.InvokeInterface;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeVirtual;
-import com.android.tools.r8.ir.code.MemberType;
-import com.android.tools.r8.ir.code.NewArrayEmpty;
-import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.desugar.ServiceLoaderSourceCode;
+import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * ServiceLoaderRewriter will attempt to rewrite calls on the form of: ServiceLoader.load(X.class,
@@ -61,7 +64,24 @@ import java.util.List;
  */
 public class ServiceLoaderRewriter {
 
-  public static void rewrite(IRCode code, AppView<? extends AppInfoWithLiveness> appView) {
+  public static final String SERVICE_LOADER_CLASS_NAME = "$$ServiceLoaderMethods";
+  private static final String SERVICE_LOADER_METHOD_PREFIX_NAME = "$load";
+
+  private DexProgramClass synthesizedClass;
+  private ConcurrentHashMap<DexType, DexEncodedMethod> synthesizedServiceLoaders =
+      new ConcurrentHashMap<>();
+
+  private final AppView<? extends AppInfoWithLiveness> appView;
+
+  public ServiceLoaderRewriter(AppView<? extends AppInfoWithLiveness> appView) {
+    this.appView = appView;
+  }
+
+  public DexProgramClass getSynthesizedClass() {
+    return synthesizedClass;
+  }
+
+  public void rewrite(IRCode code) {
     DexItemFactory factory = appView.dexItemFactory();
     InstructionListIterator instructionIterator = code.instructionListIterator();
     while (instructionIterator.hasNext()) {
@@ -144,71 +164,106 @@ public class ServiceLoaderRewriter {
       }
 
       // We can perform the rewrite of the ServiceLoader.load call.
-      new Rewriter(appView, code, instructionIterator, serviceLoaderLoad)
-          .perform(classLoaderInvoke, constClass.getValue(), classes);
+      DexEncodedMethod synthesizedMethod =
+          synthesizedServiceLoaders.computeIfAbsent(
+              constClass.getValue(),
+              service -> {
+                DexEncodedMethod addedMethod = createSynthesizedMethod(service, classes);
+                if (appView.options().isGeneratingClassFiles()) {
+                  addedMethod.upgradeClassFileVersion(code.method.getClassFileVersion());
+                }
+                return addedMethod;
+              });
+
+      new Rewriter(code, instructionIterator, serviceLoaderLoad)
+          .perform(classLoaderInvoke, synthesizedMethod.method);
     }
   }
 
+  private DexEncodedMethod createSynthesizedMethod(DexType serviceType, List<DexClass> classes) {
+    DexType serviceLoaderType =
+        appView.dexItemFactory().createType("L" + SERVICE_LOADER_CLASS_NAME + ";");
+    if (synthesizedClass == null) {
+      synthesizedClass =
+          new DexProgramClass(
+              serviceLoaderType,
+              null,
+              new SynthesizedOrigin("Service Loader desugaring", getClass()),
+              ClassAccessFlags.fromDexAccessFlags(
+                  Constants.ACC_FINAL | Constants.ACC_SYNTHETIC | Constants.ACC_PUBLIC),
+              appView.dexItemFactory().objectType,
+              DexTypeList.empty(),
+              appView.dexItemFactory().createString("ServiceLoader"),
+              null,
+              Collections.emptyList(),
+              null,
+              Collections.emptyList(),
+              DexAnnotationSet.empty(),
+              DexEncodedField.EMPTY_ARRAY, // Static fields.
+              DexEncodedField.EMPTY_ARRAY, // Instance fields.
+              DexEncodedMethod.EMPTY_ARRAY,
+              DexEncodedMethod.EMPTY_ARRAY, // Virtual methods.
+              appView.dexItemFactory().getSkipNameValidationForTesting());
+      appView.appInfo().addSynthesizedClass(synthesizedClass);
+    }
+    DexProto proto = appView.dexItemFactory().createProto(appView.dexItemFactory().iteratorType);
+    DexMethod method =
+        appView
+            .dexItemFactory()
+            .createMethod(
+                serviceLoaderType,
+                proto,
+                SERVICE_LOADER_METHOD_PREFIX_NAME + synthesizedServiceLoaders.size());
+    MethodAccessFlags methodAccess =
+        MethodAccessFlags.fromSharedAccessFlags(Constants.ACC_PUBLIC | Constants.ACC_STATIC, false);
+    DexEncodedMethod encodedMethod =
+        new DexEncodedMethod(
+            method,
+            methodAccess,
+            DexAnnotationSet.empty(),
+            ParameterAnnotationsList.empty(),
+            ServiceLoaderSourceCode.generate(serviceType, classes, appView.dexItemFactory()));
+    synthesizedClass.addDirectMethod(encodedMethod);
+    return encodedMethod;
+  }
+
   /**
-   * Rewriter will look assume that code is on the form:
+   * Rewriter assumes that the code is of the form:
    *
    * <pre>
    * ConstClass         v1 <- X
-   * ConstClass         v2 <- X
+   * ConstClass         v2 <- X or NULL
    * Invoke-Virtual     v3 <- v2; method: java.lang.ClassLoader java.lang.Class.getClassLoader()
    * Invoke-Static      v4 <- v1, v3; method: java.util.ServiceLoader java.util.ServiceLoader
    *     .load(java.lang.Class, java.lang.ClassLoader)
    * Invoke-Virtual     v5 <- v4; method: java.util.Iterator java.util.ServiceLoader.iterator()
    * </pre>
    *
-   * and rewrites it to for classes impl(X) defined in META-INF/services/X:
+   * and rewrites it to:
    *
    * <pre>
-   * ConstClass         v1 <- X
-   * ConstClass         v2 <- X
-   * ConstNumber        va <-  impl(X).size() (INT)
-   * NewArrayEmpty      vb <- va X[]
-   * for i = 0 to C - 1:
-   *   ConstNumber        vc(i) <-  i (INT)
-   *   NewInstance        vd <-  impl(X).get(i)
-   *   Invoke-Direct      vd; method: void impl(X).get(i).<init>()
-   *   ArrayPut           vb, vc(i), vd
-   * end for
-   * Invoke-Static      ve <- vb; method: java.util.List java.util.Arrays.asList(java.lang.Object[])
-   * Invoke-Interface   v5 <- ve; method: java.util.Iterator java.util.List.iterator()
+   * Invoke-Static      v5 <- ; method: java.util.Iterator syn(X)()
    * </pre>
    *
-   * We rely on the DeadCodeRemover to remove the ConstClasses and any aliased values no longer
+   * where syn(X) is the synthesized method generated for the service class.
+   *
+   * <p>We rely on the DeadCodeRemover to remove the ConstClasses and any aliased values no longer
    * used.
    */
   private static class Rewriter {
 
-    private final AppView appView;
-    private final DexItemFactory factory;
     private final IRCode code;
     private final InvokeStatic serviceLoaderLoad;
 
     private InstructionListIterator iterator;
-    private MemberType memberType;
-    private Value valueArray;
-    private int index = 0;
 
-    public Rewriter(
-        AppView appView,
-        IRCode code,
-        InstructionListIterator iterator,
-        InvokeStatic serviceLoaderLoad) {
-      this.appView = appView;
-      this.factory = appView.dexItemFactory();
+    Rewriter(IRCode code, InstructionListIterator iterator, InvokeStatic serviceLoaderLoad) {
       this.iterator = iterator;
       this.code = code;
       this.serviceLoaderLoad = serviceLoaderLoad;
     }
 
-    public void perform(InvokeVirtual classLoaderInvoke, DexType dexType, List<DexClass> classes) {
-      assert valueArray == null;
-      assert memberType == null;
-
+    public void perform(InvokeVirtual classLoaderInvoke, DexMethod method) {
       // Remove the ClassLoader call since this can throw and will not be removed otherwise.
       if (classLoaderInvoke != null) {
         clearGetClassLoader(classLoaderInvoke);
@@ -220,69 +275,11 @@ public class ServiceLoaderRewriter {
           serviceLoaderLoad.outValue().singleUniqueUser().asInvokeVirtual();
       iterator.replaceCurrentInstruction(code.createConstNull());
 
-      // Build the array for the "loaded" classes.
-      ConstNumber arrayLength = code.createIntConstant(classes.size());
-      arrayLength.setPosition(serviceLoaderLoad.getPosition());
-      iterator.add(arrayLength);
-
-      DexType arrayType = factory.createArrayType(1, dexType);
-      TypeLatticeElement arrayLatticeElement =
-          TypeLatticeElement.fromDexType(arrayType, definitelyNotNull(), appView);
-      valueArray = code.createValue(arrayLatticeElement);
-      NewArrayEmpty newArrayEmpty =
-          new NewArrayEmpty(valueArray, arrayLength.outValue(), arrayType);
-      newArrayEmpty.setPosition(serviceLoaderLoad.getPosition());
-      iterator.add(newArrayEmpty);
-
-      this.memberType = MemberType.fromDexType(dexType);
-
-      // Add all new instances to the array.
-      classes.forEach(this::addNewServiceAndPutInArray);
-
-      // Build the Arrays.asList(...) instruction.
-      Value vArrayAsList =
-          code.createValue(
-              TypeLatticeElement.fromDexType(factory.listType, definitelyNotNull(), appView));
-      InvokeStatic arraysAsList =
-          new InvokeStatic(
-              factory.utilArraysMethods.asList, vArrayAsList, ImmutableList.of(valueArray));
-      arraysAsList.setPosition(serviceLoaderLoad.getPosition());
-      iterator.add(arraysAsList);
-
       // Find the iterator instruction and replace it.
       iterator.nextUntil(x -> x == serviceLoaderIterator);
-
-      DexMethod method =
-          factory.createMethod(
-              factory.listType, factory.createProto(factory.iteratorType), "iterator");
-      InvokeInterface arrayIterator =
-          new InvokeInterface(
-              method, serviceLoaderIterator.outValue(), ImmutableList.of(vArrayAsList));
-      iterator.replaceCurrentInstruction(arrayIterator);
-    }
-
-    private void addNewServiceAndPutInArray(DexClass clazz) {
-      ConstNumber indexInArray = code.createIntConstant(index++);
-      indexInArray.setPosition(serviceLoaderLoad.getPosition());
-      iterator.add(indexInArray);
-
-      TypeLatticeElement clazzLatticeElement =
-          TypeLatticeElement.fromDexType(clazz.type, definitelyNotNull(), appView);
-      Value vInstance = code.createValue(clazzLatticeElement);
-      NewInstance newInstance = new NewInstance(clazz.type, vInstance);
-      newInstance.setPosition(serviceLoaderLoad.getPosition());
-      iterator.add(newInstance);
-
-      DexMethod method = clazz.getDefaultInitializer().method;
-      assert method.getArity() == 0;
-      InvokeDirect invokeDirect =
-          new InvokeDirect(method, null, Collections.singletonList(vInstance));
-      invokeDirect.setPosition(serviceLoaderLoad.getPosition());
-      iterator.add(invokeDirect);
-
-      ArrayPut put = new ArrayPut(memberType, valueArray, indexInArray.outValue(), vInstance);
-      put.setPosition(serviceLoaderLoad.getPosition());
-      iterator.add(put);
+      InvokeStatic synthesizedInvoke =
+          new InvokeStatic(method, serviceLoaderIterator.outValue(), ImmutableList.of());
+      iterator.replaceCurrentInstruction(synthesizedInvoke);
     }
 
     private void clearGetClassLoader(InvokeVirtual classLoaderInvoke) {

@@ -162,6 +162,7 @@ public class IRConverter {
   private final UninstantiatedTypeOptimization uninstantiatedTypeOptimization;
   private final TypeChecker typeChecker;
   private final DesugaredLibraryAPIConverter desugaredLibraryAPIConverter;
+  private final ServiceLoaderRewriter serviceLoaderRewriter;
 
   // Assumers that will insert Assume instructions.
   private final AliasIntroducer aliasIntroducer;
@@ -244,6 +245,7 @@ public class IRConverter {
       this.d8NestBasedAccessDesugaring = null;
       this.stringSwitchRemover = null;
       this.desugaredLibraryAPIConverter = null;
+      this.serviceLoaderRewriter = null;
       return;
     }
     this.lambdaRewriter = options.enableDesugaring ? new LambdaRewriter(appView, this) : null;
@@ -310,6 +312,10 @@ public class IRConverter {
               : null;
       this.typeChecker = new TypeChecker(appView.withLiveness());
       this.d8NestBasedAccessDesugaring = null;
+      this.serviceLoaderRewriter =
+          options.enableServiceLoaderRewriting
+              ? new ServiceLoaderRewriter(appView.withLiveness())
+              : null;
     } else {
       this.classInliner = null;
       this.classStaticizer = null;
@@ -327,6 +333,7 @@ public class IRConverter {
       this.typeChecker = null;
       this.d8NestBasedAccessDesugaring =
           options.shouldDesugarNests() ? new D8NestBasedAccessDesugaring(appView) : null;
+      this.serviceLoaderRewriter = null;
     }
     this.stringSwitchRemover =
         options.isStringSwitchConversionEnabled()
@@ -722,6 +729,12 @@ public class IRConverter {
     printPhase("Desugared library API Conversion finalization");
     generateDesugaredLibraryAPIWrappers(builder, executorService);
 
+    if (serviceLoaderRewriter != null && serviceLoaderRewriter.getSynthesizedClass() != null) {
+      forEachSynthesizedServiceLoaderMethod(
+          executorService, serviceLoaderRewriter.getSynthesizedClass());
+      builder.addSynthesizedClass(serviceLoaderRewriter.getSynthesizedClass(), true);
+    }
+
     if (outliner != null) {
       printPhase("Outlining");
       timing.begin("IR conversion phase 3");
@@ -841,6 +854,24 @@ public class IRConverter {
                 codeRewriter.rewriteMoveResult(code);
                 deadCodeRemover.run(code);
                 consumer.accept(code, method);
+                return null;
+              }));
+    }
+    ThreadUtils.awaitFutures(futures);
+  }
+
+  private void forEachSynthesizedServiceLoaderMethod(
+      ExecutorService executorService, DexClass synthesizedClass) throws ExecutionException {
+    List<Future<?>> futures = new ArrayList<>();
+    for (DexEncodedMethod method : synthesizedClass.methods()) {
+      futures.add(
+          executorService.submit(
+              () -> {
+                IRCode code =
+                    method.buildIR(appView, appView.appInfo().originFor(method.method.holder));
+                assert code != null;
+                codeRewriter.rewriteMoveResult(code);
+                finalizeIR(method, code, OptimizationFeedbackIgnore.getInstance());
                 return null;
               }));
     }
@@ -1105,9 +1136,9 @@ public class IRConverter {
     // we will return with finalizeEmptyThrowingCode() above.
     assert code.verifyTypes(appView);
 
-    if (appView.enableWholeProgramOptimizations() && options.enableServiceLoaderRewriting) {
+    if (serviceLoaderRewriter != null) {
       assert appView.appInfo().hasLiveness();
-      ServiceLoaderRewriter.rewrite(code, appView.withLiveness());
+      serviceLoaderRewriter.rewrite(code);
     }
 
     if (classStaticizer != null) {

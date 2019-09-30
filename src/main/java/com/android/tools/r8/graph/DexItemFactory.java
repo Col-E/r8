@@ -215,6 +215,8 @@ public class DexItemFactory {
       createString("Ljava/lang/reflect/InvocationHandler;");
   public final DexString proxyDescriptor = createString("Ljava/lang/reflect/Proxy;");
   public final DexString serviceLoaderDescriptor = createString("Ljava/util/ServiceLoader;");
+  public final DexString serviceLoaderConfigurationErrorDescriptor =
+      createString("Ljava/util/ServiceConfigurationError;");
   public final DexString listDescriptor = createString("Ljava/util/List;");
   public final DexString setDescriptor = createString("Ljava/util/Set;");
   public final DexString mapDescriptor = createString("Ljava/util/Map;");
@@ -307,6 +309,8 @@ public class DexItemFactory {
   public final DexType invocationHandlerType = createType(invocationHandlerDescriptor);
   public final DexType proxyType = createType(proxyDescriptor);
   public final DexType serviceLoaderType = createType(serviceLoaderDescriptor);
+  public final DexType serviceLoaderConfigurationErrorType =
+      createType(serviceLoaderConfigurationErrorDescriptor);
   public final DexType listType = createType(listDescriptor);
   public final DexType setType = createType(setDescriptor);
   public final DexType mapType = createType(mapDescriptor);
@@ -584,6 +588,7 @@ public class DexItemFactory {
   public class ThrowableMethods {
 
     public final DexMethod addSuppressed;
+    public final DexMethod getMessage;
     public final DexMethod getSuppressed;
     public final DexMethod initCause;
 
@@ -594,6 +599,12 @@ public class DexItemFactory {
           createString("getSuppressed"), throwableArrayDescriptor, DexString.EMPTY_ARRAY);
       initCause = createMethod(throwableDescriptor, createString("initCause"), throwableDescriptor,
           new DexString[] { throwableDescriptor });
+      getMessage =
+          createMethod(
+              throwableDescriptor,
+              createString("getMessage"),
+              stringDescriptor,
+              DexString.EMPTY_ARRAY);
     }
   }
 

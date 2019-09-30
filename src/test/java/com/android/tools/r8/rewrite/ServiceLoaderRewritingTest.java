@@ -27,7 +27,6 @@ import java.nio.file.Path;
 import java.util.ServiceLoader;
 import java.util.concurrent.ExecutionException;
 import java.util.zip.ZipFile;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -202,7 +201,6 @@ public class ServiceLoaderRewritingTest extends TestBase {
   }
 
   @Test
-  @Ignore("b/141290856")
   public void testRewritingsWithCatchHandlers()
       throws IOException, CompilationFailedException, ExecutionException {
     Path path = temp.newFile("out.zip").toPath();
@@ -218,12 +216,12 @@ public class ServiceLoaderRewritingTest extends TestBase {
                 Origin.unknown()))
         .compile()
         .writeToZip(path)
-        .run(parameters.getRuntime(), MainRunner.class)
-        .assertSuccessWithOutput(EXPECTED_OUTPUT + StringUtils.lines("Hello World 2!"))
+        .run(parameters.getRuntime(), MainWithTryCatchRunner.class)
+        .assertSuccessWithOutput(StringUtils.lines("Hello World!"))
         .inspect(
             inspector -> {
               // Check that we have actually rewritten the calls to ServiceLoader.load.
-              assertEquals(0, getServiceLoaderLoads(inspector, MainRunner.class));
+              assertEquals(0, getServiceLoaderLoads(inspector, MainWithTryCatchRunner.class));
             });
 
     // Check that we have removed the service configuration from META-INF/services.
