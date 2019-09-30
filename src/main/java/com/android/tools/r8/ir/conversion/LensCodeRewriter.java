@@ -415,7 +415,9 @@ public class LensCodeRewriter {
     }
     if (!affectedPhis.isEmpty()) {
       new DestructivePhiTypeUpdater(appView).recomputeTypes(code, affectedPhis);
-      new TypeAnalysis(appView).narrowing(affectedPhis);
+      Set<Value> affectedValues = Sets.newIdentityHashSet();
+      affectedPhis.forEach(phi -> affectedValues.addAll(phi.affectedValues()));
+      new TypeAnalysis(appView).narrowing(affectedValues);
       assert code.verifyTypes(appView);
     }
     assert code.isConsistentSSA();
