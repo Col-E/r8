@@ -8,9 +8,15 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.dex.Marker;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -116,5 +122,47 @@ public class L8CommandTest {
                 .addDesugaredLibraryConfiguration(
                     StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
                 .build());
+  }
+
+  @Test
+  public void addProguardConfigurationString() throws Throwable {
+    String keepRule = "-keep class java.time.*";
+    List<String> keepRules = new ArrayList<>();
+    keepRules.add(keepRule);
+    L8Command.Builder builder =
+        prepareBuilder(new TestDiagnosticMessagesImpl())
+            .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+            .addDesugaredLibraryConfiguration(
+                StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
+            .addProguardConfiguration(keepRules, Origin.unknown());
+    assertTrue(builder.isShrinking());
+    assertNotNull(builder.build().getR8Command());
+  }
+
+  @Test
+  public void addProguardConfigurationFile() throws Throwable {
+    String keepRule = "-keep class java.time.*";
+    Path keepRuleFile = temp.newFile("keepRuleFile.txt").toPath();
+    Files.write(keepRuleFile, Collections.singletonList(keepRule), StandardCharsets.UTF_8);
+
+    L8Command.Builder builder1 =
+        prepareBuilder(new TestDiagnosticMessagesImpl())
+            .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+            .addDesugaredLibraryConfiguration(
+                StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
+            .addProguardConfigurationFiles(keepRuleFile);
+    assertTrue(builder1.isShrinking());
+    assertNotNull(builder1.build().getR8Command());
+
+    List<Path> keepRuleFiles = new ArrayList<>();
+    keepRuleFiles.add(keepRuleFile);
+    L8Command.Builder builder2 =
+        prepareBuilder(new TestDiagnosticMessagesImpl())
+            .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
+            .addDesugaredLibraryConfiguration(
+                StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
+            .addProguardConfigurationFiles(keepRuleFiles);
+    assertTrue(builder2.isShrinking());
+    assertNotNull(builder2.build().getR8Command());
   }
 }
