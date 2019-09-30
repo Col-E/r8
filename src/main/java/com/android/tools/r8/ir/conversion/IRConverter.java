@@ -1316,6 +1316,15 @@ public class IRConverter {
       twrCloseResourceRewriter.rewriteMethodCode(code);
     }
 
+    assert code.verifyTypes(appView);
+
+    previous = printMethod(code, "IR after twr close resource rewriter (SSA)", previous);
+
+    if (lambdaMerger != null) {
+      lambdaMerger.processMethodCode(method, code);
+      assert code.isConsistentSSA();
+    }
+
     if (nonNullTracker != null) {
       // TODO(b/139246447): Once we extend this optimization to, e.g., constants of primitive args,
       //   this may not be the right place to collect call site optimization info.
@@ -1335,13 +1344,6 @@ public class IRConverter {
     assert code.verifyNoNullabilityBottomTypes();
 
     assert code.verifyTypes(appView);
-
-    previous = printMethod(code, "IR after twr close resource rewriter (SSA)", previous);
-
-    if (lambdaMerger != null) {
-      lambdaMerger.processMethodCode(method, code);
-      assert code.isConsistentSSA();
-    }
 
     previous = printMethod(code, "IR after lambda merger (SSA)", previous);
 

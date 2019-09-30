@@ -16,7 +16,6 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.DestructivePhiTypeUpdater;
-import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.InstancePut;
@@ -520,12 +519,8 @@ public final class LambdaMerger {
       }
       if (!typeAffectedPhis.isEmpty()) {
         new DestructivePhiTypeUpdater(appView, optimizationInfoFixer)
-            .recomputeTypes(code, typeAffectedPhis);
+            .recomputeAndPropagateTypes(code, typeAffectedPhis);
       }
-
-      // Now that the types of all transitively type affected values have been reset, we can
-      // perform a narrowing, starting from the type affected phis.
-      new TypeAnalysis(appView).narrowing(typeAffectedPhis);
       assert code.verifyTypes(appView);
     }
 

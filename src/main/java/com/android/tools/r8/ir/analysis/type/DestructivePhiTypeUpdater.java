@@ -11,6 +11,7 @@ import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
+import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.ListIterator;
@@ -32,7 +33,7 @@ public class DestructivePhiTypeUpdater {
     this.mapping = mapping;
   }
 
-  public void recomputeTypes(IRCode code, Set<Phi> affectedPhis) {
+  public void recomputeAndPropagateTypes(IRCode code, Set<Phi> affectedPhis) {
     // We have updated at least one type lattice element which can cause phi's to narrow to a more
     // precise type. Because cycles in phi's can occur, we have to reset all phi's before
     // computing the new values.
@@ -50,6 +51,8 @@ public class DestructivePhiTypeUpdater {
     // Assuming all values have been rewritten correctly above, the non-phi operands to phi's are
     // replaced with correct types and all other phi operands are BOTTOM.
     assert verifyAllPhiOperandsAreBottom(affectedPhis);
+
+    Set<Value> affectedValues = Sets.newIdentityHashSet();
     worklist.addAll(affectedPhis);
     while (!worklist.isEmpty()) {
       Phi phi = worklist.poll();
@@ -58,9 +61,15 @@ public class DestructivePhiTypeUpdater {
         assert !newType.isBottom();
         phi.setTypeLattice(newType);
         worklist.addAll(phi.uniquePhiUsers());
+        affectedValues.addAll(phi.affectedValues());
       }
     }
     assert new TypeAnalysis(appView).verifyValuesUpToDate(affectedPhis);
+    // Now that the types of all transitively type affected phis have been reset, we can
+    // perform a narrowing, starting from the values that are affected by those phis.
+    if (!affectedValues.isEmpty()) {
+      new TypeAnalysis(appView).narrowing(affectedValues);
+    }
   }
 
   private boolean verifyAllPhiOperandsAreBottom(Set<Phi> affectedPhis) {
@@ -74,8 +83,7 @@ public class DestructivePhiTypeUpdater {
               || operandType.isPrimitive()
               || operandType.isNullType()
               || (operandType.isReference()
-                  && operandType.fixupClassTypeReferences(appView.graphLense()::lookupType, appView)
-                      == operandType);
+                  && operandType.fixupClassTypeReferences(mapping, appView) == operandType);
         }
       }
     }
@@ -88,8 +96,7 @@ public class DestructivePhiTypeUpdater {
       BasicBlock block = blocks.next();
       for (Phi phi : block.getPhis()) {
         TypeLatticeElement phiTypeLattice = phi.getTypeLattice();
-        TypeLatticeElement substituted =
-            phiTypeLattice.fixupClassTypeReferences(appView.graphLense()::lookupType, appView);
+        TypeLatticeElement substituted = phiTypeLattice.fixupClassTypeReferences(mapping, appView);
         assert substituted == phiTypeLattice || affectedPhis.contains(phi);
       }
     }

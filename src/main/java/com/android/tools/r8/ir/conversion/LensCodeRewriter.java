@@ -31,7 +31,6 @@ import com.android.tools.r8.graph.GraphLense.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.GraphLense.RewrittenPrototypeDescription.RemovedArgumentsInfo;
 import com.android.tools.r8.graph.UseRegistry.MethodHandleUse;
 import com.android.tools.r8.ir.analysis.type.DestructivePhiTypeUpdater;
-import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers;
@@ -414,10 +413,7 @@ public class LensCodeRewriter {
       code.removeUnreachableBlocks();
     }
     if (!affectedPhis.isEmpty()) {
-      new DestructivePhiTypeUpdater(appView).recomputeTypes(code, affectedPhis);
-      Set<Value> affectedValues = Sets.newIdentityHashSet();
-      affectedPhis.forEach(phi -> affectedValues.addAll(phi.affectedValues()));
-      new TypeAnalysis(appView).narrowing(affectedValues);
+      new DestructivePhiTypeUpdater(appView).recomputeAndPropagateTypes(code, affectedPhis);
       assert code.verifyTypes(appView);
     }
     assert code.isConsistentSSA();

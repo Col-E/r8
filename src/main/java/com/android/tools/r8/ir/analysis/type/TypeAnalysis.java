@@ -95,7 +95,7 @@ public class TypeAnalysis {
     }
   }
 
-  public void analyzeBasicBlock(
+  private void analyzeBasicBlock(
       DexEncodedMethod context, DexEncodedMethod encodedMethod, BasicBlock block) {
     int argumentsSeen = encodedMethod.accessFlags.isStatic() ? 0 : -1;
     for (Instruction instruction : block.getInstructions()) {
