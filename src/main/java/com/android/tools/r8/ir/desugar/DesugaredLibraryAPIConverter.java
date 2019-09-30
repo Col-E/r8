@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -19,12 +20,15 @@ import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 
 // TODO(b/134732760): In progress.
 // I convert library calls with desugared parameters/return values so they can work normally.
@@ -43,17 +47,24 @@ import java.util.List;
 // or be a rewritten type (generated through rewriting of vivifiedType).
 public class DesugaredLibraryAPIConverter {
 
-  private static final String VIVIFIED_PREFIX = "$-vivified-$.";
+  static final String VIVIFIED_PREFIX = "$-vivified-$.";
 
   private final AppView<?> appView;
   private final DexItemFactory factory;
+  private final DesugaredLibraryWrapperSynthesizer wrapperSynthesizor;
 
   public DesugaredLibraryAPIConverter(AppView<?> appView) {
     this.appView = appView;
     this.factory = appView.dexItemFactory();
+    this.wrapperSynthesizor = new DesugaredLibraryWrapperSynthesizer(appView, this);
   }
 
   public void desugar(IRCode code) {
+
+    if (wrapperSynthesizor.hasSynthesized(code.method.method.holder)) {
+      return;
+    }
+
     // TODO(b/134732760): The current code does not catch library calls into a program override
     //  which gets rewritten. If method signature has rewritten types and method overrides library,
     //  I should convert back.
@@ -91,6 +102,12 @@ public class DesugaredLibraryAPIConverter {
     }
   }
 
+  public void generateWrappers(
+      DexApplication.Builder<?> builder, IRConverter irConverter, ExecutorService executorService)
+      throws ExecutionException {
+    wrapperSynthesizor.finalizeWrappers(builder, irConverter, executorService);
+  }
+
   private void warnInvalidInvoke(DexType type, DexMethod invokedMethod, String debugString) {
     DexType desugaredType = appView.rewritePrefix.rewrittenType(type);
     appView
@@ -109,7 +126,7 @@ public class DesugaredLibraryAPIConverter {
                     + " is a desugared type)."));
   }
 
-  private DexType vivifiedTypeFor(DexType type) {
+  public DexType vivifiedTypeFor(DexType type) {
     DexType vivifiedType =
         factory.createType(DescriptorUtils.javaTypeToDescriptor(VIVIFIED_PREFIX + type.toString()));
     appView.rewritePrefix.rewriteType(vivifiedType, type);
@@ -125,11 +142,7 @@ public class DesugaredLibraryAPIConverter {
     DexType newReturnType;
     DexType returnType = invokedMethod.proto.returnType;
     if (appView.rewritePrefix.hasRewrittenType(returnType)) {
-      if (appView
-          .options()
-          .desugaredLibraryConfiguration
-          .getCustomConversions()
-          .containsKey(returnType)) {
+      if (canConvert(returnType)) {
         newReturnType = vivifiedTypeFor(returnType);
         // Return conversion added only if return value is used.
         if (invokeMethod.outValue() != null
@@ -139,7 +152,6 @@ public class DesugaredLibraryAPIConverter {
               createReturnConversionAndReplaceUses(code, invokeMethod, returnType, newReturnType);
         }
       } else {
-        // TODO(b/134732760): Add Wrapper Conversions.
         warnInvalidInvoke(returnType, invokeMethod.getInvokedMethod(), "return");
         newReturnType = returnType;
       }
@@ -160,11 +172,7 @@ public class DesugaredLibraryAPIConverter {
     for (int i = 0; i < parameters.length; i++) {
       DexType argType = parameters[i];
       if (appView.rewritePrefix.hasRewrittenType(argType)) {
-        if (appView
-            .options()
-            .desugaredLibraryConfiguration
-            .getCustomConversions()
-            .containsKey(argType)) {
+        if (canConvert(argType)) {
           DexType argVivifiedType = vivifiedTypeFor(argType);
           Value inValue = invokeMethod.inValues().get(i + receiverShift);
           newParameters[i] = argVivifiedType;
@@ -172,7 +180,6 @@ public class DesugaredLibraryAPIConverter {
               createParameterConversion(code, argType, argVivifiedType, inValue));
           newInValues.add(parameterConversions.get(parameterConversions.size() - 1).outValue());
         } else {
-          // TODO(b/134732760): Add Wrapper Conversions.
           warnInvalidInvoke(argType, invokeMethod.getInvokedMethod(), "parameter");
           newInValues.add(invokeMethod.inValues().get(i + receiverShift));
         }
@@ -226,16 +233,28 @@ public class DesugaredLibraryAPIConverter {
         conversionMethod, convertedValue, Collections.singletonList(invokeMethod.outValue()));
   }
 
-  private DexMethod createConversionMethod(DexType type, DexType srcType, DexType destType) {
+  public DexMethod createConversionMethod(DexType type, DexType srcType, DexType destType) {
     // ConversionType holds the methods "rewrittenType convert(type)" and the other way around.
     // But everything is going to be rewritten, so we need to use vivifiedType and type".
     DexType conversionHolder =
         appView.options().desugaredLibraryConfiguration.getCustomConversions().get(type);
+    if (conversionHolder == null) {
+      conversionHolder =
+          type == srcType
+              ? wrapperSynthesizor.getTypeWrapper(type)
+              : wrapperSynthesizor.getVivifiedTypeWrapper(type);
+    }
+    assert conversionHolder != null;
     return factory.createMethod(
         conversionHolder, factory.createProto(destType, srcType), factory.convertMethodName);
   }
 
   private Value createConversionValue(IRCode code, Nullability nullability, DexType valueType) {
     return code.createValue(TypeLatticeElement.fromDexType(valueType, nullability, appView));
+  }
+
+  public boolean canConvert(DexType type) {
+    return appView.options().desugaredLibraryConfiguration.getCustomConversions().containsKey(type)
+        || wrapperSynthesizor.canGenerateWrapper(type);
   }
 }

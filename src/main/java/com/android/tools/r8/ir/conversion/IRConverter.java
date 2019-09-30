@@ -454,6 +454,7 @@ public class IRConverter {
     synthesizeTwrCloseResourceUtilityClass(builder, executor);
     synthesizeJava8UtilityClass(builder, executor);
     processCovariantReturnTypeAnnotations(builder);
+    generateDesugaredLibraryAPIWrappers(builder, executor);
 
     handleSynthesizedClassMapping(builder);
     timing.end();
@@ -718,6 +719,9 @@ public class IRConverter {
     printPhase("Lambda merging finalization");
     finalizeLambdaMerging(application, feedback, builder, executorService);
 
+    printPhase("Desugared library API Conversion finalization");
+    generateDesugaredLibraryAPIWrappers(builder, executorService);
+
     if (outliner != null) {
       printPhase("Outlining");
       timing.begin("IR conversion phase 3");
@@ -858,6 +862,14 @@ public class IRConverter {
     if (lambdaMerger != null) {
       lambdaMerger.applyLambdaClassMapping(
           application, this, feedback, builder, executorService);
+    }
+  }
+
+  private void generateDesugaredLibraryAPIWrappers(
+      DexApplication.Builder<?> builder, ExecutorService executorService)
+      throws ExecutionException {
+    if (desugaredLibraryAPIConverter != null) {
+      desugaredLibraryAPIConverter.generateWrappers(builder, this, executorService);
     }
   }
 

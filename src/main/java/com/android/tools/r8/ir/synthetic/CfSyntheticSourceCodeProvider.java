@@ -18,6 +18,10 @@ import com.android.tools.r8.origin.Origin;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 
+// TODO(b/134732760): I think a general clean-up is required here.
+// Instead of being a sourceCodeProvider, this should just have API getCfCode() and not
+// get(Position). All users should be rewritten to use getCfCode(). That would simplify a lot the
+// code everywhere.
 public abstract class CfSyntheticSourceCodeProvider implements SourceCodeProvider {
 
   private final DexEncodedMethod method;
@@ -42,6 +46,10 @@ public abstract class CfSyntheticSourceCodeProvider implements SourceCodeProvide
         callerPosition,
         Origin.unknown(),
         appView);
+  }
+
+  public CfCode getCfCode() {
+    return generateCfCode(null);
   }
 
   protected abstract CfCode generateCfCode(Position callerPosition);

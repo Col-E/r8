@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import static com.android.tools.r8.ir.desugar.DesugaredLibraryWrapperSynthesizer.TYPE_WRAPPER_SUFFIX;
+import static com.android.tools.r8.ir.desugar.DesugaredLibraryWrapperSynthesizer.VIVIFIED_TYPE_WRAPPER_SUFFIX;
 import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX;
 import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.DISPATCH_CLASS_NAME_SUFFIX;
 import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.EMULATE_LIBRARY_CLASS_NAME_SUFFIX;
@@ -253,6 +255,8 @@ public class DexType extends DexReference implements PresortedComparable<DexType
     return name.contains(COMPANION_CLASS_NAME_SUFFIX)
         || name.contains(EMULATE_LIBRARY_CLASS_NAME_SUFFIX)
         || name.contains(DISPATCH_CLASS_NAME_SUFFIX)
+        || name.contains(TYPE_WRAPPER_SUFFIX)
+        || name.contains(VIVIFIED_TYPE_WRAPPER_SUFFIX)
         || name.contains(LAMBDA_CLASS_NAME_PREFIX)
         || name.contains(LAMBDA_GROUP_CLASS_NAME_PREFIX)
         || name.contains(OutlineOptions.CLASS_NAME)

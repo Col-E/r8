@@ -14,9 +14,7 @@ import com.android.tools.r8.desugar.corelib.CoreLibDesugarTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.Arrays;
-import java.util.Random;
 import java.util.function.IntUnaryOperator;
-import java.util.stream.IntStream;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -49,25 +47,20 @@ public class APIConversionTest extends CoreLibDesugarTestBase {
         .assertNoWarningMessageThatMatches(containsString("java.util.Random#ints"))
         .assertNoWarningMessageThatMatches(endsWith("is a desugared type)."))
         .run(parameters.getRuntime(), Executor.class)
-        .assertSuccessWithOutput(
-            StringUtils.lines("[5, 6, 7]", "java.util.stream.IntPipeline$Head"));
+        .assertSuccessWithOutput(StringUtils.lines("[5, 6, 7]"));
   }
 
   @Test
   public void testAPIConversionDesugaring() throws Exception {
-    // TODO(b/): Make library API work when library desugaring is on.
+    // TODO(b/134732760): Make library API work when library desugaring is on for Stream.
     testForD8()
         .addInnerClasses(APIConversionTest.class)
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel())
         .compile()
-        .assertWarningMessageThatMatches(containsString("java.util.Arrays#setAll"))
-        .assertWarningMessageThatMatches(containsString("java.util.Random#ints"))
-        .assertWarningMessageThatMatches(endsWith("is a desugared type)."))
         .addDesugaredCoreLibraryRunClassPath(this::buildDesugaredLibrary, parameters.getApiLevel())
         .run(parameters.getRuntime(), Executor.class)
-        .assertFailureWithErrorThatMatches(
-            containsString("NoSuchMethodError: No static method setAll"));
+        .assertSuccessWithOutput(StringUtils.lines("[5, 6, 7]"));
   }
 
   static class Executor {
@@ -76,8 +69,9 @@ public class APIConversionTest extends CoreLibDesugarTestBase {
       int[] ints = new int[3];
       Arrays.setAll(ints, new MyFunction());
       System.out.println(Arrays.toString(ints));
-      IntStream intStream = new Random().ints();
-      System.out.println(intStream.getClass().getName());
+      // TODO(b/134732760): Support Stream wrappers.
+      // IntStream intStream = new Random().ints();
+      // System.out.println(intStream.getClass().getName());
     }
   }
 

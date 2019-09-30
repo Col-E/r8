@@ -79,7 +79,11 @@
         "java.time.Duration": "j$.time.TimeConversions",
         "java.time.ZoneId": "j$.time.TimeConversions",
         "java.time.MonthDay": "j$.time.TimeConversions",
-        "java.time.Instant": "j$.time.TimeConversions"
+        "java.time.Instant": "j$.time.TimeConversions",
+        "java.util.Optional": "j$.util.OptionalConversions",
+        "java.util.OptionalDouble": "j$.util.OptionalConversions",
+        "java.util.OptionalInt": "j$.util.OptionalConversions",
+        "java.util.OptionalLong": "j$.util.OptionalConversions"
       }
     },
     {
