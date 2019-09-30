@@ -60,6 +60,7 @@ public class DestructivePhiTypeUpdater {
         worklist.addAll(phi.uniquePhiUsers());
       }
     }
+    assert new TypeAnalysis(appView).verifyValuesUpToDate(affectedPhis);
   }
 
   private boolean verifyAllPhiOperandsAreBottom(Set<Phi> affectedPhis) {

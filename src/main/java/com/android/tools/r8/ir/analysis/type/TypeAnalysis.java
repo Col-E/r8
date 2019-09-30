@@ -30,7 +30,8 @@ public class TypeAnalysis {
     UNSET,
     WIDENING,  // initial analysis, including fixed-point iteration for phis and updating with less
                // specific info, e.g., removing assume nodes.
-    NARROWING  // updating with more specific info, e.g., passing the return value of the inlinee.
+    NARROWING, // updating with more specific info, e.g., passing the return value of the inlinee.
+    NO_CHANGE  // utility to ensure types are up to date
   }
 
   private final boolean mayHaveImpreciseTypes;
@@ -75,7 +76,12 @@ public class TypeAnalysis {
     analyzeValues(sortedValues, Mode.NARROWING);
   }
 
-  private void analyzeValues(Iterable<Value> values, Mode mode) {
+  public boolean verifyValuesUpToDate(Iterable<? extends Value> values) {
+    analyzeValues(values, Mode.NO_CHANGE);
+    return true;
+  }
+
+  private void analyzeValues(Iterable<? extends Value> values, Mode mode) {
     this.mode = mode;
     assert worklist.isEmpty();
     values.forEach(this::enqueue);
@@ -143,6 +149,8 @@ public class TypeAnalysis {
     if (current.equals(type)) {
       return;
     }
+
+    assert mode != Mode.NO_CHANGE;
 
     if (type.isBottom()) {
       return;
