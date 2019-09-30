@@ -27,6 +27,7 @@ import java.nio.file.Path;
 import java.util.ServiceLoader;
 import java.util.concurrent.ExecutionException;
 import java.util.zip.ZipFile;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -71,6 +72,18 @@ public class ServiceLoaderRewritingTest extends TestBase {
       //   streams correctly, uncomment the lines below and adjust EXPECTED_OUTPUT.
       // ServiceLoader.load(Service.class, Service.class.getClassLoader())
       //   .stream().forEach(x -> x.get().print());
+    }
+  }
+
+  public static class MainWithTryCatchRunner {
+
+    public static void main(String[] args) {
+      try {
+        ServiceLoader.load(Service.class, Service.class.getClassLoader()).iterator().next().print();
+      } catch (Throwable e) {
+        System.out.println(e);
+        throw e;
+      }
     }
   }
 
@@ -166,6 +179,36 @@ public class ServiceLoaderRewritingTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(ServiceLoaderRewritingTest.class)
         .addKeepMainRule(MainRunner.class)
+        .setMinApi(parameters.getRuntime())
+        .addDataEntryResources(
+            DataEntryResource.fromBytes(
+                StringUtils.lines(ServiceImpl.class.getTypeName(), ServiceImpl2.class.getTypeName())
+                    .getBytes(),
+                "META-INF/services/" + Service.class.getTypeName(),
+                Origin.unknown()))
+        .compile()
+        .writeToZip(path)
+        .run(parameters.getRuntime(), MainRunner.class)
+        .assertSuccessWithOutput(EXPECTED_OUTPUT + StringUtils.lines("Hello World 2!"))
+        .inspect(
+            inspector -> {
+              // Check that we have actually rewritten the calls to ServiceLoader.load.
+              assertEquals(0, getServiceLoaderLoads(inspector, MainRunner.class));
+            });
+
+    // Check that we have removed the service configuration from META-INF/services.
+    ZipFile zip = new ZipFile(path.toFile());
+    assertNull(zip.getEntry("META-INF/services"));
+  }
+
+  @Test
+  @Ignore("b/141290856")
+  public void testRewritingsWithCatchHandlers()
+      throws IOException, CompilationFailedException, ExecutionException {
+    Path path = temp.newFile("out.zip").toPath();
+    testForR8(parameters.getBackend())
+        .addInnerClasses(ServiceLoaderRewritingTest.class)
+        .addKeepMainRule(MainWithTryCatchRunner.class)
         .setMinApi(parameters.getRuntime())
         .addDataEntryResources(
             DataEntryResource.fromBytes(
