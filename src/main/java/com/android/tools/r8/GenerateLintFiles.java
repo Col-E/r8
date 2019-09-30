@@ -47,6 +47,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -81,12 +82,19 @@ public class GenerateLintFiles {
             factory.createProto(streamType),
             factory.createString("parallelStream"));
     parallelMethods.add(parallelMethod);
+    DexType baseStreamType =
+        factory.createType(factory.createString("Ljava/util/stream/BaseStream;"));
     for (String typePrefix : new String[] {"Base", "Double", "Int", "Long"}) {
       streamType =
           factory.createType(factory.createString("Ljava/util/stream/" + typePrefix + "Stream;"));
       parallelMethod =
           factory.createMethod(
               streamType, factory.createProto(streamType), factory.createString("parallel"));
+      parallelMethods.add(parallelMethod);
+      // Also filter out the generated bridges for the covariant return type.
+      parallelMethod =
+          factory.createMethod(
+              streamType, factory.createProto(baseStreamType), factory.createString("parallel"));
       parallelMethods.add(parallelMethod);
     }
   }
@@ -168,7 +176,19 @@ public class GenerateLintFiles {
             false));
   }
 
-  private Map<DexClass, List<DexEncodedMethod>> collectSupportedMethods(
+  public static class SupportedMethods {
+    public final Set<DexClass> classesWithAllMethodsSupported;
+    public final Map<DexClass, List<DexEncodedMethod>> supportedMethods;
+
+    public SupportedMethods(
+        Set<DexClass> classesWithAllMethodsSupported,
+        Map<DexClass, List<DexEncodedMethod>> supportedMethods) {
+      this.classesWithAllMethodsSupported = classesWithAllMethodsSupported;
+      this.supportedMethods = supportedMethods;
+    }
+  }
+
+  private SupportedMethods collectSupportedMethods(
       AndroidApiLevel compilationApiLevel, Predicate<DexEncodedMethod> supported)
       throws IOException, ExecutionException {
 
@@ -178,17 +198,24 @@ public class GenerateLintFiles {
     DirectMappedDexApplication dexApplication =
         new ApplicationReader(library, options, new Timing()).read().toDirect();
 
-    // collect all the methods that the library desugar configuration adds support for.
+    // Collect all the methods that the library desugar configuration adds support for.
+    Set<DexClass> classesWithAllMethodsSupported = Sets.newIdentityHashSet();
     Map<DexClass, List<DexEncodedMethod>> supportedMethods = new LinkedHashMap<>();
     for (DexLibraryClass clazz : dexApplication.libraryClasses()) {
       String className = clazz.toSourceString();
       // All the methods with the rewritten prefix are supported.
       for (String prefix : desugaredLibraryConfiguration.getRewritePrefix().keySet()) {
         if (clazz.accessFlags.isPublic() && className.startsWith(prefix)) {
+          boolean allMethodsAddad = true;
           for (DexEncodedMethod method : clazz.methods()) {
             if (supported.test(method)) {
               supportedMethods.computeIfAbsent(clazz, k -> new ArrayList<>()).add(method);
+            } else {
+              allMethodsAddad = false;
             }
+          }
+          if (allMethodsAddad) {
+            classesWithAllMethodsSupported.add(clazz);
           }
         }
       }
@@ -209,9 +236,14 @@ public class GenerateLintFiles {
           }
         }
       }
-      // All emulated interfaces methods are supported.
+
+      // All emulated interfaces static and default methods are supported.
       if (desugaredLibraryConfiguration.getEmulateLibraryInterface().containsKey(clazz.type)) {
+        assert clazz.isInterface();
         for (DexEncodedMethod method : clazz.methods()) {
+          if (!method.isDefaultMethod() && !method.isStatic()) {
+            continue;
+          }
           if (supported.test(method)) {
             supportedMethods.computeIfAbsent(clazz, k -> new ArrayList<>()).add(method);
           }
@@ -219,7 +251,7 @@ public class GenerateLintFiles {
       }
     }
 
-    return supportedMethods;
+    return new SupportedMethods(classesWithAllMethodsSupported, supportedMethods);
   }
 
   private String lintBaseFileName(
@@ -243,22 +275,26 @@ public class GenerateLintFiles {
   private void writeLintFiles(
       AndroidApiLevel compilationApiLevel,
       AndroidApiLevel minApiLevel,
-      Map<DexClass, List<DexEncodedMethod>> supportedMethods)
+      SupportedMethods supportedMethods)
       throws Exception {
     // Build a plain text file with the desugared APIs.
     List<String> desugaredApisSignatures = new ArrayList<>();
 
     DexApplication.Builder builder = DexApplication.builder(options, new Timing());
-    supportedMethods.forEach(
+    supportedMethods.supportedMethods.forEach(
         (clazz, methods) -> {
           String classBinaryName =
               DescriptorUtils.getClassBinaryNameFromDescriptor(clazz.type.descriptor.toString());
-          for (DexEncodedMethod method : methods) {
-            desugaredApisSignatures.add(
-                classBinaryName
-                    + '/'
-                    + method.method.name
-                    + method.method.proto.toDescriptorString());
+          if (!supportedMethods.classesWithAllMethodsSupported.contains(clazz)) {
+            for (DexEncodedMethod method : methods) {
+              desugaredApisSignatures.add(
+                  classBinaryName
+                      + '#'
+                      + method.method.name
+                      + method.method.proto.toDescriptorString());
+            }
+          } else {
+            desugaredApisSignatures.add(classBinaryName);
           }
 
           addMethodsToHeaderJar(builder, clazz, methods);
@@ -266,6 +302,7 @@ public class GenerateLintFiles {
     DexApplication app = builder.build();
 
     // Write a plain text file with the desugared APIs.
+    desugaredApisSignatures.sort(Comparator.naturalOrder());
     FileUtils.writeTextFile(
         lintFile(compilationApiLevel, minApiLevel, ".txt"), desugaredApisSignatures);
 
@@ -293,16 +330,20 @@ public class GenerateLintFiles {
       Predicate<AndroidApiLevel> generateForThisMinApiLevel,
       BiPredicate<AndroidApiLevel, DexEncodedMethod> supportedForMinApiLevel)
       throws Exception {
-    for (AndroidApiLevel value : AndroidApiLevel.values()) {
-      if (!generateForThisMinApiLevel.test(value)) {
+    System.out.print("  - generating for min API:");
+    for (AndroidApiLevel minApiLevel : AndroidApiLevel.values()) {
+      if (!generateForThisMinApiLevel.test(minApiLevel)) {
         continue;
       }
 
-      Map<DexClass, List<DexEncodedMethod>> supportedMethods =
+      System.out.print(" " + minApiLevel);
+
+      SupportedMethods supportedMethods =
           collectSupportedMethods(
-              compilationApiLevel, (method -> supportedForMinApiLevel.test(value, method)));
-      writeLintFiles(compilationApiLevel, value, supportedMethods);
+              compilationApiLevel, (method -> supportedForMinApiLevel.test(minApiLevel, method)));
+      writeLintFiles(compilationApiLevel, minApiLevel, supportedMethods);
     }
+    System.out.println();
   }
 
   private void run() throws Exception {

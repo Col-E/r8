@@ -21,6 +21,8 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import org.junit.Assume;
 import org.junit.Test;
@@ -30,19 +32,49 @@ public class LintFilesTest extends TestBase {
   private void checkFileContent(AndroidApiLevel minApiLevel, Path lintFile) throws Exception {
     // Just do some light probing in the generated lint files.
     List<String> methods = FileUtils.readAllLines(lintFile);
-    assertTrue(methods.contains("java/util/List/spliterator()Ljava/util/Spliterator;"));
-    assertTrue(methods.contains("java/util/Optional/empty()Ljava/util/Optional;"));
-    assertTrue(methods.contains("java/util/OptionalInt/empty()Ljava/util/OptionalInt;"));
+
+    // All methods supported on Optional*.
+    assertTrue(methods.contains("java/util/Optional"));
+    assertTrue(methods.contains("java/util/OptionalInt"));
+
+    // No parallel* methods pre L, and all stream methods supported from L.
     assertEquals(
         minApiLevel == AndroidApiLevel.L,
-        methods.contains("java/util/Collection/parallelStream()Ljava/util/stream/Stream;"));
+        methods.contains("java/util/Collection#parallelStream()Ljava/util/stream/Stream;"));
     assertEquals(
-        minApiLevel == AndroidApiLevel.L,
+        minApiLevel == AndroidApiLevel.L, methods.contains("java/util/stream/DoubleStream"));
+    assertFalse(
         methods.contains(
-            "java/util/stream/DoubleStream/parallel()Ljava/util/stream/DoubleStream;"));
+            "java/util/stream/DoubleStream#parallel()Ljava/util/stream/DoubleStream;"));
+    assertFalse(
+        methods.contains("java/util/stream/DoubleStream#parallel()Ljava/util/stream/BaseStream;"));
     assertEquals(
-        minApiLevel == AndroidApiLevel.L,
-        methods.contains("java/util/stream/IntStream/parallel()Ljava/util/stream/IntStream;"));
+        minApiLevel == AndroidApiLevel.B,
+        methods.contains(
+            "java/util/stream/DoubleStream#allMatch(Ljava/util/function/DoublePredicate;)Z"));
+    assertEquals(minApiLevel == AndroidApiLevel.L, methods.contains("java/util/stream/IntStream"));
+    assertFalse(
+        methods.contains("java/util/stream/IntStream#parallel()Ljava/util/stream/IntStream;"));
+    assertFalse(
+        methods.contains("java/util/stream/IntStream#parallel()Ljava/util/stream/BaseStream;"));
+    assertEquals(
+        minApiLevel == AndroidApiLevel.B,
+        methods.contains(
+            "java/util/stream/IntStream#allMatch(Ljava/util/function/IntPredicate;)Z"));
+
+    // Emulated interface default method.
+    assertTrue(methods.contains("java/util/List#spliterator()Ljava/util/Spliterator;"));
+
+    // Emulated interface static method.
+    assertTrue(methods.contains("java/util/Map$Entry#comparingByValue()Ljava/util/Comparator;"));
+
+    // No no-default method from emulated interface.
+    assertFalse(methods.contains("java/util/List#size()I"));
+
+    // File should be sorted.
+    List<String> sorted = new ArrayList<>(methods);
+    sorted.sort(Comparator.naturalOrder());
+    assertEquals(methods, sorted);
   }
 
   @Test
