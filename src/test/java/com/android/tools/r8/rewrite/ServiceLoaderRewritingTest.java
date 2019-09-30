@@ -51,6 +51,14 @@ public class ServiceLoaderRewritingTest extends TestBase {
     }
   }
 
+  public static class ServiceImpl2 implements Service {
+
+    @Override
+    public void print() {
+      System.out.println("Hello World 2!");
+    }
+  }
+
   public static class MainRunner {
 
     public static void main(String[] args) {
@@ -140,6 +148,35 @@ public class ServiceLoaderRewritingTest extends TestBase {
         .writeToZip(path)
         .run(parameters.getRuntime(), MainRunner.class)
         .assertSuccessWithOutput(EXPECTED_OUTPUT)
+        .inspect(
+            inspector -> {
+              // Check that we have actually rewritten the calls to ServiceLoader.load.
+              assertEquals(0, getServiceLoaderLoads(inspector, MainRunner.class));
+            });
+
+    // Check that we have removed the service configuration from META-INF/services.
+    ZipFile zip = new ZipFile(path.toFile());
+    assertNull(zip.getEntry("META-INF/services"));
+  }
+
+  @Test
+  public void testRewritingWithMultiple()
+      throws IOException, CompilationFailedException, ExecutionException {
+    Path path = temp.newFile("out.zip").toPath();
+    testForR8(parameters.getBackend())
+        .addInnerClasses(ServiceLoaderRewritingTest.class)
+        .addKeepMainRule(MainRunner.class)
+        .setMinApi(parameters.getRuntime())
+        .addDataEntryResources(
+            DataEntryResource.fromBytes(
+                StringUtils.lines(ServiceImpl.class.getTypeName(), ServiceImpl2.class.getTypeName())
+                    .getBytes(),
+                "META-INF/services/" + Service.class.getTypeName(),
+                Origin.unknown()))
+        .compile()
+        .writeToZip(path)
+        .run(parameters.getRuntime(), MainRunner.class)
+        .assertSuccessWithOutput(EXPECTED_OUTPUT + StringUtils.lines("Hello World 2!"))
         .inspect(
             inspector -> {
               // Check that we have actually rewritten the calls to ServiceLoader.load.
