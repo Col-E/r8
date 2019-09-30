@@ -13,13 +13,9 @@ package com.android.tools.r8.utils;
 // Finally a report is printed by:
 //     t.report();
 
-import java.lang.management.ManagementFactory;
-import java.lang.management.MemoryMXBean;
-import java.lang.management.MemoryPoolMXBean;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Stack;
 
 public class Timing {
@@ -41,29 +37,45 @@ public class Timing {
     stack.push(new Node("Recorded timings for " + title));
   }
 
+  private static class MemInfo {
+    final long used;
+
+    MemInfo(long used) {
+      this.used = used;
+    }
+
+    public static MemInfo fromTotalAndFree(long total, long free) {
+      return new MemInfo(total - free);
+    }
+
+    long usedDelta(MemInfo previous) {
+      return used - previous.used;
+    }
+  }
+
   class Node {
     final String title;
 
     final Map<String, Node> children = new LinkedHashMap<>();
     long duration = 0;
     long start_time;
-    List<String> startMemory;
-    List<String> endMemory;
+    Map<String, MemInfo> startMemory;
+    Map<String, MemInfo> endMemory;
 
     Node(String title) {
       this.title = title;
-      this.start_time = System.nanoTime();
       if (trackMemory) {
         startMemory = computeMemoryInformation();
       }
+      this.start_time = System.nanoTime();
     }
 
     void restart() {
       assert start_time == -1;
-      start_time = System.nanoTime();
       if (trackMemory) {
         startMemory = computeMemoryInformation();
       }
+      start_time = System.nanoTime();
     }
 
     void end() {
@@ -71,7 +83,6 @@ public class Timing {
       start_time = -1;
       assert duration() >= 0;
       if (trackMemory) {
-        System.gc();
         endMemory = computeMemoryInformation();
       }
     }
@@ -82,13 +93,12 @@ public class Timing {
 
     @Override
     public String toString() {
-      return title + ": " + (duration() / 1000000) + "ms.";
+      return title + ": " + prettyTime(duration());
     }
 
     public String toString(Node top) {
       if (this == top) return toString();
-      long percentage = duration() * 100 / top.duration();
-      return toString() + " (" + percentage + "%)";
+      return toString() + " (" + prettyPercentage(duration(), top.duration()) + ")";
     }
 
     public void report(int depth, Node top) {
@@ -100,44 +110,64 @@ public class Timing {
         System.out.print("- ");
       }
       System.out.println(toString(top));
-      System.out.println();
       if (trackMemory) {
-        printMemoryStart(depth);
-        System.out.println();
+        printMemory(depth);
       }
       children.values().forEach(p -> p.report(depth + 1, top));
-      if (trackMemory) {
-        printMemoryEnd(depth);
-        System.out.println();
-      }
     }
 
-    private void printMemoryStart(int depth) {
-      if (startMemory != null) {
-        printMemory(depth, title + "(Memory) Start: ", startMemory);
-      }
-    }
-
-    private void printMemoryEnd(int depth) {
-      if (endMemory != null) {
-        printMemory(depth, title + "(Memory) End: ", endMemory);
-      }
-    }
-
-    private void printMemory(int depth, String header, List<String> strings) {
-      for (int i = 0; i <= depth; i++) {
-        System.out.print("  ");
-      }
-      System.out.println(header);
-      for (String memoryInfo : strings) {
-        for (int i = 0; i <= depth; i++) {
-          System.out.print("  ");
+    private void printMemory(int depth) {
+      for (Entry<String, MemInfo> start : startMemory.entrySet()) {
+        if (start.getKey().equals("Memory")) {
+          for (int i = 0; i <= depth; i++) {
+            System.out.print("  ");
+          }
+          MemInfo endValue = endMemory.get(start.getKey());
+          MemInfo startValue = start.getValue();
+          System.out.println(
+              start.getKey()
+                  + " start: "
+                  + prettySize(startValue.used)
+                  + ", end: "
+                  + prettySize(endValue.used)
+                  + ", delta: "
+                  + prettySize(endValue.usedDelta(startValue)));
         }
-        System.out.println(memoryInfo);
       }
     }
   }
 
+  private static String prettyPercentage(long part, long total) {
+    return (part * 100 / total) + "%";
+  }
+
+  private static String prettyTime(long value) {
+    return (value / 1000000) + "ms";
+  }
+
+  private static String prettySize(long value) {
+    return prettyNumber(value / 1024) + "k";
+  }
+
+  private static String prettyNumber(long value) {
+    String printed = "" + Math.abs(value);
+    if (printed.length() < 4) {
+      return "" + value;
+    }
+    StringBuilder builder = new StringBuilder();
+    if (value < 0) {
+      builder.append('-');
+    }
+    int prefix = printed.length() % 3;
+    builder.append(printed, 0, prefix);
+    for (int i = prefix; i < printed.length(); i += 3) {
+      if (i > 0) {
+        builder.append('.');
+      }
+      builder.append(printed, i, i + 3);
+    }
+    return builder.toString();
+  }
 
   public void begin(String title) {
     Node parent = stack.peek();
@@ -177,22 +207,13 @@ public class Timing {
     void apply();
   }
 
-  private List<String> computeMemoryInformation() {
-    List<String> strings = new ArrayList<>();
-    strings.add(
-        "Free memory: "
-            + Runtime.getRuntime().freeMemory()
-            + "\tTotal memory: "
-            + Runtime.getRuntime().totalMemory()
-            + "\tMax memory: "
-            + Runtime.getRuntime().maxMemory());
-    MemoryMXBean memoryMXBean = ManagementFactory.getMemoryMXBean();
-    strings.add("Heap summary: " + memoryMXBean.getHeapMemoryUsage().toString());
-    strings.add("Non-heap summary: " + memoryMXBean.getNonHeapMemoryUsage().toString());
-    // Print out the memory information for all managed memory pools.
-    for (MemoryPoolMXBean memoryPoolMXBean : ManagementFactory.getMemoryPoolMXBeans()) {
-      strings.add(memoryPoolMXBean.getName() + ": " + memoryPoolMXBean.getUsage().toString());
-    }
-    return strings;
+  private Map<String, MemInfo> computeMemoryInformation() {
+    System.gc();
+    Map<String, MemInfo> info = new LinkedHashMap<>();
+    info.put(
+        "Memory",
+        MemInfo.fromTotalAndFree(
+            Runtime.getRuntime().totalMemory(), Runtime.getRuntime().freeMemory()));
+    return info;
   }
 }
