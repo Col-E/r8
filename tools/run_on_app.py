@@ -20,9 +20,10 @@ import toolhelper
 import utils
 import youtube_data
 import chrome_data
+import r8_data
 
 TYPES = ['dex', 'deploy', 'proguarded']
-APPS = ['gmscore', 'nest', 'youtube', 'gmail', 'chrome']
+APPS = ['gmscore', 'nest', 'youtube', 'gmail', 'chrome', 'r8']
 COMPILERS = ['d8', 'r8']
 COMPILER_BUILDS = ['full', 'lib']
 
@@ -62,6 +63,16 @@ def ParseOptions(argv):
                     help='Find the minimum amount of memory we can run in',
                     default=False,
                     action='store_true')
+  result.add_option('--find-min-xmx-min-memory',
+                    help='Setting the minimum memory baseline to run in',
+                    type='int')
+  result.add_option('--find-min-xmx-max-memory',
+                    help='Setting the maximum memory baseline to run in',
+                    type='int')
+  result.add_option('--find-min-xmx-range-size',
+                    help='Setting the size of the acceptable memory range',
+                    type='int',
+                    default=32)
   result.add_option('--timeout',
                     type=int,
                     default=0,
@@ -150,7 +161,8 @@ def get_permutations():
       'nest': nest_data,
       'youtube': youtube_data,
       'chrome': chrome_data,
-      'gmail': gmail_data
+      'gmail': gmail_data,
+      'r8': r8_data
   }
   # Check to ensure that we add all variants here.
   assert len(APPS) == len(data_providers)
@@ -187,15 +199,23 @@ def find_min_xmx(options, args):
   assert len(args) == 0
   # If we can run in 128 MB then we are good (which we can for small examples
   # or D8 on medium sized examples)
-  not_working = 128 if options.compiler == 'd8' else 1024
-  working = 1024 * 8
+  if options.find_min_xmx_min_memory:
+    not_working = options.find_min_xmx_min_memory
+  elif options.compiler == 'd8':
+    not_working = 128
+  else:
+    not_working = 1024
+  if options.find_min_xmx_max_memory:
+    working = options.find_min_xmx_max_memory
+  else:
+    working = 1024 * 8
   exit_code = 0
-  while working - not_working > 32:
+  range = options.find_min_xmx_range_size
+  while working - not_working > range:
     next_candidate = working - ((working - not_working)/2)
     print('working: %s, non_working: %s, next_candidate: %s' %
           (working, not_working, next_candidate))
     extra_args = ['-Xmx%sM' % next_candidate]
-    new_options = copy.copy(options)
     t0 = time.time()
     exit_code = run_with_options(options, [], extra_args)
     t1 = time.time()
@@ -213,7 +233,7 @@ def find_min_xmx(options, args):
       assert exit_code == OOM_EXIT_CODE
       not_working = next_candidate
 
-  assert working - not_working <= 32
+  assert working - not_working <= range
   print('Found range: %s - %s' % (not_working, working))
   return 0
 
@@ -255,6 +275,9 @@ def run_with_options(options, args, extra_args=None):
   elif options.app == 'gmail':
     options.version = options.version or '170604.16'
     data = gmail_data
+  elif options.app == 'r8':
+    options.version = options.version or 'cf'
+    data = r8_data
   else:
     raise Exception("You need to specify '--app={}'".format('|'.join(APPS)))
 
@@ -290,7 +313,8 @@ def run_with_options(options, args, extra_args=None):
   if 'inputs' in values and (options.compiler != 'r8'
                              or options.type != 'deploy'
                              or options.app == 'chrome'
-                             or options.app == 'nest'):
+                             or options.app == 'nest'
+                             or options.app == 'r8'):
     inputs = values['inputs']
 
   args.extend(['--output', outdir])
