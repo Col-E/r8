@@ -1356,6 +1356,13 @@ public class IRConverter {
       assert code.isConsistentSSA();
     }
 
+    previous = printMethod(code, "IR after lambda merger (SSA)", previous);
+
+    if (options.outline.enabled) {
+      outlineHandler.accept(code, method);
+      assert code.isConsistentSSA();
+    }
+
     if (nonNullTracker != null) {
       // TODO(b/139246447): Once we extend this optimization to, e.g., constants of primitive args,
       //   this may not be the right place to collect call site optimization info.
@@ -1375,13 +1382,6 @@ public class IRConverter {
     assert code.verifyNoNullabilityBottomTypes();
 
     assert code.verifyTypes(appView);
-
-    previous = printMethod(code, "IR after lambda merger (SSA)", previous);
-
-    if (options.outline.enabled) {
-      outlineHandler.accept(code, method);
-      assert code.isConsistentSSA();
-    }
 
     previous = printMethod(code, "IR after outline handler (SSA)", previous);
 
