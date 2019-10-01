@@ -4,15 +4,12 @@
 
 package com.android.tools.r8.ir.optimize;
 
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
-import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.InvokePolymorphic;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
-import com.android.tools.r8.ir.optimize.Inliner.Reason;
 
 /**
  * The InliningOracle contains information needed for when inlining other methods into @method.
@@ -30,6 +27,4 @@ public interface InliningOracle {
       ClassInitializationAnalysis classInitializationAnalysis);
 
   InlineAction computeForInvokePolymorphic(InvokePolymorphic invoke, DexMethod invocationContext);
-
-  boolean passesInliningConstraints(InvokeMethod invoke, DexEncodedMethod candidate, Reason reason);
 }

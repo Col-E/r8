@@ -37,12 +37,6 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
   }
 
   @Override
-  public boolean passesInliningConstraints(
-      InvokeMethod invoke, DexEncodedMethod candidate, Reason reason) {
-    return true;
-  }
-
-  @Override
   public InlineAction computeForInvokeWithReceiver(
       InvokeMethodWithReceiver invoke, DexMethod invocationContext) {
     return computeForInvoke(invoke);
@@ -67,7 +61,6 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
     // the caller, it's still suspicious if we want to force inline something that is marked
     // with neverInline() flag.
     assert !info.target.getOptimizationInfo().neverInline();
-    assert passesInliningConstraints(invoke, info.target, Reason.FORCE);
     return new InlineAction(info.target, invoke, Reason.FORCE);
   }
 

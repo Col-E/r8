@@ -1313,8 +1313,8 @@ public class IRConverter {
                       code,
                       isProcessedConcurrently,
                       callSiteInformation,
-                      options.inliningInstructionLimit,
-                      options.inliningInstructionAllowance)));
+                      Integer.MAX_VALUE / 2,
+                      Integer.MAX_VALUE / 2)));
       assert code.isConsistentSSA();
       assert code.verifyTypes(appView);
     }
