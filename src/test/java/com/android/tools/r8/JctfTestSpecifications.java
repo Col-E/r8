@@ -1863,6 +1863,7 @@ public class JctfTestSpecifications {
               "lang.Runtime.execLjava_lang_String_Ljava_lang_StringLjava_io_File.Runtime_exec_A04",
               anyDexVm())
           .put("lang.Thread.getContextClassLoader.Thread_getContextClassLoader_A02", anyDexVm())
+          .put("lang.ThreadGroup.suspend.ThreadGroup_suspend_A01", cf())
           .put("lang.ThreadGroup.suspend.ThreadGroup_suspend_A02", anyDexVm())
           .put("lang.Thread.setDaemonZ.Thread_setDaemon_A03", anyDexVm())
           .put("lang.ProcessBuilder.environment.ProcessBuilder_environment_A07", anyDexVm())
