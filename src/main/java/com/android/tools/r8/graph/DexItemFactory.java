@@ -162,6 +162,8 @@ public class DexItemFactory {
   public final DexString internMethodName = createString("intern");
 
   public final DexString convertMethodName = createString("convert");
+  public final DexString wrapperFieldName = createString("wrappedValue");
+  public final DexString initMethodName = createString("<init>");
 
   public final DexString getClassMethodName = createString("getClass");
   public final DexString finalizeMethodName = createString("finalize");

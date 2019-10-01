@@ -256,7 +256,9 @@ public class CfDesugaredLibraryAPIConversionSourceCodeProvider {
           new CfInvoke(
               Opcodes.INVOKESPECIAL,
               factory.createMethod(
-                  wrapperField.holder, factory.createProto(factory.voidType, argType), "<init>"),
+                  wrapperField.holder,
+                  factory.createProto(factory.voidType, argType),
+                  factory.initMethodName),
               false));
       instructions.add(new CfReturn(ValueType.fromDexType(wrapperField.holder)));
       return standardCfCodeFromInstructions(instructions);
@@ -282,7 +284,9 @@ public class CfDesugaredLibraryAPIConversionSourceCodeProvider {
           new CfInvoke(
               Opcodes.INVOKESPECIAL,
               factory.createMethod(
-                  factory.objectType, factory.createProto(factory.voidType), "<init>"),
+                  factory.objectType,
+                  factory.createProto(factory.voidType),
+                  factory.initMethodName),
               false));
       instructions.add(new CfLoad(ValueType.fromDexType(wrapperField.holder), 0));
       instructions.add(new CfLoad(ValueType.fromDexType(wrapperField.type), 1));

@@ -368,7 +368,7 @@ public class DesugaredLibraryWrapperSynthesizer {
   }
 
   private DexEncodedField synthetizeWrappedValueField(DexType holder, DexType fieldType) {
-    DexField field = factory.createField(holder, fieldType, factory.createString("wrappedValue"));
+    DexField field = factory.createField(holder, fieldType, factory.wrapperFieldName);
     FieldAccessFlags fieldAccessFlags =
         FieldAccessFlags.fromCfAccessFlags(Constants.ACC_FINAL | Constants.ACC_PRIVATE);
     return new DexEncodedField(field, fieldAccessFlags, DexAnnotationSet.empty(), null);
@@ -377,7 +377,9 @@ public class DesugaredLibraryWrapperSynthesizer {
   private DexEncodedMethod synthetizeConstructor(DexField field) {
     DexMethod method =
         factory.createMethod(
-            field.holder, factory.createProto(factory.voidType, field.type), "<init>");
+            field.holder,
+            factory.createProto(factory.voidType, field.type),
+            factory.initMethodName);
     DexEncodedMethod dexEncodedMethod =
         newSynthesizedMethod(method, Constants.ACC_PRIVATE | Constants.ACC_SYNTHETIC, true);
     dexEncodedMethod.setCode(
@@ -471,7 +473,7 @@ public class DesugaredLibraryWrapperSynthesizer {
                 appView,
                 argType,
                 reverseWrapperType,
-                factory.createField(holder, returnType, "wrappedValue"))
+                factory.createField(holder, returnType, factory.wrapperFieldName))
             .getCfCode(),
         appView);
     return dexEncodedMethod;
