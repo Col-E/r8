@@ -1,7 +1,7 @@
 // Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package com.android.tools.r8.ir.optimize.callsites.nullability;
+package com.android.tools.r8.ir.optimize.staticizer;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
@@ -15,14 +15,13 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class WithStaticizerTest extends TestBase {
+public class CompanionAsArgumentTest extends TestBase {
   private static final Class<?> MAIN = Main.class;
 
   @Parameterized.Parameters(name = "{0}")
@@ -33,35 +32,38 @@ public class WithStaticizerTest extends TestBase {
 
   private final TestParameters parameters;
 
-  public WithStaticizerTest(TestParameters parameters) {
+  public CompanionAsArgumentTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .addInnerClasses(WithStaticizerTest.class)
+        .addInnerClasses(CompanionAsArgumentTest.class)
         .addKeepMainRule(MAIN)
         .enableInliningAnnotations()
         .enableClassInliningAnnotations()
         .setMinApi(parameters.getRuntime())
         .run(parameters.getRuntime(), MAIN)
-        .assertSuccessWithOutputLines("Input")
+        .assertSuccessWithOutputLines("Companion#foo(true)")
         .inspect(this::inspect);
   }
 
   private void inspect(CodeInspector inspector) {
-    // Check if the candidate is indeed staticized.
+    // Check if the candidate is not staticized.
     ClassSubject companion = inspector.clazz(Host.Companion.class);
-    assertThat(companion, not(isPresent()));
+    assertThat(companion, isPresent());
+    MethodSubject foo = companion.uniqueMethodWithName("foo");
+    assertThat(foo, isPresent());
+    assertTrue(foo.streamInstructions().anyMatch(
+        i -> i.isInvokeVirtual()
+            && i.getMethod().toSourceString().contains("PrintStream.println")));
 
-    // Null check in Companion#foo is migrated to Host#foo.
+    // Nothing migrated from Companion to Host.
     ClassSubject host = inspector.clazz(Host.class);
     assertThat(host, isPresent());
-    MethodSubject foo = host.uniqueMethodWithName("foo");
-    assertThat(foo, isPresent());
-    // TODO(b/139246447): Can optimize branches since `arg` is definitely not null.
-    assertTrue(foo.streamInstructions().anyMatch(InstructionSubject::isIf));
+    MethodSubject migrated_foo = host.uniqueMethodWithName("foo");
+    assertThat(migrated_foo, not(isPresent()));
   }
 
   @NeverClassInline
@@ -71,33 +73,20 @@ public class WithStaticizerTest extends TestBase {
     static class Companion {
       @NeverInline
       public void foo(Object arg) {
-        // Technically same as String#valueOf
-        if (arg != null) {
-          System.out.println(arg.toString());
-        } else {
-          System.out.println("null");
-        }
+        System.out.println("Companion#foo(" + (arg != null) + ")");
       }
     }
 
     @NeverInline
-    static void bar(Object arg) {
-      companion.foo(arg);
-    }
-  }
-
-  @NeverClassInline
-  static class Input {
-    @NeverInline
-    @Override
-    public String toString() {
-      return "Input";
+    static void bar() {
+      // The target singleton is used as not only a receiver but also an argument.
+      companion.foo(companion);
     }
   }
 
   static class Main {
     public static void main(String[] args) {
-      Host.bar(new Input());
+      Host.bar();
     }
   }
 }

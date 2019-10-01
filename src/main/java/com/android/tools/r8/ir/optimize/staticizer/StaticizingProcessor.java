@@ -340,10 +340,11 @@ final class StaticizingProcessor {
       }
       Set<Phi> chainedPhis = Sets.newIdentityHashSet();
       for (Value operand : phi.getOperands()) {
-        if (operand.isPhi()) {
+        Value v = operand.getAliasedValue();
+        if (v.isPhi()) {
           chainedPhis.add(operand.asPhi());
         } else {
-          if (operand != thisValue) {
+          if (v != thisValue) {
             return false;
           }
         }
@@ -360,7 +361,7 @@ final class StaticizingProcessor {
 
   // Fixup `this` usages: rewrites all method calls so that they point to static methods.
   private void fixupStaticizedThisUsers(IRCode code, Value thisValue) {
-    assert thisValue != null;
+    assert thisValue != null && thisValue == thisValue.getAliasedValue();
     // Depending on other optimizations, e.g., inlining, `this` can be flown to phis.
     Set<Phi> trivialPhis = Sets.newIdentityHashSet();
     boolean onlyHasTrivialPhis = testAndCollectPhisComposedOfThis(
@@ -368,10 +369,10 @@ final class StaticizingProcessor {
     assert thisValue.numberOfPhiUsers() == 0 || onlyHasTrivialPhis;
     assert trivialPhis.isEmpty() || onlyHasTrivialPhis;
 
-    Set<Instruction> users = SetUtils.newIdentityHashSet(thisValue.uniqueUsers());
+    Set<Instruction> users = SetUtils.newIdentityHashSet(thisValue.aliasedUsers());
     // If that is the case, method calls we want to fix up include users of those phis.
     for (Phi phi : trivialPhis) {
-      users.addAll(phi.uniqueUsers());
+      users.addAll(phi.aliasedUsers());
     }
 
     fixupStaticizedValueUsers(code, users);
@@ -425,13 +426,14 @@ final class StaticizingProcessor {
       }
       Set<Phi> chainedPhis = Sets.newIdentityHashSet();
       for (Value operand : phi.getOperands()) {
-        if (operand.isPhi()) {
+        Value v = operand.getAliasedValue();
+        if (v.isPhi()) {
           chainedPhis.add(operand.asPhi());
         } else {
-          if (!operand.definition.isStaticGet()) {
+          if (!v.definition.isStaticGet()) {
             return false;
           }
-          if (operand.definition.asStaticGet().getField() != field) {
+          if (v.definition.asStaticGet().getField() != field) {
             return false;
           }
         }
@@ -458,10 +460,10 @@ final class StaticizingProcessor {
     assert dest.numberOfPhiUsers() == 0 || onlyHasTrivialPhis;
     assert trivialPhis.isEmpty() || onlyHasTrivialPhis;
 
-    Set<Instruction> users = SetUtils.newIdentityHashSet(dest.uniqueUsers());
+    Set<Instruction> users = SetUtils.newIdentityHashSet(dest.aliasedUsers());
     // If that is the case, method calls we want to fix up include users of those phis.
     for (Phi phi : trivialPhis) {
-      users.addAll(phi.uniqueUsers());
+      users.addAll(phi.aliasedUsers());
     }
 
     fixupStaticizedValueUsers(code, users);
@@ -475,6 +477,9 @@ final class StaticizingProcessor {
 
   private void fixupStaticizedValueUsers(IRCode code, Set<Instruction> users) {
     for (Instruction user : users) {
+      if (user.isAssume()) {
+        continue;
+      }
       assert user.isInvokeVirtual() || user.isInvokeDirect();
       InvokeMethodWithReceiver invoke = user.asInvokeMethodWithReceiver();
       Value newValue = null;
