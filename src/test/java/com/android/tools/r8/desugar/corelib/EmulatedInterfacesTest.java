@@ -4,8 +4,11 @@
 
 package com.android.tools.r8.desugar.corelib;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.code.Instruction;
@@ -54,17 +57,11 @@ public class EmulatedInterfacesTest extends CoreLibDesugarTestBase {
   }
 
   private void assertEmulateInterfaceClassesPresentWithDispatchMethods(CodeInspector inspector) {
-    List<FoundClassSubject> dispatchClasses =
-        inspector.allClasses().stream()
-            .filter(
-                clazz ->
-                    clazz
-                        .getOriginalName()
-                        .contains(InterfaceMethodRewriter.EMULATE_LIBRARY_CLASS_NAME_SUFFIX))
-            .collect(Collectors.toList());
-    int numDispatchClasses = 9;
-    assertEquals(numDispatchClasses, dispatchClasses.size());
-    for (FoundClassSubject clazz : dispatchClasses) {
+    List<FoundClassSubject> emulatedInterfaces = getEmulatedInterfaces(inspector);
+    int numDispatchClasses = 8;
+    assertThat(inspector.clazz("j$.util.Map$Entry$-EL"), not(isPresent()));
+    assertEquals(numDispatchClasses, emulatedInterfaces.size());
+    for (FoundClassSubject clazz : emulatedInterfaces) {
       assertTrue(
           clazz.allMethods().stream()
               .allMatch(
@@ -74,6 +71,16 @@ public class EmulatedInterfacesTest extends CoreLibDesugarTestBase {
                               .streamInstructions()
                               .anyMatch(InstructionSubject::isInstanceOf)));
     }
+  }
+
+  private List<FoundClassSubject> getEmulatedInterfaces(CodeInspector inspector) {
+    return inspector.allClasses().stream()
+        .filter(
+            clazz ->
+                clazz
+                    .getOriginalName()
+                    .contains(InterfaceMethodRewriter.EMULATE_LIBRARY_CLASS_NAME_SUFFIX))
+        .collect(Collectors.toList());
   }
 
   private void assertCollectionMethodsPresentWithCorrectDispatch(CodeInspector inspector) {

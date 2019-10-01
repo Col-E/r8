@@ -139,10 +139,6 @@ public final class InterfaceMethodRewriter {
     initializeEmulatedInterfaceVariables();
   }
 
-  private boolean isDefaultOrStatic(DexEncodedMethod method) {
-    return method.isDefaultMethod() || method.isStatic();
-  }
-
   private void initializeEmulatedInterfaceVariables() {
     Map<DexType, DexType> emulateLibraryInterface =
         options.desugaredLibraryConfiguration.getEmulateLibraryInterface();
@@ -152,7 +148,7 @@ public final class InterfaceMethodRewriter {
       DexClass emulatedInterfaceClass = appView.definitionFor(interfaceType);
       if (emulatedInterfaceClass != null) {
         for (DexEncodedMethod encodedMethod :
-            emulatedInterfaceClass.methods(this::isDefaultOrStatic)) {
+            emulatedInterfaceClass.methods(DexEncodedMethod::isDefaultMethod)) {
           emulatedMethods.add(encodedMethod.method.name);
         }
       }
@@ -639,7 +635,7 @@ public final class InterfaceMethodRewriter {
       DexProgramClass theInterface, Map<DexType, List<DexType>> emulatedInterfacesHierarchy) {
     List<DexEncodedMethod> emulationMethods = new ArrayList<>();
     for (DexEncodedMethod method : theInterface.methods()) {
-      if (isDefaultOrStatic(method)) {
+      if (method.isDefaultMethod()) {
         DexMethod libraryMethod =
             factory.createMethod(
                 emulatedInterfaces.get(theInterface.type), method.method.proto, method.method.name);
