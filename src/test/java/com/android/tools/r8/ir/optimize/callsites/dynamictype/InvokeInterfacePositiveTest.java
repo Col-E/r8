@@ -113,8 +113,9 @@ public class InvokeInterfacePositiveTest extends TestBase {
   static class Main {
     public static void main(String... args) {
       I i = System.currentTimeMillis() > 0 ? new A() : new B();
-      i.m(new Sub1());       // calls A.m() with Sub1.
-      new B().m(new Sub2()); // calls B.m() with Sub2.
+      i.m(new Sub1());  // calls A.m() with Sub1.
+      i = new B();      // with the exact type:
+      i.m(new Sub2());  // calls B.m() with Sub2.
     }
   }
 }

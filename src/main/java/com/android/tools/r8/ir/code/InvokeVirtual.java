@@ -22,6 +22,7 @@ import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
 
@@ -107,7 +108,13 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
   @Override
   public Collection<DexEncodedMethod> lookupTargets(
       AppView<? extends AppInfoWithSubtyping> appView, DexType invocationContext) {
+    // Leverage exact receiver type if available.
+    DexEncodedMethod singleTarget = lookupSingleTarget(appView, invocationContext);
+    if (singleTarget != null) {
+      return Collections.singletonList(singleTarget);
+    }
     DexMethod method = getInvokedMethod();
+    // TODO(b/141580674): we could filter out some targets based on refined receiver type.
     return appView
         .appInfo()
         .resolveMethodOnClass(method.holder, method)

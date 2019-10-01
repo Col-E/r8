@@ -46,7 +46,7 @@ public class InvokeVirtualPositiveTest extends TestBase {
         .enableInliningAnnotations()
         .setMinApi(parameters.getRuntime())
         .run(parameters.getRuntime(), MAIN)
-        .assertSuccessWithOutputLines("A", "B")
+        .assertSuccessWithOutputLines("A", "null")
         .inspect(this::inspect);
   }
 
@@ -64,8 +64,8 @@ public class InvokeVirtualPositiveTest extends TestBase {
 
     MethodSubject b_m = b.uniqueMethodWithName("m");
     assertThat(b_m, isPresent());
-    // Can optimize branches since `arg` is definitely not null.
-    assertTrue(b_m.streamInstructions().noneMatch(InstructionSubject::isIf));
+    // Should not optimize branches since the nullability of `arg` is unsure.
+    assertTrue(b_m.streamInstructions().anyMatch(InstructionSubject::isIf));
   }
 
   @NeverMerge
@@ -113,8 +113,8 @@ public class InvokeVirtualPositiveTest extends TestBase {
       A a = System.currentTimeMillis() > 0 ? new A() : new B();
       a.m(a);  // calls A.m() with non-null instance.
 
-      B b = new B();
-      b.m(b);  // calls B.m() with non-null instance
+      A b = new B();  // with the exact type:
+      b.m(null);      // calls B.m() with null.
     }
   }
 }

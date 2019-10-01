@@ -1112,6 +1112,10 @@ public abstract class Instruction implements InstructionOrPhi {
     return null;
   }
 
+  public boolean isInvokeMethodWithDynamicDispatch() {
+    return isInvokeInterface() || isInvokeVirtual();
+  }
+
   public boolean isInvokeMethod() {
     return false;
   }

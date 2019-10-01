@@ -18,6 +18,7 @@ import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
+import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MutableCallSiteOptimizationInfo;
@@ -91,22 +92,25 @@ public class CallSiteOptimizationInfoPropagator {
         continue;
       }
       if (instruction.isInvokeMethod()) {
-        // For virtual and interface calls, proceed on valid results only (since it's enforced).
-        if (instruction.isInvokeVirtual() || instruction.isInvokeInterface()) {
-          DexMethod invokedMethod = instruction.asInvokeMethod().getInvokedMethod();
+        InvokeMethod invoke = instruction.asInvokeMethod();
+        if (invoke.isInvokeMethodWithDynamicDispatch()) {
+          DexMethod invokedMethod = invoke.getInvokedMethod();
           ResolutionResult resolutionResult =
               appView.appInfo().resolveMethod(invokedMethod.holder, invokedMethod);
+          // For virtual and interface calls, proceed on valid results only (since it's enforced).
           if (!resolutionResult.isValidVirtualTarget(appView.options())) {
             continue;
           }
         }
-        Collection<DexEncodedMethod> targets =
-            instruction.asInvokeMethod().lookupTargets(appView, context.method.holder);
-        if (targets == null) {
+        Collection<DexEncodedMethod> targets = invoke.lookupTargets(appView, context.method.holder);
+        assert invoke.isInvokeMethodWithDynamicDispatch()
+            // For other invocation types, the size of targets should be at most one.
+            || targets == null || targets.size() <= 1;
+        if (targets == null || targets.isEmpty()) {
           continue;
         }
         for (DexEncodedMethod target : targets) {
-          recordArgumentsIfNecessary(context, target, instruction.inValues());
+          recordArgumentsIfNecessary(context, target, invoke.inValues());
         }
       }
       // TODO(b/129458850): if lambda desugaring happens before IR processing, seeing invoke-custom
