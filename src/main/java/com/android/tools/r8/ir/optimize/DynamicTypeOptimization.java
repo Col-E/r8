@@ -143,7 +143,8 @@ public class DynamicTypeOptimization implements Assumer {
     for (BasicBlock block : code.blocks) {
       JumpInstruction exitInstruction = block.exit();
       if (exitInstruction.isReturn()) {
-        returnedTypes.add(exitInstruction.asReturn().getReturnType());
+        Value returnValue = exitInstruction.asReturn().returnValue();
+        returnedTypes.add(returnValue.getDynamicUpperBoundType(appView));
       }
     }
     return returnedTypes.isEmpty() ? null : TypeLatticeElement.join(returnedTypes, appView);

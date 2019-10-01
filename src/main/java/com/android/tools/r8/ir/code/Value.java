@@ -1186,6 +1186,27 @@ public class Value {
     return typeLattice;
   }
 
+  public TypeLatticeElement getDynamicUpperBoundType(
+      AppView<? extends AppInfoWithSubtyping> appView) {
+    // Try to find an alias of the receiver, which is defined by an instruction of the type
+    // Assume<DynamicTypeAssumption>.
+    Value aliasedValue =
+        getSpecificAliasedValue(value -> !value.isPhi() && value.definition.isAssumeDynamicType());
+    TypeLatticeElement lattice;
+    if (aliasedValue != null) {
+      // If there is an alias of the receiver, which is defined by an Assume<DynamicTypeAssumption>
+      // instruction, then use the dynamic type as the refined receiver type.
+      lattice = aliasedValue.definition.asAssumeDynamicType().getAssumption().getType();
+
+      // For precision, verify that the dynamic type is at least as precise as the static type.
+      assert lattice.lessThanOrEqualUpToNullability(getTypeLattice(), appView);
+    } else {
+      // Otherwise, simply use the static type.
+      lattice = getTypeLattice();
+    }
+    return lattice;
+  }
+
   public ClassTypeLatticeElement getDynamicLowerBoundType(
       AppView<? extends AppInfoWithSubtyping> appView) {
     Value root = getAliasedValue();

@@ -179,26 +179,7 @@ public class TypeAnalysis {
   public static DexType getRefinedReceiverType(
       AppView<? extends AppInfoWithSubtyping> appView, InvokeMethodWithReceiver invoke) {
     Value receiver = invoke.getReceiver();
-
-    // Try to find an alias of the receiver, which is defined by an instruction of the type
-    // Assume<DynamicTypeAssumption>.
-    Value aliasedValue =
-        receiver.getSpecificAliasedValue(
-            value -> !value.isPhi() && value.definition.isAssumeDynamicType());
-
-    TypeLatticeElement lattice;
-    if (aliasedValue != null) {
-      // If there is an alias of the receiver, which is defined by an Assume<DynamicTypeAssumption>
-      // instruction, then use the dynamic type as the refined receiver type.
-      lattice = aliasedValue.definition.asAssumeDynamicType().getAssumption().getType();
-
-      // For precision, verify that the dynamic type is at least as precise as the static type.
-      assert lattice.lessThanOrEqualUpToNullability(receiver.getTypeLattice(), appView);
-    } else {
-      // Otherwise, simply use the static type.
-      lattice = receiver.getTypeLattice();
-    }
-
+    TypeLatticeElement lattice = receiver.getDynamicUpperBoundType(appView);
     DexType staticReceiverType = invoke.getInvokedMethod().holder;
     if (lattice.isClassType()) {
       ClassTypeLatticeElement classType = lattice.asClassTypeLatticeElement();
