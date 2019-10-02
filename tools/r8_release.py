@@ -40,8 +40,7 @@ def release_studio_or_aosp(path, options, git_message):
 
 
 def prepare_aosp(args):
-  aosp = raw_input('Input the path for the AOSP checkout:\n')
-  assert os.path.exists(aosp), "Could not find AOSP path %s" % aosp
+  assert os.path.exists(args.aosp), "Could not find AOSP path %s" % args.aosp
 
   def release_aosp(options):
     print "Releasing for AOSP"
@@ -54,7 +53,7 @@ Built here: go/r8-releases/raw/%s
 
 Test: TARGET_PRODUCT=aosp_arm64 m -j core-oj"""
                    % (args.version, args.version, args.version))
-    return release_studio_or_aosp(aosp, options, git_message)
+    return release_studio_or_aosp(args.aosp, options, git_message)
 
   return release_aosp
 
@@ -81,15 +80,15 @@ Bug: %s """ % (version, version, '\nBug: '.join(bugs))
 
 
 def prepare_studio(args):
-  studio = raw_input('Input the path for the STUDIO checkout:\n')
-  assert os.path.exists(studio), "Could not find STUDIO path %s" % studio
+  assert os.path.exists(args.studio), ("Could not find STUDIO path %s"
+                                       % args.studio)
 
   def release_studio(options):
     print "Releasing for STUDIO"
     git_message = (git_message_dev(options.version)
                    if 'dev' in options.version
                    else git_message_release(options.version, options.bug))
-    return release_studio_or_aosp(studio, options, git_message)
+    return release_studio_or_aosp(args.studio, options, git_message)
 
   return release_studio
 
@@ -130,7 +129,7 @@ def blaze_run(target):
       'blaze run %s' % target, shell=True, stderr=subprocess.STDOUT)
 
 
-def prepare_google3(args):
+def prepare_google3():
   utils.check_prodacces()
 
   # Check if an existing client exists.
@@ -215,11 +214,6 @@ def prepare_google3(args):
 
 def parse_options():
   result = argparse.ArgumentParser(description='Release r8')
-  result.add_argument('--targets',
-                      help='Where to release a new version.',
-                      choices=['all', 'aosp', 'studio', 'google3'],
-                      required=True,
-                      action='append')
   result.add_argument('--version',
                       required=True,
                       help='The new version of R8 (e.g., 1.4.51)')
@@ -231,9 +225,17 @@ def parse_options():
                       default=[],
                       action='append',
                       help='List of bugs for release version')
+  result.add_argument('--studio',
+                      help='Release for studio by setting the path to a studio '
+                           'checkout')
+  result.add_argument('--aosp',
+                      help='Release for aosp by setting the path to the '
+                           'checkout')
+  result.add_argument('--google3',
+                      default=False,
+                      action='store_true',
+                      help='Release for google 3')
   args = result.parse_args()
-  if 'all' in args.targets:
-    args.targets = ['aosp', 'studio', 'google3']
   if not 'dev' in args.version and args.bug == []:
     print "When releasing a release version add the list of bugs by using '--bug'"
     sys.exit(1)
@@ -244,11 +246,11 @@ def parse_options():
 def main():
   args = parse_options()
   targets_to_run = []
-  if 'google3' in args.targets:
-    targets_to_run.append(prepare_google3(args))
-  if 'studio' in args.targets:
+  if args.google3:
+    targets_to_run.append(prepare_google3())
+  if args.studio:
     targets_to_run.append(prepare_studio(args))
-  if 'aosp' in args.targets:
+  if args.aosp:
     targets_to_run.append(prepare_aosp(args))
 
   final_results = []
