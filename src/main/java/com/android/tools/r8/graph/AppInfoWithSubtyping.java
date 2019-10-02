@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.OptionalBool;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.origin.Origin;
@@ -35,8 +34,7 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
   private static final Set<DexType> NO_DIRECT_SUBTYPE = ImmutableSet.of();
 
   private static class TypeInfo {
-
-    private final DexType type;
+    final DexType type;
 
     int hierarchyLevel = UNKNOWN_LEVEL;
     /**
@@ -47,10 +45,6 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
 
     // Caching what interfaces this type is implementing. This includes super-interface hierarchy.
     Set<DexType> implementedInterfaces = null;
-
-    // Caches which static types that may store an object that has a non-default finalize() method.
-    // E.g., `java.lang.Object -> TRUE` if there is a subtype of Object that overrides finalize().
-    Map<DexType, Boolean> mayHaveFinalizeMethodDirectlyOrIndirectlyCache = new IdentityHashMap<>();
 
     public TypeInfo(DexType type) {
       this.type = type;
@@ -93,7 +87,7 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
       setLevel(ROOT_LEVEL);
     }
 
-    void tagAsInterface() {
+    void tagAsInteface() {
       setLevel(INTERFACE_LEVEL);
     }
 
@@ -113,17 +107,6 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
       setLevel(INTERFACE_LEVEL);
       ensureDirectSubTypeSet();
       directSubtypes.add(type);
-    }
-
-    public OptionalBool mayHaveFinalizeMethodDirectlyOrIndirectly() {
-      Boolean cache = mayHaveFinalizeMethodDirectlyOrIndirectlyCache.get(type);
-      return cache != null ? OptionalBool.of(cache.booleanValue()) : OptionalBool.unknown();
-    }
-
-    public boolean cacheMayHaveFinalizeMethodDirectlyOrIndirectly(boolean value) {
-      assert !mayHaveFinalizeMethodDirectlyOrIndirectlyCache.containsKey(type);
-      mayHaveFinalizeMethodDirectlyOrIndirectlyCache.put(type, value);
-      return value;
     }
   }
 
@@ -242,7 +225,7 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
         getTypeInfo(inter).addInterfaceSubtype(holder);
       }
       if (holderClass.isInterface()) {
-        getTypeInfo(holder).tagAsInterface();
+        getTypeInfo(holder).tagAsInteface();
       }
     } else {
       if (baseClass.isProgramClass() || baseClass.isClasspathClass()) {
@@ -724,42 +707,5 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
 
   public boolean inDifferentHierarchy(DexType type1, DexType type2) {
     return !isSubtype(type1, type2) && !isSubtype(type2, type1);
-  }
-
-  public boolean mayHaveFinalizeMethodDirectlyOrIndirectly(DexType type) {
-    return computeMayHaveFinalizeMethodDirectlyOrIndirectlyIfAbsent(type, true);
-  }
-
-  public boolean computeMayHaveFinalizeMethodDirectlyOrIndirectlyIfAbsent(
-      DexType type, boolean lookUpwards) {
-    assert type.isClassType();
-    TypeInfo typeInfo = getTypeInfo(type);
-    OptionalBool result = typeInfo.mayHaveFinalizeMethodDirectlyOrIndirectly();
-    if (!result.isUnknown()) {
-      return result.isTrue();
-    }
-    DexClass clazz = definitionFor(type);
-    if (clazz == null) {
-      return typeInfo.cacheMayHaveFinalizeMethodDirectlyOrIndirectly(true);
-    }
-    if (clazz.isProgramClass()) {
-      if (lookUpwards) {
-        DexEncodedMethod resolutionResult =
-            resolveMethod(type, dexItemFactory().objectMethods.finalize).asSingleTarget();
-        if (resolutionResult != null && resolutionResult.isProgramMethod(this)) {
-          return typeInfo.cacheMayHaveFinalizeMethodDirectlyOrIndirectly(true);
-        }
-      } else {
-        if (clazz.lookupVirtualMethod(dexItemFactory().objectMethods.finalize) != null) {
-          return typeInfo.cacheMayHaveFinalizeMethodDirectlyOrIndirectly(true);
-        }
-      }
-    }
-    for (DexType subtype : allImmediateSubtypes(type)) {
-      if (computeMayHaveFinalizeMethodDirectlyOrIndirectlyIfAbsent(subtype, false)) {
-        return typeInfo.cacheMayHaveFinalizeMethodDirectlyOrIndirectly(true);
-      }
-    }
-    return typeInfo.cacheMayHaveFinalizeMethodDirectlyOrIndirectly(false);
   }
 }
