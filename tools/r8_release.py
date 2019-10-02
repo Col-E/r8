@@ -72,13 +72,24 @@ Test: ./gradlew check
 Bug: """ % (version, version)
 
 
+def git_message_release(version, bugs):
+  return """D8 R8 version %s
+
+Built here: go/r8-releases/raw/%s/
+Test: ./gradlew check
+Bug: %s """ % (version, version, '\nBug: '.join(bugs))
+
+
 def prepare_studio(args):
   studio = raw_input('Input the path for the STUDIO checkout:\n')
   assert os.path.exists(studio), "Could not find STUDIO path %s" % studio
 
   def release_studio(options):
     print "Releasing for STUDIO"
-    return release_studio_or_aosp(studio, options, git_message_dev(options.version))
+    git_message = (git_message_dev(options.version)
+                   if 'dev' in options.version
+                   else git_message_release(options.version, options.bug))
+    return release_studio_or_aosp(studio, options, git_message)
 
   return release_studio
 
@@ -216,9 +227,17 @@ def parse_options():
                       default=False,
                       action='store_true',
                       help='Do not sync repos before uploading')
+  result.add_argument('--bug',
+                      default=[],
+                      action='append',
+                      help='List of bugs for release version')
   args = result.parse_args()
   if 'all' in args.targets:
     args.targets = ['aosp', 'studio', 'google3']
+  if not 'dev' in args.version and args.bug == []:
+    print "When releasing a release version add the list of bugs by using '--bug'"
+    sys.exit(1)
+
   return args
 
 
