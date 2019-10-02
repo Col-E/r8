@@ -248,7 +248,7 @@ public class VerticalClassMergerGraphLense extends NestedGraphLense {
       DexType newHolder = mergedClasses.getOrDefault(holder, holder);
 
       DexType type = field.type;
-      DexType newType = mergedClasses.getOrDefault(type, type);
+      DexType newType = getTypeAfterClassMerging(type, mergedClasses);
 
       if (holder == newHolder && type == newType) {
         return field;
