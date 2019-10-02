@@ -15,11 +15,11 @@ import update_prebuilds_in_android
 import urllib
 import utils
 
-def update_prebuilds(hash, checkout):
-  update_prebuilds_in_android.main_download(hash, True, 'lib', checkout, '')
+def update_prebuilds(version, checkout):
+  update_prebuilds_in_android.main_download('', True, 'lib', checkout, version)
 
 
-def release_studio_or_aosp(path, options, git_base_message):
+def release_studio_or_aosp(path, options, git_message):
   with utils.ChangedWorkingDirectory(path):
     subprocess.call(['repo', 'abandon', 'update-r8'])
     if not options.no_sync:
@@ -30,54 +30,55 @@ def release_studio_or_aosp(path, options, git_base_message):
     with utils.ChangedWorkingDirectory(prebuilts_r8):
       subprocess.check_call(['repo', 'start', 'update-r8'])
 
-    update_prebuilds(options.hash, path)
+    update_prebuilds(options.version, path)
 
     with utils.ChangedWorkingDirectory(prebuilts_r8):
-      git_message = (git_base_message
-                     % (options.version, options.hash, options.hash))
       subprocess.check_call(['git', 'commit', '-a', '-m', git_message])
       process = subprocess.Popen(['repo', 'upload', '.', '--verify'],
                                  stdin=subprocess.PIPE)
       return process.communicate(input='y\n')[0]
 
 
-def prepare_aosp():
+def prepare_aosp(args):
   aosp = raw_input('Input the path for the AOSP checkout:\n')
   assert os.path.exists(aosp), "Could not find AOSP path %s" % aosp
 
   def release_aosp(options):
     print "Releasing for AOSP"
-    git_base_message = """Update D8 and R8 to %s
+    git_message = ("""Update D8 and R8 to %s
 
 Version: master %s
 This build IS NOT suitable for preview or public release.
 
-Built here: go/r8-releases/raw/master/%s
+Built here: go/r8-releases/raw/%s
 
 Test: TARGET_PRODUCT=aosp_arm64 m -j core-oj"""
-    return release_studio_or_aosp(aosp, options, git_base_message)
+                   % (args.version, args.version, args.version))
+    return release_studio_or_aosp(aosp, options, git_message)
 
   return release_aosp
 
 
-def prepare_studio():
-  studio = raw_input('Input the path for the STUDIO checkout:\n')
-  assert os.path.exists(studio), "Could not find STUDIO path %s" % studio
+def git_message_dev(version):
+  return """Update D8 R8 master to %s
 
-  def release_studio(options):
-    print "Releasing for STUDIO"
-    git_base_message = """Update D8 R8 master to %s
-
-Version: master %s
 This is a development snapshot, it's fine to use for studio canary build, but
 not for BETA or release, for those we would need a release version of R8
 binaries.
 This build IS suitable for preview release but IS NOT suitable for public release.
 
-Built here: go/r8-releases/raw/master/%s/
+Built here: go/r8-releases/raw/%s
 Test: ./gradlew check
-Bug: """
-    return release_studio_or_aosp(studio, options, git_base_message)
+Bug: """ % (version, version)
+
+
+def prepare_studio(args):
+  studio = raw_input('Input the path for the STUDIO checkout:\n')
+  assert os.path.exists(studio), "Could not find STUDIO path %s" % studio
+
+  def release_studio(options):
+    print "Releasing for STUDIO"
+    return release_studio_or_aosp(studio, options, git_message_dev(options.version))
 
   return release_studio
 
@@ -94,10 +95,9 @@ def g4_add(files):
   subprocess.check_call(' '.join(['g4', 'add'] + files), shell=True)
 
 
-def g4_change(version, hash):
+def g4_change(version, r8version):
   return subprocess.check_output(
-      'g4 change --desc "Update R8 to version %s %s"' % (version, hash),
-      shell=True)
+      'g4 change --desc "Update R8 to version %s %s"' % (version, r8version), shell=True)
 
 
 def sed(pattern, replace, path):
@@ -108,10 +108,9 @@ def sed(pattern, replace, path):
       sources.write(re.sub(pattern, replace, line))
 
 
-def download_file(hash, file, dst):
+def download_file(version, file, dst):
   urllib.urlretrieve(
-      ('http://storage.googleapis.com/r8-releases/raw/master/%s/%s'
-       % (hash, file)),
+      ('http://storage.googleapis.com/r8-releases/raw/%s/%s' % (version, file)),
       dst)
 
 
@@ -120,7 +119,7 @@ def blaze_run(target):
       'blaze run %s' % target, shell=True, stderr=subprocess.STDOUT)
 
 
-def prepare_google3():
+def prepare_google3(args):
   utils.check_prodacces()
 
   # Check if an existing client exists.
@@ -168,8 +167,8 @@ def prepare_google3():
       with utils.ChangedWorkingDirectory(new_version_path):
         # update METADATA
         g4_open('METADATA')
-        sed(r'[a-z0-9]{40}',
-            options.hash,
+        sed(r'[1-9]\.[0-9]{1,2}\.[0-9]{1,3}-dev',
+            options.version,
             os.path.join(new_version_path, 'METADATA'))
         sed(r'\{ year.*\}',
             ('{ year: %i month: %i day: %i }'
@@ -181,11 +180,11 @@ def prepare_google3():
         sed(old_version, new_version, os.path.join(new_version_path, 'BUILD'))
 
         # download files
-        download_file(options.hash, 'r8-full-exclude-deps.jar', 'r8.jar')
-        download_file(options.hash, 'r8-src.jar', 'r8-src.jar')
-        download_file(options.hash, 'r8lib-exclude-deps.jar', 'r8lib.jar')
+        download_file(options.version, 'r8-full-exclude-deps.jar', 'r8.jar')
+        download_file(options.version, 'r8-src.jar', 'r8-src.jar')
+        download_file(options.version, 'r8lib-exclude-deps.jar', 'r8lib.jar')
         download_file(
-            options.hash, 'r8lib-exclude-deps.jar.map', 'r8lib.jar.map')
+            options.version, 'r8lib-exclude-deps.jar.map', 'r8lib.jar.map')
         g4_add(['r8.jar', 'r8-src.jar', 'r8lib.jar', 'r8lib.jar.map'])
 
       subprocess.check_output('chmod u+w %s/*' % new_version, shell=True)
@@ -197,9 +196,8 @@ def prepare_google3():
       blaze_result = blaze_run('//third_party/java/r8:d8 -- --version')
 
       assert options.version in blaze_result
-      assert options.hash in blaze_result
 
-      return g4_change(new_version, options.hash)
+      return g4_change(new_version, options.version)
 
   return release_google3
 
@@ -214,9 +212,6 @@ def parse_options():
   result.add_argument('--version',
                       required=True,
                       help='The new version of R8 (e.g., 1.4.51)')
-  result.add_argument('--hash',
-                      required=True,
-                      help='The hash of the new R8 version')
   result.add_argument('--no_sync',
                       default=False,
                       action='store_true',
@@ -231,11 +226,11 @@ def main():
   args = parse_options()
   targets_to_run = []
   if 'google3' in args.targets:
-    targets_to_run.append(prepare_google3())
+    targets_to_run.append(prepare_google3(args))
   if 'studio' in args.targets:
-    targets_to_run.append(prepare_studio())
+    targets_to_run.append(prepare_studio(args))
   if 'aosp' in args.targets:
-    targets_to_run.append(prepare_aosp())
+    targets_to_run.append(prepare_aosp(args))
 
   final_results = []
   for target_closure in targets_to_run:
