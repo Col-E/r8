@@ -15,33 +15,29 @@ import com.android.tools.r8.cf.code.CfReturn;
 import com.android.tools.r8.cf.code.CfReturnVoid;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.If;
-import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.utils.Pair;
 import java.util.ArrayList;
 import java.util.List;
 import org.objectweb.asm.Opcodes;
 
-public class CfEmulateInterfaceSyntheticSourceCodeProvider extends CfSyntheticSourceCodeProvider {
+public class EmulateInterfaceSyntheticCfCodeProvider extends SyntheticCfCodeProvider {
 
   private final DexType interfaceType;
   private final DexMethod companionMethod;
   private final DexMethod libraryMethod;
   private final List<Pair<DexType, DexMethod>> extraDispatchCases;
 
-  public CfEmulateInterfaceSyntheticSourceCodeProvider(
+  public EmulateInterfaceSyntheticCfCodeProvider(
       DexType interfaceType,
       DexMethod companionMethod,
-      DexEncodedMethod method,
       DexMethod libraryMethod,
-      DexMethod originalMethod,
       List<Pair<DexType, DexMethod>> extraDispatchCases,
       AppView<?> appView) {
-    super(method, originalMethod, appView);
+    super(appView, interfaceType);
     this.interfaceType = interfaceType;
     this.companionMethod = companionMethod;
     this.libraryMethod = libraryMethod;
@@ -49,7 +45,7 @@ public class CfEmulateInterfaceSyntheticSourceCodeProvider extends CfSyntheticSo
   }
 
   @Override
-  protected CfCode generateCfCode(Position callerPosition) {
+  public CfCode generateCfCode() {
     List<CfInstruction> instructions = new ArrayList<>();
     CfLabel[] labels = new CfLabel[extraDispatchCases.size() + 1];
     for (int i = 0; i < labels.length; i++) {

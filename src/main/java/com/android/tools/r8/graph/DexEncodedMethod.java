@@ -52,7 +52,7 @@ import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MutableCallSiteOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.UpdatableMethodOptimizationInfo;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
-import com.android.tools.r8.ir.synthetic.CfEmulateInterfaceSyntheticSourceCodeProvider;
+import com.android.tools.r8.ir.synthetic.EmulateInterfaceSyntheticCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.FieldAccessorSourceCode;
 import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
@@ -881,7 +881,6 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       DexMethod libraryMethod,
       List<Pair<DexType, DexMethod>> extraDispatchCases,
       AppView<?> appView) {
-    // TODO(134732760): Deal with overrides for correct dispatch to implementations of Interfaces
     assert isDefaultMethod() || isStatic();
     DexEncodedMethod.Builder builder = DexEncodedMethod.builder(this);
     builder.setMethod(newMethod);
@@ -889,26 +888,11 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     builder.accessFlags.setStatic();
     builder.accessFlags.unsetPrivate();
     builder.accessFlags.setPublic();
-    DexEncodedMethod newEncodedMethod = builder.build();
-    newEncodedMethod.setCode(
-        new SynthesizedCode(
-            new CfEmulateInterfaceSyntheticSourceCodeProvider(
-                this.method.holder,
-                companionMethod,
-                newEncodedMethod,
-                libraryMethod,
-                this.method,
-                extraDispatchCases,
-                appView),
-            registry -> {
-              registry.registerInvokeInterface(libraryMethod);
-              for (Pair<DexType, DexMethod> dispatch : extraDispatchCases) {
-                registry.registerInvokeStatic(dispatch.getSecond());
-              }
-              registry.registerInvokeStatic(companionMethod);
-            }),
-        appView);
-    return newEncodedMethod;
+    builder.setCode(
+        new EmulateInterfaceSyntheticCfCodeProvider(
+                this.method.holder, companionMethod, libraryMethod, extraDispatchCases, appView)
+            .generateCfCode());
+    return builder.build();
   }
 
   public DexEncodedMethod toStaticForwardingBridge(DexClass holder, DexMethod newMethod) {

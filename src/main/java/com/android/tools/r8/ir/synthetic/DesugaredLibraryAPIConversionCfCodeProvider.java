@@ -19,7 +19,6 @@ import com.android.tools.r8.cf.code.CfReturnVoid;
 import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -27,7 +26,6 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.If;
-import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -35,9 +33,9 @@ import java.util.ArrayList;
 import java.util.List;
 import org.objectweb.asm.Opcodes;
 
-public class CfDesugaredLibraryAPIConversionSourceCodeProvider {
+public class DesugaredLibraryAPIConversionCfCodeProvider {
 
-  static boolean shouldConvert(
+  private static boolean shouldConvert(
       DexType type,
       DesugaredLibraryAPIConverter converter,
       AppView<?> appView,
@@ -58,28 +56,25 @@ public class CfDesugaredLibraryAPIConversionSourceCodeProvider {
     return false;
   }
 
-  public static class CfAPIConverterVivifiedWrapperCodeProvider
-      extends CfSyntheticSourceCodeProvider {
+  public static class APIConverterVivifiedWrapperCfCodeProvider extends SyntheticCfCodeProvider {
 
     DexField wrapperField;
     DexMethod forwardMethod;
     DesugaredLibraryAPIConverter converter;
 
-    public CfAPIConverterVivifiedWrapperCodeProvider(
-        DexEncodedMethod method,
-        DexMethod originalMethod,
+    public APIConverterVivifiedWrapperCfCodeProvider(
         AppView<?> appView,
         DexMethod forwardMethod,
-        DexField wrappedValue,
+        DexField wrapperField,
         DesugaredLibraryAPIConverter converter) {
-      super(method, originalMethod, appView);
+      super(appView, wrapperField.holder);
       this.forwardMethod = forwardMethod;
-      this.wrapperField = wrappedValue;
+      this.wrapperField = wrapperField;
       this.converter = converter;
     }
 
     @Override
-    protected CfCode generateCfCode(Position callerPosition) {
+    public CfCode generateCfCode() {
       DexItemFactory factory = appView.dexItemFactory();
       List<CfInstruction> instructions = new ArrayList<>();
       // Wrapped value is a vivified type. Method uses type as external. Forward method should
@@ -136,27 +131,25 @@ public class CfDesugaredLibraryAPIConversionSourceCodeProvider {
     }
   }
 
-  public static class CfAPIConverterWrapperCodeProvider extends CfSyntheticSourceCodeProvider {
+  public static class APIConverterWrapperCfCodeProvider extends SyntheticCfCodeProvider {
 
     DexField wrapperField;
     DexMethod forwardMethod;
     DesugaredLibraryAPIConverter converter;
 
-    public CfAPIConverterWrapperCodeProvider(
-        DexEncodedMethod method,
-        DexMethod originalMethod,
+    public APIConverterWrapperCfCodeProvider(
         AppView<?> appView,
         DexMethod forwardMethod,
-        DexField wrappedValue,
+        DexField wrapperField,
         DesugaredLibraryAPIConverter converter) {
-      super(method, originalMethod, appView);
+      super(appView, wrapperField.holder);
       this.forwardMethod = forwardMethod;
-      this.wrapperField = wrappedValue;
+      this.wrapperField = wrapperField;
       this.converter = converter;
     }
 
     @Override
-    protected CfCode generateCfCode(Position callerPosition) {
+    public CfCode generateCfCode() {
       DexItemFactory factory = appView.dexItemFactory();
       List<CfInstruction> instructions = new ArrayList<>();
       // Wrapped value is a type. Method uses vivifiedTypes as external. Forward method should
@@ -202,28 +195,22 @@ public class CfDesugaredLibraryAPIConversionSourceCodeProvider {
     }
   }
 
-  public static class CfAPIConverterWrapperConversionCodeProvider
-      extends CfSyntheticSourceCodeProvider {
+  public static class APIConverterWrapperConversionCfCodeProvider extends SyntheticCfCodeProvider {
 
     DexType argType;
     DexType reverseWrapperType;
     DexField wrapperField;
 
-    public CfAPIConverterWrapperConversionCodeProvider(
-        DexEncodedMethod method,
-        DexMethod originalMethod,
-        AppView<?> appView,
-        DexType argType,
-        DexType reverseWrapperType,
-        DexField wrapperField) {
-      super(method, originalMethod, appView);
+    public APIConverterWrapperConversionCfCodeProvider(
+        AppView<?> appView, DexType argType, DexType reverseWrapperType, DexField wrapperField) {
+      super(appView, wrapperField.holder);
       this.argType = argType;
       this.reverseWrapperType = reverseWrapperType;
       this.wrapperField = wrapperField;
     }
 
     @Override
-    protected CfCode generateCfCode(Position callerPosition) {
+    public CfCode generateCfCode() {
       DexItemFactory factory = appView.dexItemFactory();
       List<CfInstruction> instructions = new ArrayList<>();
 
@@ -265,18 +252,17 @@ public class CfDesugaredLibraryAPIConversionSourceCodeProvider {
     }
   }
 
-  public static class CfAPIConverterConstructorCodeProvider extends CfSyntheticSourceCodeProvider {
+  public static class APIConverterConstructorCfCodeProvider extends SyntheticCfCodeProvider {
 
     DexField wrapperField;
 
-    public CfAPIConverterConstructorCodeProvider(
-        DexEncodedMethod method, DexMethod originalMethod, AppView<?> appView, DexField field) {
-      super(method, originalMethod, appView);
-      this.wrapperField = field;
+    public APIConverterConstructorCfCodeProvider(AppView<?> appView, DexField wrapperField) {
+      super(appView, wrapperField.holder);
+      this.wrapperField = wrapperField;
     }
 
     @Override
-    protected CfCode generateCfCode(Position callerPosition) {
+    public CfCode generateCfCode() {
       DexItemFactory factory = appView.dexItemFactory();
       List<CfInstruction> instructions = new ArrayList<>();
       instructions.add(new CfLoad(ValueType.fromDexType(wrapperField.holder), 0));
