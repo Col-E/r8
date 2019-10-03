@@ -15,12 +15,16 @@ import com.android.tools.r8.code.SputWide;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -120,11 +124,46 @@ public class StaticPut extends FieldInstruction {
         return false;
       }
 
-      return appInfoWithLiveness.isFieldRead(encodedField);
+      return appInfoWithLiveness.isFieldRead(encodedField)
+          || isStoringObjectWithFinalizer(appInfoWithLiveness);
     }
 
     // In D8, we always have to assume that the field can be read, and thus have side effects.
     return true;
+  }
+
+  /**
+   * Returns {@code true} if this instruction may store a value that has a non-default finalize()
+   * method in a static field. In that case, it is not safe to remove this instruction, since that
+   * could change the lifetime of the value.
+   */
+  private boolean isStoringObjectWithFinalizer(AppInfoWithLiveness appInfo) {
+    TypeLatticeElement type = value().getTypeLattice();
+    TypeLatticeElement baseType =
+        type.isArrayType() ? type.asArrayTypeLatticeElement().getArrayBaseTypeLattice() : type;
+    if (baseType.isClassType()) {
+      Value root = value().getAliasedValue();
+      if (!root.isPhi() && root.definition.isNewInstance()) {
+        DexClass clazz = appInfo.definitionFor(root.definition.asNewInstance().clazz);
+        if (clazz == null) {
+          return true;
+        }
+        if (clazz.superType == null) {
+          return false;
+        }
+        DexItemFactory dexItemFactory = appInfo.dexItemFactory();
+        DexEncodedMethod resolutionResult =
+            appInfo
+                .resolveMethod(clazz.type, dexItemFactory.objectMethods.finalize)
+                .asSingleTarget();
+        return resolutionResult != null && resolutionResult.isProgramMethod(appInfo);
+      }
+
+      return appInfo.mayHaveFinalizeMethodDirectlyOrIndirectly(
+          baseType.asClassTypeLatticeElement().getClassType());
+    }
+
+    return false;
   }
 
   @Override
