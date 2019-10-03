@@ -1542,7 +1542,7 @@ public class Enqueuer {
     while (!librarySearchItems.isEmpty()) {
       DexClass clazz = librarySearchItems.pop();
       if (clazz.isNotProgramClass()) {
-        markLibraryAndClasspathMethodOverriddesAsLive(clazz, instantiatedClass);
+        markLibraryAndClasspathMethodOverridesAsLive(clazz, instantiatedClass);
       }
       if (clazz.superType != null) {
         DexClass superClass = appView.definitionFor(clazz.superType);
@@ -1559,33 +1559,44 @@ public class Enqueuer {
     }
   }
 
-  private void markLibraryAndClasspathMethodOverriddesAsLive(
+  private void markLibraryAndClasspathMethodOverridesAsLive(
       DexClass libraryClass, DexProgramClass instantiatedClass) {
     assert libraryClass.isNotProgramClass();
     assert !instantiatedClass.isInterface() || instantiatedClass.accessFlags.isAnnotation();
     for (DexEncodedMethod method : libraryClass.virtualMethods()) {
-      // Note: it may be worthwhile to add a resolution cache here. If so, it must till ensure
-      // that all library override edges are reported to the kept-graph consumer.
-      ResolutionResult resolution =
-          appView.appInfo().resolveMethod(instantiatedClass, method.method);
-      if (resolution.isValidVirtualTarget(options)) {
-        resolution.forEachTarget(
-            target -> {
-              if (!target.isAbstract()) {
-                DexClass targetHolder = appView.definitionFor(target.method.holder);
-                if (targetHolder != null && targetHolder.isProgramClass()) {
-                  DexProgramClass programClass = targetHolder.asProgramClass();
-                  if (shouldMarkLibraryMethodOverrideAsReachable(programClass, target)) {
-                    target.setLibraryMethodOverride();
-                    markVirtualMethodAsLive(
-                        programClass,
-                        target,
-                        KeepReason.isLibraryMethod(programClass, libraryClass.type));
-                  }
+      markLibraryAndClasspathMethodOverridesAsLive(libraryClass, instantiatedClass, method);
+    }
+    // When compiling with nest-based access private methods are also possible targets.
+    if (options.canUseNestBasedAccess() && libraryClass.isClasspathClass()) {
+      for (DexEncodedMethod method : libraryClass.directMethods()) {
+        markLibraryAndClasspathMethodOverridesAsLive(libraryClass, instantiatedClass, method);
+      }
+    }
+  }
+
+  private void markLibraryAndClasspathMethodOverridesAsLive(
+      DexClass libraryClass, DexProgramClass instantiatedClass, DexEncodedMethod method) {
+    // Note: it may be worthwhile to add a resolution cache here. If so, it must still ensure
+    // that all library override edges are reported to the kept-graph consumer.
+    ResolutionResult resolution =
+        appView.appInfo().resolveMethod(instantiatedClass, method.method);
+    if (resolution.isValidVirtualTarget(options)) {
+      resolution.forEachTarget(
+          target -> {
+            if (!target.isAbstract()) {
+              DexClass targetHolder = appView.definitionFor(target.method.holder);
+              if (targetHolder != null && targetHolder.isProgramClass()) {
+                DexProgramClass programClass = targetHolder.asProgramClass();
+                if (shouldMarkLibraryMethodOverrideAsReachable(programClass, target)) {
+                  target.setLibraryMethodOverride();
+                  markVirtualMethodAsLive(
+                      programClass,
+                      target,
+                      KeepReason.isLibraryMethod(programClass, libraryClass.type));
                 }
               }
-            });
-      }
+            }
+          });
     }
   }
 
