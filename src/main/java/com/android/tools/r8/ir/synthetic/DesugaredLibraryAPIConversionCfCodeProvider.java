@@ -40,7 +40,10 @@ public class DesugaredLibraryAPIConversionCfCodeProvider {
       DesugaredLibraryAPIConverter converter,
       AppView<?> appView,
       DexString methodName) {
-    if (appView.rewritePrefix.hasRewrittenType(type) && converter.canConvert(type)) {
+    if (!appView.rewritePrefix.hasRewrittenType(type)) {
+      return false;
+    }
+    if (converter.canConvert(type)) {
       return true;
     }
     appView
@@ -61,16 +64,19 @@ public class DesugaredLibraryAPIConversionCfCodeProvider {
     DexField wrapperField;
     DexMethod forwardMethod;
     DesugaredLibraryAPIConverter converter;
+    boolean itfCall;
 
     public APIConverterVivifiedWrapperCfCodeProvider(
         AppView<?> appView,
         DexMethod forwardMethod,
         DexField wrapperField,
-        DesugaredLibraryAPIConverter converter) {
+        DesugaredLibraryAPIConverter converter,
+        boolean itfCall) {
       super(appView, wrapperField.holder);
       this.forwardMethod = forwardMethod;
       this.wrapperField = wrapperField;
       this.converter = converter;
+      this.itfCall = itfCall;
     }
 
     @Override
@@ -111,8 +117,12 @@ public class DesugaredLibraryAPIConversionCfCodeProvider {
       DexProto newProto = factory.createProto(forwardMethodReturnType, newParameters);
       DexMethod newForwardMethod =
           factory.createMethod(wrapperField.type, newProto, forwardMethod.name);
-      // TODO(b/134732760): Deal with abstract class instead of interfaces.
-      instructions.add(new CfInvoke(Opcodes.INVOKEINTERFACE, newForwardMethod, true));
+
+      if (itfCall) {
+        instructions.add(new CfInvoke(Opcodes.INVOKEINTERFACE, newForwardMethod, true));
+      } else {
+        instructions.add(new CfInvoke(Opcodes.INVOKEVIRTUAL, newForwardMethod, false));
+      }
 
       if (shouldConvert(returnType, converter, appView, forwardMethod.name)) {
         instructions.add(
@@ -136,16 +146,19 @@ public class DesugaredLibraryAPIConversionCfCodeProvider {
     DexField wrapperField;
     DexMethod forwardMethod;
     DesugaredLibraryAPIConverter converter;
+    boolean itfCall;
 
     public APIConverterWrapperCfCodeProvider(
         AppView<?> appView,
         DexMethod forwardMethod,
         DexField wrapperField,
-        DesugaredLibraryAPIConverter converter) {
+        DesugaredLibraryAPIConverter converter,
+        boolean itfCall) {
       super(appView, wrapperField.holder);
       this.forwardMethod = forwardMethod;
       this.wrapperField = wrapperField;
       this.converter = converter;
+      this.itfCall = itfCall;
     }
 
     @Override
@@ -173,8 +186,11 @@ public class DesugaredLibraryAPIConversionCfCodeProvider {
         stackIndex++;
       }
 
-      // TODO(b/134732760): Deal with abstract class instead of interfaces.
-      instructions.add(new CfInvoke(Opcodes.INVOKEINTERFACE, forwardMethod, true));
+      if (itfCall) {
+        instructions.add(new CfInvoke(Opcodes.INVOKEINTERFACE, forwardMethod, true));
+      } else {
+        instructions.add(new CfInvoke(Opcodes.INVOKEVIRTUAL, forwardMethod, false));
+      }
 
       DexType returnType = forwardMethod.proto.returnType;
       if (shouldConvert(returnType, converter, appView, forwardMethod.name)) {

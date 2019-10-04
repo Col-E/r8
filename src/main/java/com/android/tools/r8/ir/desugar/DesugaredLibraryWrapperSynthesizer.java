@@ -20,7 +20,6 @@ import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
-import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.FieldAccessFlags;
@@ -125,8 +124,7 @@ public class DesugaredLibraryWrapperSynthesizer {
     if (dexClass == null) {
       return false;
     }
-    // TODO(b/134732760): Support Abstract class for clock, maybe concrete class for Optional.
-    return dexClass.isLibraryClass() && dexClass.isInterface();
+    return dexClass.isLibraryClass();
   }
 
   public DexType getTypeWrapper(DexType type) {
@@ -179,7 +177,7 @@ public class DesugaredLibraryWrapperSynthesizer {
     DexEncodedField wrapperField = synthetizeWrappedValueField(typeWrapperType, type);
     return synthesizeWrapper(
         converter.vivifiedTypeFor(type),
-        dexClass.sourceFile,
+        dexClass,
         synthesizeVirtualMethodsForTypeWrapper(dexClass.asLibraryClass(), wrapperField),
         wrapperField);
   }
@@ -191,26 +189,29 @@ public class DesugaredLibraryWrapperSynthesizer {
         synthetizeWrappedValueField(vivifiedTypeWrapperType, converter.vivifiedTypeFor(type));
     return synthesizeWrapper(
         type,
-        dexClass.sourceFile,
+        dexClass,
         synthesizeVirtualMethodsForVivifiedTypeWrapper(dexClass.asLibraryClass(), wrapperField),
         wrapperField);
   }
 
   private DexProgramClass synthesizeWrapper(
       DexType wrappingType,
-      DexString sourceFile,
+      DexClass clazz,
       DexEncodedMethod[] virtualMethods,
       DexEncodedField wrapperField) {
-    // TODO(b/134732760): support abstract class in addition to interfaces.
+    boolean isItf = clazz.isInterface();
+    DexType superType = isItf ? factory.objectType : wrappingType;
+    DexTypeList interfaces =
+        isItf ? new DexTypeList(new DexType[] {wrappingType}) : DexTypeList.empty();
     return new DexProgramClass(
         wrapperField.field.holder,
         null,
         new SynthesizedOrigin("Desugared library API Converter", getClass()),
         ClassAccessFlags.fromSharedAccessFlags(
             Constants.ACC_FINAL | Constants.ACC_SYNTHETIC | Constants.ACC_PUBLIC),
-        factory.objectType,
-        new DexTypeList(new DexType[] {wrappingType}),
-        sourceFile,
+        superType,
+        interfaces,
+        clazz.sourceFile,
         null,
         Collections.emptyList(),
         null,
@@ -240,6 +241,8 @@ public class DesugaredLibraryWrapperSynthesizer {
     //   v3 <- wrappedValue.foo(v2,v1);
     //   return v3;
     for (DexEncodedMethod dexEncodedMethod : dexMethods) {
+      DexClass holderClass = appView.definitionFor(dexEncodedMethod.method.holder);
+      assert holderClass != null;
       DexMethod methodToInstall =
           factory.createMethod(
               wrapperField.field.holder,
@@ -247,7 +250,11 @@ public class DesugaredLibraryWrapperSynthesizer {
               dexEncodedMethod.method.name);
       CfCode cfCode =
           new APIConverterVivifiedWrapperCfCodeProvider(
-                  appView, methodToInstall, wrapperField.field, converter)
+                  appView,
+                  methodToInstall,
+                  wrapperField.field,
+                  converter,
+                  holderClass.isInterface())
               .generateCfCode();
       DexEncodedMethod newDexEncodedMethod =
           newSynthesizedMethod(methodToInstall, dexEncodedMethod, cfCode);
@@ -271,12 +278,17 @@ public class DesugaredLibraryWrapperSynthesizer {
     //   v3 <- wrappedValue.foo(v2,v1);
     //   return v3;
     for (DexEncodedMethod dexEncodedMethod : dexMethods) {
-
+      DexClass holderClass = appView.definitionFor(dexEncodedMethod.method.holder);
+      assert holderClass != null;
       DexMethod methodToInstall =
           methodWithVivifiedTypeInSignature(dexEncodedMethod.method, wrapperField.field.holder);
       CfCode cfCode =
           new APIConverterWrapperCfCodeProvider(
-                  appView, dexEncodedMethod.method, wrapperField.field, converter)
+                  appView,
+                  dexEncodedMethod.method,
+                  wrapperField.field,
+                  converter,
+                  holderClass.isInterface())
               .generateCfCode();
       DexEncodedMethod newDexEncodedMethod =
           newSynthesizedMethod(methodToInstall, dexEncodedMethod, cfCode);
@@ -318,8 +330,6 @@ public class DesugaredLibraryWrapperSynthesizer {
   }
 
   private List<DexEncodedMethod> allImplementedMethods(DexLibraryClass libraryClass) {
-    // TODO(b/134732760): Deal with Abstract class for clock and class for Optional.
-    assert libraryClass.isInterface();
     LinkedList<DexClass> workList = new LinkedList<>();
     List<DexEncodedMethod> implementedMethods = new ArrayList<>();
     workList.add(libraryClass);
