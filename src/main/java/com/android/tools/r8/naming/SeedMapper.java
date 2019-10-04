@@ -51,8 +51,7 @@ public class SeedMapper implements ProguardMap {
           ClassNamingForMapApplier.builder(
               javaTypeToDescriptor(renamedName), originalDescriptor, position, reporter);
       if (map.put(originalDescriptor, classNamingBuilder) != null) {
-        // TODO(b/140075815): Turn ProguardMapError into a Diagnostic.
-        reporter.error(ProguardMapError.duplicateSourceClass(originalName, position).toStringDiagnostic());
+        reporter.error(ProguardMapError.duplicateSourceClass(originalName, position));
       }
       return classNamingBuilder;
     }
@@ -101,13 +100,12 @@ public class SeedMapper implements ProguardMap {
       ClassNamingForMapApplier classNaming = mappings.get(key);
       String existing = seenMappings.put(classNaming.renamedName, key);
       if (existing != null) {
-        // TODO(b/140075815): Turn ApplyMappingError into a Diagnostic.
         reporter.error(
             ProguardMapError.duplicateTargetClass(
                 descriptorToJavaType(key),
                 descriptorToJavaType(existing),
                 descriptorToInternalName(classNaming.renamedName),
-                classNaming.position).toStringDiagnostic());
+                classNaming.position));
       }
       // TODO(b/136694827) Enable when we have proper support
       // Map<Signature, MemberNaming> seenMembers = new HashMap<>();

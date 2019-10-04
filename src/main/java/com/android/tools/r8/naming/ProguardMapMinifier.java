@@ -306,10 +306,9 @@ public class ProguardMapMinifier {
       appView
           .options()
           .reporter
-          // TODO(b/140075815): Turn ApplyMappingError into a Diagnostic.
           .error(
               ApplyMappingError.mapToExistingClass(
-                  type.toString(), mappedName.toString(), position).toStringDiagnostic());
+                  type.toString(), mappedName.toString(), position));
     } else {
       mappedNames.put(type, mappedName);
     }

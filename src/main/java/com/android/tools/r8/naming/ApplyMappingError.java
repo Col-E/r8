@@ -4,11 +4,11 @@
 
 package com.android.tools.r8.naming;
 
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
+import com.android.tools.r8.utils.StringDiagnostic;
 
-public class ApplyMappingError extends CompilationError {
+public class ApplyMappingError extends StringDiagnostic {
 
   private static final String EXISTING_MESSAGE_START =
       "'%s' cannot be mapped to '%s' because it is in conflict with an existing ";
@@ -23,7 +23,7 @@ public class ApplyMappingError extends CompilationError {
       EXISTING_MESSAGE_START + "member with the same signature" + EXISTING_MESSAGE_END;
 
   private ApplyMappingError(String message, Position position) {
-    super(message, null, Origin.unknown(), position);
+    super(message, Origin.unknown(), position);
   }
 
   static ApplyMappingError mapToExistingClass(

@@ -3,18 +3,18 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.naming;
 
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
+import com.android.tools.r8.utils.StringDiagnostic;
 
-public class ProguardMapError extends CompilationError {
+public class ProguardMapError extends StringDiagnostic {
 
   protected static final String DUPLICATE_TARGET_MESSAGE = "'%s' and '%s' map to same name: '%s'";
   protected static final String DUPLICATE_SOURCE_MESSAGE = "'%s' already has a mapping";
 
   private ProguardMapError(String message, Position position) {
-    super(message, null, Origin.unknown(), position);
+    super(message, Origin.unknown(), position);
   }
 
   static ProguardMapError duplicateSourceClass(String typeName, Position position) {
