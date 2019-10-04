@@ -509,6 +509,10 @@ public abstract class Instruction implements InstructionOrPhi {
     return true;
   }
 
+  public boolean isAllowedAfterThrowingInstruction() {
+    return false;
+  }
+
   /**
    * Returns true if this instruction may throw an exception.
    */

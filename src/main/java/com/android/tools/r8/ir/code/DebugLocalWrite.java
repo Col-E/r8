@@ -70,4 +70,9 @@ public class DebugLocalWrite extends Move {
   public void buildCf(CfBuilder builder) {
     builder.add(new CfStore(outType(), builder.getLocalRegister(outValue())));
   }
+
+  @Override
+  public boolean isAllowedAfterThrowingInstruction() {
+    return true;
+  }
 }

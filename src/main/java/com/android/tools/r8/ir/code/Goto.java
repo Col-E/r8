@@ -116,4 +116,9 @@ public class Goto extends JumpInstruction {
   public void buildCf(CfBuilder builder) {
     builder.add(new CfGoto(builder.getLabel(getTarget())));
   }
+
+  @Override
+  public boolean isAllowedAfterThrowingInstruction() {
+    return true;
+  }
 }

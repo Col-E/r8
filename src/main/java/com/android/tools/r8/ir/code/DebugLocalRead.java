@@ -91,4 +91,9 @@ public class DebugLocalRead extends Instruction {
   public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
     return false;
   }
+
+  @Override
+  public boolean isAllowedAfterThrowingInstruction() {
+    return true;
+  }
 }

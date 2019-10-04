@@ -35,4 +35,9 @@ public class DebugLocalUninitialized extends ConstNumber {
   public DebugLocalUninitialized asDebugLocalUninitialized() {
     return this;
   }
+
+  @Override
+  public boolean isAllowedAfterThrowingInstruction() {
+    return true;
+  }
 }
