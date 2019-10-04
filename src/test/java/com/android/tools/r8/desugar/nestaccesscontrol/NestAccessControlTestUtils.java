@@ -33,6 +33,7 @@ public class NestAccessControlTestUtils {
           "BasicNestHostWithInnerClassMethods$BasicNestedClass",
           "BasicNestHostWithInnerClassConstructors",
           "BasicNestHostWithInnerClassConstructors$BasicNestedClass",
+          "BasicNestHostWithInnerClassConstructors$UnInstantiatedClass",
           "BasicNestHostWithAnonymousInnerClass",
           "BasicNestHostWithAnonymousInnerClass$1",
           "BasicNestHostWithAnonymousInnerClass$InterfaceForAnonymousClass",
@@ -128,7 +129,8 @@ public class NestAccessControlTestUtils {
                   "hostMethodstaticHostMethodstaticNestMethod"))
           .put(
               "constructors",
-              StringUtils.lines("field", "nest1SField", "1", "innerFieldUnusedConstructor"))
+              StringUtils.lines(
+                  "field", "nest1SField", "1", "innerFieldUnusedConstructor", "nothing"))
           .put(
               "anonymous",
               StringUtils.lines(

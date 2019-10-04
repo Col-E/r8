@@ -241,8 +241,6 @@ public class LensCodeRewriter {
                   newInValues.add(invoke.inValues().get(i));
                 }
               }
-              assert newInValues.size()
-                  == actualTarget.proto.parameters.size() + (actualInvokeType == STATIC ? 0 : 1);
             } else {
               newInValues = invoke.inValues();
             }
@@ -253,6 +251,9 @@ public class LensCodeRewriter {
               iterator.next();
               newInValues.add(extraNullValue);
             }
+
+            assert newInValues.size()
+                == actualTarget.proto.parameters.size() + (actualInvokeType == STATIC ? 0 : 1);
 
             Invoke newInvoke =
                 Invoke.create(actualInvokeType, actualTarget, null, newOutValue, newInValues);

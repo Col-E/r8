@@ -765,7 +765,11 @@ public class R8 {
 
       // Validity checks.
       assert application.classes().stream().allMatch(clazz -> clazz.isValid(options));
-      assert appView.rootSet().verifyKeptItemsAreKept(application, appView.appInfo());
+      if (options.isShrinking()
+          || options.isMinifying()
+          || options.getProguardConfiguration().hasApplyMappingFile()) {
+        assert appView.rootSet().verifyKeptItemsAreKept(application, appView.appInfo());
+      }
       assert appView
           .graphLense()
           .verifyMappingToOriginalProgram(
