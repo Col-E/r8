@@ -39,6 +39,7 @@ import com.android.tools.r8.ir.optimize.InliningOracle;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInliner.EligibilityStatus;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
+import com.android.tools.r8.ir.optimize.inliner.NopWhyAreYouNotKeepingReporter;
 import com.android.tools.r8.kotlin.KotlinInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ListUtils;
@@ -899,9 +900,18 @@ final class InlineCandidateProcessor {
       }
 
       // Check if the method is inline-able by standard inliner.
+      DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, method.method.holder);
+      if (singleTarget == null) {
+        return false;
+      }
+
       InlineAction inlineAction =
           invoke.computeInlining(
-              defaultOracle.get(), method.method, ClassInitializationAnalysis.trivial());
+              singleTarget,
+              defaultOracle.get(),
+              method.method,
+              ClassInitializationAnalysis.trivial(),
+              NopWhyAreYouNotKeepingReporter.getInstance());
       if (inlineAction == null) {
         return false;
       }

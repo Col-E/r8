@@ -5,6 +5,7 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.InvokePolymorphicRange;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -19,6 +20,7 @@ import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.optimize.InliningOracle;
+import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import java.util.Collection;
 import java.util.List;
 
@@ -136,9 +138,18 @@ public class InvokePolymorphic extends InvokeMethod {
 
   @Override
   public InlineAction computeInlining(
+      DexEncodedMethod singleTarget,
       InliningOracle decider,
       DexMethod invocationContext,
-      ClassInitializationAnalysis classInitializationAnalysis) {
-    return decider.computeForInvokePolymorphic(this, invocationContext);
+      ClassInitializationAnalysis classInitializationAnalysis,
+      WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
+    // We never determine a single target for invoke-polymorphic.
+    if (singleTarget != null) {
+      throw new Unreachable(
+          "Unexpected invoke-polymorphic with `"
+              + singleTarget.method.toSourceString()
+              + "` as single target");
+    }
+    throw new Unreachable("Unexpected attempt to inline invoke that does not have a single target");
   }
 }

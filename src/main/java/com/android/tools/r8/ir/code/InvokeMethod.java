@@ -15,6 +15,7 @@ import com.android.tools.r8.ir.analysis.fieldvalueanalysis.AbstractFieldSet;
 import com.android.tools.r8.ir.analysis.modeling.LibraryMethodReadSetModeling;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.InliningOracle;
+import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import java.util.Collection;
 import java.util.List;
@@ -66,9 +67,11 @@ public abstract class InvokeMethod extends Invoke {
       AppView<? extends AppInfoWithSubtyping> appView, DexType invocationContext);
 
   public abstract InlineAction computeInlining(
+      DexEncodedMethod singleTarget,
       InliningOracle decider,
       DexMethod invocationContext,
-      ClassInitializationAnalysis classInitializationAnalysis);
+      ClassInitializationAnalysis classInitializationAnalysis,
+      WhyAreYouNotInliningReporter whyAreYouNotInliningReporter);
 
   @Override
   public boolean identicalAfterRegisterAllocation(Instruction other, RegisterAllocator allocator) {

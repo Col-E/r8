@@ -22,6 +22,7 @@ import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.optimize.InliningOracle;
+import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Collection;
 import java.util.Collections;
@@ -139,10 +140,17 @@ public class InvokeStatic extends InvokeMethod {
 
   @Override
   public InlineAction computeInlining(
+      DexEncodedMethod singleTarget,
       InliningOracle decider,
       DexMethod invocationContext,
-      ClassInitializationAnalysis classInitializationAnalysis) {
-    return decider.computeForInvokeStatic(this, invocationContext, classInitializationAnalysis);
+      ClassInitializationAnalysis classInitializationAnalysis,
+      WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
+    return decider.computeForInvokeStatic(
+        this,
+        singleTarget,
+        invocationContext,
+        classInitializationAnalysis,
+        whyAreYouNotInliningReporter);
   }
 
   @Override

@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.optimize;
 
-import com.android.tools.r8.graph.ClassHierarchy;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -13,12 +12,12 @@ import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
-import com.android.tools.r8.ir.code.InvokePolymorphic;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.Inliner.InlineeWithReason;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
+import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import java.util.ListIterator;
 import java.util.Map;
 
@@ -38,15 +37,20 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
 
   @Override
   public InlineAction computeForInvokeWithReceiver(
-      InvokeMethodWithReceiver invoke, DexMethod invocationContext) {
+      InvokeMethodWithReceiver invoke,
+      DexEncodedMethod singleTarget,
+      DexMethod invocationContext,
+      WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     return computeForInvoke(invoke);
   }
 
   @Override
   public InlineAction computeForInvokeStatic(
       InvokeStatic invoke,
+      DexEncodedMethod singleTarget,
       DexMethod invocationContext,
-      ClassInitializationAnalysis classInitializationAnalysis) {
+      ClassInitializationAnalysis classInitializationAnalysis,
+      WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     return computeForInvoke(invoke);
   }
 
@@ -65,12 +69,6 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
   }
 
   @Override
-  public InlineAction computeForInvokePolymorphic(
-      InvokePolymorphic invoke, DexMethod invocationContext) {
-    return null; // Not yet supported.
-  }
-
-  @Override
   public void ensureMethodProcessed(
       DexEncodedMethod target, IRCode inlinee, OptimizationFeedback feedback) {
     // Do nothing. If the method is not yet processed, we still should
@@ -78,22 +76,20 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
   }
 
   @Override
-  public boolean isValidTarget(
-      InvokeMethod invoke, DexEncodedMethod target, IRCode inlinee, ClassHierarchy hierarchy) {
-    return true;
-  }
-
-  @Override
   public void updateTypeInformationIfNeeded(
       IRCode inlinee, ListIterator<BasicBlock> blockIterator, BasicBlock block) {}
 
   @Override
-  public boolean stillHasBudget() {
+  public boolean stillHasBudget(
+      InlineAction action, WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     return true; // Unlimited allowance.
   }
 
   @Override
-  public boolean willExceedBudget(InlineeWithReason inlinee, BasicBlock block) {
+  public boolean willExceedBudget(
+      InlineeWithReason inlinee,
+      BasicBlock block,
+      WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     return false; // Unlimited allowance.
   }
 

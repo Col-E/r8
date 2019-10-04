@@ -4,7 +4,6 @@
 package com.android.tools.r8.ir.optimize;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.ClassHierarchy;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -15,7 +14,6 @@ import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
-import com.android.tools.r8.ir.code.InvokePolymorphic;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.CallSiteInformation;
@@ -23,6 +21,7 @@ import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.Inliner.InlineeWithReason;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
+import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.MainDexDirectReferenceTracer;
@@ -334,7 +333,10 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
 
   @Override
   public InlineAction computeForInvokeWithReceiver(
-      InvokeMethodWithReceiver invoke, DexMethod invocationContext) {
+      InvokeMethodWithReceiver invoke,
+      DexEncodedMethod singleTarget,
+      DexMethod invocationContext,
+      WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     DexEncodedMethod candidate = validateCandidate(invoke, invocationContext);
     if (candidate == null || inliner.isBlackListed(candidate.method)) {
       return null;
@@ -397,8 +399,10 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
   @Override
   public InlineAction computeForInvokeStatic(
       InvokeStatic invoke,
+      DexEncodedMethod singleTarget,
       DexMethod invocationContext,
-      ClassInitializationAnalysis classInitializationAnalysis) {
+      ClassInitializationAnalysis classInitializationAnalysis,
+      WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     DexEncodedMethod candidate = validateCandidate(invoke, invocationContext);
     if (candidate == null || inliner.isBlackListed(candidate.method)) {
       return null;
@@ -433,16 +437,6 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
   }
 
   @Override
-  public InlineAction computeForInvokePolymorphic(
-      InvokePolymorphic invoke, DexMethod invocationContext) {
-    // TODO: No inlining of invoke polymorphic for now.
-    if (info != null) {
-      info.exclude(invoke, "inlining through invoke signature polymorpic is not supported");
-    }
-    return null;
-  }
-
-  @Override
   public void ensureMethodProcessed(
       DexEncodedMethod target, IRCode inlinee, OptimizationFeedback feedback) {
     if (!target.isProcessed()) {
@@ -455,19 +449,16 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
   }
 
   @Override
-  public boolean isValidTarget(
-      InvokeMethod invoke, DexEncodedMethod target, IRCode inlinee, ClassHierarchy hierarchy) {
-    return !target.isInstanceInitializer()
-        || inliner.legalConstructorInline(method, invoke, inlinee, hierarchy);
+  public boolean stillHasBudget(
+      InlineAction action, WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
+    return instructionAllowance > 0 || action.reason.mustBeInlined();
   }
 
   @Override
-  public boolean stillHasBudget() {
-    return instructionAllowance > 0;
-  }
-
-  @Override
-  public boolean willExceedBudget(InlineeWithReason inlinee, BasicBlock block) {
+  public boolean willExceedBudget(
+      InlineeWithReason inlinee,
+      BasicBlock block,
+      WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     if (inlinee.reason.mustBeInlined()) {
       return false;
     }

@@ -4,36 +4,38 @@
 
 package com.android.tools.r8.ir.optimize;
 
-import com.android.tools.r8.graph.ClassHierarchy;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.Inliner.InlineeWithReason;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
+import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import java.util.ListIterator;
 
 interface InliningStrategy {
 
   /** Return true if there is still budget for inlining into this method. */
-  boolean stillHasBudget();
+  boolean stillHasBudget(
+      InlineAction action, WhyAreYouNotInliningReporter whyAreYouNotInliningReporter);
 
   /**
    * Check if the inlinee will exceed the the budget for inlining size into current method.
    *
    * <p>Return true if the strategy will *not* allow inlining.
    */
-  boolean willExceedBudget(InlineeWithReason inlinee, BasicBlock block);
+  boolean willExceedBudget(
+      InlineeWithReason inlinee,
+      BasicBlock block,
+      WhyAreYouNotInliningReporter whyAreYouNotInliningReporter);
 
   /** Inform the strategy that the inlinee has been inlined. */
   void markInlined(InlineeWithReason inlinee);
 
   void ensureMethodProcessed(
       DexEncodedMethod target, IRCode inlinee, OptimizationFeedback feedback);
-
-  boolean isValidTarget(
-      InvokeMethod invoke, DexEncodedMethod target, IRCode inlinee, ClassHierarchy hierarchy);
 
   void updateTypeInformationIfNeeded(
       IRCode inlinee, ListIterator<BasicBlock> blockIterator, BasicBlock block);

@@ -5,6 +5,7 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -14,6 +15,7 @@ import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.InliningOracle;
+import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import java.util.List;
 
 public abstract class InvokeMethodWithReceiver extends InvokeMethod {
@@ -39,10 +41,13 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
 
   @Override
   public final InlineAction computeInlining(
+      DexEncodedMethod singleTarget,
       InliningOracle decider,
       DexMethod invocationContext,
-      ClassInitializationAnalysis classInitializationAnalysis) {
-    return decider.computeForInvokeWithReceiver(this, invocationContext);
+      ClassInitializationAnalysis classInitializationAnalysis,
+      WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
+    return decider.computeForInvokeWithReceiver(
+        this, singleTarget, invocationContext, whyAreYouNotInliningReporter);
   }
 
   @Override
