@@ -198,14 +198,14 @@ public class DesugaredLibraryAPIConversionCfCodeProvider {
   public static class APIConverterWrapperConversionCfCodeProvider extends SyntheticCfCodeProvider {
 
     DexType argType;
-    DexType reverseWrapperType;
+    DexField reverseWrapperField;
     DexField wrapperField;
 
     public APIConverterWrapperConversionCfCodeProvider(
-        AppView<?> appView, DexType argType, DexType reverseWrapperType, DexField wrapperField) {
+        AppView<?> appView, DexType argType, DexField reverseWrapperField, DexField wrapperField) {
       super(appView, wrapperField.holder);
       this.argType = argType;
-      this.reverseWrapperType = reverseWrapperType;
+      this.reverseWrapperField = reverseWrapperField;
       this.wrapperField = wrapperField;
     }
 
@@ -222,16 +222,18 @@ public class DesugaredLibraryAPIConversionCfCodeProvider {
       instructions.add(new CfReturn(ValueType.OBJECT));
       instructions.add(nullDest);
 
+      // This part is skipped if there is no reverse wrapper.
       // if (arg instanceOf ReverseWrapper) { return ((ReverseWrapper) arg).wrapperField};
-      if (reverseWrapperType != null) {
+      if (reverseWrapperField != null) {
         CfLabel unwrapDest = new CfLabel();
         instructions.add(new CfLoad(ValueType.fromDexType(argType), 0));
-        instructions.add(new CfInstanceOf(reverseWrapperType));
+        instructions.add(new CfInstanceOf(reverseWrapperField.holder));
         instructions.add(new CfIf(If.Type.EQ, ValueType.INT, unwrapDest));
         instructions.add(new CfLoad(ValueType.fromDexType(argType), 0));
-        instructions.add(new CfCheckCast(reverseWrapperType));
-        instructions.add(new CfFieldInstruction(Opcodes.GETFIELD, wrapperField, wrapperField));
-        instructions.add(new CfReturn(ValueType.fromDexType(wrapperField.type)));
+        instructions.add(new CfCheckCast(reverseWrapperField.holder));
+        instructions.add(
+            new CfFieldInstruction(Opcodes.GETFIELD, reverseWrapperField, reverseWrapperField));
+        instructions.add(new CfReturn(ValueType.fromDexType(reverseWrapperField.type)));
         instructions.add(unwrapDest);
       }
 

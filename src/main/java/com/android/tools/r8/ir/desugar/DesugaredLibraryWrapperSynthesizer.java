@@ -358,8 +358,9 @@ public class DesugaredLibraryWrapperSynthesizer {
 
   private DexEncodedField synthetizeWrappedValueField(DexType holder, DexType fieldType) {
     DexField field = factory.createField(holder, fieldType, factory.wrapperFieldName);
+    // Field is package private to be accessible from convert methods without a getter.
     FieldAccessFlags fieldAccessFlags =
-        FieldAccessFlags.fromCfAccessFlags(Constants.ACC_FINAL | Constants.ACC_PRIVATE);
+        FieldAccessFlags.fromCfAccessFlags(Constants.ACC_FINAL | Constants.ACC_SYNTHETIC);
     return new DexEncodedField(field, fieldAccessFlags, DexAnnotationSet.empty(), null);
   }
 
@@ -412,6 +413,7 @@ public class DesugaredLibraryWrapperSynthesizer {
       Map<DexType, Pair<DexType, DexProgramClass>> wrappers,
       BiConsumer<DexType, DexProgramClass> generateConversions)
       throws ExecutionException {
+    assert verifyAllClassesGenerated();
     for (DexType type : wrappers.keySet()) {
       DexProgramClass pgrmClass = wrappers.get(type).getSecond();
       assert pgrmClass != null;
@@ -421,6 +423,16 @@ public class DesugaredLibraryWrapperSynthesizer {
     }
   }
 
+  private boolean verifyAllClassesGenerated() {
+    for (Pair<DexType, DexProgramClass> pair : vivifiedTypeWrappers.values()) {
+      assert pair.getSecond() != null;
+    }
+    for (Pair<DexType, DexProgramClass> pair : typeWrappers.values()) {
+      assert pair.getSecond() != null;
+    }
+    return true;
+  }
+
   private void registerSynthesizedClass(
       DexProgramClass synthesizedClass, DexApplication.Builder<?> builder) {
     builder.addSynthesizedClass(synthesizedClass, false);
@@ -428,33 +440,41 @@ public class DesugaredLibraryWrapperSynthesizer {
   }
 
   private void generateTypeConversions(DexType type, DexProgramClass synthesizedClass) {
+    Pair<DexType, DexProgramClass> reverse = vivifiedTypeWrappers.get(type);
+    assert reverse == null || reverse.getSecond() != null;
     synthesizedClass.addDirectMethod(
         synthetizeConversionMethod(
             synthesizedClass.type,
             type,
             converter.vivifiedTypeFor(type),
-            typeWrappers.get(type).getFirst()));
+            reverse == null ? null : reverse.getSecond()));
   }
 
   private void generateVivifiedTypeConversions(DexType type, DexProgramClass synthesizedClass) {
+    Pair<DexType, DexProgramClass> reverse = typeWrappers.get(type);
     synthesizedClass.addDirectMethod(
         synthetizeConversionMethod(
             synthesizedClass.type,
             converter.vivifiedTypeFor(type),
             type,
-            vivifiedTypeWrappers.get(type).getFirst()));
+            reverse == null ? null : reverse.getSecond()));
   }
 
   private DexEncodedMethod synthetizeConversionMethod(
-      DexType holder, DexType argType, DexType returnType, DexType reverseWrapperType) {
+      DexType holder, DexType argType, DexType returnType, DexClass reverseWrapperClassOrNull) {
     DexMethod method =
         factory.createMethod(
             holder, factory.createProto(returnType, argType), factory.convertMethodName);
+
+    DexField uniqueFieldOrNull =
+        reverseWrapperClassOrNull == null
+            ? null
+            : reverseWrapperClassOrNull.instanceFields().get(0).field;
     CfCode cfCode =
         new APIConverterWrapperConversionCfCodeProvider(
                 appView,
                 argType,
-                reverseWrapperType,
+                uniqueFieldOrNull,
                 factory.createField(holder, returnType, factory.wrapperFieldName))
             .generateCfCode();
     return newSynthesizedMethod(

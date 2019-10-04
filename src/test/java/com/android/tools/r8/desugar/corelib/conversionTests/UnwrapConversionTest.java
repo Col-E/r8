@@ -9,16 +9,14 @@ import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Path;
-import java.time.MonthDay;
+import java.util.function.DoubleConsumer;
+import java.util.function.IntConsumer;
 import org.junit.Test;
 
-// Longs and double take two stack indexes, this had to be dealt with in
-// CfAPIConverter*WrapperCodeProvider (See stackIndex vs index), this class tests that the
-// synthetic Cf code is correct.
-public class BasicLongDoubleConversionTest extends APIConversionTestBase {
+public class UnwrapConversionTest extends APIConversionTestBase {
 
   @Test
-  public void testRewrittenAPICalls() throws Exception {
+  public void testUnwrap() throws Exception {
     Path customLib = testForD8().addProgramClasses(CustomLibClass.class).compile().writeToZip();
     testForD8()
         .setMinApi(AndroidApiLevel.B)
@@ -30,14 +28,21 @@ public class BasicLongDoubleConversionTest extends APIConversionTestBase {
             this::buildDesugaredLibraryWithConversionExtension, AndroidApiLevel.B)
         .addRunClasspathFiles(customLib)
         .run(new DexRuntime(DexVm.ART_9_0_0_HOST), Executor.class)
-        .assertSuccessWithOutput(StringUtils.lines("--01-16"));
+        .assertSuccessWithOutput(StringUtils.lines("true", "true"));
   }
 
   static class Executor {
 
+    @SuppressWarnings("all")
     public static void main(String[] args) {
-      System.out.println(
-          CustomLibClass.mix(3L, 4L, MonthDay.of(1, 2), 5.0, 6.0, MonthDay.of(10, 20)));
+      // Type wrapper.
+      IntConsumer intConsumer = i -> {};
+      IntConsumer unwrappedIntConsumer = CustomLibClass.identity(intConsumer);
+      System.out.println(intConsumer == unwrappedIntConsumer);
+
+      // Vivified wrapper.
+      DoubleConsumer consumer = CustomLibClass.getConsumer();
+      System.out.println(CustomLibClass.testConsumer(consumer));
     }
   }
 
@@ -46,9 +51,20 @@ public class BasicLongDoubleConversionTest extends APIConversionTestBase {
   // platform APIs for which argument/return values need conversion.
   static class CustomLibClass {
 
-    public static MonthDay mix(
-        long l1, long l2, MonthDay monthDay1, double d1, double d2, MonthDay monthDay2) {
-      return monthDay1.withDayOfMonth((int) (monthDay2.getDayOfMonth() + l1 - d1 + l2 - d2));
+    private static DoubleConsumer consumer = d -> {};
+
+    @SuppressWarnings("WeakerAccess")
+    public static IntConsumer identity(IntConsumer intConsumer) {
+      return intConsumer;
+    }
+
+    public static DoubleConsumer getConsumer() {
+      return consumer;
+    }
+
+    @SuppressWarnings("WeakerAccess")
+    public static boolean testConsumer(DoubleConsumer doubleConsumer) {
+      return doubleConsumer == consumer;
     }
   }
 }
