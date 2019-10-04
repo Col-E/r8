@@ -7,9 +7,7 @@ import com.android.tools.r8.graph.AccessFlags;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
@@ -24,7 +22,6 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Invoke;
-import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Throw;
@@ -651,86 +648,6 @@ public class Inliner {
     return numberOfInstructions;
   }
 
-  private boolean canInlineInstanceInitializer(
-      DexEncodedMethod method,
-      InvokeDirect invoke,
-      IRCode code,
-      WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
-    // In the Java VM Specification section "4.10.2.4. Instance Initialization Methods and
-    // Newly Created Objects" it says:
-    //
-    // Before that method invokes another instance initialization method of myClass or its direct
-    // superclass on this, the only operation the method can perform on this is assigning fields
-    // declared within myClass.
-
-    // Allow inlining a constructor into a constructor of the same class, as the constructor code
-    // is expected to adhere to the VM specification.
-    DexType callerMethodHolder = method.method.holder;
-    boolean callerMethodIsConstructor = method.isInstanceInitializer();
-    DexType calleeMethodHolder = invoke.asInvokeMethod().getInvokedMethod().holder;
-    // Calling a constructor on the same class from a constructor can always be inlined.
-    if (callerMethodIsConstructor && callerMethodHolder == calleeMethodHolder) {
-      return true;
-    }
-
-    // We cannot invoke <init> on other values than |this| on Dalvik 4.4.4. Compute whether
-    // the receiver to the call was the this value at the call-site.
-    boolean receiverOfInnerCallIsThisOfOuter = invoke.getReceiver().isThis();
-
-    // Don't allow inlining a constructor into a non-constructor if the first use of the
-    // un-initialized object is not an argument of an invoke of <init>.
-    // Also, we cannot inline a constructor if it initializes final fields, as such is only allowed
-    // from within a constructor of the corresponding class.
-    // Lastly, we can only inline a constructor, if its own <init> call is on the method's class. If
-    // we inline into a constructor, calls to super.<init> are also OK if the receiver of the
-    // super.<init> call is the this argument.
-    InstructionIterator iterator = code.instructionIterator();
-    Instruction instruction = iterator.next();
-    // A constructor always has the un-initialized object as the first argument.
-    assert instruction.isArgument();
-    Value unInitializedObject = instruction.outValue();
-    boolean seenSuperInvoke = false;
-    while (iterator.hasNext()) {
-      instruction = iterator.next();
-      if (instruction.inValues().contains(unInitializedObject)) {
-        if (instruction.isInvokeDirect() && !seenSuperInvoke) {
-          DexMethod target = instruction.asInvokeDirect().getInvokedMethod();
-          seenSuperInvoke = appView.dexItemFactory().isConstructor(target);
-          boolean callOnConstructorThatCallsConstructorSameClass =
-              calleeMethodHolder == target.holder;
-          boolean callOnSupertypeOfThisInConstructor =
-              appView.appInfo().isDirectSubtype(callerMethodHolder, target.holder)
-                  && instruction.asInvokeDirect().getReceiver() == unInitializedObject
-                  && receiverOfInnerCallIsThisOfOuter
-                  && callerMethodIsConstructor;
-          if (seenSuperInvoke
-              // Calls to init on same class than the called constructor are OK.
-              && !callOnConstructorThatCallsConstructorSameClass
-              // If we are inlining into a constructor, calls to superclass init are only OK on the
-              // |this| value in the outer context.
-              && !callOnSupertypeOfThisInConstructor) {
-            return false;
-          }
-        }
-        if (!seenSuperInvoke) {
-          return false;
-        }
-      }
-      if (instruction.isInstancePut()) {
-        // Fields may not be initialized outside of a constructor.
-        if (!callerMethodIsConstructor) {
-          return false;
-        }
-        DexField field = instruction.asInstancePut().getField();
-        DexEncodedField target = appView.appInfo().lookupInstanceTarget(field.holder, field);
-        if (target != null && target.accessFlags.isFinal()) {
-          return false;
-        }
-      }
-    }
-    return true;
-  }
-
   public static class InliningInfo {
     public final DexEncodedMethod target;
     public final DexType receiverType; // null, if unknown
@@ -852,8 +769,8 @@ public class Inliner {
           // Make sure constructor inlining is legal.
           assert !singleTarget.isClassInitializer();
           if (singleTarget.isInstanceInitializer()
-              && !canInlineInstanceInitializer(
-                  context, invoke.asInvokeDirect(), inlinee.code, whyAreYouNotInliningReporter)) {
+              && !strategy.canInlineInstanceInitializer(
+                  invoke.asInvokeDirect(), inlinee.code, whyAreYouNotInliningReporter)) {
             // TODO(b/142108662): Enable assertion once reporting is complete.
             // assert whyAreYouNotInliningReporter.verifyReasonHasBeenReported();
             continue;

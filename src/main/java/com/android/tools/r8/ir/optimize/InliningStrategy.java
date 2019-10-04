@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.Inliner.InlineeWithReason;
@@ -16,6 +17,9 @@ import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import java.util.ListIterator;
 
 interface InliningStrategy {
+
+  boolean canInlineInstanceInitializer(
+      InvokeDirect invoke, IRCode code, WhyAreYouNotInliningReporter whyAreYouNotInliningReporter);
 
   /** Return true if there is still budget for inlining into this method. */
   boolean stillHasBudget(
