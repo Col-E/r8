@@ -1986,7 +1986,7 @@ public class Enqueuer {
         MarkedResolutionTarget possiblyValidTarget =
             markPossiblyValidTarget(
                 method, reason, resolutionTarget, resolutionTargetClass.asProgramClass());
-        if (possiblyValidTarget != null) {
+        if (!possiblyValidTarget.isUnresolved()) {
           // Since some Art runtimes may actually end up targeting this method, it is returned as
           // the basis of lookup for the enqueuing of virtual dispatches. Not doing so may cause it
           // to be marked abstract, thus leading to an AbstractMethodError on said Art runtimes.
