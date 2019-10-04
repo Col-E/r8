@@ -85,24 +85,34 @@ public class GenericSignatureRewriter {
     // There can be no more than one signature annotation in an annotation set.
     final int VALID = -1;
     int invalid = VALID;
+    DexAnnotation[] rewrittenAnnotations = null;
     for (int i = 0; i < annotations.annotations.length && invalid == VALID; i++) {
       DexAnnotation annotation = annotations.annotations[i];
       if (DexAnnotation.isSignatureAnnotation(annotation, appView.dexItemFactory())) {
+        if (rewrittenAnnotations == null) {
+          rewrittenAnnotations = new DexAnnotation[annotations.annotations.length];
+          System.arraycopy(annotations.annotations, 0, rewrittenAnnotations, 0, i);
+        }
         String signature = DexAnnotation.getSignature(annotation);
         try {
           parser.accept(signature);
-          annotations.annotations[i] =
+          DexAnnotation signatureAnnotation =
               DexAnnotation.createSignatureAnnotation(collector.get(), appView.dexItemFactory());
+          rewrittenAnnotations[i] = signatureAnnotation;
         } catch (GenericSignatureFormatError e) {
           parseError.accept(signature, e);
           invalid = i;
         }
+      } else if (rewrittenAnnotations != null) {
+        rewrittenAnnotations[i] = annotation;
       }
     }
 
     // Return the rewritten signatures if it was valid and could be rewritten.
     if (invalid == VALID) {
-      return annotations;
+      return rewrittenAnnotations != null
+          ? new DexAnnotationSet(rewrittenAnnotations)
+          : annotations;
     }
     // Remove invalid signature if found.
     DexAnnotation[] prunedAnnotations =
