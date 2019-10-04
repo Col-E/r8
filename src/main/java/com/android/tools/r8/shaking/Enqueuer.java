@@ -2211,6 +2211,7 @@ public class Enqueuer {
             rootSet.alwaysInline,
             rootSet.forceInline,
             rootSet.neverInline,
+            rootSet.whyAreYouNotInlining,
             rootSet.keepConstantArguments,
             rootSet.keepUnusedArguments,
             rootSet.neverClassInline,

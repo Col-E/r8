@@ -143,6 +143,8 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
   public final Set<DexMethod> forceInline;
   /** All methods that *must* never be inlined due to a configuration directive (testing only). */
   public final Set<DexMethod> neverInline;
+  /** Items for which to print inlining decisions for (testing only). */
+  public final Set<DexMethod> whyAreYouNotInlining;
   /** All methods that may not have any parameters with a constant value removed. */
   public final Set<DexMethod> keepConstantArguments;
   /** All methods that may not have any unused arguments removed. */
@@ -211,6 +213,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       Set<DexMethod> alwaysInline,
       Set<DexMethod> forceInline,
       Set<DexMethod> neverInline,
+      Set<DexMethod> whyAreYouNotInlining,
       Set<DexMethod> keepConstantArguments,
       Set<DexMethod> keepUnusedArguments,
       Set<DexType> neverClassInline,
@@ -250,6 +253,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.alwaysInline = alwaysInline;
     this.forceInline = forceInline;
     this.neverInline = neverInline;
+    this.whyAreYouNotInlining = whyAreYouNotInlining;
     this.keepConstantArguments = keepConstantArguments;
     this.keepUnusedArguments = keepUnusedArguments;
     this.neverClassInline = neverClassInline;
@@ -290,6 +294,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       Set<DexMethod> alwaysInline,
       Set<DexMethod> forceInline,
       Set<DexMethod> neverInline,
+      Set<DexMethod> whyAreYouNotInlining,
       Set<DexMethod> keepConstantArguments,
       Set<DexMethod> keepUnusedArguments,
       Set<DexType> neverClassInline,
@@ -329,6 +334,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.alwaysInline = alwaysInline;
     this.forceInline = forceInline;
     this.neverInline = neverInline;
+    this.whyAreYouNotInlining = whyAreYouNotInlining;
     this.keepConstantArguments = keepConstantArguments;
     this.keepUnusedArguments = keepUnusedArguments;
     this.neverClassInline = neverClassInline;
@@ -380,6 +386,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
         previous.alwaysInline,
         previous.forceInline,
         previous.neverInline,
+        previous.whyAreYouNotInlining,
         previous.keepConstantArguments,
         previous.keepUnusedArguments,
         previous.neverClassInline,
@@ -454,6 +461,8 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.alwaysInline = lense.rewriteMethodsWithRenamedSignature(previous.alwaysInline);
     this.forceInline = lense.rewriteMethodsWithRenamedSignature(previous.forceInline);
     this.neverInline = lense.rewriteMethodsWithRenamedSignature(previous.neverInline);
+    this.whyAreYouNotInlining =
+        lense.rewriteMethodsWithRenamedSignature(previous.whyAreYouNotInlining);
     this.keepConstantArguments =
         lense.rewriteMethodsWithRenamedSignature(previous.keepConstantArguments);
     this.keepUnusedArguments =
@@ -512,6 +521,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.alwaysInline = previous.alwaysInline;
     this.forceInline = previous.forceInline;
     this.neverInline = previous.neverInline;
+    this.whyAreYouNotInlining = previous.whyAreYouNotInlining;
     this.keepConstantArguments = previous.keepConstantArguments;
     this.keepUnusedArguments = previous.keepUnusedArguments;
     this.neverClassInline = previous.neverClassInline;

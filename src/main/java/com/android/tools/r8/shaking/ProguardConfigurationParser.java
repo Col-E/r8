@@ -451,6 +451,11 @@ public class ProguardConfigurationParser {
           configurationBuilder.addRule(rule);
           return true;
         }
+        if (acceptString("whyareyounotinlining")) {
+          WhyAreYouNotInliningRule rule = parseWhyAreYouNotInliningRule(optionStart);
+          configurationBuilder.addRule(rule);
+          return true;
+        }
       }
       return false;
     }
@@ -764,6 +769,17 @@ public class ProguardConfigurationParser {
         throws ProguardRuleParserException {
       UnusedArgumentRule.Builder keepRuleBuilder =
           UnusedArgumentRule.builder().setOrigin(origin).setStart(start);
+      parseClassSpec(keepRuleBuilder, false);
+      Position end = getPosition();
+      keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));
+      keepRuleBuilder.setEnd(end);
+      return keepRuleBuilder.build();
+    }
+
+    private WhyAreYouNotInliningRule parseWhyAreYouNotInliningRule(Position start)
+        throws ProguardRuleParserException {
+      WhyAreYouNotInliningRule.Builder keepRuleBuilder =
+          WhyAreYouNotInliningRule.builder().setOrigin(origin).setStart(start);
       parseClassSpec(keepRuleBuilder, false);
       Position end = getPosition();
       keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));
