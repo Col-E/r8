@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.optimize;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -19,21 +20,35 @@ import com.android.tools.r8.ir.optimize.Inliner.InlineeWithReason;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.ListIterator;
 import java.util.Map;
 
 final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
+
+  private final AppView<AppInfoWithLiveness> appView;
   private final DexEncodedMethod method;
   private final Map<InvokeMethod, Inliner.InliningInfo> invokesToInline;
 
-  ForcedInliningOracle(DexEncodedMethod method,
+  ForcedInliningOracle(
+      AppView<AppInfoWithLiveness> appView,
+      DexEncodedMethod method,
       Map<InvokeMethod, Inliner.InliningInfo> invokesToInline) {
+    this.appView = appView;
     this.method = method;
     this.invokesToInline = invokesToInline;
   }
 
   @Override
-  public void finish() {
+  public void finish() {}
+
+  @Override
+  public DexEncodedMethod lookupSingleTarget(InvokeMethod invoke, DexType context) {
+    Inliner.InliningInfo info = invokesToInline.get(invoke);
+    if (info != null) {
+      return info.target;
+    }
+    return invoke.lookupSingleTarget(appView, context);
   }
 
   @Override

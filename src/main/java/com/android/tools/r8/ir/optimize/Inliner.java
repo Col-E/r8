@@ -663,7 +663,7 @@ public class Inliner {
       IRCode code,
       Map<InvokeMethod, InliningInfo> invokesToInline) {
 
-    ForcedInliningOracle oracle = new ForcedInliningOracle(method, invokesToInline);
+    ForcedInliningOracle oracle = new ForcedInliningOracle(appView, method, invokesToInline);
     performInliningImpl(oracle, oracle, method, code, OptimizationFeedbackIgnore.getInstance());
   }
 
@@ -724,7 +724,8 @@ public class Inliner {
         Instruction current = iterator.next();
         if (current.isInvokeMethod()) {
           InvokeMethod invoke = current.asInvokeMethod();
-          DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, context.method.holder);
+          // TODO(b/142116551): This should be equivalent to invoke.lookupSingleTarget()!
+          DexEncodedMethod singleTarget = oracle.lookupSingleTarget(invoke, context.method.holder);
           if (singleTarget == null) {
             WhyAreYouNotInliningReporter.handleInvokeWithUnknownTarget(invoke, appView, context);
             continue;

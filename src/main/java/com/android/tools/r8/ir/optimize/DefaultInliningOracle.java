@@ -337,6 +337,11 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
   }
 
   @Override
+  public DexEncodedMethod lookupSingleTarget(InvokeMethod invoke, DexType context) {
+    return invoke.lookupSingleTarget(appView, context);
+  }
+
+  @Override
   public InlineAction computeForInvokeWithReceiver(
       InvokeMethodWithReceiver invoke,
       DexEncodedMethod singleTarget,
