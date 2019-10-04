@@ -26,6 +26,8 @@ public abstract class CachedHashValueDexItem extends DexItem {
       }
       hash = cache;
     }
+    assert cache == computeHashCode()
+        : "Hash code for " + this + " has changed from " + hash + " to " + computeHashCode();
     return cache;
   }
 
