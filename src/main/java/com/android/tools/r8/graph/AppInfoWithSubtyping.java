@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.OptionalBool;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.origin.Origin;
@@ -47,10 +46,6 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
 
     // Caching what interfaces this type is implementing. This includes super-interface hierarchy.
     Set<DexType> implementedInterfaces = null;
-
-    // Caches which static types that may store an object that has a non-default finalize() method.
-    // E.g., `java.lang.Object -> TRUE` if there is a subtype of Object that overrides finalize().
-    Map<DexType, Boolean> mayHaveFinalizeMethodDirectlyOrIndirectlyCache = new IdentityHashMap<>();
 
     public TypeInfo(DexType type) {
       this.type = type;
@@ -114,17 +109,6 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
       ensureDirectSubTypeSet();
       directSubtypes.add(type);
     }
-
-    synchronized OptionalBool mayHaveFinalizeMethodDirectlyOrIndirectly() {
-      Boolean cache = mayHaveFinalizeMethodDirectlyOrIndirectlyCache.get(type);
-      return cache != null ? OptionalBool.of(cache.booleanValue()) : OptionalBool.unknown();
-    }
-
-    synchronized boolean cacheMayHaveFinalizeMethodDirectlyOrIndirectly(boolean value) {
-      assert mayHaveFinalizeMethodDirectlyOrIndirectlyCache.getOrDefault(type, value) == value;
-      mayHaveFinalizeMethodDirectlyOrIndirectlyCache.put(type, value);
-      return value;
-    }
   }
 
   // Set of missing classes, discovered during subtypeMap computation.
@@ -139,6 +123,11 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
 
   // Map from types to their subtyping information.
   private final Map<DexType, TypeInfo> typeInfo;
+
+  // Caches which static types that may store an object that has a non-default finalize() method.
+  // E.g., `java.lang.Object -> TRUE` if there is a subtype of Object that overrides finalize().
+  private final Map<DexType, Boolean> mayHaveFinalizeMethodDirectlyOrIndirectlyCache =
+      new ConcurrentHashMap<>();
 
   public AppInfoWithSubtyping(DexApplication application) {
     super(application);
@@ -733,33 +722,37 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
   private boolean computeMayHaveFinalizeMethodDirectlyOrIndirectlyIfAbsent(
       DexType type, boolean lookUpwards) {
     assert type.isClassType();
-    TypeInfo typeInfo = getTypeInfo(type);
-    OptionalBool result = typeInfo.mayHaveFinalizeMethodDirectlyOrIndirectly();
-    if (!result.isUnknown()) {
-      return result.isTrue();
+    Boolean cache = mayHaveFinalizeMethodDirectlyOrIndirectlyCache.get(type);
+    if (cache != null) {
+      return cache;
     }
     DexClass clazz = definitionFor(type);
     if (clazz == null) {
-      return typeInfo.cacheMayHaveFinalizeMethodDirectlyOrIndirectly(true);
+      mayHaveFinalizeMethodDirectlyOrIndirectlyCache.put(type, true);
+      return true;
     }
     if (clazz.isProgramClass()) {
       if (lookUpwards) {
         DexEncodedMethod resolutionResult =
             resolveMethod(type, dexItemFactory().objectMethods.finalize).asSingleTarget();
         if (resolutionResult != null && resolutionResult.isProgramMethod(this)) {
-          return typeInfo.cacheMayHaveFinalizeMethodDirectlyOrIndirectly(true);
+          mayHaveFinalizeMethodDirectlyOrIndirectlyCache.put(type, true);
+          return true;
         }
       } else {
         if (clazz.lookupVirtualMethod(dexItemFactory().objectMethods.finalize) != null) {
-          return typeInfo.cacheMayHaveFinalizeMethodDirectlyOrIndirectly(true);
+          mayHaveFinalizeMethodDirectlyOrIndirectlyCache.put(type, true);
+          return true;
         }
       }
     }
     for (DexType subtype : allImmediateSubtypes(type)) {
       if (computeMayHaveFinalizeMethodDirectlyOrIndirectlyIfAbsent(subtype, false)) {
-        return typeInfo.cacheMayHaveFinalizeMethodDirectlyOrIndirectly(true);
+        mayHaveFinalizeMethodDirectlyOrIndirectlyCache.put(type, true);
+        return true;
       }
     }
-    return typeInfo.cacheMayHaveFinalizeMethodDirectlyOrIndirectly(false);
+    mayHaveFinalizeMethodDirectlyOrIndirectlyCache.put(type, false);
+    return false;
   }
 }
