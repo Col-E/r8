@@ -32,9 +32,33 @@ class WhyAreYouNotInliningReporterImpl extends WhyAreYouNotInliningReporter {
     reasonHasBeenReported = true;
   }
 
+  private void printWithExceededThreshold(
+      String reason, String description, int value, int threshold) {
+    print(reason + " (" + description + ": " + value + ", threshold: " + threshold + ").");
+  }
+
+  @Override
+  public void reportPotentialExplosionInExceptionalControlFlowResolutionBlocks(
+      int estimatedNumberOfControlFlowResolutionBlocks, int threshold) {
+    printWithExceededThreshold(
+        "could lead to an explosion in the number of moves due to the exceptional control flow",
+        "estimated number of control flow resolution blocks",
+        estimatedNumberOfControlFlowResolutionBlocks,
+        threshold);
+  }
+
   @Override
   public void reportUnknownTarget() {
     print("could not find a single target.");
+  }
+
+  @Override
+  public void reportWillExceedInstructionBudget(int numberOfInstructions, int threshold) {
+    printWithExceededThreshold(
+        "would exceed the caller's instruction budget",
+        "number of instructions in inlinee",
+        numberOfInstructions,
+        threshold);
   }
 
   @Override

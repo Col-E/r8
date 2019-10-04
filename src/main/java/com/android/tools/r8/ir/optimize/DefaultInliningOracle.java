@@ -492,13 +492,23 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
           numberOfThrowingInstructionsInInlinee * block.numberOfCatchHandlers();
       // Abort if inlining could lead to an explosion in the number of control flow
       // resolution blocks that setup the register state before the actual catch handler.
-      if (estimatedNumberOfControlFlowResolutionBlocks
-          >= appView.options().inliningControlFlowResolutionBlocksThreshold) {
+      int threshold = appView.options().inliningControlFlowResolutionBlocksThreshold;
+      if (estimatedNumberOfControlFlowResolutionBlocks >= threshold) {
+        whyAreYouNotInliningReporter
+            .reportPotentialExplosionInExceptionalControlFlowResolutionBlocks(
+                estimatedNumberOfControlFlowResolutionBlocks, threshold);
         return true;
       }
     }
 
-    return instructionAllowance < Inliner.numberOfInstructions(inlinee.code);
+    int numberOfInstructions = Inliner.numberOfInstructions(inlinee.code);
+    if (instructionAllowance < Inliner.numberOfInstructions(inlinee.code)) {
+      whyAreYouNotInliningReporter.reportWillExceedInstructionBudget(
+          numberOfInstructions, instructionAllowance);
+      return true;
+    }
+
+    return false;
   }
 
   @Override

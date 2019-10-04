@@ -41,7 +41,12 @@ public abstract class WhyAreYouNotInliningReporter {
     }
   }
 
+  public abstract void reportPotentialExplosionInExceptionalControlFlowResolutionBlocks(
+      int estimatedNumberOfControlFlowResolutionBlocks, int threshold);
+
   abstract void reportUnknownTarget();
+
+  public abstract void reportWillExceedInstructionBudget(int numberOfInstructions, int threshold);
 
   public abstract boolean verifyReasonHasBeenReported();
 }

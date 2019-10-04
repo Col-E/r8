@@ -841,8 +841,7 @@ public class Inliner {
                   getPositionForInlining(invoke, context),
                   lensCodeRewriter);
           if (strategy.willExceedBudget(inlinee, block, whyAreYouNotInliningReporter)) {
-            // TODO(b/142108662): Enable assertion once reporting is complete.
-            // assert whyAreYouNotInliningReporter.verifyReasonHasBeenReported();
+            assert whyAreYouNotInliningReporter.verifyReasonHasBeenReported();
             continue;
           }
 
