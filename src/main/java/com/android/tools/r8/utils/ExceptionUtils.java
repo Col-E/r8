@@ -7,9 +7,11 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.StringConsumer;
+import com.android.tools.r8.Version;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
+import com.google.common.collect.ObjectArrays;
 import java.io.IOException;
 import java.nio.file.FileSystemException;
 import java.nio.file.Paths;
@@ -71,6 +73,13 @@ public abstract class ExceptionUtils {
         throw reporter.fatalError(new ExceptionDiagnostic(e, e.getOrigin()));
       } catch (AssertionError e) {
         throw reporter.fatalError(new ExceptionDiagnostic(e, Origin.unknown()));
+      } catch (Exception e) {
+        String filename = "Version_" + Version.LABEL + ".java";
+        StackTraceElement versionElement = new StackTraceElement(
+            Version.class.getSimpleName(), "fakeStackEntry", filename, 0);
+        StackTraceElement[] withVersion = ObjectArrays.concat(versionElement, e.getStackTrace());
+        e.setStackTrace(withVersion);
+        throw e;
       }
       reporter.failIfPendingErrors();
     } catch (AbortException e) {
