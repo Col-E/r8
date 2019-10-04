@@ -41,6 +41,8 @@ public abstract class WhyAreYouNotInliningReporter {
     }
   }
 
+  public abstract void reportInstructionBudgetIsExceeded();
+
   public abstract void reportPotentialExplosionInExceptionalControlFlowResolutionBlocks(
       int estimatedNumberOfControlFlowResolutionBlocks, int threshold);
 

@@ -746,8 +746,7 @@ public class Inliner {
             continue;
           }
           if (!strategy.stillHasBudget(action, whyAreYouNotInliningReporter)) {
-            // TODO(b/142108662): Enable assertion once reporting is complete.
-            // assert whyAreYouNotInliningReporter.verifyReasonHasBeenReported();
+            assert whyAreYouNotInliningReporter.verifyReasonHasBeenReported();
             continue;
           }
 

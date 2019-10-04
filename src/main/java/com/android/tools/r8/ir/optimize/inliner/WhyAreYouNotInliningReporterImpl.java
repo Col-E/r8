@@ -38,6 +38,11 @@ class WhyAreYouNotInliningReporterImpl extends WhyAreYouNotInliningReporter {
   }
 
   @Override
+  public void reportInstructionBudgetIsExceeded() {
+    print("caller's instruction budget is exceeded.");
+  }
+
+  @Override
   public void reportPotentialExplosionInExceptionalControlFlowResolutionBlocks(
       int estimatedNumberOfControlFlowResolutionBlocks, int threshold) {
     printWithExceededThreshold(

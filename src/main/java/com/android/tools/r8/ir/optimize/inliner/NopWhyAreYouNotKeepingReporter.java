@@ -16,6 +16,9 @@ public class NopWhyAreYouNotKeepingReporter extends WhyAreYouNotInliningReporter
   }
 
   @Override
+  public void reportInstructionBudgetIsExceeded() {}
+
+  @Override
   public void reportPotentialExplosionInExceptionalControlFlowResolutionBlocks(
       int estimatedNumberOfControlFlowResolutionBlocks, int threshold) {}
 

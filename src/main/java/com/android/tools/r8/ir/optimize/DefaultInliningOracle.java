@@ -541,7 +541,14 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
   @Override
   public boolean stillHasBudget(
       InlineAction action, WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
-    return instructionAllowance > 0 || action.reason.mustBeInlined();
+    if (action.reason.mustBeInlined()) {
+      return true;
+    }
+    boolean stillHasBudget = instructionAllowance > 0;
+    if (!stillHasBudget) {
+      whyAreYouNotInliningReporter.reportInstructionBudgetIsExceeded();
+    }
+    return stillHasBudget;
   }
 
   @Override
