@@ -437,7 +437,7 @@ public class JarClassFileReader {
           // It is unclear whether the intention was a member class or a local class. Fail hard.
           throw new CompilationError(
               StringUtils.lines(
-                  "A member class should be a (non-member) local class at the same time.",
+                  "A member class cannot also be a (non-member) local class at the same time.",
                   "This is likely due to invalid EnclosingMethod and InnerClasses attributes:",
                   enclosingMember.toString(),
                   innerClassAttribute.toString()),
