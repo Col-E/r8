@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.function.Consumer;
@@ -564,6 +565,40 @@ public class BasicBlock {
 
   public Iterable<Instruction> instructionsAfter(Instruction instruction) {
     return () -> iterator(instruction);
+  }
+
+  public Iterable<Instruction> instructionsBefore(Instruction instruction) {
+    return () ->
+        new Iterator<Instruction>() {
+
+          private InstructionIterator iterator = iterator();
+          private Instruction next = advance();
+
+          private Instruction advance() {
+            if (iterator.hasNext()) {
+              Instruction next = iterator.next();
+              if (next != instruction) {
+                return next;
+              }
+            }
+            return null;
+          }
+
+          @Override
+          public boolean hasNext() {
+            return next != null;
+          }
+
+          @Override
+          public Instruction next() {
+            Instruction result = next;
+            if (result == null) {
+              throw new NoSuchElementException();
+            }
+            next = advance();
+            return result;
+          }
+        };
   }
 
   public boolean isEmpty() {

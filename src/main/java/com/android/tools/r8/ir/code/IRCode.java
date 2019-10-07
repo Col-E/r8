@@ -1167,7 +1167,7 @@ public class IRCode {
    * <p>Note: It is the responsibility of the caller to return the marking color.
    */
   public void markTransitivePredecessors(BasicBlock subject, int color) {
-    assert isMarkingColorInUse(color) && !anyBlocksMarkedWithColor(color);
+    assert isMarkingColorInUse(color);
     Queue<BasicBlock> worklist = new ArrayDeque<>();
     worklist.add(subject);
     while (!worklist.isEmpty()) {

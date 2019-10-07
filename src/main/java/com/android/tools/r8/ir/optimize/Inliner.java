@@ -776,7 +776,7 @@ public class Inliner {
           assert !singleTarget.isClassInitializer();
           if (singleTarget.isInstanceInitializer()
               && !strategy.canInlineInstanceInitializer(
-                  invoke.asInvokeDirect(), inlinee.code, whyAreYouNotInliningReporter)) {
+                  inlinee.code, whyAreYouNotInliningReporter)) {
             // TODO(b/142108662): Enable assertion once reporting is complete.
             // assert whyAreYouNotInliningReporter.verifyReasonHasBeenReported();
             continue;
