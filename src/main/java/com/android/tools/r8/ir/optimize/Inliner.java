@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AccessFlags;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
@@ -80,7 +81,12 @@ public class Inliner {
     blackList.add(appView.dexItemFactory().kotlin.intrinsics.throwNpe);
   }
 
-  public boolean isBlackListed(DexMethod method) {
+  public boolean isBlackListed(DexEncodedMethod encodedMethod) {
+    DexMethod method = encodedMethod.method;
+    if (encodedMethod.getOptimizationInfo().forceInline()
+        && appView.appInfo().neverInline.contains(method)) {
+      throw new Unreachable();
+    }
     return blackList.contains(appView.graphLense().getOriginalMethodSignature(method))
         || appView.appInfo().isPinned(method)
         || appView.appInfo().neverInline.contains(method)

@@ -279,6 +279,9 @@ public class RootSetBuilder {
       BottomUpClassHierarchyTraversal.forAllClasses(appView)
           .visit(appView.appInfo().classes(), this::propagateAssumeRules);
     }
+    assert Sets.intersection(neverInline, alwaysInline).isEmpty()
+            && Sets.intersection(neverInline, forceInline).isEmpty()
+        : "A method cannot be marked as both -neverinline and -forceinline/-alwaysinline.";
     return new RootSet(
         noShrinking,
         noOptimization,

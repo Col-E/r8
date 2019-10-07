@@ -348,7 +348,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       DexMethod invocationContext,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     DexEncodedMethod candidate = validateCandidate(invoke, invocationContext);
-    if (candidate == null || inliner.isBlackListed(candidate.method)) {
+    if (candidate == null || inliner.isBlackListed(candidate)) {
       return null;
     }
 
@@ -414,7 +414,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       ClassInitializationAnalysis classInitializationAnalysis,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     DexEncodedMethod candidate = validateCandidate(invoke, invocationContext);
-    if (candidate == null || inliner.isBlackListed(candidate.method)) {
+    if (candidate == null || inliner.isBlackListed(candidate)) {
       return null;
     }
 
