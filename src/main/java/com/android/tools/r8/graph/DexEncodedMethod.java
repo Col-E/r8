@@ -51,6 +51,7 @@ import com.android.tools.r8.ir.optimize.info.DefaultMethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MutableCallSiteOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.UpdatableMethodOptimizationInfo;
+import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.ir.synthetic.EmulateInterfaceSyntheticCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.FieldAccessorSourceCode;
@@ -347,41 +348,77 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
   }
 
   public boolean isInliningCandidate(
-      DexEncodedMethod container, Reason inliningReason, AppInfoWithSubtyping appInfo) {
+      DexEncodedMethod container,
+      Reason inliningReason,
+      AppInfoWithSubtyping appInfo,
+      WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     checkIfObsolete();
-    return isInliningCandidate(container.method.holder, inliningReason, appInfo);
+    return isInliningCandidate(
+        container.method.holder, inliningReason, appInfo, whyAreYouNotInliningReporter);
   }
 
   public boolean isInliningCandidate(
-      DexType containerType, Reason inliningReason, AppInfoWithSubtyping appInfo) {
+      DexType containerType,
+      Reason inliningReason,
+      AppInfoWithSubtyping appInfo,
+      WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     checkIfObsolete();
     if (isClassInitializer()) {
       // This will probably never happen but never inline a class initializer.
+      whyAreYouNotInliningReporter.reportUnknownReason();
       return false;
     }
+
     if (inliningReason == Reason.FORCE) {
       // Make sure we would be able to inline this normally.
-      if (!isInliningCandidate(containerType, Reason.SIMPLE, appInfo)) {
+      if (!isInliningCandidate(
+          containerType, Reason.SIMPLE, appInfo, whyAreYouNotInliningReporter)) {
         // If not, raise a flag, because some optimizations that depend on force inlining would
         // silently produce an invalid code, which is worse than an internal error.
         throw new InternalCompilerError("FORCE inlining on non-inlinable: " + toSourceString());
       }
       return true;
     }
+
     // TODO(b/128967328): inlining candidate should satisfy all states if multiple states are there.
     switch (compilationState) {
       case PROCESSED_INLINING_CANDIDATE_ANY:
         return true;
+
       case PROCESSED_INLINING_CANDIDATE_SUBCLASS:
-        return appInfo.isSubtype(containerType, method.holder);
-      case PROCESSED_INLINING_CANDIDATE_SAME_PACKAGE:
-        return containerType.isSamePackage(method.holder);
-      case PROCESSED_INLINING_CANDIDATE_SAME_NEST:
-        return NestUtils.sameNest(containerType, method.holder, appInfo);
-      case PROCESSED_INLINING_CANDIDATE_SAME_CLASS:
-        return containerType == method.holder;
-      default:
+        if (appInfo.isSubtype(containerType, method.holder)) {
+          return true;
+        }
+        whyAreYouNotInliningReporter.reportUnknownReason();
         return false;
+
+      case PROCESSED_INLINING_CANDIDATE_SAME_PACKAGE:
+        if (containerType.isSamePackage(method.holder)) {
+          return true;
+        }
+        whyAreYouNotInliningReporter.reportUnknownReason();
+        return false;
+
+      case PROCESSED_INLINING_CANDIDATE_SAME_NEST:
+        if (NestUtils.sameNest(containerType, method.holder, appInfo)) {
+          return true;
+        }
+        whyAreYouNotInliningReporter.reportUnknownReason();
+        return false;
+
+      case PROCESSED_INLINING_CANDIDATE_SAME_CLASS:
+        if (containerType == method.holder) {
+          return true;
+        }
+        whyAreYouNotInliningReporter.reportUnknownReason();
+        return false;
+
+      case PROCESSED_NOT_INLINING_CANDIDATE:
+        whyAreYouNotInliningReporter.reportUnknownReason();
+        return false;
+
+      default:
+        throw new Unreachable();
     }
   }
 

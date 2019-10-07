@@ -34,12 +34,15 @@ import com.android.tools.r8.ir.conversion.LensCodeRewriter;
 import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
+import com.android.tools.r8.ir.optimize.inliner.NopWhyAreYouNotInliningReporter;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
+import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -55,6 +58,8 @@ import java.util.function.Predicate;
 public class Inliner {
 
   protected final AppView<AppInfoWithLiveness> appView;
+  private final Set<DexMethod> blackList;
+  private final LensCodeRewriter lensCodeRewriter;
   final MainDexClasses mainDexClasses;
 
   // State for inlining methods which are known to be called twice.
@@ -63,34 +68,46 @@ public class Inliner {
   private final Set<DexEncodedMethod> doubleInlineSelectedTargets = Sets.newIdentityHashSet();
   private final Map<DexEncodedMethod, DexEncodedMethod> doubleInlineeCandidates = new HashMap<>();
 
-  private final Set<DexMethod> blackList = Sets.newIdentityHashSet();
-  private final LensCodeRewriter lensCodeRewriter;
-
   public Inliner(
       AppView<AppInfoWithLiveness> appView,
       MainDexClasses mainDexClasses,
       LensCodeRewriter lensCodeRewriter) {
+    Kotlin.Intrinsics intrinsics = appView.dexItemFactory().kotlin.intrinsics;
     this.appView = appView;
-    this.mainDexClasses = mainDexClasses;
+    this.blackList = ImmutableSet.of(intrinsics.throwNpe, intrinsics.throwParameterIsNullException);
     this.lensCodeRewriter = lensCodeRewriter;
-    fillInBlackList();
+    this.mainDexClasses = mainDexClasses;
   }
 
-  private void fillInBlackList() {
-    blackList.add(appView.dexItemFactory().kotlin.intrinsics.throwParameterIsNullException);
-    blackList.add(appView.dexItemFactory().kotlin.intrinsics.throwNpe);
-  }
-
-  public boolean isBlackListed(DexEncodedMethod encodedMethod) {
+  boolean isBlackListed(
+      DexEncodedMethod encodedMethod, WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     DexMethod method = encodedMethod.method;
     if (encodedMethod.getOptimizationInfo().forceInline()
         && appView.appInfo().neverInline.contains(method)) {
       throw new Unreachable();
     }
-    return blackList.contains(appView.graphLense().getOriginalMethodSignature(method))
-        || appView.appInfo().isPinned(method)
-        || appView.appInfo().neverInline.contains(method)
-        || TwrCloseResourceRewriter.isSynthesizedCloseResourceMethod(method, appView);
+
+    if (appView.appInfo().isPinned(method)) {
+      whyAreYouNotInliningReporter.reportUnknownReason();
+      return true;
+    }
+
+    if (blackList.contains(appView.graphLense().getOriginalMethodSignature(method))) {
+      whyAreYouNotInliningReporter.reportUnknownReason();
+      return true;
+    }
+
+    if (appView.appInfo().neverInline.contains(method)) {
+      whyAreYouNotInliningReporter.reportUnknownReason();
+      return true;
+    }
+
+    if (TwrCloseResourceRewriter.isSynthesizedCloseResourceMethod(method, appView)) {
+      whyAreYouNotInliningReporter.reportUnknownReason();
+      return true;
+    }
+
+    return false;
   }
 
   private ConstraintWithTarget instructionAllowedForInlining(
@@ -738,7 +755,9 @@ public class Inliner {
           }
 
           WhyAreYouNotInliningReporter whyAreYouNotInliningReporter =
-              WhyAreYouNotInliningReporter.createFor(singleTarget, appView, context);
+              oracle.isForcedInliningOracle()
+                  ? NopWhyAreYouNotInliningReporter.getInstance()
+                  : WhyAreYouNotInliningReporter.createFor(singleTarget, appView, context);
           InlineAction action =
               invoke.computeInlining(
                   singleTarget,
@@ -747,10 +766,10 @@ public class Inliner {
                   classInitializationAnalysis,
                   whyAreYouNotInliningReporter);
           if (action == null) {
-            // TODO(b/142108662): Enable assertion once reporting is complete.
-            // assert whyAreYouNotInliningReporter.verifyReasonHasBeenReported();
+            assert whyAreYouNotInliningReporter.verifyReasonHasBeenReported();
             continue;
           }
+
           if (!strategy.stillHasBudget(action, whyAreYouNotInliningReporter)) {
             assert whyAreYouNotInliningReporter.verifyReasonHasBeenReported();
             continue;

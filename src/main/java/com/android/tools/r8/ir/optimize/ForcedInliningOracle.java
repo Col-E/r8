@@ -39,6 +39,11 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
   }
 
   @Override
+  public boolean isForcedInliningOracle() {
+    return true;
+  }
+
+  @Override
   public void finish() {}
 
   @Override

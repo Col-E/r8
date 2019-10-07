@@ -21,7 +21,7 @@ public abstract class WhyAreYouNotInliningReporter {
       return new WhyAreYouNotInliningReporterImpl(
           callee, context, appView.options().testing.whyAreYouNotInliningConsumer);
     }
-    return NopWhyAreYouNotKeepingReporter.getInstance();
+    return NopWhyAreYouNotInliningReporter.getInstance();
   }
 
   public static void handleInvokeWithUnknownTarget(
@@ -48,6 +48,8 @@ public abstract class WhyAreYouNotInliningReporter {
 
   public abstract void reportPotentialExplosionInExceptionalControlFlowResolutionBlocks(
       int estimatedNumberOfControlFlowResolutionBlocks, int threshold);
+
+  public abstract void reportUnknownReason();
 
   abstract void reportUnknownTarget();
 

@@ -19,6 +19,8 @@ import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
  */
 public interface InliningOracle {
 
+  boolean isForcedInliningOracle();
+
   void finish();
 
   // TODO(b/142116551): This should be equivalent to invoke.lookupSingleTarget(appView, context)!

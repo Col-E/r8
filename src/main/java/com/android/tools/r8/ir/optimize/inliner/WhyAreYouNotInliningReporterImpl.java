@@ -30,8 +30,12 @@ class WhyAreYouNotInliningReporterImpl extends WhyAreYouNotInliningReporter {
     output.print(callee.method.toSourceString());
     output.print("` was not inlined into `");
     output.print(context.method.toSourceString());
-    output.print("`: ");
-    output.println(reason);
+    if (reason != null) {
+      output.print("`: ");
+      output.println(reason);
+    } else {
+      output.println("`.");
+    }
     reasonHasBeenReported = true;
   }
 
@@ -53,6 +57,12 @@ class WhyAreYouNotInliningReporterImpl extends WhyAreYouNotInliningReporter {
         "estimated number of control flow resolution blocks",
         estimatedNumberOfControlFlowResolutionBlocks,
         threshold);
+  }
+
+  // TODO(b/142108662): Always report a meaningful reason.
+  @Override
+  public void reportUnknownReason() {
+    print(null);
   }
 
   @Override

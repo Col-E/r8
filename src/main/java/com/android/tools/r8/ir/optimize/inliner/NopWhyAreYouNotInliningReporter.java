@@ -8,14 +8,14 @@ import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeDirect;
 
-public class NopWhyAreYouNotKeepingReporter extends WhyAreYouNotInliningReporter {
+public class NopWhyAreYouNotInliningReporter extends WhyAreYouNotInliningReporter {
 
-  private static final NopWhyAreYouNotKeepingReporter INSTANCE =
-      new NopWhyAreYouNotKeepingReporter();
+  private static final NopWhyAreYouNotInliningReporter INSTANCE =
+      new NopWhyAreYouNotInliningReporter();
 
-  private NopWhyAreYouNotKeepingReporter() {}
+  private NopWhyAreYouNotInliningReporter() {}
 
-  public static NopWhyAreYouNotKeepingReporter getInstance() {
+  public static NopWhyAreYouNotInliningReporter getInstance() {
     return INSTANCE;
   }
 
@@ -25,6 +25,9 @@ public class NopWhyAreYouNotKeepingReporter extends WhyAreYouNotInliningReporter
   @Override
   public void reportPotentialExplosionInExceptionalControlFlowResolutionBlocks(
       int estimatedNumberOfControlFlowResolutionBlocks, int threshold) {}
+
+  @Override
+  public void reportUnknownReason() {}
 
   @Override
   public void reportUnknownTarget() {}

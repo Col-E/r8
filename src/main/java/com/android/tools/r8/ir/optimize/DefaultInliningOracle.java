@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexClass;
@@ -30,6 +31,7 @@ import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.MainDexDirectReferenceTracer;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.google.common.collect.Sets;
@@ -74,32 +76,53 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
   }
 
   @Override
+  public boolean isForcedInliningOracle() {
+    return false;
+  }
+
+  @Override
   public void finish() {
     if (Log.ENABLED && info != null) {
       Log.debug(getClass(), info.toString());
     }
   }
 
-  private DexEncodedMethod validateCandidate(InvokeMethod invoke, DexMethod invocationContext) {
-    DexEncodedMethod candidate = invoke.lookupSingleTarget(appView, invocationContext.holder);
-    if ((candidate == null)
-        || (candidate.getCode() == null)
-        || appView.definitionFor(candidate.method.holder).isNotProgramClass()) {
+  private boolean isSingleTargetInvalid(
+      InvokeMethod invoke,
+      DexEncodedMethod singleTarget,
+      WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
+    if (singleTarget == null) {
+      throw new Unreachable();
+    }
+
+    if (!singleTarget.hasCode()) {
       if (info != null) {
         info.exclude(invoke, "No inlinee");
       }
-      return null;
+      whyAreYouNotInliningReporter.reportUnknownReason();
+      return true;
     }
+
+    if (appView.definitionFor(singleTarget.method.holder).isNotProgramClass()) {
+      if (info != null) {
+        info.exclude(invoke, "No inlinee");
+      }
+      whyAreYouNotInliningReporter.reportUnknownReason();
+      return true;
+    }
+
     // Ignore the implicit receiver argument.
     int numberOfArguments =
-        invoke.arguments().size() - (invoke.isInvokeMethodWithReceiver() ? 1 : 0);
-    if (numberOfArguments != candidate.method.getArity()) {
+        invoke.arguments().size() - BooleanUtils.intValue(invoke.isInvokeMethodWithReceiver());
+    if (numberOfArguments != singleTarget.method.getArity()) {
       if (info != null) {
         info.exclude(invoke, "Argument number mismatch");
       }
-      return null;
+      whyAreYouNotInliningReporter.reportUnknownReason();
+      return true;
     }
-    return candidate;
+
+    return false;
   }
 
   private Reason computeInliningReason(DexEncodedMethod target) {
@@ -133,7 +156,8 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       InvokeStatic invoke,
       DexEncodedMethod method,
       DexEncodedMethod target,
-      ClassInitializationAnalysis classInitializationAnalysis) {
+      ClassInitializationAnalysis classInitializationAnalysis,
+      WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     // Only proceed with inlining a static invoke if:
     // - the holder for the target is a subtype of the holder for the method,
     // - the target method always triggers class initialization of its holder before any other side
@@ -172,7 +196,12 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     //
     // For simplicity, we are conservative and consider all interfaces, not only the ones with
     // default methods.
-    return !clazz.classInitializationMayHaveSideEffects(appView);
+    if (!clazz.classInitializationMayHaveSideEffects(appView)) {
+      return true;
+    }
+
+    whyAreYouNotInliningReporter.reportUnknownReason();
+    return false;
   }
 
   private synchronized boolean isDoubleInliningTarget(DexEncodedMethod candidate) {
@@ -181,9 +210,13 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
         && candidate.getCode().estimatedSizeForInliningAtMost(10);
   }
 
-  private boolean passesInliningConstraints(InvokeMethod invoke, DexEncodedMethod candidate,
-      Reason reason) {
+  private boolean passesInliningConstraints(
+      InvokeMethod invoke,
+      DexEncodedMethod candidate,
+      Reason reason,
+      WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     if (candidate.getOptimizationInfo().neverInline()) {
+      whyAreYouNotInliningReporter.reportUnknownReason();
       return false;
     }
 
@@ -192,6 +225,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     if (method.isInstanceInitializer()
         && appView.options().isGeneratingClassFiles()
         && reason != Reason.FORCE) {
+      whyAreYouNotInliningReporter.reportUnknownReason();
       return false;
     }
 
@@ -202,6 +236,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       if (info != null) {
         info.exclude(invoke, "direct recursion");
       }
+      whyAreYouNotInliningReporter.reportUnknownReason();
       return false;
     }
 
@@ -214,6 +249,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       if (info != null) {
         info.exclude(invoke, "is processed in parallel");
       }
+      whyAreYouNotInliningReporter.reportUnknownReason();
       return false;
     }
 
@@ -221,11 +257,13 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     if (options.featureSplitConfiguration != null
         && !options.featureSplitConfiguration.inSameFeatureOrBase(
             candidate.method, method.method)) {
+      whyAreYouNotInliningReporter.reportUnknownReason();
       return false;
     }
 
     if (options.testing.validInliningReasons != null
         && !options.testing.validInliningReasons.contains(reason)) {
+      whyAreYouNotInliningReporter.reportUnknownReason();
       return false;
     }
 
@@ -234,6 +272,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       if (info != null) {
         info.exclude(invoke, "target does not have right access");
       }
+      whyAreYouNotInliningReporter.reportUnknownReason();
       return false;
     }
 
@@ -245,10 +284,12 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       if (info != null) {
         info.exclude(invoke, "Do not inline target if method holder is an interface class");
       }
+      whyAreYouNotInliningReporter.reportUnknownReason();
       return false;
     }
 
     if (holder.isNotProgramClass()) {
+      whyAreYouNotInliningReporter.reportUnknownReason();
       return false;
     }
 
@@ -257,6 +298,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       if (info != null) {
         info.exclude(invoke, "target is synchronized");
       }
+      whyAreYouNotInliningReporter.reportUnknownReason();
       return false;
     }
 
@@ -272,11 +314,13 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
           if (info != null) {
             info.exclude(invoke, "target is not ready for double inlining");
           }
+          whyAreYouNotInliningReporter.reportUnknownReason();
           return false;
         }
       }
     } else if (reason == Reason.SIMPLE
         && !satisfiesRequirementsForSimpleInlining(invoke, candidate)) {
+      whyAreYouNotInliningReporter.reportUnknownReason();
       return false;
     }
 
@@ -289,6 +333,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
         if (info != null) {
           info.exclude(invoke, "target has references beyond main dex");
         }
+        whyAreYouNotInliningReporter.reportUnknownReason();
         return false;
       }
       // Allow inlining into the classes in the main dex dependent set without restrictions.
@@ -348,13 +393,17 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       DexEncodedMethod singleTarget,
       DexMethod invocationContext,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
-    DexEncodedMethod candidate = validateCandidate(invoke, invocationContext);
-    if (candidate == null || inliner.isBlackListed(candidate)) {
+    if (isSingleTargetInvalid(invoke, singleTarget, whyAreYouNotInliningReporter)) {
       return null;
     }
 
-    Reason reason = computeInliningReason(candidate);
-    if (!candidate.isInliningCandidate(method, reason, appView.appInfo())) {
+    if (inliner.isBlackListed(singleTarget, whyAreYouNotInliningReporter)) {
+      return null;
+    }
+
+    Reason reason = computeInliningReason(singleTarget);
+    if (!singleTarget.isInliningCandidate(
+        method, reason, appView.appInfo(), whyAreYouNotInliningReporter)) {
       // Abort inlining attempt if the single target is not an inlining candidate.
       if (info != null) {
         info.exclude(invoke, "target is not identified for inlining");
@@ -362,35 +411,38 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       return null;
     }
 
-    if (!passesInliningConstraints(invoke, candidate, reason)) {
+    if (!passesInliningConstraints(invoke, singleTarget, reason, whyAreYouNotInliningReporter)) {
       return null;
     }
 
     if (info != null) {
-      info.include(invoke.getType(), candidate);
+      info.include(invoke.getType(), singleTarget);
     }
 
     Value receiver = invoke.getReceiver();
     if (receiver.getTypeLattice().isDefinitelyNull()) {
       // A definitely null receiver will throw an error on call site.
+      whyAreYouNotInliningReporter.reportUnknownReason();
       return null;
     }
-    InlineAction action = new InlineAction(candidate, invoke, reason);
 
+    InlineAction action = new InlineAction(singleTarget, invoke, reason);
     if (receiver.getTypeLattice().isNullable()) {
       assert !receiver.getTypeLattice().isDefinitelyNull();
       // When inlining an instance method call, we need to preserve the null check for the
       // receiver. Therefore, if the receiver may be null and the candidate inlinee does not
       // throw if the receiver is null before any other side effect, then we must synthesize a
       // null check.
-      if (!candidate.getOptimizationInfo().checksNullReceiverBeforeAnySideEffect()) {
+      if (!singleTarget.getOptimizationInfo().checksNullReceiverBeforeAnySideEffect()) {
         InternalOptions options = appView.options();
         if (!options.enableInliningOfInvokesWithNullableReceivers) {
+          whyAreYouNotInliningReporter.reportUnknownReason();
           return null;
         }
         if (!options.nullableReceiverInliningFilter.isEmpty()
             && !options.nullableReceiverInliningFilter.contains(
                 invoke.getInvokedMethod().toSourceString())) {
+          whyAreYouNotInliningReporter.reportUnknownReason();
           return null;
         }
         if (Log.ENABLED && Log.isLoggingEnabledFor(Inliner.class)) {
@@ -403,7 +455,6 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
         action.setShouldSynthesizeNullCheckForReceiver();
       }
     }
-
     return action;
   }
 
@@ -414,14 +465,18 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       DexMethod invocationContext,
       ClassInitializationAnalysis classInitializationAnalysis,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
-    DexEncodedMethod candidate = validateCandidate(invoke, invocationContext);
-    if (candidate == null || inliner.isBlackListed(candidate)) {
+    if (isSingleTargetInvalid(invoke, singleTarget, whyAreYouNotInliningReporter)) {
       return null;
     }
 
-    Reason reason = computeInliningReason(candidate);
+    if (inliner.isBlackListed(singleTarget, whyAreYouNotInliningReporter)) {
+      return null;
+    }
+
+    Reason reason = computeInliningReason(singleTarget);
     // Determine if this should be inlined no matter how big it is.
-    if (!candidate.isInliningCandidate(method, reason, appView.appInfo())) {
+    if (!singleTarget.isInliningCandidate(
+        method, reason, appView.appInfo(), whyAreYouNotInliningReporter)) {
       // Abort inlining attempt if the single target is not an inlining candidate.
       if (info != null) {
         info.exclude(invoke, "target is not identified for inlining");
@@ -430,21 +485,22 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     }
 
     // Abort inlining attempt if we can not guarantee class for static target has been initialized.
-    if (!canInlineStaticInvoke(invoke, method, candidate, classInitializationAnalysis)) {
+    if (!canInlineStaticInvoke(
+        invoke, method, singleTarget, classInitializationAnalysis, whyAreYouNotInliningReporter)) {
       if (info != null) {
         info.exclude(invoke, "target is static but we cannot guarantee class has been initialized");
       }
       return null;
     }
 
-    if (!passesInliningConstraints(invoke, candidate, reason)) {
+    if (!passesInliningConstraints(invoke, singleTarget, reason, whyAreYouNotInliningReporter)) {
       return null;
     }
 
     if (info != null) {
-      info.include(invoke.getType(), candidate);
+      info.include(invoke.getType(), singleTarget);
     }
-    return new InlineAction(candidate, invoke, reason);
+    return new InlineAction(singleTarget, invoke, reason);
   }
 
   @Override

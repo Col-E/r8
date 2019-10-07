@@ -25,6 +25,8 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
+import com.android.tools.r8.ir.optimize.inliner.NopWhyAreYouNotInliningReporter;
+import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.ir.optimize.lambda.CaptureSignature;
 import com.android.tools.r8.ir.optimize.lambda.LambdaGroup.LambdaStructureError;
 import com.android.tools.r8.kotlin.Kotlin;
@@ -111,8 +113,11 @@ abstract class KotlinLambdaClassValidator
     //       can safely use a fake one here.
     DexType fakeLambdaGroupType = kotlin.factory.createType(
         "L" + group.getTypePackage() + "-$$LambdaGroup$XXXX;");
+    WhyAreYouNotInliningReporter whyAreYouNotInliningReporter =
+        NopWhyAreYouNotInliningReporter.getInstance();
     for (DexEncodedMethod method : lambda.virtualMethods()) {
-      if (!method.isInliningCandidate(fakeLambdaGroupType, Reason.SIMPLE, appInfo)) {
+      if (!method.isInliningCandidate(
+          fakeLambdaGroupType, Reason.SIMPLE, appInfo, whyAreYouNotInliningReporter)) {
         throw structureError("method " + method.method.toSourceString() +
             " is not inline-able into lambda group class");
       }
