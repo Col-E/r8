@@ -38,7 +38,7 @@ public abstract class TestCompilerBuilder<
   final Backend backend;
 
   // Default initialized setup. Can be overwritten if needed.
-  private Path defaultLibrary;
+  private boolean useDefaultRuntimeLibrary = true;
   private ProgramConsumer programConsumer;
   private StringConsumer mainDexListConsumer;
   private AndroidApiLevel defaultMinApiLevel = ToolHelper.getMinApiLevelForDexVm();
@@ -49,7 +49,6 @@ public abstract class TestCompilerBuilder<
   TestCompilerBuilder(TestState state, B builder, Backend backend) {
     super(state, builder);
     this.backend = backend;
-    defaultLibrary = TestBase.runtimeJar(backend);
     if (backend == Backend.DEX) {
       setOutputMode(OutputMode.DexIndexed);
     } else {
@@ -75,11 +74,17 @@ public abstract class TestCompilerBuilder<
     AndroidAppConsumers sink = new AndroidAppConsumers();
     builder.setProgramConsumer(sink.wrapProgramConsumer(programConsumer));
     builder.setMainDexListConsumer(mainDexListConsumer);
-    if (defaultLibrary != null) {
-      builder.addLibraryFiles(defaultLibrary);
-    }
     if (backend == Backend.DEX && defaultMinApiLevel != null) {
       builder.setMinApiLevel(defaultMinApiLevel.getLevel());
+    }
+    if (useDefaultRuntimeLibrary) {
+      if (backend == Backend.DEX && builder.isMinApiLevelSet()) {
+        builder.addLibraryFiles(
+            ToolHelper.getFirstSupportedAndroidJar(
+                AndroidApiLevel.getAndroidApiLevel(builder.getMinApiLevel())));
+      } else {
+        builder.addLibraryFiles(TestBase.runtimeJar(backend));
+      }
     }
     PrintStream oldOut = System.out;
     try {
@@ -229,19 +234,19 @@ public abstract class TestCompilerBuilder<
 
   @Override
   public T addLibraryFiles(Collection<Path> files) {
-    defaultLibrary = null;
+    useDefaultRuntimeLibrary = false;
     return super.addLibraryFiles(files);
   }
 
   @Override
   public T addLibraryClasses(Collection<Class<?>> classes) {
-    defaultLibrary = null;
+    useDefaultRuntimeLibrary = false;
     return super.addLibraryClasses(classes);
   }
 
   @Override
   public T addLibraryProvider(ClassFileResourceProvider provider) {
-    defaultLibrary = null;
+    useDefaultRuntimeLibrary = false;
     return super.addLibraryProvider(provider);
   }
 

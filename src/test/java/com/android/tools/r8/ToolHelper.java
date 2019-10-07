@@ -718,8 +718,24 @@ public class ToolHelper {
     return Paths.get(CORE_LAMBDA_STUBS);
   }
 
+  @Deprecated
+  // Use getFirstSupportedAndroidJar(AndroidApiLevel) to specify a specific Android jar.
   public static Path getDefaultAndroidJar() {
     return getAndroidJar(AndroidApiLevel.getDefault());
+  }
+
+  public static Path getFirstSupportedAndroidJar(AndroidApiLevel apiLevel) {
+    // Fast path.
+    if (hasAndroidJar(apiLevel)) {
+      return getAndroidJar(apiLevel.getLevel());
+    }
+    // Search for an android jar.
+    for (AndroidApiLevel level : AndroidApiLevel.getAndroidApiLevelsSorted()) {
+      if (level.getLevel() >= apiLevel.getLevel() && hasAndroidJar(apiLevel)) {
+        return getAndroidJar(apiLevel.getLevel());
+      }
+    }
+    return getAndroidJar(AndroidApiLevel.LATEST);
   }
 
   public static Path getAndroidJar(int apiLevel) {

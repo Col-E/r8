@@ -4,6 +4,9 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.errors.Unreachable;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
 
 /**
  * Android API level description
@@ -62,6 +65,12 @@ public enum AndroidApiLevel {
 
   public DexVersion getDexVersion() {
     return DexVersion.getDexVersion(this);
+  }
+
+  public static List<AndroidApiLevel> getAndroidApiLevelsSorted() {
+    List<AndroidApiLevel> androidApiLevels = Arrays.asList(AndroidApiLevel.values());
+    androidApiLevels.sort(Comparator.comparingInt(AndroidApiLevel::getLevel));
+    return getAndroidApiLevelsSorted();
   }
 
   public static AndroidApiLevel getMinAndroidApiLevel(DexVersion dexVersion) {

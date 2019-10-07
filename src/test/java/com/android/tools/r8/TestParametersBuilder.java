@@ -192,7 +192,9 @@ public class TestParametersBuilder {
       return Stream.of(new TestParameters(runtime));
     }
     List<AndroidApiLevel> sortedApiLevels =
-        Arrays.stream(AndroidApiLevel.values()).filter(apiLevelFilter).collect(Collectors.toList());
+        AndroidApiLevel.getAndroidApiLevelsSorted().stream()
+            .filter(apiLevelFilter)
+            .collect(Collectors.toList());
     if (sortedApiLevels.isEmpty()) {
       return Stream.of();
     }

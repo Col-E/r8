@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.shaking;
 
-import static org.hamcrest.core.StringContains.containsString;
-
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -53,19 +51,13 @@ public class FunctionTest extends TestBase {
   }
 
   @Test
-  public void testR8Broken() throws Exception {
+  public void testR8WithTreeshaking() throws Exception {
     testForR8(parameters.getBackend())
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
         .addInnerClasses(FunctionTest.class)
         .run(parameters.getRuntime(), TestClass.class)
-        // TODO(b/139398549): Change this to assertSuccessWithOutput(expectedOutput).
-        .assertFailure()
-        .assertStderrMatches(
-            containsString(
-                "Exception in thread \"main\" java.lang.AbstractMethodError: abstract method"
-                    + " \"java.lang.Object"
-                    + " java.util.function.Function.apply(java.lang.Object)\""));
+        .assertSuccessWithOutput(expectedOutput);
   }
 
   static class TestClass {
