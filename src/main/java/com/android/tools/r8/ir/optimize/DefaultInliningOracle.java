@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
@@ -506,6 +507,8 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
           if (receiver == thisValue) {
             // The <init>() call of the constructor must be on the same class.
             if (calleeMethodHolder != invokedMethod.holder) {
+              whyAreYouNotInliningReporter
+                  .reportUnsafeConstructorInliningDueToIndirectConstructorCall(initCall);
               return false;
             }
             initCallsOnThis.add(initCall);
@@ -513,9 +516,12 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
         }
       } else if (instruction.isInstancePut()) {
         // Final fields may not be initialized outside of a constructor in the enclosing class.
-        DexField field = instruction.asInstancePut().getField();
+        InstancePut instancePut = instruction.asInstancePut();
+        DexField field = instancePut.getField();
         DexEncodedField target = appView.appInfo().lookupInstanceTarget(field.holder, field);
         if (target == null || target.accessFlags.isFinal()) {
+          whyAreYouNotInliningReporter.reportUnsafeConstructorInliningDueToFinalFieldAssignment(
+              instancePut);
           return false;
         }
       }
@@ -530,6 +536,8 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
           Value root = inValue.getAliasedValue();
           if (root == thisValue) {
             inlinee.returnMarkingColor(markingColor);
+            whyAreYouNotInliningReporter.reportUnsafeConstructorInliningDueToUninitializedObjectUse(
+                instruction);
             return false;
           }
         }
@@ -546,6 +554,8 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
             Value root = inValue.getAliasedValue();
             if (root == thisValue) {
               inlinee.returnMarkingColor(markingColor);
+              whyAreYouNotInliningReporter
+                  .reportUnsafeConstructorInliningDueToUninitializedObjectUse(instruction);
               return false;
             }
           }

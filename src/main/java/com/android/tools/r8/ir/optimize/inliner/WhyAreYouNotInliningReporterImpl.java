@@ -5,6 +5,9 @@
 package com.android.tools.r8.ir.optimize.inliner;
 
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.ir.code.InstancePut;
+import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.InvokeDirect;
 import java.io.PrintStream;
 
 class WhyAreYouNotInliningReporterImpl extends WhyAreYouNotInliningReporter {
@@ -55,6 +58,29 @@ class WhyAreYouNotInliningReporterImpl extends WhyAreYouNotInliningReporter {
   @Override
   public void reportUnknownTarget() {
     print("could not find a single target.");
+  }
+
+  @Override
+  public void reportUnsafeConstructorInliningDueToFinalFieldAssignment(InstancePut instancePut) {
+    print(
+        "final field `"
+            + instancePut.getField()
+            + "` must be initialized in a constructor of `"
+            + callee.method.holder.toSourceString()
+            + "`.");
+  }
+
+  @Override
+  public void reportUnsafeConstructorInliningDueToIndirectConstructorCall(InvokeDirect invoke) {
+    print(
+        "must invoke a constructor from the class being instantiated (would invoke `"
+            + invoke.getInvokedMethod().toSourceString()
+            + "`).");
+  }
+
+  @Override
+  public void reportUnsafeConstructorInliningDueToUninitializedObjectUse(Instruction user) {
+    print("would lead to use of uninitialized object (user: `" + user.toString() + "`).");
   }
 
   @Override

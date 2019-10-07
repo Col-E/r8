@@ -6,6 +6,9 @@ package com.android.tools.r8.ir.optimize.inliner;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.ir.code.InstancePut;
+import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Collection;
@@ -47,6 +50,14 @@ public abstract class WhyAreYouNotInliningReporter {
       int estimatedNumberOfControlFlowResolutionBlocks, int threshold);
 
   abstract void reportUnknownTarget();
+
+  public abstract void reportUnsafeConstructorInliningDueToFinalFieldAssignment(
+      InstancePut instancePut);
+
+  public abstract void reportUnsafeConstructorInliningDueToIndirectConstructorCall(
+      InvokeDirect invoke);
+
+  public abstract void reportUnsafeConstructorInliningDueToUninitializedObjectUse(Instruction user);
 
   public abstract void reportWillExceedInstructionBudget(int numberOfInstructions, int threshold);
 

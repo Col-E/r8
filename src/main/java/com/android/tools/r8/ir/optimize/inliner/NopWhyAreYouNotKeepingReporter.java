@@ -4,6 +4,10 @@
 
 package com.android.tools.r8.ir.optimize.inliner;
 
+import com.android.tools.r8.ir.code.InstancePut;
+import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.InvokeDirect;
+
 public class NopWhyAreYouNotKeepingReporter extends WhyAreYouNotInliningReporter {
 
   private static final NopWhyAreYouNotKeepingReporter INSTANCE =
@@ -24,6 +28,15 @@ public class NopWhyAreYouNotKeepingReporter extends WhyAreYouNotInliningReporter
 
   @Override
   public void reportUnknownTarget() {}
+
+  @Override
+  public void reportUnsafeConstructorInliningDueToFinalFieldAssignment(InstancePut instancePut) {}
+
+  @Override
+  public void reportUnsafeConstructorInliningDueToIndirectConstructorCall(InvokeDirect invoke) {}
+
+  @Override
+  public void reportUnsafeConstructorInliningDueToUninitializedObjectUse(Instruction user) {}
 
   @Override
   public void reportWillExceedInstructionBudget(int numberOfInstructions, int threshold) {}
