@@ -70,7 +70,7 @@ public enum AndroidApiLevel {
   public static List<AndroidApiLevel> getAndroidApiLevelsSorted() {
     List<AndroidApiLevel> androidApiLevels = Arrays.asList(AndroidApiLevel.values());
     androidApiLevels.sort(Comparator.comparingInt(AndroidApiLevel::getLevel));
-    return getAndroidApiLevelsSorted();
+    return androidApiLevels;
   }
 
   public static AndroidApiLevel getMinAndroidApiLevel(DexVersion dexVersion) {
