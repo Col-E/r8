@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.synthetic;
 
 import com.android.tools.r8.cf.code.CfCheckCast;
 import com.android.tools.r8.cf.code.CfConstNull;
+import com.android.tools.r8.cf.code.CfConstString;
 import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.cf.code.CfIf;
 import com.android.tools.r8.cf.code.CfInstanceOf;
@@ -17,6 +18,7 @@ import com.android.tools.r8.cf.code.CfNew;
 import com.android.tools.r8.cf.code.CfReturn;
 import com.android.tools.r8.cf.code.CfReturnVoid;
 import com.android.tools.r8.cf.code.CfStackInstruction;
+import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexField;
@@ -302,6 +304,36 @@ public class DesugaredLibraryAPIConversionCfCodeProvider {
       instructions.add(new CfLoad(ValueType.fromDexType(wrapperField.type), 1));
       instructions.add(new CfFieldInstruction(Opcodes.PUTFIELD, wrapperField, wrapperField));
       instructions.add(new CfReturnVoid());
+      return standardCfCodeFromInstructions(instructions);
+    }
+  }
+
+  public static class APIConverterThrowRuntimeExceptionCfCodeProvider
+      extends SyntheticCfCodeProvider {
+    DexString message;
+
+    public APIConverterThrowRuntimeExceptionCfCodeProvider(
+        AppView<?> appView, DexString message, DexType holder) {
+      super(appView, holder);
+      this.message = message;
+    }
+
+    @Override
+    public CfCode generateCfCode() {
+      DexItemFactory factory = appView.dexItemFactory();
+      List<CfInstruction> instructions = new ArrayList<>();
+      instructions.add(new CfNew(factory.runtimeExceptionType));
+      instructions.add(CfStackInstruction.fromAsm(Opcodes.DUP));
+      instructions.add(new CfConstString(message));
+      instructions.add(
+          new CfInvoke(
+              Opcodes.INVOKESPECIAL,
+              factory.createMethod(
+                  factory.runtimeExceptionType,
+                  factory.createProto(factory.voidType, factory.stringType),
+                  factory.initMethodName),
+              false));
+      instructions.add(new CfThrow());
       return standardCfCodeFromInstructions(instructions);
     }
   }

@@ -1,7 +1,6 @@
 // Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-
 package com.android.tools.r8.desugar.corelib.conversionTests;
 
 import static org.hamcrest.CoreMatchers.endsWith;
@@ -14,7 +13,9 @@ import com.android.tools.r8.desugar.corelib.CoreLibDesugarTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.Arrays;
+import java.util.Random;
 import java.util.function.IntUnaryOperator;
+import java.util.stream.IntStream;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -47,12 +48,13 @@ public class APIConversionTest extends CoreLibDesugarTestBase {
         .assertNoWarningMessageThatMatches(containsString("java.util.Random#ints"))
         .assertNoWarningMessageThatMatches(endsWith("is a desugared type)."))
         .run(parameters.getRuntime(), Executor.class)
-        .assertSuccessWithOutput(StringUtils.lines("[5, 6, 7]"));
+        .assertSuccessWithOutput(
+            StringUtils.lines(
+                "[5, 6, 7]", "java.util.stream.IntPipeline$Head", "IntSummaryStatistics"));
   }
 
   @Test
   public void testAPIConversionDesugaring() throws Exception {
-    // TODO(b/134732760): Make library API work when library desugaring is on for Stream.
     testForD8()
         .addInnerClasses(APIConversionTest.class)
         .setMinApi(parameters.getApiLevel())
@@ -60,7 +62,12 @@ public class APIConversionTest extends CoreLibDesugarTestBase {
         .compile()
         .addDesugaredCoreLibraryRunClassPath(this::buildDesugaredLibrary, parameters.getApiLevel())
         .run(parameters.getRuntime(), Executor.class)
-        .assertSuccessWithOutput(StringUtils.lines("[5, 6, 7]"));
+        .assertSuccessWithOutput(
+            StringUtils.lines(
+                "[5, 6, 7]",
+                "j$.util.stream.IntStream$-V-WRP",
+                "Unsupported conversion for java.util.IntSummaryStatistics. See compilation time"
+                    + " warnings for more infos."));
   }
 
   static class Executor {
@@ -69,9 +76,31 @@ public class APIConversionTest extends CoreLibDesugarTestBase {
       int[] ints = new int[3];
       Arrays.setAll(ints, new MyFunction());
       System.out.println(Arrays.toString(ints));
-      // TODO(b/134732760): Support Stream wrappers.
-      // IntStream intStream = new Random().ints();
-      // System.out.println(intStream.getClass().getName());
+      IntStream intStream = new Random().ints();
+      System.out.println(intStream.getClass().getName());
+      CharSequence charSequence =
+          new CharSequence() {
+            @Override
+            public int length() {
+              return 1;
+            }
+
+            @Override
+            public char charAt(int index) {
+              return 42;
+            }
+
+            @Override
+            public CharSequence subSequence(int start, int end) {
+              return null;
+            }
+          };
+      IntStream fixedSizedIntStream = charSequence.codePoints();
+      try {
+        System.out.println(fixedSizedIntStream.summaryStatistics().getClass().getSimpleName());
+      } catch (RuntimeException e) {
+        System.out.println(e.getMessage());
+      }
     }
   }
 

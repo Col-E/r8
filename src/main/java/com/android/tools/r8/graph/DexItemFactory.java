@@ -185,6 +185,7 @@ public class DexItemFactory {
   public final DexString invokeMethodName = createString("invoke");
   public final DexString invokeExactMethodName = createString("invokeExact");
 
+  public final DexString runtimeExceptionDescriptor = createString("Ljava/lang/RuntimeException;");
   public final DexString assertionErrorDescriptor = createString("Ljava/lang/AssertionError;");
   public final DexString charSequenceDescriptor = createString("Ljava/lang/CharSequence;");
   public final DexString charSequenceArrayDescriptor = createString("[Ljava/lang/CharSequence;");
@@ -325,6 +326,7 @@ public class DexItemFactory {
   public final DexType runnableType = createType(runnableDescriptor);
   public final DexType optionalType = createType(optionalDescriptor);
 
+  public final DexType runtimeExceptionType = createType(runtimeExceptionDescriptor);
   public final DexType throwableType = createType(throwableDescriptor);
   public final DexType illegalAccessErrorType = createType(illegalAccessErrorDescriptor);
   public final DexType icceType = createType(icceDescriptor);

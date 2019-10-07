@@ -26,6 +26,7 @@ import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConverterConstructorCfCodeProvider;
+import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConverterThrowRuntimeExceptionCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConverterVivifiedWrapperCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConverterWrapperCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConverterWrapperConversionCfCodeProvider;
@@ -33,8 +34,10 @@ import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.Pair;
+import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -99,6 +102,11 @@ public class DesugaredLibraryWrapperSynthesizer {
       new ConcurrentHashMap<>();
   private final Map<DexType, Pair<DexType, DexProgramClass>> vivifiedTypeWrappers =
       new ConcurrentHashMap<>();
+  // The invalidWrappers are wrappers with incorrect behavior because of final methods that could
+  // not be overridden. Such wrappers are awful because the runtime behavior is undefined and does
+  // not raise explicit errors. So we register them here and conversion methods for such wrappers
+  // raise a runtime exception instead of generating the wrapper.
+  private final Set<DexType> invalidWrappers = Sets.newConcurrentHashSet();
   private final Set<DexType> generatedWrappers = Sets.newConcurrentHashSet();
   private final DexItemFactory factory;
   private final DesugaredLibraryAPIConverter converter;
@@ -166,6 +174,16 @@ public class DesugaredLibraryWrapperSynthesizer {
       DexClass dexClass = appView.definitionFor(type);
       // The dexClass should be a library class, so it cannot be null.
       assert dexClass != null && dexClass.isLibraryClass();
+      if (dexClass.accessFlags.isFinal()) {
+        throw appView
+            .options()
+            .reporter
+            .fatalError(
+                new StringDiagnostic(
+                    "Cannot generate a wrapper for final class "
+                        + dexClass.type
+                        + ". Add a custom conversion in the desugared library."));
+      }
       pair.setSecond(wrapperGenerator.apply(dexClass, pair.getFirst()));
     }
     return pair.getFirst();
@@ -239,6 +257,7 @@ public class DesugaredLibraryWrapperSynthesizer {
     //   v2 <- convertTypeToVivifiedType(v0);
     //   v3 <- wrappedValue.foo(v2,v1);
     //   return v3;
+    Set<DexMethod> finalMethods = Sets.newIdentityHashSet();
     for (DexEncodedMethod dexEncodedMethod : dexMethods) {
       DexClass holderClass = appView.definitionFor(dexEncodedMethod.method.holder);
       assert holderClass != null;
@@ -247,19 +266,26 @@ public class DesugaredLibraryWrapperSynthesizer {
               wrapperField.field.holder,
               dexEncodedMethod.method.proto,
               dexEncodedMethod.method.name);
-      CfCode cfCode =
-          new APIConverterVivifiedWrapperCfCodeProvider(
-                  appView,
-                  methodToInstall,
-                  wrapperField.field,
-                  converter,
-                  holderClass.isInterface())
-              .generateCfCode();
+      CfCode cfCode;
+      if (dexEncodedMethod.isFinal()) {
+        invalidWrappers.add(wrapperField.field.holder);
+        finalMethods.add(dexEncodedMethod.method);
+        continue;
+      } else {
+        cfCode =
+            new APIConverterVivifiedWrapperCfCodeProvider(
+                    appView,
+                    methodToInstall,
+                    wrapperField.field,
+                    converter,
+                    holderClass.isInterface())
+                .generateCfCode();
+      }
       DexEncodedMethod newDexEncodedMethod =
           newSynthesizedMethod(methodToInstall, dexEncodedMethod, cfCode);
       generatedMethods.add(newDexEncodedMethod);
     }
-    return generatedMethods.toArray(DexEncodedMethod.EMPTY_ARRAY);
+    return finalizeWrapperMethods(generatedMethods, finalMethods);
   }
 
   private DexEncodedMethod[] synthesizeVirtualMethodsForTypeWrapper(
@@ -276,26 +302,58 @@ public class DesugaredLibraryWrapperSynthesizer {
     //   v2 <- convertVivifiedTypeToType(v0);
     //   v3 <- wrappedValue.foo(v2,v1);
     //   return v3;
+    Set<DexMethod> finalMethods = Sets.newIdentityHashSet();
     for (DexEncodedMethod dexEncodedMethod : dexMethods) {
       DexClass holderClass = appView.definitionFor(dexEncodedMethod.method.holder);
       assert holderClass != null;
       DexMethod methodToInstall =
           converter.methodWithVivifiedTypeInSignature(
               dexEncodedMethod.method, wrapperField.field.holder);
-      CfCode cfCode =
-          new APIConverterWrapperCfCodeProvider(
-                  appView,
-                  dexEncodedMethod.method,
-                  wrapperField.field,
-                  converter,
-                  holderClass.isInterface())
-              .generateCfCode();
-
+      CfCode cfCode;
+      if (dexEncodedMethod.isFinal()) {
+        invalidWrappers.add(wrapperField.field.holder);
+        finalMethods.add(dexEncodedMethod.method);
+        continue;
+      } else {
+        cfCode =
+            new APIConverterWrapperCfCodeProvider(
+                    appView,
+                    dexEncodedMethod.method,
+                    wrapperField.field,
+                    converter,
+                    holderClass.isInterface())
+                .generateCfCode();
+      }
       DexEncodedMethod newDexEncodedMethod =
           newSynthesizedMethod(methodToInstall, dexEncodedMethod, cfCode);
       generatedMethods.add(newDexEncodedMethod);
     }
-    return generatedMethods.toArray(DexEncodedMethod.EMPTY_ARRAY);
+    return finalizeWrapperMethods(generatedMethods, finalMethods);
+  }
+
+  private DexEncodedMethod[] finalizeWrapperMethods(
+      List<DexEncodedMethod> generatedMethods, Set<DexMethod> finalMethods) {
+    if (finalMethods.isEmpty()) {
+      return generatedMethods.toArray(DexEncodedMethod.EMPTY_ARRAY);
+    }
+    // Wrapper is invalid, no need to add the virtual methods.
+    reportFinalMethodsInWrapper(finalMethods);
+    return DexEncodedMethod.EMPTY_ARRAY;
+  }
+
+  private void reportFinalMethodsInWrapper(Set<DexMethod> methods) {
+    String[] methodArray =
+        methods.stream().map(method -> method.holder + "#" + method.name).toArray(String[]::new);
+    appView
+        .options()
+        .reporter
+        .warning(
+            new StringDiagnostic(
+                "Desugared library API conversion: cannot wrap final methods "
+                    + Arrays.toString(methodArray)
+                    + ". "
+                    + methods.iterator().next().holder
+                    + " is marked as invalid and will throw a runtime exception upon conversion."));
   }
 
   DexEncodedMethod newSynthesizedMethod(
@@ -345,6 +403,17 @@ public class DesugaredLibraryWrapperSynthesizer {
         assert superClass != null; // Cannot be null since we started from a LibraryClass.
         workList.add(superClass);
       }
+    }
+    // 10 is large enough to avoid warnings on Clock/Function, but not on Stream.
+    if (implementedMethods.size() > 10) {
+      appView
+          .options()
+          .reporter
+          .warning(
+              new StringDiagnostic(
+                  "Desugared library API conversion: Generating a large wrapper for "
+                      + libraryClass.type
+                      + ". Is that the intended behavior?"));
     }
     return implementedMethods;
   }
@@ -439,6 +508,7 @@ public class DesugaredLibraryWrapperSynthesizer {
         synthesizeConversionMethod(
             synthesizedClass.type,
             type,
+            type,
             converter.vivifiedTypeFor(type),
             reverse == null ? null : reverse.getSecond()));
   }
@@ -448,28 +518,45 @@ public class DesugaredLibraryWrapperSynthesizer {
     synthesizedClass.addDirectMethod(
         synthesizeConversionMethod(
             synthesizedClass.type,
+            type,
             converter.vivifiedTypeFor(type),
             type,
             reverse == null ? null : reverse.getSecond()));
   }
 
   private DexEncodedMethod synthesizeConversionMethod(
-      DexType holder, DexType argType, DexType returnType, DexClass reverseWrapperClassOrNull) {
+      DexType holder,
+      DexType type,
+      DexType argType,
+      DexType returnType,
+      DexClass reverseWrapperClassOrNull) {
     DexMethod method =
         factory.createMethod(
             holder, factory.createProto(returnType, argType), factory.convertMethodName);
-
-    DexField uniqueFieldOrNull =
-        reverseWrapperClassOrNull == null
-            ? null
-            : reverseWrapperClassOrNull.instanceFields().get(0).field;
-    CfCode cfCode =
-        new APIConverterWrapperConversionCfCodeProvider(
-                appView,
-                argType,
-                uniqueFieldOrNull,
-                factory.createField(holder, returnType, factory.wrapperFieldName))
-            .generateCfCode();
+    CfCode cfCode;
+    if (invalidWrappers.contains(holder)) {
+      cfCode =
+          new APIConverterThrowRuntimeExceptionCfCodeProvider(
+                  appView,
+                  factory.createString(
+                      "Unsupported conversion for "
+                          + type
+                          + ". See compilation time warnings for more infos."),
+                  holder)
+              .generateCfCode();
+    } else {
+      DexField uniqueFieldOrNull =
+          reverseWrapperClassOrNull == null
+              ? null
+              : reverseWrapperClassOrNull.instanceFields().get(0).field;
+      cfCode =
+          new APIConverterWrapperConversionCfCodeProvider(
+                  appView,
+                  argType,
+                  uniqueFieldOrNull,
+                  factory.createField(holder, returnType, factory.wrapperFieldName))
+              .generateCfCode();
+    }
     return newSynthesizedMethod(
         method,
         Constants.ACC_SYNTHETIC | Constants.ACC_STATIC | Constants.ACC_PUBLIC,
