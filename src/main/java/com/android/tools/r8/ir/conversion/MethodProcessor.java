@@ -92,7 +92,7 @@ public class MethodProcessor {
    */
   public <E extends Exception> void forEachMethod(
       ThrowingBiConsumer<DexEncodedMethod, Predicate<DexEncodedMethod>, E> consumer,
-      Action waveStart,
+      Consumer<Collection<DexEncodedMethod>> waveStart,
       Action waveDone,
       ExecutorService executorService)
       throws ExecutionException {
@@ -100,7 +100,7 @@ public class MethodProcessor {
       Collection<DexEncodedMethod> wave = waves.removeFirst();
       assert wave.size() > 0;
       List<Future<?>> futures = new ArrayList<>();
-      waveStart.execute();
+      waveStart.accept(wave);
       for (DexEncodedMethod method : wave) {
         futures.add(
             executorService.submit(

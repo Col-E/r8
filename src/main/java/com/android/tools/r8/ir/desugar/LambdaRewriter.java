@@ -7,6 +7,8 @@ package com.android.tools.r8.ir.desugar;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.Code;
+import com.android.tools.r8.graph.DefaultUseRegistry;
 import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -30,6 +32,7 @@ import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.conversion.LensCodeRewriter;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -100,6 +103,36 @@ public class LambdaRewriter {
     this.classConstructorName = factory.createString(Constants.CLASS_INITIALIZER_NAME);
     this.instanceFieldName = factory.createString(LAMBDA_INSTANCE_FIELD_NAME);
     this.createInstanceMethodName = factory.createString(LAMBDA_CREATE_INSTANCE_METHOD_NAME);
+  }
+
+  public void synthesizeLambdaClassesFor(
+      DexEncodedMethod method, LensCodeRewriter lensCodeRewriter) {
+    if (!method.hasCode() || method.isProcessed()) {
+      // Nothing to desugar.
+      return;
+    }
+
+    Code code = method.getCode();
+    if (!code.isCfCode()) {
+      // Nothing to desugar.
+      return;
+    }
+
+    // Introduce a lambda class in AppInfo for each call site such that we do not modify the
+    // application (and, in particular, the class hierarchy) during wave processing.
+    code.registerCodeReferences(
+        method,
+        new DefaultUseRegistry(appView.dexItemFactory()) {
+
+          @Override
+          public void registerCallSite(DexCallSite callSite) {
+            LambdaDescriptor descriptor =
+                inferLambdaDescriptor(lensCodeRewriter.rewriteCallSite(callSite, method));
+            if (descriptor != LambdaDescriptor.MATCH_FAILED) {
+              getOrCreateLambdaClass(descriptor, method.method.holder);
+            }
+          }
+        });
   }
 
   /**

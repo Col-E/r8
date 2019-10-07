@@ -117,24 +117,8 @@ public class LensCodeRewriter {
         if (current.isInvokeCustom()) {
           InvokeCustom invokeCustom = current.asInvokeCustom();
           DexCallSite callSite = invokeCustom.getCallSite();
-          DexProto newMethodProto =
-              factory.applyClassMappingToProto(
-                  callSite.methodProto, graphLense::lookupType, protoFixupCache);
-          DexMethodHandle newBootstrapMethod = rewriteDexMethodHandle(
-              callSite.bootstrapMethod, method, NOT_ARGUMENT_TO_LAMBDA_METAFACTORY);
-          boolean isLambdaMetaFactory =
-              factory.isLambdaMetafactoryMethod(callSite.bootstrapMethod.asMethod());
-          MethodHandleUse methodHandleUse = isLambdaMetaFactory
-              ? ARGUMENT_TO_LAMBDA_METAFACTORY
-              : NOT_ARGUMENT_TO_LAMBDA_METAFACTORY;
-          List<DexValue> newArgs =
-              rewriteBootstrapArgs(callSite.bootstrapArgs, method, methodHandleUse);
-          if (!newMethodProto.equals(callSite.methodProto)
-              || newBootstrapMethod != callSite.bootstrapMethod
-              || !newArgs.equals(callSite.bootstrapArgs)) {
-            DexCallSite newCallSite =
-                factory.createCallSite(
-                    callSite.methodName, newMethodProto, newBootstrapMethod, newArgs);
+          DexCallSite newCallSite = rewriteCallSite(callSite, method);
+          if (newCallSite != callSite) {
             Value newOutValue = makeOutValue(invokeCustom, code);
             InvokeCustom newInvokeCustom =
                 new InvokeCustom(newCallSite, newOutValue, invokeCustom.inValues());
@@ -419,6 +403,28 @@ public class LensCodeRewriter {
     }
     assert code.isConsistentSSA();
     assert code.hasNoVerticallyMergedClasses(appView);
+  }
+
+  public DexCallSite rewriteCallSite(DexCallSite callSite, DexEncodedMethod context) {
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    DexProto newMethodProto =
+        dexItemFactory.applyClassMappingToProto(
+            callSite.methodProto, appView.graphLense()::lookupType, protoFixupCache);
+    DexMethodHandle newBootstrapMethod =
+        rewriteDexMethodHandle(
+            callSite.bootstrapMethod, context, NOT_ARGUMENT_TO_LAMBDA_METAFACTORY);
+    boolean isLambdaMetaFactory =
+        dexItemFactory.isLambdaMetafactoryMethod(callSite.bootstrapMethod.asMethod());
+    MethodHandleUse methodHandleUse =
+        isLambdaMetaFactory ? ARGUMENT_TO_LAMBDA_METAFACTORY : NOT_ARGUMENT_TO_LAMBDA_METAFACTORY;
+    List<DexValue> newArgs = rewriteBootstrapArgs(callSite.bootstrapArgs, context, methodHandleUse);
+    if (!newMethodProto.equals(callSite.methodProto)
+        || newBootstrapMethod != callSite.bootstrapMethod
+        || !newArgs.equals(callSite.bootstrapArgs)) {
+      return dexItemFactory.createCallSite(
+          callSite.methodName, newMethodProto, newBootstrapMethod, newArgs);
+    }
+    return callSite;
   }
 
   // If the given invoke is on the form "invoke-direct A.<init>, v0, ..." and the definition of
