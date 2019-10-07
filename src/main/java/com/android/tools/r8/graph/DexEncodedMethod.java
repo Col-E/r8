@@ -414,11 +414,12 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
         return false;
 
       case PROCESSED_NOT_INLINING_CANDIDATE:
+      case NOT_PROCESSED:
         whyAreYouNotInliningReporter.reportUnknownReason();
         return false;
 
       default:
-        throw new Unreachable();
+        throw new Unreachable("Unexpected compilation state: " + compilationState);
     }
   }
 
