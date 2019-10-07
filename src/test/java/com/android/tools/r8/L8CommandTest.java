@@ -125,9 +125,7 @@ public class L8CommandTest {
                 .build());
   }
 
-  // TODO(b/139273544): Re-enable shrinking once fixed and re-enable tests using shrinking.
   @Test
-  @Ignore
   public void addProguardConfigurationString() throws Throwable {
     String keepRule = "-keep class java.time.*";
     List<String> keepRules = new ArrayList<>();
@@ -143,7 +141,6 @@ public class L8CommandTest {
   }
 
   @Test
-  @Ignore
   public void addProguardConfigurationFile() throws Throwable {
     String keepRule = "-keep class java.time.*";
     Path keepRuleFile = temp.newFile("keepRuleFile.txt").toPath();
