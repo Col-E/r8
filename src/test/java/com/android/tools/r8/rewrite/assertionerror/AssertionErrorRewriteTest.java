@@ -3,22 +3,24 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.rewrite.assertionerror;
 
+import static com.android.tools.r8.ToolHelper.getDefaultAndroidJar;
+import static org.junit.Assume.assumeTrue;
+
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-import static com.android.tools.r8.ToolHelper.getDefaultAndroidJar;
-import static org.junit.Assume.assumeTrue;
-
 @RunWith(Parameterized.class)
 public class AssertionErrorRewriteTest extends TestBase {
+
   @Parameters(name = "{0}")
   public static Iterable<?> data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimes().withAllApiLevels().build();
   }
 
   private final TestParameters parameters;
@@ -28,17 +30,17 @@ public class AssertionErrorRewriteTest extends TestBase {
     this.parameters = parameters;
 
     // The exception cause is only preserved on API 16 and newer.
-    expectCause = parameters.isCfRuntime()
-        || parameters.getRuntime().asDex().getMinApiLevel().getLevel() >= 16;
+    expectCause =
+        parameters.isCfRuntime()
+            || parameters.getApiLevel().getLevel() >= AndroidApiLevel.J.getLevel();
   }
 
   @Test public void d8() throws Exception {
     assumeTrue(parameters.isDexRuntime());
-
     testForD8()
         .addLibraryFiles(getDefaultAndroidJar())
         .addProgramClasses(Main.class)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class, String.valueOf(expectCause))
         .assertSuccessWithOutputLines("OK", "OK");
   }
@@ -49,7 +51,7 @@ public class AssertionErrorRewriteTest extends TestBase {
         .addProgramClasses(Main.class)
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class, String.valueOf(expectCause))
         .assertSuccessWithOutputLines("OK", "OK");
   }
