@@ -154,7 +154,8 @@ public class DesugaredLibraryAPIConversionCfCodeProvider {
         DexField wrapperField,
         DesugaredLibraryAPIConverter converter,
         boolean itfCall) {
-      super(appView, wrapperField.holder);
+      //  Var wrapperField is null if should forward to receiver.
+      super(appView, wrapperField == null ? forwardMethod.holder : wrapperField.holder);
       this.forwardMethod = forwardMethod;
       this.wrapperField = wrapperField;
       this.converter = converter;
@@ -168,8 +169,13 @@ public class DesugaredLibraryAPIConversionCfCodeProvider {
       // Wrapped value is a type. Method uses vivifiedTypes as external. Forward method should
       // use types.
 
-      instructions.add(new CfLoad(ValueType.fromDexType(wrapperField.holder), 0));
-      instructions.add(new CfFieldInstruction(Opcodes.GETFIELD, wrapperField, wrapperField));
+      // Var wrapperField is null if should forward to receiver.
+      if (wrapperField == null) {
+        instructions.add(new CfLoad(ValueType.fromDexType(forwardMethod.holder), 0));
+      } else {
+        instructions.add(new CfLoad(ValueType.fromDexType(wrapperField.holder), 0));
+        instructions.add(new CfFieldInstruction(Opcodes.GETFIELD, wrapperField, wrapperField));
+      }
       int stackIndex = 1;
       for (DexType param : forwardMethod.proto.parameters.values) {
         instructions.add(new CfLoad(ValueType.fromDexType(param), stackIndex));

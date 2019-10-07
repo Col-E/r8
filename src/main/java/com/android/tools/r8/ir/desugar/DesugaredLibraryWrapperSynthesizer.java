@@ -19,7 +19,6 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.FieldAccessFlags;
@@ -174,7 +173,7 @@ public class DesugaredLibraryWrapperSynthesizer {
 
   public DexProgramClass generateTypeWrapper(DexClass dexClass, DexType typeWrapperType) {
     DexType type = dexClass.type;
-    DexEncodedField wrapperField = synthetizeWrappedValueField(typeWrapperType, type);
+    DexEncodedField wrapperField = synthesizeWrappedValueField(typeWrapperType, type);
     return synthesizeWrapper(
         converter.vivifiedTypeFor(type),
         dexClass,
@@ -186,7 +185,7 @@ public class DesugaredLibraryWrapperSynthesizer {
       DexClass dexClass, DexType vivifiedTypeWrapperType) {
     DexType type = dexClass.type;
     DexEncodedField wrapperField =
-        synthetizeWrappedValueField(vivifiedTypeWrapperType, converter.vivifiedTypeFor(type));
+        synthesizeWrappedValueField(vivifiedTypeWrapperType, converter.vivifiedTypeFor(type));
     return synthesizeWrapper(
         type,
         dexClass,
@@ -220,7 +219,7 @@ public class DesugaredLibraryWrapperSynthesizer {
         DexEncodedField.EMPTY_ARRAY, // No static fields.
         new DexEncodedField[] {wrapperField},
         new DexEncodedMethod[] {
-          synthetizeConstructor(wrapperField.field)
+          synthesizeConstructor(wrapperField.field)
         }, // Conversions methods will be added later.
         virtualMethods,
         factory.getSkipNameValidationForTesting(),
@@ -281,7 +280,8 @@ public class DesugaredLibraryWrapperSynthesizer {
       DexClass holderClass = appView.definitionFor(dexEncodedMethod.method.holder);
       assert holderClass != null;
       DexMethod methodToInstall =
-          methodWithVivifiedTypeInSignature(dexEncodedMethod.method, wrapperField.field.holder);
+          converter.methodWithVivifiedTypeInSignature(
+              dexEncodedMethod.method, wrapperField.field.holder);
       CfCode cfCode =
           new APIConverterWrapperCfCodeProvider(
                   appView,
@@ -290,6 +290,7 @@ public class DesugaredLibraryWrapperSynthesizer {
                   converter,
                   holderClass.isInterface())
               .generateCfCode();
+
       DexEncodedMethod newDexEncodedMethod =
           newSynthesizedMethod(methodToInstall, dexEncodedMethod, cfCode);
       generatedMethods.add(newDexEncodedMethod);
@@ -297,25 +298,7 @@ public class DesugaredLibraryWrapperSynthesizer {
     return generatedMethods.toArray(DexEncodedMethod.EMPTY_ARRAY);
   }
 
-  private DexMethod methodWithVivifiedTypeInSignature(DexMethod originalMethod, DexType holder) {
-    DexType[] newParameters = originalMethod.proto.parameters.values.clone();
-    int index = 0;
-    for (DexType param : originalMethod.proto.parameters.values) {
-      if (appView.rewritePrefix.hasRewrittenType(param)) {
-        newParameters[index] = converter.vivifiedTypeFor(param);
-      }
-      index++;
-    }
-    DexType returnType = originalMethod.proto.returnType;
-    DexType newReturnType =
-        appView.rewritePrefix.hasRewrittenType(returnType)
-            ? converter.vivifiedTypeFor(returnType)
-            : returnType;
-    DexProto newProto = factory.createProto(newReturnType, newParameters);
-    return factory.createMethod(holder, newProto, originalMethod.name);
-  }
-
-  private DexEncodedMethod newSynthesizedMethod(
+  DexEncodedMethod newSynthesizedMethod(
       DexMethod methodToInstall, DexEncodedMethod template, Code code) {
     MethodAccessFlags newFlags = template.accessFlags.copy();
     assert newFlags.isPublic();
@@ -366,7 +349,7 @@ public class DesugaredLibraryWrapperSynthesizer {
     return implementedMethods;
   }
 
-  private DexEncodedField synthetizeWrappedValueField(DexType holder, DexType fieldType) {
+  private DexEncodedField synthesizeWrappedValueField(DexType holder, DexType fieldType) {
     DexField field = factory.createField(holder, fieldType, factory.wrapperFieldName);
     // Field is package private to be accessible from convert methods without a getter.
     FieldAccessFlags fieldAccessFlags =
@@ -374,7 +357,7 @@ public class DesugaredLibraryWrapperSynthesizer {
     return new DexEncodedField(field, fieldAccessFlags, DexAnnotationSet.empty(), null);
   }
 
-  private DexEncodedMethod synthetizeConstructor(DexField field) {
+  private DexEncodedMethod synthesizeConstructor(DexField field) {
     DexMethod method =
         factory.createMethod(
             field.holder,
@@ -453,7 +436,7 @@ public class DesugaredLibraryWrapperSynthesizer {
     Pair<DexType, DexProgramClass> reverse = vivifiedTypeWrappers.get(type);
     assert reverse == null || reverse.getSecond() != null;
     synthesizedClass.addDirectMethod(
-        synthetizeConversionMethod(
+        synthesizeConversionMethod(
             synthesizedClass.type,
             type,
             converter.vivifiedTypeFor(type),
@@ -463,14 +446,14 @@ public class DesugaredLibraryWrapperSynthesizer {
   private void generateVivifiedTypeConversions(DexType type, DexProgramClass synthesizedClass) {
     Pair<DexType, DexProgramClass> reverse = typeWrappers.get(type);
     synthesizedClass.addDirectMethod(
-        synthetizeConversionMethod(
+        synthesizeConversionMethod(
             synthesizedClass.type,
             converter.vivifiedTypeFor(type),
             type,
             reverse == null ? null : reverse.getSecond()));
   }
 
-  private DexEncodedMethod synthetizeConversionMethod(
+  private DexEncodedMethod synthesizeConversionMethod(
       DexType holder, DexType argType, DexType returnType, DexClass reverseWrapperClassOrNull) {
     DexMethod method =
         factory.createMethod(

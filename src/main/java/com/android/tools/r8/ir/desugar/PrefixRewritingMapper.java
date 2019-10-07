@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -27,6 +28,18 @@ public abstract class PrefixRewritingMapper {
 
   public boolean hasRewrittenType(DexType type) {
     return rewrittenType(type) != null;
+  }
+
+  public boolean hasRewrittenTypeInSignature(DexProto proto) {
+    if (hasRewrittenType(proto.returnType)) {
+      return true;
+    }
+    for (DexType paramType : proto.parameters.values) {
+      if (hasRewrittenType(paramType)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   public abstract boolean isRewriting();
