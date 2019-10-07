@@ -624,7 +624,7 @@ public class Inliner {
     }
   }
 
-  public static class InlineeWithReason {
+  static class InlineeWithReason {
 
     final Reason reason;
     final IRCode code;
@@ -840,7 +840,6 @@ public class Inliner {
     assumeDynamicTypeRemover.removeMarkedInstructions(blocksToRemove);
     assumeDynamicTypeRemover.finish();
     classInitializationAnalysis.finish();
-    oracle.finish();
     code.removeBlocks(blocksToRemove);
     code.removeAllTrivialPhis();
     assert code.isConsistentSSA();

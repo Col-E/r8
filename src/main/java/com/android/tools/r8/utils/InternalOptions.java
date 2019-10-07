@@ -369,10 +369,8 @@ public class InternalOptions {
   }
 
   public Set<String> extensiveLoggingFilter = getExtensiveLoggingFilter();
-  public Set<String> extensiveFieldMinifierLoggingFilter = getExtensiveFieldMinifierLoggingFilter();
   public Set<String> extensiveInterfaceMethodMinifierLoggingFilter =
       getExtensiveInterfaceMethodMinifierLoggingFilter();
-  public Set<String> nullableReceiverInliningFilter = getNullableReceiverInliningFilter();
 
   public List<String> methodsFilter = ImmutableList.of();
   public int minApiLevel = AndroidApiLevel.getDefault().getLevel();

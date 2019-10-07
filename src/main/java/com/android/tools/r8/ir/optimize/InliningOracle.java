@@ -21,8 +21,6 @@ public interface InliningOracle {
 
   boolean isForcedInliningOracle();
 
-  void finish();
-
   // TODO(b/142116551): This should be equivalent to invoke.lookupSingleTarget(appView, context)!
   DexEncodedMethod lookupSingleTarget(InvokeMethod invoke, DexType context);
 

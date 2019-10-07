@@ -44,9 +44,6 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
   }
 
   @Override
-  public void finish() {}
-
-  @Override
   public DexEncodedMethod lookupSingleTarget(InvokeMethod invoke, DexType context) {
     Inliner.InliningInfo info = invokesToInline.get(invoke);
     if (info != null) {
