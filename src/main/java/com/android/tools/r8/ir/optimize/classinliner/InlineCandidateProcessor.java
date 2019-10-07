@@ -905,11 +905,11 @@ final class InlineCandidateProcessor {
         return false;
       }
 
+      InliningOracle oracle = defaultOracle.get();
       InlineAction inlineAction =
-          invoke.computeInlining(
+          oracle.computeInlining(
+              invoke,
               singleTarget,
-              defaultOracle.get(),
-              method.method,
               ClassInitializationAnalysis.trivial(),
               NopWhyAreYouNotInliningReporter.getInstance());
       if (inlineAction == null) {

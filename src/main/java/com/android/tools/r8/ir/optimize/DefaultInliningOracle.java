@@ -83,24 +83,39 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       DexEncodedMethod singleTarget,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     if (singleTarget == null) {
-      throw new Unreachable();
+      throw new Unreachable(
+          "Unexpected attempt to inline invoke that does not have a single target");
+    }
+
+    if (singleTarget.isClassInitializer()) {
+      throw new Unreachable(
+          "Unexpected attempt to invoke a class initializer (`"
+              + singleTarget.method.toSourceString()
+              + "`)");
     }
 
     if (!singleTarget.hasCode()) {
-      whyAreYouNotInliningReporter.reportUnknownReason();
+      whyAreYouNotInliningReporter.reportInlineeDoesNotHaveCode();
       return true;
     }
 
-    if (appView.definitionFor(singleTarget.method.holder).isNotProgramClass()) {
-      whyAreYouNotInliningReporter.reportUnknownReason();
+    DexClass clazz = appView.definitionFor(singleTarget.method.holder);
+    if (!clazz.isProgramClass()) {
+      if (clazz.isClasspathClass()) {
+        whyAreYouNotInliningReporter.reportClasspathMethod();
+      } else {
+        assert clazz.isLibraryClass();
+        whyAreYouNotInliningReporter.reportLibraryMethod();
+      }
       return true;
     }
 
     // Ignore the implicit receiver argument.
     int numberOfArguments =
         invoke.arguments().size() - BooleanUtils.intValue(invoke.isInvokeMethodWithReceiver());
-    if (numberOfArguments != singleTarget.method.getArity()) {
-      whyAreYouNotInliningReporter.reportUnknownReason();
+    int arity = singleTarget.method.getArity();
+    if (numberOfArguments != arity) {
+      whyAreYouNotInliningReporter.reportIncorrectArity(numberOfArguments, arity);
       return true;
     }
 
@@ -182,7 +197,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       return true;
     }
 
-    whyAreYouNotInliningReporter.reportUnknownReason();
+    whyAreYouNotInliningReporter.reportMustTriggerClassInitialization();
     return false;
   }
 
@@ -341,16 +356,16 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
   }
 
   @Override
-  public InlineAction computeForInvokeWithReceiver(
-      InvokeMethodWithReceiver invoke,
+  public InlineAction computeInlining(
+      InvokeMethod invoke,
       DexEncodedMethod singleTarget,
-      DexMethod invocationContext,
+      ClassInitializationAnalysis classInitializationAnalysis,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     if (isSingleTargetInvalid(invoke, singleTarget, whyAreYouNotInliningReporter)) {
       return null;
     }
 
-    if (inliner.isBlackListed(singleTarget, whyAreYouNotInliningReporter)) {
+    if (inliner.isBlacklisted(singleTarget, whyAreYouNotInliningReporter)) {
       return null;
     }
 
@@ -364,6 +379,15 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       return null;
     }
 
+    return invoke.computeInlining(
+        singleTarget, reason, this, classInitializationAnalysis, whyAreYouNotInliningReporter);
+  }
+
+  public InlineAction computeForInvokeWithReceiver(
+      InvokeMethodWithReceiver invoke,
+      DexEncodedMethod singleTarget,
+      Reason reason,
+      WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     Value receiver = invoke.getReceiver();
     if (receiver.getTypeLattice().isDefinitelyNull()) {
       // A definitely null receiver will throw an error on call site.
@@ -390,38 +414,17 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     return action;
   }
 
-  @Override
   public InlineAction computeForInvokeStatic(
       InvokeStatic invoke,
       DexEncodedMethod singleTarget,
-      DexMethod invocationContext,
+      Reason reason,
       ClassInitializationAnalysis classInitializationAnalysis,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
-    if (isSingleTargetInvalid(invoke, singleTarget, whyAreYouNotInliningReporter)) {
-      return null;
-    }
-
-    if (inliner.isBlackListed(singleTarget, whyAreYouNotInliningReporter)) {
-      return null;
-    }
-
-    Reason reason = computeInliningReason(singleTarget);
-    // Determine if this should be inlined no matter how big it is.
-    if (!singleTarget.isInliningCandidate(
-        method, reason, appView.appInfo(), whyAreYouNotInliningReporter)) {
-      return null;
-    }
-
     // Abort inlining attempt if we can not guarantee class for static target has been initialized.
     if (!canInlineStaticInvoke(
         invoke, method, singleTarget, classInitializationAnalysis, whyAreYouNotInliningReporter)) {
       return null;
     }
-
-    if (!passesInliningConstraints(invoke, singleTarget, reason, whyAreYouNotInliningReporter)) {
-      return null;
-    }
-
     return new InlineAction(singleTarget, invoke, reason);
   }
 

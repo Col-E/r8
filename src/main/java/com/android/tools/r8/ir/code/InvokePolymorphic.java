@@ -16,10 +16,11 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.ir.optimize.DefaultInliningOracle;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
+import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
-import com.android.tools.r8.ir.optimize.InliningOracle;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import java.util.Collection;
 import java.util.List;
@@ -139,8 +140,8 @@ public class InvokePolymorphic extends InvokeMethod {
   @Override
   public InlineAction computeInlining(
       DexEncodedMethod singleTarget,
-      InliningOracle decider,
-      DexMethod invocationContext,
+      Reason reason,
+      DefaultInliningOracle decider,
       ClassInitializationAnalysis classInitializationAnalysis,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     // We never determine a single target for invoke-polymorphic.

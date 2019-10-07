@@ -44,7 +44,23 @@ public abstract class WhyAreYouNotInliningReporter {
     }
   }
 
+  public abstract void reportBlacklisted();
+
+  public abstract void reportClasspathMethod();
+
+  public abstract void reportIncorrectArity(int numberOfArguments, int arity);
+
+  public abstract void reportInlineeDoesNotHaveCode();
+
   public abstract void reportInstructionBudgetIsExceeded();
+
+  public abstract void reportLibraryMethod();
+
+  public abstract void reportMarkedAsNeverInline();
+
+  public abstract void reportMustTriggerClassInitialization();
+
+  public abstract void reportPinned();
 
   public abstract void reportPotentialExplosionInExceptionalControlFlowResolutionBlocks(
       int estimatedNumberOfControlFlowResolutionBlocks, int threshold);

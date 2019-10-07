@@ -363,11 +363,6 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       AppInfoWithSubtyping appInfo,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     checkIfObsolete();
-    if (isClassInitializer()) {
-      // This will probably never happen but never inline a class initializer.
-      whyAreYouNotInliningReporter.reportUnknownReason();
-      return false;
-    }
 
     if (inliningReason == Reason.FORCE) {
       // Make sure we would be able to inline this normally.

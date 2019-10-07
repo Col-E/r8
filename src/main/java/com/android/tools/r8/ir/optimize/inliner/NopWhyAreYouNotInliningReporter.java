@@ -20,7 +20,31 @@ public class NopWhyAreYouNotInliningReporter extends WhyAreYouNotInliningReporte
   }
 
   @Override
+  public void reportBlacklisted() {}
+
+  @Override
+  public void reportClasspathMethod() {}
+
+  @Override
+  public void reportIncorrectArity(int numberOfArguments, int arity) {}
+
+  @Override
+  public void reportInlineeDoesNotHaveCode() {}
+
+  @Override
   public void reportInstructionBudgetIsExceeded() {}
+
+  @Override
+  public void reportLibraryMethod() {}
+
+  @Override
+  public void reportMarkedAsNeverInline() {}
+
+  @Override
+  public void reportMustTriggerClassInitialization() {}
+
+  @Override
+  public void reportPinned() {}
 
   @Override
   public void reportPotentialExplosionInExceptionalControlFlowResolutionBlocks(

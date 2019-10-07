@@ -58,7 +58,7 @@ import java.util.function.Predicate;
 public class Inliner {
 
   protected final AppView<AppInfoWithLiveness> appView;
-  private final Set<DexMethod> blackList;
+  private final Set<DexMethod> blacklist;
   private final LensCodeRewriter lensCodeRewriter;
   final MainDexClasses mainDexClasses;
 
@@ -74,12 +74,12 @@ public class Inliner {
       LensCodeRewriter lensCodeRewriter) {
     Kotlin.Intrinsics intrinsics = appView.dexItemFactory().kotlin.intrinsics;
     this.appView = appView;
-    this.blackList = ImmutableSet.of(intrinsics.throwNpe, intrinsics.throwParameterIsNullException);
+    this.blacklist = ImmutableSet.of(intrinsics.throwNpe, intrinsics.throwParameterIsNullException);
     this.lensCodeRewriter = lensCodeRewriter;
     this.mainDexClasses = mainDexClasses;
   }
 
-  boolean isBlackListed(
+  boolean isBlacklisted(
       DexEncodedMethod encodedMethod, WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     DexMethod method = encodedMethod.method;
     if (encodedMethod.getOptimizationInfo().forceInline()
@@ -88,22 +88,18 @@ public class Inliner {
     }
 
     if (appView.appInfo().isPinned(method)) {
-      whyAreYouNotInliningReporter.reportUnknownReason();
+      whyAreYouNotInliningReporter.reportPinned();
       return true;
     }
 
-    if (blackList.contains(appView.graphLense().getOriginalMethodSignature(method))) {
-      whyAreYouNotInliningReporter.reportUnknownReason();
+    if (blacklist.contains(appView.graphLense().getOriginalMethodSignature(method))
+        || TwrCloseResourceRewriter.isSynthesizedCloseResourceMethod(method, appView)) {
+      whyAreYouNotInliningReporter.reportBlacklisted();
       return true;
     }
 
     if (appView.appInfo().neverInline.contains(method)) {
-      whyAreYouNotInliningReporter.reportUnknownReason();
-      return true;
-    }
-
-    if (TwrCloseResourceRewriter.isSynthesizedCloseResourceMethod(method, appView)) {
-      whyAreYouNotInliningReporter.reportUnknownReason();
+      whyAreYouNotInliningReporter.reportMarkedAsNeverInline();
       return true;
     }
 
@@ -759,12 +755,8 @@ public class Inliner {
                   ? NopWhyAreYouNotInliningReporter.getInstance()
                   : WhyAreYouNotInliningReporter.createFor(singleTarget, appView, context);
           InlineAction action =
-              invoke.computeInlining(
-                  singleTarget,
-                  oracle,
-                  context.method,
-                  classInitializationAnalysis,
-                  whyAreYouNotInliningReporter);
+              oracle.computeInlining(
+                  invoke, singleTarget, classInitializationAnalysis, whyAreYouNotInliningReporter);
           if (action == null) {
             assert whyAreYouNotInliningReporter.verifyReasonHasBeenReported();
             continue;

@@ -45,8 +45,55 @@ class WhyAreYouNotInliningReporterImpl extends WhyAreYouNotInliningReporter {
   }
 
   @Override
+  public void reportBlacklisted() {
+    print("method is blacklisted from inlining.");
+  }
+
+  @Override
+  public void reportClasspathMethod() {
+    print("inlinee is on the classpath.");
+  }
+
+  @Override
+  public void reportIncorrectArity(int numberOfArguments, int arity) {
+    print(
+        "number of arguments ("
+            + numberOfArguments
+            + ") does not match arity of method ("
+            + arity
+            + ").");
+  }
+
+  @Override
+  public void reportInlineeDoesNotHaveCode() {
+    print("inlinee does not have code.");
+  }
+
+  @Override
   public void reportInstructionBudgetIsExceeded() {
     print("caller's instruction budget is exceeded.");
+  }
+
+  @Override
+  public void reportLibraryMethod() {
+    print("inlinee is a library method.");
+  }
+
+  @Override
+  public void reportMarkedAsNeverInline() {
+    print("method is marked by a -neverinline rule.");
+  }
+
+  @Override
+  public void reportMustTriggerClassInitialization() {
+    print(
+        "cannot guarantee that the enclosing class of the inlinee is guaranteed to be class "
+            + "initialized before the first side-effecting instruction in the inlinee.");
+  }
+
+  @Override
+  public void reportPinned() {
+    print("method is kept by a Proguard configuration rule.");
   }
 
   @Override

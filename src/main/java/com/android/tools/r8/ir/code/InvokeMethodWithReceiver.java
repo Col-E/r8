@@ -13,8 +13,9 @@ import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.optimize.DefaultInliningOracle;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
-import com.android.tools.r8.ir.optimize.InliningOracle;
+import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import java.util.List;
 
@@ -42,12 +43,12 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
   @Override
   public final InlineAction computeInlining(
       DexEncodedMethod singleTarget,
-      InliningOracle decider,
-      DexMethod invocationContext,
+      Reason reason,
+      DefaultInliningOracle decider,
       ClassInitializationAnalysis classInitializationAnalysis,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     return decider.computeForInvokeWithReceiver(
-        this, singleTarget, invocationContext, whyAreYouNotInliningReporter);
+        this, singleTarget, reason, whyAreYouNotInliningReporter);
   }
 
   @Override

@@ -6,14 +6,11 @@ package com.android.tools.r8.ir.optimize;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InvokeMethod;
-import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
-import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.Inliner.InlineeWithReason;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
@@ -53,19 +50,9 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
   }
 
   @Override
-  public InlineAction computeForInvokeWithReceiver(
-      InvokeMethodWithReceiver invoke,
+  public InlineAction computeInlining(
+      InvokeMethod invoke,
       DexEncodedMethod singleTarget,
-      DexMethod invocationContext,
-      WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
-    return computeForInvoke(invoke);
-  }
-
-  @Override
-  public InlineAction computeForInvokeStatic(
-      InvokeStatic invoke,
-      DexEncodedMethod singleTarget,
-      DexMethod invocationContext,
       ClassInitializationAnalysis classInitializationAnalysis,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     return computeForInvoke(invoke);

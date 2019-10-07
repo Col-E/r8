@@ -18,10 +18,11 @@ import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssu
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.ir.optimize.DefaultInliningOracle;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
+import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
-import com.android.tools.r8.ir.optimize.InliningOracle;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Collection;
@@ -141,16 +142,12 @@ public class InvokeStatic extends InvokeMethod {
   @Override
   public InlineAction computeInlining(
       DexEncodedMethod singleTarget,
-      InliningOracle decider,
-      DexMethod invocationContext,
+      Reason reason,
+      DefaultInliningOracle decider,
       ClassInitializationAnalysis classInitializationAnalysis,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     return decider.computeForInvokeStatic(
-        this,
-        singleTarget,
-        invocationContext,
-        classInitializationAnalysis,
-        whyAreYouNotInliningReporter);
+        this, singleTarget, reason, classInitializationAnalysis, whyAreYouNotInliningReporter);
   }
 
   @Override
