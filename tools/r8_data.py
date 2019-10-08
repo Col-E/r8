@@ -5,6 +5,8 @@
 import utils
 import os
 
+ANDROID_L_API = '21'
+
 VERSIONS = {
     'cf': {
       'deploy': {
@@ -12,6 +14,11 @@ VERSIONS = {
           'pgconf': [os.path.join(utils.REPO_ROOT, 'src', 'main', 'keep.txt')],
           'libraries' : [utils.RT_JAR],
           'flags': '--classfile',
+      },
+      'proguarded': {
+          'inputs': [utils.PINNED_R8_JAR],
+          'libraries' : [utils.RT_JAR],
+          'min-api' : ANDROID_L_API,
       }
     }
 }
