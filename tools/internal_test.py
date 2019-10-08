@@ -57,37 +57,6 @@ TIMED_OUT = 'timed_out'
 
 TEST_COMMANDS = [
     # Run test.py internal testing.
-    ['tools/gradle.py', 'r8lib'],
-    ['tools/run_on_app.py',
-     '--compiler=r8',
-     '--compiler-build=lib',
-     '--app=r8',
-     '--no-debug',
-     '--no-build',
-     '--find-min-xmx',
-     '--find-min-xmx-min-memory=128',
-     '--find-min-xmx-range-size=16',
-     '--find-min-xmx-max-memory=400'],
-    ['tools/run_on_app.py',
-     '--compiler=r8',
-     '--compiler-build=lib',
-     '--app=chrome',
-     '--no-debug',
-     '--no-build',
-     '--find-min-xmx',
-     '--find-min-xmx-min-memory=128',
-     '--find-min-xmx-range-size=16',
-     '--find-min-xmx-max-memory=400'],
-    ['tools/run_on_app.py',
-     '--compiler=r8',
-     '--compiler-build=lib',
-     '--app=youtube',
-     '--no-debug',
-     '--no-build',
-     '--find-min-xmx',
-     '--find-min-xmx-min-memory=500',
-     '--find-min-xmx-range-size=64',
-     '--find-min-xmx-max-memory=1500'],
     ['tools/test.py', '--only_internal', '--slow_tests',
      '--java_max_memory_size=8G'],
     # Ensure that all internal apps compile.
@@ -335,8 +304,9 @@ def execute(cmd, archive, env=None):
         stderr_fd.close()
       if stdout_fd:
         stdout_fd.close()
-      handle_output(archive, stderr, stdout, popen.returncode,
-                    timed_out, ' '.join(cmd))
+      if exitcode != 0:
+        handle_output(archive, stderr, stdout, popen.returncode,
+                      timed_out, ' '.join(cmd))
     return exitcode
 
 def run_once(archive):
