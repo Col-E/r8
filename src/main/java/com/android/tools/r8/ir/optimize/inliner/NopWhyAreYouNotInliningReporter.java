@@ -7,6 +7,8 @@ package com.android.tools.r8.ir.optimize.inliner;
 import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeDirect;
+import com.android.tools.r8.ir.optimize.Inliner.Reason;
+import java.util.Set;
 
 public class NopWhyAreYouNotInliningReporter extends WhyAreYouNotInliningReporter {
 
@@ -23,7 +25,25 @@ public class NopWhyAreYouNotInliningReporter extends WhyAreYouNotInliningReporte
   public void reportBlacklisted() {}
 
   @Override
+  public void reportCallerNotSameClass() {}
+
+  @Override
+  public void reportCallerNotSameNest() {}
+
+  @Override
+  public void reportCallerNotSamePackage() {}
+
+  @Override
+  public void reportCallerNotSubtype() {}
+
+  @Override
   public void reportClasspathMethod() {}
+
+  @Override
+  public void reportInaccessible() {}
+
+  @Override
+  public void reportIncompatibleClassChangeError() {}
 
   @Override
   public void reportIncorrectArity(int numberOfArguments, int arity) {}
@@ -32,7 +52,28 @@ public class NopWhyAreYouNotInliningReporter extends WhyAreYouNotInliningReporte
   public void reportInlineeDoesNotHaveCode() {}
 
   @Override
+  public void reportInlineeNotInliningCandidate() {}
+
+  @Override
+  public void reportInlineeNotProcessed() {}
+
+  @Override
+  public void reportInlineeNotSimple() {}
+
+  @Override
+  public void reportInlineeRefersToClassesNotInMainDex() {}
+
+  @Override
+  public void reportInliningAcrossFeatureSplit() {}
+
+  @Override
   public void reportInstructionBudgetIsExceeded() {}
+
+  @Override
+  public void reportInvalidDoubleInliningCandidate() {}
+
+  @Override
+  public void reportInvalidInliningReason(Reason reason, Set<Reason> validInliningReasons) {}
 
   @Override
   public void reportLibraryMethod() {}
@@ -44,6 +85,9 @@ public class NopWhyAreYouNotInliningReporter extends WhyAreYouNotInliningReporte
   public void reportMustTriggerClassInitialization() {}
 
   @Override
+  public void reportNoInliningIntoConstructorsWhenGeneratingClassFiles() {}
+
+  @Override
   public void reportPinned() {}
 
   @Override
@@ -51,7 +95,19 @@ public class NopWhyAreYouNotInliningReporter extends WhyAreYouNotInliningReporte
       int estimatedNumberOfControlFlowResolutionBlocks, int threshold) {}
 
   @Override
-  public void reportUnknownReason() {}
+  public void reportProcessedConcurrently() {}
+
+  @Override
+  public void reportReceiverDefinitelyNull() {}
+
+  @Override
+  public void reportReceiverMaybeNull() {}
+
+  @Override
+  public void reportRecursiveMethod() {}
+
+  @Override
+  public void reportSynchronizedMethod() {}
 
   @Override
   public void reportUnknownTarget() {}

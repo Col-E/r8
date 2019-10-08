@@ -10,8 +10,10 @@ import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Collection;
+import java.util.Set;
 
 public abstract class WhyAreYouNotInliningReporter {
 
@@ -46,13 +48,39 @@ public abstract class WhyAreYouNotInliningReporter {
 
   public abstract void reportBlacklisted();
 
+  public abstract void reportCallerNotSameClass();
+
+  public abstract void reportCallerNotSameNest();
+
+  public abstract void reportCallerNotSamePackage();
+
+  public abstract void reportCallerNotSubtype();
+
   public abstract void reportClasspathMethod();
+
+  public abstract void reportInaccessible();
+
+  public abstract void reportIncompatibleClassChangeError();
 
   public abstract void reportIncorrectArity(int numberOfArguments, int arity);
 
   public abstract void reportInlineeDoesNotHaveCode();
 
+  public abstract void reportInlineeNotInliningCandidate();
+
+  public abstract void reportInlineeNotProcessed();
+
+  public abstract void reportInlineeNotSimple();
+
+  public abstract void reportInlineeRefersToClassesNotInMainDex();
+
+  public abstract void reportInliningAcrossFeatureSplit();
+
   public abstract void reportInstructionBudgetIsExceeded();
+
+  public abstract void reportInvalidDoubleInliningCandidate();
+
+  public abstract void reportInvalidInliningReason(Reason reason, Set<Reason> validInliningReasons);
 
   public abstract void reportLibraryMethod();
 
@@ -60,12 +88,22 @@ public abstract class WhyAreYouNotInliningReporter {
 
   public abstract void reportMustTriggerClassInitialization();
 
+  public abstract void reportNoInliningIntoConstructorsWhenGeneratingClassFiles();
+
   public abstract void reportPinned();
 
   public abstract void reportPotentialExplosionInExceptionalControlFlowResolutionBlocks(
       int estimatedNumberOfControlFlowResolutionBlocks, int threshold);
 
-  public abstract void reportUnknownReason();
+  public abstract void reportProcessedConcurrently();
+
+  public abstract void reportReceiverDefinitelyNull();
+
+  public abstract void reportReceiverMaybeNull();
+
+  public abstract void reportRecursiveMethod();
+
+  public abstract void reportSynchronizedMethod();
 
   abstract void reportUnknownTarget();
 

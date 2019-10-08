@@ -8,7 +8,10 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeDirect;
+import com.android.tools.r8.ir.optimize.Inliner.Reason;
+import com.android.tools.r8.utils.StringUtils;
 import java.io.PrintStream;
+import java.util.Set;
 
 class WhyAreYouNotInliningReporterImpl extends WhyAreYouNotInliningReporter {
 
@@ -50,8 +53,43 @@ class WhyAreYouNotInliningReporterImpl extends WhyAreYouNotInliningReporter {
   }
 
   @Override
+  public void reportCallerNotSameClass() {
+    print("inlinee can only be inlined into methods in the same class.");
+  }
+
+  @Override
+  public void reportCallerNotSameNest() {
+    print("inlinee can only be inlined into methods in the same class (and its nest members).");
+  }
+
+  @Override
+  public void reportCallerNotSamePackage() {
+    print(
+        "inlinee can only be inlined into methods in the same package "
+            + "(declared package private or accesses package private type or member).");
+  }
+
+  @Override
+  public void reportCallerNotSubtype() {
+    print(
+        "inlinee can only be inlined into methods in the same package and methods in subtypes of "
+            + "the inlinee's enclosing class"
+            + "(declared protected or accesses protected type or member).");
+  }
+
+  @Override
   public void reportClasspathMethod() {
     print("inlinee is on the classpath.");
+  }
+
+  @Override
+  public void reportInaccessible() {
+    print("inlinee is not accessible from the caller context.");
+  }
+
+  @Override
+  public void reportIncompatibleClassChangeError() {
+    print("invoke may fail with an IncompatibleClassChangeError.");
   }
 
   @Override
@@ -70,8 +108,52 @@ class WhyAreYouNotInliningReporterImpl extends WhyAreYouNotInliningReporter {
   }
 
   @Override
+  public void reportInlineeNotInliningCandidate() {
+    print("unsupported instruction in inlinee.");
+  }
+
+  @Override
+  public void reportInlineeNotProcessed() {
+    print("inlinee not processed yet.");
+  }
+
+  @Override
+  public void reportInlineeNotSimple() {
+    print(
+        "not inlining due to code size heuristic "
+            + "(inlinee may have multiple callers and is not considered trivial).");
+  }
+
+  @Override
+  public void reportInlineeRefersToClassesNotInMainDex() {
+    print(
+        "inlining could increase the main dex size "
+            + "(caller is in main dex and inlinee refers to classes not in main dex).");
+  }
+
+  @Override
+  public void reportInliningAcrossFeatureSplit() {
+    print("cannot inline across feature splits.");
+  }
+
+  @Override
   public void reportInstructionBudgetIsExceeded() {
     print("caller's instruction budget is exceeded.");
+  }
+
+  @Override
+  public void reportInvalidDoubleInliningCandidate() {
+    print("inlinee is invoked more than once and could not be inlined into all call sites.");
+  }
+
+  @Override
+  public void reportInvalidInliningReason(Reason reason, Set<Reason> validInliningReasons) {
+    print(
+        "not a valid inlining reason (was: "
+            + reason
+            + ", allowed: one of "
+            + StringUtils.join(validInliningReasons, ", ")
+            + ").");
   }
 
   @Override
@@ -92,6 +174,11 @@ class WhyAreYouNotInliningReporterImpl extends WhyAreYouNotInliningReporter {
   }
 
   @Override
+  public void reportNoInliningIntoConstructorsWhenGeneratingClassFiles() {
+    print("inlining into constructors not supported when generating class files.");
+  }
+
+  @Override
   public void reportPinned() {
     print("method is kept by a Proguard configuration rule.");
   }
@@ -106,10 +193,30 @@ class WhyAreYouNotInliningReporterImpl extends WhyAreYouNotInliningReporter {
         threshold);
   }
 
-  // TODO(b/142108662): Always report a meaningful reason.
   @Override
-  public void reportUnknownReason() {
-    print(null);
+  public void reportProcessedConcurrently() {
+    print(
+        "could lead to nondeterministic output since the inlinee is being optimized concurrently.");
+  }
+
+  @Override
+  public void reportReceiverDefinitelyNull() {
+    print("the receiver is always null at the call site.");
+  }
+
+  @Override
+  public void reportReceiverMaybeNull() {
+    print("the receiver may be null at the call site.");
+  }
+
+  @Override
+  public void reportRecursiveMethod() {
+    print("recursive calls are not inlined.");
+  }
+
+  @Override
+  public void reportSynchronizedMethod() {
+    print("synchronized methods are not inlined.");
   }
 
   @Override

@@ -106,6 +106,10 @@ public class Inliner {
     return false;
   }
 
+  boolean isDoubleInliningEnabled() {
+    return applyDoubleInlining;
+  }
+
   private ConstraintWithTarget instructionAllowedForInlining(
       Instruction instruction, InliningConstraints inliningConstraints, DexType invocationContext) {
     ConstraintWithTarget result =
