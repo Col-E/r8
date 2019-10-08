@@ -101,7 +101,8 @@ public final class R8Command extends BaseCompilerCommand {
     private final List<FeatureSplit> featureSplits = new ArrayList<>();
 
     private boolean allowPartiallyImplementedProguardOptions = false;
-    private boolean allowTestProguardOptions = false;
+    private boolean allowTestProguardOptions =
+        System.getProperty("com.android.tools.r8.allowTestProguardOptions") != null;
 
     // TODO(zerny): Consider refactoring CompatProguardCommandBuilder to avoid subclassing.
     Builder() {
