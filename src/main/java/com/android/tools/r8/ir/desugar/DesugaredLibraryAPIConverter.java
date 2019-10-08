@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
@@ -33,6 +34,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -75,27 +77,31 @@ public class DesugaredLibraryAPIConverter {
 
     generateCallBackIfNeeded(code);
 
-    InstructionListIterator iterator = code.instructionListIterator();
-    while (iterator.hasNext()) {
-      Instruction instruction = iterator.next();
-      if (!instruction.isInvokeMethod()) {
-        continue;
-      }
-      InvokeMethod invokeMethod = instruction.asInvokeMethod();
-      DexMethod invokedMethod = invokeMethod.getInvokedMethod();
-      // Rewritting is required only on calls to library methods which are not desugared.
-      if (appView.rewritePrefix.hasRewrittenType(invokedMethod.holder)
-          || invokedMethod.holder.isArrayType()) {
-        continue;
-      }
-      DexClass dexClass = appView.definitionFor(invokedMethod.holder);
-      if (dexClass == null || !dexClass.isLibraryClass()) {
-        continue;
-      }
-      // Library methods do not understand desugared types, hence desugared types have to be
-      // converted around non desugared library calls for the invoke to resolve.
-      if (appView.rewritePrefix.hasRewrittenTypeInSignature(invokedMethod.proto)) {
-        rewriteLibraryInvoke(code, invokeMethod, iterator);
+    ListIterator<BasicBlock> blockIterator = code.listIterator();
+    while (blockIterator.hasNext()) {
+      BasicBlock block = blockIterator.next();
+      InstructionListIterator iterator = block.listIterator(code);
+      while (iterator.hasNext()) {
+        Instruction instruction = iterator.next();
+        if (!instruction.isInvokeMethod()) {
+          continue;
+        }
+        InvokeMethod invokeMethod = instruction.asInvokeMethod();
+        DexMethod invokedMethod = invokeMethod.getInvokedMethod();
+        // Rewriting is required only on calls to library methods which are not desugared.
+        if (appView.rewritePrefix.hasRewrittenType(invokedMethod.holder)
+            || invokedMethod.holder.isArrayType()) {
+          continue;
+        }
+        DexClass dexClass = appView.definitionFor(invokedMethod.holder);
+        if (dexClass == null || !dexClass.isLibraryClass()) {
+          continue;
+        }
+        // Library methods do not understand desugared types, hence desugared types have to be
+        // converted around non desugared library calls for the invoke to resolve.
+        if (appView.rewritePrefix.hasRewrittenTypeInSignature(invokedMethod.proto)) {
+          rewriteLibraryInvoke(code, invokeMethod, iterator, blockIterator);
+        }
       }
     }
   }
@@ -231,7 +237,10 @@ public class DesugaredLibraryAPIConverter {
   }
 
   private void rewriteLibraryInvoke(
-      IRCode code, InvokeMethod invokeMethod, InstructionListIterator iterator) {
+      IRCode code,
+      InvokeMethod invokeMethod,
+      InstructionListIterator iterator,
+      ListIterator<BasicBlock> blockIterator) {
     DexMethod invokedMethod = invokeMethod.getInvokedMethod();
 
     // Create return conversion if required.
@@ -309,6 +318,41 @@ public class DesugaredLibraryAPIConverter {
     if (returnConversion != null) {
       returnConversion.setPosition(invokeMethod.getPosition());
       iterator.add(returnConversion);
+    }
+
+    // If the invoke is in a try-catch, since all conversions can throw, the basic block needs
+    // to be split in between each invoke...
+    if (newInvokeMethod.getBlock().hasCatchHandlers()) {
+      splitIfCatchHandlers(code, newInvokeMethod.getBlock(), blockIterator);
+    }
+  }
+
+  private void splitIfCatchHandlers(
+      IRCode code,
+      BasicBlock blockWithIncorrectThrowingInstructions,
+      ListIterator<BasicBlock> blockIterator) {
+    InstructionListIterator instructionsIterator =
+        blockWithIncorrectThrowingInstructions.listIterator(code);
+    BasicBlock currentBlock = blockWithIncorrectThrowingInstructions;
+    while (currentBlock != null && instructionsIterator.hasNext()) {
+      Instruction throwingInstruction =
+          instructionsIterator.nextUntil(Instruction::instructionTypeCanThrow);
+      BasicBlock nextBlock;
+      if (throwingInstruction != null) {
+        nextBlock = instructionsIterator.split(code, blockIterator);
+        // Back up to before the split before inserting catch handlers.
+        blockIterator.previous();
+        nextBlock.copyCatchHandlers(code, blockIterator, currentBlock, appView.options());
+        BasicBlock b = blockIterator.next();
+        assert b == nextBlock;
+        // Switch iteration to the split block.
+        instructionsIterator = nextBlock.listIterator(code);
+        currentBlock = nextBlock;
+      } else {
+        assert !instructionsIterator.hasNext();
+        instructionsIterator = null;
+        currentBlock = null;
+      }
     }
   }
 
