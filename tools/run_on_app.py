@@ -59,6 +59,9 @@ def ParseOptions(argv):
                     help='Run without building first',
                     default=False,
                     action='store_true')
+  result.add_option('--max-memory',
+                    help='The maximum memory in MB to run with',
+                    type='int')
   result.add_option('--find-min-xmx',
                     help='Find the minimum amount of memory we can run in',
                     default=False,
@@ -251,7 +254,10 @@ def run_with_options(options, args, extra_args=None):
   app_provided_pg_conf = False;
   # todo(121018500): remove when memory is under control
   if not any('-Xmx' in arg for arg in extra_args):
-    extra_args.append('-Xmx8G')
+    if options.max_memory:
+      extra_args.append('-Xmx%sM' % options.max_memory)
+    else:
+      extra_args.append('-Xmx8G')
   if options.golem:
     golem.link_third_party()
     options.out = os.getcwd()
