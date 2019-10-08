@@ -382,8 +382,7 @@ public class DesugaredLibraryWrapperSynthesizer {
           // This looks quadratic but given the size of the collections met in practice for
           // desugared libraries (Max ~15) it does not matter.
           for (DexEncodedMethod alreadyImplementedMethod : implementedMethods) {
-            if (alreadyImplementedMethod.method.proto == virtualMethod.method.proto
-                && alreadyImplementedMethod.method.name == virtualMethod.method.name) {
+            if (alreadyImplementedMethod.method.match(virtualMethod.method)) {
               alreadyAdded = true;
               continue;
             }
