@@ -632,7 +632,7 @@ public class ToolHelper {
       Assert.fail(ioe.toString());
     }
     CRC32 crc = new CRC32();
-    crc.update(bytes);
+    crc.update(bytes, 0, bytes.length);
     return crc.getValue();
   }
 

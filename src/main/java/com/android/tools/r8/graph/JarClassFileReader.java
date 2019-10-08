@@ -456,7 +456,7 @@ public class JarClassFileReader {
         clazz.asProgramClass().setInitialClassFileVersion(version);
         if (application.options.encodeChecksums) {
           CRC32 crc = new CRC32();
-          crc.update(this.context.classCache);
+          crc.update(this.context.classCache, 0, this.context.classCache.length);
           checksums.addChecksum(type.descriptor.toASCIIString(), crc.getValue());
         }
       }
