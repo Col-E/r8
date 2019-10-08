@@ -560,7 +560,7 @@ public final class InterfaceMethodRewriter {
         warnMissingEmulatedInterface(interfaceType);
       } else if (theInterface.isProgramClass()) {
         DexProgramClass synthesizedClass =
-            synthetizeEmulateInterfaceLibraryClass(
+            synthesizeEmulateInterfaceLibraryClass(
                 theInterface.asProgramClass(), emulatedInterfacesHierarchy);
         if (synthesizedClass != null) {
           builder.addSynthesizedClass(synthesizedClass, isInMainDexList(interfaceType));
@@ -631,7 +631,7 @@ public final class InterfaceMethodRewriter {
         factory.createString(method.name.toString()));
   }
 
-  private DexProgramClass synthetizeEmulateInterfaceLibraryClass(
+  private DexProgramClass synthesizeEmulateInterfaceLibraryClass(
       DexProgramClass theInterface, Map<DexType, List<DexType>> emulatedInterfacesHierarchy) {
     List<DexEncodedMethod> emulationMethods = new ArrayList<>();
     for (DexEncodedMethod method : theInterface.methods()) {
@@ -731,7 +731,7 @@ public final class InterfaceMethodRewriter {
         DexAnnotationSet.empty(),
         DexEncodedField.EMPTY_ARRAY,
         DexEncodedField.EMPTY_ARRAY,
-        // All synthetized methods are static in this case.
+        // All synthesized methods are static in this case.
         emulationMethods.toArray(DexEncodedMethod.EMPTY_ARRAY),
         DexEncodedMethod.EMPTY_ARRAY,
         factory.getSkipNameValidationForTesting(),

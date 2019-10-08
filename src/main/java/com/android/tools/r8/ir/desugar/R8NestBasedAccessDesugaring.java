@@ -49,7 +49,7 @@ public class R8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
     if (nothingToMap()) {
       return appView.graphLense();
     }
-    synthetizeNestConstructor(appBuilder);
+    synthesizeNestConstructor(appBuilder);
     return new NestedPrivateMethodLense(
         appView,
         getNestConstructorType(),

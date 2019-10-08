@@ -167,7 +167,7 @@ public abstract class NestBasedAccessDesugaring {
         appView.dexItemFactory().getSkipNameValidationForTesting());
   }
 
-  void synthetizeNestConstructor(DexApplication.Builder<?> builder) {
+  void synthesizeNestConstructor(DexApplication.Builder<?> builder) {
     if (nestConstructorUsed) {
       appView.appInfo().addSynthesizedClass(nestConstructor);
       builder.addSynthesizedClass(nestConstructor, true);

@@ -144,7 +144,7 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
       throws ExecutionException {
     processNestsConcurrently(executorService);
     addDeferredBridges();
-    synthetizeNestConstructor(builder);
+    synthesizeNestConstructor(builder);
     optimizeDeferredBridgesConcurrently(executorService, converter);
   }
 
