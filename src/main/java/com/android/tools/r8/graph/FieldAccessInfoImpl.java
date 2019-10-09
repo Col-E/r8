@@ -146,6 +146,23 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
     return writesWithContexts != null && !writesWithContexts.isEmpty();
   }
 
+  /**
+   * Returns true if this field is written by a method in the program other than {@param method}.
+   */
+  @Override
+  public boolean isWrittenOutside(DexEncodedMethod method) {
+    if (writesWithContexts != null) {
+      for (Set<DexEncodedMethod> encodedWriteContexts : writesWithContexts.values()) {
+        for (DexEncodedMethod encodedWriteContext : encodedWriteContexts) {
+          if (encodedWriteContext != method) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
   public boolean recordRead(DexField access, DexEncodedMethod context) {
     if (readsWithContexts == null) {
       readsWithContexts = new IdentityHashMap<>();

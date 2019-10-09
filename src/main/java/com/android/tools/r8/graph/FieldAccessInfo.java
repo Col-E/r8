@@ -28,4 +28,6 @@ public interface FieldAccessInfo {
   boolean isReadOnlyIn(DexEncodedMethod method);
 
   boolean isWritten();
+
+  boolean isWrittenOutside(DexEncodedMethod method);
 }

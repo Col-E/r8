@@ -1786,6 +1786,23 @@ public class Enqueuer {
     return liveFields.contains(field);
   }
 
+  public boolean isFieldRead(DexEncodedField field) {
+    FieldAccessInfoImpl info = fieldAccessInfoCollection.get(field.field);
+    return info != null && info.isRead();
+  }
+
+  public boolean isFieldWrittenOutsideDefaultConstructor(DexEncodedField field) {
+    FieldAccessInfoImpl info = fieldAccessInfoCollection.get(field.field);
+    if (info == null) {
+      return false;
+    }
+    DexClass clazz = appView.definitionFor(field.field.holder);
+    DexEncodedMethod defaultInitializer = clazz.getDefaultInitializer();
+    return defaultInitializer != null
+        ? info.isWrittenOutside(defaultInitializer)
+        : info.isWritten();
+  }
+
   private boolean isInstantiatedOrHasInstantiatedSubtype(DexProgramClass clazz) {
     return directAndIndirectlyInstantiatedTypes.contains(clazz);
   }

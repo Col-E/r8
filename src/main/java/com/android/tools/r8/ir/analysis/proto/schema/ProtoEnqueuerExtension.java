@@ -144,13 +144,13 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
 
         boolean encodedValueStorageIsLive;
         if (enqueuer.isFieldLive(encodedValueStorage)) {
-          // Mark that the field is written by reflection such that we do not optimize field reads
-          // into loading the default value of the field.
-          enqueuer.registerFieldWrite(encodedValueStorage.field, dynamicMethod);
-          // Map/required fields cannot be removed. Therefore, we mark such fields as both read and
-          // written such that we cannot optimize any field reads or writes.
-          if (reachesMapOrRequiredField(protoFieldInfo)) {
-            enqueuer.registerFieldRead(encodedValueStorage.field, dynamicMethod);
+          if (enqueuer.isFieldRead(encodedValueStorage)
+              || enqueuer.isFieldWrittenOutsideDefaultConstructor(encodedValueStorage)) {
+            // Mark that the field is both read and written by reflection such that we do not
+            // (i) optimize field reads into loading the default value of the field or (ii) remove
+            // field writes to proto fields that could be read using reflection by the proto
+            // library.
+            enqueuer.registerFieldAccess(encodedValueStorage.field, dynamicMethod);
           }
           encodedValueStorageIsLive = true;
         } else if (reachesMapOrRequiredField(protoFieldInfo)) {
