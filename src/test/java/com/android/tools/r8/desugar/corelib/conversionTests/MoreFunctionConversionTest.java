@@ -38,12 +38,12 @@ public class MoreFunctionConversionTest extends APIConversionTestBase {
             this::buildDesugaredLibraryWithConversionExtension, AndroidApiLevel.B)
         .addRunClasspathFiles(customLib)
         .run(new DexRuntime(DexVm.ART_9_0_0_HOST), Executor.class)
-        // TODO(clement): Make output reliable and put back expected results.
-        .assertSuccess();
+        .assertSuccessWithOutput(StringUtils.lines("6","6","6","6","6"));
   }
 
   // If we have the exact same lambda in both, but one implements j$..Function and the other
   // java..Function, ART is obviously very confused.
+  // This happens for instance when String::length function is used both in CustomLib and Executor.
   private void assertNoDuplicateLambdas(Path program, Path customLib) throws Exception {
     CodeInspector programInspector = new CodeInspector(program);
     CodeInspector customLibInspector = new CodeInspector(customLib);
@@ -76,29 +76,33 @@ public class MoreFunctionConversionTest extends APIConversionTestBase {
     }
 
     public static void oneParameterReturn() {
-      Function<Object, String> toString = Object::toString;
+      Function<Object, String> toString = getObjectStringConv();
       Function<Object, Integer> oneParam = CustomLibClass.oneParameterReturn(toString);
       System.out.println(oneParam.apply(new Object()));
     }
 
     public static void twoParametersReturn() {
-      Function<Object, String> toString = Object::toString;
+      Function<Object, String> toString = getObjectStringConv();
       Function<String, Integer> length = String::length;
       Function<Object, Integer> twoParam = CustomLibClass.twoParametersReturn(toString, length);
       System.out.println(twoParam.apply(new Object()));
     }
 
     public static void oneParameter() {
-      Function<Object, String> toString = Object::toString;
+      Function<Object, String> toString = getObjectStringConv();
       int res = CustomLibClass.oneParameter(toString);
       System.out.println(res);
     }
 
     public static void twoParameters() {
-      Function<Object, String> toString = Object::toString;
+      Function<Object, String> toString = getObjectStringConv();
       Function<String, Integer> length = String::length;
       int res = CustomLibClass.twoParameters(toString, length);
       System.out.println(res);
+    }
+
+    public static Function<Object, String> getObjectStringConv() {
+      return (Object o) -> o.getClass().getSimpleName();
     }
   }
 
@@ -130,13 +134,14 @@ public class MoreFunctionConversionTest extends APIConversionTestBase {
       return f1.andThen(f2).apply(new Object());
     }
 
-    // Following functions are defined to avoid name collision with the program.
+    // Following functions are defined to avoid name collision with the program. Name collision
+    // happens for instance when String::length function is used both in CustomLib and Executor.
     public static Function<String, Integer> getStringIntConv() {
       return (String s) -> 1 + s.length() - 1;
     }
 
     public static Function<Object, String> getObjectStringConv() {
-      return (Object o) -> "" + o.toString() + "";
+      return (Object o) -> "" + o.getClass().getSimpleName() + "";
     }
   }
 }
