@@ -9,6 +9,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
@@ -77,6 +78,7 @@ public class LibraryClassExtendsProgramClassTest extends TestBase {
 
   @Test
   public void testFullMode() throws Exception {
+    assumeFalse(parameters.getApiLevel().getLevel() == 28);
     testForR8(parameters.getBackend())
         .setMinApi(parameters.getApiLevel())
         .addProgramClasses(TestClass.class)
@@ -91,6 +93,7 @@ public class LibraryClassExtendsProgramClassTest extends TestBase {
 
   @Test
   public void testCompatibilityMode() throws Exception {
+    assumeFalse(parameters.getApiLevel().getLevel() == 28);
     testForR8Compat(parameters.getBackend())
         .setMinApi(parameters.getApiLevel())
         .addProgramClasses(TestClass.class)
@@ -117,6 +120,7 @@ public class LibraryClassExtendsProgramClassTest extends TestBase {
 
   @Test
   public void testFullModeError() {
+    assumeFalse(parameters.getApiLevel().getLevel() == 28);
     assumeTrue("Only run for Dex backend", parameters.isDexRuntime());
     try {
       testForR8(parameters.getBackend())
@@ -134,6 +138,7 @@ public class LibraryClassExtendsProgramClassTest extends TestBase {
 
   @Test
   public void testCompatibilityModeWarning() throws Exception {
+    assumeFalse(parameters.getApiLevel().getLevel() == 28);
     assumeTrue("Only run for Dex backend", parameters.isDexRuntime());
     R8TestCompileResult result =
         testForR8Compat(parameters.getBackend())
