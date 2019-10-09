@@ -37,6 +37,7 @@ import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
+import com.android.tools.r8.ir.desugar.DesugaredLibraryWrapperSynthesizer;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.ProguardMapSupplier;
@@ -218,8 +219,18 @@ public class ApplicationWriter {
         if (inputChecksums.containsKey(clazz.getType().descriptor.toASCIIString())) {
           continue;
         } else {
-          throw new CompilationError(clazz + " from " + clazz.origin +
-              " has no checksum information while checksum encoding is requested");
+          String name = clazz.toSourceString();
+          if (name.contains(DesugaredLibraryWrapperSynthesizer.TYPE_WRAPPER_SUFFIX)
+              || name.contains(DesugaredLibraryWrapperSynthesizer.VIVIFIED_TYPE_WRAPPER_SUFFIX)) {
+            synthesizedChecksums.put(
+                clazz.getType().descriptor.toASCIIString(), (long) name.hashCode());
+          } else {
+            throw new CompilationError(
+                clazz
+                    + " from "
+                    + clazz.origin
+                    + " has no checksum information while checksum encoding is requested");
+          }
         }
       }
 

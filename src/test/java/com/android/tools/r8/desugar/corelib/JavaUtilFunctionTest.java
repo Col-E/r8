@@ -10,6 +10,8 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ir.desugar.DesugaredLibraryWrapperSynthesizer;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -65,6 +67,7 @@ public class JavaUtilFunctionTest extends CoreLibDesugarTestBase {
         .addInnerClasses(JavaUtilFunctionTest.class)
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+        .setIncludeClassesChecksum(true)
         .compile()
         .inspect(this::checkRewrittenArguments)
         .addDesugaredCoreLibraryRunClassPath(
@@ -98,6 +101,40 @@ public class JavaUtilFunctionTest extends CoreLibDesugarTestBase {
             shrinkDesugaredLibrary)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(expectedOutput);
+  }
+
+  @Test
+  public void testWrapperWithChecksum() throws Exception {
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
+    testForD8()
+        .addInnerClasses(JavaUtilFunctionTest.class)
+        .setMinApi(parameters.getApiLevel())
+        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+        .setIncludeClassesChecksum(true) // Compilation fails if some classes are missing checksum.
+        .compile()
+        .inspect(
+            inspector -> {
+              assertEquals(
+                  parameters.getApiLevel().getLevel() >= AndroidApiLevel.N.getLevel() ? 0 : 1,
+                  inspector.allClasses().stream()
+                      .filter(
+                          clazz ->
+                              clazz
+                                  .getFinalName()
+                                  .contains(DesugaredLibraryWrapperSynthesizer.TYPE_WRAPPER_SUFFIX))
+                      .count());
+              assertEquals(
+                  parameters.getApiLevel().getLevel() >= AndroidApiLevel.N.getLevel() ? 0 : 1,
+                  inspector.allClasses().stream()
+                      .filter(
+                          clazz ->
+                              clazz
+                                  .getFinalName()
+                                  .contains(
+                                      DesugaredLibraryWrapperSynthesizer
+                                          .VIVIFIED_TYPE_WRAPPER_SUFFIX))
+                      .count());
+            });
   }
 
   static class TestClass {
