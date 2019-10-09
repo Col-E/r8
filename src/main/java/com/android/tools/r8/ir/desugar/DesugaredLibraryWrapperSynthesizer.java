@@ -111,14 +111,13 @@ public class DesugaredLibraryWrapperSynthesizer {
   private final DexItemFactory factory;
   private final DesugaredLibraryAPIConverter converter;
 
-  public DesugaredLibraryWrapperSynthesizer(
-      AppView<?> appView, DesugaredLibraryAPIConverter converter) {
+  DesugaredLibraryWrapperSynthesizer(AppView<?> appView, DesugaredLibraryAPIConverter converter) {
     this.appView = appView;
     this.factory = appView.dexItemFactory();
     this.converter = converter;
   }
 
-  public boolean hasSynthesized(DexType type) {
+  boolean hasSynthesized(DexType type) {
     return generatedWrappers.contains(type);
   }
 
@@ -126,7 +125,7 @@ public class DesugaredLibraryWrapperSynthesizer {
   // 1. Generate wrappers without conversion methods.
   // 2. Compute wrapper types.
 
-  public boolean canGenerateWrapper(DexType type) {
+  boolean canGenerateWrapper(DexType type) {
     DexClass dexClass = appView.definitionFor(type);
     if (dexClass == null) {
       return false;
@@ -134,11 +133,11 @@ public class DesugaredLibraryWrapperSynthesizer {
     return dexClass.isLibraryClass();
   }
 
-  public DexType getTypeWrapper(DexType type) {
+  DexType getTypeWrapper(DexType type) {
     return getWrapper(type, TYPE_WRAPPER_SUFFIX, typeWrappers, this::generateTypeWrapper);
   }
 
-  public DexType getVivifiedTypeWrapper(DexType type) {
+  DexType getVivifiedTypeWrapper(DexType type) {
     return getWrapper(
         type,
         VIVIFIED_TYPE_WRAPPER_SUFFIX,
@@ -189,21 +188,25 @@ public class DesugaredLibraryWrapperSynthesizer {
     return pair.getFirst();
   }
 
-  public DexProgramClass generateTypeWrapper(DexClass dexClass, DexType typeWrapperType) {
+  private DexType vivifiedTypeFor(DexType type) {
+    return DesugaredLibraryAPIConverter.vivifiedTypeFor(type, appView);
+  }
+
+  private DexProgramClass generateTypeWrapper(DexClass dexClass, DexType typeWrapperType) {
     DexType type = dexClass.type;
     DexEncodedField wrapperField = synthesizeWrappedValueField(typeWrapperType, type);
     return synthesizeWrapper(
-        converter.vivifiedTypeFor(type),
+        vivifiedTypeFor(type),
         dexClass,
         synthesizeVirtualMethodsForTypeWrapper(dexClass.asLibraryClass(), wrapperField),
         wrapperField);
   }
 
-  public DexProgramClass generateVivifiedTypeWrapper(
+  private DexProgramClass generateVivifiedTypeWrapper(
       DexClass dexClass, DexType vivifiedTypeWrapperType) {
     DexType type = dexClass.type;
     DexEncodedField wrapperField =
-        synthesizeWrappedValueField(vivifiedTypeWrapperType, converter.vivifiedTypeFor(type));
+        synthesizeWrappedValueField(vivifiedTypeWrapperType, vivifiedTypeFor(type));
     return synthesizeWrapper(
         type,
         dexClass,
@@ -307,8 +310,8 @@ public class DesugaredLibraryWrapperSynthesizer {
       DexClass holderClass = appView.definitionFor(dexEncodedMethod.method.holder);
       assert holderClass != null;
       DexMethod methodToInstall =
-          converter.methodWithVivifiedTypeInSignature(
-              dexEncodedMethod.method, wrapperField.field.holder);
+          DesugaredLibraryAPIConverter.methodWithVivifiedTypeInSignature(
+              dexEncodedMethod.method, wrapperField.field.holder, appView);
       CfCode cfCode;
       if (dexEncodedMethod.isFinal()) {
         invalidWrappers.add(wrapperField.field.holder);
@@ -454,7 +457,7 @@ public class DesugaredLibraryWrapperSynthesizer {
   // 2. Add the synthesized classes.
   // 3. Process all methods.
 
-  public void finalizeWrappers(
+  void finalizeWrappers(
       DexApplication.Builder<?> builder, IRConverter irConverter, ExecutorService executorService)
       throws ExecutionException {
     finalizeWrappers(
@@ -508,7 +511,7 @@ public class DesugaredLibraryWrapperSynthesizer {
             synthesizedClass.type,
             type,
             type,
-            converter.vivifiedTypeFor(type),
+            vivifiedTypeFor(type),
             reverse == null ? null : reverse.getSecond()));
   }
 
@@ -518,7 +521,7 @@ public class DesugaredLibraryWrapperSynthesizer {
         synthesizeConversionMethod(
             synthesizedClass.type,
             type,
-            converter.vivifiedTypeFor(type),
+            vivifiedTypeFor(type),
             type,
             reverse == null ? null : reverse.getSecond()));
   }

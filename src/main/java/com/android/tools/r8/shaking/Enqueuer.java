@@ -49,6 +49,7 @@ import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.origin.Origin;
@@ -219,7 +220,7 @@ public class Enqueuer {
   private final Set<DexMethod> lambdaMethodsTargetedByInvokeDynamic = Sets.newIdentityHashSet();
   /**
    * Set of virtual methods that are the immediate target of an invoke-direct.
-   * */
+   */
   private final Set<DexMethod> virtualMethodsTargetedByInvokeDirect = Sets.newIdentityHashSet();
   /**
    * Set of methods that belong to live classes and can be reached by invokes. These need to be
@@ -1138,7 +1139,6 @@ public class Enqueuer {
       markTypeAsLive(holder.superType, reason);
     }
 
-
     // We cannot remove virtual methods defined earlier in the type hierarchy if it is widening
     // access and is defined in an interface:
     //
@@ -1179,7 +1179,7 @@ public class Enqueuer {
       assert holder.accessFlags.isAnnotation();
       assert annotations.stream().allMatch(a -> a.annotation.type == holder.type);
       annotations.forEach(annotation -> handleAnnotation(holder, annotation));
-      }
+    }
 
     rootSet.forEachDependentStaticMember(holder, appView, this::enqueueDependentItem);
     compatEnqueueHolderIfDependentNonStaticMember(
@@ -1551,26 +1551,49 @@ public class Enqueuer {
     for (DexEncodedMethod method : libraryClass.virtualMethods()) {
       // Note: it may be worthwhile to add a resolution cache here. If so, it must till ensure
       // that all library override edges are reported to the kept-graph consumer.
-      ResolutionResult resolution =
+      ResolutionResult firstResolution =
           appView.appInfo().resolveMethod(instantiatedClass, method.method);
-      if (resolution.isValidVirtualTarget(options)) {
-        resolution.forEachTarget(
-            target -> {
-              if (!target.isAbstract()) {
-                DexClass targetHolder = appView.definitionFor(target.method.holder);
-                if (targetHolder != null && targetHolder.isProgramClass()) {
-                  DexProgramClass programClass = targetHolder.asProgramClass();
-                  if (shouldMarkLibraryMethodOverrideAsReachable(programClass, target)) {
-                    target.setLibraryMethodOverride();
-                    markVirtualMethodAsLive(
-                        programClass,
-                        target,
-                        KeepReason.isLibraryMethod(programClass, libraryClass.type));
-                  }
+      markResolutionAsLive(libraryClass, firstResolution);
+      if (!appView.rewritePrefix.isRewriting()) {
+        return;
+      }
+      // Due to API conversion, some overrides can be hidden since they will be rewritten. See
+      // class comment of DesugaredLibraryAPIConverter and vivifiedType logic.
+      // In the first enqueuer phase, the signature has not been desugared, so firstResolution
+      // maintains the library override. In the second enqueuer phase, the signature has been
+      // desugared, and the second resolution maintains the the library override.
+
+      if (!appView.rewritePrefix.hasRewrittenTypeInSignature(method.method.proto)) {
+        return;
+      }
+      DexMethod methodToResolve =
+          DesugaredLibraryAPIConverter.methodWithVivifiedTypeInSignature(
+              method.method, method.method.holder, appView);
+      assert methodToResolve != method.method;
+      ResolutionResult secondResolution =
+          appView.appInfo().resolveMethod(instantiatedClass, methodToResolve);
+      markResolutionAsLive(libraryClass, secondResolution);
+    }
+  }
+
+  private void markResolutionAsLive(DexClass libraryClass, ResolutionResult resolution) {
+    if (resolution.isValidVirtualTarget(options)) {
+      resolution.forEachTarget(
+          target -> {
+            if (!target.isAbstract()) {
+              DexClass targetHolder = appView.definitionFor(target.method.holder);
+              if (targetHolder != null && targetHolder.isProgramClass()) {
+                DexProgramClass programClass = targetHolder.asProgramClass();
+                if (shouldMarkLibraryMethodOverrideAsReachable(programClass, target)) {
+                  target.setLibraryMethodOverride();
+                  markVirtualMethodAsLive(
+                      programClass,
+                      target,
+                      KeepReason.isLibraryMethod(programClass, libraryClass.type));
                 }
               }
-            });
-      }
+            }
+          });
     }
   }
 
@@ -2904,6 +2927,7 @@ public class Enqueuer {
   }
 
   private static class ReachableVirtualMethodsSet {
+
     private final Map<DexEncodedMethod, Set<MarkedResolutionTarget>> methods =
         Maps.newIdentityHashMap();
 

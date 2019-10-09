@@ -63,6 +63,41 @@ public class CallBackConversionTest extends APIConversionTestBase {
         .assertSuccessWithOutput(StringUtils.lines("0", "1", "0", "1"));
   }
 
+  @Test
+  public void testCallBackR8() throws Exception {
+    Path customLib = testForD8().addProgramClasses(CustomLibClass.class).compile().writeToZip();
+    testForR8(Backend.DEX)
+        .addKeepMainRule(Impl.class)
+        .noMinification()
+        .setMinApi(AndroidApiLevel.B)
+        .addProgramClasses(Impl.class)
+        .addLibraryClasses(CustomLibClass.class)
+        .enableCoreLibraryDesugaring(AndroidApiLevel.B)
+        .compile()
+        .inspect(
+            i -> {
+              // The j$ method can be optimized, but the java method should be present to be called
+              // through the library.
+              List<FoundMethodSubject> virtualMethods = i.clazz(Impl.class).virtualMethods();
+              assertTrue(
+                  virtualMethods.stream()
+                      .anyMatch(
+                          m ->
+                              m.getMethod()
+                                  .method
+                                  .proto
+                                  .parameters
+                                  .values[0]
+                                  .toString()
+                                  .equals("java.util.function.Consumer")));
+            })
+        .addDesugaredCoreLibraryRunClassPath(
+            this::buildDesugaredLibraryWithConversionExtension, AndroidApiLevel.B)
+        .addRunClasspathFiles(customLib)
+        .run(new DexRuntime(DexVm.ART_9_0_0_HOST), Impl.class)
+        .assertSuccessWithOutput(StringUtils.lines("0", "1", "0", "1"));
+  }
+
   static class Impl extends CustomLibClass {
 
     public int foo(Consumer<Object> o) {

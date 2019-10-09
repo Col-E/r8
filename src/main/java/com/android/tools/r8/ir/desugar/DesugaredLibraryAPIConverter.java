@@ -32,10 +32,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
@@ -61,7 +63,7 @@ public class DesugaredLibraryAPIConverter {
   private final AppView<?> appView;
   private final DexItemFactory factory;
   private final DesugaredLibraryWrapperSynthesizer wrapperSynthesizor;
-  private final Map<DexClass, List<DexEncodedMethod>> callBackMethods = new HashMap<>();
+  private final Map<DexClass, Set<DexEncodedMethod>> callBackMethods = new HashMap<>();
 
   public DesugaredLibraryAPIConverter(AppView<?> appView) {
     this.appView = appView;
@@ -164,7 +166,7 @@ public class DesugaredLibraryAPIConverter {
 
   private synchronized void generateCallBack(DexClass dexClass, DexEncodedMethod originalMethod) {
     DexMethod methodToInstall =
-        methodWithVivifiedTypeInSignature(originalMethod.method, dexClass.type);
+        methodWithVivifiedTypeInSignature(originalMethod.method, dexClass.type, appView);
     CfCode cfCode =
         new APIConverterWrapperCfCodeProvider(
                 appView, originalMethod.method, null, this, dexClass.isInterface())
@@ -176,27 +178,27 @@ public class DesugaredLibraryAPIConverter {
   }
 
   private synchronized void addCallBackSignature(DexClass dexClass, DexEncodedMethod method) {
-    callBackMethods.putIfAbsent(dexClass, new ArrayList<>());
-    List<DexEncodedMethod> dexEncodedMethods = callBackMethods.get(dexClass);
-    dexEncodedMethods.add(method);
+    callBackMethods.putIfAbsent(dexClass, new HashSet<>());
+    callBackMethods.get(dexClass).add(method);
   }
 
-  DexMethod methodWithVivifiedTypeInSignature(DexMethod originalMethod, DexType holder) {
+  public static DexMethod methodWithVivifiedTypeInSignature(
+      DexMethod originalMethod, DexType holder, AppView<?> appView) {
     DexType[] newParameters = originalMethod.proto.parameters.values.clone();
     int index = 0;
     for (DexType param : originalMethod.proto.parameters.values) {
       if (appView.rewritePrefix.hasRewrittenType(param)) {
-        newParameters[index] = this.vivifiedTypeFor(param);
+        newParameters[index] = vivifiedTypeFor(param, appView);
       }
       index++;
     }
     DexType returnType = originalMethod.proto.returnType;
     DexType newReturnType =
         appView.rewritePrefix.hasRewrittenType(returnType)
-            ? this.vivifiedTypeFor(returnType)
+            ? vivifiedTypeFor(returnType, appView)
             : returnType;
-    DexProto newProto = factory.createProto(newReturnType, newParameters);
-    return factory.createMethod(holder, newProto, originalMethod.name);
+    DexProto newProto = appView.dexItemFactory().createProto(newReturnType, newParameters);
+    return appView.dexItemFactory().createMethod(holder, newProto, originalMethod.name);
   }
 
   public void generateWrappers(
@@ -204,8 +206,7 @@ public class DesugaredLibraryAPIConverter {
       throws ExecutionException {
     wrapperSynthesizor.finalizeWrappers(builder, irConverter, executorService);
     for (DexClass dexClass : callBackMethods.keySet()) {
-      // TODO(b/134732760): add the methods in the root set.
-      List<DexEncodedMethod> dexEncodedMethods = callBackMethods.get(dexClass);
+      Set<DexEncodedMethod> dexEncodedMethods = callBackMethods.get(dexClass);
       dexClass.appendVirtualMethods(dexEncodedMethods);
       irConverter.optimizeSynthesizedMethodsConcurrently(dexEncodedMethods, executorService);
     }
@@ -229,9 +230,11 @@ public class DesugaredLibraryAPIConverter {
                     + " is a desugared type)."));
   }
 
-  public DexType vivifiedTypeFor(DexType type) {
+  public static DexType vivifiedTypeFor(DexType type, AppView<?> appView) {
     DexType vivifiedType =
-        factory.createType(DescriptorUtils.javaTypeToDescriptor(VIVIFIED_PREFIX + type.toString()));
+        appView
+            .dexItemFactory()
+            .createType(DescriptorUtils.javaTypeToDescriptor(VIVIFIED_PREFIX + type.toString()));
     appView.rewritePrefix.rewriteType(vivifiedType, type);
     return vivifiedType;
   }
@@ -249,7 +252,7 @@ public class DesugaredLibraryAPIConverter {
     DexType returnType = invokedMethod.proto.returnType;
     if (appView.rewritePrefix.hasRewrittenType(returnType)) {
       if (canConvert(returnType)) {
-        newReturnType = vivifiedTypeFor(returnType);
+        newReturnType = vivifiedTypeFor(returnType, appView);
         // Return conversion added only if return value is used.
         if (invokeMethod.outValue() != null
             && invokeMethod.outValue().numberOfUsers() + invokeMethod.outValue().numberOfPhiUsers()
@@ -279,7 +282,7 @@ public class DesugaredLibraryAPIConverter {
       DexType argType = parameters[i];
       if (appView.rewritePrefix.hasRewrittenType(argType)) {
         if (canConvert(argType)) {
-          DexType argVivifiedType = vivifiedTypeFor(argType);
+          DexType argVivifiedType = vivifiedTypeFor(argType, appView);
           Value inValue = invokeMethod.inValues().get(i + receiverShift);
           newParameters[i] = argVivifiedType;
           parameterConversions.add(
@@ -305,6 +308,8 @@ public class DesugaredLibraryAPIConverter {
             newDexMethod.proto,
             invokeMethod.outValue(),
             newInValues);
+    assert newDexMethod
+        == methodWithVivifiedTypeInSignature(invokedMethod, invokedMethod.holder, appView);
 
     // Insert and reschedule all instructions.
     iterator.previous();
