@@ -1299,7 +1299,8 @@ public class Enqueuer {
     }
   }
 
-  private void markNonStaticDirectMethodAsReachable(DexMethod method, KeepReason reason) {
+  // Package protected due to entry point from worklist.
+  void markNonStaticDirectMethodAsReachable(DexMethod method, KeepReason reason) {
     handleInvokeOfDirectTarget(method, reason);
   }
 
@@ -1414,7 +1415,8 @@ public class Enqueuer {
    * Adds the class to the set of instantiated classes and marks its fields and methods live
    * depending on the currently seen invokes and field reads.
    */
-  private void processNewlyInstantiatedClass(DexProgramClass clazz, KeepReason reason) {
+  // Package protected due to entry point from worklist.
+  void processNewlyInstantiatedClass(DexProgramClass clazz, KeepReason reason) {
     assert !clazz.isInterface() || clazz.accessFlags.isAnnotation();
     // Notify analyses. This is done even if `clazz` has already been marked as instantiated,
     // because each analysis may depend on seeing all the (clazz, reason) pairs. Thus, not doing so
@@ -1765,7 +1767,8 @@ public class Enqueuer {
     return directAndIndirectlyInstantiatedTypes.contains(clazz);
   }
 
-  private void markInstanceFieldAsReachable(DexEncodedField encodedField, KeepReason reason) {
+  // Package protected due to entry point from worklist.
+  void markInstanceFieldAsReachable(DexEncodedField encodedField, KeepReason reason) {
     DexField field = encodedField.field;
     if (Log.ENABLED) {
       Log.verbose(getClass(), "Marking instance field `%s` as reachable.", field);
@@ -1799,8 +1802,8 @@ public class Enqueuer {
     }
   }
 
-  private void markVirtualMethodAsReachable(
-      DexMethod method, boolean interfaceInvoke, KeepReason reason) {
+  // Package protected due to entry point from worklist.
+  void markVirtualMethodAsReachable(DexMethod method, boolean interfaceInvoke, KeepReason reason) {
     markVirtualMethodAsReachable(method, interfaceInvoke, reason, (x, y) -> true);
   }
 
@@ -2024,7 +2027,8 @@ public class Enqueuer {
     }
   }
 
-  private void markSuperMethodAsReachable(DexMethod method, DexEncodedMethod from) {
+  // Package protected due to entry point from worklist.
+  void markSuperMethodAsReachable(DexMethod method, DexEncodedMethod from) {
     // We have to mark the immediate target of the descriptor as targeted, as otherwise
     // the invoke super will fail in the resolution step with a NSM error.
     // See <a
@@ -2206,38 +2210,7 @@ public class Enqueuer {
         numOfLiveItems += (long) liveFields.items.size();
         while (!workList.isEmpty()) {
           Action action = workList.poll();
-          switch (action.kind) {
-            case MARK_INSTANTIATED:
-              processNewlyInstantiatedClass((DexProgramClass) action.target, action.reason);
-              break;
-            case MARK_REACHABLE_FIELD:
-              markInstanceFieldAsReachable((DexEncodedField) action.target, action.reason);
-              break;
-            case MARK_REACHABLE_DIRECT:
-              markNonStaticDirectMethodAsReachable((DexMethod) action.target, action.reason);
-              break;
-            case MARK_REACHABLE_VIRTUAL:
-              markVirtualMethodAsReachable((DexMethod) action.target, false, action.reason);
-              break;
-            case MARK_REACHABLE_INTERFACE:
-              markVirtualMethodAsReachable((DexMethod) action.target, true, action.reason);
-              break;
-            case MARK_REACHABLE_SUPER:
-              markSuperMethodAsReachable((DexMethod) action.target,
-                  (DexEncodedMethod) action.context);
-              break;
-            case MARK_METHOD_KEPT:
-              markMethodAsKept((DexEncodedMethod) action.target, action.reason);
-              break;
-            case MARK_FIELD_KEPT:
-              markFieldAsKept((DexEncodedField) action.target, action.reason);
-              break;
-            case MARK_METHOD_LIVE:
-              markMethodAsLive(((DexEncodedMethod) action.target), action.reason);
-              break;
-            default:
-              throw new IllegalArgumentException("" + action.kind);
-          }
+          action.run(this);
         }
 
         // Continue fix-point processing if -if rules are enabled by items that newly became live.
@@ -2341,7 +2314,8 @@ public class Enqueuer {
     lambdaMethodsTargetedByInvokeDynamic.clear();
   }
 
-  private void markMethodAsKept(DexEncodedMethod target, KeepReason reason) {
+  // Package protected due to entry point from worklist.
+  void markMethodAsKept(DexEncodedMethod target, KeepReason reason) {
     DexMethod method = target.method;
     DexProgramClass holder = getProgramClassOrNull(method.holder);
     if (holder == null) {
@@ -2380,7 +2354,8 @@ public class Enqueuer {
     }
   }
 
-  private void markFieldAsKept(DexEncodedField target, KeepReason reason) {
+  // Package protected due to entry point from worklist.
+  void markFieldAsKept(DexEncodedField target, KeepReason reason) {
     DexProgramClass clazz = getProgramClassOrNull(target.field.holder);
     if (clazz == null) {
       return;
@@ -2433,7 +2408,8 @@ public class Enqueuer {
     return false;
   }
 
-  private void markMethodAsLive(DexEncodedMethod method, KeepReason reason) {
+  // Package protected due to entry point from worklist.
+  void markMethodAsLive(DexEncodedMethod method, KeepReason reason) {
     assert liveMethods.contains(method);
 
     DexProgramClass clazz = getProgramClassOrNull(method.method.holder);

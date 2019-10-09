@@ -7,7 +7,6 @@ package com.android.tools.r8.shaking;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import java.util.ArrayDeque;
@@ -15,30 +14,142 @@ import java.util.Queue;
 
 public class EnqueuerWorklist {
 
-  public static class Action {
+  public abstract static class Action {
+    public abstract void run(Enqueuer enqueuer);
+  }
 
-    public enum Kind {
-      MARK_REACHABLE_DIRECT,
-      MARK_REACHABLE_VIRTUAL,
-      MARK_REACHABLE_INTERFACE,
-      MARK_REACHABLE_SUPER,
-      MARK_REACHABLE_FIELD,
-      MARK_INSTANTIATED,
-      MARK_METHOD_LIVE,
-      MARK_METHOD_KEPT,
-      MARK_FIELD_KEPT
-    }
-
-    final Kind kind;
-    final DexItem target;
-    final DexItem context;
+  static class MarkReachableDirectAction extends Action {
+    final DexMethod target;
     final KeepReason reason;
 
-    private Action(Kind kind, DexItem target, DexItem context, KeepReason reason) {
-      this.kind = kind;
+    MarkReachableDirectAction(DexMethod target, KeepReason reason) {
+      this.target = target;
+      this.reason = reason;
+    }
+
+    @Override
+    public void run(Enqueuer enqueuer) {
+      enqueuer.markNonStaticDirectMethodAsReachable(target, reason);
+    }
+  }
+
+  static class MarkReachableVirtualAction extends Action {
+    final DexMethod target;
+    final KeepReason reason;
+
+    MarkReachableVirtualAction(DexMethod target, KeepReason reason) {
+      this.target = target;
+      this.reason = reason;
+    }
+
+    @Override
+    public void run(Enqueuer enqueuer) {
+      enqueuer.markVirtualMethodAsReachable(target, false, reason);
+    }
+  }
+
+  static class MarkReachableInterfaceAction extends Action {
+    final DexMethod target;
+    final KeepReason reason;
+
+    public MarkReachableInterfaceAction(DexMethod target, KeepReason reason) {
+      this.target = target;
+      this.reason = reason;
+    }
+
+    @Override
+    public void run(Enqueuer enqueuer) {
+      enqueuer.markVirtualMethodAsReachable(target, true, reason);
+    }
+  }
+
+  static class MarkReachableSuperAction extends Action {
+    final DexMethod target;
+    final DexEncodedMethod context;
+
+    public MarkReachableSuperAction(DexMethod target, DexEncodedMethod context) {
       this.target = target;
       this.context = context;
+    }
+
+    @Override
+    public void run(Enqueuer enqueuer) {
+      enqueuer.markSuperMethodAsReachable(target, context);
+    }
+  }
+
+  static class MarkReachableFieldAction extends Action {
+    final DexEncodedField target;
+    final KeepReason reason;
+
+    public MarkReachableFieldAction(DexEncodedField target, KeepReason reason) {
+      this.target = target;
       this.reason = reason;
+    }
+
+    @Override
+    public void run(Enqueuer enqueuer) {
+      enqueuer.markInstanceFieldAsReachable(target, reason);
+    }
+  }
+
+  static class MarkInstantiatedAction extends Action {
+    final DexProgramClass target;
+    final KeepReason reason;
+
+    public MarkInstantiatedAction(DexProgramClass target, KeepReason reason) {
+      this.target = target;
+      this.reason = reason;
+    }
+
+    @Override
+    public void run(Enqueuer enqueuer) {
+      enqueuer.processNewlyInstantiatedClass(target, reason);
+    }
+  }
+
+  static class MarkMethodLiveAction extends Action {
+    final DexEncodedMethod target;
+    final KeepReason reason;
+
+    public MarkMethodLiveAction(DexEncodedMethod target, KeepReason reason) {
+      this.target = target;
+      this.reason = reason;
+    }
+
+    @Override
+    public void run(Enqueuer enqueuer) {
+      enqueuer.markMethodAsLive(target, reason);
+    }
+  }
+
+  static class MarkMethodKeptAction extends Action {
+    final DexEncodedMethod target;
+    final KeepReason reason;
+
+    public MarkMethodKeptAction(DexEncodedMethod target, KeepReason reason) {
+      this.target = target;
+      this.reason = reason;
+    }
+
+    @Override
+    public void run(Enqueuer enqueuer) {
+      enqueuer.markMethodAsKept(target, reason);
+    }
+  }
+
+  static class MarkFieldKeptAction extends Action {
+    final DexEncodedField target;
+    final KeepReason reason;
+
+    public MarkFieldKeptAction(DexEncodedField target, KeepReason reason) {
+      this.target = target;
+      this.reason = reason;
+    }
+
+    @Override
+    public void run(Enqueuer enqueuer) {
+      enqueuer.markFieldAsKept(target, reason);
     }
   }
 
@@ -62,45 +173,45 @@ public class EnqueuerWorklist {
   }
 
   void enqueueMarkReachableDirectAction(DexMethod method, KeepReason reason) {
-    queue.add(new Action(Action.Kind.MARK_REACHABLE_DIRECT, method, null, reason));
+    queue.add(new MarkReachableDirectAction(method, reason));
   }
 
   void enqueueMarkReachableVirtualAction(DexMethod method, KeepReason reason) {
-    queue.add(new Action(Action.Kind.MARK_REACHABLE_VIRTUAL, method, null, reason));
+    queue.add(new MarkReachableVirtualAction(method, reason));
   }
 
   void enqueueMarkReachableInterfaceAction(DexMethod method, KeepReason reason) {
-    queue.add(new Action(Action.Kind.MARK_REACHABLE_INTERFACE, method, null, reason));
+    queue.add(new MarkReachableInterfaceAction(method, reason));
   }
 
   void enqueueMarkReachableSuperAction(DexMethod method, DexEncodedMethod from) {
-    queue.add(new Action(Action.Kind.MARK_REACHABLE_SUPER, method, from, null));
+    queue.add(new MarkReachableSuperAction(method, from));
   }
 
   public void enqueueMarkReachableFieldAction(
       DexProgramClass clazz, DexEncodedField field, KeepReason reason) {
     assert field.field.holder == clazz.type;
-    queue.add(new Action(Action.Kind.MARK_REACHABLE_FIELD, field, null, reason));
+    queue.add(new MarkReachableFieldAction(field, reason));
   }
 
   void enqueueMarkInstantiatedAction(DexProgramClass clazz, KeepReason reason) {
     assert !clazz.isInterface() || clazz.accessFlags.isAnnotation();
-    queue.add(new Action(Action.Kind.MARK_INSTANTIATED, clazz, null, reason));
+    queue.add(new MarkInstantiatedAction(clazz, reason));
   }
 
   void enqueueMarkMethodLiveAction(
       DexProgramClass clazz, DexEncodedMethod method, KeepReason reason) {
     assert method.method.holder == clazz.type;
-    queue.add(new Action(Action.Kind.MARK_METHOD_LIVE, method, null, reason));
+    queue.add(new MarkMethodLiveAction(method, reason));
   }
 
   void enqueueMarkMethodKeptAction(DexEncodedMethod method, KeepReason reason) {
     assert method.isProgramMethod(appView);
-    queue.add(new Action(Action.Kind.MARK_METHOD_KEPT, method, null, reason));
+    queue.add(new MarkMethodKeptAction(method, reason));
   }
 
   void enqueueMarkFieldKeptAction(DexEncodedField field, KeepReason reason) {
     assert field.isProgramField(appView);
-    queue.add(new Action(Action.Kind.MARK_FIELD_KEPT, field, null, reason));
+    queue.add(new MarkFieldKeptAction(field, reason));
   }
 }
