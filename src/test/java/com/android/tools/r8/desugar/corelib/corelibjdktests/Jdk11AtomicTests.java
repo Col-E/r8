@@ -19,6 +19,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -71,6 +72,8 @@ public class Jdk11AtomicTests extends Jdk11CoreLibTestBase {
 
   @Test
   public void testD8AtomicReference() throws Exception {
+    // TODO(b/142377475).
+    Assume.assumeTrue(!shrinkDesugaredLibrary);
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     String verbosity = "2";
     testForD8()
@@ -94,6 +97,8 @@ public class Jdk11AtomicTests extends Jdk11CoreLibTestBase {
 
   @Test
   public void testD8AtomicUpdaters() throws Exception {
+    // TODO(b/142377475).
+    Assume.assumeTrue(!shrinkDesugaredLibrary);
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     String verbosity = "2";
     testForD8()

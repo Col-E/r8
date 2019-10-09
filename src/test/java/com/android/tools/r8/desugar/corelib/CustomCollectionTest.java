@@ -10,6 +10,7 @@ import static org.junit.Assert.fail;
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -26,6 +27,7 @@ import java.util.stream.Stream;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -53,6 +55,10 @@ public class CustomCollectionTest extends CoreLibDesugarTestBase {
 
   @Test
   public void testCustomCollectionD8() throws Exception {
+    // TODO(b/142377475).
+    Assume.assumeTrue(!shrinkDesugaredLibrary);
+    // TODO(b/142377161).
+    Assume.assumeTrue(parameters.getRuntime().asDex().getVm().isNewerThan(DexVm.ART_4_4_4_HOST));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     D8TestRunResult d8TestRunResult =
         testForD8()

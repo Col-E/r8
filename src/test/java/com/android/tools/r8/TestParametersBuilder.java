@@ -199,12 +199,12 @@ public class TestParametersBuilder {
       return Stream.of();
     }
     AndroidApiLevel vmLevel = runtime.asDex().getMinApiLevel();
-    AndroidApiLevel lowestApplicable = sortedApiLevels.get(sortedApiLevels.size() - 1);
+    AndroidApiLevel lowestApplicable = sortedApiLevels.get(0);
     if (vmLevel.getLevel() < lowestApplicable.getLevel()) {
       return Stream.of();
     }
     if (sortedApiLevels.size() > 1) {
-      for (int i = 0; i < sortedApiLevels.size(); i++) {
+      for (int i = sortedApiLevels.size() - 1; i >= 0; i--) {
         AndroidApiLevel highestApplicable = sortedApiLevels.get(i);
         if (highestApplicable.getLevel() <= vmLevel.getLevel()
             && lowestApplicable != highestApplicable) {
