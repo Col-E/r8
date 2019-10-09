@@ -408,7 +408,7 @@ public class DesugaredLibraryWrapperSynthesizer {
       appView
           .options()
           .reporter
-          .warning(
+          .info(
               new StringDiagnostic(
                   "Desugared library API conversion: Generating a large wrapper for "
                       + libraryClass.type

@@ -24,14 +24,14 @@ public class APIConversionLargeWarningTest extends APIConversionTestBase {
         .addLibraryClasses(CustomLibClass.class)
         .enableCoreLibraryDesugaring(AndroidApiLevel.B)
         .compile()
-        .assertWarningMessageThatMatches(
+        .assertInfoMessageThatMatches(
             startsWith(
                 "Desugared library API conversion: Generating a large wrapper for"
                     + " java.util.stream.Stream"))
-        .assertNoWarningMessageThatMatches(
+        .assertNoInfoMessageThatMatches(
             startsWith(
                 "Desugared library API conversion: Generating a large wrapper for java.time.Clock"))
-        .assertNoWarningMessageThatMatches(
+        .assertNoInfoMessageThatMatches(
             startsWith(
                 "Desugared library API conversion: Generating a large wrapper for"
                     + " java.util.function.Function"));
