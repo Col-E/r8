@@ -114,18 +114,6 @@ public class L8CommandTest {
   }
 
   @Test
-  public void warnForSpecialLibraryConfiguration() throws Throwable {
-    DiagnosticsChecker.checkWarningsContains(
-        "Desugared library configuration is still work in progress",
-        handler ->
-            prepareBuilder(handler)
-                .setProgramConsumer(DexIndexedConsumer.emptyConsumer())
-                .addDesugaredLibraryConfiguration(
-                    StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
-                .build());
-  }
-
-  @Test
   public void addProguardConfigurationString() throws Throwable {
     String keepRule = "-keep class java.time.*";
     List<String> keepRules = new ArrayList<>();

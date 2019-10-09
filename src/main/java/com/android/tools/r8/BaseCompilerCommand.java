@@ -13,7 +13,6 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.Reporter;
-import com.android.tools.r8.utils.StringDiagnostic;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -508,10 +507,6 @@ public abstract class BaseCompilerCommand extends BaseCommand {
           builder.append(" ").append(clazz.getName());
         }
         reporter.error(builder.toString());
-      }
-      if (hasDesugaredLibraryConfiguration()) {
-        reporter.warning(
-            new StringDiagnostic("Desugared library configuration is still work in progress"));
       }
       super.validate();
     }

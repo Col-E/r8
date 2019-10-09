@@ -34,10 +34,7 @@ public class DisableDesugarTest extends CoreLibDesugarTestBase {
 
   private void checkExpectedDiagnostics(TestDiagnosticMessages messages) {
     messages.assertInfosCount(0);
-    messages.assertWarningsCount(1);
-    assertThat(
-        messages.getWarnings().get(0).getDiagnosticMessage(),
-        containsString("Desugared library configuration is still work in progress"));
+    messages.assertWarningsCount(0);
     messages.assertErrorsCount(1);
     assertThat(
         messages.getErrors().get(0).getDiagnosticMessage(),

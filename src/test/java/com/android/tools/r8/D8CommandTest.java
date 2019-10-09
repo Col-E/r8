@@ -525,19 +525,6 @@ public class D8CommandTest {
         "Missing parameter", handler -> parse(handler, "--output"));
   }
 
-  @Test
-  public void warnForSpecialLibraryConfiguration() throws Throwable {
-    Path emptyZip = temp.getRoot().toPath().resolve("empty.zip");
-    DiagnosticsChecker.checkWarningsContains(
-        "Desugared library configuration is still work in progress",
-        handler ->
-            D8Command.builder(handler)
-                .addDesugaredLibraryConfiguration(
-                    StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
-                .setOutput(emptyZip, OutputMode.DexIndexed)
-                .build());
-  }
-
   private D8Command parse(String... args) throws CompilationFailedException {
     return D8Command.parse(args, EmbeddedOrigin.INSTANCE).build();
   }
