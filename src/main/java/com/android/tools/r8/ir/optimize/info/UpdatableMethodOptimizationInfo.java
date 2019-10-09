@@ -66,7 +66,8 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
   // invocation with null throwing code if an always-null argument is passed. Also used by Inliner
   // to give a credit to null-safe code, e.g., Kotlin's null safe argument.
   // Note that this bit set takes into account the receiver for instance methods.
-  private BitSet nonNullParamOrThrow = null;
+  private BitSet nonNullParamOrThrow =
+      DefaultMethodOptimizationInfo.NO_NULL_PARAMETER_OR_THROW_FACTS;
   // Stores information about nullability facts per parameter. If set, that means, the method
   // somehow (e.g., null check, such as arg != null, or NPE-throwing instructions such as array
   // access or another invocation) ensures the corresponding parameter is not null, and that is
@@ -74,7 +75,8 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
   // normally, the recorded parameter is definitely not null. These facts are used to propagate
   // non-null information through {@link NonNullTracker}.
   // Note that this bit set takes into account the receiver for instance methods.
-  private BitSet nonNullParamOnNormalExits = null;
+  private BitSet nonNullParamOnNormalExits =
+      DefaultMethodOptimizationInfo.NO_NULL_PARAMETER_ON_NORMAL_EXITS_FACTS;
   private boolean reachabilitySensitive = false;
   private boolean returnValueHasBeenPropagated = false;
 
@@ -434,5 +436,54 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
   public UpdatableMethodOptimizationInfo mutableCopy() {
     assert this != DefaultMethodOptimizationInfo.DEFAULT_INSTANCE;
     return new UpdatableMethodOptimizationInfo(this);
+  }
+
+  public void adjustOptimizationInfoAfterRemovingThisParameter() {
+    // cannotBeKept: doesn't depend on `this`
+    // classInitializerMayBePostponed: `this` could trigger <clinit> of the previous holder.
+    classInitializerMayBePostponed = false;
+    // hasBeenInlinedIntoSingleCallSite: then it should not be staticized.
+    hasBeenInlinedIntoSingleCallSite = false;
+    // initializedClassesOnNormalExit: `this` could trigger <clinit> of the previous holder.
+    initializedClassesOnNormalExit =
+        DefaultMethodOptimizationInfo.UNKNOWN_INITIALIZED_CLASSES_ON_NORMAL_EXIT;
+    // TODO(b/142401154): adjustable
+    returnedArgument = DefaultMethodOptimizationInfo.UNKNOWN_RETURNED_ARGUMENT;
+    // mayHaveSideEffects: `this` Argument didn't have side effects, so removing it doesn't affect
+    //   whether or not the method may have side effects.
+    // returnValueOnlyDependsOnArguments:
+    //   if the method did before, so it does even after removing `this` Argument
+    // code is not changed, and thus the following *return* info is not changed either.
+    //   * neverReturnsNull
+    //   * neverReturnsNormally
+    //   * returnsConstantNumber
+    //   * returnedConstantNumber
+    //   * returnsConstantString
+    //   * returnedConstantString
+    //   * returnsObjectOfType
+    //   * returnsObjectWithLowerBoundType
+    // inlining: it is not inlined, and thus staticized. No more chance of inlining, though.
+    inlining = InlinePreference.Default;
+    // useIdentifierNameString: code is not changed.
+    // checksNullReceiverBeforeAnySideEffect: no more receiver.
+    checksNullReceiverBeforeAnySideEffect =
+        DefaultMethodOptimizationInfo.UNKNOWN_CHECKS_NULL_RECEIVER_BEFORE_ANY_SIDE_EFFECT;
+    // triggersClassInitBeforeAnySideEffect: code is not changed.
+    triggersClassInitBeforeAnySideEffect =
+        DefaultMethodOptimizationInfo.UNKNOWN_TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT;
+    // classInlinerEligibility: chances are the method is not an instance method anymore.
+    classInlinerEligibility = DefaultMethodOptimizationInfo.UNKNOWN_CLASS_INLINER_ELIGIBILITY;
+    // trivialInitializerInfo: chances are the enclosing class is
+    trivialInitializerInfo = DefaultMethodOptimizationInfo.UNKNOWN_TRIVIAL_INITIALIZER;
+    // initializerEnablingJavaAssertions: `this` could trigger <clinit> of the previous holder.
+    initializerEnablingJavaAssertions =
+        DefaultMethodOptimizationInfo.UNKNOWN_INITIALIZER_ENABLING_JAVA_ASSERTIONS;
+    // TODO(b/142401154): adjustable
+    parametersUsages = DefaultMethodOptimizationInfo.UNKNOWN_PARAMETER_USAGE_INFO;
+    nonNullParamOrThrow = DefaultMethodOptimizationInfo.NO_NULL_PARAMETER_OR_THROW_FACTS;
+    nonNullParamOnNormalExits =
+        DefaultMethodOptimizationInfo.NO_NULL_PARAMETER_ON_NORMAL_EXITS_FACTS;
+    // reachabilitySensitive: doesn't depend on `this`
+    // returnValueHasBeenPropagated: doesn't depend on `this`
   }
 }

@@ -37,8 +37,8 @@ public class DefaultMethodOptimizationInfo implements MethodOptimizationInfo {
   static ParameterUsagesInfo UNKNOWN_PARAMETER_USAGE_INFO = null;
   static boolean UNKNOWN_MAY_HAVE_SIDE_EFFECTS = true;
   static boolean UNKNOWN_RETURN_VALUE_ONLY_DEPENDS_ON_ARGUMENTS = false;
-  private static BitSet NO_NULL_PARAMETER_OR_THROW_FACTS = null;
-  private static BitSet NO_NULL_PARAMETER_ON_NORMAL_EXITS_FACTS = null;
+  static BitSet NO_NULL_PARAMETER_OR_THROW_FACTS = null;
+  static BitSet NO_NULL_PARAMETER_ON_NORMAL_EXITS_FACTS = null;
 
   private DefaultMethodOptimizationInfo() {}
 

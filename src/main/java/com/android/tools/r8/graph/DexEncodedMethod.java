@@ -1008,7 +1008,10 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
     checkIfObsolete();
     assert !accessFlags.isStatic();
     Builder builder =
-        builder(this).promoteToStatic().unsetOptimizationInfo().withoutThisParameter();
+        builder(this)
+            .promoteToStatic()
+            .withoutThisParameter()
+            .adjustOptimizationInfoAfterRemovingThisParameter();
     DexEncodedMethod method = builder.build();
     method.copyMetadata(this);
     setObsolete();
@@ -1271,17 +1274,20 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       return this;
     }
 
-    public Builder unsetOptimizationInfo() {
-      optimizationInfo = DefaultMethodOptimizationInfo.DEFAULT_INSTANCE;
-      return this;
-    }
-
     public Builder withoutThisParameter() {
       assert code != null;
       if (code.isDexCode()) {
         code = code.asDexCode().withoutThisParameter();
       } else {
         throw new Unreachable("Code " + code.getClass().getSimpleName() + " is not supported.");
+      }
+      return this;
+    }
+
+    public Builder adjustOptimizationInfoAfterRemovingThisParameter() {
+      if (optimizationInfo.isUpdatableMethodOptimizationInfo()) {
+        optimizationInfo.asUpdatableMethodOptimizationInfo()
+            .adjustOptimizationInfoAfterRemovingThisParameter();
       }
       return this;
     }
