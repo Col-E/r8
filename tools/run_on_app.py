@@ -49,6 +49,10 @@ def ParseOptions(argv):
                     help='Compile all possible combinations',
                     default=False,
                     action='store_true')
+  result.add_option('--expect-oom',
+                    help='Expect that compilation will fail with an OOM',
+                    default=False,
+                    action='store_true')
   result.add_option('--type',
                     help='Default for R8: deploy, for D8: proguarded',
                     choices=TYPES)
@@ -135,6 +139,7 @@ def ParseOptions(argv):
                     metavar='BENCHMARKNAME',
                     help='Print the sizes of individual dex segments as ' +
                         '\'<BENCHMARKNAME>-<segment>(CodeSize): <bytes>\'')
+
   return result.parse_args(argv)
 
 # Most apps have -printmapping, -printseeds, -printusage and
@@ -242,11 +247,20 @@ def find_min_xmx(options, args):
 
 def main(argv):
   (options, args) = ParseOptions(argv)
+  if options.expect_oom and not options.max_memory:
+    raise Exception(
+        'You should only use --expect-oom if also specifying --max-memory')
+  if options.expect_oom and options.timeout:
+    raise Exception(
+        'You should not use --timeout when also specifying --expect-oom')
   if options.run_all:
     return run_all(options, args)
   if options.find_min_xmx:
     return find_min_xmx(options, args)
-  return run_with_options(options, args)
+  exit_code = run_with_options(options, args)
+  if options.expect_oom:
+    exit_code = 0 if exit_code == OOM_EXIT_CODE else 1
+  return exit_code
 
 def run_with_options(options, args, extra_args=None):
   if extra_args is None:
