@@ -61,6 +61,7 @@ BENCHMARK_APPS = [
         'find-xmx-min': 128,
         'find-xmx-max': 400,
         'find-xmx-range': 16,
+        'oom-threshold': 247,
     },
     {
         'app': 'chrome',
@@ -68,6 +69,7 @@ BENCHMARK_APPS = [
         'find-xmx-min': 256,
         'find-xmx-max': 450,
         'find-xmx-range': 16,
+        'oom-threshold': 392,
     },
     {
         'app': 'youtube',
@@ -75,6 +77,7 @@ BENCHMARK_APPS = [
         'find-xmx-min': 1200,
         'find-xmx-max': 800,
         'find-xmx-range': 32,
+        'oom-threshold': 1000,
     },
     # TODO(b/142375244): Narrow when run a few times.
     {
@@ -83,6 +86,7 @@ BENCHMARK_APPS = [
         'find-xmx-min': 128,
         'find-xmx-max': 1024,
         'find-xmx-range': 16,
+        'oom-threshold': 666, # will be changed after b/142375244 has run
     },
 ]
 
@@ -101,6 +105,31 @@ def find_min_xmx_command(record):
       '--find-min-xmx-range-size=%s' % record['find-xmx-range'],
       '--find-min-xmx-archive']
 
+def compile_with_memory_max_command(record):
+  return [
+      'tools/run_on_app.py',
+      '--compiler=r8',
+      '--compiler-build=lib',
+      '--app=%s' % record['app'],
+      '--version=%s' % record['version'],
+      '--no-debug',
+      '--no-build',
+      '--max-memory=%s' % int(record['oom-threshold'] * 1.1)
+  ]
+
+def compile_with_memory_min_command(record):
+  return [
+      'tools/run_on_app.py',
+      '--compiler=r8',
+      '--compiler-build=lib',
+      '--app=%s' % record['app'],
+      '--version=%s' % record['version'],
+      '--no-debug',
+      '--no-build',
+      '--expect-oom',
+      '--max-memory=%s' % int(record['oom-threshold'] * 0.9)
+  ]
+
 TEST_COMMANDS = [
     # Run test.py internal testing.
     ['tools/test.py', '--only_internal', '--slow_tests',
@@ -109,7 +138,10 @@ TEST_COMMANDS = [
     ['tools/run_on_app.py', '--ignore-java-version','--run-all', '--out=out'],
     # Find min xmx for selected benchmark apps
     ['tools/gradle.py', 'r8lib'],
-] + map(find_min_xmx_command, BENCHMARK_APPS)
+] + (map(compile_with_memory_max_command, BENCHMARK_APPS)
+     + map(compile_with_memory_min_command, BENCHMARK_APPS)
+     + map(find_min_xmx_command, BENCHMARK_APPS))
+
 
 # Command timeout, in seconds.
 RUN_TIMEOUT = 3600 * 6
