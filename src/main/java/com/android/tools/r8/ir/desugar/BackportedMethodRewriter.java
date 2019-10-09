@@ -1304,15 +1304,15 @@ public final class BackportedMethodRewriter {
       DexItemFactory factory = appView.dexItemFactory();
       String unqualifiedName = method.holder.getName();
       // Avoid duplicate class names between core lib dex file and program dex files.
-      String coreLibUtilitySuffix =
-          appView.options().isDesugaredLibraryCompilation() ? "$corelib" : "";
+      String desugaredLibUtilitySuffix =
+          appView.options().isDesugaredLibraryCompilation() ? "$desugaredLib" : "";
       String descriptor =
           UTILITY_CLASS_DESCRIPTOR_PREFIX
               + '$'
               + unqualifiedName
               + '$'
               + method.proto.parameters.size()
-              + coreLibUtilitySuffix
+              + desugaredLibUtilitySuffix
               + '$'
               + methodName
               + ';';

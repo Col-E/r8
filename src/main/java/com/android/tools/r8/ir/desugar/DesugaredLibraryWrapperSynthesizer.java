@@ -94,6 +94,7 @@ import java.util.function.BiFunction;
 //   }
 public class DesugaredLibraryWrapperSynthesizer {
 
+  public static final String WRAPPER_PREFIX = "$r8$wrapper$";
   public static final String TYPE_WRAPPER_SUFFIX = "$-WRP";
   public static final String VIVIFIED_TYPE_WRAPPER_SUFFIX = "$-V-WRP";
 
@@ -145,6 +146,12 @@ public class DesugaredLibraryWrapperSynthesizer {
         this::generateVivifiedTypeWrapper);
   }
 
+  private DexType createWrapperType(DexType type, String suffix) {
+    return factory.createType(
+        DescriptorUtils.javaTypeToDescriptor(
+            WRAPPER_PREFIX + type.toString().replace('.', '$') + suffix));
+  }
+
   private DexType getWrapper(
       DexType type,
       String suffix,
@@ -162,9 +169,7 @@ public class DesugaredLibraryWrapperSynthesizer {
             type,
             t -> {
               toGenerate.set(true);
-              DexType wrapperType =
-                  factory.createType(
-                      DescriptorUtils.javaTypeToDescriptor(type.toString() + suffix));
+              DexType wrapperType = createWrapperType(type, suffix);
               generatedWrappers.add(wrapperType);
               return new Pair<>(wrapperType, null);
             });

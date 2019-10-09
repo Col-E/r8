@@ -11,6 +11,7 @@ import com.android.tools.r8.TestRuntime.DexRuntime;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import java.nio.file.Path;
 import java.util.List;
@@ -74,28 +75,48 @@ public class CallBackConversionTest extends APIConversionTestBase {
         .addLibraryClasses(CustomLibClass.class)
         .enableCoreLibraryDesugaring(AndroidApiLevel.B)
         .compile()
-        .inspect(
-            i -> {
-              // The j$ method can be optimized, but the java method should be present to be called
-              // through the library.
-              List<FoundMethodSubject> virtualMethods = i.clazz(Impl.class).virtualMethods();
-              assertTrue(
-                  virtualMethods.stream()
-                      .anyMatch(
-                          m ->
-                              m.getMethod()
-                                  .method
-                                  .proto
-                                  .parameters
-                                  .values[0]
-                                  .toString()
-                                  .equals("java.util.function.Consumer")));
-            })
+        .inspect(this::assertLibraryOverridesThere)
         .addDesugaredCoreLibraryRunClassPath(
             this::buildDesugaredLibraryWithConversionExtension, AndroidApiLevel.B)
         .addRunClasspathFiles(customLib)
         .run(new DexRuntime(DexVm.ART_9_0_0_HOST), Impl.class)
         .assertSuccessWithOutput(StringUtils.lines("0", "1", "0", "1"));
+  }
+
+  @Test
+  public void testCallBackR8Minifying() throws Exception {
+    Path customLib = testForD8().addProgramClasses(CustomLibClass.class).compile().writeToZip();
+    testForR8(Backend.DEX)
+        .addKeepMainRule(Impl.class)
+        .setMinApi(AndroidApiLevel.B)
+        .addProgramClasses(Impl.class)
+        .addLibraryClasses(CustomLibClass.class)
+        .enableCoreLibraryDesugaring(AndroidApiLevel.B)
+        .compile()
+        .inspect(this::assertLibraryOverridesThere)
+        .addDesugaredCoreLibraryRunClassPath(
+            this::buildDesugaredLibraryWithConversionExtension, AndroidApiLevel.B)
+        .addRunClasspathFiles(customLib)
+        .run(new DexRuntime(DexVm.ART_9_0_0_HOST), Impl.class)
+        .assertSuccessWithOutput(StringUtils.lines("0", "1", "0", "1"));
+  }
+
+  private void assertLibraryOverridesThere(CodeInspector i) {
+    // The j$ method can be optimized, but the java method should be present to be called
+    // through the library.
+    List<FoundMethodSubject> virtualMethods = i.clazz(Impl.class).virtualMethods();
+    assertTrue(
+        virtualMethods.stream()
+            .anyMatch(
+                m ->
+                    m.getMethod().method.name.toString().equals("foo")
+                        && m.getMethod()
+                            .method
+                            .proto
+                            .parameters
+                            .values[0]
+                            .toString()
+                            .equals("java.util.function.Consumer")));
   }
 
   static class Impl extends CustomLibClass {
