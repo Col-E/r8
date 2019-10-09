@@ -175,7 +175,7 @@ public class GraphReporter {
           getMethodGraphNode(defaultInitializer.method),
           EdgeKind.CompatibilityRule);
     }
-    return KeepReasonWitness.COMPAT_INSTANCE;
+    return KeepReasonWitness.INSTANCE;
   }
 
   public KeepReasonWitness reportCompatKeepMethod(DexProgramClass holder, DexEncodedMethod method) {
@@ -184,10 +184,10 @@ public class GraphReporter {
     // The rule is stating that if the method is targeted it is live. Since such an edge does
     // not contribute to additional information in the kept graph as it stands (no distinction
     // of targeted vs live edges), there is little point in emitting it.
-    return KeepReasonWitness.COMPAT_INSTANCE;
+    return KeepReasonWitness.INSTANCE;
   }
 
-  public KeepReason reportCompatInstantiated(
+  public KeepReasonWitness reportCompatInstantiated(
       DexProgramClass instantiated, DexEncodedMethod method) {
     if (keptGraphConsumer != null) {
       reportEdge(
@@ -195,7 +195,7 @@ public class GraphReporter {
           getClassGraphNode(instantiated.type),
           EdgeKind.CompatibilityRule);
     }
-    return KeepReasonWitness.COMPAT_INSTANCE;
+    return KeepReasonWitness.INSTANCE;
   }
 
   public KeepReasonWitness reportClassReferencedFrom(
@@ -240,7 +240,7 @@ public class GraphReporter {
     return KeepReasonWitness.INSTANCE;
   }
 
-  public KeepReason reportCompanionClass(DexProgramClass iface, DexProgramClass companion) {
+  public KeepReasonWitness reportCompanionClass(DexProgramClass iface, DexProgramClass companion) {
     assert iface.isInterface();
     assert InterfaceMethodRewriter.isCompanionClassType(companion.type);
     if (keptGraphConsumer == null) {
@@ -250,7 +250,7 @@ public class GraphReporter {
         getClassGraphNode(iface.type), getClassGraphNode(companion.type), EdgeKind.CompanionClass);
   }
 
-  public KeepReason reportCompanionMethod(
+  public KeepReasonWitness reportCompanionMethod(
       DexEncodedMethod definition, DexEncodedMethod implementation) {
     assert InterfaceMethodRewriter.isCompanionClassType(implementation.method.holder);
     if (keptGraphConsumer == null) {
@@ -276,13 +276,6 @@ public class GraphReporter {
   public static class KeepReasonWitness extends KeepReason {
 
     private static KeepReasonWitness INSTANCE = new KeepReasonWitness();
-    private static KeepReasonWitness COMPAT_INSTANCE =
-        new KeepReasonWitness() {
-          @Override
-          public boolean isDueToProguardCompatibility() {
-            return true;
-          }
-        };
 
     private KeepReasonWitness() {
       // Only the reporter may create instances.
@@ -301,7 +294,7 @@ public class GraphReporter {
 
   private boolean skipReporting(KeepReason reason) {
     assert reason != null;
-    if (reason == KeepReasonWitness.INSTANCE || reason == KeepReasonWitness.COMPAT_INSTANCE) {
+    if (reason == KeepReasonWitness.INSTANCE) {
       return true;
     }
     assert getSourceNode(reason) != null;

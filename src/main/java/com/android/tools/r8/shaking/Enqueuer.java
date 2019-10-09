@@ -176,7 +176,7 @@ public class Enqueuer {
    * Set of types that are mentioned in the program. We at least need an empty abstract class item
    * for these.
    */
-  private final SetWithReason<DexProgramClass> liveTypes;
+  private final SetWithReportedReason<DexProgramClass> liveTypes;
 
   /** Set of live types defined in the library and classpath. Used to avoid duplicate tracing. */
   private final Set<DexClass> liveNonProgramTypes = Sets.newIdentityHashSet();
@@ -304,7 +304,7 @@ public class Enqueuer {
       registerAnalysis(new ProtoEnqueuerExtension(appView));
     }
 
-    liveTypes = new SetWithReason<>(graphReporter::registerClass);
+    liveTypes = new SetWithReportedReason<>();
     liveAnnotations = new SetWithReason<>(graphReporter::registerAnnotation);
     instantiatedTypes = new SetWithReason<>(graphReporter::registerClass);
     targetedMethods = new SetWithReason<>(graphReporter::registerMethod);
@@ -451,14 +451,14 @@ public class Enqueuer {
     pinnedItems.add(item.toReference());
   }
 
-  private void markInterfaceAsInstantiated(DexProgramClass clazz, KeepReason reason) {
+  private void markInterfaceAsInstantiated(DexProgramClass clazz, KeepReasonWitness witness) {
     assert clazz.isInterface() && !clazz.accessFlags.isAnnotation();
 
-    if (!instantiatedInterfaceTypes.add(clazz, reason)) {
+    if (!instantiatedInterfaceTypes.add(clazz, witness)) {
       return;
     }
     populateInstantiatedTypesCache(clazz);
-    markTypeAsLive(clazz, reason);
+    markTypeAsLive(clazz, witness);
   }
 
   private void enqueueFirstNonSerializableClassInitializer(
@@ -774,7 +774,7 @@ public class Enqueuer {
       DexProgramClass clazz = getProgramClassOrNull(type);
       if (clazz != null) {
         if (clazz.isInterface()) {
-          markTypeAsLive(clazz, keepReason);
+          markTypeAsLive(clazz, graphReporter.registerClass(clazz, keepReason));
         } else {
           markInstantiated(clazz, keepReason);
         }
@@ -911,7 +911,7 @@ public class Enqueuer {
         if (clazz != null) {
           KeepReason reason = KeepReason.methodHandleReferencedIn(currentMethod);
           if (clazz.isInterface() && !clazz.accessFlags.isAnnotation()) {
-            markInterfaceAsInstantiated(clazz, reason);
+            markInterfaceAsInstantiated(clazz, graphReporter.registerClass(clazz, reason));
           } else {
             markInstantiated(clazz, reason);
           }
@@ -1083,10 +1083,10 @@ public class Enqueuer {
     markTypeAsLive(
         holder,
         scopedMethodsForLiveTypes.computeIfAbsent(type, ignore -> new ScopedDexMethodSet()),
-        reason);
+        graphReporter.registerClass(holder, reason));
   }
 
-  private void markTypeAsLive(DexType type, Function<DexProgramClass, KeepReason> reason) {
+  private void markTypeAsLive(DexType type, Function<DexProgramClass, KeepReasonWitness> reason) {
     if (type.isArrayType()) {
       markTypeAsLive(type.toBaseType(appView.dexItemFactory()), reason);
       return;
@@ -1105,16 +1105,16 @@ public class Enqueuer {
         reason.apply(holder));
   }
 
-  private void markTypeAsLive(DexProgramClass clazz, KeepReason reason) {
+  private void markTypeAsLive(DexProgramClass clazz, KeepReasonWitness witness) {
     markTypeAsLive(
         clazz,
         scopedMethodsForLiveTypes.computeIfAbsent(clazz.type, ignore -> new ScopedDexMethodSet()),
-        reason);
+        witness);
   }
 
   private void markTypeAsLive(
-      DexProgramClass holder, ScopedDexMethodSet seen, KeepReason reasonForType) {
-    if (!liveTypes.add(holder, reasonForType)) {
+      DexProgramClass holder, ScopedDexMethodSet seen, KeepReasonWitness witness) {
+    if (!liveTypes.add(holder, witness)) {
       return;
     }
 
@@ -1432,7 +1432,7 @@ public class Enqueuer {
       Log.verbose(getClass(), "Class `%s` is instantiated, processing...", clazz);
     }
     // This class becomes live, so it and all its supertypes become live types.
-    markTypeAsLive(clazz, reason);
+    markTypeAsLive(clazz, graphReporter.registerClass(clazz, reason));
     // For all methods of the class, if we have seen a call, mark the method live.
     // We only do this for virtual calls, as the other ones will be done directly.
     transitionMethodsForInstantiatedClass(clazz);
@@ -2489,12 +2489,13 @@ public class Enqueuer {
     }
   }
 
-  private void markClassAsInstantiatedWithCompatRule(DexProgramClass clazz, KeepReason reason) {
+  private void markClassAsInstantiatedWithCompatRule(
+      DexProgramClass clazz, KeepReasonWitness witness) {
     if (clazz.isInterface() && !clazz.accessFlags.isAnnotation()) {
-      markInterfaceAsInstantiated(clazz, reason);
+      markInterfaceAsInstantiated(clazz, witness);
       return;
     }
-    workList.enqueueMarkInstantiatedAction(clazz, reason);
+    workList.enqueueMarkInstantiatedAction(clazz, witness);
     if (clazz.hasDefaultInitializer()) {
       DexEncodedMethod defaultInitializer = clazz.getDefaultInitializer();
       workList.enqueueMarkReachableDirectAction(
@@ -2842,6 +2843,24 @@ public class Enqueuer {
       if (serviceImplementationClass != null && serviceImplementationClass.isProgramClass()) {
         markClassAsInstantiatedWithReason(serviceImplementationClass, reason);
       }
+    }
+  }
+
+  private static class SetWithReportedReason<T> {
+
+    private final Set<T> items = Sets.newIdentityHashSet();
+
+    boolean add(T item, KeepReasonWitness witness) {
+      assert witness != null;
+      return items.add(item);
+    }
+
+    boolean contains(T item) {
+      return items.contains(item);
+    }
+
+    Set<T> getItems() {
+      return Collections.unmodifiableSet(items);
     }
   }
 

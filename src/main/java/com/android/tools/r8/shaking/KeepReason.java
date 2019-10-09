@@ -64,10 +64,6 @@ public abstract class KeepReason {
     return false;
   }
 
-  public boolean isDueToProguardCompatibility() {
-    return false;
-  }
-
   public boolean isInstantiatedIn() {
     return false;
   }
