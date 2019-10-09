@@ -135,7 +135,7 @@ TEST_COMMANDS = [
     ['tools/test.py', '--only_internal', '--slow_tests',
      '--java_max_memory_size=8G'],
     # Ensure that all internal apps compile.
-    ['tools/run_on_app.py', '--ignore-java-version','--run-all', '--out=out'],
+    ['tools/run_on_app.py', '--run-all', '--out=out'],
     # Find min xmx for selected benchmark apps
     ['tools/gradle.py', 'r8lib'],
 ] + (map(compile_with_memory_max_command, BENCHMARK_APPS)
