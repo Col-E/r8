@@ -39,7 +39,6 @@ import utils
 
 # How often the bot/tester should check state
 PULL_DELAY = 30
-BUCKET = 'r8-test-results'
 TEST_RESULT_DIR = 'internal'
 
 # Magic files
@@ -123,29 +122,18 @@ def git_checkout(git_hash):
   return utils.get_HEAD_sha1()
 
 def get_test_result_dir():
-  return os.path.join(BUCKET, TEST_RESULT_DIR)
+  return os.path.join(utils.R8_TEST_RESULTS_BUCKET, TEST_RESULT_DIR)
 
 def get_sha_destination(sha):
   return os.path.join(get_test_result_dir(), sha)
 
 def archive_status(failed):
   gs_destination = 'gs://%s' % get_sha_destination(utils.get_HEAD_sha1())
-  archive_value('status', gs_destination, failed)
+  utils.archive_value('status', gs_destination, failed)
 
 def get_status(sha):
   gs_destination = 'gs://%s/status' % get_sha_destination(sha)
   return utils.cat_file_on_cloud_storage(gs_destination)
-
-def archive_file(name, gs_dir, src_file):
-  gs_file = '%s/%s' % (gs_dir, name)
-  utils.upload_file_to_cloud_storage(src_file, gs_file, public_read=False)
-
-def archive_value(name, gs_dir, value):
-  with utils.TempDir() as temp:
-    tempfile = os.path.join(temp, name);
-    with open(tempfile, 'w') as f:
-      f.write(str(value))
-    archive_file(name, gs_dir, tempfile)
 
 def archive_log(stdout, stderr, exitcode, timed_out, cmd):
   sha = utils.get_HEAD_sha1()
@@ -154,10 +142,10 @@ def archive_log(stdout, stderr, exitcode, timed_out, cmd):
   gs_destination = 'gs://%s' % destination
   url = 'https://storage.cloud.google.com/%s' % destination
   log('Archiving logs to: %s' % gs_destination)
-  archive_value(EXITCODE, gs_destination, exitcode)
-  archive_value(TIMED_OUT, gs_destination, timed_out)
-  archive_file(STDOUT, gs_destination, stdout)
-  archive_file(STDERR, gs_destination, stderr)
+  utils.archive_value(EXITCODE, gs_destination, exitcode)
+  utils.archive_value(TIMED_OUT, gs_destination, timed_out)
+  utils.archive_file(STDOUT, gs_destination, stdout)
+  utils.archive_file(STDERR, gs_destination, stderr)
   log('Logs available at: %s' % url)
 
 def get_magic_file_base_path():
@@ -173,7 +161,7 @@ def delete_magic_file(name):
   utils.delete_file_from_cloud_storage(get_magic_file_gs_path(name))
 
 def put_magic_file(name, sha):
-  archive_value(name, get_magic_file_base_path(), sha)
+  utils.archive_value(name, get_magic_file_base_path(), sha)
 
 def get_magic_file_content(name, ignore_errors=False):
   return utils.cat_file_on_cloud_storage(get_magic_file_gs_path(name),

@@ -33,6 +33,10 @@ OOM_EXIT_CODE = 42
 # A negative value -N indicates that the child was terminated by signal N.
 TIMEOUT_KILL_CODE = -9
 
+# Log file names
+FIND_MIN_XMX_FILE = 'find_min_xmx_results'
+FIND_MIN_XMX_DIR = 'find_min_xmx'
+
 def ParseOptions(argv):
   result = optparse.OptionParser()
   result.add_option('--compiler',
@@ -80,8 +84,12 @@ def ParseOptions(argv):
                     help='Setting the size of the acceptable memory range',
                     type='int',
                     default=32)
+  result.add_option('--find-min-xmx-archive',
+                    help='Archive find-min-xmx results on GCS',
+                    default=False,
+                    action='store_true')
   result.add_option('--timeout',
-                    type=int,
+                    type='int',
                     default=0,
                     help='Set timeout instead of waiting for OOM.')
   result.add_option('--golem',
@@ -242,7 +250,24 @@ def find_min_xmx(options, args):
       not_working = next_candidate
 
   assert working - not_working <= range
-  print('Found range: %s - %s' % (not_working, working))
+  found_range = 'Found range: %s - %s' % (not_working, working)
+  print(found_range)
+
+  if options.find_min_xmx_archive:
+    sha = utils.get_HEAD_sha1()
+    (version, _) = get_version_and_data(options)
+    destination = os.path.join(
+        utils.R8_TEST_RESULTS_BUCKET,
+        FIND_MIN_XMX_DIR,
+        sha,
+        options.compiler,
+        options.compiler_build,
+        options.app,
+        version,
+        get_type(options))
+    gs_destination = 'gs://%s' % destination
+    utils.archive_value(FIND_MIN_XMX_FILE, gs_destination, found_range + '\n')
+
   return 0
 
 def main(argv):
@@ -262,6 +287,34 @@ def main(argv):
     exit_code = 0 if exit_code == OOM_EXIT_CODE else 1
   return exit_code
 
+def get_version_and_data(options):
+  if options.app == 'gmscore':
+    version = options.version or 'v9'
+    data = gmscore_data
+  elif options.app == 'nest':
+    version = options.version or '20180926'
+    data = nest_data
+  elif options.app == 'youtube':
+    version = options.version or '12.22'
+    data = youtube_data
+  elif options.app == 'chrome':
+    version = options.version or '180917'
+    data = chrome_data
+  elif options.app == 'gmail':
+    version = options.version or '170604.16'
+    data = gmail_data
+  elif options.app == 'r8':
+    version = options.version or 'cf'
+    data = r8_data
+  else:
+    raise Exception("You need to specify '--app={}'".format('|'.join(APPS)))
+  return version, data
+
+def get_type(options):
+  if not options.type:
+    return 'deploy' if options.compiler == 'r8' else 'proguarded'
+  return options.type
+
 def run_with_options(options, args, extra_args=None):
   if extra_args is None:
     extra_args = []
@@ -279,27 +332,9 @@ def run_with_options(options, args, extra_args=None):
     utils.check_java_version()
 
   outdir = options.out
-  data = None
-  if options.app == 'gmscore':
-    options.version = options.version or 'v9'
-    data = gmscore_data
-  elif options.app == 'nest':
-    options.version = options.version or '20180926'
-    data = nest_data
-  elif options.app == 'youtube':
-    options.version = options.version or '12.22'
-    data = youtube_data
-  elif options.app == 'chrome':
-    options.version = options.version or '180917'
-    data = chrome_data
-  elif options.app == 'gmail':
-    options.version = options.version or '170604.16'
-    data = gmail_data
-  elif options.app == 'r8':
-    options.version = options.version or 'cf'
-    data = r8_data
-  else:
-    raise Exception("You need to specify '--app={}'".format('|'.join(APPS)))
+  (version_id, data) = get_version_and_data(options)
+
+
 
   if options.compiler not in COMPILERS:
     raise Exception("You need to specify '--compiler={}'"
@@ -309,29 +344,27 @@ def run_with_options(options, args, extra_args=None):
     raise Exception("You need to specify '--compiler-build={}'"
         .format('|'.join(COMPILER_BUILDS)))
 
-  if not options.version in data.VERSIONS.keys():
+  if not version_id in data.VERSIONS.keys():
     print('No version {} for application {}'
-        .format(options.version, options.app))
+        .format(version_id, options.app))
     print('Valid versions are {}'.format(data.VERSIONS.keys()))
     return 1
 
-  version = data.VERSIONS[options.version]
+  version = data.VERSIONS[version_id]
 
-  if not options.type:
-    options.type = 'deploy' if options.compiler == 'r8' \
-        else 'proguarded'
+  type = get_type(options)
 
-  if options.type not in version:
-    print('No type {} for version {}'.format(options.type, options.version))
+  if type not in version:
+    print('No type {} for version {}'.format(type, version))
     print('Valid types are {}'.format(version.keys()))
     return 1
-  values = version[options.type]
+  values = version[type]
   inputs = None
   # For R8 'deploy' the JAR is located using the Proguard configuration
   # -injars option. For chrome and nest we don't have the injars in the
   # proguard files.
   if 'inputs' in values and (options.compiler != 'r8'
-                             or options.type != 'deploy'
+                             or type != 'deploy'
                              or options.app == 'chrome'
                              or options.app == 'nest'
                              or options.app == 'r8'):
