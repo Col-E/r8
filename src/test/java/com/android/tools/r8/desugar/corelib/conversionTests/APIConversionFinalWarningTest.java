@@ -25,7 +25,7 @@ public class APIConversionFinalWarningTest extends APIConversionTestBase {
         .addLibraryClasses(CustomLibClass.class)
         .enableCoreLibraryDesugaring(AndroidApiLevel.B)
         .compile()
-        .assertWarningMessageThatMatches(
+        .assertInfoMessageThatMatches(
             startsWith(
                 "Desugared library API conversion: cannot wrap final methods"
                     + " [java.util.LongSummaryStatistics"))
@@ -36,7 +36,7 @@ public class APIConversionFinalWarningTest extends APIConversionTestBase {
         .assertSuccessWithOutput(
             StringUtils.lines(
                 "Unsupported conversion for java.util.LongSummaryStatistics. See compilation time"
-                    + " warnings for more infos."));
+                    + " infos for more details."));
   }
 
   static class Executor {

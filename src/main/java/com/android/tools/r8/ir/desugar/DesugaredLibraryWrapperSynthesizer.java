@@ -355,7 +355,7 @@ public class DesugaredLibraryWrapperSynthesizer {
     appView
         .options()
         .reporter
-        .warning(
+        .info(
             new StringDiagnostic(
                 "Desugared library API conversion: cannot wrap final methods "
                     + Arrays.toString(methodArray)
@@ -548,7 +548,7 @@ public class DesugaredLibraryWrapperSynthesizer {
                   factory.createString(
                       "Unsupported conversion for "
                           + type
-                          + ". See compilation time warnings for more infos."),
+                          + ". See compilation time infos for more details."),
                   holder)
               .generateCfCode();
     } else {

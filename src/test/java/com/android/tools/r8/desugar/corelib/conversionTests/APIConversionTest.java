@@ -67,7 +67,7 @@ public class APIConversionTest extends CoreLibDesugarTestBase {
                 "[5, 6, 7]",
                 "$r8$wrapper$java$util$stream$IntStream$-V-WRP",
                 "Unsupported conversion for java.util.IntSummaryStatistics. See compilation time"
-                    + " warnings for more infos."));
+                    + " infos for more details."));
   }
 
   static class Executor {
