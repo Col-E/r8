@@ -54,13 +54,62 @@ STDOUT = 'stdout'
 EXITCODE = 'exitcode'
 TIMED_OUT = 'timed_out'
 
+BENCHMARK_APPS = [
+    {
+        'app': 'r8',
+        'version': 'cf',
+        'find-xmx-min': 128,
+        'find-xmx-max': 400,
+        'find-xmx-range': 16,
+    },
+    {
+        'app': 'chrome',
+        'version': '180917',
+        'find-xmx-min': 256,
+        'find-xmx-max': 450,
+        'find-xmx-range': 16,
+    },
+    {
+        'app': 'youtube',
+        'version': '12.22',
+        'find-xmx-min': 1200,
+        'find-xmx-max': 800,
+        'find-xmx-range': 32,
+    },
+    # TODO(b/142375244): Narrow when run a few times.
+    {
+        'app': 'iosched',
+        'version': '2019',
+        'find-xmx-min': 128,
+        'find-xmx-max': 1024,
+        'find-xmx-range': 16,
+    },
+]
+
+def find_min_xmx_command(record):
+  return [
+      'tools/run_on_app.py',
+      '--compiler=r8',
+      '--compiler-build=lib',
+      '--app=%s' % record['app'],
+      '--version=%s' % record['version'],
+      '--no-debug',
+      '--no-build',
+      '--find-min-xmx',
+      '--find-min-xmx-min-memory=%s' % record['find-xmx-min'],
+      '--find-min-xmx-max-memory=%s' % record['find-xmx-max'],
+      '--find-min-xmx-range-size=%s' % record['find-xmx-range'],
+      '--find-min-xmx-archive']
+
 TEST_COMMANDS = [
     # Run test.py internal testing.
     ['tools/test.py', '--only_internal', '--slow_tests',
      '--java_max_memory_size=8G'],
     # Ensure that all internal apps compile.
-    ['tools/run_on_app.py', '--ignore-java-version','--run-all', '--out=out']
-]
+    ['tools/run_on_app.py', '--ignore-java-version','--run-all', '--out=out'],
+    # Find min xmx for selected benchmark apps
+    ['tools/gradle.py', 'r8lib'],
+] + map(find_min_xmx_command, BENCHMARK_APPS)
 
 # Command timeout, in seconds.
 RUN_TIMEOUT = 3600 * 6
