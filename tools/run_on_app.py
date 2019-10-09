@@ -21,9 +21,10 @@ import utils
 import youtube_data
 import chrome_data
 import r8_data
+import iosched_data
 
 TYPES = ['dex', 'deploy', 'proguarded']
-APPS = ['gmscore', 'nest', 'youtube', 'gmail', 'chrome', 'r8']
+APPS = ['gmscore', 'nest', 'youtube', 'gmail', 'chrome', 'r8', 'iosched']
 COMPILERS = ['d8', 'r8']
 COMPILER_BUILDS = ['full', 'lib']
 
@@ -178,7 +179,8 @@ def get_permutations():
       'youtube': youtube_data,
       'chrome': chrome_data,
       'gmail': gmail_data,
-      'r8': r8_data
+      'r8': r8_data,
+      'iosched': iosched_data,
   }
   # Check to ensure that we add all variants here.
   assert len(APPS) == len(data_providers)
@@ -306,6 +308,9 @@ def get_version_and_data(options):
   elif options.app == 'r8':
     version = options.version or 'cf'
     data = r8_data
+  elif options.app == 'iosched':
+    version = options.version or '2019'
+    data = iosched_data
   else:
     raise Exception("You need to specify '--app={}'".format('|'.join(APPS)))
   return version, data
@@ -333,8 +338,6 @@ def run_with_options(options, args, extra_args=None):
 
   outdir = options.out
   (version_id, data) = get_version_and_data(options)
-
-
 
   if options.compiler not in COMPILERS:
     raise Exception("You need to specify '--compiler={}'"
@@ -367,7 +370,8 @@ def run_with_options(options, args, extra_args=None):
                              or type != 'deploy'
                              or options.app == 'chrome'
                              or options.app == 'nest'
-                             or options.app == 'r8'):
+                             or options.app == 'r8'
+                             or options.app == 'iosched'):
     inputs = values['inputs']
 
   args.extend(['--output', outdir])

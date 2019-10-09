@@ -304,6 +304,7 @@ def cloudDependencies = [
                 "ddmlib",
                 "gradle/gradle",
                 "google-java-format",
+                "iosched_2019",
                 "jacoco",
                 "jasmin",
                 "jctf",
