@@ -12,17 +12,8 @@ import static com.google.common.base.Predicates.not;
 
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.dex.IndexedItemCollection;
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.experimental.graphinfo.AnnotationGraphNode;
-import com.android.tools.r8.experimental.graphinfo.ClassGraphNode;
-import com.android.tools.r8.experimental.graphinfo.FieldGraphNode;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
-import com.android.tools.r8.experimental.graphinfo.GraphEdgeInfo;
-import com.android.tools.r8.experimental.graphinfo.GraphEdgeInfo.EdgeKind;
-import com.android.tools.r8.experimental.graphinfo.GraphNode;
-import com.android.tools.r8.experimental.graphinfo.KeepRuleGraphNode;
-import com.android.tools.r8.experimental.graphinfo.MethodGraphNode;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.Descriptor;
@@ -58,24 +49,19 @@ import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.references.Reference;
-import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.shaking.EnqueuerWorklist.Action;
+import com.android.tools.r8.shaking.GraphReporter.KeepReasonWitness;
 import com.android.tools.r8.shaking.RootSetBuilder.ConsequentRootSet;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.shaking.ScopedDexMethodSet.AddMethodIfMoreVisibleResult;
-import com.android.tools.r8.utils.DequeUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.base.Equivalence.Wrapper;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -84,7 +70,6 @@ import it.unimi.dsi.fastutil.objects.Object2BooleanArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import java.lang.reflect.InvocationHandler;
 import java.util.ArrayDeque;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
@@ -164,14 +149,6 @@ public class Enqueuer {
 
   private final Set<DexReference> identifierNameStrings = Sets.newIdentityHashSet();
 
-  // Canonicalization of external graph-nodes and edge info.
-  private final Map<DexItem, AnnotationGraphNode> annotationNodes = new IdentityHashMap<>();
-  private final Map<DexType, ClassGraphNode> classNodes = new IdentityHashMap<>();
-  private final Map<DexMethod, MethodGraphNode> methodNodes = new IdentityHashMap<>();
-  private final Map<DexField, FieldGraphNode> fieldNodes = new IdentityHashMap<>();
-  private final Map<ProguardKeepRuleBase, KeepRuleGraphNode> ruleNodes = new IdentityHashMap<>();
-  private final Map<EdgeKind, GraphEdgeInfo> reasonInfo = new IdentityHashMap<>();
-
   /**
    * Set of method signatures used in invoke-super instructions that either cannot be resolved or
    * resolve to a private method (leading to an IllegalAccessError).
@@ -199,7 +176,7 @@ public class Enqueuer {
    * Set of types that are mentioned in the program. We at least need an empty abstract class item
    * for these.
    */
-  private final SetWithReason<DexProgramClass> liveTypes = new SetWithReason<>(this::registerClass);
+  private final SetWithReason<DexProgramClass> liveTypes;
 
   /** Set of live types defined in the library and classpath. Used to avoid duplicate tracing. */
   private final Set<DexClass> liveNonProgramTypes = Sets.newIdentityHashSet();
@@ -213,12 +190,10 @@ public class Enqueuer {
   private final Set<DexType> skippedProtoExtensionTypes = Sets.newIdentityHashSet();
 
   /** Set of annotation types that are instantiated. */
-  private final SetWithReason<DexAnnotation> liveAnnotations =
-      new SetWithReason<>(this::registerAnnotation);
+  private final SetWithReason<DexAnnotation> liveAnnotations;
 
   /** Set of types that are actually instantiated. These cannot be abstract. */
-  private final SetWithReason<DexProgramClass> instantiatedTypes =
-      new SetWithReason<>(this::registerClass);
+  private final SetWithReason<DexProgramClass> instantiatedTypes;
 
   /** Set of all types that are instantiated, directly or indirectly, thus may be abstract. */
   private final Set<DexProgramClass> directAndIndirectlyInstantiatedTypes =
@@ -229,8 +204,7 @@ public class Enqueuer {
    * are required so that invokes can find the method. If a method is only a target but not live,
    * its implementation may be removed and it may be marked abstract.
    */
-  private final SetWithReason<DexEncodedMethod> targetedMethods =
-      new SetWithReason<>(this::registerMethod);
+  private final SetWithReason<DexEncodedMethod> targetedMethods;
   /**
    * Set of program methods that are used as the bootstrap method for an invoke-dynamic instruction.
    */
@@ -251,14 +225,12 @@ public class Enqueuer {
    * Set of methods that belong to live classes and can be reached by invokes. These need to be
    * kept.
    */
-  private final SetWithReason<DexEncodedMethod> liveMethods =
-      new SetWithReason<>(this::registerMethod);
+  private final SetWithReason<DexEncodedMethod> liveMethods;
 
   /**
    * Set of fields that belong to live classes and can be reached by invokes. These need to be kept.
    */
-  private final SetWithReason<DexEncodedField> liveFields =
-      new SetWithReason<>(this::registerField);
+  private final SetWithReason<DexEncodedField> liveFields;
 
   /**
    * Set of service types (from META-INF/services/) that may have been instantiated reflectively via
@@ -270,8 +242,7 @@ public class Enqueuer {
    * Set of interface types for which there may be instantiations, such as lambda expressions or
    * explicit keep rules.
    */
-  private final SetWithReason<DexProgramClass> instantiatedInterfaceTypes =
-      new SetWithReason<>(this::registerInterface);
+  private final SetWithReason<DexProgramClass> instantiatedInterfaceTypes;
 
   /** A queue of items that need processing. Different items trigger different actions. */
   private final EnqueuerWorklist workList;
@@ -314,8 +285,6 @@ public class Enqueuer {
       new IdentityHashMap<>();
 
   private final GraphReporter graphReporter;
-  private final GraphConsumer keptGraphConsumer;
-  private CollectingGraphConsumer verificationGraphConsumer = null;
 
   Enqueuer(
       AppView<? extends AppInfoWithSubtyping> appView,
@@ -326,8 +295,7 @@ public class Enqueuer {
     this.appInfo = appView.appInfo();
     this.appView = appView;
     this.forceProguardCompatibility = options.forceProguardCompatibility;
-    this.graphReporter = new GraphReporter();
-    this.keptGraphConsumer = recordKeptGraph(options, keptGraphConsumer);
+    this.graphReporter = new GraphReporter(appView, keptGraphConsumer);
     this.mode = mode;
     this.options = options;
     this.workList = EnqueuerWorklist.createWorklist(appView);
@@ -335,10 +303,22 @@ public class Enqueuer {
     if (options.enableGeneratedMessageLiteShrinking && mode.isInitialOrFinalTreeShaking()) {
       registerAnalysis(new ProtoEnqueuerExtension(appView));
     }
+
+    liveTypes = new SetWithReason<>(graphReporter::registerClass);
+    liveAnnotations = new SetWithReason<>(graphReporter::registerAnnotation);
+    instantiatedTypes = new SetWithReason<>(graphReporter::registerClass);
+    targetedMethods = new SetWithReason<>(graphReporter::registerMethod);
+    liveMethods = new SetWithReason<>(graphReporter::registerMethod);
+    liveFields = new SetWithReason<>(graphReporter::registerField);
+    instantiatedInterfaceTypes = new SetWithReason<>(graphReporter::registerInterface);
   }
 
   public Mode getMode() {
     return mode;
+  }
+
+  public GraphReporter getGraphReporter() {
+    return graphReporter;
   }
 
   public Enqueuer registerAnalysis(EnqueuerAnalysis analysis) {
@@ -1315,7 +1295,7 @@ public class Enqueuer {
 
   private void registerClassInitializer(DexProgramClass definition, KeepReason reason) {
     if (definition.hasClassInitializer()) {
-      registerMethod(definition.getClassInitializer(), reason);
+      graphReporter.registerMethod(definition.getClassInitializer(), reason);
     }
   }
 
@@ -1850,7 +1830,7 @@ public class Enqueuer {
     MarkedResolutionTarget resolution = virtualTargetsMarkedAsReachable.get(method);
     if (resolution != null) {
       if (!resolution.isUnresolved()) {
-        registerMethod(resolution.method, reason);
+        graphReporter.registerMethod(resolution.method, reason);
       }
       return;
     }
@@ -2126,44 +2106,12 @@ public class Enqueuer {
     return createAppInfo(appInfo);
   }
 
-  private GraphConsumer recordKeptGraph(InternalOptions options, GraphConsumer consumer) {
-    if (options.testing.verifyKeptGraphInfo) {
-      verificationGraphConsumer = new CollectingGraphConsumer(consumer);
-      return verificationGraphConsumer;
-    }
-    return consumer;
-  }
-
-  private boolean verifyKeptGraph() {
-    if (options.testing.verifyKeptGraphInfo) {
-      assert verificationGraphConsumer != null;
-      for (DexProgramClass liveType : liveTypes.items) {
-        assert verifyRootedPath(liveType, verificationGraphConsumer);
+  public boolean verifyKeptGraph() {
+    if (appView.options().testing.verifyKeptGraphInfo) {
+      for (DexProgramClass liveType : liveTypes.getItems()) {
+        assert graphReporter.verifyRootedPath(liveType);
       }
     }
-    return true;
-  }
-
-  private boolean verifyRootedPath(DexProgramClass liveType, CollectingGraphConsumer graph) {
-    ClassGraphNode node = getClassGraphNode(liveType.type);
-    Set<GraphNode> seen = Sets.newIdentityHashSet();
-    Deque<GraphNode> targets = DequeUtils.newArrayDeque(node);
-    while (!targets.isEmpty()) {
-      GraphNode item = targets.pop();
-      if (item instanceof KeepRuleGraphNode) {
-        KeepRuleGraphNode rule = (KeepRuleGraphNode) item;
-        if (rule.getPreconditions().isEmpty()) {
-          return true;
-        }
-      }
-      if (seen.add(item)) {
-        Map<GraphNode, Set<GraphEdgeInfo>> sources = graph.getSourcesTargeting(item);
-        assert sources != null : "No sources set for " + item;
-        assert !sources.isEmpty() : "Empty sources set for " + item;
-        targets.addAll(sources.keySet());
-      }
-    }
-    assert false : "No rooted path to " + liveType.type;
     return true;
   }
 
@@ -2921,7 +2869,7 @@ public class Enqueuer {
     }
   }
 
-  private static class MarkedResolutionTarget {
+  public static class MarkedResolutionTarget {
 
     private static final MarkedResolutionTarget UNRESOLVED = new MarkedResolutionTarget(null, null);
 
@@ -3120,402 +3068,4 @@ public class Enqueuer {
     }
   }
 
-  class GraphReporter {
-
-    private EdgeKind reportPrecondition(KeepRuleGraphNode keepRuleGraphNode) {
-      if (keepRuleGraphNode.getPreconditions().isEmpty()) {
-        return EdgeKind.KeepRule;
-      }
-      for (GraphNode precondition : keepRuleGraphNode.getPreconditions()) {
-        reportEdge(precondition, keepRuleGraphNode, EdgeKind.KeepRulePrecondition);
-      }
-      return EdgeKind.ConditionalKeepRule;
-    }
-
-    KeepReasonWitness reportKeepClass(
-        DexDefinition precondition, ProguardKeepRuleBase rule, DexProgramClass clazz) {
-      if (keptGraphConsumer == null) {
-        return KeepReasonWitness.INSTANCE;
-      }
-      KeepRuleGraphNode ruleNode = getKeepRuleGraphNode(precondition, rule);
-      EdgeKind edgeKind = reportPrecondition(ruleNode);
-      return reportEdge(ruleNode, getClassGraphNode(clazz.type), edgeKind);
-    }
-
-    KeepReasonWitness reportKeepClass(
-        DexDefinition precondition, Collection<ProguardKeepRuleBase> rules, DexProgramClass clazz) {
-      assert !rules.isEmpty();
-      if (keptGraphConsumer != null) {
-        for (ProguardKeepRuleBase rule : rules) {
-          reportKeepClass(precondition, rule, clazz);
-        }
-      }
-      return KeepReasonWitness.INSTANCE;
-    }
-
-    KeepReasonWitness reportKeepMethod(
-        DexDefinition precondition, ProguardKeepRuleBase rule, DexEncodedMethod method) {
-      if (keptGraphConsumer == null) {
-        return KeepReasonWitness.INSTANCE;
-      }
-      KeepRuleGraphNode ruleNode = getKeepRuleGraphNode(precondition, rule);
-      EdgeKind edgeKind = reportPrecondition(ruleNode);
-      return reportEdge(ruleNode, getMethodGraphNode(method.method), edgeKind);
-    }
-
-    KeepReasonWitness reportKeepMethod(
-        DexDefinition precondition,
-        Collection<ProguardKeepRuleBase> rules,
-        DexEncodedMethod method) {
-      assert !rules.isEmpty();
-      if (keptGraphConsumer != null) {
-        for (ProguardKeepRuleBase rule : rules) {
-          reportKeepMethod(precondition, rule, method);
-        }
-      }
-      return KeepReasonWitness.INSTANCE;
-    }
-
-    KeepReasonWitness reportKeepField(
-        DexDefinition precondition, ProguardKeepRuleBase rule, DexEncodedField field) {
-      if (keptGraphConsumer == null) {
-        return KeepReasonWitness.INSTANCE;
-      }
-      KeepRuleGraphNode ruleNode = getKeepRuleGraphNode(precondition, rule);
-      EdgeKind edgeKind = reportPrecondition(ruleNode);
-      return reportEdge(ruleNode, getFieldGraphNode(field.field), edgeKind);
-    }
-
-    KeepReasonWitness reportKeepField(
-        DexDefinition precondition, Collection<ProguardKeepRuleBase> rules, DexEncodedField field) {
-      assert !rules.isEmpty();
-      if (keptGraphConsumer != null) {
-        for (ProguardKeepRuleBase rule : rules) {
-          reportKeepField(precondition, rule, field);
-        }
-      }
-      return KeepReasonWitness.INSTANCE;
-    }
-
-    public KeepReasonWitness reportCompatKeepDefaultInitializer(
-        DexProgramClass holder, DexEncodedMethod defaultInitializer) {
-      assert holder.type == defaultInitializer.method.holder;
-      assert holder.getDefaultInitializer() == defaultInitializer;
-      if (keptGraphConsumer != null) {
-        reportEdge(
-            getClassGraphNode(holder.type),
-            getMethodGraphNode(defaultInitializer.method),
-            EdgeKind.CompatibilityRule);
-      }
-      return KeepReasonWitness.COMPAT_INSTANCE;
-    }
-
-    public KeepReasonWitness reportCompatKeepMethod(
-        DexProgramClass holder, DexEncodedMethod method) {
-      assert holder.type == method.method.holder;
-      // TODO(b/141729349): This compat rule is from the method to itself and has not edge. Fix it.
-      // The rule is stating that if the method is targeted it is live. Since such an edge does
-      // not contribute to additional information in the kept graph as it stands (no distinction
-      // of targeted vs live edges), there is little point in emitting it.
-      return KeepReasonWitness.COMPAT_INSTANCE;
-    }
-
-    public KeepReason reportCompatInstantiated(
-        DexProgramClass instantiated, DexEncodedMethod method) {
-      if (keptGraphConsumer != null) {
-        reportEdge(
-            getMethodGraphNode(method.method),
-            getClassGraphNode(instantiated.type),
-            EdgeKind.CompatibilityRule);
-      }
-      return KeepReasonWitness.COMPAT_INSTANCE;
-    }
-
-    public KeepReasonWitness reportClassReferencedFrom(
-        DexProgramClass clazz, DexEncodedMethod method) {
-      if (keptGraphConsumer != null) {
-        MethodGraphNode source = getMethodGraphNode(method.method);
-        ClassGraphNode target = getClassGraphNode(clazz.type);
-        return reportEdge(source, target, EdgeKind.ReferencedFrom);
-      }
-      return KeepReasonWitness.INSTANCE;
-    }
-
-    public KeepReasonWitness reportClassReferencedFrom(
-        DexProgramClass clazz, DexEncodedField field) {
-      if (keptGraphConsumer != null) {
-        FieldGraphNode source = getFieldGraphNode(field.field);
-        ClassGraphNode target = getClassGraphNode(clazz.type);
-        return reportEdge(source, target, EdgeKind.ReferencedFrom);
-      }
-      return KeepReasonWitness.INSTANCE;
-    }
-
-    public KeepReasonWitness reportReachableMethodAsLive(
-        DexEncodedMethod encodedMethod, MarkedResolutionTarget reason) {
-      if (keptGraphConsumer != null) {
-        return reportEdge(
-            getMethodGraphNode(reason.method.method),
-            getMethodGraphNode(encodedMethod.method),
-            EdgeKind.OverridingMethod);
-      }
-      return KeepReasonWitness.INSTANCE;
-    }
-
-    public KeepReasonWitness reportReachableMethodAsLive(
-        DexEncodedMethod encodedMethod, Set<MarkedResolutionTarget> reasons) {
-      assert !reasons.isEmpty();
-      if (keptGraphConsumer != null) {
-        MethodGraphNode target = getMethodGraphNode(encodedMethod.method);
-        for (MarkedResolutionTarget reason : reasons) {
-          reportEdge(getMethodGraphNode(reason.method.method), target, EdgeKind.OverridingMethod);
-        }
-      }
-      return KeepReasonWitness.INSTANCE;
-    }
-
-    private KeepReason reportCompanionClass(DexProgramClass iface, DexProgramClass companion) {
-      assert iface.isInterface();
-      assert InterfaceMethodRewriter.isCompanionClassType(companion.type);
-      if (keptGraphConsumer == null) {
-        return KeepReasonWitness.INSTANCE;
-      }
-      return reportEdge(
-          getClassGraphNode(iface.type),
-          getClassGraphNode(companion.type),
-          EdgeKind.CompanionClass);
-    }
-
-    private KeepReason reportCompanionMethod(
-        DexEncodedMethod definition, DexEncodedMethod implementation) {
-      assert InterfaceMethodRewriter.isCompanionClassType(implementation.method.holder);
-      if (keptGraphConsumer == null) {
-        return KeepReasonWitness.INSTANCE;
-      }
-      return reportEdge(
-          getMethodGraphNode(definition.method),
-          getMethodGraphNode(implementation.method),
-          EdgeKind.CompanionMethod);
-    }
-
-    private KeepReasonWitness reportEdge(
-        GraphNode source, GraphNode target, GraphEdgeInfo.EdgeKind kind) {
-      assert keptGraphConsumer != null;
-      keptGraphConsumer.acceptEdge(source, target, getEdgeInfo(kind));
-      return KeepReasonWitness.INSTANCE;
-    }
-
-  }
-
-  /**
-   * Sentinel value indicating that a keep reason has been reported.
-   *
-   * <p>Should only ever be returned by the register* function below.
-   */
-  private static class KeepReasonWitness extends KeepReason {
-
-    private static KeepReasonWitness INSTANCE = new KeepReasonWitness();
-    private static KeepReasonWitness COMPAT_INSTANCE =
-        new KeepReasonWitness() {
-          @Override
-          public boolean isDueToProguardCompatibility() {
-            return true;
-          }
-        };
-
-    @Override
-    public EdgeKind edgeKind() {
-      throw new Unreachable();
-    }
-
-    @Override
-    public GraphNode getSourceNode(Enqueuer enqueuer) {
-      throw new Unreachable();
-    }
-  }
-
-  private boolean skipReporting(KeepReason reason) {
-    assert reason != null;
-    if (reason == KeepReasonWitness.INSTANCE || reason == KeepReasonWitness.COMPAT_INSTANCE) {
-      return true;
-    }
-    assert getSourceNode(reason) != null;
-    return keptGraphConsumer == null;
-  }
-
-  private KeepReasonWitness registerType(DexType type, KeepReason reason) {
-    if (skipReporting(reason)) {
-      return KeepReasonWitness.INSTANCE;
-    }
-    return registerEdge(getClassGraphNode(type), reason);
-  }
-
-  private KeepReasonWitness registerInterface(DexProgramClass iface, KeepReason reason) {
-    assert iface.isInterface();
-    if (skipReporting(reason)) {
-      return KeepReasonWitness.INSTANCE;
-    }
-    return registerEdge(getClassGraphNode(iface.type), reason);
-  }
-
-  private KeepReasonWitness registerClass(DexProgramClass clazz, KeepReason reason) {
-    if (skipReporting(reason)) {
-      return KeepReasonWitness.INSTANCE;
-    }
-    return registerEdge(getClassGraphNode(clazz.type), reason);
-  }
-
-  private KeepReasonWitness registerAnnotation(DexAnnotation annotation, KeepReason reason) {
-    if (skipReporting(reason)) {
-      return KeepReasonWitness.INSTANCE;
-    }
-    return registerEdge(getAnnotationGraphNode(annotation.annotation.type), reason);
-  }
-
-  private KeepReasonWitness registerMethod(DexEncodedMethod method, KeepReason reason) {
-    if (skipReporting(reason)) {
-      return KeepReasonWitness.INSTANCE;
-    }
-    if (reason.edgeKind() == EdgeKind.IsLibraryMethod && isNonProgramClass(method.method.holder)) {
-      // Don't report edges to actual library methods.
-      // TODO(b/120959039): This should be dead code once no library classes are ever enqueued.
-      return KeepReasonWitness.INSTANCE;
-    }
-    return registerEdge(getMethodGraphNode(method.method), reason);
-  }
-
-  private KeepReasonWitness registerField(DexEncodedField field, KeepReason reason) {
-    if (skipReporting(reason)) {
-      return KeepReasonWitness.INSTANCE;
-    }
-    return registerEdge(getFieldGraphNode(field.field), reason);
-  }
-
-  private KeepReasonWitness registerEdge(GraphNode target, KeepReason reason) {
-    assert !skipReporting(reason);
-    GraphNode sourceNode = getSourceNode(reason);
-    // TODO(b/120959039): Make sure we do have edges to nodes deriving library nodes!
-    if (!sourceNode.isLibraryNode()) {
-      GraphEdgeInfo edgeInfo = getEdgeInfo(reason);
-      keptGraphConsumer.acceptEdge(sourceNode, target, edgeInfo);
-    }
-    return KeepReasonWitness.INSTANCE;
-  }
-
-  private boolean isNonProgramClass(DexType type) {
-    DexClass clazz = appView.definitionFor(type);
-    return clazz == null || clazz.isNotProgramClass();
-  }
-
-  private GraphNode getSourceNode(KeepReason reason) {
-    return reason.getSourceNode(this);
-  }
-
-  public GraphNode getGraphNode(DexReference reference) {
-    if (reference.isDexType()) {
-      return getClassGraphNode(reference.asDexType());
-    }
-    if (reference.isDexMethod()) {
-      return getMethodGraphNode(reference.asDexMethod());
-    }
-    if (reference.isDexField()) {
-      return getFieldGraphNode(reference.asDexField());
-    }
-    throw new Unreachable();
-  }
-
-  GraphEdgeInfo getEdgeInfo(KeepReason reason) {
-    return getEdgeInfo(reason.edgeKind());
-  }
-
-  GraphEdgeInfo getEdgeInfo(GraphEdgeInfo.EdgeKind kind) {
-    return reasonInfo.computeIfAbsent(kind, k -> new GraphEdgeInfo(k));
-  }
-
-  AnnotationGraphNode getAnnotationGraphNode(DexItem type) {
-    return annotationNodes.computeIfAbsent(type, t -> {
-      if (t instanceof DexType) {
-        return new AnnotationGraphNode(getClassGraphNode(((DexType) t)));
-      }
-      throw new Unimplemented("Incomplete support for annotation node on item: " + type.getClass());
-    });
-  }
-
-  ClassGraphNode getClassGraphNode(DexType type) {
-    return classNodes.computeIfAbsent(
-        type,
-        t -> {
-          DexClass definition = appView.definitionFor(t);
-          return new ClassGraphNode(
-              definition != null && definition.isNotProgramClass(),
-              Reference.classFromDescriptor(t.toDescriptorString()));
-        });
-  }
-
-  MethodGraphNode getMethodGraphNode(DexMethod context) {
-    return methodNodes.computeIfAbsent(
-        context,
-        m -> {
-          DexClass holderDefinition = appView.definitionFor(context.holder);
-          Builder<TypeReference> builder = ImmutableList.builder();
-          for (DexType param : m.proto.parameters.values) {
-            builder.add(Reference.typeFromDescriptor(param.toDescriptorString()));
-          }
-          return new MethodGraphNode(
-              holderDefinition != null && holderDefinition.isNotProgramClass(),
-              Reference.method(
-                  Reference.classFromDescriptor(m.holder.toDescriptorString()),
-                  m.name.toString(),
-                  builder.build(),
-                  m.proto.returnType.isVoidType()
-                      ? null
-                      : Reference.typeFromDescriptor(m.proto.returnType.toDescriptorString())));
-        });
-  }
-
-  FieldGraphNode getFieldGraphNode(DexField context) {
-    return fieldNodes.computeIfAbsent(
-        context,
-        f -> {
-          DexClass holderDefinition = appView.definitionFor(context.holder);
-          return new FieldGraphNode(
-              holderDefinition != null && holderDefinition.isNotProgramClass(),
-              Reference.field(
-                  Reference.classFromDescriptor(f.holder.toDescriptorString()),
-                  f.name.toString(),
-                  Reference.typeFromDescriptor(f.type.toDescriptorString())));
-        });
-  }
-
-  // Due to the combined encoding of dependent rules, ala keepclassmembers and conditional keep
-  // rules the conversion to a keep-rule graph node can be one of three forms:
-  // 1. A non-dependent keep rule. In this case precondtion == null and the rule is not an if-rule.
-  // 2. A dependent keep rule. In this case precondtion != null and rule is not an if-rule.
-  // 3. A conditional keep rule. In this case rule is an if-rule, but precondition may or may not be
-  //    null. In the non-null case, the precondition is the type the consequent may depend on,
-  //    say T for the consequent "-keep T { f; }". It is *not* the precondition of the conditional
-  //    rule.
-  KeepRuleGraphNode getKeepRuleGraphNode(DexDefinition precondition, ProguardKeepRuleBase rule) {
-    if (rule instanceof ProguardKeepRule) {
-      Set<GraphNode> preconditions =
-          precondition != null
-              ? Collections.singleton(getGraphNode(precondition.toReference()))
-              : Collections.emptySet();
-      return ruleNodes.computeIfAbsent(rule, key -> new KeepRuleGraphNode(rule, preconditions));
-    }
-    if (rule instanceof ProguardIfRule) {
-      ProguardIfRule ifRule = (ProguardIfRule) rule;
-      assert !ifRule.getPreconditions().isEmpty();
-      return ruleNodes.computeIfAbsent(
-          ifRule,
-          key -> {
-            Set<GraphNode> preconditions = new HashSet<>(ifRule.getPreconditions().size());
-            for (DexReference condition : ifRule.getPreconditions()) {
-              preconditions.add(getGraphNode(condition));
-            }
-            return new KeepRuleGraphNode(ifRule, preconditions);
-          });
-    }
-    throw new Unreachable("Unexpected type of keep rule: " + rule);
-  }
 }

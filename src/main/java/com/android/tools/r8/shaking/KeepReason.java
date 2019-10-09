@@ -18,7 +18,7 @@ public abstract class KeepReason {
 
   public abstract GraphEdgeInfo.EdgeKind edgeKind();
 
-  public abstract GraphNode getSourceNode(Enqueuer enqueuer);
+  public abstract GraphNode getSourceNode(GraphReporter graphReporter);
 
   static KeepReason annotatedOn(DexDefinition definition) {
     return new AnnotatedOn(definition);
@@ -103,8 +103,8 @@ public abstract class KeepReason {
     }
 
     @Override
-    public GraphNode getSourceNode(Enqueuer enqueuer) {
-      return enqueuer.getMethodGraphNode(method.method);
+    public GraphNode getSourceNode(GraphReporter graphReporter) {
+      return graphReporter.getMethodGraphNode(method.method);
     }
   }
 
@@ -235,8 +235,8 @@ public abstract class KeepReason {
     }
 
     @Override
-    public GraphNode getSourceNode(Enqueuer enqueuer) {
-      return enqueuer.getClassGraphNode(type);
+    public GraphNode getSourceNode(GraphReporter graphReporter) {
+      return graphReporter.getClassGraphNode(type);
     }
   }
 
@@ -256,8 +256,8 @@ public abstract class KeepReason {
     }
 
     @Override
-    public GraphNode getSourceNode(Enqueuer enqueuer) {
-      return enqueuer.getClassGraphNode(implementer);
+    public GraphNode getSourceNode(GraphReporter graphReporter) {
+      return graphReporter.getClassGraphNode(implementer);
     }
   }
 
@@ -275,8 +275,8 @@ public abstract class KeepReason {
     }
 
     @Override
-    public GraphNode getSourceNode(Enqueuer enqueuer) {
-      return enqueuer.getAnnotationGraphNode(holder);
+    public GraphNode getSourceNode(GraphReporter graphReporter) {
+      return graphReporter.getAnnotationGraphNode(holder);
     }
   }
 
@@ -294,14 +294,14 @@ public abstract class KeepReason {
     }
 
     @Override
-    public GraphNode getSourceNode(Enqueuer enqueuer) {
+    public GraphNode getSourceNode(GraphReporter graphReporter) {
       if (holder.isDexClass()) {
-        return enqueuer.getClassGraphNode(holder.asDexClass().type);
+        return graphReporter.getClassGraphNode(holder.asDexClass().type);
       } else if (holder.isDexEncodedField()) {
-        return enqueuer.getFieldGraphNode(holder.asDexEncodedField().field);
+        return graphReporter.getFieldGraphNode(holder.asDexEncodedField().field);
       } else {
         assert holder.isDexEncodedMethod();
-        return enqueuer.getMethodGraphNode(holder.asDexEncodedMethod().method);
+        return graphReporter.getMethodGraphNode(holder.asDexEncodedMethod().method);
       }
     }
   }

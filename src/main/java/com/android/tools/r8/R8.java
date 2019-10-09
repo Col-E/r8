@@ -821,7 +821,7 @@ public class R8 {
     if (whyAreYouKeepingConsumer != null) {
       for (DexReference reference : rootSet.reasonAsked) {
         whyAreYouKeepingConsumer.printWhyAreYouKeeping(
-            enqueuer.getGraphNode(reference), System.out);
+            enqueuer.getGraphReporter().getGraphNode(reference), System.out);
       }
     }
     if (rootSet.checkDiscarded.isEmpty()
@@ -851,7 +851,8 @@ public class R8 {
       if (!failed.isEmpty()) {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         whyAreYouKeepingConsumer.printWhyAreYouKeeping(
-            enqueuer.getGraphNode(definition.toReference()), new PrintStream(baos));
+            enqueuer.getGraphReporter().getGraphNode(definition.toReference()),
+            new PrintStream(baos));
         options.reporter.info(
             new StringDiagnostic(
                 "Item " + definition.toSourceString() + " was not discarded.\n" + baos.toString()));
