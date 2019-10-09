@@ -89,6 +89,8 @@ public class CustomCollectionTest extends CoreLibDesugarTestBase {
 
   @Test
   public void testCustomCollectionR8() throws Exception {
+    // TODO(b/142377161).
+    Assume.assumeTrue(parameters.getRuntime().asDex().getVm().isNewerThan(DexVm.ART_4_4_4_HOST));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     R8TestRunResult r8TestRunResult =
         testForR8(Backend.DEX)
