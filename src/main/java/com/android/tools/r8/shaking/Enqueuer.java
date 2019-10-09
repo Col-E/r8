@@ -1554,25 +1554,21 @@ public class Enqueuer {
       ResolutionResult firstResolution =
           appView.appInfo().resolveMethod(instantiatedClass, method.method);
       markResolutionAsLive(libraryClass, firstResolution);
-      if (!appView.rewritePrefix.isRewriting()) {
-        return;
-      }
+
       // Due to API conversion, some overrides can be hidden since they will be rewritten. See
       // class comment of DesugaredLibraryAPIConverter and vivifiedType logic.
       // In the first enqueuer phase, the signature has not been desugared, so firstResolution
       // maintains the library override. In the second enqueuer phase, the signature has been
       // desugared, and the second resolution maintains the the library override.
-
-      if (!appView.rewritePrefix.hasRewrittenTypeInSignature(method.method.proto)) {
-        return;
+      if (appView.rewritePrefix.hasRewrittenTypeInSignature(method.method.proto)) {
+        DexMethod methodToResolve =
+            DesugaredLibraryAPIConverter.methodWithVivifiedTypeInSignature(
+                method.method, method.method.holder, appView);
+        assert methodToResolve != method.method;
+        ResolutionResult secondResolution =
+            appView.appInfo().resolveMethod(instantiatedClass, methodToResolve);
+        markResolutionAsLive(libraryClass, secondResolution);
       }
-      DexMethod methodToResolve =
-          DesugaredLibraryAPIConverter.methodWithVivifiedTypeInSignature(
-              method.method, method.method.holder, appView);
-      assert methodToResolve != method.method;
-      ResolutionResult secondResolution =
-          appView.appInfo().resolveMethod(instantiatedClass, methodToResolve);
-      markResolutionAsLive(libraryClass, secondResolution);
     }
   }
 
