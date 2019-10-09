@@ -64,14 +64,6 @@ public abstract class KeepReason {
     return false;
   }
 
-  public boolean isInstantiatedIn() {
-    return false;
-  }
-
-  public InstatiatedIn asInstantiatedIn() {
-    return null;
-  }
-
   public static KeepReason targetedBySuperFrom(DexEncodedMethod from) {
     return new TargetedBySuper(from);
   }
@@ -108,16 +100,6 @@ public abstract class KeepReason {
 
     private InstatiatedIn(DexEncodedMethod method) {
       super(method);
-    }
-
-    @Override
-    public boolean isInstantiatedIn() {
-      return true;
-    }
-
-    @Override
-    public InstatiatedIn asInstantiatedIn() {
-      return this;
     }
 
     @Override

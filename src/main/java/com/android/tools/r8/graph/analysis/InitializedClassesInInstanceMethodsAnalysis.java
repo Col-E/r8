@@ -7,9 +7,9 @@ package com.android.tools.r8.graph.analysis;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.shaking.KeepReason;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
@@ -61,10 +61,10 @@ public class InitializedClassesInInstanceMethodsAnalysis extends EnqueuerAnalysi
   }
 
   @Override
-  public void processNewlyInstantiatedClass(DexProgramClass clazz, KeepReason reason) {
+  public void processNewlyInstantiatedClass(DexProgramClass clazz, DexEncodedMethod context) {
     DexType key = clazz.type;
     DexType objectType = appView.dexItemFactory().objectType;
-    if (!reason.isInstantiatedIn()) {
+    if (context == null) {
       // Record that we don't know anything about the set of classes that are guaranteed to be
       // initialized in the instance methods of `clazz`.
       mapping.put(key, objectType);
@@ -73,7 +73,7 @@ public class InitializedClassesInInstanceMethodsAnalysis extends EnqueuerAnalysi
 
     // Record that the enclosing class is guaranteed to be initialized at the allocation site.
     AppInfoWithSubtyping appInfo = appView.appInfo();
-    DexType guaranteedToBeInitialized = reason.asInstantiatedIn().getMethod().holder;
+    DexType guaranteedToBeInitialized = context.method.holder;
     DexType existingGuaranteedToBeInitialized =
         mapping.getOrDefault(key, guaranteedToBeInitialized);
     mapping.put(

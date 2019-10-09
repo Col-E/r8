@@ -424,7 +424,7 @@ public class Enqueuer {
       if (clazz.isInterface() && !clazz.accessFlags.isAnnotation()) {
         markInterfaceAsInstantiated(clazz, witness);
       } else {
-        workList.enqueueMarkInstantiatedAction(clazz, witness);
+        workList.enqueueMarkInstantiatedAction(clazz, null, witness);
         if (clazz.hasDefaultInitializer()) {
           DexEncodedMethod defaultInitializer = clazz.getDefaultInitializer();
           if (forceProguardCompatibility) {
@@ -767,16 +767,17 @@ public class Enqueuer {
 
     @Override
     public boolean registerNewInstance(DexType type) {
-      return registerNewInstance(type, KeepReason.instantiatedIn(currentMethod));
+      return registerNewInstance(type, currentMethod, KeepReason.instantiatedIn(currentMethod));
     }
 
-    public boolean registerNewInstance(DexType type, KeepReason keepReason) {
+    public boolean registerNewInstance(
+        DexType type, DexEncodedMethod context, KeepReason keepReason) {
       DexProgramClass clazz = getProgramClassOrNull(type);
       if (clazz != null) {
         if (clazz.isInterface()) {
           markTypeAsLive(clazz, graphReporter.registerClass(clazz, keepReason));
         } else {
-          markInstantiated(clazz, keepReason);
+          markInstantiated(clazz, context, keepReason);
         }
       }
       return true;
@@ -913,7 +914,7 @@ public class Enqueuer {
           if (clazz.isInterface() && !clazz.accessFlags.isAnnotation()) {
             markInterfaceAsInstantiated(clazz, graphReporter.registerClass(clazz, reason));
           } else {
-            markInstantiated(clazz, reason);
+            markInstantiated(clazz, null, reason);
           }
         }
       }
@@ -981,7 +982,8 @@ public class Enqueuer {
           registerInvokeDirect(method, KeepReason.invokedFromLambdaCreatedIn(currentMethod));
           break;
         case INVOKE_CONSTRUCTOR:
-          registerNewInstance(method.holder, KeepReason.invokedFromLambdaCreatedIn(currentMethod));
+          registerNewInstance(
+              method.holder, null, KeepReason.invokedFromLambdaCreatedIn(currentMethod));
           break;
         default:
           throw new Unreachable();
@@ -1416,13 +1418,14 @@ public class Enqueuer {
    * depending on the currently seen invokes and field reads.
    */
   // Package protected due to entry point from worklist.
-  void processNewlyInstantiatedClass(DexProgramClass clazz, KeepReason reason) {
+  void processNewlyInstantiatedClass(
+      DexProgramClass clazz, DexEncodedMethod context, KeepReason reason) {
     assert !clazz.isInterface() || clazz.accessFlags.isAnnotation();
     // Notify analyses. This is done even if `clazz` has already been marked as instantiated,
     // because each analysis may depend on seeing all the (clazz, reason) pairs. Thus, not doing so
     // could lead to nondeterminism.
     analyses.forEach(
-        analysis -> analysis.processNewlyInstantiatedClass(clazz.asProgramClass(), reason));
+        analysis -> analysis.processNewlyInstantiatedClass(clazz.asProgramClass(), context));
 
     if (!instantiatedTypes.add(clazz, reason)) {
       return;
@@ -1691,11 +1694,12 @@ public class Enqueuer {
     analyses.forEach(analysis -> analysis.processNewlyLiveField(field));
   }
 
-  private void markInstantiated(DexProgramClass clazz, KeepReason reason) {
+  private void markInstantiated(
+      DexProgramClass clazz, DexEncodedMethod context, KeepReason reason) {
     if (Log.ENABLED) {
       Log.verbose(getClass(), "Register new instantiation of `%s`.", clazz);
     }
-    workList.enqueueMarkInstantiatedAction(clazz, reason);
+    workList.enqueueMarkInstantiatedAction(clazz, context, reason);
   }
 
   private void markLambdaInstantiated(DexType itf, DexEncodedMethod method) {
@@ -2459,7 +2463,7 @@ public class Enqueuer {
   }
 
   private void markClassAsInstantiatedWithReason(DexProgramClass clazz, KeepReason reason) {
-    workList.enqueueMarkInstantiatedAction(clazz, reason);
+    workList.enqueueMarkInstantiatedAction(clazz, null, reason);
     if (clazz.hasDefaultInitializer()) {
       workList.enqueueMarkReachableDirectAction(clazz.getDefaultInitializer().method, reason);
     }
@@ -2471,7 +2475,7 @@ public class Enqueuer {
       markInterfaceAsInstantiated(clazz, witness);
       return;
     }
-    workList.enqueueMarkInstantiatedAction(clazz, witness);
+    workList.enqueueMarkInstantiatedAction(clazz, null, witness);
     if (clazz.hasDefaultInitializer()) {
       DexEncodedMethod defaultInitializer = clazz.getDefaultInitializer();
       workList.enqueueMarkReachableDirectAction(
@@ -2535,7 +2539,7 @@ public class Enqueuer {
         return;
       }
       if (!clazz.isInterface()) {
-        markInstantiated(clazz, KeepReason.reflectiveUseIn(method));
+        markInstantiated(clazz, null, KeepReason.reflectiveUseIn(method));
         if (clazz.hasDefaultInitializer()) {
           DexEncodedMethod initializer = clazz.getDefaultInitializer();
           KeepReason reason = KeepReason.reflectiveUseIn(method);
@@ -2562,7 +2566,7 @@ public class Enqueuer {
           !encodedField.accessFlags.isStatic()
               && dexItemFactory.atomicFieldUpdaterMethods.isFieldUpdater(invokedMethod);
       if (keepClass) {
-        markInstantiated(clazz, KeepReason.reflectiveUseIn(method));
+        markInstantiated(clazz, null, KeepReason.reflectiveUseIn(method));
       }
       markFieldAsKept(encodedField, KeepReason.reflectiveUseIn(method));
       // Fields accessed by reflection is marked as both read and written.

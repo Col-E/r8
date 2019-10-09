@@ -9,12 +9,11 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.EnqueuerWorklist;
-import com.android.tools.r8.shaking.KeepReason;
 
 public abstract class EnqueuerAnalysis {
 
   /** Called when a class is found to be instantiated. */
-  public void processNewlyInstantiatedClass(DexProgramClass clazz, KeepReason reason) {}
+  public void processNewlyInstantiatedClass(DexProgramClass clazz, DexEncodedMethod context) {}
 
   /** Called when a field is found to be live. */
   public void processNewlyLiveField(DexEncodedField field) {}
