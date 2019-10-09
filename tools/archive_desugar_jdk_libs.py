@@ -120,6 +120,7 @@ def Main(argv):
 
   # Make sure bazel is extracted in third_party.
   utils.DownloadFromGoogleCloudStorage(utils.BAZEL_SHA_FILE)
+  utils.DownloadFromGoogleCloudStorage(utils.JAVA8_SHA_FILE)
 
   # Only handling versioned desugar_jdk_libs.
   is_master = False
