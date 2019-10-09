@@ -111,8 +111,6 @@ public class StringOptimizer {
     }
   }
 
-  // int String#hashCode()
-  // int String#length()
   // boolean String#isEmpty()
   // boolean String#startsWith(String)
   // boolean String#endsWith(String)
@@ -120,6 +118,8 @@ public class StringOptimizer {
   // boolean String#equals(String)
   // boolean String#equalsIgnoreCase(String)
   // boolean String#contentEquals(String)
+  // int String#hashCode()
+  // int String#length()
   // int String#indexOf(String)
   // int String#indexOf(int)
   // int String#lastIndexOf(String)
@@ -128,6 +128,7 @@ public class StringOptimizer {
   // int String#compareToIgnoreCase(String)
   // String String#substring(int)
   // String String#substring(int, int)
+  // String String#trim()
   public void computeTrivialOperationsOnConstString(IRCode code) {
     if (!code.metadata().mayHaveConstString()) {
       return;
@@ -188,6 +189,23 @@ public class StringOptimizer {
         it.replaceCurrentInstruction(
             new ConstString(stringValue, factory.createString(sub), throwingInfo));
         numberOfSimplifiedOperations++;
+        continue;
+      }
+
+      if (invokedMethod == factory.stringMethods.trim) {
+        Value receiver = invoke.getReceiver().getAliasedValue();
+        if (receiver.hasLocalInfo() || receiver.isPhi() || !receiver.definition.isConstString()) {
+          continue;
+        }
+        DexString resultString =
+            factory.createString(receiver.definition.asConstString().getValue().toString().trim());
+        Value newOutValue =
+            code.createValue(
+                TypeLatticeElement.stringClassType(appView, definitelyNotNull()),
+                invoke.getLocalInfo());
+        affectedValues.addAll(invoke.outValue().affectedValues());
+        it.replaceCurrentInstruction(new ConstString(newOutValue, resultString, throwingInfo));
+        numberOfSimplifiedConversions++;
         continue;
       }
 

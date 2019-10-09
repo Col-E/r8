@@ -156,6 +156,7 @@ public class DexItemFactory {
   public final DexString compareToIgnoreCaseMethodName = createString("compareToIgnoreCase");
   public final DexString cloneMethodName = createString("clone");
   public final DexString substringName = createString("substring");
+  public final DexString trimName = createString("trim");
 
   public final DexString valueOfMethodName = createString("valueOf");
   public final DexString toStringMethodName = createString("toString");
@@ -881,6 +882,8 @@ public class DexItemFactory {
     public final DexMethod valueOf;
     public final DexMethod toString;
     public final DexMethod intern;
+
+    public final DexMethod trim = createMethod(stringType, createProto(stringType), trimName);
 
     private StringMethods() {
       isEmpty = createMethod(
