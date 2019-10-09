@@ -19,6 +19,7 @@
 # repository to fetch the artifact com.android.tools:desugar_jdk_libs:1.0.0
 
 import archive
+import defines
 import git_utils
 import optparse
 import os
@@ -27,6 +28,19 @@ import shutil
 import subprocess
 import sys
 import utils
+import zipfile
+
+if defines.IsLinux():
+  JDK8_JAVAC = os.path.join(
+      defines.THIRD_PARTY, 'openjdk', 'jdk8', 'linux-x86', 'bin', 'javac')
+elif defines.IsOsX():
+  JDK8_JAVAC = os.path.join(
+      defines.THIRD_PARTY, 'openjdk', 'jdk8', 'darwin-x86', 'bin', 'javac')
+elif defines.IsWindows():
+  raise Exception('Cannot compile using JDK8 on Windows hence cannot archive.')
+
+CONVERSION_FOLDER = os.path.join(
+    defines.REPO_ROOT, 'src', 'test', 'desugaredLibraryConversions')
 
 VERSION_FILE = 'VERSION.txt'
 LIBRARY_NAME = 'desugar_jdk_libs'
@@ -55,6 +69,10 @@ def GetVersion():
       raise Exception('Version file '
           + VERSION_FILE + ' is expected to have exactly one line')
     version = lines[0].strip()
+    if (version == '1.0.1'):
+      raise Exception('Version file ' + VERSION_FILE + 'cannot have version 1.0.1')
+    if (version == '1.0.0'):
+      version = '1.0.1'
     utils.check_basic_semver_version(
         version, 'in version file ' + VERSION_FILE)
     return version
@@ -76,6 +94,13 @@ def Upload(options, file_name, storage_path, destination, is_master):
     print('File available at: %s' %
         destination.replace('gs://', 'http://storage.googleapis.com/', 1))
 
+def GetFilesInFolder(folder):
+  resulting_files = []
+  for root, dirs, files in os.walk(folder):
+    for name in files:
+      resulting_files.append(os.path.join(root, name))
+  assert len(resulting_files) > 0
+  return resulting_files
 
 def Main(argv):
   (options, args) = ParseOptions(argv)
@@ -120,11 +145,45 @@ def Main(argv):
       utils.PrintCmd(cmd)
       subprocess.check_call(cmd)
 
+      # Compile the stubs for conversion files compilation.
+      stub_compiled_folder = os.path.join(checkout_dir, 'stubs')
+      os.mkdir(stub_compiled_folder)
+      all_stubs = GetFilesInFolder(os.path.join(CONVERSION_FOLDER, 'stubs'))
+      cmd = [JDK8_JAVAC, '-d', stub_compiled_folder] + all_stubs
+      utils.PrintCmd(cmd)
+      subprocess.check_call(cmd)
+
+      # Compile the conversion files.
+      conversions_compiled_folder = os.path.join(checkout_dir, 'conversions')
+      os.mkdir(conversions_compiled_folder)
+      all_conversions = GetFilesInFolder(
+          os.path.join(CONVERSION_FOLDER, 'conversions'))
+      cmd = [JDK8_JAVAC, '-cp', stub_compiled_folder, '-d',
+             conversions_compiled_folder] + all_conversions
+      utils.PrintCmd(cmd)
+      subprocess.check_call(cmd)
+
       # Locate the library jar and the maven zip with the jar from the
       # bazel build.
       library_jar = os.path.join(
           'bazel-bin', 'src', 'share', 'classes', 'java', 'libjava.jar')
       maven_zip = os.path.join('bazel-bin', LIBRARY_NAME +'.zip')
+
+      # Make a writable copy of the jar.
+      jar_folder = os.path.join(checkout_dir, 'jar')
+      os.mkdir(jar_folder)
+      shutil.copy(library_jar, jar_folder)
+      library_jar = os.path.join(jar_folder,'libjava.jar')
+      os.chmod(library_jar, 0o777)
+
+      # Add conversion classes into the jar.
+      all_compiled_conversions = GetFilesInFolder(conversions_compiled_folder)
+      with zipfile.ZipFile(library_jar, mode='a', allowZip64=True) as jar:
+        for clazz in all_compiled_conversions:
+          jar.write(clazz,arcname=os.path.relpath(
+              clazz,
+              conversions_compiled_folder),
+              compress_type = zipfile.ZIP_DEFLATED)
 
       storage_path = LIBRARY_NAME + '/' + version
       # Upload the jar file with the library.
