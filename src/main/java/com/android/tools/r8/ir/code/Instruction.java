@@ -880,6 +880,10 @@ public abstract class Instruction implements InstructionOrPhi {
     return false;
   }
 
+  public boolean isMonitorEnter() {
+    return false;
+  }
+
   public Monitor asMonitor() {
     return null;
   }

@@ -10,9 +10,44 @@ import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import java.util.Iterator;
 import java.util.ListIterator;
+import java.util.NoSuchElementException;
 import java.util.function.Predicate;
 
 public class IteratorUtils {
+
+  public static <T, S extends T> Iterator<S> filter(Iterator<T> iterator, Predicate<T> predicate) {
+    return new Iterator<S>() {
+
+      private S next = advance();
+
+      @SuppressWarnings("unchecked")
+      private S advance() {
+        while (iterator.hasNext()) {
+          T element = iterator.next();
+          if (predicate.test(element)) {
+            return (S) element;
+          }
+        }
+        return null;
+      }
+
+      @Override
+      public boolean hasNext() {
+        return next != null;
+      }
+
+      @Override
+      public S next() {
+        S current = next;
+        if (current == null) {
+          throw new NoSuchElementException();
+        }
+        next = advance();
+        return current;
+      }
+    };
+  }
+
   public static <T> T peekPrevious(ListIterator<T> iterator) {
     T previous = iterator.previous();
     T next = iterator.next();

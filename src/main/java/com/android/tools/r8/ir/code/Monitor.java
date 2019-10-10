@@ -99,6 +99,11 @@ public class Monitor extends Instruction {
   }
 
   @Override
+  public boolean isMonitorEnter() {
+    return isEnter();
+  }
+
+  @Override
   public Monitor asMonitor() {
     return this;
   }

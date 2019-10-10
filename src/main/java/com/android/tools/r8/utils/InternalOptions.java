@@ -225,6 +225,8 @@ public class InternalOptions {
   public int inliningInstructionLimit = 3;
   // This defines how many instructions of inlinees we can inlinee overall.
   public int inliningInstructionAllowance = 1500;
+  // Maximum number of distinct values in a method that may be used in a monitor-enter instruction.
+  public int inliningMonitorEnterValuesAllowance = 4;
   // Maximum number of control flow resolution blocks that setup the register state before
   // the actual catch handler allowed when inlining. Threshold found empirically by testing on
   // GMS Core.

@@ -119,6 +119,10 @@ public class NopWhyAreYouNotInliningReporter extends WhyAreYouNotInliningReporte
   public void reportWillExceedInstructionBudget(int numberOfInstructions, int threshold) {}
 
   @Override
+  public void reportWillExceedMonitorEnterValuesBudget(
+      int numberOfMonitorEnterValuesAfterInlining, int threshold) {}
+
+  @Override
   public boolean verifyReasonHasBeenReported() {
     return true;
   }

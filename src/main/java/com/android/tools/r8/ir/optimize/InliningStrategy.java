@@ -30,6 +30,8 @@ interface InliningStrategy {
    * <p>Return true if the strategy will *not* allow inlining.
    */
   boolean willExceedBudget(
+      IRCode code,
+      InvokeMethod invoke,
       InlineeWithReason inlinee,
       BasicBlock block,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter);

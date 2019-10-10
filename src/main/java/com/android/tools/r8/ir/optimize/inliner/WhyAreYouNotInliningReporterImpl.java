@@ -247,6 +247,16 @@ class WhyAreYouNotInliningReporterImpl extends WhyAreYouNotInliningReporter {
   }
 
   @Override
+  public void reportWillExceedMonitorEnterValuesBudget(
+      int numberOfMonitorEnterValuesAfterInlining, int threshold) {
+    printWithExceededThreshold(
+        "could negatively impact register allocation due to the number of monitor instructions",
+        "estimated number of locks after inlining",
+        numberOfMonitorEnterValuesAfterInlining,
+        threshold);
+  }
+
+  @Override
   public boolean verifyReasonHasBeenReported() {
     assert reasonHasBeenReported;
     return true;

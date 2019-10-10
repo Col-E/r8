@@ -97,6 +97,8 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
 
   @Override
   public boolean willExceedBudget(
+      IRCode code,
+      InvokeMethod invoke,
       InlineeWithReason inlinee,
       BasicBlock block,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {

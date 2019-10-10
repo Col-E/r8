@@ -20,6 +20,7 @@ import com.android.tools.r8.shaking.VerticalClassMerger.VerticallyMergedClasses;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.DequeUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
@@ -913,6 +914,10 @@ public class IRCode {
 
   public Iterable<Instruction> instructions() {
     return this::instructionIterator;
+  }
+
+  public <T extends Instruction> Iterable<T> instructions(Predicate<Instruction> predicate) {
+    return () -> IteratorUtils.filter(instructionIterator(), predicate);
   }
 
   public InstructionIterator instructionIterator() {

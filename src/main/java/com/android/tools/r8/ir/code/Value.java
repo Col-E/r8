@@ -239,6 +239,10 @@ public class Value {
     return definition;
   }
 
+  public boolean hasAliasedValue() {
+    return getAliasedValue() != this;
+  }
+
   /**
    * If this value is defined by an instruction that defines an alias of another value, such as the
    * {@link Assume} instruction, then the incoming value to the {@link Assume} instruction is
@@ -989,11 +993,6 @@ public class Value {
         || typeLattice.nullability().isDefinitelyNotNull();
   }
 
-  public boolean canBeNull() {
-    assert typeLattice.isReference();
-    return typeLattice.isNullable();
-  }
-
   public void markAsArgument() {
     assert !isArgument;
     assert !isThis;
@@ -1004,6 +1003,20 @@ public class Value {
     return isArgument;
   }
 
+  public int computeArgumentPosition(IRCode code) {
+    assert isArgument;
+    int position = 0;
+    InstructionIterator instructionIterator = code.entryBlock().iterator();
+    while (instructionIterator.hasNext()) {
+      Instruction instruction = instructionIterator.next();
+      assert instruction.isArgument();
+      if (instruction.outValue() == this) {
+        return position;
+      }
+      position++;
+    }
+    throw new Unreachable();
+  }
 
   public boolean knownToBeBoolean() {
     return knownToBeBoolean(null);

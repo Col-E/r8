@@ -911,7 +911,8 @@ public class Inliner {
                   appView,
                   getPositionForInlining(invoke, context),
                   lensCodeRewriter);
-          if (strategy.willExceedBudget(inlinee, block, whyAreYouNotInliningReporter)) {
+          if (strategy.willExceedBudget(
+              code, invoke, inlinee, block, whyAreYouNotInliningReporter)) {
             assert whyAreYouNotInliningReporter.verifyReasonHasBeenReported();
             continue;
           }

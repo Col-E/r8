@@ -3,6 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
+import static com.android.tools.r8.ir.optimize.inliner.InlinerUtils.addMonitorEnterValue;
+import static com.android.tools.r8.ir.optimize.inliner.InlinerUtils.collectAllMonitorEnterValues;
+
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.Code;
@@ -21,6 +24,7 @@ import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.InvokeStatic;
+import com.android.tools.r8.ir.code.Monitor;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.CallSiteInformation;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
@@ -546,58 +550,129 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
 
   @Override
   public boolean willExceedBudget(
+      IRCode code,
+      InvokeMethod invoke,
       InlineeWithReason inlinee,
       BasicBlock block,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     if (inlinee.reason.mustBeInlined()) {
       return false;
     }
+    return willExceedInstructionBudget(inlinee, whyAreYouNotInliningReporter)
+        || willExceedMonitorEnterValuesBudget(code, invoke, inlinee, whyAreYouNotInliningReporter)
+        || willExceedControlFlowResolutionBlocksBudget(
+            inlinee, block, whyAreYouNotInliningReporter);
+  }
 
-    if (block.hasCatchHandlers() && inlinee.reason != Reason.FORCE) {
-      // Inlining could lead to an explosion of move-exception and resolution moves. As an
-      // example, consider the following piece of code.
-      //   try {
-      //     ...
-      //     foo();
-      //     ...
-      //   } catch (A e) { ... }
-      //   } catch (B e) { ... }
-      //   } catch (C e) { ... }
-      //
-      // The generated code for the above example will have a move-exception instruction
-      // for each of the three catch handlers. Furthermore, the blocks with these move-
-      // exception instructions may require a number of resolution moves to setup the
-      // register state for the catch handlers. When inlining foo(), the generated code
-      // will have a move-exception instruction *for each of the instructions in foo()
-      // that can throw*, along with the necessary resolution moves for each exception-
-      // edge. We therefore abort inlining if the number of exception-edges explode.
-      int numberOfThrowingInstructionsInInlinee = 0;
-      for (BasicBlock inlineeBlock : inlinee.code.blocks) {
-        numberOfThrowingInstructionsInInlinee += inlineeBlock.numberOfThrowingInstructions();
-      }
-      // Estimate the number of "control flow resolution blocks", where we will insert a
-      // move-exception instruction (if needed), along with all the resolution moves that
-      // will be needed to setup the register state for the catch handler.
-      int estimatedNumberOfControlFlowResolutionBlocks =
-          numberOfThrowingInstructionsInInlinee * block.numberOfCatchHandlers();
-      // Abort if inlining could lead to an explosion in the number of control flow
-      // resolution blocks that setup the register state before the actual catch handler.
-      int threshold = appView.options().inliningControlFlowResolutionBlocksThreshold;
-      if (estimatedNumberOfControlFlowResolutionBlocks >= threshold) {
-        whyAreYouNotInliningReporter
-            .reportPotentialExplosionInExceptionalControlFlowResolutionBlocks(
-                estimatedNumberOfControlFlowResolutionBlocks, threshold);
-        return true;
-      }
-    }
-
+  private boolean willExceedInstructionBudget(
+      InlineeWithReason inlinee, WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     int numberOfInstructions = Inliner.numberOfInstructions(inlinee.code);
     if (instructionAllowance < Inliner.numberOfInstructions(inlinee.code)) {
       whyAreYouNotInliningReporter.reportWillExceedInstructionBudget(
           numberOfInstructions, instructionAllowance);
       return true;
     }
+    return false;
+  }
 
+  /**
+   * If inlining would lead to additional lock values in the caller, then check that the number of
+   * lock values after inlining would not exceed the threshold.
+   *
+   * <p>The motivation for limiting the number of locks in a given method is that the register
+   * allocator will attempt to pin a register for each lock value. Thus, if a method has many locks,
+   * many registers will be pinned, which will lead to high register pressure.
+   */
+  private boolean willExceedMonitorEnterValuesBudget(
+      IRCode code,
+      InvokeMethod invoke,
+      InlineeWithReason inlinee,
+      WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
+    if (!code.metadata().mayHaveMonitorInstruction()) {
+      return false;
+    }
+
+    if (!inlinee.code.metadata().mayHaveMonitorInstruction()) {
+      return false;
+    }
+
+    Set<DexType> constantMonitorEnterValues = Sets.newIdentityHashSet();
+    Set<Value> nonConstantMonitorEnterValues = Sets.newIdentityHashSet();
+    collectAllMonitorEnterValues(code, constantMonitorEnterValues, nonConstantMonitorEnterValues);
+    if (constantMonitorEnterValues.isEmpty() && nonConstantMonitorEnterValues.isEmpty()) {
+      return false;
+    }
+
+    for (Monitor monitor : inlinee.code.<Monitor>instructions(Instruction::isMonitorEnter)) {
+      Value monitorEnterValue = monitor.object().getAliasedValue();
+      if (monitorEnterValue.isArgument()) {
+        monitorEnterValue =
+            invoke
+                .arguments()
+                .get(monitorEnterValue.computeArgumentPosition(inlinee.code))
+                .getAliasedValue();
+      }
+      addMonitorEnterValue(
+          monitorEnterValue, constantMonitorEnterValues, nonConstantMonitorEnterValues);
+    }
+
+    int numberOfMonitorEnterValuesAfterInlining =
+        constantMonitorEnterValues.size() + nonConstantMonitorEnterValues.size();
+    int threshold = appView.options().inliningMonitorEnterValuesAllowance;
+    if (numberOfMonitorEnterValuesAfterInlining > threshold) {
+      whyAreYouNotInliningReporter.reportWillExceedMonitorEnterValuesBudget(
+          numberOfMonitorEnterValuesAfterInlining, threshold);
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Inlining could lead to an explosion of move-exception and resolution moves. As an example,
+   * consider the following piece of code.
+   *
+   * <pre>
+   *   try {
+   *     ...
+   *     foo();
+   *     ...
+   *   } catch (A e) { ... }
+   *   } catch (B e) { ... }
+   *   } catch (C e) { ... }
+   * </pre>
+   *
+   * <p>The generated code for the above example will have a move-exception instruction for each of
+   * the three catch handlers. Furthermore, the blocks with these move-exception instructions may
+   * require a number of resolution moves to setup the register state for the catch handlers. When
+   * inlining foo(), the generated code will have a move-exception instruction *for each of the
+   * instructions in foo() that can throw*, along with the necessary resolution moves for each
+   * exception-edge. We therefore abort inlining if the number of exception-edges explode.
+   */
+  private boolean willExceedControlFlowResolutionBlocksBudget(
+      InlineeWithReason inlinee,
+      BasicBlock block,
+      WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
+    if (!block.hasCatchHandlers()) {
+      return false;
+    }
+    int numberOfThrowingInstructionsInInlinee = 0;
+    for (BasicBlock inlineeBlock : inlinee.code.blocks) {
+      numberOfThrowingInstructionsInInlinee += inlineeBlock.numberOfThrowingInstructions();
+    }
+    // Estimate the number of "control flow resolution blocks", where we will insert a
+    // move-exception instruction (if needed), along with all the resolution moves that
+    // will be needed to setup the register state for the catch handler.
+    int estimatedNumberOfControlFlowResolutionBlocks =
+        numberOfThrowingInstructionsInInlinee * block.numberOfCatchHandlers();
+    // Abort if inlining could lead to an explosion in the number of control flow
+    // resolution blocks that setup the register state before the actual catch handler.
+    int threshold = appView.options().inliningControlFlowResolutionBlocksThreshold;
+    if (estimatedNumberOfControlFlowResolutionBlocks >= threshold) {
+      whyAreYouNotInliningReporter.reportPotentialExplosionInExceptionalControlFlowResolutionBlocks(
+          estimatedNumberOfControlFlowResolutionBlocks, threshold);
+      return true;
+    }
     return false;
   }
 
