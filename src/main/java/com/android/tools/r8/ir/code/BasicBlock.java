@@ -918,7 +918,8 @@ public class BasicBlock {
         if (numberOfNormalSuccessors > 0) {
           // Increase the size of the successor list by 1, and increase the index of each normal
           // successor by 1.
-          successors.add(numberOfSuccessors - numberOfNormalSuccessors - 1, target);
+          targetIndex = numberOfSuccessors - numberOfNormalSuccessors;
+          successors.add(targetIndex, target);
         } else {
           // If there are no normal successors we can simply add the new catch handler.
           targetIndex = successors.size();
