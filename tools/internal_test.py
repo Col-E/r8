@@ -138,9 +138,9 @@ TEST_COMMANDS = [
     ['tools/run_on_app.py', '--run-all', '--out=out'],
     # Find min xmx for selected benchmark apps
     ['tools/gradle.py', 'r8lib'],
-] + (map(compile_with_memory_max_command, BENCHMARK_APPS)
-     + map(compile_with_memory_min_command, BENCHMARK_APPS)
-     + map(find_min_xmx_command, BENCHMARK_APPS))
+] + (map(find_min_xmx_command, BENCHMARK_APPS)
+     + map(compile_with_memory_max_command, BENCHMARK_APPS)
+     + map(compile_with_memory_min_command, BENCHMARK_APPS))
 
 
 # Command timeout, in seconds.
