@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.ClassKind;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
+import com.android.tools.r8.ir.desugar.DesugaredLibraryWrapperSynthesizer;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaring;
@@ -85,6 +86,7 @@ public class ProgramClassCollection extends ClassMap<DexProgramClass> {
         || BackportedMethodRewriter.hasRewrittenMethodPrefix(a.type)
         || InterfaceMethodRewriter.hasDispatchClassSuffix(a.type)
         || NestBasedAccessDesugaring.isNestConstructor(a.type)
+        || DesugaredLibraryWrapperSynthesizer.isSynthesizedWrapper(a.type)
         || a.type.descriptor.toString().equals(TwrCloseResourceRewriter.UTILITY_CLASS_DESCRIPTOR);
   }
 }

@@ -95,6 +95,7 @@ import java.util.function.BiFunction;
 public class DesugaredLibraryWrapperSynthesizer {
 
   public static final String WRAPPER_PREFIX = "$r8$wrapper$";
+  public static final String WRAPPER_DESCRIPTOR_PREFIX = "L" + WRAPPER_PREFIX;
   public static final String TYPE_WRAPPER_SUFFIX = "$-WRP";
   public static final String VIVIFIED_TYPE_WRAPPER_SUFFIX = "$-V-WRP";
 
@@ -116,6 +117,10 @@ public class DesugaredLibraryWrapperSynthesizer {
     this.appView = appView;
     this.factory = appView.dexItemFactory();
     this.converter = converter;
+  }
+
+  public static boolean isSynthesizedWrapper(DexType clazz) {
+    return clazz.descriptor.toString().startsWith(WRAPPER_DESCRIPTOR_PREFIX);
   }
 
   boolean hasSynthesized(DexType type) {
