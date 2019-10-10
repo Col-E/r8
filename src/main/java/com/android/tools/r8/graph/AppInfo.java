@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.ResolutionResult.MultiResult;
 import com.android.tools.r8.graph.ResolutionResult.NoSuchMethodResult;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
@@ -43,6 +44,10 @@ public class AppInfo implements DexDefinitionSupplier {
     this.dexItemFactory = app.dexItemFactory;
     this.definitions.putAll(previous.definitions);
     copyMetadataFromPrevious(previous);
+  }
+
+  protected InternalOptions options() {
+    return app.options;
   }
 
   public void copyMetadataFromPrevious(AppInfo previous) {

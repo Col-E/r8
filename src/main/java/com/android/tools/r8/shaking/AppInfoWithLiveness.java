@@ -880,6 +880,31 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     }
   }
 
+  private DexEncodedMethod validateSingleVirtualTarget(
+      DexEncodedMethod singleTarget, DexEncodedMethod resolutionResult) {
+    assert resolutionResult.isValidVirtualTarget(options());
+
+    if (singleTarget == null) {
+      return null;
+    }
+
+    // Art978_virtual_interfaceTest correctly expects an IncompatibleClassChangeError exception
+    // at runtime.
+    if (isInvalidSingleVirtualTarget(singleTarget, resolutionResult)) {
+      return null;
+    }
+
+    return singleTarget;
+  }
+
+  private boolean isInvalidSingleVirtualTarget(
+      DexEncodedMethod singleTarget, DexEncodedMethod resolutionResult) {
+    assert resolutionResult.isValidVirtualTarget(options());
+    // Art978_virtual_interfaceTest correctly expects an IncompatibleClassChangeError exception
+    // at runtime.
+    return !singleTarget.accessFlags.isAtLeastAsVisibleAs(resolutionResult.accessFlags);
+  }
+
   /** For mapping invoke virtual instruction to single target method. */
   public DexEncodedMethod lookupSingleVirtualTarget(DexMethod method, DexType invocationContext) {
     assert checkIfObsolete();
@@ -903,11 +928,13 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     if (receiverLowerBoundType != null) {
       if (receiverLowerBoundType.getClassType() == refinedReceiverType) {
         ResolutionResult resolutionResult = resolveMethod(method.holder, method, false);
-        if (resolutionResult.isValidVirtualTargetForDynamicDispatch()) {
+        if (resolutionResult.hasSingleTarget()
+            && resolutionResult.isValidVirtualTargetForDynamicDispatch()) {
           ResolutionResult refinedResolutionResult = resolveMethod(refinedReceiverType, method);
           if (refinedResolutionResult.hasSingleTarget()
               && refinedResolutionResult.isValidVirtualTargetForDynamicDispatch()) {
-            return refinedResolutionResult.asSingleTarget();
+            return validateSingleVirtualTarget(
+                refinedResolutionResult.asSingleTarget(), resolutionResult.asSingleTarget());
           }
         }
         return null;
@@ -942,27 +969,28 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     // First get the target for the holder type.
     ResolutionResult topMethod = resolveMethodOnClass(holder, method);
     // We might hit none or multiple targets. Both make this fail at runtime.
-    if (!topMethod.hasSingleTarget() || !topMethod.isValidVirtualTarget(app().options)) {
+    if (!topMethod.hasSingleTarget() || !topMethod.isValidVirtualTarget(options())) {
       method.setSingleVirtualMethodCache(refinedReceiverType, null);
       return null;
     }
     // Now, resolve the target with the refined receiver type.
-    if (refinedReceiverIsStrictSubType) {
-      topMethod = resolveMethodOnClass(refinedHolder, method);
-    }
-    DexEncodedMethod topSingleTarget = topMethod.asSingleTarget();
+    ResolutionResult refinedResolutionResult =
+        refinedReceiverIsStrictSubType ? resolveMethodOnClass(refinedHolder, method) : topMethod;
+    DexEncodedMethod topSingleTarget = refinedResolutionResult.asSingleTarget();
     DexClass topHolder = definitionFor(topSingleTarget.method.holder);
     // We need to know whether the top method is from an interface, as that would allow it to be
     // shadowed by a default method from an interface further down.
     boolean topIsFromInterface = topHolder.isInterface();
     // Now look at all subtypes and search for overrides.
     DexEncodedMethod result =
-        findSingleTargetFromSubtypes(
-            refinedReceiverType,
-            method,
-            topSingleTarget,
-            !refinedHolder.accessFlags.isAbstract(),
-            topIsFromInterface);
+        validateSingleVirtualTarget(
+            findSingleTargetFromSubtypes(
+                refinedReceiverType,
+                method,
+                topSingleTarget,
+                !refinedHolder.accessFlags.isAbstract(),
+                topIsFromInterface),
+            topMethod.asSingleTarget());
     // Map the failure case of SENTINEL to null.
     result = result == DexEncodedMethod.SENTINEL ? null : result;
     method.setSingleVirtualMethodCache(refinedReceiverType, result);
@@ -1099,11 +1127,13 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     if (receiverLowerBoundType != null) {
       if (receiverLowerBoundType.getClassType() == refinedReceiverType) {
         ResolutionResult resolutionResult = resolveMethod(method.holder, method, true);
-        if (resolutionResult.isValidVirtualTargetForDynamicDispatch()) {
+        if (resolutionResult.hasSingleTarget()
+            && resolutionResult.isValidVirtualTargetForDynamicDispatch()) {
           ResolutionResult refinedResolutionResult = resolveMethod(refinedReceiverType, method);
           if (refinedResolutionResult.hasSingleTarget()
               && refinedResolutionResult.isValidVirtualTargetForDynamicDispatch()) {
-            return refinedResolutionResult.asSingleTarget();
+            return validateSingleVirtualTarget(
+                refinedResolutionResult.asSingleTarget(), resolutionResult.asSingleTarget());
           }
         }
         return null;
@@ -1119,11 +1149,8 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     }
     // First check that there is a target for this invoke-interface to hit. If there is none,
     // this will fail at runtime.
-    ResolutionResult topTarget = resolveMethodOnInterface(holder, method);
-    if (!topTarget.isValidVirtualTarget(app().options)) {
-      return null;
-    }
-    if (topTarget.asResultOfResolve() == null) {
+    DexEncodedMethod topTarget = resolveMethodOnInterface(holder, method).asSingleTarget();
+    if (topTarget == null || !topTarget.isValidVirtualTarget(options())) {
       return null;
     }
     // For kept types we cannot ensure a single target.
@@ -1152,19 +1179,18 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
         // override them, so we ignore interface methods here. Otherwise, we would look up
         // default methods that are factually never used.
       } else if (!clazz.accessFlags.isAbstract()) {
-        ResolutionResult resolutionResult = resolveMethodOnClass(clazz, method);
-        if (resolutionResult.hasSingleTarget()) {
-          if ((result != null) && (result != resolutionResult.asSingleTarget())) {
-            return null;
-          } else {
-            result = resolutionResult.asSingleTarget();
-          }
-        } else {
+        DexEncodedMethod resolutionResult = resolveMethodOnClass(clazz, method).asSingleTarget();
+        if (resolutionResult == null || isInvalidSingleVirtualTarget(resolutionResult, topTarget)) {
           // This will fail at runtime.
           return null;
         }
+        if (result != null && result != resolutionResult) {
+          return null;
+        }
+        result = resolutionResult;
       }
     }
+    assert result == null || !isInvalidSingleVirtualTarget(result, topTarget);
     return result == null || !result.isVirtualMethod() ? null : result;
   }
 

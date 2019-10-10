@@ -325,7 +325,6 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
     assert checkIfObsolete();
     if (!isSubtype(invocationContext, method.holder)) {
       DexClass contextClass = definitionFor(invocationContext);
-      isSubtype(invocationContext, method.holder);
       throw new CompilationError(
           "Illegal invoke-super to " + method.toSourceString() + " from class " + invocationContext,
           contextClass != null ? contextClass.getOrigin() : Origin.unknown());

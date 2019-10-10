@@ -43,9 +43,6 @@ public class NopWhyAreYouNotInliningReporter extends WhyAreYouNotInliningReporte
   public void reportInaccessible() {}
 
   @Override
-  public void reportIncompatibleClassChangeError() {}
-
-  @Override
   public void reportIncorrectArity(int numberOfArguments, int arity) {}
 
   @Override

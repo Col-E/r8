@@ -4,53 +4,58 @@
 
 package com.android.tools.r8.ir.optimize.inliner.interfacemethods;
 
-import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX;
-import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.DEFAULT_METHOD_PREFIX;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverClassInline;
-import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.StringUtils;
-import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class InlineDefaultInterfaceMethodTest extends TestBase {
+
+  private final TestParameters parameters;
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
+  }
+
+  public InlineDefaultInterfaceMethodTest(TestParameters parameters) {
+    this.parameters = parameters;
+  }
 
   @Test
   public void test() throws Exception {
     String expectedOutput = StringUtils.lines("Hello world!");
 
     CodeInspector inspector =
-        testForR8(Backend.DEX)
+        testForR8(parameters.getBackend())
             .addInnerClasses(InlineDefaultInterfaceMethodTest.class)
             .addKeepMainRule(TestClass.class)
-            .setMinApi(AndroidApiLevel.M)
+            .setMinApi(parameters.getApiLevel())
             .enableClassInliningAnnotations()
             .enableMergeAnnotations()
             .noMinification()
-            .run(TestClass.class)
+            .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput(expectedOutput)
             .inspector();
 
-    // TODO(b/124017330): interface methods should have been inlined into C.method().
-    ClassSubject classSubject =
-        inspector.clazz(I.class.getTypeName() + COMPANION_CLASS_NAME_SUFFIX);
-    assertThat(classSubject, isPresent());
-    assertThat(classSubject.uniqueMethodWithName(DEFAULT_METHOD_PREFIX + "hello"), isPresent());
-    assertThat(classSubject.uniqueMethodWithName(DEFAULT_METHOD_PREFIX + "space"), isPresent());
-    assertThat(classSubject.uniqueMethodWithName(DEFAULT_METHOD_PREFIX + "world"), isPresent());
+    // After inlining, only one class remains, namely TestClass.
+    assertEquals(1, inspector.allClasses().size());
   }
 
   static class TestClass {
 
     public static void main(String[] args) {
-      C obj = new C();
-      obj.method();
+      new C().method();
     }
   }
 
@@ -73,7 +78,6 @@ public class InlineDefaultInterfaceMethodTest extends TestBase {
   @NeverClassInline
   static class C implements I {
 
-    @NeverInline
     public void method() {
       // invoke-virtual
       hello();

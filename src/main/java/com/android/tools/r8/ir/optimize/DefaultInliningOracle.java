@@ -264,14 +264,6 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       return false;
     }
 
-    DexClass holder = appView.definitionFor(singleTarget.method.holder);
-    if (holder.isInterface()) {
-      // Art978_virtual_interfaceTest correctly expects an IncompatibleClassChangeError exception at
-      // runtime.
-      whyAreYouNotInliningReporter.reportIncompatibleClassChangeError();
-      return false;
-    }
-
     // Don't inline if target is synchronized.
     if (singleTarget.accessFlags.isSynchronized()) {
       whyAreYouNotInliningReporter.reportSynchronizedMethod();

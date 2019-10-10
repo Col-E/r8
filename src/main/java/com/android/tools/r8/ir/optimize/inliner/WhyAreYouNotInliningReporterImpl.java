@@ -88,11 +88,6 @@ class WhyAreYouNotInliningReporterImpl extends WhyAreYouNotInliningReporter {
   }
 
   @Override
-  public void reportIncompatibleClassChangeError() {
-    print("invoke may fail with an IncompatibleClassChangeError.");
-  }
-
-  @Override
   public void reportIncorrectArity(int numberOfArguments, int arity) {
     print(
         "number of arguments ("

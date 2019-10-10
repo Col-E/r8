@@ -60,8 +60,6 @@ public abstract class WhyAreYouNotInliningReporter {
 
   public abstract void reportInaccessible();
 
-  public abstract void reportIncompatibleClassChangeError();
-
   public abstract void reportIncorrectArity(int numberOfArguments, int arity);
 
   public abstract void reportInlineeDoesNotHaveCode();
