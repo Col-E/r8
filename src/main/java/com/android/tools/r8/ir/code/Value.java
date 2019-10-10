@@ -1251,7 +1251,7 @@ public class Value {
     if (aliasedValue != null) {
       ClassTypeLatticeElement lattice =
           aliasedValue.definition.asAssumeDynamicType().getAssumption().getLowerBoundType();
-      return typeLattice.isDefinitelyNotNull() && lattice.isNullable()
+      return lattice != null && typeLattice.isDefinitelyNotNull() && lattice.isNullable()
           ? lattice.asMeetWithNotNull().asClassTypeLatticeElement()
           : lattice;
     }
