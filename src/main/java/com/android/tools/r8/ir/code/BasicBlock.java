@@ -214,6 +214,13 @@ public class BasicBlock {
     return normals.build();
   }
 
+  public int numberOfNormalSuccessors() {
+    if (hasCatchHandlers()) {
+      return successors.size() - catchHandlers.getUniqueTargets().size();
+    }
+    return successors.size();
+  }
+
   public boolean hasUniquePredecessor() {
     return predecessors.size() == 1;
   }
@@ -893,11 +900,39 @@ public class BasicBlock {
     catchHandlers = new CatchHandlers<>(guards, successorIndexes);
   }
 
-  public void addCatchHandler(BasicBlock rethrowBlock, DexType guard) {
-    assert !hasCatchHandlers();
-    getMutableSuccessors().add(0, rethrowBlock);
-    rethrowBlock.getMutablePredecessors().add(this);
-    catchHandlers = new CatchHandlers<>(ImmutableList.of(guard), ImmutableList.of(0));
+  public void appendCatchHandler(BasicBlock target, DexType guard) {
+    if (!canThrow()) {
+      // Nothing to catch.
+      return;
+    }
+    if (hasCatchHandlers()) {
+      if (catchHandlers.getGuards().contains(guard)) {
+        // Subsumed by an existing catch handler.
+        return;
+      }
+      int targetIndex = successors.indexOf(target);
+      if (targetIndex < 0) {
+        List<BasicBlock> successors = getMutableSuccessors();
+        int numberOfSuccessors = successors.size();
+        int numberOfNormalSuccessors = numberOfNormalSuccessors();
+        if (numberOfNormalSuccessors > 0) {
+          // Increase the size of the successor list by 1, and increase the index of each normal
+          // successor by 1.
+          successors.add(numberOfSuccessors - numberOfNormalSuccessors - 1, target);
+        } else {
+          // If there are no normal successors we can simply add the new catch handler.
+          targetIndex = successors.size();
+          successors.add(target);
+        }
+        target.getMutablePredecessors().add(this);
+      }
+      catchHandlers = catchHandlers.appendGuard(guard, targetIndex);
+    } else {
+      assert instructions.stream().filter(Instruction::instructionTypeCanThrow).count() == 1;
+      getMutableSuccessors().add(0, target);
+      target.getMutablePredecessors().add(this);
+      catchHandlers = new CatchHandlers<>(ImmutableList.of(guard), ImmutableList.of(0));
+    }
   }
 
   /**
@@ -1795,8 +1830,7 @@ public class BasicBlock {
         continue;
       }
       BasicBlock catchSuccessor = fromBlock.successors.get(prevCatchTarget);
-      // We assume that all the catch handlers targets has only one
-      // predecessor and, thus, no phis.
+      // We assume that all the catch handlers targets has only one predecessor and, thus, no phis.
       assert catchSuccessor.getPredecessors().size() == 1;
       assert catchSuccessor.getPhis().isEmpty();
 

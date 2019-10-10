@@ -3,14 +3,20 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking.ifrule;
 
+import com.android.tools.r8.NeverClassInline;
+import com.android.tools.r8.NeverInline;
+
+@NeverClassInline
 class ClassForIf {
   ClassForIf() {
   }
 
+  @NeverInline
   synchronized void nonPublicMethod() {
     System.out.println("ClassForIf::nonPublicMethod");
   }
 
+  @NeverInline
   synchronized public void publicMethod() {
     System.out.println("ClassForIf::publicMethod");
   }
@@ -20,10 +26,12 @@ class ClassForSubsequent {
   ClassForSubsequent() {
   }
 
+  @NeverInline
   synchronized void nonPublicMethod() {
     System.out.println("ClassForSubsequent::nonPublicMethod");
   }
 
+  @NeverInline
   synchronized public void publicMethod() {
     System.out.println("ClassForSubsequent::publicMethod");
   }

@@ -65,8 +65,11 @@ public class IdentifierMinifierTest extends TestBase {
         testForR8(parameters.getBackend())
             .addProgramFiles(Paths.get(appFileName))
             .addKeepRuleFiles(ListUtils.map(keepRulesFiles, Paths::get))
+            .allowUnusedProguardConfigurationRules()
+            .enableProguardTestOptions()
             .setMinApi(parameters.getRuntime())
-            .compile().inspector();
+            .compile()
+            .inspector();
     inspection.accept(parameters, codeInspector);
   }
 

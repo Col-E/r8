@@ -13,12 +13,14 @@ import com.android.tools.r8.ir.analysis.TypeChecker;
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.code.Phi.RegisterReadType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.VerticalClassMerger.VerticallyMergedClasses;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.DequeUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -131,11 +133,6 @@ public class IRCode {
 
   public IRMetadata metadata() {
     return metadata;
-  }
-
-  public void mergeMetadataFromInlinee(IRCode inlinee) {
-    assert !inlinee.metadata.mayHaveMonitorInstruction();
-    this.metadata.merge(inlinee.metadata);
   }
 
   public BasicBlock entryBlock() {
@@ -284,6 +281,53 @@ public class IRCode {
       }
     }
     return false;
+  }
+
+  /**
+   * Prepares every block for getting catch handlers. This involves splitting blocks until each
+   * block has only one throwing instruction, and all instructions after the throwing instruction
+   * are allowed to follow a throwing instruction.
+   *
+   * <p>It is also a requirement that the entry block does not have any catch handlers, thus the
+   * entry block is split to ensure that it contains no throwing instructions.
+   *
+   * <p>This method also inserts a split block between each block with more than two predecessors
+   * and the predecessors that have a throwing instruction. This is necessary because adding catch
+   * handlers to a predecessor would otherwise lead to critical edges.
+   */
+  public void prepareBlocksForCatchHandlers() {
+    BasicBlock entryBlock = entryBlock();
+    ListIterator<BasicBlock> blockIterator = listIterator();
+    while (blockIterator.hasNext()) {
+      BasicBlock block = blockIterator.next();
+      InstructionListIterator instructionIterator = block.listIterator(this);
+      boolean hasSeenThrowingInstruction = false;
+      while (instructionIterator.hasNext()) {
+        Instruction instruction = instructionIterator.next();
+        boolean instructionTypeCanThrow = instruction.instructionTypeCanThrow();
+        if ((hasSeenThrowingInstruction && !instruction.isAllowedAfterThrowingInstruction())
+            || (instructionTypeCanThrow && block == entryBlock)) {
+          instructionIterator.previous();
+          instructionIterator.split(this, blockIterator);
+          blockIterator.previous();
+          break;
+        }
+        if (instructionTypeCanThrow) {
+          hasSeenThrowingInstruction = true;
+        }
+      }
+      if (hasSeenThrowingInstruction) {
+        List<BasicBlock> successors = block.getSuccessors();
+        if (successors.size() == 1 && ListUtils.first(successors).getPredecessors().size() > 1) {
+          BasicBlock splitBlock = block.createSplitBlock(getHighestBlockNumber() + 1, true);
+          Goto newGoto = new Goto(block);
+          newGoto.setPosition(Position.none());
+          splitBlock.listIterator(this).add(newGoto);
+          blockIterator.add(splitBlock);
+        }
+      }
+    }
+    assert blocks.stream().allMatch(block -> block.numberOfThrowingInstructions() <= 1);
   }
 
   public void splitCriticalEdges() {
@@ -957,6 +1001,10 @@ public class IRCode {
 
   public Value createValue(TypeLatticeElement typeLattice) {
     return createValue(typeLattice, null);
+  }
+
+  public Phi createPhi(BasicBlock block, TypeLatticeElement type) {
+    return new Phi(valueNumberGenerator.next(), block, type, null, RegisterReadType.NORMAL);
   }
 
   public ConstNumber createIntConstant(int value) {

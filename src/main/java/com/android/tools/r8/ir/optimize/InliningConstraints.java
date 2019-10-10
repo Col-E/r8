@@ -208,8 +208,7 @@ public class InliningConstraints {
   }
 
   public ConstraintWithTarget forMonitor() {
-    // Conservative choice.
-    return ConstraintWithTarget.NEVER;
+    return ConstraintWithTarget.ALWAYS;
   }
 
   public ConstraintWithTarget forMove() {

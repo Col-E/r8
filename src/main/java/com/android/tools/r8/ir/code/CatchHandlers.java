@@ -76,6 +76,13 @@ public class CatchHandlers<T> implements Iterable<CatchHandler<T>> {
         && getGuards().get(getGuards().size() - 1) == factory.throwableType;
   }
 
+  public CatchHandlers<T> appendGuard(DexType guard, T target) {
+    assert !guards.contains(guard);
+    List<DexType> newGuards = ImmutableList.<DexType>builder().addAll(guards).add(guard).build();
+    List<T> newTargets = ImmutableList.<T>builder().addAll(targets).add(target).build();
+    return new CatchHandlers<>(newGuards, newTargets);
+  }
+
   public CatchHandlers<T> removeGuard(DexType guardToBeRemoved) {
     List<DexType> newGuards = new ArrayList<>();
     List<T> newTargets = new ArrayList<>();

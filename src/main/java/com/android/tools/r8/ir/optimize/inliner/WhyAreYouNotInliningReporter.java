@@ -101,8 +101,6 @@ public abstract class WhyAreYouNotInliningReporter {
 
   public abstract void reportRecursiveMethod();
 
-  public abstract void reportSynchronizedMethod();
-
   abstract void reportUnknownTarget();
 
   public abstract void reportUnsafeConstructorInliningDueToFinalFieldAssignment(

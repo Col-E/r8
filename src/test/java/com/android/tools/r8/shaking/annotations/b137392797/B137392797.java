@@ -31,10 +31,10 @@ public class B137392797 extends TestBase implements Opcodes {
   private final TestParameters parameters;
   private final boolean defaultEnumValueInAnnotation;
 
-  @Parameterized.Parameters(name = "Backend: {0}, default value in annotation: {1}")
+  @Parameterized.Parameters(name = "{0}, default value in annotation: {1}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimes().withAllApiLevels().build(), BooleanUtils.values());
+        getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
   }
 
   public B137392797(TestParameters parameters, boolean defaultEnumValueInAnnotation) {

@@ -494,6 +494,13 @@ final class InlineCandidateProcessor {
         continue;
       }
 
+      if (user.isMonitor()) {
+        // Since this instance never escapes and is guaranteed to be non-null, any monitor
+        // instructions are no-ops.
+        removeInstruction(user);
+        continue;
+      }
+
       throw new Unreachable(
           "Unexpected usage left in method `"
               + method.method.toSourceString()

@@ -19,3 +19,7 @@
   java.lang.reflect.Method getMethod(java.lang.String, java.lang.Class[]);
   java.lang.reflect.Method getDeclaredMethod(java.lang.String, java.lang.Class[]);
 }
+
+-neverinline class * {
+  @getmembers.NeverInline <methods>;
+}

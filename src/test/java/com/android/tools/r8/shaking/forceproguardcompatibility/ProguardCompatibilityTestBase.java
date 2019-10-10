@@ -50,6 +50,10 @@ public class ProguardCompatibilityTestBase extends TestBase {
           || this == R8_CF;
     }
 
+    public boolean isProguard() {
+      return this == PROGUARD5 || this == PROGUARD6 || this == PROGUARD6_THEN_D8;
+    }
+
     public boolean isFullModeR8() {
       return this == R8
           || this == R8_CF;

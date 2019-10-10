@@ -3,20 +3,27 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
+import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
+import static com.google.common.base.Predicates.not;
+
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AccessFlags;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
+import com.android.tools.r8.ir.analysis.type.Nullability;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers.CatchHandler;
+import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.Instruction;
@@ -24,6 +31,9 @@ import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.code.Monitor;
+import com.android.tools.r8.ir.code.MoveException;
+import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Throw;
 import com.android.tools.r8.ir.code.Value;
@@ -41,6 +51,7 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -575,14 +586,26 @@ public class Inliner {
         AppView<? extends AppInfoWithSubtyping> appView,
         Position callerPosition,
         LensCodeRewriter lensCodeRewriter) {
+      DexItemFactory dexItemFactory = appView.dexItemFactory();
+      InternalOptions options = appView.options();
       Origin origin = appView.appInfo().originFor(target.method.holder);
 
       // Build the IR for a yet not processed method, and perform minimal IR processing.
       IRCode code = target.buildInliningIR(context, appView, generator, callerPosition, origin);
 
-      // Insert a null check if this is needed to preserve the implicit null check for the
-      // receiver.
-      if (shouldSynthesizeNullCheckForReceiver) {
+      // Insert a null check if this is needed to preserve the implicit null check for the receiver.
+      // This is only needed if we do not also insert a monitor-enter instruction, since that will
+      // throw a NPE if the receiver is null.
+      //
+      // Note: When generating DEX, we synthesize monitor-enter/exit instructions during IR
+      // building, and therefore, we do not need to do anything here. Upon writing, we will use the
+      // flag "declared synchronized" instead of "synchronized".
+      boolean shouldSynthesizeMonitorEnterExit =
+          target.accessFlags.isSynchronized() && options.isGeneratingClassFiles();
+      boolean isSynthesizingNullCheckForReceiverUsingMonitorEnter =
+          shouldSynthesizeMonitorEnterExit && !target.isStatic();
+      if (shouldSynthesizeNullCheckForReceiver
+          && !isSynthesizingNullCheckForReceiverUsingMonitorEnter) {
         List<Value> arguments = code.collectArguments();
         if (!arguments.isEmpty()) {
           Value receiver = arguments.get(0);
@@ -617,9 +640,119 @@ public class Inliner {
           assert false : "Unable to synthesize a null check for the receiver";
         }
       }
+
+      // Insert monitor-enter and monitor-exit instructions if the method is synchronized.
+      if (shouldSynthesizeMonitorEnterExit) {
+        TypeLatticeElement throwableType =
+            TypeLatticeElement.fromDexType(
+                dexItemFactory.throwableType, Nullability.definitelyNotNull(), appView);
+
+        code.prepareBlocksForCatchHandlers();
+
+        int nextBlockNumber = code.getHighestBlockNumber() + 1;
+
+        // Create a block for holding the monitor-exit instruction.
+        BasicBlock monitorExitBlock = new BasicBlock();
+        monitorExitBlock.setNumber(nextBlockNumber++);
+
+        // For each block in the code that may throw, add a catch-all handler targeting the
+        // monitor-exit block.
+        List<BasicBlock> moveExceptionBlocks = new ArrayList<>();
+        for (BasicBlock block : code.blocks) {
+          if (!block.canThrow()) {
+            continue;
+          }
+          if (block.hasCatchHandlers()
+              && block.getCatchHandlersWithSuccessorIndexes().hasCatchAll(dexItemFactory)) {
+            continue;
+          }
+          BasicBlock moveExceptionBlock =
+              BasicBlock.createGotoBlock(
+                  nextBlockNumber++, Position.none(), code.metadata(), monitorExitBlock);
+          InstructionListIterator moveExceptionBlockIterator =
+              moveExceptionBlock.listIterator(code);
+          moveExceptionBlockIterator.setInsertionPosition(Position.syntheticNone());
+          moveExceptionBlockIterator.add(
+              new MoveException(
+                  code.createValue(throwableType), dexItemFactory.throwableType, options));
+          block.appendCatchHandler(moveExceptionBlock, dexItemFactory.throwableType);
+          moveExceptionBlocks.add(moveExceptionBlock);
+        }
+
+        // Create a phi for the exception values such that we can rethrow the exception if needed.
+        Value exceptionValue;
+        if (moveExceptionBlocks.size() == 1) {
+          exceptionValue =
+              ListUtils.first(moveExceptionBlocks).getInstructions().getFirst().outValue();
+        } else {
+          Phi phi = code.createPhi(monitorExitBlock, throwableType);
+          List<Value> operands =
+              ListUtils.map(
+                  moveExceptionBlocks, block -> block.getInstructions().getFirst().outValue());
+          phi.addOperands(operands);
+          exceptionValue = phi;
+        }
+
+        InstructionListIterator monitorExitBlockIterator = monitorExitBlock.listIterator(code);
+        monitorExitBlockIterator.setInsertionPosition(Position.syntheticNone());
+        monitorExitBlockIterator.add(new Throw(exceptionValue));
+        monitorExitBlock.getMutablePredecessors().addAll(moveExceptionBlocks);
+
+        // Insert the newly created blocks.
+        code.blocks.addAll(moveExceptionBlocks);
+        code.blocks.add(monitorExitBlock);
+
+        // Create a block for holding the monitor-enter instruction. Note that, since this block
+        // is created after we attach catch-all handlers to the code, this block will not have any
+        // catch handlers.
+        BasicBlock entryBlock = code.entryBlock();
+        InstructionListIterator entryBlockIterator = entryBlock.listIterator(code);
+        entryBlockIterator.nextUntil(not(Instruction::isArgument));
+        entryBlockIterator.previous();
+        BasicBlock monitorEnterBlock = entryBlockIterator.split(code, 0, null);
+        assert !monitorEnterBlock.hasCatchHandlers();
+
+        InstructionListIterator monitorEnterBlockIterator = monitorEnterBlock.listIterator(code);
+        monitorEnterBlockIterator.setInsertionPosition(Position.syntheticNone());
+
+        // If this is a static method, then the class object will act as the lock, so we load it
+        // using a const-class instruction.
+        Value lockValue;
+        if (target.isStatic()) {
+          lockValue =
+              code.createValue(
+                  TypeLatticeElement.fromDexType(
+                      dexItemFactory.objectType, definitelyNotNull(), appView));
+          monitorEnterBlockIterator.add(new ConstClass(lockValue, target.method.holder));
+        } else {
+          lockValue = entryBlock.getInstructions().getFirst().asArgument().outValue();
+        }
+
+        // Insert the monitor-enter and monitor-exit instructions.
+        monitorEnterBlockIterator.add(new Monitor(Monitor.Type.ENTER, lockValue));
+        monitorExitBlockIterator.previous();
+        monitorExitBlockIterator.add(new Monitor(Monitor.Type.EXIT, lockValue));
+        monitorExitBlock.close(null);
+
+        for (BasicBlock block : code.blocks) {
+          if (block.exit().isReturn()) {
+            // Since return instructions are not allowed after a throwing instruction in a block
+            // with catch handlers, the call to prepareBlocksForCatchHandlers() has already taken
+            // care of ensuring that all return blocks have no throwing instructions.
+            assert !block.canThrow();
+
+            InstructionListIterator instructionIterator =
+                block.listIterator(code, block.getInstructions().size() - 1);
+            instructionIterator.setInsertionPosition(Position.syntheticNone());
+            instructionIterator.add(new Monitor(Monitor.Type.EXIT, lockValue));
+          }
+        }
+      }
+
       if (!target.isProcessed()) {
         lensCodeRewriter.rewrite(code, target);
       }
+      assert code.isConsistentSSA();
       return new InlineeWithReason(code, reason);
     }
   }

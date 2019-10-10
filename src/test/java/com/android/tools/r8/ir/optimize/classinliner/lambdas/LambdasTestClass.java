@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.optimize.classinliner.lambdas;
 
+import com.android.tools.r8.NeverInline;
+
 public class LambdasTestClass {
   private static int ID = 0;
 
@@ -39,14 +41,16 @@ public class LambdasTestClass {
     return next();
   }
 
-  private synchronized void testStatelessLambda() {
+  @NeverInline
+  private void testStatelessLambda() {
     IfaceUtil.act(() -> next());
     IfaceUtil.act(LambdasTestClass::next);
     IfaceUtil.act(LambdasTestClass::exact);
     IfaceUtil.act(LambdasTestClass::almost);
   }
 
-  private synchronized void testStatefulLambda(String a, String b) {
+  @NeverInline
+  private void testStatefulLambda(String a, String b) {
     IfaceUtil.act(() -> a);
     IfaceUtil.act(() -> a + b);
     IfaceUtil.act((a + b)::toLowerCase);

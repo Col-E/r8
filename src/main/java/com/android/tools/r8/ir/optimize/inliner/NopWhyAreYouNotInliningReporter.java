@@ -104,9 +104,6 @@ public class NopWhyAreYouNotInliningReporter extends WhyAreYouNotInliningReporte
   public void reportRecursiveMethod() {}
 
   @Override
-  public void reportSynchronizedMethod() {}
-
-  @Override
   public void reportUnknownTarget() {}
 
   @Override

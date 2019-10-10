@@ -210,11 +210,6 @@ class WhyAreYouNotInliningReporterImpl extends WhyAreYouNotInliningReporter {
   }
 
   @Override
-  public void reportSynchronizedMethod() {
-    print("synchronized methods are not inlined.");
-  }
-
-  @Override
   public void reportUnknownTarget() {
     print("could not find a single target.");
   }

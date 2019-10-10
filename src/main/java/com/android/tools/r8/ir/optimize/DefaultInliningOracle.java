@@ -264,12 +264,6 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       return false;
     }
 
-    // Don't inline if target is synchronized.
-    if (singleTarget.accessFlags.isSynchronized()) {
-      whyAreYouNotInliningReporter.reportSynchronizedMethod();
-      return false;
-    }
-
     if (reason == Reason.DUAL_CALLER) {
       if (satisfiesRequirementsForSimpleInlining(invoke, singleTarget)) {
         // When we have a method with two call sites, we simply inline the method as we normally do

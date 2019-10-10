@@ -464,9 +464,6 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       Position callerPosition,
       Origin origin) {
     checkIfObsolete();
-    if (accessFlags.isSynchronized()) {
-      throw new Unreachable("Invalid attempt to build synchronized method for inlining");
-    }
     return code.buildInliningIR(
         context, this, appView, valueNumberGenerator, callerPosition, origin);
   }

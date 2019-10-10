@@ -378,6 +378,7 @@ public class ClassInlinerTest extends TestBase {
             .addKeepAttributes("LineNumberTable")
             .addOptionsModification(this::configure)
             .allowAccessModification()
+            .enableInliningAnnotations()
             .noMinification()
             .run(main)
             .assertSuccessWithOutput(javaOutput);

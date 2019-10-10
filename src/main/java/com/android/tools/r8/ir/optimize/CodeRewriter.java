@@ -441,7 +441,7 @@ public class CodeRewriter {
           BasicBlock.createRethrowBlock(code, lastSelfRecursiveCall.getPosition(), guard, appView);
       code.blocks.add(rethrowBlock);
       // Add catch handler to the block containing the last recursive call.
-      newBlock.addCatchHandler(rethrowBlock, guard);
+      newBlock.appendCatchHandler(rethrowBlock, guard);
     }
   }
 
@@ -1220,16 +1220,18 @@ public class CodeRewriter {
     // and for the constructor. To be eligible method should only be using its
     // receiver in the following ways:
     //
-    //  (1) as a receiver of reads/writes of instance fields of the holder class
-    //  (2) as a return value
+    //  (1) as a receiver of reads/writes of instance fields of the holder class,
+    //  (2) as a return value,
     //  (3) as a receiver of a call to the superclass initializer. Note that we don't
     //      check what is passed to superclass initializer as arguments, only check
-    //      that it is not the instance being initialized.
+    //      that it is not the instance being initialized,
+    //  (4) as argument to a monitor instruction.
     //
+    // Note that (4) can safely be removed as the receiver is guaranteed not to escape when we class
+    // inline it, and hence any monitor instructions are no-ops.
     boolean instanceInitializer = method.isInstanceInitializer();
     if (method.accessFlags.isNative()
-        || (!method.isNonAbstractVirtualMethod() && !instanceInitializer)
-        || method.accessFlags.isSynchronized()) {
+        || (!method.isNonAbstractVirtualMethod() && !instanceInitializer)) {
       return;
     }
 
@@ -1248,6 +1250,10 @@ public class CodeRewriter {
     boolean receiverUsedAsReturnValue = false;
     boolean seenSuperInitCall = false;
     for (Instruction insn : receiver.uniqueUsers()) {
+      if (insn.isMonitor()) {
+        continue;
+      }
+
       if (insn.isReturn()) {
         receiverUsedAsReturnValue = true;
         continue;

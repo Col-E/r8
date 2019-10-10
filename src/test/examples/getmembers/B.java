@@ -15,9 +15,9 @@ public class B {
     return bazResult;
   }
 
-  synchronized static String inliner() throws Exception {
+  @NeverInline
+  static String inliner() throws Exception {
     B self = new B();
     return self.toBeInlined();
   }
-
 }

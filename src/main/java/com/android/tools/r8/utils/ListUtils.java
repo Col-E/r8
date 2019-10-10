@@ -12,6 +12,15 @@ import java.util.function.Predicate;
 
 public class ListUtils {
 
+  public static <T> T first(List<T> list) {
+    return list.get(0);
+  }
+
+  public static <T> T last(List<T> list) {
+    assert list instanceof ArrayList;
+    return list.get(list.size() - 1);
+  }
+
   public static <T> int lastIndexMatching(List<T> list, Predicate<T> tester) {
     for (int i = list.size() - 1; i >= 0; i--) {
       if (tester.test(list.get(i))) {
