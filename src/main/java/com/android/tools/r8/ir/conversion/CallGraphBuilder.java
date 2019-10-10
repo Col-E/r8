@@ -134,10 +134,18 @@ public class CallGraphBuilder {
     }
 
     private void addTarget(DexEncodedMethod callee, boolean likelySpuriousCallEdge) {
-      if (!callee.accessFlags.isAbstract()) {
-        assert callee.isProgramMethod(appView);
-        getOrCreateNode(callee).addCallerConcurrently(caller, likelySpuriousCallEdge);
+      if (callee.accessFlags.isAbstract()) {
+        // Not a valid target.
+        return;
       }
+      if (appView.appInfo().isPinned(callee.method)) {
+        // Since the callee is kept, we cannot inline it into the caller, and we also cannot collect
+        // any optimization info for the method. Therefore, we drop the call edge to reduce the
+        // total number of call graph edges, which should lead to fewer call graph cycles.
+        return;
+      }
+      assert callee.isProgramMethod(appView);
+      getOrCreateNode(callee).addCallerConcurrently(caller, likelySpuriousCallEdge);
     }
 
     private void processInvoke(Type originalType, DexMethod originalMethod) {
