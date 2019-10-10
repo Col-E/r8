@@ -205,7 +205,7 @@ public class StringOptimizer {
                 invoke.getLocalInfo());
         affectedValues.addAll(invoke.outValue().affectedValues());
         it.replaceCurrentInstruction(new ConstString(newOutValue, resultString, throwingInfo));
-        numberOfSimplifiedConversions++;
+        numberOfSimplifiedOperations++;
         continue;
       }
 
