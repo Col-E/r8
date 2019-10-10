@@ -327,7 +327,6 @@ public class LambdasWithStaticAndDefaultMethods {
 
       @SomeAnnotation(4)
       static void annotatedStaticMethod() {
-        synchronized (AnnotatedInterface.class) { } // Do not inline
       }
     }
 
