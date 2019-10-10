@@ -434,6 +434,7 @@ public class Enqueuer {
           DexEncodedMethod defaultInitializer = clazz.getDefaultInitializer();
           if (forceProguardCompatibility) {
             workList.enqueueMarkMethodKeptAction(
+                clazz,
                 defaultInitializer,
                 graphReporter.reportCompatKeepDefaultInitializer(clazz, defaultInitializer));
           }
@@ -443,13 +444,23 @@ public class Enqueuer {
         }
       }
     } else if (item.isDexEncodedField()) {
-      KeepReasonWitness witness =
-          graphReporter.reportKeepField(precondition, rules, item.asDexEncodedField());
-      workList.enqueueMarkFieldKeptAction(item.asDexEncodedField(), witness);
+      DexEncodedField dexEncodedField = item.asDexEncodedField();
+      DexProgramClass holder = getProgramClassOrNull(dexEncodedField.field.holder);
+      if (holder != null) {
+        workList.enqueueMarkFieldKeptAction(
+            holder,
+            dexEncodedField,
+            graphReporter.reportKeepField(precondition, rules, dexEncodedField));
+      }
     } else if (item.isDexEncodedMethod()) {
-      KeepReasonWitness witness =
-          graphReporter.reportKeepMethod(precondition, rules, item.asDexEncodedMethod());
-      workList.enqueueMarkMethodKeptAction(item.asDexEncodedMethod(), witness);
+      DexEncodedMethod encodedMethod = item.asDexEncodedMethod();
+      DexProgramClass holder = getProgramClassOrNull(encodedMethod.method.holder);
+      if (holder != null) {
+        workList.enqueueMarkMethodKeptAction(
+            holder,
+            encodedMethod,
+            graphReporter.reportKeepMethod(precondition, rules, encodedMethod));
+      }
     } else {
       throw new IllegalArgumentException(item.toString());
     }
@@ -2077,7 +2088,7 @@ public class Enqueuer {
     if (valuesMethod != null) {
       // TODO(sgjesse): Does this have to be enqueued as a root item? Right now it is done as the
       // marking for not renaming it is in the root set.
-      workList.enqueueMarkMethodKeptAction(valuesMethod, reason);
+      workList.enqueueMarkMethodKeptAction(clazz, valuesMethod, reason);
       pinnedItems.add(valuesMethod.toReference());
       rootSet.shouldNotBeMinified(valuesMethod.toReference());
     }
@@ -2371,12 +2382,8 @@ public class Enqueuer {
   }
 
   // Package protected due to entry point from worklist.
-  void markMethodAsKept(DexEncodedMethod target, KeepReason reason) {
+  void markMethodAsKept(DexProgramClass holder, DexEncodedMethod target, KeepReason reason) {
     DexMethod method = target.method;
-    DexProgramClass holder = getProgramClassOrNull(method.holder);
-    if (holder == null) {
-      return;
-    }
     if (target.isVirtualMethod()) {
       // A virtual method. Mark it as reachable so that subclasses, if instantiated, keep
       // their overrides. However, we don't mark it live, as a keep rule might not imply that
@@ -2411,11 +2418,8 @@ public class Enqueuer {
   }
 
   // Package protected due to entry point from worklist.
-  void markFieldAsKept(DexEncodedField target, KeepReason reason) {
-    DexProgramClass clazz = getProgramClassOrNull(target.field.holder);
-    if (clazz == null) {
-      return;
-    }
+  void markFieldAsKept(DexProgramClass holder, DexEncodedField target, KeepReason reason) {
+    assert holder.type == target.field.holder;
     if (target.accessFlags.isStatic()) {
       markStaticFieldAsLive(target, reason);
     } else {
@@ -2624,7 +2628,7 @@ public class Enqueuer {
       if (keepClass) {
         markInstantiated(clazz, null, KeepReason.reflectiveUseIn(method));
       }
-      markFieldAsKept(encodedField, KeepReason.reflectiveUseIn(method));
+      markFieldAsKept(clazz, encodedField, KeepReason.reflectiveUseIn(method));
       // Fields accessed by reflection is marked as both read and written.
       registerFieldRead(encodedField.field, method);
       registerFieldWrite(encodedField.field, method);

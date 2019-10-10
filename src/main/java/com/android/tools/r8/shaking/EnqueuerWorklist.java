@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.shaking.GraphReporter.KeepReasonWitness;
 import java.util.ArrayDeque;
 import java.util.Queue;
 
@@ -127,32 +128,38 @@ public class EnqueuerWorklist {
   }
 
   static class MarkMethodKeptAction extends Action {
+    final DexProgramClass holder;
     final DexEncodedMethod target;
     final KeepReason reason;
 
-    public MarkMethodKeptAction(DexEncodedMethod target, KeepReason reason) {
+    public MarkMethodKeptAction(
+        DexProgramClass holder, DexEncodedMethod target, KeepReason reason) {
+      this.holder = holder;
       this.target = target;
       this.reason = reason;
     }
 
     @Override
     public void run(Enqueuer enqueuer) {
-      enqueuer.markMethodAsKept(target, reason);
+      enqueuer.markMethodAsKept(holder, target, reason);
     }
   }
 
   static class MarkFieldKeptAction extends Action {
+    final DexProgramClass holder;
     final DexEncodedField target;
-    final KeepReason reason;
+    final KeepReasonWitness witness;
 
-    public MarkFieldKeptAction(DexEncodedField target, KeepReason reason) {
+    public MarkFieldKeptAction(
+        DexProgramClass holder, DexEncodedField target, KeepReasonWitness witness) {
+      this.holder = holder;
       this.target = target;
-      this.reason = reason;
+      this.witness = witness;
     }
 
     @Override
     public void run(Enqueuer enqueuer) {
-      enqueuer.markFieldAsKept(target, reason);
+      enqueuer.markFieldAsKept(holder, target, witness);
     }
   }
 
@@ -211,13 +218,15 @@ public class EnqueuerWorklist {
     queue.add(new MarkMethodLiveAction(method, reason));
   }
 
-  void enqueueMarkMethodKeptAction(DexEncodedMethod method, KeepReason reason) {
-    assert method.isProgramMethod(appView);
-    queue.add(new MarkMethodKeptAction(method, reason));
+  void enqueueMarkMethodKeptAction(
+      DexProgramClass clazz, DexEncodedMethod method, KeepReason reason) {
+    assert method.method.holder == clazz.type;
+    queue.add(new MarkMethodKeptAction(clazz, method, reason));
   }
 
-  void enqueueMarkFieldKeptAction(DexEncodedField field, KeepReason reason) {
+  void enqueueMarkFieldKeptAction(
+      DexProgramClass holder, DexEncodedField field, KeepReasonWitness witness) {
     assert field.isProgramField(appView);
-    queue.add(new MarkFieldKeptAction(field, reason));
+    queue.add(new MarkFieldKeptAction(holder, field, witness));
   }
 }
