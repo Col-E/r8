@@ -11,8 +11,10 @@ import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.ir.desugar.DesugaredLibraryWrapperSynthesizer;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject.JumboStringMode;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -57,8 +59,6 @@ public class CustomCollectionTest extends CoreLibDesugarTestBase {
   public void testCustomCollectionD8() throws Exception {
     // TODO(b/142377475).
     Assume.assumeTrue(!shrinkDesugaredLibrary);
-    // TODO(b/142377161).
-    Assume.assumeTrue(parameters.getRuntime().asDex().getVm().isNewerThan(DexVm.ART_4_4_4_HOST));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     D8TestRunResult d8TestRunResult =
         testForD8()
@@ -66,7 +66,9 @@ public class CustomCollectionTest extends CoreLibDesugarTestBase {
             .setMinApi(parameters.getApiLevel())
             .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
             .compile()
-            .inspect(inspector -> this.assertCustomCollectionCallsCorrect(inspector, false))
+            .inspect(inspector -> {
+                this.assertNoWrappers(inspector);
+                this.assertCustomCollectionCallsCorrect(inspector, false);})
             .addDesugaredCoreLibraryRunClassPath(
                 this::buildDesugaredLibrary,
                 parameters.getApiLevel(),
@@ -89,8 +91,6 @@ public class CustomCollectionTest extends CoreLibDesugarTestBase {
 
   @Test
   public void testCustomCollectionR8() throws Exception {
-    // TODO(b/142377161).
-    Assume.assumeTrue(parameters.getRuntime().asDex().getVm().isNewerThan(DexVm.ART_4_4_4_HOST));
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     R8TestRunResult r8TestRunResult =
         testForR8(Backend.DEX)
@@ -104,7 +104,9 @@ public class CustomCollectionTest extends CoreLibDesugarTestBase {
                 })
             .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
             .compile()
-            .inspect(inspector -> this.assertCustomCollectionCallsCorrect(inspector, true))
+            .inspect(inspector -> {
+              this.assertNoWrappers(inspector);
+              this.assertCustomCollectionCallsCorrect(inspector, true);})
             .addDesugaredCoreLibraryRunClassPath(
                 this::buildDesugaredLibrary,
                 parameters.getApiLevel(),
@@ -123,6 +125,11 @@ public class CustomCollectionTest extends CoreLibDesugarTestBase {
       // On some VMs the Serialized lambda code is missing.
       assertTrue(r8TestRunResult.getStdErr().contains("SerializedLambda"));
     }
+  }
+
+  private void assertNoWrappers(CodeInspector inspector) {
+    assertTrue(inspector.allClasses().stream().noneMatch(cl -> cl.getOriginalName().startsWith(
+        DesugaredLibraryWrapperSynthesizer.WRAPPER_PREFIX)));
   }
 
   private void assertCustomCollectionCallsCorrect(CodeInspector inspector, boolean r8) {

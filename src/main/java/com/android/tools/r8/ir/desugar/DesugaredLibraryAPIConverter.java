@@ -139,6 +139,7 @@ public class DesugaredLibraryAPIConverter {
     // We look up everywhere to see if there is a supertype/interface implementing the method...
     LinkedList<DexType> workList = new LinkedList<>();
     Collections.addAll(workList, theClass.interfaces.values);
+    boolean foundOverrideToRewrite = false;
     // There is no methods with desugared types on Object.
     if (theClass.superType != factory.objectType) {
       workList.add(theClass.superType);
@@ -158,10 +159,14 @@ public class DesugaredLibraryAPIConverter {
       }
       DexEncodedMethod dexEncodedMethod = dexClass.lookupVirtualMethod(method);
       if (dexEncodedMethod != null) {
-        return true;
+        if (appView.options().desugaredLibraryConfiguration.getEmulateLibraryInterface()
+            .containsKey(dexClass.type)) {
+          return false;
+        }
+        foundOverrideToRewrite = true;
       }
     }
-    return false;
+    return foundOverrideToRewrite;
   }
 
   private synchronized void generateCallBack(DexClass dexClass, DexEncodedMethod originalMethod) {
@@ -169,7 +174,7 @@ public class DesugaredLibraryAPIConverter {
         methodWithVivifiedTypeInSignature(originalMethod.method, dexClass.type, appView);
     CfCode cfCode =
         new APIConverterWrapperCfCodeProvider(
-                appView, originalMethod.method, null, this, dexClass.isInterface())
+            appView, originalMethod.method, null, this, dexClass.isInterface())
             .generateCfCode();
     DexEncodedMethod newDexEncodedMethod =
         wrapperSynthesizor.newSynthesizedMethod(methodToInstall, originalMethod, cfCode);
@@ -256,7 +261,7 @@ public class DesugaredLibraryAPIConverter {
         // Return conversion added only if return value is used.
         if (invokeMethod.outValue() != null
             && invokeMethod.outValue().numberOfUsers() + invokeMethod.outValue().numberOfPhiUsers()
-                > 0) {
+            > 0) {
           returnConversion =
               createReturnConversionAndReplaceUses(code, invokeMethod, returnType, newReturnType);
         }
