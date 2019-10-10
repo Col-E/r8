@@ -98,7 +98,7 @@ DESUGAR_CONFIGUATION_POMTEMPLATE = Template(
   <dependencies>
     <groupId>com.android.tools</groupId>
     <artifactId>desugar_jdk_libs</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
   </dependencies>
   <developers>
     <developer>
