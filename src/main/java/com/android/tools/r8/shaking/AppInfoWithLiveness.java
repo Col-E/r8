@@ -884,7 +884,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       DexEncodedMethod singleTarget, DexEncodedMethod resolutionResult) {
     assert resolutionResult.isValidVirtualTarget(options());
 
-    if (singleTarget == null) {
+    if (singleTarget == null || singleTarget == DexEncodedMethod.SENTINEL) {
       return null;
     }
 
@@ -991,8 +991,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
                 !refinedHolder.accessFlags.isAbstract(),
                 topIsFromInterface),
             topMethod.asSingleTarget());
-    // Map the failure case of SENTINEL to null.
-    result = result == DexEncodedMethod.SENTINEL ? null : result;
+    assert result != DexEncodedMethod.SENTINEL;
     method.setSingleVirtualMethodCache(refinedReceiverType, result);
     return result;
   }
