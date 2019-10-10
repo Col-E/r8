@@ -5,21 +5,25 @@
 package com.android.tools.r8.classlookup;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.R8TestCompileResult;
+import com.android.tools.r8.Diagnostic;
+import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.jasmin.JasminBuilder;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
 import java.util.List;
+import java.util.Set;
+import org.hamcrest.CoreMatchers;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -36,6 +40,13 @@ import org.junit.runners.Parameterized;
 // For a D8 compilation any class passed as input will end up in the output.
 @RunWith(Parameterized.class)
 public class LibraryClassExtendsProgramClassTest extends TestBase {
+
+  private static String[] libraryClassesExtendingTestCase =
+      new String[] {
+        "android.test.InstrumentationTestCase",
+        "android.test.AndroidTestCase",
+        "android.test.suitebuilder.TestSuiteBuilder$FailedToCreateTests"
+      };
 
   private static List<byte[]> junitClasses;
 
@@ -57,8 +68,15 @@ public class LibraryClassExtendsProgramClassTest extends TestBase {
     this.parameters = parameters;
   }
 
+  // The default library in the test runner is chosen to be the first one with at least the API
+  // level. The junit testing framework was removed in P.
+  private boolean libraryContainsJUnit() {
+    return parameters.isDexRuntime()
+        && parameters.getApiLevel().getLevel() < AndroidApiLevel.P.getLevel();
+  }
+
   private void checkClassesInResult(CodeInspector inspector) {
-    if (parameters.isDexRuntime()) {
+    if (libraryContainsJUnit()) {
       noClassesInResult(inspector);
     } else {
       testCaseClassInResult(inspector);
@@ -76,9 +94,21 @@ public class LibraryClassExtendsProgramClassTest extends TestBase {
     assertThat(inspector.clazz(TestClass.class), isPresent());
   }
 
+  private void checkDiagnostics(List<Diagnostic> diagnostics) {
+    Builder<String> builder = ImmutableSet.builder();
+    for (String libraryClass : libraryClassesExtendingTestCase) {
+      builder.add(
+          "Library class " + libraryClass + " extends program class junit.framework.TestCase");
+    }
+    Set<String> expected = builder.build();
+    for (Diagnostic diagnostic : diagnostics) {
+      assertThat(expected, CoreMatchers.hasItem(diagnostic.getDiagnosticMessage()));
+    }
+    assertEquals(expected.size(), diagnostics.size());
+  }
+
   @Test
   public void testFullMode() throws Exception {
-    assumeFalse(parameters.getApiLevel().getLevel() == 28);
     testForR8(parameters.getBackend())
         .setMinApi(parameters.getApiLevel())
         .addProgramClasses(TestClass.class)
@@ -93,7 +123,6 @@ public class LibraryClassExtendsProgramClassTest extends TestBase {
 
   @Test
   public void testCompatibilityMode() throws Exception {
-    assumeFalse(parameters.getApiLevel().getLevel() == 28);
     testForR8Compat(parameters.getBackend())
         .setMinApi(parameters.getApiLevel())
         .addProgramClasses(TestClass.class)
@@ -119,56 +148,52 @@ public class LibraryClassExtendsProgramClassTest extends TestBase {
   }
 
   @Test
-  public void testFullModeError() {
-    assumeFalse(parameters.getApiLevel().getLevel() == 28);
-    assumeTrue("Only run for Dex backend", parameters.isDexRuntime());
+  public void testFullModeError() throws Exception {
+    R8FullTestBuilder builder =
+        testForR8(parameters.getBackend())
+            .setMinApi(parameters.getApiLevel())
+            .addProgramClasses(TestClass.class)
+            .addProgramClassFileData(junitClasses)
+            .addKeepAllClassesRule()
+            .addOptionsModification(options -> options.lookupLibraryBeforeProgram = false);
+    if (!libraryContainsJUnit()) {
+      builder.compile().inspect(this::testCaseClassInResult).assertNoMessages();
+      return;
+    }
     try {
-      testForR8(parameters.getBackend())
-          .setMinApi(parameters.getApiLevel())
-          .addProgramClasses(TestClass.class)
-          .addProgramClassFileData(junitClasses)
-          .addKeepAllClassesRule()
-          .addOptionsModification(options -> options.lookupLibraryBeforeProgram = false)
-          .compile();
-      fail("Succeeded in full mode");
+      builder.compileWithExpectedDiagnostics(
+          diagnostics -> {
+            diagnostics.assertOnlyErrors();
+            checkDiagnostics(diagnostics.getErrors());
+          });
+      fail("Expected compilation failure");
     } catch (CompilationFailedException e) {
-      // Ignore.
+      // Expected exception.
     }
   }
 
   @Test
   public void testCompatibilityModeWarning() throws Exception {
-    assumeFalse(parameters.getApiLevel().getLevel() == 28);
-    assumeTrue("Only run for Dex backend", parameters.isDexRuntime());
-    R8TestCompileResult result =
-        testForR8Compat(parameters.getBackend())
-            .setMinApi(parameters.getApiLevel())
-            .addProgramClasses(TestClass.class)
-            .addProgramClassFileData(junitClasses)
-            .addKeepAllClassesRule()
-            .addOptionsModification(options -> options.lookupLibraryBeforeProgram = false)
-            .compile()
-            .assertOnlyWarnings();
-
-    String[] libraryClassesExtendingTestCase = new String[]{
-        "android.test.InstrumentationTestCase",
-        "android.test.AndroidTestCase",
-        "android.test.suitebuilder.TestSuiteBuilder$FailedToCreateTests"
-    };
-
-    result.getDiagnosticMessages().assertWarningsCount(libraryClassesExtendingTestCase.length);
-
-    for (String name : libraryClassesExtendingTestCase) {
-      result
-          .assertWarningMessageThatMatches(
-              containsString(
-                  "Library class " + name + " extends program class junit.framework.TestCase"));
-    }
+    testForR8Compat(parameters.getBackend())
+        .setMinApi(parameters.getApiLevel())
+        .addProgramClasses(TestClass.class)
+        .addProgramClassFileData(junitClasses)
+        .addKeepAllClassesRule()
+        .addOptionsModification(options -> options.lookupLibraryBeforeProgram = false)
+        .compileWithExpectedDiagnostics(
+            diagnostics -> {
+              if (libraryContainsJUnit()) {
+                diagnostics.assertOnlyWarnings();
+                checkDiagnostics(diagnostics.getWarnings());
+              } else {
+                diagnostics.assertNoMessages();
+              }
+            })
+        .inspect(this::testCaseClassInResult);
   }
 
   @Test
   public void testWithDontWarn() throws Exception {
-    assumeTrue("Only run for Dex backend", parameters.isDexRuntime());
     testForR8(parameters.getBackend())
         .setMinApi(parameters.getApiLevel())
         .addProgramClassFileData(junitClasses)
