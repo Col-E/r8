@@ -156,8 +156,12 @@ public class LambdaRewriter {
             continue;
           }
 
-          // We have a descriptor, get or create lambda class.
-          LambdaClass lambdaClass = getOrCreateLambdaClass(descriptor, currentType);
+          // We have a descriptor, get the lambda class. In D8, we synthesize the lambda classes
+          // during IR processing, and therefore we may need to create it now.
+          LambdaClass lambdaClass =
+              appView.enableWholeProgramOptimizations()
+                  ? getKnownLambdaClass(descriptor, currentType)
+                  : getOrCreateLambdaClass(descriptor, currentType);
           assert lambdaClass != null;
 
           // We rely on patch performing its work in a way which
@@ -323,6 +327,11 @@ public class LambdaRewriter {
       lambdaClass.addToMainDexList.set(true);
     }
     return lambdaClass;
+  }
+
+  private LambdaClass getKnownLambdaClass(LambdaDescriptor descriptor, DexType accessedFrom) {
+    DexType lambdaClassType = LambdaClass.createLambdaClassType(this, accessedFrom, descriptor);
+    return getKnown(knownLambdaClasses, lambdaClassType);
   }
 
   private void addRewritingPrefix(DexType type, DexType rewritten, DexType lambdaClassType) {
