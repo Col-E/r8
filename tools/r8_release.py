@@ -130,8 +130,6 @@ def blaze_run(target):
 
 
 def prepare_google3():
-  utils.check_prodacces()
-
   # Check if an existing client exists.
   if ':update-r8:' in subprocess.check_output('g4 myclients', shell=True):
     print "Remove the existing 'update-r8' client before continuing."
@@ -217,7 +215,7 @@ def parse_options():
   result.add_argument('--version',
                       required=True,
                       help='The new version of R8 (e.g., 1.4.51)')
-  result.add_argument('--no_sync',
+  result.add_argument('--no-sync', '--no_sync',
                       default=False,
                       action='store_true',
                       help='Do not sync repos before uploading')
@@ -246,6 +244,9 @@ def parse_options():
 def main():
   args = parse_options()
   targets_to_run = []
+  if args.google3 or args.studio:
+    utils.check_prodacces()
+
   if args.google3:
     targets_to_run.append(prepare_google3())
   if args.studio:
