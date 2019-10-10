@@ -145,7 +145,8 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
         boolean encodedValueStorageIsLive;
         if (enqueuer.isFieldLive(encodedValueStorage)) {
           if (enqueuer.isFieldRead(encodedValueStorage)
-              || enqueuer.isFieldWrittenOutsideDefaultConstructor(encodedValueStorage)) {
+              || enqueuer.isFieldWrittenOutsideDefaultConstructor(encodedValueStorage)
+              || reachesMapOrRequiredField(protoFieldInfo)) {
             // Mark that the field is both read and written by reflection such that we do not
             // (i) optimize field reads into loading the default value of the field or (ii) remove
             // field writes to proto fields that could be read using reflection by the proto
