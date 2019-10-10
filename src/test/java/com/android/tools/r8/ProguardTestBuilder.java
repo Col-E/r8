@@ -209,7 +209,10 @@ public class ProguardTestBuilder
 
   @Override
   public ProguardTestBuilder setMinApi(AndroidApiLevel minApiLevel) {
-    throw new Unimplemented("No support for setting min api");
+    if (backend == Backend.DEX) {
+      throw new Unimplemented("No support for setting min api");
+    }
+    return self();
   }
 
   @Override

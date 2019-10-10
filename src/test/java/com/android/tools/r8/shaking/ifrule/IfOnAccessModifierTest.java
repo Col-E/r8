@@ -49,7 +49,7 @@ public class IfOnAccessModifierTest extends ProguardCompatibilityTestBase {
   @Parameters(name = "{0}, shrinker: {1}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimes().build(),
+        getTestParameters().withAllRuntimesAndApiLevels().build(),
         ImmutableList.of(Shrinker.PROGUARD6, Shrinker.R8));
   }
 
