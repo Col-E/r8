@@ -44,10 +44,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
           "-keepclasseswithmembers public class * {",
           "    public static void main(java.lang.String[]);",
           "}",
-          "-keepclasseswithmembers interface lambdadesugaringnplus."
-              + "LambdasWithStaticAndDefaultMethods$B38302860$AnnotatedInterface{",
-          "    *;",
-          "}",
+          "-keepclasseswithmembers interface **$AnnotatedInterface { <methods>; }",
           "-neverinline interface **$AnnotatedInterface { static void annotatedStaticMethod(); }",
           "-keepattributes *Annotation*",
           "-dontobfuscate",
