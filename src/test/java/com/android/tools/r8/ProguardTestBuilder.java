@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Consumer;
@@ -188,6 +189,28 @@ public class ProguardTestBuilder
         throw new Unimplemented(
             "No support for adding class files directly (we need to compute the descriptor)");
       }
+    }
+    return self();
+  }
+
+  @Override
+  public ProguardTestBuilder addLibraryClasses(Class<?>... classes) {
+    addLibraryClasses(Arrays.asList(classes));
+    return self();
+  }
+
+  @Override
+  public ProguardTestBuilder addLibraryClasses(Collection<Class<?>> classes) {
+    List<Path> pathsForClasses = new ArrayList<>(classes.size());
+    for (Class<?> clazz : classes) {
+      pathsForClasses.add(ToolHelper.getClassFileForTestClass(clazz));
+    }
+    try {
+      Path out = getState().getNewTempFolder().resolve("out.jar");
+      TestBase.writeClassFilesToJar(out, pathsForClasses);
+      libraryjars.add(out);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
     return self();
   }
