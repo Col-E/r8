@@ -22,7 +22,6 @@ import com.android.tools.r8.ir.code.DominatorTree;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
-import com.android.tools.r8.ir.code.If.Type;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
@@ -31,14 +30,11 @@ import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
-import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
-import java.util.ArrayDeque;
 import java.util.BitSet;
-import java.util.Deque;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -412,108 +408,5 @@ public class NonNullTracker implements Assumer {
     return type.isReference()
         && type.asReferenceTypeLatticeElement().isNullable()
         && value.numberOfAllUsers() > 0;
-  }
-
-  public void computeNonNullParamOnNormalExits(OptimizationFeedback feedback, IRCode code) {
-    Set<BasicBlock> normalExits = Sets.newIdentityHashSet();
-    normalExits.addAll(code.computeNormalExitBlocks());
-    DominatorTree dominatorTree = new DominatorTree(code, MAY_HAVE_UNREACHABLE_BLOCKS);
-    List<Value> arguments = code.collectArguments();
-    BitSet facts = new BitSet();
-    Set<BasicBlock> nullCheckedBlocks = Sets.newIdentityHashSet();
-    for (int index = 0; index < arguments.size(); index++) {
-      Value argument = arguments.get(index);
-      // Consider reference-type parameter only.
-      if (!argument.getTypeLattice().isReference()) {
-        continue;
-      }
-      // The receiver is always non-null on normal exits.
-      if (argument.isThis()) {
-        facts.set(index);
-        continue;
-      }
-      // Collect basic blocks that check nullability of the parameter.
-      nullCheckedBlocks.clear();
-      for (Instruction user : argument.uniqueUsers()) {
-        if (user.isAssumeNonNull()) {
-          nullCheckedBlocks.add(user.asAssumeNonNull().getBlock());
-        }
-        if (user.isIf()
-            && user.asIf().isZeroTest()
-            && (user.asIf().getType() == Type.EQ || user.asIf().getType() == Type.NE)) {
-          nullCheckedBlocks.add(user.asIf().targetFromNonNullObject());
-        }
-      }
-      if (!nullCheckedBlocks.isEmpty()) {
-        boolean allExitsCovered = true;
-        for (BasicBlock normalExit : normalExits) {
-          if (!isNormalExitDominated(normalExit, code, dominatorTree, nullCheckedBlocks)) {
-            allExitsCovered = false;
-            break;
-          }
-        }
-        if (allExitsCovered) {
-          facts.set(index);
-        }
-      }
-    }
-    if (facts.length() > 0) {
-      feedback.setNonNullParamOnNormalExits(code.method, facts);
-    }
-  }
-
-  private boolean isNormalExitDominated(
-      BasicBlock normalExit,
-      IRCode code,
-      DominatorTree dominatorTree,
-      Set<BasicBlock> nullCheckedBlocks) {
-    // Each normal exit should be...
-    for (BasicBlock nullCheckedBlock : nullCheckedBlocks) {
-      // A) ...directly dominated by any null-checked block.
-      if (dominatorTree.dominatedBy(normalExit, nullCheckedBlock)) {
-        return true;
-      }
-    }
-    // B) ...or indirectly dominated by null-checked blocks.
-    // Although the normal exit is not dominated by any of null-checked blocks (because of other
-    // paths to the exit), it could be still the case that all possible paths to that exit should
-    // pass some of null-checked blocks.
-    Set<BasicBlock> visited = Sets.newIdentityHashSet();
-    // Initial fan-out of predecessors.
-    Deque<BasicBlock> uncoveredPaths = new ArrayDeque<>(normalExit.getPredecessors());
-    while (!uncoveredPaths.isEmpty()) {
-      BasicBlock uncoveredPath = uncoveredPaths.poll();
-      // Stop traversing upwards if we hit the entry block: if the entry block has an non-null,
-      // this case should be handled already by A) because the entry block surely dominates all
-      // normal exits.
-      if (uncoveredPath == code.entryBlock()) {
-        return false;
-      }
-      // Make sure we're not visiting the same block over and over again.
-      if (!visited.add(uncoveredPath)) {
-        // But, if that block is the last one in the queue, the normal exit is not fully covered.
-        if (uncoveredPaths.isEmpty()) {
-          return false;
-        } else {
-          continue;
-        }
-      }
-      boolean pathCovered = false;
-      for (BasicBlock nullCheckedBlock : nullCheckedBlocks) {
-        if (dominatorTree.dominatedBy(uncoveredPath, nullCheckedBlock)) {
-          pathCovered = true;
-          break;
-        }
-      }
-      if (!pathCovered) {
-        // Fan out predecessors one more level.
-        // Note that remaining, unmatched null-checked blocks should cover newly added paths.
-        uncoveredPaths.addAll(uncoveredPath.getPredecessors());
-      }
-    }
-    // Reaching here means that every path to the given normal exit is covered by the set of
-    // null-checked blocks.
-    assert uncoveredPaths.isEmpty();
-    return true;
   }
 }

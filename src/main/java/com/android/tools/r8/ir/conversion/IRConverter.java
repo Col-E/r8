@@ -5,7 +5,6 @@ package com.android.tools.r8.ir.conversion;
 
 import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.Flavor.ExcludeDexResources;
 import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.Flavor.IncludeAllResources;
-import static com.android.tools.r8.ir.optimize.CodeRewriter.checksNullBeforeSideEffect;
 
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
@@ -26,17 +25,10 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.GraphLense;
-import com.android.tools.r8.graph.ResolutionResult;
-import com.android.tools.r8.ir.analysis.DeterminismAnalysis;
-import com.android.tools.r8.ir.analysis.InitializedClassesOnNormalExitAnalysis;
 import com.android.tools.r8.ir.analysis.TypeChecker;
 import com.android.tools.r8.ir.analysis.constant.SparseConditionalConstantPropagation;
 import com.android.tools.r8.ir.analysis.fieldaccess.FieldBitAccessAnalysis;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.FieldValueAnalysis;
-import com.android.tools.r8.ir.analysis.sideeffect.ClassInitializerSideEffectAnalysis;
-import com.android.tools.r8.ir.analysis.sideeffect.ClassInitializerSideEffectAnalysis.ClassInitializerSideEffect;
-import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
-import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.AlwaysMaterializingDefinition;
 import com.android.tools.r8.ir.code.AlwaysMaterializingUser;
@@ -74,6 +66,7 @@ import com.android.tools.r8.ir.optimize.ReflectionOptimizer;
 import com.android.tools.r8.ir.optimize.ServiceLoaderRewriter;
 import com.android.tools.r8.ir.optimize.UninstantiatedTypeOptimization;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInliner;
+import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfoCollector;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
@@ -107,7 +100,6 @@ import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -171,6 +163,8 @@ public class IRConverter {
 
   final DeadCodeRemover deadCodeRemover;
 
+  final MethodOptimizationInfoCollector methodOptimizationInfoCollector;
+
   private final OptimizationFeedbackDelayed delayedOptimizationFeedback =
       new OptimizationFeedbackDelayed();
   private final OptimizationFeedback simpleOptimizationFeedback =
@@ -211,6 +205,7 @@ public class IRConverter {
             .map(prefix -> "L" + DescriptorUtils.getPackageBinaryNameFromJavaType(prefix))
             .map(options.itemFactory::createString)
             .collect(Collectors.toList());
+    this.methodOptimizationInfoCollector = new MethodOptimizationInfoCollector(appView);
     if (options.isDesugaredLibraryCompilation()) {
       // Specific L8 Settings.
       // BackportedMethodRewriter is needed for retarget core library members and backports.
@@ -1403,7 +1398,7 @@ public class IRConverter {
         appView.callSiteOptimizationInfoPropagator().collectCallSiteOptimizationInfo(code);
       }
       // Computation of non-null parameters on normal exits rely on the existence of non-null IRs.
-      nonNullTracker.computeNonNullParamOnNormalExits(feedback, code);
+      methodOptimizationInfoCollector.computeNonNullParamOnNormalExits(feedback, code);
     }
     if (aliasIntroducer != null || nonNullTracker != null || dynamicTypeOptimization != null) {
       codeRewriter.removeAssumeInstructions(code);
@@ -1426,21 +1421,25 @@ public class IRConverter {
       // Compute optimization info summary for the current method unless it is pinned
       // (in that case we should not be making any assumptions about the behavior of the method).
       if (!appView.appInfo().withLiveness().isPinned(method.method)) {
-        codeRewriter.identifyClassInlinerEligibility(method, code, feedback);
-        codeRewriter.identifyParameterUsages(method, code, feedback);
-        codeRewriter.identifyReturnsArgument(method, code, feedback);
-        codeRewriter.identifyTrivialInitializer(method, code, feedback);
+        methodOptimizationInfoCollector.identifyClassInlinerEligibility(method, code, feedback);
+        methodOptimizationInfoCollector.identifyParameterUsages(method, code, feedback);
+        methodOptimizationInfoCollector.identifyReturnsArgument(method, code, feedback);
+        methodOptimizationInfoCollector.identifyTrivialInitializer(method, code, feedback);
 
         if (options.enableInlining && inliner != null) {
-          codeRewriter.identifyInvokeSemanticsForInlining(method, code, appView, feedback);
+          methodOptimizationInfoCollector
+              .identifyInvokeSemanticsForInlining(method, code, appView, feedback);
         }
 
-        computeDynamicReturnType(feedback, method, code);
+        methodOptimizationInfoCollector
+            .computeDynamicReturnType(dynamicTypeOptimization, feedback, method, code);
         FieldValueAnalysis.run(appView, code, feedback, method);
-        computeInitializedClassesOnNormalExit(feedback, method, code);
-        computeMayHaveSideEffects(feedback, method, code);
-        computeReturnValueOnlyDependsOnArguments(feedback, method, code);
-        computeNonNullParamOrThrow(feedback, method, code);
+        methodOptimizationInfoCollector
+            .computeInitializedClassesOnNormalExit(feedback, method, code);
+        methodOptimizationInfoCollector.computeMayHaveSideEffects(feedback, method, code);
+        methodOptimizationInfoCollector
+            .computeReturnValueOnlyDependsOnArguments(feedback, method, code);
+        methodOptimizationInfoCollector.computeNonNullParamOrThrow(feedback, method, code);
       }
     }
 
@@ -1469,164 +1468,6 @@ public class IRConverter {
 
     printMethod(code, "Optimized IR (SSA)", previous);
     finalizeIR(method, code, feedback);
-  }
-
-  // Track usage of parameters and compute their nullability and possibility of NPE.
-  private void computeNonNullParamOrThrow(
-      OptimizationFeedback feedback, DexEncodedMethod method, IRCode code) {
-    if (method.getOptimizationInfo().getNonNullParamOrThrow() != null) {
-      return;
-    }
-
-    List<Value> arguments = code.collectArguments();
-    BitSet paramsCheckedForNull = new BitSet();
-    for (int index = 0; index < arguments.size(); index++) {
-      Value argument = arguments.get(index);
-      // This handles cases where the parameter is checked via Kotlin Intrinsics:
-      //
-      //   kotlin.jvm.internal.Intrinsics.checkParameterIsNotNull(param, message)
-      //
-      // or its inlined version:
-      //
-      //   if (param != null) return;
-      //   invoke-static throwParameterIsNullException(msg)
-      //
-      // or some other variants, e.g., throw null or NPE after the direct null check.
-      if (argument.isUsed() && checksNullBeforeSideEffect(code, argument, appView)) {
-        paramsCheckedForNull.set(index);
-      }
-    }
-    if (paramsCheckedForNull.length() > 0) {
-      feedback.setNonNullParamOrThrow(method, paramsCheckedForNull);
-    }
-  }
-
-  private void computeDynamicReturnType(
-      OptimizationFeedback feedback, DexEncodedMethod method, IRCode code) {
-    if (dynamicTypeOptimization != null) {
-      DexType staticReturnTypeRaw = method.method.proto.returnType;
-      if (!staticReturnTypeRaw.isReferenceType()) {
-        return;
-      }
-
-      TypeLatticeElement dynamicReturnType =
-          dynamicTypeOptimization.computeDynamicReturnType(method, code);
-      if (dynamicReturnType != null) {
-        TypeLatticeElement staticReturnType =
-            TypeLatticeElement.fromDexType(staticReturnTypeRaw, Nullability.maybeNull(), appView);
-
-        // If the dynamic return type is not more precise than the static return type there is no
-        // need to record it.
-        if (dynamicReturnType.strictlyLessThan(staticReturnType, appView)) {
-          feedback.methodReturnsObjectOfType(method, appView, dynamicReturnType);
-        }
-      }
-
-      ClassTypeLatticeElement exactReturnType =
-          dynamicTypeOptimization.computeDynamicLowerBoundType(method, code);
-      if (exactReturnType != null) {
-        feedback.methodReturnsObjectWithLowerBoundType(method, exactReturnType);
-      }
-    }
-  }
-
-  private void computeInitializedClassesOnNormalExit(
-      OptimizationFeedback feedback, DexEncodedMethod method, IRCode code) {
-    if (options.enableInitializedClassesAnalysis && appView.appInfo().hasLiveness()) {
-      AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
-      Set<DexType> initializedClasses =
-          InitializedClassesOnNormalExitAnalysis.computeInitializedClassesOnNormalExit(
-              appViewWithLiveness, code);
-      if (initializedClasses != null && !initializedClasses.isEmpty()) {
-        feedback.methodInitializesClassesOnNormalExit(method, initializedClasses);
-      }
-    }
-  }
-
-  private void computeMayHaveSideEffects(
-      OptimizationFeedback feedback, DexEncodedMethod method, IRCode code) {
-    // If the method is native, we don't know what could happen.
-    assert !method.accessFlags.isNative();
-
-    if (!options.enableSideEffectAnalysis) {
-      return;
-    }
-
-    if (appView.appInfo().withLiveness().mayHaveSideEffects.containsKey(method.method)) {
-      return;
-    }
-
-    DexType context = method.method.holder;
-
-    if (method.isClassInitializer()) {
-      // For class initializers, we also wish to compute if the class initializer has observable
-      // side effects.
-      ClassInitializerSideEffect classInitializerSideEffect =
-          ClassInitializerSideEffectAnalysis.classInitializerCanBePostponed(appView, code);
-      if (classInitializerSideEffect.isNone()) {
-        feedback.methodMayNotHaveSideEffects(method);
-        feedback.classInitializerMayBePostponed(method);
-      } else if (classInitializerSideEffect.canBePostponed()) {
-        feedback.classInitializerMayBePostponed(method);
-      }
-      return;
-    }
-
-    boolean mayHaveSideEffects;
-    if (method.accessFlags.isSynchronized()) {
-      // If the method is synchronized then it acquires a lock.
-      mayHaveSideEffects = true;
-    } else if (method.isInstanceInitializer() && hasNonTrivialFinalizeMethod(context)) {
-      // If a class T overrides java.lang.Object.finalize(), then treat the constructor as having
-      // side effects. This ensures that we won't remove instructions on the form `new-instance
-      // {v0}, T`.
-      mayHaveSideEffects = true;
-    } else {
-      // Otherwise, check if there is an instruction that has side effects.
-      mayHaveSideEffects =
-          Streams.stream(code.instructions())
-              .anyMatch(instruction -> instruction.instructionMayHaveSideEffects(appView, context));
-    }
-
-    if (!mayHaveSideEffects) {
-      feedback.methodMayNotHaveSideEffects(method);
-    }
-  }
-
-  private void computeReturnValueOnlyDependsOnArguments(
-      OptimizationFeedback feedback, DexEncodedMethod method, IRCode code) {
-    if (!options.enableDeterminismAnalysis) {
-      return;
-    }
-    boolean returnValueOnlyDependsOnArguments =
-        DeterminismAnalysis.returnValueOnlyDependsOnArguments(appView.withLiveness(), code);
-    if (returnValueOnlyDependsOnArguments) {
-      feedback.methodReturnValueOnlyDependsOnArguments(method);
-    }
-  }
-
-  // Returns true if `method` is an initializer and the enclosing class overrides the method
-  // `void java.lang.Object.finalize()`.
-  private boolean hasNonTrivialFinalizeMethod(DexType type) {
-    DexClass clazz = appView.definitionFor(type);
-    if (clazz != null) {
-      if (clazz.isProgramClass() && !clazz.isInterface()) {
-        ResolutionResult resolutionResult =
-            appView
-                .appInfo()
-                .resolveMethodOnClass(clazz, appView.dexItemFactory().objectMethods.finalize);
-        for (DexEncodedMethod target : resolutionResult.asListOfTargets()) {
-          if (target.method != appView.dexItemFactory().objectMethods.finalize) {
-            return true;
-          }
-        }
-        return false;
-      } else {
-        // Conservatively report that the library class could implement finalize().
-        return true;
-      }
-    }
-    return false;
   }
 
   private void finalizeIR(DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
