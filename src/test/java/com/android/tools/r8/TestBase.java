@@ -147,6 +147,17 @@ public class TestBase {
     return testForJvm(temp);
   }
 
+  public TestBuilder<?, ?> testForRuntime(TestRuntime runtime, AndroidApiLevel apiLevel) {
+    if (runtime.isCf()) {
+      return testForJvm();
+    } else {
+      assert runtime.isDex();
+      D8TestBuilder d8TestBuilder = testForD8();
+      d8TestBuilder.setMinApi(apiLevel);
+      return d8TestBuilder;
+    }
+  }
+
   public ProguardTestBuilder testForProguard() {
     return testForProguard(temp);
   }
