@@ -172,6 +172,16 @@ public class DesugaredLibraryAPIConverter {
   private synchronized void generateCallBack(DexClass dexClass, DexEncodedMethod originalMethod) {
     DexMethod methodToInstall =
         methodWithVivifiedTypeInSignature(originalMethod.method, dexClass.type, appView);
+    if (dexClass.isInterface()
+        && originalMethod.isDefaultMethod()
+        && !appView.options().canUseDefaultAndStaticInterfaceMethods()) {
+      // Interface method desugaring has been performed before and all the call-backs will be
+      // generated in all implementors of the interface. R8 cannot introduce new
+      // default methods at this point, but R8 does not need to do anything (the interface
+      // already implements the vivified version through inheritance, and all implementors
+      // support the call-back correctly).
+      return;
+    }
     CfCode cfCode =
         new APIConverterWrapperCfCodeProvider(
             appView, originalMethod.method, null, this, dexClass.isInterface())
