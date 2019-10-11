@@ -69,24 +69,23 @@ BENCHMARK_APPS = [
         'find-xmx-min': 256,
         'find-xmx-max': 450,
         'find-xmx-range': 16,
-        'oom-threshold': 392,
+        'oom-threshold': 426,
     },
     {
         'app': 'youtube',
         'version': '12.22',
-        'find-xmx-min': 1200,
-        'find-xmx-max': 800,
+        'find-xmx-min': 800,
+        'find-xmx-max': 1200,
         'find-xmx-range': 32,
         'oom-threshold': 1000,
     },
-    # TODO(b/142375244): Narrow when run a few times.
     {
         'app': 'iosched',
         'version': '2019',
         'find-xmx-min': 128,
         'find-xmx-max': 1024,
         'find-xmx-range': 16,
-        'oom-threshold': 666, # will be changed after b/142375244 has run
+        'oom-threshold': 267,
     },
 ]
 
