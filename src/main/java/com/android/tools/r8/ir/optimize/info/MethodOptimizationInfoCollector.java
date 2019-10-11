@@ -46,6 +46,7 @@ import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsageB
 import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.Sets;
@@ -70,7 +71,6 @@ public class MethodOptimizationInfoCollector {
     this.dexItemFactory = appView.dexItemFactory();
   }
 
-  // TODO(b/141656615): Use this and then make all utils in this collector `private`.
   public void collectMethodOptimizationInfo(
       DexEncodedMethod method,
       IRCode code,
@@ -91,7 +91,7 @@ public class MethodOptimizationInfoCollector {
     computeNonNullParamOnNormalExits(feedback, code);
   }
 
-  public void identifyClassInlinerEligibility(
+  private void identifyClassInlinerEligibility(
       DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
     // Method eligibility is calculated in similar way for regular method
     // and for the constructor. To be eligible method should only be using its
@@ -126,7 +126,11 @@ public class MethodOptimizationInfoCollector {
 
     boolean receiverUsedAsReturnValue = false;
     boolean seenSuperInitCall = false;
-    for (Instruction insn : receiver.uniqueUsers()) {
+    for (Instruction insn : receiver.aliasedUsers()) {
+      if (insn.isAssume()) {
+        continue;
+      }
+
       if (insn.isMonitor()) {
         continue;
       }
@@ -140,11 +144,11 @@ public class MethodOptimizationInfoCollector {
         if (insn.isInstancePut()) {
           InstancePut instancePutInstruction = insn.asInstancePut();
           // Only allow field writes to the receiver.
-          if (instancePutInstruction.object() != receiver) {
+          if (instancePutInstruction.object().getAliasedValue() != receiver) {
             return;
           }
           // Do not allow the receiver to escape via a field write.
-          if (instancePutInstruction.value() == receiver) {
+          if (instancePutInstruction.value().getAliasedValue() == receiver) {
             return;
           }
         }
@@ -162,7 +166,8 @@ public class MethodOptimizationInfoCollector {
         DexMethod invokedMethod = invokedDirect.getInvokedMethod();
         if (dexItemFactory.isConstructor(invokedMethod)
             && invokedMethod.holder == clazz.superType
-            && invokedDirect.inValues().lastIndexOf(receiver) == 0
+            && ListUtils.lastIndexMatching(
+                invokedDirect.inValues(), v -> v.getAliasedValue() == receiver) == 0
             && !seenSuperInitCall
             && instanceInitializer) {
           seenSuperInitCall = true;
@@ -184,7 +189,7 @@ public class MethodOptimizationInfoCollector {
         method, new ClassInlinerEligibility(receiverUsedAsReturnValue));
   }
 
-  public void identifyParameterUsages(
+  private void identifyParameterUsages(
       DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
     List<ParameterUsage> usages = new ArrayList<>();
     List<Value> values = code.collectArguments();
@@ -203,7 +208,7 @@ public class MethodOptimizationInfoCollector {
 
   private ParameterUsage collectParameterUsages(int i, Value value) {
     ParameterUsageBuilder builder = new ParameterUsageBuilder(value, i);
-    for (Instruction user : value.uniqueUsers()) {
+    for (Instruction user : value.aliasedUsers()) {
       if (!builder.note(user)) {
         return null;
       }
@@ -211,7 +216,7 @@ public class MethodOptimizationInfoCollector {
     return builder.build();
   }
 
-  public void identifyReturnsArgument(
+  private void identifyReturnsArgument(
       DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
     List<BasicBlock> normalExits = code.computeNormalExitBlocks();
     if (normalExits.isEmpty()) {
@@ -233,18 +238,19 @@ public class MethodOptimizationInfoCollector {
       isNeverNull &= value.getTypeLattice().isReference() && value.isNeverNull();
     }
     if (returnValue != null) {
-      if (returnValue.isArgument()) {
+      Value aliasedValue = returnValue.getAliasedValue();
+      if (aliasedValue.isArgument()) {
         // Find the argument number.
-        int index = code.collectArguments().indexOf(returnValue);
-        assert index != -1;
+        int index = aliasedValue.computeArgumentPosition(code);
+        assert index >= 0;
         feedback.methodReturnsArgument(method, index);
       }
-      if (returnValue.isConstant()) {
-        if (returnValue.definition.isConstNumber()) {
-          long value = returnValue.definition.asConstNumber().getRawValue();
+      if (aliasedValue.isConstant()) {
+        if (aliasedValue.definition.isConstNumber()) {
+          long value = aliasedValue.definition.asConstNumber().getRawValue();
           feedback.methodReturnsConstantNumber(method, value);
-        } else if (returnValue.definition.isConstString()) {
-          ConstString constStringInstruction = returnValue.definition.asConstString();
+        } else if (aliasedValue.definition.isConstString()) {
+          ConstString constStringInstruction = aliasedValue.definition.asConstString();
           if (!constStringInstruction.instructionInstanceCanThrow()) {
             feedback.methodReturnsConstantString(method, constStringInstruction.getValue());
           }
@@ -256,7 +262,7 @@ public class MethodOptimizationInfoCollector {
     }
   }
 
-  public void identifyTrivialInitializer(
+  private void identifyTrivialInitializer(
       DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
     if (!method.isInstanceInitializer() && !method.isClassInitializer()) {
       return;
@@ -300,6 +306,10 @@ public class MethodOptimizationInfoCollector {
       }
 
       if (insn.isReturn()) {
+        continue;
+      }
+
+      if (insn.isAssume()) {
         continue;
       }
 
@@ -374,6 +384,10 @@ public class MethodOptimizationInfoCollector {
         continue;
       }
 
+      if (insn.isAssume()) {
+        continue;
+      }
+
       if (insn.isArgument()) {
         continue;
       }
@@ -440,7 +454,7 @@ public class MethodOptimizationInfoCollector {
     return TrivialInstanceInitializer.INSTANCE;
   }
 
-  public void identifyInvokeSemanticsForInlining(
+  private void identifyInvokeSemanticsForInlining(
       DexEncodedMethod method, IRCode code, AppView<?> appView, OptimizationFeedback feedback) {
     if (method.isStatic()) {
       // Identifies if the method preserves class initialization after inlining.
@@ -692,7 +706,7 @@ public class MethodOptimizationInfoCollector {
     return true;
   }
 
-  public void computeDynamicReturnType(
+  private void computeDynamicReturnType(
       DynamicTypeOptimization dynamicTypeOptimization,
       OptimizationFeedback feedback,
       DexEncodedMethod method,
@@ -721,7 +735,7 @@ public class MethodOptimizationInfoCollector {
     }
   }
 
-  public void computeInitializedClassesOnNormalExit(
+  private void computeInitializedClassesOnNormalExit(
       OptimizationFeedback feedback, DexEncodedMethod method, IRCode code) {
     if (options.enableInitializedClassesAnalysis && appView.appInfo().hasLiveness()) {
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
@@ -734,7 +748,7 @@ public class MethodOptimizationInfoCollector {
     }
   }
 
-  public void computeMayHaveSideEffects(
+  private void computeMayHaveSideEffects(
       OptimizationFeedback feedback, DexEncodedMethod method, IRCode code) {
     // If the method is native, we don't know what could happen.
     assert !method.accessFlags.isNative();
@@ -802,7 +816,7 @@ public class MethodOptimizationInfoCollector {
     return false;
   }
 
-  public void computeReturnValueOnlyDependsOnArguments(
+  private void computeReturnValueOnlyDependsOnArguments(
       OptimizationFeedback feedback, DexEncodedMethod method, IRCode code) {
     if (!options.enableDeterminismAnalysis) {
       return;
@@ -815,7 +829,7 @@ public class MethodOptimizationInfoCollector {
   }
 
   // Track usage of parameters and compute their nullability and possibility of NPE.
-  public void computeNonNullParamOrThrow(
+  private void computeNonNullParamOrThrow(
       OptimizationFeedback feedback, DexEncodedMethod method, IRCode code) {
     if (method.getOptimizationInfo().getNonNullParamOrThrow() != null) {
       return;
@@ -843,7 +857,7 @@ public class MethodOptimizationInfoCollector {
     }
   }
 
-  public void computeNonNullParamOnNormalExits(OptimizationFeedback feedback, IRCode code) {
+  private void computeNonNullParamOnNormalExits(OptimizationFeedback feedback, IRCode code) {
     Set<BasicBlock> normalExits = Sets.newIdentityHashSet();
     normalExits.addAll(code.computeNormalExitBlocks());
     DominatorTree dominatorTree = new DominatorTree(code, MAY_HAVE_UNREACHABLE_BLOCKS);

@@ -1247,10 +1247,10 @@ public class CodeRewriter {
     assumeDynamicTypeRemover.finish();
     if (!blocksToBeRemoved.isEmpty()) {
       code.removeBlocks(blocksToBeRemoved);
-      code.removeAllTrivialPhis();
+      code.removeAllTrivialPhis(affectedValues);
       assert code.getUnreachableBlocks().isEmpty();
     } else if (mayHaveRemovedTrivialPhi || assumeDynamicTypeRemover.mayHaveIntroducedTrivialPhi()) {
-      code.removeAllTrivialPhis();
+      code.removeAllTrivialPhis(affectedValues);
     }
     if (!affectedValues.isEmpty()) {
       new TypeAnalysis(appView).narrowing(affectedValues);
@@ -1407,7 +1407,10 @@ public class CodeRewriter {
     // Removing check-cast may result in a trivial phi:
     // v3 <- phi(v1, v1)
     if (needToRemoveTrivialPhis) {
-      code.removeAllTrivialPhis();
+      code.removeAllTrivialPhis(affectedValues);
+      if (!affectedValues.isEmpty()) {
+        typeAnalysis.narrowing(affectedValues);
+      }
     }
     assert code.isConsistentSSA();
   }
