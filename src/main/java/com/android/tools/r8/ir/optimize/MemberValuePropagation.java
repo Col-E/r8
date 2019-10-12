@@ -151,8 +151,8 @@ public class MemberValuePropagation {
         return null;
       }
 
-      Value value = code.createValue(typeLattice, instruction.getLocalInfo());
-      ConstInstruction replacement = staticField.valueAsConstInstruction(code, value, appView);
+      ConstInstruction replacement =
+          staticField.valueAsConstInstruction(code, instruction.getLocalInfo(), appView);
       if (replacement == null) {
         reporter.warning(
             new StringDiagnostic(
@@ -369,10 +369,23 @@ public class MemberValuePropagation {
       return;
     }
 
-    ConstInstruction replacement = target.valueAsConstInstruction(code, current.dest(), appView);
+    ConstInstruction replacement =
+        target.valueAsConstInstruction(code, current.outValue().getLocalInfo(), appView);
     if (replacement != null) {
       affectedValues.addAll(current.outValue().affectedValues());
-      iterator.replaceCurrentInstruction(replacement);
+      if (target.mayTriggerClassInitializationSideEffects(appView, code.method.method.holder)) {
+        // To preserve class initialization side effects, original static-get remains as-is, but its
+        // value is replaced with constant.
+        replacement.setPosition(current.getPosition());
+        current.outValue().replaceUsers(replacement.outValue());
+        if (current.getBlock().hasCatchHandlers()) {
+          iterator.split(code, blocks).listIterator(code).add(replacement);
+        } else {
+          iterator.add(replacement);
+        }
+      } else {
+        iterator.replaceCurrentInstruction(replacement);
+      }
       if (replacement.isDexItemBasedConstString()) {
         code.method.getMutableOptimizationInfo().markUseIdentifierNameString();
       }
@@ -398,7 +411,8 @@ public class MemberValuePropagation {
     }
 
     // Check if a this value is known const.
-    ConstInstruction replacement = target.valueAsConstInstruction(code, current.dest(), appView);
+    ConstInstruction replacement =
+        target.valueAsConstInstruction(code, current.outValue().getLocalInfo(), appView);
     if (replacement != null) {
       affectedValues.add(replacement.outValue());
       iterator.replaceCurrentInstruction(replacement);

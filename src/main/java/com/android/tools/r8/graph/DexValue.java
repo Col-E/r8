@@ -3,21 +3,23 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
+
 import com.android.tools.r8.dex.DexOutputBuffer;
 import com.android.tools.r8.dex.FileWriter;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.ConstInstruction;
-import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.DexItemBasedConstString;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.EncodedValueUtils;
-import com.android.tools.r8.utils.InternalOptions;
 import java.util.Arrays;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.Type;
@@ -139,7 +141,8 @@ public abstract class DexValue extends DexItem {
   public abstract Object getBoxedValue();
 
   /** Returns an instruction that can be used to materialize this {@link DexValue} (or null). */
-  public ConstInstruction asConstInstruction(IRCode code, Value dest, InternalOptions options) {
+  public ConstInstruction asConstInstruction(
+      AppView<? extends AppInfoWithSubtyping> appView, IRCode code, DebugLocalInfo local) {
     return null;
   }
 
@@ -214,7 +217,8 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
-    public ConstInstruction asConstInstruction(IRCode code, Value dest, InternalOptions options) {
+    public ConstInstruction asConstInstruction(
+        AppView<? extends AppInfoWithSubtyping> appView, IRCode code, DebugLocalInfo local) {
       return null;
     }
   }
@@ -301,8 +305,9 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
-    public ConstInstruction asConstInstruction(IRCode code, Value dest, InternalOptions options) {
-      return new ConstNumber(dest, value);
+    public ConstInstruction asConstInstruction(
+        AppView<? extends AppInfoWithSubtyping> appView, IRCode code, DebugLocalInfo local) {
+      return code.createIntConstant(value, local);
     }
   }
 
@@ -357,8 +362,9 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
-    public ConstInstruction asConstInstruction(IRCode code, Value dest, InternalOptions options) {
-      return new ConstNumber(dest, value);
+    public ConstInstruction asConstInstruction(
+        AppView<? extends AppInfoWithSubtyping> appView, IRCode code, DebugLocalInfo local) {
+      return code.createIntConstant(value, local);
     }
   }
 
@@ -417,8 +423,9 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
-    public ConstInstruction asConstInstruction(IRCode code, Value dest, InternalOptions options) {
-      return new ConstNumber(dest, value);
+    public ConstInstruction asConstInstruction(
+        AppView<? extends AppInfoWithSubtyping> appView, IRCode code, DebugLocalInfo local) {
+      return code.createIntConstant(value, local);
     }
   }
 
@@ -473,8 +480,9 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
-    public ConstInstruction asConstInstruction(IRCode code, Value dest, InternalOptions options) {
-      return new ConstNumber(dest, value);
+    public ConstInstruction asConstInstruction(
+        AppView<? extends AppInfoWithSubtyping> appView, IRCode code, DebugLocalInfo local) {
+      return code.createIntConstant(value, local);
     }
   }
 
@@ -529,8 +537,9 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
-    public ConstInstruction asConstInstruction(IRCode code, Value dest, InternalOptions options) {
-      return new ConstNumber(dest, value);
+    public ConstInstruction asConstInstruction(
+        AppView<? extends AppInfoWithSubtyping> appView, IRCode code, DebugLocalInfo local) {
+      return code.createLongConstant(value, local);
     }
   }
 
@@ -733,9 +742,12 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
-    public ConstInstruction asConstInstruction(IRCode code, Value dest, InternalOptions options) {
+    public ConstInstruction asConstInstruction(
+        AppView<? extends AppInfoWithSubtyping> appView, IRCode code, DebugLocalInfo local) {
+      TypeLatticeElement type = TypeLatticeElement.stringClassType(appView, definitelyNotNull());
+      Value outValue = code.createValue(type, local);
       ConstString instruction =
-          new ConstString(dest, value, ThrowingInfo.defaultForConstString(options));
+          new ConstString(outValue, value, ThrowingInfo.defaultForConstString(appView.options()));
       if (!instruction.instructionInstanceCanThrow()) {
         return instruction;
       }
@@ -773,10 +785,16 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
-    public ConstInstruction asConstInstruction(IRCode code, Value dest, InternalOptions options) {
+    public ConstInstruction asConstInstruction(
+        AppView<? extends AppInfoWithSubtyping> appView, IRCode code, DebugLocalInfo local) {
+      TypeLatticeElement type = TypeLatticeElement.stringClassType(appView, definitelyNotNull());
+      Value outValue = code.createValue(type, local);
       DexItemBasedConstString instruction =
           new DexItemBasedConstString(
-              dest, value, nameComputationInfo, ThrowingInfo.defaultForConstString(options));
+              outValue,
+              value,
+              nameComputationInfo,
+              ThrowingInfo.defaultForConstString(appView.options()));
       // DexItemBasedConstString cannot throw.
       assert !instruction.instructionInstanceCanThrow();
       return instruction;
@@ -1055,11 +1073,9 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
-    public ConstInstruction asConstInstruction(IRCode code, Value dest, InternalOptions options) {
-      if (dest.getTypeLattice().isNullType()) {
-        return new ConstNumber(dest, 0);
-      }
-      return code.createConstNull(dest.getLocalInfo());
+    public ConstInstruction asConstInstruction(
+        AppView<? extends AppInfoWithSubtyping> appView, IRCode code, DebugLocalInfo local) {
+      return code.createConstNull(local);
     }
   }
 
@@ -1118,8 +1134,9 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
-    public ConstInstruction asConstInstruction(IRCode code, Value dest, InternalOptions options) {
-      return new ConstNumber(dest, value ? 1 : 0);
+    public ConstInstruction asConstInstruction(
+        AppView<? extends AppInfoWithSubtyping> appView, IRCode code, DebugLocalInfo local) {
+      return code.createIntConstant(BooleanUtils.intValue(value), local);
     }
   }
 

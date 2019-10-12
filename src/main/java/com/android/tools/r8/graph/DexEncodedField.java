@@ -7,7 +7,6 @@ import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.IRCode;
-import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.info.DefaultFieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MutableFieldOptimizationInfo;
@@ -150,36 +149,12 @@ public class DexEncodedField extends KeyedDexItem<DexField> {
    * <p>NOTE: It is the responsibility of the caller to check if this field is pinned or not.
    */
   public ConstInstruction valueAsConstInstruction(
-      IRCode code, Value dest, AppView<AppInfoWithLiveness> appView) {
-    // If it is a static field, we can only propagate the value if class initialization does not
-    // have side effects.
-    if (isStatic()) {
-      DexClass clazz = appView.definitionFor(field.holder);
-      if (clazz == null) {
-        return null;
-      }
-      DexType context = code.method.method.holder;
-      if (clazz.classInitializationMayHaveSideEffects(
-          appView,
-          // Types that are a super type of the current context are guaranteed to be initialized
-          // already.
-          type -> appView.isSubtype(context, type).isTrue())) {
-        // Ignore class initialization side-effects for dead proto extension fields to ensure that
-        // we force replace these field reads by null.
-        boolean ignore =
-            appView.withGeneratedExtensionRegistryShrinker(
-                shrinker -> shrinker.isDeadProtoExtensionField(field), false);
-        if (!ignore) {
-          return null;
-        }
-      }
-    }
-
+      IRCode code, DebugLocalInfo local, AppView<AppInfoWithLiveness> appView) {
     boolean isWritten = appView.appInfo().isFieldWrittenByFieldPutInstruction(this);
     if (!isWritten) {
       // Since the field is not written, we can simply return the default value for the type.
       DexValue value = isStatic() ? getStaticValue() : DexValue.defaultForType(field.type);
-      return value.asConstInstruction(code, dest, appView.options());
+      return value.asConstInstruction(appView, code, local);
     }
 
     // The only way to figure out whether the DexValue contains the final value is ensure the value
@@ -191,11 +166,36 @@ public class DexEncodedField extends KeyedDexItem<DexField> {
       }
       DexValue staticValue = getStaticValue();
       if (!staticValue.isDefault(field.type)) {
-        return staticValue.asConstInstruction(code, dest, appView.options());
+        return staticValue.asConstInstruction(appView, code, local);
       }
     }
 
     return null;
+  }
+
+  public boolean mayTriggerClassInitializationSideEffects(
+      AppView<AppInfoWithLiveness> appView, DexType context) {
+    // Only static field matters when it comes to class initialization side effects.
+    if (!isStatic()) {
+      return false;
+    }
+    DexClass clazz = appView.definitionFor(field.holder);
+    if (clazz == null) {
+      return true;
+    }
+    if (clazz.classInitializationMayHaveSideEffects(
+        appView,
+        // Types that are a super type of the current context are guaranteed to be initialized
+        // already.
+        type -> appView.isSubtype(context, type).isTrue())) {
+      // Ignore class initialization side-effects for dead proto extension fields to ensure that
+      // we force replace these field reads by null.
+      boolean ignore =
+          appView.withGeneratedExtensionRegistryShrinker(
+              shrinker -> shrinker.isDeadProtoExtensionField(field), false);
+      return !ignore;
+    }
+    return false;
   }
 
   public DexEncodedField toTypeSubstitutedField(DexField field) {

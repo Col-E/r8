@@ -1008,13 +1008,27 @@ public class IRCode {
     return createValue(typeLattice, null);
   }
 
-  public Phi createPhi(BasicBlock block, TypeLatticeElement type) {
-    return new Phi(valueNumberGenerator.next(), block, type, null, RegisterReadType.NORMAL);
+  public ConstNumber createDoubleConstant(long value, DebugLocalInfo local) {
+    Value out = createValue(TypeLatticeElement.DOUBLE, local);
+    return new ConstNumber(out, value);
   }
 
   public ConstNumber createIntConstant(int value) {
-    Value out = createValue(TypeLatticeElement.INT);
+    return createIntConstant(value, null);
+  }
+
+  public ConstNumber createIntConstant(int value, DebugLocalInfo local) {
+    Value out = createValue(TypeLatticeElement.INT, local);
     return new ConstNumber(out, value);
+  }
+
+  public ConstNumber createLongConstant(long value, DebugLocalInfo local) {
+    Value out = createValue(TypeLatticeElement.LONG, local);
+    return new ConstNumber(out, value);
+  }
+
+  public Phi createPhi(BasicBlock block, TypeLatticeElement type) {
+    return new Phi(valueNumberGenerator.next(), block, type, null, RegisterReadType.NORMAL);
   }
 
   public final int getHighestBlockNumber() {
