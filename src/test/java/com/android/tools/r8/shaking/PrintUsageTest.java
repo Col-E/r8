@@ -62,11 +62,10 @@ public class PrintUsageTest extends TestBase {
     testForR8(backend)
         .addProgramFiles(Paths.get(programFile))
         .addKeepRuleFiles(ListUtils.map(keepRulesFiles, Paths::get))
-        .addKeepRules(
-            "-printusage " + out.resolve(test + PRINT_USAGE_FILE_SUFFIX)
-        )
+        .addKeepRules("-printusage " + out.resolve(test + PRINT_USAGE_FILE_SUFFIX))
         // Disable inlining to make this test not depend on inlining decisions.
         .addOptionsModification(o -> o.enableInlining = false)
+        .enableProguardTestOptions()
         .compile();
   }
 

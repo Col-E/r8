@@ -26,6 +26,7 @@ public class Shaking {
         " " + StaticFields.readBoolean+
         " " + StaticFields.readByte +
         " " + StaticFields.readChar +
+        " " + StaticFields.readFloat +
         " " + StaticFields.readObject +
         " " + StaticFields.readShort +
         " " + StaticFields.readDouble);
@@ -33,9 +34,10 @@ public class Shaking {
     StaticFields.writeBoolean = true;
     StaticFields.writeByte = 2;
     StaticFields.writeChar = 3;
+    StaticFields.writeFloat = 3.3f;
     StaticFields.writeObject = new Object();
     StaticFields.writeShort = 3;
-    StaticFields.writeDouble = 3.3;
+    StaticFields.writeDouble = 3.3d;
   }
 
   public static void main(String[] args) {

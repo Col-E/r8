@@ -580,6 +580,12 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
+    public ConstInstruction asConstInstruction(
+        AppView<? extends AppInfoWithSubtyping> appView, IRCode code, DebugLocalInfo local) {
+      return code.createFloatConstant(value, local);
+    }
+
+    @Override
     public int hashCode() {
       return (int) (value * 19);
     }
@@ -635,6 +641,12 @@ public abstract class DexValue extends DexItem {
     @Override
     public Object asAsmEncodedObject() {
       return Double.valueOf(value);
+    }
+
+    @Override
+    public ConstInstruction asConstInstruction(
+        AppView<? extends AppInfoWithSubtyping> appView, IRCode code, DebugLocalInfo local) {
+      return code.createDoubleConstant(value, local);
     }
 
     @Override

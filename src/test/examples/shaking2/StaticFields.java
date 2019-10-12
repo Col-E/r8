@@ -18,6 +18,8 @@ public class StaticFields {
   public static byte writeByte;
   public static char readChar;
   public static char writeChar;
+  public static float readFloat;
+  public static float writeFloat;
   public static Object readObject;
   public static Object writeObject;
   public static short readShort;

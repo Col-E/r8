@@ -1008,9 +1008,14 @@ public class IRCode {
     return createValue(typeLattice, null);
   }
 
-  public ConstNumber createDoubleConstant(long value, DebugLocalInfo local) {
+  public ConstNumber createDoubleConstant(double value, DebugLocalInfo local) {
     Value out = createValue(TypeLatticeElement.DOUBLE, local);
-    return new ConstNumber(out, value);
+    return new ConstNumber(out, Double.doubleToLongBits(value));
+  }
+
+  public ConstNumber createFloatConstant(float value, DebugLocalInfo local) {
+    Value out = createValue(TypeLatticeElement.FLOAT, local);
+    return new ConstNumber(out, Float.floatToIntBits(value));
   }
 
   public ConstNumber createIntConstant(int value) {

@@ -6,3 +6,10 @@
 
 -dontobfuscate
 -printusage
+
+# TODO(b/142571411): If the class becomes entirely dead in the second round of
+# tree shaking, we respond incorrectly to printusage.
+-neverpropagatevalue class shaking2.StaticFields {
+  float readDouble;
+  float readFloat;
+}
