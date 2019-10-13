@@ -431,20 +431,16 @@ public class Value {
 
   public Set<Instruction> aliasedUsers() {
     Set<Instruction> users = SetUtils.newIdentityHashSet(uniqueUsers());
-    Set<Instruction> visited = Sets.newIdentityHashSet();
-    collectAliasedUsersViaAssume(visited, uniqueUsers(), users);
+    collectAliasedUsersViaAssume(uniqueUsers(), users);
     return users;
   }
 
   private static void collectAliasedUsersViaAssume(
-      Set<Instruction> visited, Set<Instruction> usersToTest, Set<Instruction> collectedUsers) {
+      Set<Instruction> usersToTest, Set<Instruction> collectedUsers) {
     for (Instruction user : usersToTest) {
-      if (!visited.add(user)) {
-        continue;
-      }
       if (user.isAssume()) {
         collectedUsers.addAll(user.outValue().uniqueUsers());
-        collectAliasedUsersViaAssume(visited, user.outValue().uniqueUsers(), collectedUsers);
+        collectAliasedUsersViaAssume(user.outValue().uniqueUsers(), collectedUsers);
       }
     }
   }

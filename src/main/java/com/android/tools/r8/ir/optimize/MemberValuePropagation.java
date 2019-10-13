@@ -3,9 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
-import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
-import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.stringClassType;
-
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexDefinition;
@@ -196,8 +193,7 @@ public class MemberValuePropagation {
             appView.dexItemFactory().stringType,
             typeLattice.asClassTypeLatticeElement().getClassType())
         .isTrue();
-    Value returnedValue =
-        code.createValue(stringClassType(appView, definitelyNotNull()), debugLocalInfo);
+    Value returnedValue = code.createValue(typeLattice, debugLocalInfo);
     ConstString instruction =
         new ConstString(
             returnedValue, constant, ThrowingInfo.defaultForConstString(appView.options()));

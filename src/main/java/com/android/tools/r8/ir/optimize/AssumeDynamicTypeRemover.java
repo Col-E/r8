@@ -53,7 +53,7 @@ public class AssumeDynamicTypeRemover {
   }
 
   public void markUsersForRemoval(Value value) {
-    for (Instruction user : value.aliasedUsers()) {
+    for (Instruction user : value.uniqueUsers()) {
       if (user.isAssumeDynamicType()) {
         assert value.numberOfAllUsers() == 1
             : "Expected value flowing into Assume<DynamicTypeAssumption> instruction to have a "

@@ -422,12 +422,12 @@ public class UninstantiatedTypeOptimization {
         }
       }
     }
-    code.removeBlocks(blocksToBeRemoved);
-    code.removeAllTrivialPhis(valuesToNarrow);
-    code.removeUnreachableBlocks();
     if (!valuesToNarrow.isEmpty()) {
       new TypeAnalysis(appView).narrowing(valuesToNarrow);
     }
+    code.removeBlocks(blocksToBeRemoved);
+    code.removeAllTrivialPhis();
+    code.removeUnreachableBlocks();
     assert code.isConsistentSSA();
   }
 

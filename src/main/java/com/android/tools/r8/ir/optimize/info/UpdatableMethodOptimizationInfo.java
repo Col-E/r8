@@ -371,12 +371,7 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
     // We may get more precise type information if the method is reprocessed (e.g., due to
     // optimization info collected from all call sites), and hence the `returnsObjectOfType` is
     // allowed to become more precise.
-    // TODO(b/142559221): non-materializable assume instructions?
-    // Nullability could be less precise, though. For example, suppose a value is known to be
-    // non-null after a safe invocation, hence recorded with the non-null variant. If that call is
-    // inlined and the method is reprocessed, such non-null assumption cannot be made again.
-    assert returnsObjectOfType == UNKNOWN_TYPE
-            || type.lessThanOrEqualUpToNullability(returnsObjectOfType, appView)
+    assert returnsObjectOfType == UNKNOWN_TYPE || type.lessThanOrEqual(returnsObjectOfType, appView)
         : "return type changed from " + returnsObjectOfType + " to " + type;
     returnsObjectOfType = type;
   }

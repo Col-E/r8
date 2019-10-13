@@ -685,7 +685,6 @@ public class IRConverter {
                   CallSiteInformation.empty(),
                   Outliner::noProcessing),
           executorService);
-      feedback.updateVisibleOptimizationInfo();
       timing.end();
     }
 
@@ -853,7 +852,6 @@ public class IRConverter {
                 // unused out-values.
                 codeRewriter.rewriteMoveResult(code);
                 deadCodeRemover.run(code);
-                codeRewriter.removeAssumeInstructions(code);
                 consumer.accept(code, method);
                 return null;
               }));
@@ -1391,6 +1389,24 @@ public class IRConverter {
       classStaticizer.examineMethodCode(method, code);
     }
 
+    if (nonNullTracker != null) {
+      // TODO(b/139246447): Once we extend this optimization to, e.g., constants of primitive args,
+      //   this may not be the right place to collect call site optimization info.
+      // Collecting call-site optimization info depends on the existence of non-null IRs.
+      // Arguments can be changed during the debug mode.
+      if (!isDebugMode && appView.callSiteOptimizationInfoPropagator() != null) {
+        appView.callSiteOptimizationInfoPropagator().collectCallSiteOptimizationInfo(code);
+      }
+      // Computation of non-null parameters on normal exits rely on the existence of non-null IRs.
+      methodOptimizationInfoCollector.computeNonNullParamOnNormalExits(feedback, code);
+    }
+    if (aliasIntroducer != null || nonNullTracker != null || dynamicTypeOptimization != null) {
+      codeRewriter.removeAssumeInstructions(code);
+      assert code.isConsistentSSA();
+    }
+    // Assert that we do not have unremoved non-sense code in the output, e.g., v <- non-null NULL.
+    assert code.verifyNoNullabilityBottomTypes();
+
     assert code.verifyTypes(appView);
 
     if (appView.enableWholeProgramOptimizations()) {
@@ -1402,28 +1418,30 @@ public class IRConverter {
         fieldBitAccessAnalysis.recordFieldAccesses(code, feedback);
       }
 
-      // Arguments can be changed during the debug mode.
-      if (!isDebugMode && appView.callSiteOptimizationInfoPropagator() != null) {
-        appView.callSiteOptimizationInfoPropagator().collectCallSiteOptimizationInfo(code);
-      }
-
       // Compute optimization info summary for the current method unless it is pinned
       // (in that case we should not be making any assumptions about the behavior of the method).
       if (!appView.appInfo().withLiveness().isPinned(method.method)) {
+        methodOptimizationInfoCollector.identifyClassInlinerEligibility(method, code, feedback);
+        methodOptimizationInfoCollector.identifyParameterUsages(method, code, feedback);
+        methodOptimizationInfoCollector.identifyReturnsArgument(method, code, feedback);
+        methodOptimizationInfoCollector.identifyTrivialInitializer(method, code, feedback);
+
+        if (options.enableInlining && inliner != null) {
+          methodOptimizationInfoCollector
+              .identifyInvokeSemanticsForInlining(method, code, appView, feedback);
+        }
+
         methodOptimizationInfoCollector
-            .collectMethodOptimizationInfo(method, code, feedback, dynamicTypeOptimization);
+            .computeDynamicReturnType(dynamicTypeOptimization, feedback, method, code);
         FieldValueAnalysis.run(appView, code, feedback, method);
+        methodOptimizationInfoCollector
+            .computeInitializedClassesOnNormalExit(feedback, method, code);
+        methodOptimizationInfoCollector.computeMayHaveSideEffects(feedback, method, code);
+        methodOptimizationInfoCollector
+            .computeReturnValueOnlyDependsOnArguments(feedback, method, code);
+        methodOptimizationInfoCollector.computeNonNullParamOrThrow(feedback, method, code);
       }
     }
-
-    if (aliasIntroducer != null || nonNullTracker != null || dynamicTypeOptimization != null) {
-      codeRewriter.removeAssumeInstructions(code);
-      assert code.isConsistentSSA();
-    }
-    // Assert that we do not have unremoved non-sense code in the output, e.g., v <- non-null NULL.
-    assert code.verifyNoNullabilityBottomTypes();
-
-    assert code.verifyTypes(appView);
 
     previous =
         printMethod(code, "IR after computation of optimization info summary (SSA)", previous);
