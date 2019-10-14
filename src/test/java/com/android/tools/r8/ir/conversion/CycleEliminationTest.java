@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.ir.callgraph;
+package com.android.tools.r8.ir.conversion;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -11,12 +11,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import com.android.tools.r8.TestBase;
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.ir.conversion.CallGraph.Node;
 import com.android.tools.r8.ir.conversion.CallGraphBuilder.CycleEliminator;
 import com.android.tools.r8.utils.InternalOptions;
@@ -29,7 +24,7 @@ import java.util.Set;
 import java.util.function.BooleanSupplier;
 import org.junit.Test;
 
-public class CycleEliminationTest extends TestBase {
+public class CycleEliminationTest extends CallGraphTestBase {
 
   private static class Configuration {
 
@@ -43,8 +38,6 @@ public class CycleEliminationTest extends TestBase {
       this.test = test;
     }
   }
-
-  private DexItemFactory dexItemFactory = new DexItemFactory();
 
   @Test
   public void testSimpleCycle() {
@@ -196,21 +189,5 @@ public class CycleEliminationTest extends TestBase {
         assertTrue(configuration.test.getAsBoolean());
       }
     }
-  }
-
-  private Node createNode(String methodName) {
-    DexMethod signature =
-        dexItemFactory.createMethod(
-            dexItemFactory.objectType,
-            dexItemFactory.createProto(dexItemFactory.voidType),
-            methodName);
-    return new Node(
-        new DexEncodedMethod(signature, null, null, ParameterAnnotationsList.empty(), null));
-  }
-
-  private Node createForceInlinedNode(String methodName) {
-    Node node = createNode(methodName);
-    node.method.getMutableOptimizationInfo().markForceInline();
-    return node;
   }
 }

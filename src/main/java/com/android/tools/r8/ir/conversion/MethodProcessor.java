@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.conversion;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.conversion.CallGraph.Node;
+import com.android.tools.r8.ir.conversion.CallGraphBuilder.CycleEliminator;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.IROrdering;
@@ -70,7 +71,13 @@ public class MethodProcessor {
     return waves;
   }
 
-  private static void extractLeaves(Set<Node> nodes, Consumer<Node> fn) {
+  /**
+   * Extract the next set of leaves (nodes with an outgoing call degree of 0) if any.
+   *
+   * <p>All nodes in the graph are extracted if called repeatedly until null is returned. Please
+   * note that there are no cycles in this graph (see {@link CycleEliminator#breakCycles}).
+   */
+  static void extractLeaves(Iterable<Node> nodes, Consumer<Node> fn) {
     Set<Node> removed = Sets.newIdentityHashSet();
     Iterator<Node> nodeIterator = nodes.iterator();
     while (nodeIterator.hasNext()) {
@@ -81,7 +88,7 @@ public class MethodProcessor {
         removed.add(node);
       }
     }
-    removed.forEach(Node::cleanForRemoval);
+    removed.forEach(Node::cleanCallersForRemoval);
   }
 
   /**
