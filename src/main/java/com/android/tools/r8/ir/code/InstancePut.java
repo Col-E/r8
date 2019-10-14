@@ -110,7 +110,8 @@ public class InstancePut extends FieldInstruction {
 
       DexEncodedField encodedField = appInfoWithLiveness.resolveField(getField());
       assert encodedField != null : "NoSuchFieldError (resolution failure) should be caught.";
-      return appInfoWithLiveness.isFieldRead(encodedField);
+      return appInfoWithLiveness.isFieldRead(encodedField)
+          || isStoringObjectWithFinalizer(appInfoWithLiveness);
     }
 
     // In D8, we always have to assume that the field can be read, and thus have side effects.

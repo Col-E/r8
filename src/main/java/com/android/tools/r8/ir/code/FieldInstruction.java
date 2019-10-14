@@ -8,13 +8,16 @@ import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isMemberVisi
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.AbstractError;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.AbstractFieldSet;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.ConcreteMutableFieldSet;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.EmptyFieldSet;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.UnknownFieldSet;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Collections;
 import java.util.List;
@@ -162,5 +165,40 @@ public abstract class FieldInstruction extends Instruction {
 
     assert isFieldPut();
     return EmptyFieldSet.getInstance();
+  }
+
+  /**
+   * Returns {@code true} if this instruction may store an instance of a class that has a non-
+   * default finalize() method in a field. In that case, it is not safe to remove this instruction,
+   * since that could change the lifetime of the value.
+   */
+  boolean isStoringObjectWithFinalizer(AppInfoWithLiveness appInfo) {
+    assert isFieldPut();
+    TypeLatticeElement type = value().getTypeLattice();
+    TypeLatticeElement baseType =
+        type.isArrayType() ? type.asArrayTypeLatticeElement().getArrayBaseTypeLattice() : type;
+    if (baseType.isClassType()) {
+      Value root = value().getAliasedValue();
+      if (!root.isPhi() && root.definition.isNewInstance()) {
+        DexClass clazz = appInfo.definitionFor(root.definition.asNewInstance().clazz);
+        if (clazz == null) {
+          return true;
+        }
+        if (clazz.superType == null) {
+          return false;
+        }
+        DexItemFactory dexItemFactory = appInfo.dexItemFactory();
+        DexEncodedMethod resolutionResult =
+            appInfo
+                .resolveMethod(clazz.type, dexItemFactory.objectMethods.finalize)
+                .asSingleTarget();
+        return resolutionResult != null && resolutionResult.isProgramMethod(appInfo);
+      }
+
+      return appInfo.mayHaveFinalizeMethodDirectlyOrIndirectly(
+          baseType.asClassTypeLatticeElement());
+    }
+
+    return false;
   }
 }

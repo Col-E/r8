@@ -4,6 +4,7 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.SetUtils;
@@ -714,8 +715,17 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
     return !isSubtype(type1, type2) && !isSubtype(type2, type1);
   }
 
-  public boolean mayHaveFinalizeMethodDirectlyOrIndirectly(DexType type) {
-    return computeMayHaveFinalizeMethodDirectlyOrIndirectlyIfAbsent(type, true);
+  public boolean mayHaveFinalizeMethodDirectlyOrIndirectly(ClassTypeLatticeElement type) {
+    Set<DexType> interfaces = type.getInterfaces();
+    if (!interfaces.isEmpty()) {
+      for (DexType interfaceType : interfaces) {
+        if (computeMayHaveFinalizeMethodDirectlyOrIndirectlyIfAbsent(interfaceType, false)) {
+          return true;
+        }
+      }
+      return false;
+    }
+    return computeMayHaveFinalizeMethodDirectlyOrIndirectlyIfAbsent(type.getClassType(), true);
   }
 
   private boolean computeMayHaveFinalizeMethodDirectlyOrIndirectlyIfAbsent(
@@ -727,8 +737,10 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
     }
     DexClass clazz = definitionFor(type);
     if (clazz == null) {
-      mayHaveFinalizeMethodDirectlyOrIndirectlyCache.put(type, true);
-      return true;
+      // This is strictly not conservative but is needed to avoid that we treat Object as having
+      // a subtype that has a non-default finalize() implementation.
+      mayHaveFinalizeMethodDirectlyOrIndirectlyCache.put(type, false);
+      return false;
     }
     if (clazz.isProgramClass()) {
       if (lookUpwards) {
