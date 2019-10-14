@@ -31,6 +31,11 @@ def ParseOptions():
       default=False, action='store_true')
   parser.add_argument('--java-home', '--java_home',
       help='Use a custom java version to run gradle.')
+  parser.add_argument('--worktree',
+                      help='Gradle is running in a worktree and may lock up '
+                           'the gradle caches.',
+                      action='store_true',
+                      default=False)
   return parser.parse_known_args()
 
 def GetJavaEnv(env):
@@ -101,6 +106,8 @@ def Main():
     args.append('-Dorg.gradle.java.home=' + options.java_home)
   if options.no_internal:
     args.append('-Pno_internal')
+  if options.worktree:
+    args.append('-g=' + os.path.join(utils.REPO_ROOT, ".gradle_user_home"))
   return RunGradle(args)
 
 if __name__ == '__main__':
