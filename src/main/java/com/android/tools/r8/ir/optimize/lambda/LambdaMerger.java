@@ -56,7 +56,6 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -84,6 +83,43 @@ import java.util.stream.Collectors;
 //   5. synthesize group lambda classes.
 //
 public final class LambdaMerger {
+
+  private abstract static class Mode {
+
+    void rewriteCode(DexEncodedMethod method, IRCode code, DexEncodedMethod context) {}
+
+    void analyzeCode(DexEncodedMethod method, IRCode code) {}
+  }
+
+  private class AnalyzeMode extends Mode {
+
+    @Override
+    void analyzeCode(DexEncodedMethod method, IRCode code) {
+      new AnalysisStrategy(method, code).processCode();
+    }
+  }
+
+  private class ApplyMode extends Mode {
+
+    private final Set<DexType> lambdaGroupsClasses;
+    private final LambdaMergerOptimizationInfoFixer optimizationInfoFixer;
+
+    ApplyMode(
+        Set<DexType> lambdaGroupTypes, LambdaMergerOptimizationInfoFixer optimizationInfoFixer) {
+      this.lambdaGroupsClasses = lambdaGroupTypes;
+      this.optimizationInfoFixer = optimizationInfoFixer;
+    }
+
+    @Override
+    void rewriteCode(DexEncodedMethod method, IRCode code, DexEncodedMethod context) {
+      if (lambdaGroupsClasses.contains(method.method.holder)) {
+        // Don't rewrite the methods that we have synthesized for the lambda group classes.
+        return;
+      }
+      new ApplyStrategy(method, code, context, optimizationInfoFixer).processCode();
+    }
+  }
+
   // Maps lambda into a group, only contains lambdas we decided to merge.
   // NOTE: needs synchronization.
   private final Map<DexType, LambdaGroup> lambdas = new IdentityHashMap<>();
@@ -113,7 +149,7 @@ public final class LambdaMerger {
   private final Kotlin kotlin;
   private final DiagnosticsHandler reporter;
 
-  private BiFunction<DexEncodedMethod, IRCode, CodeProcessor> strategyFactory = null;
+  private Mode mode;
 
   // Lambda visitor invalidating lambdas it sees.
   private final LambdaTypeVisitor lambdaInvalidator;
@@ -153,8 +189,7 @@ public final class LambdaMerger {
   // Collect all group candidates and assign unique lambda ids inside each group.
   // We do this before methods are being processed to guarantee stable order of
   // lambdas inside each group.
-  public final void collectGroupCandidates(
-      DexApplication app, AppView<AppInfoWithLiveness> appView) {
+  public final void collectGroupCandidates(DexApplication app) {
     // Collect lambda groups.
     app.classes().stream()
         .filter(cls -> !appView.appInfo().isPinned(cls.type))
@@ -188,20 +223,50 @@ public final class LambdaMerger {
     // Remove trivial groups.
     removeTrivialLambdaGroups();
 
-    assert strategyFactory == null;
-    strategyFactory = AnalysisStrategy::new;
+    assert mode == null;
+    mode = new AnalyzeMode();
   }
 
-  // Is called by IRConverter::rewriteCode, performs different actions
-  // depending on phase:
-  //   - in ANALYZE phase just analyzes invalid usages of lambda classes
-  //     inside the method code, invalidated such lambda classes,
-  //     collects methods that need to be patched.
-  //   - in APPLY phase patches the code to use lambda group classes, also
-  //     asserts that there are no more invalid lambda class references.
-  public final void processMethodCode(DexEncodedMethod method, IRCode code) {
-    if (strategyFactory != null) {
-      strategyFactory.apply(method, code).processCode();
+  /**
+   * Is called by IRConverter::rewriteCode. Performs different actions depending on the current
+   * mode.
+   *
+   * <ol>
+   *   <li>in ANALYZE mode analyzes invalid usages of lambda classes inside the method code,
+   *       invalidated such lambda classes, collects methods that need to be patched.
+   *   <li>in APPLY mode does nothing.
+   * </ol>
+   */
+  public final void analyzeCode(DexEncodedMethod method, IRCode code) {
+    if (mode != null) {
+      mode.analyzeCode(method, code);
+    }
+  }
+
+  /**
+   * Is called by IRConverter::rewriteCode. Performs different actions depending on the current
+   * mode.
+   *
+   * <ol>
+   *   <li>in ANALYZE mode does nothing.
+   *   <li>in APPLY mode patches the code to use lambda group classes, also asserts that there are
+   *       no more invalid lambda class references.
+   * </ol>
+   */
+  public final void rewriteCode(DexEncodedMethod method, IRCode code) {
+    if (mode != null) {
+      mode.rewriteCode(method, code, null);
+    }
+  }
+
+  /**
+   * Similar to {@link #rewriteCode(DexEncodedMethod, IRCode)}, but for rewriting code for inlining.
+   * The {@param context} is the caller that {@param method} is being inlined into.
+   */
+  public final void rewriteCodeForInlining(
+      DexEncodedMethod method, IRCode code, DexEncodedMethod context) {
+    if (mode != null) {
+      mode.rewriteCode(method, code, context);
     }
   }
 
@@ -239,7 +304,9 @@ public final class LambdaMerger {
     feedback.fixupOptimizationInfos(appView, executorService, optimizationInfoFixer);
 
     // Switch to APPLY strategy.
-    this.strategyFactory = (method, code) -> new ApplyStrategy(method, code, optimizationInfoFixer);
+    Set<DexType> lambdaGroupTypes =
+        lambdaGroupsClasses.values().stream().map(clazz -> clazz.type).collect(Collectors.toSet());
+    this.mode = new ApplyMode(lambdaGroupTypes, optimizationInfoFixer);
 
     // Add synthesized lambda group classes to the builder.
     for (Entry<LambdaGroup, DexProgramClass> entry : lambdaGroupsClasses.entrySet()) {
@@ -274,7 +341,7 @@ public final class LambdaMerger {
     // Rewrite lambda class references into lambda group class
     // references inside methods from the processing queue.
     rewriteLambdaReferences(converter, executorService, feedback);
-    this.strategyFactory = null;
+    this.mode = null;
   }
 
   private void analyzeReferencesInProgramClasses(
@@ -459,13 +526,15 @@ public final class LambdaMerger {
     private ApplyStrategy(
         DexEncodedMethod method,
         IRCode code,
+        DexEncodedMethod context,
         LambdaMergerOptimizationInfoFixer optimizationInfoFixer) {
       super(
           LambdaMerger.this.appView,
           LambdaMerger.this::strategyProvider,
           lambdaChecker,
           method,
-          code);
+          code,
+          context);
       this.optimizationInfoFixer = optimizationInfoFixer;
     }
 

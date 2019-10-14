@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CheckCast;
@@ -147,12 +148,25 @@ public abstract class CodeProcessor extends DefaultInstructionVisitor<Void> {
   public final ListIterator<BasicBlock> blocks;
   private InstructionListIterator instructions;
 
+  // The inlining context (caller), if any.
+  private final DexEncodedMethod context;
+
   CodeProcessor(
       AppView<AppInfoWithLiveness> appView,
       Function<DexType, Strategy> strategyProvider,
       LambdaTypeVisitor lambdaChecker,
       DexEncodedMethod method,
       IRCode code) {
+    this(appView, strategyProvider, lambdaChecker, method, code, null);
+  }
+
+  CodeProcessor(
+      AppView<AppInfoWithLiveness> appView,
+      Function<DexType, Strategy> strategyProvider,
+      LambdaTypeVisitor lambdaChecker,
+      DexEncodedMethod method,
+      IRCode code,
+      DexEncodedMethod context) {
     this.appView = appView;
     this.strategyProvider = strategyProvider;
     this.factory = appView.dexItemFactory();
@@ -161,6 +175,7 @@ public abstract class CodeProcessor extends DefaultInstructionVisitor<Void> {
     this.method = method;
     this.code = code;
     this.blocks = code.listIterator();
+    this.context = context;
   }
 
   public final InstructionListIterator instructions() {
@@ -176,6 +191,19 @@ public abstract class CodeProcessor extends DefaultInstructionVisitor<Void> {
         instructions.next().accept(this);
       }
     }
+  }
+
+  private boolean shouldRewrite(DexField field) {
+    return shouldRewrite(field.holder);
+  }
+
+  private boolean shouldRewrite(DexMethod method) {
+    return shouldRewrite(method.holder);
+  }
+
+  private boolean shouldRewrite(DexType type) {
+    // Rewrite references to lambda classes if we are outside the class.
+    return type != (context != null ? context : method).method.holder;
   }
 
   @Override
@@ -199,7 +227,7 @@ public abstract class CodeProcessor extends DefaultInstructionVisitor<Void> {
       // Invalidate signature, there still should not be lambda references.
       lambdaChecker.accept(invokeMethod.getInvokedMethod().proto);
       // Only rewrite references to lambda classes if we are outside the class.
-      if (invokeMethod.getInvokedMethod().holder != this.method.method.holder) {
+      if (shouldRewrite(invokeMethod.getInvokedMethod())) {
         process(strategy, invokeMethod);
       }
       return null;
@@ -218,7 +246,7 @@ public abstract class CodeProcessor extends DefaultInstructionVisitor<Void> {
     Strategy strategy = strategyProvider.apply(newInstance.clazz);
     if (strategy.isValidNewInstance(this, newInstance)) {
       // Only rewrite references to lambda classes if we are outside the class.
-      if (newInstance.clazz != this.method.method.holder) {
+      if (shouldRewrite(newInstance.clazz)) {
         process(strategy, newInstance);
       }
     }
@@ -260,7 +288,7 @@ public abstract class CodeProcessor extends DefaultInstructionVisitor<Void> {
     DexField field = instanceGet.getField();
     Strategy strategy = strategyProvider.apply(field.holder);
     if (strategy.isValidInstanceFieldRead(this, field)) {
-      if (field.holder != this.method.method.holder) {
+      if (shouldRewrite(field)) {
         // Only rewrite references to lambda classes if we are outside the class.
         process(strategy, instanceGet);
       }
@@ -279,7 +307,7 @@ public abstract class CodeProcessor extends DefaultInstructionVisitor<Void> {
     DexField field = instancePut.getField();
     Strategy strategy = strategyProvider.apply(field.holder);
     if (strategy.isValidInstanceFieldWrite(this, field)) {
-      if (field.holder != this.method.method.holder) {
+      if (shouldRewrite(field)) {
         // Only rewrite references to lambda classes if we are outside the class.
         process(strategy, instancePut);
       }
@@ -298,7 +326,7 @@ public abstract class CodeProcessor extends DefaultInstructionVisitor<Void> {
     DexField field = staticGet.getField();
     Strategy strategy = strategyProvider.apply(field.holder);
     if (strategy.isValidStaticFieldRead(this, field)) {
-      if (field.holder != this.method.method.holder) {
+      if (shouldRewrite(field)) {
         // Only rewrite references to lambda classes if we are outside the class.
         process(strategy, staticGet);
       }
@@ -314,7 +342,7 @@ public abstract class CodeProcessor extends DefaultInstructionVisitor<Void> {
     DexField field = staticPut.getField();
     Strategy strategy = strategyProvider.apply(field.holder);
     if (strategy.isValidStaticFieldWrite(this, field)) {
-      if (field.holder != this.method.method.holder) {
+      if (shouldRewrite(field)) {
         // Only rewrite references to lambda classes if we are outside the class.
         process(strategy, staticPut);
       }

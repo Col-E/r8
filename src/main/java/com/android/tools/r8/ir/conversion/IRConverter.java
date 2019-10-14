@@ -287,10 +287,11 @@ public class IRConverter {
           options.enableTreeShakingOfLibraryMethodOverrides
               ? new LibraryMethodOverrideAnalysis(appViewWithLiveness)
               : null;
-      this.lensCodeRewriter = new LensCodeRewriter(appViewWithLiveness, lambdaRewriter);
-      this.inliner = new Inliner(appViewWithLiveness, mainDexClasses, lensCodeRewriter);
       this.lambdaMerger =
           options.enableLambdaMerging ? new LambdaMerger(appViewWithLiveness) : null;
+      this.lensCodeRewriter = new LensCodeRewriter(appViewWithLiveness, lambdaRewriter);
+      this.inliner =
+          new Inliner(appViewWithLiveness, mainDexClasses, lambdaMerger, lensCodeRewriter);
       this.outliner = new Outliner(appViewWithLiveness, this);
       this.memberValuePropagation =
           options.enableValuePropagation ? new MemberValuePropagation(appViewWithLiveness) : null;
@@ -879,7 +880,7 @@ public class IRConverter {
 
   private void collectLambdaMergingCandidates(DexApplication application) {
     if (lambdaMerger != null) {
-      lambdaMerger.collectGroupCandidates(application, appView.withLiveness());
+      lambdaMerger.collectGroupCandidates(application);
     }
   }
 
@@ -1114,6 +1115,11 @@ public class IRConverter {
           assert code.isConsistentSSA();
         }
       }
+    }
+
+    if (lambdaMerger != null) {
+      lambdaMerger.rewriteCode(method, code);
+      assert code.isConsistentSSA();
     }
 
     if (typeChecker != null && !typeChecker.check(code)) {
@@ -1351,7 +1357,7 @@ public class IRConverter {
     previous = printMethod(code, "IR after twr close resource rewriter (SSA)", previous);
 
     if (lambdaMerger != null) {
-      lambdaMerger.processMethodCode(method, code);
+      lambdaMerger.analyzeCode(method, code);
       assert code.isConsistentSSA();
     }
 

@@ -46,6 +46,7 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.ir.optimize.inliner.NopWhyAreYouNotInliningReporter;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
+import com.android.tools.r8.ir.optimize.lambda.LambdaMerger;
 import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -70,6 +71,7 @@ public class Inliner {
 
   protected final AppView<AppInfoWithLiveness> appView;
   private final Set<DexMethod> blacklist;
+  private final LambdaMerger lambdaMerger;
   private final LensCodeRewriter lensCodeRewriter;
   final MainDexClasses mainDexClasses;
 
@@ -82,10 +84,12 @@ public class Inliner {
   public Inliner(
       AppView<AppInfoWithLiveness> appView,
       MainDexClasses mainDexClasses,
+      LambdaMerger lambdaMerger,
       LensCodeRewriter lensCodeRewriter) {
     Kotlin.Intrinsics intrinsics = appView.dexItemFactory().kotlin.intrinsics;
     this.appView = appView;
     this.blacklist = ImmutableSet.of(intrinsics.throwNpe, intrinsics.throwParameterIsNullException);
+    this.lambdaMerger = lambdaMerger;
     this.lensCodeRewriter = lensCodeRewriter;
     this.mainDexClasses = mainDexClasses;
   }
@@ -585,6 +589,7 @@ public class Inliner {
         ValueNumberGenerator generator,
         AppView<? extends AppInfoWithSubtyping> appView,
         Position callerPosition,
+        LambdaMerger lambdaMerger,
         LensCodeRewriter lensCodeRewriter) {
       DexItemFactory dexItemFactory = appView.dexItemFactory();
       InternalOptions options = appView.options();
@@ -752,6 +757,9 @@ public class Inliner {
       if (!target.isProcessed()) {
         lensCodeRewriter.rewrite(code, target);
       }
+      if (lambdaMerger != null) {
+        lambdaMerger.rewriteCodeForInlining(target, code, context);
+      }
       assert code.isConsistentSSA();
       return new InlineeWithReason(code, reason);
     }
@@ -910,6 +918,7 @@ public class Inliner {
                   code.valueNumberGenerator,
                   appView,
                   getPositionForInlining(invoke, context),
+                  lambdaMerger,
                   lensCodeRewriter);
           if (strategy.willExceedBudget(
               code, invoke, inlinee, block, whyAreYouNotInliningReporter)) {
