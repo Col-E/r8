@@ -2474,11 +2474,9 @@ public class Enqueuer {
       }
     }
     markParameterAndReturnTypesAsLive(method);
-    if (appView.definitionFor(method.method.holder).isProgramClass()) {
-      processAnnotations(method, method.annotations.annotations);
-      method.parameterAnnotationsList.forEachAnnotation(
-          annotation -> processAnnotation(method, annotation));
-    }
+    processAnnotations(method, method.annotations.annotations);
+    method.parameterAnnotationsList.forEachAnnotation(
+        annotation -> processAnnotation(method, annotation));
     method.registerCodeReferences(new UseRegistry(options.itemFactory, clazz, method));
 
     // Add all dependent members to the workqueue.
