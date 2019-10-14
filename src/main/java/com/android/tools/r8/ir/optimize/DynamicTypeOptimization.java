@@ -58,7 +58,7 @@ public class DynamicTypeOptimization implements Assumer {
         continue;
       }
 
-      TypeLatticeElement dynamicType;
+      TypeLatticeElement dynamicUpperBoundType;
       ClassTypeLatticeElement dynamicLowerBoundType;
       if (current.isInvokeMethod()) {
         InvokeMethod invoke = current.asInvokeMethod();
@@ -80,7 +80,7 @@ public class DynamicTypeOptimization implements Assumer {
           continue;
         }
 
-        dynamicType = optimizationInfo.getDynamicReturnType();
+        dynamicUpperBoundType = optimizationInfo.getDynamicReturnType();
         dynamicLowerBoundType = optimizationInfo.getDynamicLowerBoundType();
       } else if (current.isStaticGet()) {
         StaticGet staticGet = current.asStaticGet();
@@ -89,23 +89,23 @@ public class DynamicTypeOptimization implements Assumer {
           continue;
         }
 
-        dynamicType = encodedField.getOptimizationInfo().getDynamicType();
-        // TODO(b/140234782): Extend to field values.
-        dynamicLowerBoundType = null;
+        dynamicUpperBoundType = encodedField.getOptimizationInfo().getDynamicUpperBoundType();
+        dynamicLowerBoundType = encodedField.getOptimizationInfo().getDynamicLowerBoundType();
       } else {
         continue;
       }
 
       Value outValue = current.outValue();
       boolean isTrivial =
-          (dynamicType == null || !dynamicType.strictlyLessThan(outValue.getTypeLattice(), appView))
+          (dynamicUpperBoundType == null
+                  || !dynamicUpperBoundType.strictlyLessThan(outValue.getTypeLattice(), appView))
               && dynamicLowerBoundType == null;
       if (isTrivial) {
         continue;
       }
 
-      if (dynamicType == null) {
-        dynamicType = outValue.getTypeLattice();
+      if (dynamicUpperBoundType == null) {
+        dynamicUpperBoundType = outValue.getTypeLattice();
       }
 
       // Split block if needed (only debug instructions are allowed after the throwing
@@ -121,7 +121,12 @@ public class DynamicTypeOptimization implements Assumer {
       // Insert AssumeDynamicType instruction.
       Assume<DynamicTypeAssumption> assumeInstruction =
           Assume.createAssumeDynamicTypeInstruction(
-              dynamicType, dynamicLowerBoundType, specializedOutValue, outValue, current, appView);
+              dynamicUpperBoundType,
+              dynamicLowerBoundType,
+              specializedOutValue,
+              outValue,
+              current,
+              appView);
       assumeInstruction.setPosition(
           appView.options().debug ? current.getPosition() : Position.none());
       if (insertionBlock == block) {

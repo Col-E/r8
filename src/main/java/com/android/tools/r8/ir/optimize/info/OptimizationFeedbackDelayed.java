@@ -95,8 +95,14 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
   }
 
   @Override
-  public void markFieldHasDynamicType(DexEncodedField field, TypeLatticeElement type) {
-    getFieldOptimizationInfoForUpdating(field).setDynamicType(type);
+  public void markFieldHasDynamicLowerBoundType(
+      DexEncodedField field, ClassTypeLatticeElement type) {
+    getFieldOptimizationInfoForUpdating(field).setDynamicLowerBoundType(type);
+  }
+
+  @Override
+  public void markFieldHasDynamicUpperBoundType(DexEncodedField field, TypeLatticeElement type) {
+    getFieldOptimizationInfoForUpdating(field).setDynamicUpperBoundType(type);
   }
 
   @Override

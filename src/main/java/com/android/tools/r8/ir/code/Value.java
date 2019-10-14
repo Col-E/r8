@@ -1213,7 +1213,8 @@ public class Value {
     if (aliasedValue != null) {
       // If there is an alias of the receiver, which is defined by an Assume<DynamicTypeAssumption>
       // instruction, then use the dynamic type as the refined receiver type.
-      lattice = aliasedValue.definition.asAssumeDynamicType().getAssumption().getType();
+      lattice =
+          aliasedValue.definition.asAssumeDynamicType().getAssumption().getDynamicUpperBoundType();
 
       // For precision, verify that the dynamic type is at least as precise as the static type.
       assert lattice.lessThanOrEqualUpToNullability(typeLattice, appView)
@@ -1254,7 +1255,7 @@ public class Value {
     Value aliasedValue = getSpecificAliasedValue(value -> value.definition.isAssumeDynamicType());
     if (aliasedValue != null) {
       ClassTypeLatticeElement lattice =
-          aliasedValue.definition.asAssumeDynamicType().getAssumption().getLowerBoundType();
+          aliasedValue.definition.asAssumeDynamicType().getAssumption().getDynamicLowerBoundType();
       return lattice != null && typeLattice.isDefinitelyNotNull() && lattice.isNullable()
           ? lattice.asMeetWithNotNull().asClassTypeLatticeElement()
           : lattice;

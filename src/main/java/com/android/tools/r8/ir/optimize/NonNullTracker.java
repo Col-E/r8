@@ -134,8 +134,8 @@ public class NonNullTracker implements Assumer {
             DexEncodedField encodedField = appView.appInfo().resolveField(field);
             if (encodedField != null) {
               FieldOptimizationInfo optimizationInfo = encodedField.getOptimizationInfo();
-              if (optimizationInfo.getDynamicType() != null
-                  && optimizationInfo.getDynamicType().isDefinitelyNotNull()) {
+              if (optimizationInfo.getDynamicUpperBoundType() != null
+                  && optimizationInfo.getDynamicUpperBoundType().isDefinitelyNotNull()) {
                 knownToBeNonNullValues.add(outValue);
               }
 

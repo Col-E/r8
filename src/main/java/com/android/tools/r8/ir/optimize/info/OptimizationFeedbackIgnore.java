@@ -36,7 +36,11 @@ public abstract class OptimizationFeedbackIgnore extends OptimizationFeedback {
   public void markFieldAsPropagated(DexEncodedField field) {}
 
   @Override
-  public void markFieldHasDynamicType(DexEncodedField field, TypeLatticeElement type) {}
+  public void markFieldHasDynamicLowerBoundType(
+      DexEncodedField field, ClassTypeLatticeElement type) {}
+
+  @Override
+  public void markFieldHasDynamicUpperBoundType(DexEncodedField field, TypeLatticeElement type) {}
 
   @Override
   public void markFieldBitsRead(DexEncodedField field, int bitsRead) {}

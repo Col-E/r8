@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -245,9 +246,14 @@ public class FieldValueAnalysis {
   private void updateFieldOptimizationInfo(DexEncodedField field, Value value) {
     TypeLatticeElement fieldType =
         TypeLatticeElement.fromDexType(field.field.type, Nullability.maybeNull(), appView);
-    TypeLatticeElement valueType = value.getTypeLattice();
-    if (valueType.strictlyLessThan(fieldType, appView)) {
-      feedback.markFieldHasDynamicType(field, valueType);
+    TypeLatticeElement dynamicUpperBoundType = value.getDynamicUpperBoundType(appView);
+    if (dynamicUpperBoundType.strictlyLessThan(fieldType, appView)) {
+      feedback.markFieldHasDynamicUpperBoundType(field, dynamicUpperBoundType);
+    }
+    ClassTypeLatticeElement dynamicLowerBoundType = value.getDynamicLowerBoundType(appView);
+    if (dynamicLowerBoundType != null) {
+      assert dynamicLowerBoundType.lessThanOrEqual(dynamicUpperBoundType, appView);
+      feedback.markFieldHasDynamicLowerBoundType(field, dynamicLowerBoundType);
     }
   }
 }

@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.optimize.info;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import java.util.function.Function;
 
@@ -22,12 +23,16 @@ public class MutableFieldOptimizationInfo extends FieldOptimizationInfo {
   private int readBits = 0;
   private boolean cannotBeKept = false;
   private boolean valueHasBeenPropagated = false;
-  private TypeLatticeElement dynamicType = null;
+  private ClassTypeLatticeElement dynamicLowerBoundType = null;
+  private TypeLatticeElement dynamicUpperBoundType = null;
 
   public void fixupClassTypeReferences(
       Function<DexType, DexType> mapping, AppView<? extends AppInfoWithSubtyping> appView) {
-    if (dynamicType != null) {
-      dynamicType = dynamicType.fixupClassTypeReferences(mapping, appView);
+    if (dynamicLowerBoundType != null) {
+      dynamicLowerBoundType = dynamicLowerBoundType.fixupClassTypeReferences(mapping, appView);
+    }
+    if (dynamicUpperBoundType != null) {
+      dynamicUpperBoundType = dynamicUpperBoundType.fixupClassTypeReferences(mapping, appView);
     }
   }
 
@@ -58,12 +63,21 @@ public class MutableFieldOptimizationInfo extends FieldOptimizationInfo {
   }
 
   @Override
-  public TypeLatticeElement getDynamicType() {
-    return dynamicType;
+  public ClassTypeLatticeElement getDynamicLowerBoundType() {
+    return dynamicLowerBoundType;
   }
 
-  void setDynamicType(TypeLatticeElement type) {
-    dynamicType = type;
+  void setDynamicLowerBoundType(ClassTypeLatticeElement type) {
+    dynamicLowerBoundType = type;
+  }
+
+  @Override
+  public TypeLatticeElement getDynamicUpperBoundType() {
+    return dynamicUpperBoundType;
+  }
+
+  void setDynamicUpperBoundType(TypeLatticeElement type) {
+    dynamicUpperBoundType = type;
   }
 
   @Override

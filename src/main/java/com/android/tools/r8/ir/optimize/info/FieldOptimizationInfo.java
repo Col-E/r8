@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.info;
 
+import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 
 public abstract class FieldOptimizationInfo {
@@ -18,7 +19,9 @@ public abstract class FieldOptimizationInfo {
    */
   public abstract int getReadBits();
 
-  public abstract TypeLatticeElement getDynamicType();
+  public abstract ClassTypeLatticeElement getDynamicLowerBoundType();
+
+  public abstract TypeLatticeElement getDynamicUpperBoundType();
 
   public abstract boolean valueHasBeenPropagated();
 

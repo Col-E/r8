@@ -40,7 +40,13 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
   }
 
   @Override
-  public void markFieldHasDynamicType(DexEncodedField field, TypeLatticeElement type) {
+  public void markFieldHasDynamicLowerBoundType(
+      DexEncodedField field, ClassTypeLatticeElement type) {
+    // Ignored.
+  }
+
+  @Override
+  public void markFieldHasDynamicUpperBoundType(DexEncodedField field, TypeLatticeElement type) {
     // Ignored.
   }
 

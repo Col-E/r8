@@ -1524,7 +1524,11 @@ public class CodeRewriter {
                 value -> !value.isPhi() && value.definition.isAssumeDynamicType());
         if (aliasedValue != null) {
           TypeLatticeElement dynamicType =
-              aliasedValue.definition.asAssumeDynamicType().getAssumption().getType();
+              aliasedValue
+                  .definition
+                  .asAssumeDynamicType()
+                  .getAssumption()
+                  .getDynamicUpperBoundType();
           if (dynamicType.isDefinitelyNull()) {
             result = InstanceOfResult.FALSE;
           } else if (dynamicType.lessThanOrEqual(instanceOfType, appView)
