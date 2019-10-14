@@ -199,6 +199,16 @@ public class GraphReporter {
   }
 
   public KeepReasonWitness reportClassReferencedFrom(
+      DexProgramClass clazz, DexProgramClass implementer) {
+    if (keptGraphConsumer != null) {
+      ClassGraphNode source = getClassGraphNode(implementer.type);
+      ClassGraphNode target = getClassGraphNode(clazz.type);
+      return reportEdge(source, target, EdgeKind.ReferencedFrom);
+    }
+    return KeepReasonWitness.INSTANCE;
+  }
+
+  public KeepReasonWitness reportClassReferencedFrom(
       DexProgramClass clazz, DexEncodedMethod method) {
     if (keptGraphConsumer != null) {
       MethodGraphNode source = getMethodGraphNode(method.method);

@@ -226,6 +226,13 @@ public class UnusedArgumentsCollector {
     List<DexEncodedMethod> directMethods = clazz.directMethods();
     for (int i = 0; i < directMethods.size(); i++) {
       DexEncodedMethod method = directMethods.get(i);
+
+      // If this is a private or static method that is targeted by an invoke-super instruction, then
+      // don't remove any unused arguments.
+      if (appView.appInfo().brokenSuperInvokes.contains(method.method)) {
+        continue;
+      }
+
       RemovedArgumentsInfo unused = collectUnusedArguments(method);
       if (unused != null && unused.hasRemovedArguments()) {
         DexProto newProto = createProtoWithRemovedArguments(method, unused);

@@ -25,6 +25,7 @@ import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -108,32 +109,41 @@ public class TreePruner {
   }
 
   private void pruneUnusedInterfaces(DexProgramClass clazz) {
-    int numberOfReachableInterfaces = 0;
+    boolean implementsUnusedInterfaces = false;
     for (DexType type : clazz.interfaces.values) {
       // TODO(christofferqa): Extend unused interface removal to library classes.
-      if (isTypeLive(type)) {
-        numberOfReachableInterfaces++;
+      if (!isTypeLive(type)) {
+        implementsUnusedInterfaces = true;
+        break;
       }
     }
 
-    if (numberOfReachableInterfaces == clazz.interfaces.size()) {
+    if (!implementsUnusedInterfaces) {
       return;
     }
 
-    if (numberOfReachableInterfaces == 0) {
-      clazz.interfaces = DexTypeList.empty();
-      return;
-    }
-
-    DexType[] reachableInterfaces = new DexType[numberOfReachableInterfaces];
-    int i = 0;
+    Set<DexType> reachableInterfaces = new LinkedHashSet<>();
     for (DexType type : clazz.interfaces.values) {
-      if (isTypeLive(type)) {
-        reachableInterfaces[i] = type;
-        i++;
+      retainReachableInterfacesFrom(type, reachableInterfaces);
+    }
+    if (reachableInterfaces.isEmpty()) {
+      clazz.interfaces = DexTypeList.empty();
+    } else {
+      clazz.interfaces = new DexTypeList(reachableInterfaces.toArray(DexType.EMPTY_ARRAY));
+    }
+  }
+
+  private void retainReachableInterfacesFrom(DexType type, Set<DexType> reachableInterfaces) {
+    if (isTypeLive(type)) {
+      reachableInterfaces.add(type);
+    } else {
+      DexProgramClass unusedInterface = appView.definitionForProgramType(type);
+      assert unusedInterface != null;
+      assert unusedInterface.isInterface();
+      for (DexType interfaceType : unusedInterface.interfaces.values) {
+        retainReachableInterfacesFrom(interfaceType, reachableInterfaces);
       }
     }
-    clazz.interfaces = new DexTypeList(reachableInterfaces);
   }
 
   private void pruneMembersAndAttributes(DexProgramClass clazz) {

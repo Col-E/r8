@@ -182,6 +182,10 @@ public class Enqueuer {
   /** Set of live types defined in the library and classpath. Used to avoid duplicate tracing. */
   private final Set<DexClass> liveNonProgramTypes = Sets.newIdentityHashSet();
 
+  /** Mapping from each unused interface to the set of live types that implements the interface. */
+  private final Map<DexProgramClass, Set<DexProgramClass>> unusedInterfaceTypes =
+      new IdentityHashMap<>();
+
   /**
    * Set of proto extension types that are technically live, but which we have not traced because
    * they are dead according to the generated extension registry shrinker.
@@ -226,7 +230,7 @@ public class Enqueuer {
    * Set of methods that belong to live classes and can be reached by invokes. These need to be
    * kept.
    */
-  private final SetWithReason<DexEncodedMethod> liveMethods;
+  private final LiveMethodsSet liveMethods;
 
   /**
    * Set of fields that belong to live classes and can be reached by invokes. These need to be kept.
@@ -309,7 +313,7 @@ public class Enqueuer {
     liveAnnotations = new SetWithReason<>(graphReporter::registerAnnotation);
     instantiatedTypes = new SetWithReason<>(graphReporter::registerClass);
     targetedMethods = new SetWithReason<>(graphReporter::registerMethod);
-    liveMethods = new SetWithReason<>(graphReporter::registerMethod);
+    liveMethods = new LiveMethodsSet(graphReporter::registerMethod);
     liveFields = new SetWithReason<>(graphReporter::registerField);
     instantiatedInterfaceTypes = new SetWithReason<>(graphReporter::registerInterface);
   }
@@ -483,7 +487,7 @@ public class Enqueuer {
   private boolean enqueueMarkMethodLiveAction(
       DexProgramClass clazz, DexEncodedMethod method, KeepReason reason) {
     assert method.method.holder == clazz.type;
-    if (liveMethods.add(method, reason)) {
+    if (liveMethods.add(clazz, method, reason)) {
       workList.enqueueMarkMethodLiveAction(clazz, method, reason);
       return true;
     }
@@ -1128,7 +1132,7 @@ public class Enqueuer {
     KeepReason reason = KeepReason.reachableFromLiveType(holder.type);
 
     for (DexType iface : holder.interfaces.values) {
-      markInterfaceTypeAsLiveViaInheritanceClause(iface, reason);
+      markInterfaceTypeAsLiveViaInheritanceClause(iface, holder);
     }
 
     if (holder.superType != null) {
@@ -1138,6 +1142,10 @@ public class Enqueuer {
       seen.setParent(seenForSuper);
       markTypeAsLive(holder.superType, reason);
     }
+
+    // If this is an interface that has just become live, then report previously seen but unreported
+    // implemented-by edges.
+    transitionUnusedInterfaceToLive(holder);
 
     // We cannot remove virtual methods defined earlier in the type hierarchy if it is widening
     // access and is defined in an interface:
@@ -1204,32 +1212,29 @@ public class Enqueuer {
     }
   }
 
-  private void markInterfaceTypeAsLiveViaInheritanceClause(DexType type, KeepReason reason) {
-    if (appView.options().enableUnusedInterfaceRemoval && !mode.isTracingMainDex()) {
-      DexProgramClass clazz = getProgramClassOrNull(type);
-      if (clazz == null) {
-        return;
-      }
+  private void markInterfaceTypeAsLiveViaInheritanceClause(
+      DexType type, DexProgramClass implementer) {
+    DexProgramClass clazz = getProgramClassOrNull(type);
+    if (clazz == null) {
+      return;
+    }
 
-      assert clazz.isInterface();
-
-      if (!clazz.interfaces.isEmpty()) {
-        markTypeAsLive(type, reason);
-        return;
-      }
-
-      for (DexEncodedMethod method : clazz.virtualMethods()) {
-        if (!method.accessFlags.isAbstract()) {
-          markTypeAsLive(type, reason);
-          return;
-        }
-      }
-
-      // No need to mark the type as live. If an interface type is only reachable via the
-      // inheritance clause of another type, and the interface only has abstract methods, it can
-      // simply be removed from the inheritance clause.
+    if (!appView.options().enableUnusedInterfaceRemoval || mode.isTracingMainDex()) {
+      markTypeAsLive(clazz, graphReporter.reportClassReferencedFrom(clazz, implementer));
     } else {
-      markTypeAsLive(type, reason);
+      if (liveTypes.contains(clazz)) {
+        // The interface is already live, so make sure to report this implements-edge.
+        graphReporter.reportClassReferencedFrom(clazz, implementer);
+      } else {
+        // No need to mark the type as live. If an interface type is only reachable via the
+        // inheritance clause of another type it can simply be removed from the inheritance clause.
+        // The interface is needed if it has a live default interface method or field, though.
+        // Therefore, we record that this implemented-by edge has not been reported, such that we
+        // can report it in the future if one its members becomes live.
+        unusedInterfaceTypes
+            .computeIfAbsent(clazz, ignore -> Sets.newIdentityHashSet())
+            .add(implementer);
+      }
     }
   }
 
@@ -1394,9 +1399,7 @@ public class Enqueuer {
       // Already targeted.
       return;
     }
-    markTypeAsLive(method.method.holder,
-        holder -> graphReporter.reportClassReferencedFrom(holder, method));
-    markParameterAndReturnTypesAsLive(method);
+    markReferencedTypesAsLive(method);
     processAnnotations(method, method.annotations.annotations);
     method.parameterAnnotationsList.forEachAnnotation(
         annotation -> processAnnotation(method, annotation));
@@ -1650,6 +1653,19 @@ public class Enqueuer {
     } while (current != null
         && current.isProgramClass()
         && !instantiatedTypes.contains(current.asProgramClass()));
+  }
+
+  private void transitionUnusedInterfaceToLive(DexProgramClass clazz) {
+    if (clazz.isInterface()) {
+      Set<DexProgramClass> implementedBy = unusedInterfaceTypes.remove(clazz);
+      if (implementedBy != null) {
+        for (DexProgramClass implementer : implementedBy) {
+          markTypeAsLive(clazz, graphReporter.reportClassReferencedFrom(clazz, implementer));
+        }
+      }
+    } else {
+      assert !unusedInterfaceTypes.containsKey(clazz);
+    }
   }
 
   private void markFieldAsTargeted(DexField field, DexEncodedMethod context) {
@@ -2083,7 +2099,7 @@ public class Enqueuer {
     }
 
     if (resolutionTarget.accessFlags.isPrivate() || resolutionTarget.accessFlags.isStatic()) {
-      brokenSuperInvokes.add(method);
+      brokenSuperInvokes.add(resolutionTarget.method);
     }
     DexProgramClass resolutionTargetClass = getProgramClassOrNull(resolutionTarget.method.holder);
     if (resolutionTargetClass != null) {
@@ -2103,7 +2119,7 @@ public class Enqueuer {
       return;
     }
     if (target.accessFlags.isPrivate()) {
-      brokenSuperInvokes.add(method);
+      brokenSuperInvokes.add(resolutionTarget.method);
     }
     if (Log.ENABLED) {
       Log.verbose(getClass(), "Adding super constraint from `%s` to `%s`", from.method,
@@ -2484,6 +2500,12 @@ public class Enqueuer {
 
     // Notify analyses.
     analyses.forEach(analysis -> analysis.processNewlyLiveMethod(method));
+  }
+
+  private void markReferencedTypesAsLive(DexEncodedMethod method) {
+    markTypeAsLive(
+        method.method.holder, clazz -> graphReporter.reportClassReferencedFrom(clazz, method));
+    markParameterAndReturnTypesAsLive(method);
   }
 
   private void markParameterAndReturnTypesAsLive(DexEncodedMethod method) {
@@ -2874,6 +2896,31 @@ public class Enqueuer {
     }
 
     Set<T> getItems() {
+      return Collections.unmodifiableSet(items);
+    }
+  }
+
+  private class LiveMethodsSet {
+
+    private final Set<DexEncodedMethod> items = Sets.newIdentityHashSet();
+
+    private final BiConsumer<DexEncodedMethod, KeepReason> register;
+
+    LiveMethodsSet(BiConsumer<DexEncodedMethod, KeepReason> register) {
+      this.register = register;
+    }
+
+    boolean add(DexProgramClass clazz, DexEncodedMethod method, KeepReason reason) {
+      register.accept(method, reason);
+      transitionUnusedInterfaceToLive(clazz);
+      return items.add(method);
+    }
+
+    boolean contains(DexEncodedMethod method) {
+      return items.contains(method);
+    }
+
+    Set<DexEncodedMethod> getItems() {
       return Collections.unmodifiableSet(items);
     }
   }
