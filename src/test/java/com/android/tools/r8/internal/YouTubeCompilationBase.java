@@ -28,13 +28,13 @@ public abstract class YouTubeCompilationBase extends CompilationTestBase {
     this.base = "third_party/youtube/youtube.android_" + majorVersion + "." + minorVersion + "/";
   }
 
-  public List<Path> getKeepRuleFiles() {
+  protected List<Path> getKeepRuleFiles() {
     return ImmutableList.of(
         Paths.get(base).resolve(PG_CONF),
         Paths.get(ToolHelper.PROGUARD_SETTINGS_FOR_INTERNAL_APPS).resolve(PG_CONF));
   }
 
-  public List<Path> getProgramFiles() throws IOException {
+  protected List<Path> getProgramFiles() throws IOException {
     List<Path> result = new ArrayList<>();
     for (Path keepRuleFile : getKeepRuleFiles()) {
       for (String line : FileUtils.readAllLines(keepRuleFile)) {
@@ -47,12 +47,12 @@ public abstract class YouTubeCompilationBase extends CompilationTestBase {
     return result;
   }
 
-  public Path getReleaseApk() {
+  Path getReleaseApk() {
     return Paths.get(base).resolve("YouTubeRelease.apk");
   }
 
-  public Path getReleaseProguardMap() {
-    return Paths.get(base).resolve("YouTubeRelease_proguard.map");
+  Path getReleaseProguardMap() {
+    return Paths.get(base).resolve(PG_MAP);
   }
 
   void runR8AndCheckVerification(CompilationMode mode, String input) throws Exception {
