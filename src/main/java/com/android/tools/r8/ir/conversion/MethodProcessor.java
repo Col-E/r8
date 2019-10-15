@@ -77,7 +77,7 @@ public class MethodProcessor {
    * <p>All nodes in the graph are extracted if called repeatedly until null is returned. Please
    * note that there are no cycles in this graph (see {@link CycleEliminator#breakCycles}).
    */
-  static void extractLeaves(Iterable<Node> nodes, Consumer<Node> fn) {
+  static void extractLeaves(Set<Node> nodes, Consumer<Node> fn) {
     Set<Node> removed = Sets.newIdentityHashSet();
     Iterator<Node> nodeIterator = nodes.iterator();
     while (nodeIterator.hasNext()) {

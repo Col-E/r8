@@ -12,9 +12,8 @@ import com.android.tools.r8.ir.conversion.CallGraph.Node;
 import com.android.tools.r8.ir.conversion.CallGraphBuilderBase.CycleEliminator;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 import org.junit.Test;
 
 public class NodeExtractionTest extends CallGraphTestBase {
@@ -27,7 +26,7 @@ public class NodeExtractionTest extends CallGraphTestBase {
   @Test
   public void testExtractLeaves_withoutCycle() {
     Node n1, n2, n3, n4, n5, n6;
-    List<Node> nodes;
+    Set<Node> nodes;
 
     n1 = createNode("n1");
     n2 = createNode("n2");
@@ -42,7 +41,7 @@ public class NodeExtractionTest extends CallGraphTestBase {
     n4.addCallerConcurrently(n5);
     n6.addCallerConcurrently(n5);
 
-    nodes = new ArrayList<>();
+    nodes = new TreeSet<>();
     nodes.add(n1);
     nodes.add(n2);
     nodes.add(n3);
@@ -74,7 +73,7 @@ public class NodeExtractionTest extends CallGraphTestBase {
   @Test
   public void testExtractLeaves_withCycle() {
     Node n1, n2, n3, n4, n5, n6;
-    List<Node> nodes;
+    Set<Node> nodes;
 
     n1 = createNode("n1");
     n2 = createNode("n2");
@@ -89,7 +88,7 @@ public class NodeExtractionTest extends CallGraphTestBase {
     n4.addCallerConcurrently(n5);
     n6.addCallerConcurrently(n5);
 
-    nodes = new ArrayList<>();
+    nodes = new TreeSet<>();
     nodes.add(n1);
     nodes.add(n2);
     nodes.add(n3);
@@ -126,7 +125,7 @@ public class NodeExtractionTest extends CallGraphTestBase {
   @Test
   public void testExtractRoots_withoutCycle() {
     Node n1, n2, n3, n4, n5, n6;
-    List<Node> nodes;
+    Set<Node> nodes;
 
     n1 = createNode("n1");
     n2 = createNode("n2");
@@ -141,7 +140,7 @@ public class NodeExtractionTest extends CallGraphTestBase {
     n4.addCallerConcurrently(n5);
     n6.addCallerConcurrently(n5);
 
-    nodes = new ArrayList<>();
+    nodes = new TreeSet<>();
     nodes.add(n1);
     nodes.add(n2);
     nodes.add(n3);
@@ -173,7 +172,7 @@ public class NodeExtractionTest extends CallGraphTestBase {
   @Test
   public void testExtractRoots_withCycle() {
     Node n1, n2, n3, n4, n5, n6;
-    List<Node> nodes;
+    Set<Node> nodes;
 
     n1 = createNode("n1");
     n2 = createNode("n2");
@@ -188,7 +187,7 @@ public class NodeExtractionTest extends CallGraphTestBase {
     n4.addCallerConcurrently(n5);
     n6.addCallerConcurrently(n5);
 
-    nodes = new ArrayList<>();
+    nodes = new TreeSet<>();
     nodes.add(n1);
     nodes.add(n2);
     nodes.add(n3);

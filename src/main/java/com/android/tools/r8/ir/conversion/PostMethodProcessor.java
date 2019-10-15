@@ -17,7 +17,7 @@ public class PostMethodProcessor {
    *
    * <p>All nodes in the graph are extracted if called repeatedly until null is returned.
    */
-  static void extractRoots(Iterable<Node> nodes, Consumer<Node> fn) {
+  static void extractRoots(Set<Node> nodes, Consumer<Node> fn) {
     Set<Node> removed = Sets.newIdentityHashSet();
     Iterator<Node> nodeIterator = nodes.iterator();
     while (nodeIterator.hasNext()) {
