@@ -172,7 +172,7 @@ public class StaticClassMerger {
       }
       boolean classHasSynchronizedMethods = false;
       for (DexEncodedMethod method : clazz.methods()) {
-        assert !hasSynchronizedMethods || method.accessFlags.isSynchronized();
+        assert !hasSynchronizedMethods || !method.accessFlags.isSynchronized();
         classHasSynchronizedMethods |= method.accessFlags.isSynchronized();
         Wrapper<DexMethod> wrapper = methodEquivalence.wrap(method.method);
         methodBuckets.add(wrapper);
