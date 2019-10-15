@@ -42,7 +42,7 @@ public abstract class ClassMap<T extends DexClass> {
    * We also allow the transition from Supplier of a null value to the actual value null and vice
    * versa.
    */
-  private final ConcurrentHashMap<DexType, Supplier<T>> classes;
+  private final Map<DexType, Supplier<T>> classes;
 
   /**
    * Class provider if available.
@@ -55,7 +55,7 @@ public abstract class ClassMap<T extends DexClass> {
    */
   private final AtomicReference<ClassProvider<T>> classProvider = new AtomicReference<>();
 
-  ClassMap(ConcurrentHashMap<DexType, Supplier<T>> classes, ClassProvider<T> classProvider) {
+  ClassMap(Map<DexType, Supplier<T>> classes, ClassProvider<T> classProvider) {
     assert classProvider == null || classProvider.getClassKind() == getClassKind();
     this.classes = classes == null ? new ConcurrentHashMap<>() : classes;
     this.classProvider.set(classProvider);

@@ -62,12 +62,12 @@ public class DexItemFactory {
 
   public static final String throwableDescriptorString = "Ljava/lang/Throwable;";
 
-  private final ConcurrentHashMap<DexString, DexString> strings = new ConcurrentHashMap<>();
-  private final ConcurrentHashMap<DexString, DexType> types = new ConcurrentHashMap<>();
-  private final ConcurrentHashMap<DexField, DexField> fields = new ConcurrentHashMap<>();
-  private final ConcurrentHashMap<DexProto, DexProto> protos = new ConcurrentHashMap<>();
-  private final ConcurrentHashMap<DexMethod, DexMethod> methods = new ConcurrentHashMap<>();
-  private final ConcurrentHashMap<DexMethodHandle, DexMethodHandle> methodHandles =
+  private final Map<DexString, DexString> strings = new ConcurrentHashMap<>();
+  private final Map<DexString, DexType> types = new ConcurrentHashMap<>();
+  private final Map<DexField, DexField> fields = new ConcurrentHashMap<>();
+  private final Map<DexProto, DexProto> protos = new ConcurrentHashMap<>();
+  private final Map<DexMethod, DexMethod> methods = new ConcurrentHashMap<>();
+  private final Map<DexMethodHandle, DexMethodHandle> methodHandles =
       new ConcurrentHashMap<>();
 
   // DexDebugEvent Canonicalization.
@@ -1152,7 +1152,7 @@ public class DexItemFactory {
     }
   }
 
-  private static <T extends DexItem> T canonicalize(ConcurrentHashMap<T, T> map, T item) {
+  private static <T extends DexItem> T canonicalize(Map<T, T> map, T item) {
     assert item != null;
     assert !DexItemFactory.isInternalSentinel(item);
     T previous = map.putIfAbsent(item, item);
