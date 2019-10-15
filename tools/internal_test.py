@@ -90,6 +90,8 @@ BENCHMARK_APPS = [
 ]
 
 def find_min_xmx_command(record):
+  assert record['find-xmx-min'] < record['find-xmx-max']
+  assert record['find-xmx-range'] < record['find-xmx-max'] - record['find-xmx-min']
   return [
       'tools/run_on_app.py',
       '--compiler=r8',
