@@ -77,7 +77,7 @@ BENCHMARK_APPS = [
         'find-xmx-min': 800,
         'find-xmx-max': 1200,
         'find-xmx-range': 32,
-        'oom-threshold': 1000,
+        'oom-threshold': 1037,
     },
     {
         'app': 'iosched',
