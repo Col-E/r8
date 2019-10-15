@@ -138,6 +138,7 @@ public class VerticalClassMerger {
     RESOLUTION_FOR_METHODS_MAY_CHANGE,
     SERVICE_LOADER,
     STATIC_INITIALIZERS,
+    STATIC_SYNCHRONIZED_METHODS,
     UNHANDLED_INVOKE_DIRECT,
     UNHANDLED_INVOKE_SUPER,
     UNSAFE_INLINING,
@@ -197,6 +198,9 @@ public class VerticalClassMerger {
           break;
         case UNSUPPORTED_ATTRIBUTES:
           message = "since inner-class attributes are not supported";
+          break;
+        case STATIC_SYNCHRONIZED_METHODS:
+          message = "since it has static synchronized methods which can lead to unwanted behavior";
           break;
         default:
           assert false;
@@ -804,6 +808,14 @@ public class VerticalClassMerger {
       }
     } else {
       assert isStillMergeCandidate(clazz);
+    }
+
+    // Check for static synchronized methods on source
+    if (clazz.hasStaticSynchronizedMethods()) {
+      if (Log.ENABLED) {
+        AbortReason.STATIC_SYNCHRONIZED_METHODS.printLogMessageForClass(clazz);
+      }
+      return;
     }
 
     // Guard against the case where we have two methods that may get the same signature

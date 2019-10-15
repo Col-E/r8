@@ -6,7 +6,6 @@ package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -350,7 +349,7 @@ public class StaticClassMerger {
       return false;
     } else {
       // Check if we can merge the current class into the current global representative.
-      if (globalRepresentative.hasSynchronizedMethods && hasSynchronizedMethods(clazz)) {
+      if (globalRepresentative.hasSynchronizedMethods && clazz.hasStaticSynchronizedMethods()) {
         // We are not allowed to merge synchronized classes with synchronized methods.
         return false;
       }
@@ -379,7 +378,7 @@ public class StaticClassMerger {
     MergeGroup.Key key = group.key(pkg);
     Representative packageRepresentative = representatives.get(key);
     if (packageRepresentative != null) {
-      if (packageRepresentative.hasSynchronizedMethods && hasSynchronizedMethods(clazz)) {
+      if (packageRepresentative.hasSynchronizedMethods && clazz.hasStaticSynchronizedMethods()) {
         // We are not allowed to merge synchronized classes with synchronized methods.
         return false;
       }
@@ -463,15 +462,6 @@ public class StaticClassMerger {
       }
     }
     representatives.remove(key);
-  }
-
-  private boolean hasSynchronizedMethods(DexClass clazz) {
-    for (DexEncodedMethod encodedMethod : clazz.directMethods()) {
-      if (encodedMethod.accessFlags.isSynchronized()) {
-        return true;
-      }
-    }
-    return false;
   }
 
   private boolean mayMergeAcrossPackageBoundaries(DexProgramClass clazz) {

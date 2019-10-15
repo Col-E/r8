@@ -924,4 +924,13 @@ public abstract class DexClass extends DexDefinition {
     assert verifyNoDuplicateMethods();
     return true;
   }
+
+  public boolean hasStaticSynchronizedMethods() {
+    for (DexEncodedMethod encodedMethod : directMethods()) {
+      if (encodedMethod.accessFlags.isStrict() && encodedMethod.accessFlags.isSynchronized()) {
+        return true;
+      }
+    }
+    return false;
+  }
 }
