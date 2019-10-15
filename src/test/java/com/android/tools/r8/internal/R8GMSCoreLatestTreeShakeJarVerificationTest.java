@@ -22,7 +22,7 @@ public class R8GMSCoreLatestTreeShakeJarVerificationTest
   public void buildAndTreeShakeFromDeployJar() throws Exception {
     List<String> additionalProguardConfiguration =
         ImmutableList.of(
-            ToolHelper.PROGUARD_SETTINGS_FOR_INTERNAL_APPS + "/GmsCore_proguard.config");
+            ToolHelper.PROGUARD_SETTINGS_FOR_INTERNAL_APPS + "GmsCore_proguard.config");
     AndroidApp app1 =
         buildAndTreeShakeFromDeployJar(
             CompilationMode.RELEASE,

@@ -47,11 +47,8 @@ public class CallSiteOptimizationInfoPropagator {
   private enum Mode {
     COLLECT, // Set until the end of the 1st round of IR processing. CallSiteOptimizationInfo will
              // be updated in this mode only.
-    REVISIT, // Set once the all methods are processed. IRBuilder will add other instructions that
+    REVISIT  // Set once the all methods are processed. IRBuilder will add other instructions that
              // reflect collected CallSiteOptimizationInfo.
-    FINISH;  // Set once the 2nd round of IR processing is done. Other optimizations that need post
-             // IR processing, e.g., outliner, are still using IRBuilder, and this will isolate the
-             // impact of IR manipulation due to this optimization.
   }
 
   private final AppView<AppInfoWithLiveness> appView;
@@ -251,14 +248,13 @@ public class CallSiteOptimizationInfoPropagator {
         }
       }
     }
+    mode = Mode.REVISIT;
     if (targetsToRevisit.isEmpty()) {
-      mode = Mode.FINISH;
       return;
     }
     if (revisitedMethods != null) {
       revisitedMethods.addAll(targetsToRevisit);
     }
-    mode = Mode.REVISIT;
     List<Future<?>> futures = new ArrayList<>();
     for (DexEncodedMethod method : targetsToRevisit) {
       futures.add(
@@ -269,6 +265,5 @@ public class CallSiteOptimizationInfoPropagator {
               }));
     }
     ThreadUtils.awaitFutures(futures);
-    mode = Mode.FINISH;
   }
 }

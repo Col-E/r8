@@ -620,8 +620,12 @@ public class IRBuilder {
     }
 
     // Update the IR code if collected call site optimization info has something useful.
+    // While aggregation of parameter information at call sites would be more precise than static
+    // types, those could be still less precise at one single call site, where specific arguments
+    // will be passed during (double) inlining. Instead of adding assumptions and removing invalid
+    // ones, it's better not to insert assumptions for inlinee in the beginning.
     CallSiteOptimizationInfo callSiteOptimizationInfo = method.getCallSiteOptimizationInfo();
-    if (appView.callSiteOptimizationInfoPropagator() != null) {
+    if (method == context && appView.callSiteOptimizationInfoPropagator() != null) {
       appView.callSiteOptimizationInfoPropagator()
           .applyCallSiteOptimizationInfo(ir, callSiteOptimizationInfo);
     }

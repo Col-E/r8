@@ -686,6 +686,7 @@ public class IRConverter {
                   CallSiteInformation.empty(),
                   Outliner::noProcessing),
           executorService);
+      feedback.updateVisibleOptimizationInfo();
       timing.end();
     }
 
@@ -853,6 +854,7 @@ public class IRConverter {
                 // unused out-values.
                 codeRewriter.rewriteMoveResult(code);
                 deadCodeRemover.run(code);
+                codeRewriter.removeAssumeInstructions(code);
                 consumer.accept(code, method);
                 return null;
               }));
