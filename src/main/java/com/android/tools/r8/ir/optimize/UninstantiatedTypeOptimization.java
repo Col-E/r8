@@ -373,7 +373,7 @@ public class UninstantiatedTypeOptimization {
   public void rewrite(IRCode code) {
     Set<BasicBlock> blocksToBeRemoved = Sets.newIdentityHashSet();
     ListIterator<BasicBlock> blockIterator = code.listIterator();
-    Set<Value> valuesToNarrow = new HashSet<>();
+    Set<Value> valuesToNarrow = Sets.newIdentityHashSet();
     while (blockIterator.hasNext()) {
       BasicBlock block = blockIterator.next();
       if (blocksToBeRemoved.contains(block)) {

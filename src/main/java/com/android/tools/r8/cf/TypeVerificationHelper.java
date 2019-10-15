@@ -20,9 +20,9 @@ import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.StackValue;
 import com.android.tools.r8.ir.code.Value;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -223,7 +223,7 @@ public class TypeVerificationHelper {
     computingVerificationTypes = true;
     types = new HashMap<>();
     List<ConstNumber> nullsUsedInPhis = new ArrayList<>();
-    Set<Value> worklist = new HashSet<>();
+    Set<Value> worklist = Sets.newIdentityHashSet();
     {
       InstructionIterator it = code.instructionIterator();
       Instruction instruction = null;

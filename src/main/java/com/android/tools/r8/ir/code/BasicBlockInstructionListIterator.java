@@ -20,7 +20,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
@@ -617,7 +616,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
     if (normalExits.isEmpty()) {
       assert inlineeCanThrow;
       DominatorTree dominatorTree = new DominatorTree(code, MAY_HAVE_UNREACHABLE_BLOCKS);
-      Set<Value> affectedValues = new HashSet<>();
+      Set<Value> affectedValues = Sets.newIdentityHashSet();
       blocksToRemove.addAll(invokePredecessor.unlink(invokeBlock, dominatorTree, affectedValues));
       new TypeAnalysis(appView).narrowing(affectedValues);
     }

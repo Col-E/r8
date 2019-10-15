@@ -152,8 +152,8 @@ public class IRCode {
     worklist.addAll(sorted.reverse());
     while (!worklist.isEmpty()) {
       BasicBlock block = worklist.poll();
-      Set<Value> live = new HashSet<>();
-      Set<Value> liveLocals = new HashSet<>();
+      Set<Value> live = Sets.newIdentityHashSet();
+      Set<Value> liveLocals = Sets.newIdentityHashSet();
       Deque<Value> liveStack = new ArrayDeque<>();
       Set<BasicBlock> exceptionalSuccessors = block.getCatchHandlers().getUniqueTargets();
       for (BasicBlock succ : block.getSuccessors()) {
@@ -631,7 +631,7 @@ public class IRCode {
   }
 
   private boolean consistentDefUseChains() {
-    Set<Value> values = new HashSet<>();
+    Set<Value> values = Sets.newIdentityHashSet();
 
     for (BasicBlock block : blocks) {
       int predecessorCount = block.getPredecessors().size();

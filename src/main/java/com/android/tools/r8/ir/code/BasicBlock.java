@@ -26,6 +26,7 @@ import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
@@ -35,7 +36,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -854,7 +854,7 @@ public class BasicBlock {
   }
 
   public Set<Value> cleanForRemoval() {
-    Set<Value> affectedValues = new HashSet<>();
+    Set<Value> affectedValues = Sets.newIdentityHashSet();
     for (BasicBlock block : successors) {
       affectedValues.addAll(block.getPhis());
       block.removePredecessor(this, affectedValues);

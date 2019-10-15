@@ -38,11 +38,13 @@ import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.ir.regalloc.RegisterPositions.Type;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Multisets;
+import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
@@ -280,7 +282,8 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     boolean isEntryBlock = true;
     for (BasicBlock block : blocks) {
       InstructionListIterator instructionIterator = block.listIterator(code);
-      Set<Value> liveLocalValues = new HashSet<>(liveAtEntrySets.get(block).liveLocalValues);
+      Set<Value> liveLocalValues =
+          SetUtils.newIdentityHashSet(liveAtEntrySets.get(block).liveLocalValues);
       // Skip past arguments and open argument and phi locals.
       if (isEntryBlock) {
         isEntryBlock = false;
@@ -2516,9 +2519,9 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       Map<BasicBlock, LiveAtEntrySets> liveAtEntrySets,
       List<LiveIntervals> liveIntervals) {
     for (BasicBlock block : code.topologicallySortedBlocks()) {
-      Set<Value> live = new HashSet<>();
-      Set<Value> phiOperands = new HashSet<>();
-      Set<Value> liveAtThrowingInstruction = new HashSet<>();
+      Set<Value> live = Sets.newIdentityHashSet();
+      Set<Value> phiOperands = Sets.newIdentityHashSet();
+      Set<Value> liveAtThrowingInstruction = Sets.newIdentityHashSet();
       Set<BasicBlock> exceptionalSuccessors = block.getCatchHandlers().getUniqueTargets();
       for (BasicBlock successor : block.getSuccessors()) {
         // Values live at entry to a block that is an exceptional successor are only live

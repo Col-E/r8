@@ -82,6 +82,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.AssertionProcessing;
 import com.android.tools.r8.utils.InternalOutputMode;
 import com.android.tools.r8.utils.LongInterval;
+import com.android.tools.r8.utils.SetUtils;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.base.Supplier;
@@ -3504,8 +3505,8 @@ public class CodeRewriter {
   }
 
   private static NewInstance findNewInstance(Phi phi) {
-    Set<Phi> seen = new HashSet<>();
-    Set<Value> values = new HashSet<>();
+    Set<Phi> seen = Sets.newIdentityHashSet();
+    Set<Value> values = Sets.newIdentityHashSet();
     recursiveAddOperands(phi, seen, values);
     if (values.size() != 1) {
       throw new CompilationError("Failed to identify unique new-instance for <init>");
@@ -3543,7 +3544,7 @@ public class CodeRewriter {
       if (component.size() == 1 && component.iterator().next() == newInstanceValue) {
         continue;
       }
-      Set<Phi> trivialPhis = new HashSet<>();
+      Set<Phi> trivialPhis = Sets.newIdentityHashSet();
       for (Value value : component) {
         boolean isTrivial = true;
         Phi p = value.asPhi();
@@ -3573,7 +3574,7 @@ public class CodeRewriter {
 
     private int currentTime = 0;
     private final Reference2IntMap<Value> discoverTime = new Reference2IntOpenHashMap<>();
-    private final Set<Value> unassignedSet = new HashSet<>();
+    private final Set<Value> unassignedSet = Sets.newIdentityHashSet();
     private final Deque<Value> unassignedStack = new ArrayDeque<>();
     private final Deque<Value> preorderStack = new ArrayDeque<>();
     private final List<Set<Value>> components = new ArrayList<>();
@@ -3607,7 +3608,7 @@ public class CodeRewriter {
         // If the current element is the top of the preorder stack, then we are at entry to a
         // strongly-connected component consisting of this element and every element above this
         // element on the stack.
-        Set<Value> component = new HashSet<>(unassignedStack.size());
+        Set<Value> component = SetUtils.newIdentityHashSet(unassignedStack.size());
         while (true) {
           Value member = unassignedStack.pop();
           unassignedSet.remove(member);
