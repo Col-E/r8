@@ -927,7 +927,7 @@ public abstract class DexClass extends DexDefinition {
 
   public boolean hasStaticSynchronizedMethods() {
     for (DexEncodedMethod encodedMethod : directMethods()) {
-      if (encodedMethod.accessFlags.isStrict() && encodedMethod.accessFlags.isSynchronized()) {
+      if (encodedMethod.accessFlags.isStatic() && encodedMethod.accessFlags.isSynchronized()) {
         return true;
       }
     }
