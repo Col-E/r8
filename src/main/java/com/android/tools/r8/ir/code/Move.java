@@ -122,4 +122,11 @@ public class Move extends Instruction {
   public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
     return false;
   }
+
+  @Override
+  public boolean verifyTypes(AppView<?> appView) {
+    super.verifyTypes(appView);
+    assert src().getTypeLattice().equals(outValue().getTypeLattice());
+    return true;
+  }
 }
