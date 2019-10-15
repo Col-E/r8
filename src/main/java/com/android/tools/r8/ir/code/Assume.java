@@ -293,11 +293,13 @@ public class Assume<An extends Assumption> extends Instruction {
 
   @Override
   public String toString() {
-    // During branch simplification, the origin `if` could be simplified.
-    // It means the assumption became "truth."
-    assert origin.hasBlock() || isAssumeNonNull();
+    // `origin` could become obsolete:
+    //   1) during branch simplification, the origin `if` could be simplified, which means the
+    //     assumption became "truth."
+    //   2) invoke-interface could be devirtualized, while its dynamic type and/or non-null receiver
+    //     are still valid.
     String originString =
-        origin.hasBlock() ? " (origin: `" + origin.toString() + "`)" : " (origin simplified)";
+        origin.hasBlock() ? " (origin: `" + origin.toString() + "`)" : " (obsolete origin)";
     if (isAssumeNone() || isAssumeNonNull()) {
       return super.toString() + originString;
     }

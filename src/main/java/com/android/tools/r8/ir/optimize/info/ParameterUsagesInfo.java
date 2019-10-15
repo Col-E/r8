@@ -14,6 +14,7 @@ import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -110,6 +111,10 @@ public final class ParameterUsagesInfo {
 
     // Returns false if the instruction is not supported.
     public boolean note(Instruction instruction) {
+      if (instruction.isAssume()) {
+        // Keep examining other users, but the param usage builder should consider aliased users.
+        return true;
+      }
       if (instruction.isIf()) {
         return note(instruction.asIf());
       }
@@ -141,7 +146,8 @@ public final class ParameterUsagesInfo {
 
     private boolean note(If ifInstruction) {
       if (ifInstruction.asIf().isZeroTest()) {
-        assert ifInstruction.inValues().size() == 1 && ifInstruction.inValues().get(0) == arg;
+        assert ifInstruction.inValues().size() == 1
+            && ifInstruction.inValues().get(0).getAliasedValue() == arg;
         ifZeroTestTypes.add(ifInstruction.asIf().getType());
         return true;
       }
@@ -150,7 +156,7 @@ public final class ParameterUsagesInfo {
 
     private boolean note(InstanceGet instanceGetInstruction) {
       assert arg != instanceGetInstruction.outValue();
-      if (instanceGetInstruction.object() == arg) {
+      if (instanceGetInstruction.object().getAliasedValue() == arg) {
         hasFieldRead = true;
         return true;
       }
@@ -159,12 +165,12 @@ public final class ParameterUsagesInfo {
 
     private boolean note(InstancePut instancePutInstruction) {
       assert arg != instancePutInstruction.outValue();
-      if (instancePutInstruction.object() == arg) {
+      if (instancePutInstruction.object().getAliasedValue() == arg) {
         hasFieldAssignment = true;
-        isAssignedToField |= instancePutInstruction.value() == arg;
+        isAssignedToField |= instancePutInstruction.value().getAliasedValue() == arg;
         return true;
       }
-      if (instancePutInstruction.value() == arg) {
+      if (instancePutInstruction.value().getAliasedValue() == arg) {
         isAssignedToField = true;
         return true;
       }
@@ -172,7 +178,8 @@ public final class ParameterUsagesInfo {
     }
 
     private boolean note(InvokeMethodWithReceiver invokeInstruction) {
-      if (invokeInstruction.inValues().lastIndexOf(arg) == 0) {
+      if (ListUtils.lastIndexMatching(
+          invokeInstruction.inValues(), v -> v.getAliasedValue() == arg) == 0) {
         callsOnReceiver.add(
             new Pair<>(
                 invokeInstruction.asInvokeMethodWithReceiver().getType(),
@@ -183,7 +190,8 @@ public final class ParameterUsagesInfo {
     }
 
     private boolean note(Return returnInstruction) {
-      assert returnInstruction.inValues().size() == 1 && returnInstruction.inValues().get(0) == arg;
+      assert returnInstruction.inValues().size() == 1
+          && returnInstruction.inValues().get(0).getAliasedValue() == arg;
       isReturned = true;
       return true;
     }
