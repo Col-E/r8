@@ -685,13 +685,12 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
   @Override
   public void updateTypeInformationIfNeeded(
       IRCode inlinee, ListIterator<BasicBlock> blockIterator, BasicBlock block) {
-    if (appView.options().enableNonNullTracking) {
+    boolean assumersEnabled =
+        appView.options().enableNonNullTracking
+            || appView.options().enableDynamicTypeOptimization
+            || appView.options().testing.forceAssumeNoneInsertion;
+    if (assumersEnabled) {
       BasicBlock state = IteratorUtils.peekNext(blockIterator);
-      // Move the cursor back to where the first inlinee block was added.
-      while (blockIterator.hasPrevious() && blockIterator.previous() != block) {
-        // Do nothing.
-      }
-      assert IteratorUtils.peekNext(blockIterator) == block;
 
       Set<BasicBlock> inlineeBlocks = Sets.newIdentityHashSet();
       inlineeBlocks.addAll(inlinee.blocks);
@@ -699,18 +698,28 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       // Introduce aliases only to the inlinee blocks.
       if (appView.options().testing.forceAssumeNoneInsertion) {
         insertAssumeInstructionsToInlinee(
-            new AliasIntroducer(appView), code, state, blockIterator, inlineeBlocks);
+            new AliasIntroducer(appView), code, block, blockIterator, inlineeBlocks);
       }
 
       // Add non-null IRs only to the inlinee blocks.
-      Consumer<BasicBlock> splitBlockConsumer = inlineeBlocks::add;
-      Assumer nonNullTracker = new NonNullTracker(appView, splitBlockConsumer);
-      insertAssumeInstructionsToInlinee(
-          nonNullTracker, code, state, blockIterator, inlineeBlocks);
+      if (appView.options().enableNonNullTracking) {
+        Consumer<BasicBlock> splitBlockConsumer = inlineeBlocks::add;
+        Assumer nonNullTracker = new NonNullTracker(appView, splitBlockConsumer);
+        insertAssumeInstructionsToInlinee(
+            nonNullTracker, code, block, blockIterator, inlineeBlocks);
+      }
 
       // Add dynamic type assumptions only to the inlinee blocks.
-      insertAssumeInstructionsToInlinee(
-          new DynamicTypeOptimization(appView), code, state, blockIterator, inlineeBlocks);
+      if (appView.options().enableDynamicTypeOptimization) {
+        insertAssumeInstructionsToInlinee(
+            new DynamicTypeOptimization(appView), code, block, blockIterator, inlineeBlocks);
+      }
+
+      // Restore the old state of the iterator.
+      while (blockIterator.hasPrevious() && blockIterator.previous() != state) {
+        // Do nothing.
+      }
+      assert IteratorUtils.peekNext(blockIterator) == state;
     }
     // TODO(b/72693244): need a test where refined env in inlinee affects the caller.
   }
@@ -718,17 +727,17 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
   private void insertAssumeInstructionsToInlinee(
       Assumer assumer,
       IRCode code,
-      BasicBlock state,
+      BasicBlock block,
       ListIterator<BasicBlock> blockIterator,
       Set<BasicBlock> inlineeBlocks) {
-    assumer.insertAssumeInstructionsInBlocks(code, blockIterator, inlineeBlocks::contains);
-    assert !blockIterator.hasNext();
-
-    // Restore the old state of the iterator.
-    while (blockIterator.hasPrevious() && blockIterator.previous() != state) {
+    // Move the cursor back to where the first inlinee block was added.
+    while (blockIterator.hasPrevious() && blockIterator.previous() != block) {
       // Do nothing.
     }
-    assert IteratorUtils.peekNext(blockIterator) == state;
+    assert IteratorUtils.peekNext(blockIterator) == block;
+
+    assumer.insertAssumeInstructionsInBlocks(code, blockIterator, inlineeBlocks::contains);
+    assert !blockIterator.hasNext();
   }
 
   @Override
