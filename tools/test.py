@@ -128,6 +128,9 @@ def ParseOptions():
   result.add_option('--fail-fast', '--fail_fast',
       default=False, action='store_true',
       help='Stop on first failure. Passes --fail-fast to gradle test runner.')
+  result.add_option('--worktree',
+      default=False, action='store_true',
+      help='Tests are run in worktree and should not use gradle user home.')
   return result.parse_args()
 
 def archive_failures():
@@ -215,6 +218,8 @@ def Main():
     gradle_args.append('R8LibNoDeps')
   if options.r8lib_no_deps:
     gradle_args.append('-Pr8lib_no_deps')
+  if options.worktree:
+    gradle_args.append('-g=' + os.path.join(utils.REPO_ROOT, ".gradle_user_home"))
 
   # Build an R8 with dependencies for bootstrapping tests before adding test sources.
   gradle_args.append('r8WithRelocatedDeps')
