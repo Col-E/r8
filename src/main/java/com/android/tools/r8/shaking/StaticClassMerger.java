@@ -6,6 +6,7 @@ package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -157,6 +158,8 @@ public class StaticClassMerger {
     private final HashMultiset<Wrapper<DexField>> fieldBuckets = HashMultiset.create();
     private final HashMultiset<Wrapper<DexMethod>> methodBuckets = HashMultiset.create();
 
+    private boolean hasSynchronizedMethods = false;
+
     public Representative(DexProgramClass clazz) {
       this.clazz = clazz;
       include(clazz);
@@ -168,10 +171,14 @@ public class StaticClassMerger {
         Wrapper<DexField> wrapper = fieldEquivalence.wrap(field.field);
         fieldBuckets.add(wrapper);
       }
+      boolean classHasSynchronizedMethods = false;
       for (DexEncodedMethod method : clazz.methods()) {
+        assert !hasSynchronizedMethods || method.accessFlags.isSynchronized();
+        classHasSynchronizedMethods |= method.accessFlags.isSynchronized();
         Wrapper<DexMethod> wrapper = methodEquivalence.wrap(method.method);
         methodBuckets.add(wrapper);
       }
+      hasSynchronizedMethods |= classHasSynchronizedMethods;
     }
 
     // Returns true if this representative should no longer be used. The current heuristic is to
@@ -343,6 +350,10 @@ public class StaticClassMerger {
       return false;
     } else {
       // Check if we can merge the current class into the current global representative.
+      if (globalRepresentative.hasSynchronizedMethods && hasSynchronizedMethods(clazz)) {
+        // We are not allowed to merge synchronized classes with synchronized methods.
+        return false;
+      }
       globalRepresentative.include(clazz);
 
       if (globalRepresentative.isFull()) {
@@ -368,6 +379,10 @@ public class StaticClassMerger {
     MergeGroup.Key key = group.key(pkg);
     Representative packageRepresentative = representatives.get(key);
     if (packageRepresentative != null) {
+      if (packageRepresentative.hasSynchronizedMethods && hasSynchronizedMethods(clazz)) {
+        // We are not allowed to merge synchronized classes with synchronized methods.
+        return false;
+      }
       if (isValidRepresentative(clazz)
           && clazz.accessFlags.isMoreVisibleThan(
               packageRepresentative.clazz.accessFlags,
@@ -448,6 +463,15 @@ public class StaticClassMerger {
       }
     }
     representatives.remove(key);
+  }
+
+  private boolean hasSynchronizedMethods(DexClass clazz) {
+    for (DexEncodedMethod encodedMethod : clazz.directMethods()) {
+      if (encodedMethod.accessFlags.isSynchronized()) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private boolean mayMergeAcrossPackageBoundaries(DexProgramClass clazz) {

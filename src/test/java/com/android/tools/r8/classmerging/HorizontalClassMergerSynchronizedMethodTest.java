@@ -6,11 +6,9 @@ package com.android.tools.r8.classmerging;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.StringContains.containsString;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverMerge;
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -39,27 +37,23 @@ public class HorizontalClassMergerSynchronizedMethodTest extends TestBase {
   @Test
   public void testOnRuntime() throws IOException, CompilationFailedException, ExecutionException {
     testForRuntime(parameters.getRuntime(), parameters.getApiLevel())
-        .addInnerClasses(VerticalClassMergerSynchronizedMethodTest.class)
-        .run(parameters.getRuntime(), VerticalClassMergerSynchronizedMethodTest.Main.class)
+        .addInnerClasses(HorizontalClassMergerSynchronizedMethodTest.class)
+        .run(parameters.getRuntime(), HorizontalClassMergerSynchronizedMethodTest.Main.class)
         .assertSuccessWithOutput("Hello World!");
   }
 
   @Test
   public void testNoMergingOfClassUsedInMonitor()
       throws IOException, CompilationFailedException, ExecutionException {
-    // TODO(b/142438687): Fix expectation when fixed.
-    R8TestRunResult result =
-        testForR8(parameters.getBackend())
-            .addInnerClasses(HorizontalClassMergerSynchronizedMethodTest.class)
-            .addKeepMainRule(Main.class)
-            .enableMergeAnnotations()
-            .setMinApi(parameters.getApiLevel())
-            .compile()
-            .run(parameters.getRuntime(), Main.class)
-            .assertFailureWithErrorThatMatches(containsString("DEADLOCKED!"));
-    if (result.getExitCode() == 0) {
-      result.inspect(inspector -> assertThat(inspector.clazz(LockOne.class), isPresent()));
-    }
+    testForR8(parameters.getBackend())
+        .addInnerClasses(HorizontalClassMergerSynchronizedMethodTest.class)
+        .addKeepMainRule(Main.class)
+        .enableMergeAnnotations()
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutput("Hello World!")
+        .inspect(inspector -> assertThat(inspector.clazz(LockOne.class), isPresent()));
   }
 
   private interface I {
@@ -67,7 +61,7 @@ public class HorizontalClassMergerSynchronizedMethodTest extends TestBase {
     void action();
   }
 
-  // Will be merged into LockTwo.
+  // Will be merged with LockTwo.
   static class LockOne {
 
     static synchronized void acquire(I c) {
@@ -75,7 +69,7 @@ public class HorizontalClassMergerSynchronizedMethodTest extends TestBase {
     }
   }
 
-  public static class LockTwo extends LockOne {
+  public static class LockTwo {
 
     static synchronized void acquire(I c) {
       Main.inTwoCritical = true;
