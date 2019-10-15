@@ -6,7 +6,7 @@ package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.ir.conversion.CallGraphBuilder.CycleEliminator.CycleEliminationResult;
+import com.android.tools.r8.ir.conversion.CallGraphBuilderBase.CycleEliminator.CycleEliminationResult;
 import com.android.tools.r8.ir.conversion.CallSiteInformation.CallGraphBasedCallSiteInformation;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Timing;
@@ -133,21 +133,24 @@ public class CallGraph {
       builder.append(callers.size());
       builder.append(" callers");
       builder.append(", invoke count ").append(numberOfCallSites);
-      builder.append(").\n");
+      builder.append(").");
+      builder.append(System.lineSeparator());
       if (callees.size() > 0) {
-        builder.append("Callees:\n");
+        builder.append("Callees:");
+        builder.append(System.lineSeparator());
         for (Node call : callees) {
           builder.append("  ");
           builder.append(call.method.toSourceString());
-          builder.append("\n");
+          builder.append(System.lineSeparator());
         }
       }
       if (callers.size() > 0) {
-        builder.append("Callers:\n");
+        builder.append("Callers:");
+        builder.append(System.lineSeparator());
         for (Node caller : callers) {
           builder.append("  ");
           builder.append(caller.method.toSourceString());
-          builder.append("\n");
+          builder.append(System.lineSeparator());
         }
       }
       return builder.toString();

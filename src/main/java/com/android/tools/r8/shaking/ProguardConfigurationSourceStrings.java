@@ -32,7 +32,7 @@ public class ProguardConfigurationSourceStrings implements ProguardConfiguration
   }
 
   @VisibleForTesting
-  static ProguardConfigurationSourceStrings createConfigurationForTesting(
+  public static ProguardConfigurationSourceStrings createConfigurationForTesting(
       List<String> config) {
     return new ProguardConfigurationSourceStrings(config);
   }
