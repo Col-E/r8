@@ -29,6 +29,7 @@ import com.android.tools.r8.graph.DexValue.DexValueLong;
 import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.DexValue.DexValueShort;
 import com.android.tools.r8.graph.DexValue.DexValueString;
+import com.android.tools.r8.ir.analysis.ValueMayDependOnEnvironmentAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -327,6 +328,8 @@ public class ClassInitializerDefaultsOptimization {
 
   private Collection<StaticPut> findFinalFieldPutsWhileCollectingUnnecessaryStaticPuts(
       IRCode code, DexClass clazz, Set<StaticPut> unnecessaryStaticPuts) {
+    ValueMayDependOnEnvironmentAnalysis environmentAnalysis =
+        new ValueMayDependOnEnvironmentAnalysis(appView, code);
     Map<DexField, StaticPut> finalFieldPuts = Maps.newIdentityHashMap();
     Map<DexField, Set<StaticPut>> isWrittenBefore = Maps.newIdentityHashMap();
     Set<DexField> isReadBefore = Sets.newIdentityHashSet();
@@ -436,7 +439,7 @@ public class ClassInitializerDefaultsOptimization {
               Value outValue = instruction.outValue();
               if (outValue.numberOfAllUsers() > 0) {
                 if (instruction.isInvokeNewArray()
-                    && outValue.isConstantArrayThroughoutMethod(appView, code)) {
+                    && environmentAnalysis.isConstantArrayThroughoutMethod(outValue)) {
                   // OK, this value is technically a constant.
                   continue;
                 }

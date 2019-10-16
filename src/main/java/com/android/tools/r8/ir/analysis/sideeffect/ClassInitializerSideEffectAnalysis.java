@@ -8,6 +8,7 @@ import com.android.tools.r8.OptionalBool;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.ValueMayDependOnEnvironmentAnalysis;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -42,6 +43,8 @@ public class ClassInitializerSideEffectAnalysis {
     OptionalBool controlFlowMayDependOnEnvironment = OptionalBool.unknown();
     boolean mayHaveSideEffects = false;
 
+    ValueMayDependOnEnvironmentAnalysis environmentAnalysis =
+        new ValueMayDependOnEnvironmentAnalysis(appView, code);
     for (Instruction instruction : code.instructions()) {
       // Array stores to a newly created array are only observable if they may throw, or if the
       // array content may depend on the environment.
@@ -50,14 +53,14 @@ public class ClassInitializerSideEffectAnalysis {
         Value array = arrayPut.array().getAliasedValue();
         if (array.isPhi()
             || !array.definition.isCreatingArray()
-            || arrayPut.index().mayDependOnEnvironment(appView, code)
-            || arrayPut.value().mayDependOnEnvironment(appView, code)
+            || environmentAnalysis.valueMayDependOnEnvironment(arrayPut.index())
+            || environmentAnalysis.valueMayDependOnEnvironment(arrayPut.value())
             || arrayPut.instructionInstanceCanThrow(appView, context).isThrowing()) {
           return ClassInitializerSideEffect.SIDE_EFFECTS_THAT_CANNOT_BE_POSTPONED;
         }
         if (controlFlowMayDependOnEnvironment.isUnknown()) {
           controlFlowMayDependOnEnvironment =
-              OptionalBool.of(code.controlFlowMayDependOnEnvironment(appView));
+              OptionalBool.of(code.controlFlowMayDependOnEnvironment(environmentAnalysis));
         }
         if (controlFlowMayDependOnEnvironment.isTrue()) {
           return ClassInitializerSideEffect.SIDE_EFFECTS_THAT_CANNOT_BE_POSTPONED;
@@ -76,7 +79,7 @@ public class ClassInitializerSideEffectAnalysis {
         }
         if (controlFlowMayDependOnEnvironment.isUnknown()) {
           controlFlowMayDependOnEnvironment =
-              OptionalBool.of(code.controlFlowMayDependOnEnvironment(appView));
+              OptionalBool.of(code.controlFlowMayDependOnEnvironment(environmentAnalysis));
         }
         if (controlFlowMayDependOnEnvironment.isTrue()) {
           return ClassInitializerSideEffect.SIDE_EFFECTS_THAT_CANNOT_BE_POSTPONED;
@@ -92,7 +95,7 @@ public class ClassInitializerSideEffectAnalysis {
           return ClassInitializerSideEffect.SIDE_EFFECTS_THAT_CANNOT_BE_POSTPONED;
         }
         for (Value argument : invokeNewArray.arguments()) {
-          if (argument.mayDependOnEnvironment(appView, code)) {
+          if (environmentAnalysis.valueMayDependOnEnvironment(argument)) {
             return ClassInitializerSideEffect.SIDE_EFFECTS_THAT_CANNOT_BE_POSTPONED;
           }
         }
@@ -111,7 +114,7 @@ public class ClassInitializerSideEffectAnalysis {
         DexEncodedField field = appView.appInfo().resolveField(staticPut.getField());
         if (field == null
             || field.field.holder != context
-            || staticPut.value().mayDependOnEnvironment(appView, code)
+            || environmentAnalysis.valueMayDependOnEnvironment(staticPut.value())
             || instruction.instructionInstanceCanThrow(appView, context).isThrowing()) {
           return ClassInitializerSideEffect.SIDE_EFFECTS_THAT_CANNOT_BE_POSTPONED;
         }

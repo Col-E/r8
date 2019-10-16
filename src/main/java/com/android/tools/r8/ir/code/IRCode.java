@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.TypeChecker;
+import com.android.tools.r8.ir.analysis.ValueMayDependOnEnvironmentAnalysis;
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
@@ -261,7 +262,8 @@ public class IRCode {
     return liveAtEntrySets;
   }
 
-  public boolean controlFlowMayDependOnEnvironment(AppView<?> appView) {
+  public boolean controlFlowMayDependOnEnvironment(
+      ValueMayDependOnEnvironmentAnalysis environmentAnalysis) {
     for (BasicBlock block : blocks) {
       if (block.hasCatchHandlers()) {
         // Whether an instruction throws may generally depend on the environment.
@@ -269,16 +271,16 @@ public class IRCode {
       }
       if (block.exit().isIf()) {
         If ifInstruction = block.exit().asIf();
-        if (ifInstruction.lhs().mayDependOnEnvironment(appView, this)) {
+        if (environmentAnalysis.valueMayDependOnEnvironment(ifInstruction.lhs())) {
           return true;
         }
         if (!ifInstruction.isZeroTest()
-            && ifInstruction.rhs().mayDependOnEnvironment(appView, this)) {
+            && environmentAnalysis.valueMayDependOnEnvironment(ifInstruction.rhs())) {
           return true;
         }
       } else if (block.exit().isSwitch()) {
         Switch switchInstruction = block.exit().asSwitch();
-        if (switchInstruction.value().mayDependOnEnvironment(appView, this)) {
+        if (environmentAnalysis.valueMayDependOnEnvironment(switchInstruction.value())) {
           return true;
         }
       }
