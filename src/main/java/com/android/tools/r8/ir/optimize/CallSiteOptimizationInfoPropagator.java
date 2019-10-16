@@ -137,6 +137,11 @@ public class CallSiteOptimizationInfoPropagator {
     if (appView.appInfo().isPinned(target.method)) {
       return;
     }
+    // If the method overrides a library method, it is unsure how the method would be invoked by
+    // that library.
+    if (target.isLibraryMethodOverride().isTrue()) {
+      return;
+    }
     // If the program already has illegal accesses, method resolution results will reflect that too.
     // We should avoid recording arguments in that case. E.g., b/139823850: static methods can be a
     // result of virtual call targets, if that's the only method that matches name and signature.
