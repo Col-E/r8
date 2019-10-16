@@ -35,6 +35,9 @@ public class AnnotationFixer {
 
   private void processMethod(DexEncodedMethod method) {
     method.annotations = method.annotations.rewrite(this::rewriteAnnotation);
+    method.parameterAnnotationsList =
+        method.parameterAnnotationsList.rewrite(
+            dexAnnotationSet -> dexAnnotationSet.rewrite(this::rewriteAnnotation));
   }
 
   private void processField(DexEncodedField field) {

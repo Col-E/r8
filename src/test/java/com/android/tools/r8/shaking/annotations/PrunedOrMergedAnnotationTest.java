@@ -15,7 +15,9 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexEncodedAnnotation;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -66,6 +68,11 @@ public class PrunedOrMergedAnnotationTest extends TestBase {
               assertTrue(
                   Arrays.stream(annotation.elements[1].value.asDexValueArray().getValues())
                       .allMatch(value -> valueIsDexType(mergedType, value)));
+              // Check that method parameter annotations are rewritten as well.
+              DexEncodedMethod method = inspector.clazz(Main.class).mainMethod().getMethod();
+              DexAnnotationSet annotationSet = method.parameterAnnotationsList.get(0);
+              DexEncodedAnnotation parameterAnnotation = annotationSet.annotations[0].annotation;
+              assertTrue(valueIsDexType(mergedType, parameterAnnotation.elements[0].value));
             });
   }
 
@@ -104,7 +111,7 @@ public class PrunedOrMergedAnnotationTest extends TestBase {
 
   public static class Main {
 
-    public static void main(String[] args) {
+    public static void main(@Factory(extending = A.class) String[] args) {
       C.hello();
       new B().world();
     }
