@@ -56,6 +56,22 @@ public abstract class DexValue extends DexItem {
     return null;
   }
 
+  public DexValueType asDexValueType() {
+    return null;
+  }
+
+  public DexValueArray asDexValueArray() {
+    return null;
+  }
+
+  public boolean isDexValueType() {
+    return false;
+  }
+
+  public boolean isDexValueArray() {
+    return false;
+  }
+
   public static DexValue fromAsmBootstrapArgument(
       Object value, JarApplicationReader application, DexType clazz) {
     if (value instanceof Integer) {
@@ -835,6 +851,16 @@ public abstract class DexValue extends DexItem {
         DexMethod method, int instructionOffset) {
       value.collectIndexedItems(indexedItems, method, instructionOffset);
     }
+
+    @Override
+    public DexValueType asDexValueType() {
+      return this;
+    }
+
+    @Override
+    public boolean isDexValueType() {
+      return true;
+    }
   }
 
   static public class DexValueField extends NestedDexValue<DexField> {
@@ -978,6 +1004,16 @@ public abstract class DexValue extends DexItem {
     @Override
     public String toString() {
       return "Array " + Arrays.toString(values);
+    }
+
+    @Override
+    public boolean isDexValueArray() {
+      return true;
+    }
+
+    @Override
+    public DexValueArray asDexValueArray() {
+      return this;
     }
   }
 

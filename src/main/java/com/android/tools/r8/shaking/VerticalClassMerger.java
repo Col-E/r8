@@ -1472,7 +1472,9 @@ public class VerticalClassMerger {
       for (SynthesizedBridgeCode synthesizedBridge : synthesizedBridges) {
         synthesizedBridge.updateMethodSignatures(this::fixupMethod);
       }
-      return lensBuilder.build(appView, mergedClasses);
+      GraphLense graphLense = lensBuilder.build(appView, mergedClasses);
+      new AnnotationFixer(graphLense).run(appView.appInfo().classes());
+      return graphLense;
     }
 
     private void fixupMethods(List<DexEncodedMethod> methods, MethodSetter setter) {
