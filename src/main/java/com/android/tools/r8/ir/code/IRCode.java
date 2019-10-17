@@ -36,13 +36,13 @@ import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -155,7 +155,7 @@ public class IRCode {
     while (!worklist.isEmpty()) {
       BasicBlock block = worklist.poll();
       // Note that the iteration order of live values matters when inserting spill/restore moves.
-      Set<Value> live = new TreeSet<>();
+      Set<Value> live = new LinkedHashSet<>();
       Set<Value> liveLocals = Sets.newIdentityHashSet();
       Deque<Value> liveStack = new ArrayDeque<>();
       Set<BasicBlock> exceptionalSuccessors = block.getCatchHandlers().getUniqueTargets();
