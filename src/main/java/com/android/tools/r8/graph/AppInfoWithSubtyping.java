@@ -132,7 +132,7 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
 
   public AppInfoWithSubtyping(DexApplication application) {
     super(application);
-    typeInfo = Collections.synchronizedMap(new IdentityHashMap<>());
+    typeInfo = new ConcurrentHashMap<>();
     // Recompute subtype map if we have modified the graph.
     populateSubtypeMap(application.asDirect(), application.dexItemFactory);
   }
@@ -141,7 +141,7 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
     super(previous);
     missingClasses.addAll(previous.missingClasses);
     subtypeMap.putAll(previous.subtypeMap);
-    typeInfo = Collections.synchronizedMap(new IdentityHashMap<>(previous.typeInfo));
+    typeInfo = new ConcurrentHashMap<>(previous.typeInfo);
     assert app() instanceof DirectMappedDexApplication;
   }
 
