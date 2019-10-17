@@ -196,6 +196,19 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
         options -> options.testing.allowUnusedProguardConfigurationRules = true);
   }
 
+  public T enableAlwaysInliningAnnotations() {
+    return enableAlwaysInliningAnnotations(AlwaysInline.class.getPackage().getName());
+  }
+
+  public T enableAlwaysInliningAnnotations(String annotationPackageName) {
+    if (!enableInliningAnnotations) {
+      enableInliningAnnotations = true;
+      addInternalKeepRules(
+          "-alwaysinline class * { @" + annotationPackageName + ".AlwaysInline *; }");
+    }
+    return self();
+  }
+
   public T enableInliningAnnotations() {
     return enableInliningAnnotations(NeverInline.class.getPackage().getName());
   }

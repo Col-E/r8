@@ -247,6 +247,15 @@ class WhyAreYouNotInliningReporterImpl extends WhyAreYouNotInliningReporter {
   }
 
   @Override
+  public void reportWillExceedMaxInliningDepth(int actualInliningDepth, int threshold) {
+    printWithExceededThreshold(
+        "would exceed the maximum inlining depth",
+        "current inlining depth",
+        actualInliningDepth,
+        threshold);
+  }
+
+  @Override
   public void reportWillExceedMonitorEnterValuesBudget(
       int numberOfMonitorEnterValuesAfterInlining, int threshold) {
     printWithExceededThreshold(
@@ -257,8 +266,9 @@ class WhyAreYouNotInliningReporterImpl extends WhyAreYouNotInliningReporter {
   }
 
   @Override
-  public boolean verifyReasonHasBeenReported() {
+  public boolean unsetReasonHasBeenReportedFlag() {
     assert reasonHasBeenReported;
+    reasonHasBeenReported = false;
     return true;
   }
 }

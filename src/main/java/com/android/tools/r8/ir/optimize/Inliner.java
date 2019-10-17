@@ -52,11 +52,14 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
@@ -878,8 +881,12 @@ public class Inliner {
     ListIterator<BasicBlock> blockIterator = code.listIterator();
     ClassInitializationAnalysis classInitializationAnalysis =
         new ClassInitializationAnalysis(appView, code);
+    Deque<BasicBlock> inlineeStack = new ArrayDeque<>();
     while (blockIterator.hasNext()) {
       BasicBlock block = blockIterator.next();
+      if (!inlineeStack.isEmpty() && inlineeStack.peekFirst() == block) {
+        inlineeStack.pop();
+      }
       if (blocksToRemove.contains(block)) {
         continue;
       }
@@ -903,12 +910,19 @@ public class Inliner {
               oracle.computeInlining(
                   invoke, singleTarget, classInitializationAnalysis, whyAreYouNotInliningReporter);
           if (action == null) {
-            assert whyAreYouNotInliningReporter.verifyReasonHasBeenReported();
+            assert whyAreYouNotInliningReporter.unsetReasonHasBeenReportedFlag();
+            continue;
+          }
+
+          if (!inlineeStack.isEmpty()
+              && !strategy.allowInliningOfInvokeInInlinee(
+                  action, inlineeStack.size(), whyAreYouNotInliningReporter)) {
+            assert whyAreYouNotInliningReporter.unsetReasonHasBeenReportedFlag();
             continue;
           }
 
           if (!strategy.stillHasBudget(action, whyAreYouNotInliningReporter)) {
-            assert whyAreYouNotInliningReporter.verifyReasonHasBeenReported();
+            assert whyAreYouNotInliningReporter.unsetReasonHasBeenReportedFlag();
             continue;
           }
 
@@ -922,7 +936,7 @@ public class Inliner {
                   lensCodeRewriter);
           if (strategy.willExceedBudget(
               code, invoke, inlinee, block, whyAreYouNotInliningReporter)) {
-            assert whyAreYouNotInliningReporter.verifyReasonHasBeenReported();
+            assert whyAreYouNotInliningReporter.unsetReasonHasBeenReportedFlag();
             continue;
           }
 
@@ -935,7 +949,7 @@ public class Inliner {
           if (singleTarget.isInstanceInitializer()
               && !strategy.canInlineInstanceInitializer(
                   inlinee.code, whyAreYouNotInliningReporter)) {
-            assert whyAreYouNotInliningReporter.verifyReasonHasBeenReported();
+            assert whyAreYouNotInliningReporter.unsetReasonHasBeenReportedFlag();
             continue;
           }
 
@@ -944,6 +958,8 @@ public class Inliner {
           if (outValue != null) {
             assumeDynamicTypeRemover.markUsersForRemoval(outValue);
           }
+
+          boolean inlineeMayHaveInvokeMethod = inlinee.code.metadata().mayHaveInvokeMethod();
 
           // Inline the inlinee code in place of the invoke instruction
           // Back up before the invoke instruction.
@@ -971,11 +987,26 @@ public class Inliner {
           }
 
           context.copyMetadata(singleTarget);
+
+          if (inlineeMayHaveInvokeMethod) {
+            if (inlineeStack.size() + 1 > appView.options().applyInliningToInlineeMaxDepth
+                && appView.appInfo().alwaysInline.isEmpty()
+                && appView.appInfo().forceInline.isEmpty()) {
+              continue;
+            }
+            // Record that we will be inside the inlinee until the next block.
+            BasicBlock inlineeEnd = IteratorUtils.peekNext(blockIterator);
+            inlineeStack.push(inlineeEnd);
+            // Move the cursor back to where the first inlinee block was added.
+            IteratorUtils.previousUntil(blockIterator, previous -> previous == block);
+            blockIterator.next();
+          }
         } else if (current.isAssumeDynamicType()) {
           assumeDynamicTypeRemover.removeIfMarked(current.asAssumeDynamicType(), iterator);
         }
       }
     }
+    assert inlineeStack.isEmpty();
     assumeDynamicTypeRemover.removeMarkedInstructions(blocksToRemove);
     assumeDynamicTypeRemover.finish();
     classInitializationAnalysis.finish();

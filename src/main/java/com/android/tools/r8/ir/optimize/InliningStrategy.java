@@ -17,6 +17,11 @@ import java.util.ListIterator;
 
 interface InliningStrategy {
 
+  boolean allowInliningOfInvokeInInlinee(
+      InlineAction action,
+      int inliningDepth,
+      WhyAreYouNotInliningReporter whyAreYouNotInliningReporter);
+
   boolean canInlineInstanceInitializer(
       IRCode code, WhyAreYouNotInliningReporter whyAreYouNotInliningReporter);
 

@@ -5,6 +5,7 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.errors.Unimplemented;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
@@ -63,6 +64,16 @@ public class IteratorUtils {
       return next;
     }
     return null;
+  }
+
+  public static <T> T previousUntil(ListIterator<T> iterator, Predicate<T> predicate) {
+    while (iterator.hasPrevious()) {
+      T previous = iterator.previous();
+      if (predicate.test(previous)) {
+        return previous;
+      }
+    }
+    throw new Unreachable();
   }
 
   public static <T> void removeIf(Iterator<T> iterator, Predicate<T> predicate) {

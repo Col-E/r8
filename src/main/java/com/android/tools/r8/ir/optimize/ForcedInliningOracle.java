@@ -84,6 +84,15 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
       IRCode inlinee, ListIterator<BasicBlock> blockIterator, BasicBlock block) {}
 
   @Override
+  public boolean allowInliningOfInvokeInInlinee(
+      InlineAction action,
+      int inliningDepth,
+      WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
+    // The purpose of force inlining is generally to inline a given invoke-instruction in the IR.
+    return false;
+  }
+
+  @Override
   public boolean canInlineInstanceInitializer(
       IRCode code, WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     return true;

@@ -4,19 +4,19 @@
 
 package com.android.tools.r8.ir.optimize.inliner;
 
-import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethod;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.android.tools.r8.AlwaysInline;
 import com.android.tools.r8.AssumeMayHaveSideEffects;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import com.google.common.collect.ImmutableList;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -25,14 +25,17 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class SingleTargetAfterInliningTest extends TestBase {
 
+  private final int maxInliningDepth;
   private final TestParameters parameters;
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+  @Parameters(name = "{1}, max inlining depth: {0}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        ImmutableList.of(0, 1), getTestParameters().withAllRuntimesAndApiLevels().build());
   }
 
-  public SingleTargetAfterInliningTest(TestParameters parameters) {
+  public SingleTargetAfterInliningTest(int maxInliningDepth, TestParameters parameters) {
+    this.maxInliningDepth = maxInliningDepth;
     this.parameters = parameters;
   }
 
@@ -41,31 +44,38 @@ public class SingleTargetAfterInliningTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(SingleTargetAfterInliningTest.class)
         .addKeepMainRule(TestClass.class)
+        .addOptionsModification(
+            options -> options.applyInliningToInlineeMaxDepth = maxInliningDepth)
+        .enableAlwaysInliningAnnotations()
         .enableClassInliningAnnotations()
         .enableSideEffectAnnotations()
-        .setMinApi(parameters.getRuntime())
-        .noMinification()
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutputLines("B");
+        .assertSuccessWithOutputLines("B.foo()", "B.bar()");
   }
 
   private void inspect(CodeInspector inspector) {
-    ClassSubject aClassSubject = inspector.clazz(A.class);
-    assertThat(aClassSubject, isPresent());
-
     ClassSubject testClassSubject = inspector.clazz(TestClass.class);
     assertThat(testClassSubject, isPresent());
 
     // The indirection() method should be inlined.
     assertThat(testClassSubject.uniqueMethodWithName("indirection"), not(isPresent()));
 
-    // The main() method invokes A.method().
-    // TODO(b/141451716): A.method() should be inlined into main().
-    MethodSubject mainMethodSubject = testClassSubject.mainMethod();
-    assertThat(mainMethodSubject, isPresent());
-    assertThat(mainMethodSubject, invokesMethod(aClassSubject.uniqueMethodWithName("method")));
+    // A.foo() should be absent if the max inlining depth is 1, because indirection() has been
+    // inlined into main(), which makes A.foo() eligible for inlining into main().
+    ClassSubject aClassSubject = inspector.clazz(A.class);
+    assertThat(aClassSubject, isPresent());
+    if (maxInliningDepth == 0) {
+      assertThat(aClassSubject.uniqueMethodWithName("foo"), isPresent());
+    } else {
+      assert maxInliningDepth == 1;
+      assertThat(aClassSubject.uniqueMethodWithName("foo"), not(isPresent()));
+    }
+
+    // A.bar() should always be inlined because it is marked as @AlwaysInline.
+    assertThat(aClassSubject.uniqueMethodWithName("bar"), not(isPresent()));
   }
 
   static class TestClass {
@@ -78,13 +88,16 @@ public class SingleTargetAfterInliningTest extends TestBase {
     }
 
     private static void indirection(A obj) {
-      obj.method();
+      obj.foo();
+      obj.bar();
     }
   }
 
   abstract static class A {
 
-    abstract void method();
+    abstract void foo();
+
+    abstract void bar();
   }
 
   @NeverClassInline
@@ -94,8 +107,14 @@ public class SingleTargetAfterInliningTest extends TestBase {
     B() {}
 
     @Override
-    void method() {
-      System.out.println("B");
+    void foo() {
+      System.out.println("B.foo()");
+    }
+
+    @AlwaysInline
+    @Override
+    void bar() {
+      System.out.println("B.bar()");
     }
   }
 
@@ -106,8 +125,13 @@ public class SingleTargetAfterInliningTest extends TestBase {
     C() {}
 
     @Override
-    void method() {
-      System.out.println("C");
+    void foo() {
+      System.out.println("C.foo()");
+    }
+
+    @Override
+    void bar() {
+      System.out.println("C.bar()");
     }
   }
 }

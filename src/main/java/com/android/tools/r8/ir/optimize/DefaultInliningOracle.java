@@ -428,9 +428,28 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
   }
 
   @Override
-  public boolean canInlineInstanceInitializer(
-      IRCode inlinee,
+  public boolean allowInliningOfInvokeInInlinee(
+      InlineAction action,
+      int inliningDepth,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
+    assert inliningDepth > 0;
+
+    if (action.reason.mustBeInlined()) {
+      return true;
+    }
+
+    int threshold = appView.options().applyInliningToInlineeMaxDepth;
+    if (inliningDepth <= threshold) {
+      return true;
+    }
+
+    whyAreYouNotInliningReporter.reportWillExceedMaxInliningDepth(inliningDepth, threshold);
+    return false;
+  }
+
+  @Override
+  public boolean canInlineInstanceInitializer(
+      IRCode inlinee, WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     // In the Java VM Specification section "4.10.2.4. Instance Initialization Methods and
     // Newly Created Objects" it says:
     //

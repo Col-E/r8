@@ -113,8 +113,10 @@ public abstract class WhyAreYouNotInliningReporter {
 
   public abstract void reportWillExceedInstructionBudget(int numberOfInstructions, int threshold);
 
+  public abstract void reportWillExceedMaxInliningDepth(int actualInliningDepth, int threshold);
+
   public abstract void reportWillExceedMonitorEnterValuesBudget(
       int numberOfMonitorEnterValuesAfterInlining, int threshold);
 
-  public abstract boolean verifyReasonHasBeenReported();
+  public abstract boolean unsetReasonHasBeenReportedFlag();
 }
