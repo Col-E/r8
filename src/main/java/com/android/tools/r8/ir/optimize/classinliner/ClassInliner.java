@@ -246,7 +246,7 @@ public final class ClassInliner {
       // particularly important for bridge methods.
       codeRewriter.removeTrivialCheckCastAndInstanceOfInstructions(code);
       // If a method was inlined we may be able to prune additional branches.
-      codeRewriter.simplifyIf(code);
+      codeRewriter.simplifyControlFlow(code);
       // If a method was inlined we may see more trivial computation/conversion of String.
       boolean isDebugMode =
           appView.options().debug || method.getOptimizationInfo().isReachabilitySensitive();

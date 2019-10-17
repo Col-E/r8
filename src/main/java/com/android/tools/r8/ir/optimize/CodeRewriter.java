@@ -90,6 +90,7 @@ import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Sets;
@@ -841,9 +842,9 @@ public class CodeRewriter {
     return outliersAsIfSize;
   }
 
-  public void rewriteSwitch(IRCode code) {
+  private boolean rewriteSwitch(IRCode code) {
     if (!code.metadata().mayHaveIntSwitch()) {
-      return;
+      return false;
     }
 
     boolean needToRemoveUnreachableBlocks = false;
@@ -987,15 +988,18 @@ public class CodeRewriter {
       }
     }
 
-    if (needToRemoveUnreachableBlocks) {
-      code.removeUnreachableBlocks();
-    }
-
     // Rewriting of switches introduces new branching structure. It relies on critical edges
     // being split on the way in but does not maintain this property. We therefore split
     // critical edges at exit.
     code.splitCriticalEdges();
+
+    Set<Value> affectedValues =
+        needToRemoveUnreachableBlocks ? code.removeUnreachableBlocks() : ImmutableSet.of();
+    if (!affectedValues.isEmpty()) {
+      new TypeAnalysis(appView).narrowing(affectedValues);
+    }
     assert code.isConsistentSSA();
+    return !affectedValues.isEmpty();
   }
 
   private SwitchCaseEliminator removeUnnecessarySwitchCases(
@@ -2387,7 +2391,13 @@ public class CodeRewriter {
     assert code.isConsistentSSA();
   }
 
-  public void simplifyIf(IRCode code) {
+  public boolean simplifyControlFlow(IRCode code) {
+    boolean anyAffectedValues = simplifyIf(code);
+    anyAffectedValues |= rewriteSwitch(code);
+    return anyAffectedValues;
+  }
+
+  private boolean simplifyIf(IRCode code) {
     for (BasicBlock block : code.blocks) {
       // Skip removed (= unreachable) blocks.
       if (block.getNumber() != 0 && block.getPredecessors().isEmpty()) {
@@ -2522,6 +2532,7 @@ public class CodeRewriter {
       new TypeAnalysis(appView).narrowing(affectedValues);
     }
     assert code.isConsistentSSA();
+    return !affectedValues.isEmpty();
   }
 
   private void simplifyIfWithKnownCondition(

@@ -1250,9 +1250,10 @@ public class IRConverter {
     if (stringSwitchRemover != null) {
       stringSwitchRemover.run(method, code);
     }
-    codeRewriter.rewriteSwitch(code);
     codeRewriter.processMethodsNeverReturningNormally(code);
-    codeRewriter.simplifyIf(code);
+    if (codeRewriter.simplifyControlFlow(code)) {
+      codeRewriter.removeTrivialCheckCastAndInstanceOfInstructions(code);
+    }
     if (options.enableRedundantConstNumberOptimization) {
       codeRewriter.redundantConstNumberRemoval(code);
     }
