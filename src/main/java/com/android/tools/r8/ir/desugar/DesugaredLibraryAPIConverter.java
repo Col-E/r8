@@ -28,6 +28,7 @@ import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProv
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -64,11 +65,20 @@ public class DesugaredLibraryAPIConverter {
   private final DexItemFactory factory;
   private final DesugaredLibraryWrapperSynthesizer wrapperSynthesizor;
   private final Map<DexClass, Set<DexEncodedMethod>> callBackMethods = new HashMap<>();
+  private final Set<DexMethod> trackedCallBackAPIs;
+  private final Set<DexMethod> trackedAPIs;
 
   public DesugaredLibraryAPIConverter(AppView<?> appView) {
     this.appView = appView;
     this.factory = appView.dexItemFactory();
     this.wrapperSynthesizor = new DesugaredLibraryWrapperSynthesizer(appView, this);
+    if (appView.options().testing.trackDesugaredAPIConversions) {
+      trackedCallBackAPIs = Sets.newConcurrentHashSet();
+      trackedAPIs = Sets.newConcurrentHashSet();
+    } else {
+      trackedCallBackAPIs = null;
+      trackedAPIs = null;
+    }
   }
 
   public void desugar(IRCode code) {
@@ -170,6 +180,9 @@ public class DesugaredLibraryAPIConverter {
   }
 
   private synchronized void generateCallBack(DexClass dexClass, DexEncodedMethod originalMethod) {
+    if (trackedCallBackAPIs != null) {
+      trackedCallBackAPIs.add(originalMethod.method);
+    }
     DexMethod methodToInstall =
         methodWithVivifiedTypeInSignature(originalMethod.method, dexClass.type, appView);
     if (dexClass.isInterface()
@@ -219,12 +232,26 @@ public class DesugaredLibraryAPIConverter {
   public void generateWrappers(
       DexApplication.Builder<?> builder, IRConverter irConverter, ExecutorService executorService)
       throws ExecutionException {
+    if (appView.options().testing.trackDesugaredAPIConversions) {
+      generateTrackDesugaredAPIWarnings(trackedAPIs, "");
+      generateTrackDesugaredAPIWarnings(trackedCallBackAPIs, "callback ");
+    }
     wrapperSynthesizor.finalizeWrappers(builder, irConverter, executorService);
     for (DexClass dexClass : callBackMethods.keySet()) {
       Set<DexEncodedMethod> dexEncodedMethods = callBackMethods.get(dexClass);
       dexClass.appendVirtualMethods(dexEncodedMethods);
       irConverter.optimizeSynthesizedMethodsConcurrently(dexEncodedMethods, executorService);
     }
+  }
+
+  private void generateTrackDesugaredAPIWarnings(Set<DexMethod> tracked, String inner) {
+    StringBuilder sb = new StringBuilder();
+    sb.append("Tracked ").append(inner).append("desugared API conversions: ");
+    for (DexMethod method : tracked) {
+      sb.append("\n");
+      sb.append(method);
+    }
+    appView.options().reporter.warning(new StringDiagnostic(sb.toString()));
   }
 
   private void warnInvalidInvoke(DexType type, DexMethod invokedMethod, String debugString) {
@@ -260,6 +287,9 @@ public class DesugaredLibraryAPIConverter {
       InstructionListIterator iterator,
       ListIterator<BasicBlock> blockIterator) {
     DexMethod invokedMethod = invokeMethod.getInvokedMethod();
+    if (trackedAPIs != null) {
+      trackedAPIs.add(invokedMethod);
+    }
 
     // Create return conversion if required.
     Instruction returnConversion = null;

@@ -4,6 +4,11 @@
 
 package com.android.tools.r8.desugar.corelib.conversionTests;
 
+import static junit.framework.TestCase.assertEquals;
+import static junit.framework.TestCase.assertTrue;
+
+import com.android.tools.r8.D8TestCompileResult;
+import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestRuntime.DexRuntime;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -22,12 +27,15 @@ public class AllTimeConversionTest extends APIConversionTestBase {
   @Test
   public void testRewrittenAPICalls() throws Exception {
     Path customLib = testForD8().addProgramClasses(CustomLibClass.class).compile().writeToZip();
-    testForD8()
-        .setMinApi(AndroidApiLevel.B)
-        .addProgramClasses(Executor.class)
-        .addLibraryClasses(CustomLibClass.class)
-        .enableCoreLibraryDesugaring(AndroidApiLevel.B)
-        .compile()
+    D8TestCompileResult compileResult =
+        testForD8()
+            .setMinApi(AndroidApiLevel.B)
+            .addProgramClasses(Executor.class)
+            .addLibraryClasses(CustomLibClass.class)
+            .addOptionsModification(options -> options.testing.trackDesugaredAPIConversions = true)
+            .enableCoreLibraryDesugaring(AndroidApiLevel.B)
+            .compile();
+    compileResult
         .addDesugaredCoreLibraryRunClassPath(
             this::buildDesugaredLibraryWithConversionExtension, AndroidApiLevel.B)
         .addRunClasspathFiles(customLib)
@@ -41,7 +49,28 @@ public class AllTimeConversionTest extends APIConversionTestBase {
                 "-1000000000-01-01T00:00:00.999999999Z",
                 "GMT",
                 "GMT"));
+    assertTrackedAPIS(compileResult.getDiagnosticMessages());
   }
+
+  private void assertTrackedAPIS(TestDiagnosticMessages diagnosticMessages) {
+    assertTrue(
+        diagnosticMessages
+            .getWarnings()
+            .get(0)
+            .getDiagnosticMessage()
+            .startsWith("Tracked desugared API conversions:"));
+    assertEquals(
+        9, diagnosticMessages.getWarnings().get(0).getDiagnosticMessage().split("\n").length);
+    assertTrue(
+        diagnosticMessages
+            .getWarnings()
+            .get(1)
+            .getDiagnosticMessage()
+            .startsWith("Tracked callback desugared API conversions:"));
+    assertEquals(
+        1, diagnosticMessages.getWarnings().get(1).getDiagnosticMessage().split("\n").length);
+  }
+
 
   static class Executor {
 

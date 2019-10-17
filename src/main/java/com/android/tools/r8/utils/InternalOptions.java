@@ -972,6 +972,8 @@ public class InternalOptions {
     public boolean dontReportFailingCheckDiscarded = false;
     public boolean deterministicSortingBasedOnDexType = true;
     public PrintStream whyAreYouNotInliningConsumer = System.out;
+    public boolean trackDesugaredAPIConversions =
+        System.getProperty("com.android.tools.r8.trackDesugaredAPIConversions") != null;
 
     // Flag to turn on/off JDK11+ nest-access control even when not required (Cf backend)
     public boolean enableForceNestBasedAccessDesugaringForTest = false;
