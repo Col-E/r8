@@ -28,7 +28,6 @@ import it.unimi.dsi.fastutil.ints.IntList;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -37,7 +36,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Predicate;
 
-public class Value {
+public class Value implements Comparable<Value> {
 
   public void constrainType(
       ValueTypeConstraint constraint, DexMethod method, Origin origin, Reporter reporter) {
@@ -764,6 +763,11 @@ public class Value {
   }
 
   @Override
+  public int compareTo(Value value) {
+    return Integer.compare(this.number, value.number);
+  }
+
+  @Override
   public int hashCode() {
     return number;
   }
@@ -1034,7 +1038,7 @@ public class Value {
     if (isPhi()) {
       Phi self = this.asPhi();
       if (seen == null) {
-        seen = new HashSet<>();
+        seen = Sets.newIdentityHashSet();
       }
       if (seen.contains(self)) {
         return true;
@@ -1105,7 +1109,7 @@ public class Value {
 
   public boolean isDead(AppView<?> appView, IRCode code, Predicate<Instruction> ignoreUser) {
     // Totally unused values are trivially dead.
-    return !isUsed() || isDead(appView, code, ignoreUser, new HashSet<>());
+    return !isUsed() || isDead(appView, code, ignoreUser, Sets.newIdentityHashSet());
   }
 
   /**

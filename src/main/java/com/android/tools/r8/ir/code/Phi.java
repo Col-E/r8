@@ -19,6 +19,7 @@ import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringUtils;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -342,7 +343,7 @@ public class Phi extends Value implements InstructionOrPhi {
 
   @Override
   public boolean isValueOnStack() {
-    assert verifyIsStackPhi(new HashSet<>());
+    assert verifyIsStackPhi(Sets.newIdentityHashSet());
     return isStackPhi;
   }
 

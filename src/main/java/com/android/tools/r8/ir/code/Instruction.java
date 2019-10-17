@@ -33,8 +33,8 @@ import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -141,7 +141,7 @@ public abstract class Instruction implements InstructionOrPhi {
   public void addDebugValue(Value value) {
     assert value.hasLocalInfo();
     if (debugValues == null) {
-      debugValues = new HashSet<>();
+      debugValues = Sets.newIdentityHashSet();
     }
     if (debugValues.add(value)) {
       value.addDebugUser(this);
