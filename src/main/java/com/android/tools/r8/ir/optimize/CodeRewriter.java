@@ -14,6 +14,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -2402,27 +2403,26 @@ public class CodeRewriter {
 
         // Simplify if conditions when possible.
         If theIf = block.exit().asIf();
-        List<Value> inValues = theIf.inValues();
+        Value lhs = theIf.lhs();
+        Value rhs = theIf.isZeroTest() ? null : theIf.rhs();
 
-        if (inValues.get(0).isConstNumber()
-            && (theIf.isZeroTest() || inValues.get(1).isConstNumber())) {
+        if (lhs.isConstNumber() && (theIf.isZeroTest() || rhs.isConstNumber())) {
           // Zero test with a constant of comparison between between two constants.
           if (theIf.isZeroTest()) {
-            ConstNumber cond = inValues.get(0).getConstInstruction().asConstNumber();
+            ConstNumber cond = lhs.getConstInstruction().asConstNumber();
             BasicBlock target = theIf.targetFromCondition(cond);
             simplifyIfWithKnownCondition(code, block, theIf, target);
           } else {
-            ConstNumber left = inValues.get(0).getConstInstruction().asConstNumber();
-            ConstNumber right = inValues.get(1).getConstInstruction().asConstNumber();
+            ConstNumber left = lhs.getConstInstruction().asConstNumber();
+            ConstNumber right = rhs.getConstInstruction().asConstNumber();
             BasicBlock target = theIf.targetFromCondition(left, right);
             simplifyIfWithKnownCondition(code, block, theIf, target);
           }
-        } else if (inValues.get(0).hasValueRange()
-            && (theIf.isZeroTest() || inValues.get(1).hasValueRange())) {
+        } else if (lhs.hasValueRange() && (theIf.isZeroTest() || rhs.hasValueRange())) {
           // Zero test with a value range, or comparison between between two values,
           // each with a value ranges.
           if (theIf.isZeroTest()) {
-            LongInterval interval = inValues.get(0).getValueRange();
+            LongInterval interval = lhs.getValueRange();
             if (!interval.containsValue(0)) {
               // Interval doesn't contain zero at all.
               int sign = Long.signum(interval.getMin());
@@ -2456,8 +2456,8 @@ public class CodeRewriter {
               }
             }
           } else {
-            LongInterval leftRange = inValues.get(0).getValueRange();
-            LongInterval rightRange = inValues.get(1).getValueRange();
+            LongInterval leftRange = lhs.getValueRange();
+            LongInterval rightRange = rhs.getValueRange();
             // Two overlapping ranges. Check for single point overlap.
             if (!leftRange.overlapsWith(rightRange)) {
               // No overlap.
@@ -2491,14 +2491,27 @@ public class CodeRewriter {
               }
             }
           }
-        } else if (theIf.isZeroTest() && !inValues.get(0).isConstNumber()
-            && (theIf.getType() == Type.EQ || theIf.getType() == Type.NE)) {
-          TypeLatticeElement l = inValues.get(0).getTypeLattice();
-          if (l.isReference() && inValues.get(0).isNeverNull()) {
-            simplifyIfWithKnownCondition(code, block, theIf, 1);
+        } else if (theIf.getType() == Type.EQ || theIf.getType() == Type.NE) {
+          if (theIf.isZeroTest()) {
+            if (!lhs.isConstNumber()) {
+              TypeLatticeElement l = lhs.getTypeLattice();
+              if (l.isReference() && lhs.isNeverNull()) {
+                simplifyIfWithKnownCondition(code, block, theIf, 1);
+              } else {
+                if (!l.isPrimitive() && !l.isNullable()) {
+                  simplifyIfWithKnownCondition(code, block, theIf, 1);
+                }
+              }
+            }
           } else {
-            if (!l.isPrimitive() && !l.isNullable()) {
-              simplifyIfWithKnownCondition(code, block, theIf, 1);
+            DexEncodedField enumField = lhs.getEnumField(appView);
+            if (enumField != null) {
+              DexEncodedField otherEnumField = rhs.getEnumField(appView);
+              if (enumField == otherEnumField) {
+                simplifyIfWithKnownCondition(code, block, theIf, 0);
+              } else if (otherEnumField != null) {
+                simplifyIfWithKnownCondition(code, block, theIf, 1);
+              }
             }
           }
         }

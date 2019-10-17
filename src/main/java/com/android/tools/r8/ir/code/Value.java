@@ -9,6 +9,8 @@ import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
@@ -826,6 +828,35 @@ public class Value implements Comparable<Value> {
 
   public boolean isConstant() {
     return definition.isOutConstant() && !hasLocalInfo();
+  }
+
+  public DexEncodedField getEnumField(AppView<?> appView) {
+    if (!appView.enableWholeProgramOptimizations()) {
+      return null;
+    }
+
+    Value root = getAliasedValue();
+    if (root.isPhi() || !root.definition.isStaticGet()) {
+      return null;
+    }
+
+    StaticGet staticGet = root.definition.asStaticGet();
+    DexField field = staticGet.getField();
+    if (field.type != field.holder) {
+      return null;
+    }
+
+    DexEncodedField encodedField = appView.definitionFor(field);
+    if (encodedField == null) {
+      return null;
+    }
+
+    DexClass clazz = appView.definitionFor(encodedField.field.holder);
+    if (clazz == null || !clazz.isEnum()) {
+      return null;
+    }
+
+    return encodedField;
   }
 
   public boolean isPhi() {
