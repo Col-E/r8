@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.ir.code.Invoke;
@@ -114,7 +115,12 @@ final class ClassProcessor {
     DexClass target = appView.definitionFor(method.holder);
     // NOTE: Never add a forwarding method to methods of classes unknown or coming from android.jar
     // even if this results in invalid code, these classes are never desugared.
-    assert target != null && !rewriter.isNonDesugaredLibraryClass(target);
+    assert target != null;
+    // In desugared library, emulated interface methods can be overridden by retarget lib members.
+    DexMethod forwardMethod =
+        target.isInterface()
+            ? rewriter.defaultAsMethodOfCompanionClass(method)
+            : retargetMethod(method);
     // New method will have the same name, proto, and also all the flags of the
     // default method, including bridge flag.
     DexMethod newMethod = dexItemFactory.createMethod(clazz.type, method.proto, method.name);
@@ -125,7 +131,7 @@ final class ClassProcessor {
         ForwardMethodSourceCode.builder(newMethod);
     forwardSourceCodeBuilder
         .setReceiver(clazz.type)
-        .setTarget(rewriter.defaultAsMethodOfCompanionClass(method))
+        .setTarget(forwardMethod)
         .setInvokeType(Invoke.Type.STATIC)
         .setIsInterface(false); // Holder is companion class, not an interface.
     return new DexEncodedMethod(
@@ -134,6 +140,18 @@ final class ClassProcessor {
         defaultMethod.annotations,
         defaultMethod.parameterAnnotationsList,
         new SynthesizedCode(forwardSourceCodeBuilder::build));
+  }
+
+  private DexMethod retargetMethod(DexMethod method) {
+    Map<DexString, Map<DexType, DexType>> retargetCoreLibMember =
+        appView.options().desugaredLibraryConfiguration.getRetargetCoreLibMember();
+    Map<DexType, DexType> typeMap = retargetCoreLibMember.get(method.name);
+    assert typeMap != null;
+    assert typeMap.get(method.holder) != null;
+    return dexItemFactory.createMethod(
+        typeMap.get(method.holder),
+        dexItemFactory.prependTypeToProto(method.holder, method.proto),
+        method.name);
   }
 
   // For a given class `clazz` inspects all interfaces it implements directly or
@@ -215,17 +233,29 @@ final class ClassProcessor {
     // Remove from candidates methods defined in class or any of its superclasses.
     List<DexEncodedMethod> toBeImplemented = new ArrayList<>(candidates.size());
     current = clazz;
+    Map<DexString, Map<DexType, DexType>> retargetCoreLibMember =
+        appView.options().desugaredLibraryConfiguration.getRetargetCoreLibMember();
     while (true) {
       // In desugared library look-up, methods from library classes cannot hide methods from
       // emulated interfaces (the method being desugared implied the implementation is not
-      // present in the library class).
+      // present in the library class), except through retarget core lib member.
       if (desugaredLibraryLookup && current.isLibraryClass()) {
         Iterator<DexEncodedMethod> iterator = candidates.iterator();
         while (iterator.hasNext()) {
           DexEncodedMethod candidate = iterator.next();
-          if (rewriter.isEmulatedInterface(candidate.method.holder)) {
-            toBeImplemented.add(candidate);
-            iterator.remove();
+          if (rewriter.isEmulatedInterface(candidate.method.holder)
+              && current.lookupVirtualMethod(candidate.method) != null) {
+            // A library class overrides an emulated interface method. This override is valid
+            // only if it goes through retarget core lib member, else it needs to be implemented.
+            Map<DexType, DexType> typeMap = retargetCoreLibMember.get(candidate.method.name);
+            if (typeMap != null && typeMap.containsKey(current.type)) {
+              // A rewrite needs to be performed, but instead of rewriting to the companion class,
+              // D8/R8 needs to rewrite to the retarget member.
+              toBeImplemented.add(current.lookupVirtualMethod(candidate.method));
+            } else {
+              toBeImplemented.add(candidate);
+              iterator.remove();
+            }
           }
         }
       }
