@@ -2392,8 +2392,8 @@ public class CodeRewriter {
   }
 
   public boolean simplifyControlFlow(IRCode code) {
-    boolean anyAffectedValues = simplifyIf(code);
-    anyAffectedValues |= rewriteSwitch(code);
+    boolean anyAffectedValues = rewriteSwitch(code);
+    anyAffectedValues |= simplifyIf(code);
     return anyAffectedValues;
   }
 
