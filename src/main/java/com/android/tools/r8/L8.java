@@ -113,10 +113,6 @@ public class L8 {
           options.desugaredLibraryConfiguration.createPrefixRewritingMapper(options.itemFactory);
 
       app = new L8TreePruner(options).prune(app, rewritePrefix);
-      if (app.classes().size() == 0) {
-        // TODO(b/134732760): report error instead of fatalError.
-        throw options.reporter.fatalError("Empty desugared library.");
-      }
       AppInfo appInfo = new AppInfo(app);
 
       AppView<?> appView = AppView.createForL8(appInfo, options, rewritePrefix);

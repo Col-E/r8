@@ -1147,6 +1147,10 @@ public class ToolHelper {
     return compatSink.build();
   }
 
+  public static void runL8(L8Command command) throws CompilationFailedException {
+    runL8(command, options -> {});
+  }
+
   public static void runL8(L8Command command, Consumer<InternalOptions> optionsModifier)
       throws CompilationFailedException {
     InternalOptions internalOptions = command.getInternalOptions();
