@@ -205,7 +205,6 @@ public class IRConverter {
             .map(prefix -> "L" + DescriptorUtils.getPackageBinaryNameFromJavaType(prefix))
             .map(options.itemFactory::createString)
             .collect(Collectors.toList());
-    this.methodOptimizationInfoCollector = new MethodOptimizationInfoCollector(appView);
     if (options.isDesugaredLibraryCompilation()) {
       // Specific L8 Settings.
       // BackportedMethodRewriter is needed for retarget core library members and backports.
@@ -241,6 +240,7 @@ public class IRConverter {
       this.stringSwitchRemover = null;
       this.desugaredLibraryAPIConverter = null;
       this.serviceLoaderRewriter = null;
+      this.methodOptimizationInfoCollector = null;
       return;
     }
     this.lambdaRewriter = options.enableDesugaring ? new LambdaRewriter(appView, this) : null;
@@ -295,6 +295,8 @@ public class IRConverter {
       this.outliner = new Outliner(appViewWithLiveness, this);
       this.memberValuePropagation =
           options.enableValuePropagation ? new MemberValuePropagation(appViewWithLiveness) : null;
+      this.methodOptimizationInfoCollector =
+          new MethodOptimizationInfoCollector(appViewWithLiveness);
       if (options.isMinifying()) {
         this.identifierNameStringMarker = new IdentifierNameStringMarker(appViewWithLiveness);
       } else {
@@ -330,6 +332,7 @@ public class IRConverter {
       this.d8NestBasedAccessDesugaring =
           options.shouldDesugarNests() ? new D8NestBasedAccessDesugaring(appView) : null;
       this.serviceLoaderRewriter = null;
+      this.methodOptimizationInfoCollector = null;
     }
     this.stringSwitchRemover =
         options.isStringSwitchConversionEnabled()

@@ -8,7 +8,6 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import com.android.tools.r8.AssumeMayHaveSideEffects;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestBase;
@@ -29,7 +28,7 @@ public class LibraryMethodOverrideTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public LibraryMethodOverrideTest(TestParameters parameters) {
@@ -44,8 +43,7 @@ public class LibraryMethodOverrideTest extends TestBase {
         .addOptionsModification(options -> options.enableTreeShakingOfLibraryMethodOverrides = true)
         .enableClassInliningAnnotations()
         .enableMergeAnnotations()
-        .enableSideEffectAnnotations()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::verifyOutput)
         .run(parameters.getRuntime(), TestClass.class)
@@ -68,7 +66,16 @@ public class LibraryMethodOverrideTest extends TestBase {
     for (Class<?> nonEscapingClass : nonEscapingClasses) {
       ClassSubject classSubject = inspector.clazz(nonEscapingClass);
       assertThat(classSubject, isPresent());
-      assertThat(classSubject.uniqueMethodWithName("toString"), not(isPresent()));
+
+      // TODO(b/142772856): None of the non-escaping classes should have a toString() method. It is
+      //  a requirement that the instance initializers are considered trivial for this to work,
+      //  though, even when they have a side effect (as long as the receiver does not escape via the
+      //  side effecting instruction).
+      if (nonEscapingClass == DoesNotEscapeWithSubThatDoesNotOverrideSub.class) {
+        assertThat(classSubject.uniqueMethodWithName("toString"), not(isPresent()));
+      } else {
+        assertThat(classSubject.uniqueMethodWithName("toString"), isPresent());
+      }
     }
   }
 
@@ -128,8 +135,12 @@ public class LibraryMethodOverrideTest extends TestBase {
   @NeverClassInline
   static class DoesNotEscape {
 
-    @AssumeMayHaveSideEffects
-    DoesNotEscape() {}
+    // TODO(b/142772856): Should be classified as a trivial instance initializer although it has a
+    //  side effect.
+    DoesNotEscape() {
+      // Side effect to ensure that the constructor is not removed from main().
+      System.out.print("");
+    }
 
     @Override
     public String toString() {
@@ -140,8 +151,12 @@ public class LibraryMethodOverrideTest extends TestBase {
   @NeverClassInline
   static class DoesNotEscapeWithSubThatDoesNotOverride {
 
-    @AssumeMayHaveSideEffects
-    DoesNotEscapeWithSubThatDoesNotOverride() {}
+    // TODO(b/142772856): Should be classified as a trivial instance initializer although it has a
+    //  side effect.
+    DoesNotEscapeWithSubThatDoesNotOverride() {
+      // Side effect to ensure that the constructor is not removed from main().
+      System.out.print("");
+    }
 
     @Override
     public String toString() {
@@ -153,15 +168,23 @@ public class LibraryMethodOverrideTest extends TestBase {
   static class DoesNotEscapeWithSubThatDoesNotOverrideSub
       extends DoesNotEscapeWithSubThatDoesNotOverride {
 
-    @AssumeMayHaveSideEffects
-    DoesNotEscapeWithSubThatDoesNotOverrideSub() {}
+    // TODO(b/142772856): Should be classified as a trivial instance initializer although it has a
+    //  side effect.
+    DoesNotEscapeWithSubThatDoesNotOverrideSub() {
+      // Side effect to ensure that the constructor is not removed from main().
+      System.out.print("");
+    }
   }
 
   @NeverClassInline
   static class DoesNotEscapeWithSubThatOverrides {
 
-    @AssumeMayHaveSideEffects
-    DoesNotEscapeWithSubThatOverrides() {}
+    // TODO(b/142772856): Should be classified as a trivial instance initializer although it has a
+    //  side effect.
+    DoesNotEscapeWithSubThatOverrides() {
+      // Side effect to ensure that the constructor is not removed from main().
+      System.out.print("");
+    }
 
     @Override
     public String toString() {
@@ -172,8 +195,12 @@ public class LibraryMethodOverrideTest extends TestBase {
   @NeverClassInline
   static class DoesNotEscapeWithSubThatOverridesSub extends DoesNotEscapeWithSubThatOverrides {
 
-    @AssumeMayHaveSideEffects
-    DoesNotEscapeWithSubThatOverridesSub() {}
+    // TODO(b/142772856): Should be classified as a trivial instance initializer although it has a
+    //  side effect.
+    DoesNotEscapeWithSubThatOverridesSub() {
+      // Side effect to ensure that the constructor is not removed from main().
+      System.out.print("");
+    }
 
     @Override
     public String toString() {
@@ -188,8 +215,12 @@ public class LibraryMethodOverrideTest extends TestBase {
   @NeverClassInline
   static class DoesNotEscapeWithSubThatOverridesAndEscapes {
 
-    @AssumeMayHaveSideEffects
-    DoesNotEscapeWithSubThatOverridesAndEscapes() {}
+    // TODO(b/142772856): Should be classified as a trivial instance initializer although it has a
+    //  side effect.
+    DoesNotEscapeWithSubThatOverridesAndEscapes() {
+      // Side effect to ensure that the constructor is not removed from main().
+      System.out.print("");
+    }
 
     @Override
     public String toString() {
@@ -201,8 +232,12 @@ public class LibraryMethodOverrideTest extends TestBase {
   static class DoesNotEscapeWithSubThatOverridesAndEscapesSub
       extends DoesNotEscapeWithSubThatOverridesAndEscapes {
 
-    @AssumeMayHaveSideEffects
-    DoesNotEscapeWithSubThatOverridesAndEscapesSub() {}
+    // TODO(b/142772856): Should be classified as a trivial instance initializer although it has a
+    //  side effect.
+    DoesNotEscapeWithSubThatOverridesAndEscapesSub() {
+      // Side effect to ensure that the constructor is not removed from main().
+      System.out.print("");
+    }
 
     @Override
     public String toString() {

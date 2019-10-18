@@ -61,11 +61,11 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public class MethodOptimizationInfoCollector {
-  private final AppView<?> appView;
+  private final AppView<AppInfoWithLiveness> appView;
   private final InternalOptions options;
   private final DexItemFactory dexItemFactory;
 
-  public MethodOptimizationInfoCollector(AppView<?> appView) {
+  public MethodOptimizationInfoCollector(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
     this.options = appView.options();
     this.dexItemFactory = appView.dexItemFactory();
@@ -264,7 +264,9 @@ public class MethodOptimizationInfoCollector {
 
   private void identifyTrivialInitializer(
       DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
-    if (!method.isInstanceInitializer() && !method.isClassInitializer()) {
+    assert !appView.appInfo().isPinned(method.method);
+
+    if (!method.isInitializer()) {
       return;
     }
 
@@ -272,8 +274,13 @@ public class MethodOptimizationInfoCollector {
       return;
     }
 
+    if (appView.appInfo().mayHaveSideEffects.containsKey(method.method)) {
+      return;
+    }
+
     DexClass clazz = appView.appInfo().definitionFor(method.method.holder);
     if (clazz == null) {
+      assert false;
       return;
     }
 
