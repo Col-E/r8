@@ -25,6 +25,7 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
+import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -218,14 +219,21 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
         assert false : "Expected to be able to find the enclosing class of a method definition";
         return true;
       }
-      boolean targetMayHaveSideEffects;
+
       if (appViewWithLiveness.appInfo().noSideEffects.containsKey(target.method)) {
-        targetMayHaveSideEffects = false;
-      } else {
-        targetMayHaveSideEffects = target.getOptimizationInfo().mayHaveSideEffects();
+        return false;
       }
 
-      return targetMayHaveSideEffects;
+      MethodOptimizationInfo optimizationInfo = target.getOptimizationInfo();
+      if (target.isInstanceInitializer()) {
+        TrivialInitializer trivialInitializerInfo = optimizationInfo.getTrivialInitializerInfo();
+        if (trivialInitializerInfo != null
+            && trivialInitializerInfo.isTrivialInstanceInitializer()) {
+          return false;
+        }
+      }
+
+      return target.getOptimizationInfo().mayHaveSideEffects();
     }
 
     return true;

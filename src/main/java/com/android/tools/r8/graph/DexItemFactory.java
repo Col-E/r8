@@ -730,10 +730,13 @@ public class DexItemFactory {
 
   public class EnumMethods {
 
-    public DexMethod valueOf;
-    public DexMethod ordinal;
-    public DexMethod name;
-    public DexMethod toString;
+    public final DexMethod valueOf;
+    public final DexMethod ordinal;
+    public final DexMethod name;
+    public final DexMethod toString;
+
+    public final DexMethod finalize =
+        createMethod(enumType, createProto(voidType), finalizeMethodName);
 
     private EnumMethods() {
       valueOf =

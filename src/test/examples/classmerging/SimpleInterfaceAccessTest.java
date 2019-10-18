@@ -18,6 +18,17 @@ public class SimpleInterfaceAccessTest {
     // package references OtherSimpleInterface.
     OtherSimpleInterface y = new OtherSimpleInterfaceImpl();
     y.bar();
+
+    // Ensure that the instantiations are not dead code eliminated.
+    escape(x);
+    escape(y);
+  }
+
+  @NeverInline
+  static void escape(Object o) {
+    if (System.currentTimeMillis() < 0) {
+      System.out.println(o);
+    }
   }
 
   // Should only be merged into OtherSimpleInterfaceImpl if access modifications are allowed.

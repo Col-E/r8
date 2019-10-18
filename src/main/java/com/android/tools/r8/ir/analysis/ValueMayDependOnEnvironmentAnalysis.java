@@ -5,16 +5,21 @@
 package com.android.tools.r8.ir.analysis;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.InvokeDirect;
+import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.NewArrayFilledData;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.utils.LongInterval;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.Set;
 
@@ -36,6 +41,9 @@ public class ValueMayDependOnEnvironmentAnalysis {
       return false;
     }
     if (isConstantArrayThroughoutMethod(root)) {
+      return false;
+    }
+    if (isNewInstanceWithoutEnvironmentDependentFields(root)) {
       return false;
     }
     return true;
@@ -142,6 +150,66 @@ public class ValueMayDependOnEnvironmentAnalysis {
     // followed by an instruction that may have side effects. Instructions that do not have any
     // side effects are ignored because they cannot mutate the array.
     return !valueMayBeMutatedBeforeMethodExit(root, consumedInstructions);
+  }
+
+  private boolean isNewInstanceWithoutEnvironmentDependentFields(Value value) {
+    assert !value.hasAliasedValue();
+
+    if (value.isPhi() || !value.definition.isNewInstance()) {
+      return false;
+    }
+
+    // Find the single constructor invocation.
+    InvokeMethod constructorInvoke = null;
+    for (Instruction instruction : value.uniqueUsers()) {
+      if (!instruction.isInvokeDirect()) {
+        continue;
+      }
+
+      InvokeDirect invoke = instruction.asInvokeDirect();
+      if (!appView.dexItemFactory().isConstructor(invoke.getInvokedMethod())) {
+        continue;
+      }
+
+      if (invoke.getReceiver().getAliasedValue() != value) {
+        continue;
+      }
+
+      if (constructorInvoke == null) {
+        constructorInvoke = invoke;
+      } else {
+        // Not a single constructor invocation, give up.
+        return false;
+      }
+    }
+
+    if (constructorInvoke == null) {
+      // Didn't find a constructor invocation, give up.
+      return false;
+    }
+
+    // Check that it is a trivial initializer (otherwise, the constructor could do anything).
+    DexEncodedMethod constructor = appView.definitionFor(constructorInvoke.getInvokedMethod());
+    if (constructor == null) {
+      return false;
+    }
+
+    TrivialInitializer initializerInfo =
+        constructor.getOptimizationInfo().getTrivialInitializerInfo();
+    if (initializerInfo == null || !initializerInfo.isTrivialInstanceInitializer()) {
+      return false;
+    }
+
+    // Check that none of the arguments to the constructor depend on the environment.
+    for (int i = 1; i < constructorInvoke.arguments().size(); i++) {
+      Value argument = constructorInvoke.arguments().get(i);
+      if (valueMayDependOnEnvironment(argument)) {
+        return false;
+      }
+    }
+
+    // Finally, check that the object does not escape.
+    return !valueMayBeMutatedBeforeMethodExit(value, ImmutableSet.of(constructorInvoke));
   }
 
   private boolean valueMayBeMutatedBeforeMethodExit(Value value, Set<Instruction> whitelist) {

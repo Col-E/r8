@@ -64,7 +64,8 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class ClassInlinerTest extends TestBase {
-  private Backend backend;
+
+  private final Backend backend;
 
   @Parameterized.Parameters(name = "Backend: {0}")
   public static Backend[] data() {

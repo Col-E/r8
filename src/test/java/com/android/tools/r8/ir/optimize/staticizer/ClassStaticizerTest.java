@@ -167,6 +167,7 @@ public class ClassStaticizerTest extends TestBase {
         testForR8(parameters.getBackend())
             .addProgramClasses(classes)
             .enableInliningAnnotations()
+            .enableSideEffectAnnotations()
             .addKeepMainRule(main)
             .allowAccessModification()
             .noMinification()

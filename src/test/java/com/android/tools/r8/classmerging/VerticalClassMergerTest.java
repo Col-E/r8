@@ -10,8 +10,6 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.OutputMode;
@@ -78,7 +76,6 @@ public class VerticalClassMergerTest extends TestBase {
       .resolve("classmerging").resolve("keep-rules-dontoptimize.txt");
 
   private void configure(InternalOptions options) {
-    options.enableClassInlining = false;
     options.enableSideEffectAnalysis = false;
     options.enableUnusedInterfaceRemoval = false;
     options.testing.nondeterministicCycleElimination = true;
@@ -90,6 +87,7 @@ public class VerticalClassMergerTest extends TestBase {
         testForR8(Backend.DEX)
             .addProgramFiles(EXAMPLE_JAR)
             .addKeepRuleFiles(proguardConfig)
+            .enableProguardTestOptions()
             .noMinification()
             .addOptionsModification(optionsConsumer)
             .compile()
@@ -110,18 +108,18 @@ public class VerticalClassMergerTest extends TestBase {
     runR8(EXAMPLE_KEEP, this::configure);
     // GenericInterface should be merged into GenericInterfaceImpl.
     for (String candidate : CAN_BE_MERGED) {
-      assertFalse(inspector.clazz(candidate).isPresent());
+      assertThat(inspector.clazz(candidate), not(isPresent()));
     }
-    assertTrue(inspector.clazz("classmerging.GenericInterfaceImpl").isPresent());
-    assertTrue(inspector.clazz("classmerging.Outer$SubClass").isPresent());
-    assertTrue(inspector.clazz("classmerging.SubClass").isPresent());
+    assertThat(inspector.clazz("classmerging.GenericInterfaceImpl"), isPresent());
+    assertThat(inspector.clazz("classmerging.Outer$SubClass"), isPresent());
+    assertThat(inspector.clazz("classmerging.SubClass"), isPresent());
   }
 
   @Test
   public void testClassesHaveNotBeenMerged() throws Throwable {
     runR8(DONT_OPTIMIZE, null);
     for (String candidate : CAN_BE_MERGED) {
-      assertTrue(inspector.clazz(candidate).isPresent());
+      assertThat(inspector.clazz(candidate), isPresent());
     }
   }
 
@@ -304,8 +302,8 @@ public class VerticalClassMergerTest extends TestBase {
   @Test
   public void testConflictWasDetected() throws Throwable {
     runR8(EXAMPLE_KEEP, this::configure);
-    assertTrue(inspector.clazz("classmerging.ConflictingInterface").isPresent());
-    assertTrue(inspector.clazz("classmerging.ConflictingInterfaceImpl").isPresent());
+    assertThat(inspector.clazz("classmerging.ConflictingInterface"), isPresent());
+    assertThat(inspector.clazz("classmerging.ConflictingInterfaceImpl"), isPresent());
   }
 
   @Test

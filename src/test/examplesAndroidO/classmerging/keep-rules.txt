@@ -14,5 +14,9 @@
   public static void main(...);
 }
 
+-neverinline class * {
+  @classmerging.NeverInline <methods>;
+}
+
 # TODO(herhut): Consider supporting merging of inner-class attributes.
 # -keepattributes *

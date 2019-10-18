@@ -13,8 +13,17 @@ public class Test {
     ConflictingInterfaceImpl impl = new ConflictingInterfaceImpl();
     callMethodOnIface(impl);
     System.out.println(new SubClassThatReferencesSuperMethod().referencedMethod());
-    System.out.println(new Outer().getInstance().method());
+    Outer outer = new Outer();
+    Outer.SubClass inner = outer.getInstance();
+    System.out.println(outer.getInstance().method());
     System.out.println(new SubClass(42));
+
+    // Ensure that the instantiations are not dead code eliminated.
+    escape(clazz);
+    escape(iface);
+    escape(impl);
+    escape(inner);
+    escape(outer);
   }
 
   private static void callMethodOnIface(GenericInterface iface) {
@@ -30,5 +39,12 @@ public class Test {
     System.out.println(iface.method());
     System.out.println(ClassWithConflictingMethod.conflict(null));
     System.out.println(OtherClassWithConflictingMethod.conflict(null));
+  }
+
+  @NeverInline
+  static void escape(Object o) {
+    if (System.currentTimeMillis() < 0) {
+      System.out.println(o);
+    }
   }
 }

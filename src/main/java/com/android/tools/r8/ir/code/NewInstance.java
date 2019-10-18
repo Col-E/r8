@@ -11,7 +11,10 @@ import com.android.tools.r8.cf.code.CfNew;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
@@ -166,6 +169,18 @@ public class NewInstance extends Instruction {
         // Types that are a super type of `context` are guaranteed to be initialized already.
         type -> appView.isSubtype(context, type).isTrue())) {
       return true;
+    }
+
+    // Verify that the object does not have a finalizer.
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    ResolutionResult finalizeResolutionResult =
+        appView.appInfo().resolveMethod(clazz, dexItemFactory.objectMethods.finalize);
+    if (finalizeResolutionResult.hasSingleTarget()) {
+      DexMethod finalizeMethod = finalizeResolutionResult.asSingleTarget().method;
+      if (finalizeMethod != dexItemFactory.enumMethods.finalize
+          && finalizeMethod != dexItemFactory.objectMethods.finalize) {
+        return true;
+      }
     }
 
     return false;

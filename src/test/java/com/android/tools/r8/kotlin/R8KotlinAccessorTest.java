@@ -291,30 +291,18 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
   @Test
   public void testAccessor() throws Exception {
     TestKotlinCompanionClass testedClass = ACCESSOR_COMPANION_PROPERTY_CLASS;
-    String mainClass = addMainToClasspath("accessors.AccessorKt",
-        "accessor_accessPropertyFromCompanionClass");
+    String mainClass =
+        addMainToClasspath("accessors.AccessorKt", "accessor_accessPropertyFromCompanionClass");
     runTest(
         "accessors",
         mainClass,
         disableClassStaticizer,
-        (app) -> {
+        app -> {
+          // The classes are removed entirely as a result of member value propagation, inlining, and
+          // the fact that the classes do not have observable side effects.
           CodeInspector codeInspector = new CodeInspector(app);
-          ClassSubject outerClass =
-              checkClassIsKept(codeInspector, testedClass.getOuterClassName());
-          ClassSubject companionClass = checkClassIsKept(codeInspector, testedClass.getClassName());
-
-          // Property field has been removed due to member value propagation.
-          String propertyName = "property";
-          checkFieldIsRemoved(outerClass, JAVA_LANG_STRING, propertyName);
-
-          // The getter is always inlined since it just calls into the accessor.
-          MemberNaming.MethodSignature getter = testedClass.getGetterForProperty(propertyName);
-          checkMethodIsAbsent(companionClass, getter);
-
-          // The accessor is also inlined.
-          MemberNaming.MethodSignature getterAccessor =
-              testedClass.getGetterAccessorForProperty(propertyName, AccessorKind.FROM_COMPANION);
-          checkMethodIsRemoved(outerClass, getterAccessor);
+          checkClassIsRemoved(codeInspector, testedClass.getOuterClassName());
+          checkClassIsRemoved(codeInspector, testedClass.getClassName());
         });
   }
 

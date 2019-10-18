@@ -7,7 +7,18 @@ package classmerging;
 public class NestedDefaultInterfaceMethodsTest {
 
   public static void main(String[] args) {
-    new C().m();
+    C obj = new C();
+    obj.m();
+
+    // Ensure that the instantiations are not dead code eliminated.
+    escape(obj);
+  }
+
+  @NeverInline
+  static void escape(Object o) {
+    if (System.currentTimeMillis() < 0) {
+      System.out.println(o);
+    }
   }
 
   public interface A {

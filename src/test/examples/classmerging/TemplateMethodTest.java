@@ -9,6 +9,16 @@ public class TemplateMethodTest {
   public static void main(String[] args) {
     AbstractClass obj = new AbstractClassImpl();
     obj.foo();
+
+    // Ensure that the instantiations are not dead code eliminated.
+    escape(obj);
+  }
+
+  @NeverInline
+  static void escape(Object o) {
+    if (System.currentTimeMillis() < 0) {
+      System.out.println(o);
+    }
   }
 
   private abstract static class AbstractClass {

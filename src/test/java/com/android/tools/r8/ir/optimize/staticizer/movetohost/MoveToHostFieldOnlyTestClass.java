@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize.staticizer.movetohost;
 
+import com.android.tools.r8.AssumeMayHaveSideEffects;
 import com.android.tools.r8.NeverInline;
 
 public class MoveToHostFieldOnlyTestClass {
@@ -12,6 +13,7 @@ public class MoveToHostFieldOnlyTestClass {
     test.testOk_fieldOnly();
   }
 
+  @AssumeMayHaveSideEffects
   @NeverInline
   private void testOk_fieldOnly() {
     // Any instance method call whose target holder is not the candidate will invalidate candidacy,

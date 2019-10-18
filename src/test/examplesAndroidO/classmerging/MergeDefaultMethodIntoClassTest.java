@@ -11,6 +11,16 @@ public class MergeDefaultMethodIntoClassTest {
     // invoke-interface instruction and not invoke-virtual instruction.
     A obj = new B();
     obj.f();
+
+    // Ensure that the instantiations are not dead code eliminated.
+    escape(obj);
+  }
+
+  @NeverInline
+  static void escape(Object o) {
+    if (System.currentTimeMillis() < 0) {
+      System.out.println(o);
+    }
   }
 
   public interface A {

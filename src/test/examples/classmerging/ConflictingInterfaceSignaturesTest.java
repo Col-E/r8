@@ -12,6 +12,17 @@ public class ConflictingInterfaceSignaturesTest {
 
     B b = new InterfaceImpl();
     b.foo();
+
+    // Ensure that the instantiations are not dead code eliminated.
+    escape(a);
+    escape(b);
+  }
+
+  @NeverInline
+  static void escape(Object o) {
+    if (System.currentTimeMillis() < 0) {
+      System.out.println(o);
+    }
   }
 
   public interface A {

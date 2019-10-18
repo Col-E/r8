@@ -7,8 +7,22 @@ package classmerging;
 public class MethodCollisionTest {
 
   public static void main(String[] args) {
-    new B().m();
-    new D().m();
+    B b = new B();
+    b.m();
+
+    D d = new D();
+    d.m();
+
+    // Ensure that the instantiations are not dead code eliminated.
+    escape(b);
+    escape(d);
+  }
+
+  @NeverInline
+  static void escape(Object o) {
+    if (System.currentTimeMillis() < 0) {
+      System.out.println(o);
+    }
   }
 
   public static class A {

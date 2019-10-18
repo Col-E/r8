@@ -74,7 +74,11 @@ public class EscapingBuilderTest extends TestBase {
     }
 
     @NeverInline
-    public static void escape(Object o) {}
+    static void escape(Object o) {
+      if (System.currentTimeMillis() < 0) {
+        System.out.println(o);
+      }
+    }
   }
 
   // Simple builder that should be class inlined.

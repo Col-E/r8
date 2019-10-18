@@ -15,6 +15,17 @@ public class SyntheticBridgeSignaturesTest {
     BSub b = new BSub();
     a.m(b);
     b.m(a);
+
+    // Ensure that the instantiations are not dead code eliminated.
+    escape(a);
+    escape(b);
+  }
+
+  @NeverInline
+  static void escape(Object o) {
+    if (System.currentTimeMillis() < 0) {
+      System.out.println(o);
+    }
   }
 
   private static class A {
