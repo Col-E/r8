@@ -66,7 +66,7 @@ public class AarArchiveResourceProvider implements ProgramResourceProvider {
 
   private List<ProgramResource> readArchive() throws IOException {
     List<ProgramResource> classResources = null;
-    try (ZipFile zipFile = new ZipFile(archive.toFile(), StandardCharsets.UTF_8)) {
+    try (ZipFile zipFile = FileUtils.createZipFile(archive.toFile(), StandardCharsets.UTF_8)) {
       final Enumeration<? extends ZipEntry> entries = zipFile.entries();
       while (entries.hasMoreElements()) {
         ZipEntry entry = entries.nextElement();

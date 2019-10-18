@@ -9,12 +9,14 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.List;
+import java.util.zip.ZipFile;
 
 public class FileUtils {
 
@@ -27,6 +29,9 @@ public class FileUtils {
   public static final String ZIP_EXTENSION = ".zip";
   public static final String JAVA_EXTENSION = ".java";
   public static final String MODULE_INFO_CLASS = "module-info.class";
+
+  public static final boolean isAndroid =
+      System.getProperty("java.vm.name").equalsIgnoreCase("Dalvik");
 
   public static boolean isDexFile(Path path) {
     String name = path.getFileName().toString().toLowerCase();
@@ -94,7 +99,7 @@ public class FileUtils {
   public static Path validateOutputFile(Path path, Reporter reporter) {
     if (path != null) {
       boolean isJarOrZip = isZipFile(path) || isJarFile(path);
-      if (!isJarOrZip  && !(Files.exists(path) && Files.isDirectory(path))) {
+      if (!isJarOrZip && !(Files.exists(path) && Files.isDirectory(path))) {
         reporter.error(new StringDiagnostic(
             "Invalid output: "
                 + path
@@ -183,5 +188,22 @@ public class FileUtils {
       assert fileSeparator == '\\';
       return path.replace('/', '\\');
     }
+  }
+
+  public static ZipFile createZipFile(File file, Charset charset) throws IOException {
+    if (!isAndroid) {
+      return new ZipFile(file, charset);
+    }
+    // On Android pre-26 we cannot use the constructor ZipFile(file, charset).
+    // By default Android use UTF_8 as the charset, so we can use the default constructor.
+    if (Charset.defaultCharset() == StandardCharsets.UTF_8) {
+      return new ZipFile(file);
+    }
+    // If the Android runtime is started with a different default charset, the default constructor
+    // won't work. It is possible to support this case if we read/write the ZipFile not with it's
+    // own Input/OutputStream, but an external one which one can define on a different Charset than
+    // default. We do not support this at the moment since R8 on dex is used only in tests, and
+    // UTF_8 is the default charset used in tests.
+    throw new RuntimeException("R8 can run on dex only with UTF_8 as the default charset.");
   }
 }

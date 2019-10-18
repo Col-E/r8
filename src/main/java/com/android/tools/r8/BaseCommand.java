@@ -166,15 +166,14 @@ public abstract class BaseCommand {
     public B addProgramFiles(Collection<Path> files) {
       guard(
           () -> {
-            files.forEach(
-                path -> {
-                  try {
-                    app.addProgramFile(path);
-                    programFiles.add(path);
-                  } catch (CompilationError e) {
-                    error(new ProgramInputOrigin(path), e);
-                  }
-                });
+            for (Path path : files) {
+              try {
+                app.addProgramFile(path);
+                programFiles.add(path);
+              } catch (CompilationError e) {
+                error(new ProgramInputOrigin(path), e);
+              }
+            }
           });
       return self();
     }
@@ -201,14 +200,13 @@ public abstract class BaseCommand {
     public B addLibraryFiles(Collection<Path> files) {
       guard(
           () -> {
-            files.forEach(
-                path -> {
-                  try {
-                    app.addLibraryFile(path);
-                  } catch (CompilationError e) {
-                    error(new LibraryInputOrigin(path), e);
-                  }
-                });
+            for (Path path : files) {
+              try {
+                app.addLibraryFile(path);
+              } catch (CompilationError e) {
+                error(new LibraryInputOrigin(path), e);
+              }
+            }
           });
       return self();
     }

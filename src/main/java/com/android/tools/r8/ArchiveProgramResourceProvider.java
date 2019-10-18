@@ -9,6 +9,7 @@ import com.android.tools.r8.origin.ArchiveEntryOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.io.ByteStreams;
 import java.io.IOException;
@@ -62,7 +63,7 @@ public class ArchiveProgramResourceProvider implements ProgramResourceProvider {
       Path archive, Predicate<String> include) {
     return fromSupplier(
         new PathOrigin(archive),
-        () -> new ZipFile(archive.toFile(), StandardCharsets.UTF_8),
+        () -> FileUtils.createZipFile(archive.toFile(), StandardCharsets.UTF_8),
         include);
   }
 

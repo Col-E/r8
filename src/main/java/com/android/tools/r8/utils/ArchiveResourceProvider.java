@@ -53,7 +53,8 @@ public class ArchiveResourceProvider implements ProgramResourceProvider, DataRes
   private List<ProgramResource> readArchive() throws IOException {
     List<ProgramResource> dexResources = new ArrayList<>();
     List<ProgramResource> classResources = new ArrayList<>();
-    try (ZipFile zipFile = new ZipFile(archive.getPath().toFile(), StandardCharsets.UTF_8)) {
+    try (ZipFile zipFile =
+        FileUtils.createZipFile(archive.getPath().toFile(), StandardCharsets.UTF_8)) {
       final Enumeration<? extends ZipEntry> entries = zipFile.entries();
       while (entries.hasMoreElements()) {
         ZipEntry entry = entries.nextElement();
@@ -109,7 +110,8 @@ public class ArchiveResourceProvider implements ProgramResourceProvider, DataRes
 
   @Override
   public void accept(Visitor resourceBrowser) throws ResourceException {
-    try (ZipFile zipFile = new ZipFile(archive.getPath().toFile(), StandardCharsets.UTF_8)) {
+    try (ZipFile zipFile =
+        FileUtils.createZipFile(archive.getPath().toFile(), StandardCharsets.UTF_8)) {
       final Enumeration<? extends ZipEntry> entries = zipFile.entries();
       while (entries.hasMoreElements()) {
         ZipEntry entry = entries.nextElement();

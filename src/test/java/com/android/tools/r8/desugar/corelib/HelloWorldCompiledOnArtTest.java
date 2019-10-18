@@ -8,10 +8,12 @@ import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static junit.framework.TestCase.assertEquals;
 
 import com.android.tools.r8.D8;
+import com.android.tools.r8.D8TestBuilder;
 import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ToolHelper.ProcessResult;
@@ -20,6 +22,8 @@ import com.android.tools.r8.utils.StringUtils;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -28,13 +32,32 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class HelloWorldCompiledOnArtTest extends CoreLibDesugarTestBase {
 
+  // TODO(b/142621961): Create an abstraction to easily run tests on External DexR8.
+  // Manage pathMock in the abstraction.
+  private static Path pathMock;
+
+  @BeforeClass
+  public static void compilePathBackport() throws Exception {
+    pathMock = getStaticTemp().newFolder("PathMock").toPath();
+    ProcessResult processResult =
+        ToolHelper.runJavac(
+            CfVm.JDK8,
+            Collections.emptyList(),
+            pathMock,
+            getAllFilesWithSuffixInDirectory(Paths.get("src/test/r8OnArtBackport"), "java"));
+    assertEquals(0, processResult.exitCode);
+  }
+
+  public static Path[] getPathBackport() throws Exception {
+    return getAllFilesWithSuffixInDirectory(pathMock, "class");
+  }
+
   private final TestParameters parameters;
 
-  // TODO(b/142621961): Parametrize at least L and P instead of just P.
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters()
-        .withDexRuntime(Version.V9_0_0)
+        .withDexRuntimesStartingFromIncluding(Version.V7_0_0)
         .withApiLevelsStartingAtIncluding(AndroidApiLevel.L)
         .build();
   }
@@ -93,10 +116,13 @@ public class HelloWorldCompiledOnArtTest extends CoreLibDesugarTestBase {
     assertEquals(StringUtils.lines("Hello, world"), processResult.stdout);
   }
 
-  private D8TestCompileResult compileR8ToDexWithD8()
-      throws com.android.tools.r8.CompilationFailedException {
-    return testForD8()
-        .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR)
+  private D8TestCompileResult compileR8ToDexWithD8() throws Exception {
+    D8TestBuilder d8TestBuilder =
+        testForD8().addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR);
+    if (parameters.getApiLevel().getLevel() < AndroidApiLevel.O.getLevel()) {
+      d8TestBuilder.addProgramFiles(getPathBackport());
+    }
+    return d8TestBuilder
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel())
         .compile()

@@ -12,6 +12,7 @@ import com.android.tools.r8.origin.ArchiveEntryOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.io.ByteStreams;
 import java.io.Closeable;
@@ -60,7 +61,7 @@ public class ArchiveClassFileProvider implements ClassFileResourceProvider, Clos
     assert isArchive(archive);
     origin = new PathOrigin(archive);
     try {
-      zipFile = new ZipFile(archive.toFile(), StandardCharsets.UTF_8);
+      zipFile = FileUtils.createZipFile(archive.toFile(), StandardCharsets.UTF_8);
     } catch (IOException e) {
       if (!Files.exists(archive)) {
         throw new NoSuchFileException(archive.toString());

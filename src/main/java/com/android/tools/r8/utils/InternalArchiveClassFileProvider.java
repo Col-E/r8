@@ -100,7 +100,7 @@ class InternalArchiveClassFileProvider implements ClassFileResourceProvider, Aut
   private ZipFile getOpenZipFile() throws IOException {
     if (openedZipFile == null) {
       try {
-        openedZipFile = new ZipFile(path.toFile(), StandardCharsets.UTF_8);
+        openedZipFile = FileUtils.createZipFile(path.toFile(), StandardCharsets.UTF_8);
       } catch (IOException e) {
         if (!Files.exists(path)) {
           throw new NoSuchFileException(path.toString());
