@@ -12,11 +12,8 @@ import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
-import com.android.tools.r8.ir.code.And;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Paths;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -131,10 +128,6 @@ public class Jdk11TimeTests extends Jdk11CoreLibTestBase {
 
   @Test
   public void testTime() throws Exception {
-    // TODO(b/137876068): Temporarily ignored to move forward with Desugared API conversion.
-    // Extra conversions are required due to extra classes injected in the desugared library
-    // in this test. Disabled for now.
-    Assume.assumeFalse(parameters.getApiLevel().getLevel() <= AndroidApiLevel.N.getLevel());
     String verbosity = "2";
     D8TestCompileResult compileResult =
         testForD8()
@@ -142,6 +135,11 @@ public class Jdk11TimeTests extends Jdk11CoreLibTestBase {
             .addProgramFiles(Paths.get(JDK_TESTS_BUILD_DIR + "jdk11TimeTests.jar"))
             .addProgramFiles(Paths.get(JDK_TESTS_BUILD_DIR + "testng-6.10.jar"))
             .addProgramFiles(Paths.get(JDK_TESTS_BUILD_DIR + "jcommander-1.48.jar"))
+            .addOptionsModification(
+                options ->
+                    // We cannot generate API conversion on extended desugared library without
+                    // adding new rewriting flags in the json.
+                    options.testing.enableDesugaredAPIConversion = false)
             .setMinApi(parameters.getApiLevel())
             .enableCoreLibraryDesugaring(parameters.getApiLevel())
             .compile()

@@ -264,7 +264,10 @@ public class IRConverter {
         options.testing.forceAssumeNoneInsertion ? new AliasIntroducer(appView) : null;
     this.nonNullTracker = options.enableNonNullTracking ? new NonNullTracker(appView) : null;
     this.desugaredLibraryAPIConverter =
-        appView.rewritePrefix.isRewriting() ? new DesugaredLibraryAPIConverter(appView) : null;
+        appView.rewritePrefix.isRewriting()
+                && appView.options().testing.enableDesugaredAPIConversion
+            ? new DesugaredLibraryAPIConverter(appView)
+            : null;
     if (appView.enableWholeProgramOptimizations()) {
       assert appView.appInfo().hasLiveness();
       assert appView.rootSet() != null;

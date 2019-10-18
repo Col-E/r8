@@ -975,6 +975,9 @@ public class InternalOptions {
     public PrintStream whyAreYouNotInliningConsumer = System.out;
     public boolean trackDesugaredAPIConversions =
         System.getProperty("com.android.tools.r8.trackDesugaredAPIConversions") != null;
+    // This should be disabled only when using extended desugared library with an invalid json
+    // files to avoid generating unsupported conversions.
+    public boolean enableDesugaredAPIConversion = false;
 
     // Flag to turn on/off JDK11+ nest-access control even when not required (Cf backend)
     public boolean enableForceNestBasedAccessDesugaringForTest = false;

@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.junit.Assume;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -184,9 +183,7 @@ public class Jdk11StreamTests extends Jdk11CoreLibTestBase {
   }
 
 
-  // TODO(b/137876068): Temporarily ignored to move forward with Desugared API conversion.
   @Test
-  @Ignore
   public void testStream() throws Exception {
     Assume.assumeTrue(
         "Requires Java base extensions, should add it when not desugaring",
@@ -207,14 +204,15 @@ public class Jdk11StreamTests extends Jdk11CoreLibTestBase {
             .addProgramFiles(getPathsFiles())
             .addProgramFiles(getSafeVarArgsFile())
             .addProgramFiles(testNGSupportProgramFiles())
+            .addOptionsModification(
+                options ->
+                    // We cannot generate API conversion on extended desugared library without
+                    // adding new rewriting flags in the json.
+                    options.testing.enableDesugaredAPIConversion = false)
             .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .setMinApi(parameters.getApiLevel())
             .enableCoreLibraryDesugaring(parameters.getApiLevel())
             .compile()
-            .inspect(
-                i -> {
-                  System.out.println("x");
-                })
             .addDesugaredCoreLibraryRunClassPath(
                 this::buildDesugaredLibraryWithJavaBaseExtension, parameters.getApiLevel())
             .withArtFrameworks()
@@ -250,7 +248,6 @@ public class Jdk11StreamTests extends Jdk11CoreLibTestBase {
         } else if (result.getStdOut().contains("java.lang.AssertionError")) {
           // TODO(b/134732760): Investigate and fix these issues.
           numHardFailures++;
-          System.out.println("HARD FAIL" + path);
         } else {
           String errorMessage = "STDOUT:\n" + result.getStdOut() + "STDERR:\n" + result.getStdErr();
           fail(errorMessage);
