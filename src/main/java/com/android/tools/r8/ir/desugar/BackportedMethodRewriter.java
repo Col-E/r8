@@ -100,7 +100,34 @@ public final class BackportedMethodRewriter {
       InvokeMethod invoke = instruction.asInvokeMethod();
       MethodProvider provider = getMethodProviderOrNull(invoke.getInvokedMethod());
       if (provider == null) {
-        continue;
+        if (!rewritableMethods.matchesVirtualRewrite(invoke.getInvokedMethod())) {
+          continue;
+        }
+        // We need to force resolution, even on d8, to know if the invoke has to be rewritten.
+        DexEncodedMethod dexEncodedMethod =
+            quickLookUp(invoke.getInvokedMethod());
+        if (dexEncodedMethod == null) {
+          continue;
+        }
+        provider = getMethodProviderOrNull(dexEncodedMethod.method);
+        if (provider == null) {
+          continue;
+        }
+
+        // Since we are rewriting a virtual method into a static invoke in this case, the look-up
+        // logic gets confused. Final methods rewritten in such a way are always or invokes from a
+        // library class are rewritten into the static invoke, which is correct. However,
+        // overrides of the programmer are currently disabled. We still rewrite everything to make
+        // basic cases work.
+        // TODO(b/142846107): Support overrides of retarget virtual methods by uncommenting the
+        // following and implementing doSomethingSmart().
+
+        // DexClass receiverType = appView.definitionFor(invoke.getInvokedMethod().holder);
+        // if (!(dexEncodedMethod.isFinal()
+        //     || (receiverType != null && receiverType.isLibraryClass()))) {
+        //   doSomethingSmart();
+        //   continue;
+        // }
       }
 
       provider.rewriteInvoke(invoke, iterator, code, appView);
@@ -111,6 +138,31 @@ public final class BackportedMethodRewriter {
         holders.add(code.method.method.holder);
       }
     }
+  }
+
+  private DexEncodedMethod quickLookUp(DexMethod method) {
+    // Since retargeting cannot be on interface, we do a quick look-up excluding interfaces.
+    // On R8 resolution is immediate, on d8 it may look-up.
+    DexClass current = appView.definitionFor(method.holder);
+    if (current == null) {
+     return null;
+    }
+    DexEncodedMethod dexEncodedMethod = current.lookupVirtualMethod(method);
+    if (dexEncodedMethod != null) {
+      return dexEncodedMethod;
+    }
+    while (current.superType != factory.objectType) {
+      DexType superType = current.superType;
+      current = appView.definitionFor(superType);
+      if (current == null) {
+        return null;
+      }
+      dexEncodedMethod = current.lookupVirtualMethod(method);
+      if (dexEncodedMethod != null) {
+        return dexEncodedMethod;
+      }
+    }
+    return null;
   }
 
   private Collection<DexProgramClass> findSynthesizedFrom(Builder<?> builder, DexType holder) {
@@ -126,8 +178,7 @@ public final class BackportedMethodRewriter {
     return clazz.descriptor.toString().startsWith(UTILITY_CLASS_DESCRIPTOR_PREFIX);
   }
 
-  public void synthesizeUtilityClass(
-      Builder<?> builder, ExecutorService executorService, InternalOptions options)
+  public void synthesizeUtilityClasses(Builder<?> builder, ExecutorService executorService)
       throws ExecutionException {
     if (holders.isEmpty()) {
       return;
@@ -161,7 +212,7 @@ public final class BackportedMethodRewriter {
       if (appView.definitionFor(method.holder) != null) {
         continue;
       }
-      Code code = provider.generateTemplateMethod(options, method);
+      Code code = provider.generateTemplateMethod(appView.options(), method);
       DexEncodedMethod dexEncodedMethod =
           new DexEncodedMethod(
               method, flags, DexAnnotationSet.empty(), ParameterAnnotationsList.empty(), code);
@@ -181,7 +232,7 @@ public final class BackportedMethodRewriter {
               DexAnnotationSet.empty(),
               DexEncodedField.EMPTY_ARRAY,
               DexEncodedField.EMPTY_ARRAY,
-              new DexEncodedMethod[] {dexEncodedMethod},
+              new DexEncodedMethod[]{dexEncodedMethod},
               DexEncodedMethod.EMPTY_ARRAY,
               factory.getSkipNameValidationForTesting(),
               referencingClasses);
@@ -221,6 +272,10 @@ public final class BackportedMethodRewriter {
 
     // Map backported method to a provider for creating the actual target method (with code).
     private final Map<DexMethod, MethodProvider> rewritable = new IdentityHashMap<>();
+    // Map virtualRewrites hold a methodName->method mapping for virtual methods which are
+    // rewritten while the holder is non final but no superclass implement the method. In this case
+    // d8 needs to force resolution of given methods to see if the invoke needs to be rewritten.
+    private final Map<DexString, List<DexMethod>> virtualRewrites = new IdentityHashMap<>();
 
     RewritableMethods(InternalOptions options, AppView<?> appView) {
       DexItemFactory factory = options.itemFactory;
@@ -251,6 +306,19 @@ public final class BackportedMethodRewriter {
       if (!options.desugaredLibraryConfiguration.getRetargetCoreLibMember().isEmpty()) {
         initializeRetargetCoreLibraryMembers(appView);
       }
+    }
+
+    boolean matchesVirtualRewrite(DexMethod method) {
+      List<DexMethod> dexMethods = virtualRewrites.get(method.name);
+      if (dexMethods == null) {
+        return false;
+      }
+      for (DexMethod dexMethod : dexMethods) {
+        if (method.match(dexMethod)) {
+          return true;
+        }
+      }
+      return false;
     }
 
     boolean isEmpty() {
@@ -1007,7 +1075,8 @@ public final class BackportedMethodRewriter {
                 : new MethodGenerator(
                     method,
                     (options, methodArg) ->
-                        CollectionMethodGenerators.generateListOf(options, methodArg, formalCount)));
+                        CollectionMethodGenerators.generateListOf(
+                            options, methodArg, formalCount)));
       }
       proto = factory.createProto(type, factory.objectArrayType);
       method = factory.createMethod(type, proto, name);
@@ -1099,25 +1168,25 @@ public final class BackportedMethodRewriter {
 
       // Optional{void,Int,Long,Double}.ifPresentOrElse(consumer,runnable)
       DexType[] optionalTypes =
-          new DexType[] {
-            optionalType,
-            factory.createType(factory.createString("Ljava/util/OptionalDouble;")),
-            factory.createType(factory.createString("Ljava/util/OptionalLong;")),
-            factory.createType(factory.createString("Ljava/util/OptionalInt;"))
+          new DexType[]{
+              optionalType,
+              factory.createType(factory.createString("Ljava/util/OptionalDouble;")),
+              factory.createType(factory.createString("Ljava/util/OptionalLong;")),
+              factory.createType(factory.createString("Ljava/util/OptionalInt;"))
           };
       DexType[] consumerTypes =
-          new DexType[] {
-            factory.consumerType,
-            factory.createType("Ljava/util/function/DoubleConsumer;"),
-            factory.createType("Ljava/util/function/LongConsumer;"),
-            factory.createType("Ljava/util/function/IntConsumer;")
+          new DexType[]{
+              factory.consumerType,
+              factory.createType("Ljava/util/function/DoubleConsumer;"),
+              factory.createType("Ljava/util/function/LongConsumer;"),
+              factory.createType("Ljava/util/function/IntConsumer;")
           };
       TemplateMethodFactory[] methodFactories =
-          new TemplateMethodFactory[] {
-            BackportedMethods::OptionalMethods_ifPresentOrElse,
-            BackportedMethods::OptionalMethods_ifPresentOrElseDouble,
-            BackportedMethods::OptionalMethods_ifPresentOrElseLong,
-            BackportedMethods::OptionalMethods_ifPresentOrElseInt
+          new TemplateMethodFactory[]{
+              BackportedMethods::OptionalMethods_ifPresentOrElse,
+              BackportedMethods::OptionalMethods_ifPresentOrElseDouble,
+              BackportedMethods::OptionalMethods_ifPresentOrElseLong,
+              BackportedMethods::OptionalMethods_ifPresentOrElseInt
           };
       for (int i = 0; i < optionalTypes.length; i++) {
         DexType optional = optionalTypes[i];
@@ -1151,6 +1220,10 @@ public final class BackportedMethodRewriter {
             DexType newHolder = retargetCoreLibMember.get(methodName).get(inType);
             List<DexEncodedMethod> found = findDexEncodedMethodsWithName(methodName, typeClass);
             for (DexEncodedMethod encodedMethod : found) {
+              if (!encodedMethod.isStatic()) {
+                virtualRewrites.putIfAbsent(encodedMethod.method.name, new ArrayList<>());
+                virtualRewrites.get(encodedMethod.method.name).add(encodedMethod.method);
+              }
               DexProto proto = encodedMethod.method.proto;
               DexMethod method = appView.dexItemFactory().createMethod(inType, proto, methodName);
               addProvider(
@@ -1185,6 +1258,7 @@ public final class BackportedMethodRewriter {
   }
 
   public abstract static class MethodProvider {
+
     final DexMethod method;
 
     public MethodProvider(DexMethod method) {
@@ -1244,6 +1318,7 @@ public final class BackportedMethodRewriter {
   }
 
   private static final class InvokeRewriter extends MethodProvider {
+
     private final MethodInvokeRewriter rewriter;
 
     InvokeRewriter(DexMethod method, MethodInvokeRewriter rewriter) {
@@ -1251,8 +1326,9 @@ public final class BackportedMethodRewriter {
       this.rewriter = rewriter;
     }
 
-    @Override public void rewriteInvoke(InvokeMethod invoke, InstructionListIterator iterator,
-        IRCode code, AppView<?> appView) {
+    @Override
+    public void rewriteInvoke(
+        InvokeMethod invoke, InstructionListIterator iterator, IRCode code, AppView<?> appView) {
       rewriter.rewrite(invoke, iterator, appView.dexItemFactory());
       assert code.isConsistentSSA();
     }
@@ -1365,6 +1441,7 @@ public final class BackportedMethodRewriter {
   }
 
   private interface MethodInvokeRewriter {
+
     void rewrite(InvokeMethod invoke, InstructionListIterator iterator, DexItemFactory factory);
   }
 }

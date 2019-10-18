@@ -433,7 +433,7 @@ public class IRConverter {
   private void synthesizeJava8UtilityClass(
       Builder<?> builder, ExecutorService executorService) throws ExecutionException {
     if (backportedMethodRewriter != null) {
-      backportedMethodRewriter.synthesizeUtilityClass(builder, executorService, options);
+      backportedMethodRewriter.synthesizeUtilityClasses(builder, executorService);
     }
   }
 
