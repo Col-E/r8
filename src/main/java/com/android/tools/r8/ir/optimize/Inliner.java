@@ -882,6 +882,7 @@ public class Inliner {
     ClassInitializationAnalysis classInitializationAnalysis =
         new ClassInitializationAnalysis(appView, code);
     Deque<BasicBlock> inlineeStack = new ArrayDeque<>();
+    InternalOptions options = appView.options();
     while (blockIterator.hasNext()) {
       BasicBlock block = blockIterator.next();
       if (!inlineeStack.isEmpty() && inlineeStack.peekFirst() == block) {
@@ -988,8 +989,8 @@ public class Inliner {
 
           context.copyMetadata(singleTarget);
 
-          if (inlineeMayHaveInvokeMethod) {
-            if (inlineeStack.size() + 1 > appView.options().applyInliningToInlineeMaxDepth
+          if (inlineeMayHaveInvokeMethod && options.applyInliningToInlinee) {
+            if (inlineeStack.size() + 1 > options.applyInliningToInlineeMaxDepth
                 && appView.appInfo().alwaysInline.isEmpty()
                 && appView.appInfo().forceInline.isEmpty()) {
               continue;
