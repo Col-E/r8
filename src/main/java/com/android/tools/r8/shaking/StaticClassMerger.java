@@ -328,91 +328,42 @@ public class StaticClassMerger {
     assert satisfiesMergeCriteria(clazz) == group;
     assert group != MergeGroup.DONT_MERGE;
 
-    String pkg = clazz.type.getPackageDescriptor();
-    return mayMergeAcrossPackageBoundaries(clazz)
-        ? mergeGlobally(clazz, pkg, group)
-        : mergeInsidePackage(clazz, pkg, group);
+    return merge(
+        clazz,
+        mayMergeAcrossPackageBoundaries(clazz)
+            ? group.globalKey()
+            : group.key(clazz.type.getPackageDescriptor()));
   }
 
-  private boolean mergeGlobally(DexProgramClass clazz, String pkg, MergeGroup group) {
-    Representative globalRepresentative = representatives.get(group.globalKey());
-    if (globalRepresentative == null) {
-      if (isValidRepresentative(clazz)) {
-        // Make the current class the global representative.
-        setRepresentative(group.globalKey(), getOrCreateRepresentative(group.key(pkg), clazz));
-      } else {
-        clearRepresentative(group.globalKey());
-      }
-
-      // Do not attempt to merge this class inside its own package, because that could lead to
-      // an increase in the global representative, which is not desirable.
-      return false;
-    } else {
-      // Check if we can merge the current class into the current global representative.
-      if (globalRepresentative.hasSynchronizedMethods && clazz.hasStaticSynchronizedMethods()) {
+  private boolean merge(DexProgramClass clazz, MergeGroup.Key key) {
+    Representative representative = representatives.get(key);
+    if (representative != null) {
+      if (representative.hasSynchronizedMethods && clazz.hasStaticSynchronizedMethods()) {
         // We are not allowed to merge synchronized classes with synchronized methods.
         return false;
       }
-      globalRepresentative.include(clazz);
-
-      if (globalRepresentative.isFull()) {
-        if (isValidRepresentative(clazz)) {
-          // Make the current class the global representative instead.
-          setRepresentative(group.globalKey(), getOrCreateRepresentative(group.key(pkg), clazz));
-        } else {
-          clearRepresentative(group.globalKey());
-        }
-
-        // Do not attempt to merge this class inside its own package, because that could lead to
-        // an increase in the global representative, which is not desirable.
-        return false;
-      } else {
-        // Merge this class into the global representative.
-        moveMembersFromSourceToTarget(clazz, globalRepresentative.clazz);
-        return true;
-      }
-    }
-  }
-
-  private boolean mergeInsidePackage(DexProgramClass clazz, String pkg, MergeGroup group) {
-    MergeGroup.Key key = group.key(pkg);
-    Representative packageRepresentative = representatives.get(key);
-    if (packageRepresentative != null) {
-      if (packageRepresentative.hasSynchronizedMethods && clazz.hasStaticSynchronizedMethods()) {
-        // We are not allowed to merge synchronized classes with synchronized methods.
-        return false;
-      }
+      // Check if current candidate is a better choice depending on visibility. For package private
+      // or protected, the key is parameterized by the package name already, so we just have to
+      // check accessibility-flags. For global this is no-op.
       if (isValidRepresentative(clazz)
-          && clazz.accessFlags.isMoreVisibleThan(
-              packageRepresentative.clazz.accessFlags,
-              clazz.type.getPackageName(),
-              packageRepresentative.clazz.type.getPackageName())) {
-        // Use `clazz` as a representative for this package instead.
+          && !representative.clazz.accessFlags.isAtLeastAsVisibleAs(clazz.accessFlags)) {
+        assert clazz.type.getPackageDescriptor().equals(key.packageOrGlobal);
+        assert representative.clazz.type.getPackageDescriptor().equals(key.packageOrGlobal);
         Representative newRepresentative = getOrCreateRepresentative(key, clazz);
-        newRepresentative.include(packageRepresentative.clazz);
-
+        newRepresentative.include(representative.clazz);
         if (!newRepresentative.isFull()) {
-          setRepresentative(group.key(pkg), newRepresentative);
-          moveMembersFromSourceToTarget(packageRepresentative.clazz, clazz);
+          setRepresentative(key, newRepresentative);
+          moveMembersFromSourceToTarget(representative.clazz, clazz);
           return true;
         }
-
-        // We are not allowed to merge members into a class that is less visible.
-        return false;
-      }
-
-      // Merge current class into the representative of this package if it has room.
-      packageRepresentative.include(clazz);
-
-      // If there is room, then merge, otherwise fall-through to update the representative of this
-      // package.
-      if (!packageRepresentative.isFull()) {
-        moveMembersFromSourceToTarget(clazz, packageRepresentative.clazz);
-        return true;
+      } else {
+        representative.include(clazz);
+        if (!representative.isFull()) {
+          moveMembersFromSourceToTarget(clazz, representative.clazz);
+          return true;
+        }
       }
     }
-
-    // We were unable to use the current representative for this package (if any).
     if (isValidRepresentative(clazz)) {
       setRepresentative(key, getOrCreateRepresentative(key, clazz));
     }
