@@ -7,15 +7,17 @@ package com.android.tools.r8.classmerging;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.AssumeMayHaveSideEffects;
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
+import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -51,6 +53,9 @@ public class StaticClassMergerTest extends TestBase {
     }
   }
 
+  private final String EXPECTED =
+      StringUtils.joinLines("StaticMergeCandidateA.m()", "StaticMergeCandidateB.m()");
+
   private final TestParameters parameters;
 
   public StaticClassMergerTest(TestParameters parameters) {
@@ -59,16 +64,19 @@ public class StaticClassMergerTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
+  }
+
+  @Test
+  public void testRuntime() throws IOException, CompilationFailedException, ExecutionException {
+    testForRuntime(parameters.getRuntime(), parameters.getApiLevel())
+        .addInnerClasses(StaticClassMergerTest.class)
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   @Test
   public void testStaticClassIsRemoved() throws Exception {
-    String expected =
-        StringUtils.joinLines("StaticMergeCandidateA.m()", "StaticMergeCandidateB.m()");
-
-    testForJvm().addTestClasspath().run(TestClass.class).assertSuccessWithOutput(expected);
-
     CodeInspector inspector =
         testForR8(parameters.getBackend())
             .addInnerClasses(StaticClassMergerTest.class)
@@ -76,8 +84,9 @@ public class StaticClassMergerTest extends TestBase {
             .noMinification()
             .enableInliningAnnotations()
             .enableSideEffectAnnotations()
+            .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), TestClass.class)
-            .assertSuccessWithOutput(expected)
+            .assertSuccessWithOutput(EXPECTED)
             .inspector();
 
     // Check that one of the two static merge candidates has been removed
