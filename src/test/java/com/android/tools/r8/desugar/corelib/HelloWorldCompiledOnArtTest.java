@@ -6,6 +6,7 @@ package com.android.tools.r8.desugar.corelib;
 
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static junit.framework.TestCase.assertEquals;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8TestBuilder;
@@ -56,6 +57,7 @@ public class HelloWorldCompiledOnArtTest extends CoreLibDesugarTestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
+    assumeTrue(!ToolHelper.isWindows());
     return getTestParameters()
         .withDexRuntimesStartingFromIncluding(Version.V7_0_0)
         .withApiLevelsStartingAtIncluding(AndroidApiLevel.L)
