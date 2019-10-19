@@ -13,6 +13,7 @@ import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import java.io.IOException;
 import java.lang.Thread.State;
 import java.util.concurrent.ExecutionException;
@@ -28,7 +29,11 @@ public class VerticalClassMergerSynchronizedBlockTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimesAndApiLevels().build();
+    // The 4.0.4 runtime will flakily mark threads as blocking and report DEADLOCKED.
+    return getTestParameters()
+        .withDexRuntimesStartingFromExcluding(Version.V4_0_4)
+        .withAllApiLevels()
+        .build();
   }
 
   public VerticalClassMergerSynchronizedBlockTest(TestParameters parameters) {
@@ -37,7 +42,6 @@ public class VerticalClassMergerSynchronizedBlockTest extends TestBase {
 
   @Test
   public void testOnRuntime() throws IOException, CompilationFailedException, ExecutionException {
-    // This test showed DEADLOCKED on 4.0.4. If it shows up on the bot, just disable it here.
     testForRuntime(parameters.getRuntime(), parameters.getApiLevel())
         .addInnerClasses(VerticalClassMergerSynchronizedBlockTest.class)
         .run(parameters.getRuntime(), Main.class)

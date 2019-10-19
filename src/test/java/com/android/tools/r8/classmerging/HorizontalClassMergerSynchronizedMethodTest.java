@@ -12,6 +12,7 @@ import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import java.io.IOException;
 import java.lang.Thread.State;
 import java.util.concurrent.ExecutionException;
@@ -27,7 +28,11 @@ public class HorizontalClassMergerSynchronizedMethodTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimesAndApiLevels().build();
+    // The 4.0.4 runtime will flakily mark threads as blocking and report DEADLOCKED.
+    return getTestParameters()
+        .withDexRuntimesStartingFromExcluding(Version.V4_0_4)
+        .withAllApiLevels()
+        .build();
   }
 
   public HorizontalClassMergerSynchronizedMethodTest(TestParameters parameters) {
