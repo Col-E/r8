@@ -39,6 +39,7 @@ public class HelloWorldCompiledOnArtTest extends CoreLibDesugarTestBase {
 
   @BeforeClass
   public static void compilePathBackport() throws Exception {
+    assumeTrue("JDK8 is not checked-in on Windows", !ToolHelper.isWindows());
     pathMock = getStaticTemp().newFolder("PathMock").toPath();
     ProcessResult processResult =
         ToolHelper.runJavac(
@@ -57,7 +58,6 @@ public class HelloWorldCompiledOnArtTest extends CoreLibDesugarTestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    assumeTrue(!ToolHelper.isWindows());
     return getTestParameters()
         .withDexRuntimesStartingFromIncluding(Version.V7_0_0)
         .withApiLevelsStartingAtIncluding(AndroidApiLevel.L)
