@@ -22,6 +22,7 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class InvokeInterface extends InvokeMethodWithReceiver {
 
@@ -111,11 +112,23 @@ public class InvokeInterface extends InvokeMethodWithReceiver {
       return Collections.singletonList(singleTarget);
     }
     DexMethod method = getInvokedMethod();
-    // TODO(b/141580674): we could filter out some targets based on refined receiver type.
-    return appView
-        .appInfo()
-        .resolveMethodOnInterface(method.holder, method)
-        .lookupInterfaceTargets(appView.appInfo());
+    Collection<DexEncodedMethod> targets =
+        appView
+            .appInfo()
+            .resolveMethodOnInterface(method.holder, method)
+            .lookupInterfaceTargets(appView.appInfo());
+    if (targets == null) {
+      return targets;
+    }
+    DexType staticReceiverType = getInvokedMethod().holder;
+    DexType refinedReceiverType = TypeAnalysis.getRefinedReceiverType(appView.withLiveness(), this);
+    // Leverage refined receiver type if available.
+    if (refinedReceiverType != staticReceiverType) {
+      return targets.stream()
+          .filter(m -> appView.isSubtype(m.method.holder, refinedReceiverType).isPossiblyTrue())
+          .collect(Collectors.toSet());
+    }
+    return targets;
   }
 
   @Override

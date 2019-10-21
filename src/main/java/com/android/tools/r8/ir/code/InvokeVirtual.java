@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 public class InvokeVirtual extends InvokeMethodWithReceiver {
 
@@ -114,11 +115,23 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
       return Collections.singletonList(singleTarget);
     }
     DexMethod method = getInvokedMethod();
-    // TODO(b/141580674): we could filter out some targets based on refined receiver type.
-    return appView
-        .appInfo()
-        .resolveMethodOnClass(method.holder, method)
-        .lookupVirtualTargets(appView.appInfo());
+    Collection<DexEncodedMethod> targets =
+        appView
+            .appInfo()
+            .resolveMethodOnClass(method.holder, method)
+            .lookupVirtualTargets(appView.appInfo());
+    if (targets == null) {
+      return targets;
+    }
+    DexType staticReceiverType = getInvokedMethod().holder;
+    DexType refinedReceiverType = TypeAnalysis.getRefinedReceiverType(appView.withLiveness(), this);
+    // Leverage refined receiver type if available.
+    if (refinedReceiverType != staticReceiverType) {
+      return targets.stream()
+          .filter(m -> appView.isSubtype(m.method.holder, refinedReceiverType).isPossiblyTrue())
+          .collect(Collectors.toSet());
+    }
+    return targets;
   }
 
   @Override
