@@ -23,7 +23,7 @@ def release_studio_or_aosp(path, options, git_message):
   with utils.ChangedWorkingDirectory(path):
     subprocess.call(['repo', 'abandon', 'update-r8'])
     if not options.no_sync:
-      subprocess.check_call(['repo', 'sync'])
+      subprocess.check_call(['repo', 'sync', '-cq', '-j', '16'])
 
     prebuilts_r8 = os.path.join(path, 'prebuilts', 'r8')
 
