@@ -40,7 +40,6 @@ public class ApplyMappingInterfaceClInitTest extends TestBase {
   }
 
   @Test
-  @Ignore("b/142909857")
   public void testNotRenamingClInitIfNotInMap()
       throws ExecutionException, CompilationFailedException, IOException {
     testForR8(parameters.getBackend())
@@ -54,7 +53,6 @@ public class ApplyMappingInterfaceClInitTest extends TestBase {
   }
 
   @Test
-  @Ignore("b/142909857")
   public void testNotRenamingClInitIfInMap()
       throws ExecutionException, CompilationFailedException, IOException {
     String interfaceName = TestInterface.class.getTypeName();

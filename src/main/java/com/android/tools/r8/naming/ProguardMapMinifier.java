@@ -7,6 +7,7 @@ package com.android.tools.r8.naming;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -439,7 +440,20 @@ public class ProguardMapMinifier {
         DexMethod method,
         InternalNamingState internalState,
         BiPredicate<DexString, DexMethod> isAvailable) {
-      return nextName(method, method.name, method.holder, internalState, isAvailable, super::next);
+      DexEncodedMethod definition = appView.definitionFor(method);
+      DexString nextName =
+          nextName(
+              method,
+              definition,
+              method.name,
+              method.holder,
+              internalState,
+              isAvailable,
+              super::next);
+      assert nextName == method.name || !definition.isClassInitializer();
+      assert nextName == method.name
+          || !appView.definitionFor(method.holder).accessFlags.isAnnotation();
+      return nextName;
     }
 
     @Override
@@ -447,22 +461,32 @@ public class ProguardMapMinifier {
         DexField field,
         InternalNamingState internalState,
         BiPredicate<DexString, DexField> isAvailable) {
-      return nextName(field, field.name, field.holder, internalState, isAvailable, super::next);
+      return nextName(
+          field,
+          appView.definitionFor(field),
+          field.name,
+          field.holder,
+          internalState,
+          isAvailable,
+          super::next);
     }
 
     private <T extends DexReference> DexString nextName(
         T reference,
+        DexDefinition definition,
         DexString name,
         DexType holderType,
         InternalNamingState internalState,
         BiPredicate<DexString, T> isAvailable,
         TriFunction<T, InternalNamingState, BiPredicate<DexString, T>, DexString> generateName) {
+      assert definition.isDexEncodedMethod() || definition.isDexEncodedField();
+      assert definition.toReference() == reference;
       DexClass holder = appView.definitionFor(holderType);
       assert holder != null;
-      DexString reservedName = getReservedName(reference, name, holder);
+      DexString reservedName = getReservedName(definition, name, holder);
       if (reservedName != null) {
         if (!isAvailable.test(reservedName, reference)) {
-          reportReservationError(reference, reservedName);
+          reportReservationError(definition.asDexReference(), reservedName);
         }
         return reservedName;
       }
@@ -473,26 +497,36 @@ public class ProguardMapMinifier {
 
     @Override
     public DexString getReservedName(DexEncodedMethod method, DexClass holder) {
-      return getReservedName(method.method, method.method.name, holder);
+      return getReservedName(method, method.method.name, holder);
     }
 
     @Override
     public DexString getReservedName(DexEncodedField field, DexClass holder) {
-      return getReservedName(field.field, field.field.name, holder);
+      return getReservedName(field, field.field.name, holder);
     }
 
-    private DexString getReservedName(DexReference reference, DexString name, DexClass holder) {
+    private DexString getReservedName(DexDefinition definition, DexString name, DexClass holder) {
+      assert definition.isDexEncodedMethod() || definition.isDexEncodedField();
       // Always consult the mapping for renamed members that are not on program path.
-      if (holder.isNotProgramClass() && mappedNames.containsKey(reference)) {
-        return factory.createString(mappedNames.get(reference).getRenamedName());
-      }
-      if (holder.isProgramClass() && appView.rootSet().mayBeMinified(reference, appView)) {
+      DexReference reference = definition.toReference();
+      if (holder.isNotProgramClass()) {
         if (mappedNames.containsKey(reference)) {
           return factory.createString(mappedNames.get(reference).getRenamedName());
         }
-        return null;
+        return name;
       }
-      return name;
+      assert holder.isProgramClass();
+      DexString reservedName =
+          definition.isDexEncodedMethod()
+              ? super.getReservedName(definition.asDexEncodedMethod(), holder)
+              : super.getReservedName(definition.asDexEncodedField(), holder);
+      if (reservedName != null) {
+        return reservedName;
+      }
+      if (mappedNames.containsKey(reference)) {
+        return factory.createString(mappedNames.get(reference).getRenamedName());
+      }
+      return null;
     }
 
     @Override
