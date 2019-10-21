@@ -28,7 +28,7 @@ public class InvokeInterfaceWithRefinedReceiverTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   private final TestParameters parameters;
@@ -49,7 +49,7 @@ public class InvokeInterfaceWithRefinedReceiverTest extends TestBase {
           // To prevent invoke-interface from being rewritten to invoke-virtual w/ a single target.
           o.enableDevirtualization = false;
         })
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("null", "C")
         .inspect(this::inspect);

@@ -25,7 +25,7 @@ public class InvokeStaticNegativeTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   private final TestParameters parameters;
@@ -40,7 +40,7 @@ public class InvokeStaticNegativeTest extends TestBase {
         .addInnerClasses(InvokeStaticNegativeTest.class)
         .addKeepMainRule(MAIN)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("Sub1", "Sub2")
         .inspect(this::inspect);

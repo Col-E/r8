@@ -27,7 +27,7 @@ public class InvokeVirtualPositiveTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   private final TestParameters parameters;
@@ -44,7 +44,7 @@ public class InvokeVirtualPositiveTest extends TestBase {
         .enableMergeAnnotations()
         .enableClassInliningAnnotations()
         .enableInliningAnnotations()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("A", "null")
         .inspect(this::inspect);

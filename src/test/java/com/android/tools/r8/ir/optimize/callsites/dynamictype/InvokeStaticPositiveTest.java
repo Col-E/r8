@@ -26,7 +26,7 @@ public class InvokeStaticPositiveTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   private final TestParameters parameters;
@@ -42,7 +42,7 @@ public class InvokeStaticPositiveTest extends TestBase {
         .addKeepMainRule(MAIN)
         .enableMergeAnnotations()
         .enableInliningAnnotations()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("Sub1")
         .inspect(this::inspect);

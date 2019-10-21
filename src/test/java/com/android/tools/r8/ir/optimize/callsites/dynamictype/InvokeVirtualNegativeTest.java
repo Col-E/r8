@@ -27,7 +27,7 @@ public class InvokeVirtualNegativeTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   private final TestParameters parameters;
@@ -44,7 +44,7 @@ public class InvokeVirtualNegativeTest extends TestBase {
         .enableMergeAnnotations()
         .enableClassInliningAnnotations()
         .enableInliningAnnotations()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("A:Sub1", "A:Sub2", "B:Sub1", "B:Sub2")
         .inspect(this::inspect);

@@ -27,7 +27,7 @@ public class KeptMethodTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   private final TestParameters parameters;
@@ -44,7 +44,7 @@ public class KeptMethodTest extends TestBase {
         .addKeepClassAndMembersRules(A.class)
         .enableClassInliningAnnotations()
         .enableInliningAnnotations()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("non-null", "non-null")
         .inspect(this::inspect);

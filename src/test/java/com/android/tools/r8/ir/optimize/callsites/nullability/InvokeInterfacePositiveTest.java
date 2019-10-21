@@ -26,7 +26,7 @@ public class InvokeInterfacePositiveTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   private final TestParameters parameters;
@@ -46,7 +46,7 @@ public class InvokeInterfacePositiveTest extends TestBase {
           // To prevent invoke-interface from being rewritten to invoke-virtual w/ a single target.
           o.enableDevirtualization = false;
         })
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("A")
         .inspect(this::inspect);

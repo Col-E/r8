@@ -28,7 +28,7 @@ public class WithStaticizerTest extends TestBase {
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
     // TODO(b/112831361): support for class staticizer in CF backend.
-    return getTestParameters().withDexRuntimes().build();
+    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
   }
 
   private final TestParameters parameters;
@@ -44,7 +44,7 @@ public class WithStaticizerTest extends TestBase {
         .addKeepMainRule(MAIN)
         .enableInliningAnnotations()
         .enableClassInliningAnnotations()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("Input")
         .inspect(this::inspect);
