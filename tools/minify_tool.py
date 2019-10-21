@@ -87,7 +87,7 @@ def extract_mainclass(input_jar):
 
 def minify_tool(mainclass=None, input_jar=utils.R8_JAR, output_jar=None,
                 lib=utils.RT_JAR, debug=True, build=True, benchmark_name=None,
-                track_memory_file=None):
+                track_memory_file=None, additional_args=[]):
   if output_jar is None:
     output_jar = generate_output_name(input_jar, mainclass)
   with utils.TempDir() as path:
@@ -100,12 +100,12 @@ def minify_tool(mainclass=None, input_jar=utils.R8_JAR, output_jar=None,
     keep_path = os.path.join(path, 'keep.txt')
     with open(keep_path, 'w') as fp:
       fp.write(KEEP % mainclass)
-    args = ('--lib', lib,
+    args = ['--lib', lib,
             '--classfile',
             '--output', output_jar,
             '--pg-conf', keep_path,
             '--release',
-            tmp_input_path)
+            tmp_input_path] + additional_args
     start_time = time.time()
     return_code = toolhelper.run('r8', args, debug=debug, build=build,
                                  track_memory_file=track_memory_file)

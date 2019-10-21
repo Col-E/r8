@@ -66,4 +66,15 @@ if __name__ == '__main__':
         utils.PINNED_PGR8_JAR)
     print "BootstrapR8PGDex(CodeSize):", utils.uncompressed_size(d8_pg_output)
 
+    r8_notreeshaking_output = os.path.join(temp, 'r8-notreeshaking.zip')
+    return_code = minify_tool.minify_tool(
+      input_jar=utils.PINNED_R8_JAR,
+      output_jar=r8_notreeshaking_output,
+      debug=False,
+      build=False,
+      benchmark_name="BootstrapR8NoTreeShaking",
+      additional_args=["--no-tree-shaking"])
+    if return_code != 0:
+      sys.exit(return_code)
+
   sys.exit(0)
