@@ -272,6 +272,21 @@ def find_min_xmx(options, args):
 
   return 0
 
+def print_min_xmx_ranges_for_hash(hash, compiler, compiler_build):
+  app_directory = os.path.join(
+      utils.R8_TEST_RESULTS_BUCKET,
+      FIND_MIN_XMX_DIR,
+      hash,
+      compiler,
+      compiler_build)
+  gs_base = 'gs://%s' % app_directory
+  for app in utils.ls_files_on_cloud_storage(gs_base).strip().split('\n'):
+    for version in utils.ls_files_on_cloud_storage(app).strip().split('\n'):
+      for type in utils.ls_files_on_cloud_storage(version).strip().split('\n'):
+        gs_location = '%s%s' % (type, FIND_MIN_XMX_FILE)
+        value = utils.cat_file_on_cloud_storage(gs_location, ignore_errors=True)
+        print('%s\n' % value)
+
 def main(argv):
   (options, args) = ParseOptions(argv)
   if options.expect_oom and not options.max_memory:

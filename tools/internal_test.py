@@ -36,6 +36,7 @@ import subprocess
 import sys
 import time
 import utils
+import run_on_app
 
 # How often the bot/tester should check state
 PULL_DELAY = 30
@@ -265,6 +266,8 @@ def fetch_and_print_logs(hash):
         gs_location = '%s%s' % (entry, to_print)
         value = utils.cat_file_on_cloud_storage(gs_location)
         print('\n\n%s had value:\n%s' % (to_print, value))
+  print("\n\nPrinting find-min-xmx ranges for apps")
+  run_on_app.print_min_xmx_ranges_for_hash(hash, 'r8', 'lib')
 
 def run_bot():
   print_magic_file_state()
