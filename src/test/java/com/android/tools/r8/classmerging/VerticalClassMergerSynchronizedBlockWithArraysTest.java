@@ -21,7 +21,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class VerticalClassMergerSynchronizedBlockTest extends TestBase {
+public class VerticalClassMergerSynchronizedBlockWithArraysTest extends TestBase {
 
   private final TestParameters parameters;
 
@@ -34,14 +34,14 @@ public class VerticalClassMergerSynchronizedBlockTest extends TestBase {
         .build();
   }
 
-  public VerticalClassMergerSynchronizedBlockTest(TestParameters parameters) {
+  public VerticalClassMergerSynchronizedBlockWithArraysTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
   @Test
   public void testOnRuntime() throws IOException, CompilationFailedException, ExecutionException {
     testForRuntime(parameters.getRuntime(), parameters.getApiLevel())
-        .addInnerClasses(VerticalClassMergerSynchronizedBlockTest.class)
+        .addInnerClasses(VerticalClassMergerSynchronizedBlockWithArraysTest.class)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput("Hello World!");
   }
@@ -50,7 +50,7 @@ public class VerticalClassMergerSynchronizedBlockTest extends TestBase {
   public void testNoMergingOfClassUsedInMonitor()
       throws IOException, CompilationFailedException, ExecutionException {
     testForR8(parameters.getBackend())
-        .addInnerClasses(VerticalClassMergerSynchronizedBlockTest.class)
+        .addInnerClasses(VerticalClassMergerSynchronizedBlockWithArraysTest.class)
         .addKeepMainRule(Main.class)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
@@ -88,20 +88,20 @@ public class VerticalClassMergerSynchronizedBlockTest extends TestBase {
     }
 
     static void lockThreeThenOne() {
-      synchronized (LockThree.class) {
+      synchronized (LockThree[].class) {
         inLockThreeCritical = true;
         while (!inLockTwoCritical) {}
-        synchronized (LockOne.class) {
+        synchronized (LockOne[].class) {
           synchronizedAccessThroughLocks("Hello ");
         }
       }
     }
 
     static void lockTwoThenThree() {
-      synchronized (LockTwo.class) {
+      synchronized (LockTwo[].class) {
         inLockTwoCritical = true;
         while (!inLockThreeCritical) {}
-        synchronized (LockThree.class) {
+        synchronized (LockThree[].class) {
           synchronizedAccessThroughLocks("World!");
         }
       }
