@@ -7,7 +7,6 @@ import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isMemberVisi
 
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.InvokeVirtualRange;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
@@ -21,11 +20,8 @@ import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 public class InvokeVirtual extends InvokeMethodWithReceiver {
 
@@ -104,34 +100,6 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
           getReceiver().getDynamicLowerBoundType(appViewWithLiveness));
     }
     return null;
-  }
-
-  @Override
-  public Collection<DexEncodedMethod> lookupTargets(
-      AppView<? extends AppInfoWithSubtyping> appView, DexType invocationContext) {
-    // Leverage exact receiver type if available.
-    DexEncodedMethod singleTarget = lookupSingleTarget(appView, invocationContext);
-    if (singleTarget != null) {
-      return Collections.singletonList(singleTarget);
-    }
-    DexMethod method = getInvokedMethod();
-    Collection<DexEncodedMethod> targets =
-        appView
-            .appInfo()
-            .resolveMethodOnClass(method.holder, method)
-            .lookupVirtualTargets(appView.appInfo());
-    if (targets == null) {
-      return targets;
-    }
-    DexType staticReceiverType = getInvokedMethod().holder;
-    DexType refinedReceiverType = TypeAnalysis.getRefinedReceiverType(appView.withLiveness(), this);
-    // Leverage refined receiver type if available.
-    if (refinedReceiverType != staticReceiverType) {
-      return targets.stream()
-          .filter(m -> appView.isSubtype(m.method.holder, refinedReceiverType).isPossiblyTrue())
-          .collect(Collectors.toSet());
-    }
-    return targets;
   }
 
   @Override

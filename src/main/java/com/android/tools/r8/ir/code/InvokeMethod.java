@@ -13,13 +13,17 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.AbstractFieldSet;
 import com.android.tools.r8.ir.analysis.modeling.LibraryMethodReadSetModeling;
+import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.optimize.DefaultInliningOracle;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 public abstract class InvokeMethod extends Invoke {
 
@@ -61,11 +65,56 @@ public abstract class InvokeMethod extends Invoke {
 
   // In subclasses, e.g., invoke-virtual or invoke-super, use a narrower receiver type by using
   // receiver type and calling context---the holder of the method where the current invocation is.
+  // TODO(b/140204899): Refactor lookup methods to be defined in a single place.
   public abstract DexEncodedMethod lookupSingleTarget(
       AppView<?> appView, DexType invocationContext);
 
-  public abstract Collection<DexEncodedMethod> lookupTargets(
-      AppView<? extends AppInfoWithSubtyping> appView, DexType invocationContext);
+  // TODO(b/140204899): Refactor lookup methods to be defined in a single place.
+  public Collection<DexEncodedMethod> lookupTargets(
+      AppView<? extends AppInfoWithSubtyping> appView, DexType invocationContext) {
+    // Leverage exact receiver type if available.
+    DexEncodedMethod singleTarget = lookupSingleTarget(appView, invocationContext);
+    if (singleTarget != null) {
+      return ImmutableList.of(singleTarget);
+    }
+    if (!isInvokeMethodWithDynamicDispatch() || !appView.appInfo().hasLiveness()) {
+      return null;
+    }
+    Collection<DexEncodedMethod> targets;
+    if (isInvokeVirtual()) {
+      targets =
+          appView
+              .appInfo()
+              .resolveMethodOnClass(method.holder, method)
+              .lookupVirtualTargets(appView.appInfo());
+    } else {
+      assert isInvokeInterface();
+      targets =
+          appView
+              .appInfo()
+              .resolveMethodOnInterface(method.holder, method)
+              .lookupInterfaceTargets(appView.appInfo());
+    }
+    if (targets == null) {
+      return null;
+    }
+    DexType staticReceiverType = getInvokedMethod().holder;
+    DexType refinedReceiverType =
+        TypeAnalysis.getRefinedReceiverType(
+            appView.withLiveness(), this.asInvokeMethodWithReceiver());
+    // TODO(b/140204899): Instead of reprocessing here, pass refined receiver to lookup.
+    // Leverage refined receiver type if available.
+    if (refinedReceiverType != staticReceiverType) {
+      Set<DexEncodedMethod> result = Sets.newIdentityHashSet();
+      for (DexEncodedMethod target : targets) {
+        if (appView.isSubtype(target.method.holder, refinedReceiverType).isPossiblyTrue()) {
+          result.add(target);
+        }
+      }
+      return result;
+    }
+    return targets;
+  }
 
   public abstract InlineAction computeInlining(
       DexEncodedMethod singleTarget,

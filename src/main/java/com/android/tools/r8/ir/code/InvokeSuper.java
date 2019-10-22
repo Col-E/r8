@@ -5,7 +5,6 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.InvokeSuperRange;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
@@ -18,8 +17,6 @@ import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
 public class InvokeSuper extends InvokeMethodWithReceiver {
@@ -105,14 +102,6 @@ public class InvokeSuper extends InvokeMethodWithReceiver {
       }
     }
     return null;
-  }
-
-  @Override
-  public Collection<DexEncodedMethod> lookupTargets(
-      AppView<? extends AppInfoWithSubtyping> appView, DexType invocationContext) {
-    DexEncodedMethod target =
-        appView.appInfo().lookupSuperTarget(getInvokedMethod(), invocationContext);
-    return target == null ? Collections.emptyList() : Collections.singletonList(target);
   }
 
   @Override

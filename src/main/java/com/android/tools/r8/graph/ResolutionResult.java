@@ -33,6 +33,7 @@ public interface ResolutionResult {
     return isInterface ? lookupInterfaceTargets(appInfo) : lookupVirtualTargets(appInfo);
   }
 
+  // TODO(b/140204899): Leverage refined receiver type if available.
   default Set<DexEncodedMethod> lookupVirtualTargets(AppInfoWithSubtyping appInfo) {
     assert isValidVirtualTarget(appInfo.app().options);
     // First add the target for receiver type method.type.
@@ -41,6 +42,8 @@ public interface ResolutionResult {
     // Add all matching targets from the subclass hierarchy.
     DexEncodedMethod encodedMethod = asResultOfResolve();
     DexMethod method = encodedMethod.method;
+    // TODO(b/140204899): Instead of subtypes of holder, we could iterate subtypes of refined
+    //   receiver type if available.
     for (DexType type : appInfo.subtypes(method.holder)) {
       DexClass clazz = appInfo.definitionFor(type);
       if (!clazz.isInterface()) {
@@ -56,6 +59,7 @@ public interface ResolutionResult {
     return result;
   }
 
+  // TODO(b/140204899): Leverage refined receiver type if available.
   default Set<DexEncodedMethod> lookupInterfaceTargets(AppInfoWithSubtyping appInfo) {
     assert isValidVirtualTarget(appInfo.app().options);
     Set<DexEncodedMethod> result = Sets.newIdentityHashSet();
@@ -109,8 +113,9 @@ public interface ResolutionResult {
           }
         };
 
-    Set<DexType> set = appInfo.subtypes(method.holder);
-    for (DexType type : set) {
+    // TODO(b/140204899): Instead of subtypes of holder, we could iterate subtypes of refined
+    //   receiver type if available.
+    for (DexType type : appInfo.subtypes(method.holder)) {
       DexClass clazz = appInfo.definitionFor(type);
       if (clazz.isInterface()) {
         ResolutionResult targetMethods = appInfo.resolveMethodOnInterface(clazz, method);

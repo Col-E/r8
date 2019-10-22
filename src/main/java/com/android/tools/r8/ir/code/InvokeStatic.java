@@ -7,7 +7,6 @@ import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isMemberVisi
 
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.InvokeStaticRange;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -25,8 +24,6 @@ import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
 
@@ -124,13 +121,6 @@ public class InvokeStatic extends InvokeMethod {
       }
     }
     return null;
-  }
-
-  @Override
-  public Collection<DexEncodedMethod> lookupTargets(
-      AppView<? extends AppInfoWithSubtyping> appView, DexType invocationContext) {
-    DexEncodedMethod target = appView.appInfo().lookupStaticTarget(getInvokedMethod());
-    return target == null ? Collections.emptyList() : Collections.singletonList(target);
   }
 
   @Override
