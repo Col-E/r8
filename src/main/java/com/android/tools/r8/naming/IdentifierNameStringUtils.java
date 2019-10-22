@@ -42,8 +42,20 @@ public final class IdentifierNameStringUtils {
    * @return {@code true} if the given {@param method} is a reflection method in Java.
    */
   public static boolean isReflectionMethod(DexItemFactory dexItemFactory, DexMethod method) {
+    // So, why is this simply not like:
+    //   return dexItemFactory.classMethods.isReflectiveClassLookup(method)
+    //       || dexItemFactory.classMethods.isReflectiveMemberLookup(method)
+    //       || dexItemFactory.atomicFieldUpdaterMethods.isFieldUpdater(method);
+    // ?
+    // That is because the counter part of other shrinkers supports users' own reflective methods
+    // whose signature matches with reflection methods in Java. Hence, explicit signature matching.
+    // See tests {@link IdentifierMinifierTest#test2_rule3},
+    //   {@link IdentifierNameStringMarkerTest#reflective_field_singleUseOperand_renamed}, or
+    //   {@link IdentifierNameStringMarkerTest#reflective_method_singleUseOperand_renamed}.
+    //
     // For java.lang.Class:
     //   (String) -> java.lang.Class | java.lang.reflect.Field
+    //   (String, boolean, ClassLoader) -> java.lang.Class
     //   (String, Class[]) -> java.lang.reflect.Method
     // For java.util.concurrent.atomic.Atomic(Integer|Long)FieldUpdater:
     //   (Class, String) -> $holderType
@@ -53,43 +65,53 @@ public final class IdentifierNameStringUtils {
     //   (Class, String) -> java.lang.reflect.Field
     //   (Class, String, Class[]) -> java.lang.reflect.Method
     int arity = method.getArity();
-    if (method.holder.descriptor == dexItemFactory.classDescriptor) {
+    if (method.holder == dexItemFactory.classType) {
       // Virtual methods of java.lang.Class, such as getField, getMethod, etc.
-      if (arity != 1 && arity != 2) {
+      if (arity == 0 || arity > 3) {
         return false;
       }
       if (arity == 1) {
-        if (method.proto.returnType.descriptor != dexItemFactory.classDescriptor
-            && method.proto.returnType.descriptor != dexItemFactory.fieldDescriptor) {
+        if (method.proto.returnType != dexItemFactory.classType
+            && method.proto.returnType != dexItemFactory.fieldType) {
+          return false;
+        }
+      } else if (arity == 2) {
+        if (method.proto.returnType != dexItemFactory.methodType) {
           return false;
         }
       } else {
-        if (method.proto.returnType.descriptor != dexItemFactory.methodDescriptor) {
+        if (method.proto.returnType != dexItemFactory.classType) {
           return false;
         }
       }
-      if (method.proto.parameters.values[0].descriptor != dexItemFactory.stringDescriptor) {
+      if (method.proto.parameters.values[0] != dexItemFactory.stringType) {
         return false;
       }
       if (arity == 2) {
-        if (method.proto.parameters.values[1].descriptor != dexItemFactory.classArrayDescriptor) {
+        if (method.proto.parameters.values[1] != dexItemFactory.classArrayType) {
+          return false;
+        }
+      }
+      if (arity == 3) {
+        if (method.proto.parameters.values[1] != dexItemFactory.booleanType
+            && method.proto.parameters.values[2] != dexItemFactory.classLoaderType) {
           return false;
         }
       }
     } else if (
         method.holder.descriptor == dexItemFactory.intFieldUpdaterDescriptor
-        || method.holder.descriptor == dexItemFactory.longFieldUpdaterDescriptor) {
+            || method.holder.descriptor == dexItemFactory.longFieldUpdaterDescriptor) {
       // Atomic(Integer|Long)FieldUpdater->newUpdater(Class, String)AtomicFieldUpdater
       if (arity != 2) {
         return false;
       }
-      if (method.proto.returnType.descriptor != method.holder.descriptor) {
+      if (method.proto.returnType != method.holder) {
         return false;
       }
-      if (method.proto.parameters.values[0].descriptor != dexItemFactory.classDescriptor) {
+      if (method.proto.parameters.values[0] != dexItemFactory.classType) {
         return false;
       }
-      if (method.proto.parameters.values[1].descriptor != dexItemFactory.stringDescriptor) {
+      if (method.proto.parameters.values[1] != dexItemFactory.stringType) {
         return false;
       }
     } else if (method.holder.descriptor == dexItemFactory.referenceFieldUpdaterDescriptor) {
@@ -97,16 +119,16 @@ public final class IdentifierNameStringUtils {
       if (arity != 3) {
         return false;
       }
-      if (method.proto.returnType.descriptor != method.holder.descriptor) {
+      if (method.proto.returnType != method.holder) {
         return false;
       }
-      if (method.proto.parameters.values[0].descriptor != dexItemFactory.classDescriptor) {
+      if (method.proto.parameters.values[0] != dexItemFactory.classType) {
         return false;
       }
-      if (method.proto.parameters.values[1].descriptor != dexItemFactory.classDescriptor) {
+      if (method.proto.parameters.values[1] != dexItemFactory.classType) {
         return false;
       }
-      if (method.proto.parameters.values[2].descriptor != dexItemFactory.stringDescriptor) {
+      if (method.proto.parameters.values[2] != dexItemFactory.stringType) {
         return false;
       }
     } else {
@@ -115,22 +137,22 @@ public final class IdentifierNameStringUtils {
         return false;
       }
       if (arity == 2) {
-        if (method.proto.returnType.descriptor != dexItemFactory.fieldDescriptor) {
+        if (method.proto.returnType != dexItemFactory.fieldType) {
           return false;
         }
       } else {
-        if (method.proto.returnType.descriptor != dexItemFactory.methodDescriptor) {
+        if (method.proto.returnType != dexItemFactory.methodType) {
           return false;
         }
       }
-      if (method.proto.parameters.values[0].descriptor != dexItemFactory.classDescriptor) {
+      if (method.proto.parameters.values[0] != dexItemFactory.classType) {
         return false;
       }
-      if (method.proto.parameters.values[1].descriptor != dexItemFactory.stringDescriptor) {
+      if (method.proto.parameters.values[1] != dexItemFactory.stringType) {
         return false;
       }
       if (arity == 3) {
-        if (method.proto.parameters.values[2].descriptor != dexItemFactory.classArrayDescriptor) {
+        if (method.proto.parameters.values[2] != dexItemFactory.classArrayType) {
           return false;
         }
       }
@@ -143,12 +165,12 @@ public final class IdentifierNameStringUtils {
    * java.lang.String)`, and one of the arguments is defined by an invoke-instruction that calls
    * `java.lang.String java.lang.Class.getName()`.
    */
-  public static boolean isClassNameComparison(InvokeMethod invoke, DexItemFactory dexItemFactory) {
+  static boolean isClassNameComparison(InvokeMethod invoke, DexItemFactory dexItemFactory) {
     return invoke.isInvokeVirtual()
         && isClassNameComparison(invoke.asInvokeVirtual(), dexItemFactory);
   }
 
-  public static boolean isClassNameComparison(InvokeVirtual invoke, DexItemFactory dexItemFactory) {
+  static boolean isClassNameComparison(InvokeVirtual invoke, DexItemFactory dexItemFactory) {
     return invoke.getInvokedMethod() == dexItemFactory.stringMethods.equals
         && (isClassNameValue(invoke.getReceiver(), dexItemFactory)
             || isClassNameValue(invoke.inValues().get(1), dexItemFactory));
@@ -174,10 +196,12 @@ public final class IdentifierNameStringUtils {
   public static DexReference identifyIdentifier(
       InvokeMethod invoke, DexDefinitionSupplier definitions) {
     List<Value> ins = invoke.arguments();
-    // The only static call: Class#forName, which receives (String) as ins.
+    // The only static calls: Class#forName,
+    //   which receive either (String) or (String, boolean, ClassLoader) as ins.
     if (invoke.isInvokeStatic()) {
       InvokeStatic invokeStatic = invoke.asInvokeStatic();
-      if (invokeStatic.getInvokedMethod() == definitions.dexItemFactory().classMethods.forName) {
+      if (definitions.dexItemFactory().classMethods
+          .isReflectiveClassLookup(invokeStatic.getInvokedMethod())) {
         return ConstantValueUtils.getDexTypeFromClassForName(invokeStatic, definitions);
       }
     }

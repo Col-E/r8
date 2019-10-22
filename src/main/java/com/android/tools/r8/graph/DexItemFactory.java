@@ -302,6 +302,8 @@ public class DexItemFactory {
 
   public final DexType classType = createType(classDescriptor);
   public final DexType classLoaderType = createType(classLoaderDescriptor);
+  public final DexType fieldType = createType(fieldDescriptor);
+  public final DexType methodType = createType(methodDescriptor);
   public final DexType autoCloseableType = createType(autoCloseableDescriptor);
 
   public final DexType stringBuilderType = createType(stringBuilderDescriptor);
@@ -660,6 +662,7 @@ public class DexItemFactory {
 
     public final DexMethod desiredAssertionStatus;
     public final DexMethod forName;
+    public final DexMethod forName3;
     public final DexMethod getName;
     public final DexMethod getCanonicalName;
     public final DexMethod getSimpleName;
@@ -676,8 +679,18 @@ public class DexItemFactory {
     private ClassMethods() {
       desiredAssertionStatus = createMethod(classDescriptor,
           desiredAssertionStatusMethodName, booleanDescriptor, DexString.EMPTY_ARRAY);
-      forName = createMethod(classDescriptor,
-          forNameMethodName, classDescriptor, new DexString[]{stringDescriptor});
+      forName =
+          createMethod(
+              classDescriptor,
+              forNameMethodName,
+              classDescriptor,
+              new DexString[] {stringDescriptor});
+      forName3 =
+          createMethod(
+              classDescriptor,
+              forNameMethodName,
+              classDescriptor,
+              new DexString[] {stringDescriptor, booleanDescriptor, classLoaderDescriptor});
       getName = createMethod(classDescriptor, getNameName, stringDescriptor, DexString.EMPTY_ARRAY);
       getCanonicalName = createMethod(
           classDescriptor, getCanonicalNameName, stringDescriptor, DexString.EMPTY_ARRAY);
@@ -692,17 +705,21 @@ public class DexItemFactory {
               constructorDescriptor,
               new DexString[] {classArrayDescriptor});
       getField = createMethod(classDescriptor, getFieldName, fieldDescriptor,
-          new DexString[]{stringDescriptor});
+          new DexString[] {stringDescriptor});
       getDeclaredField = createMethod(classDescriptor, getDeclaredFieldName, fieldDescriptor,
-          new DexString[]{stringDescriptor});
+          new DexString[] {stringDescriptor});
       getMethod = createMethod(classDescriptor, getMethodName, methodDescriptor,
-          new DexString[]{stringDescriptor, classArrayDescriptor});
+          new DexString[] {stringDescriptor, classArrayDescriptor});
       getDeclaredMethod = createMethod(classDescriptor, getDeclaredMethodName, methodDescriptor,
-          new DexString[]{stringDescriptor, classArrayDescriptor});
+          new DexString[] {stringDescriptor, classArrayDescriptor});
       newInstance =
           createMethod(classDescriptor, newInstanceName, objectDescriptor, DexString.EMPTY_ARRAY);
       getMembers = ImmutableSet.of(getField, getDeclaredField, getMethod, getDeclaredMethod);
       getNames = ImmutableSet.of(getName, getCanonicalName, getSimpleName, getTypeName);
+    }
+
+    public boolean isReflectiveClassLookup(DexMethod method) {
+      return method == forName || method == forName3;
     }
 
     public boolean isReflectiveMemberLookup(DexMethod method) {
@@ -842,19 +859,19 @@ public class DexItemFactory {
               intFieldUpdaterDescriptor,
               newUpdaterName,
               intFieldUpdaterDescriptor,
-              new DexString[]{classDescriptor, stringDescriptor});
+              new DexString[] {classDescriptor, stringDescriptor});
       longUpdater =
           createMethod(
               longFieldUpdaterDescriptor,
               newUpdaterName,
               longFieldUpdaterDescriptor,
-              new DexString[]{classDescriptor, stringDescriptor});
+              new DexString[] {classDescriptor, stringDescriptor});
       referenceUpdater =
           createMethod(
               referenceFieldUpdaterDescriptor,
               newUpdaterName,
               referenceFieldUpdaterDescriptor,
-              new DexString[]{classDescriptor, classDescriptor, stringDescriptor});
+              new DexString[] {classDescriptor, classDescriptor, stringDescriptor});
       updaters = ImmutableSet.of(intUpdater, longUpdater, referenceUpdater);
     }
 

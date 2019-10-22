@@ -627,7 +627,7 @@ public class Enqueuer {
 
     boolean registerInvokeStatic(DexMethod method, KeepReason keepReason) {
       DexItemFactory dexItemFactory = appView.dexItemFactory();
-      if (method == dexItemFactory.classMethods.forName
+      if (dexItemFactory.classMethods.isReflectiveClassLookup(method)
           || dexItemFactory.atomicFieldUpdaterMethods.isFieldUpdater(method)) {
         // Implicitly add -identifiernamestring rule for the Java reflection in use.
         identifierNameStrings.add(method);

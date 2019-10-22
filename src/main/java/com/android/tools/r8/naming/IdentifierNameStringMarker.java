@@ -341,7 +341,8 @@ public class IdentifierNameStringMarker {
 
     boolean isClassForName = returnType == appView.dexItemFactory().classType;
     if (isClassForName) {
-      assert invoke.getInvokedMethod() == appView.dexItemFactory().classMethods.forName;
+      assert appView.dexItemFactory().classMethods
+          .isReflectiveClassLookup(invoke.getInvokedMethod());
       return 0;
     }
 

@@ -28,7 +28,8 @@ public class ConstantValueUtils {
 
     if (alias.definition.isInvokeStatic()) {
       InvokeStatic invoke = alias.definition.asInvokeStatic();
-      if (invoke.getInvokedMethod() == definitions.dexItemFactory().classMethods.forName) {
+      if (definitions.dexItemFactory().classMethods
+          .isReflectiveClassLookup(invoke.getInvokedMethod())) {
         return getDexTypeFromClassForName(invoke, definitions);
       }
     }
@@ -38,8 +39,9 @@ public class ConstantValueUtils {
 
   public static DexType getDexTypeFromClassForName(
       InvokeStatic invoke, DexDefinitionSupplier definitions) {
-    assert invoke.getInvokedMethod() == definitions.dexItemFactory().classMethods.forName;
-    if (invoke.arguments().size() == 1) {
+    assert definitions.dexItemFactory().classMethods
+        .isReflectiveClassLookup(invoke.getInvokedMethod());
+    if (invoke.arguments().size() == 1 || invoke.arguments().size() == 3) {
       Value argument = invoke.arguments().get(0);
       if (argument.isConstString()) {
         ConstString constStringInstruction = argument.getConstInstruction().asConstString();

@@ -5,6 +5,8 @@ package com.android.tools.r8.naming;
 
 import static com.android.tools.r8.utils.DescriptorUtils.descriptorToJavaType;
 import static com.android.tools.r8.utils.DescriptorUtils.isValidJavaType;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -18,13 +20,10 @@ import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.ConstStringInstructionSubject;
-import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject.JumboStringMode;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
-import com.google.common.collect.Streams;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -129,19 +128,17 @@ public class IdentifierMinifierTest extends TestBase {
   private static void test1_rules(
       CodeInspector inspector, int countInMain, int countInABar, int countInAFields) {
     ClassSubject mainClass = inspector.clazz("adaptclassstrings.Main");
-    MethodSubject main = mainClass.method(CodeInspector.MAIN);
-    assertTrue(main instanceof FoundMethodSubject);
-    FoundMethodSubject foundMain = (FoundMethodSubject) main;
-    verifyPresenceOfConstString(foundMain);
-    int renamedYetFoundIdentifierCount = countRenamedClassIdentifier(inspector, foundMain);
+    MethodSubject main = mainClass.mainMethod();
+    assertThat(main, isPresent());
+    verifyPresenceOfConstString(main);
+    int renamedYetFoundIdentifierCount = countRenamedClassIdentifier(inspector, main);
     assertEquals(countInMain, renamedYetFoundIdentifierCount);
 
     ClassSubject aClass = inspector.clazz("adaptclassstrings.A");
-    MethodSubject bar = aClass.method("void", "bar", ImmutableList.of());
-    assertTrue(bar instanceof FoundMethodSubject);
-    FoundMethodSubject foundBar = (FoundMethodSubject) bar;
-    verifyPresenceOfConstString(foundBar);
-    renamedYetFoundIdentifierCount = countRenamedClassIdentifier(inspector, foundBar);
+    MethodSubject bar = aClass.uniqueMethodWithName("bar");
+    assertThat(bar, isPresent());
+    verifyPresenceOfConstString(bar);
+    renamedYetFoundIdentifierCount = countRenamedClassIdentifier(inspector, bar);
     assertEquals(countInABar, renamedYetFoundIdentifierCount);
 
     renamedYetFoundIdentifierCount =
@@ -151,64 +148,57 @@ public class IdentifierMinifierTest extends TestBase {
 
   private static void test_atomicfieldupdater(TestParameters parameters, CodeInspector inspector) {
     ClassSubject mainClass = inspector.clazz("atomicfieldupdater.Main");
-    MethodSubject main = mainClass.method(CodeInspector.MAIN);
-    assertTrue(main instanceof FoundMethodSubject);
-    FoundMethodSubject foundMain = (FoundMethodSubject) main;
-    verifyPresenceOfConstString(foundMain);
+    MethodSubject main = mainClass.mainMethod();
+    assertThat(main, isPresent());
+    verifyPresenceOfConstString(main);
 
     ClassSubject a = inspector.clazz("atomicfieldupdater.A");
     Set<InstructionSubject> constStringInstructions =
-        getRenamedMemberIdentifierConstStrings(a, foundMain);
+        getRenamedMemberIdentifierConstStrings(a, main);
     assertEquals(3, constStringInstructions.size());
   }
 
   private static void test_forname(TestParameters parameters, CodeInspector inspector) {
     ClassSubject mainClass = inspector.clazz("forname.Main");
-    MethodSubject main = mainClass.method(CodeInspector.MAIN);
-    assertTrue(main instanceof FoundMethodSubject);
-    FoundMethodSubject foundMain = (FoundMethodSubject) main;
-    verifyPresenceOfConstString(foundMain);
-    int renamedYetFoundIdentifierCount = countRenamedClassIdentifier(inspector, foundMain);
+    MethodSubject main = mainClass.mainMethod();
+    assertThat(main, isPresent());
+    verifyPresenceOfConstString(main);
+    int renamedYetFoundIdentifierCount = countRenamedClassIdentifier(inspector, main);
     assertEquals(1, renamedYetFoundIdentifierCount);
   }
 
   private static void test_getmembers(TestParameters parameters, CodeInspector inspector) {
     ClassSubject mainClass = inspector.clazz("getmembers.Main");
-    MethodSubject main = mainClass.method(CodeInspector.MAIN);
-    assertTrue(main instanceof FoundMethodSubject);
-    FoundMethodSubject foundMain = (FoundMethodSubject) main;
-    verifyPresenceOfConstString(foundMain);
+    MethodSubject main = mainClass.mainMethod();
+    assertThat(main, isPresent());
+    verifyPresenceOfConstString(main);
 
     ClassSubject a = inspector.clazz("getmembers.A");
     Set<InstructionSubject> constStringInstructions =
-        getRenamedMemberIdentifierConstStrings(a, foundMain);
+        getRenamedMemberIdentifierConstStrings(a, main);
     assertEquals(2, constStringInstructions.size());
 
     ClassSubject b = inspector.clazz("getmembers.B");
-    MethodSubject inliner = b.method("java.lang.String", "inliner", ImmutableList.of());
-    assertTrue(inliner instanceof FoundMethodSubject);
-    FoundMethodSubject foundInliner = (FoundMethodSubject) inliner;
-    constStringInstructions = getRenamedMemberIdentifierConstStrings(a, foundInliner);
+    MethodSubject inliner = b.uniqueMethodWithName("inliner");
+    assertThat(inliner, isPresent());
+    constStringInstructions = getRenamedMemberIdentifierConstStrings(a, inliner);
     assertEquals(1, constStringInstructions.size());
   }
 
   // Without -identifiernamestring
   private static void test2_rule1(TestParameters parameters, CodeInspector inspector) {
     ClassSubject mainClass = inspector.clazz("identifiernamestring.Main");
-    MethodSubject main = mainClass.method(CodeInspector.MAIN);
-    assertTrue(main instanceof FoundMethodSubject);
-    FoundMethodSubject foundMain = (FoundMethodSubject) main;
-    verifyPresenceOfConstString(foundMain);
-    int renamedYetFoundIdentifierCount = countRenamedClassIdentifier(inspector, foundMain);
+    MethodSubject main = mainClass.mainMethod();
+    assertThat(main, isPresent());
+    verifyPresenceOfConstString(main);
+    int renamedYetFoundIdentifierCount = countRenamedClassIdentifier(inspector, main);
     assertEquals(1, renamedYetFoundIdentifierCount);
 
     ClassSubject aClass = inspector.clazz("identifiernamestring.A");
-    MethodSubject aInit =
-        aClass.method("void", "<init>", ImmutableList.of());
-    assertTrue(aInit instanceof FoundMethodSubject);
-    FoundMethodSubject foundAInit = (FoundMethodSubject) aInit;
-    verifyPresenceOfConstString(foundAInit);
-    renamedYetFoundIdentifierCount = countRenamedClassIdentifier(inspector, foundAInit);
+    MethodSubject aInit = aClass.init();
+    assertThat(aInit, isPresent());
+    verifyPresenceOfConstString(aInit);
+    renamedYetFoundIdentifierCount = countRenamedClassIdentifier(inspector, aInit);
     assertEquals(0, renamedYetFoundIdentifierCount);
 
     renamedYetFoundIdentifierCount =
@@ -219,20 +209,17 @@ public class IdentifierMinifierTest extends TestBase {
   // With -identifiernamestring for annotations and name-based filters
   private static void test2_rule2(TestParameters parameters, CodeInspector inspector) {
     ClassSubject mainClass = inspector.clazz("identifiernamestring.Main");
-    MethodSubject main = mainClass.method(CodeInspector.MAIN);
-    assertTrue(main instanceof FoundMethodSubject);
-    FoundMethodSubject foundMain = (FoundMethodSubject) main;
-    verifyPresenceOfConstString(foundMain);
-    int renamedYetFoundIdentifierCount = countRenamedClassIdentifier(inspector, foundMain);
+    MethodSubject main = mainClass.mainMethod();
+    assertThat(main, isPresent());
+    verifyPresenceOfConstString(main);
+    int renamedYetFoundIdentifierCount = countRenamedClassIdentifier(inspector, main);
     assertEquals(parameters.isCfRuntime() ? 2 : 1, renamedYetFoundIdentifierCount);
 
     ClassSubject aClass = inspector.clazz("identifiernamestring.A");
-    MethodSubject aInit =
-        aClass.method("void", "<init>", ImmutableList.of());
-    assertTrue(aInit instanceof FoundMethodSubject);
-    FoundMethodSubject foundAInit = (FoundMethodSubject) aInit;
-    verifyPresenceOfConstString(foundAInit);
-    renamedYetFoundIdentifierCount = countRenamedClassIdentifier(inspector, foundAInit);
+    MethodSubject aInit = aClass.init();
+    assertThat(aInit, isPresent());
+    verifyPresenceOfConstString(aInit);
+    renamedYetFoundIdentifierCount = countRenamedClassIdentifier(inspector, aInit);
     assertEquals(1, renamedYetFoundIdentifierCount);
 
     renamedYetFoundIdentifierCount =
@@ -243,31 +230,30 @@ public class IdentifierMinifierTest extends TestBase {
   // With -identifiernamestring for reflective methods in testing class R.
   private static void test2_rule3(TestParameters parameters, CodeInspector inspector) {
     ClassSubject mainClass = inspector.clazz("identifiernamestring.Main");
-    MethodSubject main = mainClass.method(CodeInspector.MAIN);
-    assertTrue(main instanceof FoundMethodSubject);
-    FoundMethodSubject foundMain = (FoundMethodSubject) main;
-    verifyPresenceOfConstString(foundMain);
+    MethodSubject main = mainClass.mainMethod();
+    assertThat(main, isPresent());
+    verifyPresenceOfConstString(main);
 
     ClassSubject b = inspector.clazz("identifiernamestring.B");
     Set<InstructionSubject> constStringInstructions =
-        getRenamedMemberIdentifierConstStrings(b, foundMain);
+        getRenamedMemberIdentifierConstStrings(b, main);
     assertEquals(2, constStringInstructions.size());
   }
 
-  private static void verifyPresenceOfConstString(FoundMethodSubject method) {
+  private static void verifyPresenceOfConstString(MethodSubject method) {
     assertTrue(
         method
             .iterateInstructions(instruction -> instruction.isConstString(JumboStringMode.ALLOW))
             .hasNext());
   }
 
-  private static Stream<InstructionSubject> getConstStringInstructions(FoundMethodSubject method) {
-    return Streams.stream(method.iterateInstructions())
+  private static Stream<InstructionSubject> getConstStringInstructions(MethodSubject method) {
+    return method.streamInstructions()
         .filter(instr -> instr.isConstString(JumboStringMode.ALLOW));
   }
 
   private static int countRenamedClassIdentifier(
-      CodeInspector inspector, FoundMethodSubject method) {
+      CodeInspector inspector, MethodSubject method) {
     return getConstStringInstructions(method)
         .reduce(
             0,
@@ -307,7 +293,7 @@ public class IdentifierMinifierTest extends TestBase {
   }
 
   private static Set<InstructionSubject> getRenamedMemberIdentifierConstStrings(
-      ClassSubject clazz, FoundMethodSubject method) {
+      ClassSubject clazz, MethodSubject method) {
     Set<InstructionSubject> result = Sets.newIdentityHashSet();
     getConstStringInstructions(method)
         .forEach(
