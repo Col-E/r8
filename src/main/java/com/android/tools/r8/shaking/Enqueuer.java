@@ -273,12 +273,6 @@ public class Enqueuer {
   private final Set<DexReference> pinnedItems = Sets.newIdentityHashSet();
 
   /**
-   * A set of seen const-class references that both serve as an initial lock-candidate set and will
-   * prevent statically merging the classes referenced.
-   */
-  private final Set<DexType> constClassReferences = Sets.newIdentityHashSet();
-
-  /**
    * A map from classes to annotations that need to be processed should the classes ever become
    * live.
    */
@@ -894,15 +888,6 @@ public class Enqueuer {
 
     @Override
     public boolean registerConstClass(DexType type) {
-      // We conservatively group T.class and T[].class to ensure that we do not merge T with S if
-      // potential locks on T[].class and S[].class exists.
-      DexType baseType = type.toBaseType(appView.dexItemFactory());
-      if (baseType.isClassType()) {
-        DexProgramClass baseClass = getProgramClassOrNull(baseType);
-        if (baseClass != null) {
-          constClassReferences.add(baseType);
-        }
-      }
       return registerConstClassOrCheckCast(type);
     }
 
@@ -2245,8 +2230,7 @@ public class Enqueuer {
             Collections.emptyMap(),
             Collections.emptyMap(),
             SetUtils.mapIdentityHashSet(
-                instantiatedInterfaceTypes.getItems(), DexProgramClass::getType),
-            constClassReferences);
+                instantiatedInterfaceTypes.getItems(), DexProgramClass::getType));
     appInfo.markObsolete();
     return appInfoWithLiveness;
   }

@@ -342,11 +342,6 @@ public class StaticClassMerger {
         // We are not allowed to merge synchronized classes with synchronized methods.
         return false;
       }
-      if (appView.appInfo().constClassReferences.contains(clazz.type)) {
-        // Since the type is const-class referenced (and the static merger does not create a lense
-        // to map the merged type) the class will likely remain and there is no gain from merging.
-        return false;
-      }
       // Check if current candidate is a better choice depending on visibility. For package private
       // or protected, the key is parameterized by the package name already, so we just have to
       // check accessibility-flags. For global this is no-op.

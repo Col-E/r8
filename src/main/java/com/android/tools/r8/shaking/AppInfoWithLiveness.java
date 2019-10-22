@@ -153,8 +153,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
   public final Set<DexType> neverClassInline;
   /** All types that *must* never be merged due to a configuration directive (testing only). */
   public final Set<DexType> neverMerge;
-  /** Set of const-class references. */
-  public final Set<DexType> constClassReferences;
   /**
    * All methods and fields whose value *must* never be propagated due to a configuration directive.
    * (testing only).
@@ -225,8 +223,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       Set<DexType> prunedTypes,
       Map<DexField, Int2ReferenceMap<DexField>> switchMaps,
       Map<DexType, Map<DexField, EnumValueInfo>> enumValueInfoMaps,
-      Set<DexType> instantiatedLambdas,
-      Set<DexType> constClassReferences) {
+      Set<DexType> instantiatedLambdas) {
     super(application);
     this.liveTypes = liveTypes;
     this.instantiatedAnnotationTypes = instantiatedAnnotationTypes;
@@ -267,7 +264,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.switchMaps = switchMaps;
     this.enumValueInfoMaps = enumValueInfoMaps;
     this.instantiatedLambdas = instantiatedLambdas;
-    this.constClassReferences = constClassReferences;
   }
 
   public AppInfoWithLiveness(
@@ -308,8 +304,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       Set<DexType> prunedTypes,
       Map<DexField, Int2ReferenceMap<DexField>> switchMaps,
       Map<DexType, Map<DexField, EnumValueInfo>> enumValueInfoMaps,
-      Set<DexType> instantiatedLambdas,
-      Set<DexType> constClassReferences) {
+      Set<DexType> instantiatedLambdas) {
     super(appInfoWithSubtyping);
     this.liveTypes = liveTypes;
     this.instantiatedAnnotationTypes = instantiatedAnnotationTypes;
@@ -350,7 +345,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.switchMaps = switchMaps;
     this.enumValueInfoMaps = enumValueInfoMaps;
     this.instantiatedLambdas = instantiatedLambdas;
-    this.constClassReferences = constClassReferences;
   }
 
   private AppInfoWithLiveness(AppInfoWithLiveness previous) {
@@ -404,8 +398,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
             : CollectionUtils.mergeSets(previous.prunedTypes, removedClasses),
         previous.switchMaps,
         previous.enumValueInfoMaps,
-        previous.instantiatedLambdas,
-        previous.constClassReferences);
+        previous.instantiatedLambdas);
     copyMetadataFromPrevious(previous);
     assert removedClasses == null || assertNoItemRemoved(previous.pinnedItems, removedClasses);
   }
@@ -492,7 +485,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
             .collect(Collectors.toList()));
     this.switchMaps = rewriteReferenceKeys(previous.switchMaps, lense::lookupField);
     this.enumValueInfoMaps = rewriteReferenceKeys(previous.enumValueInfoMaps, lense::lookupType);
-    this.constClassReferences = previous.constClassReferences;
   }
 
   public AppInfoWithLiveness(
@@ -539,7 +531,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.prunedTypes = previous.prunedTypes;
     this.switchMaps = switchMaps;
     this.enumValueInfoMaps = enumValueInfoMaps;
-    this.constClassReferences = previous.constClassReferences;
     previous.markObsolete();
   }
 
@@ -596,16 +587,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       Collections.addAll(worklist, definition.interfaces.values);
     }
     return interfaces;
-  }
-
-  /**
-   * Const-classes is a conservative set of types that may be lock-candidates and cannot be merged.
-   * When using synchronized blocks, we cannot ensure that const-class locks will not flow in. This
-   * can potentially cause incorrect behavior when merging classes. A conservative choice is to not
-   * merge any const-class classes. More info at b/142438687.
-   */
-  public boolean isLockCandidate(DexType type) {
-    return constClassReferences.contains(type);
   }
 
   public AppInfoWithLiveness withoutStaticFieldsWrites(Set<DexField> noLongerWrittenFields) {

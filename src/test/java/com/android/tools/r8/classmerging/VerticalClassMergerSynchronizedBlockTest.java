@@ -6,8 +6,10 @@ package com.android.tools.r8.classmerging;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.StringContains.containsString;
 
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -49,13 +51,18 @@ public class VerticalClassMergerSynchronizedBlockTest extends TestBase {
   @Test
   public void testNoMergingOfClassUsedInMonitor()
       throws IOException, CompilationFailedException, ExecutionException {
-    testForR8(parameters.getBackend())
-        .addInnerClasses(VerticalClassMergerSynchronizedBlockTest.class)
-        .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getApiLevel())
-        .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutput("Hello World!")
-        .inspect(inspector -> assertThat(inspector.clazz(LockOne.class), isPresent()));
+    // TODO(b/142438687): Fix expectation when fixed.
+    R8TestRunResult result =
+        testForR8(parameters.getBackend())
+            .addInnerClasses(VerticalClassMergerSynchronizedBlockTest.class)
+            .addKeepMainRule(Main.class)
+            .setMinApi(parameters.getApiLevel())
+            .compile()
+            .run(parameters.getRuntime(), Main.class)
+            .assertFailureWithErrorThatMatches(containsString("DEADLOCKED!"));
+    if (result.getExitCode() == 0) {
+      result.inspect(inspector -> assertThat(inspector.clazz(LockOne.class), isPresent()));
+    }
   }
 
   abstract static class LockOne {}
