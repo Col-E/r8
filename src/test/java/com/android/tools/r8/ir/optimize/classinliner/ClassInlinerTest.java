@@ -50,6 +50,7 @@ import com.android.tools.r8.utils.codeinspector.FieldAccessInstructionSubject;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.NewInstanceInstructionSubject;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import java.util.Collections;
@@ -181,7 +182,11 @@ public class ClassInlinerTest extends TestBase {
             .enableInliningAnnotations()
             .addKeepMainRule(main)
             .addKeepAttributes("LineNumberTable")
-            .addOptionsModification(this::configure)
+            .addOptionsModification(
+                o -> {
+                  o.inliningInstructionLimit = 6;
+                  configure(o);
+                })
             .allowAccessModification()
             .noMinification()
             .run(main)
@@ -192,14 +197,13 @@ public class ClassInlinerTest extends TestBase {
 
     for (int i = 1; i <= 3; i++) {
       Set<String> expected =
-          Sets.newHashSet(
-              "com.android.tools.r8.ir.optimize.classinliner.builders.Pair",
-              "java.lang.StringBuilder");
-      if (backend == Backend.CF) {
-        // const-string canonicalization is disabled in CF, which helps ClassInliner identify
-        // PairBuilder as candidate.
-        expected.add("com.android.tools.r8.ir.optimize.classinliner.builders.PairBuilder");
-      }
+          backend == Backend.CF
+              // const-string canonicalization is disabled in CF, which helps ClassInliner identify
+              // PairBuilder as candidate.
+              ? ImmutableSet.of(
+                  "java.lang.StringBuilder",
+                  "com.android.tools.r8.ir.optimize.classinliner.builders.PairBuilder")
+              : ImmutableSet.of("java.lang.StringBuilder");
       assertEquals(expected, collectTypes(clazz, "testSimpleBuilder" + i, "void"));
     }
 
@@ -207,6 +211,7 @@ public class ClassInlinerTest extends TestBase {
     // we use 'System.out.println(pX.toString())', if we used 'System.out.println(pX)'
     // as in the above method, the instance of pair would be passed to println() which
     // would make it not eligible for inlining.
+    // TODO(b/143129517): This relies on PairBuilder::build being inlined, thus the limit of 6.
     assertEquals(
         Collections.singleton("java.lang.StringBuilder"),
         collectTypes(clazz, "testSimpleBuilderWithMultipleBuilds", "void"));
@@ -327,7 +332,13 @@ public class ClassInlinerTest extends TestBase {
             .enableInliningAnnotations()
             .addKeepMainRule(main)
             .addKeepAttributes("LineNumberTable")
-            .addOptionsModification(this::configure)
+            .addOptionsModification(
+                o -> {
+                  // TODO(b/143129517, 141719453): The limit seems to only be needed for DEX...
+                  o.classInliningInstructionLimit = 100;
+                  o.classInliningInstructionAllowance = 1000;
+                  configure(o);
+                })
             .allowAccessModification()
             .noMinification()
             .run(main)
@@ -336,6 +347,7 @@ public class ClassInlinerTest extends TestBase {
     CodeInspector inspector = result.inspector();
     ClassSubject clazz = inspector.clazz(main);
 
+    // TODO(b/143129517, 141719453): This expectation relies on the class inlining limits.
     assertEquals(
         Sets.newHashSet("java.lang.StringBuilder", "java.lang.RuntimeException"),
         collectTypes(clazz, "testExtraNeverReturnsNormally", "void"));
@@ -352,14 +364,13 @@ public class ClassInlinerTest extends TestBase {
     assertThat(
         inspector.clazz(InvalidRootsTestClass.InitNeverReturnsNormally.class), not(isPresent()));
 
+    // TODO(b/143129517, b/141719453): This expectation relies on the class inlining limits.
     assertEquals(
-        Sets.newHashSet(
-            "java.lang.StringBuilder",
-            "java.lang.RuntimeException"),
+        Sets.newHashSet("java.lang.StringBuilder", "java.lang.RuntimeException"),
         collectTypes(clazz, "testRootInvalidatesAfterInlining", "void"));
 
-    assertFalse(inspector.clazz(InvalidRootsTestClass.A.class).isPresent());
-    assertFalse(inspector.clazz(InvalidRootsTestClass.B.class).isPresent());
+    assertThat(inspector.clazz(InvalidRootsTestClass.A.class), not(isPresent()));
+    assertThat(inspector.clazz(InvalidRootsTestClass.B.class), not(isPresent()));
   }
 
   @Test
@@ -377,7 +388,12 @@ public class ClassInlinerTest extends TestBase {
             .addProgramClasses(classes)
             .addKeepMainRule(main)
             .addKeepAttributes("LineNumberTable")
-            .addOptionsModification(this::configure)
+            .addOptionsModification(
+                o -> {
+                  // TODO(b/141719453): Identify single instances instead of increasing the limit.
+                  o.classInliningInstructionLimit = 20;
+                  configure(o);
+                })
             .allowAccessModification()
             .enableInliningAnnotations()
             .noMinification()
@@ -451,7 +467,5 @@ public class ClassInlinerTest extends TestBase {
 
   private void configure(InternalOptions options) {
     options.enableSideEffectAnalysis = false;
-    options.classInliningInstructionLimit = 10000;
-    options.inliningInstructionLimit = 6;
   }
 }

@@ -274,9 +274,11 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
           options.enableClassInlining = enabled;
           options.enableLambdaMerging = false;
 
+          // TODO(b/141719453): These limits should be removed if a possible or the test refactored.
           // Tests check if specific lambdas are inlined or not, where some of target lambdas have
           // at least 4 instructions.
           options.inliningInstructionLimit = 4;
+          options.classInliningInstructionLimit = 40;
 
           // Class inlining depends on the processing order. We therefore insert all call graph
           // edges and verify that we can class inline everything under this condition.

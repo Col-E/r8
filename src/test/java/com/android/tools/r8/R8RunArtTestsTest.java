@@ -1835,7 +1835,7 @@ public abstract class R8RunArtTestsTest {
               options -> {
                 compilationOptions.accept(options);
                 // Make sure we don't depend on this settings.
-                options.classInliningInstructionLimit = 10000;
+                options.classInliningInstructionAllowance = 10000;
                 options.lineNumberOptimization = LineNumberOptimization.OFF;
               });
           break;

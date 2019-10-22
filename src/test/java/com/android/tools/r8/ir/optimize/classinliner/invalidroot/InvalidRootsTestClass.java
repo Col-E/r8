@@ -119,11 +119,13 @@ public class InvalidRootsTestClass {
     notInlinedExtraMethod(next(), a);
   }
 
+  // TODO(b/143129517): Why is this called inliningB but typed at A?
   private void testRootInvalidatesAfterInliningB(A a) {
     notInlinedExtraMethod(next(), a);
   }
 
   public static class A {
+    // TODO(b/143129517): Why are both of these printing B::foo?
     public String foo() {
       return "B::foo(" + next() + ")";
     }

@@ -30,7 +30,7 @@ public class TrivialTestClass {
   @NeverInline
   private void testInner() {
     Inner inner = new Inner("inner{", 123, next() + "}");
-    System.out.println(inner.toString() + " " + inner.getPrefix() + " = " + inner.prefix);
+    System.out.println(inner.myToString() + " " + inner.getPrefix() + " = " + inner.prefix);
   }
 
   @NeverInline
@@ -104,8 +104,7 @@ public class TrivialTestClass {
       this.id = id;
     }
 
-    @Override
-    public String toString() {
+    public String myToString() {
       return prefix + id + suffix;
     }
 

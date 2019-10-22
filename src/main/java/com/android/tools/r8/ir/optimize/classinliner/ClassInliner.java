@@ -221,7 +221,7 @@ public final class ClassInliner {
 
         // Is inlining allowed.
         if (processor.getEstimatedCombinedSizeForInlining()
-            >= appView.options().classInliningInstructionLimit) {
+            >= appView.options().classInliningInstructionAllowance) {
           continue;
         }
 

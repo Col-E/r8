@@ -13,8 +13,7 @@ public class Pair<F, S> {
     this.second = second;
   }
 
-  @Override
-  public String toString() {
+  public String myToString() {
     return "Pair(" +
         (first == null ? "<null>" : first) + ", " +
         (second == null ? "<null>" : second) + ")";

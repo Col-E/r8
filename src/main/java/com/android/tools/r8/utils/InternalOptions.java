@@ -224,7 +224,9 @@ public class InternalOptions {
   public int callGraphCycleEliminatorMaxDepthThreshold = 256;
   public int callGraphLikelySpuriousCallEdgeThreshold = 50;
 
-  public int classInliningInstructionLimit = 50;
+  // TODO(b/141719453): The inlining limit at least should be consistent with normal inlining.
+  public int classInliningInstructionLimit = 10;
+  public int classInliningInstructionAllowance = 50;
   // This defines the limit of instructions in the inlinee
   public int inliningInstructionLimit = 3;
   // This defines how many instructions of inlinees we can inlinee overall.

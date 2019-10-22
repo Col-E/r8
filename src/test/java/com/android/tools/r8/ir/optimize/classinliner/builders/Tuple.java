@@ -30,8 +30,7 @@ public class Tuple {
     this.o = o;
   }
 
-  @Override
-  public String toString() {
+  public String myToString() {
     return "Tuple1(" + z + ", " + b + ", " + s + ", " +
         ((int) c) + ", " + i + ", " + l + ", " + f + ", " +
         d + ", " + (o == null ? "<null>" : o) + ")";

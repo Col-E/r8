@@ -211,7 +211,8 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
         && candidate.getCode().estimatedSizeForInliningAtMost(10);
   }
 
-  private boolean passesInliningConstraints(
+  @Override
+  public boolean passesInliningConstraints(
       InvokeMethod invoke,
       DexEncodedMethod singleTarget,
       Reason reason,

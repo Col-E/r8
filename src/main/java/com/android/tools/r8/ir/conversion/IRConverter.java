@@ -1324,8 +1324,8 @@ public class IRConverter {
                       code,
                       isProcessedConcurrently,
                       callSiteInformation,
-                      Integer.MAX_VALUE / 2,
-                      Integer.MAX_VALUE / 2)));
+                      options.classInliningInstructionLimit,
+                      options.classInliningInstructionAllowance)));
       assert code.isConsistentSSA();
       assert code.verifyTypes(appView);
     }

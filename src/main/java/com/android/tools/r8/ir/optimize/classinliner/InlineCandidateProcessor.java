@@ -317,7 +317,8 @@ final class InlineCandidateProcessor {
           if (user.isInvokeVirtual() || user.isInvokeInterface()) {
             InvokeMethodWithReceiver invoke = user.asInvokeMethodWithReceiver();
             InliningInfo inliningInfo =
-                isEligibleDirectVirtualMethodCall(invoke, singleTarget, indirectUsers);
+                isEligibleDirectVirtualMethodCall(
+                    invoke, singleTarget, indirectUsers, defaultOracle);
             if (inliningInfo != null) {
               methodCallsOnInstance.put(invoke, inliningInfo);
               continue;
@@ -690,11 +691,20 @@ final class InlineCandidateProcessor {
   private InliningInfo isEligibleDirectVirtualMethodCall(
       InvokeMethodWithReceiver invoke,
       DexEncodedMethod singleTarget,
-      Set<Instruction> indirectUsers) {
+      Set<Instruction> indirectUsers,
+      Supplier<InliningOracle> defaultOracle) {
     assert isEligibleSingleTarget(singleTarget);
     if (ListUtils.lastIndexMatching(
         invoke.inValues(), v -> v.getAliasedValue() == eligibleInstance) > 0) {
       return null; // Instance passed as an argument.
+    }
+    // TODO(b/141719453): Should not constrain library overrides if all instantiations are inlined.
+    if (singleTarget.isLibraryMethodOverride().isTrue()) {
+      InliningOracle inliningOracle = defaultOracle.get();
+      if (!inliningOracle.passesInliningConstraints(
+          invoke, singleTarget, Reason.SIMPLE, NopWhyAreYouNotInliningReporter.getInstance())) {
+        return null;
+      }
     }
     return isEligibleVirtualMethodCall(
         !invoke.getBlock().hasCatchHandlers(),

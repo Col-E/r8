@@ -29,7 +29,7 @@ public class BuildersTestClass {
   @NeverInline
   private void testSimpleBuilder1() {
     System.out.println(
-        new PairBuilder<String, String>().setFirst("f-" + next()).build());
+        new PairBuilder<String, String>().setFirst("f-" + next()).build().myToString());
     testSimpleBuilder2();
     testSimpleBuilder3();
   }
@@ -37,33 +37,33 @@ public class BuildersTestClass {
   @NeverInline
   private void testSimpleBuilder2() {
     System.out.println(
-        new PairBuilder<String, String>().setSecond("s-" + next()).build());
+        new PairBuilder<String, String>().setSecond("s-" + next()).build().myToString());
   }
 
   @NeverInline
   private void testSimpleBuilder3() {
     System.out.println(new PairBuilder<String, String>()
-        .setFirst("f-" + next()).setSecond("s-" + next()).build());
+        .setFirst("f-" + next()).setSecond("s-" + next()).build().myToString());
   }
 
   @NeverInline
   private void testSimpleBuilderWithMultipleBuilds() {
     PairBuilder<String, String> builder = new PairBuilder<>();
     Pair p1 = builder.build();
-    System.out.println(p1.toString());
+    System.out.println(p1.myToString());
     builder.setFirst("f-" + next());
     Pair p2 = builder.build();
-    System.out.println(p2.toString());
+    System.out.println(p2.myToString());
     builder.setSecond("s-" + next());
     Pair p3 = builder.build();
-    System.out.println(p3.toString());
+    System.out.println(p3.myToString());
   }
 
   @NeverInline
   private void testBuilderConstructors() {
-    System.out.println(new Tuple().toString());
+    System.out.println(new Tuple().myToString());
     System.out.println(new Tuple(true, (byte) 77, (short) 9977, '#', 42,
-        987654321123456789L, -12.34f, 43210.98765, "s-" + next() + "-s").toString());
+        987654321123456789L, -12.34f, 43210.98765, "s-" + next() + "-s").myToString());
   }
 
   @NeverInline

@@ -41,6 +41,15 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
   }
 
   @Override
+  public boolean passesInliningConstraints(
+      InvokeMethod invoke,
+      DexEncodedMethod candidate,
+      Reason reason,
+      WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
+    return true;
+  }
+
+  @Override
   public DexEncodedMethod lookupSingleTarget(InvokeMethod invoke, DexType context) {
     Inliner.InliningInfo info = invokesToInline.get(invoke);
     if (info != null) {
@@ -55,10 +64,11 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
       DexEncodedMethod singleTarget,
       ClassInitializationAnalysis classInitializationAnalysis,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
-    return computeForInvoke(invoke);
+    return computeForInvoke(invoke, whyAreYouNotInliningReporter);
   }
 
-  private InlineAction computeForInvoke(InvokeMethod invoke) {
+  private InlineAction computeForInvoke(
+      InvokeMethod invoke, WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     Inliner.InliningInfo info = invokesToInline.get(invoke);
     if (info == null) {
       return null;
@@ -69,6 +79,8 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
     // the caller, it's still suspicious if we want to force inline something that is marked
     // with neverInline() flag.
     assert !info.target.getOptimizationInfo().neverInline();
+    assert passesInliningConstraints(
+        invoke, info.target, Reason.FORCE, whyAreYouNotInliningReporter);
     return new InlineAction(info.target, invoke, Reason.FORCE);
   }
 
