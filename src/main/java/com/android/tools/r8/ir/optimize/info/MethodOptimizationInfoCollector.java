@@ -203,7 +203,11 @@ public class MethodOptimizationInfoCollector {
         usages.add(usage);
       }
     }
-    feedback.setParameterUsages(method, usages.isEmpty() ? null : new ParameterUsagesInfo(usages));
+    feedback.setParameterUsages(
+        method,
+        usages.isEmpty()
+            ? DefaultMethodOptimizationInfo.UNKNOWN_PARAMETER_USAGE_INFO
+            : new ParameterUsagesInfo(usages));
   }
 
   private ParameterUsage collectParameterUsages(int i, Value value) {

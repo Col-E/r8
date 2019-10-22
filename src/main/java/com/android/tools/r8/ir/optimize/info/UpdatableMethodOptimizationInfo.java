@@ -4,9 +4,6 @@
 
 package com.android.tools.r8.ir.optimize.info;
 
-import static com.android.tools.r8.ir.optimize.info.DefaultMethodOptimizationInfo.UNKNOWN_CLASS_TYPE;
-import static com.android.tools.r8.ir.optimize.info.DefaultMethodOptimizationInfo.UNKNOWN_TYPE;
-
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
@@ -40,8 +37,9 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
   private boolean returnsConstantString = DefaultMethodOptimizationInfo.UNKNOWN_RETURNS_CONSTANT;
   private DexString returnedConstantString =
       DefaultMethodOptimizationInfo.UNKNOWN_RETURNED_CONSTANT_STRING;
-  private TypeLatticeElement returnsObjectOfType = UNKNOWN_TYPE;
-  private ClassTypeLatticeElement returnsObjectWithLowerBoundType = UNKNOWN_CLASS_TYPE;
+  private TypeLatticeElement returnsObjectOfType = DefaultMethodOptimizationInfo.UNKNOWN_TYPE;
+  private ClassTypeLatticeElement returnsObjectWithLowerBoundType =
+      DefaultMethodOptimizationInfo.UNKNOWN_CLASS_TYPE;
   private InlinePreference inlining = InlinePreference.Default;
   private boolean useIdentifierNameString =
       DefaultMethodOptimizationInfo.DOES_NOT_USE_IDNETIFIER_NAME_STRING;
@@ -84,9 +82,16 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
     // Intentionally left empty, just use the default values.
   }
 
+  // Copy constructor used to create a mutable copy. Do not forget to copy from template when a new
+  // field is added.
   private UpdatableMethodOptimizationInfo(UpdatableMethodOptimizationInfo template) {
     cannotBeKept = template.cannotBeKept;
+    classInitializerMayBePostponed = template.classInitializerMayBePostponed;
+    hasBeenInlinedIntoSingleCallSite = template.hasBeenInlinedIntoSingleCallSite;
+    initializedClassesOnNormalExit = template.initializedClassesOnNormalExit;
     returnedArgument = template.returnedArgument;
+    mayHaveSideEffects = template.mayHaveSideEffects;
+    returnValueOnlyDependsOnArguments = template.returnValueOnlyDependsOnArguments;
     neverReturnsNull = template.neverReturnsNull;
     neverReturnsNormally = template.neverReturnsNormally;
     returnsConstantNumber = template.returnsConstantNumber;
@@ -106,6 +111,7 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
     nonNullParamOrThrow = template.nonNullParamOrThrow;
     nonNullParamOnNormalExits = template.nonNullParamOnNormalExits;
     reachabilitySensitive = template.reachabilitySensitive;
+    returnValueHasBeenPropagated = template.returnValueHasBeenPropagated;
   }
 
   public void fixupClassTypeReferences(
@@ -375,7 +381,7 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
     // Nullability could be less precise, though. For example, suppose a value is known to be
     // non-null after a safe invocation, hence recorded with the non-null variant. If that call is
     // inlined and the method is reprocessed, such non-null assumption cannot be made again.
-    assert returnsObjectOfType == UNKNOWN_TYPE
+    assert returnsObjectOfType == DefaultMethodOptimizationInfo.UNKNOWN_TYPE
             || type.lessThanOrEqualUpToNullability(returnsObjectOfType, appView)
         : "return type changed from " + returnsObjectOfType + " to " + type;
     returnsObjectOfType = type;
@@ -385,7 +391,7 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
     assert type != null;
     // Currently, we only have a lower bound type when we have _exact_ runtime type information.
     // Thus, the type should never become more precise (although the nullability could).
-    assert returnsObjectWithLowerBoundType == UNKNOWN_CLASS_TYPE
+    assert returnsObjectWithLowerBoundType == DefaultMethodOptimizationInfo.UNKNOWN_CLASS_TYPE
             || (type.equalUpToNullability(returnsObjectWithLowerBoundType)
                 && type.nullability()
                     .lessThanOrEqual(returnsObjectWithLowerBoundType.nullability()))
@@ -452,8 +458,12 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
     // initializedClassesOnNormalExit: `this` could trigger <clinit> of the previous holder.
     initializedClassesOnNormalExit =
         DefaultMethodOptimizationInfo.UNKNOWN_INITIALIZED_CLASSES_ON_NORMAL_EXIT;
-    // TODO(b/142401154): adjustable
-    returnedArgument = DefaultMethodOptimizationInfo.UNKNOWN_RETURNED_ARGUMENT;
+    // At least, `this` pointer is not used in `returnedArgument`.
+    assert returnedArgument == DefaultMethodOptimizationInfo.UNKNOWN_RETURNED_ARGUMENT
+        || returnedArgument > 0;
+    returnedArgument =
+        returnedArgument == DefaultMethodOptimizationInfo.UNKNOWN_RETURNED_ARGUMENT
+            ? DefaultMethodOptimizationInfo.UNKNOWN_RETURNED_ARGUMENT : returnedArgument - 1;
     // mayHaveSideEffects: `this` Argument didn't have side effects, so removing it doesn't affect
     //   whether or not the method may have side effects.
     // returnValueOnlyDependsOnArguments:
@@ -483,11 +493,19 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
     // initializerEnablingJavaAssertions: `this` could trigger <clinit> of the previous holder.
     initializerEnablingJavaAssertions =
         DefaultMethodOptimizationInfo.UNKNOWN_INITIALIZER_ENABLING_JAVA_ASSERTIONS;
-    // TODO(b/142401154): adjustable
-    parametersUsages = DefaultMethodOptimizationInfo.UNKNOWN_PARAMETER_USAGE_INFO;
-    nonNullParamOrThrow = DefaultMethodOptimizationInfo.NO_NULL_PARAMETER_OR_THROW_FACTS;
+    parametersUsages =
+        parametersUsages == DefaultMethodOptimizationInfo.UNKNOWN_PARAMETER_USAGE_INFO
+            ? DefaultMethodOptimizationInfo.UNKNOWN_PARAMETER_USAGE_INFO
+            : parametersUsages.remove(0);
+    nonNullParamOrThrow =
+        nonNullParamOrThrow == DefaultMethodOptimizationInfo.NO_NULL_PARAMETER_OR_THROW_FACTS
+            ? DefaultMethodOptimizationInfo.NO_NULL_PARAMETER_OR_THROW_FACTS
+            : nonNullParamOrThrow.get(1, nonNullParamOrThrow.length());
     nonNullParamOnNormalExits =
-        DefaultMethodOptimizationInfo.NO_NULL_PARAMETER_ON_NORMAL_EXITS_FACTS;
+        nonNullParamOnNormalExits
+                == DefaultMethodOptimizationInfo.NO_NULL_PARAMETER_ON_NORMAL_EXITS_FACTS
+            ? DefaultMethodOptimizationInfo.NO_NULL_PARAMETER_ON_NORMAL_EXITS_FACTS
+            : nonNullParamOnNormalExits.get(1, nonNullParamOnNormalExits.length());
     // reachabilitySensitive: doesn't depend on `this`
     // returnValueHasBeenPropagated: doesn't depend on `this`
   }

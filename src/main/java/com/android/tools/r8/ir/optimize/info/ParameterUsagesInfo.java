@@ -45,6 +45,37 @@ public final class ParameterUsagesInfo {
     return null;
   }
 
+  ParameterUsagesInfo remove(int parameter) {
+    assert parametersUsages.size() > 0;
+    assert 0 <= parameter && parameter < parametersUsages.size();
+    // Nothing to remove. Return the current one as-is.
+    if (getParameterUsage(parameter) == null) {
+      return this;
+    }
+    // If the parameter usage info we're about to remove is the only one in the list
+    if (parametersUsages.size() == 1) {
+      // Return the default one.
+      return DefaultMethodOptimizationInfo.UNKNOWN_PARAMETER_USAGE_INFO;
+    }
+    List<ParameterUsage> adjustedUsages = new ArrayList<>();
+    boolean removed = false;
+    for (ParameterUsage usage : parametersUsages) {
+      if (usage.index == parameter) {
+        removed = true;
+        continue;
+      }
+      if (removed) {
+        // Once we remove the designated parameter usage, copy-n-shift the remaining usages.
+        adjustedUsages.add(ParameterUsage.copyAndShift(usage, 1));
+      } else {
+        // Until we meet the `parameter` of interest, keep copying.
+        adjustedUsages.add(usage);
+      }
+    }
+    assert removed;
+    return new ParameterUsagesInfo(adjustedUsages);
+  }
+
   public final static class ParameterUsage {
 
     public final int index;
@@ -82,6 +113,18 @@ public final class ParameterUsagesInfo {
       this.isReturned = isReturned;
     }
 
+    static ParameterUsage copyAndShift(ParameterUsage original, int shift) {
+      assert original.index >= shift;
+      return new ParameterUsage(
+          original.index - shift,
+          original.ifZeroTest,
+          original.callsReceiver,
+          original.hasFieldAssignment,
+          original.hasFieldRead,
+          original.isAssignedToField,
+          original.isReturned);
+    }
+
     public boolean notUsed() {
       return ifZeroTest == null
           && callsReceiver == null
@@ -104,7 +147,7 @@ public final class ParameterUsagesInfo {
     private boolean isAssignedToField = false;
     private boolean isReturned = false;
 
-    public ParameterUsageBuilder(Value arg, int index) {
+    ParameterUsageBuilder(Value arg, int index) {
       this.arg = arg;
       this.index = index;
     }
