@@ -148,6 +148,21 @@ def ParseOptions(argv):
                     metavar='BENCHMARKNAME',
                     help='Print the sizes of individual dex segments as ' +
                         '\'<BENCHMARKNAME>-<segment>(CodeSize): <bytes>\'')
+  result.add_option('--track-time-in-memory',
+                    help='Plot the times taken from memory starting point to '
+                         'end-point with defined memory increment',
+                    default=False,
+                    action='store_true')
+  result.add_option('--track-time-in-memory-max',
+                    help='Setting the maximum memory baseline to run in',
+                    type='int')
+  result.add_option('--track-time-in-memory-min',
+                    help='Setting the minimum memory baseline to run in',
+                    type='int')
+  result.add_option('--track-time-in-memory-increment',
+                    help='Setting the increment',
+                    type='int',
+                    default=32)
 
   return result.parse_args(argv)
 
@@ -287,6 +302,37 @@ def print_min_xmx_ranges_for_hash(hash, compiler, compiler_build):
         value = utils.cat_file_on_cloud_storage(gs_location, ignore_errors=True)
         print('%s\n' % value)
 
+def track_time_in_memory(options, args):
+  # Args will be destroyed
+  assert len(args) == 0
+  if not options.track_time_in_memory_min:
+    raise Exception(
+        'You have to specify --track_time_in_memory_min when running with '
+        '--track-time-in-memory')
+  if not options.track_time_in_memory_max:
+    raise Exception(
+        'You have to specify --track_time_in_memory_max when running with '
+        '--track-time-in-memory')
+  if not options.track_time_in_memory_increment:
+    raise Exception(
+        'You have to specify --track_time_in_memory_increment when running '
+        'with --track-time-in-memory')
+  current = options.track_time_in_memory_min
+  print('Memory (KB)\tTime (ms)')
+  with utils.TempDir() as temp:
+    stdout = os.path.join(temp, 'stdout')
+    stdout_fd = open(stdout, 'w')
+    while current <= options.track_time_in_memory_max:
+      extra_args = ['-Xmx%sM' % current]
+      t0 = time.time()
+      exit_code = run_with_options(options, [], extra_args, stdout_fd, quiet=True)
+      t1 = time.time()
+      total = (1000.0 * (t1 - t0)) if exit_code == 0 else -1
+      print('%s\t%s' % (current, total))
+      current += options.track_time_in_memory_increment
+
+  return 0
+
 def main(argv):
   (options, args) = ParseOptions(argv)
   if options.expect_oom and not options.max_memory:
@@ -295,10 +341,15 @@ def main(argv):
   if options.expect_oom and options.timeout:
     raise Exception(
         'You should not use --timeout when also specifying --expect-oom')
+  if options.find_min_xmx and options.track_time_in_memory:
+    raise Exception(
+        'You cannot both find the min xmx and track time at the same time')
   if options.run_all:
     return run_all(options, args)
   if options.find_min_xmx:
     return find_min_xmx(options, args)
+  if options.track_time_in_memory:
+    return track_time_in_memory(options, args)
   exit_code = run_with_options(options, args)
   if options.expect_oom:
     exit_code = 0 if exit_code == OOM_EXIT_CODE else 1
@@ -335,7 +386,7 @@ def get_type(options):
     return 'deploy' if options.compiler == 'r8' else 'proguarded'
   return options.type
 
-def run_with_options(options, args, extra_args=None):
+def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
   if extra_args is None:
     extra_args = []
   app_provided_pg_conf = False;
@@ -476,14 +527,18 @@ def run_with_options(options, args, extra_args=None):
             profile=options.profile,
             track_memory_file=options.track_memory_to_file,
             extra_args=extra_args,
+            stdout=stdout,
             stderr=stderr,
-            timeout=options.timeout)
+            timeout=options.timeout,
+            quiet=quiet)
       if exit_code != 0:
         with open(stderr_path) as stderr:
           stderr_text = stderr.read()
-          print(stderr_text)
+          if not quiet:
+            print(stderr_text)
           if 'java.lang.OutOfMemoryError' in stderr_text:
-            print('Failure was OOM')
+            if not quiet:
+              print('Failure was OOM')
             return OOM_EXIT_CODE
           return exit_code
 

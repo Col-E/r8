@@ -11,7 +11,7 @@ import utils
 
 def run(tool, args, build=None, debug=True,
         profile=False, track_memory_file=None, extra_args=None,
-        stderr=None, stdout=None, return_stdout=False, timeout=0):
+        stderr=None, stdout=None, return_stdout=False, timeout=0, quiet=False):
   if build is None:
     build, args = extract_build_from_args(args)
   if build:
@@ -36,7 +36,7 @@ def run(tool, args, build=None, debug=True,
   if lib:
     cmd.extend(["--lib", lib])
   cmd.extend(args)
-  utils.PrintCmd(cmd)
+  utils.PrintCmd(cmd, quiet=quiet)
   if timeout > 0:
     kill = lambda process: process.kill()
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
