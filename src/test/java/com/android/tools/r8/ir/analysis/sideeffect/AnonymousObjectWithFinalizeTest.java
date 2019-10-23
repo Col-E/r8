@@ -14,6 +14,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+// See b/143189461
 @RunWith(Parameterized.class)
 public class AnonymousObjectWithFinalizeTest extends TestBase {
 
@@ -84,10 +85,6 @@ public class AnonymousObjectWithFinalizeTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .addProgramClassesAndInnerClasses(TestClass.class)
         .run(parameters.getRuntime(), TestClass.class)
-        // TODO(b/143189461): Update to correct expected output once fixed.
-        .assertSuccessWithOutputLines(
-            "set up fence",
-            "run gc",
-            "fence await timed out");
+        .assertSuccessWithOutput(EXPECTED);
   }
 }

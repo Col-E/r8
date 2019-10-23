@@ -797,6 +797,10 @@ public abstract class DexClass extends DexDefinition {
     return false;
   }
 
+  public boolean definesFinalizer(DexItemFactory factory) {
+    return lookupVirtualMethod(factory.objectMethods.finalize) != null;
+  }
+
   public boolean defaultValuesForStaticFieldsMayTriggerAllocation() {
     return staticFields().stream()
         .anyMatch(field -> field.getStaticValue().mayHaveSideEffects());
