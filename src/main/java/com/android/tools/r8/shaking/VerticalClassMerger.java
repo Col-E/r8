@@ -49,6 +49,7 @@ import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
@@ -378,6 +379,11 @@ public class VerticalClassMerger {
         || appInfo.neverMerge.contains(clazz.type)) {
       return false;
     }
+
+    assert Streams.stream(Iterables.concat(clazz.fields(), clazz.methods()))
+        .map(KeyedDexItem::getKey)
+        .noneMatch(appInfo::isPinned);
+
     if (appView.options().featureSplitConfiguration != null &&
         appView.options().featureSplitConfiguration.isInFeature(clazz)) {
       // TODO(b/141452765): Allow class merging between classes in features.
@@ -410,15 +416,7 @@ public class VerticalClassMerger {
       //     * Have access to the no-arg constructor of its first non-serializable superclass
       return false;
     }
-    for (DexEncodedField field : clazz.fields()) {
-      if (appInfo.isPinned(field.field)) {
-        return false;
-      }
-    }
-    for (DexEncodedMethod method : clazz.methods()) {
-      if (appInfo.isPinned(method.method)) {
-        return false;
-      }
+    for (DexEncodedMethod method : clazz.directMethods()) {
       if (method.isInstanceInitializer() && disallowInlining(method, singleSubtype)) {
         // Cannot guarantee that markForceInline() will work.
         if (Log.ENABLED) {
