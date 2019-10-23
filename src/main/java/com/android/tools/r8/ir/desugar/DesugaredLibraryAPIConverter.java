@@ -169,8 +169,12 @@ public class DesugaredLibraryAPIConverter {
       }
       DexEncodedMethod dexEncodedMethod = dexClass.lookupVirtualMethod(method);
       if (dexEncodedMethod != null) {
-        if (appView.options().desugaredLibraryConfiguration.getEmulateLibraryInterface()
-            .containsKey(dexClass.type)) {
+        if (appView
+                .options()
+                .desugaredLibraryConfiguration
+                .getEmulateLibraryInterface()
+                .containsKey(dexClass.type)
+            || appView.rewritePrefix.hasRewrittenType(dexClass.type)) {
           return false;
         }
         foundOverrideToRewrite = true;

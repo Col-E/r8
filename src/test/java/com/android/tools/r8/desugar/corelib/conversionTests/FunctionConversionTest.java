@@ -8,6 +8,7 @@ import static junit.framework.TestCase.assertEquals;
 
 import com.android.tools.r8.TestRuntime.DexRuntime;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.ir.desugar.DesugaredLibraryWrapperSynthesizer;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -24,6 +25,7 @@ import java.util.function.IntSupplier;
 import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class FunctionConversionTest extends APIConversionTestBase {
@@ -67,6 +69,41 @@ public class FunctionConversionTest extends APIConversionTestBase {
         doubleSupplierWrapperClasses.size());
   }
 
+  @Test
+  public void testWrapperWithChecksum() throws Exception {
+    testForD8()
+        .addProgramClasses(
+            Executor.class, Executor.Object1.class, Executor.Object2.class, Executor.Object3.class)
+        .addLibraryClasses(CustomLibClass.class)
+        .setMinApi(AndroidApiLevel.B)
+        .enableCoreLibraryDesugaring(AndroidApiLevel.B)
+        .setIncludeClassesChecksum(true) // Compilation fails if some classes are missing checksum.
+        .compile()
+        .inspect(
+            inspector -> {
+              Assert.assertEquals(
+                  8,
+                  inspector.allClasses().stream()
+                      .filter(
+                          clazz ->
+                              clazz
+                                  .getFinalName()
+                                  .contains(DesugaredLibraryWrapperSynthesizer.TYPE_WRAPPER_SUFFIX))
+                      .count());
+              Assert.assertEquals(
+                  6,
+                  inspector.allClasses().stream()
+                      .filter(
+                          clazz ->
+                              clazz
+                                  .getFinalName()
+                                  .contains(
+                                      DesugaredLibraryWrapperSynthesizer
+                                          .VIVIFIED_TYPE_WRAPPER_SUFFIX))
+                      .count());
+            });
+  }
+
   static class Executor {
 
     public static void main(String[] args) {
@@ -99,6 +136,7 @@ public class FunctionConversionTest extends APIConversionTestBase {
     }
 
     static class Object3 {
+
       private Object2 field;
 
       private Object3(Object2 o) {

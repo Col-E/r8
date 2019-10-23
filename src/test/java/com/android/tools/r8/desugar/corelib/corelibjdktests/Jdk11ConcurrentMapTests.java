@@ -7,6 +7,7 @@ package com.android.tools.r8.desugar.corelib.corelibjdktests;
 import static com.android.tools.r8.ToolHelper.JDK_TESTS_BUILD_DIR;
 import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.JAVA_EXTENSION;
+import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.endsWith;
 import static org.hamcrest.CoreMatchers.not;
@@ -16,9 +17,11 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.ir.desugar.DesugaredLibraryWrapperSynthesizer;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -111,6 +114,7 @@ public class Jdk11ConcurrentMapTests extends Jdk11CoreLibTestBase {
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
         .compile()
+        .inspect(this::assertNoConversions)
         .withArt6Plus64BitsLib()
         .addDesugaredCoreLibraryRunClassPath(
             this::buildDesugaredLibrary,
@@ -120,6 +124,15 @@ public class Jdk11ConcurrentMapTests extends Jdk11CoreLibTestBase {
         .run(parameters.getRuntime(), "TestNGMainRunner", verbosity, "ConcurrentModification")
         .assertSuccessWithOutputThatMatches(
             endsWith(StringUtils.lines("ConcurrentModification: SUCCESS")));
+  }
+
+  private void assertNoConversions(CodeInspector inspector) {
+    assertTrue(
+        inspector.allClasses().stream()
+            .noneMatch(
+                cl ->
+                    cl.getOriginalName()
+                        .startsWith(DesugaredLibraryWrapperSynthesizer.WRAPPER_PREFIX)));
   }
 
   private Path[] concurrentHashTestToCompile() {

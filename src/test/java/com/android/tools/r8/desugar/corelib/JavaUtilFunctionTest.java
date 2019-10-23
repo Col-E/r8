@@ -103,40 +103,6 @@ public class JavaUtilFunctionTest extends CoreLibDesugarTestBase {
         .assertSuccessWithOutput(expectedOutput);
   }
 
-  @Test
-  public void testWrapperWithChecksum() throws Exception {
-    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    testForD8()
-        .addInnerClasses(JavaUtilFunctionTest.class)
-        .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-        .setIncludeClassesChecksum(true) // Compilation fails if some classes are missing checksum.
-        .compile()
-        .inspect(
-            inspector -> {
-              assertEquals(
-                  parameters.getApiLevel().getLevel() >= AndroidApiLevel.N.getLevel() ? 0 : 1,
-                  inspector.allClasses().stream()
-                      .filter(
-                          clazz ->
-                              clazz
-                                  .getFinalName()
-                                  .contains(DesugaredLibraryWrapperSynthesizer.TYPE_WRAPPER_SUFFIX))
-                      .count());
-              assertEquals(
-                  parameters.getApiLevel().getLevel() >= AndroidApiLevel.N.getLevel() ? 0 : 1,
-                  inspector.allClasses().stream()
-                      .filter(
-                          clazz ->
-                              clazz
-                                  .getFinalName()
-                                  .contains(
-                                      DesugaredLibraryWrapperSynthesizer
-                                          .VIVIFIED_TYPE_WRAPPER_SUFFIX))
-                      .count());
-            });
-  }
-
   static class TestClass {
 
     @NeverInline

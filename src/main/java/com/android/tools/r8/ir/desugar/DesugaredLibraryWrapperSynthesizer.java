@@ -470,29 +470,37 @@ public class DesugaredLibraryWrapperSynthesizer {
   void finalizeWrappers(
       DexApplication.Builder<?> builder, IRConverter irConverter, ExecutorService executorService)
       throws ExecutionException {
+    assert verifyAllClassesGenerated();
+    // We register first, then optimize to avoid warnings due to missing parameter types.
+    registerWrappers(builder, typeWrappers);
+    registerWrappers(builder, vivifiedTypeWrappers);
+    finalizeWrappers(irConverter, executorService, typeWrappers, this::generateTypeConversions);
     finalizeWrappers(
-        builder, irConverter, executorService, typeWrappers, this::generateTypeConversions);
-    finalizeWrappers(
-        builder,
         irConverter,
         executorService,
         vivifiedTypeWrappers,
         this::generateVivifiedTypeConversions);
   }
 
+  private void registerWrappers(
+      DexApplication.Builder<?> builder, Map<DexType, Pair<DexType, DexProgramClass>> wrappers) {
+    for (DexType type : wrappers.keySet()) {
+      DexProgramClass pgrmClass = wrappers.get(type).getSecond();
+      assert pgrmClass != null;
+      registerSynthesizedClass(pgrmClass, builder);
+    }
+  }
+
   private void finalizeWrappers(
-      DexApplication.Builder<?> builder,
       IRConverter irConverter,
       ExecutorService executorService,
       Map<DexType, Pair<DexType, DexProgramClass>> wrappers,
       BiConsumer<DexType, DexProgramClass> generateConversions)
       throws ExecutionException {
-    assert verifyAllClassesGenerated();
     for (DexType type : wrappers.keySet()) {
       DexProgramClass pgrmClass = wrappers.get(type).getSecond();
       assert pgrmClass != null;
       generateConversions.accept(type, pgrmClass);
-      registerSynthesizedClass(pgrmClass, builder);
       irConverter.optimizeSynthesizedClass(pgrmClass, executorService);
     }
   }
