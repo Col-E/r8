@@ -17,7 +17,6 @@ public class ListUtils {
   }
 
   public static <T> T last(List<T> list) {
-    assert list instanceof ArrayList;
     return list.get(list.size() - 1);
   }
 

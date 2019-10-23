@@ -36,43 +36,35 @@ public final class ParameterUsagesInfo {
         parametersUsages.stream().map(usage -> usage.index).collect(Collectors.toSet()).size();
   }
 
-  ParameterUsage getParameterUsage(int parameter) {
+  ParameterUsage getParameterUsage(int index) {
     for (ParameterUsage usage : parametersUsages) {
-      if (usage.index == parameter) {
+      if (usage.index == index) {
         return usage;
       }
     }
     return null;
   }
 
-  ParameterUsagesInfo remove(int parameter) {
+  ParameterUsagesInfo remove(int index) {
     assert parametersUsages.size() > 0;
-    assert 0 <= parameter && parameter < parametersUsages.size();
-    // Nothing to remove. Return the current one as-is.
-    if (getParameterUsage(parameter) == null) {
-      return this;
-    }
-    // If the parameter usage info we're about to remove is the only one in the list
-    if (parametersUsages.size() == 1) {
-      // Return the default one.
-      return DefaultMethodOptimizationInfo.UNKNOWN_PARAMETER_USAGE_INFO;
-    }
-    List<ParameterUsage> adjustedUsages = new ArrayList<>();
-    boolean removed = false;
+    assert 0 <= index && index <= ListUtils.last(parametersUsages).index;
+    ImmutableList.Builder<ParameterUsage> builder = ImmutableList.builder();
     for (ParameterUsage usage : parametersUsages) {
-      if (usage.index == parameter) {
-        removed = true;
-        continue;
-      }
-      if (removed) {
-        // Once we remove the designated parameter usage, copy-n-shift the remaining usages.
-        adjustedUsages.add(ParameterUsage.copyAndShift(usage, 1));
+      // Once we remove or pass the designated index, copy-n-shift the remaining usages.
+      if (index < usage.index) {
+        builder.add(ParameterUsage.copyAndShift(usage, 1));
+      } else if (index == usage.index) {
+        // Do not add the parameter usage with the matched index.
       } else {
         // Until we meet the `parameter` of interest, keep copying.
-        adjustedUsages.add(usage);
+        assert usage.index < index;
+        builder.add(usage);
       }
     }
-    assert removed;
+    ImmutableList<ParameterUsage> adjustedUsages = builder.build();
+    if (adjustedUsages.isEmpty()) {
+      return DefaultMethodOptimizationInfo.UNKNOWN_PARAMETER_USAGE_INFO;
+    }
     return new ParameterUsagesInfo(adjustedUsages);
   }
 
