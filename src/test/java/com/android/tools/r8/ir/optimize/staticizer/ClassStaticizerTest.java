@@ -65,7 +65,7 @@ public class ClassStaticizerTest extends TestBase {
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
     // TODO(b/112831361): support for class staticizer in CF backend.
-    return getTestParameters().withDexRuntimes().build();
+    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
   }
 
   public ClassStaticizerTest(TestParameters parameters) {
@@ -95,7 +95,7 @@ public class ClassStaticizerTest extends TestBase {
             .addKeepRules("-keepattributes InnerClasses,EnclosingMethod")
             .addOptionsModification(this::configure)
             .allowAccessModification()
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), main)
             .assertSuccessWithOutput(javaOutput);
 
@@ -109,7 +109,9 @@ public class ClassStaticizerTest extends TestBase {
             "STATIC: String trivial.TrivialTestClass.next()"),
         references(clazz, "testSimple", "void"));
 
-    assertTrue(instanceMethods(inspector.clazz(Simple.class)).isEmpty());
+    ClassSubject simple = inspector.clazz(Simple.class);
+    assertTrue(instanceMethods(simple).isEmpty());
+    assertThat(simple.clinit(), not(isPresent()));
 
     assertEquals(
         Lists.newArrayList(
@@ -119,7 +121,9 @@ public class ClassStaticizerTest extends TestBase {
             "STATIC: String trivial.TrivialTestClass.next()"),
         references(clazz, "testSimpleWithPhi", "void", "int"));
 
-    assertTrue(instanceMethods(inspector.clazz(SimpleWithPhi.class)).isEmpty());
+    ClassSubject simpleWithPhi = inspector.clazz(SimpleWithPhi.class);
+    assertTrue(instanceMethods(simpleWithPhi).isEmpty());
+    assertThat(simpleWithPhi.clinit(), not(isPresent()));
 
     assertEquals(
         Lists.newArrayList(
@@ -128,7 +132,9 @@ public class ClassStaticizerTest extends TestBase {
             "STATIC: String trivial.TrivialTestClass.next()"),
         references(clazz, "testSimpleWithParams", "void"));
 
-    assertTrue(instanceMethods(inspector.clazz(SimpleWithParams.class)).isEmpty());
+    ClassSubject simpleWithParams = inspector.clazz(SimpleWithParams.class);
+    assertTrue(instanceMethods(simpleWithParams).isEmpty());
+    assertThat(simpleWithParams.clinit(), not(isPresent()));
 
     assertEquals(
         Lists.newArrayList(
@@ -139,7 +145,10 @@ public class ClassStaticizerTest extends TestBase {
             "trivial.SimpleWithSideEffects trivial.SimpleWithSideEffects.INSTANCE"),
         references(clazz, "testSimpleWithSideEffects", "void"));
 
-    assertTrue(instanceMethods(inspector.clazz(SimpleWithSideEffects.class)).isEmpty());
+    ClassSubject simpleWithSideEffects = inspector.clazz(SimpleWithSideEffects.class);
+    assertTrue(instanceMethods(simpleWithSideEffects).isEmpty());
+    // As its name implies, its clinit has side effects.
+    assertThat(simpleWithSideEffects.clinit(), isPresent());
 
     // TODO(b/111832046): add support for singleton instance getters.
     assertEquals(
@@ -151,7 +160,9 @@ public class ClassStaticizerTest extends TestBase {
             "trivial.SimpleWithGetter trivial.SimpleWithGetter.INSTANCE"),
         references(clazz, "testSimpleWithGetter", "void"));
 
-    assertFalse(instanceMethods(inspector.clazz(SimpleWithGetter.class)).isEmpty());
+    ClassSubject simpleWithGetter = inspector.clazz(SimpleWithGetter.class);
+    assertFalse(instanceMethods(simpleWithGetter).isEmpty());
+    assertThat(simpleWithGetter.clinit(), isPresent());
   }
 
   @Test
@@ -172,7 +183,7 @@ public class ClassStaticizerTest extends TestBase {
             .allowAccessModification()
             .noMinification()
             .addOptionsModification(this::configure)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), main);
 
     CodeInspector inspector = result.inspector();
@@ -182,7 +193,7 @@ public class ClassStaticizerTest extends TestBase {
         Lists.newArrayList(),
         references(clazz, "testOk_fieldOnly", "void"));
 
-    assertFalse(inspector.clazz(CandidateOkFieldOnly.class).isPresent());
+    assertThat(inspector.clazz(CandidateOkFieldOnly.class), not(isPresent()));
   }
 
   @Test
@@ -210,7 +221,7 @@ public class ClassStaticizerTest extends TestBase {
             .allowAccessModification()
             .noMinification()
             .addOptionsModification(this::configure)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), main)
             .assertSuccessWithOutput(javaOutput);
 
@@ -226,7 +237,7 @@ public class ClassStaticizerTest extends TestBase {
             "STATIC: void movetohost.HostOk.blah(String)"),
         references(clazz, "testOk", "void"));
 
-    assertFalse(inspector.clazz(CandidateOk.class).isPresent());
+    assertThat(inspector.clazz(CandidateOk.class), not(isPresent()));
 
     assertEquals(
         Lists.newArrayList(
@@ -237,7 +248,7 @@ public class ClassStaticizerTest extends TestBase {
             "movetohost.HostOkSideEffects movetohost.HostOkSideEffects.INSTANCE"),
         references(clazz, "testOkSideEffects", "void"));
 
-    assertFalse(inspector.clazz(CandidateOkSideEffects.class).isPresent());
+    assertThat(inspector.clazz(CandidateOkSideEffects.class), not(isPresent()));
 
     assertEquals(
         Lists.newArrayList(
@@ -249,7 +260,7 @@ public class ClassStaticizerTest extends TestBase {
             "VIRTUAL: String movetohost.HostConflictMethod.bar(String)"),
         references(clazz, "testConflictMethod", "void"));
 
-    assertTrue(inspector.clazz(CandidateConflictMethod.class).isPresent());
+    assertThat(inspector.clazz(CandidateConflictMethod.class), isPresent());
 
     assertEquals(
         Lists.newArrayList(
@@ -260,12 +271,12 @@ public class ClassStaticizerTest extends TestBase {
             "String movetohost.CandidateConflictField.field"),
         references(clazz, "testConflictField", "void"));
 
-    assertTrue(inspector.clazz(CandidateConflictMethod.class).isPresent());
+    assertThat(inspector.clazz(CandidateConflictMethod.class), isPresent());
   }
 
   private List<String> instanceMethods(ClassSubject clazz) {
     assertNotNull(clazz);
-    assertTrue(clazz.isPresent());
+    assertThat(clazz, isPresent());
     return Streams.stream(clazz.getDexClass().methods())
         .filter(method -> !method.isStatic())
         .map(method -> method.method.toSourceString())
@@ -276,7 +287,7 @@ public class ClassStaticizerTest extends TestBase {
   private List<String> references(
       ClassSubject clazz, String methodName, String retValue, String... params) {
     assertNotNull(clazz);
-    assertTrue(clazz.isPresent());
+    assertThat(clazz, isPresent());
 
     MethodSignature signature = new MethodSignature(methodName, retValue, params);
     DexCode code = clazz.method(signature).getMethod().getCode().asDexCode();
@@ -335,7 +346,7 @@ public class ClassStaticizerTest extends TestBase {
             .allowAccessModification()
             .noMinification()
             .addOptionsModification(this::configure)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), main)
             .assertSuccessWithOutput(javaOutput);
 

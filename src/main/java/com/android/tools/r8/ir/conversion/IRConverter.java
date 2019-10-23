@@ -706,6 +706,7 @@ public class IRConverter {
     if (!options.isGeneratingClassFiles()) {
       printPhase("Class staticizer post processing");
       staticizeClasses(feedback, executorService);
+      feedback.updateVisibleOptimizationInfo();
     }
 
     // Build a new application with jumbo string info.
