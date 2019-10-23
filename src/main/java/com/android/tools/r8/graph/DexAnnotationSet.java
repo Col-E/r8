@@ -46,6 +46,10 @@ public class DexAnnotationSet extends CachedHashValueDexItem {
     return THE_EMPTY_ANNOTATIONS_SET;
   }
 
+  public int size() {
+    return annotations.length;
+  }
+
   @Override
   public int computeHashCode() {
     return Arrays.hashCode(annotations);

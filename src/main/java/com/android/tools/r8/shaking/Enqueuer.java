@@ -2644,11 +2644,12 @@ public class Enqueuer {
       if (encodedMethod == null) {
         return;
       }
+      KeepReason reason = KeepReason.reflectiveUseIn(method);
       if (encodedMethod.accessFlags.isStatic() || encodedMethod.accessFlags.isConstructor()) {
-        markDirectStaticOrConstructorMethodAsLive(
-            clazz, encodedMethod, KeepReason.reflectiveUseIn(method));
+        markMethodAsTargeted(clazz, encodedMethod, reason);
+        markDirectStaticOrConstructorMethodAsLive(clazz, encodedMethod, reason);
       } else {
-        markVirtualMethodAsLive(clazz, encodedMethod, KeepReason.reflectiveUseIn(method));
+        markVirtualMethodAsLive(clazz, encodedMethod, reason);
       }
     }
   }
