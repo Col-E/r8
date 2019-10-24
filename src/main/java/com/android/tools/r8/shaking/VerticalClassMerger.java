@@ -139,8 +139,8 @@ public class VerticalClassMerger {
     RESOLUTION_FOR_FIELDS_MAY_CHANGE,
     RESOLUTION_FOR_METHODS_MAY_CHANGE,
     SERVICE_LOADER,
+    SOURCE_AND_TARGET_LOCK_CANDIDATES,
     STATIC_INITIALIZERS,
-    STATIC_SYNCHRONIZED_METHODS,
     UNHANDLED_INVOKE_DIRECT,
     UNHANDLED_INVOKE_SUPER,
     UNSAFE_INLINING,
@@ -189,6 +189,9 @@ public class VerticalClassMerger {
         case SERVICE_LOADER:
           message = "it is used by a service loader";
           break;
+        case SOURCE_AND_TARGET_LOCK_CANDIDATES:
+          message = "source and target are both lock-candidates";
+          break;
         case STATIC_INITIALIZERS:
           message = "merging of static initializers are not supported";
           break;
@@ -203,9 +206,6 @@ public class VerticalClassMerger {
           break;
         case UNSUPPORTED_ATTRIBUTES:
           message = "since inner-class attributes are not supported";
-          break;
-        case STATIC_SYNCHRONIZED_METHODS:
-          message = "since it has static synchronized methods which can lead to unwanted behavior";
           break;
         default:
           assert false;
@@ -477,6 +477,17 @@ public class VerticalClassMerger {
       // TODO(herhut): Handle class initializers.
       if (Log.ENABLED) {
         AbortReason.STATIC_INITIALIZERS.printLogMessageForClass(clazz);
+      }
+      return false;
+    }
+    boolean sourceCanBeSynchronizedOn =
+        appView.appInfo().isLockCandidate(clazz.type) || clazz.hasStaticSynchronizedMethods();
+    boolean targetCanBeSynchronizedOn =
+        appView.appInfo().isLockCandidate(targetClass.type)
+            || targetClass.hasStaticSynchronizedMethods();
+    if (sourceCanBeSynchronizedOn && targetCanBeSynchronizedOn) {
+      if (Log.ENABLED) {
+        AbortReason.SOURCE_AND_TARGET_LOCK_CANDIDATES.printLogMessageForClass(clazz);
       }
       return false;
     }
@@ -815,14 +826,6 @@ public class VerticalClassMerger {
       }
     } else {
       assert isStillMergeCandidate(clazz);
-    }
-
-    // Check for static synchronized methods on source
-    if (clazz.hasStaticSynchronizedMethods()) {
-      if (Log.ENABLED) {
-        AbortReason.STATIC_SYNCHRONIZED_METHODS.printLogMessageForClass(clazz);
-      }
-      return;
     }
 
     // Guard against the case where we have two methods that may get the same signature

@@ -32,7 +32,10 @@ public class SimplifyIfNotNullKotlinTest extends AbstractR8KotlinTestBase {
     final String mainClassName = ex1.getClassName();
     final String extraRules =
         keepMainMethod(mainClassName) + neverInlineMethod(mainClassName, testMethodSignature);
-    runTest(FOLDER, mainClassName, extraRules,
+    runTest(
+        FOLDER,
+        mainClassName,
+        extraRules,
         app -> {
           CodeInspector codeInspector = new CodeInspector(app);
           ClassSubject clazz = checkClassIsKept(codeInspector, ex1.getClassName());
@@ -40,8 +43,7 @@ public class SimplifyIfNotNullKotlinTest extends AbstractR8KotlinTestBase {
           MethodSubject testMethod = checkMethodIsKept(clazz, testMethodSignature);
           long ifzCount =
               testMethod.streamInstructions().filter(i -> i.isIfEqz() || i.isIfNez()).count();
-          long paramNullCheckCount =
-              countCall(testMethod, "ArrayIteratorKt", "checkParameterIsNotNull");
+          long paramNullCheckCount = countCall(testMethod, "Intrinsics", "checkParameterIsNotNull");
           // One after Iterator#hasNext, and another in the filter predicate: sinceYear != null.
           assertEquals(2, ifzCount);
           assertEquals(allowAccessModification ? 0 : 5, paramNullCheckCount);
