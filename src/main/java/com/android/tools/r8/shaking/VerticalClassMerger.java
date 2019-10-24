@@ -131,6 +131,7 @@ public class VerticalClassMerger {
     ALWAYS_INLINE,
     CONFLICT,
     ILLEGAL_ACCESS,
+    MAIN_DEX_ROOT_OUTSIDE_REFERENCE,
     MERGE_ACROSS_NESTS,
     NATIVE_METHOD,
     NO_SIDE_EFFECTS,
@@ -163,6 +164,9 @@ public class VerticalClassMerger {
           break;
         case ILLEGAL_ACCESS:
           message = "it could lead to illegal accesses";
+          break;
+        case MAIN_DEX_ROOT_OUTSIDE_REFERENCE:
+          message = "contains a constructor with a reference outside the main dex classes";
           break;
         case MERGE_ACROSS_NESTS:
           message = "cannot merge across nests, or from nest to non-nest";
@@ -417,12 +421,17 @@ public class VerticalClassMerger {
       return false;
     }
     for (DexEncodedMethod method : clazz.directMethods()) {
-      if (method.isInstanceInitializer() && disallowInlining(method, singleSubtype)) {
-        // Cannot guarantee that markForceInline() will work.
-        if (Log.ENABLED) {
-          AbortReason.UNSAFE_INLINING.printLogMessageForClass(clazz);
+      // We rename constructors to private methods and mark them to be forced-inlined, so we have to
+      // check if we can force-inline all constructors.
+      if (method.isInstanceInitializer()) {
+        AbortReason reason = disallowInlining(method, singleSubtype);
+        if (reason != null) {
+          // Cannot guarantee that markForceInline() will work.
+          if (Log.ENABLED) {
+            reason.printLogMessageForClass(clazz);
+          }
+          return false;
         }
-        return false;
       }
     }
     if (clazz.getEnclosingMethod() != null || !clazz.getInnerClasses().isEmpty()) {
@@ -1663,7 +1672,7 @@ public class VerticalClassMerger {
     }
   }
 
-  private boolean disallowInlining(DexEncodedMethod method, DexType invocationContext) {
+  private AbortReason disallowInlining(DexEncodedMethod method, DexType invocationContext) {
     if (appView.options().enableInlining) {
       if (method.getCode().isCfCode()) {
         CfCode code = method.getCode().asCfCode();
@@ -1673,11 +1682,21 @@ public class VerticalClassMerger {
                 appView,
                 new SingleTypeMapperGraphLense(method.method.holder, invocationContext),
                 invocationContext);
-        return constraint == ConstraintWithTarget.NEVER;
+        if (constraint == ConstraintWithTarget.NEVER) {
+          return AbortReason.UNSAFE_INLINING;
+        }
+        // Constructors can have references beyond the root main dex classes. This can increase the
+        // size of the main dex dependent classes and we should bail out.
+        if (mainDexClasses.getRoots().contains(invocationContext)
+            && MainDexDirectReferenceTracer.hasReferencesOutsideFromCode(
+                appView.appInfo(), method, mainDexClasses.getRoots())) {
+          return AbortReason.MAIN_DEX_ROOT_OUTSIDE_REFERENCE;
+        }
+        return null;
       }
       // For non-jar/cf code we currently cannot guarantee that markForceInline() will succeed.
     }
-    return true;
+    return AbortReason.UNSAFE_INLINING;
   }
 
   private class SingleTypeMapperGraphLense extends GraphLense {

@@ -5,9 +5,7 @@
 package com.android.tools.r8.classmerging;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.IsNot.not;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
@@ -43,7 +41,6 @@ public class VerticalClassMergerInitTest extends TestBase {
   @Test
   public void testMergingClassWithConstructorNotInMainDex()
       throws IOException, CompilationFailedException, ExecutionException {
-    // TODO(b/142909854): Fix test expectation when bug has been resolved.
     testForR8(parameters.getBackend())
         .addInnerClasses(VerticalClassMergerInitTest.class)
         .addKeepMainRule(Main.class)
@@ -58,11 +55,11 @@ public class VerticalClassMergerInitTest extends TestBase {
         .compile()
         .inspect(
             inspector -> {
-              assertThat(inspector.clazz(Base.class), not(isPresent()));
+              assertThat(inspector.clazz(Base.class), isPresent());
               assertThat(inspector.clazz(Child.class), isPresent());
             })
         .run(parameters.getRuntime(), Main.class)
-        .assertFailureWithErrorThatMatches(containsString("initialized"));
+        .assertSuccessWithOutputLines("Base.init()", "Outside.init()", "Child.init()");
   }
 
   public static class Base {
