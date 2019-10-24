@@ -1772,6 +1772,7 @@ public class JctfTestSpecifications {
               "util.concurrent.SynchronousQueue.ConstructorZ.SynchronousQueue_Constructor_A01",
               anyDexVm())
           .put("lang.Thread.getState.Thread_getState_A01", anyDexVm())
+          .put("lang.Thread.join.Thread_join_A01", anyDexVm())
           .put(
               "util.concurrent.ScheduledThreadPoolExecutor.getTaskCount.ScheduledThreadPoolExecutor_getTaskCount_A01",
               any())
