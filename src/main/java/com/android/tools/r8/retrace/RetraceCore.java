@@ -408,7 +408,8 @@ public final class RetraceCore {
     }
 
     private String retracedFileName(String retracedClazz) {
-      if (!UNKNOWN_SOURCEFILE_NAMES.contains(fileName)) {
+      boolean fileNameProbablyChanged = retracedClazz != null && !retracedClazz.startsWith(clazz);
+      if (!UNKNOWN_SOURCEFILE_NAMES.contains(fileName) && !fileNameProbablyChanged) {
         return fileName;
       }
       if (retracedClazz == null) {
@@ -426,13 +427,9 @@ public final class RetraceCore {
 
     private String getClassSimpleName(String clazz) {
       int lastIndexOfPeriod = clazz.lastIndexOf('.');
-      if (lastIndexOfPeriod > -1) {
-        // Check if we can find a subclass separator.
-        int endIndex = firstCharFromIndex(clazz, lastIndexOfPeriod, '$');
-        return clazz.substring(lastIndexOfPeriod + 1, endIndex);
-      } else {
-        return clazz;
-      }
+      // Check if we can find a subclass separator.
+      int endIndex = firstCharFromIndex(clazz, lastIndexOfPeriod + 1, '$');
+      return clazz.substring(lastIndexOfPeriod + 1, endIndex);
     }
 
     @Override

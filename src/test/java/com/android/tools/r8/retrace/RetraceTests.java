@@ -20,6 +20,7 @@ import com.android.tools.r8.retrace.stacktraces.ActualRetraceBotStackTrace;
 import com.android.tools.r8.retrace.stacktraces.AmbiguousMissingLineStackTrace;
 import com.android.tools.r8.retrace.stacktraces.AmbiguousStackTrace;
 import com.android.tools.r8.retrace.stacktraces.FileNameExtensionStackTrace;
+import com.android.tools.r8.retrace.stacktraces.InlineFileNameStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineNoLineNumberStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineWithLineNumbersStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InvalidStackTrace;
@@ -59,6 +60,11 @@ public class RetraceTests extends TestBase {
   @Test
   public void testFileNameStackTrace() {
     runRetraceTest(new FileNameExtensionStackTrace());
+  }
+
+  @Test
+  public void testInlineFileNameStackTrace() {
+    runRetraceTest(new InlineFileNameStackTrace());
   }
 
   @Test
