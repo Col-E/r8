@@ -116,7 +116,7 @@ def compile_with_memory_max_command(record):
       '--version=%s' % record['version'],
       '--no-debug',
       '--no-build',
-      '--max-memory=%s' % int(record['oom-threshold'] * 1.1)
+      '--max-memory=%s' % int(record['oom-threshold'] * 1.15)
   ]
 
 def compile_with_memory_min_command(record):
@@ -129,7 +129,7 @@ def compile_with_memory_min_command(record):
       '--no-debug',
       '--no-build',
       '--expect-oom',
-      '--max-memory=%s' % int(record['oom-threshold'] * 0.9)
+      '--max-memory=%s' % int(record['oom-threshold'] * 0.85)
   ]
 
 TEST_COMMANDS = [
