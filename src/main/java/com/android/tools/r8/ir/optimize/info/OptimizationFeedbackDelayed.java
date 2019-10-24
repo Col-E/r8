@@ -15,6 +15,7 @@ import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.utils.IteratorUtils;
+import com.android.tools.r8.utils.StringUtils;
 import java.util.BitSet;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -80,6 +81,16 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
     // Mark the processed methods as processed.
     processed.forEach(DexEncodedMethod::markProcessed);
     processed.clear();
+  }
+
+  public boolean noUpdatesLeft() {
+    assert fieldOptimizationInfos.isEmpty()
+        : StringUtils.join(fieldOptimizationInfos.keySet(), ", ");
+    assert methodOptimizationInfos.isEmpty()
+        : StringUtils.join(methodOptimizationInfos.keySet(), ", ");
+    assert processed.isEmpty()
+        : StringUtils.join(processed.keySet(), ", ");
+    return true;
   }
 
   // FIELD OPTIMIZATION INFO:
