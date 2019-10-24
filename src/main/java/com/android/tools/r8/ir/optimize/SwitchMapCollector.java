@@ -152,7 +152,7 @@ public class SwitchMapCollector {
           if (switchMap.put(integerIndex, enumField) != null) {
             return;
           }
-        } else {
+        } else if (use != instruction) {
           return;
         }
       }
