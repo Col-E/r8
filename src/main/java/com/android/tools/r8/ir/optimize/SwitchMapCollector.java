@@ -13,8 +13,8 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeVirtual;
+import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
@@ -102,11 +102,28 @@ public class SwitchMapCollector {
   private void extractSwitchMap(DexEncodedField encodedField, IRCode initializer) {
     DexField field = encodedField.field;
     Int2ReferenceMap<DexField> switchMap = new Int2ReferenceArrayMap<>();
-    InstructionIterator it = initializer.instructionIterator();
-    Instruction insn;
-    Predicate<Instruction> predicate = i -> i.isStaticGet() && i.asStaticGet().getField() == field;
-    while ((insn = it.nextUntil(predicate)) != null) {
-      for (Instruction use : insn.outValue().uniqueUsers()) {
+
+    // Find each array-put instruction that updates an entry of the array that is stored in
+    // `encodedField`.
+    //
+    // We do this by finding each instruction that reads the array, and iterating the users of the
+    // out-value:
+    //
+    //   int[] x = static-get <encodedField>
+    //   x[index] = value
+    //
+    // A new array is assigned into `encodedField` in the beginning of `initializer`. For
+    // completeness, we also need to visit the users of the array being stored:
+    //
+    //   int[] x = new int[size];
+    //   static-put <encodedField>, x
+    //   x[index] = value
+    Predicate<Instruction> predicate =
+        i -> (i.isStaticGet() || i.isStaticPut()) && i.asFieldInstruction().getField() == field;
+    for (Instruction instruction : initializer.instructions(predicate)) {
+      Value valueOfInterest =
+          instruction.isStaticGet() ? instruction.outValue() : instruction.asStaticPut().value();
+      for (Instruction use : valueOfInterest.uniqueUsers()) {
         if (use.isArrayPut()) {
           Instruction index = use.asArrayPut().value().definition;
           if (index == null || !index.isConstNumber()) {
