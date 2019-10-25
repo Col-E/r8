@@ -147,7 +147,6 @@ public class TestDiagnosticMessagesImpl implements DiagnosticsHandler, TestDiagn
 
   private TestDiagnosticMessages assertNoMessageThatMatches(
       List<Diagnostic> diagnostics, String tag, Matcher<String> matcher) {
-    assertNotEquals(0, diagnostics.size());
     for (int i = 0; i < diagnostics.size(); i++) {
       String message = diagnostics.get(i).getDiagnosticMessage();
       if (matcher.matches(message)) {
