@@ -10,10 +10,123 @@ import re
 import shutil
 import subprocess
 import sys
-import tempfile
-import update_prebuilds_in_android
 import urllib
+
+import update_prebuilds_in_android
 import utils
+
+R8_DEV_BRANCH = '1.7'
+R8_VERSION_FILE = os.path.join(
+    'src', 'main', 'java', 'com', 'android', 'tools', 'r8', 'Version.java')
+
+
+def prepare_release(args):
+  if args.version:
+    print "Cannot manually specify version when making a dev release."
+    sys.exit(1)
+
+  def make_release(args):
+    commithash = args.dev_release
+
+    with utils.TempDir() as temp:
+      subprocess.check_call(['git', 'clone', utils.REPO_SOURCE, temp])
+      with utils.ChangedWorkingDirectory(temp):
+        subprocess.check_call([
+          'git',
+          'new-branch',
+          '--upstream',
+          'origin/%s' % R8_DEV_BRANCH,
+          'dev-release'])
+
+        # Compute the current and new version on the branch.
+        result = None
+        for line in open(R8_VERSION_FILE, 'r'):
+          result = re.match(
+              r'.*LABEL = "%s\.(\d+)\-dev";' % R8_DEV_BRANCH, line)
+          if result:
+            break
+        if not result or not result.group(1):
+          print 'Failed to find version label matching %s(\d+)-dev'\
+                % R8_DEV_BRANCH
+          sys.exit(1)
+        try:
+          patch_version = int(result.group(1))
+        except ValueError:
+          print 'Failed to convert version to integer: %s' % result.group(1)
+
+        old_version = '%s.%s-dev' % (R8_DEV_BRANCH, patch_version)
+        version = '%s.%s-dev' % (R8_DEV_BRANCH, patch_version + 1)
+
+        # Verify that the merge point from master is not empty.
+        merge_diff_output = subprocess.check_output([
+          'git', 'diff', 'HEAD..%s' % commithash])
+        other_diff = version_change_diff(
+            merge_diff_output, old_version, "master")
+        if not other_diff:
+          print 'Merge point from master (%s)' % commithash, \
+            'is the same as exiting release (%s).' % old_version
+          sys.exit(1)
+
+        # Merge the desired commit from master on to the branch.
+        subprocess.check_call([
+          'git', 'merge', '--no-ff', '--no-edit', commithash])
+
+        # Rewrite the version, commit and validate.
+        sed(old_version, version, R8_VERSION_FILE)
+
+        subprocess.check_call([
+          'git', 'commit', '-a', '-m', '"Version %s"' % version])
+
+        version_diff_output = subprocess.check_output([
+          'git', 'diff', '%s..HEAD' % commithash])
+
+        invalid = version_change_diff(version_diff_output, "master", version)
+        if invalid:
+          print "Unexpected diff content for line:"
+          print invalid
+          sys.exit(1)
+
+        # Double check that we want to push the release.
+        if not args.dry_run:
+          input = raw_input('Publish dev release version %s [y/N]:' % version)
+          if input != 'y':
+            print 'Aborting dev release for %s' % version
+            sys.exit(1)
+
+        maybe_check_call(args, [
+          'git', 'push', 'origin', 'HEAD:%s' % R8_DEV_BRANCH])
+        maybe_check_call(args, [
+          'git', 'tag', '-a', version, '-m', '"%s"' % version])
+        maybe_check_call(args, [
+          'git', 'push', 'origin', 'refs/tags/%s' % version])
+
+        return "%s dev version %s from hash %s" % (
+          'DryRun: omitted publish of' if args.dry_run else 'Published',
+          version,
+          commithash)
+
+  return make_release
+
+
+def version_change_diff(diff, old_version, new_version):
+  invalid_line = None
+  for line in diff.splitlines():
+    if line.startswith('-  ') and \
+        line != '-  public static final String LABEL = "%s";' % old_version:
+      invalid_line = line
+    elif line.startswith('+  ') and \
+        line != '+  public static final String LABEL = "%s";' % new_version:
+      invalid_line = line
+  return invalid_line
+
+
+def maybe_check_call(args, cmd):
+  if args.dry_run:
+    print 'DryRun:', ' '.join(cmd)
+  else:
+    print ' '.join(cmd)
+    return subprocess.check_call(cmd)
+
 
 def update_prebuilds(version, checkout):
   update_prebuilds_in_android.main_download('', True, 'lib', checkout, version)
@@ -40,10 +153,14 @@ def release_studio_or_aosp(path, options, git_message):
 
 
 def prepare_aosp(args):
+  assert args.version
   assert os.path.exists(args.aosp), "Could not find AOSP path %s" % args.aosp
 
   def release_aosp(options):
     print "Releasing for AOSP"
+    if options.dry_run:
+      return 'DryRun: omitting AOSP release for %s' % options.version
+
     git_message = ("""Update D8 and R8 to %s
 
 Version: master %s
@@ -80,11 +197,15 @@ Bug: %s """ % (version, version, '\nBug: '.join(bugs))
 
 
 def prepare_studio(args):
+  assert args.version
   assert os.path.exists(args.studio), ("Could not find STUDIO path %s"
                                        % args.studio)
 
   def release_studio(options):
     print "Releasing for STUDIO"
+    if options.dry_run:
+      return 'DryRun: omitting studio release for %s' % options.version
+
     git_message = (git_message_dev(options.version)
                    if 'dev' in options.version
                    else git_message_release(options.version, options.bug))
@@ -107,7 +228,8 @@ def g4_add(files):
 
 def g4_change(version, r8version):
   return subprocess.check_output(
-      'g4 change --desc "Update R8 to version %s %s"' % (version, r8version), shell=True)
+      'g4 change --desc "Update R8 to version %s %s"' % (version, r8version),
+      shell=True)
 
 
 def sed(pattern, replace, path):
@@ -129,7 +251,8 @@ def blaze_run(target):
       'blaze run %s' % target, shell=True, stderr=subprocess.STDOUT)
 
 
-def prepare_google3():
+def prepare_google3(args):
+  assert args.version
   # Check if an existing client exists.
   if ':update-r8:' in subprocess.check_output('g4 myclients', shell=True):
     print "Remove the existing 'update-r8' client before continuing."
@@ -137,6 +260,8 @@ def prepare_google3():
 
   def release_google3(options):
     print "Releasing for Google 3"
+    if options.dry_run:
+      return 'DryRun: omitting g3 release for %s' % options.version
 
     google3_base = subprocess.check_output(
         ['p4', 'g4d', '-f', 'update-r8']).rstrip()
@@ -212,8 +337,10 @@ def prepare_google3():
 
 def parse_options():
   result = argparse.ArgumentParser(description='Release r8')
-  result.add_argument('--version',
-                      required=True,
+  group = result.add_mutually_exclusive_group()
+  group.add_argument('--dev-release',
+                      help='The hash to use for the new dev version of R8')
+  group.add_argument('--version',
                       help='The new version of R8 (e.g., 1.4.51)')
   result.add_argument('--no-sync', '--no_sync',
                       default=False,
@@ -233,8 +360,12 @@ def parse_options():
                       default=False,
                       action='store_true',
                       help='Release for google 3')
+  result.add_argument('--dry-run',
+                      default=False,
+                      action='store_true',
+                      help='Only perform non-commiting tasks and print others.')
   args = result.parse_args()
-  if not 'dev' in args.version and args.bug == []:
+  if args.version and not 'dev' in args.version and args.bug == []:
     print "When releasing a release version add the list of bugs by using '--bug'"
     sys.exit(1)
 
@@ -244,11 +375,18 @@ def parse_options():
 def main():
   args = parse_options()
   targets_to_run = []
+
+  if args.dev_release:
+    if args.google3 or args.studio or args.aosp:
+      print 'Cannot create a dev release and roll at the same time.'
+      sys.exit(1)
+    targets_to_run.append(prepare_release(args))
+
   if args.google3 or args.studio:
     utils.check_prodacces()
 
   if args.google3:
-    targets_to_run.append(prepare_google3())
+    targets_to_run.append(prepare_google3(args))
   if args.studio:
     targets_to_run.append(prepare_studio(args))
   if args.aosp:

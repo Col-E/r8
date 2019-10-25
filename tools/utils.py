@@ -34,6 +34,7 @@ LIBS = os.path.join(BUILD, 'libs')
 GENERATED_LICENSE_DIR = os.path.join(BUILD, 'generatedLicense')
 SRC_ROOT = os.path.join(REPO_ROOT, 'src', 'main', 'java')
 TEST_ROOT = os.path.join(REPO_ROOT, 'src', 'test', 'java')
+REPO_SOURCE = 'https://r8.googlesource.com/r8'
 
 D8 = 'd8'
 R8 = 'r8'
