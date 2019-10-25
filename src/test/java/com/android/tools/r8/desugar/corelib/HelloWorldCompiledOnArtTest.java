@@ -6,6 +6,7 @@ package com.android.tools.r8.desugar.corelib;
 
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static junit.framework.TestCase.assertEquals;
+import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assume.assumeTrue;
 
@@ -13,6 +14,7 @@ import com.android.tools.r8.D8;
 import com.android.tools.r8.D8TestBuilder;
 import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.R8;
+import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
@@ -126,11 +128,18 @@ public class HelloWorldCompiledOnArtTest extends APIConversionTestBase {
     if (parameters.getApiLevel().getLevel() < AndroidApiLevel.O.getLevel()) {
       d8TestBuilder.addProgramFiles(getPathBackport());
     }
-    return d8TestBuilder
-        .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(parameters.getApiLevel())
-        .addOptionsModification(opt -> opt.testing.trackDesugaredAPIConversions = true)
-        .compile()
+    D8TestCompileResult compile =
+        d8TestBuilder
+            .setMinApi(parameters.getApiLevel())
+            .enableCoreLibraryDesugaring(parameters.getApiLevel())
+            .addOptionsModification(opt -> opt.testing.trackDesugaredAPIConversions = true)
+            .compile();
+    TestDiagnosticMessages diagnosticMessages = compile.getDiagnosticMessages();
+    assertTrue(
+        diagnosticMessages.getWarnings().isEmpty()
+            || diagnosticMessages.getWarnings().stream()
+                .noneMatch(x -> x.getDiagnosticMessage().contains("andThen")));
+    return compile
         .assertNoWarningMessageThatMatches(containsString("andThen"))
         .addDesugaredCoreLibraryRunClassPath(
             this::buildDesugaredLibraryWithConversionExtension, parameters.getApiLevel())
