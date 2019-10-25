@@ -160,10 +160,12 @@ public interface ClassFileConsumer extends ProgramConsumer {
         try (ZipOutputStream out = new ZipOutputStream(Files.newOutputStream(archive, options))) {
           for (ProgramResource resource : resources) {
             assert resource.getClassDescriptors().size() == 1;
-            String className = resource.getClassDescriptors().iterator().next();
-            String entryName = getClassFileName(className);
-            byte[] bytes = ByteStreams.toByteArray(closer.register(resource.getByteStream()));
-            ZipUtils.writeToZipStream(out, entryName, bytes, ZipEntry.DEFLATED);
+            if (resource.getClassDescriptors() != null) {
+              String className = resource.getClassDescriptors().iterator().next();
+              String entryName = getClassFileName(className);
+              byte[] bytes = ByteStreams.toByteArray(closer.register(resource.getByteStream()));
+              ZipUtils.writeToZipStream(out, entryName, bytes, ZipEntry.DEFLATED);
+            }
           }
           for (DataEntryResource dataResource : dataResources) {
             String entryName = dataResource.getName();

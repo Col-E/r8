@@ -68,7 +68,6 @@ public class InternalOptions {
   // Set to true to run compilation in a single thread and without randomly shuffling the input.
   // This makes life easier when running R8 in a debugger.
   public static final boolean DETERMINISTIC_DEBUGGING = false;
-
   public enum LineNumberOptimization {
     OFF,
     ON
@@ -175,6 +174,8 @@ public class InternalOptions {
   public boolean printTimes = System.getProperty("com.android.tools.r8.printtimes") != null;
   // To print memory one also have to enable printtimes.
   public boolean printMemory = System.getProperty("com.android.tools.r8.printmemory") != null;
+
+  public String dumpInputToFile = System.getProperty("com.android.tools.r8.dumpinputtofile");
 
   // Flag to toggle if DEX code objects should pass-through without IR processing.
   public boolean passthroughDexCode = false;
