@@ -1,13 +1,12 @@
 // Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package com.android.tools.r8.ir.optimize.callsites.dynamictype;
+package com.android.tools.r8.ir.optimize.callsites.dynamicupperboundtype;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestBase;
@@ -22,7 +21,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class InvokeVirtualPositiveTest extends TestBase {
+public class InvokeStaticPositiveTest extends TestBase {
   private static final Class<?> MAIN = Main.class;
 
   @Parameterized.Parameters(name = "{0}")
@@ -32,40 +31,32 @@ public class InvokeVirtualPositiveTest extends TestBase {
 
   private final TestParameters parameters;
 
-  public InvokeVirtualPositiveTest(TestParameters parameters) {
+  public InvokeStaticPositiveTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .addInnerClasses(InvokeVirtualPositiveTest.class)
+        .addInnerClasses(InvokeStaticPositiveTest.class)
         .addKeepMainRule(MAIN)
         .enableMergeAnnotations()
-        .enableClassInliningAnnotations()
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)
-        .assertSuccessWithOutputLines("A:Sub1", "B:Sub1")
+        .assertSuccessWithOutputLines("Sub1")
         .inspect(this::inspect);
   }
 
   private void inspect(CodeInspector inspector) {
-    ClassSubject a = inspector.clazz(A.class);
-    assertThat(a, isPresent());
+    ClassSubject main = inspector.clazz(MAIN);
+    assertThat(main, isPresent());
 
-    MethodSubject a_m = a.uniqueMethodWithName("m");
-    assertThat(a_m, isPresent());
+    MethodSubject test = main.uniqueMethodWithName("test");
+    assertThat(test, isPresent());
+
     // Can optimize branches since the type of `arg` is Sub1.
-    assertTrue(a_m.streamInstructions().noneMatch(InstructionSubject::isIf));
-
-    ClassSubject b = inspector.clazz(B.class);
-    assertThat(b, isPresent());
-
-    MethodSubject b_m = b.uniqueMethodWithName("m");
-    assertThat(b_m, isPresent());
-    // Can optimize branches since the type of `arg` is Sub1.
-    assertTrue(b_m.streamInstructions().noneMatch(InstructionSubject::isIf));
+    assertTrue(test.streamInstructions().noneMatch(InstructionSubject::isIf));
   }
 
   @NeverMerge
@@ -73,41 +64,18 @@ public class InvokeVirtualPositiveTest extends TestBase {
   static class Sub1 extends Base {}
   static class Sub2 extends Base {}
 
-  @NeverMerge
-  @NeverClassInline
-  static class A {
-    @NeverInline
-    void m(Base arg) {
-      if (arg instanceof Sub1) {
-        System.out.println("A:Sub1");
-      } else if (arg instanceof Sub2) {
-        System.out.println("A:Sub2");
-      }
-    }
-  }
-
-  @NeverClassInline
-  static class B extends A {
-    @NeverInline
-    @Override
-    void m(Base arg) {
-      if (arg instanceof Sub1) {
-        System.out.println("B:Sub1");
-      } else if (arg instanceof Sub2) {
-        System.out.println("B:Sub2");
-      }
-    }
-  }
-
   static class Main {
     public static void main(String... args) {
-      Sub1 s1 = new Sub1();
+      test(new Sub1()); // calls test with Sub1.
+    }
 
-      A a = System.currentTimeMillis() > 0 ? new A() : new B();
-      a.m(s1); // calls A.m() with Sub1.
-
-      B b = new B();
-      b.m(s1); // calls B.m() with Sub1.
+    @NeverInline
+    static void test(Base arg) {
+      if (arg instanceof Sub1) {
+        System.out.println("Sub1");
+      } else if (arg instanceof Sub2) {
+        System.out.println("Sub2");
+      }
     }
   }
 }

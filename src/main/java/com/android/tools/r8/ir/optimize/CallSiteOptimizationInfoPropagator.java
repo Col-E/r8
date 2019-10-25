@@ -177,11 +177,12 @@ public class CallSiteOptimizationInfoPropagator {
       if (originalArg.hasLocalInfo() || !originalArg.getTypeLattice().isReference()) {
         continue;
       }
-      TypeLatticeElement dynamicType = callSiteOptimizationInfo.getDynamicType(argumentsSeen - 1);
-      if (dynamicType == null) {
+      TypeLatticeElement dynamicUpperBoundType =
+          callSiteOptimizationInfo.getDynamicUpperBoundType(argumentsSeen - 1);
+      if (dynamicUpperBoundType == null) {
         continue;
       }
-      if (dynamicType.isDefinitelyNull()) {
+      if (dynamicUpperBoundType.isDefinitelyNull()) {
         ConstNumber nullInstruction = code.createConstNull();
         nullInstruction.setPosition(instr.getPosition());
         affectedValues.addAll(originalArg.affectedValues());
@@ -191,20 +192,20 @@ public class CallSiteOptimizationInfoPropagator {
       }
       // TODO(b/69963623): Handle other kinds of constants, e.g. number, string, or class.
       Value specializedArg;
-      if (dynamicType.strictlyLessThan(originalArg.getTypeLattice(), appView)) {
+      if (dynamicUpperBoundType.strictlyLessThan(originalArg.getTypeLattice(), appView)) {
         specializedArg = code.createValue(originalArg.getTypeLattice());
         affectedValues.addAll(originalArg.affectedValues());
         originalArg.replaceUsers(specializedArg);
         Assume<DynamicTypeAssumption> assumeType =
             Assume.createAssumeDynamicTypeInstruction(
-                dynamicType, null, specializedArg, originalArg, instr, appView);
+                dynamicUpperBoundType, null, specializedArg, originalArg, instr, appView);
         assumeType.setPosition(instr.getPosition());
         assumeInstructions.add(assumeType);
       } else {
         specializedArg = originalArg;
       }
       assert specializedArg != null && specializedArg.getTypeLattice().isReference();
-      if (dynamicType.isDefinitelyNotNull()) {
+      if (dynamicUpperBoundType.isDefinitelyNotNull()) {
         // If we already knew `arg` is never null, e.g., receiver, skip adding non-null.
         if (!specializedArg.getTypeLattice().isDefinitelyNotNull()) {
           Value nonNullArg = code.createValue(

@@ -1,7 +1,7 @@
 // Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package com.android.tools.r8.ir.optimize.callsites.dynamictype;
+package com.android.tools.r8.ir.optimize.callsites.dynamicupperboundtype;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -9,6 +9,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -21,7 +22,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class InvokeDirectNegativeTest extends TestBase {
+public class InvokeInterfaceNegativeTest extends TestBase {
   private static final Class<?> MAIN = Main.class;
 
   @Parameterized.Parameters(name = "{0}")
@@ -31,17 +32,22 @@ public class InvokeDirectNegativeTest extends TestBase {
 
   private final TestParameters parameters;
 
-  public InvokeDirectNegativeTest(TestParameters parameters) {
+  public InvokeInterfaceNegativeTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .addInnerClasses(InvokeDirectNegativeTest.class)
+        .addInnerClasses(InvokeInterfaceNegativeTest.class)
         .addKeepMainRule(MAIN)
+        .enableMergeAnnotations()
         .enableClassInliningAnnotations()
         .enableInliningAnnotations()
+        .addOptionsModification(o -> {
+          // To prevent invoke-interface from being rewritten to invoke-virtual w/ a single target.
+          o.enableDevirtualization = false;
+        })
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("Sub1", "Sub2")
@@ -49,13 +55,16 @@ public class InvokeDirectNegativeTest extends TestBase {
   }
 
   private void inspect(CodeInspector inspector) {
-    ClassSubject main = inspector.clazz(MAIN);
-    assertThat(main, isPresent());
+    ClassSubject i = inspector.clazz(I.class);
+    assertThat(i, isPresent());
 
-    MethodSubject test = main.uniqueMethodWithName("test");
-    assertThat(test, isPresent());
+    ClassSubject a = inspector.clazz(A.class);
+    assertThat(a, isPresent());
+
+    MethodSubject a_m = a.uniqueMethodWithName("m");
+    assertThat(a_m, isPresent());
     // Should not optimize branches since the type of `arg` is unsure.
-    assertTrue(test.streamInstructions().anyMatch(InstructionSubject::isIf));
+    assertTrue(a_m.streamInstructions().anyMatch(InstructionSubject::isIf));
 
     // Should not optimize away Sub1, since it's still referred/instantiated.
     ClassSubject sub1 = inspector.clazz(Sub1.class);
@@ -70,21 +79,29 @@ public class InvokeDirectNegativeTest extends TestBase {
   static class Sub1 extends Base {}
   static class Sub2 extends Base {}
 
-  @NeverClassInline
-  static class Main {
-    public static void main(String... args) {
-      Main obj = new Main();
-      obj.test(new Sub1()); // calls test with Sub1.
-      obj.test(new Sub2()); // calls test with Sub2.
-    }
+  @NeverMerge
+  interface I {
+    void m(Base arg);
+  }
 
+  @NeverClassInline
+  static class A implements I {
     @NeverInline
-    private void test(Base arg) {
+    @Override
+    public void m(Base arg) {
       if (arg instanceof Sub1) {
         System.out.println("Sub1");
       } else if (arg instanceof Sub2) {
         System.out.println("Sub2");
       }
+    }
+  }
+
+  static class Main {
+    public static void main(String... args) {
+      I i = new A();
+      i.m(new Sub1()); // calls A.m() with Sub1.
+      i.m(new Sub2()); // calls A.m() with Sub2.
     }
   }
 }

@@ -1,7 +1,7 @@
 // Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package com.android.tools.r8.ir.optimize.callsites.dynamictype;
+package com.android.tools.r8.ir.optimize.callsites.dynamicupperboundtype;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -22,7 +22,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class InvokeInterfaceNegativeTest extends TestBase {
+public class InvokeVirtualNegativeTest extends TestBase {
   private static final Class<?> MAIN = Main.class;
 
   @Parameterized.Parameters(name = "{0}")
@@ -32,32 +32,25 @@ public class InvokeInterfaceNegativeTest extends TestBase {
 
   private final TestParameters parameters;
 
-  public InvokeInterfaceNegativeTest(TestParameters parameters) {
+  public InvokeVirtualNegativeTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .addInnerClasses(InvokeInterfaceNegativeTest.class)
+        .addInnerClasses(InvokeVirtualNegativeTest.class)
         .addKeepMainRule(MAIN)
         .enableMergeAnnotations()
         .enableClassInliningAnnotations()
         .enableInliningAnnotations()
-        .addOptionsModification(o -> {
-          // To prevent invoke-interface from being rewritten to invoke-virtual w/ a single target.
-          o.enableDevirtualization = false;
-        })
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)
-        .assertSuccessWithOutputLines("Sub1", "Sub2")
+        .assertSuccessWithOutputLines("A:Sub1", "A:Sub2", "B:Sub1", "B:Sub2")
         .inspect(this::inspect);
   }
 
   private void inspect(CodeInspector inspector) {
-    ClassSubject i = inspector.clazz(I.class);
-    assertThat(i, isPresent());
-
     ClassSubject a = inspector.clazz(A.class);
     assertThat(a, isPresent());
 
@@ -65,6 +58,14 @@ public class InvokeInterfaceNegativeTest extends TestBase {
     assertThat(a_m, isPresent());
     // Should not optimize branches since the type of `arg` is unsure.
     assertTrue(a_m.streamInstructions().anyMatch(InstructionSubject::isIf));
+
+    ClassSubject b = inspector.clazz(B.class);
+    assertThat(b, isPresent());
+
+    MethodSubject b_m = b.uniqueMethodWithName("m");
+    assertThat(b_m, isPresent());
+    // Should not optimize branches since the type of `arg` is unsure.
+    assertTrue(b_m.streamInstructions().anyMatch(InstructionSubject::isIf));
 
     // Should not optimize away Sub1, since it's still referred/instantiated.
     ClassSubject sub1 = inspector.clazz(Sub1.class);
@@ -80,28 +81,47 @@ public class InvokeInterfaceNegativeTest extends TestBase {
   static class Sub2 extends Base {}
 
   @NeverMerge
-  interface I {
-    void m(Base arg);
+  @NeverClassInline
+  static class A {
+    @NeverInline
+    void m(Base arg) {
+      if (arg instanceof Sub1) {
+        System.out.println("A:Sub1");
+      } else if (arg instanceof Sub2) {
+        System.out.println("A:Sub2");
+      }
+    }
   }
 
   @NeverClassInline
-  static class A implements I {
+  static class B extends A {
     @NeverInline
     @Override
-    public void m(Base arg) {
+    void m(Base arg) {
       if (arg instanceof Sub1) {
-        System.out.println("Sub1");
+        System.out.println("B:Sub1");
       } else if (arg instanceof Sub2) {
-        System.out.println("Sub2");
+        System.out.println("B:Sub2");
       }
     }
   }
 
   static class Main {
     public static void main(String... args) {
-      I i = new A();
-      i.m(new Sub1()); // calls A.m() with Sub1.
-      i.m(new Sub2()); // calls A.m() with Sub2.
+      Sub2 s2 = new Sub2();
+
+      A a = new A();
+      test(a); // calls A.m() with Sub1.
+      a.m(s2); // calls A.m() with Sub2.
+
+      B b = new B();
+      test(b); // calls B.m() with Sub1.
+      b.m(s2); // calls B.m() with Sub2.
+    }
+
+    @NeverInline
+    static void test(A arg) {
+      arg.m(new Sub1());
     }
   }
 }

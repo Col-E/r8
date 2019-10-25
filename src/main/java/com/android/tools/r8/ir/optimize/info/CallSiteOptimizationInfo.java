@@ -37,7 +37,9 @@ public abstract class CallSiteOptimizationInfo {
   }
 
   // The index exactly matches with in values of invocation, i.e., even including receiver.
-  public abstract TypeLatticeElement getDynamicType(int argIndex);
+  public abstract TypeLatticeElement getDynamicUpperBoundType(int argIndex);
+
+  // TODO(b/139246447): dynamic lower bound type?
 
   // TODO(b/69963623): collect constants and if they're all same, propagate it to the callee.
   //   then, we need to re-run unused argument removal?

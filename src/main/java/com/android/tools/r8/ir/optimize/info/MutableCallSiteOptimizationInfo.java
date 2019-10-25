@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize.info;
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.analysis.type.Nullability;
@@ -30,14 +31,11 @@ public class MutableCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
 
   private static class ArgumentCollection {
 
-    TypeLatticeElement[] dynamicTypes;
+    // TODO(b/139246447): sparse representation, like Int2ReferenceMap?
+    //   E.g., arguments with primitive types won't have any interesting dynamic*type.
+    TypeLatticeElement[] dynamicUpperBoundTypes;
 
     private static final ArgumentCollection BOTTOM = new ArgumentCollection() {
-      @Override
-      TypeLatticeElement getDynamicType(int index) {
-        return TypeLatticeElement.BOTTOM;
-      }
-
       @Override
       public int hashCode() {
         return System.identityHashCode(this);
@@ -52,20 +50,24 @@ public class MutableCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
     private ArgumentCollection() {}
 
     ArgumentCollection(int size) {
-      this.dynamicTypes = new TypeLatticeElement[size];
-      Arrays.fill(this.dynamicTypes, TypeLatticeElement.BOTTOM);
+      this.dynamicUpperBoundTypes = new TypeLatticeElement[size];
     }
 
-    TypeLatticeElement getDynamicType(int index) {
-      assert dynamicTypes != null;
-      assert 0 <= index && index < dynamicTypes.length;
-      return dynamicTypes[index];
+    TypeLatticeElement getDynamicUpperBoundType(int index) {
+      assert dynamicUpperBoundTypes != null;
+      assert 0 <= index && index < dynamicUpperBoundTypes.length;
+      return dynamicUpperBoundTypes[index];
     }
 
     ArgumentCollection copy() {
       ArgumentCollection copy = new ArgumentCollection();
-      copy.dynamicTypes = new TypeLatticeElement[this.dynamicTypes.length];
-      System.arraycopy(this.dynamicTypes, 0, copy.dynamicTypes, 0, this.dynamicTypes.length);
+      copy.dynamicUpperBoundTypes = new TypeLatticeElement[this.dynamicUpperBoundTypes.length];
+      System.arraycopy(
+          this.dynamicUpperBoundTypes,
+          0,
+          copy.dynamicUpperBoundTypes,
+          0,
+          this.dynamicUpperBoundTypes.length);
       return copy;
     }
 
@@ -76,10 +78,18 @@ public class MutableCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
       if (this == BOTTOM) {
         return other;
       }
-      assert this.dynamicTypes.length == other.dynamicTypes.length;
+      assert this.dynamicUpperBoundTypes.length == other.dynamicUpperBoundTypes.length;
       ArgumentCollection result = this.copy();
-      for (int i = 0; i < result.dynamicTypes.length; i++) {
-        result.dynamicTypes[i] = result.dynamicTypes[i].join(other.dynamicTypes[i], appView);
+      for (int i = 0; i < result.dynamicUpperBoundTypes.length; i++) {
+        if (result.dynamicUpperBoundTypes[i] == null) {
+          // This means the corresponding argument is primitive. The counterpart should be too.
+          assert other.dynamicUpperBoundTypes[i] == null;
+          continue;
+        }
+        assert result.dynamicUpperBoundTypes[i].isReference();
+        assert other.dynamicUpperBoundTypes[i].isReference();
+        result.dynamicUpperBoundTypes[i] =
+            result.dynamicUpperBoundTypes[i].join(other.dynamicUpperBoundTypes[i], appView);
       }
       return result;
     }
@@ -93,17 +103,17 @@ public class MutableCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
       if (this == BOTTOM || otherCollection == BOTTOM) {
         return this == BOTTOM && otherCollection == BOTTOM;
       }
-      return Arrays.equals(this.dynamicTypes, otherCollection.dynamicTypes);
+      return Arrays.equals(this.dynamicUpperBoundTypes, otherCollection.dynamicUpperBoundTypes);
     }
 
     @Override
     public int hashCode() {
-      return Arrays.hashCode(dynamicTypes);
+      return Arrays.hashCode(dynamicUpperBoundTypes);
     }
 
     @Override
     public String toString() {
-      return "(" + StringUtils.join(Arrays.asList(dynamicTypes), ", ") + ")";
+      return "(" + StringUtils.join(Arrays.asList(dynamicUpperBoundTypes), ", ") + ")";
     }
   }
 
@@ -159,19 +169,21 @@ public class MutableCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
       if (!staticTypes[i].isReference()) {
         continue;
       }
-      TypeLatticeElement dynamicType = getDynamicType(i);
-      if (dynamicType == null) {
+      TypeLatticeElement dynamicUpperBoundType = getDynamicUpperBoundType(i);
+      if (dynamicUpperBoundType == null) {
         continue;
       }
       // To avoid the full join of type lattices below, separately check if the nullability of
       // arguments is improved, and if so, we can eagerly conclude that we've collected useful
       // call site information for this method.
-      Nullability nullability = dynamicType.nullability();
+      Nullability nullability = dynamicUpperBoundType.nullability();
       if (nullability.isDefinitelyNull()) {
         return true;
       }
+      // TODO(b/139246447): Similar to nullability, if dynamic lower bound type is available,
+      //   we stop here and regard that call sites of this method have useful info.
       // In general, though, we're looking for (strictly) better dynamic types for arguments.
-      if (dynamicType.strictlyLessThan(staticTypes[i], appView)) {
+      if (dynamicUpperBoundType.strictlyLessThan(staticTypes[i], appView)) {
         return true;
       }
     }
@@ -179,12 +191,12 @@ public class MutableCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
   }
 
   @Override
-  public TypeLatticeElement getDynamicType(int argIndex) {
+  public TypeLatticeElement getDynamicUpperBoundType(int argIndex) {
     assert 0 <= argIndex && argIndex < size;
     if (cachedRepresentative == null) {
       return null;
     }
-    return cachedRepresentative.getDynamicType(argIndex);
+    return cachedRepresentative.getDynamicUpperBoundType(argIndex);
   }
 
   public static boolean hasArgumentsToRecord(List<Value> inValues) {
@@ -198,12 +210,20 @@ public class MutableCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
   }
 
   public void recordArguments(
-      AppView<?> appView, DexEncodedMethod callingContext, List<Value> inValues) {
+      AppView<? extends AppInfoWithSubtyping> appView,
+      DexEncodedMethod callingContext,
+      List<Value> inValues) {
     assert cachedRepresentative == null;
     assert size == inValues.size();
     ArgumentCollection newCallSiteInfo = new ArgumentCollection(size);
     for (int i = 0; i < size; i++) {
-      newCallSiteInfo.dynamicTypes[i] = inValues.get(i).getTypeLattice();
+      Value arg = inValues.get(i);
+      // TODO(b/69963623): may need different place to store constants.
+      if (arg.getTypeLattice().isPrimitive()) {
+        continue;
+      }
+      assert arg.getTypeLattice().isReference();
+      newCallSiteInfo.dynamicUpperBoundTypes[i] = arg.getDynamicUpperBoundType(appView);
     }
     assert callingContext != null;
     ArgumentCollection accumulatedArgumentCollection =

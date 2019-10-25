@@ -1,12 +1,13 @@
 // Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package com.android.tools.r8.ir.optimize.callsites.dynamictype;
+package com.android.tools.r8.ir.optimize.callsites.dynamicupperboundtype;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -20,7 +21,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class InvokeStaticNegativeTest extends TestBase {
+public class InvokeDirectNegativeTest extends TestBase {
   private static final Class<?> MAIN = Main.class;
 
   @Parameterized.Parameters(name = "{0}")
@@ -30,15 +31,16 @@ public class InvokeStaticNegativeTest extends TestBase {
 
   private final TestParameters parameters;
 
-  public InvokeStaticNegativeTest(TestParameters parameters) {
+  public InvokeDirectNegativeTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .addInnerClasses(InvokeStaticNegativeTest.class)
+        .addInnerClasses(InvokeDirectNegativeTest.class)
         .addKeepMainRule(MAIN)
+        .enableClassInliningAnnotations()
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)
@@ -52,7 +54,6 @@ public class InvokeStaticNegativeTest extends TestBase {
 
     MethodSubject test = main.uniqueMethodWithName("test");
     assertThat(test, isPresent());
-
     // Should not optimize branches since the type of `arg` is unsure.
     assertTrue(test.streamInstructions().anyMatch(InstructionSubject::isIf));
 
@@ -69,14 +70,16 @@ public class InvokeStaticNegativeTest extends TestBase {
   static class Sub1 extends Base {}
   static class Sub2 extends Base {}
 
+  @NeverClassInline
   static class Main {
     public static void main(String... args) {
-      test(new Sub1()); // calls test with Sub1.
-      test(new Sub2()); // calls test with Sub2.
+      Main obj = new Main();
+      obj.test(new Sub1()); // calls test with Sub1.
+      obj.test(new Sub2()); // calls test with Sub2.
     }
 
     @NeverInline
-    static void test(Base arg) {
+    private void test(Base arg) {
       if (arg instanceof Sub1) {
         System.out.println("Sub1");
       } else if (arg instanceof Sub2) {

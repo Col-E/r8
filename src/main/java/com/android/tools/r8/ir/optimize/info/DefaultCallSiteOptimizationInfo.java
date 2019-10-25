@@ -17,7 +17,7 @@ public class DefaultCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
   }
 
   @Override
-  public TypeLatticeElement getDynamicType(int argIndex) {
+  public TypeLatticeElement getDynamicUpperBoundType(int argIndex) {
     return null;
   }
 
