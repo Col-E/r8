@@ -17,6 +17,7 @@ import java.nio.file.Files;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.zip.ZipEntry;
@@ -160,12 +161,11 @@ public interface ClassFileConsumer extends ProgramConsumer {
         try (ZipOutputStream out = new ZipOutputStream(Files.newOutputStream(archive, options))) {
           for (ProgramResource resource : resources) {
             assert resource.getClassDescriptors().size() == 1;
-            if (resource.getClassDescriptors() != null) {
-              String className = resource.getClassDescriptors().iterator().next();
-              String entryName = getClassFileName(className);
-              byte[] bytes = ByteStreams.toByteArray(closer.register(resource.getByteStream()));
-              ZipUtils.writeToZipStream(out, entryName, bytes, ZipEntry.DEFLATED);
-            }
+            Iterator<String> iterator = resource.getClassDescriptors().iterator();
+            String className = iterator.next();
+            String entryName = getClassFileName(className);
+            byte[] bytes = ByteStreams.toByteArray(closer.register(resource.getByteStream()));
+            ZipUtils.writeToZipStream(out, entryName, bytes, ZipEntry.DEFLATED);
           }
           for (DataEntryResource dataResource : dataResources) {
             String entryName = dataResource.getName();

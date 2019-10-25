@@ -7,10 +7,11 @@ import static com.android.tools.r8.graph.ClassKind.CLASSPATH;
 import static com.android.tools.r8.graph.ClassKind.LIBRARY;
 import static com.android.tools.r8.graph.ClassKind.PROGRAM;
 import static com.android.tools.r8.utils.ExceptionUtils.unwrapExecutionException;
+import static com.android.tools.r8.utils.InternalOptions.ASM_VERSION;
 
+import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.ClassFileResourceProvider;
 import com.android.tools.r8.DataResourceProvider;
-import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.ProgramResourceProvider;
@@ -41,6 +42,8 @@ import com.android.tools.r8.utils.ProgramClassCollection;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.io.ByteStreams;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Paths;
@@ -54,6 +57,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
+import org.objectweb.asm.ClassVisitor;
 
 public class ApplicationReader {
 
@@ -109,7 +113,7 @@ public class ApplicationReader {
       throws IOException, ExecutionException {
     assert verifyMainDexOptionsCompatible(inputApp, options);
     if (options.dumpInputToFile != null) {
-      inputApp.writeToZip(Paths.get(options.dumpInputToFile), OutputMode.ClassFile);
+      dumpInputToFile();
       throw options.reporter.fatalError("Dumped compilation inputs to: " + options.dumpInputToFile);
     }
     timing.begin("DexApplication.read");
@@ -144,6 +148,69 @@ public class ApplicationReader {
       timing.end();
     }
     return builder.build();
+  }
+
+  private void dumpInputToFile() throws IOException  {
+    List<ProgramResource> programResourcesWithDescriptors = new ArrayList<>();
+    try {
+      for (ProgramResourceProvider programResourceProvider : inputApp
+          .getProgramResourceProviders()) {
+        for (ProgramResource programResource : programResourceProvider.getProgramResources()) {
+          if (programResource.getKind() != Kind.CF) {
+            continue;
+          }
+          try (InputStream inputStream = programResource.getByteStream()) {
+            byte[] bytes = ByteStreams.toByteArray(inputStream);
+            String descriptor = extractClassInternalType(bytes);
+            programResourcesWithDescriptors.add(
+                ProgramResource.fromBytes(
+                    programResource.getOrigin(),
+                    programResource.getKind(),
+                    bytes,
+                    ImmutableSet.of(descriptor)));
+          }
+        }
+      }
+      ClassFileConsumer.ArchiveConsumer.writeResources(
+          Paths.get(options.dumpInputToFile),
+          programResourcesWithDescriptors, inputApp.getDataEntryResourcesForTesting());
+    } catch (ResourceException e) {
+      options.reporter.fatalError("Failed to write input:" + e.getMessage());
+    }
+  }
+
+  private static String extractClassInternalType(byte[] bytes) throws IOException {
+    class ClassNameExtractor extends ClassVisitor {
+      private String className;
+
+      private ClassNameExtractor() {
+        super(ASM_VERSION);
+      }
+
+      @Override
+      public void visit(
+          int version,
+          int access,
+          String name,
+          String signature,
+          String superName,
+          String[] interfaces) {
+        className = name;
+      }
+
+      String getDescriptor() {
+        return "L" + className + ";";
+      }
+    }
+
+    org.objectweb.asm.ClassReader reader = new org.objectweb.asm.ClassReader(bytes);
+    ClassNameExtractor extractor = new ClassNameExtractor();
+    reader.accept(
+        extractor,
+        org.objectweb.asm.ClassReader.SKIP_CODE
+            | org.objectweb.asm.ClassReader.SKIP_DEBUG
+            | org.objectweb.asm.ClassReader.SKIP_FRAMES);
+    return extractor.getDescriptor();
   }
 
   private static boolean verifyMainDexOptionsCompatible(
