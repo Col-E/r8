@@ -12,8 +12,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.utils.StringUtils;
-import java.util.Arrays;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -31,9 +30,8 @@ public class MutableCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
 
   private static class ArgumentCollection {
 
-    // TODO(b/139246447): sparse representation, like Int2ReferenceMap?
-    //   E.g., arguments with primitive types won't have any interesting dynamic*type.
-    TypeLatticeElement[] dynamicUpperBoundTypes;
+    private final int size;
+    private final Int2ReferenceArrayMap<TypeLatticeElement> dynamicUpperBoundTypes;
 
     private static final ArgumentCollection BOTTOM = new ArgumentCollection() {
       @Override
@@ -47,28 +45,21 @@ public class MutableCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
       }
     };
 
-    private ArgumentCollection() {}
+    // Only used to create a canonical BOTTOM.
+    private ArgumentCollection() {
+      this.size = -1;
+      this.dynamicUpperBoundTypes = null;
+    }
 
     ArgumentCollection(int size) {
-      this.dynamicUpperBoundTypes = new TypeLatticeElement[size];
+      this.size = size;
+      this.dynamicUpperBoundTypes = new Int2ReferenceArrayMap<>(size);
     }
 
     TypeLatticeElement getDynamicUpperBoundType(int index) {
       assert dynamicUpperBoundTypes != null;
-      assert 0 <= index && index < dynamicUpperBoundTypes.length;
-      return dynamicUpperBoundTypes[index];
-    }
-
-    ArgumentCollection copy() {
-      ArgumentCollection copy = new ArgumentCollection();
-      copy.dynamicUpperBoundTypes = new TypeLatticeElement[this.dynamicUpperBoundTypes.length];
-      System.arraycopy(
-          this.dynamicUpperBoundTypes,
-          0,
-          copy.dynamicUpperBoundTypes,
-          0,
-          this.dynamicUpperBoundTypes.length);
-      return copy;
+      assert 0 <= index && index < size;
+      return dynamicUpperBoundTypes.getOrDefault(index, null);
     }
 
     ArgumentCollection join(ArgumentCollection other, AppView<?> appView) {
@@ -78,18 +69,21 @@ public class MutableCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
       if (this == BOTTOM) {
         return other;
       }
-      assert this.dynamicUpperBoundTypes.length == other.dynamicUpperBoundTypes.length;
-      ArgumentCollection result = this.copy();
-      for (int i = 0; i < result.dynamicUpperBoundTypes.length; i++) {
-        if (result.dynamicUpperBoundTypes[i] == null) {
+      assert this.size == other.size;
+      ArgumentCollection result = new ArgumentCollection(this.size);
+      assert result.dynamicUpperBoundTypes != null;
+      for (int i = 0; i < result.size; i++) {
+        TypeLatticeElement thisUpperBoundType = this.getDynamicUpperBoundType(i);
+        if (thisUpperBoundType == null) {
           // This means the corresponding argument is primitive. The counterpart should be too.
-          assert other.dynamicUpperBoundTypes[i] == null;
+          assert other.getDynamicUpperBoundType(i) == null;
           continue;
         }
-        assert result.dynamicUpperBoundTypes[i].isReference();
-        assert other.dynamicUpperBoundTypes[i].isReference();
-        result.dynamicUpperBoundTypes[i] =
-            result.dynamicUpperBoundTypes[i].join(other.dynamicUpperBoundTypes[i], appView);
+        assert thisUpperBoundType.isReference();
+        TypeLatticeElement otherUpperBoundType = other.getDynamicUpperBoundType(i);
+        assert otherUpperBoundType != null && otherUpperBoundType.isReference();
+        result.dynamicUpperBoundTypes.put(
+            i, thisUpperBoundType.join(otherUpperBoundType, appView));
       }
       return result;
     }
@@ -103,17 +97,20 @@ public class MutableCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
       if (this == BOTTOM || otherCollection == BOTTOM) {
         return this == BOTTOM && otherCollection == BOTTOM;
       }
-      return Arrays.equals(this.dynamicUpperBoundTypes, otherCollection.dynamicUpperBoundTypes);
+      assert this.dynamicUpperBoundTypes != null;
+      return this.dynamicUpperBoundTypes.equals(otherCollection.dynamicUpperBoundTypes);
     }
 
     @Override
     public int hashCode() {
-      return Arrays.hashCode(dynamicUpperBoundTypes);
+      assert this.dynamicUpperBoundTypes != null;
+      return System.identityHashCode(dynamicUpperBoundTypes);
     }
 
     @Override
     public String toString() {
-      return "(" + StringUtils.join(Arrays.asList(dynamicUpperBoundTypes), ", ") + ")";
+      assert this.dynamicUpperBoundTypes != null;
+      return dynamicUpperBoundTypes.toString();
     }
   }
 
@@ -223,7 +220,7 @@ public class MutableCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
         continue;
       }
       assert arg.getTypeLattice().isReference();
-      newCallSiteInfo.dynamicUpperBoundTypes[i] = arg.getDynamicUpperBoundType(appView);
+      newCallSiteInfo.dynamicUpperBoundTypes.put(i, arg.getDynamicUpperBoundType(appView));
     }
     assert callingContext != null;
     ArgumentCollection accumulatedArgumentCollection =
