@@ -42,9 +42,11 @@ import com.android.tools.r8.ir.optimize.staticizer.movetohost.MoveToHostFieldOnl
 import com.android.tools.r8.ir.optimize.staticizer.movetohost.MoveToHostTestClass;
 import com.android.tools.r8.ir.optimize.staticizer.trivial.Simple;
 import com.android.tools.r8.ir.optimize.staticizer.trivial.SimpleWithGetter;
+import com.android.tools.r8.ir.optimize.staticizer.trivial.SimpleWithLazyInit;
 import com.android.tools.r8.ir.optimize.staticizer.trivial.SimpleWithParams;
 import com.android.tools.r8.ir.optimize.staticizer.trivial.SimpleWithPhi;
 import com.android.tools.r8.ir.optimize.staticizer.trivial.SimpleWithSideEffects;
+import com.android.tools.r8.ir.optimize.staticizer.trivial.SimpleWithThrowingGetter;
 import com.android.tools.r8.ir.optimize.staticizer.trivial.TrivialTestClass;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.InternalOptions;
@@ -79,11 +81,13 @@ public class ClassStaticizerTest extends TestBase {
         NeverInline.class,
         TrivialTestClass.class,
         Simple.class,
-        SimpleWithSideEffects.class,
-        SimpleWithParams.class,
         SimpleWithGetter.class,
+        SimpleWithLazyInit.class,
+        SimpleWithParams.class,
         SimpleWithPhi.class,
-        SimpleWithPhi.Companion.class
+        SimpleWithPhi.Companion.class,
+        SimpleWithSideEffects.class,
+        SimpleWithThrowingGetter.class
     };
     String javaOutput = runOnJava(main);
     TestRunResult result =
@@ -92,7 +96,7 @@ public class ClassStaticizerTest extends TestBase {
             .enableInliningAnnotations()
             .addKeepMainRule(main)
             .noMinification()
-            .addKeepRules("-keepattributes InnerClasses,EnclosingMethod")
+            .addKeepAttributes("InnerClasses", "EnclosingMethod")
             .addOptionsModification(this::configure)
             .allowAccessModification()
             .setMinApi(parameters.getApiLevel())
@@ -104,9 +108,9 @@ public class ClassStaticizerTest extends TestBase {
 
     assertEquals(
         Lists.newArrayList(
-            "STATIC: String trivial.Simple.bar(String)",
-            "STATIC: String trivial.Simple.foo()",
-            "STATIC: String trivial.TrivialTestClass.next()"),
+            "STATIC: String Simple.bar(String)",
+            "STATIC: String Simple.foo()",
+            "STATIC: String TrivialTestClass.next()"),
         references(clazz, "testSimple", "void"));
 
     ClassSubject simple = inspector.clazz(Simple.class);
@@ -115,10 +119,10 @@ public class ClassStaticizerTest extends TestBase {
 
     assertEquals(
         Lists.newArrayList(
-            "STATIC: String trivial.SimpleWithPhi.bar(String)",
-            "STATIC: String trivial.SimpleWithPhi.foo()",
-            "STATIC: String trivial.SimpleWithPhi.foo()",
-            "STATIC: String trivial.TrivialTestClass.next()"),
+            "STATIC: String SimpleWithPhi.bar(String)",
+            "STATIC: String SimpleWithPhi.foo()",
+            "STATIC: String SimpleWithPhi.foo()",
+            "STATIC: String TrivialTestClass.next()"),
         references(clazz, "testSimpleWithPhi", "void", "int"));
 
     ClassSubject simpleWithPhi = inspector.clazz(SimpleWithPhi.class);
@@ -127,9 +131,9 @@ public class ClassStaticizerTest extends TestBase {
 
     assertEquals(
         Lists.newArrayList(
-            "STATIC: String trivial.SimpleWithParams.bar(String)",
-            "STATIC: String trivial.SimpleWithParams.foo()",
-            "STATIC: String trivial.TrivialTestClass.next()"),
+            "STATIC: String SimpleWithParams.bar(String)",
+            "STATIC: String SimpleWithParams.foo()",
+            "STATIC: String TrivialTestClass.next()"),
         references(clazz, "testSimpleWithParams", "void"));
 
     ClassSubject simpleWithParams = inspector.clazz(SimpleWithParams.class);
@@ -138,11 +142,11 @@ public class ClassStaticizerTest extends TestBase {
 
     assertEquals(
         Lists.newArrayList(
-            "STATIC: String trivial.SimpleWithSideEffects.bar(String)",
-            "STATIC: String trivial.SimpleWithSideEffects.foo()",
-            "STATIC: String trivial.TrivialTestClass.next()",
-            "trivial.SimpleWithSideEffects trivial.SimpleWithSideEffects.INSTANCE",
-            "trivial.SimpleWithSideEffects trivial.SimpleWithSideEffects.INSTANCE"),
+            "STATIC: String SimpleWithSideEffects.bar(String)",
+            "STATIC: String SimpleWithSideEffects.foo()",
+            "STATIC: String TrivialTestClass.next()",
+            "SimpleWithSideEffects SimpleWithSideEffects.INSTANCE",
+            "SimpleWithSideEffects SimpleWithSideEffects.INSTANCE"),
         references(clazz, "testSimpleWithSideEffects", "void"));
 
     ClassSubject simpleWithSideEffects = inspector.clazz(SimpleWithSideEffects.class);
@@ -150,19 +154,49 @@ public class ClassStaticizerTest extends TestBase {
     // As its name implies, its clinit has side effects.
     assertThat(simpleWithSideEffects.clinit(), isPresent());
 
-    // TODO(b/111832046): add support for singleton instance getters.
     assertEquals(
         Lists.newArrayList(
-            "STATIC: String trivial.TrivialTestClass.next()",
-            "VIRTUAL: String trivial.SimpleWithGetter.bar(String)",
-            "VIRTUAL: String trivial.SimpleWithGetter.foo()",
-            "trivial.SimpleWithGetter trivial.SimpleWithGetter.INSTANCE",
-            "trivial.SimpleWithGetter trivial.SimpleWithGetter.INSTANCE"),
+            "STATIC: String SimpleWithGetter.bar(String)",
+            "STATIC: String SimpleWithGetter.foo()",
+            "STATIC: String TrivialTestClass.next()"),
         references(clazz, "testSimpleWithGetter", "void"));
 
     ClassSubject simpleWithGetter = inspector.clazz(SimpleWithGetter.class);
-    assertFalse(instanceMethods(simpleWithGetter).isEmpty());
-    assertThat(simpleWithGetter.clinit(), isPresent());
+    assertTrue(instanceMethods(simpleWithGetter).isEmpty());
+    assertThat(simpleWithGetter.clinit(), not(isPresent()));
+
+    assertEquals(
+        Lists.newArrayList(
+            "STATIC: SimpleWithThrowingGetter SimpleWithThrowingGetter.getInstance()",
+            "STATIC: SimpleWithThrowingGetter SimpleWithThrowingGetter.getInstance()",
+            "STATIC: String TrivialTestClass.next()",
+            "VIRTUAL: String SimpleWithThrowingGetter.bar(String)",
+            "VIRTUAL: String SimpleWithThrowingGetter.foo()"),
+        references(clazz, "testSimpleWithThrowingGetter", "void"));
+
+    ClassSubject simpleWithThrowingGetter = inspector.clazz(SimpleWithThrowingGetter.class);
+    assertFalse(instanceMethods(simpleWithThrowingGetter).isEmpty());
+    assertThat(simpleWithThrowingGetter.clinit(), isPresent());
+
+    // TODO(b/143389508): add support for lazy init in singleton instance getter.
+    assertEquals(
+        Lists.newArrayList(
+            "DIRECT: void SimpleWithLazyInit.<init>()",
+            "DIRECT: void SimpleWithLazyInit.<init>()",
+            "STATIC: String TrivialTestClass.next()",
+            "SimpleWithLazyInit SimpleWithLazyInit.INSTANCE",
+            "SimpleWithLazyInit SimpleWithLazyInit.INSTANCE",
+            "SimpleWithLazyInit SimpleWithLazyInit.INSTANCE",
+            "SimpleWithLazyInit SimpleWithLazyInit.INSTANCE",
+            "SimpleWithLazyInit SimpleWithLazyInit.INSTANCE",
+            "SimpleWithLazyInit SimpleWithLazyInit.INSTANCE",
+            "VIRTUAL: String SimpleWithLazyInit.bar(String)",
+            "VIRTUAL: String SimpleWithLazyInit.foo()"),
+        references(clazz, "testSimpleWithLazyInit", "void"));
+
+    ClassSubject simpleWithLazyInit = inspector.clazz(SimpleWithLazyInit.class);
+    assertFalse(instanceMethods(simpleWithLazyInit).isEmpty());
+    assertThat(simpleWithLazyInit.clinit(), not(isPresent()));
   }
 
   @Test
@@ -316,6 +350,7 @@ public class ClassStaticizerTest extends TestBase {
             .filter(method -> isTypeOfInterest(method.holder))
             .map(method -> "DIRECT: " + method.toSourceString()))
         .map(txt -> txt.replace("java.lang.", ""))
+        .map(txt -> txt.replace("com.android.tools.r8.ir.optimize.staticizer.trivial.", ""))
         .map(txt -> txt.replace("com.android.tools.r8.ir.optimize.staticizer.", ""))
         .sorted()
         .collect(Collectors.toList());

@@ -20,6 +20,8 @@ public class TrivialTestClass {
     test.testSimpleWithSideEffects();
     test.testSimpleWithParams();
     test.testSimpleWithGetter();
+    test.testSimpleWithThrowingGetter();
+    test.testSimpleWithLazyInit();
   }
 
   @NeverInline
@@ -59,6 +61,18 @@ public class TrivialTestClass {
   private void testSimpleWithGetter() {
     System.out.println(SimpleWithGetter.getInstance().foo());
     System.out.println(SimpleWithGetter.getInstance().bar(next()));
+  }
+
+  @NeverInline
+  private void testSimpleWithThrowingGetter() {
+    System.out.println(SimpleWithThrowingGetter.getInstance().foo());
+    System.out.println(SimpleWithThrowingGetter.getInstance().bar(next()));
+  }
+
+  @NeverInline
+  private void testSimpleWithLazyInit() {
+    System.out.println(SimpleWithLazyInit.getInstance().foo());
+    System.out.println(SimpleWithLazyInit.getInstance().bar(next()));
   }
 }
 
