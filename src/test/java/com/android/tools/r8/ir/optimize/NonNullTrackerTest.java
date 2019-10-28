@@ -48,7 +48,7 @@ public class NonNullTrackerTest extends NonNullTrackerTestBase {
       testAugmentedIRCode.accept(code);
     }
 
-    new CodeRewriter(appView, null).removeAssumeInstructions(code);
+    CodeRewriter.removeAssumeInstructions(appView, code);
     assertTrue(code.isConsistentSSA());
     checkCountOfNonNull(code, 0);
   }

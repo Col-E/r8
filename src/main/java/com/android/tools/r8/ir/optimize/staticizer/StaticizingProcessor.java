@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.ir.optimize.staticizer;
 
-import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
-
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexClass;
@@ -27,10 +25,11 @@ import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.conversion.CallSiteInformation;
-import com.android.tools.r8.ir.optimize.Outliner;
+import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.staticizer.ClassStaticizer.CandidateInfo;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -39,6 +38,7 @@ import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -48,14 +48,18 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+// TODO(b/140766440): Use PostProcessor, instead of having its own post processing.
 final class StaticizingProcessor {
 
   private final AppView<AppInfoWithLiveness> appView;
   private final ClassStaticizer classStaticizer;
-  private final ExecutorService executorService;
+  private final IRConverter converter;
+
+  private final Map<DexEncodedMethod, Collection<Consumer<IRCode>>> processingQueue =
+      new IdentityHashMap<>();
 
   private final Set<DexEncodedMethod> referencingExtraMethods = Sets.newIdentityHashSet();
   private final Map<DexEncodedMethod, CandidateInfo> hostClassInits = new IdentityHashMap<>();
@@ -66,26 +70,32 @@ final class StaticizingProcessor {
   StaticizingProcessor(
       AppView<AppInfoWithLiveness> appView,
       ClassStaticizer classStaticizer,
-      ExecutorService executorService) {
+      IRConverter converter) {
     this.appView = appView;
     this.classStaticizer = classStaticizer;
-    this.executorService = executorService;
+    this.converter = converter;
   }
 
-  final void run(OptimizationFeedback feedback) throws ExecutionException {
+  final void run(OptimizationFeedback optimizationFeedback, ExecutorService executorService)
+      throws ExecutionException {
     // Filter out candidates based on the information we collected while examining methods.
     finalEligibilityCheck();
 
     // Prepare interim data.
     prepareCandidates();
 
-    // Process all host class initializers (only remove instantiations).
-    processMethodsConcurrently(
-        hostClassInits.keySet(), this::removeCandidateInstantiation, feedback);
+    // Enqueue all host class initializers (only remove instantiations).
+    enqueueMethodsWithCodeOptimization(
+        hostClassInits.keySet(), this::removeCandidateInstantiation);
 
-    // Process instance methods to be staticized (only remove references to 'this').
-    processMethodsConcurrently(methodsToBeStaticized, this::removeReferencesToThis, feedback);
+    // Enqueue instance methods to be staticized (only remove references to 'this').
+    enqueueMethodsWithCodeOptimization(
+        methodsToBeStaticized, this::removeReferencesToThis);
 
+    // Process queued methods with associated optimizations
+    processMethodsConcurrently(optimizationFeedback, executorService);
+
+    // TODO(b/140767158): Merge the remaining part below.
     // Convert instance methods into static methods with an extra parameter.
     Set<DexEncodedMethod> methods = staticizeMethodSymbols();
 
@@ -94,7 +104,10 @@ final class StaticizingProcessor {
     // a result of staticizing.)
     methods.addAll(referencingExtraMethods);
     methods.addAll(hostClassInits.keySet());
-    processMethodsConcurrently(methods, this::rewriteReferences, feedback);
+    enqueueMethodsWithCodeOptimization(methods, this::rewriteReferences);
+
+    // Process queued methods with associated optimizations
+    processMethodsConcurrently(optimizationFeedback, executorService);
   }
 
   private void finalEligibilityCheck() {
@@ -237,50 +250,65 @@ final class StaticizingProcessor {
     referencingExtraMethods.removeAll(removedInstanceMethods);
   }
 
+  private void enqueueMethodsWithCodeOptimization(
+      Iterable<DexEncodedMethod> methods, Consumer<IRCode> optimization) {
+    for (DexEncodedMethod method : methods) {
+      processingQueue
+          .computeIfAbsent(
+              method,
+              // Optimization order might matter, hence a collection that preserves orderings.
+              k -> new ArrayList<>())
+          .add(optimization);
+    }
+  }
+
   /**
    * Processes the given methods concurrently using the given strategy.
    *
-   * <p>Note that, when the strategy {@link #rewriteReferences(DexEncodedMethod, IRCode)} is being
-   * applied, it is important that we never inline a method from `methods` which has still not been
-   * reprocessed. This could lead to broken code, because the strategy that rewrites the broken
-   * references is applied *before* inlining (because the broken references in the inlinee are never
-   * rewritten). We currently avoid this situation by processing all the methods concurrently
+   * <p>Note that, when the strategy {@link #rewriteReferences(IRCode)} is being applied, it is
+   * important that we never inline a method from `methods` which has still not been reprocessed.
+   * This could lead to broken code, because the strategy that rewrites the broken references is
+   * applied *before* inlining (because the broken references in the inlinee are never rewritten).
+   * We currently avoid this situation by processing all the methods concurrently
    * (inlining of a method that is processed concurrently is not allowed).
    */
   private void processMethodsConcurrently(
-      Set<DexEncodedMethod> methods,
-      BiConsumer<DexEncodedMethod, IRCode> strategy,
-      OptimizationFeedback feedback)
-      throws ExecutionException {
-    classStaticizer.setFixupStrategy(strategy);
-
+      OptimizationFeedback feedback, ExecutorService executorService) throws ExecutionException {
     List<Future<?>> futures = new ArrayList<>();
-    for (DexEncodedMethod method : methods) {
+    for (DexEncodedMethod method : processingQueue.keySet()) {
       futures.add(
           executorService.submit(
               () -> {
-                classStaticizer.converter.processMethod(
-                    method,
-                    feedback,
-                    methods::contains,
-                    CallSiteInformation.empty(),
-                    Outliner::noProcessing);
+                forEachMethod(method, processingQueue.get(method), feedback);
                 return null; // we want a Callable not a Runnable to be able to throw
               }));
     }
     ThreadUtils.awaitFutures(futures);
-
-    classStaticizer.cleanFixupStrategy();
+    // TODO(b/140767158): No need to clear if we can do every thing in one go.
+    processingQueue.clear();
   }
 
-  private void removeCandidateInstantiation(DexEncodedMethod method, IRCode code) {
-    CandidateInfo candidateInfo = hostClassInits.get(method);
+  // TODO(b/140766440): Should be part or variant of PostProcessor.
+  private void forEachMethod(
+      DexEncodedMethod method,
+      Collection<Consumer<IRCode>> codeOptimizations,
+      OptimizationFeedback feedback) {
+    Origin origin = appView.appInfo().originFor(method.method.holder);
+    IRCode code = method.buildIR(appView, origin);
+    codeOptimizations.forEach(codeOptimization -> codeOptimization.accept(code));
+    converter.collectOptimizationInfo(code, feedback);
+    CodeRewriter.removeAssumeInstructions(appView, code);
+    converter.finalizeIR(method, code, feedback);
+  }
+
+  private void removeCandidateInstantiation(IRCode code) {
+    CandidateInfo candidateInfo = hostClassInits.get(code.method);
     assert candidateInfo != null;
 
     // Find and remove instantiation and its users.
     for (Instruction instruction : code.instructions()) {
-      if (instruction.isNewInstance() &&
-          instruction.asNewInstance().clazz == candidateInfo.candidate.type) {
+      if (instruction.isNewInstance()
+          && instruction.asNewInstance().clazz == candidateInfo.candidate.type) {
         // Remove all usages
         // NOTE: requiring (a) the instance initializer to be trivial, (b) not allowing
         //       candidates with instance fields and (c) requiring candidate to directly
@@ -300,11 +328,11 @@ final class StaticizingProcessor {
     assert false : "Must always be able to find and remove the instantiation";
   }
 
-  private void removeReferencesToThis(DexEncodedMethod method, IRCode code) {
+  private void removeReferencesToThis(IRCode code) {
     fixupStaticizedThisUsers(code, code.getThis());
   }
 
-  private void rewriteReferences(DexEncodedMethod method, IRCode code) {
+  private void rewriteReferences(IRCode code) {
     // Process all singleton field reads and rewrite their users.
     List<StaticGet> singletonFieldReads =
         Streams.stream(code.instructionIterator())
@@ -513,7 +541,7 @@ final class StaticizingProcessor {
               new StaticGet(
                   code.createValue(
                       TypeLatticeElement.fromDexType(
-                          field.type, maybeNull(), classStaticizer.appView),
+                          field.type, outValue.getTypeLattice().nullability(), appView),
                       outValue.getLocalInfo()),
                   field));
         }
@@ -536,12 +564,13 @@ final class StaticizingProcessor {
         if (hostType != null) {
           DexMethod newMethod = factory().createMethod(hostType, method.proto, method.name);
           Value outValue = invoke.outValue();
+          DexType returnType = method.proto.returnType;
           Value newOutValue =
-              method.proto.returnType.isVoidType()
+              returnType.isVoidType()
                   ? null
                   : code.createValue(
                       TypeLatticeElement.fromDexType(
-                          method.proto.returnType, maybeNull(), classStaticizer.appView),
+                          returnType, outValue.getTypeLattice().nullability(), appView),
                       outValue == null ? null : outValue.getLocalInfo());
           it.replaceCurrentInstruction(new InvokeStatic(newMethod, newOutValue, invoke.inValues()));
         }
@@ -588,7 +617,7 @@ final class StaticizingProcessor {
       // Consider moving static members from candidate into host.
       DexType hostType = candidate.hostType();
       if (candidateClass.type != hostType) {
-        DexClass hostClass = classStaticizer.appView.definitionFor(hostType);
+        DexClass hostClass = appView.definitionFor(hostType);
         assert hostClass != null;
         if (!classMembersConflict(candidateClass, hostClass)) {
           // Move all members of the candidate class into host class.
@@ -681,6 +710,6 @@ final class StaticizingProcessor {
   }
 
   private DexItemFactory factory() {
-    return classStaticizer.factory;
+    return appView.dexItemFactory();
   }
 }

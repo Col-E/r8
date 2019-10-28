@@ -43,21 +43,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 
 public final class ClassStaticizer {
 
-  final AppView<AppInfoWithLiveness> appView;
-  final DexItemFactory factory;
-  final IRConverter converter;
-
-  private enum Phase {
-    None, Examine, Fixup
-  }
-
-  private Phase phase = Phase.None;
-  private BiConsumer<DexEncodedMethod, IRCode> fixupStrategy = null;
+  private final AppView<AppInfoWithLiveness> appView;
+  private final DexItemFactory factory;
+  private final IRConverter converter;
 
   // Represents a staticizing candidate with all information
   // needed for staticizing.
@@ -179,9 +171,6 @@ public final class ClassStaticizer {
         }
       }
     });
-
-    // Next phase -- examine code for candidate usages
-    phase = Phase.Examine;
   }
 
   private boolean isPinned(DexClass clazz, DexEncodedField singletonField) {
@@ -220,10 +209,6 @@ public final class ClassStaticizer {
   //
   // NOTE: can be called concurrently.
   public final void examineMethodCode(DexEncodedMethod method, IRCode code) {
-    if (phase != Phase.Examine) {
-      return;
-    }
-
     Set<Instruction> alreadyProcessed = Sets.newIdentityHashSet();
 
     CandidateInfo receiverClassCandidateInfo = candidates.get(method.method.holder);
@@ -556,29 +541,7 @@ public final class ClassStaticizer {
   //
   public final void staticizeCandidates(
       OptimizationFeedback feedback, ExecutorService executorService) throws ExecutionException {
-    phase = Phase.None; // We are done with processing/examining methods.
-    new StaticizingProcessor(appView, this, executorService).run(feedback);
-  }
-
-  public final void fixupMethodCode(DexEncodedMethod method, IRCode code) {
-    if (phase == Phase.Fixup) {
-      assert fixupStrategy != null;
-      fixupStrategy.accept(method, code);
-    }
-  }
-
-  void setFixupStrategy(BiConsumer<DexEncodedMethod, IRCode> strategy) {
-    assert phase == Phase.None;
-    assert strategy != null;
-    phase = Phase.Fixup;
-    fixupStrategy = strategy;
-  }
-
-  void cleanFixupStrategy() {
-    assert phase == Phase.Fixup;
-    assert fixupStrategy != null;
-    phase = Phase.None;
-    fixupStrategy = null;
+    new StaticizingProcessor(appView, this, converter).run(feedback, executorService);
   }
 
   private class CallSiteReferencesInvalidator extends UseRegistry {

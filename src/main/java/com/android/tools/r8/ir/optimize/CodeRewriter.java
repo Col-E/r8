@@ -157,7 +157,7 @@ public class CodeRewriter {
     this.dexItemFactory = appView.dexItemFactory();
   }
 
-  public void removeAssumeInstructions(IRCode code) {
+  public static void removeAssumeInstructions(AppView<?> appView, IRCode code) {
     // We need to update the types of all values whose definitions depend on a non-null value.
     // This is needed to preserve soundness of the types after the Assume<NonNullAssumption>
     // instructions have been removed.

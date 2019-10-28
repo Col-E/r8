@@ -864,7 +864,7 @@ public class IRConverter {
                 // unused out-values.
                 codeRewriter.rewriteMoveResult(code);
                 deadCodeRemover.run(code);
-                codeRewriter.removeAssumeInstructions(code);
+                CodeRewriter.removeAssumeInstructions(appView, code);
                 consumer.accept(code, method);
                 return null;
               }));
@@ -1158,13 +1158,6 @@ public class IRConverter {
       serviceLoaderRewriter.rewrite(code);
     }
 
-    if (classStaticizer != null) {
-      classStaticizer.fixupMethodCode(method, code);
-      assert code.isConsistentSSA();
-    }
-
-    previous = printMethod(code, "IR after class staticizer (SSA)", previous);
-
     if (identifierNameStringMarker != null) {
       identifierNameStringMarker.decoupleIdentifierNameStringsInMethod(method, code);
       assert code.isConsistentSSA();
@@ -1424,17 +1417,11 @@ public class IRConverter {
         appView.callSiteOptimizationInfoPropagator().collectCallSiteOptimizationInfo(code);
       }
 
-      // Compute optimization info summary for the current method unless it is pinned
-      // (in that case we should not be making any assumptions about the behavior of the method).
-      if (!appView.appInfo().withLiveness().isPinned(method.method)) {
-        methodOptimizationInfoCollector
-            .collectMethodOptimizationInfo(method, code, feedback, dynamicTypeOptimization);
-        FieldValueAnalysis.run(appView, code, feedback, method);
-      }
+      collectOptimizationInfo(code, feedback);
     }
 
     if (aliasIntroducer != null || nonNullTracker != null || dynamicTypeOptimization != null) {
-      codeRewriter.removeAssumeInstructions(code);
+      CodeRewriter.removeAssumeInstructions(appView, code);
       assert code.isConsistentSSA();
     }
 
@@ -1470,7 +1457,18 @@ public class IRConverter {
     finalizeIR(method, code, feedback);
   }
 
-  private void finalizeIR(DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
+  // Compute optimization info summary for the current method unless it is pinned
+  // (in that case we should not be making any assumptions about the behavior of the method).
+  public void collectOptimizationInfo(IRCode code, OptimizationFeedback feedback) {
+    if (appView.appInfo().withLiveness().isPinned(code.method.method)) {
+      return;
+    }
+    methodOptimizationInfoCollector
+        .collectMethodOptimizationInfo(code.method, code, feedback, dynamicTypeOptimization);
+    FieldValueAnalysis.run(appView, code, feedback, code.method);
+  }
+
+  public void finalizeIR(DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
     code.traceBlocks();
     if (options.isGeneratingClassFiles()) {
       finalizeToCf(method, code, feedback);
