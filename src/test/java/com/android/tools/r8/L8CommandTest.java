@@ -114,6 +114,7 @@ public class L8CommandTest {
   }
 
   @Test
+  @Ignore("b/143431384: Re-enable shrinking")
   public void addProguardConfigurationString() throws Throwable {
     String keepRule = "-keep class java.time.*";
     List<String> keepRules = new ArrayList<>();
@@ -129,6 +130,7 @@ public class L8CommandTest {
   }
 
   @Test
+  @Ignore("b/143431384: Re-enable shrinking")
   public void addProguardConfigurationFile() throws Throwable {
     String keepRule = "-keep class java.time.*";
     Path keepRuleFile = temp.newFile("keepRuleFile.txt").toPath();
