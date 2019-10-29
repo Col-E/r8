@@ -12,12 +12,17 @@ import minify_tool
 import toolhelper
 import utils
 
+MEMORY_XMX_LIMIT_BENCHMARK = 270
 
 def parse_arguments(argv):
   parser = argparse.ArgumentParser(
       description = 'Run r8 bootstrap benchmarks.')
   parser.add_argument('--golem',
       help = 'Link in third party dependencies.',
+      default = False,
+      action = 'store_true')
+  parser.add_argument('--limit-memory-runtime-test',
+      help = 'Run in a specific memory limit.',
       default = False,
       action = 'store_true')
   return parser.parse_args(argv)
@@ -47,15 +52,28 @@ if __name__ == '__main__':
     d8_r8_output = os.path.join(temp, 'd8r8.zip')
     d8_pg_output = os.path.join(temp, 'd8pg.zip')
 
+    run_memory_test = options.limit_memory_runtime_test
+
+    java_args = (['-Xmx%sM' % MEMORY_XMX_LIMIT_BENCHMARK]
+                 if run_memory_test else [])
+
+    benchmark_name = "MemoryR8Pinned" if run_memory_test else "BootstrapR8"
+
     return_code = minify_tool.minify_tool(
       input_jar=utils.PINNED_R8_JAR,
       output_jar=r8_output,
       debug=False,
       build=False,
       track_memory_file=memory_file,
-      benchmark_name="BootstrapR8")
+      benchmark_name=benchmark_name,
+      java_args=java_args)
+
     if return_code != 0:
       sys.exit(return_code)
+
+    if run_memory_test:
+      # We are not tracking code-size, so return early.
+      sys.exit(0)
 
     dex(r8_output, d8_r8_output)
     print "BootstrapR8(CodeSize):", utils.uncompressed_size(r8_output)
