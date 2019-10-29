@@ -87,49 +87,60 @@ public class SharedClassWritingTest {
         code);
   }
 
-  private DexProgramClass makeClass(String name, int stringCount, int startOffset,
+  private DexProgramClass makeClass(
+      InternalOptions options,
+      String name,
+      int stringCount,
+      int startOffset,
       Collection<DexProgramClass> synthesizedFrom) {
     String desc = DescriptorUtils.javaTypeToDescriptor(name);
     DexType type = dexItemFactory.createType(desc);
-    return new DexProgramClass(
-        type,
-        null,
-        new SynthesizedOrigin("test", getClass()),
-        ClassAccessFlags.fromSharedAccessFlags(Constants.ACC_PUBLIC),
-        dexItemFactory.objectType,
-        DexTypeList.empty(),
-        null,
-        null,
-        Collections.emptyList(),
-        null,
-        Collections.emptyList(),
-        DexAnnotationSet.empty(),
-        DexEncodedField.EMPTY_ARRAY,
-        DexEncodedField.EMPTY_ARRAY,
-        DexEncodedMethod.EMPTY_ARRAY,
-        new DexEncodedMethod[] {makeMethod(type, stringCount, startOffset)},
-        false,
-        synthesizedFrom);
+    DexProgramClass programClass =
+        new DexProgramClass(
+            type,
+            null,
+            new SynthesizedOrigin("test", getClass()),
+            ClassAccessFlags.fromSharedAccessFlags(Constants.ACC_PUBLIC),
+            dexItemFactory.objectType,
+            DexTypeList.empty(),
+            null,
+            null,
+            Collections.emptyList(),
+            null,
+            Collections.emptyList(),
+            DexAnnotationSet.empty(),
+            DexEncodedField.EMPTY_ARRAY,
+            DexEncodedField.EMPTY_ARRAY,
+            DexEncodedMethod.EMPTY_ARRAY,
+            new DexEncodedMethod[] {makeMethod(type, stringCount, startOffset)},
+            false,
+            DexProgramClass::invalidChecksumRequest,
+            synthesizedFrom);
+    return programClass;
   }
 
   @Test
   public void manyFilesWithSharedSynthesizedClass() throws ExecutionException, IOException {
+    InternalOptions options = new InternalOptions(dexItemFactory, new Reporter());
 
     // Create classes that all reference enough strings to overflow the index, but are all
     // at different offsets in the strings array. This ensures we trigger multiple rounds of
     // rewrites.
     List<DexProgramClass> classes = new ArrayList<>();
     for (int i = 0; i < NUMBER_OF_FILES; i++) {
-      classes.add(makeClass("Class" + i, Constants.MAX_NON_JUMBO_INDEX - 1, i % 100,
-          Collections.emptyList()));
+      classes.add(
+          makeClass(
+              options,
+              "Class" + i,
+              Constants.MAX_NON_JUMBO_INDEX - 1,
+              i % 100,
+              Collections.emptyList()));
     }
 
     // Create a shared class that references strings above the maximum.
-    DexProgramClass sharedSynthesizedClass = makeClass("SharedSynthesized", 100,
-        Constants.MAX_NON_JUMBO_INDEX - 1,
-        classes);
+    DexProgramClass sharedSynthesizedClass =
+        makeClass(options, "SharedSynthesized", 100, Constants.MAX_NON_JUMBO_INDEX - 1, classes);
 
-    InternalOptions options = new InternalOptions(dexItemFactory, new Reporter());
     DexApplication.Builder builder =
         DirectMappedDexApplication.builder(options, new Timing("SharedClassWritingTest"));
     builder.addSynthesizedClass(sharedSynthesizedClass, false);
@@ -143,7 +154,6 @@ public class SharedClassWritingTest {
             application,
             null,
             options,
-            null,
             null,
             GraphLense.getIdentityLense(),
             NamingLens.getIdentityLens(),

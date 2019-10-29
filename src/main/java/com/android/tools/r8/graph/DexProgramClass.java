@@ -7,6 +7,7 @@ import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.kotlin.KotlinInfo;
 import com.android.tools.r8.origin.Origin;
 import java.util.ArrayList;
@@ -20,6 +21,12 @@ import java.util.List;
 import java.util.function.Supplier;
 
 public class DexProgramClass extends DexClass implements Supplier<DexProgramClass> {
+
+  @FunctionalInterface
+  public interface ChecksumSupplier {
+    long getChecksum(DexProgramClass programClass);
+  }
+
   public static final DexProgramClass[] EMPTY_ARRAY = {};
 
   private static final DexEncodedArray SENTINEL_NOT_YET_COMPUTED =
@@ -31,9 +38,11 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
   private int initialClassFileVersion = -1;
   private KotlinInfo kotlinInfo = null;
 
+  private final ChecksumSupplier checksumSupplier;
+
   public DexProgramClass(
       DexType type,
-      ProgramResource.Kind originKind,
+      Kind originKind,
       Origin origin,
       ClassAccessFlags accessFlags,
       DexType superType,
@@ -48,7 +57,8 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
       DexEncodedField[] instanceFields,
       DexEncodedMethod[] directMethods,
       DexEncodedMethod[] virtualMethods,
-      boolean skipNameValidationForTesting) {
+      boolean skipNameValidationForTesting,
+      ChecksumSupplier checksumSupplier) {
     this(
         type,
         originKind,
@@ -67,12 +77,13 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
         directMethods,
         virtualMethods,
         skipNameValidationForTesting,
+        checksumSupplier,
         Collections.emptyList());
   }
 
   public DexProgramClass(
       DexType type,
-      ProgramResource.Kind originKind,
+      Kind originKind,
       Origin origin,
       ClassAccessFlags accessFlags,
       DexType superType,
@@ -88,6 +99,7 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
       DexEncodedMethod[] directMethods,
       DexEncodedMethod[] virtualMethods,
       boolean skipNameValidationForTesting,
+      ChecksumSupplier checksumSupplier,
       Collection<DexProgramClass> synthesizedDirectlyFrom) {
     super(
         sourceFile,
@@ -106,8 +118,10 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
         classAnnotations,
         origin,
         skipNameValidationForTesting);
+    assert checksumSupplier != null;
     assert classAnnotations != null;
     this.originKind = originKind;
+    this.checksumSupplier = checksumSupplier;
     this.synthesizedFrom = new HashSet<>();
     synthesizedDirectlyFrom.forEach(this::addSynthesizedFrom);
   }
@@ -470,5 +484,18 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
             return null;
           }
         };
+  }
+
+  public static long invalidChecksumRequest(DexProgramClass clazz) {
+    throw new CompilationError(
+        clazz + " has no checksum information while checksum encoding is requested", clazz.origin);
+  }
+
+  public static long checksumFromType(DexProgramClass clazz) {
+    return clazz.type.hashCode();
+  }
+
+  public long getChecksum() {
+    return checksumSupplier.getChecksum(this);
   }
 }

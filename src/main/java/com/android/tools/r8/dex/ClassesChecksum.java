@@ -1,12 +1,12 @@
 package com.android.tools.r8.dex;
 
 import com.android.tools.r8.graph.DexString;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
+import it.unimi.dsi.fastutil.objects.Object2LongMap;
+import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import java.util.Comparator;
 import java.util.Map;
 
@@ -16,53 +16,47 @@ public class ClassesChecksum {
   private static final char PREFIX_CHAR1 = '~';
   private static final char PREFIX_CHAR2 = '~';
 
+  private Object2LongMap<String> dictionary = null;
 
-  // private final JsonObject dictionary;
-  Map<String, Long> dictionary = Maps.newHashMap();
-
-  /**
-   * Checksum to be inserted.
-   */
   public ClassesChecksum() {
   }
 
-  private ClassesChecksum(JsonObject json) {
-    json.entrySet().forEach(entry ->
-        dictionary.put(entry.getKey(), Long.parseLong(entry.getValue().getAsString(), 16)));
-  }
-
-  public synchronized ClassesChecksum addChecksum(String classDescriptor, Long crc) {
-    dictionary.put(classDescriptor, crc);
-    return this;
-  }
-
-  public synchronized ImmutableMap<String, Long> getChecksums() {
-    return ImmutableMap.copyOf(dictionary);
-  }
-
-  public synchronized ClassesChecksum merge(ClassesChecksum other) {
-    if (other != null) {
-      other.dictionary.entrySet().stream().forEach(entry -> this.dictionary.put(
-          entry.getKey(), entry.getValue()));
+  private void ensureMap() {
+    if (dictionary == null) {
+      dictionary = new Object2LongOpenHashMap<>();
     }
-    return this;
   }
 
-  @Override
-  public synchronized String toString() {
+  private void append(JsonObject json) {
+    ensureMap();
+    json.entrySet()
+        .forEach(
+            entry ->
+                dictionary.put(entry.getKey(), Long.parseLong(entry.getValue().getAsString(), 16)));
+  }
+
+  public void addChecksum(String classDescriptor, long crc) {
+    ensureMap();
+    dictionary.put(classDescriptor, crc);
+  }
+
+  public Object2LongMap<String> getChecksums() {
+    return dictionary;
+  }
+
+  public String toJsonString() {
     // In order to make printing of markers deterministic we sort the entries by key.
     final JsonObject sortedJson = new JsonObject();
-    dictionary.entrySet()
-        .stream()
+    dictionary.object2LongEntrySet().stream()
         .sorted(Comparator.comparing(Map.Entry::getKey))
         .forEach(
-            entry -> sortedJson.addProperty(entry.getKey(), Long.toHexString(entry.getValue())));
+            entry ->
+                sortedJson.addProperty(entry.getKey(), Long.toString(entry.getLongValue(), 16)));
     return "" + PREFIX_CHAR0 + PREFIX_CHAR1 + PREFIX_CHAR2 + sortedJson;
   }
 
-  // Try to parse str as a marker.
-  // Returns null if parsing fails.
-  public static ClassesChecksum parse(DexString dexString) {
+  // Try to parse the string as a marker and append its content if successful.
+  public void tryParseAndAppend(DexString dexString) {
     if (dexString.size > 2
         && dexString.content[0] == PREFIX_CHAR0
         && dexString.content[1] == PREFIX_CHAR1
@@ -71,11 +65,10 @@ public class ClassesChecksum {
       try {
         JsonElement result = new JsonParser().parse(str);
         if (result.isJsonObject()) {
-          return new ClassesChecksum(result.getAsJsonObject());
+          append(result.getAsJsonObject());
         }
       } catch (JsonSyntaxException ignored) {}
     }
-    return null;
   }
 
   public static boolean preceedChecksumMarker(DexString string) {

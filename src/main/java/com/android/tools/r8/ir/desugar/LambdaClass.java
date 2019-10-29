@@ -30,12 +30,15 @@ import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.google.common.base.Suppliers;
+import com.google.common.primitives.Longs;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
+import java.util.zip.CRC32;
 
 /**
  * Represents lambda class generated for a lambda descriptor in context of lambda instantiation
@@ -167,7 +170,8 @@ final class LambdaClass {
             synthesizeInstanceFields(),
             synthesizeDirectMethods(),
             synthesizeVirtualMethods(mainMethod),
-            rewriter.factory.getSkipNameValidationForTesting());
+            rewriter.factory.getSkipNameValidationForTesting(),
+            LambdaClass::computeChecksumForSynthesizedClass);
     // Optimize main method.
     rewriter.converter.appView.appInfo().addSynthesizedClass(clazz);
     rewriter.converter.optimizeSynthesizedMethod(clazz.lookupVirtualMethod(mainMethod));
@@ -178,6 +182,24 @@ final class LambdaClass {
       synthesizedFrom.forEach(clazz::addSynthesizedFrom);
     }
     return clazz;
+  }
+
+  private static long computeChecksumForSynthesizedClass(DexProgramClass clazz) {
+    // Checksum of synthesized classes are compute based off the depending input. This might
+    // create false positives (ie: unchanged lambda class detected as changed even thought only
+    // an unrelated part from a synthesizedFrom class is changed).
+
+    // Ideally, we should use some hashcode of the dex program class that is deterministic across
+    // compiles.
+    Collection<DexProgramClass> synthesizedFrom = clazz.getSynthesizedFrom();
+    ByteBuffer buffer = ByteBuffer.allocate(synthesizedFrom.size() * Longs.BYTES);
+    for (DexProgramClass from : synthesizedFrom) {
+      buffer.putLong(from.getChecksum());
+    }
+    CRC32 crc = new CRC32();
+    byte[] array = buffer.array();
+    crc.update(array, 0, array.length);
+    return crc.getValue();
   }
 
   final DexField getCaptureField(int index) {

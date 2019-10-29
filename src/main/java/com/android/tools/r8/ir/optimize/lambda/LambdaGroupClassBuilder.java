@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.origin.SynthesizedOrigin;
+import com.android.tools.r8.utils.InternalOptions;
 import java.util.Collections;
 import java.util.List;
 
@@ -31,28 +32,31 @@ public abstract class LambdaGroupClassBuilder<T extends LambdaGroup> {
     this.origin = origin;
   }
 
-  public final DexProgramClass synthesizeClass() {
+  public final DexProgramClass synthesizeClass(InternalOptions options) {
     DexType groupClassType = group.getGroupClassType();
     DexType superClassType = getSuperClassType();
-
-    return new DexProgramClass(
-        groupClassType,
-        null,
-        new SynthesizedOrigin(origin, getClass()),
-        buildAccessFlags(),
-        superClassType,
-        buildInterfaces(),
-        factory.createString(origin),
-        null,
-        Collections.emptyList(),
-        buildEnclosingMethodAttribute(),
-        buildInnerClasses(),
-        buildAnnotations(),
-        buildStaticFields(),
-        buildInstanceFields(),
-        buildDirectMethods(),
-        buildVirtualMethods(),
-        factory.getSkipNameValidationForTesting());
+    DexProgramClass programClass =
+        new DexProgramClass(
+            groupClassType,
+            null,
+            new SynthesizedOrigin(origin, getClass()),
+            buildAccessFlags(),
+            superClassType,
+            buildInterfaces(),
+            factory.createString(origin),
+            null,
+            Collections.emptyList(),
+            buildEnclosingMethodAttribute(),
+            buildInnerClasses(),
+            buildAnnotations(),
+            buildStaticFields(),
+            buildInstanceFields(),
+            buildDirectMethods(),
+            buildVirtualMethods(),
+            factory.getSkipNameValidationForTesting(),
+            // The name of the class is based on the hash of the content.
+            DexProgramClass::checksumFromType);
+    return programClass;
   }
 
   protected abstract DexType getSuperClassType();

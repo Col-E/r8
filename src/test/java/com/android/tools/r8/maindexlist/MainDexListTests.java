@@ -836,7 +836,7 @@ public class MainDexListTests extends TestBase {
         method.setCode(ir, allocator, appView);
         directMethods[i] = method;
       }
-      builder.addProgramClass(
+      DexProgramClass programClass =
           new DexProgramClass(
               type,
               null,
@@ -854,7 +854,9 @@ public class MainDexListTests extends TestBase {
               DexEncodedField.EMPTY_ARRAY,
               directMethods,
               DexEncodedMethod.EMPTY_ARRAY,
-              false));
+              false,
+              DexProgramClass::invalidChecksumRequest);
+      builder.addProgramClass(programClass);
     }
     DirectMappedDexApplication application = builder.build().toDirect();
     ApplicationWriter writer =
@@ -862,7 +864,6 @@ public class MainDexListTests extends TestBase {
             application,
             null,
             options,
-            null,
             null,
             GraphLense.getIdentityLense(),
             NamingLens.getIdentityLens(),

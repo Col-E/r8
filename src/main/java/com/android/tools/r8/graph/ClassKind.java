@@ -4,7 +4,8 @@
 
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.ProgramResource;
+import com.android.tools.r8.ProgramResource.Kind;
+import com.android.tools.r8.graph.DexProgramClass.ChecksumSupplier;
 import com.android.tools.r8.origin.Origin;
 import java.util.List;
 import java.util.function.Consumer;
@@ -13,13 +14,89 @@ import java.util.function.Predicate;
 /** Kind of the application class. Can be program, classpath or library. */
 public enum ClassKind {
   PROGRAM(DexProgramClass::new, DexClass::isProgramClass),
-  CLASSPATH(DexClasspathClass::new, DexClass::isClasspathClass),
-  LIBRARY(DexLibraryClass::new, DexClass::isLibraryClass);
+  CLASSPATH(
+      (type,
+          kind,
+          origin,
+          accessFlags,
+          superType,
+          interfaces,
+          sourceFile,
+          nestHost,
+          nestMembers,
+          enclosingMember,
+          innerClasses,
+          annotations,
+          staticFields,
+          instanceFields,
+          directMethods,
+          virtualMethods,
+          skipNameValidationForTesting,
+          checksumSupplier) -> {
+        return new DexClasspathClass(
+            type,
+            kind,
+            origin,
+            accessFlags,
+            superType,
+            interfaces,
+            sourceFile,
+            nestHost,
+            nestMembers,
+            enclosingMember,
+            innerClasses,
+            annotations,
+            staticFields,
+            instanceFields,
+            directMethods,
+            virtualMethods,
+            skipNameValidationForTesting);
+      },
+      DexClass::isClasspathClass),
+  LIBRARY(
+      (type,
+          kind,
+          origin,
+          accessFlags,
+          superType,
+          interfaces,
+          sourceFile,
+          nestHost,
+          nestMembers,
+          enclosingMember,
+          innerClasses,
+          annotations,
+          staticFields,
+          instanceFields,
+          directMethods,
+          virtualMethods,
+          skipNameValidationForTesting,
+          checksumSupplier) -> {
+        return new DexLibraryClass(
+            type,
+            kind,
+            origin,
+            accessFlags,
+            superType,
+            interfaces,
+            sourceFile,
+            nestHost,
+            nestMembers,
+            enclosingMember,
+            innerClasses,
+            annotations,
+            staticFields,
+            instanceFields,
+            directMethods,
+            virtualMethods,
+            skipNameValidationForTesting);
+      },
+      DexClass::isLibraryClass);
 
   private interface Factory {
     DexClass create(
         DexType type,
-        ProgramResource.Kind kind,
+        Kind kind,
         Origin origin,
         ClassAccessFlags accessFlags,
         DexType superType,
@@ -34,7 +111,8 @@ public enum ClassKind {
         DexEncodedField[] instanceFields,
         DexEncodedMethod[] directMethods,
         DexEncodedMethod[] virtualMethods,
-        boolean skipNameValidationForTesting);
+        boolean skipNameValidationForTesting,
+        ChecksumSupplier checksumSupplier);
   }
 
   private final Factory factory;
@@ -47,7 +125,7 @@ public enum ClassKind {
 
   public DexClass create(
       DexType type,
-      ProgramResource.Kind kind,
+      Kind kind,
       Origin origin,
       ClassAccessFlags accessFlags,
       DexType superType,
@@ -62,7 +140,8 @@ public enum ClassKind {
       DexEncodedField[] instanceFields,
       DexEncodedMethod[] directMethods,
       DexEncodedMethod[] virtualMethods,
-      boolean skipNameValidationForTesting) {
+      boolean skipNameValidationForTesting,
+      ChecksumSupplier checksumSupplier) {
     return factory.create(
         type,
         kind,
@@ -80,7 +159,8 @@ public enum ClassKind {
         instanceFields,
         directMethods,
         virtualMethods,
-        skipNameValidationForTesting);
+        skipNameValidationForTesting,
+        checksumSupplier);
   }
 
   public boolean isOfKind(DexClass clazz) {

@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexProgramClass.ChecksumSupplier;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
@@ -184,6 +185,8 @@ public class ServiceLoaderRewriter {
     DexType serviceLoaderType =
         appView.dexItemFactory().createType("L" + SERVICE_LOADER_CLASS_NAME + ";");
     if (synthesizedClass == null) {
+      assert !appView.options().encodeChecksums;
+      ChecksumSupplier checksumSupplier = DexProgramClass::invalidChecksumRequest;
       synthesizedClass =
           new DexProgramClass(
               serviceLoaderType,
@@ -203,7 +206,8 @@ public class ServiceLoaderRewriter {
               DexEncodedField.EMPTY_ARRAY, // Instance fields.
               DexEncodedMethod.EMPTY_ARRAY,
               DexEncodedMethod.EMPTY_ARRAY, // Virtual methods.
-              appView.dexItemFactory().getSkipNameValidationForTesting());
+              appView.dexItemFactory().getSkipNameValidationForTesting(),
+              checksumSupplier);
       appView.appInfo().addSynthesizedClass(synthesizedClass);
     }
     DexProto proto = appView.dexItemFactory().createProto(appView.dexItemFactory().iteratorType);

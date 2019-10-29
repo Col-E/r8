@@ -202,7 +202,6 @@ public class R8 {
                 appView,
                 options,
                 Collections.singletonList(marker),
-                null,
                 graphLense,
                 namingLens,
                 proguardMapSupplier)

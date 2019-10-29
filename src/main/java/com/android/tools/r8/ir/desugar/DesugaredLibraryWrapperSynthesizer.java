@@ -19,6 +19,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexProgramClass.ChecksumSupplier;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.FieldAccessFlags;
@@ -254,7 +255,22 @@ public class DesugaredLibraryWrapperSynthesizer {
         }, // Conversions methods will be added later.
         virtualMethods,
         factory.getSkipNameValidationForTesting(),
+        getChecksumSupplier(this, clazz.type),
         Collections.emptyList());
+  }
+
+  private ChecksumSupplier getChecksumSupplier(DesugaredLibraryWrapperSynthesizer synthesizer, DexType keyType) {
+    return clazz -> {
+      // The synthesized type wrappers are constructed lazily, so their lookup must be delayed
+      // until the point the checksum is requested (at write time). The presence of a wrapper
+      // affects the implementation of the conversion functions, so they must be accounted for in
+      // the checksum.
+      boolean hasWrapper = synthesizer.typeWrappers.containsKey(keyType);
+      boolean hasViviWrapper = synthesizer.vivifiedTypeWrappers.containsKey(keyType);
+      return ((long) clazz.type.hashCode())
+          + 7 * (long) Boolean.hashCode(hasWrapper)
+          + 11 * (long) Boolean.hashCode(hasViviWrapper);
+    };
   }
 
   private DexEncodedMethod[] synthesizeVirtualMethodsForVivifiedTypeWrapper(

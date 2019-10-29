@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexProgramClass.ChecksumSupplier;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
@@ -48,6 +49,7 @@ import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -232,9 +234,10 @@ public final class BackportedMethodRewriter {
               DexAnnotationSet.empty(),
               DexEncodedField.EMPTY_ARRAY,
               DexEncodedField.EMPTY_ARRAY,
-              new DexEncodedMethod[]{dexEncodedMethod},
+              new DexEncodedMethod[] {dexEncodedMethod},
               DexEncodedMethod.EMPTY_ARRAY,
               factory.getSkipNameValidationForTesting(),
+              getChecksumSupplier(dexEncodedMethod),
               referencingClasses);
       boolean addToMainDexList =
           referencingClasses.stream()
@@ -244,6 +247,14 @@ public final class BackportedMethodRewriter {
       // The following may add elements to methodsProviders.
       converter.optimizeSynthesizedClass(utilityClass, executorService);
     }
+  }
+
+  private ChecksumSupplier getChecksumSupplier(DexEncodedMethod method) {
+    if (!appView.options().encodeChecksums) {
+      return DexProgramClass::invalidChecksumRequest;
+    }
+    long hash = Objects.hash(method, method.getCode());
+    return c -> hash;
   }
 
   private MethodProvider getMethodProviderOrNull(DexMethod method) {

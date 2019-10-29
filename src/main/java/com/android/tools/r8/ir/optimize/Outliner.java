@@ -19,6 +19,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexProgramClass.ChecksumSupplier;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
@@ -1353,27 +1354,29 @@ public class Outliner {
     DexTypeList interfaces = DexTypeList.empty();
     DexString sourceFile = appView.dexItemFactory().createString("outline");
     ClassAccessFlags accessFlags = ClassAccessFlags.fromSharedAccessFlags(Constants.ACC_PUBLIC);
-    DexProgramClass clazz =
-        new DexProgramClass(
-            type,
-            null,
-            new SynthesizedOrigin("outlining", getClass()),
-            accessFlags,
-            superType,
-            interfaces,
-            sourceFile,
-            null,
-            Collections.emptyList(),
-            null,
-            Collections.emptyList(),
-            // TODO: Build dex annotations structure.
-            DexAnnotationSet.empty(),
-            DexEncodedField.EMPTY_ARRAY, // Static fields.
-            DexEncodedField.EMPTY_ARRAY, // Instance fields.
-            direct,
-            DexEncodedMethod.EMPTY_ARRAY, // Virtual methods.
-            appView.dexItemFactory().getSkipNameValidationForTesting());
-    return clazz;
+    assert !appView.options().encodeChecksums;
+    // The outliner is R8 only and checksum is not a supported part of R8 compilation.
+    ChecksumSupplier checksumSupplier = DexProgramClass::invalidChecksumRequest;
+    return new DexProgramClass(
+        type,
+        null,
+        new SynthesizedOrigin("outlining", getClass()),
+        accessFlags,
+        superType,
+        interfaces,
+        sourceFile,
+        null,
+        Collections.emptyList(),
+        null,
+        Collections.emptyList(),
+        // TODO: Build dex annotations structure.
+        DexAnnotationSet.empty(),
+        DexEncodedField.EMPTY_ARRAY, // Static fields.
+        DexEncodedField.EMPTY_ARRAY, // Instance fields.
+        direct,
+        DexEncodedMethod.EMPTY_ARRAY, // Virtual methods.
+        appView.dexItemFactory().getSkipNameValidationForTesting(),
+        checksumSupplier);
   }
 
   private List<Outline> selectOutlines() {

@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.optimize.lambda.CodeProcessor.Strategy;
 import com.android.tools.r8.kotlin.Kotlin;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.google.common.collect.Lists;
 import com.google.common.io.BaseEncoding;
@@ -166,13 +167,19 @@ public abstract class LambdaGroup {
 
   protected abstract String getGroupSuffix();
 
-  final DexProgramClass synthesizeClass(DexItemFactory factory) {
+  final DexProgramClass synthesizeClass(InternalOptions options) {
     assert classType == null;
     assert verifyLambdaIds(true);
     List<LambdaInfo> lambdas = Lists.newArrayList(this.lambdas.values());
-    classType = factory.createType(
-        "L" + getTypePackage() + "-$$LambdaGroup$" + getGroupSuffix() + createHash(lambdas) + ";");
-    return getBuilder(factory).synthesizeClass();
+    classType =
+        options.itemFactory.createType(
+            "L"
+                + getTypePackage()
+                + "-$$LambdaGroup$"
+                + getGroupSuffix()
+                + createHash(lambdas)
+                + ";");
+    return getBuilder(options.itemFactory).synthesizeClass(options);
   }
 
   protected abstract LambdaGroupClassBuilder getBuilder(DexItemFactory factory);

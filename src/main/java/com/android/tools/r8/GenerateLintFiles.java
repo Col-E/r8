@@ -21,6 +21,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexProgramClass.ChecksumSupplier;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.GraphLense;
@@ -155,7 +156,9 @@ public class GenerateLintFiles {
     DexEncodedMethod[] virtualMethodsArray = new DexEncodedMethod[virtualMethods.size()];
     directMethods.toArray(directMethodsArray);
     virtualMethods.toArray(virtualMethodsArray);
-    builder.addProgramClass(
+    assert !options.encodeChecksums;
+    ChecksumSupplier checksumSupplier = DexProgramClass::invalidChecksumRequest;
+    DexProgramClass programClass =
         new DexProgramClass(
             clazz.type,
             null,
@@ -173,7 +176,9 @@ public class GenerateLintFiles {
             DexEncodedField.EMPTY_ARRAY,
             directMethodsArray,
             virtualMethodsArray,
-            false));
+            false,
+            checksumSupplier);
+    builder.addProgramClass(programClass);
   }
 
   public static class SupportedMethods {

@@ -101,7 +101,6 @@ public final class DexSplitterHelper {
                   null,
                   options,
                   markers,
-                  null,
                   GraphLense.getIdentityLense(),
                   NamingLens.getIdentityLens(),
                   null,

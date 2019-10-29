@@ -12,10 +12,10 @@ import static org.objectweb.asm.Opcodes.V1_6;
 import static org.objectweb.asm.Opcodes.V9;
 
 import com.android.tools.r8.ProgramResource.Kind;
-import com.android.tools.r8.dex.ClassesChecksum;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.DexProgramClass.ChecksumSupplier;
 import com.android.tools.r8.graph.DexValue.DexValueAnnotation;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
 import com.android.tools.r8.graph.DexValue.DexValueBoolean;
@@ -75,13 +75,11 @@ public class JarClassFileReader {
 
   private final JarApplicationReader application;
   private final Consumer<DexClass> classConsumer;
-  private final ClassesChecksum checksums;
 
   public JarClassFileReader(
       JarApplicationReader application, Consumer<DexClass> classConsumer) {
     this.application = application;
     this.classConsumer = classConsumer;
-    this.checksums = new ClassesChecksum();
   }
 
   public void read(Origin origin, ClassKind classKind, InputStream input) throws IOException {
@@ -116,8 +114,9 @@ public class JarClassFileReader {
         parsingOptions |= SKIP_DEBUG;
       }
     }
-    reader.accept(new CreateDexClassVisitor(
-        origin, classKind, reader.b, application, classConsumer, checksums), parsingOptions);
+    reader.accept(
+        new CreateDexClassVisitor(origin, classKind, reader.b, application, classConsumer),
+        parsingOptions);
 
     // Read marker.
     if (reader.getItemCount() > CfApplicationWriter.MARKER_STRING_CONSTANT_POOL_INDEX
@@ -134,10 +133,6 @@ public class JarClassFileReader {
         // Ignore if the type of the constant is not something readConst() allows.
       }
     }
-  }
-
-  public ClassesChecksum getChecksums() {
-    return checksums;
   }
 
   private static int cleanAccessFlags(int access) {
@@ -218,22 +213,19 @@ public class JarClassFileReader {
     private final List<DexEncodedMethod> virtualMethods = new ArrayList<>();
     private final Set<Wrapper<DexMethod>> methodSignatures = new HashSet<>();
     private boolean hasReachabilitySensitiveMethod = false;
-    private ClassesChecksum checksums;
 
     public CreateDexClassVisitor(
         Origin origin,
         ClassKind classKind,
         byte[] classCache,
         JarApplicationReader application,
-        Consumer<DexClass> classConsumer,
-        ClassesChecksum checksums) {
+        Consumer<DexClass> classConsumer) {
       super(ASM_VERSION);
       this.origin = origin;
       this.classKind = classKind;
       this.classConsumer = classConsumer;
       this.context.classCache = classCache;
       this.application = application;
-      this.checksums = checksums;
     }
 
     @Override
@@ -419,7 +411,8 @@ public class JarClassFileReader {
               instanceFields.toArray(DexEncodedField.EMPTY_ARRAY),
               directMethods.toArray(DexEncodedMethod.EMPTY_ARRAY),
               virtualMethods.toArray(DexEncodedMethod.EMPTY_ARRAY),
-              application.getFactory().getSkipNameValidationForTesting());
+              application.getFactory().getSkipNameValidationForTesting(),
+              getChecksumSupplier(classKind));
       InnerClassAttribute innerClassAttribute = clazz.getInnerClassAttributeForThisClass();
       // A member class should not be a local or anonymous class.
       if (innerClassAttribute != null && innerClassAttribute.getOuter() != null) {
@@ -453,14 +446,20 @@ public class JarClassFileReader {
         context.owner = clazz;
       }
       if (clazz.isProgramClass()) {
-        clazz.asProgramClass().setInitialClassFileVersion(version);
-        if (application.options.encodeChecksums) {
-          CRC32 crc = new CRC32();
-          crc.update(this.context.classCache, 0, this.context.classCache.length);
-          checksums.addChecksum(type.descriptor.toASCIIString(), crc.getValue());
-        }
+        DexProgramClass programClass = clazz.asProgramClass();
+        programClass.setInitialClassFileVersion(version);
       }
       classConsumer.accept(clazz);
+    }
+
+    private ChecksumSupplier getChecksumSupplier(ClassKind classKind) {
+      if (application.options.encodeChecksums && classKind == ClassKind.PROGRAM) {
+        CRC32 crc = new CRC32();
+        crc.update(this.context.classCache, 0, this.context.classCache.length);
+        final long value = crc.getValue();
+        return clazz -> value;
+      }
+      return DexProgramClass::invalidChecksumRequest;
     }
 
     private void checkName(String name) {

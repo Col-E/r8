@@ -186,8 +186,7 @@ public class Bisect {
     StringConsumer proguardMapConsumer = options.proguardMapConsumer;
     AndroidAppConsumers compatSink = new AndroidAppConsumers(options);
     ApplicationWriter writer =
-        new ApplicationWriter(
-            app, null, options, null, null, null, NamingLens.getIdentityLens(), null);
+        new ApplicationWriter(app, null, options, null, null, NamingLens.getIdentityLens(), null);
     writer.write(executor);
     options.signalFinishedToConsumers();
     compatSink.build().writeToDirectory(output, OutputMode.DexIndexed);

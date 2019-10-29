@@ -100,7 +100,6 @@ public class DexFileMergerHelper {
                 null,
                 options,
                 markers,
-                null,
                 GraphLense.getIdentityLense(),
                 NamingLens.getIdentityLens(),
                 null);

@@ -7,7 +7,6 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.DataResourceProvider;
-import com.android.tools.r8.dex.ClassesChecksum;
 import com.android.tools.r8.graph.LazyLoadedDexApplication.AllClasses;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.InternalOptions;
@@ -41,7 +40,6 @@ public class DirectMappedDexApplication extends DexApplication {
       ImmutableList<DexLibraryClass> libraryClasses,
       ImmutableList<DataResourceProvider> dataResourceProviders,
       ImmutableSet<DexType> mainDexList,
-      ClassesChecksum checksums,
       InternalOptions options,
       DexString highestSortingString,
       Timing timing) {
@@ -49,7 +47,6 @@ public class DirectMappedDexApplication extends DexApplication {
         proguardMap,
         dataResourceProviders,
         mainDexList,
-        checksums,
         options,
         highestSortingString,
         timing);
@@ -203,7 +200,6 @@ public class DirectMappedDexApplication extends DexApplication {
           libraryClasses,
           ImmutableList.copyOf(dataResourceProviders),
           ImmutableSet.copyOf(mainDexList),
-          checksums,
           options,
           highestSortingString,
           timing);

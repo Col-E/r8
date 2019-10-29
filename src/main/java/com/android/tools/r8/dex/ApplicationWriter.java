@@ -37,7 +37,6 @@ import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
-import com.android.tools.r8.ir.desugar.DesugaredLibraryWrapperSynthesizer;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.ProguardMapSupplier;
@@ -49,12 +48,10 @@ import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import com.google.common.collect.ObjectArrays;
-import com.google.common.primitives.Longs;
+import it.unimi.dsi.fastutil.objects.Object2LongMap;
+import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -66,7 +63,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
-import java.util.zip.CRC32;
 
 public class ApplicationWriter {
 
@@ -77,7 +73,6 @@ public class ApplicationWriter {
   public final InternalOptions options;
   public List<Marker> markers;
   public List<DexString> markerStrings;
-  private final ClassesChecksum checksums;
 
   public DexIndexedConsumer programConsumer;
   public final ProguardMapSupplier proguardMapSupplier;
@@ -144,7 +139,6 @@ public class ApplicationWriter {
       AppView<?> appView,
       InternalOptions options,
       List<Marker> markers,
-      ClassesChecksum checksums,
       GraphLense graphLense,
       NamingLens namingLens,
       ProguardMapSupplier proguardMapSupplier) {
@@ -153,7 +147,6 @@ public class ApplicationWriter {
         appView,
         options,
         markers,
-        checksums,
         graphLense,
         namingLens,
         proguardMapSupplier,
@@ -165,7 +158,6 @@ public class ApplicationWriter {
       AppView<?> appView,
       InternalOptions options,
       List<Marker> markers,
-      ClassesChecksum checksums,
       GraphLense graphLense,
       NamingLens namingLens,
       ProguardMapSupplier proguardMapSupplier,
@@ -176,7 +168,6 @@ public class ApplicationWriter {
     assert options != null;
     this.options = options;
     this.markers = markers;
-    this.checksums = checksums;
     this.graphLense = graphLense;
     this.namingLens = namingLens;
     this.proguardMapSupplier = proguardMapSupplier;
@@ -210,60 +201,17 @@ public class ApplicationWriter {
    * This needs to be done after distribute but before dex string sorting.
    */
   private void encodeChecksums(Iterable<VirtualFile> files) {
-    ImmutableMap<String, Long> inputChecksums = checksums.getChecksums();
-    Map<String, Long> synthesizedChecksums = Maps.newHashMap();
-    for (DexProgramClass clazz : application.classes()) {
-      Collection<DexProgramClass> synthesizedFrom = clazz.getSynthesizedFrom();
-
-      if (synthesizedFrom.isEmpty()) {
-        if (inputChecksums.containsKey(clazz.getType().descriptor.toASCIIString())) {
-          continue;
-        } else {
-          String name = clazz.toSourceString();
-          if (name.contains(DesugaredLibraryWrapperSynthesizer.TYPE_WRAPPER_SUFFIX)
-              || name.contains(DesugaredLibraryWrapperSynthesizer.VIVIFIED_TYPE_WRAPPER_SUFFIX)) {
-            synthesizedChecksums.put(
-                clazz.getType().descriptor.toASCIIString(), (long) name.hashCode());
-          } else {
-            throw new CompilationError(
-                clazz
-                    + " from "
-                    + clazz.origin
-                    + " has no checksum information while checksum encoding is requested");
-          }
-        }
-      }
-
-      // Checksum of synthesized classes are compute based off the depending input. This might
-      // create false positives (ie: unchanged lambda class detected as changed even thought only
-      // an unrelated part from a synthesizedFrom class is changed).
-
-      // Ideally, we should use some hashcode of the dex program class that is deterministic across
-      // compiles.
-      ByteBuffer buffer = ByteBuffer.allocate(synthesizedFrom.size() * Longs.BYTES);
-      for (DexProgramClass from : synthesizedFrom) {
-        buffer.putLong(inputChecksums.get(from.getType().descriptor.toASCIIString()));
-      }
-      CRC32 crc = new CRC32();
-      byte[] array = buffer.array();
-      crc.update(array, 0, array.length);
-      synthesizedChecksums.put(clazz.getType().descriptor.toASCIIString(), crc.getValue());
+    List<DexProgramClass> classes = application.classes();
+    Object2LongMap<String> inputChecksums = new Object2LongOpenHashMap<>(classes.size());
+    for (DexProgramClass clazz : classes) {
+      inputChecksums.put(clazz.getType().descriptor.toASCIIString(), clazz.getChecksum());
     }
-
-    for (VirtualFile f : files) {
+    for (VirtualFile file : files) {
       ClassesChecksum toWrite = new ClassesChecksum();
-      for (String desc : f.getClassDescriptors()) {
-        Long checksum = inputChecksums.get(desc);
-        if (checksum == null) {
-          checksum = synthesizedChecksums.get(desc);
-        }
-
-        // All classes should have a checksum from the inputChecksum (previous marker) or it was
-        // computed eariler in the function. Otherwise, we would have throw an compilation error.
-        assert checksum != null;
-        toWrite.addChecksum(desc, checksum);
+      for (String desc : file.getClassDescriptors()) {
+        toWrite.addChecksum(desc, inputChecksums.getLong(desc));
       }
-      f.injectString(application.dexItemFactory.createString(toWrite.toString()));
+      file.injectString(application.dexItemFactory.createString(toWrite.toJsonString()));
     }
   }
 
@@ -295,7 +243,6 @@ public class ApplicationWriter {
       if (options.encodeChecksums) {
         encodeChecksums(virtualFiles);
       }
-
       application.dexItemFactory.sort(namingLens);
       assert markers == null
           || markers.isEmpty()

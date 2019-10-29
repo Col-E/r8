@@ -117,7 +117,6 @@ public class Smali {
               null,
               options,
               null,
-              null,
               GraphLense.getIdentityLense(),
               NamingLens.getIdentityLens(),
               null);

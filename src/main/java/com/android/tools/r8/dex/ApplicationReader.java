@@ -61,7 +61,6 @@ public class ApplicationReader {
   private final DexItemFactory itemFactory;
   private final Timing timing;
   private final AndroidApp inputApp;
-  private final ClassesChecksum checksums = new ClassesChecksum();
 
   public interface ProgramClassConflictResolver {
     DexProgramClass resolveClassConflict(DexProgramClass a, DexProgramClass b);
@@ -130,10 +129,6 @@ public class ApplicationReader {
       ClassReader classReader = new ClassReader(executorService, futures);
       JarClassFileReader jcf = classReader.readSources();
       ThreadUtils.awaitFutures(futures);
-      // Merge all the checksum gathered from the class file's CRC as well as the marker
-      // implanted into the dex file.
-      builder.mergeChecksums(jcf.getChecksums());
-      builder.mergeChecksums(classReader.application.options.itemFactory.extractChecksum());
       classReader.initializeLazyClassCollection(builder);
       for (ProgramResourceProvider provider : inputApp.getProgramResourceProviders()) {
         DataResourceProvider dataResourceProvider = provider.getDataResourceProvider();

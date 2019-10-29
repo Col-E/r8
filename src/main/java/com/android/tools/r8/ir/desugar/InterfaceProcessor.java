@@ -21,6 +21,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexProgramClass.ChecksumSupplier;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
@@ -190,8 +191,17 @@ final class InterfaceProcessor {
             companionMethods.toArray(DexEncodedMethod.EMPTY_ARRAY),
             DexEncodedMethod.EMPTY_ARRAY,
             rewriter.factory.getSkipNameValidationForTesting(),
+            getChecksumSupplier(iface),
             Collections.singletonList(iface));
     syntheticClasses.put(iface.type, companionClass);
+  }
+
+  private ChecksumSupplier getChecksumSupplier(DexProgramClass iface) {
+    if (!appView.options().encodeChecksums) {
+      return DexProgramClass::invalidChecksumRequest;
+    }
+    long checksum = iface.getChecksum();
+    return c -> 7 * checksum;
   }
 
   List<DexEncodedMethod> process(DexLibraryClass iface, Set<DexProgramClass> callers) {
@@ -263,6 +273,7 @@ final class InterfaceProcessor {
             dispatchMethods.toArray(DexEncodedMethod.EMPTY_ARRAY),
             DexEncodedMethod.EMPTY_ARRAY,
             rewriter.factory.getSkipNameValidationForTesting(),
+            DexProgramClass::checksumFromType,
             callers);
     syntheticClasses.put(iface.type, dispatchClass);
     return dispatchMethods;

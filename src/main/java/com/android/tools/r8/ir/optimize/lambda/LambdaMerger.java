@@ -393,7 +393,7 @@ public final class LambdaMerger {
     for (LambdaGroup group : groups.values()) {
       assert !group.isTrivial() : "No trivial group is expected here.";
       group.compact();
-      DexProgramClass lambdaGroupClass = group.synthesizeClass(factory);
+      DexProgramClass lambdaGroupClass = group.synthesizeClass(appView.options());
       result.put(group, lambdaGroupClass);
 
       // We have to register this new class as a subtype of object.

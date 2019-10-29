@@ -152,6 +152,7 @@ public final class TwrCloseResourceRewriter {
             new DexEncodedMethod[] {method},
             DexEncodedMethod.EMPTY_ARRAY,
             appView.dexItemFactory().getSkipNameValidationForTesting(),
+            DexProgramClass::checksumFromType,
             referencingClasses);
 
     // Process created class and method.

@@ -40,6 +40,8 @@ import com.android.tools.r8.graph.DexMemberAnnotation.DexParameterAnnotation;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexMethodHandle.MethodHandleType;
+import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexProgramClass.ChecksumSupplier;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
@@ -60,11 +62,11 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Pair;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.io.ByteStreams;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2LongMap;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -87,7 +89,7 @@ public class DexParser {
   private int[] stringIDs;
   private final ClassKind classKind;
   private final InternalOptions options;
-  private ImmutableMap<String, Long> checksums;
+  private Object2LongMap<String> checksums;
 
   public static DexSection[] parseMapFrom(Path file) throws IOException {
     return parseMapFrom(Files.newInputStream(file), new PathOrigin(file));
@@ -712,9 +714,10 @@ public class DexParser {
       DexEncodedMethod[] virtualMethods = DexEncodedMethod.EMPTY_ARRAY;
       AnnotationsDirectory annotationsDirectory = annotationsDirectoryAt(annotationsOffsets[i]);
 
+      Long checksum = null;
       if (checksums != null && classDataOffsets[i] != 0) {
         String desc = type.descriptor.toASCIIString();
-        Long checksum = checksums.get(desc);
+        checksum = checksums.getOrDefault(desc, null);
         if (!options.dexClassChecksumFilter.test(desc, checksum)) {
           continue;
         }
@@ -752,6 +755,10 @@ public class DexParser {
       AttributesAndAnnotations attrs =
           new AttributesAndAnnotations(type, annotationsDirectory.clazz, options.itemFactory);
 
+      Long finalChecksum = checksum;
+      ChecksumSupplier checksumSupplier =
+          finalChecksum == null ? DexProgramClass::invalidChecksumRequest : c -> finalChecksum;
+
       DexClass clazz =
           classKind.create(
               type,
@@ -770,7 +777,8 @@ public class DexParser {
               instanceFields,
               directMethods,
               virtualMethods,
-              dexItemFactory.getSkipNameValidationForTesting());
+              dexItemFactory.getSkipNameValidationForTesting(),
+              checksumSupplier);
       classCollection.accept(clazz);  // Update the application object.
     }
   }
@@ -939,23 +947,15 @@ public class DexParser {
   }
 
   private void populateChecksums() {
-    ClassesChecksum checksums = null;
+    ClassesChecksum parsedChecksums = new ClassesChecksum();
     for (int i = stringIDs.length - 1; i >= 0; i--) {
       DexString value = indexedItems.getString(i);
-      ClassesChecksum checksum = ClassesChecksum.parse(value);
-      if (checksum != null) {
-        if (checksums == null) {
-          checksums = checksum;
-        } else {
-          checksums.merge(checksum);
-        }
-      } else if (ClassesChecksum.preceedChecksumMarker(value)) {
+      if (ClassesChecksum.preceedChecksumMarker(value)) {
         break;
       }
+      parsedChecksums.tryParseAndAppend(value);
     }
-    if (checksums != null) {
-      this.checksums = checksums.getChecksums();
-    }
+    this.checksums = parsedChecksums.getChecksums();
   }
 
   /**
