@@ -2644,9 +2644,11 @@ public class Enqueuer {
       if (keepClass) {
         markInstantiated(clazz, null, KeepReason.reflectiveUseIn(method));
       }
-      if (pinnedItems.add(encodedField.field)) {
-        markFieldAsKept(clazz, encodedField, KeepReason.reflectiveUseIn(method));
-      }
+      markFieldAsKept(clazz, encodedField, KeepReason.reflectiveUseIn(method));
+      // Fields accessed by reflection is marked as both read and written.
+      registerFieldRead(encodedField.field, method);
+      registerFieldWrite(encodedField.field, method);
+
     } else {
       assert identifierItem.isDexMethod();
       DexMethod targetedMethod = identifierItem.asDexMethod();
