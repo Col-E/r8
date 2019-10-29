@@ -170,7 +170,7 @@ public class TestParametersBuilder {
     return withApiFilter(api -> startExclusive.getLevel() < api.getLevel());
   }
 
-  public TestParametersBuilder withApiLevelsEndingAtInclusive(AndroidApiLevel endInclusive) {
+  public TestParametersBuilder withApiLevelsEndingAtIncluding(AndroidApiLevel endInclusive) {
     return withApiFilter(api -> api.getLevel() <= endInclusive.getLevel());
   }
 

@@ -23,7 +23,7 @@ public class B140588497 extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimes().build();
+    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
   }
 
   private final TestParameters parameters;
@@ -36,32 +36,41 @@ public class B140588497 extends TestBase {
   public void testD8() throws Exception {
     testForD8()
         .addInnerClasses(B140588497.class)
-        .setMinApi(parameters.getRuntime())
-        .compile()
-        .inspect(inspector -> {
-          ClassSubject c = inspector.clazz(TestClass.class);
-          assertThat(c, isPresent());
+        .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutputLines("012345")
+        .inspect(
+            inspector -> {
+              ClassSubject c = inspector.clazz(TestClass.class);
+              assertThat(c, isPresent());
 
-          MethodSubject m = c.uniqueMethodWithName("invokeRangeTest");
-          assertThat(m, isPresent());
-          long prev;
-          long curr = -1;
-          Iterator<InstructionSubject> it =
-              m.iterateInstructions(InstructionSubject::isConstNumber);
-          while (it.hasNext()) {
-            InstructionSubject instr = it.next();
-            prev = curr;
-            curr = instr.getConstNumber();
-            assertTrue(prev < curr);
-          }
-        });
+              MethodSubject m = c.uniqueMethodWithName("invokeRangeTest");
+              assertThat(m, isPresent());
+              long prev;
+              long curr = -1;
+              Iterator<InstructionSubject> it =
+                  m.iterateInstructions(InstructionSubject::isConstNumber);
+              while (it.hasNext()) {
+                InstructionSubject instr = it.next();
+                prev = curr;
+                curr = instr.getConstNumber();
+                assertTrue(prev < curr);
+              }
+            });
   }
 
   static class TestClass {
     public static void invokeRangeTest() {
       consumeManyLongs(0, 1, 2, 3, 4, 5);
     }
-    public static void consumeManyLongs(long a, long b, long c, long d, long e, long f) {}
+
+    public static void consumeManyLongs(long a, long b, long c, long d, long e, long f) {
+      System.out.println("" + a + b + c + d + e + f);
+    }
+
+    public static void main(String[] args) {
+      invokeRangeTest();
+    }
   }
 
 }

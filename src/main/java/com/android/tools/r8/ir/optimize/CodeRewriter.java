@@ -123,12 +123,14 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 public class CodeRewriter {
@@ -1736,11 +1738,10 @@ public class CodeRewriter {
     // doing so seems to make things worse.
     Supplier<DominatorTree> dominatorTreeMemoization =
         Suppliers.memoize(() -> new DominatorTree(code));
-    Map<BasicBlock, List<Instruction>> addConstantInBlock = new HashMap<>();
+    Map<BasicBlock, Map<Value, Instruction>> addConstantInBlock = new IdentityHashMap<>();
     LinkedList<BasicBlock> blocks = code.blocks;
-    for (int i = 0; i < blocks.size(); i++) {
-      BasicBlock block = blocks.get(i);
-      if (i == 0) {
+    for (BasicBlock block : blocks) {
+      if (block == blocks.getFirst()) {
         // For the first block process all ConstNumber as well as ConstString instructions.
         shortenLiveRangesInsideBlock(
             code,
@@ -1762,26 +1763,26 @@ public class CodeRewriter {
     }
 
     // Heuristic to decide if constant instructions are shared in dominator block
-    // of usages or move to the usages.
+    // of usages or moved to the usages.
 
     // Process all blocks in stable order to avoid non-determinism of hash map iterator.
     for (BasicBlock block : blocks) {
-      List<Instruction> instructions = addConstantInBlock.get(block);
-      if (instructions == null) {
+      Map<Value, Instruction> constants = addConstantInBlock.get(block);
+      if (constants == null) {
         continue;
       }
 
-      if (block != blocks.get(0) && instructions.size() > STOP_SHARED_CONSTANT_THRESHOLD) {
-        // Too much constants in the same block, do not longer share them except if they are used
-        // by phi instructions or they are a sting constants.
-        for (Instruction instruction : instructions) {
-          if (instruction.outValue().numberOfPhiUsers() != 0 || instruction.isConstString()) {
-            // Add constant into the dominator block of usages.
-            insertConstantInBlock(instruction, block, code);
-          } else {
-            assert instruction.isConstNumber();
-            ConstNumber constNumber = instruction.asConstNumber();
-            Value constantValue = instruction.outValue();
+      Set<Value> alreadyMoved = SetUtils.newIdentityHashSet(constants.size());
+      if (block != blocks.getFirst() && constants.size() > STOP_SHARED_CONSTANT_THRESHOLD) {
+        // If there are too many constants in the same block, they are copied rather than shared
+        // except if they are used by phi instructions or they are a string constants.
+        assert constants instanceof LinkedHashMap;
+        for (Instruction constantInstruction : constants.values()) {
+          if (constantInstruction.outValue().numberOfPhiUsers() == 0
+              && !constantInstruction.isConstString()) {
+            assert constantInstruction.isConstNumber();
+            ConstNumber constNumber = constantInstruction.asConstNumber();
+            Value constantValue = constantInstruction.outValue();
             assert constantValue.numberOfUsers() != 0;
             assert constantValue.numberOfUsers() == constantValue.numberOfAllUsers();
             for (Instruction user : constantValue.uniqueUsers()) {
@@ -1793,12 +1794,40 @@ public class CodeRewriter {
               user.replaceValue(constantValue, newCstNum.outValue());
             }
             constantValue.clearUsers();
+            alreadyMoved.add(constantInstruction.outValue());
           }
         }
-      } else {
-        // Add constant into the dominator block of usages.
-        for (Instruction instruction : instructions) {
-          insertConstantInBlock(instruction, block, code);
+      }
+
+      // Add constant into the dominator block of usages.
+      boolean hasCatchHandlers = block.hasCatchHandlers();
+      InstructionListIterator it = block.listIterator(code);
+      while (it.hasNext()) {
+        Instruction instruction = it.next();
+        if (instruction.isJumpInstruction()
+            || (hasCatchHandlers && instruction.instructionTypeCanThrow())
+            || (options.canHaveCmpIfFloatBug() && instruction.isCmp())) {
+          break;
+        }
+        forEachUse(
+            instruction,
+            use -> {
+              Instruction constantInstruction = constants.get(use);
+              if (constantInstruction != null && !alreadyMoved.contains(use)) {
+                it.previous();
+                constantInstruction.setPosition(instruction.getPosition());
+                it.add(constantInstruction);
+                it.next();
+                alreadyMoved.add(use);
+              }
+            });
+      }
+      // Insert remaining constant instructions prior to the "exit".
+      Instruction next = it.previous();
+      for (Instruction constantInstruction : constants.values()) {
+        if (!alreadyMoved.contains(constantInstruction.outValue())) {
+          constantInstruction.setPosition(next.getPosition());
+          it.add(constantInstruction);
         }
       }
     }
@@ -1806,11 +1835,16 @@ public class CodeRewriter {
     assert code.isConsistentSSA();
   }
 
+  private void forEachUse(Instruction instruction, Consumer<Value> fn) {
+    instruction.inValues().forEach(fn);
+    instruction.getDebugValues().forEach(fn);
+  }
+
   private void shortenLiveRangesInsideBlock(
       IRCode code,
       BasicBlock block,
       Supplier<DominatorTree> dominatorTreeMemoization,
-      Map<BasicBlock, List<Instruction>> addConstantInBlock,
+      Map<BasicBlock, Map<Value, Instruction>> addConstantInBlock,
       Predicate<ConstInstruction> selector) {
     InstructionListIterator iterator = block.listIterator(code);
     while (iterator.hasNext()) {
@@ -1897,31 +1931,15 @@ public class CodeRewriter {
         }
       }
 
-      List<Instruction> csts =
-          addConstantInBlock.computeIfAbsent(dominator, k -> new ArrayList<>());
+      Map<Value, Instruction> csts =
+          addConstantInBlock.computeIfAbsent(dominator, k -> new LinkedHashMap<>());
 
       ConstInstruction copy = instruction.isConstNumber()
           ? ConstNumber.copyOf(code, instruction.asConstNumber())
           : ConstString.copyOf(code, instruction.asConstString());
       instruction.outValue().replaceUsers(copy.outValue());
-      csts.add(copy);
+      csts.put(copy.outValue(), copy);
     }
-  }
-
-  private void insertConstantInBlock(Instruction instruction, BasicBlock block, IRCode code) {
-    boolean hasCatchHandlers = block.hasCatchHandlers();
-    InstructionListIterator insertAt = block.listIterator(code);
-    // Place the instruction as late in the block as we can. It needs to go before users
-    // and if we have catch handlers it needs to be placed before the throwing instruction.
-    insertAt.nextUntil(
-        i ->
-            instruction.outValue().uniqueUsers().contains(i)
-                || i.isJumpInstruction()
-                || (hasCatchHandlers && i.instructionTypeCanThrow())
-                || (options.canHaveCmpIfFloatBug() && i.isCmp()));
-    Instruction next = insertAt.previous();
-    instruction.setPosition(next.getPosition());
-    insertAt.add(instruction);
   }
 
   private short[] computeArrayFilledData(ConstInstruction[] values, int size, int elementSize) {
