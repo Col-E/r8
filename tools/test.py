@@ -43,6 +43,12 @@ BUCKET = 'r8-test-results'
 NUMBER_OF_TEST_REPORTS = 5
 REPORTS_PATH = os.path.join(utils.BUILD, 'reports')
 REPORT_INDEX = ['tests', 'test', 'index.html']
+VALID_RUNTIMES = [
+  'none',
+  'jdk8',
+  'jdk9',
+  'jdk11',
+] + [ 'dex-%s' % dexvm for dexvm in ALL_ART_VMS ]
 
 def ParseOptions():
   result = optparse.OptionParser()
@@ -131,6 +137,11 @@ def ParseOptions():
   result.add_option('--worktree',
       default=False, action='store_true',
       help='Tests are run in worktree and should not use gradle user home.')
+  result.add_option('--runtimes',
+      default=None,
+      help='Test parameter runtimes to use, separated by : (eg, none:jdk9).'
+          ' Special values include: all (for all runtimes)'
+          ' and empty (for no runtimes).')
   return result.parse_args()
 
 def archive_failures():
@@ -268,6 +279,33 @@ def Main():
     return archive_and_return(return_code, options)
 
   # Now run tests on selected runtime(s).
+  if options.runtimes:
+    if options.dex_vm != 'default':
+      print 'Unexpected runtimes and dex_vm argument: ' + options.dex_vm
+      sys.exit(1)
+    if options.runtimes == 'empty':
+      # Set runtimes with no content will configure no runtimes.
+      gradle_args.append('-Pruntimes=')
+    elif options.runtimes == 'all':
+      # An unset runtimes will configure all runtimes
+      pass
+    else:
+      prefixes = [prefix.strip() for prefix in options.runtimes.split(':')]
+      runtimes = []
+      for prefix in prefixes:
+        matches = [ rt for rt in VALID_RUNTIMES if rt.startswith(prefix) ]
+        if len(matches) == 0:
+          print "Invalid runtime prefix '%s'." % prefix
+          print "Must be just 'all', 'empty'," \
+                " or a prefix of %s" % ', '.join(VALID_RUNTIMES)
+          sys.exit(1)
+        runtimes.extend(matches)
+      gradle_args.append('-Pruntimes=%s' % ':'.join(runtimes))
+
+    return_code = gradle.RunGradle(gradle_args, throw_on_failure=False)
+    return archive_and_return(return_code, options)
+
+  # Legacy testing populates the runtimes based on dex_vm.
   vms_to_test = [options.dex_vm] if options.dex_vm != "all" else ALL_ART_VMS
 
   for art_vm in vms_to_test:
