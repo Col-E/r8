@@ -1325,7 +1325,9 @@ public class IRConverter {
                       isProcessedConcurrently,
                       callSiteInformation,
                       options.classInliningInstructionLimit,
-                      options.classInliningInstructionAllowance)));
+                      // Inlining instruction allowance is not needed for the class inliner since it
+                      // always uses a force inlining oracle for inlining.
+                      -1)));
       assert code.isConsistentSSA();
       assert code.verifyTypes(appView);
     }
