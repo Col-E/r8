@@ -369,6 +369,10 @@ def parse_options():
     print "When releasing a release version add the list of bugs by using '--bug'"
     sys.exit(1)
 
+  if args.version and not 'dev' in args.version and args.google3:
+    print "You should not roll a release version into google 3"
+    sys.exit(1)
+
   return args
 
 
