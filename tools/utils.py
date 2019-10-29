@@ -191,7 +191,10 @@ def RunCmd(cmd, env_vars=None, quiet=False, fail=True, logging=True):
       if ('AssertionError:' in stripped
           or 'CompilationError:' in stripped
           or 'CompilationFailedException:' in stripped
-          or 'Compilation failed' in stripped):
+          or 'Compilation failed' in stripped
+          or 'FAILURE:' in stripped
+          or 'org.gradle.api.ProjectConfigurationException' in stripped
+          or 'BUILD FAILED' in stripped):
         failed = True
     else:
       if logger:

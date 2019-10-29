@@ -748,10 +748,13 @@ def BuildAppWithShrinker(
   unsigned_apk = os.path.join(build_output_apks, unsigned_apk_name)
 
   assert os.path.isfile(signed_apk) or os.path.isfile(unsigned_apk), (
-      "Expected a file to be present at {} or {}, found: {}".format(
-          signed_apk, unsigned_apk,
+      "Expected a file to be present at {} or {}, found: {}\n"
+      "Standard out from compilation: {}".format(
+          signed_apk,
+          unsigned_apk,
           ', '.join(
-              as_utils.ListFiles(build_dir, lambda x : x.endswith('.apk')))))
+              as_utils.ListFiles(build_dir, lambda x : x.endswith('.apk'))),
+          stdout))
 
   if options.sign_apks and not os.path.isfile(signed_apk):
     assert os.path.isfile(unsigned_apk)
