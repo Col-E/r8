@@ -109,7 +109,6 @@ import java.util.TreeSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -448,7 +447,7 @@ public class IRConverter {
     removeLambdaDeserializationMethods();
 
     timing.begin("IR conversion");
-    convertClasses(application.classes(), executor);
+    ThreadUtils.processItems(application.classes(), this::convertMethods, executor);
 
     // Build a new application with jumbo string info,
     Builder<?> builder = application.builder();
@@ -534,15 +533,6 @@ public class IRConverter {
 
       original.annotations = original.annotations.getWithAddedOrReplaced(updatedAnnotation);
     }
-  }
-
-  private void convertClasses(Iterable<DexProgramClass> classes, ExecutorService executor)
-      throws ExecutionException {
-    List<Future<?>> futures = new ArrayList<>();
-    for (DexProgramClass clazz : classes) {
-      futures.add(executor.submit(() -> convertMethods(clazz)));
-    }
-    ThreadUtils.awaitFutures(futures);
   }
 
   private void convertMethods(DexProgramClass clazz) {
@@ -680,15 +670,7 @@ public class IRConverter {
     if (appView.callSiteOptimizationInfoPropagator() != null) {
       printPhase("2nd round of method processing after inter-procedural analysis.");
       timing.begin("IR conversion phase 2");
-      appView.callSiteOptimizationInfoPropagator().revisitMethods(
-          (method, isProcessedConcurrently) ->
-              processMethod(
-                  method,
-                  feedback,
-                  isProcessedConcurrently,
-                  CallSiteInformation.empty(),
-                  Outliner::noProcessing),
-          executorService);
+      appView.callSiteOptimizationInfoPropagator().revisitMethods(this, executorService);
       feedback.updateVisibleOptimizationInfo();
       timing.end();
     }
@@ -697,7 +679,7 @@ public class IRConverter {
     if (inliner != null) {
       printPhase("Double caller inlining");
       assert graphLenseForIR == appView.graphLense();
-      inliner.processDoubleInlineCallers(this, executorService, feedback);
+      inliner.processDoubleInlineCallers(this, executorService);
       feedback.updateVisibleOptimizationInfo();
       assert graphLenseForIR == appView.graphLense();
     }
@@ -731,8 +713,8 @@ public class IRConverter {
     generateDesugaredLibraryAPIWrappers(builder, executorService);
 
     if (serviceLoaderRewriter != null && serviceLoaderRewriter.getSynthesizedClass() != null) {
-      forEachSynthesizedServiceLoaderMethod(
-          executorService, serviceLoaderRewriter.getSynthesizedClass());
+      processSynthesizedServiceLoaderMethods(
+          serviceLoaderRewriter.getSynthesizedClass(), executorService);
       builder.addSynthesizedClass(serviceLoaderRewriter.getSynthesizedClass(), true);
     }
 
@@ -744,21 +726,21 @@ public class IRConverter {
       timing.begin("IR conversion phase 3");
       if (outliner.selectMethodsForOutlining()) {
         forEachSelectedOutliningMethod(
-            executorService,
             (code, method) -> {
               printMethod(code, "IR before outlining (SSA)", null);
               outliner.identifyOutlineSites(code, method);
-            });
+            },
+            executorService);
         DexProgramClass outlineClass = outliner.buildOutlinerClass(computeOutlineClassType());
         appView.appInfo().addSynthesizedClass(outlineClass);
         optimizeSynthesizedClass(outlineClass, executorService);
         forEachSelectedOutliningMethod(
-            executorService,
             (code, method) -> {
               outliner.applyOutliningCandidate(code, method);
               printMethod(code, "IR after outlining (SSA)", null);
               finalizeIR(method, code, OptimizationFeedbackIgnore.getInstance());
-            });
+            },
+            executorService);
         feedback.updateVisibleOptimizationInfo();
         assert outliner.checkAllOutlineSitesFoundAgain();
         builder.addSynthesizedClass(outlineClass, true);
@@ -845,49 +827,41 @@ public class IRConverter {
   }
 
   private void forEachSelectedOutliningMethod(
-      ExecutorService executorService, BiConsumer<IRCode, DexEncodedMethod> consumer)
+      BiConsumer<IRCode, DexEncodedMethod> consumer, ExecutorService executorService)
       throws ExecutionException {
     assert !options.skipIR;
     Set<DexEncodedMethod> methods = outliner.getMethodsSelectedForOutlining();
-    List<Future<?>> futures = new ArrayList<>();
-    for (DexEncodedMethod method : methods) {
-      futures.add(
-          executorService.submit(
-              () -> {
-                IRCode code =
-                    method.buildIR(appView, appView.appInfo().originFor(method.method.holder));
-                assert code != null;
-                assert !method.getCode().isOutlineCode();
-                // Instead of repeating all the optimizations of rewriteCode(), only run the
-                // optimizations needed for outlining: rewriteMoveResult() to remove out-values on
-                // StringBuilder/StringBuffer method invocations, and removeDeadCode() to remove
-                // unused out-values.
-                codeRewriter.rewriteMoveResult(code);
-                deadCodeRemover.run(code);
-                CodeRewriter.removeAssumeInstructions(appView, code);
-                consumer.accept(code, method);
-                return null;
-              }));
-    }
-    ThreadUtils.awaitFutures(futures);
+    ThreadUtils.processItems(
+        methods,
+        method -> {
+          IRCode code = method.buildIR(appView, appView.appInfo().originFor(method.method.holder));
+          assert code != null;
+          assert !method.getCode().isOutlineCode();
+          // Instead of repeating all the optimizations of rewriteCode(), only run the
+          // optimizations needed for outlining: rewriteMoveResult() to remove out-values on
+          // StringBuilder/StringBuffer method invocations, and removeDeadCode() to remove
+          // unused out-values.
+          codeRewriter.rewriteMoveResult(code);
+          deadCodeRemover.run(code);
+          CodeRewriter.removeAssumeInstructions(appView, code);
+          consumer.accept(code, method);
+        },
+        executorService);
   }
 
-  private void forEachSynthesizedServiceLoaderMethod(
-      ExecutorService executorService, DexClass synthesizedClass) throws ExecutionException {
-    List<Future<?>> futures = new ArrayList<>();
-    for (DexEncodedMethod method : synthesizedClass.methods()) {
-      futures.add(
-          executorService.submit(
-              () -> {
-                IRCode code =
-                    method.buildIR(appView, appView.appInfo().originFor(method.method.holder));
-                assert code != null;
-                codeRewriter.rewriteMoveResult(code);
-                finalizeIR(method, code, OptimizationFeedbackIgnore.getInstance());
-                return null;
-              }));
-    }
-    ThreadUtils.awaitFutures(futures);
+  private void processSynthesizedServiceLoaderMethods(
+      DexClass synthesizedClass, ExecutorService executorService) throws ExecutionException {
+    ThreadUtils.processItems(
+        synthesizedClass.methods(),
+        this::forEachSynthesizedServiceLoaderMethod,
+        executorService);
+  }
+
+  private void forEachSynthesizedServiceLoaderMethod(DexEncodedMethod method) {
+    IRCode code = method.buildIR(appView, appView.appInfo().originFor(method.method.holder));
+    assert code != null;
+    codeRewriter.rewriteMoveResult(code);
+    finalizeIR(method, code, OptimizationFeedbackIgnore.getInstance());
   }
 
   private void collectLambdaMergingCandidates(DexApplication application) {
@@ -968,7 +942,7 @@ public class IRConverter {
     Set<DexEncodedMethod> methods = Sets.newIdentityHashSet();
     clazz.forEachMethod(methods::add);
     // Process the generated class, but don't apply any outlining.
-    optimizeSynthesizedMethodsConcurrently(methods, executorService);
+    processMethodsConcurrently(methods, executorService);
   }
 
   public void optimizeSynthesizedClasses(
@@ -979,7 +953,7 @@ public class IRConverter {
       clazz.forEachMethod(methods::add);
     }
     // Process the generated class, but don't apply any outlining.
-    optimizeSynthesizedMethodsConcurrently(methods, executorService);
+    processMethodsConcurrently(methods, executorService);
   }
 
   public void optimizeSynthesizedMethod(DexEncodedMethod method) {
@@ -994,31 +968,18 @@ public class IRConverter {
     }
   }
 
-  public void optimizeSynthesizedMethodsConcurrently(
+  public void processMethodsConcurrently(
       Collection<DexEncodedMethod> methods, ExecutorService executorService)
       throws ExecutionException {
-    List<Future<?>> futures = new ArrayList<>(methods.size());
-    optimizeSynthesizedMethodsConcurrently(methods, executorService, futures);
-    ThreadUtils.awaitFutures(futures);
-  }
-
-  public void optimizeSynthesizedMethodsConcurrently(
-      Collection<DexEncodedMethod> methods,
-      ExecutorService executorService,
-      List<Future<?>> futures) {
-    for (DexEncodedMethod method : methods) {
-      futures.add(
-          executorService.submit(
-              () -> {
-                processMethod(
-                    method,
-                    delayedOptimizationFeedback,
-                    methods::contains,
-                    CallSiteInformation.empty(),
-                    Outliner::noProcessing);
-                return null; // we want a Callable not a Runnable to be able to throw
-              }));
-    }
+    ThreadUtils.processItems(
+        methods,
+        method -> processMethod(
+            method,
+            delayedOptimizationFeedback,
+            methods::contains,
+            CallSiteInformation.empty(),
+            Outliner::noProcessing),
+        executorService);
   }
 
   private String logCode(InternalOptions options, DexEncodedMethod method) {

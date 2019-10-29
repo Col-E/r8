@@ -20,22 +20,18 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MutableCallSiteOptimizationInfo;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.ThreadUtils;
-import com.android.tools.r8.utils.ThrowingBiConsumer;
 import com.google.common.collect.Sets;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.function.Predicate;
 
 public class CallSiteOptimizationInfoPropagator {
 
@@ -235,9 +231,7 @@ public class CallSiteOptimizationInfoPropagator {
     }
   }
 
-  public <E extends Exception> void revisitMethods(
-      ThrowingBiConsumer<DexEncodedMethod, Predicate<DexEncodedMethod>, E> consumer,
-      ExecutorService executorService)
+  public void revisitMethods(IRConverter converter, ExecutorService executorService)
       throws ExecutionException {
     Set<DexEncodedMethod> targetsToRevisit = Sets.newIdentityHashSet();
     for (DexProgramClass clazz : appView.appInfo().classes()) {
@@ -261,15 +255,6 @@ public class CallSiteOptimizationInfoPropagator {
     if (revisitedMethods != null) {
       revisitedMethods.addAll(targetsToRevisit);
     }
-    List<Future<?>> futures = new ArrayList<>();
-    for (DexEncodedMethod method : targetsToRevisit) {
-      futures.add(
-          executorService.submit(
-              () -> {
-                consumer.accept(method, targetsToRevisit::contains);
-                return null; // we want a Callable not a Runnable to be able to throw
-              }));
-    }
-    ThreadUtils.awaitFutures(futures);
+    converter.processMethodsConcurrently(targetsToRevisit, executorService);
   }
 }

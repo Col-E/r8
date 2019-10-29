@@ -129,14 +129,11 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
 
   private void optimizeDeferredBridgesConcurrently(
       ExecutorService executorService, IRConverter converter) throws ExecutionException {
-    List<Future<?>> futures =
-        new ArrayList<>(bridges.size() + getFieldBridges.size() + putFieldBridges.size());
-    converter.optimizeSynthesizedMethodsConcurrently(bridges.values(), executorService, futures);
-    converter.optimizeSynthesizedMethodsConcurrently(
-        getFieldBridges.values(), executorService, futures);
-    converter.optimizeSynthesizedMethodsConcurrently(
-        putFieldBridges.values(), executorService, futures);
-    ThreadUtils.awaitFutures(futures);
+    Collection<DexEncodedMethod> methods = new ArrayList<>();
+    methods.addAll(bridges.values());
+    methods.addAll(getFieldBridges.values());
+    methods.addAll(putFieldBridges.values());
+    converter.processMethodsConcurrently(methods, executorService);
   }
 
   public void desugarNestBasedAccess(

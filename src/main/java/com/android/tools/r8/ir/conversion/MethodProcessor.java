@@ -15,15 +15,12 @@ import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.ThrowingBiConsumer;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -106,17 +103,9 @@ public class MethodProcessor {
     while (!waves.isEmpty()) {
       Collection<DexEncodedMethod> wave = waves.removeFirst();
       assert wave.size() > 0;
-      List<Future<?>> futures = new ArrayList<>();
       waveStart.accept(wave);
-      for (DexEncodedMethod method : wave) {
-        futures.add(
-            executorService.submit(
-                () -> {
-                  consumer.accept(method, wave::contains);
-                  return null; // we want a Callable not a Runnable to be able to throw
-                }));
-      }
-      ThreadUtils.awaitFutures(futures);
+      ThreadUtils.processItems(
+          wave, method -> consumer.accept(method, wave::contains), executorService);
       waveDone.execute();
     }
   }

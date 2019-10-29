@@ -988,7 +988,7 @@ public final class InterfaceMethodRewriter {
       renameEmulatedInterfaces();
     }
 
-    converter.optimizeSynthesizedMethodsConcurrently(synthesizedMethods, executorService);
+    converter.processMethodsConcurrently(synthesizedMethods, executorService);
 
     // Cached data is not needed any more.
     clear();

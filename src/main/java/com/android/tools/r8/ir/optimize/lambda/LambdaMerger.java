@@ -25,10 +25,8 @@ import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.conversion.CallSiteInformation;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
-import com.android.tools.r8.ir.optimize.Outliner;
 import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
@@ -283,7 +281,7 @@ public final class LambdaMerger {
 
     // Analyse references from program classes. We assume that this optimization
     // is only used for full program analysis and there are no classpath classes.
-    analyzeReferencesInProgramClasses(app, executorService);
+    ThreadUtils.processItems(app.classes(), this::analyzeClass, executorService);
 
     // Analyse more complex aspects of lambda classes including method code.
     analyzeLambdaClassesStructure(executorService);
@@ -342,15 +340,6 @@ public final class LambdaMerger {
     // references inside methods from the processing queue.
     rewriteLambdaReferences(converter, executorService, feedback);
     this.mode = null;
-  }
-
-  private void analyzeReferencesInProgramClasses(
-      DexApplication app, ExecutorService service) throws ExecutionException {
-    List<Future<?>> futures = new ArrayList<>();
-    for (DexProgramClass clazz : app.classes()) {
-      futures.add(service.submit(() -> analyzeClass(clazz)));
-    }
-    ThreadUtils.awaitFutures(futures);
   }
 
   private void analyzeLambdaClassesStructure(ExecutorService service) throws ExecutionException {
@@ -424,22 +413,10 @@ public final class LambdaMerger {
         methodsToReprocess.stream()
             .map(method -> appView.graphLense().mapDexEncodedMethod(method, appView))
             .collect(Collectors.toSet());
-    List<Future<?>> futures = new ArrayList<>();
-    for (DexEncodedMethod method : methods) {
-      futures.add(
-          executorService.submit(
-              () -> {
-                converter.processMethod(
-                    method,
-                    feedback,
-                    methods::contains,
-                    CallSiteInformation.empty(),
-                    Outliner::noProcessing);
-                assert method.isProcessed();
-                return null;
-              }));
-    }
-    ThreadUtils.awaitFutures(futures);
+    converter.processMethodsConcurrently(methods, executorService);
+    methods.forEach(method -> {
+      assert method.isProcessed();
+    });
   }
 
   private void analyzeClass(DexProgramClass clazz) {

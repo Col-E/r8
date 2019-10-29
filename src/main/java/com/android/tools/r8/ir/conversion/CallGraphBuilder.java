@@ -10,11 +10,8 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.base.Predicates;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 
 public class CallGraphBuilder extends CallGraphBuilderBase {
 
@@ -24,18 +21,7 @@ public class CallGraphBuilder extends CallGraphBuilderBase {
 
   @Override
   void process(ExecutorService executorService) throws ExecutionException {
-    List<Future<?>> futures = new ArrayList<>();
-    for (DexProgramClass clazz : appView.appInfo().classes()) {
-      if (clazz.hasMethods()) {
-        futures.add(
-            executorService.submit(
-                () -> {
-                  processClass(clazz);
-                  return null; // we want a Callable not a Runnable to be able to throw
-                }));
-      }
-    }
-    ThreadUtils.awaitFutures(futures);
+    ThreadUtils.processItems(appView.appInfo().classes(), this::processClass, executorService);
   }
 
   private void processClass(DexProgramClass clazz) {

@@ -47,7 +47,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -274,16 +273,10 @@ final class StaticizingProcessor {
    */
   private void processMethodsConcurrently(
       OptimizationFeedback feedback, ExecutorService executorService) throws ExecutionException {
-    List<Future<?>> futures = new ArrayList<>();
-    for (DexEncodedMethod method : processingQueue.keySet()) {
-      futures.add(
-          executorService.submit(
-              () -> {
-                forEachMethod(method, processingQueue.get(method), feedback);
-                return null; // we want a Callable not a Runnable to be able to throw
-              }));
-    }
-    ThreadUtils.awaitFutures(futures);
+    ThreadUtils.processItems(
+        processingQueue.keySet(),
+        method -> forEachMethod(method, processingQueue.get(method), feedback),
+        executorService);
     // TODO(b/140767158): No need to clear if we can do every thing in one go.
     processingQueue.clear();
   }

@@ -54,7 +54,6 @@ import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.ListUtils;
-import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
@@ -67,7 +66,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import java.util.function.Predicate;
 
 public class Inliner {
@@ -240,28 +238,16 @@ public class Inliner {
   }
 
   public void processDoubleInlineCallers(
-      IRConverter converter, ExecutorService executorService, OptimizationFeedback feedback)
+      IRConverter converter, ExecutorService executorService)
       throws ExecutionException {
     if (doubleInlineCallers.isEmpty()) {
       return;
     }
     applyDoubleInlining = true;
-    List<Future<?>> futures = new ArrayList<>();
-    for (DexEncodedMethod method : doubleInlineCallers) {
-      futures.add(
-          executorService.submit(
-              () -> {
-                converter.processMethod(
-                    method,
-                    feedback,
-                    doubleInlineCallers::contains,
-                    CallSiteInformation.empty(),
-                    Outliner::noProcessing);
-                assert method.isProcessed();
-                return null;
-              }));
-    }
-    ThreadUtils.awaitFutures(futures);
+    converter.processMethodsConcurrently(doubleInlineCallers, executorService);
+    doubleInlineCallers.forEach(method -> {
+      assert method.isProcessed();
+    });
   }
 
   /**

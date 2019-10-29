@@ -3,7 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -12,6 +14,20 @@ import java.util.concurrent.Future;
 public class ThreadUtils {
 
   public static final int NOT_SPECIFIED = -1;
+
+  public static <T, E extends Exception> void processItems(
+      Iterable<T> items, ThrowingConsumer<T, E> consumer, ExecutorService executorService)
+      throws ExecutionException {
+    List<Future<?>> futures = new ArrayList<>();
+    for (T item : items) {
+      futures.add(executorService.submit(
+          () -> {
+            consumer.accept(item);
+            return null; // we want a Callable not a Runnable to be able to throw
+          }));
+    }
+    awaitFutures(futures);
+  }
 
   public static void awaitFutures(Iterable<? extends Future<?>> futures)
       throws ExecutionException {

@@ -7,12 +7,9 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ThreadUtils;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 
 public class PartialCallGraphBuilder extends CallGraphBuilderBase {
   private final Set<DexEncodedMethod> seeds;
@@ -25,16 +22,7 @@ public class PartialCallGraphBuilder extends CallGraphBuilderBase {
 
   @Override
   void process(ExecutorService executorService) throws ExecutionException {
-    List<Future<?>> futures = new ArrayList<>();
-    for (DexEncodedMethod method : seeds) {
-      futures.add(
-          executorService.submit(
-              () -> {
-                processMethod(method);
-                return null; // we want a Callable not a Runnable to be able to throw
-              }));
-    }
-    ThreadUtils.awaitFutures(futures);
+    ThreadUtils.processItems(seeds, this::processMethod, executorService);
   }
 
   private void processMethod(DexEncodedMethod method) {
