@@ -131,10 +131,6 @@ public class Jdk11TimeTests extends Jdk11CoreLibTestBase {
 
   @Test
   public void testTime() throws Exception {
-    // TODO(b/137876068): Temporarily ignored to move forward with Desugared API conversion.
-    // Extra conversions are required due to extra classes injected in the desugared library
-    // in this test. Disabled for now.
-    Assume.assumeFalse(parameters.getApiLevel().getLevel() <= AndroidApiLevel.N.getLevel());
     String verbosity = "2";
     D8TestCompileResult compileResult =
         testForD8()
@@ -165,6 +161,8 @@ public class Jdk11TimeTests extends Jdk11CoreLibTestBase {
       if (requiresAnyCoreLibDesugaring(parameters)) {
         assertTrue(
             result.getStdOut().contains("AssertionError")
+                // TODO(b/143275651) raise the right error.
+                || result.getStdOut().contains("NoClassDefFoundError: $r8$wrapper$java")
                 || result.getStdOut().contains("forEach("));
       } else {
         assertTrue(result.getStdOut().contains(StringUtils.lines(success + ": SUCCESS")));
