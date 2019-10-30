@@ -444,4 +444,9 @@ public class DescriptorUtils {
     assert isValidJavaType(typeName);
     return typeName.replace(JAVA_PACKAGE_SEPARATOR, DESCRIPTOR_PACKAGE_SEPARATOR) + ".class";
   }
+
+  public static String getClassFileName(String classDescriptor) {
+    assert classDescriptor != null && isClassDescriptor(classDescriptor);
+    return getClassBinaryNameFromDescriptor(classDescriptor) + CLASS_EXTENSION;
+  }
 }

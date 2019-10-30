@@ -1353,6 +1353,12 @@ public class ToolHelper {
     return forkJava(dir, R8.class, args);
   }
 
+  public static ProcessResult forkR8WithJavaOptions(
+      Path dir, List<String> javaOptions, String... args) throws IOException {
+    String r8Jar = R8_JAR.toAbsolutePath().toString();
+    return forkJavaWithJarAndJavaOptions(dir, r8Jar, Arrays.asList(args), javaOptions);
+  }
+
   public static ProcessResult forkR8Jar(Path dir, String... args)
       throws IOException, InterruptedException {
     String r8Jar = R8_JAR.toAbsolutePath().toString();
@@ -1379,13 +1385,22 @@ public class ToolHelper {
 
   private static ProcessResult forkJavaWithJar(Path dir, String jarPath, List<String> args)
       throws IOException {
-    List<String> command = new ImmutableList.Builder<String>()
-        .add(getJavaExecutable())
-        .add("-jar").add(jarPath)
-        .addAll(args)
-        .build();
+    return forkJavaWithJarAndJavaOptions(dir, jarPath, args, ImmutableList.of());
+  }
+
+  private static ProcessResult forkJavaWithJarAndJavaOptions(
+      Path dir, String jarPath, List<String> args, List<String> javaOptions) throws IOException {
+    List<String> command =
+        new ImmutableList.Builder<String>()
+            .add(getJavaExecutable())
+            .addAll(javaOptions)
+            .add("-jar")
+            .add(jarPath)
+            .addAll(args)
+            .build();
     return runProcess(new ProcessBuilder(command).directory(dir.toFile()));
   }
+
 
   private static ProcessResult forkJava(Path dir, Class clazz, List<String> args)
       throws IOException {

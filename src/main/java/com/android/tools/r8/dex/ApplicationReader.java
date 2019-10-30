@@ -9,14 +9,15 @@ import static com.android.tools.r8.graph.ClassKind.PROGRAM;
 import static com.android.tools.r8.utils.ExceptionUtils.unwrapExecutionException;
 import static com.android.tools.r8.utils.InternalOptions.ASM_VERSION;
 
-import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.ClassFileResourceProvider;
+import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.DataResourceProvider;
 import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.StringResource;
+import com.android.tools.r8.Version;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.ClassKind;
 import com.android.tools.r8.graph.DexApplication;
@@ -42,21 +43,30 @@ import com.android.tools.r8.utils.ProgramClassCollection;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
+import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.ByteStreams;
+import com.google.common.io.Closer;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.OpenOption;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 import org.objectweb.asm.ClassVisitor;
 
 public class ApplicationReader {
@@ -151,31 +161,105 @@ public class ApplicationReader {
   }
 
   private void dumpInputToFile() throws IOException  {
-    List<ProgramResource> programResourcesWithDescriptors = new ArrayList<>();
     try {
-      for (ProgramResourceProvider programResourceProvider : inputApp
-          .getProgramResourceProviders()) {
-        for (ProgramResource programResource : programResourceProvider.getProgramResources()) {
-          if (programResource.getKind() != Kind.CF) {
-            continue;
+      List<ProgramResourceProvider> programResourceProviders =
+          inputApp.getProgramResourceProviders();
+      Set<DataEntryResource> dataEntryResources = inputApp.getDataEntryResourcesForTesting();
+      List<ProgramResource> programResourcesWithDescriptors = new ArrayList<>();
+      for (ProgramResourceProvider programResourceProvider : programResourceProviders) {
+        addProgramResourcesWithDescriptor(
+            programResourcesWithDescriptors, programResourceProvider.getProgramResources());
+      }
+
+      List<ProgramResource> libraryProgramResourcesWithDescriptors =
+          getProgramResourcesWithDescriptors(inputApp.getLibraryResourceProviders());
+
+      List<ProgramResource> classpathProgramResourcesWithDescriptors =
+          getProgramResourcesWithDescriptors(inputApp.getClasspathResourceProviders());
+
+      OpenOption[] openOptions =
+          new OpenOption[] {StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING};
+      try (Closer closer = Closer.create()) {
+        try (ZipOutputStream out =
+            new ZipOutputStream(
+                Files.newOutputStream(Paths.get(options.dumpInputToFile), openOptions))) {
+          writeToZip(
+              dataEntryResources, programResourcesWithDescriptors, closer, out, "program.jar");
+          writeToZip(
+              ImmutableSet.of(),
+              libraryProgramResourcesWithDescriptors,
+              closer,
+              out,
+              "library.jar");
+          writeToZip(
+              ImmutableSet.of(),
+              classpathProgramResourcesWithDescriptors,
+              closer,
+              out,
+              "classpath.jar");
+          if (options.hasProguardConfiguration()) {
+            String proguardConfig = options.getProguardConfiguration().getParsedConfiguration();
+            ZipUtils.writeToZipStream(
+                out, "proguard.config", proguardConfig.getBytes(), ZipEntry.DEFLATED);
           }
-          try (InputStream inputStream = programResource.getByteStream()) {
-            byte[] bytes = ByteStreams.toByteArray(inputStream);
-            String descriptor = extractClassInternalType(bytes);
-            programResourcesWithDescriptors.add(
-                ProgramResource.fromBytes(
-                    programResource.getOrigin(),
-                    programResource.getKind(),
-                    bytes,
-                    ImmutableSet.of(descriptor)));
-          }
+
+          ZipUtils.writeToZipStream(
+              out, "r8-version", Version.getVersionString().getBytes(), ZipEntry.DEFLATED);
         }
       }
-      ClassFileConsumer.ArchiveConsumer.writeResources(
-          Paths.get(options.dumpInputToFile),
-          programResourcesWithDescriptors, inputApp.getDataEntryResourcesForTesting());
     } catch (ResourceException e) {
       options.reporter.fatalError("Failed to write input:" + e.getMessage());
+    }
+  }
+
+  private static void writeToZip(
+      Set<DataEntryResource> dataEntryResources,
+      List<ProgramResource> programResourcesWithDescriptors,
+      Closer closer,
+      ZipOutputStream out,
+      String entry)
+      throws IOException, ResourceException {
+    try (ByteArrayOutputStream programByteStream = new ByteArrayOutputStream()) {
+      try (ZipOutputStream archiveOutputStream = new ZipOutputStream(programByteStream)) {
+        ZipUtils.writeResourcesToZip(
+            programResourcesWithDescriptors, dataEntryResources, closer, archiveOutputStream);
+      }
+      ZipUtils.writeToZipStream(out, entry, programByteStream.toByteArray(), ZipEntry.DEFLATED);
+    }
+  }
+
+  private static List<ProgramResource> getProgramResourcesWithDescriptors(
+      List<ClassFileResourceProvider> classFileResourceProviders)
+      throws IOException, ResourceException {
+    ArrayList<ProgramResource> programResourcesWithDescriptors = new ArrayList<>();
+    for (ClassFileResourceProvider libraryResourceProvider : classFileResourceProviders) {
+      List<ProgramResource> programResources = new ArrayList<>();
+      for (String classDescriptor : libraryResourceProvider.getClassDescriptors()) {
+        programResources.add(libraryResourceProvider.getProgramResource(classDescriptor));
+      }
+      addProgramResourcesWithDescriptor(programResourcesWithDescriptors, programResources);
+    }
+    return programResourcesWithDescriptors;
+  }
+
+  private static void addProgramResourcesWithDescriptor(
+      List<ProgramResource> programResourcesWithDescriptors,
+      Collection<ProgramResource> programResources)
+      throws IOException, ResourceException {
+    for (ProgramResource programResource : programResources) {
+      if (programResource.getKind() != Kind.CF) {
+        continue;
+      }
+      try (InputStream inputStream = programResource.getByteStream()) {
+        byte[] bytes = ByteStreams.toByteArray(inputStream);
+        String descriptor = extractClassInternalType(bytes);
+        programResourcesWithDescriptors.add(
+            ProgramResource.fromBytes(
+                programResource.getOrigin(),
+                programResource.getKind(),
+                bytes,
+                ImmutableSet.of(descriptor)));
+      }
     }
   }
 
