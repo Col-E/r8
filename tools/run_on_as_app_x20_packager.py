@@ -33,6 +33,17 @@ def main():
     shutil.rmtree(utils.OPENSOURCE_APPS_FOLDER)
   for repo in run_on_as_app.APP_REPOSITORIES:
     repo_dir = os.path.join(working_dir, repo.name)
+    # Ensure there is a local gradle user home in the folder
+    for app in repo.apps:
+      app_checkout_dir = (os.path.join(repo_dir, app.dir)
+                          if app.dir else repo_dir)
+      gradle_user_home = os.path.join(
+          app_checkout_dir, run_on_as_app.GRADLE_USER_HOME)
+      if not os.path.exists(gradle_user_home):
+        print 'Could not find the local gradle cache at %s. You should run ' \
+              'run_on_as_app for app %s at least once.' \
+              % (gradle_user_home, repo.name)
+        sys.exit(1)
     dst = os.path.join(utils.OPENSOURCE_APPS_FOLDER, repo.name)
     shutil.copytree(repo_dir, dst)
 
