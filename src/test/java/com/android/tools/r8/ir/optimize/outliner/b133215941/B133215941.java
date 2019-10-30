@@ -70,7 +70,13 @@ public class B133215941 extends TestBase {
         .addKeepClassAndMembersRules(ClassWithStaticMethod.class)
         .setMinApi(parameters.getRuntime())
         .noMinification()
-        .addOptionsModification(options -> options.outline.threshold = 2)
+        .addOptionsModification(options -> {
+          if (parameters.isCfRuntime()) {
+            assert !options.outline.enabled;
+            options.outline.enabled = true;
+          }
+          options.outline.threshold = 2;
+        })
         .compile()
         .inspect(this::validateOutlining)
         .run(parameters.getRuntime(), TestClass.class)

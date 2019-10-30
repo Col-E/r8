@@ -85,6 +85,10 @@ public class B112247415 extends TestBase {
         .addProgramClassesAndInnerClasses(TestClass.class)
         .addKeepMainRule(TestClass.class)
         .addOptionsModification(options -> {
+          if (parameters.isCfRuntime()) {
+            assert !options.outline.enabled;
+            options.outline.enabled = true;
+          }
           // To trigger outliner, set # of expected outline candidate as threshold.
           options.outline.threshold = 2;
           options.enableInlining = false;

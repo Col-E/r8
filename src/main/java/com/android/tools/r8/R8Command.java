@@ -859,6 +859,13 @@ public final class R8Command extends BaseCompilerCommand {
       internal.assertionProcessing = AssertionProcessing.LEAVE;
     }
 
+    // When generating class files the build is "intermediate" and we cannot pollute the namespace
+    // with the a hard-coded outline class. Doing so would prohibit subsequent merging of two
+    // R8 produced libraries.
+    if (internal.isGeneratingClassFiles()) {
+      internal.outline.enabled = false;
+    }
+
     // EXPERIMENTAL flags.
     assert !internal.forceProguardCompatibility;
     internal.forceProguardCompatibility = forceProguardCompatibility;
