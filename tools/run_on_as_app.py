@@ -26,8 +26,6 @@ import download_all_benchmark_dependencies
 SHRINKERS = ['r8', 'r8-full', 'r8-nolib', 'r8-nolib-full', 'pg']
 WORKING_DIR = os.path.join(utils.BUILD, 'opensource_apps')
 
-GRADLE_USER_HOME = '.gradle_user_home'
-
 if ('R8_BENCHMARK_DIR' in os.environ
     and os.path.isdir(os.environ['R8_BENCHMARK_DIR'])):
   WORKING_DIR = os.environ['R8_BENCHMARK_DIR']
@@ -50,7 +48,7 @@ class App(object):
       'archives_base_name': module,
       'build_dir': 'build',
       'compile_sdk': None,
-      'dir': None,
+      'dir': '.',
       'flavor': None,
       'has_instrumentation_tests': False,
       'main_dex_rules': None,
@@ -592,9 +590,7 @@ def GetResultsForApp(app, repo, options, temp_dir):
 
   result['status'] = 'success'
 
-  app_checkout_dir = (os.path.join(repo_checkout_dir, app.dir)
-                      if app.dir else repo_checkout_dir)
-
+  app_checkout_dir = os.path.join(repo_checkout_dir, app.dir)
   result_per_shrinker = BuildAppWithSelectedShrinkers(
       app, repo, options, app_checkout_dir, temp_dir)
   for shrinker, shrinker_result in result_per_shrinker.iteritems():
@@ -690,19 +686,15 @@ def BuildAppWithShrinker(
   if not options.disable_assertions:
     env_vars['JAVA_OPTS'] = '-ea:com.android.tools.r8...'
 
-  release_target = app.releaseTarget
-  if not release_target:
-    release_target = app.module.replace('/', ':') + ':' + 'assemble' + (
+  releaseTarget = app.releaseTarget
+  if not releaseTarget:
+    releaseTarget = app.module.replace('/', ':') + ':' + 'assemble' + (
         app.flavor.capitalize() if app.flavor else '') + 'Release'
 
   # Build using gradle.
-  args = [release_target,
-          '-g=' + os.path.join(checkout_dir, GRADLE_USER_HOME),
+  args = [releaseTarget,
           '-Pandroid.enableR8=' + str(IsR8(shrinker)).lower(),
           '-Pandroid.enableR8.fullMode=' + str(IsR8FullMode(shrinker)).lower()]
-
-  if not options.online:
-    args.append('--offline')
 
   # Warm up gradle if pre_runs > 0. For posterity we generate the same sequence
   # as the benchmarking at https://github.com/madsager/santa-tracker-android.
@@ -1143,13 +1135,12 @@ def ParseOptions(argv):
                     help='Run without building ToT first (only when using ToT)',
                     default=False,
                     action='store_true')
-  result.add_option('--no-logging', '--no_logging',
-                    help='Disable logging except for errors',
+  result.add_option('--quiet',
+                    help='Disable verbose logging',
                     default=False,
                     action='store_true')
-  result.add_option('--online',
-                    help='Do not pass --offline to gradle to force use of '
-                         'local cache',
+  result.add_option('--no-logging', '--no_logging',
+                    help='Disable logging except for errors',
                     default=False,
                     action='store_true')
   result.add_option('--print-dexsegments',
@@ -1157,10 +1148,6 @@ def ParseOptions(argv):
                     help='Print the sizes of individual dex segments as ' +
                          '\'<BENCHMARKNAME>-<APP>-<segment>(CodeSize): '
                          '<bytes>\'')
-  result.add_option('--quiet',
-                    help='Disable verbose logging',
-                    default=False,
-                    action='store_true')
   result.add_option('--r8-compilation-steps', '--r8_compilation_steps',
                     help='Number of times R8 should be run on each app',
                     default=2,
