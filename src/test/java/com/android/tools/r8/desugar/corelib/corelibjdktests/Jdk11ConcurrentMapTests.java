@@ -102,8 +102,6 @@ public class Jdk11ConcurrentMapTests extends Jdk11CoreLibTestBase {
   public void testD8Concurrent() throws Exception {
     // TODO(b/134732760): Support Java 9+ libraries.
     // We skip the ConcurrentRemoveIf test because of the  non desugared class CompletableFuture.
-    // TODO(b/142377475).
-    Assume.assumeTrue(!shrinkDesugaredLibrary);
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     String verbosity = "2";
     testForD8()
@@ -169,8 +167,6 @@ public class Jdk11ConcurrentMapTests extends Jdk11CoreLibTestBase {
 
   @Test
   public void testD8ConcurrentHash() throws Exception {
-    // TODO(b/134732760): Investigate failure when shrinkDesugaredLibrary is on.
-    Assume.assumeFalse(shrinkDesugaredLibrary);
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     String verbosity = "2";
     D8TestCompileResult d8TestCompileResult =

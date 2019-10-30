@@ -7,6 +7,7 @@ package com.android.tools.r8.desugar.corelib;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
 
+import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.L8Command;
 import com.android.tools.r8.OutputMode;
@@ -21,12 +22,21 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 public class CoreLibDesugarTestBase extends TestBase {
+
+  private List<String> getBaseKeepRules() throws IOException {
+    Path path = Paths
+        .get("src/test/java/com/android/tools/r8/desugar/corelib/desugar_jdk_libs_keep_rules.cfg");
+    return Files.readAllLines(path, StandardCharsets.UTF_8);
+  }
 
   protected boolean requiresEmulatedInterfaceCoreLibDesugaring(TestParameters parameters) {
     return parameters.getApiLevel().getLevel() < AndroidApiLevel.N.getLevel();
@@ -65,14 +75,16 @@ public class CoreLibDesugarTestBase extends TestBase {
           L8Command.builder(diagnosticsHandler)
               .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
               .addProgramFiles(ToolHelper.getDesugarJDKLibs())
+              .setMode(shrink ? CompilationMode.RELEASE : CompilationMode.DEBUG)
               .addProgramFiles(additionalProgramFiles)
               .addDesugaredLibraryConfiguration(
                   StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
               .setMinApiLevel(apiLevel.getLevel())
               .setOutput(desugaredLib, OutputMode.DexIndexed);
       if (shrink) {
-        l8Builder.addProguardConfiguration(
-            Arrays.asList(keepRules.split(System.lineSeparator())), Origin.unknown());
+        List<String> allKeepRules = getBaseKeepRules();
+        allKeepRules.addAll(Arrays.asList(keepRules.split(System.lineSeparator())));
+        l8Builder.addProguardConfiguration(allKeepRules, Origin.unknown());
       }
       ToolHelper.runL8(
           l8Builder.build(),
