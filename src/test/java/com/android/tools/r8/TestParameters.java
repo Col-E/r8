@@ -4,6 +4,7 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.TestBase.Backend;
+import com.android.tools.r8.TestRuntime.NoneRuntime;
 import com.android.tools.r8.utils.AndroidApiLevel;
 
 // Actual test parameters for a specific configuration. Currently just the runtime configuration.
@@ -29,6 +30,10 @@ public class TestParameters {
 
   public boolean isCfRuntime() {
     return runtime.isCf();
+  }
+
+  public boolean isNoneRuntime() {
+    return runtime == NoneRuntime.getInstance();
   }
 
   public AndroidApiLevel getApiLevel() {

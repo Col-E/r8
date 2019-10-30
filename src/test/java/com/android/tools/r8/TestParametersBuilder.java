@@ -235,12 +235,19 @@ public class TestParametersBuilder {
     return isSystemJdk(vm) || TestRuntime.isCheckedInJDK(vm);
   }
 
+  public static boolean isRuntimesPropertySet() {
+    return getRuntimesProperty() != null;
+  }
+
+  private static String getRuntimesProperty() {
+    return System.getProperty("runtimes");
+  }
+
   private static Stream<TestRuntime> getAvailableRuntimes() {
-    String runtimesProperty = System.getProperty("runtimes");
     Stream<TestRuntime> runtimes;
-    if (runtimesProperty != null) {
+    if (isRuntimesPropertySet()) {
       runtimes =
-          Arrays.stream(runtimesProperty.split(":"))
+          Arrays.stream(getRuntimesProperty().split(":"))
               .filter(s -> !s.isEmpty())
               .map(
                   name -> {
