@@ -386,9 +386,7 @@ def get_type(options):
     return 'deploy' if options.compiler == 'r8' else 'proguarded'
   return options.type
 
-def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
-  if extra_args is None:
-    extra_args = []
+def run_with_options(options, args, extra_args=[], stdout=None, quiet=False):
   app_provided_pg_conf = False;
   # todo(121018500): remove when memory is under control
   if not any('-Xmx' in arg for arg in extra_args):
