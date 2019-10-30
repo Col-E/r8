@@ -57,8 +57,6 @@ public class CustomCollectionTest extends CoreLibDesugarTestBase {
 
   @Test
   public void testCustomCollectionD8() throws Exception {
-    // TODO(b/142377475).
-    Assume.assumeTrue(!shrinkDesugaredLibrary);
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     D8TestRunResult d8TestRunResult =
         testForD8()
