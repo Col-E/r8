@@ -11,7 +11,7 @@ public class GenerateMainDexListRunResult extends TestRunResult<GenerateMainDexL
   List<String> mainDexList;
 
   public GenerateMainDexListRunResult(List<String> mainDexList) {
-    super(null, null);
+    super(null, null, null);
     this.mainDexList = mainDexList;
   }
 

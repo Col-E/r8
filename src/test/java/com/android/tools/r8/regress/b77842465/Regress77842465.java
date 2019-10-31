@@ -5,6 +5,8 @@ package com.android.tools.r8.regress.b77842465;
 
 import com.android.tools.r8.AsmTestBase;
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.TestRuntime.DexRuntime;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.io.IOException;
 import org.junit.Test;
@@ -18,7 +20,7 @@ public class Regress77842465 extends AsmTestBase {
         .noDesugaring()
         .setMinApi(AndroidApiLevel.M)
         .compile()
-        .runDex2Oat()
+        .runDex2Oat(new DexRuntime(ToolHelper.getDexVm()))
         .assertSuccess();
   }
 }

@@ -42,7 +42,7 @@ public class ProguardTestCompileResult
   }
 
   @Override
-  public ProguardTestRunResult createRunResult(ProcessResult result) {
-    return new ProguardTestRunResult(app, result, proguardMap);
+  public ProguardTestRunResult createRunResult(TestRuntime runtime, ProcessResult result) {
+    return new ProguardTestRunResult(app, runtime, result, proguardMap);
   }
 }

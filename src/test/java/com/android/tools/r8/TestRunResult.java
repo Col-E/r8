@@ -21,10 +21,12 @@ import org.hamcrest.Matcher;
 
 public abstract class TestRunResult<RR extends TestRunResult<?>> {
   protected final AndroidApp app;
+  private final TestRuntime runtime;
   private final ProcessResult result;
 
-  public TestRunResult(AndroidApp app, ProcessResult result) {
+  public TestRunResult(AndroidApp app, TestRuntime runtime, ProcessResult result) {
     this.app = app;
+    this.runtime = runtime;
     this.result = result;
   }
 

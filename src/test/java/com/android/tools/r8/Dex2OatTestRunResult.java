@@ -13,8 +13,8 @@ import org.hamcrest.Matcher;
 
 public class Dex2OatTestRunResult extends TestRunResult<Dex2OatTestRunResult> {
 
-  public Dex2OatTestRunResult(AndroidApp app, ProcessResult result) {
-    super(app, result);
+  public Dex2OatTestRunResult(AndroidApp app, TestRuntime runtime, ProcessResult result) {
+    super(app, runtime, result);
   }
 
   @Override

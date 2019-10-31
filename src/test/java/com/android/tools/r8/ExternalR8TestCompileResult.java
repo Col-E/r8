@@ -63,7 +63,7 @@ public class ExternalR8TestCompileResult
   }
 
   @Override
-  protected ExternalR8TestRunResult createRunResult(ProcessResult result) {
-    return new ExternalR8TestRunResult(app, outputJar, proguardMap, result);
+  protected ExternalR8TestRunResult createRunResult(TestRuntime runtime, ProcessResult result) {
+    return new ExternalR8TestRunResult(app, outputJar, proguardMap, runtime, result);
   }
 }

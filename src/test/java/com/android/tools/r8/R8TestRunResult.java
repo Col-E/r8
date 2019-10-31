@@ -29,10 +29,11 @@ public class R8TestRunResult extends TestRunResult<R8TestRunResult> {
 
   public R8TestRunResult(
       AndroidApp app,
+      TestRuntime runtime,
       ProcessResult result,
       String proguardMap,
       GraphInspectorSupplier graphInspector) {
-    super(app, result);
+    super(app, runtime, result);
     this.proguardMap = proguardMap;
     this.graphInspector = graphInspector;
   }

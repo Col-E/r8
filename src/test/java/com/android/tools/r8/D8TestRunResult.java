@@ -9,8 +9,8 @@ import com.android.tools.r8.utils.AndroidApp;
 
 public class D8TestRunResult extends TestRunResult<D8TestRunResult> {
 
-  public D8TestRunResult(AndroidApp app, ProcessResult result) {
-    super(app, result);
+  public D8TestRunResult(AndroidApp app, TestRuntime runtime, ProcessResult result) {
+    super(app, runtime, result);
   }
 
   @Override

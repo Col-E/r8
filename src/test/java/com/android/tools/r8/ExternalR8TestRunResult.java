@@ -19,8 +19,12 @@ public class ExternalR8TestRunResult extends TestRunResult<ExternalR8TestRunResu
   private final String proguardMap;
 
   public ExternalR8TestRunResult(
-      AndroidApp app, Path outputJar, String proguardMap, ProcessResult result) {
-    super(app, result);
+      AndroidApp app,
+      Path outputJar,
+      String proguardMap,
+      TestRuntime runtime,
+      ProcessResult result) {
+    super(app, runtime, result);
     this.outputJar = outputJar;
     this.proguardMap = proguardMap;
   }

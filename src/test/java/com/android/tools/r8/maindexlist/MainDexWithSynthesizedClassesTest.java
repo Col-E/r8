@@ -81,9 +81,7 @@ public class MainDexWithSynthesizedClassesTest extends TestBase {
   private void checkCompilationResult(D8TestCompileResult compileResult) throws Exception {
     if (parameters.getRuntime().asDex().getMinApiLevel().getLevel()
         < nativeMultiDexLevel.getLevel()) {
-      compileResult
-          .runDex2Oat(parameters.getRuntime().asDex().getVm())
-          .assertNoVerificationErrors();
+      compileResult.runDex2Oat(parameters.getRuntime()).assertNoVerificationErrors();
     } else {
       compileResult.run(parameters.getRuntime(), TestClass.class).assertSuccessWithOutput(EXPECTED);
     }

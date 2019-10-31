@@ -5,20 +5,38 @@ package com.android.tools.r8.regress.b118075510;
 
 import com.android.tools.r8.AsmTestBase;
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8TestCompileResult;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class Regress118075510Runner extends AsmTestBase {
 
   public static final Class<?> CLASS = Regress118075510Test.class;
   public static final String EXPECTED = StringUtils.lines("0", "0");
+
+  private final TestParameters parameters;
+
+  @Parameterized.Parameters(name = "{0}, {1}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withDexRuntimes().withAllApiLevels().build(), CompilationMode.values());
+  }
+
+  public Regress118075510Runner(TestParameters parameters, CompilationMode mode) {
+    this.parameters = parameters;
+  }
 
   @Test
   public void test()
@@ -32,9 +50,9 @@ public class Regress118075510Runner extends AsmTestBase {
     checkMethodContainsLongSignum(inspector, "fooNoTryCatch");
     checkMethodContainsLongSignum(inspector, "fooWithTryCatch");
     // Check the program runs on ART/Dalvik
-    d8Result.run(CLASS).assertSuccessWithOutput(EXPECTED);
+    d8Result.run(parameters.getRuntime(), CLASS).assertSuccessWithOutput(EXPECTED);
     // Check the program can be dex2oat compiled to arm64. This will diverge without the fixup.
-    d8Result.runDex2Oat().assertSuccess();
+    d8Result.runDex2Oat(parameters.getRuntime()).assertSuccess();
   }
 
   private void checkMethodContainsLongSignum(CodeInspector inspector, String methodName)

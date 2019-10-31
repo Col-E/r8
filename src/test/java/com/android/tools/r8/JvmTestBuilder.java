@@ -39,9 +39,9 @@ public class JvmTestBuilder extends TestBuilder<JvmTestRunResult, JvmTestBuilder
   }
 
   @Override
+  @Deprecated
   public JvmTestRunResult run(String mainClass) throws IOException {
-    ProcessResult result = ToolHelper.runJava(classpath, mainClass);
-    return new JvmTestRunResult(builder.build(), result);
+    return run(TestRuntime.getDefaultJavaRuntime(), mainClass);
   }
 
   public JvmTestRunResult run(TestRuntime runtime, String mainClass, String... args)
@@ -49,7 +49,7 @@ public class JvmTestBuilder extends TestBuilder<JvmTestRunResult, JvmTestBuilder
     assert runtime.isCf();
     ProcessResult result =
         ToolHelper.runJava(runtime.asCf().getVm(), classpath, ObjectArrays.concat(mainClass, args));
-    return new JvmTestRunResult(builder.build(), result);
+    return new JvmTestRunResult(builder.build(), runtime, result);
   }
 
   @Override

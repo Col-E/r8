@@ -16,8 +16,9 @@ public class ProguardTestRunResult extends TestRunResult<ProguardTestRunResult> 
 
   private final String proguardMap;
 
-  public ProguardTestRunResult(AndroidApp app, ProcessResult result, String proguardMap) {
-    super(app, result);
+  public ProguardTestRunResult(
+      AndroidApp app, TestRuntime runtime, ProcessResult result, String proguardMap) {
+    super(app, runtime, result);
     this.proguardMap = proguardMap;
   }
 

@@ -9,6 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
 import com.android.tools.r8.TestBase.Backend;
+import com.android.tools.r8.TestRuntime.DexRuntime;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.ProcessResult;
@@ -81,7 +82,7 @@ public abstract class TestCompileResult<
     return outputMode;
   }
 
-  protected abstract RR createRunResult(ProcessResult result);
+  protected abstract RR createRunResult(TestRuntime runtime, ProcessResult result);
 
   @Deprecated
   public RR run(Class<?> mainClass) throws ExecutionException, IOException {
@@ -94,7 +95,10 @@ public abstract class TestCompileResult<
     assertThat(mainClassSubject, isPresent());
     switch (getBackend()) {
       case DEX:
-        return runArt(null, additionalRunClassPath, mainClassSubject.getFinalName());
+        return runArt(
+            new DexRuntime(ToolHelper.getDexVm()),
+            additionalRunClassPath,
+            mainClassSubject.getFinalName());
       case CF:
         return runJava(
             TestRuntime.getDefaultJavaRuntime(),
@@ -124,8 +128,7 @@ public abstract class TestCompileResult<
     ClassSubject mainClassSubject = inspector().clazz(mainClass);
     assertThat("Did you forget a keep rule for the main method?", mainClassSubject, isPresent());
     if (runtime.isDex()) {
-      return runArt(
-          runtime.asDex().getVm(), additionalRunClassPath, mainClassSubject.getFinalName(), args);
+      return runArt(runtime, additionalRunClassPath, mainClassSubject.getFinalName(), args);
     }
     assert runtime.isCf();
     return runJava(
@@ -293,11 +296,13 @@ public abstract class TestCompileResult<
         .build();
     ProcessResult result =
         ToolHelper.runJava(runtime.asCf().getVm(), vmArguments, classPath, arguments);
-    return createRunResult(result);
+    return createRunResult(runtime, result);
   }
 
-  private RR runArt(DexVm vm, List<Path> additionalClassPath, String mainClass, String... arguments)
+  private RR runArt(
+      TestRuntime runtime, List<Path> additionalClassPath, String mainClass, String... arguments)
       throws IOException {
+    DexVm vm = runtime.asDex().getVm();
     // TODO(b/127785410): Always assume a non-null runtime.
     Path out = state.getNewTempFolder().resolve("out.zip");
     app.writeToZip(out, OutputMode.DexIndexed);
@@ -312,24 +317,16 @@ public abstract class TestCompileResult<
     ProcessResult result =
         ToolHelper.runArtRaw(
             classPath, mainClass, commandConsumer, vm, withArtFrameworks, arguments);
-    return createRunResult(result);
-  }
-
-  @Deprecated
-  public Dex2OatTestRunResult runDex2Oat() throws IOException {
-    return runDex2Oat(ToolHelper.getDexVm());
+    return createRunResult(runtime, result);
   }
 
   public Dex2OatTestRunResult runDex2Oat(TestRuntime runtime) throws IOException {
-    return runDex2Oat(runtime.asDex().getVm());
-  }
-
-  public Dex2OatTestRunResult runDex2Oat(DexVm vm) throws IOException {
     assert getBackend() == DEX;
+    DexVm vm = runtime.asDex().getVm();
     Path tmp = state.getNewTempFolder();
     Path jarFile = tmp.resolve("out.jar");
     Path oatFile = tmp.resolve("out.oat");
     app.writeToZip(jarFile, OutputMode.DexIndexed);
-    return new Dex2OatTestRunResult(app, ToolHelper.runDex2OatRaw(jarFile, oatFile, vm));
+    return new Dex2OatTestRunResult(app, runtime, ToolHelper.runDex2OatRaw(jarFile, oatFile, vm));
   }
 }
