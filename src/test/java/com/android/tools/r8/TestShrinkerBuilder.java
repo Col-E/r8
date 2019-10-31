@@ -145,6 +145,17 @@ public abstract class TestShrinkerBuilder<
         "-keep class " + mainClass + " { public static void main(java.lang.String[]); }");
   }
 
+  public T addKeepMethodRules(Class<?> clazz, String... methodSignatures) {
+    StringBuilder sb = new StringBuilder();
+    sb.append("-keep class " + clazz.getTypeName() + " {\n");
+    for (String methodSignature : methodSignatures) {
+      sb.append("  " + methodSignature + ";\n");
+    }
+    sb.append("}");
+    addKeepRules(sb.toString());
+    return self();
+  }
+
   public T addKeepMethodRules(MethodReference... methods) {
     for (MethodReference method : methods) {
       addKeepRules(
