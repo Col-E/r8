@@ -715,7 +715,7 @@ public class DexParser {
       AnnotationsDirectory annotationsDirectory = annotationsDirectoryAt(annotationsOffsets[i]);
 
       Long checksum = null;
-      if (checksums != null && classDataOffsets[i] != 0) {
+      if (checksums != null) {
         String desc = type.descriptor.toASCIIString();
         checksum = checksums.getOrDefault(desc, null);
         if (!options.dexClassChecksumFilter.test(desc, checksum)) {
