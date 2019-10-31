@@ -9,11 +9,8 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.conversion.CallGraphBuilderBase.CycleEliminator.CycleEliminationResult;
 import com.android.tools.r8.ir.conversion.CallSiteInformation.CallGraphBasedCallSiteInformation;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.Timing;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 
 /**
  * Call graph representation.
@@ -167,13 +164,6 @@ public class CallGraph {
 
   static CallGraphBuilder builder(AppView<AppInfoWithLiveness> appView) {
     return new CallGraphBuilder(appView);
-  }
-
-  static MethodProcessor createMethodProcessor(
-      AppView<AppInfoWithLiveness> appView, ExecutorService executorService, Timing timing)
-      throws ExecutionException {
-    CallGraph callGraph = CallGraph.builder(appView).build(executorService, timing);
-    return new MethodProcessor(appView, callGraph);
   }
 
   CallSiteInformation createCallSiteInformation(AppView<AppInfoWithLiveness> appView) {

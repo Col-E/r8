@@ -7,7 +7,6 @@ package com.android.tools.r8.ir.analysis.proto;
 import static com.android.tools.r8.ir.analysis.proto.ProtoUtils.getInfoValueFromMessageInfoConstructionInvoke;
 import static com.android.tools.r8.ir.analysis.proto.ProtoUtils.getObjectsValueFromMessageInfoConstructionInvoke;
 import static com.android.tools.r8.ir.analysis.proto.ProtoUtils.setObjectsValueForMessageInfoConstructionInvoke;
-import static com.google.common.base.Predicates.alwaysFalse;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
@@ -28,9 +27,8 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.conversion.CallSiteInformation;
 import com.android.tools.r8.ir.conversion.IRConverter;
-import com.android.tools.r8.ir.optimize.Outliner;
+import com.android.tools.r8.ir.conversion.OneTimeMethodProcessor;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.List;
@@ -76,9 +74,7 @@ public class GeneratedMessageLiteShrinker {
             converter.processMethod(
                 method,
                 OptimizationFeedbackIgnore.getInstance(),
-                alwaysFalse(),
-                CallSiteInformation.empty(),
-                Outliner::noProcessing));
+                OneTimeMethodProcessor.getInstance()));
   }
 
   private void forEachDynamicMethod(Consumer<DexEncodedMethod> consumer) {

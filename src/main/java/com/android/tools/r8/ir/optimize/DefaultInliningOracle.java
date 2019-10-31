@@ -27,6 +27,7 @@ import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.Monitor;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.CallSiteInformation;
+import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.Inliner.InlineeWithReason;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
@@ -53,6 +54,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
   private final Inliner inliner;
   private final DexEncodedMethod method;
   private final IRCode code;
+  private final MethodProcessor methodProcessor;
   private final CallSiteInformation callSiteInformation;
   private final Predicate<DexEncodedMethod> isProcessedConcurrently;
   private final int inliningInstructionLimit;
@@ -63,16 +65,16 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       Inliner inliner,
       DexEncodedMethod method,
       IRCode code,
-      CallSiteInformation callSiteInformation,
-      Predicate<DexEncodedMethod> isProcessedConcurrently,
+      MethodProcessor methodProcessor,
       int inliningInstructionLimit,
       int inliningInstructionAllowance) {
     this.appView = appView;
     this.inliner = inliner;
     this.method = method;
     this.code = code;
-    this.callSiteInformation = callSiteInformation;
-    this.isProcessedConcurrently = isProcessedConcurrently;
+    this.methodProcessor = methodProcessor;
+    this.callSiteInformation = methodProcessor.getCallSiteInformation();
+    this.isProcessedConcurrently = methodProcessor::isProcessedConcurrently;
     this.inliningInstructionLimit = inliningInstructionLimit;
     this.instructionAllowance = inliningInstructionAllowance;
   }
@@ -428,8 +430,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       if (Log.ENABLED) {
         Log.verbose(getClass(), "Forcing extra inline on " + target.toSourceString());
       }
-      inliner.performInlining(
-          target, inlinee, feedback, isProcessedConcurrently, callSiteInformation);
+      inliner.performInlining(target, inlinee, feedback, methodProcessor);
     }
   }
 

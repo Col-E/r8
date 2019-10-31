@@ -5,6 +5,7 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.conversion.OneTimeMethodProcessor;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
@@ -121,7 +122,10 @@ public class AssemblyWriter extends DexByteCodeWriter {
   private void writeIR(DexEncodedMethod method, PrintStream ps) {
     CfgPrinter printer = new CfgPrinter();
     new IRConverter(appInfo, options, timing, printer)
-        .processMethod(method, OptimizationFeedbackIgnore.getInstance(), null, null, null);
+        .processMethod(
+            method,
+            OptimizationFeedbackIgnore.getInstance(),
+            OneTimeMethodProcessor.getInstance());
     ps.println(printer.toString());
   }
 

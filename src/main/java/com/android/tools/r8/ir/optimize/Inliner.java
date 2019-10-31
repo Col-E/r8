@@ -39,8 +39,10 @@ import com.android.tools.r8.ir.code.Throw;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.conversion.CallSiteInformation;
-import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.conversion.CodeOptimization;
 import com.android.tools.r8.ir.conversion.LensCodeRewriter;
+import com.android.tools.r8.ir.conversion.MethodProcessor;
+import com.android.tools.r8.ir.conversion.PostOptimization;
 import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
@@ -58,17 +60,15 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.function.Predicate;
 
-public class Inliner {
+public class Inliner implements PostOptimization {
 
   protected final AppView<AppInfoWithLiveness> appView;
   private final Set<DexMethod> blacklist;
@@ -237,17 +237,16 @@ public class Inliner {
     }
   }
 
-  public void processDoubleInlineCallers(
-      IRConverter converter, ExecutorService executorService)
-      throws ExecutionException {
-    if (doubleInlineCallers.isEmpty()) {
-      return;
-    }
+  @Override
+  public Set<DexEncodedMethod> methodsToRevisit() {
     applyDoubleInlining = true;
-    converter.processMethodsConcurrently(doubleInlineCallers, executorService);
-    doubleInlineCallers.forEach(method -> {
-      assert method.isProcessed();
-    });
+    return doubleInlineCallers;
+  }
+
+  @Override
+  public Collection<CodeOptimization> codeOptimizationsForPostProcessing() {
+    // Run IRConverter#optimize.
+    return null;  // Technically same as return converter.getOptimizationForPostIRProcessing();
   }
 
   /**
@@ -824,15 +823,13 @@ public class Inliner {
       DexEncodedMethod method,
       IRCode code,
       OptimizationFeedback feedback,
-      Predicate<DexEncodedMethod> isProcessedConcurrently,
-      CallSiteInformation callSiteInformation) {
+      MethodProcessor methodProcessor) {
     InternalOptions options = appView.options();
     DefaultInliningOracle oracle =
         createDefaultOracle(
             method,
             code,
-            isProcessedConcurrently,
-            callSiteInformation,
+            methodProcessor,
             options.inliningInstructionLimit,
             options.inliningInstructionAllowance - numberOfInstructions(code));
     performInliningImpl(oracle, oracle, method, code, feedback);
@@ -841,8 +838,7 @@ public class Inliner {
   public DefaultInliningOracle createDefaultOracle(
       DexEncodedMethod method,
       IRCode code,
-      Predicate<DexEncodedMethod> isProcessedConcurrently,
-      CallSiteInformation callSiteInformation,
+      MethodProcessor methodProcessor,
       int inliningInstructionLimit,
       int inliningInstructionAllowance) {
     return new DefaultInliningOracle(
@@ -850,8 +846,7 @@ public class Inliner {
         this,
         method,
         code,
-        callSiteInformation,
-        isProcessedConcurrently,
+        methodProcessor,
         inliningInstructionLimit,
         inliningInstructionAllowance);
   }

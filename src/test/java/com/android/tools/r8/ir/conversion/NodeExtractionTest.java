@@ -51,20 +51,20 @@ public class NodeExtractionTest extends CallGraphTestBase {
 
     Set<Node> wave = Sets.newIdentityHashSet();
 
-    MethodProcessor.extractLeaves(nodes, wave::add);
+    PrimaryMethodProcessor.extractLeaves(nodes, wave::add);
     assertEquals(3, wave.size());
     assertThat(wave, hasItem(n3));
     assertThat(wave, hasItem(n4));
     assertThat(wave, hasItem(n6));
     wave.clear();
 
-    MethodProcessor.extractLeaves(nodes, wave::add);
+    PrimaryMethodProcessor.extractLeaves(nodes, wave::add);
     assertEquals(2, wave.size());
     assertThat(wave, hasItem(n2));
     assertThat(wave, hasItem(n5));
     wave.clear();
 
-    MethodProcessor.extractLeaves(nodes, wave::add);
+    PrimaryMethodProcessor.extractLeaves(nodes, wave::add);
     assertEquals(1, wave.size());
     assertThat(wave, hasItem(n1));
     assertTrue(nodes.isEmpty());
@@ -103,20 +103,20 @@ public class NodeExtractionTest extends CallGraphTestBase {
 
     Set<Node> wave = Sets.newIdentityHashSet();
 
-    MethodProcessor.extractLeaves(nodes, wave::add);
+    PrimaryMethodProcessor.extractLeaves(nodes, wave::add);
     assertEquals(3, wave.size());
     assertThat(wave, hasItem(n3));
     assertThat(wave, hasItem(n4));
     assertThat(wave, hasItem(n6));
     wave.clear();
 
-    MethodProcessor.extractLeaves(nodes, wave::add);
+    PrimaryMethodProcessor.extractLeaves(nodes, wave::add);
     assertEquals(2, wave.size());
     assertThat(wave, hasItem(n2));
     assertThat(wave, hasItem(n5));
     wave.clear();
 
-    MethodProcessor.extractLeaves(nodes, wave::add);
+    PrimaryMethodProcessor.extractLeaves(nodes, wave::add);
     assertEquals(1, wave.size());
     assertThat(wave, hasItem(n1));
     assertTrue(nodes.isEmpty());

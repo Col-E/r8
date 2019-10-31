@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.analysis.proto;
 
-import static com.google.common.base.Predicates.alwaysFalse;
 import static com.google.common.base.Predicates.not;
 
 import com.android.tools.r8.graph.AppView;
@@ -17,9 +16,8 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
-import com.android.tools.r8.ir.conversion.CallSiteInformation;
 import com.android.tools.r8.ir.conversion.IRConverter;
-import com.android.tools.r8.ir.optimize.Outliner;
+import com.android.tools.r8.ir.conversion.OneTimeMethodProcessor;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -96,9 +94,7 @@ public class GeneratedExtensionRegistryShrinker {
             converter.processMethod(
                 method,
                 OptimizationFeedbackIgnore.getInstance(),
-                alwaysFalse(),
-                CallSiteInformation.empty(),
-                Outliner::noProcessing));
+                OneTimeMethodProcessor.getInstance()));
   }
 
   private void forEachFindLiteExtensionByNumberMethod(Consumer<DexEncodedMethod> consumer) {

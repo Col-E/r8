@@ -20,7 +20,8 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.conversion.CodeOptimization;
+import com.android.tools.r8.ir.conversion.PostOptimization;
 import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MutableCallSiteOptimizationInfo;
 import com.android.tools.r8.logging.Log;
@@ -30,10 +31,8 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 
-public class CallSiteOptimizationInfoPropagator {
+public class CallSiteOptimizationInfoPropagator implements PostOptimization {
 
   // TODO(b/139246447): should we revisit new targets over and over again?
   //   Maybe piggy-back on MethodProcessor's wave/batch processing?
@@ -231,8 +230,9 @@ public class CallSiteOptimizationInfoPropagator {
     }
   }
 
-  public void revisitMethods(IRConverter converter, ExecutorService executorService)
-      throws ExecutionException {
+  @Override
+  public Set<DexEncodedMethod> methodsToRevisit() {
+    mode = Mode.REVISIT;
     Set<DexEncodedMethod> targetsToRevisit = Sets.newIdentityHashSet();
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       for (DexEncodedMethod method : clazz.methods()) {
@@ -248,13 +248,15 @@ public class CallSiteOptimizationInfoPropagator {
         }
       }
     }
-    mode = Mode.REVISIT;
-    if (targetsToRevisit.isEmpty()) {
-      return;
-    }
     if (revisitedMethods != null) {
       revisitedMethods.addAll(targetsToRevisit);
     }
-    converter.processMethodsConcurrently(targetsToRevisit, executorService);
+    return targetsToRevisit;
+  }
+
+  @Override
+  public Collection<CodeOptimization> codeOptimizationsForPostProcessing() {
+    // Run IRConverter#optimize.
+    return null;
   }
 }

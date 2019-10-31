@@ -55,7 +55,6 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.code.ValueTypeConstraint;
 import com.android.tools.r8.ir.conversion.IRBuilder;
-import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.SourceCode;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.naming.ClassNameMapper;
@@ -77,7 +76,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 /**
  * Support class for implementing outlining (i.e. extracting common code patterns as methods).
@@ -86,27 +85,26 @@ import java.util.function.BiConsumer;
  *
  * <ul>
  *   <li>First, all methods are converted to IR and passed to {@link
- *       Outliner#identifyCandidateMethods()} to identify outlining candidates and the methods
- *       containing each candidate. IR is converted to the output format (DEX or CF) and thrown away
- *       along with the outlining candidates; only a list of lists of methods is kept, where each
- *       list of methods corresponds to methods containing an outlining candidate.
+ *       Outliner#createOutlineMethodIdentifierGenerator()}} to identify outlining candidates and
+ *       the methods containing each candidate. IR is converted to the output format (DEX or CF) and
+ *       thrown away along with the outlining candidates; only a list of lists of methods is kept,
+ *       where each list of methods corresponds to methods containing an outlining candidate.
  *   <li>Second, {@link Outliner#selectMethodsForOutlining()} is called to retain the lists of
  *       methods found in the first step that are large enough (see {@link InternalOptions#outline}
  *       {@link OutlineOptions#threshold}), and the methods to be further analyzed for outlining is
  *       returned by {@link Outliner#getMethodsSelectedForOutlining}. Each selected method is then
- *       converted back to IR and passed to {@link Outliner#identifyOutlineSites(IRCode,
- *       DexEncodedMethod)}, which then stores concrete outlining candidates in {@link
- *       Outliner#outlineSites}.
+ *       converted back to IR and passed to {@link Outliner#identifyOutlineSites(IRCode)}, which
+ *       then stores concrete outlining candidates in {@link Outliner#outlineSites}.
  *   <li>Third, {@link Outliner#buildOutlinerClass(DexType)} is called to construct the <em>outline
  *       support class</em> containing a static helper method for each outline candidate that occurs
  *       frequently enough. Each selected method is then converted to IR, passed to {@link
- *       Outliner#applyOutliningCandidate(IRCode, DexEncodedMethod)} to perform the outlining, and
+ *       Outliner#applyOutliningCandidate(IRCode)} to perform the outlining, and
  *       converted back to the output format (DEX or CF).
  * </ul>
  */
 public class Outliner {
 
-  /** Result of first step (see {@link Outliner#identifyCandidateMethods()}. */
+  /** Result of first step (see {@link Outliner#createOutlineMethodIdentifierGenerator()}. */
   private final List<List<DexEncodedMethod>> candidateMethodLists = new ArrayList<>();
   /** Result of second step (see {@link Outliner#selectMethodsForOutlining()}. */
   private final Set<DexEncodedMethod> methodsSelectedForOutlining = Sets.newIdentityHashSet();
@@ -1188,9 +1186,11 @@ public class Outliner {
     int argumentsMapIndex;
 
     OutlineRewriter(
-        DexEncodedMethod method, IRCode code,
-        ListIterator<BasicBlock> blocksIterator, BasicBlock block, List<Integer> toRemove) {
-      super(method, block);
+        IRCode code,
+        ListIterator<BasicBlock> blocksIterator,
+        BasicBlock block,
+        List<Integer> toRemove) {
+      super(code.method, block);
       this.code = code;
       this.blocksIterator = blocksIterator;
       this.toRemove = toRemove;
@@ -1271,30 +1271,39 @@ public class Outliner {
     }
   }
 
-  public Outliner(AppView<AppInfoWithLiveness> appView, IRConverter converter) {
+  public Outliner(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
     this.inliningConstraints = new InliningConstraints(appView, GraphLense.getIdentityLense());
   }
 
-  public BiConsumer<IRCode, DexEncodedMethod> identifyCandidateMethods() {
+  public void createOutlineMethodIdentifierGenerator() {
     // Since optimizations may change the map identity of Outline objects (e.g. by setting the
     // out-value of invokes to null), this map must not be used except for identifying methods
     // potentially relevant to outlining. OutlineMethodIdentifier will add method lists to
     // candidateMethodLists whenever it adds an entry to candidateMap.
     Map<Outline, List<DexEncodedMethod>> candidateMap = new HashMap<>();
     assert candidateMethodLists.isEmpty();
-    return (code, method) -> {
-      assert !(method.getCode() instanceof OutlineCode);
-      for (BasicBlock block : code.blocks) {
-        new OutlineMethodIdentifier(method, block, candidateMap).process();
-      }
-    };
+    assert outlineMethodIdentifierGenerator == null;
+    outlineMethodIdentifierGenerator =
+        code -> {
+          assert !code.method.getCode().isOutlineCode();
+          for (BasicBlock block : code.blocks) {
+            new OutlineMethodIdentifier(code.method, block, candidateMap).process();
+          }
+        };
   }
 
-  public void identifyOutlineSites(IRCode code, DexEncodedMethod method) {
-    assert !(method.getCode() instanceof OutlineCode);
+  private Consumer<IRCode> outlineMethodIdentifierGenerator;
+
+  public Consumer<IRCode> getOutlineMethodIdentifierGenerator() {
+    assert outlineMethodIdentifierGenerator != null;
+    return outlineMethodIdentifierGenerator;
+  }
+
+  public void identifyOutlineSites(IRCode code) {
+    assert !code.method.getCode().isOutlineCode();
     for (BasicBlock block : code.blocks) {
-      new OutlineSiteIdentifier(method, block).process();
+      new OutlineSiteIdentifier(code.method, block).process();
     }
   }
 
@@ -1391,13 +1400,13 @@ public class Outliner {
     return result;
   }
 
-  public void applyOutliningCandidate(IRCode code, DexEncodedMethod method) {
-    assert !(method.getCode() instanceof OutlineCode);
+  public void applyOutliningCandidate(IRCode code) {
+    assert !code.method.getCode().isOutlineCode();
     ListIterator<BasicBlock> blocksIterator = code.listIterator();
     while (blocksIterator.hasNext()) {
       BasicBlock block = blocksIterator.next();
       List<Integer> toRemove = new ArrayList<>();
-      new OutlineRewriter(method, code, blocksIterator, block, toRemove).process();
+      new OutlineRewriter(code, blocksIterator, block, toRemove).process();
       block.removeInstructions(toRemove);
     }
   }
@@ -1407,10 +1416,6 @@ public class Outliner {
       assert outlineSites.get(outline).isEmpty() : outlineSites.get(outline);
     }
     return true;
-  }
-
-  static public void noProcessing(IRCode code, DexEncodedMethod method) {
-    // No operation.
   }
 
   private class OutlineSourceCode implements SourceCode {
