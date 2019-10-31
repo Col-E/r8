@@ -125,7 +125,7 @@ public abstract class CodeToKeep {
         sb.append(" {").append(cr);
         for (DexField field : fieldsToKeep) {
           sb.append("    ")
-              .append(convertType(type))
+              .append(convertType(field.type))
               .append(" ")
               .append(field.name)
               .append(";")

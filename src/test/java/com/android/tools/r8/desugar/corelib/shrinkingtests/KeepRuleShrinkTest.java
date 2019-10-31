@@ -2,17 +2,17 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.desugar.corelib;
+package com.android.tools.r8.desugar.corelib.shrinkingtests;
 
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.desugar.corelib.CoreLibDesugarTestBase;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListMap;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -37,7 +37,6 @@ public class KeepRuleShrinkTest extends CoreLibDesugarTestBase {
 
   @Test
   public void testMapProblem() throws Exception {
-    Assume.assumeFalse("TODO(b/134732760): Fix shrinking of core library", shrinkDesugaredLibrary);
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     D8TestRunResult d8TestRunResult =
         testForD8()
