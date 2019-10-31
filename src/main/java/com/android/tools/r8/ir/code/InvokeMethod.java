@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.AbstractFieldSet;
 import com.android.tools.r8.ir.analysis.modeling.LibraryMethodReadSetModeling;
@@ -105,13 +106,20 @@ public abstract class InvokeMethod extends Invoke {
     // TODO(b/140204899): Instead of reprocessing here, pass refined receiver to lookup.
     // Leverage refined receiver type if available.
     if (refinedReceiverType != staticReceiverType) {
-      Set<DexEncodedMethod> result = Sets.newIdentityHashSet();
-      for (DexEncodedMethod target : targets) {
-        if (appView.isSubtype(target.method.holder, refinedReceiverType).isPossiblyTrue()) {
-          result.add(target);
+      ResolutionResult refinedResolution =
+          appView.appInfo().resolveMethod(refinedReceiverType, method);
+      if (refinedResolution.hasSingleTarget()) {
+        DexEncodedMethod refinedTarget = refinedResolution.asSingleTarget();
+        Set<DexEncodedMethod> result = Sets.newIdentityHashSet();
+        for (DexEncodedMethod target : targets) {
+          if (target == refinedTarget
+              || appView.isSubtype(target.method.holder, refinedReceiverType).isPossiblyTrue()) {
+            result.add(target);
+          }
         }
+        return result;
       }
-      return result;
+      // If resolution at the refined type fails, conservatively return the full set of targets.
     }
     return targets;
   }
