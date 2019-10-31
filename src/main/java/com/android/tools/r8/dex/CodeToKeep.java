@@ -45,11 +45,13 @@ public abstract class CodeToKeep {
     private final Set<DexType> emulatedInterfaces = Sets.newIdentityHashSet();
     private final Map<DexType, Pair<Set<DexField>, Set<DexMethod>>> toKeep =
         new ConcurrentHashMap<>();
+    private final InternalOptions options;
 
     public DesugaredLibraryCodeToKeep(NamingLens namingLens, InternalOptions options) {
       emulatedInterfaces.addAll(
           options.desugaredLibraryConfiguration.getEmulateLibraryInterface().values());
       this.namingLens = namingLens;
+      this.options = options;
     }
 
     private boolean shouldKeep(DexType type) {
@@ -91,8 +93,9 @@ public abstract class CodeToKeep {
     }
 
     private void keepClass(DexType type) {
+      DexType baseType = type.lookupBaseType(options.itemFactory);
       toKeep.putIfAbsent(
-          type, new Pair<>(Sets.newConcurrentHashSet(), Sets.newConcurrentHashSet()));
+          baseType, new Pair<>(Sets.newConcurrentHashSet(), Sets.newConcurrentHashSet()));
     }
 
     @Override

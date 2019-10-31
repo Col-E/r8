@@ -315,6 +315,21 @@ public class DexType extends DexReference implements PresortedComparable<DexType
     return dexItemFactory.createType(newDesc);
   }
 
+  // Similar to the method above, but performs a lookup only, allowing to use
+  // this method also after strings are sorted in the ApplicationWriter.
+  public DexType lookupBaseType(DexItemFactory dexItemFactory) {
+    int leadingSquareBrackets = getNumberOfLeadingSquareBrackets();
+    if (leadingSquareBrackets == 0) {
+      return this;
+    }
+    DexString newDesc =
+        dexItemFactory.lookupString(
+            descriptor.size - leadingSquareBrackets,
+            Arrays.copyOfRange(
+                descriptor.content, leadingSquareBrackets, descriptor.content.length));
+    return dexItemFactory.lookupType(newDesc);
+  }
+
   public DexType replaceBaseType(DexType newBase, DexItemFactory dexItemFactory) {
     assert this.isArrayType();
     assert !newBase.isArrayType();

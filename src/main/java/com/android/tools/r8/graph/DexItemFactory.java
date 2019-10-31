@@ -1187,6 +1187,10 @@ public class DexItemFactory {
     return canonicalize(strings, new DexString(source));
   }
 
+  public DexString lookupString(int size, byte[] content) {
+    return strings.get(new DexString(size, content));
+  }
+
   public DexString lookupString(String source) {
     return strings.get(new DexString(source));
   }

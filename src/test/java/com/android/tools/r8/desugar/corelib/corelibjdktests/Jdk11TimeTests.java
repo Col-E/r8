@@ -10,33 +10,36 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
-import com.android.tools.r8.ir.code.And;
-import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Paths;
-import org.junit.Assume;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class Jdk11TimeTests extends Jdk11CoreLibTestBase {
 
   private final TestParameters parameters;
+  private final boolean shrinkDesugaredLibrary;
 
-  @Parameterized.Parameters(name = "{0}")
-  public static TestParametersCollection data() {
+  @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
+  public static List<Object[]> data() {
     // TODO(134732760): Support Dalvik VMs, currently fails because libjavacrypto is required and
     // present only in ART runtimes.
-    return getTestParameters()
-        .withDexRuntimesStartingFromIncluding(Version.V5_1_1)
-        .withAllApiLevels()
-        .build();
+    return buildParameters(
+        BooleanUtils.values(),
+        getTestParameters()
+            .withDexRuntimesStartingFromIncluding(Version.V5_1_1)
+            .withAllApiLevels()
+            .build());
   }
 
-  public Jdk11TimeTests(TestParameters parameters) {
+  public Jdk11TimeTests(boolean shrinkDesugaredLibrary, TestParameters parameters) {
+    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
     this.parameters = parameters;
   }
 
@@ -131,6 +134,7 @@ public class Jdk11TimeTests extends Jdk11CoreLibTestBase {
 
   @Test
   public void testTime() throws Exception {
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     String verbosity = "2";
     D8TestCompileResult compileResult =
         testForD8()
@@ -139,11 +143,14 @@ public class Jdk11TimeTests extends Jdk11CoreLibTestBase {
             .addProgramFiles(Paths.get(JDK_TESTS_BUILD_DIR + "testng-6.10.jar"))
             .addProgramFiles(Paths.get(JDK_TESTS_BUILD_DIR + "jcommander-1.48.jar"))
             .setMinApi(parameters.getApiLevel())
-            .enableCoreLibraryDesugaring(parameters.getApiLevel())
+            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
             .compile()
             .withArt6Plus64BitsLib()
             .addDesugaredCoreLibraryRunClassPath(
-                this::buildDesugaredLibrary, parameters.getApiLevel());
+                this::buildDesugaredLibrary,
+                parameters.getApiLevel(),
+                keepRuleConsumer.get(),
+                shrinkDesugaredLibrary);
     for (String success : successes) {
       D8TestRunResult result =
           compileResult.run(parameters.getRuntime(), "TestNGMainRunner", verbosity, success);
