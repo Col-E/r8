@@ -14,7 +14,6 @@ import com.android.tools.r8.retrace.Retrace;
 import com.android.tools.r8.retrace.RetraceCommand;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.base.Equivalence;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
@@ -23,12 +22,82 @@ import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
 
-class StackTrace {
+public class StackTrace {
 
   public static String AT_PREFIX = "at ";
   public static String TAB_AT_PREFIX = "\t" + AT_PREFIX;
 
-  static class StackTraceLine {
+  public static class Builder {
+
+    private List<StackTraceLine> stackTraceLines = new ArrayList<>();
+
+    private Builder() {}
+
+    public Builder add(StackTraceLine line) {
+      stackTraceLines.add(line);
+      return this;
+    }
+
+    public Builder addWithoutFileNameAndLineNumber(Class<?> clazz, String methodName) {
+      return addWithoutFileNameAndLineNumber(clazz.getTypeName(), methodName);
+    }
+
+    public Builder addWithoutFileNameAndLineNumber(String className, String methodName) {
+      stackTraceLines.add(
+          StackTraceLine.builder().setClassName(className).setMethodName(methodName).build());
+      return this;
+    }
+
+    public StackTrace build() {
+      return new StackTrace(
+          stackTraceLines,
+          StringUtils.join(
+              stackTraceLines.stream().map(StackTraceLine::toString).collect(Collectors.toList()),
+              "\n"));
+    }
+  }
+
+  public static Builder builder() {
+    return new Builder();
+  }
+
+  public static class StackTraceLine {
+
+    public static class Builder {
+      private String className;
+      private String methodName;
+      private String fileName;
+      private int lineNumber = -1;
+
+      private Builder() {}
+
+      public Builder setClassName(String className) {
+        this.className = className;
+        return this;
+      }
+
+      public Builder setMethodName(String methodName) {
+        this.methodName = methodName;
+        return this;
+      }
+
+      public Builder setFileName(String fileName) {
+        this.fileName = fileName;
+        return this;
+      }
+
+      public Builder setLineNumber(int lineNumber) {
+        this.lineNumber = lineNumber;
+        return this;
+      }
+
+      public StackTraceLine build() {
+        String lineNumberPart = lineNumber >= 0 ? ":" + lineNumber : "";
+        String originalLine = className + '.' + methodName + '(' + fileName + lineNumberPart + ')';
+        return new StackTraceLine(originalLine, className, methodName, fileName, lineNumber);
+      }
+    }
+
     public final String originalLine;
     public final String className;
     public final String methodName;
@@ -42,6 +111,10 @@ class StackTrace {
       this.methodName = methodName;
       this.fileName = fileName;
       this.lineNumber = lineNumber;
+    }
+
+    public static Builder builder() {
+      return new Builder();
     }
 
     public boolean hasLineNumber() {
@@ -202,7 +275,7 @@ class StackTrace {
     return extractFromJvm(result.getStdErr());
   }
 
-  public StackTrace retrace(String map) throws IOException {
+  public StackTrace retrace(String map) {
     class Box {
       List<String> result;
     }

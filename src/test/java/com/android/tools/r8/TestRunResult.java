@@ -9,8 +9,10 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.naming.retrace.StackTrace;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -51,6 +53,14 @@ public abstract class TestRunResult<RR extends TestRunResult<?>> {
 
   public String getStdErr() {
     return result.stderr;
+  }
+
+  public StackTrace getStackTrace() {
+    if (runtime.isDex()) {
+      return StackTrace.extractFromArt(getStdErr(), runtime.asDex().getVm());
+    } else {
+      return StackTrace.extractFromJvm(getStdErr());
+    }
   }
 
   public int getExitCode() {
@@ -112,6 +122,12 @@ public abstract class TestRunResult<RR extends TestRunResult<?>> {
   public RR inspect(Consumer<CodeInspector> consumer)
       throws IOException, ExecutionException {
     consumer.accept(inspector());
+    return self();
+  }
+
+  public <E extends Throwable> RR inspectStackTrace(ThrowingConsumer<StackTrace, E> consumer)
+      throws E {
+    consumer.accept(getStackTrace());
     return self();
   }
 
