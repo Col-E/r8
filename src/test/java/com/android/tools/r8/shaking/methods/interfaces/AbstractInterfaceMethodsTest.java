@@ -5,7 +5,6 @@
 package com.android.tools.r8.shaking.methods.interfaces;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assume.assumeTrue;
@@ -28,7 +27,7 @@ import org.junit.runners.Parameterized.Parameters;
  * reflect the decisions to keep the interface method or not in the super interface.
  */
 @RunWith(Parameterized.class)
-public class AbstractMethodsTest extends TestBase {
+public class AbstractInterfaceMethodsTest extends TestBase {
 
   private final TestParameters parameters;
 
@@ -37,7 +36,7 @@ public class AbstractMethodsTest extends TestBase {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public AbstractMethodsTest(TestParameters parameters) {
+  public AbstractInterfaceMethodsTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
@@ -51,18 +50,19 @@ public class AbstractMethodsTest extends TestBase {
         .addKeepMethodRules(J.class, "void foo()")
         .addKeepRules("-dontwarn")
         .compile()
-        .inspect(AbstractMethodsTest::inspectBaseInterfaceRemove);
+        .inspect(AbstractInterfaceMethodsTest::inspectBaseInterfaceRemove);
   }
 
   @Test
   public void testSingleInheritanceR8()
       throws CompilationFailedException, IOException, ExecutionException {
+    // TODO(b/143590191): Fix expectation when resolved.
     testForR8(parameters.getBackend())
         .addProgramClasses(I.class, J.class)
         .setMinApi(parameters.getApiLevel())
         .addKeepMethodRules(J.class, "void foo()")
         .compile()
-        .inspect(AbstractMethodsTest::inspectBaseInterfaceRemove);
+        .inspect(AbstractInterfaceMethodsTest::inspectBaseInterfaceRemove);
   }
 
   private static void inspectBaseInterfaceRemove(CodeInspector inspector) {
@@ -72,49 +72,9 @@ public class AbstractMethodsTest extends TestBase {
     assertThat(inspector.clazz(I.class), not(isPresent()));
   }
 
-  @Test
-  public void testKeepInterfaceMethodOnSubInterface()
-      throws CompilationFailedException, IOException, ExecutionException {
-    testForR8(parameters.getBackend())
-        .addProgramClasses(Main.class, I.class, J.class, B.class)
-        .setMinApi(parameters.getApiLevel())
-        .addKeepMainRule(Main.class)
-        .addKeepClassAndMembersRules(B.class)
-        .addKeepMethodRules(J.class, "void foo()")
-        .run(parameters.getRuntime(), Main.class, B.class.getTypeName(), "foo")
-        .assertFailureWithErrorThatMatches(containsString("NoSuchMethodException"));
-  }
-
-  @Test
-  public void testKeepInterfaceMethodOnImplementingType()
-      throws CompilationFailedException, IOException, ExecutionException {
-    testForR8(parameters.getBackend())
-        .addProgramClasses(Main.class, I.class, A.class)
-        .setMinApi(parameters.getApiLevel())
-        .addKeepClassAndMembersRules(Main.class)
-        .addKeepMethodRules(A.class, "void <init>()", "void foo()")
-        .run(parameters.getRuntime(), Main.class, A.class.getTypeName(), "foo")
-        .assertFailureWithErrorThatMatches(containsString("NoSuchMethodException"));
-  }
-
   public interface I {
-
-    default void foo() {
-      System.out.println("Hello World!");
-    }
+    void foo();
   }
 
   public interface J extends I {}
-
-  public static class A implements I {}
-
-  public static class B implements J {}
-
-  public static class Main {
-
-    public static void main(String[] args) throws Exception {
-      Object o = Class.forName(args[0]).getDeclaredConstructor().newInstance();
-      o.getClass().getMethod(args[1]).invoke(o);
-    }
-  }
 }
