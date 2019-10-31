@@ -135,6 +135,14 @@ public abstract class Instruction {
     return false;
   }
 
+  public ConstClass asConstClass() {
+    return null;
+  }
+
+  public boolean isConstClass() {
+    return false;
+  }
+
   public DexItemBasedConstString asDexItemBasedConstString() {
     return null;
   }

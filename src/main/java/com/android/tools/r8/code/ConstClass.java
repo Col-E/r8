@@ -55,4 +55,14 @@ public class ConstClass extends Format21c {
   public boolean canThrow() {
     return true;
   }
+
+  @Override
+  public ConstClass asConstClass() {
+    return this;
+  }
+
+  @Override
+  public boolean isConstClass() {
+    return true;
+  }
 }
