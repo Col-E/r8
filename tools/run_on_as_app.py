@@ -1296,6 +1296,9 @@ def main(argv):
       result_per_shrinker_per_app.append(
           (app, GetResultsForApp(app, repo, options, temp_dir)))
 
+    if options.use_daemon:
+      utils.RunGradlew(["--stop"])
+
     return LogResultsForApps(result_per_shrinker_per_app, options)
 
 def success(message):
