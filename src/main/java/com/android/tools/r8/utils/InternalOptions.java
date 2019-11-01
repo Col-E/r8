@@ -68,6 +68,7 @@ public class InternalOptions {
   // Set to true to run compilation in a single thread and without randomly shuffling the input.
   // This makes life easier when running R8 in a debugger.
   public static final boolean DETERMINISTIC_DEBUGGING = false;
+
   public enum LineNumberOptimization {
     OFF,
     ON
