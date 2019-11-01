@@ -9,20 +9,13 @@ import static org.hamcrest.core.StringContains.containsString;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.utils.FileUtils;
-import com.android.tools.r8.utils.ZipUtils;
-import com.android.tools.r8.utils.ZipUtils.OnEntryHandler;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.zip.ZipEntry;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -177,53 +170,6 @@ public class R8EntryPointTests extends TestBase {
             testFlags.toString(),
             INPUT_JAR.toString());
     Assert.assertEquals(0, r8.exitCode);
-  }
-
-  @Test
-  public void testDumpInputs() throws IOException {
-    Path out = temp.newFile("dex.zip").toPath();
-    Path dump = temp.newFile("dump.zip").toPath();
-    ProcessResult r8 =
-        ToolHelper.forkR8WithJavaOptions(
-            Paths.get("."),
-            ImmutableList.of("-Dcom.android.tools.r8.dumpinputtofile=" + dump.toString()),
-            "--lib",
-            ToolHelper.getDefaultAndroidJar().toString(),
-            "--dex",
-            "--output",
-            out.toString(),
-            "--pg-conf",
-            PROGUARD_FLAGS.toString(),
-            "--pg-conf",
-            testFlags.toString(),
-            INPUT_JAR.toString());
-
-    List<ZipEntry> entries = new ArrayList<>();
-    ZipUtils.iter(
-        dump.toString(),
-        new OnEntryHandler() {
-          @Override
-          public void onEntry(ZipEntry entry, InputStream input) throws IOException {
-            entries.add(entry);
-          }
-        });
-    Assert.assertTrue(hasEntry(entries, "program.jar"));
-    Assert.assertTrue(hasEntry(entries, "library.jar"));
-    Assert.assertTrue(hasEntry(entries, "classpath.jar"));
-    Assert.assertTrue(hasEntry(entries, "proguard.config"));
-    Assert.assertTrue(hasEntry(entries, "r8-version"));
-    // When dumping the inputs we throw an error in the program to exit early.
-    Assert.assertNotEquals(0, r8.exitCode);
-  }
-
-  private boolean hasEntry(Collection<ZipEntry> entries, String name) {
-    for (ZipEntry entry : entries) {
-      if (entry.getName().equals(name)) {
-        return true;
-      }
-    }
-
-    return false;
   }
 
   @Test

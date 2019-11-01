@@ -7,17 +7,14 @@ import static com.android.tools.r8.graph.ClassKind.CLASSPATH;
 import static com.android.tools.r8.graph.ClassKind.LIBRARY;
 import static com.android.tools.r8.graph.ClassKind.PROGRAM;
 import static com.android.tools.r8.utils.ExceptionUtils.unwrapExecutionException;
-import static com.android.tools.r8.utils.InternalOptions.ASM_VERSION;
 
 import com.android.tools.r8.ClassFileResourceProvider;
-import com.android.tools.r8.DataEntryResource;
 import com.android.tools.r8.DataResourceProvider;
 import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.StringResource;
-import com.android.tools.r8.Version;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.ClassKind;
 import com.android.tools.r8.graph.DexApplication;
@@ -43,38 +40,26 @@ import com.android.tools.r8.utils.ProgramClassCollection;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
-import com.android.tools.r8.utils.ZipUtils;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.io.ByteStreams;
-import com.google.common.io.Closer;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.OpenOption;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Queue;
-import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
-import org.objectweb.asm.ClassVisitor;
 
 public class ApplicationReader {
 
   private final InternalOptions options;
   private final DexItemFactory itemFactory;
   private final Timing timing;
-  private final AndroidApp inputApp;
+  private AndroidApp inputApp;
 
   public interface ProgramClassConflictResolver {
     DexProgramClass resolveClassConflict(DexProgramClass a, DexProgramClass b);
@@ -123,7 +108,7 @@ public class ApplicationReader {
       throws IOException, ExecutionException {
     assert verifyMainDexOptionsCompatible(inputApp, options);
     if (options.dumpInputToFile != null) {
-      dumpInputToFile();
+      inputApp = dumpInputToFile(inputApp, options);
       throw options.reporter.fatalError("Dumped compilation inputs to: " + options.dumpInputToFile);
     }
     timing.begin("DexApplication.read");
@@ -160,141 +145,9 @@ public class ApplicationReader {
     return builder.build();
   }
 
-  private void dumpInputToFile() throws IOException  {
-    try {
-      List<ProgramResourceProvider> programResourceProviders =
-          inputApp.getProgramResourceProviders();
-      Set<DataEntryResource> dataEntryResources = inputApp.getDataEntryResourcesForTesting();
-      List<ProgramResource> programResourcesWithDescriptors = new ArrayList<>();
-      for (ProgramResourceProvider programResourceProvider : programResourceProviders) {
-        addProgramResourcesWithDescriptor(
-            programResourcesWithDescriptors, programResourceProvider.getProgramResources());
-      }
-
-      List<ProgramResource> libraryProgramResourcesWithDescriptors =
-          getProgramResourcesWithDescriptors(inputApp.getLibraryResourceProviders());
-
-      List<ProgramResource> classpathProgramResourcesWithDescriptors =
-          getProgramResourcesWithDescriptors(inputApp.getClasspathResourceProviders());
-
-      OpenOption[] openOptions =
-          new OpenOption[] {StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING};
-      try (Closer closer = Closer.create()) {
-        try (ZipOutputStream out =
-            new ZipOutputStream(
-                Files.newOutputStream(Paths.get(options.dumpInputToFile), openOptions))) {
-          writeToZip(
-              dataEntryResources, programResourcesWithDescriptors, closer, out, "program.jar");
-          writeToZip(
-              ImmutableSet.of(),
-              libraryProgramResourcesWithDescriptors,
-              closer,
-              out,
-              "library.jar");
-          writeToZip(
-              ImmutableSet.of(),
-              classpathProgramResourcesWithDescriptors,
-              closer,
-              out,
-              "classpath.jar");
-          if (options.hasProguardConfiguration()) {
-            String proguardConfig = options.getProguardConfiguration().getParsedConfiguration();
-            ZipUtils.writeToZipStream(
-                out, "proguard.config", proguardConfig.getBytes(), ZipEntry.DEFLATED);
-          }
-
-          ZipUtils.writeToZipStream(
-              out, "r8-version", Version.getVersionString().getBytes(), ZipEntry.DEFLATED);
-        }
-      }
-    } catch (ResourceException e) {
-      options.reporter.fatalError("Failed to write input:" + e.getMessage());
-    }
-  }
-
-  private static void writeToZip(
-      Set<DataEntryResource> dataEntryResources,
-      List<ProgramResource> programResourcesWithDescriptors,
-      Closer closer,
-      ZipOutputStream out,
-      String entry)
-      throws IOException, ResourceException {
-    try (ByteArrayOutputStream programByteStream = new ByteArrayOutputStream()) {
-      try (ZipOutputStream archiveOutputStream = new ZipOutputStream(programByteStream)) {
-        ZipUtils.writeResourcesToZip(
-            programResourcesWithDescriptors, dataEntryResources, closer, archiveOutputStream);
-      }
-      ZipUtils.writeToZipStream(out, entry, programByteStream.toByteArray(), ZipEntry.DEFLATED);
-    }
-  }
-
-  private static List<ProgramResource> getProgramResourcesWithDescriptors(
-      List<ClassFileResourceProvider> classFileResourceProviders)
-      throws IOException, ResourceException {
-    ArrayList<ProgramResource> programResourcesWithDescriptors = new ArrayList<>();
-    for (ClassFileResourceProvider libraryResourceProvider : classFileResourceProviders) {
-      List<ProgramResource> programResources = new ArrayList<>();
-      for (String classDescriptor : libraryResourceProvider.getClassDescriptors()) {
-        programResources.add(libraryResourceProvider.getProgramResource(classDescriptor));
-      }
-      addProgramResourcesWithDescriptor(programResourcesWithDescriptors, programResources);
-    }
-    return programResourcesWithDescriptors;
-  }
-
-  private static void addProgramResourcesWithDescriptor(
-      List<ProgramResource> programResourcesWithDescriptors,
-      Collection<ProgramResource> programResources)
-      throws IOException, ResourceException {
-    for (ProgramResource programResource : programResources) {
-      if (programResource.getKind() != Kind.CF) {
-        continue;
-      }
-      try (InputStream inputStream = programResource.getByteStream()) {
-        byte[] bytes = ByteStreams.toByteArray(inputStream);
-        String descriptor = extractClassInternalType(bytes);
-        programResourcesWithDescriptors.add(
-            ProgramResource.fromBytes(
-                programResource.getOrigin(),
-                programResource.getKind(),
-                bytes,
-                ImmutableSet.of(descriptor)));
-      }
-    }
-  }
-
-  private static String extractClassInternalType(byte[] bytes) throws IOException {
-    class ClassNameExtractor extends ClassVisitor {
-      private String className;
-
-      private ClassNameExtractor() {
-        super(ASM_VERSION);
-      }
-
-      @Override
-      public void visit(
-          int version,
-          int access,
-          String name,
-          String signature,
-          String superName,
-          String[] interfaces) {
-        className = name;
-      }
-
-      String getDescriptor() {
-        return "L" + className + ";";
-      }
-    }
-
-    org.objectweb.asm.ClassReader reader = new org.objectweb.asm.ClassReader(bytes);
-    ClassNameExtractor extractor = new ClassNameExtractor();
-    reader.accept(
-        extractor,
-        org.objectweb.asm.ClassReader.SKIP_CODE
-            | org.objectweb.asm.ClassReader.SKIP_DEBUG
-            | org.objectweb.asm.ClassReader.SKIP_FRAMES);
-    return extractor.getDescriptor();
+  private static AndroidApp dumpInputToFile(AndroidApp app, InternalOptions options) {
+    return app.dump(
+        Paths.get(options.dumpInputToFile), options.getProguardConfiguration(), options.reporter);
   }
 
   private static boolean verifyMainDexOptionsCompatible(

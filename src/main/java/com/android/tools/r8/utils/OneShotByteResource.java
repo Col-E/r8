@@ -17,7 +17,7 @@ class OneShotByteResource implements ProgramResource {
   private byte[] bytes;
   private final Set<String> classDescriptors;
 
-  static ProgramResource create(
+  public static OneShotByteResource create(
       Kind kind, Origin origin, byte[] bytes, Set<String> classDescriptors) {
     return new OneShotByteResource(origin, kind, bytes, classDescriptors);
   }

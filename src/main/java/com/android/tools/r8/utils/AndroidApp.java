@@ -7,6 +7,8 @@ import static com.android.tools.r8.utils.FileUtils.isAarFile;
 import static com.android.tools.r8.utils.FileUtils.isArchive;
 import static com.android.tools.r8.utils.FileUtils.isClassFile;
 import static com.android.tools.r8.utils.FileUtils.isDexFile;
+import static com.android.tools.r8.utils.InternalOptions.ASM_VERSION;
+import static com.android.tools.r8.utils.ZipUtils.writeToZipStream;
 
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.ClassFileResourceProvider;
@@ -25,28 +27,39 @@ import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.Resource;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.StringResource;
+import com.android.tools.r8.Version;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.shaking.FilteredClassPath;
+import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.ByteStreams;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
+import java.nio.file.OpenOption;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
+import org.objectweb.asm.ClassVisitor;
 
 /**
  * Collection of program files needed for processing.
@@ -380,6 +393,154 @@ public class AndroidApp {
   public String getPrimaryClassDescriptor(Resource resource) {
     assert resource instanceof ProgramResource;
     return programResourcesMainDescriptor.get(resource);
+  }
+
+  public AndroidApp dump(Path output, ProguardConfiguration configuration, Reporter reporter) {
+    int nextDexIndex = 0;
+    Builder builder = AndroidApp.builder(reporter);
+    OpenOption[] openOptions =
+        new OpenOption[] {StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING};
+    try (ZipOutputStream out = new ZipOutputStream(Files.newOutputStream(output, openOptions))) {
+      writeToZipStream(out, "r8-version", Version.getVersionString().getBytes(), ZipEntry.DEFLATED);
+      if (configuration != null) {
+        String proguardConfig = configuration.getParsedConfiguration();
+        writeToZipStream(out, "proguard.config", proguardConfig.getBytes(), ZipEntry.DEFLATED);
+      }
+      nextDexIndex = dumpProgramResources("program.jar", nextDexIndex, out, builder);
+      nextDexIndex =
+          dumpClassFileResources(
+              "classpath.jar", nextDexIndex, out, builder, classpathResourceProviders);
+      nextDexIndex =
+          dumpClassFileResources(
+              "library.jar", nextDexIndex, out, builder, libraryResourceProviders);
+    } catch (IOException | ResourceException e) {
+      reporter.fatalError(new StringDiagnostic("Failed to dump inputs"), e);
+    }
+    return builder.build();
+  }
+
+  private int dumpProgramResources(
+      String archiveName, int nextDexIndex, ZipOutputStream out, Builder builder)
+      throws IOException, ResourceException {
+    try (ByteArrayOutputStream archiveByteStream = new ByteArrayOutputStream()) {
+      try (ZipOutputStream archiveOutputStream = new ZipOutputStream(archiveByteStream)) {
+        Set<String> seen = new HashSet<>();
+        Set<DataEntryResource> dataEntries = getDataEntryResourcesForTesting();
+        for (DataEntryResource dataResource : dataEntries) {
+          builder.addDataResources(dataResource);
+          String entryName = dataResource.getName();
+          try (InputStream dataStream = dataResource.getByteStream()) {
+            byte[] bytes = ByteStreams.toByteArray(dataStream);
+            writeToZipStream(out, entryName, bytes, ZipEntry.DEFLATED);
+          }
+        }
+        for (ProgramResourceProvider provider : programResourceProviders) {
+          for (ProgramResource programResource : provider.getProgramResources()) {
+            nextDexIndex =
+                dumpProgramResource(
+                    builder, seen, nextDexIndex, archiveOutputStream, programResource);
+          }
+        }
+      }
+      writeToZipStream(out, archiveName, archiveByteStream.toByteArray(), ZipEntry.DEFLATED);
+    }
+    return nextDexIndex;
+  }
+
+  private static int dumpClassFileResources(
+      String archiveName,
+      int nextDexIndex,
+      ZipOutputStream out,
+      Builder builder,
+      ImmutableList<ClassFileResourceProvider> classpathResourceProviders)
+      throws IOException, ResourceException {
+    try (ByteArrayOutputStream archiveByteStream = new ByteArrayOutputStream()) {
+      try (ZipOutputStream archiveOutputStream = new ZipOutputStream(archiveByteStream)) {
+        Set<String> seen = new HashSet<>();
+        for (ClassFileResourceProvider provider : classpathResourceProviders) {
+          for (String descriptor : provider.getClassDescriptors()) {
+            ProgramResource programResource = provider.getProgramResource(descriptor);
+            int oldDexIndex = nextDexIndex;
+            nextDexIndex =
+                dumpProgramResource(
+                    builder, seen, nextDexIndex, archiveOutputStream, programResource);
+            assert nextDexIndex == oldDexIndex;
+          }
+        }
+      }
+      writeToZipStream(out, archiveName, archiveByteStream.toByteArray(), ZipEntry.DEFLATED);
+    }
+    return nextDexIndex;
+  }
+
+  private static int dumpProgramResource(
+      Builder builder,
+      Set<String> seen,
+      int nextDexIndex,
+      ZipOutputStream archiveOutputStream,
+      ProgramResource programResource)
+      throws ResourceException, IOException {
+    byte[] bytes = ByteStreams.toByteArray(programResource.getByteStream());
+    Set<String> classDescriptors = programResource.getClassDescriptors();
+    if (classDescriptors.size() != 1 && programResource.getKind() == Kind.CF) {
+      classDescriptors = Collections.singleton(extractClassDescriptor(bytes));
+    }
+    if (programResource instanceof OneShotByteResource) {
+      builder.addProgramResources(
+          OneShotByteResource.create(
+              programResource.getKind(), programResource.getOrigin(), bytes, classDescriptors));
+
+    } else {
+      builder.addProgramResources(programResource);
+    }
+    String entryName;
+    if (programResource.getKind() == Kind.CF) {
+      String classDescriptor =
+          classDescriptors.size() == 1
+              ? classDescriptors.iterator().next()
+              : extractClassDescriptor(bytes);
+      String classFileName = DescriptorUtils.getClassFileName(classDescriptor);
+      entryName = seen.add(classDescriptor) ? classFileName : (classFileName + ".dup");
+    } else {
+      assert programResource.getKind() == Kind.DEX;
+      entryName = "classes" + nextDexIndex++ + ".dex";
+    }
+    writeToZipStream(archiveOutputStream, entryName, bytes, ZipEntry.DEFLATED);
+    return nextDexIndex;
+  }
+
+  private static String extractClassDescriptor(byte[] bytes) {
+    class ClassNameExtractor extends ClassVisitor {
+      private String className;
+
+      private ClassNameExtractor() {
+        super(ASM_VERSION);
+      }
+
+      @Override
+      public void visit(
+          int version,
+          int access,
+          String name,
+          String signature,
+          String superName,
+          String[] interfaces) {
+        className = name;
+      }
+
+      String getDescriptor() {
+        return "L" + className + ";";
+      }
+    }
+
+    org.objectweb.asm.ClassReader reader = new org.objectweb.asm.ClassReader(bytes);
+    ClassNameExtractor extractor = new ClassNameExtractor();
+    reader.accept(
+        extractor,
+        org.objectweb.asm.ClassReader.SKIP_CODE
+            | org.objectweb.asm.ClassReader.SKIP_DEBUG
+            | org.objectweb.asm.ClassReader.SKIP_FRAMES);
+    return extractor.getDescriptor();
   }
 
   /**

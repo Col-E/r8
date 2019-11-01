@@ -57,6 +57,8 @@ public class ExternalR8TestBuilder
 
   private boolean addR8ExternalDeps = false;
 
+  private List<String> jvmFlags = new ArrayList<>();
+
   private ExternalR8TestBuilder(TestState state, Builder builder, Backend backend) {
     super(state, builder, backend);
   }
@@ -72,7 +74,7 @@ public class ExternalR8TestBuilder
 
   public ExternalR8TestBuilder useExternalJDK(CfVm externalJDK) {
     this.externalJDK = externalJDK;
-    return this;
+    return self();
   }
 
   private String getJDKToRun() {
@@ -80,6 +82,11 @@ public class ExternalR8TestBuilder
       return getJavaExecutable();
     }
     return getJavaExecutable(externalJDK);
+  }
+
+  public ExternalR8TestBuilder addJvmFlag(String flag) {
+    jvmFlags.add(flag);
+    return self();
   }
 
   @Override
@@ -99,9 +106,12 @@ public class ExternalR8TestBuilder
               : r8jar.toAbsolutePath().toString();
 
       List<String> command = new ArrayList<>();
+      Collections.addAll(command, getJDKToRun());
+
+      command.addAll(jvmFlags);
+
       Collections.addAll(
           command,
-          getJDKToRun(),
           "-ea",
           "-cp",
           classPath,
