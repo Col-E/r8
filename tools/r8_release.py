@@ -75,16 +75,25 @@ def prepare_release(args):
         sed(old_version, version, R8_VERSION_FILE)
 
         subprocess.check_call([
-          'git', 'commit', '-a', '-m', '"Version %s"' % version])
+          'git', 'commit', '-a', '-m', 'Version %s' % version])
 
         version_diff_output = subprocess.check_output([
           'git', 'diff', '%s..HEAD' % commithash])
 
         invalid = version_change_diff(version_diff_output, "master", version)
         if invalid:
-          print "Unexpected diff content for line:"
-          print invalid
-          sys.exit(1)
+          print "Unexpected diff:"
+          print "=" * 80
+          print version_diff_output
+          print "=" * 80
+          accept_string = 'THE DIFF IS OK!'
+          input = raw_input(
+            "Accept the additonal diff as part of the release? "
+            "Type '%s' to accept: " % accept_string)
+          if input != accept_string:
+            print "You did not type '%s'" % accept_string
+            print 'Aborting dev release for %s' % version
+            sys.exit(1)
 
         # Double check that we want to push the release.
         if not args.dry_run:
