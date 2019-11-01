@@ -71,7 +71,7 @@ public class ClassesChecksum {
     }
   }
 
-  public static boolean preceedChecksumMarker(DexString string) {
+  public static boolean isChecksumMarkerPrefix(DexString string) {
     return string.size < 1 ||
         string.content[0] < PREFIX_CHAR0 ||
         string.size < 2 ||
