@@ -159,6 +159,13 @@ public class CodeRewriter {
     this.dexItemFactory = appView.dexItemFactory();
   }
 
+  public static void insertAssumeInstructions(IRCode code, Collection<Assumer> assumers) {
+    for (Assumer assumer : assumers) {
+      assumer.insertAssumeInstructions(code);
+      assert code.isConsistentSSA();
+    }
+  }
+
   public static void removeAssumeInstructions(AppView<?> appView, IRCode code) {
     // We need to update the types of all values whose definitions depend on a non-null value.
     // This is needed to preserve soundness of the types after the Assume<NonNullAssumption>

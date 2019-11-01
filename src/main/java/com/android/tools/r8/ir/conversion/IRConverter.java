@@ -48,6 +48,7 @@ import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.ir.desugar.StringConcatRewriter;
 import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
 import com.android.tools.r8.ir.optimize.AliasIntroducer;
+import com.android.tools.r8.ir.optimize.Assumer;
 import com.android.tools.r8.ir.optimize.ClassInitializerDefaultsOptimization;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.ConstantCanonicalizer;
@@ -155,13 +156,12 @@ public class IRConverter {
   private final ServiceLoaderRewriter serviceLoaderRewriter;
 
   // Assumers that will insert Assume instructions.
-  private final AliasIntroducer aliasIntroducer;
+  public final Collection<Assumer> assumers = new ArrayList<>();
   private final DynamicTypeOptimization dynamicTypeOptimization;
-  private final NonNullTracker nonNullTracker;
 
   final DeadCodeRemover deadCodeRemover;
 
-  final MethodOptimizationInfoCollector methodOptimizationInfoCollector;
+  private final MethodOptimizationInfoCollector methodOptimizationInfoCollector;
 
   private final OptimizationFeedbackDelayed delayedOptimizationFeedback =
       new OptimizationFeedbackDelayed();
@@ -219,8 +219,6 @@ public class IRConverter {
       this.twrCloseResourceRewriter = null;
       this.lambdaMerger = null;
       this.covariantReturnTypeAnnotationTransformer = null;
-      this.aliasIntroducer = null;
-      this.nonNullTracker = null;
       this.dynamicTypeOptimization = null;
       this.classInliner = null;
       this.classStaticizer = null;
@@ -258,9 +256,12 @@ public class IRConverter {
         options.processCovariantReturnTypeAnnotations
             ? new CovariantReturnTypeAnnotationTransformer(this, appView.dexItemFactory())
             : null;
-    this.aliasIntroducer =
-        options.testing.forceAssumeNoneInsertion ? new AliasIntroducer(appView) : null;
-    this.nonNullTracker = options.enableNonNullTracking ? new NonNullTracker(appView) : null;
+    if (options.testing.forceAssumeNoneInsertion) {
+      assumers.add(new AliasIntroducer(appView));
+    }
+    if (options.enableNonNullTracking) {
+      assumers.add(new NonNullTracker(appView));
+    }
     this.desugaredLibraryAPIConverter =
         appView.rewritePrefix.isRewriting() ? new DesugaredLibraryAPIConverter(appView) : null;
     if (appView.enableWholeProgramOptimizations()) {
@@ -277,6 +278,9 @@ public class IRConverter {
           options.enableDynamicTypeOptimization
               ? new DynamicTypeOptimization(appViewWithLiveness)
               : null;
+      if (dynamicTypeOptimization != null) {
+        assumers.add(dynamicTypeOptimization);
+      }
       this.fieldBitAccessAnalysis =
           options.enableFieldBitAccessAnalysis
               ? new FieldBitAccessAnalysis(appViewWithLiveness)
@@ -1146,25 +1150,13 @@ public class IRConverter {
 
     previous = printMethod(code, "IR after disable assertions (SSA)", previous);
 
-    if (aliasIntroducer != null) {
-      aliasIntroducer.insertAssumeInstructions(code);
-      assert code.isConsistentSSA();
-    }
+    CodeRewriter.insertAssumeInstructions(code, assumers);
 
-    if (nonNullTracker != null) {
-      nonNullTracker.insertAssumeInstructions(code);
-      assert code.isConsistentSSA();
-    }
-
-    if (dynamicTypeOptimization != null) {
-      assert appView.enableWholeProgramOptimizations();
-      dynamicTypeOptimization.insertAssumeInstructions(code);
-      assert code.isConsistentSSA();
-    }
+    previous = printMethod(code, "IR after inserting assume instructions (SSA)", previous);
 
     appView.withGeneratedMessageLiteShrinker(shrinker -> shrinker.run(method, code));
 
-    previous = printMethod(code, "IR after null tracking (SSA)", previous);
+    previous = printMethod(code, "IR after generated message lite shrinking (SSA)", previous);
 
     if (!isDebugMode && options.enableInlining && inliner != null) {
       inliner.performInlining(method, code, feedback, methodProcessor);
@@ -1393,7 +1385,7 @@ public class IRConverter {
       collectOptimizationInfo(code, feedback);
     }
 
-    if (aliasIntroducer != null || nonNullTracker != null || dynamicTypeOptimization != null) {
+    if (!assumers.isEmpty()) {
       CodeRewriter.removeAssumeInstructions(appView, code);
       assert code.isConsistentSSA();
     }

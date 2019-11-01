@@ -289,6 +289,7 @@ final class StaticizingProcessor {
     Origin origin = appView.appInfo().originFor(method.method.holder);
     IRCode code = method.buildIR(appView, origin);
     codeOptimizations.forEach(codeOptimization -> codeOptimization.accept(code));
+    CodeRewriter.insertAssumeInstructions(code, converter.assumers);
     converter.collectOptimizationInfo(code, feedback);
     CodeRewriter.removeAssumeInstructions(appView, code);
     converter.finalizeIR(method, code, feedback);
