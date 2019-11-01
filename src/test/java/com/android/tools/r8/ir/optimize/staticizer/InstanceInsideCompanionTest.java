@@ -15,13 +15,14 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class CompanionAsArgumentTest extends TestBase {
+public class InstanceInsideCompanionTest extends TestBase {
   private static final Class<?> MAIN = Main.class;
 
   @Parameterized.Parameters(name = "{0}")
@@ -32,62 +33,62 @@ public class CompanionAsArgumentTest extends TestBase {
 
   private final TestParameters parameters;
 
-  public CompanionAsArgumentTest(TestParameters parameters) {
+  public InstanceInsideCompanionTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
   @Test
-  public void testR8() throws Exception {
+  public void b143684491() throws Exception {
     testForR8(parameters.getBackend())
-        .addInnerClasses(CompanionAsArgumentTest.class)
+        .addInnerClasses(InstanceInsideCompanionTest.class)
         .addKeepMainRule(MAIN)
         .enableInliningAnnotations()
         .enableClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)
-        .assertSuccessWithOutputLines("Companion#foo(true)")
+        .assertSuccessWithOutputLines("Candidate#foo(false)")
         .inspect(this::inspect);
   }
 
   private void inspect(CodeInspector inspector) {
-    // Check if the candidate is not staticized.
-    ClassSubject companion = inspector.clazz(Host.Companion.class);
-    assertThat(companion, isPresent());
-    MethodSubject foo = companion.uniqueMethodWithName("foo");
+    // Check if the instance is gone.
+    ClassSubject host = inspector.clazz(Candidate.Host.class);
+    assertThat(host, isPresent());
+    FieldSubject instance = host.uniqueFieldWithName("INSTANCE");
+    assertThat(instance, not(isPresent()));
+
+    ClassSubject candidate = inspector.clazz(Candidate.class);
+    assertThat(candidate, not(isPresent()));
+
+    // Check if the candidate method is staticized and migrated.
+    MethodSubject foo = host.uniqueMethodWithName("foo");
     assertThat(foo, isPresent());
+    assertTrue(foo.isStatic());
     assertTrue(
         foo.streamInstructions().anyMatch(
             i -> i.isInvokeVirtual()
                 && i.getMethod().toSourceString().contains("PrintStream.println")));
-
-    // Nothing migrated from Companion to Host.
-    ClassSubject host = inspector.clazz(Host.class);
-    assertThat(host, isPresent());
-    MethodSubject migrated_foo = host.uniqueMethodWithName("foo");
-    assertThat(migrated_foo, not(isPresent()));
   }
 
   @NeverClassInline
-  static class Host {
-    private static final Companion companion = new Companion();
+  static class Candidate {
+    private static class Host {
+      static final Candidate INSTANCE = new Candidate();
+    }
 
-    static class Companion {
-      @NeverInline
-      public void foo(Object arg) {
-        System.out.println("Companion#foo(" + (arg != null) + ")");
-      }
+    public static Candidate getInstance() {
+      return Host.INSTANCE;
     }
 
     @NeverInline
-    static void bar() {
-      // The target singleton is used as not only a receiver but also an argument.
-      companion.foo(companion);
+    public void foo(Object arg) {
+      System.out.println("Candidate#foo(" + (arg != null) + ")");
     }
   }
 
   static class Main {
     public static void main(String[] args) {
-      Host.bar();
+      Candidate.getInstance().foo(null);
     }
   }
 }

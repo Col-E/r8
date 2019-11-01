@@ -682,8 +682,12 @@ final class StaticizingProcessor {
         DexEncodedMethod newMethod = method.toTypeSubstitutedMethod(
             factory().createMethod(hostType, method.method.proto, method.method.name));
         newMethods.add(newMethod);
-        staticizedMethods.add(newMethod);
-        staticizedMethods.remove(method);
+        // If the old method from the candidate class has been staticized,
+        if (staticizedMethods.remove(method)) {
+          // Properly update staticized methods to reprocess, i.e., add the corresponding one that
+          // has just been migrated to the host class.
+          staticizedMethods.add(newMethod);
+        }
         DexMethod originalMethod = methodMapping.inverse().get(method.method);
         if (originalMethod == null) {
           methodMapping.put(method.method, newMethod.method);
