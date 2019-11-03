@@ -4,20 +4,29 @@
 
 package com.android.tools.r8.ir.analysis.fieldvalueanalysis;
 
+import static com.android.tools.r8.ir.code.Opcodes.INVOKE_DIRECT;
+import static com.android.tools.r8.ir.code.Opcodes.STATIC_PUT;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.ir.analysis.value.SingleEnumValue;
+import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.DominatorTree;
 import com.android.tools.r8.ir.code.DominatorTree.Assumption;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
+import com.android.tools.r8.ir.code.InvokeDirect;
+import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
@@ -33,6 +42,7 @@ import java.util.Map.Entry;
 public class FieldValueAnalysis {
 
   private final AppView<AppInfoWithLiveness> appView;
+  private final DexProgramClass clazz;
   private final IRCode code;
   private final OptimizationFeedback feedback;
   private final DexEncodedMethod method;
@@ -45,9 +55,11 @@ public class FieldValueAnalysis {
       OptimizationFeedback feedback,
       DexEncodedMethod method) {
     this.appView = appView;
+    this.clazz = appView.definitionFor(method.method.holder).asProgramClass();
     this.code = code;
     this.feedback = feedback;
     this.method = method;
+    assert this.clazz != null;
   }
 
   public static void run(
@@ -244,16 +256,92 @@ public class FieldValueAnalysis {
   }
 
   private void updateFieldOptimizationInfo(DexEncodedField field, Value value) {
+    // Abstract value.
+    Value root = value.getAliasedValue();
+    AbstractValue abstractValue = computeAbstractValue(root);
+    if (!abstractValue.isUnknown()) {
+      feedback.recordFieldHasAbstractValue(field, abstractValue);
+    }
+
+    // Dynamic upper bound type.
     TypeLatticeElement fieldType =
         TypeLatticeElement.fromDexType(field.field.type, Nullability.maybeNull(), appView);
     TypeLatticeElement dynamicUpperBoundType = value.getDynamicUpperBoundType(appView);
     if (dynamicUpperBoundType.strictlyLessThan(fieldType, appView)) {
       feedback.markFieldHasDynamicUpperBoundType(field, dynamicUpperBoundType);
     }
+
+    // Dynamic lower bound type.
     ClassTypeLatticeElement dynamicLowerBoundType = value.getDynamicLowerBoundType(appView);
     if (dynamicLowerBoundType != null) {
       assert dynamicLowerBoundType.lessThanOrEqual(dynamicUpperBoundType, appView);
       feedback.markFieldHasDynamicLowerBoundType(field, dynamicLowerBoundType);
     }
+  }
+
+  private AbstractValue computeAbstractValue(Value value) {
+    assert !value.hasAliasedValue();
+    if (clazz.isEnum()) {
+      SingleEnumValue singleEnumValue = getSingleEnumValue(value);
+      if (singleEnumValue != null) {
+        return singleEnumValue;
+      }
+    }
+    return UnknownValue.getInstance();
+  }
+
+  /**
+   * If {@param value} is defined by a new-instance instruction that instantiates the enclosing enum
+   * class, and the value is assigned into exactly one static enum field on the enclosing enum
+   * class, then returns a {@link SingleEnumValue} instance. Otherwise, returns {@code null}.
+   */
+  private SingleEnumValue getSingleEnumValue(Value value) {
+    assert clazz.isEnum();
+    assert !value.hasAliasedValue();
+    if (value.isPhi() || !value.definition.isNewInstance()) {
+      return null;
+    }
+
+    NewInstance newInstance = value.definition.asNewInstance();
+    if (newInstance.clazz != clazz.type) {
+      return null;
+    }
+
+    if (value.hasDebugUsers() || value.hasPhiUsers()) {
+      return null;
+    }
+
+    DexEncodedField enumField = null;
+    for (Instruction user : value.uniqueUsers()) {
+      switch (user.opcode()) {
+        case INVOKE_DIRECT:
+          // Check that this is the corresponding constructor call.
+          InvokeDirect invoke = user.asInvokeDirect();
+          if (!appView.dexItemFactory().isConstructor(invoke.getInvokedMethod())
+              || invoke.getReceiver() != value) {
+            return null;
+          }
+          break;
+
+        case STATIC_PUT:
+          DexEncodedField field = clazz.lookupStaticField(user.asStaticPut().getField());
+          if (field != null && field.accessFlags.isEnum()) {
+            if (enumField != null) {
+              return null;
+            }
+            enumField = field;
+          }
+          break;
+
+        default:
+          return null;
+      }
+    }
+
+    if (enumField == null) {
+      return null;
+    }
+
+    return appView.abstractValueFactory().createSingleEnumValue(enumField.field);
   }
 }

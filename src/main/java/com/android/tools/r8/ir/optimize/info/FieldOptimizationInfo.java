@@ -6,12 +6,15 @@ package com.android.tools.r8.ir.optimize.info;
 
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
 
 public abstract class FieldOptimizationInfo {
 
   public abstract MutableFieldOptimizationInfo mutableCopy();
 
   public abstract boolean cannotBeKept();
+
+  public abstract AbstractValue getAbstractValue();
 
   /**
    * This should only be used once all methods in the program have been processed. Until then the

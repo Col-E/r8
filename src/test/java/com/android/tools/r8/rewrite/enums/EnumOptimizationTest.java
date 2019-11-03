@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.rewrite.enums;
 
-import static com.android.tools.r8.ToolHelper.getDefaultAndroidJar;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.assertEquals;
@@ -30,12 +29,14 @@ import org.junit.runners.Parameterized.Parameters;
  */
 @RunWith(Parameterized.class)
 public class EnumOptimizationTest extends TestBase {
+
   private final boolean enableOptimization;
   private final TestParameters parameters;
 
   @Parameters(name = "{1}, enable enum optimization: {0}")
   public static List<Object[]> data() {
-    return buildParameters(BooleanUtils.values(), getTestParameters().withAllRuntimes().build());
+    return buildParameters(
+        BooleanUtils.values(), getTestParameters().withAllRuntimesAndApiLevels().build());
   }
 
   public EnumOptimizationTest(boolean enableOptimization, TestParameters parameters) {
@@ -50,12 +51,11 @@ public class EnumOptimizationTest extends TestBase {
   @Test
   public void ordinals() throws Exception {
     testForR8(parameters.getBackend())
-        .addLibraryFiles(getDefaultAndroidJar())
         .addProgramClassesAndInnerClasses(Ordinals.class)
         .addKeepMainRule(Ordinals.class)
         .enableInliningAnnotations()
         .addOptionsModification(this::configure)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::inspectOrdinals)
         .run(parameters.getRuntime(), Ordinals.class)
@@ -96,12 +96,11 @@ public class EnumOptimizationTest extends TestBase {
   @Test
   public void names() throws Exception {
     testForR8(parameters.getBackend())
-        .addLibraryFiles(getDefaultAndroidJar())
         .addProgramClassesAndInnerClasses(Names.class)
         .addKeepMainRule(Names.class)
         .enableInliningAnnotations()
         .addOptionsModification(this::configure)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::inspectNames)
         .run(parameters.getRuntime(), Names.class)
@@ -139,17 +138,17 @@ public class EnumOptimizationTest extends TestBase {
   @Test
   public void toStrings() throws Exception {
     testForR8(parameters.getBackend())
-        .addLibraryFiles(getDefaultAndroidJar())
         .addProgramClassesAndInnerClasses(ToStrings.class)
         .addKeepMainRule(ToStrings.class)
         .enableInliningAnnotations()
         .addOptionsModification(this::configure)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::inspectToStrings)
         .run(parameters.getRuntime(), ToStrings.class)
-        .assertSuccessWithOutputLines("one", "one", "TWO", "TWO", "TWO", "1TWO", "TWO", "SECONDS",
-            "DOWN", "TWO", "TWO", "TWO");
+        .assertSuccessWithOutputLines(
+            "one", "one", "TWO", "TWO", "TWO", "1TWO", "TWO", "SECONDS", "DOWN", "TWO", "TWO",
+            "TWO");
   }
 
   private void inspectToStrings(CodeInspector inspector) {
@@ -157,7 +156,11 @@ public class EnumOptimizationTest extends TestBase {
     assertTrue(clazz.isPresent());
 
     assertToStringWasNotReplaced(clazz.uniqueMethodWithName("typeToString"));
-    assertToStringWasNotReplaced(clazz.uniqueMethodWithName("valueWithToString"));
+    if (parameters.isCfRuntime()) {
+      assertToStringWasNotReplaced(clazz.uniqueMethodWithName("valueWithToString"));
+    } else {
+      assertToStringReplacedWithConst(clazz.uniqueMethodWithName("valueWithToString"), "one");
+    }
     assertToStringWasNotReplaced(clazz.uniqueMethodWithName("valueWithoutToString"));
 
     if (enableOptimization) {

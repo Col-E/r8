@@ -58,7 +58,6 @@ import java.util.Deque;
 import java.util.List;
 import java.util.Set;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 
 public class MethodOptimizationInfoCollector {
   private final AppView<AppInfoWithLiveness> appView;
@@ -291,7 +290,7 @@ public class MethodOptimizationInfoCollector {
     feedback.setTrivialInitializer(
         method,
         method.isInstanceInitializer()
-            ? computeInstanceInitializerInfo(code, clazz, appView::definitionFor)
+            ? computeInstanceInitializerInfo(code, clazz)
             : computeClassInitializerInfo(code, clazz));
   }
 
@@ -389,8 +388,7 @@ public class MethodOptimizationInfoCollector {
   // ** Assigns arguments or non-throwing constants to fields of this class.
   //
   // (Note that this initializer does not have to have zero arguments.)
-  private TrivialInitializer computeInstanceInitializerInfo(
-      IRCode code, DexClass clazz, Function<DexType, DexClass> typeToClass) {
+  private TrivialInitializer computeInstanceInitializerInfo(IRCode code, DexClass clazz) {
     if (clazz.definesFinalizer(options.itemFactory)) {
       // Defining a finalize method can observe the side-effect of Object.<init> GC registration.
       return null;
@@ -423,11 +421,12 @@ public class MethodOptimizationInfoCollector {
         if (invokedMethod.holder != clazz.superType) {
           return null;
         }
-        // java.lang.Object.<init>() is considered trivial.
-        if (invokedMethod == dexItemFactory.objectMethods.constructor) {
+        // java.lang.Enum.<init>() and java.lang.Object.<init>() are considered trivial.
+        if (invokedMethod == dexItemFactory.enumMethods.constructor
+            || invokedMethod == dexItemFactory.objectMethods.constructor) {
           continue;
         }
-        DexClass holder = typeToClass.apply(invokedMethod.holder);
+        DexClass holder = appView.definitionFor(invokedMethod.holder);
         if (holder == null) {
           return null;
         }

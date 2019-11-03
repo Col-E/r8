@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -119,6 +120,11 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
   @Override
   public void markFieldBitsRead(DexEncodedField field, int bitsRead) {
     getFieldOptimizationInfoForUpdating(field).joinReadBits(bitsRead);
+  }
+
+  @Override
+  public void recordFieldHasAbstractValue(DexEncodedField field, AbstractValue abstractValue) {
+    getFieldOptimizationInfoForUpdating(field).setAbstractValue(abstractValue);
   }
 
   // METHOD OPTIMIZATION INFO:

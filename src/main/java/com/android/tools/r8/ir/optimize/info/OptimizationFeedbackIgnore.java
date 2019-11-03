@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import java.util.BitSet;
 import java.util.Set;
@@ -44,6 +45,9 @@ public abstract class OptimizationFeedbackIgnore extends OptimizationFeedback {
 
   @Override
   public void markFieldBitsRead(DexEncodedField field, int bitsRead) {}
+
+  @Override
+  public void recordFieldHasAbstractValue(DexEncodedField field, AbstractValue abstractValue) {}
 
   // METHOD OPTIMIZATION INFO:
 

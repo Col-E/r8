@@ -516,6 +516,7 @@ public class DexItemFactory {
   // If not, that library method should not be added here because it literally has side effects.
   public Map<DexMethod, Predicate<InvokeMethod>> libraryMethodsWithoutSideEffects =
       Streams.<Pair<DexMethod, Predicate<InvokeMethod>>>concat(
+              Stream.of(new Pair<>(enumMethods.constructor, alwaysTrue())),
               Stream.of(new Pair<>(objectMethods.constructor, alwaysTrue())),
               mapToPredicate(classMethods.getNames, alwaysTrue()),
               mapToPredicate(
@@ -550,7 +551,7 @@ public class DexItemFactory {
           .build();
 
   public final Set<DexType> libraryClassesWithoutStaticInitialization =
-      ImmutableSet.of(objectType, stringBufferType, stringBuilderType);
+      ImmutableSet.of(enumType, objectType, stringBufferType, stringBuilderType);
 
   private boolean skipNameValidationForTesting = false;
 
@@ -750,6 +751,8 @@ public class DexItemFactory {
     public final DexMethod name;
     public final DexMethod toString;
 
+    public final DexMethod constructor =
+        createMethod(enumType, createProto(voidType, stringType, intType), constructorMethodName);
     public final DexMethod finalize =
         createMethod(enumType, createProto(voidType), finalizeMethodName);
 

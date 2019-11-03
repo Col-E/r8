@@ -14,7 +14,6 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -27,6 +26,7 @@ import com.android.tools.r8.ir.analysis.equivalence.BasicBlockBehavioralSubsumpt
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.code.AlwaysMaterializingNop;
 import com.android.tools.r8.ir.code.ArrayLength;
 import com.android.tools.r8.ir.code.ArrayPut;
@@ -2539,12 +2539,12 @@ public class CodeRewriter {
               }
             }
           } else {
-            DexEncodedField enumField = lhs.getEnumField(appView);
-            if (enumField != null) {
-              DexEncodedField otherEnumField = rhs.getEnumField(appView);
-              if (enumField == otherEnumField) {
+            AbstractValue abstractValue = lhs.getAbstractValue(appView);
+            if (abstractValue.isSingleEnumValue()) {
+              AbstractValue otherAbstractValue = rhs.getAbstractValue(appView);
+              if (abstractValue == otherAbstractValue) {
                 simplifyIfWithKnownCondition(code, block, theIf, 0);
-              } else if (otherEnumField != null) {
+              } else if (otherAbstractValue.isSingleEnumValue()) {
                 simplifyIfWithKnownCondition(code, block, theIf, 1);
               }
             }

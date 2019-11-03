@@ -10,12 +10,13 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
-import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.regalloc.LiveIntervals;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.MethodPosition;
@@ -474,6 +475,10 @@ public class Value implements Comparable<Value> {
     return uniqueUsers().size();
   }
 
+  public boolean hasPhiUsers() {
+    return numberOfPhiUsers() > 0;
+  }
+
   public int numberOfPhiUsers() {
     int size = phiUsers.size();
     if (size <= 1) {
@@ -484,6 +489,10 @@ public class Value implements Comparable<Value> {
 
   public int numberOfAllNonDebugUsers() {
     return numberOfUsers() + numberOfPhiUsers();
+  }
+
+  public boolean hasDebugUsers() {
+    return numberOfDebugUsers() > 0;
   }
 
   public int numberOfDebugUsers() {
@@ -830,33 +839,25 @@ public class Value implements Comparable<Value> {
     return definition.isOutConstant() && !hasLocalInfo();
   }
 
-  public DexEncodedField getEnumField(AppView<?> appView) {
+  public AbstractValue getAbstractValue(AppView<?> appView) {
     if (!appView.enableWholeProgramOptimizations()) {
-      return null;
+      return UnknownValue.getInstance();
     }
 
     Value root = getAliasedValue();
-    if (root.isPhi() || !root.definition.isStaticGet()) {
-      return null;
+    if (root.isPhi()) {
+      return UnknownValue.getInstance();
     }
 
-    StaticGet staticGet = root.definition.asStaticGet();
-    DexField field = staticGet.getField();
-    if (field.type != field.holder) {
-      return null;
+    if (root.definition.isFieldGet()) {
+      FieldInstruction fieldGet = root.definition.asFieldInstruction();
+      DexEncodedField field = appView.appInfo().resolveField(fieldGet.getField());
+      if (field != null) {
+        return field.getOptimizationInfo().getAbstractValue();
+      }
     }
 
-    DexEncodedField encodedField = appView.definitionFor(field);
-    if (encodedField == null) {
-      return null;
-    }
-
-    DexClass clazz = appView.definitionFor(encodedField.field.holder);
-    if (clazz == null || !clazz.isEnum()) {
-      return null;
-    }
-
-    return encodedField;
+    return UnknownValue.getInstance();
   }
 
   public boolean isPhi() {

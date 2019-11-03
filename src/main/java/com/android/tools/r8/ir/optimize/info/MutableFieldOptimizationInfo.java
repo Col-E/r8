@@ -9,6 +9,8 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import java.util.function.Function;
 
 /**
@@ -20,6 +22,7 @@ import java.util.function.Function;
  */
 public class MutableFieldOptimizationInfo extends FieldOptimizationInfo {
 
+  private AbstractValue abstractValue = UnknownValue.getInstance();
   private int readBits = 0;
   private boolean cannotBeKept = false;
   private boolean valueHasBeenPropagated = false;
@@ -42,6 +45,15 @@ public class MutableFieldOptimizationInfo extends FieldOptimizationInfo {
     copy.cannotBeKept = cannotBeKept();
     copy.valueHasBeenPropagated = valueHasBeenPropagated();
     return copy;
+  }
+
+  @Override
+  public AbstractValue getAbstractValue() {
+    return abstractValue;
+  }
+
+  public void setAbstractValue(AbstractValue abstractValue) {
+    this.abstractValue = abstractValue;
   }
 
   @Override

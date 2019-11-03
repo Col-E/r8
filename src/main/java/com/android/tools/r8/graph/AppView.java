@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.analysis.InitializedClassesInInstanceMethodsAn
 import com.android.tools.r8.ir.analysis.proto.GeneratedExtensionRegistryShrinker;
 import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteShrinker;
 import com.android.tools.r8.ir.analysis.proto.ProtoShrinker;
+import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
 import com.android.tools.r8.ir.desugar.PrefixRewritingMapper;
 import com.android.tools.r8.ir.optimize.CallSiteOptimizationInfoPropagator;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -36,6 +37,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
   private GraphLense graphLense;
   private final InternalOptions options;
   private RootSet rootSet;
+  private final AbstractValueFactory abstractValueFactory = new AbstractValueFactory();
 
   // Desugared library prefix rewriter.
   public final PrefixRewritingMapper rewritePrefix;
@@ -105,6 +107,10 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
   public static <T extends AppInfo> AppView<T> createForL8(
       T appInfo, InternalOptions options, PrefixRewritingMapper mapper) {
     return new AppView<>(appInfo, WholeProgramOptimizations.OFF, options, mapper);
+  }
+
+  public AbstractValueFactory abstractValueFactory() {
+    return abstractValueFactory;
   }
 
   public T appInfo() {
