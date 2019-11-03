@@ -29,6 +29,8 @@ public class ValueMayDependOnEnvironmentAnalysis {
   private final IRCode code;
   private final DexType context;
 
+  private final Set<Value> knownNotToDependOnEnvironment = Sets.newIdentityHashSet();
+
   public ValueMayDependOnEnvironmentAnalysis(AppView<?> appView, IRCode code) {
     this.appView = appView;
     this.code = code;
@@ -36,20 +38,57 @@ public class ValueMayDependOnEnvironmentAnalysis {
   }
 
   public boolean valueMayDependOnEnvironment(Value value) {
+    return valueMayDependOnEnvironment(value, Sets.newIdentityHashSet());
+  }
+
+  private boolean valueMayDependOnEnvironment(
+      Value value, Set<Value> assumedNotToDependOnEnvironment) {
     Value root = value.getAliasedValue();
+    if (assumedNotToDependOnEnvironment.contains(root)) {
+      return false;
+    }
+    if (knownNotToDependOnEnvironment.contains(root)) {
+      return false;
+    }
     if (root.isConstant()) {
       return false;
     }
-    if (isConstantArrayThroughoutMethod(root)) {
+    if (isConstantArrayThroughoutMethod(root, assumedNotToDependOnEnvironment)) {
       return false;
     }
-    if (isNewInstanceWithoutEnvironmentDependentFields(root)) {
+    if (isNewInstanceWithoutEnvironmentDependentFields(root, assumedNotToDependOnEnvironment)) {
       return false;
     }
     return true;
   }
 
+  private boolean valueMayNotDependOnEnvironmentAssumingArrayDoesNotDependOnEnvironment(
+      Value value, Value array, Set<Value> assumedNotToDependOnEnvironment) {
+    assert !value.hasAliasedValue();
+    assert !array.hasAliasedValue();
+
+    if (assumedNotToDependOnEnvironment.add(array)) {
+      boolean valueMayDependOnEnvironment =
+          valueMayDependOnEnvironment(value, assumedNotToDependOnEnvironment);
+      boolean changed = assumedNotToDependOnEnvironment.remove(array);
+      assert changed;
+      return !valueMayDependOnEnvironment;
+    }
+    return !valueMayDependOnEnvironment(value, assumedNotToDependOnEnvironment);
+  }
+
+  /**
+   * Used to identify if an array is "constant" in the sense that none of the values written into
+   * the array may depend on the environment.
+   *
+   * <p>Examples include {@code new int[] {1,2,3}} and {@code new Object[]{new Object()}}.
+   */
   public boolean isConstantArrayThroughoutMethod(Value value) {
+    return isConstantArrayThroughoutMethod(value, Sets.newIdentityHashSet());
+  }
+
+  private boolean isConstantArrayThroughoutMethod(
+      Value value, Set<Value> assumedNotToDependOnEnvironment) {
     Value root = value.getAliasedValue();
     if (root.isPhi()) {
       // Would need to track the aliases, just give up.
@@ -96,6 +135,7 @@ public class ValueMayDependOnEnvironmentAnalysis {
 
     // Allow array-put and new-array-filled-data instructions that immediately follow the array
     // creation.
+    Set<Value> arrayValues = Sets.newIdentityHashSet();
     Set<Instruction> consumedInstructions = Sets.newIdentityHashSet();
 
     for (Instruction instruction : definition.getBlock().instructionsAfter(definition)) {
@@ -118,10 +158,19 @@ public class ValueMayDependOnEnvironmentAnalysis {
           return false;
         }
 
-        if (!arrayPut.value().isConstant()) {
+        // Check if the value being written into the array may depend on the environment.
+        //
+        // When analyzing if the value may depend on the environment, we assume that the current
+        // array does not depend on the environment. Otherwise, we would classify the value as
+        // possibly depending on the environment since it could escape via the array and then
+        // be mutated indirectly.
+        Value rhs = arrayPut.value().getAliasedValue();
+        if (!valueMayNotDependOnEnvironmentAssumingArrayDoesNotDependOnEnvironment(
+            rhs, root, assumedNotToDependOnEnvironment)) {
           return false;
         }
 
+        arrayValues.add(rhs);
         consumedInstructions.add(arrayPut);
         continue;
       }
@@ -149,10 +198,21 @@ public class ValueMayDependOnEnvironmentAnalysis {
     // Currently, we only allow the array to flow into static-put instructions that are not
     // followed by an instruction that may have side effects. Instructions that do not have any
     // side effects are ignored because they cannot mutate the array.
-    return !valueMayBeMutatedBeforeMethodExit(root, consumedInstructions);
+    if (valueMayBeMutatedBeforeMethodExit(
+        root, assumedNotToDependOnEnvironment, consumedInstructions)) {
+      return false;
+    }
+
+    if (assumedNotToDependOnEnvironment.isEmpty()) {
+      knownNotToDependOnEnvironment.add(root);
+      knownNotToDependOnEnvironment.addAll(arrayValues);
+    }
+
+    return true;
   }
 
-  private boolean isNewInstanceWithoutEnvironmentDependentFields(Value value) {
+  private boolean isNewInstanceWithoutEnvironmentDependentFields(
+      Value value, Set<Value> assumedNotToDependOnEnvironment) {
     assert !value.hasAliasedValue();
 
     if (value.isPhi() || !value.definition.isNewInstance()) {
@@ -203,16 +263,26 @@ public class ValueMayDependOnEnvironmentAnalysis {
     // Check that none of the arguments to the constructor depend on the environment.
     for (int i = 1; i < constructorInvoke.arguments().size(); i++) {
       Value argument = constructorInvoke.arguments().get(i);
-      if (valueMayDependOnEnvironment(argument)) {
+      if (valueMayDependOnEnvironment(argument, assumedNotToDependOnEnvironment)) {
         return false;
       }
     }
 
     // Finally, check that the object does not escape.
-    return !valueMayBeMutatedBeforeMethodExit(value, ImmutableSet.of(constructorInvoke));
+    if (valueMayBeMutatedBeforeMethodExit(
+        value, assumedNotToDependOnEnvironment, ImmutableSet.of(constructorInvoke))) {
+      return false;
+    }
+
+    if (assumedNotToDependOnEnvironment.isEmpty()) {
+      knownNotToDependOnEnvironment.add(value);
+    }
+
+    return true;
   }
 
-  private boolean valueMayBeMutatedBeforeMethodExit(Value value, Set<Instruction> whitelist) {
+  private boolean valueMayBeMutatedBeforeMethodExit(
+      Value value, Set<Value> assumedNotToDependOnEnvironment, Set<Instruction> whitelist) {
     assert !value.hasAliasedValue();
 
     if (value.numberOfPhiUsers() > 0) {
@@ -224,6 +294,14 @@ public class ValueMayDependOnEnvironmentAnalysis {
     for (Instruction user : value.uniqueUsers()) {
       if (whitelist.contains(user)) {
         continue;
+      }
+
+      if (user.isArrayPut()) {
+        ArrayPut arrayPut = user.asArrayPut();
+        if (value == arrayPut.value()
+            && !valueMayDependOnEnvironment(arrayPut.array(), assumedNotToDependOnEnvironment)) {
+          continue;
+        }
       }
 
       if (user.isStaticPut()) {
