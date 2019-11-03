@@ -16,9 +16,10 @@ import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.Queue;
 
 public class DeadCodeRemover {
@@ -33,13 +34,14 @@ public class DeadCodeRemover {
 
   public void run(IRCode code) {
     removeUnneededCatchHandlers(code);
-    Queue<BasicBlock> worklist = new LinkedList<>();
+    Deque<BasicBlock> worklist = new ArrayDeque<>();
     // We may encounter unneeded catch handlers again, e.g., if a dead instruction (due to
     // const-string canonicalization for example) is the only throwing instruction in a block.
     // Removing unneeded catch handlers can lead to more dead instructions.
     do {
-      worklist.addAll(code.blocks);
-      for (BasicBlock block = worklist.poll(); block != null; block = worklist.poll()) {
+      worklist.addAll(code.topologicallySortedBlocks());
+      while (!worklist.isEmpty()) {
+        BasicBlock block = worklist.removeLast();
         removeDeadInstructions(worklist, code, block);
         removeDeadPhis(worklist, code, block);
       }
