@@ -88,7 +88,7 @@ public class SparseConditionalConstantPropagation {
               if (value.definition != evaluatedConst) {
                 if (value.isPhi()) {
                   // D8 relies on dead code removal to get rid of the dead phi itself.
-                  if (value.numberOfAllUsers() != 0) {
+                  if (value.hasAnyUsers()) {
                     BasicBlock block = value.asPhi().getBlock();
                     blockToAnalyze.add(block);
                     // Create a new constant, because it can be an existing constant that flow

@@ -290,7 +290,7 @@ public class Phi extends Value implements InstructionOrPhi {
 
   public void removeDeadPhi() {
     // First, make sure it is indeed dead, i.e., no non-phi users.
-    assert numberOfUsers() == 0;
+    assert !hasUsers();
     // Then, manually clean up this from all of the operands.
     for (Value operand : getOperands()) {
       operand.removePhiUser(this);

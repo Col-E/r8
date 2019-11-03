@@ -878,13 +878,13 @@ public class IRCode {
   private boolean verifyNoValueWithOnlyAssumeInstructionAsUsers() {
     Predicate<Value> verifyValue =
         v -> {
-          assert v.numberOfUsers() == 0
-              || v.uniqueUsers().stream().anyMatch(i -> !i.isAssume())
-              || (!v.isPhi() && v.definition.isArgument())
-              || v.numberOfDebugUsers() == 0
-              || v.debugUsers().stream().anyMatch(i -> !i.isAssume())
-              || v.numberOfPhiUsers() > 0
-                  : StringUtils.join(v.uniqueUsers(), System.lineSeparator());
+          assert !v.hasUsers()
+                  || v.uniqueUsers().stream().anyMatch(i -> !i.isAssume())
+                  || (!v.isPhi() && v.definition.isArgument())
+                  || !v.hasDebugUsers()
+                  || v.debugUsers().stream().anyMatch(i -> !i.isAssume())
+                  || v.numberOfPhiUsers() > 0
+              : StringUtils.join(v.uniqueUsers(), System.lineSeparator());
           return true;
         };
     return verifySSATypeLattice(wrapSSAVerifierWithStackValueHandling(verifyValue));

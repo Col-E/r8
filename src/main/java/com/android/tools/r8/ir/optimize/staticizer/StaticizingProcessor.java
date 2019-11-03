@@ -176,7 +176,7 @@ final class StaticizingProcessor {
         trivialPhis.clear();
         boolean onlyHasTrivialPhis = testAndCollectPhisComposedOfThis(
             visited, thisValue.uniquePhiUsers(), thisValue, trivialPhis);
-        if (thisValue.numberOfPhiUsers() != 0 && !onlyHasTrivialPhis) {
+        if (thisValue.hasPhiUsers() && !onlyHasTrivialPhis) {
           fixableThisPointer = false;
           break;
         }
@@ -204,7 +204,7 @@ final class StaticizingProcessor {
           trivialPhis.clear();
           boolean onlyHasTrivialPhis = testAndCollectPhisComposedOfSameFieldRead(
               visited, dest.uniquePhiUsers(), read.getField(), trivialPhis);
-          if (dest.numberOfPhiUsers() != 0 && !onlyHasTrivialPhis) {
+          if (dest.hasPhiUsers() && !onlyHasTrivialPhis) {
             fixableFieldReadsPerUsage = false;
             break;
           }
@@ -388,7 +388,7 @@ final class StaticizingProcessor {
     Set<Phi> trivialPhis = Sets.newIdentityHashSet();
     boolean onlyHasTrivialPhis = testAndCollectPhisComposedOfThis(
         Sets.newIdentityHashSet(), thisValue.uniquePhiUsers(), thisValue, trivialPhis);
-    assert thisValue.numberOfPhiUsers() == 0 || onlyHasTrivialPhis;
+    assert !thisValue.hasPhiUsers() || onlyHasTrivialPhis;
     assert trivialPhis.isEmpty() || onlyHasTrivialPhis;
 
     Set<Instruction> users = SetUtils.newIdentityHashSet(thisValue.aliasedUsers());
@@ -403,7 +403,7 @@ final class StaticizingProcessor {
     trivialPhis.forEach(Phi::removeDeadPhi);
 
     // No matter what, number of phi users should be zero too.
-    assert thisValue.numberOfUsers() == 0 && thisValue.numberOfPhiUsers() == 0;
+    assert !thisValue.hasUsers() && !thisValue.hasPhiUsers();
   }
 
   // Re-processing finalized code may create slightly different IR code than what the examining
@@ -479,7 +479,7 @@ final class StaticizingProcessor {
     Set<Phi> trivialPhis = Sets.newIdentityHashSet();
     boolean onlyHasTrivialPhis = testAndCollectPhisComposedOfSameFieldRead(
         Sets.newIdentityHashSet(), dest.uniquePhiUsers(), field, trivialPhis);
-    assert dest.numberOfPhiUsers() == 0 || onlyHasTrivialPhis;
+    assert !dest.hasPhiUsers() || onlyHasTrivialPhis;
     assert trivialPhis.isEmpty() || onlyHasTrivialPhis;
 
     Set<Instruction> users = SetUtils.newIdentityHashSet(dest.aliasedUsers());
@@ -494,7 +494,7 @@ final class StaticizingProcessor {
     trivialPhis.forEach(Phi::removeDeadPhi);
 
     // No matter what, number of phi users should be zero too.
-    assert dest.numberOfUsers() == 0 && dest.numberOfPhiUsers() == 0;
+    assert !dest.hasUsers() && !dest.hasPhiUsers();
   }
 
   private void fixupStaticizedValueUsers(IRCode code, Set<Instruction> users) {

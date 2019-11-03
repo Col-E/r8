@@ -467,16 +467,28 @@ public class Value implements Comparable<Value> {
     return debugData == null ? null : Collections.unmodifiableSet(debugData.users.keySet());
   }
 
+  public boolean hasAnyUsers() {
+    return hasUsers() || hasPhiUsers() || hasDebugUsers();
+  }
+
+  public boolean hasDebugUsers() {
+    return debugData != null && !debugData.users.isEmpty();
+  }
+
+  public boolean hasPhiUsers() {
+    return !phiUsers.isEmpty();
+  }
+
+  public boolean hasUsers() {
+    return !users.isEmpty();
+  }
+
   public int numberOfUsers() {
     int size = users.size();
     if (size <= 1) {
       return size;
     }
     return uniqueUsers().size();
-  }
-
-  public boolean hasPhiUsers() {
-    return numberOfPhiUsers() > 0;
   }
 
   public int numberOfPhiUsers() {
@@ -489,10 +501,6 @@ public class Value implements Comparable<Value> {
 
   public int numberOfAllNonDebugUsers() {
     return numberOfUsers() + numberOfPhiUsers();
-  }
-
-  public boolean hasDebugUsers() {
-    return numberOfDebugUsers() > 0;
   }
 
   public int numberOfDebugUsers() {
@@ -1008,7 +1016,7 @@ public class Value implements Comparable<Value> {
 
     // If the value has debug users we cannot eliminate it since it represents a value in a local
     // variable that should be visible in the debugger.
-    if (numberOfDebugUsers() != 0) {
+    if (hasDebugUsers()) {
       return false;
     }
     // This is a candidate for a dead value. Guard against looping by adding it to the set of

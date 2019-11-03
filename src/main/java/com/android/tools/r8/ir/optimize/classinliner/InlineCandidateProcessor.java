@@ -447,7 +447,7 @@ final class InlineCandidateProcessor {
       Assume<?> assumeInstruction = user.asAssume();
       Value src = assumeInstruction.src();
       Value dest = assumeInstruction.outValue();
-      assert dest.numberOfPhiUsers() == 0;
+      assert !dest.hasPhiUsers();
       dest.replaceUsers(src);
       removeInstruction(user);
     }
@@ -550,7 +550,7 @@ final class InlineCandidateProcessor {
       for (FieldValueHelper fieldValueHelper : fieldHelpers.values()) {
         fieldValueHelper.replaceValue(value, newValue);
       }
-      assert value.numberOfAllUsers() == 0;
+      assert !value.hasAnyUsers();
       // `newValue` could be a phi introduced by FieldValueHelper. Its initial type is set as the
       // type of read field, but it could be more precise than that due to (multiple) inlining.
       // In addition to values affected by `newValue`, it's necessary to revisit `newValue` itself.
@@ -655,7 +655,7 @@ final class InlineCandidateProcessor {
       Set<Instruction> indirectUsers) {
     if (!eligibility.returnsReceiver
         || invoke.outValue() == null
-        || invoke.outValue().numberOfAllUsers() == 0) {
+        || !invoke.outValue().hasAnyUsers()) {
       return true;
     }
     // For CF we no longer perform the code-rewrite in CodeRewriter.rewriteMoveResult that removes
@@ -885,7 +885,7 @@ final class InlineCandidateProcessor {
     }
 
     if (parameterUsage.isReturned) {
-      if (!(invoke.outValue() == null || invoke.outValue().numberOfAllUsers() == 0)) {
+      if (invoke.outValue() != null && invoke.outValue().hasAnyUsers()) {
         // Used as return value which is not ignored.
         return false;
       }

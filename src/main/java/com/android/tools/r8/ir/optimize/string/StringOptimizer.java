@@ -320,7 +320,7 @@ public class StringOptimizer {
 
       Value out = invoke.outValue();
       // Skip the call if the computed name is already discarded or not used anywhere.
-      if (out == null || out.numberOfAllUsers() == 0) {
+      if (out == null || !out.hasAnyUsers()) {
         continue;
       }
 

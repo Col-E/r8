@@ -97,8 +97,7 @@ public class ServiceLoaderRewriter {
 
       InvokeStatic serviceLoaderLoad = instruction.asInvokeStatic();
       Value serviceLoaderLoadOut = serviceLoaderLoad.outValue();
-      if (serviceLoaderLoadOut.numberOfAllUsers() != 1
-          || serviceLoaderLoadOut.numberOfPhiUsers() != 0) {
+      if (serviceLoaderLoadOut.numberOfAllUsers() != 1 || serviceLoaderLoadOut.hasPhiUsers()) {
         continue;
       }
 
