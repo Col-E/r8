@@ -402,6 +402,18 @@ APP_REPOSITORIES = [
   })
 ]
 
+
+class EnsureNoGradleAlive(object):
+ def __init__(self, active):
+   self.active = active
+
+ def __enter__(self):
+   if self.active:
+     print 'Running with wrapper that will kill java after'
+
+ def __exit__(self, *_):
+   subprocess.call(['pkill', 'java'])
+
 def GetAllApps():
   apps = []
   for repo in APP_REPOSITORIES:
@@ -783,6 +795,9 @@ def BuildAppWithShrinker(
 
   profile_dest_dir = os.path.join(out_dir, 'profile')
   as_utils.MoveProfileReportTo(profile_dest_dir, stdout, quiet=options.quiet)
+  # Ensure that the gradle daemon is stopped if we are running with it.
+  if options.use_daemon:
+    utils.RunGradlew(['--stop', '-g=' + os.path.join(checkout_dir, GRADLE_USER_HOME)])
 
   return (apk_dest, profile_dest_dir, proguard_config_dest)
 
@@ -1289,16 +1304,14 @@ def main(argv):
         shutil.copyfile(utils.R8LIB_JAR, os.path.join(temp_dir, 'r8lib.jar'))
 
     result_per_shrinker_per_app = []
-
-    for (app, repo) in options.apps:
-      if app.skip:
-        continue
-      result_per_shrinker_per_app.append(
-          (app, GetResultsForApp(app, repo, options, temp_dir)))
-
-    if options.use_daemon:
-      utils.RunGradlew(["--stop"])
-
+    # If we are running on golem we kill all java processes after the run
+    # to ensure no hanging gradle daemons.
+    with EnsureNoGradleAlive(options.golem):
+      for (app, repo) in options.apps:
+        if app.skip:
+          continue
+        result_per_shrinker_per_app.append(
+            (app, GetResultsForApp(app, repo, options, temp_dir)))
     return LogResultsForApps(result_per_shrinker_per_app, options)
 
 def success(message):
