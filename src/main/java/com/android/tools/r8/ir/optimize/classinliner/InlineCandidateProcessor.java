@@ -733,7 +733,7 @@ final class InlineCandidateProcessor {
     // signature of the invocation resolves to a private or static method.
     ResolutionResult resolutionResult = appView.appInfo().resolveMethod(callee.holder, callee);
     if (resolutionResult.hasSingleTarget()
-        && !resolutionResult.asSingleTarget().isVirtualMethod()) {
+        && !resolutionResult.getSingleTarget().isVirtualMethod()) {
       return null;
     }
 

@@ -191,7 +191,7 @@ public abstract class FieldInstruction extends Instruction {
         DexEncodedMethod resolutionResult =
             appInfo
                 .resolveMethod(clazz.type, dexItemFactory.objectMethods.finalize)
-                .asSingleTarget();
+                .getSingleTarget();
         return resolutionResult != null && resolutionResult.isProgramMethod(appInfo);
       }
 

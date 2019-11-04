@@ -11,30 +11,30 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 
-public interface ResolutionResult {
+public abstract class ResolutionResult {
 
   // TODO(b/140214802): Remove this method as its usage is questionable.
-  DexEncodedMethod asResultOfResolve();
+  public abstract DexEncodedMethod asResultOfResolve();
 
-  DexEncodedMethod asSingleTarget();
+  public abstract DexEncodedMethod getSingleTarget();
 
-  boolean hasSingleTarget();
+  public abstract boolean hasSingleTarget();
 
-  List<DexEncodedMethod> asListOfTargets();
+  public abstract List<DexEncodedMethod> asListOfTargets();
 
-  void forEachTarget(Consumer<DexEncodedMethod> consumer);
+  public abstract void forEachTarget(Consumer<DexEncodedMethod> consumer);
 
-  boolean isValidVirtualTarget(InternalOptions options);
+  public abstract boolean isValidVirtualTarget(InternalOptions options);
 
-  boolean isValidVirtualTargetForDynamicDispatch();
+  public abstract boolean isValidVirtualTargetForDynamicDispatch();
 
-  default Set<DexEncodedMethod> lookupVirtualDispatchTargets(
+  public Set<DexEncodedMethod> lookupVirtualDispatchTargets(
       boolean isInterface, AppInfoWithSubtyping appInfo) {
     return isInterface ? lookupInterfaceTargets(appInfo) : lookupVirtualTargets(appInfo);
   }
 
   // TODO(b/140204899): Leverage refined receiver type if available.
-  default Set<DexEncodedMethod> lookupVirtualTargets(AppInfoWithSubtyping appInfo) {
+  public Set<DexEncodedMethod> lookupVirtualTargets(AppInfoWithSubtyping appInfo) {
     assert isValidVirtualTarget(appInfo.app().options);
     // First add the target for receiver type method.type.
     Set<DexEncodedMethod> result = Sets.newIdentityHashSet();
@@ -60,7 +60,7 @@ public interface ResolutionResult {
   }
 
   // TODO(b/140204899): Leverage refined receiver type if available.
-  default Set<DexEncodedMethod> lookupInterfaceTargets(AppInfoWithSubtyping appInfo) {
+  public Set<DexEncodedMethod> lookupInterfaceTargets(AppInfoWithSubtyping appInfo) {
     assert isValidVirtualTarget(appInfo.app().options);
     Set<DexEncodedMethod> result = Sets.newIdentityHashSet();
     if (hasSingleTarget()) {
@@ -86,7 +86,7 @@ public interface ResolutionResult {
       //     public void bar() { }
       //   }
       //
-      DexEncodedMethod singleTarget = asSingleTarget();
+      DexEncodedMethod singleTarget = getSingleTarget();
       if (singleTarget.getCode() != null
           && appInfo.hasAnyInstantiatedLambdas(singleTarget.method.holder)) {
         result.add(singleTarget);
@@ -128,11 +128,61 @@ public interface ResolutionResult {
     return result;
   }
 
-  class MultiResult implements ResolutionResult {
+  public static class SingleResolutionResult extends ResolutionResult {
+    final DexEncodedMethod resolutionTarget;
+
+    public static boolean isValidVirtualTarget(InternalOptions options, DexEncodedMethod target) {
+      return options.canUseNestBasedAccess()
+          ? (!target.accessFlags.isStatic() && !target.accessFlags.isConstructor())
+          : target.isVirtualMethod();
+    }
+
+    public SingleResolutionResult(DexEncodedMethod resolutionTarget) {
+      assert resolutionTarget != null;
+      this.resolutionTarget = resolutionTarget;
+    }
+
+    @Override
+    public boolean isValidVirtualTarget(InternalOptions options) {
+      return isValidVirtualTarget(options, resolutionTarget);
+    }
+
+    @Override
+    public boolean isValidVirtualTargetForDynamicDispatch() {
+      return resolutionTarget.isVirtualMethod();
+    }
+
+    @Override
+    public DexEncodedMethod asResultOfResolve() {
+      return resolutionTarget;
+    }
+
+    @Override
+    public DexEncodedMethod getSingleTarget() {
+      return resolutionTarget;
+    }
+
+    @Override
+    public boolean hasSingleTarget() {
+      return true;
+    }
+
+    @Override
+    public List<DexEncodedMethod> asListOfTargets() {
+      return Collections.singletonList(resolutionTarget);
+    }
+
+    @Override
+    public void forEachTarget(Consumer<DexEncodedMethod> consumer) {
+      consumer.accept(resolutionTarget);
+    }
+  }
+
+  public static class MultiResolutionResult extends ResolutionResult {
 
     private final ImmutableList<DexEncodedMethod> methods;
 
-    MultiResult(ImmutableList<DexEncodedMethod> results) {
+    public MultiResolutionResult(ImmutableList<DexEncodedMethod> results) {
       assert results.size() > 1;
       this.methods = results;
     }
@@ -140,7 +190,7 @@ public interface ResolutionResult {
     @Override
     public boolean isValidVirtualTarget(InternalOptions options) {
       for (DexEncodedMethod method : methods) {
-        if (!method.isValidVirtualTarget(options)) {
+        if (!SingleResolutionResult.isValidVirtualTarget(options, method)) {
           return false;
         }
       }
@@ -164,7 +214,7 @@ public interface ResolutionResult {
     }
 
     @Override
-    public DexEncodedMethod asSingleTarget() {
+    public DexEncodedMethod getSingleTarget() {
       // There is no single target that is guaranteed to be called.
       return null;
     }
@@ -185,7 +235,7 @@ public interface ResolutionResult {
     }
   }
 
-  abstract class EmptyResult implements ResolutionResult {
+  public abstract static class EmptyResult extends ResolutionResult {
 
     @Override
     public DexEncodedMethod asResultOfResolve() {
@@ -193,7 +243,7 @@ public interface ResolutionResult {
     }
 
     @Override
-    public DexEncodedMethod asSingleTarget() {
+    public DexEncodedMethod getSingleTarget() {
       return null;
     }
 
@@ -223,7 +273,7 @@ public interface ResolutionResult {
     }
   }
 
-  class ArrayCloneMethodResult extends EmptyResult {
+  public static class ArrayCloneMethodResult extends EmptyResult {
 
     static final ArrayCloneMethodResult INSTANCE = new ArrayCloneMethodResult();
 
@@ -242,7 +292,7 @@ public interface ResolutionResult {
     }
   }
 
-  abstract class FailedResolutionResult extends EmptyResult {
+  public abstract static class FailedResolutionResult extends EmptyResult {
 
     @Override
     public boolean isValidVirtualTarget(InternalOptions options) {
@@ -255,7 +305,7 @@ public interface ResolutionResult {
     }
   }
 
-  class ClassNotFoundResult extends FailedResolutionResult {
+  public static class ClassNotFoundResult extends FailedResolutionResult {
     static final ClassNotFoundResult INSTANCE = new ClassNotFoundResult();
 
     private ClassNotFoundResult() {
@@ -263,7 +313,7 @@ public interface ResolutionResult {
     }
   }
 
-  class IncompatibleClassResult extends FailedResolutionResult {
+  public static class IncompatibleClassResult extends FailedResolutionResult {
     static final IncompatibleClassResult INSTANCE = new IncompatibleClassResult();
 
     private IncompatibleClassResult() {
@@ -271,7 +321,7 @@ public interface ResolutionResult {
     }
   }
 
-  class NoSuchMethodResult extends FailedResolutionResult {
+  public static class NoSuchMethodResult extends FailedResolutionResult {
     static final NoSuchMethodResult INSTANCE = new NoSuchMethodResult();
 
     private NoSuchMethodResult() {

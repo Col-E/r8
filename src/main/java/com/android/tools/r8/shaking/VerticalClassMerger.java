@@ -1283,7 +1283,7 @@ public class VerticalClassMerger {
         abortMerge = true;
         return null;
       }
-      DexEncodedMethod actual = resolutionResult.asSingleTarget();
+      DexEncodedMethod actual = resolutionResult.getSingleTarget();
       if (actual != method) {
         assert actual.isVirtualMethod() == method.isVirtualMethod();
         return actual;

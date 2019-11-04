@@ -6,8 +6,9 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.graph.ResolutionResult.ArrayCloneMethodResult;
 import com.android.tools.r8.graph.ResolutionResult.ClassNotFoundResult;
 import com.android.tools.r8.graph.ResolutionResult.IncompatibleClassResult;
-import com.android.tools.r8.graph.ResolutionResult.MultiResult;
+import com.android.tools.r8.graph.ResolutionResult.MultiResolutionResult;
 import com.android.tools.r8.graph.ResolutionResult.NoSuchMethodResult;
+import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
@@ -190,7 +191,7 @@ public class AppInfo implements DexDefinitionSupplier {
   public DexEncodedMethod lookupStaticTarget(DexMethod method) {
     assert checkIfObsolete();
     ResolutionResult resolutionResult = resolveMethod(method.holder, method);
-    DexEncodedMethod target = resolutionResult.asSingleTarget();
+    DexEncodedMethod target = resolutionResult.getSingleTarget();
     return target == null || target.isStatic() ? target : null;
   }
 
@@ -215,7 +216,7 @@ public class AppInfo implements DexDefinitionSupplier {
     // https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-6.html#jvms-6.5.invokespecial, use
     // the "symbolic reference" if the "symbolic reference" does not name a class.
     if (definitionFor(method.holder).isInterface()) {
-      return resolveMethodOnInterface(method.holder, method).asSingleTarget();
+      return resolveMethodOnInterface(method.holder, method).getSingleTarget();
     }
     // Then, resume on the search, but this time, starting from the holder of the caller.
     DexClass contextClass = definitionFor(invocationContext);
@@ -223,7 +224,7 @@ public class AppInfo implements DexDefinitionSupplier {
       return null;
     }
     resolutionResult = resolveMethod(contextClass.superType, method);
-    DexEncodedMethod target = resolutionResult.asSingleTarget();
+    DexEncodedMethod target = resolutionResult.getSingleTarget();
     return target == null || !target.isStatic() ? target : null;
   }
 
@@ -238,7 +239,7 @@ public class AppInfo implements DexDefinitionSupplier {
   public DexEncodedMethod lookupDirectTarget(DexMethod method) {
     assert checkIfObsolete();
     ResolutionResult resolutionResult = resolveMethod(method.holder, method);
-    DexEncodedMethod target = resolutionResult.asSingleTarget();
+    DexEncodedMethod target = resolutionResult.getSingleTarget();
     return target == null || target.isDirectMethod() ? target : null;
   }
 
@@ -252,7 +253,7 @@ public class AppInfo implements DexDefinitionSupplier {
     assert checkIfObsolete();
     assert type.isClassType() || type.isArrayType();
     ResolutionResult resolutionResult = resolveMethod(type, method);
-    DexEncodedMethod target = resolutionResult.asSingleTarget();
+    DexEncodedMethod target = resolutionResult.getSingleTarget();
     return target == null || target.isVirtualMethod() ? target : null;
   }
 
@@ -352,7 +353,7 @@ public class AppInfo implements DexDefinitionSupplier {
     // Step 2:
     DexEncodedMethod singleTarget = resolveMethodOnClassStep2(clazz, method);
     if (singleTarget != null) {
-      return singleTarget;
+      return new SingleResolutionResult(singleTarget);
     }
     // Finally Step 3:
     return resolveMethodStep3(clazz, method);
@@ -414,7 +415,7 @@ public class AppInfo implements DexDefinitionSupplier {
       return result;
     }
     // Return any of the non-default methods.
-    return anyTarget == null ? NoSuchMethodResult.INSTANCE : anyTarget;
+    return anyTarget == null ? NoSuchMethodResult.INSTANCE : new SingleResolutionResult(anyTarget);
   }
 
   /**
@@ -491,7 +492,7 @@ public class AppInfo implements DexDefinitionSupplier {
     // Step 2: Look for exact method on interface.
     DexEncodedMethod result = definition.lookupMethod(desc);
     if (result != null) {
-      return result;
+      return new SingleResolutionResult(result);
     }
     // Step 3: Look for matching method on object class.
     DexClass objectClass = definitionFor(dexItemFactory.objectType);
@@ -500,7 +501,7 @@ public class AppInfo implements DexDefinitionSupplier {
     }
     result = objectClass.lookupMethod(desc);
     if (result != null && result.accessFlags.isPublic() && !result.accessFlags.isAbstract()) {
-      return result;
+      return new SingleResolutionResult(result);
     }
     // Step 3: Look for maximally-specific superinterface methods or any interface definition.
     //         This is the same for classes and interfaces.
@@ -583,7 +584,7 @@ public class AppInfo implements DexDefinitionSupplier {
    */
   public DexEncodedMethod dispatchStaticInvoke(ResolutionResult resolvedMethod) {
     assert checkIfObsolete();
-    DexEncodedMethod target = resolvedMethod.asSingleTarget();
+    DexEncodedMethod target = resolvedMethod.getSingleTarget();
     if (target != null && target.accessFlags.isStatic()) {
       return target;
     }
@@ -597,7 +598,7 @@ public class AppInfo implements DexDefinitionSupplier {
    */
   public DexEncodedMethod dispatchDirectInvoke(ResolutionResult resolvedMethod) {
     assert checkIfObsolete();
-    DexEncodedMethod target = resolvedMethod.asSingleTarget();
+    DexEncodedMethod target = resolvedMethod.getSingleTarget();
     if (target != null && !target.accessFlags.isStatic()) {
       return target;
     }
@@ -669,10 +670,12 @@ public class AppInfo implements DexDefinitionSupplier {
 
     ResolutionResult build() {
       if (builder != null) {
-        return new MultiResult(builder.build().asList());
-      } else {
-        return singleResult;
+        return new MultiResolutionResult(builder.build().asList());
       }
+      if (singleResult != null) {
+        return new SingleResolutionResult(singleResult);
+      }
+      return null;
     }
   }
 

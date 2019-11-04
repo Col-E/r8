@@ -339,7 +339,7 @@ public class ClassInitializationAnalysis {
       if (!resolutionResult.hasSingleTarget()) {
         return false;
       }
-      DexType holder = resolutionResult.asSingleTarget().method.holder;
+      DexType holder = resolutionResult.getSingleTarget().method.holder;
       return appView.isSubtype(holder, type).isTrue();
     }
 
@@ -397,7 +397,7 @@ public class ClassInitializationAnalysis {
       if (!resolutionResult.hasSingleTarget()) {
         return false;
       }
-      DexType holder = resolutionResult.asSingleTarget().method.holder;
+      DexType holder = resolutionResult.getSingleTarget().method.holder;
       return appView.isSubtype(holder, type).isTrue();
     }
 
@@ -433,7 +433,7 @@ public class ClassInitializationAnalysis {
       if (!resolutionResult.hasSingleTarget()) {
         return false;
       }
-      DexType holder = resolutionResult.asSingleTarget().method.holder;
+      DexType holder = resolutionResult.getSingleTarget().method.holder;
       return appView.isSubtype(holder, type).isTrue();
     }
 

@@ -77,7 +77,7 @@ import java.util.function.Consumer;
 import java.util.function.IntPredicate;
 import org.objectweb.asm.Opcodes;
 
-public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements ResolutionResult {
+public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
 
   public static final String CONFIGURATION_DEBUGGING_PREFIX = "Shaking error: Missing method in ";
 
@@ -1310,47 +1310,5 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> implements Resolut
       result.optimizationInfo = optimizationInfo;
       return result;
     }
-  }
-
-  @Override
-  public boolean isValidVirtualTarget(InternalOptions options) {
-    return options.canUseNestBasedAccess()
-        ? (!accessFlags.isStatic() && !accessFlags.isConstructor())
-        : isVirtualMethod();
-  }
-
-  @Override
-  public boolean isValidVirtualTargetForDynamicDispatch() {
-    return isVirtualMethod();
-  }
-
-  @Override
-  public DexEncodedMethod asResultOfResolve() {
-    checkIfObsolete();
-    return this;
-  }
-
-  @Override
-  public DexEncodedMethod asSingleTarget() {
-    checkIfObsolete();
-    return this;
-  }
-
-  @Override
-  public boolean hasSingleTarget() {
-    checkIfObsolete();
-    return true;
-  }
-
-  @Override
-  public List<DexEncodedMethod> asListOfTargets() {
-    checkIfObsolete();
-    return Collections.singletonList(this);
-  }
-
-  @Override
-  public void forEachTarget(Consumer<DexEncodedMethod> consumer) {
-    checkIfObsolete();
-    consumer.accept(this);
   }
 }

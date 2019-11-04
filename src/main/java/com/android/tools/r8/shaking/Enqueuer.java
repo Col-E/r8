@@ -39,6 +39,7 @@ import com.android.tools.r8.graph.FieldAccessInfoImpl;
 import com.android.tools.r8.graph.KeyedDexItem;
 import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.graph.ResolutionResult;
+import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.analysis.EnqueuerAnalysis;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoEnqueuerExtension;
 import com.android.tools.r8.ir.code.ArrayPut;
@@ -1305,7 +1306,7 @@ public class Enqueuer {
       reportMissingMethod(method);
       return;
     }
-    DexEncodedMethod encodedMethod = resolutionResult.asSingleTarget();
+    DexEncodedMethod encodedMethod = resolutionResult.getSingleTarget();
     if (encodedMethod == null) {
       // Note: should this be reported too? Or is this unreachable?
       return;
@@ -1927,7 +1928,8 @@ public class Enqueuer {
     // Otherwise, the resolution target is marked and cached, and all possible targets identified.
     resolution = findAndMarkResolutionTarget(method, interfaceInvoke, reason);
     virtualTargetsMarkedAsReachable.put(method, resolution);
-    if (resolution.isUnresolved() || !resolution.method.isValidVirtualTarget(options)) {
+    if (resolution.isUnresolved()
+        || !SingleResolutionResult.isValidVirtualTarget(options, resolution.method)) {
       // There is no valid resolution, so any call will lead to a runtime exception.
       return;
     }
@@ -1940,7 +1942,9 @@ public class Enqueuer {
 
     assert interfaceInvoke == holder.isInterface();
     Set<DexEncodedMethod> possibleTargets =
-        resolution.method.lookupVirtualDispatchTargets(interfaceInvoke, appInfo);
+        // TODO(b/140214802): Call on the resolution once proper resolution and lookup is resolved.
+        new SingleResolutionResult(resolution.method)
+            .lookupVirtualDispatchTargets(interfaceInvoke, appInfo);
     if (possibleTargets == null || possibleTargets.isEmpty()) {
       return;
     }

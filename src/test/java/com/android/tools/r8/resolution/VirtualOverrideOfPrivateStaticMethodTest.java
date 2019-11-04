@@ -84,7 +84,7 @@ public class VirtualOverrideOfPrivateStaticMethodTest extends TestBase {
   public void lookupSingleTarget() {
     ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(methodOnB.holder, methodOnB);
     assertFalse(resolutionResult.isValidVirtualTarget(appInfo.app().options));
-    DexEncodedMethod resolved = resolutionResult.asSingleTarget();
+    DexEncodedMethod resolved = resolutionResult.getSingleTarget();
     assertEquals(methodOnA, resolved.method);
     DexEncodedMethod singleVirtualTarget =
         appInfo.lookupSingleVirtualTarget(methodOnB, methodOnB.holder);
@@ -94,7 +94,7 @@ public class VirtualOverrideOfPrivateStaticMethodTest extends TestBase {
   @Test
   public void lookupVirtualTargets() {
     ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(methodOnB.holder, methodOnB);
-    DexEncodedMethod resolved = resolutionResult.asSingleTarget();
+    DexEncodedMethod resolved = resolutionResult.getSingleTarget();
     assertEquals(methodOnA, resolved.method);
     assertFalse(resolutionResult.isValidVirtualTarget(appInfo.app().options));
   }
