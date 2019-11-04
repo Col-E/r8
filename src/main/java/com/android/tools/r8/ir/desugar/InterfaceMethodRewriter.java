@@ -1063,9 +1063,15 @@ public final class InterfaceMethodRewriter {
   }
 
   private void warnMissingType(DexMethod referencedFrom, DexType missing) {
-    // Companion/Emulated interface classes for desugared library won't be missing,
+    // Companion/Emulated interface/Conversion classes for desugared library won't be missing,
     // they are in the desugared library.
-    if (appView.rewritePrefix.hasRewrittenType(missing)) {
+    if (appView.rewritePrefix.hasRewrittenType(missing)
+        || appView
+            .options()
+            .desugaredLibraryConfiguration
+            .getCustomConversions()
+            .values()
+            .contains(missing)) {
       return;
     }
     DexMethod method = appView.graphLense().getOriginalMethodSignature(referencedFrom);

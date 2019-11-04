@@ -5,14 +5,19 @@ package com.android.tools.r8.desugar.corelib.conversionTests;
 
 import static org.hamcrest.CoreMatchers.endsWith;
 import static org.hamcrest.core.StringContains.containsString;
+import static org.junit.Assert.assertFalse;
 
+import com.android.tools.r8.D8TestCompileResult;
+import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.desugar.corelib.CoreLibDesugarTestBase;
+import com.android.tools.r8.errors.InterfaceDesugarMissingTypeDiagnostic;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
 import java.util.function.IntUnaryOperator;
 import java.util.stream.IntStream;
@@ -60,6 +65,7 @@ public class APIConversionTest extends CoreLibDesugarTestBase {
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel())
         .compile()
+        .assertOnlyInfos() // No warnings.
         .addDesugaredCoreLibraryRunClassPath(this::buildDesugaredLibrary, parameters.getApiLevel())
         .run(parameters.getRuntime(), Executor.class)
         .assertSuccessWithOutput(
