@@ -2040,53 +2040,8 @@ public class Enqueuer {
     // invoke. This also ensures preserving the errors detailed below.
     if (resolutionTargetClass.isProgramClass()) {
       markMethodAsTargeted(resolutionTargetClass.asProgramClass(), resolutionTarget, reason);
-
-      // If the method of an invoke-virtual instruction resolves to a private or static method, then
-      // the invoke fails with an IllegalAccessError or IncompatibleClassChangeError, respectively.
-      //
-      // Unfortunately the above is not always the case:
-      // Some Art VMs do not fail with an IllegalAccessError or IncompatibleClassChangeError if the
-      // method of an invoke-virtual instruction resolves to a private or static method, but instead
-      // ignores private and static methods during resolution (see also NonVirtualOverrideTest).
-      // Therefore, we need to continue resolution from the super type until we find a virtual
-      // method.
-      if (resolutionTarget.isPrivateMethod() || resolutionTarget.isStatic()) {
-        assert !interfaceInvoke || resolutionTargetClass.isInterface();
-        MarkedResolutionTarget possiblyValidTarget =
-            markPossiblyValidTarget(
-                method, reason, resolutionTarget, resolutionTargetClass.asProgramClass());
-        if (!possiblyValidTarget.isUnresolved()) {
-          // Since some Art runtimes may actually end up targeting this method, it is returned as
-          // the basis of lookup for the enqueuing of virtual dispatches. Not doing so may cause it
-          // to be marked abstract, thus leading to an AbstractMethodError on said Art runtimes.
-          return possiblyValidTarget;
-        }
-      }
     }
 
-    return new MarkedResolutionTarget(resolutionTargetClass, resolutionTarget);
-  }
-
-  private MarkedResolutionTarget markPossiblyValidTarget(
-      DexMethod method,
-      KeepReason reason,
-      DexEncodedMethod resolutionTarget,
-      DexProgramClass resolutionTargetClass) {
-    while (resolutionTarget.isPrivateMethod() || resolutionTarget.isStatic()) {
-      resolutionTarget =
-          appInfo
-              .resolveMethod(
-                  resolutionTargetClass.superType, method, resolutionTargetClass.isInterface())
-              .asResultOfResolve();
-      if (resolutionTarget == null) {
-        return MarkedResolutionTarget.unresolved();
-      }
-      resolutionTargetClass = getProgramClassOrNull(resolutionTarget.method.holder);
-      if (resolutionTargetClass == null) {
-        return MarkedResolutionTarget.unresolved();
-      }
-    }
-    markMethodAsTargeted(resolutionTargetClass, resolutionTarget, reason);
     return new MarkedResolutionTarget(resolutionTargetClass, resolutionTarget);
   }
 

@@ -200,7 +200,7 @@ public class VirtualOverrideOfStaticMethodWithVirtualParentTest extends AsmTestB
               .setMinApi(parameters.getApiLevel())
               .run(parameters.getRuntime(), Main.class);
     }
-    checkResult(runResult);
+    checkResult(runResult, false);
   }
 
   @Test
@@ -212,11 +212,11 @@ public class VirtualOverrideOfStaticMethodWithVirtualParentTest extends AsmTestB
             .addKeepMainRule(Main.class)
             .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), Main.class);
-    checkResult(runResult);
+    checkResult(runResult, true);
   }
 
-  private void checkResult(TestRunResult<?> runResult) {
-    if (expectedToIncorrectlyRun(parameters.getRuntime())) {
+  private void checkResult(TestRunResult<?> runResult, boolean isCorrectedByR8) {
+    if (expectedToIncorrectlyRun(parameters.getRuntime(), isCorrectedByR8)) {
       // Do to incorrect resolution, some Art VMs will resolve to Base.f (ignoring A.f) and thus
       // virtual dispatch to C.f. See b/140013075.
       runResult.assertSuccessWithOutputLines("Called C.f");
@@ -225,8 +225,9 @@ public class VirtualOverrideOfStaticMethodWithVirtualParentTest extends AsmTestB
     }
   }
 
-  private boolean expectedToIncorrectlyRun(TestRuntime runtime) {
-    return runtime.isDex()
+  private boolean expectedToIncorrectlyRun(TestRuntime runtime, boolean isCorrectedByR8) {
+    return !isCorrectedByR8
+        && runtime.isDex()
         && runtime.asDex().getVm().isNewerThan(DexVm.ART_4_4_4_HOST)
         && runtime.asDex().getVm().isOlderThanOrEqual(DexVm.ART_7_0_0_HOST);
   }
