@@ -29,7 +29,7 @@ public class ConstrainedPrimitiveTypeTest extends AnalysisTestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimes().withAllApiLevels().build();
   }
 
   public ConstrainedPrimitiveTypeTest(TestParameters parameters) throws Exception {
@@ -47,6 +47,7 @@ public class ConstrainedPrimitiveTypeTest extends AnalysisTestBase {
         .addInnerClasses(ConstrainedPrimitiveTypeTest.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
+        .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(expectedOutput);
   }

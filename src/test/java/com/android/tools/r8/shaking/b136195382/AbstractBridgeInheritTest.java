@@ -27,7 +27,7 @@ public class AbstractBridgeInheritTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public AbstractBridgeInheritTest(TestParameters parameters) {
@@ -42,6 +42,7 @@ public class AbstractBridgeInheritTest extends TestBase {
             Service.class, Factory.class, SubService.class, SubFactory.class, Main.class)
         .addKeepMainRule(Main.class)
         .enableInliningAnnotations()
+        .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello World!")
         .inspector();
