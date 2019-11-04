@@ -355,7 +355,47 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
   }
 
   private AppInfoWithLiveness(AppInfoWithLiveness previous) {
-    this(previous, previous.app(), null, null);
+    this(
+        previous,
+        previous.liveTypes,
+        previous.instantiatedAnnotationTypes,
+        previous.instantiatedAppServices,
+        previous.instantiatedTypes,
+        previous.targetedMethods,
+        previous.bootstrapMethods,
+        previous.methodsTargetedByInvokeDynamic,
+        previous.virtualMethodsTargetedByInvokeDirect,
+        previous.liveMethods,
+        previous.fieldAccessInfoCollection,
+        previous.instanceFieldsWrittenOnlyInEnclosingInstanceInitializers,
+        previous.staticFieldsWrittenOnlyInEnclosingStaticInitializer,
+        previous.virtualInvokes,
+        previous.interfaceInvokes,
+        previous.superInvokes,
+        previous.directInvokes,
+        previous.staticInvokes,
+        previous.callSites,
+        previous.brokenSuperInvokes,
+        previous.pinnedItems,
+        previous.mayHaveSideEffects,
+        previous.noSideEffects,
+        previous.assumedValues,
+        previous.alwaysInline,
+        previous.forceInline,
+        previous.neverInline,
+        previous.whyAreYouNotInlining,
+        previous.keepConstantArguments,
+        previous.keepUnusedArguments,
+        previous.neverClassInline,
+        previous.neverMerge,
+        previous.neverPropagateValue,
+        previous.identifierNameStrings,
+        previous.prunedTypes,
+        previous.switchMaps,
+        previous.enumValueInfoMaps,
+        previous.instantiatedLambdas,
+        previous.constClassReferences);
+    copyMetadataFromPrevious(previous);
   }
 
   private AppInfoWithLiveness(

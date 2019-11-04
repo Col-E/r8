@@ -141,6 +141,7 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
     super(previous);
     missingClasses.addAll(previous.missingClasses);
     subtypeMap.putAll(previous.subtypeMap);
+    supertypesForSynthesizedClasses.putAll(previous.supertypesForSynthesizedClasses);
     typeInfo = new ConcurrentHashMap<>(previous.typeInfo);
     assert app() instanceof DirectMappedDexApplication;
   }
