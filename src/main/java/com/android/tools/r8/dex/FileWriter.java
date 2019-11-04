@@ -645,8 +645,10 @@ public class FileWriter {
 
   private void writeClassData(DexProgramClass clazz) {
     assert clazz.hasMethodsOrFields();
-    desugaredLibraryCodeToKeep.recordClass(clazz.superType);
+    desugaredLibraryCodeToKeep.recordClassAllAccesses(clazz.superType);
     for (DexType itf : clazz.interfaces.values) {
+      // No need for recordClassAllAccesses here because default methods are desugared away
+      // with concrete implementations or not supported.
       desugaredLibraryCodeToKeep.recordClass(itf);
     }
     mixedSectionOffsets.setOffsetFor(clazz, dest.position());

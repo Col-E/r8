@@ -12,7 +12,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.Sets;
 import java.util.Map;
 import java.util.Set;
@@ -35,16 +34,23 @@ public abstract class CodeToKeep {
 
   abstract void recordClass(DexType type);
 
+  abstract void recordClassAllAccesses(DexType type);
+
   abstract boolean isNop();
 
   abstract void generateKeepRules(InternalOptions options);
 
   public static class DesugaredLibraryCodeToKeep extends CodeToKeep {
 
+    private static class KeepStruct {
+      Set<DexField> fields = Sets.newConcurrentHashSet();
+      Set<DexMethod> methods = Sets.newConcurrentHashSet();
+      boolean all = false;
+    }
+
     private final NamingLens namingLens;
     private final Set<DexType> emulatedInterfaces = Sets.newIdentityHashSet();
-    private final Map<DexType, Pair<Set<DexField>, Set<DexMethod>>> toKeep =
-        new ConcurrentHashMap<>();
+    private final Map<DexType, KeepStruct> toKeep = new ConcurrentHashMap<>();
     private final InternalOptions options;
 
     public DesugaredLibraryCodeToKeep(NamingLens namingLens, InternalOptions options) {
@@ -62,7 +68,7 @@ public abstract class CodeToKeep {
     void recordMethod(DexMethod method) {
       if (shouldKeep(method.holder)) {
         keepClass(method.holder);
-        toKeep.get(method.holder).getSecond().add(method);
+        toKeep.get(method.holder).methods.add(method);
       }
       if (shouldKeep(method.proto.returnType)) {
         keepClass(method.proto.returnType);
@@ -78,7 +84,7 @@ public abstract class CodeToKeep {
     void recordField(DexField field) {
       if (shouldKeep(field.holder)) {
         keepClass(field.holder);
-        toKeep.get(field.holder).getFirst().add(field);
+        toKeep.get(field.holder).fields.add(field);
       }
       if (shouldKeep(field.type)) {
         keepClass(field.type);
@@ -92,10 +98,17 @@ public abstract class CodeToKeep {
       }
     }
 
+    @Override
+    void recordClassAllAccesses(DexType type) {
+      if (shouldKeep(type)) {
+        keepClass(type);
+        toKeep.get(type).all = true;
+      }
+    }
+
     private void keepClass(DexType type) {
       DexType baseType = type.lookupBaseType(options.itemFactory);
-      toKeep.putIfAbsent(
-          baseType, new Pair<>(Sets.newConcurrentHashSet(), Sets.newConcurrentHashSet()));
+      toKeep.putIfAbsent(baseType, new KeepStruct());
     }
 
     @Override
@@ -115,15 +128,18 @@ public abstract class CodeToKeep {
       StringBuilder sb = new StringBuilder();
       String cr = System.lineSeparator();
       for (DexType type : toKeep.keySet()) {
-        Set<DexField> fieldsToKeep = toKeep.get(type).getFirst();
-        Set<DexMethod> methodsToKeep = toKeep.get(type).getSecond();
+        KeepStruct keepStruct = toKeep.get(type);
         sb.append("-keep class ").append(convertType(type));
-        if (fieldsToKeep.isEmpty() && methodsToKeep.isEmpty()) {
+        if (keepStruct.all) {
+          sb.append(" { *; }").append(cr);
+          continue;
+        }
+        if (keepStruct.fields.isEmpty() && keepStruct.methods.isEmpty()) {
           sb.append(cr);
           continue;
         }
         sb.append(" {").append(cr);
-        for (DexField field : fieldsToKeep) {
+        for (DexField field : keepStruct.fields) {
           sb.append("    ")
               .append(convertType(field.type))
               .append(" ")
@@ -131,7 +147,7 @@ public abstract class CodeToKeep {
               .append(";")
               .append(cr);
         }
-        for (DexMethod method : methodsToKeep) {
+        for (DexMethod method : keepStruct.methods) {
           sb.append("    ")
               .append(convertType(method.proto.returnType))
               .append(" ")
@@ -162,6 +178,9 @@ public abstract class CodeToKeep {
 
     @Override
     void recordClass(DexType type) {}
+
+    @Override
+    void recordClassAllAccesses(DexType type) {}
 
     @Override
     boolean isNop() {
