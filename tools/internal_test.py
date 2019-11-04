@@ -79,6 +79,9 @@ BENCHMARK_APPS = [
         'find-xmx-max': 1200,
         'find-xmx-range': 32,
         'oom-threshold': 1037,
+        # TODO(b/143431825): Youtube can OOM randomly in memory configurations
+        #  that should work.
+        'skip-find-xmx-max': True,
     },
     {
         'app': 'iosched',
@@ -108,7 +111,7 @@ def find_min_xmx_command(record):
       '--find-min-xmx-archive']
 
 def compile_with_memory_max_command(record):
-  return [
+  return [] if 'skip-find-xmx-max' in record else [
       'tools/run_on_app.py',
       '--compiler=r8',
       '--compiler-build=lib',
@@ -143,7 +146,6 @@ TEST_COMMANDS = [
 ] + (map(find_min_xmx_command, BENCHMARK_APPS)
      + map(compile_with_memory_max_command, BENCHMARK_APPS)
      + map(compile_with_memory_min_command, BENCHMARK_APPS))
-
 
 # Command timeout, in seconds.
 RUN_TIMEOUT = 3600 * 6
@@ -349,6 +351,9 @@ def handle_output(archive, stderr, stdout, exitcode, timed_out, cmd):
       print 'stdout: %s' % f.read()
 
 def execute(cmd, archive, env=None):
+  if cmd == []:
+    return
+
   utils.PrintCmd(cmd)
   with utils.TempDir() as temp:
     try:
