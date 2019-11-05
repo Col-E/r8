@@ -42,8 +42,14 @@ public class AndroidAppDumpsTest extends TestBase {
     AndroidApp appIn =
         AndroidApp.builder(reporter)
             .addClassProgramData(ToolHelper.getClassAsBytes(A.class), origin("A"))
+            .addClassProgramData(ToolHelper.getClassAsBytes(A.class), origin("A"))
+            .addClassProgramData(ToolHelper.getClassAsBytes(A.class), origin("A"))
             .addProgramFile(dexForB)
             .addClasspathResourceProvider(provider(B.class))
+            .addClasspathResourceProvider(provider(B.class))
+            .addClasspathResourceProvider(provider(B.class))
+            .addLibraryResourceProvider(provider(C.class))
+            .addLibraryResourceProvider(provider(C.class))
             .addLibraryResourceProvider(provider(C.class))
             .build();
 

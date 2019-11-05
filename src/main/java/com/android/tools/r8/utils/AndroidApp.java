@@ -39,6 +39,8 @@ import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.ByteStreams;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -54,7 +56,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -435,7 +436,7 @@ public class AndroidApp {
       throws IOException, ResourceException {
     try (ByteArrayOutputStream archiveByteStream = new ByteArrayOutputStream()) {
       try (ZipOutputStream archiveOutputStream = new ZipOutputStream(archiveByteStream)) {
-        Set<String> seen = new HashSet<>();
+        Object2IntMap<String> seen = new Object2IntOpenHashMap<>();
         Set<DataEntryResource> dataEntries = getDataEntryResourcesForTesting();
         for (DataEntryResource dataResource : dataEntries) {
           builder.addDataResources(dataResource);
@@ -467,7 +468,7 @@ public class AndroidApp {
       throws IOException, ResourceException {
     try (ByteArrayOutputStream archiveByteStream = new ByteArrayOutputStream()) {
       try (ZipOutputStream archiveOutputStream = new ZipOutputStream(archiveByteStream)) {
-        Set<String> seen = new HashSet<>();
+        Object2IntMap<String> seen = new Object2IntOpenHashMap<>();
         for (ClassFileResourceProvider provider : classpathResourceProviders) {
           for (String descriptor : provider.getClassDescriptors()) {
             ProgramResource programResource = provider.getProgramResource(descriptor);
@@ -486,7 +487,7 @@ public class AndroidApp {
 
   private static int dumpProgramResource(
       Builder builder,
-      Set<String> seen,
+      Object2IntMap<String> seen,
       int nextDexIndex,
       ZipOutputStream archiveOutputStream,
       ProgramResource programResource)
@@ -512,7 +513,9 @@ public class AndroidApp {
               ? classDescriptors.iterator().next()
               : extractClassDescriptor(bytes);
       String classFileName = DescriptorUtils.getClassFileName(classDescriptor);
-      entryName = seen.add(classDescriptor) ? classFileName : (classFileName + ".dup");
+      int dupCount = seen.getOrDefault(classDescriptor, 0);
+      seen.put(classDescriptor, dupCount + 1);
+      entryName = dupCount == 0 ? classFileName : (classFileName + "." + dupCount + ".dup");
     } else {
       assert programResource.getKind() == Kind.DEX;
       entryName = "classes" + nextDexIndex++ + ".dex";
@@ -610,16 +613,19 @@ public class AndroidApp {
             } else if (name.equals(dumpProgramFileName)) {
               readProgramDump(origin, input);
             } else if (name.equals(dumpClasspathFileName)) {
-              readClassFileDump(origin, input, this::addClasspathResourceProvider);
+              readClassFileDump(origin, input, this::addClasspathResourceProvider, "classpath");
             } else if (name.equals(dumpLibraryFileName)) {
-              readClassFileDump(origin, input, this::addLibraryResourceProvider);
+              readClassFileDump(origin, input, this::addLibraryResourceProvider, "library");
             }
           });
       return this;
     }
 
     private void readClassFileDump(
-        Origin origin, InputStream input, Consumer<ClassFileResourceProvider> addProvider)
+        Origin origin,
+        InputStream input,
+        Consumer<ClassFileResourceProvider> addProvider,
+        String inputType)
         throws IOException {
       Map<String, ProgramResource> resources = new HashMap<>();
       try (ZipInputStream stream = new ZipInputStream(input)) {
@@ -636,8 +642,10 @@ public class AndroidApp {
                     ByteStreams.toByteArray(stream),
                     Collections.singleton(descriptor));
             resources.put(descriptor, resource);
+          } else if (name.endsWith(".dup")) {
+            System.out.println("WARNING: Duplicate " + inputType + " resource: " + name);
           } else {
-            System.out.println("WARNING: Unexpected non-classfile content: " + name);
+            System.out.println("WARNING: Unexpected " + inputType + " resource: " + name);
           }
         }
       }
@@ -679,6 +687,8 @@ public class AndroidApp {
                 OneShotByteResource.create(
                     Kind.DEX, entryOrigin, ByteStreams.toByteArray(stream), null);
             addProgramResources(resource);
+          } else if (name.endsWith(".dup")) {
+            System.out.println("WARNING: Duplicate program resource: " + name);
           }
         }
       }
