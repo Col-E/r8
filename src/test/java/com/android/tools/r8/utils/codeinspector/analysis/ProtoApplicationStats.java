@@ -97,11 +97,15 @@ public class ProtoApplicationStats {
     }
   }
 
-  class GeneratedExtensionRegistryStats extends Stats {
+  public class GeneratedExtensionRegistryStats extends Stats {
 
     final Set<DexMethod> findLiteExtensionByNumberMethods = Sets.newIdentityHashSet();
     final Set<DexField> retainedExtensionFields = Sets.newIdentityHashSet();
     final Set<DexField> spuriouslyRetainedExtensionFields = Sets.newIdentityHashSet();
+
+    public Set<DexField> getSpuriouslyRetainedExtensionFields() {
+      return spuriouslyRetainedExtensionFields;
+    }
 
     String getStats(
         GeneratedExtensionRegistryStats baseline, GeneratedExtensionRegistryStats original) {
@@ -224,6 +228,10 @@ public class ProtoApplicationStats {
         }
       }
     }
+  }
+
+  public GeneratedExtensionRegistryStats getGeneratedExtensionRegistryStats() {
+    return generatedExtensionRegistryStats;
   }
 
   public String getStats() {

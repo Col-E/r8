@@ -18,6 +18,7 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.analysis.ProtoApplicationStats;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
 import java.util.List;
 import org.junit.Test;
@@ -127,11 +128,22 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
                 "10",
                 "10");
 
+    DexItemFactory dexItemFactory = new DexItemFactory();
+    ProtoApplicationStats original = new ProtoApplicationStats(dexItemFactory, inputInspector);
+    ProtoApplicationStats actual =
+        new ProtoApplicationStats(dexItemFactory, result.inspector(), original);
+
+    assertEquals(
+        ImmutableSet.of(
+            dexItemFactory.createField(
+                dexItemFactory.createType(
+                    "Lcom/android/tools/r8/proto2/Shrinking$PartiallyUsedWithExtension;"),
+                dexItemFactory.createType(
+                    "Lcom/google/protobuf/GeneratedMessageLite$GeneratedExtension;"),
+                "extC")),
+        actual.getGeneratedExtensionRegistryStats().getSpuriouslyRetainedExtensionFields());
+
     if (ToolHelper.isLocalDevelopment()) {
-      DexItemFactory dexItemFactory = new DexItemFactory();
-      ProtoApplicationStats original = new ProtoApplicationStats(dexItemFactory, inputInspector);
-      ProtoApplicationStats actual =
-          new ProtoApplicationStats(dexItemFactory, result.inspector(), original);
       System.out.println(actual.getStats());
     }
   }
