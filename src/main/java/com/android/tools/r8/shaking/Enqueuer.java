@@ -581,6 +581,29 @@ public class Enqueuer {
     return isRead ? info.recordRead(field, context) : info.recordWrite(field, context);
   }
 
+  boolean traceInvokeDirect(
+      DexMethod invokedMethod, DexProgramClass currentHolder, DexEncodedMethod currentMethod) {
+    return traceInvokeDirect(
+        invokedMethod, currentMethod, KeepReason.invokedFrom(currentHolder, currentMethod));
+  }
+
+  boolean traceInvokeDirectFromLambda(DexMethod invokedMethod, DexEncodedMethod currentMethod) {
+    return traceInvokeDirect(
+        invokedMethod, currentMethod, KeepReason.invokedFromLambdaCreatedIn(currentMethod));
+  }
+
+  private boolean traceInvokeDirect(
+      DexMethod invokedMethod, DexEncodedMethod currentMethod, KeepReason reason) {
+    if (!registerMethodWithTargetAndContext(directInvokes, invokedMethod, currentMethod)) {
+      return false;
+    }
+    if (Log.ENABLED) {
+      Log.verbose(getClass(), "Register invokeDirect `%s`.", invokedMethod);
+    }
+    handleInvokeOfDirectTarget(invokedMethod, reason);
+    return true;
+  }
+
   boolean traceInvokeVirtual(
       DexMethod invokedMethod, DexProgramClass currentHolder, DexEncodedMethod currentMethod) {
     return traceInvokeVirtual(
@@ -635,19 +658,8 @@ public class Enqueuer {
     }
 
     @Override
-    public boolean registerInvokeDirect(DexMethod method) {
-      return registerInvokeDirect(method, KeepReason.invokedFrom(currentHolder, currentMethod));
-    }
-
-    boolean registerInvokeDirect(DexMethod method, KeepReason keepReason) {
-      if (!registerMethodWithTargetAndContext(directInvokes, method, currentMethod)) {
-        return false;
-      }
-      if (Log.ENABLED) {
-        Log.verbose(getClass(), "Register invokeDirect `%s`.", method);
-      }
-      handleInvokeOfDirectTarget(method, keepReason);
-      return true;
+    public boolean registerInvokeDirect(DexMethod invokedMethod) {
+      return traceInvokeDirect(invokedMethod, currentHolder, currentMethod);
     }
 
     @Override
@@ -1023,7 +1035,7 @@ public class Enqueuer {
           traceInvokeVirtualFromLambda(method, currentMethod);
           break;
         case INVOKE_DIRECT:
-          registerInvokeDirect(method, KeepReason.invokedFromLambdaCreatedIn(currentMethod));
+          traceInvokeDirectFromLambda(method, currentMethod);
           break;
         case INVOKE_CONSTRUCTOR:
           registerNewInstance(
