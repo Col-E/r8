@@ -604,6 +604,48 @@ public class Enqueuer {
     return true;
   }
 
+  boolean traceInvokeStatic(
+      DexMethod invokedMethod, DexProgramClass currentHolder, DexEncodedMethod currentMethod) {
+    return traceInvokeStatic(
+        invokedMethod, currentMethod, KeepReason.invokedFrom(currentHolder, currentMethod));
+  }
+
+  boolean traceInvokeStaticFromLambda(DexMethod invokedMethod, DexEncodedMethod currentMethod) {
+    return traceInvokeStatic(
+        invokedMethod, currentMethod, KeepReason.invokedFromLambdaCreatedIn(currentMethod));
+  }
+
+  private boolean traceInvokeStatic(
+      DexMethod invokedMethod, DexEncodedMethod currentMethod, KeepReason reason) {
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    if (dexItemFactory.classMethods.isReflectiveClassLookup(invokedMethod)
+        || dexItemFactory.atomicFieldUpdaterMethods.isFieldUpdater(invokedMethod)) {
+      // Implicitly add -identifiernamestring rule for the Java reflection in use.
+      identifierNameStrings.add(invokedMethod);
+      // Revisit the current method to implicitly add -keep rule for items with reflective access.
+      pendingReflectiveUses.add(currentMethod);
+    }
+    // See comment in handleJavaLangEnumValueOf.
+    if (invokedMethod == dexItemFactory.enumMethods.valueOf) {
+      pendingReflectiveUses.add(currentMethod);
+    }
+    // Handling of application services.
+    if (dexItemFactory.serviceLoaderMethods.isLoadMethod(invokedMethod)) {
+      pendingReflectiveUses.add(currentMethod);
+    }
+    if (invokedMethod == dexItemFactory.proxyMethods.newProxyInstance) {
+      pendingReflectiveUses.add(currentMethod);
+    }
+    if (!registerMethodWithTargetAndContext(staticInvokes, invokedMethod, currentMethod)) {
+      return false;
+    }
+    if (Log.ENABLED) {
+      Log.verbose(getClass(), "Register invokeStatic `%s`.", invokedMethod);
+    }
+    handleInvokeOfStaticTarget(invokedMethod, reason);
+    return true;
+  }
+
   boolean traceInvokeVirtual(
       DexMethod invokedMethod, DexProgramClass currentHolder, DexEncodedMethod currentMethod) {
     return traceInvokeVirtual(
@@ -663,38 +705,8 @@ public class Enqueuer {
     }
 
     @Override
-    public boolean registerInvokeStatic(DexMethod method) {
-      return registerInvokeStatic(method, KeepReason.invokedFrom(currentHolder, currentMethod));
-    }
-
-    boolean registerInvokeStatic(DexMethod method, KeepReason keepReason) {
-      DexItemFactory dexItemFactory = appView.dexItemFactory();
-      if (dexItemFactory.classMethods.isReflectiveClassLookup(method)
-          || dexItemFactory.atomicFieldUpdaterMethods.isFieldUpdater(method)) {
-        // Implicitly add -identifiernamestring rule for the Java reflection in use.
-        identifierNameStrings.add(method);
-        // Revisit the current method to implicitly add -keep rule for items with reflective access.
-        pendingReflectiveUses.add(currentMethod);
-      }
-      // See comment in handleJavaLangEnumValueOf.
-      if (method == dexItemFactory.enumMethods.valueOf) {
-        pendingReflectiveUses.add(currentMethod);
-      }
-      // Handling of application services.
-      if (dexItemFactory.serviceLoaderMethods.isLoadMethod(method)) {
-        pendingReflectiveUses.add(currentMethod);
-      }
-      if (method == dexItemFactory.proxyMethods.newProxyInstance) {
-        pendingReflectiveUses.add(currentMethod);
-      }
-      if (!registerMethodWithTargetAndContext(staticInvokes, method, currentMethod)) {
-        return false;
-      }
-      if (Log.ENABLED) {
-        Log.verbose(getClass(), "Register invokeStatic `%s`.", method);
-      }
-      handleInvokeOfStaticTarget(method, keepReason);
-      return true;
+    public boolean registerInvokeStatic(DexMethod invokedMethod) {
+      return traceInvokeStatic(invokedMethod, currentHolder, currentMethod);
     }
 
     @Override
@@ -1026,7 +1038,7 @@ public class Enqueuer {
 
       switch (implHandle.type) {
         case INVOKE_STATIC:
-          registerInvokeStatic(method, KeepReason.invokedFromLambdaCreatedIn(currentMethod));
+          traceInvokeStaticFromLambda(method, currentMethod);
           break;
         case INVOKE_INTERFACE:
           registerInvokeInterface(method, KeepReason.invokedFromLambdaCreatedIn(currentMethod));
