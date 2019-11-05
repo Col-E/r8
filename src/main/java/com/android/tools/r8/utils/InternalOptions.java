@@ -218,11 +218,6 @@ public class InternalOptions {
   public boolean encodeChecksums = false;
   public BiPredicate<String, Long> dexClassChecksumFilter = (name, checksum) -> true;
 
-  // This defines the max depth threshold for the cycle eliminator. If the length of a call chain
-  // exceeds the threshold, we treat it as if we have found a cycle. This ensures that we won't run
-  // into stack overflows when the call graph contains large call chains. This should have a
-  // negligible impact on code size as long as the threshold is large enough.
-  public int callGraphCycleEliminatorMaxDepthThreshold = 256;
   public int callGraphLikelySpuriousCallEdgeThreshold = 50;
 
   // TODO(b/141719453): The inlining limit at least should be consistent with normal inlining.
