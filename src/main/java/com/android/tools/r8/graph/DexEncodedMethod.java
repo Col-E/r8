@@ -46,10 +46,8 @@ import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.NestUtils;
 import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
-import com.android.tools.r8.ir.optimize.info.DefaultCallSiteOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.DefaultMethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
-import com.android.tools.r8.ir.optimize.info.MutableCallSiteOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.UpdatableMethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
@@ -134,8 +132,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
   //   we need to maintain a set of states with (potentially different) contexts.
   private CompilationState compilationState = CompilationState.NOT_PROCESSED;
   private MethodOptimizationInfo optimizationInfo = DefaultMethodOptimizationInfo.DEFAULT_INSTANCE;
-  private CallSiteOptimizationInfo callSiteOptimizationInfo =
-      DefaultCallSiteOptimizationInfo.getInstance();
+  private CallSiteOptimizationInfo callSiteOptimizationInfo = CallSiteOptimizationInfo.BOTTOM;
   private int classFileVersion = -1;
 
   private DexEncodedMethod defaultInterfaceMethodImplementation = null;
@@ -1167,22 +1164,15 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
     optimizationInfo = info;
   }
 
-  public CallSiteOptimizationInfo getCallSiteOptimizationInfo() {
+  public synchronized CallSiteOptimizationInfo getCallSiteOptimizationInfo() {
     checkIfObsolete();
     return callSiteOptimizationInfo;
   }
 
-  public synchronized MutableCallSiteOptimizationInfo getMutableCallSiteOptimizationInfo(
-      AppView<?> appView) {
+  public synchronized void joinCallSiteOptimizationInfo(
+      CallSiteOptimizationInfo other, AppView<?> appView) {
     checkIfObsolete();
-    if (callSiteOptimizationInfo.isDefaultCallSiteOptimizationInfo()) {
-      MutableCallSiteOptimizationInfo mutableOptimizationInfo =
-          new MutableCallSiteOptimizationInfo(this);
-      callSiteOptimizationInfo = mutableOptimizationInfo;
-      return mutableOptimizationInfo;
-    }
-    assert callSiteOptimizationInfo.isMutableCallSiteOptimizationInfo();
-    return callSiteOptimizationInfo.asMutableCallSiteOptimizationInfo();
+    callSiteOptimizationInfo = callSiteOptimizationInfo.join(other, appView, this);
   }
 
   public void copyMetadata(DexEncodedMethod from) {

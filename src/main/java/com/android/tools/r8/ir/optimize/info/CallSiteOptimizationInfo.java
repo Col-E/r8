@@ -8,22 +8,42 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.optimize.CallSiteOptimizationInfoPropagator;
 
+// A flat lattice structure:
+//   BOTTOM, TOP, and a lattice element that holds accumulated argument info.
 public abstract class CallSiteOptimizationInfo {
+  public static BottomCallSiteOptimizationInfo BOTTOM = BottomCallSiteOptimizationInfo.INSTANCE;
+  public static TopCallSiteOptimizationInfo TOP = TopCallSiteOptimizationInfo.INSTANCE;
 
-  public boolean isDefaultCallSiteOptimizationInfo() {
+  public boolean isBottom() {
     return false;
   }
 
-  public DefaultCallSiteOptimizationInfo asDefaultCallSiteOptimizationInfo() {
-    return null;
-  }
-
-  public boolean isMutableCallSiteOptimizationInfo() {
+  public boolean isTop() {
     return false;
   }
 
-  public MutableCallSiteOptimizationInfo asMutableCallSiteOptimizationInfo() {
+  public boolean isConcreteCallSiteOptimizationInfo() {
+    return false;
+  }
+
+  public ConcreteCallSiteOptimizationInfo asConcreteCallSiteOptimizationInfo() {
     return null;
+  }
+
+  public CallSiteOptimizationInfo join(
+      CallSiteOptimizationInfo other, AppView<?> appView, DexEncodedMethod encodedMethod) {
+    if (isBottom()) {
+      return other;
+    }
+    if (other.isBottom()) {
+      return this;
+    }
+    if (isTop() || other.isTop()) {
+      return TOP;
+    }
+    assert isConcreteCallSiteOptimizationInfo() && other.isConcreteCallSiteOptimizationInfo();
+    return asConcreteCallSiteOptimizationInfo()
+        .join(other.asConcreteCallSiteOptimizationInfo(), appView, encodedMethod);
   }
 
   /**
@@ -37,7 +57,9 @@ public abstract class CallSiteOptimizationInfo {
   }
 
   // The index exactly matches with in values of invocation, i.e., even including receiver.
-  public abstract TypeLatticeElement getDynamicUpperBoundType(int argIndex);
+  public TypeLatticeElement getDynamicUpperBoundType(int argIndex) {
+    return null;
+  }
 
   // TODO(b/139246447): dynamic lower bound type?
 

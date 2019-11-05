@@ -23,7 +23,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.CodeOptimization;
 import com.android.tools.r8.ir.conversion.PostOptimization;
 import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
-import com.android.tools.r8.ir.optimize.info.MutableCallSiteOptimizationInfo;
+import com.android.tools.r8.ir.optimize.info.ConcreteCallSiteOptimizationInfo;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.Sets;
@@ -80,9 +80,6 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
       if (!instruction.isInvokeMethod() && !instruction.isInvokeCustom()) {
         continue;
       }
-      if (!MutableCallSiteOptimizationInfo.hasArgumentsToRecord(instruction.inValues())) {
-        continue;
-      }
       if (instruction.isInvokeMethod()) {
         InvokeMethod invoke = instruction.asInvokeMethod();
         if (invoke.isInvokeMethodWithDynamicDispatch()) {
@@ -102,7 +99,7 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
           continue;
         }
         for (DexEncodedMethod target : targets) {
-          recordArgumentsIfNecessary(context, target, invoke.inValues());
+          recordArgumentsIfNecessary(target, invoke.inValues());
         }
       }
       // TODO(b/129458850): if lambda desugaring happens before IR processing, seeing invoke-custom
@@ -116,47 +113,62 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
           continue;
         }
         for (DexEncodedMethod target : targets) {
-          recordArgumentsIfNecessary(context, target, instruction.inValues());
+          recordArgumentsIfNecessary(target, instruction.inValues());
         }
       }
     }
   }
 
-  private void recordArgumentsIfNecessary(
-      DexEncodedMethod context, DexEncodedMethod target, List<Value> inValues) {
+  // Record arguments for the given method if necessary.
+  // At the same time, if it decides to bail out, make the corresponding info immutable so that we
+  // can avoid recording arguments for the same method accidentally.
+  private void recordArgumentsIfNecessary(DexEncodedMethod target, List<Value> inValues) {
     assert !target.isObsolete();
-    if (target.shouldNotHaveCode() || target.method.getArity() == 0) {
+    if (target.getCallSiteOptimizationInfo().isTop()) {
       return;
+    }
+    target.joinCallSiteOptimizationInfo(
+        computeCallSiteOptimizationInfoFromArguments(target, inValues), appView);
+  }
+
+  private CallSiteOptimizationInfo computeCallSiteOptimizationInfoFromArguments(
+      DexEncodedMethod target, List<Value> inValues) {
+    // No method body or no argument at all.
+    if (target.shouldNotHaveCode() || inValues.size() == 0) {
+      return CallSiteOptimizationInfo.TOP;
     }
     // If pinned, that method could be invoked via reflection.
     if (appView.appInfo().isPinned(target.method)) {
-      return;
+      return CallSiteOptimizationInfo.TOP;
     }
     // If the method overrides a library method, it is unsure how the method would be invoked by
     // that library.
     if (target.isLibraryMethodOverride().isTrue()) {
-      return;
+      return CallSiteOptimizationInfo.TOP;
     }
     // If the program already has illegal accesses, method resolution results will reflect that too.
     // We should avoid recording arguments in that case. E.g., b/139823850: static methods can be a
     // result of virtual call targets, if that's the only method that matches name and signature.
     int argumentOffset = target.isStatic() ? 0 : 1;
     if (inValues.size() != argumentOffset + target.method.getArity()) {
-      return;
+      return CallSiteOptimizationInfo.BOTTOM;
     }
-    MutableCallSiteOptimizationInfo optimizationInfo =
-        target.getMutableCallSiteOptimizationInfo(appView);
-    optimizationInfo.recordArguments(appView, context, inValues);
+    return ConcreteCallSiteOptimizationInfo.fromArguments(appView, target, inValues);
   }
 
   // If collected call site optimization info has something useful, e.g., non-null argument,
   // insert corresponding assume instructions for arguments.
   public void applyCallSiteOptimizationInfo(
       IRCode code, CallSiteOptimizationInfo callSiteOptimizationInfo) {
-    if (mode != Mode.REVISIT
-        || !callSiteOptimizationInfo.hasUsefulOptimizationInfo(appView, code.method)) {
+    if (mode != Mode.REVISIT) {
       return;
     }
+    // TODO(b/139246447): Assert no BOTTOM left.
+    if (!callSiteOptimizationInfo.isConcreteCallSiteOptimizationInfo()) {
+      return;
+    }
+    assert callSiteOptimizationInfo.asConcreteCallSiteOptimizationInfo()
+        .hasUsefulOptimizationInfo(appView, code.method);
     Set<Value> affectedValues = Sets.newIdentityHashSet();
     List<Assume<?>> assumeInstructions = new LinkedList<>();
     List<ConstInstruction> constants = new LinkedList<>();
@@ -237,15 +249,18 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       for (DexEncodedMethod method : clazz.methods()) {
         assert !method.isObsolete();
-        if (method.shouldNotHaveCode()
-            || method.getCallSiteOptimizationInfo().isDefaultCallSiteOptimizationInfo()) {
+        if (method.shouldNotHaveCode()) {
+          assert !method.hasCode();
           continue;
         }
-        MutableCallSiteOptimizationInfo optimizationInfo =
-            method.getCallSiteOptimizationInfo().asMutableCallSiteOptimizationInfo();
-        if (optimizationInfo.hasUsefulOptimizationInfo(appView, method)) {
-          targetsToRevisit.add(method);
+        // TODO(b/139246447): Assert no BOTTOM left.
+        CallSiteOptimizationInfo callSiteOptimizationInfo = method.getCallSiteOptimizationInfo();
+        if (!callSiteOptimizationInfo.isConcreteCallSiteOptimizationInfo()) {
+          continue;
         }
+        assert callSiteOptimizationInfo.asConcreteCallSiteOptimizationInfo()
+            .hasUsefulOptimizationInfo(appView, method);
+        targetsToRevisit.add(method);
       }
     }
     if (revisitedMethods != null) {
