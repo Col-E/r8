@@ -950,7 +950,7 @@ public class DexParser {
     ClassesChecksum parsedChecksums = new ClassesChecksum();
     for (int i = stringIDs.length - 1; i >= 0; i--) {
       DexString value = indexedItems.getString(i);
-      if (ClassesChecksum.definitelyPreceedChecksumMarker(value)) {
+      if (ClassesChecksum.definitelyPrecedesChecksumMarker(value)) {
         break;
       }
       parsedChecksums.tryParseAndAppend(value);

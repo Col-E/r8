@@ -86,14 +86,15 @@ public class ClassesChecksum {
    * @param string String to check if definitely preceded the checksum marker.
    * @return If the string passed definitely preceded the checksum marker
    */
-  public static boolean definitelyPreceedChecksumMarker(DexString string) {
+  public static boolean definitelyPrecedesChecksumMarker(DexString string) {
     try {
       assert PREFIX.length() == 3;
-      char[] prefix = string.decodePrefix(3);
-      return prefix.length == 0
-          || (prefix.length == 1 && prefix[0] <= PREFIX_CHAR0)
-          || (prefix.length == 2 && prefix[0] == PREFIX_CHAR0 && prefix[1] <= PREFIX_CHAR1)
-          || (prefix.length == 3
+      char[] prefix = new char[PREFIX.length()];
+      int prefixLength = string.decodePrefix(prefix);
+      return prefixLength == 0
+          || (prefixLength == 1 && prefix[0] <= PREFIX_CHAR0)
+          || (prefixLength == 2 && prefix[0] == PREFIX_CHAR0 && prefix[1] <= PREFIX_CHAR1)
+          || (prefixLength == 3
               && prefix[0] == PREFIX_CHAR0
               && prefix[1] == PREFIX_CHAR1
               && prefix[2] < PREFIX_CHAR2);

@@ -101,27 +101,28 @@ public class DexMergeChecksumsHighSortingStrings extends TestBase {
 
     DexItemFactory factory = new DexItemFactory();
     assertFalse(
-        ClassesChecksum.definitelyPreceedChecksumMarker(factory.createString("\uDB3F\uDFFD")));
+        ClassesChecksum.definitelyPrecedesChecksumMarker(factory.createString("\uDB3F\uDFFD")));
     assertFalse(
-        ClassesChecksum.definitelyPreceedChecksumMarker(factory.createString("~\uDB3F\uDFFD\"")));
+        ClassesChecksum.definitelyPrecedesChecksumMarker(factory.createString("~\uDB3F\uDFFD\"")));
     assertFalse(
-        ClassesChecksum.definitelyPreceedChecksumMarker(factory.createString("~~\uDB3F\uDFFD")));
+        ClassesChecksum.definitelyPrecedesChecksumMarker(factory.createString("~~\uDB3F\uDFFD")));
     assertFalse(
-        ClassesChecksum.definitelyPreceedChecksumMarker(factory.createString("~~~\uDB3F\uDFFD")));
-    assertFalse(ClassesChecksum.definitelyPreceedChecksumMarker(factory.createString("\u007f")));
-    assertFalse(ClassesChecksum.definitelyPreceedChecksumMarker(factory.createString("~\u007f")));
-    assertFalse(ClassesChecksum.definitelyPreceedChecksumMarker(factory.createString("~~\u007f")));
-    assertFalse(ClassesChecksum.definitelyPreceedChecksumMarker(factory.createString("~~~\u007f")));
-    assertFalse(ClassesChecksum.definitelyPreceedChecksumMarker(factory.createString("~~~|")));
+        ClassesChecksum.definitelyPrecedesChecksumMarker(factory.createString("~~~\uDB3F\uDFFD")));
+    assertFalse(ClassesChecksum.definitelyPrecedesChecksumMarker(factory.createString("\u007f")));
+    assertFalse(ClassesChecksum.definitelyPrecedesChecksumMarker(factory.createString("~\u007f")));
+    assertFalse(ClassesChecksum.definitelyPrecedesChecksumMarker(factory.createString("~~\u007f")));
+    assertFalse(
+        ClassesChecksum.definitelyPrecedesChecksumMarker(factory.createString("~~~\u007f")));
+    assertFalse(ClassesChecksum.definitelyPrecedesChecksumMarker(factory.createString("~~~|")));
 
-    assertTrue(ClassesChecksum.definitelyPreceedChecksumMarker(factory.createString("~~}")));
-    assertTrue(ClassesChecksum.definitelyPreceedChecksumMarker(factory.createString("~~")));
-    assertTrue(ClassesChecksum.definitelyPreceedChecksumMarker(factory.createString("~}")));
-    assertTrue(ClassesChecksum.definitelyPreceedChecksumMarker(factory.createString("~")));
-    assertTrue(ClassesChecksum.definitelyPreceedChecksumMarker(factory.createString("}")));
+    assertTrue(ClassesChecksum.definitelyPrecedesChecksumMarker(factory.createString("~~}")));
+    assertTrue(ClassesChecksum.definitelyPrecedesChecksumMarker(factory.createString("~~")));
+    assertTrue(ClassesChecksum.definitelyPrecedesChecksumMarker(factory.createString("~}")));
+    assertTrue(ClassesChecksum.definitelyPrecedesChecksumMarker(factory.createString("~")));
+    assertTrue(ClassesChecksum.definitelyPrecedesChecksumMarker(factory.createString("}")));
 
     // False negatives.
-    assertFalse(ClassesChecksum.definitelyPreceedChecksumMarker(factory.createString("~~~")));
-    assertFalse(ClassesChecksum.definitelyPreceedChecksumMarker(factory.createString("~~~z")));
+    assertFalse(ClassesChecksum.definitelyPrecedesChecksumMarker(factory.createString("~~~")));
+    assertFalse(ClassesChecksum.definitelyPrecedesChecksumMarker(factory.createString("~~~z")));
   }
 }
