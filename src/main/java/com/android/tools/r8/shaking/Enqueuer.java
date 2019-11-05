@@ -581,6 +581,38 @@ public class Enqueuer {
     return isRead ? info.recordRead(field, context) : info.recordWrite(field, context);
   }
 
+  boolean traceInvokeVirtual(
+      DexMethod invokedMethod, DexProgramClass currentHolder, DexEncodedMethod currentMethod) {
+    return traceInvokeVirtual(
+        invokedMethod, currentMethod, KeepReason.invokedFrom(currentHolder, currentMethod));
+  }
+
+  boolean traceInvokeVirtualFromLambda(DexMethod invokedMethod, DexEncodedMethod currentMethod) {
+    return traceInvokeVirtual(
+        invokedMethod, currentMethod, KeepReason.invokedFromLambdaCreatedIn(currentMethod));
+  }
+
+  private boolean traceInvokeVirtual(
+      DexMethod invokedMethod, DexEncodedMethod currentMethod, KeepReason reason) {
+    if (invokedMethod == appView.dexItemFactory().classMethods.newInstance
+        || invokedMethod == appView.dexItemFactory().constructorMethods.newInstance) {
+      pendingReflectiveUses.add(currentMethod);
+    } else if (appView.dexItemFactory().classMethods.isReflectiveMemberLookup(invokedMethod)) {
+      // Implicitly add -identifiernamestring rule for the Java reflection in use.
+      identifierNameStrings.add(invokedMethod);
+      // Revisit the current method to implicitly add -keep rule for items with reflective access.
+      pendingReflectiveUses.add(currentMethod);
+    }
+    if (!registerMethodWithTargetAndContext(virtualInvokes, invokedMethod, currentMethod)) {
+      return false;
+    }
+    if (Log.ENABLED) {
+      Log.verbose(getClass(), "Register invokeVirtual `%s`.", invokedMethod);
+    }
+    workList.enqueueMarkReachableVirtualAction(invokedMethod, reason);
+    return true;
+  }
+
   private class UseRegistry extends com.android.tools.r8.graph.UseRegistry {
 
     private final DexProgramClass currentHolder;
@@ -598,28 +630,8 @@ public class Enqueuer {
     }
 
     @Override
-    public boolean registerInvokeVirtual(DexMethod method) {
-      return registerInvokeVirtual(method, KeepReason.invokedFrom(currentHolder, currentMethod));
-    }
-
-    boolean registerInvokeVirtual(DexMethod method, KeepReason keepReason) {
-      if (method == appView.dexItemFactory().classMethods.newInstance
-          || method == appView.dexItemFactory().constructorMethods.newInstance) {
-        pendingReflectiveUses.add(currentMethod);
-      } else if (appView.dexItemFactory().classMethods.isReflectiveMemberLookup(method)) {
-        // Implicitly add -identifiernamestring rule for the Java reflection in use.
-        identifierNameStrings.add(method);
-        // Revisit the current method to implicitly add -keep rule for items with reflective access.
-        pendingReflectiveUses.add(currentMethod);
-      }
-      if (!registerMethodWithTargetAndContext(virtualInvokes, method, currentMethod)) {
-        return false;
-      }
-      if (Log.ENABLED) {
-        Log.verbose(getClass(), "Register invokeVirtual `%s`.", method);
-      }
-      workList.enqueueMarkReachableVirtualAction(method, keepReason);
-      return true;
+    public boolean registerInvokeVirtual(DexMethod invokedMethod) {
+      return traceInvokeVirtual(invokedMethod, currentHolder, currentMethod);
     }
 
     @Override
@@ -1008,7 +1020,7 @@ public class Enqueuer {
           registerInvokeInterface(method, KeepReason.invokedFromLambdaCreatedIn(currentMethod));
           break;
         case INVOKE_INSTANCE:
-          registerInvokeVirtual(method, KeepReason.invokedFromLambdaCreatedIn(currentMethod));
+          traceInvokeVirtualFromLambda(method, currentMethod);
           break;
         case INVOKE_DIRECT:
           registerInvokeDirect(method, KeepReason.invokedFromLambdaCreatedIn(currentMethod));
