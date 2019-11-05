@@ -624,39 +624,45 @@ def BuildAppWithSelectedShrinkers(
       apk_dest = None
 
       result = {}
-      try:
-        out_dir = os.path.join(checkout_dir, 'out', shrinker)
-        (apk_dest, profile_dest_dir, proguard_config_file) = \
-            BuildAppWithShrinker(
-                app, repo, shrinker, checkout_dir, out_dir, temp_dir,
-                options)
-        dex_size = ComputeSizeOfDexFilesInApk(apk_dest)
-        result['apk_dest'] = apk_dest
-        result['build_status'] = 'success'
-        result['dex_size'] = dex_size
-        result['profile_dest_dir'] = profile_dest_dir
+      proguard_config_file = None
+      if not options.r8_compilation_steps_only:
+        try:
+          out_dir = os.path.join(checkout_dir, 'out', shrinker)
+          (apk_dest, profile_dest_dir, res_proguard_config_file) = \
+              BuildAppWithShrinker(
+                  app, repo, shrinker, checkout_dir, out_dir, temp_dir,
+                  options)
+          proguard_config_file = res_proguard_config_file
+          dex_size = ComputeSizeOfDexFilesInApk(apk_dest)
+          result['apk_dest'] = apk_dest
+          result['build_status'] = 'success'
+          result['dex_size'] = dex_size
+          result['profile_dest_dir'] = profile_dest_dir
 
-        profile = as_utils.ParseProfileReport(profile_dest_dir)
-        result['profile'] = {
-            task_name:duration for task_name, duration in profile.iteritems()
-            if as_utils.IsGradleCompilerTask(task_name, shrinker)}
-      except Exception as e:
-        warn('Failed to build {} with {}'.format(app.name, shrinker))
-        if e:
-          print('Error: ' + str(e))
-        result['build_status'] = 'failed'
+          profile = as_utils.ParseProfileReport(profile_dest_dir)
+          result['profile'] = {
+              task_name:duration for task_name, duration in profile.iteritems()
+              if as_utils.IsGradleCompilerTask(task_name, shrinker)}
+        except Exception as e:
+          warn('Failed to build {} with {}'.format(app.name, shrinker))
+          if e:
+            print('Error: ' + str(e))
+          result['build_status'] = 'failed'
 
       if result.get('build_status') == 'success':
         if options.monkey:
           result['monkey_status'] = 'success' if RunMonkey(
               app, options, apk_dest) else 'failed'
 
+      if (result.get('build_status') == 'success'
+          or options.r8_compilation_steps_only):
         if 'r8' in shrinker and options.r8_compilation_steps > 1:
           result['recompilation_results'] = \
               ComputeRecompilationResults(
                   app, repo, options, checkout_dir, temp_dir, shrinker,
                   proguard_config_file)
 
+      if result.get('build_status') == 'success':
         if options.run_tests and app.has_instrumentation_tests:
           result['instrumentation_test_results'] = \
               ComputeInstrumentationTestResults(
@@ -852,15 +858,17 @@ def ComputeRecompilationResults(
   }
   recompilation_results.append(recompilation_result)
 
-  # Sanity check that keep rules have changed.
-  with open(ext_proguard_config_file) as new:
-    with open(proguard_config_file) as old:
-      assert(
-          sum(1 for line in new
-              if line.strip() and '-printconfiguration' not in line)
-          >
-          sum(1 for line in old
-              if line.strip() and '-printconfiguration' not in line))
+  # Sanity check that keep rules have changed. If we are only doing
+  # recompilation, the passed in proguard_config_file is None.
+  if proguard_config_file:
+    with open(ext_proguard_config_file) as new:
+      with open(proguard_config_file) as old:
+        assert(
+            sum(1 for line in new
+                if line.strip() and '-printconfiguration' not in line)
+            >
+            sum(1 for line in old
+                if line.strip() and '-printconfiguration' not in line))
 
   # Extract min-sdk and target-sdk
   (min_sdk, compile_sdk) = \
@@ -1018,22 +1026,24 @@ def LogComparisonResultsForApp(app, result_per_shrinker, options):
       continue
     result = result_per_shrinker.get(shrinker)
     build_status = result.get('build_status')
-    if build_status != 'success':
+    if build_status != 'success' and build_status is not None:
       app_error = True
       warn('  {}: {}'.format(shrinker, build_status))
-    else:
-      print('  {}:'.format(shrinker))
-      dex_size = result.get('dex_size')
-      msg = '    dex size: {}'.format(dex_size)
-      if dex_size != proguard_dex_size and proguard_dex_size >= 0:
-        msg = '{} ({}, {})'.format(
-            msg, dex_size - proguard_dex_size,
-            PercentageDiffAsString(proguard_dex_size, dex_size))
-        success(msg) if dex_size < proguard_dex_size else warn(msg)
-      else:
-        print(msg)
+      continue
 
-      profile = result.get('profile')
+    print('  {}:'.format(shrinker))
+    dex_size = result.get('dex_size')
+    msg = '    dex size: {}'.format(dex_size)
+    if dex_size != proguard_dex_size and proguard_dex_size >= 0:
+      msg = '{} ({}, {})'.format(
+          msg, dex_size - proguard_dex_size,
+          PercentageDiffAsString(proguard_dex_size, dex_size))
+      success(msg) if dex_size < proguard_dex_size else warn(msg)
+    else:
+      print(msg)
+
+    profile = result.get('profile')
+    if profile:
       duration = sum(profile.values())
       msg = '    performance: {}s'.format(duration)
       if duration != proguard_duration and proguard_duration > 0:
@@ -1047,53 +1057,53 @@ def LogComparisonResultsForApp(app, result_per_shrinker, options):
         for task_name, task_duration in profile.iteritems():
           print('      {}: {}s'.format(task_name, task_duration))
 
-      if options.monkey:
-        monkey_status = result.get('monkey_status')
-        if monkey_status != 'success':
-          app_error = True
-          warn('    monkey: {}'.format(monkey_status))
-        else:
-          success('    monkey: {}'.format(monkey_status))
+    if options.monkey:
+      monkey_status = result.get('monkey_status')
+      if monkey_status != 'success':
+        app_error = True
+        warn('    monkey: {}'.format(monkey_status))
+      else:
+        success('    monkey: {}'.format(monkey_status))
 
-      recompilation_results = result.get('recompilation_results', [])
-      i = 0
-      for recompilation_result in recompilation_results:
-        build_status = recompilation_result.get('build_status')
-        if build_status != 'success':
-          app_error = True
-          print('    recompilation #{}: {}'.format(i, build_status))
-        else:
-          dex_size = recompilation_result.get('dex_size')
-          print('    recompilation #{}'.format(i))
-          print('      dex size: {}'.format(dex_size))
-          if options.monkey:
-            monkey_status = recompilation_result.get('monkey_status')
-            msg = '      monkey: {}'.format(monkey_status)
-            if monkey_status == 'success':
-              success(msg)
-            elif monkey_status == 'skipped':
-              print(msg)
-            else:
-              warn(msg)
-        i += 1
+    recompilation_results = result.get('recompilation_results', [])
+    i = 0
+    for recompilation_result in recompilation_results:
+      build_status = recompilation_result.get('build_status')
+      if build_status != 'success':
+        app_error = True
+        print('    recompilation #{}: {}'.format(i, build_status))
+      else:
+        dex_size = recompilation_result.get('dex_size')
+        print('    recompilation #{}'.format(i))
+        print('      dex size: {}'.format(dex_size))
+        if options.monkey:
+          monkey_status = recompilation_result.get('monkey_status')
+          msg = '      monkey: {}'.format(monkey_status)
+          if monkey_status == 'success':
+            success(msg)
+          elif monkey_status == 'skipped':
+            print(msg)
+          else:
+            warn(msg)
+      i += 1
 
-      if options.run_tests and 'instrumentation_test_results' in result:
-        instrumentation_test_results = \
-            result.get('instrumentation_test_results')
-        succeeded = (
-            instrumentation_test_results.get('failures')
-                + instrumentation_test_results.get('errors')
-                + instrumentation_test_results.get('skipped')) == 0
-        if succeeded:
-          success('    tests: succeeded')
-        else:
-          app_error = True
-          warn(
-              '    tests: failed (failures: {}, errors: {}, skipped: {})'
-              .format(
-                  instrumentation_test_results.get('failures'),
-                  instrumentation_test_results.get('errors'),
-                  instrumentation_test_results.get('skipped')))
+    if options.run_tests and 'instrumentation_test_results' in result:
+      instrumentation_test_results = \
+          result.get('instrumentation_test_results')
+      succeeded = (
+          instrumentation_test_results.get('failures')
+              + instrumentation_test_results.get('errors')
+              + instrumentation_test_results.get('skipped')) == 0
+      if succeeded:
+        success('    tests: succeeded')
+      else:
+        app_error = True
+        warn(
+            '    tests: failed (failures: {}, errors: {}, skipped: {})'
+            .format(
+                instrumentation_test_results.get('failures'),
+                instrumentation_test_results.get('errors'),
+                instrumentation_test_results.get('skipped')))
 
   return app_error
 
@@ -1173,6 +1183,10 @@ def ParseOptions(argv):
                     help='Number of times R8 should be run on each app',
                     default=2,
                     type=int)
+  result.add_option('--r8-compilation-steps-only', '--r8_compilation_steps_only',
+                    help='Specify to only run compilation steps',
+                    default=False,
+                    action='store_true')
   result.add_option('--run-tests', '--run_tests',
                     help='Whether to run instrumentation tests',
                     default=False,
@@ -1216,6 +1230,8 @@ def ParseOptions(argv):
       warn('Skipping shrinker r8-nolib-full because a specific version '
           + 'of r8 was specified')
       options.shrinker.remove('r8-nolib-full')
+  assert not options.r8_compilation_steps_only \
+         or options.r8_compilation_steps > 1
   return (options, args)
 
 def clone_repositories(quiet):
