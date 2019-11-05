@@ -8,16 +8,15 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.R8Command;
+import com.android.tools.r8.R8TestCompileResult;
+import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -32,47 +31,46 @@ import org.objectweb.asm.Type;
 @RunWith(Parameterized.class)
 public class EnumMinification extends TestBase {
 
-  private Backend backend;
+  private final TestParameters parameters;
 
-  @Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public EnumMinification(Backend backend) {
-    this.backend = backend;
+  public EnumMinification(TestParameters parameters) {
+    this.parameters = parameters;
   }
 
-  private AndroidApp buildApp(Class<?> mainClass, byte[] enumClassFile) throws Exception {
-    return ToolHelper.runR8(
-        R8Command.builder()
-            .addClassProgramData(ToolHelper.getClassAsBytes(mainClass), Origin.unknown())
-            .addClassProgramData(enumClassFile, Origin.unknown())
-            .addProguardConfiguration(
-                ImmutableList.of(keepMainProguardConfiguration(mainClass)), Origin.unknown())
-            .setProgramConsumer(emptyConsumer(backend))
-            .build());
+  private R8TestCompileResult compile(Class<?> mainClass, byte[] enumClassFile) throws Exception {
+    return testForR8(parameters.getBackend())
+        .addProgramClasses(mainClass)
+        .addProgramClassFileData(enumClassFile)
+        .addKeepMainRule(mainClass)
+        .addKeepRules("-neverinline enum * extends java.lang.Enum { valueOf(...); }")
+        .enableProguardTestOptions()
+        .setMinApi(parameters.getRuntime())
+        .compile();
   }
 
   public void runTest(
       Class<?> mainClass, byte[] enumClass, String enumTypeName, boolean valueOfKept)
       throws Exception {
-    AndroidApp output = buildApp(mainClass, enumClass);
+    R8TestRunResult result =
+        compile(mainClass, enumClass)
+            .run(parameters.getRuntime(), mainClass)
+            .assertSuccessWithOutput("VALUE1");
 
-    CodeInspector inspector = new CodeInspector(output);
+    CodeInspector inspector = result.inspector();
     ClassSubject clazz = inspector.clazz(enumTypeName);
     // The class and fields - including field $VALUES and method valueOf - can be renamed. Only
     // the values() method needs to be
     assertThat(clazz, isRenamed());
-    assertThat(clazz.field(enumTypeName, "VALUE1"), isRenamed());
-    assertThat(clazz.field(enumTypeName, "VALUE2"), isRenamed());
-    assertThat(clazz.field(enumTypeName + "[]", "$VALUES"), isRenamed());
-    assertThat(
-        clazz.method(enumTypeName, "valueOf", ImmutableList.of("java.lang.String")),
-        valueOfKept ? isRenamed() : not(isPresent()));
-    assertThat(clazz.method(enumTypeName + "[]", "values", ImmutableList.of()), not(isRenamed()));
-
-    assertEquals("VALUE1", runOnVM(output, mainClass, backend));
+    assertThat(clazz.uniqueFieldWithName("VALUE1"), isRenamed());
+    assertThat(clazz.uniqueFieldWithName("VALUE2"), isRenamed());
+    assertThat(clazz.uniqueFieldWithName("$VALUES"), isRenamed());
+    assertThat(clazz.uniqueMethodWithName("valueOf"), valueOfKept ? isRenamed() : not(isPresent()));
+    assertThat(clazz.uniqueMethodWithName("values"), not(isRenamed()));
   }
 
   @Test
@@ -88,7 +86,7 @@ public class EnumMinification extends TestBase {
   @Test
   public void testWithoutValuesMethod() throws Exception {
     // This should not fail even if the values method is not present.
-    buildApp(Main.class, EnumDump.dump(false));
+    compile(Main.class, EnumDump.dump(false));
   }
 
   @Test

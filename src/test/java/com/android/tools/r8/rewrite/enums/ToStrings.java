@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.rewrite.enums;
 
+import com.android.tools.r8.AssumeMayHaveSideEffects;
 import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.NeverInline;
 import java.util.Locale;
@@ -20,7 +21,9 @@ class ToStrings {
 
   enum ValueToString {
     ONE {
-      @Override public String toString() {
+
+      @Override
+      public String toString() {
         return "one";
       }
     },
@@ -43,6 +46,7 @@ class ToStrings {
     return TypeToString.ONE.toString();
   }
 
+  @AssumeMayHaveSideEffects
   @NeverInline
   private static String valueWithToString() {
     return ValueToString.ONE.toString();
@@ -53,11 +57,13 @@ class ToStrings {
     return ValueToString.TWO.toString();
   }
 
+  @AssumeMayHaveSideEffects
   @NeverInline
   private static String noToString() {
     return NoToString.TWO.toString();
   }
 
+  @AssumeMayHaveSideEffects
   @NeverInline
   private static String local() {
     NoToString two = NoToString.TWO;
@@ -72,10 +78,12 @@ class ToStrings {
     return two.toString();
   }
 
+  @AssumeMayHaveSideEffects
   @NeverInline
   private static String inlined() {
     return inlined2(NoToString.TWO);
   }
+
   @ForceInline
   private static String inlined2(NoToString number) {
     return number.toString();

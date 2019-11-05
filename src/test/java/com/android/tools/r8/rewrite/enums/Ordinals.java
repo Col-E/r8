@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.rewrite.enums;
 
+import com.android.tools.r8.AssumeMayHaveSideEffects;
 import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.NeverInline;
 import java.util.concurrent.TimeUnit;
@@ -31,6 +32,7 @@ class Ordinals {
     return two.ordinal();
   }
 
+  @AssumeMayHaveSideEffects
   @NeverInline
   private static String multipleUsages() {
     Number two = Number.TWO;
@@ -46,6 +48,7 @@ class Ordinals {
     return number.ordinal();
   }
 
+  @AssumeMayHaveSideEffects
   @NeverInline
   private static int inSwitch() {
     // Unlike normal invocations of Enum.ordinal(), a switch on enum will emit an invoke-virtual

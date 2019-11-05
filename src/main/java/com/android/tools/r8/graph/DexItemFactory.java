@@ -257,6 +257,7 @@ public class DexItemFactory {
   public final DexString classConstructorMethodName = createString(Constants.CLASS_INITIALIZER_NAME);
 
   public final DexString thisName = createString("this");
+  public final DexString enumValuesFieldName = createString("$VALUES");
 
   private final DexString charArrayDescriptor = createString("[C");
   private final DexType charArrayType = createType(charArrayDescriptor);

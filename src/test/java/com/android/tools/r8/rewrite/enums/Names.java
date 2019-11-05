@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.rewrite.enums;
 
+import com.android.tools.r8.AssumeMayHaveSideEffects;
 import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.NeverInline;
 import java.util.concurrent.TimeUnit;
@@ -20,27 +21,32 @@ class Names {
     UP, DOWN
   }
 
+  @AssumeMayHaveSideEffects
   @NeverInline
   private static String simple() {
     return Number.TWO.name();
   }
 
+  @AssumeMayHaveSideEffects
   @NeverInline
   private static String local() {
     Number two = Number.TWO;
     return two.name();
   }
 
+  @AssumeMayHaveSideEffects
   @NeverInline
   private static String multipleUsages() {
     Number two = Number.TWO;
     return two.ordinal() + two.name();
   }
 
+  @AssumeMayHaveSideEffects
   @NeverInline
   private static String inlined() {
     return inlined2(Number.TWO);
   }
+
   @ForceInline
   private static String inlined2(Number number) {
     return number.name();

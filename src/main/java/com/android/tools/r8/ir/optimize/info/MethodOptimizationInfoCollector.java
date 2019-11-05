@@ -814,12 +814,14 @@ public class MethodOptimizationInfoCollector {
     DexClass clazz = appView.definitionFor(type);
     if (clazz != null) {
       if (clazz.isProgramClass() && !clazz.isInterface()) {
+        DexItemFactory dexItemFactory = appView.dexItemFactory();
         ResolutionResult resolutionResult =
             appView
                 .appInfo()
                 .resolveMethodOnClass(clazz, appView.dexItemFactory().objectMethods.finalize);
         for (DexEncodedMethod target : resolutionResult.asListOfTargets()) {
-          if (target.method != appView.dexItemFactory().objectMethods.finalize) {
+          if (target.method != dexItemFactory.enumMethods.finalize
+              && target.method != dexItemFactory.objectMethods.finalize) {
             return true;
           }
         }

@@ -333,13 +333,14 @@ public class DexType extends DexReference implements PresortedComparable<DexType
   public DexType replaceBaseType(DexType newBase, DexItemFactory dexItemFactory) {
     assert this.isArrayType();
     assert !newBase.isArrayType();
-    int leadingSquareBrackets = getNumberOfLeadingSquareBrackets();
-    byte[] content = new byte[newBase.descriptor.content.length + leadingSquareBrackets];
-    Arrays.fill(content, 0, leadingSquareBrackets, (byte) '[');
-    System.arraycopy(newBase.descriptor.content, 0, content, leadingSquareBrackets,
-        newBase.descriptor.content.length);
-    DexString newDesc = dexItemFactory
-        .createString(newBase.descriptor.size + leadingSquareBrackets, content);
+    return newBase.toArrayType(getNumberOfLeadingSquareBrackets(), dexItemFactory);
+  }
+
+  public DexType toArrayType(int dimensions, DexItemFactory dexItemFactory) {
+    byte[] content = new byte[descriptor.content.length + dimensions];
+    Arrays.fill(content, 0, dimensions, (byte) '[');
+    System.arraycopy(descriptor.content, 0, content, dimensions, descriptor.content.length);
+    DexString newDesc = dexItemFactory.createString(descriptor.size + dimensions, content);
     return dexItemFactory.createType(newDesc);
   }
 

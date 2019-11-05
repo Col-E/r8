@@ -3,8 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.rewrite.enums;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -54,6 +56,7 @@ public class EnumOptimizationTest extends TestBase {
         .addProgramClassesAndInnerClasses(Ordinals.class)
         .addKeepMainRule(Ordinals.class)
         .enableInliningAnnotations()
+        .enableSideEffectAnnotations()
         .addOptionsModification(this::configure)
         .setMinApi(parameters.getApiLevel())
         .compile()
@@ -99,6 +102,7 @@ public class EnumOptimizationTest extends TestBase {
         .addProgramClassesAndInnerClasses(Names.class)
         .addKeepMainRule(Names.class)
         .enableInliningAnnotations()
+        .enableSideEffectAnnotations()
         .addOptionsModification(this::configure)
         .setMinApi(parameters.getApiLevel())
         .compile()
@@ -141,6 +145,7 @@ public class EnumOptimizationTest extends TestBase {
         .addProgramClassesAndInnerClasses(ToStrings.class)
         .addKeepMainRule(ToStrings.class)
         .enableInliningAnnotations()
+        .enableSideEffectAnnotations()
         .addOptionsModification(this::configure)
         .setMinApi(parameters.getApiLevel())
         .compile()
@@ -183,7 +188,7 @@ public class EnumOptimizationTest extends TestBase {
   }
 
   private static void assertOrdinalReplacedWithConst(MethodSubject method, int expectedConst) {
-    assertTrue(method.isPresent());
+    assertThat(method, isPresent());
     assertEquals(emptyList(), enumInvokes(method, "ordinal"));
 
     long[] actualConst = method.streamInstructions()
@@ -194,14 +199,13 @@ public class EnumOptimizationTest extends TestBase {
   }
 
   private static void assertOrdinalReplacedAndGone(MethodSubject method) {
-    assertTrue(method.isPresent());
+    assertThat(method, isPresent());
     assertEquals(emptyList(), enumInvokes(method, "ordinal"));
-    assertTrue(
-        method.streamInstructions().noneMatch(InstructionSubject::isConstNumber));
+    assertTrue(method.streamInstructions().noneMatch(InstructionSubject::isConstNumber));
   }
 
   private static void assertOrdinalWasNotReplaced(MethodSubject method) {
-    assertTrue(method.isPresent());
+    assertThat(method, isPresent());
     List<InstructionSubject> invokes = enumInvokes(method, "ordinal");
     assertEquals(invokes.toString(), 1, invokes.size());
   }
@@ -214,7 +218,7 @@ public class EnumOptimizationTest extends TestBase {
   }
 
   private static void assertNameReplacedWithConst(MethodSubject method, String expectedConst) {
-    assertTrue(method.isPresent());
+    assertThat(method, isPresent());
     assertEquals(emptyList(), enumInvokes(method, "name"));
 
     List<String> actualConst = method.streamInstructions()
@@ -225,13 +229,13 @@ public class EnumOptimizationTest extends TestBase {
   }
 
   private static void assertNameWasNotReplaced(MethodSubject method) {
-    assertTrue(method.isPresent());
+    assertThat(method, isPresent());
     List<InstructionSubject> invokes = enumInvokes(method, "name");
     assertEquals(invokes.toString(), 1, invokes.size());
   }
 
   private static void assertToStringReplacedWithConst(MethodSubject method, String expectedConst) {
-    assertTrue(method.isPresent());
+    assertThat(method, isPresent());
     assertEquals(emptyList(), enumInvokes(method, "toString"));
 
     List<String> actualConst = method.streamInstructions()
@@ -242,7 +246,7 @@ public class EnumOptimizationTest extends TestBase {
   }
 
   private static void assertToStringWasNotReplaced(MethodSubject method) {
-    assertTrue(method.isPresent());
+    assertThat(method, isPresent());
     List<InstructionSubject> invokes = enumInvokes(method, "toString");
     assertEquals(invokes.toString(), 1, invokes.size());
   }
