@@ -1075,96 +1075,6 @@ public class Enqueuer {
     return clazz -> graphReporter.reportClassReferencedFrom(clazz, currentMethod);
   }
 
-  private class UseRegistry extends com.android.tools.r8.graph.UseRegistry {
-
-    private final DexProgramClass currentHolder;
-    private final DexEncodedMethod currentMethod;
-
-    private UseRegistry(DexItemFactory factory, DexProgramClass holder, DexEncodedMethod method) {
-      super(factory);
-      assert holder.type == method.method.holder;
-      this.currentHolder = holder;
-      this.currentMethod = method;
-    }
-
-    @Override
-    public boolean registerInvokeVirtual(DexMethod invokedMethod) {
-      return traceInvokeVirtual(invokedMethod, currentHolder, currentMethod);
-    }
-
-    @Override
-    public boolean registerInvokeDirect(DexMethod invokedMethod) {
-      return traceInvokeDirect(invokedMethod, currentHolder, currentMethod);
-    }
-
-    @Override
-    public boolean registerInvokeStatic(DexMethod invokedMethod) {
-      return traceInvokeStatic(invokedMethod, currentHolder, currentMethod);
-    }
-
-    @Override
-    public boolean registerInvokeInterface(DexMethod invokedMethod) {
-      return traceInvokeInterface(invokedMethod, currentHolder, currentMethod);
-    }
-
-    @Override
-    public boolean registerInvokeSuper(DexMethod invokedMethod) {
-      return traceInvokeSuper(invokedMethod, currentHolder, currentMethod);
-    }
-
-    @Override
-    public boolean registerInstanceFieldWrite(DexField field) {
-      return traceInstanceFieldWrite(field, currentMethod);
-    }
-
-    @Override
-    public boolean registerInstanceFieldRead(DexField field) {
-      return traceInstanceFieldRead(field, currentMethod);
-    }
-
-    @Override
-    public boolean registerNewInstance(DexType type) {
-      return traceNewInstance(type, currentMethod);
-    }
-
-    @Override
-    public boolean registerStaticFieldRead(DexField field) {
-      return traceStaticFieldRead(field, currentMethod);
-    }
-
-    @Override
-    public boolean registerStaticFieldWrite(DexField field) {
-      return traceStaticFieldWrite(field, currentMethod);
-    }
-
-    @Override
-    public boolean registerConstClass(DexType type) {
-      return traceConstClass(type, currentMethod);
-    }
-
-    @Override
-    public boolean registerCheckCast(DexType type) {
-      return traceCheckCast(type, currentMethod);
-    }
-
-    @Override
-    public boolean registerTypeReference(DexType type) {
-      return traceTypeReference(type, currentMethod);
-    }
-
-    @Override
-    public void registerMethodHandle(DexMethodHandle methodHandle, MethodHandleUse use) {
-      super.registerMethodHandle(methodHandle, use);
-      traceMethodHandle(methodHandle, use, currentMethod);
-    }
-
-    @Override
-    public void registerCallSite(DexCallSite callSite) {
-      super.registerCallSite(callSite);
-      traceCallSite(callSite, currentMethod);
-    }
-  }
-
   private void transitionReachableVirtualMethods(DexProgramClass clazz, ScopedDexMethodSet seen) {
     ReachableVirtualMethodsSet reachableMethods = reachableVirtualMethods.get(clazz);
     if (reachableMethods != null) {
@@ -2572,7 +2482,7 @@ public class Enqueuer {
     processAnnotations(method, method.annotations.annotations);
     method.parameterAnnotationsList.forEachAnnotation(
         annotation -> processAnnotation(method, annotation));
-    method.registerCodeReferences(new UseRegistry(options.itemFactory, clazz, method));
+    method.registerCodeReferences(new EnqueuerUseRegistry(appView, clazz, method, this));
 
     // Add all dependent members to the workqueue.
     enqueueRootItems(rootSet.getDependentItems(method));
