@@ -74,7 +74,7 @@ public abstract class OptimizationFeedbackIgnore extends OptimizationFeedback {
   public void methodReturnsConstantString(DexEncodedMethod method, DexString value) {}
 
   @Override
-  public void methodReturnsObjectOfType(
+  public void methodReturnsObjectWithUpperBoundType(
       DexEncodedMethod method, AppView<?> appView, TypeLatticeElement type) {}
 
   @Override

@@ -167,9 +167,9 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
   }
 
   @Override
-  public synchronized void methodReturnsObjectOfType(
+  public synchronized void methodReturnsObjectWithUpperBoundType(
       DexEncodedMethod method, AppView<?> appView, TypeLatticeElement type) {
-    getMethodOptimizationInfoForUpdating(method).markReturnsObjectOfType(appView, type);
+    getMethodOptimizationInfoForUpdating(method).markReturnsObjectWithUpperBoundType(appView, type);
   }
 
   @Override

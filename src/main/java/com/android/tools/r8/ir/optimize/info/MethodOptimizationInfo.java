@@ -32,7 +32,7 @@ public interface MethodOptimizationInfo {
 
   boolean classInitializerMayBePostponed();
 
-  TypeLatticeElement getDynamicReturnType();
+  TypeLatticeElement getDynamicUpperBoundType();
 
   ClassTypeLatticeElement getDynamicLowerBoundType();
 

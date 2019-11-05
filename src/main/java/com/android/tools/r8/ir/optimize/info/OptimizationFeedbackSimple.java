@@ -100,7 +100,7 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
   }
 
   @Override
-  public void methodReturnsObjectOfType(
+  public void methodReturnsObjectWithUpperBoundType(
       DexEncodedMethod method, AppView<?> appView, TypeLatticeElement type) {
     // Ignored.
   }

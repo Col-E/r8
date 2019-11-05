@@ -68,7 +68,7 @@ public class DefaultMethodOptimizationInfo implements MethodOptimizationInfo {
   }
 
   @Override
-  public TypeLatticeElement getDynamicReturnType() {
+  public TypeLatticeElement getDynamicUpperBoundType() {
     return UNKNOWN_TYPE;
   }
 

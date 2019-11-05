@@ -37,7 +37,8 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
   private boolean returnsConstantString = DefaultMethodOptimizationInfo.UNKNOWN_RETURNS_CONSTANT;
   private DexString returnedConstantString =
       DefaultMethodOptimizationInfo.UNKNOWN_RETURNED_CONSTANT_STRING;
-  private TypeLatticeElement returnsObjectOfType = DefaultMethodOptimizationInfo.UNKNOWN_TYPE;
+  private TypeLatticeElement returnsObjectWithUpperBoundType =
+      DefaultMethodOptimizationInfo.UNKNOWN_TYPE;
   private ClassTypeLatticeElement returnsObjectWithLowerBoundType =
       DefaultMethodOptimizationInfo.UNKNOWN_CLASS_TYPE;
   private InlinePreference inlining = InlinePreference.Default;
@@ -98,7 +99,7 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
     returnedConstantNumber = template.returnedConstantNumber;
     returnsConstantString = template.returnsConstantString;
     returnedConstantString = template.returnedConstantString;
-    returnsObjectOfType = template.returnsObjectOfType;
+    returnsObjectWithUpperBoundType = template.returnsObjectWithUpperBoundType;
     returnsObjectWithLowerBoundType = template.returnsObjectWithLowerBoundType;
     inlining = template.inlining;
     useIdentifierNameString = template.useIdentifierNameString;
@@ -116,8 +117,9 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
 
   public void fixupClassTypeReferences(
       Function<DexType, DexType> mapping, AppView<? extends AppInfoWithSubtyping> appView) {
-    if (returnsObjectOfType != null) {
-      returnsObjectOfType = returnsObjectOfType.fixupClassTypeReferences(mapping, appView);
+    if (returnsObjectWithUpperBoundType != null) {
+      returnsObjectWithUpperBoundType =
+          returnsObjectWithUpperBoundType.fixupClassTypeReferences(mapping, appView);
     }
     if (returnsObjectWithLowerBoundType != null) {
       returnsObjectWithLowerBoundType =
@@ -160,8 +162,8 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
   }
 
   @Override
-  public TypeLatticeElement getDynamicReturnType() {
-    return returnsObjectOfType;
+  public TypeLatticeElement getDynamicUpperBoundType() {
+    return returnsObjectWithUpperBoundType;
   }
 
   @Override
@@ -372,19 +374,19 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
     returnedConstantString = value;
   }
 
-  void markReturnsObjectOfType(AppView<?> appView, TypeLatticeElement type) {
+  void markReturnsObjectWithUpperBoundType(AppView<?> appView, TypeLatticeElement type) {
     assert type != null;
     // We may get more precise type information if the method is reprocessed (e.g., due to
-    // optimization info collected from all call sites), and hence the `returnsObjectOfType` is
-    // allowed to become more precise.
+    // optimization info collected from all call sites), and hence the
+    // `returnsObjectWithUpperBoundType` is allowed to become more precise.
     // TODO(b/142559221): non-materializable assume instructions?
     // Nullability could be less precise, though. For example, suppose a value is known to be
     // non-null after a safe invocation, hence recorded with the non-null variant. If that call is
     // inlined and the method is reprocessed, such non-null assumption cannot be made again.
-    assert returnsObjectOfType == DefaultMethodOptimizationInfo.UNKNOWN_TYPE
-            || type.lessThanOrEqualUpToNullability(returnsObjectOfType, appView)
-        : "return type changed from " + returnsObjectOfType + " to " + type;
-    returnsObjectOfType = type;
+    assert returnsObjectWithUpperBoundType == DefaultMethodOptimizationInfo.UNKNOWN_TYPE
+            || type.lessThanOrEqualUpToNullability(returnsObjectWithUpperBoundType, appView)
+        : "upper bound type changed from " + returnsObjectWithUpperBoundType + " to " + type;
+    returnsObjectWithUpperBoundType = type;
   }
 
   void markReturnsObjectWithLowerBoundType(ClassTypeLatticeElement type) {
@@ -475,7 +477,7 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
     //   * returnedConstantNumber
     //   * returnsConstantString
     //   * returnedConstantString
-    //   * returnsObjectOfType
+    //   * returnsObjectWithUpperBoundType
     //   * returnsObjectWithLowerBoundType
     // inlining: it is not inlined, and thus staticized. No more chance of inlining, though.
     inlining = InlinePreference.Default;

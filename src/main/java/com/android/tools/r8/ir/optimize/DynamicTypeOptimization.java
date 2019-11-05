@@ -80,7 +80,7 @@ public class DynamicTypeOptimization implements Assumer {
           continue;
         }
 
-        dynamicUpperBoundType = optimizationInfo.getDynamicReturnType();
+        dynamicUpperBoundType = optimizationInfo.getDynamicUpperBoundType();
         dynamicLowerBoundType = optimizationInfo.getDynamicLowerBoundType();
       } else if (current.isStaticGet()) {
         StaticGet staticGet = current.asStaticGet();

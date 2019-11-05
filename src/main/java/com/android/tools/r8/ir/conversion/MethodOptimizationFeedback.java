@@ -34,7 +34,7 @@ public interface MethodOptimizationFeedback {
 
   void methodReturnsConstantString(DexEncodedMethod method, DexString value);
 
-  void methodReturnsObjectOfType(
+  void methodReturnsObjectWithUpperBoundType(
       DexEncodedMethod method, AppView<?> appView, TypeLatticeElement type);
 
   void methodReturnsObjectWithLowerBoundType(DexEncodedMethod method, ClassTypeLatticeElement type);
