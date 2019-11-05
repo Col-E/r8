@@ -669,6 +669,21 @@ public class Enqueuer {
     return true;
   }
 
+  boolean traceInvokeSuper(
+      DexMethod invokedMethod, DexProgramClass currentHolder, DexEncodedMethod currentMethod) {
+    // We have to revisit super invokes based on the context they are found in. The same
+    // method descriptor will hit different targets, depending on the context it is used in.
+    DexMethod actualTarget = getInvokeSuperTarget(invokedMethod, currentMethod);
+    if (!registerMethodWithTargetAndContext(superInvokes, invokedMethod, currentMethod)) {
+      return false;
+    }
+    if (Log.ENABLED) {
+      Log.verbose(getClass(), "Register invokeSuper `%s`.", actualTarget);
+    }
+    workList.enqueueMarkReachableSuperAction(invokedMethod, currentMethod);
+    return true;
+  }
+
   boolean traceInvokeVirtual(
       DexMethod invokedMethod, DexProgramClass currentHolder, DexEncodedMethod currentMethod) {
     return traceInvokeVirtual(
@@ -738,18 +753,8 @@ public class Enqueuer {
     }
 
     @Override
-    public boolean registerInvokeSuper(DexMethod method) {
-      // We have to revisit super invokes based on the context they are found in. The same
-      // method descriptor will hit different targets, depending on the context it is used in.
-      DexMethod actualTarget = getInvokeSuperTarget(method, currentMethod);
-      if (!registerMethodWithTargetAndContext(superInvokes, method, currentMethod)) {
-        return false;
-      }
-      if (Log.ENABLED) {
-        Log.verbose(getClass(), "Register invokeSuper `%s`.", actualTarget);
-      }
-      workList.enqueueMarkReachableSuperAction(method, currentMethod);
-      return true;
+    public boolean registerInvokeSuper(DexMethod invokedMethod) {
+      return traceInvokeSuper(invokedMethod, currentHolder, currentMethod);
     }
 
     @Override
