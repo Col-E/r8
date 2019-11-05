@@ -443,7 +443,7 @@ public class AndroidApp {
           String entryName = dataResource.getName();
           try (InputStream dataStream = dataResource.getByteStream()) {
             byte[] bytes = ByteStreams.toByteArray(dataStream);
-            writeToZipStream(out, entryName, bytes, ZipEntry.DEFLATED);
+            writeToZipStream(archiveOutputStream, entryName, bytes, ZipEntry.DEFLATED);
           }
         }
         for (ProgramResourceProvider provider : programResourceProviders) {
@@ -616,6 +616,8 @@ public class AndroidApp {
               readClassFileDump(origin, input, this::addClasspathResourceProvider, "classpath");
             } else if (name.equals(dumpLibraryFileName)) {
               readClassFileDump(origin, input, this::addLibraryResourceProvider, "library");
+            } else {
+              System.out.println("WARNING: Unexpected dump file entry: " + entry.getName());
             }
           });
       return this;
@@ -667,6 +669,8 @@ public class AndroidApp {
     }
 
     private void readProgramDump(Origin origin, InputStream input) throws IOException {
+      List<ProgramResource> programResources = new ArrayList<>();
+      List<DataEntryResource> dataResources = new ArrayList<>();
       try (ZipInputStream stream = new ZipInputStream(input)) {
         ZipEntry entry;
         while (null != (entry = stream.getNextEntry())) {
@@ -680,17 +684,43 @@ public class AndroidApp {
                     entryOrigin,
                     ByteStreams.toByteArray(stream),
                     Collections.singleton(descriptor));
-            addProgramResources(resource);
+            programResources.add(resource);
           } else if (ZipUtils.isDexFile(name)) {
             Origin entryOrigin = new ArchiveEntryOrigin(name, origin);
             ProgramResource resource =
                 OneShotByteResource.create(
                     Kind.DEX, entryOrigin, ByteStreams.toByteArray(stream), null);
-            addProgramResources(resource);
+            programResources.add(resource);
           } else if (name.endsWith(".dup")) {
             System.out.println("WARNING: Duplicate program resource: " + name);
+          } else {
+            dataResources.add(
+                DataEntryResource.fromBytes(ByteStreams.toByteArray(stream), name, origin));
           }
         }
+      }
+      if (!programResources.isEmpty() || !dataResources.isEmpty()) {
+        addProgramResourceProvider(
+            new ProgramResourceProvider() {
+              @Override
+              public Collection<ProgramResource> getProgramResources() throws ResourceException {
+                return programResources;
+              }
+
+              @Override
+              public DataResourceProvider getDataResourceProvider() {
+                return dataResources.isEmpty()
+                    ? null
+                    : new DataResourceProvider() {
+                      @Override
+                      public void accept(Visitor visitor) throws ResourceException {
+                        for (DataEntryResource dataResource : dataResources) {
+                          visitor.visit(dataResource);
+                        }
+                      }
+                    };
+              }
+            });
       }
     }
 
