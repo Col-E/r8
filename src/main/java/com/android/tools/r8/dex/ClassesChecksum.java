@@ -7,11 +7,13 @@ import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
+import java.io.UTFDataFormatException;
 import java.util.Comparator;
 import java.util.Map;
 
 public class ClassesChecksum {
 
+  private static final String PREFIX = "~~~";
   private static final char PREFIX_CHAR0 = '~';
   private static final char PREFIX_CHAR1 = '~';
   private static final char PREFIX_CHAR2 = '~';
@@ -19,6 +21,10 @@ public class ClassesChecksum {
   private Object2LongMap<String> dictionary = null;
 
   public ClassesChecksum() {
+    assert PREFIX.length() == 3;
+    assert PREFIX.charAt(0) == PREFIX_CHAR0;
+    assert PREFIX.charAt(1) == PREFIX_CHAR1;
+    assert PREFIX.charAt(2) == PREFIX_CHAR2;
   }
 
   private void ensureMap() {
@@ -71,12 +77,28 @@ public class ClassesChecksum {
     }
   }
 
-  public static boolean isChecksumMarkerPrefix(DexString string) {
-    return string.size < 1 ||
-        string.content[0] < PREFIX_CHAR0 ||
-        string.size < 2 ||
-        string.content[1] < PREFIX_CHAR1 ||
-        string.size < 3 ||
-        string.content[2] < PREFIX_CHAR2;
+  /**
+   * Check if this string will definitely preceded the checksum marker.
+   *
+   * <p>If true is returned the string passed definitely preceded the checksum marker. If false is
+   * returned the string passed might still preceded, so this can give false negatives.
+   *
+   * @param string String to check if definitely preceded the checksum marker.
+   * @return If the string passed definitely preceded the checksum marker
+   */
+  public static boolean definitelyPreceedChecksumMarker(DexString string) {
+    try {
+      assert PREFIX.length() == 3;
+      char[] prefix = string.decodePrefix(3);
+      return prefix.length == 0
+          || (prefix.length == 1 && prefix[0] <= PREFIX_CHAR0)
+          || (prefix.length == 2 && prefix[0] == PREFIX_CHAR0 && prefix[1] <= PREFIX_CHAR1)
+          || (prefix.length == 3
+              && prefix[0] == PREFIX_CHAR0
+              && prefix[1] == PREFIX_CHAR1
+              && prefix[2] < PREFIX_CHAR2);
+    } catch (UTFDataFormatException e) {
+      throw new RuntimeException("Bad format", e);
+    }
   }
 }

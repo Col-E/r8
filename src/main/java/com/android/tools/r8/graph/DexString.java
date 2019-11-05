@@ -143,6 +143,51 @@ public class DexString extends IndexedDexItem implements PresortedComparable<Dex
     }
   }
 
+  public char[] decodePrefix(int prefixLength) throws UTFDataFormatException {
+    int s = 0;
+    int p = 0;
+    char[] out = new char[prefixLength];
+    while (true) {
+      char a = (char) (content[p++] & 0xff);
+      if (a == 0) {
+        if (s == prefixLength) {
+          return out;
+        }
+        char[] result = new char[s];
+        System.arraycopy(out, 0, result, 0, s);
+        return result;
+      }
+      out[s] = a;
+      if (a < '\u0080') {
+        s++;
+        if (s == prefixLength) {
+          return out;
+        }
+      } else if ((a & 0xe0) == 0xc0) {
+        int b = content[p++] & 0xff;
+        if ((b & 0xC0) != 0x80) {
+          throw new UTFDataFormatException("bad second byte");
+        }
+        out[s++] = (char) (((a & 0x1F) << 6) | (b & 0x3F));
+        if (s == prefixLength) {
+          return out;
+        }
+      } else if ((a & 0xf0) == 0xe0) {
+        int b = content[p++] & 0xff;
+        int c = content[p++] & 0xff;
+        if (((b & 0xC0) != 0x80) || ((c & 0xC0) != 0x80)) {
+          throw new UTFDataFormatException("bad second or third byte");
+        }
+        out[s++] = (char) (((a & 0x0F) << 12) | ((b & 0x3F) << 6) | (c & 0x3F));
+        if (s == prefixLength) {
+          return out;
+        }
+      } else {
+        throw new UTFDataFormatException("bad byte");
+      }
+    }
+  }
+
   public int decodedHashCode() throws UTFDataFormatException {
     if (size == 0) {
       assert decode().hashCode() == 0;
