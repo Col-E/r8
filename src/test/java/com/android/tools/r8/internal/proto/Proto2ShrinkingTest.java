@@ -134,13 +134,7 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
         new ProtoApplicationStats(dexItemFactory, result.inspector(), original);
 
     assertEquals(
-        ImmutableSet.of(
-            dexItemFactory.createField(
-                dexItemFactory.createType(
-                    "Lcom/android/tools/r8/proto2/Shrinking$PartiallyUsedWithExtension;"),
-                dexItemFactory.createType(
-                    "Lcom/google/protobuf/GeneratedMessageLite$GeneratedExtension;"),
-                "extC")),
+        ImmutableSet.of(),
         actual.getGeneratedExtensionRegistryStats().getSpuriouslyRetainedExtensionFields());
 
     if (ToolHelper.isLocalDevelopment()) {

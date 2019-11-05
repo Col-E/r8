@@ -21,6 +21,7 @@ import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -32,16 +33,20 @@ import java.util.function.Predicate;
 
 public class TreePruner {
 
-  private final DexApplication application;
   private final AppView<AppInfoWithLiveness> appView;
+  private final TreePrunerConfiguration configuration;
   private final UsagePrinter usagePrinter;
   private final Set<DexType> prunedTypes = Sets.newIdentityHashSet();
   private final Set<DexMethod> methodsToKeepForConfigurationDebugging = Sets.newIdentityHashSet();
 
-  public TreePruner(DexApplication application, AppView<AppInfoWithLiveness> appView) {
+  public TreePruner(AppView<AppInfoWithLiveness> appView) {
+    this(appView, DefaultTreePrunerConfiguration.getInstance());
+  }
+
+  public TreePruner(AppView<AppInfoWithLiveness> appView, TreePrunerConfiguration configuration) {
     InternalOptions options = appView.options();
-    this.application = application;
     this.appView = appView;
+    this.configuration = configuration;
     this.usagePrinter =
         options.hasUsageInformationConsumer()
             ? new UsagePrinter(
@@ -51,13 +56,14 @@ public class TreePruner {
             : UsagePrinter.DONT_PRINT;
   }
 
-  public DexApplication run() {
-    application.timing.begin("Pruning application...");
+  public DexApplication run(DexApplication application) {
+    Timing timing = application.timing;
+    timing.begin("Pruning application...");
     DexApplication result;
     try {
       result = removeUnused(application).build();
     } finally {
-      application.timing.end();
+      timing.end();
     }
     return result;
   }
@@ -309,7 +315,7 @@ public class TreePruner {
   private DexEncodedField[] reachableFields(List<DexEncodedField> fields) {
     AppInfoWithLiveness appInfo = appView.appInfo();
     Predicate<DexEncodedField> isReachableOrReferencedField =
-        field -> appInfo.isFieldRead(field) || appInfo.isFieldWritten(field);
+        field -> configuration.isReachableOrReferencedField(appInfo, field);
     int firstUnreachable = firstUnreachableIndex(fields, isReachableOrReferencedField);
     // Return the original array if all fields are used.
     if (firstUnreachable == -1) {

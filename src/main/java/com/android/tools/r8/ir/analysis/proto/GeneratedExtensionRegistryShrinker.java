@@ -26,6 +26,9 @@ import com.android.tools.r8.ir.conversion.OneTimeMethodProcessor;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.DefaultTreePrunerConfiguration;
+import com.android.tools.r8.shaking.Enqueuer;
+import com.android.tools.r8.shaking.TreePrunerConfiguration;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.google.common.base.Predicates;
@@ -87,14 +90,34 @@ public class GeneratedExtensionRegistryShrinker {
    * Will be run after tree shaking. This populates the set {@link #removedExtensionFields}. This
    * set is used by the member value propagation, which rewrites all reads of these fields by
    * const-null.
+   *
+   * <p>For the second round of tree pruning, this method will return a non-default {@link
+   * TreePrunerConfiguration} that specifies that all fields that are only referenced from a {@code
+   * findLiteExtensionByNumber()} method should be removed. This is safe because we will revisit all
+   * of these methods and replace the reads of these fields by null.
    */
-  public void run() {
+  public TreePrunerConfiguration run(Enqueuer.Mode mode) {
     forEachDeadProtoExtensionField(this::recordDeadProtoExtensionField);
+    return createTreePrunerConfiguration(mode);
   }
 
   private void recordDeadProtoExtensionField(DexField field) {
     classesWithRemovedExtensionFields.add(field.holder);
     removedExtensionFields.add(field);
+  }
+
+  private TreePrunerConfiguration createTreePrunerConfiguration(Enqueuer.Mode mode) {
+    if (mode.isFinalTreeShaking()) {
+      return new DefaultTreePrunerConfiguration() {
+
+        @Override
+        public boolean isReachableOrReferencedField(
+            AppInfoWithLiveness appInfo, DexEncodedField field) {
+          return !wasRemoved(field.field) && super.isReachableOrReferencedField(appInfo, field);
+        }
+      };
+    }
+    return DefaultTreePrunerConfiguration.getInstance();
   }
 
   /**

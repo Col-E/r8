@@ -56,6 +56,7 @@ import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.shaking.AbstractMethodRemover;
 import com.android.tools.r8.shaking.AnnotationRemover;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.DefaultTreePrunerConfiguration;
 import com.android.tools.r8.shaking.DiscardedChecker;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.EnqueuerFactory;
@@ -68,6 +69,7 @@ import com.android.tools.r8.shaking.RootSetBuilder;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.shaking.StaticClassMerger;
 import com.android.tools.r8.shaking.TreePruner;
+import com.android.tools.r8.shaking.TreePrunerConfiguration;
 import com.android.tools.r8.shaking.VerticalClassMerger;
 import com.android.tools.r8.shaking.WhyAreYouKeepingConsumer;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -346,10 +348,11 @@ public class R8 {
         if (options.isShrinking()) {
           // Mark dead proto extensions fields as neither being read nor written. This step must
           // run prior to the tree pruner.
-          appView.withGeneratedExtensionRegistryShrinker(GeneratedExtensionRegistryShrinker::run);
+          appView.withGeneratedExtensionRegistryShrinker(
+              shrinker -> shrinker.run(enqueuer.getMode()));
 
-          TreePruner pruner = new TreePruner(application, appView.withLiveness());
-          application = pruner.run();
+          TreePruner pruner = new TreePruner(appViewWithLiveness);
+          application = pruner.run(application);
 
           // Recompute the subtyping information.
           appView.setAppInfo(
@@ -630,10 +633,13 @@ public class R8 {
           if (options.isShrinking()) {
             // Mark dead proto extensions fields as neither being read nor written. This step must
             // run prior to the tree pruner.
-            appView.withGeneratedExtensionRegistryShrinker(GeneratedExtensionRegistryShrinker::run);
+            TreePrunerConfiguration treePrunerConfiguration =
+                appView.withGeneratedExtensionRegistryShrinker(
+                    shrinker -> shrinker.run(enqueuer.getMode()),
+                    DefaultTreePrunerConfiguration.getInstance());
 
-            TreePruner pruner = new TreePruner(application, appViewWithLiveness);
-            application = pruner.run();
+            TreePruner pruner = new TreePruner(appViewWithLiveness, treePrunerConfiguration);
+            application = pruner.run(application);
             if (options.usageInformationConsumer != null) {
               ExceptionUtils.withFinishedResourceHandler(
                   options.reporter, options.usageInformationConsumer);
