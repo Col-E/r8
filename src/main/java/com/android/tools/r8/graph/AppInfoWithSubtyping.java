@@ -3,11 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import static com.android.tools.r8.ir.desugar.LambdaRewriter.LAMBDA_GROUP_CLASS_NAME_PREFIX;
+
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.SetUtils;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -48,7 +51,7 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
     // Caching what interfaces this type is implementing. This includes super-interface hierarchy.
     Set<DexType> implementedInterfaces = null;
 
-    public TypeInfo(DexType type) {
+    TypeInfo(DexType type) {
       this.type = type;
     }
 
@@ -78,7 +81,7 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
       }
     }
 
-    public synchronized void addDirectSubtype(TypeInfo subtypeInfo) {
+    synchronized void addDirectSubtype(TypeInfo subtypeInfo) {
       assert hierarchyLevel != UNKNOWN_LEVEL;
       ensureDirectSubTypeSet();
       directSubtypes.add(subtypeInfo.type);
@@ -149,6 +152,28 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
   @Override
   public void addSynthesizedClass(DexProgramClass synthesizedClass) {
     super.addSynthesizedClass(synthesizedClass);
+    // Register synthesized type, which has two side effects:
+    //   1) Set the hierarchy level of synthesized type based on that of its super type,
+    //   2) Register the synthesized type as a subtype of the supertype.
+    //
+    // The first one makes method resolutions on that synthesized class free from assertion errors
+    // about unknown hierarchy level.
+    //
+    // For the second one, note that such addition is synchronized, but the retrieval of direct
+    // subtypes isn't. Thus, there is a chance of race conditions: utils that check/iterate direct
+    // subtypes, e.g., allImmediateSubtypes, hasSubTypes, etc., may not be able to see this new
+    // synthesized class. However, in practice, this would be okay because, in most cases,
+    // synthesized class's super type is Object, which in general has other subtypes in any way.
+    // Also, iterating all subtypes of Object usually happens before/after IR processing, i.e., as
+    // part of structural changes, such as bottom-up traversal to collect all method signatures,
+    // which are free from such race conditions. Another exceptional case is synthesized classes
+    // whose synthesis is isolated from IR processing. For example, lambda group class that merges
+    // lambdas with the same interface are synthesized/finalized even after post processing of IRs.
+    assert synthesizedClass.superType == dexItemFactory().objectType
+            || synthesizedClass.type.toString().contains(LAMBDA_GROUP_CLASS_NAME_PREFIX)
+        : "Make sure retrieval and iteration of sub types of `" + synthesizedClass.superType
+            + "` is guaranteed to be thread safe and able to see `" + synthesizedClass + "`";
+    registerNewType(synthesizedClass.type, synthesizedClass.superType);
 
     // TODO(b/129458850): Remove when we no longer synthesize classes on-the-fly.
     Set<DexType> visited = SetUtils.newIdentityHashSet(synthesizedClass.allImmediateSupertypes());
@@ -217,8 +242,11 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
     return typeInfo.computeIfAbsent(type, TypeInfo::new);
   }
 
-  private void populateAllSuperTypes(Map<DexType, Set<DexType>> map, DexType holder,
-      DexClass baseClass, Function<DexType, DexClass> definitions) {
+  private void populateAllSuperTypes(
+      Map<DexType, Set<DexType>> map,
+      DexType holder,
+      DexClass baseClass,
+      Function<DexType, DexClass> definitions) {
     DexClass holderClass = definitions.apply(holder);
     // Skip if no corresponding class is found.
     if (holderClass != null) {
@@ -435,11 +463,15 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
             || bootstrapMethod.asMethod() == dexItemFactory().stringConcatMethod);
   }
 
-  @Override
-  public void registerNewType(DexType newType, DexType superType) {
+  private void registerNewType(DexType newType, DexType superType) {
     assert checkIfObsolete();
     // Register the relationship between this type and its superType.
     getTypeInfo(superType).addDirectSubtype(getTypeInfo(newType));
+  }
+
+  @VisibleForTesting
+  public void registerNewTypeForTesting(DexType newType, DexType superType) {
+    registerNewType(newType, superType);
   }
 
   @Override
@@ -495,7 +527,7 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
 
   // Depending on optimizations, conservative answer of subtype relation may vary.
   // Pass different `orElse` in that case.
-  public boolean isStrictSubtypeOf(DexType subtype, DexType supertype, boolean orElse) {
+  private boolean isStrictSubtypeOf(DexType subtype, DexType supertype, boolean orElse) {
     if (subtype == supertype) {
       return false;
     }

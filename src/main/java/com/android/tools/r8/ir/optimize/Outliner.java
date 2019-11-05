@@ -1353,7 +1353,6 @@ public class Outliner {
     // No need to sort the direct methods as they are generated in sorted order.
 
     // Build the outliner class.
-    DexType superType = appView.dexItemFactory().createType("Ljava/lang/Object;");
     DexTypeList interfaces = DexTypeList.empty();
     DexString sourceFile = appView.dexItemFactory().createString("outline");
     ClassAccessFlags accessFlags = ClassAccessFlags.fromSharedAccessFlags(Constants.ACC_PUBLIC);
@@ -1365,7 +1364,7 @@ public class Outliner {
         null,
         new SynthesizedOrigin("outlining", getClass()),
         accessFlags,
-        superType,
+        appView.dexItemFactory().objectType,
         interfaces,
         sourceFile,
         null,

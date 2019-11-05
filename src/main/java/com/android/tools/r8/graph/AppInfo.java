@@ -641,11 +641,6 @@ public class AppInfo implements DexDefinitionSupplier {
     return null;
   }
 
-  public void registerNewType(DexType newType, DexType superType) {
-    // We do not track subtyping relationships in the basic AppInfo. So do nothing.
-    assert checkIfObsolete();
-  }
-
   public boolean isInMainDexList(DexType type) {
     assert checkIfObsolete();
     return app.mainDexList.contains(type);

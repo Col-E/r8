@@ -384,9 +384,6 @@ public final class LambdaMerger {
       group.compact();
       DexProgramClass lambdaGroupClass = group.synthesizeClass(appView.options());
       result.put(group, lambdaGroupClass);
-
-      // We have to register this new class as a subtype of object.
-      appView.appInfo().registerNewType(lambdaGroupClass.type, lambdaGroupClass.superType);
     }
     return result;
   }

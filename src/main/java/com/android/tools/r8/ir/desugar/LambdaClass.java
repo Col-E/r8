@@ -105,9 +105,6 @@ final class LambdaClass {
                 lambdaClassType,
                 factory.createProto(lambdaClassType, descriptor.captures.values),
                 rewriter.createInstanceMethodName);
-
-    // We have to register this new class as a subtype of object.
-    rewriter.converter.appView.appInfo().registerNewType(type, factory.objectType);
   }
 
   // Generate unique lambda class type for lambda descriptor and instantiation point context.

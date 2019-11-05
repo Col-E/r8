@@ -939,8 +939,6 @@ public class IRConverter {
       count++;
       result = appView.dexItemFactory().createType(DescriptorUtils.javaTypeToDescriptor(name));
     } while (appView.definitionFor(result) != null);
-    // Register the newly generated type in the subtyping hierarchy, if we have one.
-    appView.appInfo().registerNewType(result, appView.dexItemFactory().objectType);
     return result;
   }
 
