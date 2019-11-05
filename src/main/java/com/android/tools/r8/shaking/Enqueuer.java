@@ -738,6 +738,189 @@ public class Enqueuer {
     return true;
   }
 
+  boolean traceInstanceFieldRead(DexField field, DexEncodedMethod currentMethod) {
+    if (!registerFieldRead(field, currentMethod)) {
+      return false;
+    }
+
+    // Must mark the field as targeted even if it does not exist.
+    markFieldAsTargeted(field, currentMethod);
+
+    DexEncodedField encodedField = appInfo.resolveField(field);
+    if (encodedField == null) {
+      reportMissingField(field);
+      return false;
+    }
+
+    DexProgramClass clazz = getProgramClassOrNull(encodedField.field.holder);
+    if (clazz == null) {
+      return false;
+    }
+
+    if (Log.ENABLED) {
+      Log.verbose(getClass(), "Register Iget `%s`.", field);
+    }
+
+    // If unused interface removal is enabled, then we won't necessarily mark the actual holder of
+    // the field as live, if the holder is an interface.
+    if (appView.options().enableUnusedInterfaceRemoval) {
+      if (encodedField.field != field) {
+        markTypeAsLive(clazz, graphReporter.reportClassReferencedFrom(clazz, currentMethod));
+        markTypeAsLive(encodedField.field.type, classReferencedFromReporter(currentMethod));
+      }
+    }
+
+    workList.enqueueMarkReachableFieldAction(
+        clazz, encodedField, KeepReason.fieldReferencedIn(currentMethod));
+    return true;
+  }
+
+  boolean traceInstanceFieldWrite(DexField field, DexEncodedMethod currentMethod) {
+    if (!registerFieldWrite(field, currentMethod)) {
+      return false;
+    }
+
+    // Must mark the field as targeted even if it does not exist.
+    markFieldAsTargeted(field, currentMethod);
+
+    DexEncodedField encodedField = appInfo.resolveField(field);
+    if (encodedField == null) {
+      reportMissingField(field);
+      return false;
+    }
+
+    DexProgramClass clazz = getProgramClassOrNull(encodedField.field.holder);
+    if (clazz == null) {
+      return false;
+    }
+
+    if (Log.ENABLED) {
+      Log.verbose(getClass(), "Register Iput `%s`.", field);
+    }
+
+    // If it is written outside of the <init>s of its enclosing class, record it.
+    boolean isWrittenOutsideEnclosingInstanceInitializers =
+        currentMethod.method.holder != encodedField.field.holder
+            || !currentMethod.isInstanceInitializer();
+    if (isWrittenOutsideEnclosingInstanceInitializers) {
+      instanceFieldsWrittenOutsideEnclosingInstanceInitializers.add(encodedField.field);
+    }
+
+    // If unused interface removal is enabled, then we won't necessarily mark the actual holder of
+    // the field as live, if the holder is an interface.
+    if (appView.options().enableUnusedInterfaceRemoval) {
+      if (encodedField.field != field) {
+        markTypeAsLive(clazz, graphReporter.reportClassReferencedFrom(clazz, currentMethod));
+        markTypeAsLive(encodedField.field.type, classReferencedFromReporter(currentMethod));
+      }
+    }
+
+    KeepReason reason = KeepReason.fieldReferencedIn(currentMethod);
+    workList.enqueueMarkReachableFieldAction(clazz, encodedField, reason);
+    return true;
+  }
+
+  boolean traceStaticFieldRead(DexField field, DexEncodedMethod currentMethod) {
+    if (!registerFieldRead(field, currentMethod)) {
+      return false;
+    }
+
+    DexEncodedField encodedField = appInfo.resolveField(field);
+    if (encodedField == null) {
+      // Must mark the field as targeted even if it does not exist.
+      markFieldAsTargeted(field, currentMethod);
+      reportMissingField(field);
+      return false;
+    }
+
+    if (!isProgramClass(encodedField.field.holder)) {
+      // No need to trace into the non-program code.
+      return false;
+    }
+
+    if (Log.ENABLED) {
+      Log.verbose(getClass(), "Register Sget `%s`.", field);
+    }
+
+    if (appView.options().enableGeneratedExtensionRegistryShrinking) {
+      // If it is a dead proto extension field, don't trace onwards.
+      boolean skipTracing =
+          appView.withGeneratedExtensionRegistryShrinker(
+              shrinker ->
+                  shrinker.isDeadProtoExtensionField(encodedField, fieldAccessInfoCollection),
+              false);
+      if (skipTracing) {
+        return false;
+      }
+    }
+
+    if (encodedField.field != field) {
+      // Mark the non-rebound field access as targeted. Note that this should only be done if the
+      // field is not a dead proto field (in which case we bail-out above).
+      markFieldAsTargeted(field, currentMethod);
+    }
+
+    markStaticFieldAsLive(encodedField, KeepReason.fieldReferencedIn(currentMethod));
+    return true;
+  }
+
+  boolean traceStaticFieldWrite(DexField field, DexEncodedMethod currentMethod) {
+    if (!registerFieldWrite(field, currentMethod)) {
+      return false;
+    }
+
+    DexEncodedField encodedField = appInfo.resolveField(field);
+    if (encodedField == null) {
+      // Must mark the field as targeted even if it does not exist.
+      markFieldAsTargeted(field, currentMethod);
+      reportMissingField(field);
+      return false;
+    }
+
+    if (!isProgramClass(encodedField.field.holder)) {
+      // No need to trace into the non-program code.
+      return false;
+    }
+
+    if (Log.ENABLED) {
+      Log.verbose(getClass(), "Register Sput `%s`.", field);
+    }
+
+    if (appView.options().enableGeneratedExtensionRegistryShrinking) {
+      // If it is a dead proto extension field, don't trace onwards.
+      boolean skipTracing =
+          appView.withGeneratedExtensionRegistryShrinker(
+              shrinker ->
+                  shrinker.isDeadProtoExtensionField(encodedField, fieldAccessInfoCollection),
+              false);
+      if (skipTracing) {
+        return false;
+      }
+    }
+
+    // If it is written outside of the <clinit> of its enclosing class, record it.
+    boolean isWrittenOutsideEnclosingStaticInitializer =
+        currentMethod.method.holder != encodedField.field.holder
+            || !currentMethod.isClassInitializer();
+    if (isWrittenOutsideEnclosingStaticInitializer) {
+      staticFieldsWrittenOutsideEnclosingStaticInitializer.add(encodedField.field);
+    }
+
+    if (encodedField.field != field) {
+      // Mark the non-rebound field access as targeted. Note that this should only be done if the
+      // field is not a dead proto field (in which case we bail-out above).
+      markFieldAsTargeted(field, currentMethod);
+    }
+
+    markStaticFieldAsLive(encodedField, KeepReason.fieldReferencedIn(currentMethod));
+    return true;
+  }
+
+  private Function<DexProgramClass, KeepReasonWitness> classReferencedFromReporter(
+      DexEncodedMethod currentMethod) {
+    return clazz -> graphReporter.reportClassReferencedFrom(clazz, currentMethod);
+  }
+
   private class UseRegistry extends com.android.tools.r8.graph.UseRegistry {
 
     private final DexProgramClass currentHolder;
@@ -781,86 +964,12 @@ public class Enqueuer {
 
     @Override
     public boolean registerInstanceFieldWrite(DexField field) {
-      if (!registerFieldWrite(field, currentMethod)) {
-        return false;
-      }
-
-      // Must mark the field as targeted even if it does not exist.
-      markFieldAsTargeted(field, currentMethod);
-
-      DexEncodedField encodedField = appInfo.resolveField(field);
-      if (encodedField == null) {
-        reportMissingField(field);
-        return false;
-      }
-
-      DexProgramClass clazz = getProgramClassOrNull(encodedField.field.holder);
-      if (clazz == null) {
-        return false;
-      }
-
-      if (Log.ENABLED) {
-        Log.verbose(getClass(), "Register Iput `%s`.", field);
-      }
-
-      // If it is written outside of the <init>s of its enclosing class, record it.
-      boolean isWrittenOutsideEnclosingInstanceInitializers =
-          currentMethod.method.holder != encodedField.field.holder
-              || !currentMethod.isInstanceInitializer();
-      if (isWrittenOutsideEnclosingInstanceInitializers) {
-        instanceFieldsWrittenOutsideEnclosingInstanceInitializers.add(encodedField.field);
-      }
-
-      // If unused interface removal is enabled, then we won't necessarily mark the actual holder of
-      // the field as live, if the holder is an interface.
-      if (appView.options().enableUnusedInterfaceRemoval) {
-        if (encodedField.field != field) {
-          markTypeAsLive(clazz, reportClassReferenced(clazz));
-          markTypeAsLive(encodedField.field.type, this::reportClassReferenced);
-        }
-      }
-
-      KeepReason reason = KeepReason.fieldReferencedIn(currentMethod);
-      workList.enqueueMarkReachableFieldAction(clazz, encodedField, reason);
-      return true;
+      return traceInstanceFieldWrite(field, currentMethod);
     }
 
     @Override
     public boolean registerInstanceFieldRead(DexField field) {
-      if (!registerFieldRead(field, currentMethod)) {
-        return false;
-      }
-
-      // Must mark the field as targeted even if it does not exist.
-      markFieldAsTargeted(field, currentMethod);
-
-      DexEncodedField encodedField = appInfo.resolveField(field);
-      if (encodedField == null) {
-        reportMissingField(field);
-        return false;
-      }
-
-      DexProgramClass clazz = getProgramClassOrNull(encodedField.field.holder);
-      if (clazz == null) {
-        return false;
-      }
-
-      if (Log.ENABLED) {
-        Log.verbose(getClass(), "Register Iget `%s`.", field);
-      }
-
-      // If unused interface removal is enabled, then we won't necessarily mark the actual holder of
-      // the field as live, if the holder is an interface.
-      if (appView.options().enableUnusedInterfaceRemoval) {
-        if (encodedField.field != field) {
-          markTypeAsLive(clazz, reportClassReferenced(clazz));
-          markTypeAsLive(encodedField.field.type, this::reportClassReferenced);
-        }
-      }
-
-      workList.enqueueMarkReachableFieldAction(
-          clazz, encodedField, KeepReason.fieldReferencedIn(currentMethod));
-      return true;
+      return traceInstanceFieldRead(field, currentMethod);
     }
 
     @Override
@@ -870,100 +979,12 @@ public class Enqueuer {
 
     @Override
     public boolean registerStaticFieldRead(DexField field) {
-      if (!registerFieldRead(field, currentMethod)) {
-        return false;
-      }
-
-      DexEncodedField encodedField = appInfo.resolveField(field);
-      if (encodedField == null) {
-        // Must mark the field as targeted even if it does not exist.
-        markFieldAsTargeted(field, currentMethod);
-        reportMissingField(field);
-        return false;
-      }
-
-      if (!isProgramClass(encodedField.field.holder)) {
-        // No need to trace into the non-program code.
-        return false;
-      }
-
-      if (Log.ENABLED) {
-        Log.verbose(getClass(), "Register Sget `%s`.", field);
-      }
-
-      if (appView.options().enableGeneratedExtensionRegistryShrinking) {
-        // If it is a dead proto extension field, don't trace onwards.
-        boolean skipTracing =
-            appView.withGeneratedExtensionRegistryShrinker(
-                shrinker ->
-                    shrinker.isDeadProtoExtensionField(encodedField, fieldAccessInfoCollection),
-                false);
-        if (skipTracing) {
-          return false;
-        }
-      }
-
-      if (encodedField.field != field) {
-        // Mark the non-rebound field access as targeted. Note that this should only be done if the
-        // field is not a dead proto field (in which case we bail-out above).
-        markFieldAsTargeted(field, currentMethod);
-      }
-
-      markStaticFieldAsLive(encodedField, KeepReason.fieldReferencedIn(currentMethod));
-      return true;
+      return traceStaticFieldRead(field, currentMethod);
     }
 
     @Override
     public boolean registerStaticFieldWrite(DexField field) {
-      if (!registerFieldWrite(field, currentMethod)) {
-        return false;
-      }
-
-      DexEncodedField encodedField = appInfo.resolveField(field);
-      if (encodedField == null) {
-        // Must mark the field as targeted even if it does not exist.
-        markFieldAsTargeted(field, currentMethod);
-        reportMissingField(field);
-        return false;
-      }
-
-      if (!isProgramClass(encodedField.field.holder)) {
-        // No need to trace into the non-program code.
-        return false;
-      }
-
-      if (Log.ENABLED) {
-        Log.verbose(getClass(), "Register Sput `%s`.", field);
-      }
-
-      if (appView.options().enableGeneratedExtensionRegistryShrinking) {
-        // If it is a dead proto extension field, don't trace onwards.
-        boolean skipTracing =
-            appView.withGeneratedExtensionRegistryShrinker(
-                shrinker ->
-                    shrinker.isDeadProtoExtensionField(encodedField, fieldAccessInfoCollection),
-                false);
-        if (skipTracing) {
-          return false;
-        }
-      }
-
-      // If it is written outside of the <clinit> of its enclosing class, record it.
-      boolean isWrittenOutsideEnclosingStaticInitializer =
-          currentMethod.method.holder != encodedField.field.holder
-              || !currentMethod.isClassInitializer();
-      if (isWrittenOutsideEnclosingStaticInitializer) {
-        staticFieldsWrittenOutsideEnclosingStaticInitializer.add(encodedField.field);
-      }
-
-      if (encodedField.field != field) {
-        // Mark the non-rebound field access as targeted. Note that this should only be done if the
-        // field is not a dead proto field (in which case we bail-out above).
-        markFieldAsTargeted(field, currentMethod);
-      }
-
-      markStaticFieldAsLive(encodedField, KeepReason.fieldReferencedIn(currentMethod));
-      return true;
+      return traceStaticFieldWrite(field, currentMethod);
     }
 
     @Override
