@@ -4,32 +4,57 @@
 package com.android.tools.r8;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
+import com.android.tools.r8.utils.BooleanUtils;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Set;
+import org.junit.Assume;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
-public class ExtractMarkerTest {
+@RunWith(Parameterized.class)
+public class ExtractMarkerTest extends TestBase {
   private static final String CLASS_FILE =
       ToolHelper.EXAMPLES_BUILD_DIR + "classes/trivial/Trivial.class";
 
-  private static void verifyMarker(Marker marker, Tool tool) {
+  private final TestParameters parameters;
+  private boolean includeClassesChecksum;
+
+  @Parameterized.Parameters(name = "{0}, includeClassesChecksum: {1}")
+  public static Collection<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withAllRuntimes().withAllApiLevels().build(), BooleanUtils.values());
+  }
+
+  public ExtractMarkerTest(TestParameters parameters, boolean includeClassesChecksum) {
+    this.parameters = parameters;
+    this.includeClassesChecksum = includeClassesChecksum;
+  }
+
+  private void verifyMarkerDex(Marker marker, Tool tool) {
     assertEquals(tool, marker.getTool());
     assertEquals(Version.LABEL, marker.getVersion());
     assertEquals(CompilationMode.DEBUG.toString().toLowerCase(), marker.getCompilationMode());
+    assertEquals(parameters.getApiLevel().getLevel(), marker.getMinApi().intValue());
+    assertEquals(includeClassesChecksum, marker.getHasChecksums());
   }
 
   @Test
   public void extractMarkerTestDex() throws CompilationFailedException {
-    boolean[] testExecuted = {false};
+    Assume.assumeTrue(parameters.getRuntime().isDex());
 
+    boolean[] testExecuted = {false};
     D8.run(
         D8Command.builder()
             .addProgramFiles(Paths.get(CLASS_FILE))
+            .setMinApiLevel(parameters.getApiLevel().getLevel())
+            .setIncludeClassesChecksum(includeClassesChecksum)
             .setProgramConsumer(
                 new DexIndexedConsumer.ForwardingConsumer(null) {
                   @Override
@@ -47,7 +72,7 @@ public class ExtractMarkerTest {
                     } catch (Exception e) {
                       throw new RuntimeException(e);
                     }
-                    verifyMarker(marker, Tool.D8);
+                    verifyMarkerDex(marker, Tool.D8);
                     testExecuted[0] = true;
                   }
                 })
@@ -55,8 +80,18 @@ public class ExtractMarkerTest {
     assertTrue(testExecuted[0]);
   }
 
+  private static void verifyMarkerCf(Marker marker, Tool tool) {
+    assertEquals(tool, marker.getTool());
+    assertEquals(Version.LABEL, marker.getVersion());
+    assertEquals(CompilationMode.DEBUG.toString().toLowerCase(), marker.getCompilationMode());
+    assertFalse(marker.getHasChecksums());
+  }
+
   @Test
   public void extractMarkerTestCf() throws CompilationFailedException {
+    Assume.assumeTrue(parameters.getRuntime().isCf());
+    Assume.assumeFalse(includeClassesChecksum);
+
     boolean[] testExecuted = {false};
     R8.run(
         R8Command.builder()
@@ -78,7 +113,7 @@ public class ExtractMarkerTest {
                     } catch (Exception e) {
                       throw new RuntimeException(e);
                     }
-                    verifyMarker(marker, Tool.R8);
+                    verifyMarkerCf(marker, Tool.R8);
                     testExecuted[0] = true;
                   }
                 })

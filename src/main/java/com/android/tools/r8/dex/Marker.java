@@ -21,6 +21,7 @@ public class Marker {
   public static final String MIN_API = "min-api";
   public static final String SHA1 = "sha-1";
   public static final String COMPILATION_MODE = "compilation-mode";
+  public static final String HAS_CHECKSUMS = "has-checksums";
   public static final String PG_MAP_ID = "pg-map-id";
 
   public enum Tool {
@@ -104,6 +105,16 @@ public class Marker {
   public Marker setCompilationMode(CompilationMode mode) {
     assert !jsonObject.has(COMPILATION_MODE);
     jsonObject.addProperty(COMPILATION_MODE, mode.toString().toLowerCase());
+    return this;
+  }
+
+  public boolean getHasChecksums() {
+    return jsonObject.get(HAS_CHECKSUMS).getAsBoolean();
+  }
+
+  public Marker setHasChecksums(boolean hasChecksums) {
+    assert !jsonObject.has(HAS_CHECKSUMS);
+    jsonObject.addProperty(HAS_CHECKSUMS, hasChecksums);
     return this;
   }
 

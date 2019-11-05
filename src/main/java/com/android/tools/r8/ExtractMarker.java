@@ -101,7 +101,7 @@ public class ExtractMarker {
     options.minApiLevel = AndroidApiLevel.P.getLevel();
     DexApplication dexApp =
         new ApplicationReader(app, options, new Timing("ExtractMarker")).read();
-    return dexApp.dexItemFactory.extractMarker();
+    return dexApp.dexItemFactory.extractMarkers();
   }
 
   public static void main(String[] args)

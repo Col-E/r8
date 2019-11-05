@@ -288,7 +288,8 @@ public class InternalOptions {
     Marker marker =
         new Marker(tool)
             .setVersion(Version.LABEL)
-            .setCompilationMode(debug ? CompilationMode.DEBUG : CompilationMode.RELEASE);
+            .setCompilationMode(debug ? CompilationMode.DEBUG : CompilationMode.RELEASE)
+            .setHasChecksums(encodeChecksums);
     if (!isGeneratingClassFiles()) {
       marker.setMinApi(minApiLevel);
     }
