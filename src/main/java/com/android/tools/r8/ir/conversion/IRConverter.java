@@ -1154,6 +1154,10 @@ public class IRConverter {
 
     previous = printMethod(code, "IR after inserting assume instructions (SSA)", previous);
 
+    appView.withGeneratedExtensionRegistryShrinker(shrinker -> shrinker.rewriteCode(method, code));
+
+    previous = printMethod(code, "IR after generated extension registry shrinking (SSA)", previous);
+
     appView.withGeneratedMessageLiteShrinker(shrinker -> shrinker.run(method, code));
 
     previous = printMethod(code, "IR after generated message lite shrinking (SSA)", previous);

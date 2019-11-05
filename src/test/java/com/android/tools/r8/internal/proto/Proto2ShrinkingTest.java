@@ -59,7 +59,7 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
     return buildParameters(
         BooleanUtils.values(),
         BooleanUtils.values(),
-        getTestParameters().withAllRuntimes().build());
+        getTestParameters().withAllRuntimesAndApiLevels().build());
   }
 
   public Proto2ShrinkingTest(
@@ -78,12 +78,6 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
             .addKeepMainRule("proto2.TestClass")
             .addKeepRuleFiles(PROTOBUF_LITE_PROGUARD_RULES)
             .addKeepRules(alwaysInlineNewSingularGeneratedExtensionRule())
-            // TODO(b/112437944): Attempt to prove that DEFAULT_INSTANCE is non-null, such that the
-            //  following "assumenotnull" rule can be omitted.
-            .addKeepRules(
-                "-assumenosideeffects class " + EXT_C + " {",
-                "  private static final " + EXT_C + " DEFAULT_INSTANCE return 1..42;",
-                "}")
             .addOptionsModification(
                 options -> {
                   options.enableFieldBitAccessAnalysis = true;
@@ -94,7 +88,7 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
             .allowAccessModification(allowAccessModification)
             .allowUnusedProguardConfigurationRules()
             .minification(enableMinification)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .compile()
             .inspect(
                 outputInspector -> {
@@ -245,8 +239,8 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
           ImmutableList.of(FLAGGED_OFF_EXTENSION, HAS_NO_USED_EXTENSIONS, EXT_B, EXT_C);
       for (String unusedExtensionName : unusedExtensionNames) {
         assertThat(inputInspector.clazz(unusedExtensionName), isPresent());
-        // TODO(b/143588134): Re-enable this assertion.
-        // assertThat(outputInspector.clazz(unusedExtensionName), not(isPresent()));
+        assertThat(
+            unusedExtensionName, outputInspector.clazz(unusedExtensionName), not(isPresent()));
       }
     }
   }
@@ -362,7 +356,7 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
         .allowAccessModification(allowAccessModification)
         .allowUnusedProguardConfigurationRules()
         .minification(enableMinification)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(
             inspector ->

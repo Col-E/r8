@@ -49,6 +49,11 @@ public class AbsentClassSubject extends ClassSubject {
   }
 
   @Override
+  public FieldSubject uniqueFieldWithFinalName(String name) {
+    return new AbsentFieldSubject();
+  }
+
+  @Override
   public boolean isAbstract() {
     throw new Unreachable("Cannot determine if an absent class is abstract");
   }

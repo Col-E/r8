@@ -27,6 +27,11 @@ public class FoundFieldSubject extends FieldSubject {
   }
 
   @Override
+  public FoundFieldSubject asFoundFieldSubject() {
+    return this;
+  }
+
+  @Override
   public boolean isPublic() {
     return dexField.accessFlags.isPublic();
   }

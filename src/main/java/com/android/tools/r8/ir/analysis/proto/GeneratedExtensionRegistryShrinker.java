@@ -14,8 +14,13 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
+import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.IRCodeUtils;
+import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.OneTimeMethodProcessor;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
@@ -27,6 +32,8 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -66,6 +73,7 @@ public class GeneratedExtensionRegistryShrinker {
   private final AppView<AppInfoWithLiveness> appView;
   private final ProtoReferences references;
 
+  private final Set<DexType> classesWithRemovedExtensionFields = Sets.newIdentityHashSet();
   private final Set<DexField> removedExtensionFields = Sets.newIdentityHashSet();
 
   GeneratedExtensionRegistryShrinker(
@@ -81,7 +89,41 @@ public class GeneratedExtensionRegistryShrinker {
    * const-null.
    */
   public void run() {
-    forEachDeadProtoExtensionField(removedExtensionFields::add);
+    forEachDeadProtoExtensionField(this::recordDeadProtoExtensionField);
+  }
+
+  private void recordDeadProtoExtensionField(DexField field) {
+    classesWithRemovedExtensionFields.add(field.holder);
+    removedExtensionFields.add(field);
+  }
+
+  /**
+   * If {@param method} is a class initializer that initializes a dead proto extension field, then
+   * forcefully remove the field assignment and all the code that contributes to the initialization
+   * of the value of the field assignment.
+   */
+  public void rewriteCode(DexEncodedMethod method, IRCode code) {
+    if (method.isClassInitializer()
+        && classesWithRemovedExtensionFields.contains(method.method.holder)
+        && code.metadata().mayHaveStaticPut()) {
+      rewriteClassInitializer(code);
+    }
+  }
+
+  private void rewriteClassInitializer(IRCode code) {
+    List<StaticPut> toBeRemoved = new ArrayList<>();
+    for (StaticPut staticPut : code.<StaticPut>instructions(Instruction::isStaticPut)) {
+      if (removedExtensionFields.contains(staticPut.getField())) {
+        toBeRemoved.add(staticPut);
+      }
+    }
+    for (StaticPut instruction : toBeRemoved) {
+      if (!instruction.hasBlock()) {
+        // Already removed.
+        continue;
+      }
+      IRCodeUtils.removeInstructionAndTransitiveInputsIfNotUsed(code, instruction);
+    }
   }
 
   public boolean wasRemoved(DexField field) {

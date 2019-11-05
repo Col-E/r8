@@ -224,11 +224,11 @@ public class Phi extends Value implements InstructionOrPhi {
     return true;
   }
 
-  public void removeTrivialPhi() {
-    removeTrivialPhi(null, null);
+  public boolean removeTrivialPhi() {
+    return removeTrivialPhi(null, null);
   }
 
-  public void removeTrivialPhi(IRBuilder builder, Set<Value> affectedValues) {
+  public boolean removeTrivialPhi(IRBuilder builder, Set<Value> affectedValues) {
     Value same = null;
     for (Value op : operands) {
       if (op == same || op == this) {
@@ -238,7 +238,7 @@ public class Phi extends Value implements InstructionOrPhi {
       if (same != null) {
         // Merged at least two values and is therefore not trivial.
         assert !isTrivialPhi();
-        return;
+        return false;
       }
       same = op;
     }
@@ -247,7 +247,7 @@ public class Phi extends Value implements InstructionOrPhi {
       // When doing if-simplification we remove blocks and we can end up with cyclic phis
       // of the form v1 = phi(v1, v1) in dead blocks. If we encounter that case we just
       // leave the phi in there and check at the end that there are no trivial phis.
-      return;
+      return false;
     }
     // Ensure that the value that replaces this phi is constrained to the type of this phi.
     if (builder != null && typeLattice.isPreciseType() && !typeLattice.isBottom()) {
@@ -286,6 +286,7 @@ public class Phi extends Value implements InstructionOrPhi {
     }
     // Get rid of the phi itself.
     block.removePhi(this);
+    return true;
   }
 
   public void removeDeadPhi() {

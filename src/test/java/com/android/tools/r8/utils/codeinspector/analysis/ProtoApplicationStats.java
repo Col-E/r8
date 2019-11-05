@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.android.tools.r8.utils.codeinspector.FoundFieldSubject;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
@@ -99,8 +100,8 @@ public class ProtoApplicationStats {
   class GeneratedExtensionRegistryStats extends Stats {
 
     final Set<DexMethod> findLiteExtensionByNumberMethods = Sets.newIdentityHashSet();
-    final Set<DexType> retainedExtensions = Sets.newIdentityHashSet();
-    final Set<DexType> spuriouslyRetainedExtensions = Sets.newIdentityHashSet();
+    final Set<DexField> retainedExtensionFields = Sets.newIdentityHashSet();
+    final Set<DexField> spuriouslyRetainedExtensionFields = Sets.newIdentityHashSet();
 
     String getStats(
         GeneratedExtensionRegistryStats baseline, GeneratedExtensionRegistryStats original) {
@@ -109,8 +110,8 @@ public class ProtoApplicationStats {
           "  # findLiteExtensionByNumber() methods: "
               + progress(this, baseline, original, x -> x.findLiteExtensionByNumberMethods),
           "  # retained extensions: "
-              + progress(this, baseline, original, x -> x.retainedExtensions),
-          "  # spuriously retained extensions: " + spuriouslyRetainedExtensions.size());
+              + progress(this, baseline, original, x -> x.retainedExtensionFields),
+          "  # spuriously retained extension fields: " + spuriouslyRetainedExtensionFields.size());
     }
   }
 
@@ -181,8 +182,12 @@ public class ProtoApplicationStats {
                 }
                 FoundClassSubject extensionClassSubject =
                     inspector.clazz(field.holder.toSourceString()).asFoundClassSubject();
-                generatedExtensionRegistryStats.retainedExtensions.add(
-                    extensionClassSubject.getOriginalDexType(dexItemFactory));
+                FoundFieldSubject extensionFieldSubject =
+                    extensionClassSubject
+                        .uniqueFieldWithFinalName(field.name.toSourceString())
+                        .asFoundFieldSubject();
+                generatedExtensionRegistryStats.retainedExtensionFields.add(
+                    extensionFieldSubject.getOriginalDexField(dexItemFactory));
               }
             }
           }
@@ -203,10 +208,19 @@ public class ProtoApplicationStats {
     }
 
     if (original != null) {
-      for (DexType extensionType : original.generatedExtensionRegistryStats.retainedExtensions) {
-        if (!generatedExtensionRegistryStats.retainedExtensions.contains(extensionType)
-            && inspector.clazz(extensionType.toSourceString()).isPresent()) {
-          generatedExtensionRegistryStats.spuriouslyRetainedExtensions.add(extensionType);
+      for (DexField extensionField :
+          original.generatedExtensionRegistryStats.retainedExtensionFields) {
+        if (generatedExtensionRegistryStats.retainedExtensionFields.contains(extensionField)) {
+          continue;
+        }
+        ClassSubject classSubject = inspector.clazz(extensionField.holder.toSourceString());
+        if (!classSubject.isPresent()) {
+          continue;
+        }
+        FieldSubject fieldSubject =
+            classSubject.uniqueFieldWithName(extensionField.name.toSourceString());
+        if (fieldSubject.isPresent()) {
+          generatedExtensionRegistryStats.spuriouslyRetainedExtensionFields.add(extensionField);
         }
       }
     }

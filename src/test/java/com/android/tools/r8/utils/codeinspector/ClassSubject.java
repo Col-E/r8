@@ -123,6 +123,8 @@ public abstract class ClassSubject extends Subject {
 
   public abstract FieldSubject uniqueFieldWithName(String name);
 
+  public abstract FieldSubject uniqueFieldWithFinalName(String name);
+
   public FoundClassSubject asFoundClassSubject() {
     return null;
   }

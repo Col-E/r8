@@ -26,6 +26,10 @@ public abstract class FieldSubject extends MemberSubject {
     return this;
   }
 
+  public FoundFieldSubject asFoundFieldSubject() {
+    return null;
+  }
+
   @Override
   public boolean isFieldSubject() {
     return true;

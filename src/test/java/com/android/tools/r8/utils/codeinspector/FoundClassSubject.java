@@ -171,6 +171,18 @@ public class FoundClassSubject extends ClassSubject {
   }
 
   @Override
+  public FieldSubject uniqueFieldWithFinalName(String name) {
+    FieldSubject fieldSubject = null;
+    for (FoundFieldSubject candidate : allFields()) {
+      if (candidate.getFinalName().equals(name)) {
+        assert fieldSubject == null;
+        fieldSubject = candidate;
+      }
+    }
+    return fieldSubject != null ? fieldSubject : new AbsentFieldSubject();
+  }
+
+  @Override
   public FoundClassSubject asFoundClassSubject() {
     return this;
   }

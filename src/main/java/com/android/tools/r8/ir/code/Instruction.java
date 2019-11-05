@@ -604,6 +604,11 @@ public abstract class Instruction implements InstructionOrPhi {
     return true;
   }
 
+  @Override
+  public Instruction asInstruction() {
+    return this;
+  }
+
   public boolean isArrayGet() {
     return false;
   }

@@ -10,7 +10,15 @@ public interface InstructionOrPhi {
     return false;
   }
 
+  default Instruction asInstruction() {
+    return null;
+  }
+
   default boolean isPhi() {
     return false;
+  }
+
+  default Phi asPhi() {
+    return null;
   }
 }
