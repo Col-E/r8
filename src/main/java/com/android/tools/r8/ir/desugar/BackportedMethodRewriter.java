@@ -49,7 +49,6 @@ import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -253,8 +252,7 @@ public final class BackportedMethodRewriter {
     if (!appView.options().encodeChecksums) {
       return DexProgramClass::invalidChecksumRequest;
     }
-    long hash = Objects.hash(method, method.getCode());
-    return c -> hash;
+    return c -> method.method.hashCode();
   }
 
   private MethodProvider getMethodProviderOrNull(DexMethod method) {

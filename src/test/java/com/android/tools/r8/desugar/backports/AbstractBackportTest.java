@@ -95,6 +95,7 @@ abstract class AbstractBackportTest extends TestBase {
       testForD8()
           .setMinApi(parameters.getApiLevel())
           .apply(this::configureProgram)
+          .setIncludeClassesChecksum(true)
           .compile()
           .run(parameters.getRuntime(), testClassName)
           .assertSuccess()
