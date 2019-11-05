@@ -218,7 +218,7 @@ public abstract class DexApplication {
 
   public static LazyLoadedDexApplication.Builder builder(InternalOptions options, Timing timing) {
     return builder(
-        options, timing, ProgramClassCollection.disallowClassConflictsResolver(options.reporter));
+        options, timing, ProgramClassCollection.defaultConflictResolver(options.reporter));
   }
 
   public static LazyLoadedDexApplication.Builder builder(

@@ -91,9 +91,7 @@ public class ApplicationReader {
   public final DexApplication read(ExecutorService executorService)
       throws IOException, ExecutionException {
     return read(
-        null,
-        executorService,
-        ProgramClassCollection.disallowClassConflictsResolver(options.reporter));
+        null, executorService, ProgramClassCollection.defaultConflictResolver(options.reporter));
   }
 
   public final DexApplication read(StringResource proguardMap, ExecutorService executorService)
@@ -101,7 +99,7 @@ public class ApplicationReader {
     return read(
         proguardMap,
         executorService,
-        ProgramClassCollection.disallowClassConflictsResolver(options.reporter));
+        ProgramClassCollection.defaultConflictResolver(options.reporter));
   }
 
   public final DexApplication read(

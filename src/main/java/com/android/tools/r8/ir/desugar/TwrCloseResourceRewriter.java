@@ -73,6 +73,10 @@ public final class TwrCloseResourceRewriter {
             twrUtilityClass, twrCloseResourceProto, dexItemFactory.twrCloseResourceMethodName);
   }
 
+  public static boolean isUtilityClassDescriptor(DexType type) {
+    return type.descriptor.toString().equals(UTILITY_CLASS_DESCRIPTOR);
+  }
+
   // Rewrites calls to $closeResource() method. Can be invoked concurrently.
   public void rewriteMethodCode(IRCode code) {
     InstructionListIterator iterator = code.instructionListIterator();
