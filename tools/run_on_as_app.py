@@ -412,7 +412,8 @@ class EnsureNoGradleAlive(object):
      print 'Running with wrapper that will kill java after'
 
  def __exit__(self, *_):
-   subprocess.call(['pkill', 'java'])
+   if self.active:
+     subprocess.call(['pkill', 'java'])
 
 def GetAllApps():
   apps = []
