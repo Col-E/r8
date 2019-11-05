@@ -581,6 +581,45 @@ public class Enqueuer {
     return isRead ? info.recordRead(field, context) : info.recordWrite(field, context);
   }
 
+  boolean traceCheckCast(DexType type, DexEncodedMethod currentMethod) {
+    return traceConstClassOrCheckCast(type, currentMethod);
+  }
+
+  boolean traceConstClass(DexType type, DexEncodedMethod currentMethod) {
+    // We conservatively group T.class and T[].class to ensure that we do not merge T with S if
+    // potential locks on T[].class and S[].class exists.
+    DexType baseType = type.toBaseType(appView.dexItemFactory());
+    if (baseType.isClassType()) {
+      DexProgramClass baseClass = getProgramClassOrNull(baseType);
+      if (baseClass != null) {
+        constClassReferences.add(baseType);
+      }
+    }
+    return traceConstClassOrCheckCast(type, currentMethod);
+  }
+
+  private boolean traceConstClassOrCheckCast(DexType type, DexEncodedMethod currentMethod) {
+    if (!forceProguardCompatibility) {
+      return traceTypeReference(type, currentMethod);
+    }
+    DexType baseType = type.toBaseType(appView.dexItemFactory());
+    if (baseType.isClassType()) {
+      DexProgramClass baseClass = getProgramClassOrNull(baseType);
+      if (baseClass != null) {
+        // Don't require any constructor, see b/112386012.
+        markClassAsInstantiatedWithCompatRule(
+            baseClass, graphReporter.reportCompatInstantiated(baseClass, currentMethod));
+      }
+      return true;
+    }
+    return false;
+  }
+
+  boolean traceTypeReference(DexType type, DexEncodedMethod currentMethod) {
+    markTypeAsLive(type, classReferencedFromReporter(currentMethod));
+    return true;
+  }
+
   boolean traceInvokeDirect(
       DexMethod invokedMethod, DexProgramClass currentHolder, DexEncodedMethod currentMethod) {
     return traceInvokeDirect(
@@ -933,10 +972,6 @@ public class Enqueuer {
       this.currentMethod = method;
     }
 
-    private KeepReasonWitness reportClassReferenced(DexProgramClass referencedClass) {
-      return graphReporter.reportClassReferencedFrom(referencedClass, currentMethod);
-    }
-
     @Override
     public boolean registerInvokeVirtual(DexMethod invokedMethod) {
       return traceInvokeVirtual(invokedMethod, currentHolder, currentMethod);
@@ -989,27 +1024,17 @@ public class Enqueuer {
 
     @Override
     public boolean registerConstClass(DexType type) {
-      // We conservatively group T.class and T[].class to ensure that we do not merge T with S if
-      // potential locks on T[].class and S[].class exists.
-      DexType baseType = type.toBaseType(appView.dexItemFactory());
-      if (baseType.isClassType()) {
-        DexProgramClass baseClass = getProgramClassOrNull(baseType);
-        if (baseClass != null) {
-          constClassReferences.add(baseType);
-        }
-      }
-      return registerConstClassOrCheckCast(type);
+      return traceConstClass(type, currentMethod);
     }
 
     @Override
     public boolean registerCheckCast(DexType type) {
-      return registerConstClassOrCheckCast(type);
+      return traceCheckCast(type, currentMethod);
     }
 
     @Override
     public boolean registerTypeReference(DexType type) {
-      markTypeAsLive(type, this::reportClassReferenced);
-      return true;
+      return traceTypeReference(type, currentMethod);
     }
 
     @Override
@@ -1127,23 +1152,6 @@ public class Enqueuer {
           transitionDefaultMethodsForInstantiatedClass(iface, seen);
         }
       }
-    }
-
-    private boolean registerConstClassOrCheckCast(DexType type) {
-      if (!forceProguardCompatibility) {
-        return registerTypeReference(type);
-      }
-      DexType baseType = type.toBaseType(appView.dexItemFactory());
-      if (baseType.isClassType()) {
-        DexProgramClass baseClass = getProgramClassOrNull(baseType);
-        if (baseClass != null) {
-          // Don't require any constructor, see b/112386012.
-          markClassAsInstantiatedWithCompatRule(
-              baseClass, graphReporter.reportCompatInstantiated(baseClass, currentMethod));
-        }
-        return true;
-      }
-      return false;
     }
   }
 
