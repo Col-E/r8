@@ -31,6 +31,7 @@ import com.android.tools.r8.Version;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.origin.ArchiveEntryOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.shaking.FilteredClassPath;
@@ -41,6 +42,7 @@ import com.google.common.io.ByteStreams;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.OpenOption;
@@ -57,7 +59,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.Consumer;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 import org.objectweb.asm.ClassVisitor;
 
@@ -67,6 +71,12 @@ import org.objectweb.asm.ClassVisitor;
  * <p>This abstraction is the main input and output container for a given application.
  */
 public class AndroidApp {
+
+  private static final String dumpVersionFileName = "r8-version";
+  private static final String dumpProgramFileName = "program.jar";
+  private static final String dumpClasspathFileName = "classpath.jar";
+  private static final String dumpLibraryFileName = "library.jar";
+  private static final String dumpConfigFileName = "proguard.config";
 
   private final ImmutableList<ProgramResourceProvider> programResourceProviders;
   private final ImmutableMap<Resource, String> programResourcesMainDescriptor;
@@ -401,18 +411,19 @@ public class AndroidApp {
     OpenOption[] openOptions =
         new OpenOption[] {StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING};
     try (ZipOutputStream out = new ZipOutputStream(Files.newOutputStream(output, openOptions))) {
-      writeToZipStream(out, "r8-version", Version.getVersionString().getBytes(), ZipEntry.DEFLATED);
+      writeToZipStream(
+          out, dumpVersionFileName, Version.getVersionString().getBytes(), ZipEntry.DEFLATED);
       if (configuration != null) {
         String proguardConfig = configuration.getParsedConfiguration();
-        writeToZipStream(out, "proguard.config", proguardConfig.getBytes(), ZipEntry.DEFLATED);
+        writeToZipStream(out, dumpConfigFileName, proguardConfig.getBytes(), ZipEntry.DEFLATED);
       }
-      nextDexIndex = dumpProgramResources("program.jar", nextDexIndex, out, builder);
+      nextDexIndex = dumpProgramResources(dumpProgramFileName, nextDexIndex, out, builder);
       nextDexIndex =
           dumpClassFileResources(
-              "classpath.jar", nextDexIndex, out, builder, classpathResourceProviders);
+              dumpClasspathFileName, nextDexIndex, out, builder, classpathResourceProviders);
       nextDexIndex =
           dumpClassFileResources(
-              "library.jar", nextDexIndex, out, builder, libraryResourceProviders);
+              dumpLibraryFileName, nextDexIndex, out, builder, libraryResourceProviders);
     } catch (IOException | ResourceException e) {
       reporter.fatalError(new StringDiagnostic("Failed to dump inputs"), e);
     }
@@ -482,7 +493,8 @@ public class AndroidApp {
       throws ResourceException, IOException {
     byte[] bytes = ByteStreams.toByteArray(programResource.getByteStream());
     Set<String> classDescriptors = programResource.getClassDescriptors();
-    if (classDescriptors.size() != 1 && programResource.getKind() == Kind.CF) {
+    if (programResource.getKind() == Kind.CF
+        && (classDescriptors == null || classDescriptors.size() != 1)) {
       classDescriptors = Collections.singleton(extractClassDescriptor(bytes));
     }
     if (programResource instanceof OneShotByteResource) {
@@ -583,6 +595,93 @@ public class AndroidApp {
 
     public Reporter getReporter() {
       return reporter;
+    }
+
+    public Builder addDump(Path dumpFile) throws IOException {
+      System.out.println("Reading dump from file: " + dumpFile);
+      Origin origin = new PathOrigin(dumpFile);
+      ZipUtils.iter(
+          dumpFile.toString(),
+          (entry, input) -> {
+            String name = entry.getName();
+            if (name.equals(dumpVersionFileName)) {
+              String content = new String(ByteStreams.toByteArray(input), StandardCharsets.UTF_8);
+              System.out.println("Dump produced by R8 version: " + content);
+            } else if (name.equals(dumpProgramFileName)) {
+              readProgramDump(origin, input);
+            } else if (name.equals(dumpClasspathFileName)) {
+              readClassFileDump(origin, input, this::addClasspathResourceProvider);
+            } else if (name.equals(dumpLibraryFileName)) {
+              readClassFileDump(origin, input, this::addLibraryResourceProvider);
+            }
+          });
+      return this;
+    }
+
+    private void readClassFileDump(
+        Origin origin, InputStream input, Consumer<ClassFileResourceProvider> addProvider)
+        throws IOException {
+      Map<String, ProgramResource> resources = new HashMap<>();
+      try (ZipInputStream stream = new ZipInputStream(input)) {
+        ZipEntry entry;
+        while (null != (entry = stream.getNextEntry())) {
+          String name = entry.getName();
+          if (ZipUtils.isClassFile(name)) {
+            Origin entryOrigin = new ArchiveEntryOrigin(name, origin);
+            String descriptor = DescriptorUtils.guessTypeDescriptor(name);
+            ProgramResource resource =
+                OneShotByteResource.create(
+                    Kind.CF,
+                    entryOrigin,
+                    ByteStreams.toByteArray(stream),
+                    Collections.singleton(descriptor));
+            resources.put(descriptor, resource);
+          } else {
+            System.out.println("WARNING: Unexpected non-classfile content: " + name);
+          }
+        }
+      }
+      if (!resources.isEmpty()) {
+        addProvider.accept(
+            new ClassFileResourceProvider() {
+
+              @Override
+              public Set<String> getClassDescriptors() {
+                return resources.keySet();
+              }
+
+              @Override
+              public ProgramResource getProgramResource(String descriptor) {
+                return resources.get(descriptor);
+              }
+            });
+      }
+    }
+
+    private void readProgramDump(Origin origin, InputStream input) throws IOException {
+      try (ZipInputStream stream = new ZipInputStream(input)) {
+        ZipEntry entry;
+        while (null != (entry = stream.getNextEntry())) {
+          String name = entry.getName();
+          if (ZipUtils.isClassFile(name)) {
+            Origin entryOrigin = new ArchiveEntryOrigin(name, origin);
+            String descriptor = DescriptorUtils.guessTypeDescriptor(name);
+            ProgramResource resource =
+                OneShotByteResource.create(
+                    Kind.CF,
+                    entryOrigin,
+                    ByteStreams.toByteArray(stream),
+                    Collections.singleton(descriptor));
+            addProgramResources(resource);
+          } else if (ZipUtils.isDexFile(name)) {
+            Origin entryOrigin = new ArchiveEntryOrigin(name, origin);
+            ProgramResource resource =
+                OneShotByteResource.create(
+                    Kind.DEX, entryOrigin, ByteStreams.toByteArray(stream), null);
+            addProgramResources(resource);
+          }
+        }
+      }
     }
 
     /** Add program file resources. */
