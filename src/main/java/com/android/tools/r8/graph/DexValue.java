@@ -25,6 +25,7 @@ import org.objectweb.asm.Handle;
 import org.objectweb.asm.Type;
 
 public abstract class DexValue extends DexItem {
+
   public static final DexValue[] EMPTY_ARRAY = {};
 
   public static final UnknownDexValue UNKNOWN = UnknownDexValue.UNKNOWN;
@@ -70,6 +71,14 @@ public abstract class DexValue extends DexItem {
 
   public boolean isDexValueArray() {
     return false;
+  }
+
+  public boolean isDexValueInt() {
+    return false;
+  }
+
+  public DexValueInt asDexValueInt() {
+    return null;
   }
 
   public static DexValue fromAsmBootstrapArgument(
@@ -470,6 +479,16 @@ public abstract class DexValue extends DexItem {
     @Override
     public void writeTo(DexOutputBuffer dest, ObjectToOffsetMapping mapping) {
       writeIntegerTo(VALUE_INT, value, Integer.BYTES, dest);
+    }
+
+    @Override
+    public boolean isDexValueInt() {
+      return true;
+    }
+
+    @Override
+    public DexValueInt asDexValueInt() {
+      return this;
     }
 
     @Override
