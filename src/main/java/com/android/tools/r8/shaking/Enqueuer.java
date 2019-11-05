@@ -40,6 +40,7 @@ import com.android.tools.r8.graph.KeyedDexItem;
 import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
+import com.android.tools.r8.graph.UseRegistry.MethodHandleUse;
 import com.android.tools.r8.graph.analysis.EnqueuerAnalysis;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoEnqueuerExtension;
 import com.android.tools.r8.ir.code.ArrayPut;
@@ -581,6 +582,98 @@ public class Enqueuer {
     return isRead ? info.recordRead(field, context) : info.recordWrite(field, context);
   }
 
+  void traceCallSite(DexCallSite callSite, DexEncodedMethod currentMethod) {
+    callSites.add(callSite);
+
+    List<DexType> directInterfaces = LambdaDescriptor.getInterfaces(callSite, appInfo);
+    if (directInterfaces != null) {
+      for (DexType lambdaInstantiatedInterface : directInterfaces) {
+        markLambdaInstantiated(lambdaInstantiatedInterface, currentMethod);
+      }
+    } else {
+      if (!appInfo.isStringConcat(callSite.bootstrapMethod)) {
+        if (options.reporter != null) {
+          Diagnostic message =
+              new StringDiagnostic(
+                  "Unknown bootstrap method " + callSite.bootstrapMethod,
+                  appInfo.originFor(currentMethod.method.holder));
+          options.reporter.warning(message);
+        }
+      }
+    }
+
+    DexProgramClass bootstrapClass =
+        getProgramClassOrNull(callSite.bootstrapMethod.asMethod().holder);
+    if (bootstrapClass != null) {
+      bootstrapMethods.add(callSite.bootstrapMethod.asMethod());
+    }
+
+    LambdaDescriptor descriptor = LambdaDescriptor.tryInfer(callSite, appInfo);
+    if (descriptor == null) {
+      return;
+    }
+
+    // For call sites representing a lambda, we link the targeted method
+    // or field as if it were referenced from the current method.
+
+    DexMethodHandle implHandle = descriptor.implHandle;
+    assert implHandle != null;
+
+    DexMethod method = implHandle.asMethod();
+    if (descriptor.delegatesToLambdaImplMethod()) {
+      lambdaMethodsTargetedByInvokeDynamic.add(method);
+    }
+
+    if (!methodsTargetedByInvokeDynamic.add(method)) {
+      return;
+    }
+
+    switch (implHandle.type) {
+      case INVOKE_STATIC:
+        traceInvokeStaticFromLambda(method, currentMethod);
+        break;
+      case INVOKE_INTERFACE:
+        traceInvokeInterfaceFromLambda(method, currentMethod);
+        break;
+      case INVOKE_INSTANCE:
+        traceInvokeVirtualFromLambda(method, currentMethod);
+        break;
+      case INVOKE_DIRECT:
+        traceInvokeDirectFromLambda(method, currentMethod);
+        break;
+      case INVOKE_CONSTRUCTOR:
+        traceNewInstanceFromLambda(method.holder, currentMethod);
+        break;
+      default:
+        throw new Unreachable();
+    }
+
+    // In similar way as what transitionMethodsForInstantiatedClass does for existing
+    // classes we need to process classes dynamically created by runtime for lambdas.
+    // We make an assumption that such classes are inherited directly from java.lang.Object
+    // and implement all lambda interfaces.
+
+    if (directInterfaces == null) {
+      return;
+    }
+
+    // The set now contains all virtual methods on the type and its supertype that are reachable.
+    // In a second step, we now look at interfaces. We have to do this in this order due to JVM
+    // semantics for default methods. A default method is only reachable if it is not overridden
+    // in any superclass. Also, it is not defined which default method is chosen if multiple
+    // interfaces define the same default method. Hence, for every interface (direct or indirect),
+    // we have to look at the interface chain and mark default methods as reachable, not taking
+    // the shadowing of other interface chains into account.
+    // See https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-5.html#jvms-5.4.3.3
+    ScopedDexMethodSet seen = new ScopedDexMethodSet();
+    for (DexType iface : directInterfaces) {
+      DexProgramClass ifaceClazz = getProgramClassOrNull(iface);
+      if (ifaceClazz != null) {
+        transitionDefaultMethodsForInstantiatedClass(iface, seen);
+      }
+    }
+  }
+
   boolean traceCheckCast(DexType type, DexEncodedMethod currentMethod) {
     return traceConstClassOrCheckCast(type, currentMethod);
   }
@@ -613,6 +706,28 @@ public class Enqueuer {
       return true;
     }
     return false;
+  }
+
+  void traceMethodHandle(
+      DexMethodHandle methodHandle, MethodHandleUse use, DexEncodedMethod currentMethod) {
+    // If a method handle is not an argument to a lambda metafactory it could flow to a
+    // MethodHandle.invokeExact invocation. For that to work, the receiver type cannot have
+    // changed and therefore we cannot perform member rebinding. For these handles, we maintain
+    // the receiver for the method handle. Therefore, we have to make sure that the receiver
+    // stays in the output (and is not class merged). To ensure that we treat the receiver
+    // as instantiated.
+    if (methodHandle.isMethodHandle() && use != MethodHandleUse.ARGUMENT_TO_LAMBDA_METAFACTORY) {
+      DexType type = methodHandle.asMethod().holder;
+      DexProgramClass clazz = getProgramClassOrNull(type);
+      if (clazz != null) {
+        KeepReason reason = KeepReason.methodHandleReferencedIn(currentMethod);
+        if (clazz.isInterface() && !clazz.accessFlags.isAnnotation()) {
+          markInterfaceAsInstantiated(clazz, graphReporter.registerClass(clazz, reason));
+        } else {
+          markInstantiated(clazz, null, reason);
+        }
+      }
+    }
   }
 
   boolean traceTypeReference(DexType type, DexEncodedMethod currentMethod) {
@@ -1040,118 +1155,13 @@ public class Enqueuer {
     @Override
     public void registerMethodHandle(DexMethodHandle methodHandle, MethodHandleUse use) {
       super.registerMethodHandle(methodHandle, use);
-      // If a method handle is not an argument to a lambda metafactory it could flow to a
-      // MethodHandle.invokeExact invocation. For that to work, the receiver type cannot have
-      // changed and therefore we cannot perform member rebinding. For these handles, we maintain
-      // the receiver for the method handle. Therefore, we have to make sure that the receiver
-      // stays in the output (and is not class merged). To ensure that we treat the receiver
-      // as instantiated.
-      if (methodHandle.isMethodHandle() && use != MethodHandleUse.ARGUMENT_TO_LAMBDA_METAFACTORY) {
-        DexType type = methodHandle.asMethod().holder;
-        DexProgramClass clazz = getProgramClassOrNull(type);
-        if (clazz != null) {
-          KeepReason reason = KeepReason.methodHandleReferencedIn(currentMethod);
-          if (clazz.isInterface() && !clazz.accessFlags.isAnnotation()) {
-            markInterfaceAsInstantiated(clazz, graphReporter.registerClass(clazz, reason));
-          } else {
-            markInstantiated(clazz, null, reason);
-          }
-        }
-      }
+      traceMethodHandle(methodHandle, use, currentMethod);
     }
 
     @Override
     public void registerCallSite(DexCallSite callSite) {
-      callSites.add(callSite);
       super.registerCallSite(callSite);
-
-      List<DexType> directInterfaces = LambdaDescriptor.getInterfaces(callSite, appInfo);
-      if (directInterfaces != null) {
-        for (DexType lambdaInstantiatedInterface : directInterfaces) {
-          markLambdaInstantiated(lambdaInstantiatedInterface, currentMethod);
-        }
-      } else {
-        if (!appInfo.isStringConcat(callSite.bootstrapMethod)) {
-          if (options.reporter != null) {
-            Diagnostic message =
-                new StringDiagnostic(
-                    "Unknown bootstrap method " + callSite.bootstrapMethod,
-                    appInfo.originFor(currentMethod.method.holder));
-            options.reporter.warning(message);
-          }
-        }
-      }
-
-      DexProgramClass bootstrapClass =
-          getProgramClassOrNull(callSite.bootstrapMethod.asMethod().holder);
-      if (bootstrapClass != null) {
-        bootstrapMethods.add(callSite.bootstrapMethod.asMethod());
-      }
-
-      LambdaDescriptor descriptor = LambdaDescriptor.tryInfer(callSite, appInfo);
-      if (descriptor == null) {
-        return;
-      }
-
-      // For call sites representing a lambda, we link the targeted method
-      // or field as if it were referenced from the current method.
-
-      DexMethodHandle implHandle = descriptor.implHandle;
-      assert implHandle != null;
-
-      DexMethod method = implHandle.asMethod();
-      if (descriptor.delegatesToLambdaImplMethod()) {
-        lambdaMethodsTargetedByInvokeDynamic.add(method);
-      }
-
-      if (!methodsTargetedByInvokeDynamic.add(method)) {
-        return;
-      }
-
-      switch (implHandle.type) {
-        case INVOKE_STATIC:
-          traceInvokeStaticFromLambda(method, currentMethod);
-          break;
-        case INVOKE_INTERFACE:
-          traceInvokeInterfaceFromLambda(method, currentMethod);
-          break;
-        case INVOKE_INSTANCE:
-          traceInvokeVirtualFromLambda(method, currentMethod);
-          break;
-        case INVOKE_DIRECT:
-          traceInvokeDirectFromLambda(method, currentMethod);
-          break;
-        case INVOKE_CONSTRUCTOR:
-          traceNewInstanceFromLambda(method.holder, currentMethod);
-          break;
-        default:
-          throw new Unreachable();
-      }
-
-      // In similar way as what transitionMethodsForInstantiatedClass does for existing
-      // classes we need to process classes dynamically created by runtime for lambdas.
-      // We make an assumption that such classes are inherited directly from java.lang.Object
-      // and implement all lambda interfaces.
-
-      if (directInterfaces == null) {
-        return;
-      }
-
-      // The set now contains all virtual methods on the type and its supertype that are reachable.
-      // In a second step, we now look at interfaces. We have to do this in this order due to JVM
-      // semantics for default methods. A default method is only reachable if it is not overridden
-      // in any superclass. Also, it is not defined which default method is chosen if multiple
-      // interfaces define the same default method. Hence, for every interface (direct or indirect),
-      // we have to look at the interface chain and mark default methods as reachable, not taking
-      // the shadowing of other interface chains into account.
-      // See https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-5.html#jvms-5.4.3.3
-      ScopedDexMethodSet seen = new ScopedDexMethodSet();
-      for (DexType iface : directInterfaces) {
-        DexProgramClass ifaceClazz = getProgramClassOrNull(iface);
-        if (ifaceClazz != null) {
-          transitionDefaultMethodsForInstantiatedClass(iface, seen);
-        }
-      }
+      traceCallSite(callSite, currentMethod);
     }
   }
 
