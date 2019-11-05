@@ -604,6 +604,29 @@ public class Enqueuer {
     return true;
   }
 
+  boolean traceInvokeInterface(
+      DexMethod invokedMethod, DexProgramClass currentHolder, DexEncodedMethod currentMethod) {
+    return traceInvokeInterface(
+        invokedMethod, currentMethod, KeepReason.invokedFrom(currentHolder, currentMethod));
+  }
+
+  boolean traceInvokeInterfaceFromLambda(DexMethod invokedMethod, DexEncodedMethod currentMethod) {
+    return traceInvokeInterface(
+        invokedMethod, currentMethod, KeepReason.invokedFromLambdaCreatedIn(currentMethod));
+  }
+
+  private boolean traceInvokeInterface(
+      DexMethod method, DexEncodedMethod currentMethod, KeepReason keepReason) {
+    if (!registerMethodWithTargetAndContext(interfaceInvokes, method, currentMethod)) {
+      return false;
+    }
+    if (Log.ENABLED) {
+      Log.verbose(getClass(), "Register invokeInterface `%s`.", method);
+    }
+    workList.enqueueMarkReachableInterfaceAction(method, keepReason);
+    return true;
+  }
+
   boolean traceInvokeStatic(
       DexMethod invokedMethod, DexProgramClass currentHolder, DexEncodedMethod currentMethod) {
     return traceInvokeStatic(
@@ -710,19 +733,8 @@ public class Enqueuer {
     }
 
     @Override
-    public boolean registerInvokeInterface(DexMethod method) {
-      return registerInvokeInterface(method, KeepReason.invokedFrom(currentHolder, currentMethod));
-    }
-
-    boolean registerInvokeInterface(DexMethod method, KeepReason keepReason) {
-      if (!registerMethodWithTargetAndContext(interfaceInvokes, method, currentMethod)) {
-        return false;
-      }
-      if (Log.ENABLED) {
-        Log.verbose(getClass(), "Register invokeInterface `%s`.", method);
-      }
-      workList.enqueueMarkReachableInterfaceAction(method, keepReason);
-      return true;
+    public boolean registerInvokeInterface(DexMethod invokedMethod) {
+      return traceInvokeInterface(invokedMethod, currentHolder, currentMethod);
     }
 
     @Override
@@ -1041,7 +1053,7 @@ public class Enqueuer {
           traceInvokeStaticFromLambda(method, currentMethod);
           break;
         case INVOKE_INTERFACE:
-          registerInvokeInterface(method, KeepReason.invokedFromLambdaCreatedIn(currentMethod));
+          traceInvokeInterfaceFromLambda(method, currentMethod);
           break;
         case INVOKE_INSTANCE:
           traceInvokeVirtualFromLambda(method, currentMethod);
