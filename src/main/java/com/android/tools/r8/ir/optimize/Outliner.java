@@ -806,13 +806,13 @@ public class Outliner {
         includeInstruction(instruction);
         // Check if this instruction ends the outline.
         if (actualInstructions >= appView.options().outline.maxSize) {
-          candidate(start, index + 1);
+          candidate(start, index + 1, actualInstructions);
         } else {
           index++;
         }
       } else if (index > start) {
         // Do not add this instruction, candidate ends with previous instruction.
-        candidate(start, index);
+        candidate(start, index, actualInstructions);
       } else {
         // Restart search from next instruction.
         reset(index + 1);
@@ -1080,7 +1080,7 @@ public class Outliner {
 
     protected abstract void handle(int start, int end, Outline outline);
 
-    private void candidate(int start, int index) {
+    private void candidate(int start, int index, int actualInstructions) {
       List<Instruction> instructions = getInstructionArray();
       assert !instructions.get(start).isConstInstruction();
 
@@ -1100,13 +1100,7 @@ public class Outliner {
       }
 
       // Check if the candidate qualifies.
-      int nonConstInstructions = 0;
-      for (int i = start; i < end; i++) {
-        if (!instructions.get(i).isConstInstruction()) {
-          nonConstInstructions++;
-        }
-      }
-      if (nonConstInstructions < appView.options().outline.minSize) {
+      if (actualInstructions < appView.options().outline.minSize) {
         reset(start + 1);
         return;
       }
