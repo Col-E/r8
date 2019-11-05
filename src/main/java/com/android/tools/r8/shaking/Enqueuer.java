@@ -716,6 +716,28 @@ public class Enqueuer {
     return true;
   }
 
+  boolean traceNewInstance(DexType type, DexEncodedMethod currentMethod) {
+    return traceNewInstance(type, currentMethod, KeepReason.instantiatedIn(currentMethod));
+  }
+
+  boolean traceNewInstanceFromLambda(DexType type, DexEncodedMethod currentMethod) {
+    return traceNewInstance(
+        type, currentMethod, KeepReason.invokedFromLambdaCreatedIn(currentMethod));
+  }
+
+  private boolean traceNewInstance(
+      DexType type, DexEncodedMethod currentMethod, KeepReason keepReason) {
+    DexProgramClass clazz = getProgramClassOrNull(type);
+    if (clazz != null) {
+      if (clazz.isInterface()) {
+        markTypeAsLive(clazz, graphReporter.registerClass(clazz, keepReason));
+      } else {
+        markInstantiated(clazz, currentMethod, keepReason);
+      }
+    }
+    return true;
+  }
+
   private class UseRegistry extends com.android.tools.r8.graph.UseRegistry {
 
     private final DexProgramClass currentHolder;
@@ -843,20 +865,7 @@ public class Enqueuer {
 
     @Override
     public boolean registerNewInstance(DexType type) {
-      return registerNewInstance(type, currentMethod, KeepReason.instantiatedIn(currentMethod));
-    }
-
-    public boolean registerNewInstance(
-        DexType type, DexEncodedMethod context, KeepReason keepReason) {
-      DexProgramClass clazz = getProgramClassOrNull(type);
-      if (clazz != null) {
-        if (clazz.isInterface()) {
-          markTypeAsLive(clazz, graphReporter.registerClass(clazz, keepReason));
-        } else {
-          markInstantiated(clazz, context, keepReason);
-        }
-      }
-      return true;
+      return traceNewInstance(type, currentMethod);
     }
 
     @Override
@@ -1067,8 +1076,7 @@ public class Enqueuer {
           traceInvokeDirectFromLambda(method, currentMethod);
           break;
         case INVOKE_CONSTRUCTOR:
-          registerNewInstance(
-              method.holder, null, KeepReason.invokedFromLambdaCreatedIn(currentMethod));
+          traceNewInstanceFromLambda(method.holder, currentMethod);
           break;
         default:
           throw new Unreachable();
