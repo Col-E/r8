@@ -330,7 +330,6 @@ abstract class CallGraphBuilderBase {
     // Mapping from callee to the set of callers that were removed from the callee.
     private Map<Node, Set<Node>> removedEdges = new IdentityHashMap<>();
 
-    private int currentDepth = 0;
     private int maxDepth = 0;
 
     CycleEliminator(Collection<Node> nodes, InternalOptions options) {
@@ -345,10 +344,8 @@ abstract class CallGraphBuilderBase {
 
     CycleEliminationResult breakCycles() {
       // Break cycles in this call graph by removing edges causing cycles.
-      for (Node node : nodes) {
-        assert currentDepth == 0;
-        traverse(node);
-      }
+      traverse();
+
       CycleEliminationResult result = new CycleEliminationResult(removedEdges);
       if (Log.ENABLED) {
         Log.info(getClass(), "# call graph cycles broken: %s", result.numberOfRemovedEdges());
@@ -359,7 +356,6 @@ abstract class CallGraphBuilderBase {
     }
 
     private void reset() {
-      assert currentDepth == 0;
       assert stack.isEmpty();
       assert stackSet.isEmpty();
       marked.clear();
@@ -367,41 +363,114 @@ abstract class CallGraphBuilderBase {
       removedEdges = new IdentityHashMap<>();
     }
 
-    private void traverse(Node node) {
-      if (Log.ENABLED) {
-        if (currentDepth > maxDepth) {
-          maxDepth = currentDepth;
+    private static class WorkItem {
+      boolean isNode() {
+        return false;
+      }
+
+      NodeWorkItem asNode() {
+        return null;
+      }
+
+      boolean isIterator() {
+        return false;
+      }
+
+      IteratorWorkItem asIterator() {
+        return null;
+      }
+    }
+
+    private static class NodeWorkItem extends WorkItem {
+      private final Node node;
+
+      NodeWorkItem(Node node) {
+        this.node = node;
+      }
+
+      @Override
+      boolean isNode() {
+        return true;
+      }
+
+      @Override
+      NodeWorkItem asNode() {
+        return this;
+      }
+    }
+
+    private static class IteratorWorkItem extends WorkItem {
+      private final Node caller;
+      private final Iterator<Node> callees;
+
+      IteratorWorkItem(Node caller, Iterator<Node> callees) {
+        this.caller = caller;
+        this.callees = callees;
+      }
+
+      @Override
+      boolean isIterator() {
+        return true;
+      }
+
+      @Override
+      IteratorWorkItem asIterator() {
+        return this;
+      }
+    }
+
+    private void traverse() {
+      Deque<WorkItem> workItems = new ArrayDeque<>(nodes.size());
+      for (Node node : nodes) {
+        workItems.addLast(new NodeWorkItem(node));
+      }
+      while (!workItems.isEmpty()) {
+        WorkItem workItem = workItems.removeFirst();
+        if (workItem.isNode()) {
+          Node node = workItem.asNode().node;
+          if (Log.ENABLED) {
+            if (stack.size() > maxDepth) {
+              maxDepth = stack.size();
+            }
+          }
+
+          if (marked.contains(node)) {
+            // Already visited all nodes that can be reached from this node.
+            continue;
+          }
+
+          push(node);
+
+          // The callees must be sorted before calling traverse recursively. This ensures that
+          // cycles are broken the same way across multiple compilations.
+          Collection<Node> callees = node.getCalleesWithDeterministicOrder();
+
+          if (options.testing.nondeterministicCycleElimination) {
+            callees = reorderNodes(new ArrayList<>(callees));
+          }
+          workItems.addFirst(new IteratorWorkItem(node, callees.iterator()));
+        } else {
+          assert workItem.isIterator();
+          IteratorWorkItem iteratorWorkItem = workItem.asIterator();
+          Node newCaller = iterateCallees(iteratorWorkItem.callees, iteratorWorkItem.caller);
+          if (newCaller != null) {
+            // We did not finish the work on this iterator, so add it again.
+            workItems.addFirst(iteratorWorkItem);
+            workItems.addFirst(new NodeWorkItem(newCaller));
+          } else {
+            assert !iteratorWorkItem.callees.hasNext();
+            pop(iteratorWorkItem.caller);
+            marked.add(iteratorWorkItem.caller);
+          }
         }
       }
+    }
 
-      if (marked.contains(node)) {
-        // Already visited all nodes that can be reached from this node.
-        return;
-      }
-
-      push(node);
-
-      // The callees must be sorted before calling traverse recursively. This ensures that cycles
-      // are broken the same way across multiple compilations.
-      Collection<Node> callees = node.getCalleesWithDeterministicOrder();
-
-      if (options.testing.nondeterministicCycleElimination) {
-        callees = reorderNodes(new ArrayList<>(callees));
-      }
-
-      Iterator<Node> calleeIterator = callees.iterator();
+    private Node iterateCallees(Iterator<Node> calleeIterator, Node node) {
       while (calleeIterator.hasNext()) {
         Node callee = calleeIterator.next();
-
-        // If we've exceeded the depth threshold, then treat it as if we have found a cycle. This
-        // ensures that we won't run into stack overflows when the call graph contains large call
-        // chains. This should have a negligible impact on code size as long as the threshold is
-        // large enough.
         boolean foundCycle = stackSet.contains(callee);
-        boolean thresholdExceeded =
-            currentDepth >= options.callGraphCycleEliminatorMaxDepthThreshold
-                && edgeRemovalIsSafe(node, callee);
-        if (foundCycle || thresholdExceeded) {
+        if (foundCycle) {
           // Found a cycle that needs to be eliminated.
           if (edgeRemovalIsSafe(node, callee)) {
             // Break the cycle by removing the edge node->callee.
@@ -461,13 +530,10 @@ abstract class CallGraphBuilderBase {
             recoverStack(cycle);
           }
         } else {
-          currentDepth++;
-          traverse(callee);
-          currentDepth--;
+          return callee;
         }
       }
-      pop(node);
-      marked.add(node);
+      return null;
     }
 
     private void push(Node node) {
