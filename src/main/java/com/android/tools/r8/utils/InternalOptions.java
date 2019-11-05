@@ -177,6 +177,8 @@ public class InternalOptions {
   public boolean printMemory = System.getProperty("com.android.tools.r8.printmemory") != null;
 
   public String dumpInputToFile = System.getProperty("com.android.tools.r8.dumpinputtofile");
+  public String dumpInputToDirectory =
+      System.getProperty("com.android.tools.r8.dumpinputtodirectory");
 
   // Flag to toggle if DEX code objects should pass-through without IR processing.
   public boolean passthroughDexCode = false;
@@ -979,6 +981,10 @@ public class InternalOptions {
     // Flag to turn on/off JDK11+ nest-access control even when not required (Cf backend)
     public boolean enableForceNestBasedAccessDesugaringForTest = false;
     public boolean verifyKeptGraphInfo = false;
+
+    // Force each call of application read to dump its inputs to a file, which is subsequently
+    // deleted. Useful to check that our dump functionality does not cause compilation failure.
+    public boolean dumpAll = false;
 
     public boolean desugarLambdasThroughLensCodeRewriter() {
       return enableStatefulLambdaCreateInstanceMethod;

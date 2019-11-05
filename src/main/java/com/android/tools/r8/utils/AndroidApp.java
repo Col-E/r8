@@ -406,9 +406,8 @@ public class AndroidApp {
     return programResourcesMainDescriptor.get(resource);
   }
 
-  public AndroidApp dump(Path output, ProguardConfiguration configuration, Reporter reporter) {
+  public void dump(Path output, ProguardConfiguration configuration, Reporter reporter) {
     int nextDexIndex = 0;
-    Builder builder = AndroidApp.builder(reporter);
     OpenOption[] openOptions =
         new OpenOption[] {StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING};
     try (ZipOutputStream out = new ZipOutputStream(Files.newOutputStream(output, openOptions))) {
@@ -418,28 +417,60 @@ public class AndroidApp {
         String proguardConfig = configuration.getParsedConfiguration();
         writeToZipStream(out, dumpConfigFileName, proguardConfig.getBytes(), ZipEntry.DEFLATED);
       }
-      nextDexIndex = dumpProgramResources(dumpProgramFileName, nextDexIndex, out, builder);
-      nextDexIndex =
-          dumpClassFileResources(
-              dumpClasspathFileName, nextDexIndex, out, builder, classpathResourceProviders);
-      nextDexIndex =
-          dumpClassFileResources(
-              dumpLibraryFileName, nextDexIndex, out, builder, libraryResourceProviders);
+      nextDexIndex = dumpProgramResources(dumpProgramFileName, nextDexIndex, out);
+      nextDexIndex = dumpClasspathResources(nextDexIndex, out);
+      nextDexIndex = dumpLibraryResources(nextDexIndex, out);
     } catch (IOException | ResourceException e) {
       reporter.fatalError(new StringDiagnostic("Failed to dump inputs"), e);
     }
-    return builder.build();
   }
 
-  private int dumpProgramResources(
-      String archiveName, int nextDexIndex, ZipOutputStream out, Builder builder)
+  private int dumpLibraryResources(int nextDexIndex, ZipOutputStream out)
+      throws IOException, ResourceException {
+    nextDexIndex =
+        dumpClassFileResources(dumpLibraryFileName, nextDexIndex, out, libraryResourceProviders);
+    return nextDexIndex;
+  }
+
+  private int dumpClasspathResources(int nextDexIndex, ZipOutputStream out)
+      throws IOException, ResourceException {
+    nextDexIndex =
+        dumpClassFileResources(
+            dumpClasspathFileName, nextDexIndex, out, classpathResourceProviders);
+    return nextDexIndex;
+  }
+
+  private static ClassFileResourceProvider createClassFileResourceProvider(
+      Map<String, ProgramResource> classPathResources) {
+    return new ClassFileResourceProvider() {
+      @Override
+      public Set<String> getClassDescriptors() {
+        return classPathResources.keySet();
+      }
+
+      @Override
+      public ProgramResource getProgramResource(String descriptor) {
+        return classPathResources.get(descriptor);
+      }
+    };
+  }
+
+  private Consumer<ProgramResource> createClassFileResourceConsumer(
+      Map<String, ProgramResource> classPathResources) {
+    return programResource -> {
+      assert programResource.getClassDescriptors().size() == 1;
+      String descriptor = programResource.getClassDescriptors().iterator().next();
+      classPathResources.put(descriptor, programResource);
+    };
+  }
+
+  private int dumpProgramResources(String archiveName, int nextDexIndex, ZipOutputStream out)
       throws IOException, ResourceException {
     try (ByteArrayOutputStream archiveByteStream = new ByteArrayOutputStream()) {
       try (ZipOutputStream archiveOutputStream = new ZipOutputStream(archiveByteStream)) {
         Object2IntMap<String> seen = new Object2IntOpenHashMap<>();
         Set<DataEntryResource> dataEntries = getDataEntryResourcesForTesting();
         for (DataEntryResource dataResource : dataEntries) {
-          builder.addDataResources(dataResource);
           String entryName = dataResource.getName();
           try (InputStream dataStream = dataResource.getByteStream()) {
             byte[] bytes = ByteStreams.toByteArray(dataStream);
@@ -449,8 +480,7 @@ public class AndroidApp {
         for (ProgramResourceProvider provider : programResourceProviders) {
           for (ProgramResource programResource : provider.getProgramResources()) {
             nextDexIndex =
-                dumpProgramResource(
-                    builder, seen, nextDexIndex, archiveOutputStream, programResource);
+                dumpProgramResource(seen, nextDexIndex, archiveOutputStream, programResource);
           }
         }
       }
@@ -463,7 +493,6 @@ public class AndroidApp {
       String archiveName,
       int nextDexIndex,
       ZipOutputStream out,
-      Builder builder,
       ImmutableList<ClassFileResourceProvider> classpathResourceProviders)
       throws IOException, ResourceException {
     try (ByteArrayOutputStream archiveByteStream = new ByteArrayOutputStream()) {
@@ -474,8 +503,7 @@ public class AndroidApp {
             ProgramResource programResource = provider.getProgramResource(descriptor);
             int oldDexIndex = nextDexIndex;
             nextDexIndex =
-                dumpProgramResource(
-                    builder, seen, nextDexIndex, archiveOutputStream, programResource);
+                dumpProgramResource(seen, nextDexIndex, archiveOutputStream, programResource);
             assert nextDexIndex == oldDexIndex;
           }
         }
@@ -486,32 +514,19 @@ public class AndroidApp {
   }
 
   private static int dumpProgramResource(
-      Builder builder,
       Object2IntMap<String> seen,
       int nextDexIndex,
       ZipOutputStream archiveOutputStream,
       ProgramResource programResource)
       throws ResourceException, IOException {
     byte[] bytes = ByteStreams.toByteArray(programResource.getByteStream());
-    Set<String> classDescriptors = programResource.getClassDescriptors();
-    if (programResource.getKind() == Kind.CF
-        && (classDescriptors == null || classDescriptors.size() != 1)) {
-      classDescriptors = Collections.singleton(extractClassDescriptor(bytes));
-    }
-    if (programResource instanceof OneShotByteResource) {
-      builder.addProgramResources(
-          OneShotByteResource.create(
-              programResource.getKind(), programResource.getOrigin(), bytes, classDescriptors));
-
-    } else {
-      builder.addProgramResources(programResource);
-    }
     String entryName;
     if (programResource.getKind() == Kind.CF) {
+      Set<String> classDescriptors = programResource.getClassDescriptors();
       String classDescriptor =
-          classDescriptors.size() == 1
-              ? classDescriptors.iterator().next()
-              : extractClassDescriptor(bytes);
+          (classDescriptors == null || classDescriptors.size() != 1)
+              ? extractClassDescriptor(bytes)
+              : classDescriptors.iterator().next();
       String classFileName = DescriptorUtils.getClassFileName(classDescriptor);
       int dupCount = seen.getOrDefault(classDescriptor, 0);
       seen.put(classDescriptor, dupCount + 1);
@@ -652,19 +667,7 @@ public class AndroidApp {
         }
       }
       if (!resources.isEmpty()) {
-        addProvider.accept(
-            new ClassFileResourceProvider() {
-
-              @Override
-              public Set<String> getClassDescriptors() {
-                return resources.keySet();
-              }
-
-              @Override
-              public ProgramResource getProgramResource(String descriptor) {
-                return resources.get(descriptor);
-              }
-            });
+        addProvider.accept(createClassFileResourceProvider(resources));
       }
     }
 

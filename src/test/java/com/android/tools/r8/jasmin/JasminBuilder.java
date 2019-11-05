@@ -98,23 +98,22 @@ public class JasminBuilder {
     }
 
     private ClassBuilder(String name, String superName) {
-      this.name = name;
-      this.superName = superName;
-      this.interfaces = ImmutableList.of();
+      this(name , superName, new String[0]);
     }
 
     private ClassBuilder(String name, String superName, String... interfaces) {
+      assert DescriptorUtils.isValidJavaType(name);
       this.name = name;
       this.superName = superName;
       this.interfaces = ImmutableList.copyOf(interfaces);
     }
 
     public String getSourceFile() {
-      return name + ".j";
+      return DescriptorUtils.getBinaryNameFromJavaType(name) + ".j";
     }
 
     public String getDescriptor() {
-      return "L" + name + ";";
+      return DescriptorUtils.javaTypeToDescriptor(name);
     }
 
     public MethodSignature addAbstractMethod(
