@@ -579,12 +579,46 @@ def desugar_configuration_version():
     check_basic_semver_version(version, 'in ' + DESUGAR_CONFIGURATION)
     return version
 
+class SemanticVersion:
+  def __init__(self, major, minor, patch):
+    self.major = major
+    self.minor = minor
+    self.patch = patch
+    # Build metadata currently not suppported
+
+  def larger_than(self, other):
+    if self.major > other.major:
+      return True
+    if self.major == other.major and self.minor > other.minor:
+      return True
+    if self.patch:
+      return (self.major == other.major
+        and self.minor == other.minor
+        and self.patch > other.patch)
+    else:
+      return False
+
+
 # Check that the passed string is formatted as a basic semver version (x.y.z)
 # See https://semver.org/.
-def check_basic_semver_version(version, error_context = ''):
-    reg = re.compile('^([0-9]+)\\.([0-9]+)\\.([0-9]+)$')
-    if not reg.match(version):
+def check_basic_semver_version(version, error_context = '', components = 3):
+    regexp = '^'
+    for x in range(components):
+      regexp += '([0-9]+)'
+      if x < components - 1:
+        regexp += '\\.'
+    regexp += '$'
+    reg = re.compile(regexp)
+    match = reg.match(version)
+    if not match:
       raise Exception("Invalid version '"
             + version
             + "'"
             + (' ' + error_context) if len(error_context) > 0 else '')
+    if components == 2:
+      return SemanticVersion(int(match.group(1)), int(match.group(2)), None)
+    elif components == 3:
+      return SemanticVersion(
+        int(match.group(1)), int(match.group(2)), int(match.group(3)))
+    else:
+      raise Exception('Argument "components" must be 2 or 3')

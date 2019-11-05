@@ -80,20 +80,7 @@ def prepare_release(args):
         version_diff_output = subprocess.check_output([
           'git', 'diff', '%s..HEAD' % commithash])
 
-        invalid = version_change_diff(version_diff_output, "master", version)
-        if invalid:
-          print "Unexpected diff:"
-          print "=" * 80
-          print version_diff_output
-          print "=" * 80
-          accept_string = 'THE DIFF IS OK!'
-          input = raw_input(
-            "Accept the additonal diff as part of the release? "
-            "Type '%s' to accept: " % accept_string)
-          if input != accept_string:
-            print "You did not type '%s'" % accept_string
-            print 'Aborting dev release for %s' % version
-            sys.exit(1)
+        validate_version_change_diff(version_diff_output, "master", version)
 
         # Double check that we want to push the release.
         if not args.dry_run:
@@ -104,10 +91,7 @@ def prepare_release(args):
 
         maybe_check_call(args, [
           'git', 'push', 'origin', 'HEAD:%s' % R8_DEV_BRANCH])
-        maybe_check_call(args, [
-          'git', 'tag', '-a', version, '-m', '"%s"' % version])
-        maybe_check_call(args, [
-          'git', 'push', 'origin', 'refs/tags/%s' % version])
+        maybe_tag(args, version)
 
         return "%s dev version %s from hash %s" % (
           'DryRun: omitted publish of' if args.dry_run else 'Published',
@@ -116,6 +100,12 @@ def prepare_release(args):
 
   return make_release
 
+
+def maybe_tag(args, version):
+  maybe_check_call(args, [
+    'git', 'tag', '-a', version, '-m', '"%s"' % version])
+  maybe_check_call(args, [
+    'git', 'push', 'origin', 'refs/tags/%s' % version])
 
 def version_change_diff(diff, old_version, new_version):
   invalid_line = None
@@ -127,6 +117,22 @@ def version_change_diff(diff, old_version, new_version):
         line != '+  public static final String LABEL = "%s";' % new_version:
       invalid_line = line
   return invalid_line
+
+def validate_version_change_diff(version_diff_output, old_version, new_version):
+  invalid = version_change_diff(version_diff_output, old_version, new_version)
+  if invalid:
+    print "Unexpected diff:"
+    print "=" * 80
+    print version_diff_output
+    print "=" * 80
+    accept_string = 'THE DIFF IS OK!'
+    input = raw_input(
+      "Accept the additonal diff as part of the release? "
+      "Type '%s' to accept: " % accept_string)
+    if input != accept_string:
+      print "You did not type '%s'" % accept_string
+      print 'Aborting dev release for %s' % version
+      sys.exit(1)
 
 
 def maybe_check_call(args, cmd):
@@ -344,6 +350,62 @@ def prepare_google3(args):
   return release_google3
 
 
+def prepare_branch(args):
+  branch_version = args.new_dev_branch[0]
+  commithash = args.new_dev_branch[1]
+
+  current_semver = utils.check_basic_semver_version(
+    R8_DEV_BRANCH, ", current release branch version should be x.y", 2)
+  semver = utils.check_basic_semver_version(
+    branch_version, ", release branch version should be x.y", 2)
+  if not semver.larger_than(current_semver):
+    print ('New branch version "'
+      + branch_version
+      + '" must be strictly larger than the current "'
+      + R8_DEV_BRANCH
+      + '"')
+    sys.exit(1)
+
+  def make_branch(options):
+    subprocess.check_call(['git', 'branch', branch_version, commithash])
+
+    subprocess.check_call(['git', 'checkout', branch_version])
+
+    # Rewrite the version, commit and validate.
+    old_version = 'master'
+    full_version = branch_version + '.0-dev'
+    version_prefix = 'LABEL = "'
+    sed(version_prefix + old_version,
+      version_prefix + full_version,
+      R8_VERSION_FILE)
+
+    subprocess.check_call([
+      'git', 'commit', '-a', '-m', 'Version %s' % full_version])
+
+    version_diff_output = subprocess.check_output([
+      'git', 'diff', '%s..HEAD' % commithash])
+
+    validate_version_change_diff(version_diff_output, old_version, full_version)
+
+    # Double check that we want to create a new release branch.
+    if not options.dry_run:
+      input = raw_input('Create new branch for %s [y/N]:' % branch_version)
+      if input != 'y':
+        print 'Aborting new branch for %s' % branch_version
+        sys.exit(1)
+
+    maybe_check_call(options, [
+      'git', 'push', 'origin', 'HEAD:%s' % branch_version])
+    maybe_tag(options, full_version)
+
+    # TODO(sgjesse): Automate this part as well!
+    print ('REMEMBER TO UPDATE R8_DEV_BRANCH in tools/r8_release.py to "'
+      + full_version
+      + '"!!!')
+
+  return make_branch
+
+
 def parse_options():
   result = argparse.ArgumentParser(description='Release r8')
   group = result.add_mutually_exclusive_group()
@@ -351,6 +413,10 @@ def parse_options():
                       help='The hash to use for the new dev version of R8')
   group.add_argument('--version',
                       help='The new version of R8 (e.g., 1.4.51)')
+  group.add_argument('--new-dev-branch',
+                      nargs=2,
+                      metavar=('VERSION', 'HASH'),
+                      help='Create a new branch starting a version line')
   result.add_argument('--no-sync', '--no_sync',
                       default=False,
                       action='store_true',
@@ -388,6 +454,12 @@ def parse_options():
 def main():
   args = parse_options()
   targets_to_run = []
+
+  if args.new_dev_branch:
+    if args.google3 or args.studio or args.aosp:
+      print 'Cannot create a branch and roll at the same time.'
+      sys.exit(1)
+    targets_to_run.append(prepare_branch(args))
 
   if args.dev_release:
     if args.google3 or args.studio or args.aosp:
