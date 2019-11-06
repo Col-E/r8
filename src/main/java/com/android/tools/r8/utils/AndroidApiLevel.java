@@ -155,4 +155,20 @@ public enum AndroidApiLevel {
         return LATEST;
     }
   }
+
+  public boolean isLessThan(AndroidApiLevel other) {
+    return this.level < other.getLevel();
+  }
+
+  public boolean isLessThanOrEqualTo(AndroidApiLevel other) {
+    return this.level <= other.getLevel();
+  }
+
+  public boolean isGreaterThan(AndroidApiLevel other) {
+    return other.isLessThan(this);
+  }
+
+  public boolean isGreaterThanOrEqualTo(AndroidApiLevel other) {
+    return other.isLessThanOrEqualTo(this);
+  }
 }
