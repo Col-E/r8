@@ -31,12 +31,7 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
   private boolean neverReturnsNull = DefaultMethodOptimizationInfo.UNKNOWN_NEVER_RETURNS_NULL;
   private boolean neverReturnsNormally =
       DefaultMethodOptimizationInfo.UNKNOWN_NEVER_RETURNS_NORMALLY;
-  private boolean returnsConstantNumber = DefaultMethodOptimizationInfo.UNKNOWN_RETURNS_CONSTANT;
-  private long returnedConstantNumber =
-      DefaultMethodOptimizationInfo.UNKNOWN_RETURNED_CONSTANT_NUMBER;
-  private boolean returnsConstantString = DefaultMethodOptimizationInfo.UNKNOWN_RETURNS_CONSTANT;
-  private DexString returnedConstantString =
-      DefaultMethodOptimizationInfo.UNKNOWN_RETURNED_CONSTANT_STRING;
+  private ConstantData constantData = DefaultMethodOptimizationInfo.UNKNOWN_CONSTANT_DATA;
   private TypeLatticeElement returnsObjectWithUpperBoundType =
       DefaultMethodOptimizationInfo.UNKNOWN_TYPE;
   private ClassTypeLatticeElement returnsObjectWithLowerBoundType =
@@ -95,10 +90,7 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
     returnValueOnlyDependsOnArguments = template.returnValueOnlyDependsOnArguments;
     neverReturnsNull = template.neverReturnsNull;
     neverReturnsNormally = template.neverReturnsNormally;
-    returnsConstantNumber = template.returnsConstantNumber;
-    returnedConstantNumber = template.returnedConstantNumber;
-    returnsConstantString = template.returnsConstantString;
-    returnedConstantString = template.returnedConstantString;
+    constantData = template.constantData;
     returnsObjectWithUpperBoundType = template.returnsObjectWithUpperBoundType;
     returnsObjectWithLowerBoundType = template.returnsObjectWithLowerBoundType;
     inlining = template.inlining;
@@ -233,18 +225,17 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
 
   @Override
   public boolean returnsConstant() {
-    assert !(returnsConstantNumber && returnsConstantString);
-    return returnsConstantNumber || returnsConstantString;
+    return constantData.hasConstant();
   }
 
   @Override
   public boolean returnsConstantNumber() {
-    return returnsConstantNumber;
+    return constantData.hasConstantNumber();
   }
 
   @Override
   public boolean returnsConstantString() {
-    return returnsConstantString;
+    return constantData.hasConstantString();
   }
 
   @Override
@@ -254,14 +245,14 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
 
   @Override
   public long getReturnedConstantNumber() {
-    assert returnsConstant();
-    return returnedConstantNumber;
+    assert returnsConstantNumber();
+    return constantData.getConstantNumber();
   }
 
   @Override
   public DexString getReturnedConstantString() {
-    assert returnsConstant();
-    return returnedConstantString;
+    assert returnsConstantString();
+    return constantData.getConstantString();
   }
 
   @Override
@@ -359,19 +350,19 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
   }
 
   void markReturnsConstantNumber(long value) {
-    assert !returnsConstantString;
-    assert !returnsConstantNumber || returnedConstantNumber == value
-        : "return constant number changed from " + returnedConstantNumber + " to " + value;
-    returnsConstantNumber = true;
-    returnedConstantNumber = value;
+    assert !constantData.hasConstantString();
+    assert !constantData.hasConstantNumber() || constantData.getConstantNumber() == value
+        : "return constant number changed from "
+            + constantData.getConstantNumber() + " to " + value;
+    constantData = ConstantData.fromConstantNumber(value);
   }
 
   void markReturnsConstantString(DexString value) {
-    assert !returnsConstantNumber;
-    assert !returnsConstantString || returnedConstantString == value
-        : "return constant string changed from " + returnedConstantString + " to " + value;
-    returnsConstantString = true;
-    returnedConstantString = value;
+    assert !constantData.hasConstantNumber();
+    assert !constantData.hasConstantString() || constantData.getConstantString() == value
+        : "return constant string changed from "
+            + constantData.getConstantString() + " to " + value;
+    constantData = ConstantData.fromConstantString(value);
   }
 
   void markReturnsObjectWithUpperBoundType(AppView<?> appView, TypeLatticeElement type) {
@@ -473,10 +464,7 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
     // code is not changed, and thus the following *return* info is not changed either.
     //   * neverReturnsNull
     //   * neverReturnsNormally
-    //   * returnsConstantNumber
-    //   * returnedConstantNumber
-    //   * returnsConstantString
-    //   * returnedConstantString
+    //   * constantData
     //   * returnsObjectWithUpperBoundType
     //   * returnsObjectWithLowerBoundType
     // inlining: it is not inlined, and thus staticized. No more chance of inlining, though.

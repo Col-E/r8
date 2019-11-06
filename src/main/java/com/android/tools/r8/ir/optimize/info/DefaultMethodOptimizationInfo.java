@@ -23,9 +23,7 @@ public class DefaultMethodOptimizationInfo implements MethodOptimizationInfo {
   static int UNKNOWN_RETURNED_ARGUMENT = -1;
   static boolean UNKNOWN_NEVER_RETURNS_NULL = false;
   static boolean UNKNOWN_NEVER_RETURNS_NORMALLY = false;
-  static boolean UNKNOWN_RETURNS_CONSTANT = false;
-  static long UNKNOWN_RETURNED_CONSTANT_NUMBER = 0;
-  static DexString UNKNOWN_RETURNED_CONSTANT_STRING = null;
+  static ConstantData UNKNOWN_CONSTANT_DATA = ConstantData.getDefaultInstance();
   static TypeLatticeElement UNKNOWN_TYPE = null;
   static ClassTypeLatticeElement UNKNOWN_CLASS_TYPE = null;
   static boolean DOES_NOT_USE_IDNETIFIER_NAME_STRING = false;
@@ -136,17 +134,17 @@ public class DefaultMethodOptimizationInfo implements MethodOptimizationInfo {
 
   @Override
   public boolean returnsConstant() {
-    return UNKNOWN_RETURNS_CONSTANT;
+    return UNKNOWN_CONSTANT_DATA.hasConstant();
   }
 
   @Override
   public boolean returnsConstantNumber() {
-    return UNKNOWN_RETURNS_CONSTANT;
+    return UNKNOWN_CONSTANT_DATA.hasConstantNumber();
   }
 
   @Override
   public boolean returnsConstantString() {
-    return UNKNOWN_RETURNS_CONSTANT;
+    return UNKNOWN_CONSTANT_DATA.hasConstantString();
   }
 
   @Override
@@ -157,13 +155,13 @@ public class DefaultMethodOptimizationInfo implements MethodOptimizationInfo {
   @Override
   public long getReturnedConstantNumber() {
     assert returnsConstantNumber();
-    return UNKNOWN_RETURNED_CONSTANT_NUMBER;
+    return UNKNOWN_CONSTANT_DATA.getConstantNumber();
   }
 
   @Override
   public DexString getReturnedConstantString() {
     assert returnsConstantString();
-    return UNKNOWN_RETURNED_CONSTANT_STRING;
+    return UNKNOWN_CONSTANT_DATA.getConstantString();
   }
 
   @Override

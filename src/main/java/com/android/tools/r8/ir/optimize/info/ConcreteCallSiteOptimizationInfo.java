@@ -22,6 +22,7 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
   // That is, this information takes into account the receiver as well.
   private final int size;
   private final Int2ReferenceArrayMap<TypeLatticeElement> dynamicUpperBoundTypes;
+  // TODO(b/69963623): sparse map from index to ConstantData if any.
 
   private ConcreteCallSiteOptimizationInfo(DexEncodedMethod encodedMethod) {
     assert encodedMethod.method.getArity() + (encodedMethod.isStatic() ? 0 : 1) > 0;
