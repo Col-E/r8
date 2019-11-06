@@ -18,6 +18,7 @@ import utils
 R8_DEV_BRANCH = '1.7'
 R8_VERSION_FILE = os.path.join(
     'src', 'main', 'java', 'com', 'android', 'tools', 'r8', 'Version.java')
+THIS_FILE = os.path.join(utils.TOOLS_DIR, 'r8_release.py')
 
 
 def prepare_release(args):
@@ -117,6 +118,7 @@ def version_change_diff(diff, old_version, new_version):
         line != '+  public static final String LABEL = "%s";' % new_version:
       invalid_line = line
   return invalid_line
+
 
 def validate_version_change_diff(version_diff_output, old_version, new_version):
   invalid = version_change_diff(version_diff_output, old_version, new_version)
@@ -350,6 +352,34 @@ def prepare_google3(args):
   return release_google3
 
 
+def branch_change_diff(diff, old_version, new_version):
+  invalid_line = None
+  for line in diff.splitlines():
+    if line.startswith('-R8') and \
+        line != "-R8_DEV_BRANCH = '%s'" % old_version:
+      print line
+      invalid_line = line
+    elif line.startswith('+R8') and \
+        line != "+R8_DEV_BRANCH = '%s'" % new_version:
+      print line
+      invalid_line = line
+  return invalid_line
+
+
+def validate_branch_change_diff(version_diff_output, old_version, new_version):
+  invalid = branch_change_diff(version_diff_output, old_version, new_version)
+  if invalid:
+    print
+    print "The diff for the branch change in tools/release.py is not as expected:"
+    print
+    print "=" * 80
+    print version_diff_output
+    print "=" * 80
+    print
+    print "Validate the uploaded CL before landing."
+    print
+
+
 def prepare_branch(args):
   branch_version = args.new_dev_branch[0]
   commithash = args.new_dev_branch[1]
@@ -367,41 +397,74 @@ def prepare_branch(args):
     sys.exit(1)
 
   def make_branch(options):
-    subprocess.check_call(['git', 'branch', branch_version, commithash])
+    with utils.TempDir() as temp:
+      subprocess.check_call(['git', 'clone', utils.REPO_SOURCE, temp])
+      with utils.ChangedWorkingDirectory(temp):
+        subprocess.check_call(['git', 'branch', branch_version, commithash])
 
-    subprocess.check_call(['git', 'checkout', branch_version])
+        subprocess.check_call(['git', 'checkout', branch_version])
 
-    # Rewrite the version, commit and validate.
-    old_version = 'master'
-    full_version = branch_version + '.0-dev'
-    version_prefix = 'LABEL = "'
-    sed(version_prefix + old_version,
-      version_prefix + full_version,
-      R8_VERSION_FILE)
+        # Rewrite the version, commit and validate.
+        old_version = 'master'
+        full_version = branch_version + '.0-dev'
+        version_prefix = 'LABEL = "'
+        sed(version_prefix + old_version,
+          version_prefix + full_version,
+          R8_VERSION_FILE)
 
-    subprocess.check_call([
-      'git', 'commit', '-a', '-m', 'Version %s' % full_version])
+        subprocess.check_call([
+          'git', 'commit', '-a', '-m', 'Version %s' % full_version])
 
-    version_diff_output = subprocess.check_output([
-      'git', 'diff', '%s..HEAD' % commithash])
+        version_diff_output = subprocess.check_output([
+          'git', 'diff', '%s..HEAD' % commithash])
 
-    validate_version_change_diff(version_diff_output, old_version, full_version)
+        validate_version_change_diff(version_diff_output, old_version, full_version)
 
-    # Double check that we want to create a new release branch.
-    if not options.dry_run:
-      input = raw_input('Create new branch for %s [y/N]:' % branch_version)
-      if input != 'y':
-        print 'Aborting new branch for %s' % branch_version
-        sys.exit(1)
+        # Double check that we want to create a new release branch.
+        if not options.dry_run:
+          input = raw_input('Create new branch for %s [y/N]:' % branch_version)
+          if input != 'y':
+            print 'Aborting new branch for %s' % branch_version
+            sys.exit(1)
 
-    maybe_check_call(options, [
-      'git', 'push', 'origin', 'HEAD:%s' % branch_version])
-    maybe_tag(options, full_version)
+        maybe_check_call(options, [
+          'git', 'push', 'origin', 'HEAD:%s' % branch_version])
+        maybe_tag(options, full_version)
 
-    # TODO(sgjesse): Automate this part as well!
-    print ('REMEMBER TO UPDATE R8_DEV_BRANCH in tools/r8_release.py to "'
-      + full_version
-      + '"!!!')
+        print ('Updating tools/r8_release.py to make new dev releases on %s'
+          % branch_version)
+
+        subprocess.check_call(['git', 'new-branch', 'update-release-script'])
+
+        # Check this file for the setting of the current dev branch.
+        result = None
+        for line in open(THIS_FILE, 'r'):
+          result = re.match(
+              r"^R8_DEV_BRANCH = '(\d+).(\d+)'", line)
+          if result:
+            break
+        if not result or not result.group(1):
+          print 'Failed to find version label in %s' % THIS_FILE
+          sys.exit(1)
+
+        # Update this file with the new dev branch.
+        sed("R8_DEV_BRANCH = '%s.%s" % (result.group(1), result.group(2)),
+          "R8_DEV_BRANCH = '%s.%s" % (str(semver.major), str(semver.minor)),
+          THIS_FILE)
+
+        message = 'Prepare %s for branch %s' % (THIS_FILE, branch_version)
+        subprocess.check_call(['git', 'commit', '-a', '-m', message])
+
+        branch_diff_output = subprocess.check_output(['git', 'diff', 'HEAD~'])
+
+        validate_branch_change_diff(
+          branch_diff_output, R8_DEV_BRANCH, branch_version)
+
+        maybe_check_call(options, ['git', 'cl', 'upload', '-f', '-m', message])
+
+        print
+        print 'Make sure to send out the branch change CL for review.'
+        print
 
   return make_branch
 
